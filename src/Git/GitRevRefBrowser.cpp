@@ -1,6 +1,6 @@
 ﻿// TortoiseGit - a Windows shell extension for easy version control
 
-// Copyright (C) 2009-2020, 2024-2025 - TortoiseGit
+// Copyright (C) 2009-2020, 2024-2026 - TortoiseGit
 
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -117,7 +117,7 @@ int GitRevRefBrowser::GetGitRevRefMap(MAP_REF_GITREVREFBROWSER& map, int mergefi
 				if (const char* body = strchr(msg, '\n'); !body)
 					entry.m_Subject = CUnicodeUtils::GetUnicode(msg);
 				else
-					entry.m_Subject = CUnicodeUtils::GetUnicodeLengthSizeT(msg, body - msg);
+					entry.m_Subject = CUnicodeUtils::GetUnicode(std::string_view(msg, body - msg));
 				auto tagger = git_tag_tagger(tag);
 				entry.m_CommitterName = CUnicodeUtils::GetUnicode(tagger->name);
 				entry.m_CommitterEmail = CUnicodeUtils::GetUnicode(tagger->email);
@@ -161,7 +161,7 @@ int GitRevRefBrowser::GetGitRevRefMap(MAP_REF_GITREVREFBROWSER& map, int mergefi
 
 				CAutoBuf buf;
 				if (const auto ret = git_branch_upstream_name(buf, repo, git_reference_name(ref)); ret == 0)
-					entry.m_UpstreamRef = CUnicodeUtils::GetUnicodeLengthSizeT(buf->ptr, buf->size);
+					entry.m_UpstreamRef = CUnicodeUtils::GetUnicode(buf);
 				else if (ret != GIT_ENOTFOUND)
 				{
 					err = g_Git.GetLibGit2LastErr();
