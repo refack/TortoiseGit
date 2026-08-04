@@ -30,6 +30,16 @@
 
 CGitAdminDirMap g_AdminDirMap;
 
+// this file is compiled into projects with and without GIT_EXPERIMENTAL_SHA256; only SHA1 repos are supported so far
+static int tgit_odb_hash(git_oid* out, const void* data, size_t len, git_object_t type)
+{
+#ifdef GIT_EXPERIMENTAL_SHA256
+	return git_odb_hash(out, data, len, type, GIT_OID_SHA1);
+#else
+	return git_odb_hash(out, data, len, type);
+#endif
+}
+
 int CGitIndex::Print()
 {
 	wprintf(L"0x%08X  0x%08X %s %s\n",
@@ -279,7 +289,7 @@ int CGitIndexList::GetFileStatus(CAutoRepository& repository, const CString& git
 		if (isSymlink && S_ISLNK(entry.m_Mode))
 		{
 			CStringA linkDestination;
-			if (!CPathUtils::ReadLink(CombinePath(gitdir, entry.m_FileName), &linkDestination) && !git_odb_hash(&actual, static_cast<LPCSTR>(linkDestination), linkDestination.GetLength(), GIT_OBJECT_BLOB) && !git_oid_cmp(&actual, entry.m_IndexHash))
+			if (!CPathUtils::ReadLink(CombinePath(gitdir, entry.m_FileName), &linkDestination) && !tgit_odb_hash(&actual, static_cast<LPCSTR>(linkDestination), linkDestination.GetLength(), GIT_OBJECT_BLOB) && !git_oid_cmp(&actual, entry.m_IndexHash))
 			{
 				entry.m_ModifyTime = static_cast<int32_t>(CGit::filetime_to_time_t(time));
 				entry.m_ModifyTimeNanos = (time % 10000000) * 100;
