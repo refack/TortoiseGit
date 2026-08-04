@@ -5,10 +5,6 @@
       <Configuration>Debug</Configuration>
       <Platform>ARM64</Platform>
     </ProjectConfiguration>
-    <ProjectConfiguration Include="Debug|Win32">
-      <Configuration>Debug</Configuration>
-      <Platform>Win32</Platform>
-    </ProjectConfiguration>
     <ProjectConfiguration Include="Debug|x64">
       <Configuration>Debug</Configuration>
       <Platform>x64</Platform>
@@ -16,10 +12,6 @@
     <ProjectConfiguration Include="Release|ARM64">
       <Configuration>Release</Configuration>
       <Platform>ARM64</Platform>
-    </ProjectConfiguration>
-    <ProjectConfiguration Include="Release|Win32">
-      <Configuration>Release</Configuration>
-      <Platform>Win32</Platform>
     </ProjectConfiguration>
     <ProjectConfiguration Include="Release|x64">
       <Configuration>Release</Configuration>
@@ -42,10 +34,8 @@
   <Import Project="$(SolutionDir)TortoiseGit.common.props" />
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup>
-    <OutDir Condition="'$(Platform)'=='Win32'">$(SolutionDir)..\bin\$(Configuration)\Languages\</OutDir>
     <OutDir Condition="'$(Platform)'=='x64'">$(SolutionDir)..\bin\$(Configuration)64\Languages\</OutDir>
     <OutDir Condition="'$(Platform)'=='ARM64'">$(SolutionDir)..\bin\$(Configuration)ARM64\Languages\</OutDir>
-    <ExeDir Condition="'$(Platform)'=='Win32'">$(SolutionDir)..\bin\$(Configuration)\Languages\</ExeDir>
     <ExeDir Condition="'$(Platform)'=='x64'">$(SolutionDir)..\bin\$(Configuration)64\Languages\</ExeDir>
     <ExeDir Condition="'$(Platform)'=='ARM64' AND ('$(PROCESSOR_ARCHITECTURE)'=='AMD64' OR '$(PROCESSOR_ARCHITEW6432)'=='AMD64')">$(SolutionDir)..\bin\$(Configuration)64\Languages\</ExeDir>
     <ExeDir Condition="'$(Platform)'=='ARM64' AND ('$(PROCESSOR_ARCHITECTURE)'=='$(Platform)' OR '$(PROCESSOR_ARCHITEW6432)'=='$(Platform)')">$(SolutionDir)..\bin\$(Configuration)ARM64\Languages\</ExeDir>
