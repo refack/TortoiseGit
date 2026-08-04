@@ -265,8 +265,9 @@ int GetStatus(const wchar_t* path, GitWCRev_t& GitStat)
 		return ERR_GIT_ERR;
 	else if (ret == 1)
 	{
-		memset(GitStat.HeadHashReadable, '0', sizeof(GitStat.HeadHashReadable));
-		GitStat.HeadHashReadable[sizeof(GitStat.HeadHashReadable) - 1] = '\0';
+		// unborn HEAD keeps the SHA1-sized zero id (GIT_REV_ZERO) until app-level SHA256 support lands
+		memset(GitStat.HeadHashReadable, '0', GIT_OID_SHA1_HEXSIZE);
+		GitStat.HeadHashReadable[GIT_OID_SHA1_HEXSIZE] = '\0';
 		GitStat.bIsUnborn = TRUE;
 
 		CAutoReference symbolicHead;
