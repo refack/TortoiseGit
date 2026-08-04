@@ -21,9 +21,7 @@
 #define GIT_HASH_SIZE 20
 
 /* also see gitdll.c */
-static_assert(sizeof(git_oid) == GIT_HASH_SIZE, "hash size needs to be the same as in libgit2");
-static_assert(sizeof(git_oid) == GIT_HASH_SIZE, "hash size needs to be the same as in libgit2");
-static_assert(sizeof(git_oid::id) == GIT_HASH_SIZE, "hash size needs to be the same as in libgit2");
+static_assert(GIT_HASH_SIZE <= sizeof(git_oid::id), "git_oid raw storage must be able to hold GIT_HASH_SIZE bytes");
 
 #define GIT_REV_ZERO_C "0000000000000000000000000000000000000000"
 #define GIT_REV_ZERO _T(GIT_REV_ZERO_C)
@@ -35,26 +33,26 @@ struct std::hash<CGitHash>;
 class CGitHash
 {
 private:
-	unsigned char m_hash[GIT_HASH_SIZE]{};
+	git_oid m_oid{};
 
 public:
 	CGitHash() = default;
 	CGitHash(const git_oid* oid)
 	{
-		git_oid_cpy(reinterpret_cast<git_oid*>(m_hash), oid);
+		git_oid_cpy(&m_oid, oid);
 	}
 	CGitHash(const git_oid& oid)
 	{
-		git_oid_cpy(reinterpret_cast<git_oid*>(m_hash), &oid);
+		git_oid_cpy(&m_oid, &oid);
 	}
 	CGitHash& operator = (const git_oid* oid)
 	{
-		git_oid_cpy(reinterpret_cast<git_oid*>(m_hash), oid);
+		git_oid_cpy(&m_oid, oid);
 		return *this;
 	}
 	CGitHash& operator = (const git_oid& oid)
 	{
-		git_oid_cpy(reinterpret_cast<git_oid*>(m_hash), &oid);
+		git_oid_cpy(&m_oid, &oid);
 		return *this;
 	}
 
@@ -111,7 +109,7 @@ public:
 					return CGitHash();
 				}
 			}
-			hash.m_hash[i] = a;
+			hash.m_oid.id[i] = a;
 		}
 		if (isHash)
 			*isHash = true;
@@ -121,18 +119,18 @@ public:
 	static CGitHash FromRaw(const unsigned char* raw)
 	{
 		CGitHash hash;
-		memcpy(hash.m_hash, raw, GIT_HASH_SIZE);
+		memcpy(hash.m_oid.id, raw, GIT_HASH_SIZE);
 		return hash;
 	}
 
 	void Empty()
 	{
-		memset(m_hash,0, GIT_HASH_SIZE);
+		memset(m_oid.id, 0, GIT_HASH_SIZE);
 	}
 	inline bool IsEmpty() const
 	{
 		static const unsigned char empty[GIT_HASH_SIZE]{};
-		return memcmp(m_hash, empty, GIT_HASH_SIZE) == 0;
+		return memcmp(m_oid.id, empty, GIT_HASH_SIZE) == 0;
 	}
 
 	CString ToString() const
@@ -140,7 +138,7 @@ public:
 		CString str;
 		str.Preallocate(GIT_HASH_SIZE * 2);
 		for (int i = 0; i < GIT_HASH_SIZE; ++i)
-			str.AppendFormat(L"%02x", m_hash[i]);
+			str.AppendFormat(L"%02x", m_oid.id[i]);
 		return str;
 	}
 
@@ -156,37 +154,37 @@ public:
 
 	operator const git_oid*() const
 	{
-		return reinterpret_cast<const git_oid*>(m_hash);
+		return &m_oid;
 	}
 
 	const unsigned char* ToRaw() const
 	{
-		return m_hash;
+		return m_oid.id;
 	}
 
 	bool operator == (const CGitHash &hash) const
 	{
-		return memcmp(m_hash,hash.m_hash,GIT_HASH_SIZE) == 0;
+		return memcmp(m_oid.id, hash.m_oid.id, GIT_HASH_SIZE) == 0;
 	}
 
 	bool operator<(const CGitHash& other) const
 	{
-		return memcmp(m_hash, other.m_hash, GIT_HASH_SIZE) < 0;
+		return memcmp(m_oid.id, other.m_oid.id, GIT_HASH_SIZE) < 0;
 	}
 
 	bool operator>(const CGitHash& other) const
 	{
-		return memcmp(m_hash, other.m_hash, GIT_HASH_SIZE) > 0;
+		return memcmp(m_oid.id, other.m_oid.id, GIT_HASH_SIZE) > 0;
 	}
 
 	bool operator!=(const CGitHash& other) const
 	{
-		return memcmp(m_hash, other.m_hash, GIT_HASH_SIZE) != 0;
+		return memcmp(m_oid.id, other.m_oid.id, GIT_HASH_SIZE) != 0;
 	}
 
 	bool MatchesPrefix(const CGitHash& hash, const CString& hashString, size_t prefixLen) const
 	{
-		if (memcmp(m_hash, hash.m_hash, prefixLen >> 1))
+		if (memcmp(m_oid.id, hash.m_oid.id, prefixLen >> 1))
 			return false;
 		return prefixLen == 2 * GIT_HASH_SIZE || wcsncmp(ToString(), hashString, prefixLen) == 0;
 	}
@@ -207,10 +205,10 @@ namespace std
 		 */
 		std::size_t operator()(const CGitHash& k) const
 		{
-			static_assert(sizeof(size_t) <= sizeof(k.m_hash));
+			static_assert(sizeof(size_t) <= GIT_HASH_SIZE);
 			size_t hash;
 			// this makes sure that all reads to the size_t value are aligned
-			memcpy(&hash, k.m_hash, sizeof(hash));
+			memcpy(&hash, k.m_oid.id, sizeof(hash));
 			return hash;
 		}
 	};

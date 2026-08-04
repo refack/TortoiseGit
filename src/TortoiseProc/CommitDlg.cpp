@@ -1158,7 +1158,7 @@ void CCommitDlg::PrepareIndexForCommitWithoutStagingSupport(int nListItems, bool
 			}
 
 			CAutoIndex indexOld;
-			if (!revHash.IsEmpty() && (git_index_new(indexOld.GetPointer()) || git_index_read_tree(indexOld, tree)))
+			if (!revHash.IsEmpty() && (git_index_new(indexOld.GetPointer(), nullptr) || git_index_read_tree(indexOld, tree)))
 			{
 				CMessageBox::Show(GetSafeHwnd(), CGit::GetLibGit2LastErr(L"Could not read the tree into the index."), L"TortoiseGit", MB_OK | MB_ICONERROR);
 				break;
