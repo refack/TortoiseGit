@@ -8,6 +8,10 @@
     <IntDir Condition="'$(Platform)'=='ARM64'">$(SolutionDir)..\obj\$(ProjectName)\$(Configuration)ARM64\</IntDir>
     <OutDir Condition="'$(Platform)'=='ARM64'">$(SolutionDir)..\bin\$(Configuration)ARM64\bin\</OutDir>
   </PropertyGroup>
+  <PropertyGroup>
+    <!-- opt-in compiler cache: msbuild ... /p:UseSccache=true -->
+    <UseSccache Condition="'$(UseSccache)'==''">false</UseSccache>
+  </PropertyGroup>
   <ItemDefinitionGroup>
     <ClCompile>
       <BufferSecurityCheck>true</BufferSecurityCheck>
@@ -87,5 +91,29 @@
     <ResourceCompile>
       <PreprocessorDefinitions>NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ResourceCompile>
+  </ItemDefinitionGroup>
+  <!--
+    Keep last: ItemDefinitionGroups are applied in order, so this has to come after the
+    groups above to be able to override them.
+
+    MSBuild has no compiler-launcher property (that is a CMake concept), so the cache is
+    hooked in by pointing CLToolExe at a copy of sccache.exe named cl.exe, which then finds
+    the real cl.exe via PATH. /MP batches several source files into a single cl.exe
+    invocation, so it is turned off here. Debug info has to be /Z7 (OldStyle) as well:
+    /Zi routes PDB writes through mspdbsrv, which sccache cannot cache.
+
+    Precompiled headers are off too, since sccache does not cache compilations that consume
+    one. Projects whose sources include their PCH by name and rely on /Yu to resolve it have
+    to pin PrecompiledHeader themselves, in an ItemDefinitionGroup after this file is
+    imported - see ext\build\libgit2.vcxproj and its precompiled.h.
+  -->
+  <ItemDefinitionGroup Condition="'$(UseSccache)'=='true'">
+    <ClCompile>
+      <CLToolPath>$(SolutionDir)..\.git\</CLToolPath>
+      <CLToolExe>cl.exe</CLToolExe>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <MultiProcessorCompilation>false</MultiProcessorCompilation>
+      <DebugInformationFormat>OldStyle</DebugInformationFormat>
+    </ClCompile>
   </ItemDefinitionGroup>
 </Project>
