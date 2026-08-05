@@ -879,7 +879,7 @@ void CLogDlg::FillLogMessageCtrl(bool bShow /* = true*/)
 			auto filter{ m_LogList.m_LogFilter.load() };
 
 			// set the log message text
-			CString msg = CString(MAKEINTRESOURCE(IDS_HASH)) + L": ";
+			CString msg = CString(GitObjectFormatName()) + L": ";
 			int offset = msg.GetLength();
 			msg += pLogEntry->m_CommitHash.ToString();
 			if ((m_SelectedFilters & LOGFILTER_REVS) && filter->IsFilterActive())

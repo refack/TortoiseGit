@@ -92,6 +92,23 @@ int git_get_sha1(const char *name, GIT_HASH sha1)
 	return ret;
 }
 
+/*
+ * Hash algorithm of the currently opened repository, using git's own
+ * GIT_HASH_* indices (0 = unknown, 1 = sha1, 2 = sha256). TortoiseGit latches
+ * this once after git_init() and sizes its object ids accordingly, see GitHash.h.
+ */
+static int tgit_repo_hash_algo(void)
+{
+	if (!the_repository || !the_repository->hash_algo)
+		return GIT_HASH_UNKNOWN;
+	return hash_algo_by_ptr(the_repository->hash_algo);
+}
+
+int git_get_hash_algo(void)
+{
+	return tgit_repo_hash_algo();
+}
+
 int git_init(const LPWSTR* env)
 {
 	_fmode = _O_BINARY;
@@ -111,9 +128,12 @@ int git_init(const LPWSTR* env)
 	ref_store_release_and_clear(the_repository);
 	clear_ref_decorations();
 
-	/* add a safeguard until we have full support in TortoiseGit */
-	if (the_repository && the_repository->hash_algo && strcmp(the_repository->hash_algo->name, "sha1") != 0)
-		die("Only SHA1 is supported right now.");
+	/*
+	 * sha1 and sha256 are both handled now (callers size object ids off
+	 * git_get_hash_algo(), see GitHash.h); anything else we do not know about.
+	 */
+	if (tgit_repo_hash_algo() == GIT_HASH_UNKNOWN)
+		die("Unsupported repository object format.");
 
 	return 0;
 }
@@ -155,7 +175,7 @@ int git_parse_commit(GIT_COMMIT *commit)
 
 	p= (struct commit *)commit->m_pGitCommit;
 
-	memcpy(commit->m_hash, p->object.oid.hash, GIT_SHA1_RAWSZ);
+	hashcpy(commit->m_hash, p->object.oid.hash, the_repository->hash_algo);
 
 	commit->m_Encode = NULL;
 	commit->m_EncodeSize = 0;
@@ -241,7 +261,7 @@ int git_get_commit_from_hash(GIT_COMMIT* commit, const GIT_HASH hash)
 	memset(commit,0,sizeof(GIT_COMMIT));
 
 	hashcpy(oid.hash, hash, the_repository->hash_algo);
-	oid.algo = 0;
+	oid.algo = tgit_repo_hash_algo();
 
 	commit->m_pGitCommit = p = lookup_commit(the_repository, &oid);
 
@@ -283,7 +303,7 @@ int git_get_commit_next_parent(GIT_COMMIT_LIST *list, GIT_HASH hash)
 		return -1;
 
 	if(hash)
-		memcpy(hash, l->item->object.oid.hash, GIT_SHA1_RAWSZ);
+		hashcpy(hash, l->item->object.oid.hash, the_repository->hash_algo);
 
 	*list = (GIT_COMMIT_LIST *)l->next;
 	return 0;
@@ -501,6 +521,7 @@ int git_root_diff(GIT_DIFF diff, const GIT_HASH hash, GIT_FILE* file, int* count
 	p_Rev = (struct rev_info *)diff;
 
 	hashcpy(oid.hash, hash, the_repository->hash_algo);
+	oid.algo = tgit_repo_hash_algo();
 
 	diff_root_tree_oid(&oid, "", &p_Rev->diffopt);
 
@@ -533,9 +554,9 @@ int git_do_diff(GIT_DIFF diff, const GIT_HASH hash1, const GIT_HASH hash2, GIT_F
 	p_Rev = (struct rev_info *)diff;
 
 	hashcpy(oid1.hash, hash1, the_repository->hash_algo);
-	oid1.algo = 0;
+	oid1.algo = tgit_repo_hash_algo();
 	hashcpy(oid2.hash, hash2, the_repository->hash_algo);
-	oid2.algo = 0;
+	oid2.algo = tgit_repo_hash_algo();
 
 	diff_tree_oid(&oid1, &oid2, "", &p_Rev->diffopt);
 
@@ -657,7 +678,7 @@ int git_get_notes(const GIT_HASH hash, char** p_note)
 	size_t size;
 	strbuf_init(&sb,0);
 	hashcpy(oid.hash, hash, the_repository->hash_algo);
-	oid.algo = 0;
+	oid.algo = tgit_repo_hash_algo();
 	format_display_notes(&oid, &sb, "utf-8", 1);
 	*p_note = strbuf_detach(&sb,&size);
 
