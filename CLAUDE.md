@@ -207,6 +207,28 @@ throughout the UI, `GIT_REV_ZERO` (currently a 40-char literal) needs a
 `git_oid` type). Mark the feature experimental in the UI. Exit: core
 workflows (log, status, commit, blame, diff) work end-to-end on a SHA256
 test repo.
+  *Status: started out of order in `f8064ea8e` — `/command:log` works
+  end-to-end on a SHA256 repo (`test\sha256wc`, untracked local test repo:
+  full 64-char id in list + detail pane, diff resolves, context menu works).
+  Design (per user direction): object format is **process-level state**, not
+  per-hash — TortoiseGit runs one process per working copy, so
+  `CGit::CheckAndInitDll()` latches `g_gitObjectFormat` from the newly
+  exported `git_get_hash_algo()` (gitdll), and `GIT_HASH_SIZE` is now the
+  runtime function `GitHashSize()` (20 or 32); fixed-size buffers use
+  compile-time `GIT_HASH_MAX_SIZE` (40) so there is always room for both
+  modes, and API calls fork on the format where needed. Sizes reuse
+  libgit2's `GIT_OID_*` macros — do not add duplicate size macros.
+  gitdll fixes: 2019 `die("Only SHA1...")` guard narrowed to unknown
+  formats; three hardcoded `GIT_SHA1_RAWSZ` copies → `hashcpy` with the
+  repo's algo; four `oid.algo = 0` → real algo index (required or
+  `lookup_commit` fails). Hashes stay **hex** (64 chars) — that is the
+  universal convention (git, GitHub, GitLab); never base64.
+  Remaining gaps: log column header + revision filter still say "SHA-1"
+  (from `IDS_HASH`/`IDS_LOG_FILTER_REVS` resource strings — product call,
+  churns translations); `GIT_REV_ZERO` still a 40-char literal (empty-row
+  rendering is fine via `ToString()`, direct string compares would break);
+  other workflows (status/commit/blame/diff dialogs) untested on SHA256;
+  and see the sharpened unflagged-consumer risk below.*
 
 - [ ] **Phase 5 — Switch the WiX packager from MSI to MSIX.** *(Added
 2026-08-04, per user direction.)* Replace
@@ -242,7 +264,11 @@ MSIX package. **Not a trivial packer swap:**
   while the DLL uses the tagged 33-byte one: silent corruption on any oid
   crossing the boundary. Six of the ten consumers are still unflagged (see
   Phase 3 status). Converting to a static lib (Phase 1) does NOT remove this
-  constraint — the define must still match per-executable.
+  constraint — the define must still match per-executable. **Sharpened by
+  `f8064ea8e`:** gitdll no longer refuses SHA256 repos, and `gitdll.dll` is
+  shared by all consumers — but in unflagged binaries `GitHashSize()`
+  compiles to a hard 20, so TortoiseShell/TGitCache/etc. would now open a
+  SHA256 repo and silently truncate ids instead of failing loudly.
 - `GitLogCache` on-disk cache format — needs versioning or it'll misread old
   caches as corrupt (or worse, as valid).
 - `GIT_REV_ZERO` and any other 40-char hex literal compared against a
