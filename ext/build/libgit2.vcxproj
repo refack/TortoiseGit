@@ -49,6 +49,9 @@
       <PreprocessorDefinitions>LIBGIT2_NO_FEATURES_H;GIT_QSORT_S;GIT_HTTPS;GIT_WINHTTP;GIT_HTTPPARSER_BUILTIN;GIT_USE_NSEC;GIT_THREADS;GIT_SHA1_COLLISIONDETECT;GIT_SHA256_WIN32;GIT_NTLM;GIT_REGEX_PCRE2;GIT_IO_WSAPOLL;PCRE2_STATIC;GIT_EXPERIMENTAL_SHA256;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <PreprocessorDefinitions Condition="'$(Platform)'=='x64'">GIT_ARCH_64;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <PreprocessorDefinitions Condition="'$(Platform)'=='ARM64'">GIT_ARCH_64;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <!-- pinned: these sources include precompiled.h by name and rely on /Yu to resolve it,
+           so the PCH must stay on even when the global sccache switch turns it off -->
+      <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>precompiled.h</PrecompiledHeaderFile>
       <CompileAs>CompileAsC</CompileAs>
       <ForcedIncludeFiles>precompiled.h;%(ForcedIncludeFiles)</ForcedIncludeFiles>
