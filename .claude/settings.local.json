@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "WebSearch",
+      "WebFetch(domain:files.community)",
+      "WebFetch(domain:joelleach.net)",
+      "WebFetch(domain:medium.com)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "WebFetch(domain:projectzero.google)",
+      "Bash(ls *)",
+      "PowerShell(git *)",
+      "PowerShell(& 'E:\\\\3party\\\\TortoiseGit\\\\bin\\\\Debug64\\\\bin\\\\Tests.exe')",
+    ]
+  },
+  "outputStyle": "Explanatory",
+  "spinnerTipsEnabled": false,
+  "prefersReducedMotion": true
+}

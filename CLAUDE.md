@@ -14,10 +14,15 @@ Landed so far (see per-phase notes below for what remains):
   fixed), and `GIT_EXPERIMENTAL_SHA256` is defined for `libgit2.vcxproj`,
   `TortoiseProc.vcxproj`, `TortoiseMerge.vcxproj`. `GIT_HASH_SIZE` stays 20,
   so app behavior is still SHA1-only.
-- Uncommitted follow-up (this session): same define added to
-  `test\UnitTests\UnitTests.vcxproj` and `test\Cache\Cache.vcxproj` (they
-  link the flagged libgit2 DLL — without the define they'd be an ABI
-  mismatch), plus their leftover Win32 configs removed.
+- `df40b91a9` — same define added to `test\UnitTests\UnitTests.vcxproj` and
+  `test\Cache\Cache.vcxproj` (they link the flagged libgit2 DLL — without the
+  define they'd be an ABI mismatch), plus their leftover Win32 configs
+  removed. This doc was committed separately as `5f3e184f8`.
+- In flight in separate sessions as of 2026-08-04, not yet merged into this
+  branch — verify with `git log`/`git branch` before assuming done: the
+  remaining six unflagged libgit2 consumers (Phase 3's sharpest open item)
+  and the `GitWCRevStatus` hardcoded-`"master"` test fix (pre-existing bug,
+  unrelated to the SHA256 work).
 
 ## Goals
 
@@ -36,6 +41,10 @@ Landed so far (see per-phase notes below for what remains):
 ## Current architecture (as verified by reading the repo)
 
 - A vcpkg-built `git2-experimental.dll` was tried as a throwaway experiment but it didn't work without changes.
+  **Correction (2026-08-04, per user direction): this is no longer read as
+  "vcpkg is untrustworthy" — Phase 1's goal has reversed to adopting vcpkg,
+  bridged by a port overlay. Find out *why* that attempt failed (missing
+  feature flags? backend selection?) before repeating it, see Phase 1.**
   `ext\*` subtrees are vendored via git submodules — that's the trusted, higher-quality architecture.
   Any libgit2 source fork/patch work happens **inside `ext\libgit2`**
   (the submodule), following the existing pattern: TortoiseGit-specific
@@ -125,16 +134,32 @@ ARM64 build clean; no Win32 config left in `TortoiseGit.sln`/`.slnx`.
   MSI components (gitdll32.dll, puttygen-x86.exe, TortoiseGitStub32.dll) and
   need careful review, not a mechanical strip.*
 
-- [ ] **Phase 1 — Static-lib conversion (de-fragmentation).** Convert
-`ext\build\libgit2.vcxproj` from `DynamicLibrary` to `StaticLibrary`,
-matching the existing `libgit.vcxproj` pattern. Keep it in `ext\build\`
-(don't fork the 180-file list across TortoiseProc and TortoiseMerge — that
-would double the maintenance burden the restructuring is meant to reduce).
-Both exes keep their `ProjectReference`; the linker drops unused objects per
-exe. Remove `libgit2_tgit.dll` from `StructureFragment.wxi`. Grep `src\` and
-installer scripts for any remaining path/LoadLibrary reference to the DLL
-name. Exit: x64/ARM64 build, installer has no libgit2 DLL, app smoke-tests
-pass, behavior unchanged.
+- [ ] **Phase 1 — Migrate to vcpkg (de-fragmentation).** *(Revised
+2026-08-04, per user direction.)* The goal is no longer "keep
+hand-maintaining `ext\build\libgit2.vcxproj`'s ~180-file list, just as a
+static lib instead of a DLL" — it's to stop hand-maintaining libgit2's build
+at all and consume it through vcpkg like any other third-party dependency.
+Bridge: add a vcpkg **port overlay** (not a change to upstream vcpkg) that
+layers TortoiseGit's five `ext\libgit2-*.patch` files and the feature-flag
+set the current `libgit2.vcxproj` `PreprocessorDefinitions` encode
+(`GIT_HTTPS`, `GIT_WINHTTP`, `GIT_SHA256_WIN32`, `GIT_EXPERIMENTAL_SHA256`,
+`GIT_NTLM`, `GIT_REGEX_PCRE2`, `GIT_THREADS`, ... — that vcxproj line is the
+source of truth for what the overlay must replicate) on top of the stock
+vcpkg `libgit2` port. The overlay is a temporary bridge, dropped once/if
+these patches are upstreamed. Revisit *why* the earlier throwaway
+`git2-experimental.dll` vcpkg attempt failed "without changes" (see
+"Current architecture" above) rather than repeating the same failure — most
+likely a missing feature flag or backend-selection mismatch, not a
+fundamental vcpkg incompatibility. All ten `ProjectReference` consumers
+move to the vcpkg-provided package; `ext\build\libgit2.vcxproj` and the
+vendored `ext\libgit2` submodule (for *build* purposes only — patch
+authorship can stay wherever's convenient) retire once the overlay is
+proven equivalent. Remove `libgit2_tgit.dll` from `StructureFragment.wxi`
+either way — a shared DLL disappears under vcpkg static linkage too. Exit:
+x64/ARM64 build via vcpkg manifest mode, installer has no hand-built
+libgit2 DLL, app smoke-tests pass, behavior unchanged, and the patch
+surface needed on top of stock libgit2 lives in the overlay port, not
+scattered root-level `.patch` files.
 
 - [ ] **Phase 2 — Hash-size hygiene (pre-req for Phase 3, define still OFF).**
 Refactor `CGitHash` to own real storage sized for the eventual 32-byte case
@@ -162,15 +187,17 @@ Exit: SHA1 repos fully regression-clean; libgit2-backed operations can open
 a SHA256 repo.
   *Status: partially done. `a7b376d76` flipped the define for libgit2 +
   TortoiseProc + TortoiseMerge (fallout fixed: `git_index_new` gained an
-  `opts` param); the uncommitted follow-up adds UnitTests + Cache (fallout
-  fixed: `git_odb_hashfile`/`git_odb_hash` gained an oid-type param —
+  `opts` param); `df40b91a9` adds UnitTests + Cache (fallout fixed:
+  `git_odb_hashfile`/`git_odb_hash` gained an oid-type param —
   `PatchTest.cpp`, `GitIndex.cpp` via a `tgit_odb_hash` shim — and
   `GitWCRev.h`'s `HeadHashReadable` buffer is now `GIT_OID_MAX_HEXSIZE`-sized
   with its "SHA2 is not available" static_assert removed). **Sharpest open
   item: the other six consumers (TortoiseShell, TGitCache, TortoiseGitBlame,
   TortoiseIDiff, GitWCRev, GitWCRevCOM) still link the flagged DLL without
-  the define — a live ABI mismatch in shipping binaries.** Exit criteria not
-  met: `GIT_HASH_SIZE` is still 20, so SHA256 repos cannot be opened yet.*
+  the define — a live ABI mismatch in shipping binaries** (a fix is in
+  flight in a separate session as of 2026-08-04 — check `git log` before
+  re-doing it). Exit criteria not met: `GIT_HASH_SIZE` is still 20, so
+  SHA256 repos cannot be opened yet.*
 
 - [ ] **Phase 4 — App-level SHA256 UX + gitdll.** 64-char hash display/parsing
 throughout the UI, `GIT_REV_ZERO` (currently a 40-char literal) needs a
@@ -180,6 +207,32 @@ throughout the UI, `GIT_REV_ZERO` (currently a 40-char literal) needs a
 `git_oid` type). Mark the feature experimental in the UI. Exit: core
 workflows (log, status, commit, blame, diff) work end-to-end on a SHA256
 test repo.
+
+- [ ] **Phase 5 — Switch the WiX packager from MSI to MSIX.** *(Added
+2026-08-04, per user direction.)* Replace
+`src\TortoiseGitSetup\WiXSetup.wixproj`'s MSI output
+(`OutputType>Package`, WiX v3 `Wix.targets`, `TortoiseGIT.wxs`) with an
+MSIX package. **Not a trivial packer swap:**
+  - The WiX v3 toolchain this repo pins (`WixTargetsPath` →
+    `Microsoft\WiX\v3.x\Wix.targets`) does not emit MSIX at all — that needs
+    WiX v4/v5's MSIX authoring, or a separate MSIX Packaging Tool/`makeappx`
+    step, i.e. a real toolchain migration, not a project-property flip.
+  - `TortoiseGIT.wxs` leans on classic MSI mechanics with no MSIX
+    equivalent: elevated `CustomAction` DLL entry points
+    (`CustomActions.dll`/`CustomActions11.dll`) for shell-extension COM
+    registration, `RegisterSparsePackage`/`UnregisterSparsePackage` for the
+    Windows 11 context menu, `RestartExplorer`, and per-machine
+    `HKLM`/`HKCU` `RegistrySearch` for upgrade/repair/detection logic. MSIX
+    runs installs in a constrained context — no arbitrary elevated custom
+    actions — so each of these has to move into the packaged app's own
+    registration path, or be dropped where MSIX's package identity /
+    registry virtualization already covers the same need. Audit
+    `TortoiseGIT.wxs` custom-action-by-custom-action before assuming
+    coverage; don't assume parity.
+  Exit: MSIX package installs/uninstalls/upgrades cleanly, the shell
+  extension (Explorer context menu, icon overlays) registers and works
+  under MSIX's packaged-app model, no functionality silently dropped
+  relative to the MSI installer.
 
 ## Known risk areas (watch list, not exhaustive)
 
@@ -201,7 +254,14 @@ test repo.
 
 ## Critical files
 
-- `ext\build\libgit2.vcxproj` — the project to convert to StaticLibrary and drop Win32 from.
+- `ext\build\libgit2.vcxproj` — the hand-maintained build to retire in favor
+  of a vcpkg port overlay (see Phase 1); its `PreprocessorDefinitions` line
+  is the source of truth for feature flags the overlay must replicate.
+  Win32 already dropped from it.
+- `src\TortoiseGitSetup\WiXSetup.wixproj`, `TortoiseGIT.wxs` — the WiX v3
+  MSI packaging project to migrate to MSIX (Phase 5); audit its
+  `CustomAction`/`RegistrySearch` entries for MSIX-incompatible mechanics
+  before assuming coverage.
 - `src\Git\GitHash.h` — `CGitHash`, the 20-byte assumption, the static_assert.
 - `src\TortoiseGitSetup\StructureFragment.wxi` — MSI packaging entry for the DLL to remove.
 - `src\TortoiseProc\GitLogCache.h`/`.cpp` — on-disk cache format to version.
