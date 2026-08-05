@@ -500,7 +500,7 @@ int CGitHeadFileList::ReadHeadHash(const CString& gitdir)
 		return -1;
 
 	DWORD size = 0;
-	unsigned char buffer[2 * GIT_HASH_SIZE];
+	unsigned char buffer[GIT_HASH_MAX_HEXSIZE];
 	ReadFile(hfile, buffer, static_cast<DWORD>(strlen("ref:")), &size, nullptr);
 	if (size != strlen("ref:"))
 		return -1;

@@ -95,6 +95,12 @@ GITDLL_API int git_get_sha1(const char *name, GIT_HASH sha1);
  */
 GITDLL_API int git_init(const LPWSTR* env);
 
+/**
+ * Hash algorithm of the repository opened by the last git_init(), using git's own
+ * indices: 0 = unknown, 1 = sha1, 2 = sha256. Callers size object ids off this.
+ */
+GITDLL_API int git_get_hash_algo(void);
+
 GITDLL_API int git_open_log(GIT_LOG* handle, int argc, const char** argv);
 GITDLL_API int git_get_log_firstcommit(GIT_LOG handle);
 GITDLL_API int git_get_log_estimate_commit_count(GIT_LOG handle);

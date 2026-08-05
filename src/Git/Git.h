@@ -261,6 +261,8 @@ public:
 		if(!m_IsGitDllInited)
 		{
 			git_init(m_Environment);
+			// latch the repository's object format for the whole process, cf. GitHash.h
+			g_gitObjectFormat = (git_get_hash_algo() == static_cast<int>(GitObjectFormat::SHA256)) ? GitObjectFormat::SHA256 : GitObjectFormat::SHA1;
 			m_IsGitDllInited=true;
 		}
 	}

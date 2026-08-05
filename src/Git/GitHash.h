@@ -18,10 +18,50 @@
 //
 
 #pragma once
-#define GIT_HASH_SIZE 20
+
+// Raw object ids are 20 bytes (SHA1) or 32 bytes (SHA256). Fixed-size buffers are sized at
+// GIT_HASH_MAX_SIZE so there is always room for either mode (and for a NUL in the hex case),
+// while the *active* length is process state -- see GitHashSize() below.
+#define GIT_HASH_MAX_SIZE 40
+#define GIT_HASH_MAX_HEXSIZE (2 * GIT_HASH_MAX_SIZE)
+
+/* keep the values in sync with git's hash_algo_by_ptr(), see gitdll.c's git_get_hash_algo() */
+enum class GitObjectFormat : int
+{
+	SHA1 = 1,
+	SHA256 = 2,
+};
+
+/*
+ * Object format of the repository this process works on. TortoiseGit runs one process per
+ * working copy, so this is process-level state rather than something carried per CGitHash:
+ * it is latched once the git dll is initialized (see CGit::CheckAndInitDll) and from then on
+ * every hash in the process is of that format.
+ */
+inline GitObjectFormat g_gitObjectFormat = GitObjectFormat::SHA1;
+
+/* Number of raw bytes an object id currently occupies; always <= GIT_HASH_MAX_SIZE. */
+inline int GitHashSize() noexcept
+{
+#ifdef GIT_EXPERIMENTAL_SHA256
+	return g_gitObjectFormat == GitObjectFormat::SHA256 ? GIT_OID_SHA256_SIZE : GIT_OID_SHA1_SIZE;
+#else
+	// without libgit2's experimental headers git_oid cannot hold a SHA256 id at all
+	return GIT_OID_SHA1_SIZE;
+#endif
+}
+
+#define GIT_HASH_SIZE (GitHashSize())
+
+/* Display name of the active object format, for UI labels. */
+inline const wchar_t* GitObjectFormatName() noexcept
+{
+	return GitHashSize() == GIT_OID_SHA1_SIZE ? L"SHA-1" : L"SHA-256";
+}
 
 /* also see gitdll.c */
-static_assert(GIT_HASH_SIZE <= sizeof(git_oid::id), "git_oid raw storage must be able to hold GIT_HASH_SIZE bytes");
+static_assert(GIT_OID_MAX_SIZE <= sizeof(git_oid::id), "git_oid raw storage must be able to hold the largest id");
+static_assert(GIT_OID_MAX_SIZE <= GIT_HASH_MAX_SIZE, "buffers must have room for the largest id");
 
 #define GIT_REV_ZERO_C "0000000000000000000000000000000000000000"
 #define GIT_REV_ZERO _T(GIT_REV_ZERO_C)
@@ -125,11 +165,13 @@ public:
 
 	void Empty()
 	{
-		memset(m_oid.id, 0, GIT_HASH_SIZE);
+		// clear the whole raw buffer, not just the active length, so the unused tail
+		// stays zeroed if the object format changes underneath us
+		memset(m_oid.id, 0, sizeof(m_oid.id));
 	}
 	inline bool IsEmpty() const
 	{
-		static const unsigned char empty[GIT_HASH_SIZE]{};
+		static const unsigned char empty[GIT_HASH_MAX_SIZE]{};
 		return memcmp(m_oid.id, empty, GIT_HASH_SIZE) == 0;
 	}
 
@@ -205,7 +247,7 @@ namespace std
 		 */
 		std::size_t operator()(const CGitHash& k) const
 		{
-			static_assert(sizeof(size_t) <= GIT_HASH_SIZE);
+			static_assert(sizeof(size_t) <= GIT_OID_SHA1_SIZE);
 			size_t hash;
 			// this makes sure that all reads to the size_t value are aligned
 			memcpy(&hash, k.m_oid.id, sizeof(hash));

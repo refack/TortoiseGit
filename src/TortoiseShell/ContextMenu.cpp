@@ -593,7 +593,7 @@ void CShellExt::InsertGitMenu(BOOL istop, HMENU menu, UINT pos, UINT_PTR id, UIN
 		if (!sPath.empty())
 		{
 			// add the path of the saved file
-			wchar_t compact[2 * GIT_HASH_SIZE] = { 0 };
+			wchar_t compact[GIT_HASH_MAX_HEXSIZE] = { 0 };
 			PathCompactPathEx(compact, sPath.c_str(), _countof(compact) - 1, 0);
 			MAKESTRING(IDS_MENUDIFFNOW);
 			CString sMenu;
