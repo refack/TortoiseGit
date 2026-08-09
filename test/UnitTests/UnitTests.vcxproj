@@ -37,6 +37,7 @@
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   <Import Project="$(SolutionDir)TortoiseGit.common.props" />
+  <Import Project="$(SolutionDir)TortoiseGit.vcpkg.props" />
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <TargetName>Tests</TargetName>
@@ -52,8 +53,8 @@
   </PropertyGroup>
   <ItemDefinitionGroup>
     <ClCompile>
-      <AdditionalIncludeDirectories>$(ProjectDir);..\..\src\Resources;..\..\src\Git;..\..\ext\hunspell;..\..\src\Utils;..\..\src\Utils\MiscUI;..\..\src\TortoiseShell;..\..\ext\gitdll;..\..\ext\libgit2\include;..\..\ext\googletest\googletest\include;..\..\ext\googletest\googlemock\include;..\..\ext\json\include;..\..\ext\ResizableLib;..\..\src\TortoiseProc;..\..\src\TortoiseMerge;..\..\src\GitWCRev;..\..\src\TortoiseGitBlame;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>TGIT_TESTS_ONLY;GTEST_HAS_STD_TUPLE_;GTEST_HAS_TR1_TUPLE=0;TGIT_LFS;GIT_EXPERIMENTAL_SHA256;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(ProjectDir);..\..\src\Resources;..\..\src\Git;..\..\ext\hunspell;..\..\src\Utils;..\..\src\Utils\MiscUI;..\..\src\TortoiseShell;..\..\ext\gitdll;..\..\ext\googletest\googletest\include;..\..\ext\googletest\googlemock\include;..\..\ext\json\include;..\..\ext\ResizableLib;..\..\src\TortoiseProc;..\..\src\TortoiseMerge;..\..\src\GitWCRev;..\..\src\TortoiseGitBlame;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>TGIT_TESTS_ONLY;GTEST_HAS_STD_TUPLE_;GTEST_HAS_TR1_TUPLE=0;TGIT_LFS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalOptions>/Zm110 %(AdditionalOptions)</AdditionalOptions>
       <ExceptionHandling>SyncCThrow</ExceptionHandling>
     </ClCompile>
@@ -214,8 +215,8 @@
     <ProjectReference Include="..\..\ext\build\googletest.vcxproj">
       <Project>{c8f6c172-56f2-4e76-b5fa-c3b423b31be8}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\..\ext\build\libgit2.vcxproj">
-      <Project>{2b4f366c-93ba-491e-87af-5ef7b37f75f7}</Project>
+    <ProjectReference Include="..\..\src\libgit2\TGitLibgit2.vcxproj">
+      <Project>{2f29bedb-4b28-4f53-9d1c-3be0766e738e}</Project>
     </ProjectReference>
     <ProjectReference Include="..\..\ext\gitdll\gitdll.vcxproj">
       <Project>{4f0a55de-dafd-4a0b-a03d-2c14cb77e08f}</Project>

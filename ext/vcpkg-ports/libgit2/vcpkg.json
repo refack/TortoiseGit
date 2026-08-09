@@ -1,0 +1,52 @@
+{
+  "name": "libgit2",
+  "version-semver": "1.9.4",
+  "port-version": 1,
+  "description": [
+    "A C library implementing the Git core methods with a solid API",
+    "TortoiseGit overlay of the stock vcpkg port. It layers the ext/libgit2-*.patch",
+    "series on top of upstream v1.9.4 and pins the backend selection to what",
+    "ext/build/libgit2.vcxproj's PreprocessorDefinitions encode. Windows-only",
+    "features are kept; the non-Windows TLS backends of the stock port are dropped.",
+    "This overlay is a temporary bridge and should be retired once the patches land",
+    "upstream."
+  ],
+  "homepage": "https://github.com/libgit2/libgit2",
+  "license": null,
+  "supports": "windows & !uwp",
+  "dependencies": [
+    {
+      "name": "vcpkg-cmake",
+      "host": true
+    },
+    {
+      "name": "vcpkg-cmake-config",
+      "host": true
+    },
+    "zlib"
+  ],
+  "default-features": [
+    "pcre2",
+    "sha256",
+    "winhttp"
+  ],
+  "features": {
+    "pcre2": {
+      "description": "Build against external libpcre2",
+      "dependencies": [
+        "pcre2"
+      ]
+    },
+    "sha256": {
+      "description": "[experimental] SHA256 OID support",
+      "$note": "Turns on EXPERIMENTAL_SHA256, which makes the installed git2/experimental.h define GIT_EXPERIMENTAL_SHA256=1 for every consumer."
+    },
+    "tools": {
+      "description": "Build CLI tools"
+    },
+    "winhttp": {
+      "description": "SSL support (WinHTTP)",
+      "supports": "windows & !uwp"
+    }
+  }
+}

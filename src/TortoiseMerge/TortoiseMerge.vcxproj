@@ -37,11 +37,12 @@
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   <Import Project="$(SolutionDir)TortoiseGit.common.props" />
+  <Import Project="$(SolutionDir)TortoiseGit.vcpkg.props" />
   <PropertyGroup Label="UserMacros" />
   <ItemDefinitionGroup>
     <ClCompile>
-      <AdditionalIncludeDirectories>$(ProjectDir);..\..\ext\gitdll;..\git;.\svninclude;..\..\ext\build\apr;..\..\ext\apr\include;..\..\ext\apr-util\include;.\libsvn_diff;..\Utils;..\;..\Utils\MiscUI;..\..\ext\ResizableLib;..\..\ext\libgit2\include;..\..\ext\zlib;..\..\ext\editorconfig\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>APR_DECLARE_STATIC;APU_DECLARE_STATIC;GIT_EXPERIMENTAL_SHA256;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(ProjectDir);..\..\ext\gitdll;..\git;.\svninclude;..\..\ext\build\apr;..\..\ext\apr\include;..\..\ext\apr-util\include;.\libsvn_diff;..\Utils;..\;..\Utils\MiscUI;..\..\ext\ResizableLib;..\..\ext\zlib;..\..\ext\editorconfig\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>APR_DECLARE_STATIC;APU_DECLARE_STATIC;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <ResourceCompile>
       <AdditionalIncludeDirectories>$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
@@ -457,8 +458,8 @@
       <Project>{6bd19bae-4041-4e85-b576-aac9d54caab9}</Project>
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
     </ProjectReference>
-    <ProjectReference Include="..\..\ext\build\libgit2.vcxproj">
-      <Project>{2b4f366c-93ba-491e-87af-5ef7b37f75f7}</Project>
+    <ProjectReference Include="..\libgit2\TGitLibgit2.vcxproj">
+      <Project>{2f29bedb-4b28-4f53-9d1c-3be0766e738e}</Project>
     </ProjectReference>
     <ProjectReference Include="..\..\ext\build\zlib.vcxproj">
       <Project>{5c6b6a95-2053-4593-9617-c4f176736d5a}</Project>

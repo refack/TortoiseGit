@@ -33,10 +33,10 @@
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   <Import Project="$(SolutionDir)TortoiseGit.common.props" />
+  <Import Project="$(SolutionDir)TortoiseGit.vcpkg.props" />
   <ItemDefinitionGroup>
     <ClCompile>
-      <AdditionalIncludeDirectories>..\..\src\TortoiseShell;..\..\ext\gitdll;..\..\src\Utils;..\..\src\Git;..\..\src\TortoiseProc;..\..\src\Utils\MiscUI;..\..\src\TGitCache;..\..\ext\libgit2\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>GIT_EXPERIMENTAL_SHA256;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>..\..\src\TortoiseShell;..\..\ext\gitdll;..\..\src\Utils;..\..\src\Git;..\..\src\TortoiseProc;..\..\src\Utils\MiscUI;..\..\src\TGitCache;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -89,8 +89,8 @@
     <None Include="res\Cache.rc2" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\ext\build\libgit2.vcxproj">
-      <Project>{2b4f366c-93ba-491e-87af-5ef7b37f75f7}</Project>
+    <ProjectReference Include="..\..\src\libgit2\TGitLibgit2.vcxproj">
+      <Project>{2f29bedb-4b28-4f53-9d1c-3be0766e738e}</Project>
     </ProjectReference>
     <ProjectReference Include="..\..\ext\gitdll\gitdll.vcxproj">
       <Project>{4f0a55de-dafd-4a0b-a03d-2c14cb77e08f}</Project>

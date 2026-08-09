@@ -1,0 +1,4 @@
+# This overlay port carries its patches as tracked files; they must win over the
+# blanket *.diff / *.patch rules in the repo-root .gitignore.
+!*.diff
+!*.patch

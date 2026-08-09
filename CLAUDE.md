@@ -23,6 +23,35 @@ Landed so far (see per-phase notes below for what remains):
   remaining six unflagged libgit2 consumers (Phase 3's sharpest open item)
   and the `GitWCRevStatus` hardcoded-`"master"` test fix (pre-existing bug,
   unrelated to the SHA256 work).
+- (uncommitted) Phase 1 milestones 1a–1c: the vcpkg overlay port
+  (`ext\vcpkg-ports\libgit2\`), and **all ten libgit2 consumers migrated**
+  off `ext\build\libgit2.vcxproj` onto it (that project and its `.filters`
+  are now deleted). Whole solution builds clean; `TortoiseGitProc.exe` is
+  smoke-tested on SHA1 and SHA256 repos per the build+run gate, the other
+  nine on build-only per the nice-to-have bar. See Phase 1 status notes for
+  detail and the validation-scope policy below.
+
+**Validation scope (set 2026-08-09, per user direction):** this migration
+touches ten libgit2 consumers plus the installer and translation build. Not
+all of them carry equal weight, and re-verifying all ten by hand every
+milestone doesn't pay for itself. The bar going forward:
+
+- **`TortoiseGitProc.exe` is the only target that must build *and* pass a
+  runtime smoke test** (opens a SHA1 repo and a SHA256 repo without
+  crashing) before a milestone counts as done.
+- The other nine consumers (TortoiseMerge, TortoiseShell, TGitCache,
+  TortoiseGitBlame, TortoiseIDiff, GitWCRev, GitWCRevCOM, UnitTests, Cache),
+  plus whatever of `ext\zlib` / `ext\build\pcre2.vcxproj` follow libgit2 to
+  vcpkg, are **"nice to have": migrate and defragment all of them, but the
+  bar is a clean build, not a runtime check.** If one breaks in a way that
+  isn't a quick fix, it can lag a milestone without blocking the others.
+- **WiX packaging (`WixSetup.wixproj`) and the Languages build
+  (`TortoiseLang.vcxproj`) are assumed working and out of scope for this
+  effort's validation.** Both already fail in this dev environment for
+  reasons unrelated to libgit2/vcpkg (WiX v3 toolchain not installed;
+  `build-lang.cmd` tool missing from PATH — see Phase 0/Phase 5 status).
+  Don't treat their failure as a regression signal; don't spend time getting
+  them building locally as part of this plan.
 
 ## Goals
 
@@ -155,11 +184,128 @@ move to the vcpkg-provided package; `ext\build\libgit2.vcxproj` and the
 vendored `ext\libgit2` submodule (for *build* purposes only — patch
 authorship can stay wherever's convenient) retire once the overlay is
 proven equivalent. Remove `libgit2_tgit.dll` from `StructureFragment.wxi`
-either way — a shared DLL disappears under vcpkg static linkage too. Exit:
-x64/ARM64 build via vcpkg manifest mode, installer has no hand-built
-libgit2 DLL, app smoke-tests pass, behavior unchanged, and the patch
-surface needed on top of stock libgit2 lives in the overlay port, not
-scattered root-level `.patch` files.
+either way — a shared DLL disappears under vcpkg static linkage too. Exit
+(revised 2026-08-09, see validation-scope policy above): x64 build via vcpkg
+manifest mode; `TortoiseGitProc.exe` builds and passes a runtime smoke test
+on a SHA1 and a SHA256 repo; the other nine consumers build clean (no
+runtime check required); installer/Languages assumed working, not gated on;
+ARM64 best-effort; the patch surface needed on top of stock libgit2 lives in
+the overlay port, not scattered root-level `.patch` files.
+  *Status: milestone 1a done — the overlay port exists and builds.
+  `ext\vcpkg-ports\libgit2\` + root `vcpkg.json` /
+  `vcpkg-configuration.json`; `vcpkg install --triplet x64-windows-static-md`
+  produces `lib\git2.lib` + `include\git2\`. Verified: the generated
+  `git2_features.h` matches `libgit2.vcxproj`'s defines exactly, and installed
+  `git2\experimental.h` carries `GIT_EXPERIMENTAL_SHA256 1`.*
+
+  *Status: milestone 1b done — **TortoiseProc is the first consumer migrated**,
+  one of ten. The other nine still `ProjectReference`
+  `ext\build\libgit2.vcxproj`; both worlds coexist and the whole solution builds
+  clean (x64/Debug). New pieces:*
+  - *`src\TortoiseGit.vcpkg.props` — triplet/include/lib wiring for consumers,
+    plus a `VerifyVcpkgRestore` target that fails with "run vcpkg install"
+    instead of an unresolved-external wall.*
+  - *`src\libgit2\TGitLibgit2.vcxproj` — static lib holding
+    `{filter-filter,ssh-wintunnel,system-call}.c`, which used to be compiled
+    inside the libgit2 DLL. It carries **no** feature defines: the overlay now
+    installs libgit2's private header trees plus the cmake-generated
+    `git2_features.h` under `include\libgit2-private\{libgit2,util}\`, so the
+    flags cannot drift from the library that was actually built.*
+  - *`ssh-wintunnel.c`'s hardcoded
+    `#include "../../ext/libgit2/src/libgit2/transports/smart.h"` became
+    `#include "transports/smart.h"`, resolved from the installed private headers
+    — one less reach into the submodule.*
+  - *TortoiseProc dropped `..\..\ext\libgit2\include` from its include path and
+    `GIT_EXPERIMENTAL_SHA256` from its defines. **Both removals matter:** the
+    in-tree `git2\experimental.h` is a no-op stub, so leaving that path would
+    silently rebuild the project against the 20-byte `git_oid`.*
+
+  *Verified three ways: `dumpbin /DEPENDENTS` shows `libgit2_tgit.dll` gone from
+  `TortoiseGitProc.exe` (replaced by winhttp/rpcrt4/crypt32/ole32/secur32, exactly
+  the port's pkgconfig `Libs:` line); `CommitDlg.cpp:1161` calls the two-argument
+  `git_index_new`, which only exists under `GIT_EXPERIMENTAL_SHA256`, so a clean
+  compile proves the flag survived the switch to header-supplied propagation; and
+  `/command:log` opens on the SHA256 test repo without crashing. Not verified:
+  the log rows' rendering (Windows-MCP was disconnected), and `UnitTests` still
+  links the old DLL so it does not exercise this path.*
+
+  *Why the earlier `git2-experimental.dll` attempt failed (now answered): with
+  `EXPERIMENTAL_SHA256=ON`, upstream's `ExperimentalFeatures.cmake` appends
+  `-experimental` to `LIBGIT2_FILENAME`, which renames the **installed header
+  directory** to `include\git2-experimental\` and rewrites the umbrella
+  header's own includes — breaking every `#include "git2.h"` in `src\`.
+  `tortoisegit-no-experimental-rename.diff` drops that append.*
+
+  *Two findings worth carrying forward:*
+  - *`experimental.h` is generated by CMake and carries the define itself. Once
+    consumers include the vcpkg headers, `GIT_EXPERIMENTAL_SHA256` propagates
+    automatically — this structurally removes Phase 3's "six unflagged
+    consumers" ABI hazard rather than requiring ten vcxproj edits.*
+  - *`GIT_QSORT_S` in `libgit2.vcxproj` is a **stale no-op**: libgit2 renamed it
+    to `GIT_QSORT_MSC`, so the hand-maintained build has silently been using
+    libgit2's bundled qsort instead of MSVC `qsort_s`. The vcpkg build gets
+    `GIT_QSORT_MSC` correctly.*
+
+  *Blocker resolved for the next milestone:
+  `src\libgit2\{filter-filter,ssh-wintunnel,system-call}.c` call ~20
+  libgit2-**internal** symbols
+  (`git__calloc`, `git_str_*`, `git_net_url_*`, `git_filter_buffered_stream_new`,
+  `git_repository_config__weakptr`, `git_utf8_to_16_alloc`, ...). These work
+  today only because those files compile **inside** the DLL. Verified via
+  `dumpbin /LINKERMEMBER` that the vcpkg **static** `git2.lib` exposes all of
+  them (the three that don't appear — `git__free`, `git_str_find`,
+  `git_process__is_cmdline_option` — are `GIT_INLINE` header inlines). So the
+  three files can keep compiling against `ext\libgit2`'s private headers and
+  link the vcpkg lib. **This is why the migration must be static, not a
+  vcpkg-built DLL** — a DLL exports none of these.*
+
+  *Also fixed in passing: the `ext\libgit2-*.patch` series is applied in
+  filename order by `build.txt`'s `for %%G in (..\libgit2-*.patch)` loop, but
+  the correct series order is wildcard -> Guess-better-path -> simplify.
+  Alphabetical order runs simplify before Guess-better-path and leaves conflict
+  markers in `repository.c` even under `git am --3way`. The overlay's
+  regenerated diffs encode the right order; `build.txt` still documents the
+  wrong one. Note the submodule checkout is currently stock v1.9.4 with **none**
+  of the five patches applied, so local builds today are unpatched.*
+
+  *Status: milestone 1c done (2026-08-09) — **all ten consumers migrated,
+  `ext\build\libgit2.vcxproj` retired.** TortoiseMerge, TortoiseShell,
+  TGitCache, TortoiseGitBlame, TortoiseIDiff, GitWCRev, GitWCRevCOM,
+  `test\UnitTests`, `test\Cache` all got the same four edits as TortoiseProc:
+  import `TortoiseGit.vcpkg.props`, swap the `libgit2.vcxproj`
+  `ProjectReference` for `TGitLibgit2.vcxproj`, drop
+  `..\..\ext\libgit2\include`, drop manual `GIT_EXPERIMENTAL_SHA256` where
+  present (TortoiseMerge, UnitTests, Cache — the other six never had it).
+  Two of the nine (`TortoiseShell`, `TGitCache`) had
+  `<ReferenceOutputAssembly>false</ReferenceOutputAssembly>` on the old DLL
+  reference, left over from "the DLL just needs to exist on disk, nothing to
+  link"; that had to be dropped too, or the static lib's symbols never reach
+  the linker and it fails with unresolved externals instead of a diagnosable
+  error. `ext\build\libgit2.vcxproj` + its `.filters` are deleted, plus the
+  sln's `Project`/`ProjectConfigurationPlatforms`/`NestedProjects`/
+  `WixSetup`-dependency entries referencing its GUID; `libgit2_tgit.dll`
+  dropped from `StructureFragment.wxi`'s x64/ARM64 branch (the x86 branch's
+  `libgit232_tgit.dll` line is untouched — that's the pre-existing deferred
+  Win32 WiX cleanup from Phase 0, a separate concern). A stale doc comment in
+  `TortoiseGit.common.props` pointing at the now-deleted file's PCH-pinning
+  example was generalized rather than left dangling.
+  Verified: `grep -rn "ext\\build\\libgit2\|ext\\libgit2\\include"
+  **/*.vcxproj` returns nothing outside comments; one full-solution
+  `Build-Nice.ps1` Debug/x64 build is clean (all ten consumers link, WixSetup/
+  TortoiseLang aren't part of the Debug config so their pre-existing,
+  unrelated failures don't show up here); `TortoiseGitProc.exe` re-smoke-
+  tested on both the SHA1 `E:\3party\TortoiseGit` repo and the SHA256
+  `test\sha256wc` repo post-rebuild, per the build+run gate. The other nine
+  got build-only validation per the nice-to-have bar — not individually
+  smoke-tested.*
+
+  *Remaining for Phase 1: decide whether `ext\zlib` / `ext\build\pcre2.vcxproj`
+  follow libgit2 to vcpkg (the port pulls its own zlib and pcre2, so both are
+  built twice right now) — this is the rest of the de-fragmentation goal, not
+  just the libgit2 slice of it. ARM64 is still unverified — this machine has
+  no `Hostx64\arm64` cross-compiler, so `arm64-windows-static-md` fails in
+  stock `pcre2` before reaching libgit2 (needs the VS "C++ ARM64 build tools"
+  component); treat as best-effort, not a blocker.*
 
 - [ ] **Phase 2 — Hash-size hygiene (pre-req for Phase 3, define still OFF).**
 Refactor `CGitHash` to own real storage sized for the eventual 32-byte case
@@ -231,7 +377,9 @@ test repo.
   and see the sharpened unflagged-consumer risk below.*
 
 - [ ] **Phase 5 — Switch the WiX packager from MSI to MSIX.** *(Added
-2026-08-04, per user direction.)* Replace
+2026-08-04, per user direction. Out of scope for Phases 1–4's validation —
+see the 2026-08-09 validation-scope note near the top: WiX packaging is
+assumed working until this phase is actually taken up.)* Replace
 `src\TortoiseGitSetup\WiXSetup.wixproj`'s MSI output
 (`OutputType>Package`, WiX v3 `Wix.targets`, `TortoiseGIT.wxs`) with an
 MSIX package. **Not a trivial packer swap:**

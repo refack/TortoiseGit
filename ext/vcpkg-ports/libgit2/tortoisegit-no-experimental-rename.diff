@@ -1,0 +1,18 @@
+diff --git a/cmake/ExperimentalFeatures.cmake b/cmake/ExperimentalFeatures.cmake
+index 7eff40bdb..016bb3b7c 100644
+--- a/cmake/ExperimentalFeatures.cmake
++++ b/cmake/ExperimentalFeatures.cmake
+@@ -18,6 +18,10 @@ else()
+ 	add_feature_info("SHA256 API" OFF "experimental SHA256 APIs")
+ endif()
+ 
+-if(EXPERIMENTAL)
+-	set(LIBGIT2_FILENAME "${LIBGIT2_FILENAME}-experimental")
+-endif()
++# TortoiseGit: upstream appends "-experimental" to LIBGIT2_FILENAME here, which
++# renames not just the library but the installed header directory
++# (include/git2-experimental/) and the umbrella header's own includes.
++# TortoiseGit links libgit2 statically into its own binaries, so there is no
++# stable-ABI libgit2 for it to be confused with, and keeping the rename would
++# break every #include "git2.h" / <git2/...> in src/. The EXPERIMENTAL variable
++# itself is left set: it still drives experimental.h generation.

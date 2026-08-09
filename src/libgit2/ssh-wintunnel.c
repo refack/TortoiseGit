@@ -22,7 +22,7 @@
 #include "str.h"
 #include "win32/utf-conv.h"
 #include "process.h"
-#include "../../ext/libgit2/src/libgit2/transports/smart.h"
+#include "transports/smart.h"
 #include "system-call.h"
 #include "ssh-wintunnel.h"
 

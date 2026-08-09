@@ -36,10 +36,11 @@
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   <Import Project="$(SolutionDir)TortoiseGit.common.props" />
+  <Import Project="$(SolutionDir)TortoiseGit.vcpkg.props" />
   <PropertyGroup Label="UserMacros" />
   <ItemDefinitionGroup>
     <ClCompile>
-      <AdditionalIncludeDirectories>$(ProjectDir);..\..\ext\gitdll;..\Utils;..\TortoiseShell;..\Git;..\..\ext\libgit2\include;..\..\ext\zlib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir);..\..\ext\gitdll;..\Utils;..\TortoiseShell;..\Git;..\..\ext\zlib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>TGITCACHE;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Manifest>
@@ -119,9 +120,8 @@
     <Image Include="..\Resources\menudelete.ico" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\ext\build\libgit2.vcxproj">
-      <Project>{2b4f366c-93ba-491e-87af-5ef7b37f75f7}</Project>
-      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+    <ProjectReference Include="..\libgit2\TGitLibgit2.vcxproj">
+      <Project>{2f29bedb-4b28-4f53-9d1c-3be0766e738e}</Project>
     </ProjectReference>
     <ProjectReference Include="..\..\ext\build\zlib.vcxproj">
       <Project>{5c6b6a95-2053-4593-9617-c4f176736d5a}</Project>

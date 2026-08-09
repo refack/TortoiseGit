@@ -105,7 +105,8 @@
     Precompiled headers are off too, since sccache does not cache compilations that consume
     one. Projects whose sources include their PCH by name and rely on /Yu to resolve it have
     to pin PrecompiledHeader themselves, in an ItemDefinitionGroup after this file is
-    imported - see ext\build\libgit2.vcxproj and its precompiled.h.
+    imported (PrecompiledHeader=Use plus PrecompiledHeaderFile pointing at the header the
+    sources #include by name).
   -->
   <ItemDefinitionGroup Condition="'$(UseSccache)'=='true'">
     <ClCompile>

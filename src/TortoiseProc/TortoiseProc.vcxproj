@@ -37,11 +37,20 @@
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   <Import Project="$(SolutionDir)TortoiseGit.common.props" />
+  <Import Project="$(SolutionDir)TortoiseGit.vcpkg.props" />
   <PropertyGroup Label="UserMacros" />
   <ItemDefinitionGroup>
     <ClCompile>
-      <AdditionalIncludeDirectories>$(ProjectDir);..\Resources;$InputDir;..\..\ext\ResizableLib;..\Git;..\Utils;..\..\ext\json\include;..\..\ext\scintilla\include;..\..\ext\lexilla\include;..\Utils\TreePropSheet;..\Utils\MiscUI;..\TortoiseShell;..\..\ext\gitdll;..\..\ext\libgit2\include;..\..\ext\zlib;..\..\ext\OGDF\include;..\..\ext\build\ogdf;..\AsyncFramework;..\TortoiseMerge;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>TORTOISEGITPROC;HUNSPELL_STATIC;TGIT_LFS;GIT_EXPERIMENTAL_SHA256;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <!-- ..\..\ext\libgit2\include is deliberately absent: libgit2's public
+           headers now come from vcpkg (TortoiseGit.vcpkg.props). The in-tree
+           copy ships a no-op git2\experimental.h, so leaving it on the path
+           would silently compile this project against the 20-byte git_oid
+           while the library it links uses the 33-byte tagged one. -->
+      <AdditionalIncludeDirectories>$(ProjectDir);..\Resources;$InputDir;..\..\ext\ResizableLib;..\Git;..\Utils;..\..\ext\json\include;..\..\ext\scintilla\include;..\..\ext\lexilla\include;..\Utils\TreePropSheet;..\Utils\MiscUI;..\TortoiseShell;..\..\ext\gitdll;..\..\ext\zlib;..\..\ext\OGDF\include;..\..\ext\build\ogdf;..\AsyncFramework;..\TortoiseMerge;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <!-- GIT_EXPERIMENTAL_SHA256 is no longer listed: vcpkg's generated
+           git2\experimental.h defines it, and git2\oid.h includes that header,
+           so every TU that can see git_oid gets the flag by construction. -->
+      <PreprocessorDefinitions>TORTOISEGITPROC;HUNSPELL_STATIC;TGIT_LFS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ExceptionHandling>SyncCThrow</ExceptionHandling>
     </ClCompile>
     <ResourceCompile>
@@ -795,9 +804,8 @@
     <ProjectReference Include="..\..\ext\build\Detours.vcxproj">
       <Project>{e5af2264-b5a2-424c-9c5c-7e88375583ce}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\..\ext\build\libgit2.vcxproj">
-      <Project>{2b4f366c-93ba-491e-87af-5ef7b37f75f7}</Project>
-      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+    <ProjectReference Include="..\libgit2\TGitLibgit2.vcxproj">
+      <Project>{2f29bedb-4b28-4f53-9d1c-3be0766e738e}</Project>
     </ProjectReference>
     <ProjectReference Include="..\..\ext\build\ScintillaLexer.vcxproj">
       <Project>{a5498556-ce09-4095-8335-08fc8370552d}</Project>
