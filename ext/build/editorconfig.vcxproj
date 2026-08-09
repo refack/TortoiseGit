@@ -36,10 +36,14 @@
   <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   <Import Project="$(SolutionDir)TortoiseGit.common.props" />
   <Import Project="$(SolutionDir)TortoiseGit.common-staticlib.props" />
+  <Import Project="$(SolutionDir)TortoiseGit.vcpkg.props" />
   <PropertyGroup Label="UserMacros" />
   <ItemDefinitionGroup>
     <ClCompile>
-      <AdditionalIncludeDirectories>editorconfig;..\editorconfig\include;pcre2;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <!-- pcre2.h itself now comes from vcpkg (TortoiseGit.vcpkg.props); "editorconfig"
+           stays for the vendored config.h that defines PCRE2_STATIC/PCRE2_CODE_UNIT_WIDTH
+           before pcre2.h is included from global.h. -->
+      <AdditionalIncludeDirectories>editorconfig;..\editorconfig\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <CompileAs>CompileAsC</CompileAs>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <AdditionalOptions>/J %(AdditionalOptions)</AdditionalOptions>
@@ -63,11 +67,6 @@
     <ClInclude Include="..\editorconfig\src\lib\ini.h" />
     <ClInclude Include="..\editorconfig\src\lib\misc.h" />
     <ClInclude Include="..\editorconfig\src\lib\utarray.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="pcre2.vcxproj">
-      <Project>{e37f4ce6-d512-4d71-aa02-33422c92fce0}</Project>
-    </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

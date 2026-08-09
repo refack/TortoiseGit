@@ -299,13 +299,43 @@ the overlay port, not scattered root-level `.patch` files.
   got build-only validation per the nice-to-have bar — not individually
   smoke-tested.*
 
-  *Remaining for Phase 1: decide whether `ext\zlib` / `ext\build\pcre2.vcxproj`
-  follow libgit2 to vcpkg (the port pulls its own zlib and pcre2, so both are
-  built twice right now) — this is the rest of the de-fragmentation goal, not
-  just the libgit2 slice of it. ARM64 is still unverified — this machine has
-  no `Hostx64\arm64` cross-compiler, so `arm64-windows-static-md` fails in
-  stock `pcre2` before reaching libgit2 (needs the VS "C++ ARM64 build tools"
-  component); treat as best-effort, not a blocker.*
+  *Status: milestone 1d done (2026-08-09) — **`pcre2` retired from the
+  hand-maintained build**, `ext\build\pcre2.vcxproj` deleted. Its only
+  remaining consumer was `ext\build\editorconfig.vcxproj` (libgit2 was the
+  other one; already gone). `editorconfig.vcxproj` now imports
+  `TortoiseGit.vcpkg.props` for `pcre2.h`'s location, dropping the vendored
+  `ext\build\pcre2\` include dir and the `ProjectReference` to `pcre2.vcxproj`.
+  **No change was needed in `TortoiseMerge.vcxproj`** (editorconfig's only
+  consumer) to actually link `pcre2-8.lib`: it already imports
+  `TortoiseGit.vcpkg.props` from the libgit2 migration, and that props file's
+  `AdditionalDependencies` already lists `pcre2-8$(VcpkgLibSuffix).lib` — a
+  static-lib `ProjectReference` chain (TortoiseMerge -> editorconfig; a
+  StaticLibrary project has no link step of its own) only ever affected
+  build order, never linkage, so the fix belongs where the real Link step
+  happens. `ext\build\pcre2\config.h` (defines `PCRE2_STATIC` and
+  `PCRE2_CODE_UNIT_WIDTH 8` before `pcre2.h` is included from
+  `ext\editorconfig\src\lib\global.h`) is untouched — vcpkg's installed
+  `pcre2.h` is the same upstream header with the same contract, so nothing
+  about that convention needed to change. `ext\pcre2` submodule is now
+  unreferenced by any vcxproj (left vendored, same as `ext\libgit2` — build
+  wiring retired, submodule checkout untouched). Removed from the sln
+  (`Project`/`ProjectConfigurationPlatforms`/`NestedProjects`; pcre2 never
+  had a `WixSetup`-dependency edge, unlike libgit2). Verified: `grep -rn
+  "build\\pcre2\.vcxproj\|build\\pcre2\\" **/*.vcxproj` empty; one
+  full-solution `Build-Nice.ps1` Debug/x64 build clean, `TortoiseGitMerge.exe`
+  links.*
+
+  *Remaining for Phase 1: decide whether `ext\zlib` follows too — deferred to
+  its own migration, not folded in here. Unlike pcre2 (a small, single-consumer
+  fix), `ext\build\zlib.vcxproj` is a genuinely shared DLL
+  (`zlib1_tgit.dll`) consumed by four independent projects (TortoiseShell,
+  TortoiseMerge, TGitCache, `gitdll.vcxproj`) and packaged into the MSI
+  (`StructureFragment.wxi`) — the same shape and size of work as the libgit2
+  migration itself, not a free reuse of libgit2's transitive vcpkg dependency.
+  ARM64 is still unverified — this machine has no `Hostx64\arm64`
+  cross-compiler, so `arm64-windows-static-md` fails in stock `pcre2` before
+  reaching libgit2 (needs the VS "C++ ARM64 build tools" component); treat as
+  best-effort, not a blocker.*
 
 - [ ] **Phase 2 — Hash-size hygiene (pre-req for Phase 3, define still OFF).**
 Refactor `CGitHash` to own real storage sized for the eventual 32-byte case
