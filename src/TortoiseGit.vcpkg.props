@@ -2,40 +2,25 @@
 <Project DefaultTargets="Build" ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <!--
     Consumes the vcpkg-provided libgit2 (see ext\vcpkg-ports\libgit2 and the
-    repo-root vcpkg.json) instead of ext\build\libgit2.vcxproj.
+    repo-root vcpkg.json) instead of ext\build\libgit2.vcxproj. Pulls in
+    pcre2 and zlib too, since libgit2 needs both and every consumer of this
+    file is also a consumer of libgit2.
 
     Static linkage is not a style choice: TortoiseGit compiles three of its own
     sources against libgit2 internals (see TGitLibgit2.vcxproj), and a DLL
     exports none of those symbols.
 
+    Import TortoiseGit.vcpkg-base.props directly instead if a project needs
+    vcpkg's include/lib paths but not the libgit2 bundle (e.g. gitdll.vcxproj,
+    which needs zlib but must not link libgit2; see that file's own comment
+    for why).
+
     Restore before building with:  vcpkg install (triplet x64-windows-static-md)
   -->
-  <PropertyGroup Label="UserMacros">
-    <VcpkgRepoRoot>$([MSBuild]::NormalizeDirectory('$(MSBuildThisFileDirectory)', '..'))</VcpkgRepoRoot>
-    <VcpkgTriplet Condition="'$(VcpkgTriplet)' == ''">$(Platform.ToLowerInvariant())-windows-static-md</VcpkgTriplet>
-    <VcpkgInstalledDir>$(VcpkgRepoRoot)vcpkg_installed\$(VcpkgTriplet)\</VcpkgInstalledDir>
-    <VcpkgLibDir Condition="'$(Configuration)' == 'Debug'">$(VcpkgInstalledDir)debug\lib\</VcpkgLibDir>
-    <VcpkgLibDir Condition="'$(Configuration)' != 'Debug'">$(VcpkgInstalledDir)lib\</VcpkgLibDir>
-    <!-- vcpkg suffixes debug builds of some ports; libgit2 itself does not. -->
-    <VcpkgLibSuffix Condition="'$(Configuration)' == 'Debug'">d</VcpkgLibSuffix>
-  </PropertyGroup>
+  <Import Project="$(MSBuildThisFileDirectory)TortoiseGit.vcpkg-base.props" />
   <ItemDefinitionGroup>
-    <ClCompile>
-      <!--
-        The public headers must come from vcpkg, never from ext\libgit2\include:
-        the in-tree git2\experimental.h there is a deliberate no-op stub, so
-        picking it up would silently compile consumers against the 20-byte
-        git_oid while the library uses the 33-byte tagged one.
-      -->
-      <AdditionalIncludeDirectories>$(VcpkgInstalledDir)include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-    </ClCompile>
     <Link>
-      <AdditionalLibraryDirectories>$(VcpkgLibDir);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>git2.lib;pcre2-8$(VcpkgLibSuffix).lib;zs$(VcpkgLibSuffix).lib;winhttp.lib;rpcrt4.lib;crypt32.lib;ole32.lib;ws2_32.lib;secur32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
-  <Target Name="VerifyVcpkgRestore" BeforeTargets="ClCompile">
-    <Error Condition="!Exists('$(VcpkgLibDir)git2.lib')"
-           Text="vcpkg package not restored for $(VcpkgTriplet)/$(Configuration). Run:  vcpkg install --triplet $(VcpkgTriplet)   (expected $(VcpkgLibDir)git2.lib)" />
-  </Target>
 </Project>

@@ -325,13 +325,59 @@ the overlay port, not scattered root-level `.patch` files.
   full-solution `Build-Nice.ps1` Debug/x64 build clean, `TortoiseGitMerge.exe`
   links.*
 
-  *Remaining for Phase 1: decide whether `ext\zlib` follows too — deferred to
-  its own migration, not folded in here. Unlike pcre2 (a small, single-consumer
-  fix), `ext\build\zlib.vcxproj` is a genuinely shared DLL
-  (`zlib1_tgit.dll`) consumed by four independent projects (TortoiseShell,
-  TortoiseMerge, TGitCache, `gitdll.vcxproj`) and packaged into the MSI
-  (`StructureFragment.wxi`) — the same shape and size of work as the libgit2
-  migration itself, not a free reuse of libgit2's transitive vcpkg dependency.
+  *Status: milestone 1e done (2026-08-09) — **`zlib` retired from the
+  hand-maintained build**, `ext\build\zlib.vcxproj` deleted. Root `vcpkg.json`
+  now lists `pcre2` and `zlib` as direct dependencies (they were only
+  transitive via libgit2's features before; harmless no-op on `vcpkg install`
+  since both were already installed, but now honest about who actually
+  consumes them).*
+
+  *This one didn't fit the existing `TortoiseGit.vcpkg.props`: that file
+  bundles libgit2 + pcre2 + zlib's `AdditionalDependencies` as one blob, but
+  `ext\gitdll\gitdll.vcxproj` (the **second, independent git backend** — see
+  "Current architecture" above) needs zlib and must not link libgit2 —
+  putting `libgit.lib` (real git.exe C sources) and `git2.lib` on the same
+  link line risks first-match symbol collisions between two implementations
+  of the same concepts (odb, refs, packfiles). Split the props file:*
+  - *`TortoiseGit.vcpkg-base.props` — triplet/include/lib paths and
+    `VerifyVcpkgRestore` only, no `AdditionalDependencies`. Package-neutral;
+    import this directly for a single vcpkg package.*
+  - *`TortoiseGit.vcpkg.props` — now just imports the base file and adds the
+    libgit2-bundle `AdditionalDependencies` (`git2.lib;pcre2-8...;zs...;
+    winhttp.lib;...`). **Zero edits needed to any of the ten already-migrated
+    libgit2 consumers** — same net effect through the new indirection.*
+  - *`gitdll.vcxproj` and `ext\build\libgit.vcxproj` (which feeds it) both
+    import the base file only, and `gitdll.vcxproj` adds
+    `zs$(VcpkgLibSuffix).lib` to its own `AdditionalDependencies` explicitly.*
+
+  *TortoiseShell, TortoiseMerge, TGitCache, TortoiseProc dropped their
+  `..\..\ext\zlib` include dir and (the first three) their `ProjectReference`
+  to `zlib.vcxproj`. **No new link wiring needed for any of them**: all four
+  already import `TortoiseGit.vcpkg.props` from the libgit2 migration, which
+  already lists `zs$(VcpkgLibSuffix).lib`. (The actual zlib consumer inside
+  TortoiseMerge is `libsvn_diff\adler32.c`, which does `#include <zlib.h>` —
+  confirmed by grep before assuming the include-dir removal was safe.)*
+
+  *`ext\build\zlib.vcxproj` + `.filters` deleted; removed from the sln
+  (`Project`/`ProjectConfigurationPlatforms`/`NestedProjects`, plus **two**
+  `ProjectDependencies` edges — `WixSetup`'s, same pattern as libgit2, and
+  also `TortoiseMerge`'s own solution-level dependency entry mirroring its
+  `ProjectReference`). `zlib1_tgit.dll` dropped from `StructureFragment.wxi`'s
+  x64/ARM64 branch (x86's `zlib132_tgit.dll` line untouched, same precedent
+  as libgit2/pcre2 — the deferred Win32 WiX cleanup from Phase 0).
+  `ext\CrashServer\CommonLibs\Zlib\Zlib.vcxproj` is a separate, untouched
+  consumer (compiles minizip contrib sources vcpkg's zlib port doesn't ship).*
+
+  *Verified: repo-wide grep for `zlib1_tgit` (checked before starting) found
+  only `CLAUDE.md` and the `.wxi` — no delay-load/LoadLibrary surprise. One
+  full-solution `Build-Nice.ps1` Debug/x64 build clean; `dumpbin /DEPENDENTS`
+  on `gitdll.dll` shows no more zlib DLL dependency; `TortoiseGitProc.exe`
+  re-smoke-tested on both the SHA1 and SHA256 repos, per the build+run gate
+  (this one re-entered the gate because `gitdll.dll`, which `TortoiseGitProc`
+  loads, changed its zlib linkage).*
+
+  *Phase 1's original "de-fragment the build" goal is now complete for all
+  three packages that had genuine vcpkg equivalents (libgit2, pcre2, zlib).
   ARM64 is still unverified — this machine has no `Hostx64\arm64`
   cross-compiler, so `arm64-windows-static-md` fails in stock `pcre2` before
   reaching libgit2 (needs the VS "C++ ARM64 build tools" component); treat as

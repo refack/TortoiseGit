@@ -41,7 +41,7 @@
   <PropertyGroup Label="UserMacros" />
   <ItemDefinitionGroup>
     <ClCompile>
-      <AdditionalIncludeDirectories>$(ProjectDir);..\..\ext\gitdll;..\git;.\svninclude;..\..\ext\build\apr;..\..\ext\apr\include;..\..\ext\apr-util\include;.\libsvn_diff;..\Utils;..\;..\Utils\MiscUI;..\..\ext\ResizableLib;..\..\ext\zlib;..\..\ext\editorconfig\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir);..\..\ext\gitdll;..\git;.\svninclude;..\..\ext\build\apr;..\..\ext\apr\include;..\..\ext\apr-util\include;.\libsvn_diff;..\Utils;..\;..\Utils\MiscUI;..\..\ext\ResizableLib;..\..\ext\editorconfig\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>APR_DECLARE_STATIC;APU_DECLARE_STATIC;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <ResourceCompile>
@@ -460,9 +460,6 @@
     </ProjectReference>
     <ProjectReference Include="..\libgit2\TGitLibgit2.vcxproj">
       <Project>{2f29bedb-4b28-4f53-9d1c-3be0766e738e}</Project>
-    </ProjectReference>
-    <ProjectReference Include="..\..\ext\build\zlib.vcxproj">
-      <Project>{5c6b6a95-2053-4593-9617-c4f176736d5a}</Project>
     </ProjectReference>
     <ProjectReference Include="..\..\ext\gitdll\gitdll.vcxproj">
       <Project>{4f0a55de-dafd-4a0b-a03d-2c14cb77e08f}</Project>

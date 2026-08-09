@@ -13,6 +13,8 @@
         "sha256",
         "winhttp"
       ]
-    }
+    },
+    "pcre2",
+    "zlib"
   ]
 }

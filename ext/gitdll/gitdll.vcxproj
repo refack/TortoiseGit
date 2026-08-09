@@ -36,10 +36,14 @@
   <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   <Import Project="$(SolutionDir)TortoiseGit.common.props" />
   <Import Project="$(SolutionDir)TortoiseGit.common-dll.props" />
+  <!-- Package-neutral vcpkg wiring only (zlib), not TortoiseGit.vcpkg.props:
+       gitdll is the second, independent git backend (see CLAUDE.md) and must
+       not share a link line with git2.lib. -->
+  <Import Project="$(SolutionDir)TortoiseGit.vcpkg-base.props" />
   <PropertyGroup Label="UserMacros" />
   <ItemDefinitionGroup>
     <ClCompile>
-      <AdditionalIncludeDirectories>..\tgit;..\tgit\compat;..\tgit\compat\poll;..\tgit\compat\vcbuild;..\tgit\compat\vcbuild\include;..\tgit\compat\fnmatch;..\tgit\compat\regex;..\tgit\compat\win32;..\zlib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\tgit;..\tgit\compat;..\tgit\compat\poll;..\tgit\compat\vcbuild;..\tgit\compat\vcbuild\include;..\tgit\compat\fnmatch;..\tgit\compat\regex;..\tgit\compat\win32;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>GITDLL_EXPORTS;MICROSOFT_WINDOWS_WINBASE_H_DEFINE_INTERLOCKED_CPLUSPLUS_OVERLOADS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <ExceptionHandling>SyncCThrow</ExceptionHandling>
@@ -47,7 +51,7 @@
       <DisableSpecificWarnings>4200</DisableSpecificWarnings>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>ntdll.lib;wininet.lib;ws2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>ntdll.lib;wininet.lib;ws2_32.lib;zs$(VcpkgLibSuffix).lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -64,10 +68,6 @@
     <ResourceCompile Include="gitdll.rc" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\build\zlib.vcxproj">
-      <Project>{5c6b6a95-2053-4593-9617-c4f176736d5a}</Project>
-      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
-    </ProjectReference>
     <ProjectReference Include="..\build\libgit.vcxproj">
       <Project>{f6dec8c3-b803-4a86-8848-430f08b499e3}</Project>
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>

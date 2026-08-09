@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <!--
+    Package-neutral vcpkg wiring: triplet/include/lib paths only, no
+    AdditionalDependencies. Split out of TortoiseGit.vcpkg.props so a consumer
+    that needs only one vcpkg package (e.g. gitdll.vcxproj needing zlib) is not
+    forced to also link libgit2 and its dependents. gitdll is the "second,
+    independent git backend" (see CLAUDE.md) and must not share a link line
+    with git2.lib: two implementations of the same concepts (packfiles, odb,
+    refs...) risk first-match symbol collisions if both end up as link inputs
+    for the same binary.
+
+    Import this directly for package-neutral access; import
+    TortoiseGit.vcpkg.props instead for the libgit2 bundle (which imports this
+    file itself).
+
+    Restore before building with:  vcpkg install (triplet x64-windows-static-md)
+  -->
+  <PropertyGroup Label="UserMacros">
+    <VcpkgRepoRoot>$([MSBuild]::NormalizeDirectory('$(MSBuildThisFileDirectory)', '..'))</VcpkgRepoRoot>
+    <VcpkgTriplet Condition="'$(VcpkgTriplet)' == ''">$(Platform.ToLowerInvariant())-windows-static-md</VcpkgTriplet>
+    <VcpkgInstalledDir>$(VcpkgRepoRoot)vcpkg_installed\$(VcpkgTriplet)\</VcpkgInstalledDir>
+    <VcpkgLibDir Condition="'$(Configuration)' == 'Debug'">$(VcpkgInstalledDir)debug\lib\</VcpkgLibDir>
+    <VcpkgLibDir Condition="'$(Configuration)' != 'Debug'">$(VcpkgInstalledDir)lib\</VcpkgLibDir>
+    <!-- vcpkg suffixes debug builds of some ports; libgit2 itself does not. -->
+    <VcpkgLibSuffix Condition="'$(Configuration)' == 'Debug'">d</VcpkgLibSuffix>
+  </PropertyGroup>
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <!--
+        The public headers must come from vcpkg, never from ext\libgit2\include:
+        the in-tree git2\experimental.h there is a deliberate no-op stub, so
+        picking it up would silently compile consumers against the 20-byte
+        git_oid while the library uses the 33-byte tagged one. The same
+        applies to ext\zlib and ext\pcre2: once a package is on vcpkg, its
+        vendored ext\ header copy must not stay on any include path.
+      -->
+      <AdditionalIncludeDirectories>$(VcpkgInstalledDir)include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <AdditionalLibraryDirectories>$(VcpkgLibDir);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+    </Link>
+  </ItemDefinitionGroup>
+  <Target Name="VerifyVcpkgRestore" BeforeTargets="ClCompile">
+    <!-- zlib.h is used as the sentinel because every port installed by the
+         manifest depends on zlib, unlike git2.lib, which a package-neutral
+         consumer of this file has no reason to need. -->
+    <Error Condition="!Exists('$(VcpkgInstalledDir)include\zlib.h')"
+           Text="vcpkg package not restored for $(VcpkgTriplet). Run:  vcpkg install --triplet $(VcpkgTriplet)   (expected $(VcpkgInstalledDir)include\zlib.h)" />
+  </Target>
+</Project>

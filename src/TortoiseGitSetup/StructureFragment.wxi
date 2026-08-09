@@ -300,9 +300,9 @@
 						<?endif ?>
 						<?if $(var.Platform) = "x64" or $(var.Platform) = "ARM64" ?>
 						<File Id="F__gitdll" Name="gitdll.dll" DiskId="1" Source="..\..\bin\$(var.ReleasePath)\bin\gitdll.dll" KeyPath="yes" />
-						<File Id="F__zlib" Name="zlib1_tgit.dll" DiskId="1" Source="..\..\bin\$(var.ReleasePath)\bin\zlib1_tgit.dll" />
-						<!-- libgit2_tgit.dll removed: libgit2 is now linked statically into every
-						     consumer via vcpkg (see CLAUDE.md Phase 1), so this DLL no longer exists. -->
+						<!-- zlib1_tgit.dll and libgit2_tgit.dll removed: both are now linked
+						     statically into every consumer via vcpkg (see CLAUDE.md Phase 1), so
+						     neither DLL exists anymore. -->
 						<?endif ?>
 					</Component>
 					<?if $(var.Platform) = "x64" ?>

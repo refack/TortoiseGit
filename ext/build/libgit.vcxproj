@@ -36,10 +36,14 @@
   <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   <Import Project="$(SolutionDir)TortoiseGit.common.props" />
   <Import Project="$(SolutionDir)TortoiseGit.common-staticlib.props" />
+  <!-- Package-neutral vcpkg wiring only (zlib), not TortoiseGit.vcpkg.props:
+       this feeds gitdll.vcxproj, the second, independent git backend (see
+       CLAUDE.md), which must not share a link line with git2.lib. -->
+  <Import Project="$(SolutionDir)TortoiseGit.vcpkg-base.props" />
   <PropertyGroup Label="UserMacros" />
   <ItemDefinitionGroup>
     <ClCompile>
-      <AdditionalIncludeDirectories>..\tgit;..\zlib;..\include;..\tgit\compat;..\tgit\compat\poll;..\tgit\compat\vcbuild\include;..\tgit\compat\fnmatch;..\tgit\compat\regex;..\tgit\compat\win32;.\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\tgit;..\include;..\tgit\compat;..\tgit\compat\poll;..\tgit\compat\vcbuild\include;..\tgit\compat\fnmatch;..\tgit\compat\regex;..\tgit\compat\win32;.\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <WarningLevel>TurnOffAllWarnings</WarningLevel>
       <ForcedIncludeFiles>libgit-defines.h</ForcedIncludeFiles>

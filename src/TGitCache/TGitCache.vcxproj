@@ -40,7 +40,7 @@
   <PropertyGroup Label="UserMacros" />
   <ItemDefinitionGroup>
     <ClCompile>
-      <AdditionalIncludeDirectories>$(ProjectDir);..\..\ext\gitdll;..\Utils;..\TortoiseShell;..\Git;..\..\ext\zlib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir);..\..\ext\gitdll;..\Utils;..\TortoiseShell;..\Git;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>TGITCACHE;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Manifest>
@@ -122,10 +122,6 @@
   <ItemGroup>
     <ProjectReference Include="..\libgit2\TGitLibgit2.vcxproj">
       <Project>{2f29bedb-4b28-4f53-9d1c-3be0766e738e}</Project>
-    </ProjectReference>
-    <ProjectReference Include="..\..\ext\build\zlib.vcxproj">
-      <Project>{5c6b6a95-2053-4593-9617-c4f176736d5a}</Project>
-      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
     </ProjectReference>
     <ProjectReference Include="..\..\ext\gitdll\gitdll.vcxproj">
       <Project>{4f0a55de-dafd-4a0b-a03d-2c14cb77e08f}</Project>
