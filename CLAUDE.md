@@ -445,12 +445,16 @@ test repo.
   repo's algo; four `oid.algo = 0` → real algo index (required or
   `lookup_commit` fails). Hashes stay **hex** (64 chars) — that is the
   universal convention (git, GitHub, GitLab); never base64.
+  The working-copy pseudo-revision follows the format too: `GitZeroRevString()`
+  sizes the all-zero sentinel, `GitRev::GetWorkingCopyRef()` returns it, and
+  `GIT_REV_ZERO` is defined in terms of it, which fixed ~45 call sites without
+  touching them. Diff-against-working-copy is verified by hand on both a SHA256
+  and a SHA1 working copy.
   Remaining gaps: log column header + revision filter still say "SHA-1"
   (from `IDS_HASH`/`IDS_LOG_FILTER_REVS` resource strings — product call,
-  churns translations); `GIT_REV_ZERO` still a 40-char literal (empty-row
-  rendering is fine via `ToString()`, direct string compares would break);
-  other workflows (status/commit/blame/diff dialogs) untested on SHA256;
-  and see the sharpened unflagged-consumer risk below.*
+  churns translations); `GIT_REV_ZERO_C` is deliberately still SHA1-width and
+  narrow, since it is GitWCRev's unborn-HEAD output; status/commit/blame
+  dialogs untested on SHA256; and see the unflagged-consumer risk below.*
 
 - [ ] **Phase 5 — Switch the WiX packager from MSI to MSIX.** *(Added
 2026-08-04, per user direction. Out of scope for Phases 1–4's validation —

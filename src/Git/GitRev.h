@@ -98,7 +98,12 @@ public:
 
 	virtual ~GitRev();
 
-	inline constexpr static LPCWSTR GetWorkingCopyRef() { return GIT_REV_ZERO; }
+	/*
+	 * The pseudo-revision standing for "the working copy" rather than a commit.
+	 * Not constexpr: its width follows the repository's object format, so it is only
+	 * known once that has been latched (see GitObjectFormat.h).
+	 */
+	inline static LPCWSTR GetWorkingCopyRef() { return GitZeroRevString(); }
 
 	CGitHash m_CommitHash;
 	GIT_REV_LIST m_ParentHash;

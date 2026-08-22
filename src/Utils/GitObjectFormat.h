@@ -66,6 +66,25 @@ inline const wchar_t* GitObjectFormatName() noexcept
 }
 
 /*
+ * Hex string of the all-zero object id in the active format.
+ *
+ * TortoiseGit uses it as a sentinel meaning "the working copy" rather than a real
+ * revision - see GitRev::GetWorkingCopyRef(), which is what call sites should use.
+ * It has to be the same width as the ids it gets compared against: a 40-character
+ * sentinel never equals the 64-character zero id a SHA256 repository produces, the
+ * "is this the working copy" test then fails, and the value is passed on to git as
+ * if it were a real revision, which answers "fatal: bad object 000...".
+ */
+inline const wchar_t* GitZeroRevString() noexcept
+{
+	static constexpr wchar_t zeroSha1[] = L"0000000000000000000000000000000000000000";
+	static constexpr wchar_t zeroSha256[] = L"0000000000000000000000000000000000000000000000000000000000000000";
+	static_assert(sizeof(zeroSha1) / sizeof(zeroSha1[0]) - 1 == 2 * GIT_OID_SHA1_SIZE, "the SHA1 zero id must be exactly 40 hex characters");
+	static_assert(sizeof(zeroSha256) / sizeof(zeroSha256[0]) - 1 == 64, "the SHA256 zero id must be exactly 64 hex characters");
+	return GitHashSize() == GIT_OID_SHA1_SIZE ? zeroSha1 : zeroSha256;
+}
+
+/*
  * Record the format of a repository that was just opened. Takes libgit2's oid type
  * so the libgit2 side does not have to know about git's hash_algo indices.
  */

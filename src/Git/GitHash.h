@@ -34,8 +34,11 @@
 static_assert(GIT_OID_MAX_SIZE <= sizeof(git_oid::id), "git_oid raw storage must be able to hold the largest id");
 static_assert(GIT_OID_MAX_SIZE <= GIT_HASH_MAX_SIZE, "buffers must have room for the largest id");
 
+// Narrow, always SHA1-width: GitWCRev reports a SHA1-sized zero id for an unborn HEAD.
 #define GIT_REV_ZERO_C "0000000000000000000000000000000000000000"
-#define GIT_REV_ZERO _T(GIT_REV_ZERO_C)
+// Wide, follows the active object format -- prefer GitRev::GetWorkingCopyRef() at call
+// sites, which is the same value with the meaning ("the working copy") attached.
+#define GIT_REV_ZERO GitZeroRevString()
 
 class CGitHash;
 template<>

@@ -468,6 +468,15 @@ public:
 
 		return b;
 	}
+	/*
+	 * Root of the working copy this process operates on. Prefer this over touching
+	 * m_CurrentDir directly, and CombinePath() over concatenating onto it: reading
+	 * through here cannot accidentally reassign the directory, which would leave the
+	 * latched object format describing a different repository (see GitObjectFormat.h).
+	 * Returned by value because m_CurrentDir is still publicly assignable, so a
+	 * reference could be repointed underneath the caller.
+	 */
+	CString GetCurrentDir() const { return m_CurrentDir; }
 	CString m_CurrentDir;
 
 	enum
