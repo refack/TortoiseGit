@@ -211,6 +211,10 @@ protected:
 public:
 #endif
 	bool m_IsGitDllInited = false;
+	// Directory g_gitObjectFormat was latched from. The latched format only describes
+	// the repository at m_CurrentDir, so the two have to move together; keeping the
+	// directory here lets CheckAndInitDll() notice when they have drifted apart.
+	CString m_formatLatchedFor;
 public:
 	CComAutoCriticalSection m_critGitDllSec;
 	bool	m_IsUseGitDLL;
@@ -258,11 +262,17 @@ public:
 #ifdef TGITCACHE
 		ATLASSERT("we should never get here");
 #endif
-		if(!m_IsGitDllInited)
+		// Re-init when the working copy changed, not only when the dll was never
+		// initialized: g_gitObjectFormat describes the repository we latched it from,
+		// so a stale latch would size object ids for the *previous* repository and
+		// silently truncate or pad them. There is no valid state in which
+		// m_CurrentDir and the latched format disagree.
+		if (!m_IsGitDllInited || m_formatLatchedFor != m_CurrentDir)
 		{
 			git_init(m_Environment);
 			// latch the repository's object format for the whole process, cf. GitHash.h
 			g_gitObjectFormat = (git_get_hash_algo() == static_cast<int>(GitObjectFormat::SHA256)) ? GitObjectFormat::SHA256 : GitObjectFormat::SHA1;
+			m_formatLatchedFor = m_CurrentDir;
 			m_IsGitDllInited=true;
 		}
 	}

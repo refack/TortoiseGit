@@ -499,6 +499,20 @@ MSIX package. **Not a trivial packer swap:**
   64-char SHA256 zero id.
 - `gitdll.c`'s independent 20-byte assumption (the `GitHash.h` comment
   explicitly flags it).
+- **`g_gitObjectFormat` is only latched on the gitdll path.**
+  `CGit::CheckAndInitDll()` now re-latches whenever `m_CurrentDir` differs from
+  the directory it latched for, so that path cannot go stale. But code that
+  talks to libgit2 directly never calls it and therefore reads whatever the
+  format was last left at — `SHA1` by default. Deriving the format from the
+  repository itself (`extensions.objectformat`, or via libgit2 when it opens
+  the repo) is the real fix and is **not done**. Until then, treat "opened
+  through libgit2 only" as a path where the object format may be wrong.
+- **`m_CurrentDir` is public and assigned directly in ~45 places** across
+  `src\` and `test\`, and `SetCurrentDir()` does not latch the format either,
+  so the invalid state (directory and format disagreeing) is still
+  *representable* — just self-corrected on the next `CheckAndInitDll()`.
+  Privatizing it and routing every assignment through a setter that latches is
+  the follow-up that makes it unrepresentable.
 - Any raw `memcmp`/`memcpy` on oids outside `GitHash.h` — grep `GIT_OID_`,
   fixed `20`/`40` literals near hash-looking variables.
 
