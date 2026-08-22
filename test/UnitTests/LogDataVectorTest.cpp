@@ -37,10 +37,15 @@ class CLogDataVectorCBasicGitWithEmptyBareRepositoryFixturee : public CBasicGitW
 {
 };
 
+class CLogDataVectorCBasicGitWithSha256TestRepoFixture : public CBasicGitWithSha256TestRepoFixture
+{
+};
+
 INSTANTIATE_TEST_SUITE_P(CLogDataVector, CLogDataVectorCBasicGitWithTestRepoFixture, testing::Values(LIBGIT));
 INSTANTIATE_TEST_SUITE_P(CLogDataVector, CLogDataVectorCBasicGitWithTestRepoBareFixture, testing::Values(LIBGIT));
 INSTANTIATE_TEST_SUITE_P(CLogDataVector, CLogDataVectorCBasicGitWithEmptyRepositoryFixturee, testing::Values(LIBGIT));
 INSTANTIATE_TEST_SUITE_P(CLogDataVector, CLogDataVectorCBasicGitWithEmptyBareRepositoryFixturee, testing::Values(LIBGIT));
+INSTANTIATE_TEST_SUITE_P(CLogDataVector, CLogDataVectorCBasicGitWithSha256TestRepoFixture, testing::Values(LIBGIT));
 
 TEST(CLogDataVector, Empty)
 {
@@ -332,6 +337,51 @@ static void FillTests()
 	// size of logCache.m_HashMap.size() depends on the order of the set
 }
 
+
+// Meta-test: walk the log of a repository created with --object-format=sha256.
+// Every assertion here is really about hash *width* -- a build that still
+// assumes 20-byte/40-char ids fails these rather than silently truncating.
+TEST_P(CLogDataVectorCBasicGitWithSha256TestRepoFixture, ParserFromLog_Sha256)
+{
+	// CheckAndInitDll latches the format from the repo being opened, and the
+	// fixture clears m_IsGitDllInited per test, so this reflects *this* repo
+	// even when SHA1 tests ran first in the same process.
+	g_Git.CheckAndInitDll();
+	EXPECT_EQ(GitObjectFormat::SHA256, g_gitObjectFormat);
+	EXPECT_EQ(GIT_OID_SHA256_SIZE, GitHashSize());
+	EXPECT_STREQ(L"SHA-256", GitObjectFormatName());
+
+	CLogCache logCache;
+	CLogDataVector logDataVector;
+	logDataVector.m_logOrderBy = CGit::LOG_ORDER_TOPOORDER;
+	logDataVector.SetLogCache(&logCache);
+
+	EXPECT_EQ(0, logDataVector.ParserFromLog());
+	ASSERT_EQ(2U, logDataVector.size());
+	EXPECT_EQ(2U, logDataVector.m_HashMap.size());
+	EXPECT_EQ(2U, logCache.m_HashMap.size());
+
+	// newest first
+	EXPECT_STREQ(L"a file", logDataVector.GetGitRevAt(0).GetSubject());
+	EXPECT_STREQ(L"ba959ddb968969a082ae343a2822aa14508e932f9d0ad4372f4dc247526eae49", logDataVector.GetGitRevAt(0).m_CommitHash.ToString());
+	EXPECT_STREQ(L"init", logDataVector.GetGitRevAt(1).GetSubject());
+	EXPECT_STREQ(L"8c4314d4ea2e958a4bd9f10802783f57387f2b88a32873f4158abc9a9ba13572", logDataVector.GetGitRevAt(1).m_CommitHash.ToString());
+
+	// the point of the fixture: ids render at full width, not truncated to 40
+	EXPECT_EQ(2 * GIT_OID_SHA256_SIZE, logDataVector.GetGitRevAt(0).m_CommitHash.ToString().GetLength());
+
+	// Parent linkage has to survive the wider id too. ParserFromLog does not
+	// populate m_ParentHash; it is filled on demand, the same way
+	// CGitLogListBase::GetParentHashes does it.
+	GitRevLoglist& head = logDataVector.GetGitRevAt(0);
+	EXPECT_EQ(0, head.GetParentFromHash(head.m_CommitHash));
+	ASSERT_EQ(1U, head.m_ParentHash.size());
+	EXPECT_EQ(logDataVector.GetGitRevAt(1).m_CommitHash, head.m_ParentHash[0]);
+
+	GitRevLoglist& root = logDataVector.GetGitRevAt(1);
+	EXPECT_EQ(0, root.GetParentFromHash(root.m_CommitHash));
+	EXPECT_EQ(0U, root.m_ParentHash.size());
+}
 
 TEST_P(CLogDataVectorCBasicGitWithTestRepoFixture, Fill)
 {

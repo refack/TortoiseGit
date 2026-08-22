@@ -180,6 +180,20 @@ public:
 	CBasicGitWithSubmoduleRepositoryFixture() : CBasicGitWithTestRepoFixture(L"git-submodules-repo") {};
 };
 
+// A repository created with --object-format=sha256, i.e. 64-char hex object ids
+// instead of 40. Everything else about it is deliberately boring: two commits
+// adding one file each, so a test that fails here is telling you about hash
+// handling and nothing else.
+//
+// The fixture is generated with a fixed identity and fixed author/committer
+// dates, which is what makes its object ids reproducible and therefore safe to
+// assert on literally.
+class CBasicGitWithSha256TestRepoFixture : public CBasicGitWithTestRepoFixture
+{
+public:
+	CBasicGitWithSha256TestRepoFixture() : CBasicGitWithTestRepoFixture(L"git-sha256-repo") {};
+};
+
 class CBasicGitWithSubmodulRepoeBareFixture : public CBasicGitWithTestRepoBareFixture
 {
 public:
