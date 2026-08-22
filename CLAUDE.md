@@ -499,14 +499,20 @@ MSIX package. **Not a trivial packer swap:**
   64-char SHA256 zero id.
 - `gitdll.c`'s independent 20-byte assumption (the `GitHash.h` comment
   explicitly flags it).
-- **`g_gitObjectFormat` is only latched on the gitdll path.**
-  `CGit::CheckAndInitDll()` now re-latches whenever `m_CurrentDir` differs from
-  the directory it latched for, so that path cannot go stale. But code that
-  talks to libgit2 directly never calls it and therefore reads whatever the
-  format was last left at — `SHA1` by default. Deriving the format from the
-  repository itself (`extensions.objectformat`, or via libgit2 when it opens
-  the repo) is the real fix and is **not done**. Until then, treat "opened
-  through libgit2 only" as a path where the object format may be wrong.
+- **`g_gitObjectFormat` is latched by both backends now** —
+  `CGit::CheckAndInitDll()` from `git_get_hash_algo()`, and
+  `CAutoRepository::Open()` from `git_repository_oid_type()`. The second one
+  matters because TGitCache and the shell extension deliberately never
+  initialize gitdll (`CheckAndInitDll` even asserts under `TGITCACHE`), so
+  libgit2 is the only path that ever establishes their format. The state and
+  both helpers live in `src\Utils\GitObjectFormat.h` rather than next to
+  `CGitHash`, because `GitWCRev` and the shell use libgit2 without `src\Git`
+  on their include path.
+  *Remaining sharp edge:* the libgit2 latch is last-open-wins, so opening a
+  submodule (or any other repository) re-latches from it. Harmless while
+  everything is SHA1, and correct for a uniform SHA256 working copy, but a
+  mixed-format superproject/submodule pair would end up with whichever was
+  opened last. Not handled.
 - **`m_CurrentDir` is public and assigned directly in ~45 places** across
   `src\` and `test\`, and `SetCurrentDir()` does not latch the format either,
   so the invalid state (directory and format disagreeing) is still

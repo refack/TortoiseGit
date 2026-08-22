@@ -19,6 +19,7 @@
 //
 #pragma once
 #include "UnicodeUtils.h"
+#include "GitObjectFormat.h"
 #include <vector>
 
 /**
@@ -197,7 +198,14 @@ public:
 
 	int Open(const char* gitDirA)
 	{
-		return git_repository_open(GetPointer(), gitDirA);
+		const int ret = git_repository_open(GetPointer(), gitDirA);
+		if (!ret)
+		{
+			// TGitCache and the shell extension never initialize gitdll, so this is the
+			// only place their object format is ever established; cf. GitObjectFormat.h.
+			GitLatchObjectFormat(git_repository_oid_type(m_Ref));
+		}
+		return ret;
 	}
 
 	CAutoRepository(const CAutoRepository&) = delete;

@@ -501,6 +501,8 @@ int CGitHeadFileList::ReadHeadHash(const CString& gitdir)
 
 	DWORD size = 0;
 	unsigned char buffer[GIT_HASH_MAX_HEXSIZE];
+	// hex length of an object id in the active format; DWORD so it matches what ReadFile reports
+	const DWORD hexSize = static_cast<DWORD>(2 * GIT_HASH_SIZE);
 	ReadFile(hfile, buffer, static_cast<DWORD>(strlen("ref:")), &size, nullptr);
 	if (size != strlen("ref:"))
 		return -1;
@@ -566,8 +568,8 @@ int CGitHeadFileList::ReadHeadHash(const CString& gitdir)
 			return 0;
 		}
 
-		ReadFile(href, buffer, 2 * GIT_HASH_SIZE, &size, nullptr);
-		if (size != 2 * GIT_HASH_SIZE)
+		ReadFile(href, buffer, hexSize, &size, nullptr);
+		if (size != hexSize)
 			return -1;
 
 		m_Head = CGitHash::FromHexStr(std::string_view(reinterpret_cast<const char*>(buffer), size));
@@ -577,13 +579,13 @@ int CGitHeadFileList::ReadHeadHash(const CString& gitdir)
 		return 0;
 	}
 
-	ReadFile(hfile, buffer + static_cast<DWORD>(strlen("ref:")), 2 * GIT_HASH_SIZE - static_cast<DWORD>(strlen("ref:")), &size, nullptr);
-	if (size != 2 * GIT_HASH_SIZE - static_cast<DWORD>(strlen("ref:")))
+	ReadFile(hfile, buffer + static_cast<DWORD>(strlen("ref:")), hexSize - static_cast<DWORD>(strlen("ref:")), &size, nullptr);
+	if (size != hexSize - static_cast<DWORD>(strlen("ref:")))
 		return -1;
 
 	m_HeadRefFile.Empty();
 
-	m_Head = CGitHash::FromHexStr(std::string_view(reinterpret_cast<const char*>(buffer), 2 * GIT_HASH_SIZE));
+	m_Head = CGitHash::FromHexStr(std::string_view(reinterpret_cast<const char*>(buffer), hexSize));
 
 	return 0;
 }

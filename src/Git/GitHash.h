@@ -25,39 +25,10 @@
 #define GIT_HASH_MAX_SIZE 40
 #define GIT_HASH_MAX_HEXSIZE (2 * GIT_HASH_MAX_SIZE)
 
-/* keep the values in sync with git's hash_algo_by_ptr(), see gitdll.c's git_get_hash_algo() */
-enum class GitObjectFormat : int
-{
-	SHA1 = 1,
-	SHA256 = 2,
-};
-
-/*
- * Object format of the repository this process works on. TortoiseGit runs one process per
- * working copy, so this is process-level state rather than something carried per CGitHash:
- * it is latched once the git dll is initialized (see CGit::CheckAndInitDll) and from then on
- * every hash in the process is of that format.
- */
-inline GitObjectFormat g_gitObjectFormat = GitObjectFormat::SHA1;
-
-/* Number of raw bytes an object id currently occupies; always <= GIT_HASH_MAX_SIZE. */
-inline int GitHashSize() noexcept
-{
-#ifdef GIT_EXPERIMENTAL_SHA256
-	return g_gitObjectFormat == GitObjectFormat::SHA256 ? GIT_OID_SHA256_SIZE : GIT_OID_SHA1_SIZE;
-#else
-	// without libgit2's experimental headers git_oid cannot hold a SHA256 id at all
-	return GIT_OID_SHA1_SIZE;
-#endif
-}
+// g_gitObjectFormat / GitHashSize() / GitObjectFormatName() / GitLatchObjectFormat()
+#include "GitObjectFormat.h"
 
 #define GIT_HASH_SIZE (GitHashSize())
-
-/* Display name of the active object format, for UI labels. */
-inline const wchar_t* GitObjectFormatName() noexcept
-{
-	return GitHashSize() == GIT_OID_SHA1_SIZE ? L"SHA-1" : L"SHA-256";
-}
 
 /* also see gitdll.c */
 static_assert(GIT_OID_MAX_SIZE <= sizeof(git_oid::id), "git_oid raw storage must be able to hold the largest id");
