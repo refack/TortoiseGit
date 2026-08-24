@@ -84,6 +84,7 @@ protected:
 	afx_msg void OnTimer(UINT_PTR nIDEvent);
 	afx_msg void OnBnClickedDiffoption();
 	afx_msg void OnBnClickedLog();
+	afx_msg void OnBnClickedCommit();
 	afx_msg LRESULT OnDisableButtons(WPARAM, LPARAM);
 	afx_msg LRESULT OnDiffFinished(WPARAM, LPARAM);
 	afx_msg void OnLvnBegindrag(NMHDR* pNMHDR, LRESULT* pResult);
@@ -100,6 +101,9 @@ protected:
 	void				ClickRevButton(CMenuButton *button,GitRev *rev, CACEdit *edit);
 
 	void				EnableInputControl(bool b=true);
+
+	bool				IsDiffAgainstWorkingCopy() const;
+	void				ShowCommitButton();
 
 	int					RevertSelectedItemToVersion(const CGitHash& rev, bool isOldVersion);
 

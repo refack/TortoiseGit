@@ -2,10 +2,22 @@
 
 Working plan for two intertwined changes to this repo's libgit2 integration.
 Written 2026-08-03, consulted with Fable; status last validated against the
-repo 2026-08-04.
+repo 2026-08-25.
 
-**Status:** work has started and deliberately ran out of written phase order.
-Landed so far (see per-phase notes below for what remains):
+**Where this stands (2026-08-25).** Phases 0–3 are complete and Phase 4 works
+end to end for the log, diff and commit paths: a SHA256 repository opens,
+lists full 64-character ids, diffs against the working copy, and commits.
+Phase 5 (MSIX) has not started. The phases were deliberately taken out of
+written order, so read the per-phase status notes rather than inferring
+sequence from the numbering.
+
+**Current focus is test health, not SHA256.** The suite raises modal dialogs,
+which makes a full run attended-only; decoupling that is the prerequisite for
+fixing the 29 pre-existing failures and for CI. See "Test health" under the
+open items.
+
+Historical landing order, kept because several phases were taken out of
+sequence and the commit trail is otherwise hard to follow:
 
 - `ecdcdbff1` — Phase 0 (drop Win32) for `src\`, `ext\build\`, `ext\gitdll`,
   `Languages\`; test\ vcxprojs and WiX x86 conditionals were deferred.
@@ -18,12 +30,7 @@ Landed so far (see per-phase notes below for what remains):
   `test\Cache\Cache.vcxproj` (they link the flagged libgit2 DLL — without the
   define they'd be an ABI mismatch), plus their leftover Win32 configs
   removed. This doc was committed separately as `5f3e184f8`.
-- In flight in separate sessions as of 2026-08-04, not yet merged into this
-  branch — verify with `git log`/`git branch` before assuming done: the
-  remaining six unflagged libgit2 consumers (Phase 3's sharpest open item)
-  and the `GitWCRevStatus` hardcoded-`"master"` test fix (pre-existing bug,
-  unrelated to the SHA256 work).
-- (uncommitted) Phase 1 milestones 1a–1c: the vcpkg overlay port
+- Phase 1 milestones 1a–1c: the vcpkg overlay port
   (`ext\vcpkg-ports\libgit2\`), and **all ten libgit2 consumers migrated**
   off `ext\build\libgit2.vcxproj` onto it (that project and its `.filters`
   are now deleted). Whole solution builds clean; `TortoiseGitProc.exe` is
@@ -163,7 +170,7 @@ ARM64 build clean; no Win32 config left in `TortoiseGit.sln`/`.slnx`.
   MSI components (gitdll32.dll, puttygen-x86.exe, TortoiseGitStub32.dll) and
   need careful review, not a mechanical strip.*
 
-- [ ] **Phase 1 — Migrate to vcpkg (de-fragmentation).** *(Revised
+- [X] **Phase 1 — Migrate to vcpkg (de-fragmentation).** *(Revised
 2026-08-04, per user direction.)* The goal is no longer "keep
 hand-maintaining `ext\build\libgit2.vcxproj`'s ~180-file list, just as a
 static lib instead of a DLL" — it's to stop hand-maintaining libgit2's build
@@ -383,7 +390,7 @@ the overlay port, not scattered root-level `.patch` files.
   reaching libgit2 (needs the VS "C++ ARM64 build tools" component); treat as
   best-effort, not a blocker.*
 
-- [ ] **Phase 2 — Hash-size hygiene (pre-req for Phase 3, define still OFF).**
+- [X] **Phase 2 — Hash-size hygiene (pre-req for Phase 3, define still OFF).**
 Refactor `CGitHash` to own real storage sized for the eventual 32-byte case
 instead of reinterpret-casting a 20-byte buffer, behind an unchanged public
 API. Audit all `GIT_HASH_SIZE` call sites (fixed-length hex parsing at
@@ -396,30 +403,37 @@ behaves identically to today, define still off — this phase is pure safety
 margin for Phase 3.
   *Status: partially done in `a7b376d76` (and out of order — the define went
   on at the same time, see Phase 3): `CGitHash` now owns a real `git_oid`
-  member behind the unchanged public API. Still open: the `GIT_HASH_SIZE`
-  call-site audit and the `GitLogCache` format-version bump
-  (`LOG_INDEX_VERSION` is still `0x11`) — currently harmless because
-  `GIT_HASH_SIZE` is still 20, but both must land before hash size can vary.*
+  member behind the unchanged public API. **Completed** (out of order, with the
+  define already on): the `GIT_HASH_SIZE` call-site audit found ~40 sites across
+  12 files and every one goes through the macro — no raw `20`/`40` literals
+  bypass it, so making it runtime fixed them all at once; and `e644fb421` bumped
+  `LOG_INDEX_VERSION` `0x11` -> `0x12`. That bump was not merely precautionary:
+  `SLogCacheIndexItem` embeds `CGitHash` by value in a `#pragma pack(1)` struct,
+  so once the define was on, the on-disk item stride had already changed and a
+  pre-flag cache was being misread.*
 
-- [ ] **Phase 3 — Flip `GIT_EXPERIMENTAL_SHA256`.** Define it everywhere a TU
+- [X] **Phase 3 — Flip `GIT_EXPERIMENTAL_SHA256`.** Define it everywhere a TU
 includes `git2/oid.h` (libgit2 project, TortoiseProc, TortoiseMerge, tests).
 Fix fallout. Patch `ext\libgit2` via the `git am` pattern only if the
 experimental headers/sources themselves need a TortoiseGit-specific fix.
 Exit: SHA1 repos fully regression-clean; libgit2-backed operations can open
 a SHA256 repo.
-  *Status: partially done. `a7b376d76` flipped the define for libgit2 +
+  *Status: done. `a7b376d76` flipped the define for libgit2 +
   TortoiseProc + TortoiseMerge (fallout fixed: `git_index_new` gained an
   `opts` param); `df40b91a9` adds UnitTests + Cache (fallout fixed:
   `git_odb_hashfile`/`git_odb_hash` gained an oid-type param —
   `PatchTest.cpp`, `GitIndex.cpp` via a `tgit_odb_hash` shim — and
   `GitWCRev.h`'s `HeadHashReadable` buffer is now `GIT_OID_MAX_HEXSIZE`-sized
-  with its "SHA2 is not available" static_assert removed). **Sharpest open
-  item: the other six consumers (TortoiseShell, TGitCache, TortoiseGitBlame,
-  TortoiseIDiff, GitWCRev, GitWCRevCOM) still link the flagged DLL without
-  the define — a live ABI mismatch in shipping binaries** (a fix is in
-  flight in a separate session as of 2026-08-04 — check `git log` before
-  re-doing it). Exit criteria not met: `GIT_HASH_SIZE` is still 20, so
-  SHA256 repos cannot be opened yet.*
+  with its "SHA2 is not available" static_assert removed).
+  **The "six unflagged consumers" hazard is gone, and not because anyone
+  flagged them.** The vcpkg migration (`f78e98aaf`) installs the
+  cmake-generated `git2\experimental.h`, which carries `GIT_EXPERIMENTAL_SHA256`
+  itself, so the define now propagates through the headers to every consumer.
+  A hand-maintained build let the flag drift per project; a port emits it into
+  a header, so consumers cannot disagree with the library they link. Do not go
+  re-flag those six vcxprojs — there is nothing to flag.
+  Exit criteria met: `GIT_HASH_SIZE` is the runtime `GitHashSize()`, and SHA256
+  repositories open and work (see Phase 4).*
 
 - [ ] **Phase 4 — App-level SHA256 UX + gitdll.** 64-char hash display/parsing
 throughout the UI, `GIT_REV_ZERO` (currently a 40-char literal) needs a
@@ -450,11 +464,17 @@ test repo.
   `GIT_REV_ZERO` is defined in terms of it, which fixed ~45 call sites without
   touching them. Diff-against-working-copy is verified by hand on both a SHA256
   and a SHA1 working copy.
-  Remaining gaps: log column header + revision filter still say "SHA-1"
-  (from `IDS_HASH`/`IDS_LOG_FILTER_REVS` resource strings — product call,
-  churns translations); `GIT_REV_ZERO_C` is deliberately still SHA1-width and
-  narrow, since it is GitWCRev's unborn-HEAD output; status/commit/blame
-  dialogs untested on SHA256; and see the unflagged-consumer risk below.*
+  `IDS_HASH`/`IDS_LOG_FILTER_REVS` now say "SHA" rather than "SHA-1", since they
+  label a column and a filter in repositories that may be either format; where
+  there is room to be specific the log detail pane names the actual algorithm.
+  The Changed Files dialog offers Commit when one side of the diff is the
+  working copy, which closes log -> compare to worktree -> review -> commit.
+  Remaining gaps: `GIT_REV_ZERO_C` is deliberately still SHA1-width and narrow,
+  since it is GitWCRev's unborn-HEAD output; and see the unflagged-consumer
+  risk below. Note the status/commit/blame dialogs are **not** unexercised —
+  the user ran a SHA256 working copy for roughly two weeks (2026-08-08 to
+  2026-08-22) on a Release build predating most of this work, and the only
+  defect that surfaced was the zero-width sentinel fixed in `468e9c14a`.*
 
 - [ ] **Phase 5 — Switch the WiX packager from MSI to MSIX.** *(Added
 2026-08-04, per user direction. Out of scope for Phases 1–4's validation —
@@ -486,24 +506,21 @@ MSIX package. **Not a trivial packer swap:**
 
 ## Known risk areas (watch list, not exhaustive)
 
+Resolved, kept only so they are not re-investigated:
+
 - ~~`CGitHash` reinterpret-cast corruption~~ — fixed in `a7b376d76`.
-- **Unflagged libgit2 consumers** — any project linking `libgit2_tgit.dll`
-  without `GIT_EXPERIMENTAL_SHA256` sees the old 20-byte `git_oid` layout
-  while the DLL uses the tagged 33-byte one: silent corruption on any oid
-  crossing the boundary. Six of the ten consumers are still unflagged (see
-  Phase 3 status). Converting to a static lib (Phase 1) does NOT remove this
-  constraint — the define must still match per-executable. **Sharpened by
-  `f8064ea8e`:** gitdll no longer refuses SHA256 repos, and `gitdll.dll` is
-  shared by all consumers — but in unflagged binaries `GitHashSize()`
-  compiles to a hard 20, so TortoiseShell/TGitCache/etc. would now open a
-  SHA256 repo and silently truncate ids instead of failing loudly.
-- `GitLogCache` on-disk cache format — needs versioning or it'll misread old
-  caches as corrupt (or worse, as valid).
-- `GIT_REV_ZERO` and any other 40-char hex literal compared against a
-  64-char SHA256 zero id.
-- `gitdll.c`'s independent 20-byte assumption (the `GitHash.h` comment
-  explicitly flags it).
-- **`g_gitObjectFormat` is latched by both backends now** —
+- ~~Unflagged libgit2 consumers~~ — dissolved by the vcpkg migration, which
+  propagates the define through the installed `experimental.h`. See Phase 3.
+- ~~`GitLogCache` on-disk format~~ — versioned in `e644fb421`.
+- ~~`GIT_REV_ZERO` compared against a 64-char zero id~~ — the sentinel follows
+  the object format as of `468e9c14a`.
+- ~~`gitdll.c`'s independent 20-byte assumption~~ — `hashcpy` with the
+  repository's algorithm, and real `oid.algo` values, as of `f8064ea8e`.
+
+### SHA256 correctness edge cases
+
+- **Last-open-wins on the libgit2 latch.** `g_gitObjectFormat` is latched by
+  both backends —
   `CGit::CheckAndInitDll()` from `git_get_hash_algo()`, and
   `CAutoRepository::Open()` from `git_repository_oid_type()`. The second one
   matters because TGitCache and the shell extension deliberately never
@@ -522,21 +539,62 @@ MSIX package. **Not a trivial packer swap:**
   so the invalid state (directory and format disagreeing) is still
   *representable* — just self-corrected on the next `CheckAndInitDll()`.
   Privatizing it and routing every assignment through a setter that latches is
-  the follow-up that makes it unrepresentable.
+  the follow-up that makes it unrepresentable. Measured 2026-08-22: 455
+  occurrences across 106 files, so this is a real refactor, and the ~45 writes
+  are not mechanically convertible — `SetCurrentDir()` performs admin-dir
+  *discovery*, which most direct assignments do not want. `GetCurrentDir()` and
+  `CombinePath()` give new code a const path so the count should not grow.
+- **`GIT_REV_ZERO_C` is deliberately still SHA1-width and narrow** — it is
+  GitWCRev's unborn-HEAD output, a separate question from the wide sentinel.
 - Any raw `memcmp`/`memcpy` on oids outside `GitHash.h` — grep `GIT_OID_`,
-  fixed `20`/`40` literals near hash-looking variables.
+  fixed `20`/`40` literals near hash-looking variables. Audited 2026-08-22:
+  nothing in `src\` bypasses the accessors, but new code can reintroduce it.
+
+### Build and dev-ops
+
+- **WiX x86 conditionals** in `src\TortoiseGitSetup\{StructureFragment,Includes}.wxi`
+  — deferred from Phase 0. They guard real MSI components (gitdll32.dll,
+  puttygen-x86.exe, TortoiseGitStub32.dll), so this needs review rather than a
+  mechanical strip.
+- **Phase 5, MSIX packaging** — not started; WiX v3 cannot emit MSIX at all.
+- **ARM64 unverified** — this machine has no `Hostx64\arm64` cross-compiler.
+  Best-effort, not a blocker.
+- **sccache is shelved**, switch left in the tree and off by default. Two
+  configuration faults plus one structural blocker; see the experiment report
+  rather than re-deriving: precompiled headers are load-bearing for include
+  correctness here, and sccache cannot cache TUs that consume a PCH.
+
+### Test health *(current focus)*
+
+- **The suite is GUI-coupled.** Tests raise modal `MessageBox` dialogs on
+  failure paths, so a full run blocks until a human dismisses them — roughly 28
+  minutes attended, and impossible unattended. Decoupling the GUI from the unit
+  tests is the prerequisite for everything below, and for CI at all.
+- **29 pre-existing failures** out of 586. Known contributors: the host's
+  `init.defaultBranch=main` versus fixtures hardcoding `"master"`, plus
+  environment-dependent `CGit` and `GitRevLoglist` cases. Verified unrelated to
+  the SHA256 work by revert-and-rebuild isolation, so do not attribute them to
+  it — but they are worth fixing once runs are headless.
 
 ## Critical files
 
-- `ext\build\libgit2.vcxproj` — the hand-maintained build to retire in favor
-  of a vcpkg port overlay (see Phase 1); its `PreprocessorDefinitions` line
-  is the source of truth for feature flags the overlay must replicate.
-  Win32 already dropped from it.
+- `ext\vcpkg-ports\libgit2\` — the port overlay that replaced
+  `ext\build\libgit2.vcxproj` (deleted in `f78e98aaf`). It, not a vcxproj, is
+  now the source of truth for libgit2's feature flags.
+- `src\Utils\GitObjectFormat.h` — the process-level object format:
+  `g_gitObjectFormat`, `GitHashSize()`, `GitZeroRevString()`,
+  `GitLatchObjectFormat()`. In `Utils` rather than `Git` because `GitWCRev`
+  and the shell use libgit2 without `src\Git` on their include path.
+- `src\Utils\SmartLibgit2Ref.h` — `CAutoRepository::Open()` is the single
+  chokepoint where the libgit2 side latches the format.
+- `test\UnitTests\RepositoryFixtures.h` — fixtures copy
+  `resources\<name>\` in at SetUp; `git-sha256-repo` is the SHA256 one.
 - `src\TortoiseGitSetup\WiXSetup.wixproj`, `TortoiseGIT.wxs` — the WiX v3
   MSI packaging project to migrate to MSIX (Phase 5); audit its
   `CustomAction`/`RegistrySearch` entries for MSIX-incompatible mechanics
   before assuming coverage.
-- `src\Git\GitHash.h` — `CGitHash`, the 20-byte assumption, the static_assert.
+- `src\Git\GitHash.h` — `CGitHash`, `GIT_HASH_MAX_SIZE` for fixed buffers, and
+  `GIT_HASH_SIZE` as the runtime length.
 - `src\TortoiseGitSetup\StructureFragment.wxi` — MSI packaging entry for the DLL to remove.
 - `src\TortoiseProc\GitLogCache.h`/`.cpp` — on-disk cache format to version.
 - `ext\gitdll\gitdll.c` — second, independent 20-byte hash assumption.

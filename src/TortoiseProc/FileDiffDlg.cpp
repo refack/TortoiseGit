@@ -104,6 +104,7 @@ BEGIN_MESSAGE_MAP(CFileDiffDlg, CResizableStandAloneDialog)
 	ON_REGISTERED_MESSAGE(WM_DIFFFINISHED, OnDiffFinished)
 	ON_BN_CLICKED(IDC_DIFFOPTION, OnBnClickedDiffoption)
 	ON_BN_CLICKED(IDC_LOG, &CFileDiffDlg::OnBnClickedLog)
+	ON_BN_CLICKED(IDC_COMMITBUTTON, &CFileDiffDlg::OnBnClickedCommit)
 	ON_NOTIFY(LVN_BEGINDRAG, IDC_FILELIST, OnLvnBegindrag)
 	ON_STN_CLICKED(IDC_VIEW_PATCH, OnStnClickedViewPatch)
 	ON_NOTIFY(LVN_ITEMCHANGED, IDC_FILELIST, OnFileListItemChanged)
@@ -201,6 +202,7 @@ BOOL CFileDiffDlg::OnInitDialog()
 	AddAnchor(IDC_REV2EDIT,TOP_LEFT);
 	AddAnchor(IDC_DIFFOPTION, TOP_RIGHT);
 	AddAnchor(IDC_LOG, TOP_RIGHT);
+	AddAnchor(IDC_COMMITBUTTON, BOTTOM_LEFT);
 	AddAnchor(IDC_VIEW_PATCH, BOTTOM_RIGHT);
 
 	EnableSaveRestore(L"FileDiffDlg");
@@ -256,6 +258,9 @@ BOOL CFileDiffDlg::OnInitDialog()
 
 	if(m_rev2.m_CommitHash.IsEmpty())
 		m_SwitchButton.EnableWindow(FALSE);
+
+	// the revisions are known by now, so the button can decide whether it applies
+	ShowCommitButton();
 
 	m_cDiffOptionsBtn.m_bAlwaysShowArrow = true;
 
@@ -406,7 +411,8 @@ void CFileDiffDlg::EnableInputControl(bool b)
 	this->m_cRev2Btn.EnableWindow(b);
 	m_cFilter.EnableWindow(b);
 	m_SwitchButton.EnableWindow(b);
-	GetDlgItem(IDC_LOG)->EnableWindow(b && !(m_rev1.m_CommitHash.IsEmpty() || m_rev2.m_CommitHash.IsEmpty()));
+	GetDlgItem(IDC_LOG)->EnableWindow(b && !IsDiffAgainstWorkingCopy());
+	ShowCommitButton();
 }
 
 void CFileDiffDlg::DoDiff(int selIndex, bool blame)
@@ -1408,6 +1414,36 @@ void CFileDiffDlg::OnBnClickedLog()
 	CString cmd;
 	cmd.Format(L"/command:log /range:%s..%s", static_cast<LPCWSTR>(m_rev1.m_CommitHash.ToString()), static_cast<LPCWSTR>(m_rev2.m_CommitHash.ToString()));
 	CAppUtils::RunTortoiseGitProc(cmd);
+}
+
+void CFileDiffDlg::OnBnClickedCommit()
+{
+	// Only meaningful while one side is the working copy, which is what an empty hash
+	// means here; the button is hidden otherwise (see ShowCommitButton).
+	if (!IsDiffAgainstWorkingCopy())
+		return;
+
+	CString cmd;
+	cmd.Format(L"/command:commit /path:\"%s\"", static_cast<LPCWSTR>(g_Git.GetCurrentDir()));
+	CAppUtils::RunTortoiseGitProc(cmd);
+}
+
+// One side being the working copy is represented by an empty commit hash: GitRev::GetCommit()
+// clears the revision when handed the working-copy pseudo-revision, see
+// GitRev::GetWorkingCopyRef(). This is the same condition "Show log" keys off, inverted --
+// that one needs two real commits, this one needs the working copy to be involved.
+bool CFileDiffDlg::IsDiffAgainstWorkingCopy() const
+{
+	return m_rev1.m_CommitHash.IsEmpty() || m_rev2.m_CommitHash.IsEmpty();
+}
+
+void CFileDiffDlg::ShowCommitButton()
+{
+	auto button = GetDlgItem(IDC_COMMITBUTTON);
+	if (!button)
+		return;
+	// nothing to commit in a bare repository, and no working copy to commit from
+	button->ShowWindow(IsDiffAgainstWorkingCopy() && !m_bIsBare ? SW_SHOW : SW_HIDE);
 }
 
 bool CFileDiffDlg::CheckMultipleDiffs()
