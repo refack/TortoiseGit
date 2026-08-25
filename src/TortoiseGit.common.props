@@ -14,6 +14,16 @@
   </PropertyGroup>
   <ItemDefinitionGroup>
     <ClCompile>
+      <!--
+        Shared source roots, so that a header belonging to another project is reached
+        as <TGitCache/CacheInterface.h> rather than "../TGitCache/CacheInterface.h".
+        A relative include hardcodes the on-disk layout into the source, where no build
+        file declares it and no tool can check it; the compiler is then the only thing
+        that knows the dependency exists. The project-qualified form also keeps the
+        many same-named resource.h files apart. Utils is listed as well because
+        Utils\MiscUI reaches its parent the same way.
+      -->
+      <AdditionalIncludeDirectories>$(SolutionDir);$(SolutionDir)Utils;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <BufferSecurityCheck>true</BufferSecurityCheck>
       <ExceptionHandling>Sync</ExceptionHandling>
       <FunctionLevelLinking>true</FunctionLevelLinking>

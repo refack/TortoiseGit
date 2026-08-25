@@ -24,10 +24,10 @@
 #include "PathUtils.h"
 #include <regex>
 #include "Git.h"
-#include "../TortoiseShell/Globals.h"
+#include <TortoiseShell/Globals.h>
 #include "StringUtils.h"
 #include "SmartHandle.h"
-#include "../Resources/LoglistCommonResource.h"
+#include <Resources/LoglistCommonResource.h>
 #include <sys/stat.h>
 
 #ifdef TGIT_LFS

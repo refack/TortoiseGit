@@ -32,7 +32,7 @@
 #include "PathUtils.h"
 #include "CreateProcessHelper.h"
 #include "FormatMessageWrapper.h"
-#include "../TGitCache/CacheInterface.h"
+#include <TGitCache/CacheInterface.h>
 #include "resource.h"
 #include "LoadIconEx.h"
 #include "ClipboardHelper.h"

@@ -23,7 +23,7 @@
 #include "AboutDlg.h"
 #include "PathUtils.h"
 #define NEED_SIGNING_KEY
-#include "../version.h"
+#include <version.h>
 #include "VersioncheckParser.h"
 #include "AppUtils.h"
 #include "Git.h"

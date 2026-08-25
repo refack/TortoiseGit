@@ -23,7 +23,7 @@
 #include "FirstStartWizardGit.h"
 #include "Git.h"
 #include "GitForWindows.h"
-#include "../../TGitCache/CacheInterface.h"
+#include <TGitCache/CacheInterface.h>
 #include "Theme.h"
 
 IMPLEMENT_DYNAMIC(CFirstStartWizardGit, CFirstStartWizardBasePage)

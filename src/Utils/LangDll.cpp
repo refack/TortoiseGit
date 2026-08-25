@@ -19,7 +19,7 @@
 //
 #include "stdafx.h"
 #include "LangDll.h"
-#include "../version.h"
+#include <version.h>
 #include "PathUtils.h"
 #include "registry.h"
 #include "CrashReport.h"

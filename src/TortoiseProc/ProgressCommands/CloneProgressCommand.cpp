@@ -20,7 +20,7 @@
 #include "TortoiseProc.h"
 #include "CloneProgressCommand.h"
 #include "AppUtils.h"
-#include "../TGitCache/CacheInterface.h"
+#include <TGitCache/CacheInterface.h>
 
 bool CloneProgressCommand::Run(CGitProgressList* list, CString& sWindowTitle, int& /*m_itemCountTotal*/, int& /*m_itemCount*/)
 {

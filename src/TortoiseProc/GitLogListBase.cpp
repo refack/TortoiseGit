@@ -27,7 +27,7 @@
 #include "UnicodeUtils.h"
 #include "resource.h"
 #include "LoglistCommonResource.h"
-#include "../TortoiseShell/Resource.h"
+#include <TortoiseShell/Resource.h>
 #include "CommonAppUtils.h"
 #include "DPIAware.h"
 

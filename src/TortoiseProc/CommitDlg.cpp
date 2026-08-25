@@ -28,7 +28,7 @@
 #include "HistoryDlg.h"
 #include "Hooks.h"
 #include "UnicodeUtils.h"
-#include "../TGitCache/CacheInterface.h"
+#include <TGitCache/CacheInterface.h>
 #include "ProgressDlg.h"
 #include "ShellUpdater.h"
 #include "COMError.h"

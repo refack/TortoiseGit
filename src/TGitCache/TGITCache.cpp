@@ -30,7 +30,7 @@
 #include <InitGuid.h>
 #include <Ioevent.h>
 #include <wrl/client.h>
-#include "../version.h"
+#include <version.h>
 #include "SmartHandle.h"
 #include "CreateProcessHelper.h"
 #include "gitindex.h"

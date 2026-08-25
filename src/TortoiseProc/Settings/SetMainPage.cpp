@@ -25,7 +25,7 @@
 #include "Git.h"
 #include "MessageBox.h"
 #include "Libraries.h"
-#include "../../TGitCache/CacheInterface.h"
+#include <TGitCache/CacheInterface.h>
 #include "LangDll.h"
 
 IMPLEMENT_DYNAMIC(CSetMainPage, ISettingsPropPage)

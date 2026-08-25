@@ -19,7 +19,7 @@
 //
 
 #pragma once
-#include "../SmartHandle.h"
+#include <SmartHandle.h>
 #include "ILexer.h"
 #include "scintilla.h"
 #include "SciLexer.h"

@@ -23,7 +23,7 @@
 #include "ProgressDlg.h"
 #include "ShellUpdater.h"
 #include "CleanTypeDlg.h"
-#include "../Utils/UnicodeUtils.h"
+#include <Utils/UnicodeUtils.h>
 #include "SysProgressDlg.h"
 
 struct SubmodulePayload

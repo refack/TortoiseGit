@@ -22,7 +22,7 @@
 #include "ShellExt.h"
 #include "PreserveChdir.h"
 #include "GitStatus.h"
-#include "../TGitCache/CacheInterface.h"
+#include <TGitCache/CacheInterface.h>
 #include "GitAdminDir.h"
 #include "StringUtils.h"
 

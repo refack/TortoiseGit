@@ -22,7 +22,7 @@
 #include "Git.h"
 #include "MessageBox.h"
 #include "AppUtils.h"
-#include "../TGitCache/CacheInterface.h"
+#include <TGitCache/CacheInterface.h>
 
 #define GIT_FOR_WINDOWS_URL L"https://gitforwindows.org/"
 

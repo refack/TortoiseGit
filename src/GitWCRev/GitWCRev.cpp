@@ -19,13 +19,13 @@
 
 #include "stdafx.h"
 #include "SmartHandle.h"
-#include "../Utils/CrashReport.h"
+#include <Utils/CrashReport.h>
 #include <io.h>
 #include <fcntl.h>
 #include "GitWCRev.h"
 #include "status.h"
 #include "UnicodeUtils.h"
-#include "../version.h"
+#include <version.h>
 
 // Define the help text as a multi-line macro
 // Every line except the last must be terminated with a backslash

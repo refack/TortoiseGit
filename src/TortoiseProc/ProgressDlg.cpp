@@ -28,7 +28,7 @@
 #include <Tlhelp32.h>
 #include "AppUtils.h"
 #include "SmartHandle.h"
-#include "../TGitCache/CacheInterface.h"
+#include <TGitCache/CacheInterface.h>
 #include "LoglistUtils.h"
 #include "MessageBox.h"
 #include "LogFile.h"

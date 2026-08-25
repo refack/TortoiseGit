@@ -71,7 +71,7 @@
 #include "CheckCertificateDlg.h"
 #include "SubmoduleResolveConflictDlg.h"
 #include "GitDiff.h"
-#include "../TGitCache/CacheInterface.h"
+#include <TGitCache/CacheInterface.h>
 #include "IconExtractor.h"
 #include "ClipboardHelper.h"
 #endif

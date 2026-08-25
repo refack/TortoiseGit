@@ -25,8 +25,8 @@
 #include "registry.h"
 #include "LangDll.h"
 #include "Monitor.h"
-#include "../version.h"
-#include "../Utils/CrashReport.h"
+#include <version.h>
+#include <Utils/CrashReport.h>
 #pragma warning(push)
 #pragma warning(disable: 4458)
 #include <GdiPlus.h>

@@ -23,10 +23,10 @@
 #include <CommCtrl.h>
 #include "PicWindow.h"
 #include <memory>
-#include "../Utils/DPIAware.h"
-#include "../Utils/LoadIconEx.h"
-#include "../Utils/Theme.h"
-#include "../Utils/DarkModeHelper.h"
+#include <Utils/DPIAware.h>
+#include <Utils/LoadIconEx.h>
+#include <Utils/Theme.h>
+#include <Utils/DarkModeHelper.h>
 
 #pragma comment(lib, "Msimg32.lib")
 #pragma comment(lib, "shell32.lib")

@@ -22,7 +22,7 @@
 #include "resource.h"
 #include "AboutDlg.h"
 #include "Theme.h"
-#include "../version.h"
+#include <version.h>
 
 CAboutDlg::CAboutDlg(HWND hParent)
     : m_hParent(hParent)

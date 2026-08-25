@@ -20,7 +20,7 @@
 
 #include "stdafx.h"
 #include "Shellupdater.h"
-#include "../TGitCache/CacheInterface.h"
+#include <TGitCache/CacheInterface.h>
 #include "Git.h"
 #include "SmartHandle.h"
 

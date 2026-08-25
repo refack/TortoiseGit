@@ -25,7 +25,7 @@
 #include "registry.h"
 #include "SciEdit.h"
 #include "SmartHandle.h"
-#include "../../TortoiseUDiff/UDiffColors.h"
+#include <TortoiseUDiff/UDiffColors.h>
 #include "LoadIconEx.h"
 #include "Theme.h"
 #include "Lexilla.h"

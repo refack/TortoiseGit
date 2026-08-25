@@ -33,7 +33,7 @@
 #include "RebaseDlg.h"
 #include "CommitIsOnRefsDlg.h"
 #include "GitDiff.h"
-#include "../TGitCache/CacheInterface.h"
+#include <TGitCache/CacheInterface.h>
 #include "CmdLineParser.h"
 
 IMPLEMENT_DYNAMIC(CGitLogList, CHintCtrl<CListCtrl>)

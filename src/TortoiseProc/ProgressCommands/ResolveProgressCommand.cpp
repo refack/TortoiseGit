@@ -20,7 +20,7 @@
 #include "TortoiseProc.h"
 #include "ResolveProgressCommand.h"
 #include "ShellUpdater.h"
-#include "../TGitCache/CacheInterface.h"
+#include <TGitCache/CacheInterface.h>
 #include "AppUtils.h"
 #include "MassiveGitTask.h"
 #include "MessageBox.h"

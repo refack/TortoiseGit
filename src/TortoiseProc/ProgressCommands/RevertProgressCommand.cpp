@@ -20,7 +20,7 @@
 #include "TortoiseProc.h"
 #include "RevertProgressCommand.h"
 #include "ShellUpdater.h"
-#include "../TGitCache/CacheInterface.h"
+#include <TGitCache/CacheInterface.h>
 #include "MassiveGitTask.h"
 #include "GitRev.h"
 #include "CmdLineParser.h"

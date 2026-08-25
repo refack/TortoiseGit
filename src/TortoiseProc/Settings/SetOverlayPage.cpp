@@ -21,7 +21,7 @@
 #include "stdafx.h"
 #include "TortoiseProc.h"
 #include "SetOverlayPage.h"
-#include "../TGitCache/CacheInterface.h"
+#include <TGitCache/CacheInterface.h>
 #include "StringUtils.h"
 
 IMPLEMENT_DYNAMIC(CSetOverlayPage, ISettingsPropPage)

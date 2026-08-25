@@ -19,7 +19,7 @@
 #pragma once
 #include "SettingsPropPage.h"
 #include "registry.h"
-#include "../../TortoiseUDiff/UDiffColors.h"
+#include <TortoiseUDiff/UDiffColors.h>
 
 /**
 * \ingroup TortoiseGitProc

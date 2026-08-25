@@ -29,7 +29,7 @@
 #include "UnicodeUtils.h"
 #include "BrowseRefsDlg.h"
 #include "SmartHandle.h"
-#include "../TGitCache/CacheInterface.h"
+#include <TGitCache/CacheInterface.h>
 #include "MassiveGitTask.h"
 #include "CommitDlg.h"
 #include "StringUtils.h"

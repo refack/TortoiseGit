@@ -24,7 +24,7 @@
 #include "svn_diff.h"
 #include "../../apr/include/apr_version.h"
 #include "../../apr-util/include/apu_version.h"
-#include "../version.h"
+#include <version.h>
 
 // CAboutDlg dialog
 

@@ -32,8 +32,8 @@
 #include "git2/sys/filter.h"
 #include "git2/sys/transport.h"
 #include "git2/sys/errors.h"
-#include "../libgit2/filter-filter.h"
-#include "../libgit2/ssh-wintunnel.h"
+#include <libgit2/filter-filter.h>
+#include <libgit2/ssh-wintunnel.h>
 
 constexpr static int CalculateDiffSimilarityIndexThreshold(DWORD index) noexcept
 {

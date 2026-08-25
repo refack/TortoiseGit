@@ -19,7 +19,7 @@
 #include "stdafx.h"
 #include "resource.h"
 #include "RemoteProgressCommand.h"
-#include "../TortoiseShell/resource.h"
+#include <TortoiseShell/resource.h>
 #include "AppUtils.h"
 #include "git2/sys/errors.h"
 

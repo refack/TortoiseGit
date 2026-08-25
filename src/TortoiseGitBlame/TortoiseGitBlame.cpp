@@ -24,8 +24,8 @@
 #include "afxwinappex.h"
 #include "TortoiseGitBlame.h"
 #include "MainFrm.h"
-#include "../version.h"
-#include "../Utils/CrashReport.h"
+#include <version.h>
+#include <Utils/CrashReport.h>
 #include "TortoiseGitBlameDoc.h"
 #include "TortoiseGitBlameView.h"
 #include "CmdLineParser.h"
