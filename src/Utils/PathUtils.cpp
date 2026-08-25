@@ -21,7 +21,7 @@
 #include "PathUtils.h"
 #include <memory>
 #include "StringUtils.h"
-#include "../../ext/libgit2/src/util/win32/reparse.h"
+#include "ReparseData.h"
 #include "SmartHandle.h"
 #include <assert.h>
 #include <ShlObj.h>
@@ -257,7 +257,7 @@ int CPathUtils::ReadLink(LPCWSTR filename, CStringA* pTargetA)
 
 	DWORD ioctl_ret;
 	BYTE buf[MAXIMUM_REPARSE_DATA_BUFFER_SIZE] = { 0 };
-	auto reparse_buf = reinterpret_cast<GIT_REPARSE_DATA_BUFFER*>(&buf);
+	auto reparse_buf = reinterpret_cast<TGIT_REPARSE_DATA_BUFFER*>(&buf);
 	if (!DeviceIoControl(handle, FSCTL_GET_REPARSE_POINT, nullptr, 0, reparse_buf, sizeof(buf), &ioctl_ret, nullptr))
 		return -1;
 
