@@ -66,6 +66,23 @@ inline const wchar_t* GitObjectFormatName() noexcept
 }
 
 /*
+ * libgit2's oid type tag for the active format.
+ *
+ * Under GIT_EXPERIMENTAL_SHA256 a git_oid carries this tag and libgit2 derives the id's
+ * length from it, so an oid left at type 0 is not merely untagged - it reads as a null
+ * id and every lookup fails with "null OID cannot exist". Oids received from libgit2
+ * arrive tagged; ones we build ourselves from hex or raw bytes have to set it.
+ */
+inline git_oid_t GitActiveOidType() noexcept
+{
+#ifdef GIT_EXPERIMENTAL_SHA256
+	return g_gitObjectFormat == GitObjectFormat::SHA256 ? GIT_OID_SHA256 : GIT_OID_SHA1;
+#else
+	return GIT_OID_SHA1;
+#endif
+}
+
+/*
  * Hex string of the all-zero object id in the active format.
  *
  * TortoiseGit uses it as a sentinel meaning "the working copy" rather than a real

@@ -49,8 +49,25 @@ class CGitHash
 private:
 	git_oid m_oid{};
 
+	/*
+	 * Tag the raw storage with the active object format. git_oid_cpy() carries the tag
+	 * over for oids that come from libgit2, but an id assembled here from hex or raw
+	 * bytes starts at type 0, which libgit2 reads as a null id rather than as an
+	 * untagged one -- lookups then fail with "null OID cannot exist". See
+	 * GitActiveOidType().
+	 */
+	void StampOidType() noexcept
+	{
+#ifdef GIT_EXPERIMENTAL_SHA256
+		m_oid.type = static_cast<unsigned char>(GitActiveOidType());
+#endif
+	}
+
 public:
-	CGitHash() = default;
+	CGitHash() noexcept
+	{
+		StampOidType();
+	}
 	CGitHash(const git_oid* oid)
 	{
 		git_oid_cpy(&m_oid, oid);
@@ -125,6 +142,7 @@ public:
 			}
 			hash.m_oid.id[i] = a;
 		}
+		hash.StampOidType();
 		if (isHash)
 			*isHash = true;
 		return hash;
@@ -134,6 +152,7 @@ public:
 	{
 		CGitHash hash;
 		memcpy(hash.m_oid.id, raw, GIT_HASH_SIZE);
+		hash.StampOidType();
 		return hash;
 	}
 
@@ -142,6 +161,7 @@ public:
 		// clear the whole raw buffer, not just the active length, so the unused tail
 		// stays zeroed if the object format changes underneath us
 		memset(m_oid.id, 0, sizeof(m_oid.id));
+		StampOidType();
 	}
 	inline bool IsEmpty() const
 	{
