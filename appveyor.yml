@@ -25,14 +25,8 @@ configuration:
 init:
 - git version
 build_script:
-- git submodule update --init -- ext/googletest ext/libgit2 ext/simpleini ext/tgit ext/zlib ext/pcre2 ext/json
-- cd ext\libgit2
-- git config --global user.email "dummy@example.com"
-- git config --global user.name "Dummy Name"
-- for %%G in (..\libgit2-*.patch) do ( type %%G | git am )
-- git config --unset --global user.email
-- git config --unset --global user.name
-- cd ..\..
+- git submodule update --init -- ext/googletest ext/tgit ext/json
+- vcpkg install --triplet x64-windows-static-md
 - msbuild "src\TortoiseGit.sln" /t:"test\UnitTests" /m /verbosity:minimal /p:Configuration=%CONFIGURATION% /p:Platform=%PLATFORM% /maxcpucount /logger:"C:\Program Files\AppVeyor\BuildAgent\Appveyor.MSBuildLogger.dll"
 
 for:

@@ -117,7 +117,15 @@ milestone doesn't pay for itself. The bar going forward:
    (`notepad.exe`) so the chain always terminates. TortoiseGitMerge was the
    first application retired on this basis.
 
-## Current architecture (as verified by reading the repo)
+## Starting architecture (as it was in 2026-08-03, now superseded)
+
+> **This section is history, not current state.** It is kept because the phase
+> notes argue against it, and those arguments only parse if you can see what they
+> were arguing against. Everything below about `ext\build\libgit2.vcxproj`, the
+> vendored `ext\libgit2` submodule and the root-level `ext\libgit2-*.patch`
+> series is **gone**: the vcxproj died in `f78e98aaf`, the submodule in
+> `91ffe10b1`, the patches with `build.txt`'s `git am` loop. libgit2 is built by
+> `ext\vcpkg-ports\libgit2\`, and that overlay is where any patch goes now.
 
 - A vcpkg-built `git2-experimental.dll` was tried as a throwaway experiment but it didn't work without changes.
   **Correction (2026-08-04, per user direction): this is no longer read as
@@ -185,16 +193,22 @@ A hard cutover to SHA256-only is not viable; existing users have SHA1 repos.
 The experimental struct is itself dual-capable (tagged by `type`), so the
 plan is: make `CGitHash`/TortoiseGit dual-hash-capable, not a replacement.
 
-## Where the libgit2 patch actually lives for the time being (mostly: nowhere)
+## Where the libgit2 patch lives
 
-The Win32 SHA256 backend (`hash\win32.c`, `GIT_SHA256_WIN32`) is **already**
-compiled into `libgit2.vcxproj` today. `ExperimentalFeatures.cmake` only
-adds the `GIT_EXPERIMENTAL_SHA256=1` define — enabling it is purely a
-vcxproj-side change (the define needs to reach every TU that includes
-`git2/oid.h`: libgit2 itself, TortoiseProc, TortoiseMerge). A new
-`ext\libgit2-*.patch` is only needed if upstream source or
-`src\libgit2\{filter-filter,ssh-wintunnel,system-call}.c` need fixes under
-the define — create it then, via the existing `git am` pattern.
+`ext\vcpkg-ports\libgit2\`, as `.diff` files listed in the portfile's `PATCHES`
+block and explained in `TORTOISEGIT-PATCHES.md`. That is the only answer.
+
+The old answer — five `ext\libgit2-*.patch` files at the repo root, applied into
+the `ext\libgit2` submodule by a `git am --3way` loop documented in `build.txt`
+and run again in `appveyor.yml` — is gone with the submodule. **Do not
+reintroduce it.** It had a live defect the whole time: the loop applied the
+series in filename order, which is not the series order (wildcard ->
+Guess-better-path -> simplify), so it left conflict markers in `repository.c`
+even under `--3way`. A `PATCHES` list is ordered by construction; a shell glob
+is ordered by whatever the filenames happen to sort to.
+
+`build.txt` now documents `vcpkg install --triplet x64-windows-static-md`
+instead, which is the step that was actually missing from it.
 
 ## Phased plan
 

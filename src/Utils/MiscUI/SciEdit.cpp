@@ -255,11 +255,17 @@ void CSciEdit::Init(LONG lLanguage)
 			origLangId = lLanguage;
 		}
 
-		// first try the Win8 spell checker
+		// First try the spell checker Windows itself ships. It is the default now: it
+		// knows the languages the user has actually installed, it is maintained by
+		// somebody else, and it needs no dictionary files of ours. Hunspell stays as
+		// the fallback below for languages Windows has no checker for - that is what
+		// it is genuinely good for, and IsSupported() tells us exactly when.
+		// The key keeps its name despite no longer meaning "opt in": it is persisted
+		// user state, and renaming it would silently discard everyone's choice.
 		BOOL supported = FALSE;
 		HRESULT hr = CoCreateInstance(__uuidof(SpellCheckerFactory), nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&m_spellCheckerFactory));
 		bool bFallbackUsed = false;
-		if (SUCCEEDED(hr) && static_cast<DWORD>(CRegDWORD(L"Software\\TortoiseGit\\Win8SpellChecker", FALSE)) == TRUE)
+		if (SUCCEEDED(hr) && static_cast<DWORD>(CRegDWORD(L"Software\\TortoiseGit\\Win8SpellChecker", TRUE)) == TRUE)
 		{
 			wchar_t localename[LOCALE_NAME_MAX_LENGTH] = { 0 };
 			do

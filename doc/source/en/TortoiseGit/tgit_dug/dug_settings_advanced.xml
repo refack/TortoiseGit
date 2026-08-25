@@ -612,8 +612,8 @@
 			<term condition="pot">Win8SpellChecker</term>
 			<listitem>
 				<para>
-					Set this to <literal>true</literal> to make TortoiseGit use the Windows 8+ spell checker (cf. <xref linkend="tgit-intro-instalsl-spell"/>).
-					The default is <literal>false</literal>.
+					Set this to <literal>false</literal> to stop TortoiseGit using the spell checker Windows itself provides, and always use a bundled dictionary instead (cf. <xref linkend="tgit-intro-instalsl-spell"/>).
+					The default is <literal>true</literal>.
 				</para>
 			</listitem>
 		</varlistentry>

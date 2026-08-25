@@ -66,11 +66,17 @@ Alternatively, you can download submodules when cloning the main project with si
     git clone --recursive https://gitlab.com/tortoisegit/tortoisegit.git
 
 
-After that you might need to apply TortoiseGit specific patches to the external libgit2 repository.
-The patches, if any, are located in /ext/ and need to be applied to /ext/libgit2, e.g. using
+Third-party libraries that are not submodules come from vcpkg, in manifest mode.
+Restore them before opening the solution - the projects fail with an explicit
+"run vcpkg install" message rather than a wall of unresolved externals:
 
-    cd ext/libgit2
-    for %%G in (..\libgit2-*.patch) do ( type %%G | git am --3way )
+    vcpkg install --triplet x64-windows-static-md
+
+The set is declared in /vcpkg.json. Where a library needs TortoiseGit-specific
+build settings or patches, that lives in a port overlay under /ext/vcpkg-ports/
+(currently libgit2 and ogdf), which /vcpkg-configuration.json puts on the
+overlay path. Those overlays, not a hand-maintained .vcxproj, are the source of
+truth for how those libraries are built.
 
 Building the packages
 ---------------------
