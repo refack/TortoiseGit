@@ -11,10 +11,15 @@ Phase 5 (MSIX) has not started. The phases were deliberately taken out of
 written order, so read the per-phase status notes rather than inferring
 sequence from the numbering.
 
-**Current focus is test health, not SHA256.** The suite raises modal dialogs,
-which makes a full run attended-only; decoupling that is the prerequisite for
-fixing the 29 pre-existing failures and for CI. See "Test health" under the
-open items.
+**Test health is done, and is no longer the focus.** The suite runs unattended
+and green — 574/574 in about 175 seconds, down from 557/29 and roughly 28
+minutes of clicking. See "Test health" below for what that number means.
+
+**Current focus is shrinking the tree.** Two applications and four submodules
+are gone: CrashServer and TortoiseGitMerge, `simpleini`, `Detours`, `apr` and
+`apr-util`. The standing goal (per user direction, 2026-08-22) is to keep
+going — every remaining `ext\*` submodule should become a public vcpkg port, a
+port overlay, or nothing at all. Eleven are left. See "Dependency pruning".
 
 Historical landing order, kept because several phases were taken out of
 sequence and the commit trail is otherwise hard to follow:
@@ -37,6 +42,18 @@ sequence and the commit trail is otherwise hard to follow:
   smoke-tested on SHA1 and SHA256 repos per the build+run gate, the other
   nine on build-only per the nice-to-have bar. See Phase 1 status notes for
   detail and the validation-scope policy below.
+- `3bd517e84`, `21a8e1628`, `ba1754250` — test health: the suite became
+  unattended, then green. The middle commit is the important one; it fixed a
+  real SHA256 bug that 16 failures had been blamed on the environment.
+- `dfe20a669`, `f35d1fbf7`, `f02a2a6a4`, `6c9395cb4` — dependency pruning:
+  `simpleini` and `Detours` moved to vcpkg, the last reach into libgit2's
+  private headers was replaced, and cross-project includes now resolve through
+  the include path instead of `..\`.
+- `306aca834` — the Doctor Dump crash reporter removed (−78,112 lines).
+- `6d3a6d4d7`, `0784142fc`, `c9149bc5e` — TortoiseGitMerge removed, after
+  teaching TortoiseGit to fall back to git's own diff and merge tools; the
+  third commit cleared the references a green build cannot see.
+- `3e0a0e71f` — an unbalanced Detours hook, exposed by the vcpkg migration.
 
 **Validation scope (set 2026-08-09, per user direction):** this migration
 touches ten libgit2 consumers plus the installer and translation build. Not
@@ -46,7 +63,8 @@ milestone doesn't pay for itself. The bar going forward:
 - **`TortoiseGitProc.exe` is the only target that must build *and* pass a
   runtime smoke test** (opens a SHA1 repo and a SHA256 repo without
   crashing) before a milestone counts as done.
-- The other nine consumers (TortoiseMerge, TortoiseShell, TGitCache,
+- The other nine consumers (TortoiseMerge — since removed, `0784142fc` —
+  TortoiseShell, TGitCache,
   TortoiseGitBlame, TortoiseIDiff, GitWCRev, GitWCRevCOM, UnitTests, Cache),
   plus whatever of `ext\zlib` / `ext\build\pcre2.vcxproj` follow libgit2 to
   vcpkg, are **"nice to have": migrate and defragment all of them, but the
@@ -73,6 +91,18 @@ milestone doesn't pay for itself. The bar going forward:
    workstation on 32-bit Windows 11. Removing Win32 configs simplifies every
    step below (no `libgit232_tgit.dll` naming variant, no `GIT_ARCH_32`
    branch, one fewer platform to carry through the SHA256 ABI change).
+- [ ] Retire the `ext\*` git submodules. *(Added 2026-08-22, per user
+   direction: "the goal is to replace them all with vcpkg ports, public ports,
+   or overlays if necessary.")* A vendored submodule plus a hand-maintained
+   `ext\build\*.vcxproj` is the fragmentation this plan exists to remove; a
+   port declares the same thing once, in a form the package manager can
+   reproduce. 15 at the start, 11 today. See "Dependency pruning".
+- [ ] Prefer delegating to git over reimplementing it. TortoiseGit's value is
+   the Explorer integration, not a second implementation of what `git.exe`
+   already does well. Where a built-in duplicates a git feature the user has
+   already configured, hand the work to git and keep a primitive floor
+   (`notepad.exe`) so the chain always terminates. TortoiseGitMerge was the
+   first application retired on this basis.
 
 ## Current architecture (as verified by reading the repo)
 
@@ -313,7 +343,9 @@ the overlay port, not scattered root-level `.patch` files.
   `TortoiseGit.vcpkg.props` for `pcre2.h`'s location, dropping the vendored
   `ext\build\pcre2\` include dir and the `ProjectReference` to `pcre2.vcxproj`.
   **No change was needed in `TortoiseMerge.vcxproj`** (editorconfig's only
-  consumer) to actually link `pcre2-8.lib`: it already imports
+  consumer *at the time*; since TortoiseMerge was removed in `0784142fc`,
+  editorconfig's consumer is TortoiseProc — which is why `ext\editorconfig`
+  must **not** be pruned) to actually link `pcre2-8.lib`: it already imports
   `TortoiseGit.vcpkg.props` from the libgit2 migration, and that props file's
   `AdditionalDependencies` already lists `pcre2-8$(VcpkgLibSuffix).lib` — a
   static-lib `ProjectReference` chain (TortoiseMerge -> editorconfig; a
@@ -373,7 +405,9 @@ the overlay port, not scattered root-level `.patch` files.
   x64/ARM64 branch (x86's `zlib132_tgit.dll` line untouched, same precedent
   as libgit2/pcre2 — the deferred Win32 WiX cleanup from Phase 0).
   `ext\CrashServer\CommonLibs\Zlib\Zlib.vcxproj` is a separate, untouched
-  consumer (compiles minizip contrib sources vcpkg's zlib port doesn't ship).*
+  consumer (compiles minizip contrib sources vcpkg's zlib port doesn't ship).
+  **Since resolved:** that project was the only thing keeping `ext\zlib`
+  vendored, and it went with CrashServer in `306aca834`.*
 
   *Verified: repo-wide grep for `zlib1_tgit` (checked before starting) found
   only `CLAUDE.md` and the `.wxi` — no delay-load/LoadLibrary surprise. One
@@ -504,6 +538,125 @@ MSIX package. **Not a trivial packer swap:**
   under MSIX's packaged-app model, no functionality silently dropped
   relative to the MSI installer.
 
+## Work outside the phased plan
+
+Three things landed that the phases above never had a slot for. They share a
+premise with Phase 1 — stop hand-maintaining what someone else already
+maintains — but they subtract code rather than move it.
+
+### Dependency pruning (15 submodules -> 11)
+
+The goal, per user direction: every `ext\*` submodule becomes a public vcpkg
+port, an overlay, or nothing. Done so far, beyond Phase 1's libgit2/pcre2/zlib:
+
+- `simpleini` (`dfe20a669`) and `Detours` (`f35d1fbf7`) -> stock vcpkg ports,
+  and `ext\build\Detours.vcxproj` deleted with the second one.
+- `apr` and `apr-util` -> deleted outright. They existed only for
+  TortoiseMerge's vendored `libsvn_diff`, so they left with it. **They were
+  never SVN interoperability** — that question came up and the answer is no.
+
+Remaining, by how they should end:
+
+| Submodule | Route |
+| --- | --- |
+| `hunspell`, `json`, `googletest`, `lexilla` | stock vcpkg ports exist; migrate |
+| `OGDF` | needs an overlay port, none upstream |
+| `editorconfig` | **stays** — TortoiseProc consumes it (`AppUtils.cpp`), and no vcpkg port carries this build |
+| `tgit`, `spell` | permanent — `tgit` is the second git backend, `spell` is dictionary data |
+| `libgit2`, `pcre2`, `zlib` | build wiring already retired; checkouts left vendored, safe to drop when convenient |
+
+Two lessons from the first, failed attempt at this:
+
+- **A grep over `*.vcxproj`/`*.props` does not find every consumer.** It missed
+  a relative path (`..\..\..\zlib\` inside CrashServer's project) and a
+  source-level `#include` reaching into a submodule's private headers. Grep the
+  *sources* too.
+- **A red build from removing a hidden dependency is the removal working.** Per
+  user direction: "a code path that breaks abstraction so blatantly is broken by
+  definition, any greenness is an unstable equilibrium." `6c9395cb4` acted on
+  that — cross-project includes now resolve through `AdditionalIncludeDirectories`
+  rather than `..\`, because `#include "../"` is a build dependency that the
+  build system cannot see.
+- **A port can differ from the hand-rolled build in what it *asserts*, not just
+  what it compiles.** `3e0a0e71f`: `DarkModeHelper::AllowDarkModeForApp(FALSE)`
+  detached a Detours hook that had never been attached, which is a real bug and
+  always was. `ext\build\Detours.vcxproj` did not define `DETOUR_DEBUG`, so the
+  library returned an error nobody read; vcpkg's debug build does, so it calls
+  `DETOUR_BREAK()` and Debug `TortoiseGitProc.exe` died with STATUS_BREAKPOINT
+  before showing a window. When a migrated dependency starts crashing, suspect
+  a latent defect it now reports — not the migration.
+
+**A green solution build proves less than it looks like it proves.** It found
+none of `c9149bc5e`: two `CreateProcess` calls naming a deleted exe, a CI
+target list, `.filters` entries pointing at deleted files, and a Settings radio
+button advertising a removed application. All strings and metadata, none of
+them visible to a compiler or linker. After deleting a component, grep for its
+name across sources, resource scripts, project metadata and CI config — then
+run the thing.
+
+### CrashServer removed (`306aca834`, −78,112 lines)
+
+Doctor Dump crash reporting, four solution projects. Removed because nobody
+uploads dumps and nobody analyses them, so it was pure carrying cost. It also
+unblocked `ext\zlib`: its `Zlib_static` project was the last consumer of the
+minizip contrib sources that vcpkg's zlib port does not ship.
+
+### TortoiseGitMerge removed (`6d3a6d4d7`, `0784142fc`)
+
+**Delegation first, removal second** — `6d3a6d4d7` landed the fallbacks and
+`0784142fc` deleted the application, so there was never a window where the
+feature was simply missing. The chain in `src\TortoiseProc\AppUtils.cpp`:
+
+- **Diff** — the user's `Software\TortoiseGit\Diff` value still wins; otherwise
+  `git.exe difftool --no-prompt --no-index -- %base %mine`.
+- **Merge** — the user's value wins; otherwise `merge.tool` is read and its
+  `mergetool.<tool>.cmd` recipe translated (`$BASE`/`$LOCAL`/`$REMOTE`/`$MERGED`
+  -> `%base`/`%mine`/`%theirs`/`%merged`); otherwise `notepad.exe %merged`.
+- **Patch** — `Software\TortoiseGit\PatchViewer`, else `notepad.exe %patchfile`.
+  Git has no patch *viewer* to delegate to: it applies patches, it does not
+  display them.
+
+`notepad.exe` is the floor by design, not by default: it is always present, and
+users routinely redirect it through Image File Execution Options, so the
+fallback stays customisable without TortoiseGit knowing. Do not "improve" this
+to TortoiseGitUDiff — the more generic completion is the point.
+
+What went with it, and what did not:
+
+- `src\TortoiseMerge\` including the vendored `libsvn_diff` and `svninclude`,
+  `GitPatch`, `PatchTest.cpp`, the `TortoiseMergeLang`, `libapr` and
+  `libaprutil` projects, and the installer components and shortcuts.
+- **`FileTextLines.{h,cpp}` and `EOL.h` survived**, moved to `src\Utils\`. They
+  are compiled into TortoiseProc, TortoiseGitBlame and the tests — never
+  TortoiseMerge-specific, just resident there.
+- That move exposed a resource bug worth remembering: `FileTextLines.cpp`
+  included a bare `"resource.h"`, and **MSVC resolves a quoted include relative
+  to the including file first**, so the file silently bound to TortoiseMerge's
+  resource ids no matter which of the three projects compiled it. Its four
+  `IDS_ERR_FILE_*` strings now live in `LoglistCommonResource.h`, which in turn
+  surfaced a duplicate `IDS_ERR_FILE_TOOBIG` in TortoiseProc. Same defect class
+  as the `#include "../"` sweep, one layer deeper.
+- **"Review/apply single patch" is gone** from the shell context menu, and so is
+  TortoiseGitUDiff's "Apply Patch..." item. Both were pure launchers for the
+  deleted patch UI. Applying a patch is `ImportPatch` (git am) or `git apply`;
+  viewing one is TortoiseGitUDiff, which owns the `.diff`/`.patch` association.
+  Rerouting them to `importpatch` was considered and rejected: `git am` creates
+  commits where TortoiseGitMerge patched the working tree, and a silent
+  semantic swap is worse than an honest removal.
+- The Settings pages for Diff and Merge relabelled their built-in radio button
+  from "TortoiseGitMerge" to "Git default", which is what it now selects.
+- Retired ids are annotated, not renumbered: `TGitContextMenuEntries::ApplyPatch`
+  keeps its bit because user menu masks in the registry are persisted state.
+
+**Deferred, deliberately:** the TortoiseMerge manual (`doc\source\en\TortoiseMerge\`),
+its `HTMLHelpfiles.wxi` components, `CheckIDD`, the `LanguagePack.wxs` entries,
+the `.po` translations, and the orphaned assets under `src\Resources\`
+(`TortoiseMergeENG.rc`, `.rc2`, the ribbon XML, icons). One coherent doc-and-assets
+sweep, same "needs review, not a mechanical strip" bucket as the WiX x86
+conditionals. Also left alone on purpose: the `Software\TortoiseGitMerge\*`
+registry key *names* (`UseUTF8`, `DiffLater`, the colour keys) — those are live
+user state, and renaming them loses settings.
+
 ## Known risk areas (watch list, not exhaustive)
 
 Resolved, kept only so they are not re-investigated:
@@ -556,6 +709,12 @@ Resolved, kept only so they are not re-investigated:
   — deferred from Phase 0. They guard real MSI components (gitdll32.dll,
   puttygen-x86.exe, TortoiseGitStub32.dll), so this needs review rather than a
   mechanical strip.
+- **TortoiseMerge doc and asset sweep** — deferred with the WiX x86 work, and
+  for the same reason. The manual, help-file components, `CheckIDD`,
+  `LanguagePack.wxs`, the `.po` translations and the orphaned
+  `src\Resources\TortoiseMerge*` assets all still reference a deleted
+  application. None of it breaks a build in scope; all of it wants one coherent
+  pass rather than a grep-and-delete.
 - **Phase 5, MSIX packaging** — not started; WiX v3 cannot emit MSIX at all.
 - **ARM64 unverified** — this machine has no `Hostx64\arm64` cross-compiler.
   Best-effort, not a blocker.
@@ -566,8 +725,12 @@ Resolved, kept only so they are not re-investigated:
 
 ### Test health
 
-The suite runs **unattended** as of `3bd517e84`, at **584 passed / 2 failed**
-in about 145 seconds. It was 557/29 and roughly 28 minutes of clicking.
+The suite runs **unattended and green**: **574/574** in about 175 seconds. It
+was 557 passed / 29 failed and roughly 28 minutes of clicking.
+
+574 rather than 586 because `PatchTest.cpp`'s twelve cases went with `GitPatch`
+in `0784142fc`. Check that arithmetic when the number moves — a suite that
+shrinks silently looks exactly like a suite that got greener.
 
 - ~~GUI-coupled suite~~ — the one dialog that actually fired came from
   `CTortoiseGitBlameData::ParseBlameOutput()` calling `MessageBox` from a
@@ -580,8 +743,20 @@ in about 145 seconds. It was 557/29 and roughly 28 minutes of clicking.
 - ~~Host `init.defaultBranch` leaking into fixtures~~ — six `git.exe init`
   sites now pass `-b master`. Pin at creation; do **not** rewrite assertions to
   `"main"`, which just moves the failure to differently-configured machines.
-- **Two failures remain, cause unknown:** `libgit2.ConfigSnaphot` and
-  `CTGitPath.ParserFromLog_DiffIndex_Raw_Cached_M_C_Numstat_z_UTF8`.
+- ~~The last two failures, cause unknown~~ — both fixed in `ba1754250`, and
+  neither was mysterious once isolated. `libgit2.ConfigSnaphot` was the same
+  `init.defaultBranch` leak as above reaching through the *other* backend: its
+  config uses `includeIf "onbranch:master"`, and `git_repository_init` honours
+  `init.defaultBranch` exactly as `git.exe` does, so on a host defaulting to
+  `main` the include never matched. `CTGitPath.ParserFromLog_..._UTF8` spelled
+  its non-ASCII filenames as literal mojibake, which only yields the intended
+  UTF-8 bytes if the compiler decodes the source as CP1252 — but
+  `TGitPathTest.cpp` carries a UTF-8 BOM, so MSVC re-encoded them and the array
+  held doubly-encoded bytes. They are octal escapes now, which makes the data
+  independent of how the file is decoded.
+  **Both are the same shape:** a test that passed only because the machine
+  happened to agree with it. Pin what the test depends on, at the point the
+  test creates it.
 
 > **Do not label a failure "pre-existing" without isolating the whole feature.**
 > 29 failures were described that way in this document and in commit messages,
@@ -608,7 +783,17 @@ in about 145 seconds. It was 557/29 and roughly 28 minutes of clicking.
   before assuming coverage.
 - `src\Git\GitHash.h` — `CGitHash`, `GIT_HASH_MAX_SIZE` for fixed buffers, and
   `GIT_HASH_SIZE` as the runtime length.
-- `src\TortoiseGitSetup\StructureFragment.wxi` — MSI packaging entry for the DLL to remove.
+- `src\TortoiseProc\AppUtils.cpp` — `StartExtDiff`/`StartExtMerge`/`StartExtPatch`
+  are the single chokepoint where TortoiseGit decides which external tool runs.
+  Every fallback to git lives here; nothing else should launch a diff or merge
+  tool by name.
+- `src\Utils\FileTextLines.{h,cpp}`, `src\Utils\EOL.h` — shared by TortoiseProc,
+  TortoiseGitBlame and the tests. They live in `Utils` because they are not
+  owned by any one application; they used to live in `src\TortoiseMerge\` and
+  silently picked up that project's `resource.h`.
+- `src\TortoiseGitSetup\StructureFragment.wxi` — what the MSI ships. The
+  libgit2/pcre2/zlib DLL entries are gone; its x86 branch is the deferred Phase 0
+  cleanup.
 - `src\TortoiseProc\GitLogCache.h`/`.cpp` — on-disk cache format to version.
 - `ext\gitdll\gitdll.c` — second, independent 20-byte hash assumption.
 - `ext\libgit2\cmake\ExperimentalFeatures.cmake`, `ext\libgit2\include\git2\oid.h` — upstream reference for what the define actually changes.
