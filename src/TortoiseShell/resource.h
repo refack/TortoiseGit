@@ -115,9 +115,8 @@
 #define IDS_STATUSEXTERNAL              204
 #define IDS_MENUDESCBLAME               205
 #define IDS_MENUSVNFETCH                206
-#define IDS_MENUAPPLYPATCH              207
+// 207 and 209 held IDS_MENUAPPLYPATCH / IDS_MENUDESCAPPLYPATCH, retired with TortoiseGitMerge
 #define IDS_MENUDESCCREATEPATCH         208
-#define IDS_MENUDESCAPPLYPATCH          209
 #define IDS_MENUDESCSVNFETCH            210
 #define IDS_MENULOGSUBMODULE            211
 #define IDS_MENUUNDOADD                 212

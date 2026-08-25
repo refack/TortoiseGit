@@ -803,7 +803,7 @@ LRESULT CMainWindow::DoCommand(int id, LPARAM lParam)
 
             CString sTemp;
             sTemp.Format(ResString(hResource, IDS_MARKASRESOLVED), static_cast<LPCWSTR>(CPathUtils::GetFileNameFromPath(selectionResult.c_str())));
-            if (MessageBox(m_hwnd, sTemp, L"TortoiseGitMerge", MB_YESNO | MB_ICONQUESTION) != IDYES)
+            if (MessageBox(m_hwnd, sTemp, L"TortoiseGitIDiff", MB_YESNO | MB_ICONQUESTION) != IDYES)
                 break;
 
             CString cmd;

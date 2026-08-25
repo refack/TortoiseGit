@@ -162,9 +162,6 @@
     <Filter Include="Utils\TreePropSheet">
       <UniqueIdentifier>{e772451b-ebd6-46da-b8e2-f4794840702a}</UniqueIdentifier>
     </Filter>
-    <Filter Include="TortoiseGitMerge">
-      <UniqueIdentifier>{69ffded7-2494-4d2b-b7d8-4681289c8b1e}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Commands\CommitIsOnRefs">
       <UniqueIdentifier>{c9518b55-36f2-4643-ab1a-c9e6d30ad1b6}</UniqueIdentifier>
     </Filter>
@@ -926,8 +923,8 @@
     <ClCompile Include="..\Git\GitDataObject.cpp">
       <Filter>Git</Filter>
     </ClCompile>
-    <ClCompile Include="..\TortoiseMerge\FileTextLines.cpp">
-      <Filter>TortoiseGitMerge</Filter>
+    <ClCompile Include="..\Utils\FileTextLines.cpp">
+      <Filter>Utils</Filter>
     </ClCompile>
     <ClCompile Include="ColumnManager.cpp">
       <Filter>Utility Dialogs</Filter>
@@ -1825,8 +1822,8 @@
     <ClInclude Include="..\Git\GitDataObject.h">
       <Filter>Git</Filter>
     </ClInclude>
-    <ClInclude Include="..\TortoiseMerge\FileTextLines.h">
-      <Filter>TortoiseGitMerge</Filter>
+    <ClInclude Include="..\Utils\FileTextLines.h">
+      <Filter>Utils</Filter>
     </ClInclude>
     <ClInclude Include="..\Utils\MiscUI\HintCtrl.h">
       <Filter>Utils\UI</Filter>

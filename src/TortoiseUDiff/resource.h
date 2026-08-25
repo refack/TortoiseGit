@@ -25,7 +25,7 @@
 #define ID_FILE_OPEN                    32774
 #define ID_FILE_SAVE                    32776
 #define ID_FILE_SETTINGS                32779
-#define ID_FILE_APPLYPATCH              32780
+// 32780 held ID_FILE_APPLYPATCH, which handed the file to TortoiseGitMerge's patch view
 #define ID_FILE_PAGESETUP               32781
 #define ID_FILE_PRINT                   32782
 #define ID_VIEW_DARKMODE                32785

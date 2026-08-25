@@ -114,8 +114,8 @@ if (BaseFile == "" || NewFile == "")
     WScript.Quit(1);
 }
 
-// Run TortoiseMerge to display the diff. Wait for it to complete.
-WScriptShell.Run("\"TortoiseGitMerge.exe\" /readonly /base:\"" + BaseFile + "\" /basename:\"" + Arguments(0) + "\" /mine:\"" + NewFile + "\" /minename:\"" + Arguments(1) + "\"", 0, true)
+// Hand the two extracted listings to git's configured diff tool. Wait for it to complete.
+WScriptShell.Run("git.exe difftool --no-prompt --no-index -- \"" + BaseFile + "\" \"" + NewFile + "\"", 0, true)
 
 // Delete temporary files
 FileSystemObject.DeleteFile(BaseFile)

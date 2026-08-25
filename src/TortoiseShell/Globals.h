@@ -46,7 +46,7 @@ enum class TGitContextMenuEntries : unsigned __int64
 	RefLog			= 0x0000000000400000,
 	Blame			= 0x0000000000800000,
 	RepoBrowser		= 0x0000000001000000,
-	ApplyPatch		= 0x0000000002000000,
+	ApplyPatch		= 0x0000000002000000, // retired with TortoiseGitMerge; the bit stays reserved so existing user menu masks keep their meaning
 	RemoveKeep		= 0x0000000004000000,
 	SVNRebase		= 0x0000000008000000,
 	SVNDCommit		= 0x0000000010000000,

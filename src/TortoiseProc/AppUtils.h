@@ -41,7 +41,7 @@ public:
 	{
 		bool bWait;
 		bool bReadOnly;
-		bool bAlternativeTool; // If true, invert selection of TortoiseGitMerge vs. external diff tool
+		bool bAlternativeTool; // If true, invert selection of git's tool vs. the configured external diff tool
 
 		DiffFlags(): bWait(false), bReadOnly(false), bAlternativeTool(false)	{}
 		DiffFlags& Wait(bool b = true) { bWait = b; return *this; }
@@ -63,7 +63,7 @@ public:
 		const CString& mergedname = CString(), bool bReadOnly = false, HWND resolveMsgHwnd = nullptr, bool bDeleteBaseTheirsMineOnClose = false);
 
 	/**
-	 * Starts the external patch program (currently always TortoiseGitMerge)
+	 * Opens the patch in the configured patch viewer, or notepad.exe if none is set.
 	 */
 	static BOOL StartExtPatch(const CTGitPath& patchfile, const CTGitPath& dir,
 			const CString& sOriginalDescription = CString(), const CString& sPatchedDescription = CString(),

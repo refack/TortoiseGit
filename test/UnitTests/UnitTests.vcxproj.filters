@@ -18,9 +18,6 @@
     <Filter Include="TortoiseProc">
       <UniqueIdentifier>{72614fd5-1346-4028-b739-2c1740f915d9}</UniqueIdentifier>
     </Filter>
-    <Filter Include="TortoiseGitMerge">
-      <UniqueIdentifier>{6bdce77d-3a9a-458f-8e18-65f43a40657c}</UniqueIdentifier>
-    </Filter>
     <Filter Include="TortoiseShell">
       <UniqueIdentifier>{3afc6978-ab69-4a83-8199-c978ef2284e9}</UniqueIdentifier>
     </Filter>
@@ -155,8 +152,8 @@
     <ClInclude Include="..\..\src\Utils\LruCache.h">
       <Filter>TortoiseProc</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\TortoiseMerge\FileTextLines.h">
-      <Filter>TortoiseGitMerge</Filter>
+    <ClInclude Include="..\..\src\Utils\FileTextLines.h">
+      <Filter>Utils</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\Utils\WindowsCredentialsStore.h">
       <Filter>Utils</Filter>
@@ -178,9 +175,6 @@
     </ClInclude>
     <ClInclude Include="..\..\src\GitWCRev\status.h">
       <Filter>GitWCRev</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\TortoiseMerge\Patch.h">
-      <Filter>TortoiseGitMerge</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\Git\GitMailmap.h">
       <Filter>Git</Filter>
@@ -361,8 +355,8 @@
     <ClCompile Include="LruCacheTest.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\TortoiseMerge\FileTextLines.cpp">
-      <Filter>TortoiseGitMerge</Filter>
+    <ClCompile Include="..\..\src\Utils\FileTextLines.cpp">
+      <Filter>Utils</Filter>
     </ClCompile>
     <ClCompile Include="FileTextLinesTest.cpp">
       <Filter>Source Files</Filter>
@@ -399,9 +393,6 @@
     </ClCompile>
     <ClCompile Include="GitWCRevStatusTest.cpp">
       <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\TortoiseMerge\Patch.cpp">
-      <Filter>TortoiseGitMerge</Filter>
     </ClCompile>
     <ClCompile Include="PatchTest.cpp">
       <Filter>Source Files</Filter>

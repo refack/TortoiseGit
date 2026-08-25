@@ -207,7 +207,6 @@ REGEDIT4
 [HKEY_LOCAL_MACHINE\SOFTWARE\TortoiseGit]
 "Directory"="D:\\TortoiseGit\\bin\\Release\\"
 "ProcPath"="D:\\TortoiseGit\\bin\\Release\\bin\\TortoiseGitProc.exe"
-"TMergePath"="D:\\TortoiseGit\\bin\\Release\\bin\\TortoiseGitMerge.exe"
 "CachePath"="D:\\TortoiseGit\\bin\\Release\\bin\\TGitCache.exe"
 
 [HKEY_CLASSES_ROOT\*\shellex\ContextMenuHandlers\TortoiseGit]

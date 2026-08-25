@@ -667,7 +667,7 @@ CAPTION "Diff Viewer"
 FONT 9, "Segoe UI", 400, 0, 0x1
 BEGIN
     GROUPBOX        "Configure the program used for comparing different revisions of files",IDC_STATIC,7,7,286,87
-    CONTROL         "&TortoiseGitMerge",IDC_EXTDIFF_OFF,"Button",BS_AUTORADIOBUTTON | WS_GROUP,12,23,74,10
+    CONTROL         "Git &default",IDC_EXTDIFF_OFF,"Button",BS_AUTORADIOBUTTON | WS_GROUP,12,23,74,10
     CONTROL         "&External",IDC_EXTDIFF_ON,"Button",BS_AUTORADIOBUTTON,92,23,71,10
     EDITTEXT        IDC_EXTDIFF,14,41,256,14,ES_AUTOHSCROLL | WS_GROUP
     PUSHBUTTON      "...",IDC_EXTDIFFBROWSE,274,41,14,14
@@ -686,7 +686,7 @@ CAPTION "Merge Tool"
 FONT 9, "Segoe UI", 400, 0, 0x1
 BEGIN
     LTEXT           "Configure the program used to resolve conflicted files.",IDC_STATIC,7,7,251,8
-    CONTROL         "&TortoiseGitMerge",IDC_EXTMERGE_OFF,"Button",BS_AUTORADIOBUTTON | WS_GROUP,7,23,70,10
+    CONTROL         "Git &default",IDC_EXTMERGE_OFF,"Button",BS_AUTORADIOBUTTON | WS_GROUP,7,23,70,10
     CONTROL         "&External",IDC_EXTMERGE_ON,"Button",BS_AUTORADIOBUTTON,89,23,76,10
     EDITTEXT        IDC_EXTMERGE,7,41,263,14,ES_AUTOHSCROLL | WS_GROUP
     PUSHBUTTON      "...",IDC_EXTMERGEBROWSE,279,41,14,14
@@ -4714,7 +4714,7 @@ STRINGTABLE
 BEGIN
     IDS_ERR_PAGEANT         "Could not start the Putty Agent (pageant)."
     IDS_MENU_VIEWPATCH      "View Patch"
-    IDS_MENU_VIEWWITHMERGE  "Review Patch with TortoiseGitMerge"
+    IDS_MENU_VIEWWITHMERGE  "Review Patch in External Viewer"
     IDS_MENU_APPLY          "Apply Patch..."
     IDS_MENU_SENDMAIL       "Send Mail..."
     IDS_ERROR_NOREF         "No reference found"

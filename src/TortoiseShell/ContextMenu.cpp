@@ -337,14 +337,9 @@ STDMETHODIMP CShellExt::Initialize(LPCITEMIDLIST pIDFolder, LPDATAOBJECT pDataOb
 				if (GitAdminDir::IsBareRepo(child.toString().c_str()))
 					itemStates = ITEMIS_BAREREPO;
 
-				// if the item is a versioned folder, check if there's a patch file
-				// in the clipboard to be used in "Apply Patch"
-				const UINT cFormatDiff = RegisterClipboardFormat(L"TGIT_UNIFIEDDIFF");
-				if (cFormatDiff)
-				{
-					if (IsClipboardFormatAvailable(cFormatDiff))
-						itemStates |= ITEMIS_PATCHINCLIPBOARD;
-				}
+				// ITEMIS_PATCHINCLIPBOARD is no longer computed: its only reader was "Apply
+				// Patch", which went with TortoiseGitMerge. Probing the clipboard on every
+				// context-menu build is not worth doing for a flag nobody tests.
 				if (IsClipboardFormatAvailable(CF_HDROP))
 					itemStates |= ITEMIS_PATHINCLIPBOARD;
 			}
@@ -809,11 +804,7 @@ STDMETHODIMP CShellExt::QueryDropContext(UINT uFlags, UINT idCmdFirst, HMENU hMe
 	// apply patch
 	// available if source is a patchfile
 	if (itemStates & ITEMIS_PATCHFILE)
-	{
-		if (itemStates & ITEMIS_ONLYONE)
-			InsertGitMenu(FALSE, hMenu, indexMenu++, idCmd++, IDS_MENUAPPLYPATCH, 0, idCmdFirst, TGitShellCommand::ApplyPatch, uFlags);
 		InsertGitMenu(FALSE, hMenu, indexMenu++, idCmd++, IDS_MENUIMPORTPATCH, 0, idCmdFirst, TGitShellCommand::ImportPatchDrop, uFlags);
-	}
 
 	if ((itemStates & ITEMIS_ONLYONE) && (itemStates & (ITEMIS_WCROOT | ITEMIS_BAREREPO)) && !(itemStatesFolder & ITEMIS_INVERSIONEDFOLDER))
 		InsertGitMenu(FALSE, hMenu, indexMenu++, idCmd++, IDS_DROPNEWWORKTREE, 0, idCmdFirst, TGitShellCommand::DropNewWorktree, uFlags);
@@ -1491,75 +1482,6 @@ void CShellExt::InvokeCommand(TGitShellCommand cmd, const std::wstring& appDir, 
 	case TGitShellCommand::Blame:
 		AddPathCommand(gitCmd, L"blame", true, paths, folder);
 		break;
-	case TGitShellCommand::ApplyPatch:
-	{
-		auto localPaths = paths;
-		if ((itemStates & ITEMIS_PATCHINCLIPBOARD) && ((~itemStates) & ITEMIS_PATCHFILE))
-		{
-			// if there's a patch file in the clipboard, we save it
-			// to a temporary file and tell TortoiseGitMerge to use that one
-			const UINT cFormat = RegisterClipboardFormat(L"TGIT_UNIFIEDDIFF");
-			CClipboardHelper clipboardHelper;
-			if (cFormat && clipboardHelper.Open(nullptr))
-			{
-				HGLOBAL hglb = GetClipboardData(cFormat);
-				auto lpstr = static_cast<LPCSTR>(GlobalLock(hglb));
-				SCOPE_EXIT { GlobalUnlock(hglb); };
-
-				DWORD len = GetTortoiseGitTempPath(0, nullptr);
-				auto path = std::make_unique<wchar_t[]>(len + 1);
-				auto tempF = std::make_unique<wchar_t[]>(len + 100);
-				GetTortoiseGitTempPath(len + 1, path.get());
-				GetTempFileName(path.get(), TEXT("git"), 0, tempF.get());
-				std::wstring sTempFile = std::wstring(tempF.get());
-
-				FILE* outFile;
-				size_t patchlen = strlen(lpstr);
-				_wfopen_s(&outFile, sTempFile.c_str(), L"wb");
-				if (outFile)
-				{
-					size_t size = fwrite(lpstr, sizeof(char), patchlen, outFile);
-					if (size == patchlen)
-					{
-						itemStates |= ITEMIS_PATCHFILE;
-						localPaths.clear();
-						localPaths.push_back(sTempFile);
-					}
-					fclose(outFile);
-				}
-			}
-		}
-		if (itemStates & ITEMIS_PATCHFILE)
-		{
-			gitCmd = L" /diff:\"";
-			if (!localPaths.empty())
-			{
-				gitCmd += localPaths.front();
-				if (itemStatesFolder & ITEMIS_FOLDERINGIT)
-				{
-					gitCmd += L"\" /patchpath:\"";
-					gitCmd += folder;
-				}
-			}
-			else
-				gitCmd += folder;
-			if (itemStates & ITEMIS_INVERSIONEDFOLDER)
-				gitCmd += L"\" /wc";
-			else
-				gitCmd += L'"';
-		}
-		else
-		{
-			gitCmd = L" /patchpath:\"";
-			if (!localPaths.empty())
-				gitCmd += localPaths.front();
-			else
-				gitCmd += folder;
-			gitCmd += L'"';
-		}
-		RunCommand(appDir + L"TortoiseGitMerge.exe", gitCmd, L"TortoiseGitMerge launch failed", site);
-	}
-		return;
 	case TGitShellCommand::ClipPaste:
 	{
 		std::wstring tempfile;

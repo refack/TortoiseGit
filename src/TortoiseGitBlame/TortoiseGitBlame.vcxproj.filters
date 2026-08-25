@@ -16,9 +16,6 @@
     <Filter Include="Git">
       <UniqueIdentifier>{b7150578-0071-4e14-894a-29dfdb7a646e}</UniqueIdentifier>
     </Filter>
-    <Filter Include="TortoiseGitMerge">
-      <UniqueIdentifier>{71418e14-7775-42a8-bdfa-f326d4f55c30}</UniqueIdentifier>
-    </Filter>
     <Filter Include="TortoiseGitProc">
       <UniqueIdentifier>{73ebc93e-2ef5-4409-9010-c503089c8a82}</UniqueIdentifier>
     </Filter>
@@ -120,8 +117,8 @@
     <ClCompile Include="..\TortoiseProc\Colors.cpp">
       <Filter>TortoiseGitProc</Filter>
     </ClCompile>
-    <ClCompile Include="..\TortoiseMerge\FileTextLines.cpp">
-      <Filter>TortoiseGitMerge</Filter>
+    <ClCompile Include="..\Utils\FileTextLines.cpp">
+      <Filter>Utils</Filter>
     </ClCompile>
     <ClCompile Include="..\TortoiseProc\GitLogCache.cpp">
       <Filter>TortoiseGitProc</Filter>
@@ -317,8 +314,8 @@
     <ClInclude Include="..\Utils\CommonAppUtils.h">
       <Filter>Utils</Filter>
     </ClInclude>
-    <ClInclude Include="..\TortoiseMerge\FileTextLines.h">
-      <Filter>TortoiseGitMerge</Filter>
+    <ClInclude Include="..\Utils\FileTextLines.h">
+      <Filter>Utils</Filter>
     </ClInclude>
     <ClInclude Include="..\TortoiseProc\LoglistUtils.h">
       <Filter>TortoiseGitProc</Filter>

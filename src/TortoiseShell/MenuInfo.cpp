@@ -222,9 +222,9 @@ constinit const MenuInfo menuInfo[] =
 	{ TGitShellCommand::ImportPatch,					TGitContextMenuEntries::ImportPatch,		IDI_PATCH,				IDS_MENUIMPORTPATCH,		IDS_MENUDESCIMPORTPATCH,
 		{ITEMIS_PATCHFILE, 0}, {ITEMIS_FOLDERINGIT|ITEMIS_ONLYONE, 0}, {0, 0}, {0, 0} },
 
-	// Review Patch
-	{ TGitShellCommand::ApplyPatch,					TGitContextMenuEntries::ApplyPatch,			IDI_PATCH,				IDS_MENUAPPLYPATCH,			IDS_MENUDESCAPPLYPATCH,
-		{ITEMIS_PATCHFILE|ITEMIS_ONLYONE, 0}, {ITEMIS_EXTENDED|ITEMIS_ONLYONE, ITEMIS_FOLDER}, {0, 0}, {0, 0} },
+	// "Review/apply single patch" used to hand the file to TortoiseGitMerge's patch view; that
+	// application is gone. Applying a patch is ImportPatch (git am) or git apply on the command
+	// line, and viewing one is TortoiseGitUDiff, which owns the .diff/.patch association.
 
 	{ TGitShellCommand::Sendmail,					TGitContextMenuEntries::Sendmail,			IDI_MENUSENDMAIL,		IDS_MENUSENDMAIL,			IDS_MENUDESSENDMAIL,
 		{ITEMIS_PATCHFILE, 0}, {ITEMIS_EXTENDED, ITEMIS_FOLDER}, {0, 0}, {0, 0} },

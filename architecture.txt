@@ -11,7 +11,6 @@ are of interest here (the project names are in parentheses bebind):
 * TortoiseGitBlame.exe (TortoiseGitBlame)
 * TortoiseGitIDiff.exe (TortoiseGitIDiff)
 * TortoiseGitUDiff.exe (TortoiseGitIDiff)
-* TortoiseGitMerge.exe (TortoiseGitMerge)
 * TortoiseGitPlink.exe (TortoiseGitPlink)
 * SshAskPass.exe (SshAskPass)
 * GitWCRev.exe (GitWCRev)
@@ -105,13 +104,13 @@ It is called by TortoiseGitProc.exe or when the user double clicks on a .patch
 or .diff file (TortoiseGitUDiff.exe is registered as a handler for these file
 types on installation by default).
 
-TortoiseGitMerge.exe
-====================
-This program is for comparing files and resolving conflicts. It is called by
-TortoiseGitProc.exe or manually by the user (there is an icon in the startmenu).
-
-Command line parameters are document here:
-https://tortoisegit.org/docs/tortoisegitmerge/tme-automation.html
+Comparing and merging
+=====================
+TortoiseGit no longer ships a diff/merge application. TortoiseGitProc.exe hands
+the work to whatever the user has configured, and falls back to git's own tools:
+"git difftool --no-index" for comparing and the "mergetool.<tool>.cmd" recipe for
+resolving conflicts. See CAppUtils::StartExtDiff/StartExtMerge in
+src\TortoiseProc\AppUtils.cpp for the exact chain.
 
 SshAskPass.exe
 ==============

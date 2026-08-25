@@ -91,7 +91,6 @@ BEGIN
         MENUITEM "Se&ttings...",                ID_FILE_SETTINGS
         MENUITEM SEPARATOR
         MENUITEM "&Find\tCtrl+F",             IDM_SHOWFINDBAR
-        MENUITEM "Apply &Patch...",             ID_FILE_APPLYPATCH
         MENUITEM SEPARATOR
         MENUITEM "&Exit\tCtrl+W",             ID_FILE_EXIT
     END

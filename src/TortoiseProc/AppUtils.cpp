@@ -490,7 +490,7 @@ bool CAppUtils::StartExtDiff(
 	CString viewer;
 
 	viewer = PickDiffTool(file1, file2);
-	// If registry entry for a diff program is commented out, use TortoiseGitMerge.
+	// If registry entry for a diff program is commented out, fall back to git's tool.
 	const bool bCommentedOut = CStringUtils::StartsWith(viewer, L"#");
 	if (flags.bAlternativeTool)
 	{
@@ -552,7 +552,7 @@ BOOL CAppUtils::StartUnifiedDiffViewer(const CString& patchfile, const CString& 
 	viewer = v;
 
 	bool bInternal = false;
-	// If registry entry for a diff program is commented out, use TortoiseGitMerge.
+	// If registry entry for a diff program is commented out, fall back to git's tool.
 	const bool bCommentedOut = CStringUtils::StartsWith(viewer, L"#");
 	if (bAlternativeTool)
 	{
