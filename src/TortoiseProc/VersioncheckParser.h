@@ -18,7 +18,7 @@
 //
 
 #pragma once
-#include "../../ext/simpleini/SimpleIni.h"
+#include <SimpleIni.h>
 
 class CVersioncheckParser
 {

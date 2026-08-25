@@ -19,7 +19,7 @@
 //
 #pragma once
 #include "afxcmn.h"
-#include "../../ext/SimpleIni/SimpleIni.h"
+#include <SimpleIni.h>
 #include "StandAloneDlg.h"
 
 // CRegexFiltersDlg dialog

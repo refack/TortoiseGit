@@ -28,7 +28,7 @@
 #if defined(TORTOISEGITPROC)
 #include "DirFileEnum.h"
 #endif
-#include "../../ext/simpleini/SimpleIni.h"
+#include <SimpleIni.h>
 
 HINSTANCE CLangDll::Init(LPCWSTR appname)
 {

@@ -25,7 +25,7 @@
 #include "FilePatchesDlg.h"
 #include "XSplitter.h"
 #include "GitPatch.h"
-#include "../../ext/SimpleIni/SimpleIni.h"
+#include <SimpleIni.h>
 #include "CustomMFCRibbonStatusBar.h"
 #include "NativeRibbonApp.h"
 

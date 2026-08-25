@@ -22,9 +22,6 @@
 [submodule "ext/pcre2"]
 	path = ext/pcre2
 	url = https://github.com/PCRE2Project/pcre2.git
-[submodule "ext/simpleini"]
-	path = ext/simpleini
-	url = https://github.com/brofield/simpleini.git
 [submodule "ext/googletest"]
 	path = ext/googletest
 	url = https://github.com/google/googletest.git
