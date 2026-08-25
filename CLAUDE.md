@@ -722,6 +722,23 @@ needs a one-time elevated `Set-Service ssh-agent -StartupType Automatic`.
 Pageant just ran. This is the one place the OpenSSH floor is lower out of
 the box.
 
+**`~/.ssh/config` now applies to TortoiseGit, and it did not before.** plink
+ignores that file entirely; OpenSSH honours it. So a setting written for
+interactive shells can newly break git-over-SSH from inside TortoiseGit —
+`Host *` with `RequestTTY force` is the one actually hit here, which makes
+every fetch fail with "PTY allocation request failed" because the pack
+protocol needs a clean channel. Scope such settings to the hosts that want
+them. This is a class, not one instance: `ForceCommand`, `RemoteCommand` and
+`LogLevel` under `Host *` misbehave the same way.
+
+*Upgrade path (`662b0d8df`):* an existing install keeps its SSH client
+setting, and Plink was the installer default for years, so most upgrades carry
+a path to a binary that no longer exists. `CGit::GetConfiguredSshClient()` is
+the single reader for all three call sites and drops the value when it names
+TortoiseGit's own removed plink **and** the file is missing. Do not relax that
+existence check into a name-only test — TortoiseSVN ships a working
+`TortoisePlink.exe`.
+
 **Deferred, deliberately:** the TortoiseMerge manual (`doc\source\en\TortoiseMerge\`),
 its `HTMLHelpfiles.wxi` components, `CheckIDD`, the `LanguagePack.wxs` entries,
 the `.po` translations, and the orphaned assets under `src\Resources\`

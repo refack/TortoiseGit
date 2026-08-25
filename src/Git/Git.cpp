@@ -2311,6 +2311,27 @@ static void SetLibGit2TemplatePath(const CString &value)
 	git_libgit2_opts(GIT_OPT_SET_TEMPLATE_PATH, static_cast<LPCSTR>(valueA));
 }
 
+CString CGit::GetConfiguredSshClient()
+{
+	CString sshclient = CRegString(L"Software\\TortoiseGit\\SSH");
+	if (sshclient.IsEmpty())
+		sshclient = CRegString(L"Software\\TortoiseGit\\SSH", L"", FALSE, HKEY_LOCAL_MACHINE);
+
+	// Installs from before TortoiseGitPlink was retired still point at it, and an upgrade does
+	// not rewrite an existing value. Left alone it would be exported verbatim and every network
+	// operation would fail to spawn. Only *our own* removed binary is cleared, and only when it
+	// is really gone: TortoiseSVN ships a working TortoisePlink.exe, and someone who deliberately
+	// pointed at that must keep it.
+	if (!sshclient.IsEmpty() && !PathFileExists(sshclient))
+	{
+		const CString exe = CPathUtils::GetFileNameFromPath(sshclient).MakeLower();
+		if (exe == L"tortoisegitplink.exe" || exe == L"tortoiseplink.exe")
+			sshclient.Empty();
+	}
+
+	return sshclient;
+}
+
 int CGit::FindAndSetGitExePath(BOOL bFallback)
 {
 	CRegString msysdir = CRegString(REG_MSYSGIT_PATH, L"", FALSE);
@@ -2390,9 +2411,7 @@ BOOL CGit::CheckMsysGitDir(BOOL bFallback)
 		m_Environment.SetEnv(L"HOME", GetHomeDirectory());
 
 	//setup ssh client
-	CString sshclient = CRegString(L"Software\\TortoiseGit\\SSH");
-	if (sshclient.IsEmpty())
-		sshclient = CRegString(L"Software\\TortoiseGit\\SSH", L"", FALSE, HKEY_LOCAL_MACHINE);
+	CString sshclient = GetConfiguredSshClient();
 
 	if(!sshclient.IsEmpty())
 	{

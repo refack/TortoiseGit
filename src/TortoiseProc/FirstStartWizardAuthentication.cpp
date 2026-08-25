@@ -90,9 +90,7 @@ BOOL CFirstStartWizardAuthentication::OnWizardFinish()
 {
 	UpdateData();
 
-	CString sshclient = CRegString(L"Software\\TortoiseGit\\SSH");
-	if (sshclient.IsEmpty())
-		sshclient = CRegString(L"Software\\TortoiseGit\\SSH", L"", FALSE, HKEY_LOCAL_MACHINE);
+	CString sshclient = CGit::GetConfiguredSshClient();
 	if (m_ctrlSSHClient.GetCurSel() == 0 && !IsTool(L"ssh", sshclient))
 		CRegString(L"Software\\TortoiseGit\\SSH") = L"ssh.exe";
 
@@ -186,9 +184,7 @@ BOOL CFirstStartWizardAuthentication::OnInitDialog()
 
 	AdjustControlSize(IDC_DONTSAVE);
 
-	CString sshclient = CRegString(L"Software\\TortoiseGit\\SSH");
-	if (sshclient.IsEmpty())
-		sshclient = CRegString(L"Software\\TortoiseGit\\SSH", L"", FALSE, HKEY_LOCAL_MACHINE);
+	CString sshclient = CGit::GetConfiguredSshClient();
 
 	int idx = m_ctrlSSHClient.AddString(L"OpenSSH");
 	if (sshclient.IsEmpty() || IsTool(L"ssh", sshclient))

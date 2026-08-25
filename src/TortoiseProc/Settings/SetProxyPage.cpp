@@ -98,9 +98,7 @@ BOOL CSetProxyPage::OnInitDialog()
 
 	CString proxy = g_Git.GetConfigValue(L"http.proxy");
 
-	m_SSHClient = m_regSSHClient;
-	if (m_SSHClient.IsEmpty())
-		m_SSHClient = CRegString(L"Software\\TortoiseGit\\SSH", L"", FALSE, HKEY_LOCAL_MACHINE);
+	m_SSHClient = CGit::GetConfiguredSshClient();
 	if (m_SSHClient.IsEmpty())
 		m_SSHClient = L"ssh.exe"; // must match CGit::CheckMsysGitDir's default
 	m_serveraddress = m_regServeraddress;

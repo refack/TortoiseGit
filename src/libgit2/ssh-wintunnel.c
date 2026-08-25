@@ -221,9 +221,11 @@ static int _git_ssh_setup_tunnel(
 			git_str_printf(&params, " -p %s", parsed_url.port);
 	}
 	/* plink is still supported for anyone who points the SSH client setting at their own
-	 * PuTTY install; TortoiseGit no longer ships one. It cannot prompt without a console,
-	 * so it has to run non-interactively. */
-	if (isPutty)
+	 * PuTTY install; TortoiseGit no longer ships one. Stock plink has no console here and
+	 * does not honour SSH_ASKPASS, so it must run non-interactively or it would hang.
+	 * TortoisePlink (TortoiseSVN's) draws its own dialogs, so batching it would turn a
+	 * host-key prompt into a silent failure. */
+	if (isPutty && !wcstristr(ssh, L"tortoiseplink"))
 		git_str_puts(&params, " -batch");
 
 	if (git_process__is_cmdline_option(parsed_url.username)) {

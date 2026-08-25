@@ -353,6 +353,12 @@ public:
 	CString GetGitSystemConfig() const;
 	CAutoRepository GetGitRepository() const;
 	static CStringA GetGitPathStringA(const CString &path);
+	/**
+	 * The configured SSH client, HKCU then HKLM, empty when none is set and the OpenSSH
+	 * default applies. A stale path to the retired TortoiseGitPlink.exe reads as unset,
+	 * so upgrades do not keep exporting a binary that no longer exists.
+	 */
+	static CString GetConfiguredSshClient();
 	static CString ms_LastMsysGitDir;	// the last msysgitdir added to the path, blank if none
 	static CString ms_MsysGitRootDir;
 	static int ms_LastMsysGitVersion;
