@@ -325,17 +325,36 @@ BOOL CAppUtils::StartExtMerge(bool bAlternative,
 		}
 		else
 		{
-			// use TortoiseGitMerge
-			bInternal = true;
-			com = CPathUtils::GetAppDirectory() + L"TortoiseGitMerge.exe";
-			com = L'"' + com + L'"';
-			com = com + L" /base:%base /theirs:%theirs /mine:%mine /merged:%merged";
-			com = com + L" /basename:%bname /theirsname:%tname /minename:%yname /mergedname:%mname";
-			com += L" /saverequired";
-			if (resolveMsgHwnd)
-				com.AppendFormat(L" /resolvemsghwnd:%I64d", reinterpret_cast<__int64>(resolveMsgHwnd));
-			if (bDeleteBaseTheirsMineOnClose)
-				com += L" /deletebasetheirsmineonclose";
+			/*
+			 * Fall back to git's merge.tool. This is translated rather than delegated:
+			 * git mergetool only operates on paths that are conflicted in the index, while
+			 * this function is also used to merge arbitrary files, so the tool has to be
+			 * resolved and launched here.
+			 *
+			 * mergetool.<tool>.cmd is a shell template over $BASE/$LOCAL/$REMOTE/$MERGED,
+			 * mapped onto TortoiseGit's placeholders below. That covers the usual
+			 * "program plus arguments" template but not one relying on real shell syntax.
+			 */
+			CString mergeCmd;
+			if (const CString mergeTool = g_Git.GetConfigValue(L"merge.tool"); !mergeTool.IsEmpty())
+				mergeCmd = g_Git.GetConfigValue(L"mergetool." + mergeTool + L".cmd");
+
+			if (!mergeCmd.IsEmpty())
+			{
+				mergeCmd.Replace(L"$BASE", L"%base");
+				mergeCmd.Replace(L"$LOCAL", L"%mine");
+				mergeCmd.Replace(L"$REMOTE", L"%theirs");
+				mergeCmd.Replace(L"$MERGED", L"%merged");
+				com = mergeCmd;
+			}
+			else
+			{
+				// Nothing configured anywhere. The merged file already carries conflict
+				// markers, so editing it by hand is a complete resolution path; notepad.exe
+				// is always present and is commonly redirected via Image File Execution
+				// Options, so this stays useful rather than being a dead end.
+				com = L"notepad.exe %merged";
+			}
 		}
 		if (!g_sGroupingUUID.IsEmpty())
 		{
@@ -399,31 +418,29 @@ BOOL CAppUtils::StartExtMerge(bool bAlternative,
 	return TRUE;
 }
 
-BOOL CAppUtils::StartExtPatch(const CTGitPath& patchfile, const CTGitPath& dir, const CString& sOriginalDescription, const CString& sPatchedDescription, BOOL bReversed, BOOL bWait)
+BOOL CAppUtils::StartExtPatch(const CTGitPath& patchfile, const CTGitPath& /*dir*/, const CString& /*sOriginalDescription*/, const CString& /*sPatchedDescription*/, BOOL /*bReversed*/, BOOL bWait)
 {
-	CString viewer;
-	// use TortoiseGitMerge
-	viewer = CPathUtils::GetAppDirectory();
-	viewer += L"TortoiseGitMerge.exe";
+	/*
+	 * A patch file is just a file, so hand it to whatever the user configured and let that
+	 * decide how to render it - Beyond Compare, for instance, has a "Text Patch" file
+	 * viewer. Unlike diff and merge there is nothing in git to delegate to: git applies
+	 * patches, it does not display them.
+	 *
+	 * notepad.exe is the floor rather than an arbitrary choice: it is always present on
+	 * Windows, and users who want something better routinely redirect it through Image File
+	 * Execution Options, so the fallback stays customisable without TortoiseGit knowing.
+	 */
+	CString viewer = CRegString(L"Software\\TortoiseGit\\PatchViewer");
+	if (viewer.Trim().IsEmpty())
+		viewer = L"notepad.exe %patchfile";
 
-	viewer = L'"' + viewer + L'"';
-	viewer = viewer + L" /diff:" + CCmdLineParser::EscapeValue(patchfile.GetWinPathString());
-	viewer = viewer + L" /patchpath:" + CCmdLineParser::EscapeValue(dir.GetWinPathString());
-	if (bReversed)
-		viewer += L" /reversedpatch";
-	if (!sOriginalDescription.IsEmpty())
-		viewer = viewer + L" /patchoriginal:" + CCmdLineParser::EscapeValue(sOriginalDescription);
-	if (!sPatchedDescription.IsEmpty())
-		viewer = viewer + L" /patchpatched:" + CCmdLineParser::EscapeValue(sPatchedDescription);
-	if (!g_sGroupingUUID.IsEmpty())
-	{
-		viewer += L" /groupuuid:\"";
-		viewer += g_sGroupingUUID;
-		viewer += L'"';
-	}
-	if (!LaunchApplication(viewer, CAppUtils::LaunchApplicationFlags().WaitForStartup(!!bWait).UseSpecificErrorMessage(IDS_ERR_DIFFVIEWSTART)))
-		return FALSE;
-	return TRUE;
+	const CString quotedPatchFile = L'"' + patchfile.GetWinPathString() + L'"';
+	if (viewer.Find(L"%patchfile") < 0)
+		viewer += L' ' + quotedPatchFile;
+	else
+		viewer.Replace(L"%patchfile", quotedPatchFile);
+
+	return LaunchApplication(viewer, CAppUtils::LaunchApplicationFlags().WaitForStartup(!!bWait).UseSpecificErrorMessage(IDS_ERR_DIFFVIEWSTART));
 }
 
 CString CAppUtils::PickDiffTool(const CTGitPath& file1, const CTGitPath& file2)
@@ -489,16 +506,18 @@ bool CAppUtils::StartExtDiff(
 	const bool bInternal = viewer.IsEmpty();
 	if (bInternal)
 	{
-		viewer =
-			L'"' + CPathUtils::GetAppDirectory() + L"TortoiseGitMerge.exe" + L'"' +
-			L" /base:%base /mine:%mine /basename:%bname /minename:%yname" +
-			L" /basereflectedname:%bpath /minereflectedname:%ypath";
-		if (!g_sGroupingUUID.IsEmpty())
-		{
-			viewer += L" /groupuuid:\"";
-			viewer += g_sGroupingUUID;
-			viewer += L'"';
-		}
+		/*
+		 * Nothing configured here, so defer to git's own diff.tool. --no-index is what
+		 * makes that possible: the two sides have already been extracted to files by the
+		 * time we get here, and --no-index is how git diffs two paths that are not in the
+		 * index. --no-prompt stops it asking per file.
+		 *
+		 * The titles are lost this way, which is precisely what the configured command
+		 * above buys: git hands the tool two paths and nothing else, while the TortoiseGit
+		 * template can pass %bname/%yname so the tool shows "file @ HEAD" rather than a
+		 * temp filename. Delegation is the floor; the template is the better experience.
+		 */
+		viewer = L"git.exe difftool --no-prompt --no-index -- %base %mine";
 	}
 	// check if the params are set. If not, just add the files to the command line
 	if ((viewer.Find(L"%base") < 0) && (viewer.Find(L"%mine") < 0))
