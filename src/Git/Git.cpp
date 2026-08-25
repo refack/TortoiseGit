@@ -2405,17 +2405,13 @@ BOOL CGit::CheckMsysGitDir(BOOL bFallback)
 	}
 	else
 	{
-		wchar_t sPlink[MAX_PATH] = { 0 };
-		GetModuleFileName(nullptr, sPlink, _countof(sPlink));
-		LPWSTR ptr = wcsrchr(sPlink, L'\\');
-		if (ptr) {
-			wcscpy_s(ptr + 1, _countof(sPlink) - (ptr - sPlink + 1), L"TortoiseGitPlink.exe");
-			if (ms_bCygwinGit)
-				CPathUtils::ConvertToSlash(sPlink);
-			m_Environment.SetEnv(L"GIT_SSH", sPlink);
-			m_Environment.SetEnv(L"GIT_SSH_VARIANT", L"ssh");
-			m_Environment.SetEnv(L"SVN_SSH", sPlink);
-		}
+		// The default is OpenSSH, which ships with Windows and needs no path: git and
+		// ssh-wintunnel both resolve it from PATH. This must name *something* — the libgit2
+		// transport hard-errors with "No GIT_SSH tool configured" when the variable is unset.
+		// It is a console program with no console here, so its prompts reach the user through
+		// SSH_ASKPASS/SshAskPass.exe, set below.
+		m_Environment.SetEnv(L"GIT_SSH", L"ssh.exe");
+		m_Environment.SetEnv(L"SVN_SSH", L"ssh.exe");
 	}
 
 	{

@@ -94,7 +94,7 @@ BOOL CFirstStartWizardAuthentication::OnWizardFinish()
 	CString sshclient = CRegString(L"Software\\TortoiseGit\\SSH");
 	if (sshclient.IsEmpty())
 		sshclient = CRegString(L"Software\\TortoiseGit\\SSH", L"", FALSE, HKEY_LOCAL_MACHINE);
-	if (m_ctrlSSHClient.GetCurSel() == 0 && !(sshclient.IsEmpty() || IsTool(L"tortoisegitplink", sshclient) || IsTool(L"tortoiseplink", sshclient)))
+	if (m_ctrlSSHClient.GetCurSel() == 0 && !(IsTool(L"tortoisegitplink", sshclient) || IsTool(L"tortoiseplink", sshclient)))
 		CRegString(L"Software\\TortoiseGit\\SSH") = CPathUtils::GetAppDirectory() + L"TortoiseGitPlink.exe";
 	else if (m_ctrlSSHClient.GetCurSel() == 1 && !IsTool(L"ssh", sshclient))
 		CRegString(L"Software\\TortoiseGit\\SSH") = L"ssh.exe";
@@ -194,10 +194,10 @@ BOOL CFirstStartWizardAuthentication::OnInitDialog()
 		sshclient = CRegString(L"Software\\TortoiseGit\\SSH", L"", FALSE, HKEY_LOCAL_MACHINE);
 
 	int idx = m_ctrlSSHClient.AddString(L"TortoiseGitPlink");
-	if (sshclient.IsEmpty() || IsTool(L"tortoisegitplink", sshclient) || IsTool(L"tortoiseplink", sshclient))
+	if (IsTool(L"tortoisegitplink", sshclient) || IsTool(L"tortoiseplink", sshclient))
 		m_ctrlSSHClient.SetCurSel(idx);
 	idx = m_ctrlSSHClient.AddString(L"OpenSSH");
-	if (IsTool(L"ssh", sshclient))
+	if (sshclient.IsEmpty() || IsTool(L"ssh", sshclient))
 		m_ctrlSSHClient.SetCurSel(idx);
 	if (m_ctrlSSHClient.GetCurSel() == -1)
 	{

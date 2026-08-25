@@ -102,16 +102,7 @@ BOOL CSetProxyPage::OnInitDialog()
 	if (m_SSHClient.IsEmpty())
 		m_SSHClient = CRegString(L"Software\\TortoiseGit\\SSH", L"", FALSE, HKEY_LOCAL_MACHINE);
 	if (m_SSHClient.IsEmpty())
-	{
-		wchar_t sPlink[MAX_PATH] = { 0 };
-		GetModuleFileName(nullptr, sPlink, _countof(sPlink));
-		LPWSTR ptr = wcsrchr(sPlink, L'\\');
-		if (ptr)
-		{
-			wcscpy_s(ptr + 1, _countof(sPlink) - (ptr - sPlink + 1), L"TortoiseGitPlink.exe");
-			m_SSHClient = CString(sPlink);
-		}
-	}
+		m_SSHClient = L"ssh.exe"; // must match CGit::CheckMsysGitDir's default
 	m_serveraddress = m_regServeraddress;
 	m_serverport = _wtoi(static_cast<LPCWSTR>(static_cast<CString>(m_regServerport)));
 	m_username = m_regUsername;
