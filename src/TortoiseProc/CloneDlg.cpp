@@ -55,9 +55,7 @@ CCloneDlg::CCloneDlg(CWnd* pParent /*=nullptr*/)
 , m_regBrowseUrl(L"Software\\TortoiseGit\\TortoiseProc\\CloneBrowse", 0)
 , m_regCloneDir(L"Software\\TortoiseGit\\TortoiseProc\\CloneDir")
 , m_regCloneRecursive(L"Software\\TortoiseGit\\TortoiseProc\\CloneRecursive", FALSE)
-, m_regUseSSHKey(L"Software\\TortoiseGit\\TortoiseProc\\CloneUseSSHKey", TRUE)
 {
-	m_bAutoloadPuttyKeyFile = m_regUseSSHKey && CAppUtils::IsSSHPutty();
 }
 
 CCloneDlg::~CCloneDlg()
@@ -68,10 +66,8 @@ void CCloneDlg::DoDataExchange(CDataExchange* pDX)
 {
 	CHorizontalResizableStandAloneDialog::DoDataExchange(pDX);
 	DDX_Control(pDX, IDC_URLCOMBO, m_URLCombo);
-	DDX_Control(pDX, IDC_PUTTYKEYFILE, m_PuttyKeyCombo);
 	DDX_Control(pDX, IDC_CLONE_BROWSE_URL, m_BrowseUrl);
 	DDX_Text(pDX, IDC_CLONE_DIR, m_Directory);
-	DDX_Check(pDX,IDC_PUTTYKEY_AUTOLOAD, m_bAutoloadPuttyKeyFile);
 
 	DDX_Check(pDX,IDC_CHECK_SVN, m_bSVN);
 	DDX_Check(pDX,IDC_CHECK_SVN_TRUNK, m_bSVNTrunk);
@@ -105,7 +101,6 @@ BOOL CCloneDlg::OnInitDialog()
 	AdjustControlSize(IDC_CHECK_DEPTH);
 	AdjustControlSize(IDC_CHECK_RECURSIVE);
 	AdjustControlSize(IDC_CHECK_BARE);
-	AdjustControlSize(IDC_PUTTYKEY_AUTOLOAD);
 	AdjustControlSize(IDC_CHECK_SVN);
 	AdjustControlSize(IDC_CHECK_SVN_TRUNK);
 	AdjustControlSize(IDC_CHECK_SVN_TAG);
@@ -121,9 +116,6 @@ BOOL CCloneDlg::OnInitDialog()
 	AddAnchor(IDCANCEL,BOTTOM_RIGHT);
 
 	AddAnchor(IDC_GROUP_CLONE,TOP_LEFT,TOP_RIGHT);
-	AddAnchor(IDC_PUTTYKEYFILE_BROWSE,TOP_RIGHT);
-	AddAnchor(IDC_PUTTYKEY_AUTOLOAD,TOP_LEFT);
-	AddAnchor(IDC_PUTTYKEYFILE,TOP_LEFT,TOP_RIGHT);
 	AddAnchor(IDC_CLONE_GROUP_SVN,TOP_LEFT,TOP_RIGHT);
 	AddAnchor(IDHELP, BOTTOM_RIGHT);
 
@@ -182,14 +174,6 @@ BOOL CCloneDlg::OnInitDialog()
 	this->m_BrowseUrl.AddEntry(CString(MAKEINTRESOURCE(IDS_REPOBROWSE_OPEN)));
 	m_BrowseUrl.SetCurrentEntry(m_regBrowseUrl);
 
-	m_PuttyKeyCombo.SetPathHistory(TRUE);
-	m_PuttyKeyCombo.LoadHistory(L"Software\\TortoiseGit\\History\\puttykey", L"key");
-	m_PuttyKeyCombo.SetCurSel(0);
-
-	this->GetDlgItem(IDC_PUTTYKEY_AUTOLOAD)->EnableWindow( CAppUtils::IsSSHPutty() );
-	this->GetDlgItem(IDC_PUTTYKEYFILE)->EnableWindow(m_bAutoloadPuttyKeyFile);
-	this->GetDlgItem(IDC_PUTTYKEYFILE_BROWSE)->EnableWindow(m_bAutoloadPuttyKeyFile);
-
 	EnableSaveRestore(L"CloneDlg");
 
 	OnBnClickedCheckSvn();
@@ -205,8 +189,6 @@ BEGIN_MESSAGE_MAP(CCloneDlg, CHorizontalResizableStandAloneDialog)
 	ON_BN_CLICKED(IDC_CLONE_DIR_BROWSE, &CCloneDlg::OnBnClickedCloneDirBrowse)
 	ON_BN_CLICKED(IDC_CHECK_BRANCH, &CCloneDlg::OnBnClickedCheckBranch)
 	ON_BN_CLICKED(IDC_CHECK_ORIGIN, &CCloneDlg::OnBnClickedCheckOrigin)
-	ON_BN_CLICKED(IDC_PUTTYKEYFILE_BROWSE, &CCloneDlg::OnBnClickedPuttykeyfileBrowse)
-	ON_BN_CLICKED(IDC_PUTTYKEY_AUTOLOAD, &CCloneDlg::OnBnClickedPuttykeyAutoload)
 	ON_CBN_EDITCHANGE(IDC_URLCOMBO, &CCloneDlg::OnCbnEditchangeUrlcombo)
 	ON_BN_CLICKED(IDC_CHECK_SVN, &CCloneDlg::OnBnClickedCheckSvn)
 	ON_BN_CLICKED(IDC_CHECK_SVN_TRUNK, &CCloneDlg::OnBnClickedCheckSvnTrunk)
@@ -250,12 +232,9 @@ void CCloneDlg::OnOK()
 	}
 
 	m_URLCombo.SaveHistory();
-	m_PuttyKeyCombo.SaveHistory();
 	m_regCloneDir = m_Directory;
-	m_regUseSSHKey = m_bAutoloadPuttyKeyFile;
 	m_regCloneRecursive = m_bRecursive;
 
-	this->m_PuttyKeyCombo.GetWindowText(m_strPuttyKeyFile);
 	CResizableDialog::OnOK();
 	m_bSaving = false;
 }
@@ -307,26 +286,6 @@ void CCloneDlg::OnBnClickedCloneDirBrowse()
 		m_Directory = strCloneDirectory;
 		UpdateData(FALSE);
 	}
-}
-
-void CCloneDlg::OnBnClickedPuttykeyfileBrowse()
-{
-	UpdateData();
-	CString filename;
-	m_PuttyKeyCombo.GetWindowText(filename);
-	if (!PathFileExists(filename))
-		filename.Empty();
-	if (!CAppUtils::FileOpenSave(filename, nullptr, 0, IDS_PUTTYKEYFILEFILTER, true, GetSafeHwnd()))
-		return;
-
-	m_PuttyKeyCombo.SetWindowText(filename);
-}
-
-void CCloneDlg::OnBnClickedPuttykeyAutoload()
-{
-	this->UpdateData();
-	this->GetDlgItem(IDC_PUTTYKEYFILE)->EnableWindow(m_bAutoloadPuttyKeyFile);
-	this->GetDlgItem(IDC_PUTTYKEYFILE_BROWSE)->EnableWindow(m_bAutoloadPuttyKeyFile);
 }
 
 void CCloneDlg::OnCbnEditchangeUrlcombo()
@@ -390,13 +349,6 @@ void CCloneDlg::OnCbnEditchangeUrlcombo()
 	m_Directory.TrimRight(L"\\/");
 	m_Directory += L'\\';
 	m_Directory += m_ModuleName;
-
-	// check if URL starts with http://, https:// or git:// in those cases loading putty keys is only
-	// asking for passwords for keys that are never used
-	if (url.Find(L"http://", 0) >= 0 || url.Find(L"https://", 0) >= 0 || url.Find(L"git://", 0) >= 0)
-		m_bAutoloadPuttyKeyFile = false;
-	else
-		m_bAutoloadPuttyKeyFile = m_regUseSSHKey && CAppUtils::IsSSHPutty();
 
 	this->UpdateData(FALSE);
 }

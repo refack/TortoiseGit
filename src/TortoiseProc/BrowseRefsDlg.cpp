@@ -749,9 +749,6 @@ bool CBrowseRefsDlg::DoDeleteRefs(const VectorPShadowTree& leafs)
 		for (const auto& remotebranchlist : remoteBranches)
 		{
 			auto& remoteName = remotebranchlist.first;
-			if (CAppUtils::IsSSHPutty())
-				CAppUtils::LaunchPAgent(this->GetSafeHwnd(), nullptr, &remoteName);
-
 			CSysProgressDlg sysProgressDlg;
 			sysProgressDlg.SetTitle(CString(MAKEINTRESOURCE(IDS_APPNAME)));
 			sysProgressDlg.SetLine(1, CString(MAKEINTRESOURCE(IDS_DELETING_REMOTE_REFS)));
@@ -799,9 +796,6 @@ bool CBrowseRefsDlg::DoDeleteRef(const CString& completeRefName)
 		CString remoteName, remoteBranchToDelete;
 		if (SplitRemoteBranchName(branchToDelete, remoteName, remoteBranchToDelete))
 			return false;
-
-		if (CAppUtils::IsSSHPutty())
-			CAppUtils::LaunchPAgent(this->GetSafeHwnd(), nullptr, &remoteName);
 
 		CSysProgressDlg sysProgressDlg;
 		sysProgressDlg.SetTitle(CString(MAKEINTRESOURCE(IDS_APPNAME)));

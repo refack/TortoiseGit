@@ -30,7 +30,7 @@ public:
 	{
 		REMOTE_NAME		=0x1,
 		REMOTE_URL		=0x2,
-		REMOTE_PUTTYKEY	=0x4,
+		// 0x4 was REMOTE_PUTTYKEY, retired with the bundled PuTTY
 		REMOTE_TAGOPT	=0x8,
 		REMOTE_PRUNE	=0x10,
 		REMOTE_PUSHDEFAULT	= 0x40,
@@ -50,13 +50,11 @@ protected:
 	DECLARE_MESSAGE_MAP()
 
 	afx_msg void OnTimer(UINT_PTR nIDEvent);
-	afx_msg void OnBnClickedButtonBrowse();
 	afx_msg void OnBnClickedButtonAdd();
 	afx_msg void OnLbnSelchangeListRemote();
 	afx_msg void OnEnChangeEditRemote();
 	afx_msg void OnEnChangeEditUrl();
 	afx_msg void OnEnChangeEditPushUrl();
-	afx_msg void OnEnChangeEditPuttyKey();
 	afx_msg void OnCbnSelchangeComboTagOpt();
 	afx_msg void OnBnClickedCheckprune();
 	afx_msg void OnBnClickedCheckpruneall();
@@ -80,7 +78,6 @@ protected:
 	CString		m_strUrl;
 	CString		m_strPushUrl;
 
-	CString		m_strPuttyKeyfile;
 	CComboBox	m_ctrlTagOpt;
 	BOOL		m_bPushDefault;
 	BOOL		m_bPrune;

@@ -1,4 +1,4 @@
-//{{NO_DEPENDENCIES}}
+﻿//{{NO_DEPENDENCIES}}
 // Microsoft Visual C++ generated include file.
 // Used by d:\TortoiseGit\src\Resources\TortoiseProcENG.rc
 //
@@ -373,7 +373,7 @@
 #define IDS_PROC_DELETEALLSTASH         1118
 #define IDC_BUGIDLABEL                  1119
 #define IDS_PROC_DELETEBRANCHTAG        1119
-#define IDS_PUTTYKEYFILEFILTER          1120
+// 1120 was IDS_PUTTYKEYFILEFILTER, retired with the bundled PuTTY
 #define IDS_PROC_GITCONFIG_REMOTEEMPTY  1121
 #define IDS_PROC_GITCONFIG_URLEMPTY     1122
 #define IDS_PROC_GITCONFIG_OVERWRITEREMOTE 1123
@@ -431,7 +431,7 @@
 #define IDC_LEASTACTIVEAUTHORMIN        1147
 #define IDS_PROC_FILEDIFF_VERSION1BASENEWER 1147
 #define IDC_LEASTACTIVEAUTHORMAX        1148
-#define IDS_ERR_PAEGENTTIMEOUT          1148
+// 1148 was IDS_ERR_PAEGENTTIMEOUT, retired with the bundled PuTTY
 #define IDC_FILECHANGESEACHWEEKAVG      1149
 #define IDS_ERR_NOPATCHES               1149
 #define IDC_FILECHANGESEACHWEEKMIN      1150
@@ -817,7 +817,7 @@
 #define IDC_BUTTON_PRUNE                1383
 #define IDC_BUTTON_DIR                  1384
 #define IDC_BUTTON_DOWN                 1384
-#define IDC_PUTTYKEYFILE_BROWSE         1384
+// 1384 was IDC_PUTTYKEYFILE_BROWSE, retired with the bundled PuTTY
 #define IDC_BUTTON_STASH                1384
 #define IDC_EDITSYSTEMGITCONFIG         1384
 #define IDS_SETTINGS_SYMBOLIZEREFNAMES_TT 1384
@@ -1034,7 +1034,7 @@
 #define IDS_PROC_REBASE_SELECTALL_PICK  1503
 #define IDC_STATIC_SOURCE               1504
 #define IDS_DELETEREMOTETAGON           1504
-#define IDC_PUTTYKEY_AUTOLOAD           1505
+// 1505 was IDC_PUTTYKEY_AUTOLOAD, retired with the bundled PuTTY
 #define IDS_B_T_REMOTE_NAME_COLLIDE     1505
 #define IDS_CHANGETYPE                  1506
 #define IDS_OLDHASH                     1507
@@ -1183,12 +1183,12 @@
 #define IDS_WARN_DELETE_MANY_FROM_INDEX 1567
 #define IDC_EDIT_URL                    1568
 #define IDS_WARN_DELETE_ONE_FROM_INDEX  1568
-#define IDC_EDIT_PUTTY_KEY              1569
+// 1569 was IDC_EDIT_PUTTY_KEY, retired with the bundled PuTTY
 #define IDC_BUGTRAQLOGREGEX1            1569
 #define IDS_REMOVEBUTTON                1569
 #define IDC_BUGTRAQLOGREGEX2            1570
 #define IDS_LAST_N_WEEKS                1570
-#define IDC_PUTTYKEYFILE                1571
+// 1571 was IDC_PUTTYKEYFILE, retired with the bundled PuTTY
 #define IDS_LAST_N_MONTHS               1571
 #define IDC_GROUP_CLONE                 1572
 #define IDS_LAST_N_YEARS                1572
@@ -1302,7 +1302,7 @@
 #define IDS_FIRSTSTART_GITTITLE         1617
 #define IDC_STATIC_REMOTE_URL           1618
 #define IDS_FIRSTSTART_USERTITLE        1618
-#define IDC_CHECK_PUTTY_KEY             1619
+// 1619 was IDC_CHECK_PUTTY_KEY, retired with the bundled PuTTY
 #define IDS_SEEMANUALGITEXEPATH         1619
 #define IDS_ERR_GITDLLMISSING           1620
 #define IDC_STATIC_STATUS               1621
@@ -1655,7 +1655,7 @@
 #define IDC_WORKAROUNDS                 1841
 #define IDC_GITHACKS1                   1842
 #define IDC_GITHACKS2                   1843
-#define IDC_GENERATEPUTTYKEY            1844
+// 1844 was IDC_GENERATEPUTTYKEY, retired with the bundled PuTTY
 #define IDC_ADVANCEDCONFIGURATION       1845
 #define IDC_FIRSTSTART_SSHHINT          1846
 #define IDC_LOCALCHECK                  1848
@@ -1998,7 +1998,7 @@
 #define IDS_PROGRS_TITLE_SENDMAIL       9625
 #define IDS_PROGRS_CMD_SENDMAIL         9626
 #define IDS_SVNACTION_SENDMAIL_RETRY    9629
-#define IDS_ERR_PAGEANT                 9632
+// 9632 was IDS_ERR_PAGEANT, retired with the bundled PuTTY
 #define IDS_MENU_VIEWPATCH              9633
 #define IDS_MENU_VIEWWITHMERGE          9634
 #define IDS_MENU_APPLY                  9635

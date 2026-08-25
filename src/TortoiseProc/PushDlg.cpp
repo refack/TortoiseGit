@@ -47,7 +47,6 @@ CPushDlg::CPushDlg(CWnd* pParent /*=nullptr*/)
 	, m_bSetPushRemote(FALSE)
 	, m_bSetUpstream(FALSE)
 	, m_RecurseSubmodules(0)
-	, m_bAutoLoad(CAppUtils::IsSSHPutty())
 {
 }
 
@@ -69,7 +68,6 @@ void CPushDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX, IDC_FORCE_WITH_LEASE, m_bForceWithLease);
 	DDX_Check(pDX,IDC_PUSHALL,this->m_bPushAllBranches);
 	DDX_Check(pDX,IDC_TAGS,this->m_bTags);
-	DDX_Check(pDX,IDC_PUTTYKEY_AUTOLOAD,this->m_bAutoLoad);
 	DDX_Check(pDX, IDC_PROC_PUSH_SET_PUSHREMOTE, m_bSetPushRemote);
 	DDX_Check(pDX, IDC_PROC_PUSH_SET_PUSHBRANCH, m_bSetPushBranch);
 	DDX_Check(pDX, IDC_PROC_PUSH_SET_UPSTREAM, m_bSetUpstream);
@@ -104,7 +102,6 @@ BOOL CPushDlg::OnInitDialog()
 	AdjustControlSize(IDC_FORCE);
 	AdjustControlSize(IDC_FORCE_WITH_LEASE);
 	AdjustControlSize(IDC_TAGS);
-	AdjustControlSize(IDC_PUTTYKEY_AUTOLOAD);
 	AdjustControlSize(IDC_PROC_PUSH_SET_PUSHBRANCH);
 	AdjustControlSize(IDC_PROC_PUSH_SET_PUSHREMOTE);
 	AdjustControlSize(IDC_PROC_PUSH_SET_UPSTREAM);
@@ -135,7 +132,6 @@ BOOL CPushDlg::OnInitDialog()
 	AddAnchor(IDC_FORCE, TOP_LEFT);
 	AddAnchor(IDC_FORCE_WITH_LEASE, TOP_LEFT);
 	AddAnchor(IDC_TAGS, TOP_LEFT);
-	AddAnchor(IDC_PUTTYKEY_AUTOLOAD,TOP_LEFT);
 	AddAnchor(IDC_PROC_PUSH_SET_PUSHBRANCH, TOP_LEFT);
 	AddAnchor(IDC_PROC_PUSH_SET_PUSHREMOTE, TOP_LEFT);
 	AddAnchor(IDC_PROC_PUSH_SET_UPSTREAM, TOP_LEFT);
@@ -152,7 +148,6 @@ BOOL CPushDlg::OnInitDialog()
 
 	CAppUtils::SetWindowTitle(*this, g_Git.m_CurrentDir);
 
-	this->GetDlgItem(IDC_PUTTYKEY_AUTOLOAD)->EnableWindow(CAppUtils::IsSSHPutty());
 
 	EnableSaveRestore(L"PushDlg");
 
@@ -172,12 +167,6 @@ BOOL CPushDlg::OnInitDialog()
 	m_RemoteURL.EnableWindow(FALSE);
 	m_PushOption.LoadHistory(L"Software\\TortoiseGit\\History\\PushOption\\" + WorkingDir, L"option");
 	CheckRadioButton(IDC_RD_REMOTE,IDC_RD_URL,IDC_RD_REMOTE);
-
-	this->m_regAutoLoad = CRegDWORD(L"Software\\TortoiseGit\\History\\PushDlgAutoLoad\\" + WorkingDir,
-									m_bAutoLoad);
-	m_bAutoLoad = this->m_regAutoLoad;
-	if(!CAppUtils::IsSSHPutty())
-		m_bAutoLoad = false;
 
 	m_BrowseLocalRef.m_bRightArrow = TRUE;
 	m_BrowseLocalRef.m_bDefaultClick = FALSE;
@@ -491,7 +480,6 @@ void CPushDlg::OnBnClickedOk()
 
 	m_regPushAllBranches = m_bPushAllBranches;
 	m_regPushAllRemotes = m_bPushAllRemotes;
-	this->m_regAutoLoad = m_bAutoLoad ;
 	m_RecurseSubmodules = m_RecurseSubmodulesCombo.GetCurSel();
 	m_regRecurseSubmodules = m_RecurseSubmodules;
 

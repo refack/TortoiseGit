@@ -183,11 +183,7 @@ public:
 	 */
 	static bool	StashPop(HWND hWnd, int showChanges = 1);
 
-	static bool IsSSHPutty();
-
 	static bool LaunchRemoteSetting();
-
-	static bool LaunchPAgent(HWND hWnd, const CString* keyfile = nullptr, const CString* pRemote = nullptr);
 
 	static bool ShellOpen(const CString& file, HWND hwnd = nullptr);
 	static bool ShowOpenWithDialog(const CString& file, HWND hwnd = nullptr);
@@ -207,7 +203,7 @@ public:
 	// rebase = 1: ask user what to do, rebase = 2: run autorebase
 	static bool RebaseAfterFetch(HWND hWnd, const CString& upstream = L"", int rebase = 0, bool preserveMerges = false);
 	static bool Fetch(HWND hWnd, const CString& remoteName = L"", bool allRemotes = false);
-	static bool DoPush(HWND hWnd, bool autoloadKey, bool tags, bool allRemotes, bool allBranches, bool force, bool forceWithLease, const CString& localBranch, const CString& remote, const CString& remoteBranch, bool setUpstream, int recurseSubmodules, const CString& pushOption);
+	static bool DoPush(HWND hWnd, bool tags, bool allRemotes, bool allBranches, bool force, bool forceWithLease, const CString& localBranch, const CString& remote, const CString& remoteBranch, bool setUpstream, int recurseSubmodules, const CString& pushOption);
 	static bool Push(HWND hWnd, const CString& selectLocalBranch = CString(), int pushAll = BST_INDETERMINATE);
 	static bool RequestPull(HWND hWnd, const CString& endrevision = L"", const CString& repositoryUrl = L"");
 

@@ -52,7 +52,6 @@ void CSettingGitRemote::DoDataExchange(CDataExchange* pDX)
 	DDX_Text(pDX, IDC_EDIT_REMOTE, m_strRemote);
 	DDX_Text(pDX, IDC_EDIT_URL, m_strUrl);
 	DDX_Text(pDX, IDC_EDIT_PUSHURL, m_strPushUrl);
-	DDX_Text(pDX, IDC_EDIT_PUTTY_KEY, m_strPuttyKeyfile);
 	DDX_Control(pDX, IDC_COMBO_TAGOPT, m_ctrlTagOpt);
 	DDX_Check(pDX, IDC_CHECK_PRUNE, m_bPrune);
 	DDX_Check(pDX, IDC_CHECK_PUSHDEFAULT, m_bPushDefault);
@@ -60,13 +59,11 @@ void CSettingGitRemote::DoDataExchange(CDataExchange* pDX)
 
 BEGIN_MESSAGE_MAP(CSettingGitRemote, CPropertyPage)
 	ON_WM_TIMER()
-	ON_BN_CLICKED(IDC_BUTTON_BROWSE, &CSettingGitRemote::OnBnClickedButtonBrowse)
 	ON_BN_CLICKED(IDC_BUTTON_ADD, &CSettingGitRemote::OnBnClickedButtonAdd)
 	ON_LBN_SELCHANGE(IDC_LIST_REMOTE, &CSettingGitRemote::OnLbnSelchangeListRemote)
 	ON_EN_CHANGE(IDC_EDIT_REMOTE, &CSettingGitRemote::OnEnChangeEditRemote)
 	ON_EN_CHANGE(IDC_EDIT_URL, &CSettingGitRemote::OnEnChangeEditUrl)
 	ON_EN_CHANGE(IDC_EDIT_PUSHURL, &CSettingGitRemote::OnEnChangeEditPushUrl)
-	ON_EN_CHANGE(IDC_EDIT_PUTTY_KEY, &CSettingGitRemote::OnEnChangeEditPuttyKey)
 	ON_CBN_SELCHANGE(IDC_COMBO_TAGOPT, &CSettingGitRemote::OnCbnSelchangeComboTagOpt)
 	ON_BN_CLICKED(IDC_CHECK_PRUNE, &CSettingGitRemote::OnBnClickedCheckprune)
 	ON_BN_CLICKED(IDC_CHECK_PUSHDEFAULT, &CSettingGitRemote::OnBnClickedCheckpushdefault)
@@ -140,20 +137,6 @@ void CSettingGitRemote::OnTimer(UINT_PTR nIDEvent)
 	}
 }
 
-void CSettingGitRemote::OnBnClickedButtonBrowse()
-{
-	UpdateData();
-	CString filename = m_strPuttyKeyfile;
-	if (!PathFileExists(filename))
-		filename.Empty();
-	if (!CAppUtils::FileOpenSave(filename, nullptr, 0, IDS_PUTTYKEYFILEFILTER, true, GetSafeHwnd()))
-		return;
-
-	m_strPuttyKeyfile = filename;
-	UpdateData(FALSE);
-	OnEnChangeEditPuttyKey();
-}
-
 void CSettingGitRemote::OnBnClickedButtonAdd()
 {
 	this->UpdateData();
@@ -169,7 +152,7 @@ void CSettingGitRemote::OnBnClickedButtonAdd()
 		return;
 	}
 
-	m_ChangedMask = REMOTE_NAME | REMOTE_URL | REMOTE_PUTTYKEY | REMOTE_TAGOPT | REMOTE_PRUNE | REMOTE_PUSHDEFAULT | REMOTE_PUSHURL;
+	m_ChangedMask = REMOTE_NAME | REMOTE_URL | REMOTE_TAGOPT | REMOTE_PRUNE | REMOTE_PUSHDEFAULT | REMOTE_PUSHURL;
 	if(IsRemoteExist(m_strRemote))
 	{
 		CString msg;
@@ -251,7 +234,6 @@ void CSettingGitRemote::OnLbnSelchangeListRemote()
 		m_strUrl.Empty();
 		m_strPushUrl.Empty();
 		m_strRemote.Empty();
-		m_strPuttyKeyfile.Empty();
 		this->UpdateData(FALSE);
 		return;
 	}
@@ -263,10 +245,6 @@ void CSettingGitRemote::OnLbnSelchangeListRemote()
 
 	cmd.Format(L"remote.%s.pushurl", static_cast<LPCWSTR>(m_strRemote));
 	m_strPushUrl = g_Git.GetConfigValue(cmd);
-
-	cmd.Format(L"remote.%s.puttykeyfile", static_cast<LPCWSTR>(m_strRemote));
-
-	this->m_strPuttyKeyfile = g_Git.GetConfigValue(cmd);
 
 	m_ChangedMask=0;
 
@@ -327,15 +305,6 @@ void CSettingGitRemote::OnEnChangeEditPushUrl()
 	this->UpdateData();
 
 	if (!this->m_strRemote.IsEmpty())
-		this->SetModified();
-}
-
-void CSettingGitRemote::OnEnChangeEditPuttyKey()
-{
-	m_ChangedMask|=REMOTE_PUTTYKEY;
-
-	this->UpdateData();
-	if (!this->m_strUrl.IsEmpty())
 		this->SetModified();
 }
 
@@ -499,12 +468,6 @@ BOOL CSettingGitRemote::OnApply()
 	{
 		m_strUrl.Replace(L'\\', L'/');
 		if (!Save(L"url", m_strUrl))
-			return FALSE;
-	}
-
-	if(m_ChangedMask & REMOTE_PUTTYKEY)
-	{
-		if (!Save(L"puttykeyfile", m_strPuttyKeyfile))
 			return FALSE;
 	}
 

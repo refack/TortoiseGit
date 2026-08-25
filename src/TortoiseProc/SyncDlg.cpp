@@ -42,7 +42,6 @@ IMPLEMENT_DYNAMIC(CSyncDlg, CResizableStandAloneDialog)
 CSyncDlg::CSyncDlg(CWnd* pParent /*=nullptr*/)
 : CResizableStandAloneDialog(CSyncDlg::IDD, pParent)
 , CBranchCombox(L"sync")
-, m_bAutoLoadPuttyKey(CAppUtils::IsSSHPutty())
 , m_bForce(BST_UNCHECKED)
 , m_startTick(GetTickCount64())
 , m_cliOutputParser(CProgressDlg::s_iSizeLimit)
@@ -57,7 +56,6 @@ CSyncDlg::~CSyncDlg()
 void CSyncDlg::DoDataExchange(CDataExchange* pDX)
 {
 	CDialog::DoDataExchange(pDX);
-	DDX_Check(pDX, IDC_CHECK_PUTTY_KEY, m_bAutoLoadPuttyKey);
 	DDX_Check(pDX, IDC_CHECK_FORCE,m_bForce);
 	DDX_Control(pDX, IDC_COMBOBOXEX_URL, m_ctrlURL);
 	DDX_Control(pDX, IDC_BUTTON_TABCTRL, m_ctrlDumyButton);
@@ -251,11 +249,6 @@ void CSyncDlg::OnBnClickedButtonPull()
 	{
 		if (!AskSetTrackedBranch())
 			return;
-	}
-
-	if (m_bAutoLoadPuttyKey && CurrentEntry != 4) // CurrentEntry (Remote Update) handles this on its own)
-	{
-		CAppUtils::LaunchPAgent(this->GetSafeHwnd(), nullptr, &m_strURL);
 	}
 
 	if (g_Git.GetMapHashToFriendName(m_oldHashMap))
@@ -477,12 +470,6 @@ void CSyncDlg::OnBnClickedButtonPull()
 	///Remote Update
 	if (CurrentEntry == 4)
 	{
-		if (m_bAutoLoadPuttyKey)
-		{
-			for (size_t i = 0; i < m_remotelist.size(); ++i)
-				CAppUtils::LaunchPAgent(this->GetSafeHwnd(), nullptr, &m_remotelist[i]);
-		}
-
 		m_CurrentCmd = GIT_COMMAND_REMOTE;
 		cmd = L"git.exe remote update";
 		m_GitCmdList.push_back(cmd);
@@ -809,10 +796,6 @@ void CSyncDlg::OnBnClickedButtonPush()
 
 	m_CurrentCmd = GIT_COMMAND_PUSH;
 
-	if(this->m_bAutoLoadPuttyKey)
-	{
-		CAppUtils::LaunchPAgent(this->GetSafeHwnd(), nullptr, &m_strURL);
-	}
 
 	StartWorkerThread();
 }
@@ -956,8 +939,6 @@ void CSyncDlg::ShowInputCtrl(bool bShow)
 	this->GetDlgItem(IDC_STATIC_REMOTE_BRANCH)->ShowWindow(b);
 	GetDlgItem(IDC_BUTTON_MANAGE)->EnableWindow(bShow);
 	this->GetDlgItem(IDC_BUTTON_MANAGE)->ShowWindow(b);
-	GetDlgItem(IDC_CHECK_PUTTY_KEY)->EnableWindow(bShow);
-	this->GetDlgItem(IDC_CHECK_PUTTY_KEY)->ShowWindow(b);
 	GetDlgItem(IDC_CHECK_FORCE)->EnableWindow(bShow);
 	this->GetDlgItem(IDC_CHECK_FORCE)->ShowWindow(b);
 	this->GetDlgItem(IDC_STATIC_REMOTE_URL)->ShowWindow(b);
@@ -983,8 +964,6 @@ BOOL CSyncDlg::OnInitDialog()
 	m_pTaskbarList.Release();
 	if (FAILED(m_pTaskbarList.CoCreateInstance(CLSID_TaskbarList)))
 		m_pTaskbarList = nullptr;
-
-	this->GetDlgItem(IDC_CHECK_PUTTY_KEY)->EnableWindow(CAppUtils::IsSSHPutty());
 
 	/*
 	this->m_ctrlAnimate.ShowWindow(SW_NORMAL);
@@ -1134,7 +1113,6 @@ BOOL CSyncDlg::OnInitDialog()
 	}
 	m_ProjectProperties.ReadProps();
 
-	AdjustControlSize(IDC_CHECK_PUTTY_KEY);
 	AdjustControlSize(IDC_CHECK_FORCE);
 
 	AddAnchor(IDC_SYNC_TAB,TOP_LEFT,BOTTOM_RIGHT);
@@ -1199,14 +1177,6 @@ BOOL CSyncDlg::OnInitDialog()
 	this->m_regPullButton = CRegDWORD(regkey + L"\\Pull", 0);
 	this->m_regPushButton = CRegDWORD(regkey + L"\\Push", 0);
 	this->m_regSubmoduleButton = CRegDWORD(regkey + L"\\Submodule");
-	this->m_regAutoLoadPutty = CRegDWORD(regkey + L"\\AutoLoadPutty", CAppUtils::IsSSHPutty());
-
-	this->UpdateData();
-	this->m_bAutoLoadPuttyKey  = m_regAutoLoadPutty;
-	if(!CAppUtils::IsSSHPutty())
-		m_bAutoLoadPuttyKey = false;
-	this->UpdateData(FALSE);
-
 	this->m_ctrlPull.SetCurrentEntry(this->m_regPullButton);
 	this->m_ctrlPush.SetCurrentEntry(this->m_regPushButton);
 	this->m_ctrlSubmodule.SetCurrentEntry(this->m_regSubmoduleButton);
@@ -1696,7 +1666,6 @@ void CSyncDlg::OnOK()
 	this->UpdateData();
 	m_ctrlURL.SaveHistory();
 	SaveHistory();
-	m_regAutoLoadPutty = this->m_bAutoLoadPuttyKey;
 	m_tooltips.Pop();
 	__super::OnOK();
 }

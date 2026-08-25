@@ -38,7 +38,6 @@ protected:
 	BOOL	OnInitDialog() override;
 	BOOL	OnSetActive() override;
 
-	afx_msg void	OnBnClickedGenerateputtykey();
 	afx_msg void	OnBnClickedAdvancedconfiguration();
 	afx_msg void	OnClickedNoSave();
 	afx_msg LRESULT	OnDialogDisplayed(WPARAM wParam, LPARAM lParam);

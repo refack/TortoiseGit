@@ -52,15 +52,12 @@ protected:
 	afx_msg void OnBnClickedCloneDirBrowse();
 
 	CHistoryCombo	m_URLCombo;
-	CHistoryCombo	m_PuttyKeyCombo;
 
 public:
 	CString	m_Directory;
-	CString	m_strPuttyKeyFile;
 	CString	m_URL;
 	CString m_strBranch;
 	CString	m_strOrigin;
-	BOOL	m_bAutoloadPuttyKeyFile;
 	BOOL	m_bSVN;
 	BOOL	m_bSVNTrunk;
 	BOOL	m_bSVNTags;
@@ -87,13 +84,10 @@ public:
 protected:
 	CMenuButton	m_BrowseUrl;
 	CRegDWORD	m_regBrowseUrl;
-	CRegDWORD	m_regUseSSHKey;
 	CRegDWORD	m_regCloneRecursive;
 	CRegString	m_regCloneDir;
 	bool		m_bSaving;
 
-	afx_msg void OnBnClickedPuttykeyfileBrowse();
-	afx_msg void OnBnClickedPuttykeyAutoload();
 	afx_msg void OnCbnEditchangeUrlcombo();
 
 	afx_msg void OnBnClickedCheckRecursive();

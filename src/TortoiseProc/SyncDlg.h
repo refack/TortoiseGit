@@ -90,7 +90,6 @@ protected:
 	CRegDWORD			m_regPullButton;
 	CRegDWORD			m_regPushButton;
 	CRegDWORD			m_regSubmoduleButton;
-	CRegDWORD			m_regAutoLoadPutty;
 
 	CSyncTabCtrl		m_ctrlTabCtrl;
 
@@ -206,7 +205,6 @@ protected:
 	DECLARE_MESSAGE_MAP()
 
 public:
-	BOOL			m_bAutoLoadPuttyKey;
 	BOOL			m_bForce;
 	CString			m_strURL;
 	int				m_seq = 0;

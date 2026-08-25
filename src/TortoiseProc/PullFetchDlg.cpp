@@ -47,8 +47,6 @@ CPullFetchDlg::CPullFetchDlg(CWnd* pParent /*=nullptr*/)
 	, m_bFetchTags(BST_INDETERMINATE)
 	, m_bAllRemotes(BST_UNCHECKED)
 	, m_bPrune(BST_INDETERMINATE)
-	, m_bAutoLoad(CAppUtils::IsSSHPutty())
-	, m_bAutoLoadEnable(CAppUtils::IsSSHPutty())
 	, m_bNamedRemoteFetchAll(!!CRegDWORD(L"Software\\TortoiseGit\\NamedRemoteFetchAll", TRUE))
 {
 }
@@ -67,7 +65,6 @@ void CPullFetchDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Check(pDX,IDC_CHECK_NOFF, this->m_bNoFF);
 	DDX_Check(pDX,IDC_CHECK_SQUASH, this->m_bSquash);
 	DDX_Check(pDX,IDC_CHECK_NOCOMMIT, this->m_bNoCommit);
-	DDX_Check(pDX,IDC_PUTTYKEY_AUTOLOAD,m_bAutoLoad);
 	DDX_Check(pDX,IDC_CHECK_REBASE,m_bRebase);
 	DDX_Check(pDX,IDC_CHECK_PRUNE,m_bPrune);
 	DDX_Check(pDX, IDC_CHECK_DEPTH, m_bDepth);
@@ -102,7 +99,6 @@ BOOL CPullFetchDlg::OnInitDialog()
 	AdjustControlSize(IDC_CHECK_NOFF);
 	AdjustControlSize(IDC_CHECK_FFONLY);
 	AdjustControlSize(IDC_CHECK_FETCHTAGS);
-	AdjustControlSize(IDC_PUTTYKEY_AUTOLOAD);
 	AdjustControlSize(IDC_CHECK_REBASE);
 	AdjustControlSize(IDC_CHECK_PRUNE);
 
@@ -116,7 +112,6 @@ BOOL CPullFetchDlg::OnInitDialog()
 	AddAnchor(IDCANCEL,BOTTOM_RIGHT);
 	AddAnchor(IDC_GROUPT_REMOTE,TOP_LEFT,TOP_RIGHT);
 	AddAnchor(IDC_GROUP_OPTION,TOP_LEFT,TOP_RIGHT);
-	AddAnchor(IDC_PUTTYKEY_AUTOLOAD,BOTTOM_LEFT);
 	AddAnchor(IDC_CHECK_PRUNE,BOTTOM_LEFT);
 	AddAnchor(IDC_CHECK_REBASE,BOTTOM_LEFT);
 	AddAnchor(IDC_REMOTE_MANAGE,BOTTOM_LEFT);
@@ -131,14 +126,6 @@ BOOL CPullFetchDlg::OnInitDialog()
 	m_regRebase=CRegDWORD(regkey,false);
 	regkey.Format(L"Software\\TortoiseGit\\TortoiseProc\\PullFetch\\%s_%d\\ffonly", static_cast<LPCWSTR>(WorkingDir), m_IsPull);
 	m_regFFonly = CRegDWORD(regkey, false);
-	regkey.Format(L"Software\\TortoiseGit\\TortoiseProc\\PullFetch\\%s_%d\\autoload", static_cast<LPCWSTR>(WorkingDir), m_IsPull);
-
-	m_regAutoLoadPutty = CRegDWORD(regkey,this->m_bAutoLoad);
-	m_bAutoLoad = m_regAutoLoadPutty;
-
-	if(!CAppUtils::IsSSHPutty())
-		m_bAutoLoad = false;
-
 	m_bRebase = m_regRebase;
 
 	CAutoRepository repo(g_Git.GetGitRepository());
@@ -200,7 +187,6 @@ BOOL CPullFetchDlg::OnInitDialog()
 
 	this->AddOthersToAnchor();
 
-	this->GetDlgItem(IDC_PUTTYKEY_AUTOLOAD)->EnableWindow(m_bAutoLoadEnable);
 
 	CheckRadioButton(IDC_REMOTE_RD,IDC_OTHER_RD,IDC_REMOTE_RD);
 	m_Remote.EnableWindow(TRUE);
@@ -459,7 +445,6 @@ void CPullFetchDlg::OnBnClickedOk()
 	this->m_regRebase=this->m_bRebase;
 	m_regFFonly = m_bFFonly;
 
-	m_regAutoLoadPutty = m_bAutoLoad;
 
 	this->OnOK();
 }

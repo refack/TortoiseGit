@@ -54,7 +54,6 @@ public:
 	BOOL			m_bTags;
 	BOOL			m_bForce;
 	BOOL			m_bForceWithLease;
-	BOOL			m_bAutoLoad;
 	BOOL			m_bPushAllBranches;
 	BOOL			m_bPushAllRemotes;
 	BOOL			m_bSetUpstream;
@@ -64,7 +63,6 @@ public:
 protected:
 	CRegDWORD		m_regPushAllRemotes;
 	CRegDWORD		m_regPushAllBranches;
-	CRegDWORD		m_regAutoLoad;
 	CRegDWORD		m_regRecurseSubmodules;
 
 	BOOL			m_bSetPushRemote;

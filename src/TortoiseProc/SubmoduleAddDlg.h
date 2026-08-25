@@ -38,21 +38,16 @@ protected:
 	afx_msg void OnRepBrowse();
 	afx_msg void OnPathBrowse();
 	afx_msg void OnBranchCheck();
-	afx_msg void OnBnClickedPuttykeyfileBrowse();
-	afx_msg void OnBnClickedPuttykeyAutoload();
 	afx_msg BOOL OnRepoEndEdit(UINT id, NMHDR* pNMHDR, LRESULT* pResult);
 	void OnOK() override;
 	DECLARE_MESSAGE_MAP()
 public:
 	CHistoryCombo m_Repository;
 	CHistoryCombo m_PathCtrl;
-	CHistoryCombo m_PuttyKeyCombo;
 	BOOL m_bBranch;
 	BOOL m_bForce;
-	BOOL m_bAutoloadPuttyKeyFile;
 	CString m_strBranch;
 	CString m_strPath;
 	CString m_strRepos;
 	CString m_strProject;
-	CString	m_strPuttyKeyFile;
 };

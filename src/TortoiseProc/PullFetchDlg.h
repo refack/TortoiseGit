@@ -45,12 +45,10 @@ protected:
 	CRegString	m_RemoteReg;
 	CRegDWORD	m_regRebase;
 	CRegDWORD	m_regFFonly;
-	CRegDWORD	m_regAutoLoadPutty;
 
 	DECLARE_MESSAGE_MAP()
 public:
 	BOOL		m_IsPull;
-	BOOL		m_bAutoLoad;
 	BOOL		m_bRebase;
 	bool		m_bRebasePreserveMerges;
 	bool		m_bRebaseActivatedInConfigForPull;
@@ -62,7 +60,6 @@ public:
 	BOOL		m_bNoCommit;
 	BOOL		m_bDepth;
 	int			m_nDepth;
-	BOOL		m_bAutoLoadEnable;
 	BOOL		m_bAllRemotes;
 	CString		m_PreSelectRemote;
 

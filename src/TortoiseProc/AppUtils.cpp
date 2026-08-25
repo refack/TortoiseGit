@@ -101,7 +101,7 @@ static struct last_accepted_cert {
 	}
 } last_accepted_cert;
 
-static bool DoFetch(HWND hWnd, const CString& url, const bool fetchAllRemotes, const bool loadPuttyAgent, const int prune, const bool bDepth, const int nDepth, const int fetchTags, const CString& remoteBranch, int runRebase, const bool rebasePreserveMerges);
+static bool DoFetch(HWND hWnd, const CString& url, const bool fetchAllRemotes, const int prune, const bool bDepth, const int nDepth, const int fetchTags, const CString& remoteBranch, int runRebase, const bool rebasePreserveMerges);
 
 bool CAppUtils::StashSave(HWND hWnd, const CString& msg, bool showPull, bool pullShowPush, bool showMerge, const CString& mergeRev)
 {
@@ -628,56 +628,6 @@ BOOL CAppUtils::StartTextViewer(CString file)
 	if (!LaunchApplication(viewer, CAppUtils::LaunchApplicationFlags().UseSpecificErrorMessage(IDS_ERR_TEXTVIEWSTART)))
 		return FALSE;
 	return TRUE;
-}
-
-bool CAppUtils::LaunchPAgent(HWND hWnd, const CString* keyfile, const CString* pRemote)
-{
-	CString key,remote;
-	CString cmd,out;
-	if (!pRemote)
-		remote = L"origin";
-	else
-		remote=*pRemote;
-
-	if (!keyfile)
-	{
-		cmd.Format(L"remote.%s.puttykeyfile", static_cast<LPCWSTR>(remote));
-		key = g_Git.GetConfigValue(cmd);
-	}
-	else
-		key=*keyfile;
-
-	if(key.IsEmpty())
-		return false;
-
-	CString appDir = CPathUtils::GetAppDirectory();
-
-	CString proc;
-	proc.Format(L"\"%spageant.exe\" \"%s\"", static_cast<LPCWSTR>(appDir), static_cast<LPCWSTR>(key));
-
-	CString tempfile = GetTempFile();
-	if (tempfile.IsEmpty())
-		return false;
-	::DeleteFile(tempfile);
-
-	proc.AppendFormat(L" -c \"%stgittouch.exe\" \"%s\"", static_cast<LPCWSTR>(appDir), static_cast<LPCWSTR>(tempfile));
-
-	if (bool b = LaunchApplication(proc, CAppUtils::LaunchApplicationFlags().WaitForStartup().UseSpecificErrorMessage(IDS_ERR_PAGEANT).UseCWD(appDir)); !b)
-		return b;
-
-	int i=0;
-	while(!::PathFileExists(tempfile))
-	{
-		Sleep(100);
-		++i;
-		if(i>10*60*5)
-			break; //timeout 5 minutes
-	}
-
-	if( i== 10*60*5)
-		CMessageBox::Show(hWnd, IDS_ERR_PAEGENTTIMEOUT, IDS_APPNAME, MB_OK | MB_ICONERROR);
-	::DeleteFile(tempfile);
-	return true;
 }
 
 bool CAppUtils::LaunchNotepad(const CString& filename, bool uac)
@@ -2027,13 +1977,6 @@ bool CAppUtils::ConflictEdit(HWND hWnd, CTGitPath& path, bool bAlternativeTool /
 	}
 }
 
-bool CAppUtils::IsSSHPutty()
-{
-	CString sshclient = g_Git.m_Environment.GetEnv(L"GIT_SSH");
-	sshclient=sshclient.MakeLower();
-	return sshclient.Find(L"plink", 0) >= 0;
-}
-
 CString CAppUtils::GetClipboardLink(const CString &skipGitPrefix, int paramsCount)
 {
 	CClipboardHelper clipboardHelper;
@@ -2286,11 +2229,8 @@ int CAppUtils::SaveCommitUnicodeFile(const CString& filename, CString &message)
 	}
 }
 
-bool DoPull(HWND hWnd, const CString& url, bool bAutoLoad, BOOL bFetchTags, bool bNoFF, bool bFFonly, bool bSquash, bool bNoCommit, int* nDepth, BOOL bPrune, const CString& remoteBranchName, bool showPush, bool showStashPop, bool bUnrelated)
+bool DoPull(HWND hWnd, const CString& url, BOOL bFetchTags, bool bNoFF, bool bFFonly, bool bSquash, bool bNoCommit, int* nDepth, BOOL bPrune, const CString& remoteBranchName, bool showPush, bool showStashPop, bool bUnrelated)
 {
-	if (bAutoLoad)
-		CAppUtils::LaunchPAgent(hWnd, nullptr, &url);
-
 	CGitHash hashOld;
 	if (g_Git.GetHash(hashOld, L"HEAD"))
 	{
@@ -2386,7 +2326,7 @@ bool DoPull(HWND hWnd, const CString& url, bool bAutoLoad, BOOL bFetchTags, bool
 				CGitHash common;
 				g_Git.IsFastForward(L"HEAD", remoteRef, &common);
 				if (common.IsEmpty())
-					postCmdList.emplace_back(IDI_MERGE, IDS_MERGE_UNRELATED, [=, &hWnd] { DoPull(hWnd, url, bAutoLoad, bFetchTags, bNoFF, bFFonly, bSquash, bNoCommit, nDepth, bPrune, remoteBranchName, showPush, showStashPop, true); });
+					postCmdList.emplace_back(IDI_MERGE, IDS_MERGE_UNRELATED, [=, &hWnd] { DoPull(hWnd, url, bFetchTags, bNoFF, bFFonly, bSquash, bNoCommit, nDepth, bPrune, remoteBranchName, showPush, showStashPop, true); });
 			}
 
 			postCmdList.emplace_back(IDI_PULL, IDS_MENUPULL, [&hWnd]{ CAppUtils::Pull(hWnd); });
@@ -2466,7 +2406,6 @@ bool CAppUtils::Pull(HWND hWnd, bool showPush, bool showStashPop)
 			return DoFetch(hWnd,
 							dlg.m_RemoteURL,
 							FALSE, // Fetch all remotes
-							dlg.m_bAutoLoad == BST_CHECKED,
 							dlg.m_bPrune,
 							dlg.m_bDepth == BST_CHECKED,
 							dlg.m_nDepth,
@@ -2475,7 +2414,7 @@ bool CAppUtils::Pull(HWND hWnd, bool showPush, bool showStashPop)
 							dlg.m_bRebaseActivatedInConfigForPull ? 2 : 1, // Rebase after fetching
 							dlg.m_bRebasePreserveMerges == TRUE); // Preserve merges on rebase
 
-		return DoPull(hWnd, dlg.m_RemoteURL, dlg.m_bAutoLoad == BST_CHECKED, dlg.m_bFetchTags, dlg.m_bNoFF == BST_CHECKED, dlg.m_bFFonly == BST_CHECKED, dlg.m_bSquash == BST_CHECKED, dlg.m_bNoCommit == BST_CHECKED, dlg.m_bDepth ? &dlg.m_nDepth : nullptr, dlg.m_bPrune, dlg.m_RemoteBranchName, showPush, showStashPop, false);
+		return DoPull(hWnd, dlg.m_RemoteURL, dlg.m_bFetchTags, dlg.m_bNoFF == BST_CHECKED, dlg.m_bFFonly == BST_CHECKED, dlg.m_bSquash == BST_CHECKED, dlg.m_bNoCommit == BST_CHECKED, dlg.m_bDepth ? &dlg.m_nDepth : nullptr, dlg.m_bPrune, dlg.m_RemoteBranchName, showPush, showStashPop, false);
 	}
 
 	return false;
@@ -2537,22 +2476,8 @@ bool CAppUtils::RebaseAfterFetch(HWND hWnd, const CString& upstream, int rebase,
 	}
 }
 
-static bool DoFetch(HWND hWnd, const CString& url, const bool fetchAllRemotes, const bool loadPuttyAgent, const int prune, const bool bDepth, const int nDepth, const int fetchTags, const CString& remoteBranch, int runRebase, const bool rebasePreserveMerges)
+static bool DoFetch(HWND hWnd, const CString& url, const bool fetchAllRemotes, const int prune, const bool bDepth, const int nDepth, const int fetchTags, const CString& remoteBranch, int runRebase, const bool rebasePreserveMerges)
 {
-	if (loadPuttyAgent)
-	{
-		if (fetchAllRemotes)
-		{
-			STRING_VECTOR list;
-			g_Git.GetRemoteList(list);
-
-			for (const auto& remote : list)
-				CAppUtils::LaunchPAgent(hWnd, nullptr, &remote);
-		}
-		else
-			CAppUtils::LaunchPAgent(hWnd, nullptr, &url);
-	}
-
 	CString upstream = L"FETCH_HEAD";
 	CGitHash oldUpstreamHash;
 	if (runRebase)
@@ -2628,7 +2553,7 @@ static bool DoFetch(HWND hWnd, const CString& url, const bool fetchAllRemotes, c
 	{
 		if (status)
 		{
-			postCmdList.emplace_back(IDI_REFRESH, IDS_MSGBOX_RETRY, [&]{ DoFetch(hWnd, url, fetchAllRemotes, loadPuttyAgent, prune, bDepth, nDepth, fetchTags, remoteBranch, runRebase, rebasePreserveMerges); });
+			postCmdList.emplace_back(IDI_REFRESH, IDS_MSGBOX_RETRY, [&]{ DoFetch(hWnd, url, fetchAllRemotes, prune, bDepth, nDepth, fetchTags, remoteBranch, runRebase, rebasePreserveMerges); });
 			if (fetchAllRemotes)
 				postCmdList.emplace_back(IDI_LOG, IDS_MENULOG, []
 				{
@@ -2749,12 +2674,12 @@ bool CAppUtils::Fetch(HWND hWnd, const CString& remoteName, bool allRemotes)
 	dlg.m_bAllRemotes = allRemotes;
 
 	if(dlg.DoModal()==IDOK)
-		return DoFetch(hWnd, dlg.m_RemoteURL, dlg.m_bAllRemotes == BST_CHECKED, dlg.m_bAutoLoad == BST_CHECKED, dlg.m_bPrune, dlg.m_bDepth == BST_CHECKED, dlg.m_nDepth, dlg.m_bFetchTags, dlg.m_RemoteBranchName, dlg.m_bRebase == BST_CHECKED ? 1 : 0, FALSE);
+		return DoFetch(hWnd, dlg.m_RemoteURL, dlg.m_bAllRemotes == BST_CHECKED, dlg.m_bPrune, dlg.m_bDepth == BST_CHECKED, dlg.m_nDepth, dlg.m_bFetchTags, dlg.m_RemoteBranchName, dlg.m_bRebase == BST_CHECKED ? 1 : 0, FALSE);
 
 	return false;
 }
 
-bool CAppUtils::DoPush(HWND hWnd, bool autoloadKey, bool tags, bool allRemotes, bool allBranches, bool force, bool forceWithLease, const CString& localBranch, const CString& remote, const CString& remoteBranch, bool setUpstream, int recurseSubmodules, const CString& pushOption)
+bool CAppUtils::DoPush(HWND hWnd, bool tags, bool allRemotes, bool allBranches, bool force, bool forceWithLease, const CString& localBranch, const CString& remote, const CString& remoteBranch, bool setUpstream, int recurseSubmodules, const CString& pushOption)
 {
 	CString error;
 	DWORD exitcode = 0xFFFFFFFF;
@@ -2825,9 +2750,6 @@ bool CAppUtils::DoPush(HWND hWnd, bool autoloadKey, bool tags, bool allRemotes, 
 
 	for (unsigned int i = 0; i < remotesList.size(); ++i)
 	{
-		if (autoloadKey)
-			CAppUtils::LaunchPAgent(hWnd, nullptr, &remotesList[i]);
-
 		CString cmd;
 		try
 		{
@@ -2937,7 +2859,7 @@ bool CAppUtils::Push(HWND hWnd, const CString& selectLocalBranch, int pushAll /*
 		dlg.m_bPushAllBranches = pushAll;
 
 	if (dlg.DoModal() == IDOK)
-		return DoPush(hWnd, !!dlg.m_bAutoLoad, !!dlg.m_bTags, !!dlg.m_bPushAllRemotes, !!dlg.m_bPushAllBranches, !!dlg.m_bForce, !!dlg.m_bForceWithLease, dlg.m_BranchSourceName, dlg.m_URL, dlg.m_BranchRemoteName, !!dlg.m_bSetUpstream, dlg.m_RecurseSubmodules, dlg.m_sPushOption);
+		return DoPush(hWnd, !!dlg.m_bTags, !!dlg.m_bPushAllRemotes, !!dlg.m_bPushAllBranches, !!dlg.m_bForce, !!dlg.m_bForceWithLease, dlg.m_BranchSourceName, dlg.m_URL, dlg.m_BranchRemoteName, !!dlg.m_bSetUpstream, dlg.m_RecurseSubmodules, dlg.m_sPushOption);
 
 	return FALSE;
 }
@@ -3816,9 +3738,6 @@ bool CAppUtils::DeleteRef(CWnd* parent, const CString& ref)
 		{
 			CString remoteName = shortname.Left(shortname.Find(L'/'));
 			shortname = shortname.Mid(shortname.Find(L'/') + 1);
-			if (CAppUtils::IsSSHPutty())
-				CAppUtils::LaunchPAgent(parent->GetSafeHwnd(), nullptr, &remoteName);
-
 			CSysProgressDlg sysProgressDlg;
 			sysProgressDlg.SetTitle(CString(MAKEINTRESOURCE(IDS_APPNAME)));
 			sysProgressDlg.SetLine(1, CString(MAKEINTRESOURCE(IDS_DELETING_REMOTE_REFS)));

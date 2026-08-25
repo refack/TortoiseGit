@@ -49,28 +49,6 @@ static CString GetExistingDirectoryForClone(CString path)
 	return path;
 }
 
-static void StorePuttyKey(const CString& repoRoot, const CString& remote, const CString& keyFile)
-{
-	CAutoRepository repo(repoRoot);
-	CAutoConfig config;
-	CString configName;
-	if (!repo)
-		goto error;
-
-	if (git_repository_config(config.GetPointer(), repo))
-		goto error;
-
-	configName.Format(L"remote.%s.puttykeyfile", static_cast<LPCWSTR>(remote));
-
-	if (git_config_set_string(config, CUnicodeUtils::GetUTF8(configName), CUnicodeUtils::GetUTF8(keyFile)))
-		goto error;
-
-	return;
-
-error:
-	MessageBox(GetExplorerHWND(), CGit::GetLibGit2LastErr(L"Could not open repository"), L"TortoiseGit", MB_ICONERROR);
-}
-
 bool CloneCommand::Execute()
 {
 	CTGitPath cloneDirectory;
@@ -117,9 +95,6 @@ bool CloneCommand::Execute()
 			MessageBox(GetExplorerHWND(), e.cause(), L"TortoiseGit", MB_OK | MB_ICONERROR);
 			return false;
 		}
-
-		if(dlg.m_bAutoloadPuttyKeyFile)
-			CAppUtils::LaunchPAgent(GetExplorerHWND(), &dlg.m_strPuttyKeyFile);
 
 		CString dir=dlg.m_Directory;
 		CString url=dlg.m_URL;
@@ -171,8 +146,6 @@ bool CloneCommand::Execute()
 
 			// After cloning, change current directory to the cloned directory
 			g_Git.m_CurrentDir = dlg.m_Directory;
-			if (dlg.m_bAutoloadPuttyKeyFile) // do this here, since it might be needed for actions performed in Log
-				StorePuttyKey(dlg.m_Directory, dlg.m_bOrigin && !dlg.m_strOrigin.IsEmpty() ? dlg.m_strOrigin : CString(L"origin"), dlg.m_strPuttyKeyFile);
 
 			postCmdList.emplace_back(IDI_LOG, IDS_MENULOG, [&]
 			{

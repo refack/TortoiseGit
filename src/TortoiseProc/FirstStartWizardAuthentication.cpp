@@ -49,7 +49,6 @@ void CFirstStartWizardAuthentication::DoDataExchange(CDataExchange* pDX)
 }
 
 BEGIN_MESSAGE_MAP(CFirstStartWizardAuthentication, CFirstStartWizardBasePage)
-	ON_BN_CLICKED(IDC_GENERATEPUTTYKEY, &CFirstStartWizardAuthentication::OnBnClickedGenerateputtykey)
 	ON_BN_CLICKED(IDC_ADVANCEDCONFIGURATION, &CFirstStartWizardAuthentication::OnBnClickedAdvancedconfiguration)
 	ON_BN_CLICKED(IDC_DONTSAVE, OnClickedNoSave)
 	ON_MESSAGE(WM_SETPAGEFOCUS, OnDialogDisplayed)
@@ -205,9 +204,6 @@ BOOL CFirstStartWizardAuthentication::OnInitDialog()
 		m_ctrlSSHClient.SetCurSel(idx);
 	}
 
-	// TODO: Hide the button if PuTTY is not used?
-	//GetDlgItem(IDC_GENERATEPUTTYKEY)->ShowWindow(CAppUtils::IsSSHPutty() ? SW_SHOW : SW_HIDE);
-
 	UpdateData(FALSE);
 
 	CTheme::Instance().SetThemeForDialog(GetSafeHwnd(), CTheme::Instance().IsDarkTheme());
@@ -224,11 +220,6 @@ BOOL CFirstStartWizardAuthentication::OnSetActive()
 	PostMessage(WM_SETPAGEFOCUS, 0, 0);
 
 	return CFirstStartWizardBasePage::OnSetActive();
-}
-
-void CFirstStartWizardAuthentication::OnBnClickedGenerateputtykey()
-{
-	CAppUtils::LaunchApplication(CPathUtils::GetAppDirectory() + L"puttygen.exe", CAppUtils::LaunchApplicationFlags());
 }
 
 void CFirstStartWizardAuthentication::OnBnClickedAdvancedconfiguration()

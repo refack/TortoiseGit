@@ -276,12 +276,6 @@ bool CCommonAppUtils::FileOpenSave(CString& path, int* filterindex, UINT title, 
 			if (SUCCEEDED(SHCreateItemFromParsingName(CPathUtils::GetProgramsDirectory(), nullptr, IID_PPV_ARGS(&psiDefaultFolder))))
 				pfd->SetDefaultFolder(psiDefaultFolder);
 		}
-		else if (filterId == 1120) // IDS_PUTTYKEYFILEFILTER
-		{
-			pfd->SetClientGuid({ 0x271dbd3b, 0x50da, 0x4148, { 0x95, 0xfd, 0x64, 0x73, 0x69, 0xd1, 0x74, 0x2 } });
-			if (SUCCEEDED(SHCreateItemFromParsingName(CPathUtils::GetDocumentsDirectory(), nullptr, IID_PPV_ARGS(&psiDefaultFolder))))
-				pfd->SetDefaultFolder(psiDefaultFolder);
-		}
 	}
 
 	if (defaultExt && !SUCCEEDED(pfd->SetDefaultExtension(defaultExt)))
