@@ -1,21 +1,12 @@
 [submodule "ext/tgit"]
 	path = ext/tgit
 	url = https://gitlab.com/tortoisegit/tgit.git
-[submodule "ext/zlib"]
-	path = ext/zlib
-	url = https://github.com/madler/zlib.git
-[submodule "ext/libgit2"]
-	path = ext/libgit2
-	url = https://github.com/libgit2/libgit2.git
 [submodule "ext/spell"]
 	path = ext/spell
 	url = https://github.com/LibreOffice/dictionaries
 [submodule "ext/editorconfig"]
 	path = ext/editorconfig
 	url = https://github.com/editorconfig/editorconfig-core-c.git
-[submodule "ext/pcre2"]
-	path = ext/pcre2
-	url = https://github.com/PCRE2Project/pcre2.git
 [submodule "ext/googletest"]
 	path = ext/googletest
 	url = https://github.com/google/googletest.git

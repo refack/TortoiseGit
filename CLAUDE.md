@@ -22,9 +22,9 @@ TortoiseGitMerge, TortoiseGitPlink with the bundled PuTTY binaries,
 considered and **kept**; its OGDF dependency moved to a new overlay port.
 The standing goal (per user direction, 2026-08-22) is to keep going — every
 remaining `ext\*` submodule should become a public vcpkg port, a port overlay,
-or nothing at all. Eleven checkouts are still vendored, but four of them
-(`libgit2`, `pcre2`, `zlib`, `OGDF`) no longer feed any build and can be
-dropped whenever convenient. See "Dependency pruning".
+or nothing at all. **Seven are left** — `libgit2`, `pcre2`, `zlib` and `OGDF`
+were deinitialised in `91ffe10b1` once nothing built from them. See "Dependency
+pruning".
 
 The recurring test: **what does this actually add over the thing Windows or
 git already ships?** For TortoiseGitMerge the answer was "nothing git's
@@ -557,7 +557,7 @@ Three things landed that the phases above never had a slot for. They share a
 premise with Phase 1 — stop hand-maintaining what someone else already
 maintains — but they subtract code rather than move it.
 
-### Dependency pruning (15 submodules -> 11)
+### Dependency pruning (15 submodules -> 7)
 
 The goal, per user direction: every `ext\*` submodule becomes a public vcpkg
 port, an overlay, or nothing. Done so far, beyond Phase 1's libgit2/pcre2/zlib:
@@ -586,6 +586,28 @@ knowing, but not worth taking: it is two years behind the commit this tree
 vendors, and adopting it would put a second package manager and a second
 generated props chain beside the vcpkg one, which is the fragmentation this
 plan exists to remove.
+
+Read it anyway, 2026-08-25, to check whether it had already solved what this
+port solves. **It dodges both problems rather than fixing them**, and one dodge
+does not translate:
+
+| | Conan `ogdf/2023.09` | this port |
+| --- | --- | --- |
+| `-debug` postfix | never cleared; `package_info()` appends `-debug` to the library name | patched to `CACHE` so a packager can clear it |
+| `config_autogen.h` | keeps both `include/ogdf-release` and `ogdf-debug`, selects per build type | rewritten to derive `OGDF_DEBUG` from `NDEBUG` |
+| COIN | dropped for external `coin-clp` + `pugixml` packages | builds the bundled sources |
+| patches | one `_patch_sources()` edit, commenting out `set(CMAKE_CXX_STANDARD` | two hunks, both upstream bugs |
+
+**The header split is a vcpkg-shaped problem, not an OGDF bug.** A Conan package
+is per-build-type, so the two include directories never coexist; vcpkg merges
+both configurations into one package with a single `include/` and discards
+`debug/include`, which is what forces the collision. So the claim to make when
+donating this upstream is narrower than "the whole port is upstreamable": *the
+two patch hunks* are upstream material — the unquoted `DEBUG_POSTFIX` is a real
+latent bug, which Conan never trips only because it never clears the postfix —
+while the header rewrite belongs in a vcpkg port and nowhere else. Expect a
+microsoft/vcpkg reviewer to ask for a tagged `REF` instead of a pinned commit,
+and possibly for `coin-clp` as a dependency the way Conan does.
 
 It replaces `ext\build\ogdf.vcxproj` — 157 hand-listed `.cpp` files, 249 of
 them COIN-OR/Clp — plus the hand-written `ext\build\ogdf\...\config_autogen.h`
@@ -630,10 +652,13 @@ renders full 64-character ids.
 
 *Also found in passing:* `appveyor.yml`'s submodule-init line still named
 `ext/apr`, `ext/apr-util` and `ext/Detours`, all removed earlier. Fixed with
-this change. **The rest of that file is still stale** — it names
+this change. The rest of that file is still stale — it names
 `ext\Crash-Server\CrashServerSDK\*` targets that went in `306aca834`, and
-carries a Win32 matrix Phase 0 removed. That wants its own pass; the same
-"a green build cannot see a CI target list" lesson as `c9149bc5e`.
+carries a Win32 matrix Phase 0 removed. **Deferred deliberately** (user,
+2026-08-25): everyone builds on GitHub Actions now, so AppVeyor is not the CI
+that matters and its rot is not worth a pass of its own. Whoever writes the
+Actions workflow should treat `appveyor.yml` as a stale reference, not a spec —
+the same "a green build cannot see a CI target list" lesson as `c9149bc5e`.
 
 Remaining, by how they should end:
 
@@ -642,7 +667,45 @@ Remaining, by how they should end:
 | `hunspell`, `json`, `googletest`, `lexilla` | stock vcpkg ports exist; migrate |
 | `editorconfig` | **stays** — TortoiseProc consumes it (`AppUtils.cpp`), and no vcpkg port carries this build |
 | `tgit`, `spell` | permanent — `tgit` is the second git backend, `spell` is dictionary data |
-| `libgit2`, `pcre2`, `zlib`, `OGDF` | build wiring already retired; checkouts left vendored, safe to drop when convenient |
+| ~~`libgit2`, `pcre2`, `zlib`, `OGDF`~~ | **gone** — build wiring retired first, checkouts deinitialised in `91ffe10b1` |
+
+Surveyed 2026-08-25, after the deinit. Thirteen directories under `ext\`, seven
+of them submodules:
+
+| dir | sub | MB | hand-built vcxproj | consumers |
+| --- | --- | --- | --- | --- |
+| `spell` | yes | **491** | – | dictionary data, 69 languages |
+| `tgit` | yes | 46 | `libgit.vcxproj` | gitdll — the second git backend |
+| `json` | yes | 15 | – | TortoiseProc, UnitTests (header-only) |
+| `hunspell` | yes | 5.3 | `hunspell.vcxproj` | TortoiseProc (`SciEdit.h`) |
+| `lexilla` | yes | 4.8 | – | Blame, TortoiseProc, UDiff |
+| `googletest` | yes | 4.0 | `googletest.vcxproj` | UnitTests |
+| `scintilla` | **no** | 1.8 | `scintillalexer.vcxproj` | Blame, TortoiseProc, UDiff |
+| `TortoiseOverlays` | no | 0.8 | – | `StructureFragment.wxi`, three `.registry` files, `IconOverlay.cpp`, both overlay Settings pages |
+| `editorconfig` | yes | 0.3 | `editorconfig.vcxproj` | TortoiseProc |
+| `ResizableLib` | no | 0.2 | – | Blame, TortoiseProc |
+| `gitdll` | no | tiny | `gitdll.vcxproj` | Cache, TGitCache, Blame, +3 |
+
+Three things that survey turned up:
+
+- **`spell` is 491 MB, 87% of `ext\`** — LibreOffice's complete dictionary set,
+  69 languages, of which the installer packages a subset. The biggest disk item
+  left by an order of magnitude, and the one that most wants "fetch what we
+  ship" rather than a full submodule.
+- **`scintilla` is vendored directly, not a submodule**, unlike `lexilla`
+  immediately beside it — same upstream org, split provenance. Permanent either
+  way: Blame and TortoiseProc's `SciEdit` need it even if UDiff goes.
+- **`TortoiseOverlays` looked orphaned and is not.** A scan over
+  `*.vcxproj`/`*.props`/`*.sln`/sources found nothing; it is referenced from
+  `StructureFragment.wxi`, three `.registry` files, `IconOverlay.cpp` and both
+  overlay Settings pages. **Third time this lesson has bitten** — see the two
+  below. Any "who consumes this" sweep must cover `.wxi`/`.wxs`, `.registry`,
+  `.rc`/`.rc2` and CI YAML, not just projects and C++.
+
+Root-level `ext\libgit2-*.patch` — five files — are now **orphaned**: the
+submodule they applied to is gone and the overlay port carries its own
+regenerated diffs. `build.txt` still documents the `git am` loop over them (in
+the wrong order, see Phase 1). Delete both together, they are one cleanup.
 
 The Revision Graph itself **stays** — asked and answered 2026-08-25, the user
 uses it. Only its build wiring moved. `src\AsyncFramework\` rides along, since
