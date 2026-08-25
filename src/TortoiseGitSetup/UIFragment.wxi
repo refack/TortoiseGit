@@ -180,23 +180,21 @@
 			</Control>
 			<Control Id="BannerBitmap" Type="Bitmap" X="0" Y="0" Width="370" Height="44" TabSkip="no" Text="[BannerBitmap]" />
 			<Control Id="Title" Type="Text" X="155" Y="6" Width="200" Height="15" Transparent="yes" NoPrefix="yes" RightAligned="yes">
-				<Text>[DlgTitleFont]Choose SSH Client</Text>
+				<Text>[DlgTitleFont]SSH Client</Text>
 			</Control>
 			<Control Id="BannerLine" Type="Line" X="0" Y="44" Width="370" Height="0" />
 			<Control Id="DialogDescription" Type="Text" X="75" Y="23" Width="280" Height="15" Transparent="yes" NoPrefix="yes" RightAligned="yes">
-				<Text>Choose a kind of SSH Client</Text>
+				<Text>How TortoiseGit connects over SSH</Text>
 			</Control>
-			<Control Id="Buttons" Type="RadioButtonGroup" X="10" Y="60" Width="330" Height="150" Property="SSHTOOL" />
+			<Control Id="SSHToolInfo" Type="Text" X="10" Y="60" Width="330" Height="140" Transparent="yes" NoPrefix="yes">
+				<Text>TortoiseGit uses OpenSSH, the SSH client that ships with Windows and that git itself uses. Keys, host aliases and forwarding are configured in %USERPROFILE%\.ssh\config, and ssh-agent holds unlocked keys, so the same settings apply to TortoiseGit and to git on the command line.</Text>
+			</Control>
 			<Control Id="SSHToolChangeInfo" Type="Text" X="10" Y="200" Width="330" Height="15" Transparent="yes" NoPrefix="yes">
 				<Text>This setting can be changed in TortoiseGit settings on the &quot;Network&quot; page later on.</Text>
 			</Control>
 			<Control Id="BottomLine" Type="Line" X="0" Y="234" Width="370" Height="0" />
 		</Dialog>
 
-		<RadioButtonGroup Property="SSHTOOL">
-			<RadioButton Text="{\DlgFont8}TortoiseGitPlink, based on PuTTY; optimized for TortoiseGit and integrates better with Windows." Value="Plink" X="5" Y="0" Width="300" Height="30" />
-			<RadioButton Text="{\DlgFont8}OpenSSH, Git default SSH Client" Value="OpenSSH" X="5" Y="60" Width="300" Height="30" />
-		</RadioButtonGroup>
 		<Dialog Id="BrowseDlg" Width="370" Height="270" Title="[ProductName] [Setup]" NoMinimize="yes">
 			<Control Id="OK" Type="PushButton" X="304" Y="243" Width="56" Height="17" Default="yes" Text="[ButtonText_OK]">
 				<Publish Event="SetTargetPath" Value="[_BrowseProperty]">1</Publish>

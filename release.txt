@@ -24,7 +24,6 @@
 
 * Update changelog
 
-* Update PuTTY binaries (run ext/putty/download.bat)
 
 * Build TortoiseGit
 

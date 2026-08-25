@@ -22,7 +22,6 @@
 
 		<Icon Id="TGITIcon" SourceFile="..\Resources\Tortoise.ico" />
 
-		<Property Id="SSHTOOL" Secure="yes">Plink</Property>
 		<Property Id="OLDSSH" Secure="yes">
 			<RegistrySearch Id="oldSSHSetting" Root="HKCU" Key="Software\[Manufacturer]" Name="SSH" Type="raw" />
 		</Property>

@@ -94,9 +94,6 @@
 		</Feature>
 		<?endif ?>
 
-		<Feature Id="SSHPlink" Level="1" Title="SSH Plink" Description="SSH Plink" TypicalDefault="install" Display="hidden" InstallDefault="followParent">
-			<ComponentRef Id="C_SSHCLIENT_PLINK" />
-		</Feature>
 		<Feature Id="SSHOpenSSH" Level="1" Title="SSH OpenSSH" Description="SSH OpenSSH" TypicalDefault="install" Display="hidden" InstallDefault="followParent">
 			<ComponentRef Id="C_SSHCLIENT_OPENSSH" />
 		</Feature>

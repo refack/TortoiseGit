@@ -203,12 +203,8 @@
 				</Component>
 				<?endif ?>
 
-				<Component Id="C_SSHCLIENT_PLINK" Guid="*" Win64="$(var.Win64YesNo)" Permanent="yes">
-					<Condition>(OLDSSH = "") and (SSHTOOL="Plink")</Condition>
-					<RegistryValue Root="HKCU" Key="Software\[Manufacturer]" Name="SSH" Value="[INSTALLDIR]bin\TortoiseGitPlink.exe" Type="string" KeyPath="yes" />
-				</Component>
 				<Component Id="C_SSHCLIENT_OPENSSH" Guid="$(var.RegSSHOpen)" Win64="$(var.Win64YesNo)" Permanent="yes">
-					<Condition>(OLDSSH = "") and (SSHTOOL="OpenSSH")</Condition>
+					<Condition>OLDSSH = ""</Condition>
 					<RegistryValue Root="HKCU" Key="Software\[Manufacturer]" Name="SSH" Value="ssh.exe" Type="string" KeyPath="yes" />
 				</Component>
 
@@ -303,21 +299,7 @@
 					<?endif ?>
 
 					<Component Id="C__TortoiseGitTools" Guid="$(var.GuidTortoiseGitTools)" Win64="$(var.Win64YesNo)">
-						<File Id="F__TortoiseGitPlink" Name="TortoiseGitPlink.exe" DiskId="1" Source="..\..\bin\$(var.ReleasePath)\bin\TortoiseGitPlink.exe" KeyPath="yes" />
-						<CopyFile Id="F__TortoisePlink" FileId="F__TortoiseGitPlink" DestinationName="TortoisePlink.exe" />
-						<?if $(var.Platform) = "x86" ?>
-						<File Id="F__PuttyGenx86" Name="puttygen.exe" DiskId="1" Source="..\..\ext\putty\puttygen-x86.exe" />
-						<File Id="F__pageantx86" Name="pageant.exe" DiskId="1" Source="..\..\ext\putty\pageant-x86.exe" />
-						<?endif ?>
-						<?if $(var.Platform) = "x64" ?>
-						<File Id="F__PuttyGenx64" Name="puttygen.exe" DiskId="1" Source="..\..\ext\putty\puttygen-x64.exe" />
-						<File Id="F__pageantx64" Name="pageant.exe" DiskId="1" Source="..\..\ext\putty\pageant-x64.exe" />
-						<?endif ?>
-						<?if $(var.Platform) = "ARM64" ?>
-						<File Id="F__PuttyGenarm64" Name="puttygen.exe" DiskId="1" Source="..\..\ext\putty\puttygen-arm64.exe" />
-						<File Id="F__pageantarm64" Name="pageant.exe" DiskId="1" Source="..\..\ext\putty\pageant-arm64.exe" />
-						<?endif ?>
-						<File Id="F__askpass" Name="sshaskpass.exe" DiskId="1" Source="..\..\bin\$(var.ReleasePath)\bin\sshaskpass.exe" />
+						<File Id="F__askpass" Name="sshaskpass.exe" DiskId="1" Source="..\..\bin\$(var.ReleasePath)\bin\sshaskpass.exe" KeyPath="yes" />
 					</Component>
 
 					<Component Id="C__TortoiseGitGitWCRev" Guid="$(var.GuidTortoiseGitGitWCRev)" Win64="$(var.Win64YesNo)">
@@ -394,8 +376,6 @@
 						<RegistryValue Root="HKCU" Key="Software\TortoiseGit" KeyPath="yes" Name="TortoiseGit" Value="TortoiseGit" Type="string" />
 						<Shortcut Id="S__RTFM" Directory="D_TortoisePrgMenu" Name="TortoiseGit" Advertise="no" Target="[INSTALLDIR]bin\TortoiseGitProc.exe" Description="TortoiseGit" Arguments="/command:rtfm" Show="normal" />
 						<Shortcut Id="S__TortoiseProc" Directory="D_TortoisePrgMenu" Name="Help" Advertise="no" Target="[INSTALLDIR]bin\TortoiseGitProc.exe" Description="Documentation about TortoiseGit" Arguments="/command:help" Show="normal" />
-						<Shortcut Id="S__puttykeygen" Directory="D_TortoisePrgMenu" Name="PuTTYgen" Advertise="no" Target="[INSTALLDIR]bin\puttygen.exe" Description="PuTTY key generator" Show="normal" />
-						<Shortcut Id="S__pageant" Directory="D_TortoisePrgMenu" Name="Pageant" Advertise="no" Target="[INSTALLDIR]bin\pageant.exe" Description="PuTTY SSH authentication agent" Show="normal" />
 					</Component>
 
 					<Component Id="C__TortoiseBlame" Guid="$(var.GuidTortoiseBlame)" Win64="$(var.Win64YesNo)">

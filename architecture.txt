@@ -11,7 +11,6 @@ are of interest here (the project names are in parentheses bebind):
 * TortoiseGitBlame.exe (TortoiseGitBlame)
 * TortoiseGitIDiff.exe (TortoiseGitIDiff)
 * TortoiseGitUDiff.exe (TortoiseGitIDiff)
-* TortoiseGitPlink.exe (TortoiseGitPlink)
 * SshAskPass.exe (SshAskPass)
 * GitWCRev.exe (GitWCRev)
 * GitWCRevCOM.exe (GitWCRevCOM)

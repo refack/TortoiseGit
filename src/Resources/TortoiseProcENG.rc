@@ -5141,7 +5141,7 @@ BEGIN
     IDS_REALLYCANCEL        "Are you sure you want to cancel?"
     IDS_HINTLASTMESSAGES    "Hint: Recently used commit messages are available using the context menu of the text field."
     IDS_FIRSTSTART_AUTHENTICATIONTITLE "Authentication and credential store"
-    IDS_FIRSTSTART_SSHHINT  "TortoiseGitPlink is the recommended as SSH client. If you don't have a key pair yet, you should generate one. Keep the private one in a safe place and set up the public key on your hosting platform. Use the PuTTY authentication agent for caching the password (done automatically if a PuTTY key is configured for a remote). For advanced tips & tricks see our <a id=""manual"">manual</a> and <a id=""sshfaq"">FAQ</a>."
+    IDS_FIRSTSTART_SSHHINT  "TortoiseGit uses OpenSSH, which ships with Windows. If you don't have a key pair yet, run ""ssh-keygen -t ed25519"": keep the private key safe and add the public one to your hosting platform. Run ""ssh-add"" to hand the key to the ssh-agent service so the passphrase is only asked once, and use %USERPROFILE%\.ssh\config to pick a specific key per host. The same settings apply to git on the command line. For advanced tips & tricks see our <a id=""manual"">manual</a> and <a id=""sshfaq"">FAQ</a>."
     IDS_FIRSTSTART_LANGUAGEHINT1 
                             "TortoiseGit can be localized using language packs."
     IDS_FIRSTSTART_LANGUAGEHINT2 

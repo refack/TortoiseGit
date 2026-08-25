@@ -2399,8 +2399,6 @@ BOOL CGit::CheckMsysGitDir(BOOL bFallback)
 		if (ms_bCygwinGit)
 			sshclient.Replace(L'\\', L'/');
 		m_Environment.SetEnv(L"GIT_SSH", sshclient);
-		if (CStringUtils::EndsWithI(sshclient, L"tortoisegitplink") || CStringUtils::EndsWithI(sshclient, L"tortoisegitplink.exe"))
-			m_Environment.SetEnv(L"GIT_SSH_VARIANT", L"ssh");
 		m_Environment.SetEnv(L"SVN_SSH", sshclient);
 	}
 	else

@@ -220,9 +220,11 @@ static int _git_ssh_setup_tunnel(
 		else
 			git_str_printf(&params, " -p %s", parsed_url.port);
 	}
-	if (isPutty && !wcstristr(ssh, L"tortoiseplink")) {
+	/* plink is still supported for anyone who points the SSH client setting at their own
+	 * PuTTY install; TortoiseGit no longer ships one. It cannot prompt without a console,
+	 * so it has to run non-interactively. */
+	if (isPutty)
 		git_str_puts(&params, " -batch");
-	}
 
 	if (git_process__is_cmdline_option(parsed_url.username)) {
 		git_error_set(GIT_ERROR_NET, "cannot start ssh: username '%s' is ambiguous with command-line option", parsed_url.username);
