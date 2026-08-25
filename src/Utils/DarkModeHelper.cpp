@@ -63,6 +63,7 @@ LONG DetourTransaction(std::function<LONG()> callback)
 } // namespace
 
 DarkModeHelper::OpenNcThemeDataType DarkModeHelper::m_openNcThemeData = nullptr;
+bool DarkModeHelper::m_bOpenNcThemeDataDetoured = false;
 
 DarkModeHelper& DarkModeHelper::Instance()
 {
@@ -241,12 +242,24 @@ DarkModeHelper::~DarkModeHelper()
 
 LONG DarkModeHelper::DetourOpenNcThemeData()
 {
-	return DetourTransaction([] { return DetourAttach(&reinterpret_cast<PVOID&>(m_openNcThemeData), DetouredOpenNcThemeData); });
+	if (m_bOpenNcThemeDataDetoured || !m_openNcThemeData)
+		return NO_ERROR;
+
+	const LONG res = DetourTransaction([] { return DetourAttach(&reinterpret_cast<PVOID&>(m_openNcThemeData), DetouredOpenNcThemeData); });
+	if (res == NO_ERROR)
+		m_bOpenNcThemeDataDetoured = true;
+	return res;
 }
 
 LONG DarkModeHelper::RestoreOpenNcThemeData()
 {
-	return DetourTransaction([] { return DetourDetach(&reinterpret_cast<PVOID&>(m_openNcThemeData), DetouredOpenNcThemeData); });
+	if (!m_bOpenNcThemeDataDetoured)
+		return NO_ERROR;
+
+	const LONG res = DetourTransaction([] { return DetourDetach(&reinterpret_cast<PVOID&>(m_openNcThemeData), DetouredOpenNcThemeData); });
+	if (res == NO_ERROR)
+		m_bOpenNcThemeDataDetoured = false;
+	return res;
 }
 
 HTHEME WINAPI DarkModeHelper::DetouredOpenNcThemeData(HWND hwnd, LPCWSTR classList)

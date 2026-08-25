@@ -131,4 +131,8 @@ private:
 	HMODULE m_hUxthemeLib = nullptr;
 	bool m_bCanHaveDarkMode = false;
 	static OpenNcThemeDataType m_openNcThemeData;
+	/// Detours refuses to detach a hook it never attached, so the pair has to be balanced
+	/// rather than called speculatively. AllowDarkModeForApp(FALSE) runs at startup in light
+	/// mode, before anything is hooked.
+	static bool m_bOpenNcThemeDataDetoured;
 };
