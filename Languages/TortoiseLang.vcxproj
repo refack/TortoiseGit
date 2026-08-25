@@ -96,9 +96,6 @@
     <ProjectReference Include="..\src\TortoiseGitBlame\TortoiseGitBlameLang.vcxproj">
       <Project>{4c8c72be-fe20-4a92-a592-0d44ed849b1c}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\src\TortoiseIDiff\TortoiseIDiffLang.vcxproj">
-      <Project>{56016512-d578-46fd-85e0-9edcd37433ac}</Project>
-    </ProjectReference>
     <ProjectReference Include="..\src\TortoiseProc\TortoiseProcLang.vcxproj">
       <Project>{1b3c273e-6ddf-4fbe-ba31-f9f39c6dac99}</Project>
     </ProjectReference>

@@ -9,8 +9,7 @@ are of interest here (the project names are in parentheses bebind):
 * TortoiseGitProc.exe (TortoiseGitProc)
 * TGitCache.exe (TGitCache)
 * TortoiseGitBlame.exe (TortoiseGitBlame)
-* TortoiseGitIDiff.exe (TortoiseGitIDiff)
-* TortoiseGitUDiff.exe (TortoiseGitIDiff)
+* TortoiseGitUDiff.exe (TortoiseGitUDiff)
 * SshAskPass.exe (SshAskPass)
 * GitWCRev.exe (GitWCRev)
 * GitWCRevCOM.exe (GitWCRevCOM)
@@ -85,11 +84,6 @@ TGitCache processes right now.
 TortoiseGitBlame.exe
 ====================
 This program displays the blame functionality. It is called by TortoiseGitProc.exe
-or manually by the user (there is an icon in the startmenu).
-
-TortoiseGitIDiff.exe
-====================
-This program is for comparing images. It is called by TortoiseGitProc.exe
 or manually by the user (there is an icon in the startmenu).
 
 Command line parameters are document here:

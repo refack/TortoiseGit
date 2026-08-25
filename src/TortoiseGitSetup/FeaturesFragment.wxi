@@ -13,8 +13,6 @@
 		<ComponentRef Id="C__TortoiseBlame" />
 		<ComponentRef Id="C__TortoiseGitBlameShortcuts" />
 
-		<ComponentRef Id="C__TortoiseIDiff" />
-		<ComponentRef Id="C__TortoiseIDiffShortcuts" />
 
 		<ComponentRef Id="C__TortoiseUDiff" />
 		<ComponentRef Id="C__TortoiseUDiffMetaData" />

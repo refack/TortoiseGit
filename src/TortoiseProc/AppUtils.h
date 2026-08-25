@@ -60,7 +60,7 @@ public:
 	static BOOL StartExtMerge(bool bAlternativeTool,
 		const CTGitPath& basefile, const CTGitPath& theirfile, const CTGitPath& yourfile, const CTGitPath& mergedfile,
 		const CString& basename = CString(), const CString& theirname = CString(), const CString& yourname = CString(),
-		const CString& mergedname = CString(), bool bReadOnly = false, HWND resolveMsgHwnd = nullptr, bool bDeleteBaseTheirsMineOnClose = false);
+		const CString& mergedname = CString(), HWND resolveMsgHwnd = nullptr, bool bDeleteBaseTheirsMineOnClose = false);
 
 	/**
 	 * Opens the patch in the configured patch viewer, or notepad.exe if none is set.

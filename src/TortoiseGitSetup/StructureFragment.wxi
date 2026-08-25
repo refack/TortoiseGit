@@ -384,15 +384,6 @@
 						<Shortcut Id="S__TortoiseGitBlame" Directory="D_TortoisePrgMenu" Name="TortoiseGitBlame" Advertise="no" Target="[INSTALLDIR]bin\TortoiseGitBlame.exe" Description="TortoiseGitBlame, the TortoiseGit annotation tool" Show="normal" />
 					</Component>
 
-					<Component Id="C__TortoiseIDiff" Guid="$(var.GuidTortoiseIDiff)" Win64="$(var.Win64YesNo)">
-						<File Id="F__TortoiseIDiff" Name="TortoiseGitIDiff.exe" DiskId="1" Source="..\..\bin\$(var.ReleasePath)\bin\TortoiseGitIDiff.exe" KeyPath="yes" />
-					</Component>
-
-					<Component Id="C__TortoiseIDiffShortcuts" Guid="$(var.GuidTortoiseIDiffShortcuts)" Win64="$(var.Win64YesNo)">
-						<RegistryValue Root="HKCU" Key="Software\TortoiseGit" KeyPath="yes" Name="TortoiseIDiff" Value="TortoiseGitIDiff" Type="string" />
-						<Shortcut Id="S__TortoiseIDiff" Directory="D_TortoisePrgMenu" Name="TortoiseGitIDiff" Advertise="no" Target="[INSTALLDIR]bin\TortoiseGitIDiff.exe" Description="View Diff's of image files" Show="normal" />
-					</Component>
-
 					<Component Id="C_LanguagePacks" Guid="*" Win64="$(var.Win64YesNo)">
 						<!--	When a language pack is installed, it copies files into the [INSTALLDIR]Languages folder.
 								We could add here RemoveFile-Elements for each and every one of the possible

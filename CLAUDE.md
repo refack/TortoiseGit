@@ -17,7 +17,9 @@ minutes of clicking. See "Test health" below for what that number means.
 
 **Current focus is shrinking the tree.** Gone so far: CrashServer,
 TortoiseGitMerge, TortoiseGitPlink with the bundled PuTTY binaries,
-`tgittouch`, and the `simpleini`, `Detours`, `apr` and `apr-util` submodules.
+`tgittouch`, TortoiseGitIDiff, and the `simpleini`, `Detours`, `apr` and
+`apr-util` submodules. TortoiseGitUDiff is chalklined. The Revision Graph and
+its OGDF dependency were considered and **kept**.
 The standing goal (per user direction, 2026-08-22) is to keep going — every
 remaining `ext\*` submodule should become a public vcpkg port, a port overlay,
 or nothing at all. Eleven are left. See "Dependency pruning".
@@ -569,7 +571,7 @@ Remaining, by how they should end:
 | Submodule | Route |
 | --- | --- |
 | `hunspell`, `json`, `googletest`, `lexilla` | stock vcpkg ports exist; migrate |
-| `OGDF` | needs an overlay port, none upstream |
+| `OGDF` | **stays** — needs an overlay port, none upstream. Asked and answered 2026-08-25: its only consumer is the Revision Graph, and the user chose to keep that feature. `ext\build\ogdf.vcxproj` therefore stays hand-maintained, and this row stays open. `src\AsyncFramework\` rides along — `RevisionGraphWnd.h` is *its* only consumer. |
 | `editorconfig` | **stays** — TortoiseProc consumes it (`AppUtils.cpp`), and no vcpkg port carries this build |
 | `tgit`, `spell` | permanent — `tgit` is the second git backend, `spell` is dictionary data |
 | `libgit2`, `pcre2`, `zlib` | build wiring already retired; checkouts left vendored, safe to drop when convenient |
@@ -731,6 +733,14 @@ protocol needs a clean channel. Scope such settings to the hosts that want
 them. This is a class, not one instance: `ForceCommand`, `RemoteCommand` and
 `LogLevel` under `Host *` misbehave the same way.
 
+*Installer direction (user, 2026-08-25):* **the new installer should perform a
+full uninstall of the old version rather than an in-place upgrade.** That
+demotes the shim below from load-bearing to belt-and-braces (it still covers
+sideways upgrades and hand-set registry values, so it stays), and it is where
+the `.ppk` migration guidance belongs — surfaced by the installer at the point
+the user is already being told what changed, not buried in a release note.
+Both are Phase 5 inputs.
+
 *Upgrade path (`662b0d8df`):* an existing install keeps its SSH client
 setting, and Plink was the installer default for years, so most upgrades carry
 a path to a binary that no longer exists. `CGit::GetConfiguredSshClient()` is
@@ -738,6 +748,44 @@ the single reader for all three call sites and drops the value when it names
 TortoiseGit's own removed plink **and** the file is missing. Do not relax that
 existence check into a name-only test — TortoiseSVN ships a working
 `TortoisePlink.exe`.
+
+### TortoiseGitIDiff removed; TortoiseGitUDiff is next
+
+IDiff was wired in as two extension whitelists in `AppUtils.cpp` — one in
+`PickDiffTool` for two-pane image diffs, one in `StartExtMerge` for three-way
+image conflict resolution — each short-circuiting *before* the normal
+delegation chain. Deleting them lets images take the same path as every other
+file. −5,015 lines with `TortoiseIDiffLang`, both solution entries, the MSI
+component and shortcut.
+
+**It also exposed a leak I had introduced.** `bDeleteBaseTheirsMineOnClose`
+looked like a dead flag once the last internal viewer was gone, but the
+conflict path writes `base`/`theirs`/`mine` temp files into the working tree
+and passed `/deletebasetheirsmineonclose` so the viewer would remove them on
+close. No external tool honours that switch, so those files had been
+accumulating since `0784142fc`. `StartExtMerge` now waits when cleanup is
+requested and deletes them itself — they are still open while the tool runs.
+*The lesson: when a parameter goes unreferenced after a removal, ask what it
+used to guarantee before deleting it. A compiler warning found a behavioural
+regression here, not dead code.*
+
+**TortoiseGitUDiff is chalklined** — marked, not cut (user direction,
+2026-08-25). What cutting it will involve, so it need not be rediscovered:
+
+- 1,519 lines in `src\TortoiseUDiff\`, plus `TortoiseUDiffLang` and its
+  Settings page (`SettingsTUDiff`).
+- It is the registered handler for `.diff`/`.patch`: installer `UDiffAssoc`
+  feature, `C__TortoiseUDiff`, `C__TortoiseUDiffMetaData`,
+  `C__TortoiseUDiffAssoc`. Removing it orphans that association unless
+  something else claims it.
+- It is what `CAppUtils::StartUnifiedDiffViewer` launches, and the shell's
+  "Diff" for a patch file.
+- **Three places argue *for* it in prose written this session** and would
+  become wrong: `MenuInfo.cpp`'s comment where ApplyPatch used to be, and the
+  ApplyPatch/PuTTY commit messages, all of which say "viewing a patch is
+  TortoiseGitUDiff". Once it goes, the `PatchViewer` registry key → `notepad.exe`
+  chain is the whole story, and `StartExtPatch`'s comment ("git applies
+  patches, it does not display them") becomes the only answer.
 
 **Deferred, deliberately:** the TortoiseMerge manual (`doc\source\en\TortoiseMerge\`),
 its `HTMLHelpfiles.wxi` components, `CheckIDD`, the `LanguagePack.wxs` entries,

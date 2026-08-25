@@ -263,7 +263,7 @@ static CString EscapeAndQuoteParameters(CString parameter)
 
 BOOL CAppUtils::StartExtMerge(bool bAlternative,
 	const CTGitPath& basefile, const CTGitPath& theirfile, const CTGitPath& yourfile, const CTGitPath& mergedfile,
-	const CString& basename, const CString& theirname, const CString& yourname, const CString& mergedname, bool bReadOnly,
+	const CString& basename, const CString& theirname, const CString& yourname, const CString& mergedname,
 	HWND resolveMsgHwnd, bool bDeleteBaseTheirsMineOnClose)
 {
 	CString mergedfileQuotedGitPathString;
@@ -280,7 +280,6 @@ BOOL CAppUtils::StartExtMerge(bool bAlternative,
 	CRegString regCom = CRegString(L"Software\\TortoiseGit\\Merge");
 	CString ext = mergedfile.GetFileExtension();
 	CString com = regCom;
-	bool bInternal = false;
 
 	if (!ext.IsEmpty())
 	{
@@ -304,26 +303,6 @@ BOOL CAppUtils::StartExtMerge(bool bAlternative,
 
 	if (com.IsEmpty() || CStringUtils::StartsWith(com, L"#"))
 	{
-		// Maybe we should use TortoiseIDiff?
-		if ((ext == L".jpg") || (ext == L".jpeg") ||
-			(ext == L".bmp") || (ext == L".gif")  ||
-			(ext == L".png") || (ext == L".ico")  ||
-			(ext == L".tif") || (ext == L".tiff") ||
-			(ext == L".dib") || (ext == L".emf")  ||
-			(ext == L".cur") || (ext == L".webp") ||
-			(ext == L".svg") || (ext == L".svgz"))
-		{
-			bInternal = true;
-			com = CPathUtils::GetAppDirectory() + L"TortoiseGitIDiff.exe";
-			com = L'"' + com + L'"';
-			com = com + L" /base:%base /theirs:%theirs /mine:%mine /result:%merged";
-			com = com + L" /basetitle:%bname /theirstitle:%tname /minetitle:%yname";
-			if (resolveMsgHwnd)
-				com.AppendFormat(L" /resolvemsghwnd:%I64d", reinterpret_cast<__int64>(resolveMsgHwnd));
-			if (bDeleteBaseTheirsMineOnClose)
-				com += L" /deletebasetheirsmineonclose";
-		}
-		else
 		{
 			/*
 			 * Fall back to git's merge.tool. This is translated rather than delegated:
@@ -378,15 +357,28 @@ BOOL CAppUtils::StartExtMerge(bool bAlternative,
 													  { L"mname", mergedname.IsEmpty() ? mergedfile.GetUIFileOrDirectoryName() : mergedname },
 													  { L"wtroot", g_Git.m_CurrentDir },
 													  },
-												 bInternal ? [](const CString s) { return CCmdLineParser::EscapeValue(s); } : &EscapeAndQuoteParameters);
+												 &EscapeAndQuoteParameters);
 
-	if ((bReadOnly)&&(bInternal))
-		com += L" /readonly";
-
+	/*
+	 * Every merge tool is external now, so there is no in-process viewer to hand a /readonly
+	 * switch to - and none of them honours /deletebasetheirsmineonclose either. The conflict
+	 * path hands us three temp files it expects to be cleaned up once the tool is finished
+	 * with them, so when it asks for that we have to wait and delete them ourselves; the files
+	 * are still open while the tool runs.
+	 */
 	const DWORD blocktrust = CRegDWORD(L"Software\\TortoiseGit\\MergeBlockTrustBehavior");
-	const bool bWaitForExit = !bInternal && blocktrust >= 1;
+	const bool bWaitForExit = bDeleteBaseTheirsMineOnClose || blocktrust >= 1;
 	DWORD exitCode = DWORD_MAX;
-	if (!LaunchApplication(com, CAppUtils::LaunchApplicationFlags().UseSpecificErrorMessage(IDS_ERR_EXTMERGESTART).WaitForExit(bWaitForExit, nullptr, &exitCode)))
+	const bool bLaunched = LaunchApplication(com, CAppUtils::LaunchApplicationFlags().UseSpecificErrorMessage(IDS_ERR_EXTMERGESTART).WaitForExit(bWaitForExit, nullptr, &exitCode));
+
+	if (bDeleteBaseTheirsMineOnClose)
+	{
+		::DeleteFile(basefile.GetWinPathString());
+		::DeleteFile(theirfile.GetWinPathString());
+		::DeleteFile(yourfile.GetWinPathString());
+	}
+
+	if (!bLaunched)
 		return FALSE;
 
 	if (!bWaitForExit)
@@ -459,20 +451,6 @@ CString CAppUtils::PickDiffTool(const CTGitPath& file1, const CTGitPath& file2)
 		difftool = CRegString(L"Software\\TortoiseGit\\DiffTools\\" + ext);
 		if (!difftool.IsEmpty())
 			return difftool;
-		// Maybe we should use TortoiseIDiff?
-		if ((ext == L".jpg") || (ext == L".jpeg") ||
-			(ext == L".bmp") || (ext == L".gif")  ||
-			(ext == L".png") || (ext == L".ico")  ||
-			(ext == L".tif") || (ext == L".tiff") ||
-			(ext == L".dib") || (ext == L".emf")  ||
-			(ext == L".cur") || (ext == L".webp") ||
-			(ext == L".svg") || (ext == L".svgz"))
-		{
-			return
-				L'"' + CPathUtils::GetAppDirectory() + L"TortoiseGitIDiff.exe" + L'"' +
-				L" /left:%base /right:%mine /lefttitle:%bname /righttitle:%yname" +
-				L" /groupuuid:\"" + g_sGroupingUUID + L'"';
-		}
 	}
 
 	// Finally, pick a generic external diff tool
@@ -1913,9 +1891,9 @@ bool CAppUtils::ConflictEdit(HWND hWnd, CTGitPath& path, bool bAlternativeTool /
 	{
 		merge.SetFromWin(g_Git.CombinePath(merge));
 		if (isRebase)
-			return !!CAppUtils::StartExtMerge(bAlternativeTool, base, mine, theirs, merge, baseTitle, mineTitle, theirsTitle, CString(), false, resolveMsgHwnd, true);
+			return !!CAppUtils::StartExtMerge(bAlternativeTool, base, mine, theirs, merge, baseTitle, mineTitle, theirsTitle, CString(), resolveMsgHwnd, true);
 
-		return !!CAppUtils::StartExtMerge(bAlternativeTool, base, theirs, mine, merge, baseTitle, theirsTitle, mineTitle, CString(), false, resolveMsgHwnd, true);
+		return !!CAppUtils::StartExtMerge(bAlternativeTool, base, theirs, mine, merge, baseTitle, theirsTitle, mineTitle, CString(), resolveMsgHwnd, true);
 	}
 	else
 	{
