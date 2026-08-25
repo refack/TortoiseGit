@@ -564,17 +564,30 @@ Resolved, kept only so they are not re-investigated:
   rather than re-deriving: precompiled headers are load-bearing for include
   correctness here, and sccache cannot cache TUs that consume a PCH.
 
-### Test health *(current focus)*
+### Test health
 
-- **The suite is GUI-coupled.** Tests raise modal `MessageBox` dialogs on
-  failure paths, so a full run blocks until a human dismisses them — roughly 28
-  minutes attended, and impossible unattended. Decoupling the GUI from the unit
-  tests is the prerequisite for everything below, and for CI at all.
-- **29 pre-existing failures** out of 586. Known contributors: the host's
-  `init.defaultBranch=main` versus fixtures hardcoding `"master"`, plus
-  environment-dependent `CGit` and `GitRevLoglist` cases. Verified unrelated to
-  the SHA256 work by revert-and-rebuild isolation, so do not attribute them to
-  it — but they are worth fixing once runs are headless.
+The suite runs **unattended** as of `3bd517e84`, at **584 passed / 2 failed**
+in about 145 seconds. It was 557/29 and roughly 28 minutes of clicking.
+
+- ~~GUI-coupled suite~~ — the one dialog that actually fired came from
+  `CTortoiseGitBlameData::ParseBlameOutput()` calling `MessageBox` from a
+  parser. It now returns errors to its caller and the *view* reports them.
+  **The pattern, not the instance, is the lesson:** roughly 50 other
+  `MessageBox`/`CMessageBox` call sites exist in code linked into `Tests.exe`,
+  and any new test reaching one will block again. Library code must report
+  through its caller. WinDbg (`bm user32!MessageBox*W "kb 16; g"`) finds the
+  culprit in one run — far faster than reading the call sites.
+- ~~Host `init.defaultBranch` leaking into fixtures~~ — six `git.exe init`
+  sites now pass `-b master`. Pin at creation; do **not** rewrite assertions to
+  `"main"`, which just moves the failure to differently-configured machines.
+- **Two failures remain, cause unknown:** `libgit2.ConfigSnaphot` and
+  `CTGitPath.ParserFromLog_DiffIndex_Raw_Cached_M_C_Numstat_z_UTF8`.
+
+> **Do not label a failure "pre-existing" without isolating the whole feature.**
+> 29 failures were described that way in this document and in commit messages,
+> on the strength of a revert that backed out a single commit rather than the
+> SHA256 stack. 16 of them turned out to be caused by this work — one missing
+> line in `CGitHash` (see `21a8e1628`). A revert proves only what it reverts.
 
 ## Critical files
 

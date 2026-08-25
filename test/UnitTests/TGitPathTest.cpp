@@ -1368,7 +1368,7 @@ TEST(CTGitPath, ParserFromLog_Diff_r_raw_C_M_numstat_z_HEAD)
 On branch master2
 Changes to be committed:
   (use "git restore --staged <file>..." to unstage)
-		renamed:    build.txt -> "b\303\274il\345\234\213\347\253\2131d\320\272.txt"
+		renamed:    build.txt -> "b\303\274il\345\234\213\347\253\213""1d\320\272.txt"
 		new file:   "\303\234mlautfile.txt"
 
 Changes not staged for commit:
@@ -1380,7 +1380,11 @@ Changes not staged for commit:
 TEST(CTGitPath, ParserFromLog_DiffIndex_Raw_Cached_M_C_Numstat_z_UTF8)
 {
 	// as used in CGit::GetWorkingTreeChanges, but here separated; based on (**)
-	constexpr char git_DiffIndex_Raw_Cached_M_C_z_output[] = { ":100644 100644 cbb4dfec5cd5a56eb616cfb73852c4f1eef4e4de cbb4dfec5cd5a56eb616cfb73852c4f1eef4e4de R100\0build.txt\0bÃ¼ilåœ‹ç«‹1dÐº.txt\0:000000 100644 0000000000000000000000000000000000000000 0d8c7e67d8e0a17d5529a54a0edd26c0cc0510bd A\0Ãœmlautfile.txt\0""0	0	\0build.txt\0bÃ¼ilåœ‹ç«‹1dÐº.txt\0""1	0	Ãœmlautfile.txt" };
+	// The non-ASCII names are written as octal escapes of their UTF-8 bytes, exactly as
+	// git emits them (see the transcript above). Spelling them as literal characters made
+	// the data depend on how the compiler decodes this file: it carries a UTF-8 BOM, so
+	// MSVC re-encodes such literals and the array ends up holding doubly-encoded bytes.
+	constexpr char git_DiffIndex_Raw_Cached_M_C_z_output[] = { ":100644 100644 cbb4dfec5cd5a56eb616cfb73852c4f1eef4e4de cbb4dfec5cd5a56eb616cfb73852c4f1eef4e4de R100\0build.txt\0b\303\274il\345\234\213\347\253\213""1d\320\272.txt\0:000000 100644 0000000000000000000000000000000000000000 0d8c7e67d8e0a17d5529a54a0edd26c0cc0510bd A\0\303\234mlautfile.txt\0""0	0	\0build.txt\0b\303\274il\345\234\213\347\253\213""1d\320\272.txt\0""1	0	\303\234mlautfile.txt" };
 	CGitByteArray byteArray;
 	byteArray.append(git_DiffIndex_Raw_Cached_M_C_z_output, sizeof(git_DiffIndex_Raw_Cached_M_C_z_output));
 	CTGitPathList testList;

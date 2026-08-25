@@ -47,6 +47,10 @@ TEST(libgit2, ConfigSnaphot)
 
 	CAutoRepository repo;
 	ASSERT_TRUE(git_repository_init(repo.GetPointer(), CUnicodeUtils::GetUTF8(tmpDir.GetTempDir()), false) == 0);
+	// The includeIf sections below match on the branch name, and libgit2 honours the
+	// host's init.defaultBranch just as git.exe does. Pin HEAD so the test describes
+	// the config machinery rather than the machine it runs on.
+	ASSERT_TRUE(git_repository_set_head(repo, "refs/heads/master") == 0);
 	CString configFile = tmpDir.GetTempDir() + L"\\.git\\config";
 	CString text;
 	ASSERT_TRUE(CStringUtils::ReadStringFromTextFile(configFile, text));
