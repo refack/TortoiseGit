@@ -12,7 +12,8 @@
       "PowerShell(& 'E:\\\\3party\\\\TortoiseGit\\\\bin\\\\Debug64\\\\bin\\\\Tests.exe')",
       "PowerShell([guid]::NewGuid\\(\\).ToString\\(\\).ToUpper\\(\\))",
       "PowerShell(dumpbin *)",
-      "PowerShell(msbuild *)"
+      "PowerShell(msbuild *)",
+      "PowerShell(E:\\\\3party\\\\TortoiseGit\\\\bin\\\\Debug64\\\\bin\\\\Tests.exe 2>&1 | Select-Object -Last 22)"
     ]
   },
   "outputStyle": "Explanatory",

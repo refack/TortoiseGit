@@ -38,3 +38,6 @@ Thumbs.db
 bin
 obj
 enc_temp_folder
+/test/sha256wc
+/vcpkg_installed
+/compile_commands.json
