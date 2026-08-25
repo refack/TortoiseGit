@@ -1,9 +1,3 @@
-[submodule "ext/apr-util"]
-	path = ext/apr-util
-	url = https://github.com/apache/apr-util.git
-[submodule "ext/apr"]
-	path = ext/apr
-	url = https://gitlab.com/tortoisegit/apr.git
 [submodule "ext/tgit"]
 	path = ext/tgit
 	url = https://gitlab.com/tortoisegit/tgit.git

@@ -99,9 +99,6 @@
     <ProjectReference Include="..\src\TortoiseIDiff\TortoiseIDiffLang.vcxproj">
       <Project>{56016512-d578-46fd-85e0-9edcd37433ac}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\src\TortoiseMerge\TortoiseMergeLang.vcxproj">
-      <Project>{1b3c273e-6ddf-4fbe-ba31-fcf39c6dbcf9}</Project>
-    </ProjectReference>
     <ProjectReference Include="..\src\TortoiseProc\TortoiseProcLang.vcxproj">
       <Project>{1b3c273e-6ddf-4fbe-ba31-f9f39c6dac99}</Project>
     </ProjectReference>

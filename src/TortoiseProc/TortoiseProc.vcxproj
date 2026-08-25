@@ -46,7 +46,7 @@
            copy ships a no-op git2\experimental.h, so leaving it on the path
            would silently compile this project against the 20-byte git_oid
            while the library it links uses the 33-byte tagged one. -->
-      <AdditionalIncludeDirectories>$(ProjectDir);..\Resources;$InputDir;..\..\ext\ResizableLib;..\Git;..\Utils;..\..\ext\json\include;..\..\ext\scintilla\include;..\..\ext\lexilla\include;..\Utils\TreePropSheet;..\Utils\MiscUI;..\TortoiseShell;..\..\ext\gitdll;..\..\ext\OGDF\include;..\..\ext\build\ogdf;..\AsyncFramework;..\TortoiseMerge;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir);..\Resources;$InputDir;..\..\ext\ResizableLib;..\Git;..\Utils;..\..\ext\json\include;..\..\ext\scintilla\include;..\..\ext\lexilla\include;..\Utils\TreePropSheet;..\Utils\MiscUI;..\TortoiseShell;..\..\ext\gitdll;..\..\ext\OGDF\include;..\..\ext\build\ogdf;..\AsyncFramework;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <!-- GIT_EXPERIMENTAL_SHA256 is no longer listed: vcpkg's generated
            git2\experimental.h defines it, and git2\oid.h includes that header,
            so every TU that can see git_oid gets the flag by construction. -->
@@ -73,7 +73,7 @@
     <ClCompile Include="..\Git\GitRevRefBrowser.cpp" />
     <ClCompile Include="..\Git\MassiveGitTaskBase.cpp" />
     <ClCompile Include="..\Git\TGitPath.cpp" />
-    <ClCompile Include="..\TortoiseMerge\FileTextLines.cpp" />
+    <ClCompile Include="..\Utils\FileTextLines.cpp" />
     <ClCompile Include="..\TortoiseShell\ShellCache.cpp" />
     <ClCompile Include="..\Utils\ACEdit.cpp" />
     <ClCompile Include="..\Utils\ACListWnd.cpp" />
@@ -374,7 +374,7 @@
     <ClInclude Include="..\Git\TGitPath.h" />
     <ClInclude Include="..\Resources\LoglistCommonResource.h" />
     <ClInclude Include="..\Resources\TGitHelpMapping.ini" />
-    <ClInclude Include="..\TortoiseMerge\FileTextLines.h" />
+    <ClInclude Include="..\Utils\FileTextLines.h" />
     <ClInclude Include="..\TortoiseShell\ShellCache.h" />
     <ClInclude Include="..\Utils\ACEdit.h" />
     <ClInclude Include="..\Utils\ACListWnd.h" />

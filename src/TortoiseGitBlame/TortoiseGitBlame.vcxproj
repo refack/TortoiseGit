@@ -97,7 +97,7 @@
     <ClCompile Include="..\Utils\Theme.cpp" />
     <ClCompile Include="..\Utils\UnicodeUtils.cpp" />
     <ClCompile Include="EditGotoDlg.cpp" />
-    <ClCompile Include="..\TortoiseMerge\FileTextLines.cpp" />
+    <ClCompile Include="..\Utils\FileTextLines.cpp" />
     <ClCompile Include="..\TortoiseProc\FindDlg.cpp" />
     <ClCompile Include="..\TortoiseProc\GitLogCache.cpp" />
     <ClCompile Include="..\TortoiseProc\GitLogListBase.cpp" />
@@ -179,7 +179,7 @@
     <ClInclude Include="..\Utils\MiscUI\SciEdit.h" />
     <ClInclude Include="..\Utils\CommonAppUtils.h" />
     <ClInclude Include="EditGotoDlg.h" />
-    <ClInclude Include="..\TortoiseMerge\FileTextLines.h" />
+    <ClInclude Include="..\Utils\FileTextLines.h" />
     <ClInclude Include="..\TortoiseProc\LoglistUtils.h" />
     <ClInclude Include="MainFrm.h" />
     <ClInclude Include="MenuEncode.h" />

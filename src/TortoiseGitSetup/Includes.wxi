@@ -83,8 +83,6 @@
 	<?define GuidTortoiseGitTools="0403B84B-0884-41AE-AECC-69283CAE3512"?>
 	<?define GuidTortoiseGitCache="49C37E2C-9E20-4792-A780-24761CFBDDD6"?>
 	<?define GuidTortoiseGITShortcuts="BFF1875C-D7A8-49CF-BD30-C2B76C5576CF"?>
-	<?define GuidTortoiseMerge="8D5CCE58-8F79-4FF1-A25A-E40D41357D45"?>
-	<?define GuidTortoiseMergeShortcuts="659A37E6-CE9A-4A30-AFF5-6FA1A077AA33"?>
 	<?define GuidTortoiseGitBlameShortcuts="FEE5C1A9-0319-4EA8-A5C7-AD470F52481A"?>
 	<?define GuidTortoiseBlame="4B84CF65-1FE5-4736-B880-F04490D150C5"?>
 	<?define GuidTortoiseIDiff="75D19614-B4D4-4661-A7EB-683CEE849CF3"?>
@@ -126,8 +124,6 @@
 	<?define GuidTortoiseGitTools="6895707E-F917-41D6-B903-CA32D923F5F6"?>
 	<?define GuidTortoiseGitCache="11E3BE4E-4BC8-4B2E-8802-F03A7B9C7576"?>
 	<?define GuidTortoiseGITShortcuts="8707CC28-C1E7-4CC8-88BF-44B7F767A7DB"?>
-	<?define GuidTortoiseMerge="D896E90F-399C-4456-95CA-E016145E9017"?>
-	<?define GuidTortoiseMergeShortcuts="AED802B4-0B29-4418-986B-0B6B6C3CA139"?>
 	<?define GuidTortoiseGitBlameShortcuts="C0A655C5-5FA3-4606-8510-8027A2C8E38E"?>
 	<?define GuidTortoiseBlame="127EBB41-EEFF-41D4-A65A-C5E19B092048"?>
 	<?define GuidTortoiseIDiff="7D6982C8-4231-400C-9B46-AB4FF114743A"?>
@@ -170,8 +166,6 @@
 	<?define GuidTortoiseGitCache="528E15B0-9F9E-4498-8614-2E4368208CB1"?>
 	<?define GuidTortoiseShell="3F973B52-C295-4DC8-B4A7-5867F5AFE93C"?>
 	<?define GuidTortoiseGITShortcuts="664008F0-5BF8-4C11-AAA4-A5DD9C237BBF"?>
-	<?define GuidTortoiseMerge="F97E61D9-AECD-4160-AB31-5E5C78ADDD9F"?>
-	<?define GuidTortoiseMergeShortcuts="C22CF21D-57F0-471B-80AE-E8C101AA27CA"?>
 	<?define GuidTortoiseGitBlameShortcuts="8184046F-7E9C-4F26-9B74-8ADC7DDF9882"?>
 	<?define GuidTortoiseBlame="6C0D7DE5-7CDA-4FA2-9939-0AA274C929A7"?>
 	<?define GuidTortoiseIDiff="742E7CF3-0255-4100-B241-E753BF92F9F0"?>

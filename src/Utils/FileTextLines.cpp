@@ -19,7 +19,9 @@
 //
 
 #include "stdafx.h"
-#include "resource.h"
+// the four IDS_ERR_FILE_* strings are shared: this file is compiled into TortoiseProc,
+// TortoiseGitBlame and the unit tests, which each have their own resource.h
+#include <Resources/LoglistCommonResource.h>
 #include "registry.h"
 #include "FileTextLines.h"
 #include "FormatMessageWrapper.h"

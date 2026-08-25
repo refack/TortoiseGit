@@ -147,3 +147,8 @@
 #define IDS_LOG_POPUP_COMPARE_PARENT_WC     20129
 #define IDS_LOG_POPUP_COLLAPSE          20130
 #define IDS_LOG_POPUP_EXPAND            20131
+/* CFileTextLines, shared because it is compiled into TortoiseProc, TortoiseGitBlame and the tests */
+#define IDS_ERR_FILE_NOTAFILE           20132
+#define IDS_ERR_FILE_TOOBIG             20133
+#define IDS_ERR_FILE_BINARY             20134
+#define IDS_ERR_FILE_OPEN               20135

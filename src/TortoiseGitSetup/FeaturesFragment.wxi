@@ -9,8 +9,6 @@
 		<ComponentRef Id="C__TGitCache" />
 		<ComponentRef Id="C__TortoiseProc" />
 		<ComponentRef Id="C__TortoiseGITShortcuts" />
-		<ComponentRef Id="C__TortoiseMerge" />
-		<ComponentRef Id="C__TortoiseMergeShortcuts" />
 
 		<ComponentRef Id="C__TortoiseBlame" />
 		<ComponentRef Id="C__TortoiseGitBlameShortcuts" />
