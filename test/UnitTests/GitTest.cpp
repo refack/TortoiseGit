@@ -354,7 +354,7 @@ TEST(CGit, GetRepository)
 	ASSERT_TRUE(CreateDirectory(cgit.m_CurrentDir, nullptr));
 
 	CString output;
-	EXPECT_EQ(0, cgit.Run(L"git.exe init", &output, CP_UTF8));
+	EXPECT_EQ(0, cgit.Run(L"git.exe init -b master", &output, CP_UTF8));
 	EXPECT_STRNE(L"", output);
 
 	CAutoRepository repo2 = cgit.GetGitRepository(); // this tests GetGitRepository as well as m_Git.GetGitPathStringA
@@ -364,7 +364,7 @@ TEST(CGit, GetRepository)
 	ASSERT_TRUE(CreateDirectory(cgit.m_CurrentDir, nullptr));
 
 	output.Empty();
-	EXPECT_EQ(0, cgit.Run(L"git.exe init --bare", &output, CP_UTF8));
+	EXPECT_EQ(0, cgit.Run(L"git.exe init --bare -b master", &output, CP_UTF8));
 	EXPECT_STRNE(L"", output);
 
 	CAutoRepository repo3 = cgit.GetGitRepository(); // this tests GetGitRepository as well as m_Git.GetGitPathStringA

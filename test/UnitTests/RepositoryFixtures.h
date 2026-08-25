@@ -207,7 +207,10 @@ protected:
 	{
 		CBasicGitFixture::SetUp();
 		CString output;
-		EXPECT_EQ(0, m_Git.Run(L"git.exe init", &output, CP_UTF8));
+		// -b pins the initial branch: without it the repository inherits the host's
+		// init.defaultBranch, and every assertion about the branch name becomes a
+		// statement about the machine the tests happen to run on.
+		EXPECT_EQ(0, m_Git.Run(L"git.exe init -b master", &output, CP_UTF8));
 		EXPECT_STRNE(L"", output);
 		output.Empty();
 		EXPECT_EQ(0, m_Git.Run(L"git.exe config core.autocrlf false", &output, CP_UTF8));
@@ -228,7 +231,8 @@ protected:
 	{
 		CBasicGitFixture::SetUp();
 		CString output;
-		EXPECT_EQ(0, m_Git.Run(L"git.exe init --bare", &output, CP_UTF8));
+		// see the note on the non-bare fixture: pin the branch, do not inherit it
+		EXPECT_EQ(0, m_Git.Run(L"git.exe init --bare -b master", &output, CP_UTF8));
 		EXPECT_STRNE(L"", output);
 	}
 };

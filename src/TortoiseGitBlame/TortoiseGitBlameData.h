@@ -34,7 +34,13 @@ public:
 
 public:
 	int GetEncode(const char* buffer, int size, int* bomoffset) const;
-	void ParseBlameOutput(const BYTE_VECTOR& data, CGitHashMap& HashToRev, DWORD dateFormat, bool bRelativeTimes);
+	/**
+	 * Parses `git blame -p` output. Commits that cannot be resolved are reported through
+	 * \a errors (newline separated, deduplicated) rather than to the user directly, so the
+	 * parser stays usable from a non-interactive context such as the unit tests. Pass
+	 * nullptr to ignore them; the affected lines get an empty author and date either way.
+	 */
+	void ParseBlameOutput(const BYTE_VECTOR& data, CGitHashMap& HashToRev, DWORD dateFormat, bool bRelativeTimes, CString* errors = nullptr);
 	// updates sourcecode lines to the given encoding, encode==0 detects the encoding, returns the used encoding
 	int UpdateEncoding(int encode = 0);
 

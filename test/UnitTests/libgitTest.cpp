@@ -34,7 +34,7 @@ TEST(libgit, BrokenConfig)
 	SetCurrentDirectory(g_Git.m_CurrentDir);
 
 	CString output;
-	EXPECT_EQ(0, g_Git.Run(L"git.exe init", &output, CP_UTF8));
+	EXPECT_EQ(0, g_Git.Run(L"git.exe init -b master", &output, CP_UTF8));
 	EXPECT_STRNE(L"", output);
 	CString testFile = tempdir.GetTempDir() + L"\\.git\\config";
 	EXPECT_TRUE(CStringUtils::WriteStringToTextFile(testFile, L"[push]\ndefault=something-that-is-invalid\n"));
@@ -50,7 +50,7 @@ TEST(libgit, Mailmap)
 	SetCurrentDirectory(g_Git.m_CurrentDir);
 
 	CString output;
-	EXPECT_EQ(0, g_Git.Run(L"git.exe init", &output, CP_UTF8));
+	EXPECT_EQ(0, g_Git.Run(L"git.exe init -b master", &output, CP_UTF8));
 	EXPECT_STRNE(L"", output);
 	g_Git.ForceReInitDll();
 

@@ -76,7 +76,7 @@ int CTortoiseGitBlameData::GetEncode(const char* buff, int size, int* bomoffset)
 	return GetACP();
 }
 
-void CTortoiseGitBlameData::ParseBlameOutput(const BYTE_VECTOR& data, CGitHashMap& HashToRev, DWORD dateFormat, bool bRelativeTimes)
+void CTortoiseGitBlameData::ParseBlameOutput(const BYTE_VECTOR& data, CGitHashMap& HashToRev, DWORD dateFormat, bool bRelativeTimes, CString* errors)
 {
 	std::unordered_map<CGitHash, CString> hashToFilename;
 
@@ -212,7 +212,16 @@ void CTortoiseGitBlameData::ParseBlameOutput(const BYTE_VECTOR& data, CGitHashMa
 		}
 		else
 		{
-			MessageBox(nullptr, err, L"TortoiseGit", MB_ICONERROR);
+			// Hand the failure back to the caller instead of showing it. Parsing blame
+			// output is also done by the unit tests, and a parser that can open a modal
+			// dialog cannot run unattended. Deduplicated because GetRevForHash does not
+			// cache failures, so every line sharing an unresolvable commit repeats it.
+			if (errors && !err.IsEmpty() && errors->Find(err) < 0)
+			{
+				if (!errors->IsEmpty())
+					*errors += L'\n';
+				*errors += err;
+			}
 			authors.emplace_back();
 			dates.emplace_back();
 		}

@@ -1506,7 +1506,12 @@ int CTortoiseGitBlameView::GetEncode(unsigned char *buff, int size, int *bomoffs
 
 void CTortoiseGitBlameView::ParseBlame()
 {
-	m_data.ParseBlameOutput(GetDocument()->m_BlameData, GetLogData()->m_pLogCache->m_HashMap, m_DateFormat, m_bRelativeTimes);
+	// The parser collects unresolvable commits rather than reporting them itself; showing
+	// them is the view's job, once, instead of once per affected line.
+	CString errors;
+	m_data.ParseBlameOutput(GetDocument()->m_BlameData, GetLogData()->m_pLogCache->m_HashMap, m_DateFormat, m_bRelativeTimes, &errors);
+	if (!errors.IsEmpty())
+		MessageBox(errors, L"TortoiseGit", MB_ICONERROR);
 	CString filename = GetDocument()->m_GitPath.GetGitPathString();
 	m_bBlameOutputContainsOtherFilenames = m_data.ContainsOnlyFilename(filename) ? FALSE : TRUE;
 }
