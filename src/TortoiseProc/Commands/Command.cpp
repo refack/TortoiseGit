@@ -80,7 +80,6 @@
 #include "FirstStartWizardCommand.h"
 #include "InaccessibleCommand.h"
 #if 0
-#include "CrashCommand.h"
 #include "RebuildIconCacheCommand.h"
 #include "DropCopyCommand.h"
 #include "PasteCopyCommand.h"
@@ -431,8 +430,6 @@ Command* CommandServer::CreateRawCommand(const CString& sCmd)
 	case cmdFirstStartWizard:
 		return new FirstStartWizardCommand;
 #if 0
-	case cmdCrash:
-		return new CrashCommand;
 	case cmdRebuildIconCache:
 		return new RebuildIconCacheCommand;
 	case cmdUnIgnore:

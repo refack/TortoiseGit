@@ -34,7 +34,6 @@
  *
  * This only makes sense for official (preview) releases of the TortoiseGit team
  */
-#define ENABLE_CRASHHANLDER	0
 
 /*****************************************************************************
  * TortoiseGit PGP Public Key used to sign releases

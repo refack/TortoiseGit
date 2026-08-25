@@ -720,10 +720,6 @@ void CMainFrame::OnFileOpen(bool fillyours)
 	m_Data.m_sDiffFile = dlg.m_sUnifiedDiffFile;
 	m_Data.m_sPatchPath = dlg.m_sPatchDirectory;
 	m_Data.m_mergedFile.SetOutOfUse();
-	CCrashReport::Instance().AddFile2(dlg.m_sBaseFile, nullptr, L"Basefile", CR_AF_MAKE_FILE_COPY);
-	CCrashReport::Instance().AddFile2(dlg.m_sTheirFile, nullptr, L"Theirfile", CR_AF_MAKE_FILE_COPY);
-	CCrashReport::Instance().AddFile2(dlg.m_sYourFile, nullptr, L"Yourfile", CR_AF_MAKE_FILE_COPY);
-	CCrashReport::Instance().AddFile2(dlg.m_sUnifiedDiffFile, nullptr, L"Difffile", CR_AF_MAKE_FILE_COPY);
 
 	if (!m_Data.IsBaseFileInUse() && m_Data.IsTheirFileInUse() && m_Data.IsYourFileInUse())
 	{

@@ -284,14 +284,6 @@
 						<File Id="F__touch" Name="tgittouch.exe" DiskId="1" Source="..\..\bin\$(var.ReleasePath)\bin\tgittouch.exe" KeyPath="yes" />
 					</Component>
 
-					<?if $(var.IncludeCrashReportDll) = 1 ?>
-					<Component Id="C__crash" Guid="$(var.GuidCrashRpt)" Win64="$(var.Win64YesNo)">
-						<File Id="F__crashrpt" Name="crshhndl.dll" DiskId="1" Source="..\..\bin\$(var.ReleasePath)\bin\crshhndl.dll" KeyPath="yes" />
-						<File Id="F__sendrpt" Name="sendrpt.exe" DiskId="1" Source="..\..\bin\$(var.ReleasePath)\bin\sendrpt.exe" />
-						<File Id="F__dbghelp" Name="dbghelp.dll" DiskId="1" Source="..\..\ext\CrashServer\CrashHandler\SendRpt\dbghelp\$(var.Platform)\dbghelp.dll" />
-					</Component>
-					<?endif ?>
-
 					<Component Id="C__gitlibs" Guid="$(var.GuidGitLibs)" Win64="$(var.Win64YesNo)">
 						<?if $(var.Platform) = "x86" ?>
 						<File Id="F__gitdll32" Name="gitdll32.dll" DiskId="1" Source="..\..\bin\$(var.ReleasePath32)\bin\gitdll32.dll" KeyPath="yes" />

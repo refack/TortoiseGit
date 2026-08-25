@@ -22,7 +22,6 @@
 #include <version.h>
 #include "PathUtils.h"
 #include "registry.h"
-#include "CrashReport.h"
 #include <format>
 #include "StringUtils.h"
 #if defined(TORTOISEGITPROC)
@@ -82,10 +81,6 @@ HINSTANCE CLangDll::Init(LPCWSTR appname, HMODULE hModule, DWORD langID)
 	} while (langID != 0);
 
 	m_langId = langID;
-#if ENABLE_CRASHHANLDER && !_M_ARM64 && !TORTOISESHELL
-	CCrashReport::Instance().AddUserInfoToReport(L"LanguageID", std::to_wstring(langID).data());
-#endif
-
 	return m_hInstance;
 }
 #if defined(TORTOISEGITPROC)

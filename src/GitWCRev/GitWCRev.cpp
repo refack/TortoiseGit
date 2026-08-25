@@ -19,7 +19,6 @@
 
 #include "stdafx.h"
 #include "SmartHandle.h"
-#include <Utils/CrashReport.h>
 #include <io.h>
 #include <fcntl.h>
 #include "GitWCRev.h"
@@ -698,7 +697,6 @@ int wmain(int argc, wchar_t* argv[])
 	GitWCRev_t GitStat;
 
 	SetDllDirectory(L"");
-	CCrashReportTGit crasher(L"GitWCRev " TEXT(APP_X64_STRING), TGIT_VERMAJOR, TGIT_VERMINOR, TGIT_VERMICRO, TGIT_VERBUILD, TGIT_VERDATE);
 
 	if (argc >= 2 && argc <= 5)
 	{

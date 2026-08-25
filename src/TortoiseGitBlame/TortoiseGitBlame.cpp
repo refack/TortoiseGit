@@ -25,7 +25,6 @@
 #include "TortoiseGitBlame.h"
 #include "MainFrm.h"
 #include <version.h>
-#include <Utils/CrashReport.h>
 #include "TortoiseGitBlameDoc.h"
 #include "TortoiseGitBlameView.h"
 #include "CmdLineParser.h"
@@ -55,10 +54,6 @@ CTortoiseGitBlameApp::CTortoiseGitBlameApp()
 {
 	SetDllDirectory(L"");
 	SetTaskIDPerUUID();
-#if ENABLE_CRASHHANLDER && !_M_ARM64
-	CCrashReportTGit crasher(L"TortoiseGitBlame " _T(APP_X64_STRING), TGIT_VERMAJOR, TGIT_VERMINOR, TGIT_VERMICRO, TGIT_VERBUILD, TGIT_VERDATE);
-	CCrashReport::Instance().AddUserInfoToReport(L"CommandLine", GetCommandLine());
-#endif
 	EnableHtmlHelp();
 	git_libgit2_init();
 }

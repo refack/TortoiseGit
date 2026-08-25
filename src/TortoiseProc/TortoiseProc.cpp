@@ -21,7 +21,6 @@
 #include "stdafx.h"
 #include "TortoiseProc.h"
 #include "SysImageList.h"
-#include <Utils/CrashReport.h>
 #include "CmdLineParser.h"
 #include "Hooks.h"
 #include "AppUtils.h"
@@ -66,7 +65,6 @@ CTortoiseProcApp::CTortoiseProcApp()
 {
 	CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": Constructor\n");
 	SetDllDirectory(L"");
-	CCrashReport::Instance().AddUserInfoToReport(L"CommandLine", GetCommandLine());
 	CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": CommandLine: %s\n", GetCommandLine());
 	EnableHtmlHelp();
 	CHooks::Create();
@@ -100,10 +98,6 @@ CWnd* GetParentCWnd(HWND hWnd)
 
 	return nullptr;
 }
-
-#if ENABLE_CRASHHANLDER && !_M_ARM64
-CCrashReportTGit crasher(L"TortoiseGit " _T(APP_X64_STRING), TGIT_VERMAJOR, TGIT_VERMINOR, TGIT_VERMICRO, TGIT_VERBUILD, TGIT_VERDATE);
-#endif
 
 // CTortoiseProcApp initialization
 
@@ -162,7 +156,6 @@ BOOL CTortoiseProcApp::InitInstance()
 		AfxMessageBox(AfxGetApp()->m_lpCmdLine, MB_OK | MB_ICONINFORMATION);
 
 #if PREVIEW
-	CCrashReport::Instance().AddUserInfoToReport(L"Preview", _T(PREVIEW_INFO));
 	CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": Preview: %s\n", _T(PREVIEW_INFO));
 #else
 	if (CString hotfix = CPathUtils::GetAppDirectory() + L"hotfix.ini"; PathFileExists(hotfix))
@@ -174,7 +167,6 @@ BOOL CTortoiseProcApp::InitInstance()
 			auto version = versionparser.GetTortoiseGitVersion();
 			if (version.major == TGIT_VERMAJOR && version.minor == TGIT_VERMINOR && (version.micro > TGIT_VERMICRO || version.micro == TGIT_VERMICRO && version.build > TGIT_VERBUILD))
 			{
-				CCrashReport::Instance().AddUserInfoToReport(L"Hotfix", versionparser.GetTortoiseGitVersion().version);
 				CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": Hotfix: %s\n", static_cast<LPCWSTR>(versionparser.GetTortoiseGitVersion().version));
 			}
 		}
@@ -243,16 +235,9 @@ BOOL CTortoiseProcApp::InitInstance()
 		return FALSE;
 
 	{
-		CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": Registering Crash Report ...\n");
-		CCrashReport::Instance().AddUserInfoToReport(L"msysGitDir", CGit::ms_LastMsysGitDir);
 		CString versionString;
 		versionString.Format(L"%X", CGit::ms_LastMsysGitVersion);
-		CCrashReport::Instance().AddUserInfoToReport(L"msysGitVersion", versionString);
 		CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": msysGitVersion: %s\n", static_cast<LPCWSTR>(versionString));
-		if (CGit::ms_bCygwinGit)
-			CCrashReport::Instance().AddUserInfoToReport(L"CygwinHack", L"true");
-		if (CGit::ms_bMsys2Git)
-			CCrashReport::Instance().AddUserInfoToReport(L"Msys2Hack", L"true");
 	}
 
 	if (parser.HasKey(L"path") && parser.HasKey(L"pathfile"))

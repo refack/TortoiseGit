@@ -25,7 +25,6 @@
 #include "CacheInterface.h"
 #include "Resource.h"
 #include "registry.h"
-#include "CrashReport.h"
 #include <Dbt.h>
 #include <InitGuid.h>
 #include <Ioevent.h>
@@ -45,10 +44,6 @@
 
 
 #pragma comment(linker, "\"/manifestdependency:type='win32' name='Microsoft.Windows.Common-Controls' version='6.0.0.0' processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'\"")
-
-#if ENABLE_CRASHHANLDER && !_M_ARM64
-CCrashReportTGit crasher(L"TGitCache " _T(APP_X64_STRING), TGIT_VERMAJOR, TGIT_VERMINOR, TGIT_VERMICRO, TGIT_VERBUILD, TGIT_VERDATE);
-#endif
 
 DWORD WINAPI		ExplorerMonitorThread(LPVOID);
 DWORD WINAPI 		InstanceThread(LPVOID);

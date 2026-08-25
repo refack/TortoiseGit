@@ -26,7 +26,6 @@
 #include "LangDll.h"
 #include "Monitor.h"
 #include <version.h>
-#include <Utils/CrashReport.h>
 #pragma warning(push)
 #pragma warning(disable: 4458)
 #include <GdiPlus.h>
@@ -47,11 +46,6 @@ int APIENTRY wWinMain(HINSTANCE hInstance,
 	SetTaskIDPerUUID();
 	MSG msg;
 	HACCEL hAccelTable;
-
-#if ENABLE_CRASHHANLDER && !_M_ARM64
-	CCrashReportTGit crasher(L"TortoiseGitUDiff " TEXT(APP_X64_STRING), TGIT_VERMAJOR, TGIT_VERMINOR, TGIT_VERMICRO, TGIT_VERBUILD, TGIT_VERDATE);
-	CCrashReport::Instance().AddUserInfoToReport(L"CommandLine", GetCommandLine());
-#endif
 
 	CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
 	SCOPE_EXIT { CoUninitialize(); };

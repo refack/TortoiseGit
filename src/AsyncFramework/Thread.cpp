@@ -28,7 +28,6 @@ namespace async
 
 void CThread::ThreadFunc (void* arg)
 {
-//    CCrashReportThread crashthread;
     CThread* self = reinterpret_cast<CThread*>(arg);
 
     // maybe, we were started in "suspended" mode

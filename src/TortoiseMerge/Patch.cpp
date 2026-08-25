@@ -373,10 +373,6 @@ errorcleanup:
 
 BOOL CPatch::OpenUnifiedDiffFile(const CString& filename)
 {
-#ifndef GOOGLETEST_INCLUDE_GTEST_GTEST_H_
-	CCrashReport::Instance().AddFile2(filename, nullptr, L"unified diff file", CR_AF_MAKE_FILE_COPY);
-#endif
-
 	CFileTextLines PatchLines;
 	if (!PatchLines.Load(filename))
 	{
@@ -445,12 +441,6 @@ int CPatch::PatchFile(const int strip, int nIndex, const CString& sPatchPath, co
 
 	CString sLine;
 	CString sPatchFile = sBaseFile.IsEmpty() ? sPath : sBaseFile;
-#ifndef GOOGLETEST_INCLUDE_GTEST_GTEST_H_
-	if (PathFileExists(sPatchFile))
-	{
-		CCrashReport::Instance().AddFile2(sPatchFile, nullptr, L"File to patch", CR_AF_MAKE_FILE_COPY);
-	}
-#endif
 	CFileTextLines PatchLines;
 	CFileTextLines PatchLinesResult;
 	PatchLines.Load(sPatchFile);

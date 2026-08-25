@@ -78,10 +78,6 @@ CTortoiseMergeApp::~CTortoiseMergeApp()
 
 // The one and only CTortoiseMergeApp object
 CTortoiseMergeApp theApp;
-#if ENABLE_CRASHHANLDER && !_M_ARM64
-CCrashReportTGit g_crasher(L"TortoiseGitMerge " _T(APP_X64_STRING), TGIT_VERMAJOR, TGIT_VERMINOR, TGIT_VERMICRO, TGIT_VERBUILD, TGIT_VERDATE);
-#endif
-
 CString g_sGroupingUUID;
 CString g_sGroupingIcon;
 bool g_bGroupingRemoveIcon = false;
@@ -91,7 +87,6 @@ BOOL CTortoiseMergeApp::InitInstance()
 {
 	SetDllDirectory(L"");
 	SetTaskIDPerUUID();
-	CCrashReport::Instance().AddUserInfoToReport(L"CommandLine", GetCommandLine());
 
 	if (HINSTANCE hInst = m_langDll.Init(L"TortoiseMerge"); hInst)
 		AfxSetResourceHandle(hInst);

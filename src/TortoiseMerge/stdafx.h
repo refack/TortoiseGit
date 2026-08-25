@@ -75,7 +75,6 @@ using std::min;
 
 #include "scope_exit_noexcept.h"
 #include "ProfilingInfo.h"
-#include "CrashReport.h"
 
 #ifdef _WIN64
 #	define APP_X64_STRING	"x64"
