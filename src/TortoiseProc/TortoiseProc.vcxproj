@@ -46,7 +46,7 @@
            copy ships a no-op git2\experimental.h, so leaving it on the path
            would silently compile this project against the 20-byte git_oid
            while the library it links uses the 33-byte tagged one. -->
-      <AdditionalIncludeDirectories>$(ProjectDir);..\Resources;$InputDir;..\..\ext\ResizableLib;..\Git;..\Utils;..\..\ext\json\include;..\..\ext\scintilla\include;..\..\ext\lexilla\include;..\Utils\TreePropSheet;..\Utils\MiscUI;..\TortoiseShell;..\..\ext\gitdll;..\..\ext\OGDF\include;..\..\ext\build\ogdf;..\AsyncFramework;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir);..\Resources;$InputDir;..\..\ext\ResizableLib;..\Git;..\Utils;..\..\ext\json\include;..\..\ext\scintilla\include;..\..\ext\lexilla\include;..\Utils\TreePropSheet;..\Utils\MiscUI;..\TortoiseShell;..\..\ext\gitdll;..\AsyncFramework;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <!-- GIT_EXPERIMENTAL_SHA256 is no longer listed: vcpkg's generated
            git2\experimental.h defines it, and git2\oid.h includes that header,
            so every TU that can see git_oid gets the flag by construction. -->
@@ -57,7 +57,13 @@
       <AdditionalIncludeDirectories>$(IntDir);..\TortoiseShell;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ResourceCompile>
     <Link>
-      <AdditionalDependencies>Winmm.lib;gdiplus.lib;shfolder.lib;comctl32.lib;ws2_32.lib;shlwapi.lib;wininet.lib;UxTheme.lib;detours.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <!-- OGDF and its bundled COIN-OR/Clp solver come from vcpkg, and are named
+           here rather than in TortoiseGit.vcpkg.props because that file carries
+           the libgit2 bundle and TortoiseProc is OGDF's only consumer. Neither
+           takes $(VcpkgLibSuffix): the overlay port clears upstream's "-debug"
+           postfix, so both configurations use the same names out of different
+           directories, the way every other vcpkg package here does. -->
+      <AdditionalDependencies>Winmm.lib;gdiplus.lib;shfolder.lib;comctl32.lib;ws2_32.lib;shlwapi.lib;wininet.lib;UxTheme.lib;detours.lib;OGDF.lib;COIN.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <Manifest>
       <EnableDpiAwareness>true</EnableDpiAwareness>
@@ -814,10 +820,6 @@
     </ProjectReference>
     <ProjectReference Include="..\..\ext\build\hunspell.vcxproj">
       <Project>{12e5b4ae-d7ef-4a57-a22d-6f9f9d8ce1fb}</Project>
-      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
-    </ProjectReference>
-    <ProjectReference Include="..\..\ext\build\ogdf.vcxproj">
-      <Project>{7801d1be-e2fe-476b-a4b4-5d27f387f479}</Project>
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
     </ProjectReference>
     <ProjectReference Include="..\..\ext\ResizableLib\ResizableLib.vcxproj">

@@ -18,11 +18,13 @@ minutes of clicking. See "Test health" below for what that number means.
 **Current focus is shrinking the tree.** Gone so far: CrashServer,
 TortoiseGitMerge, TortoiseGitPlink with the bundled PuTTY binaries,
 `tgittouch`, TortoiseGitIDiff, and the `simpleini`, `Detours`, `apr` and
-`apr-util` submodules. TortoiseGitUDiff is chalklined. The Revision Graph and
-its OGDF dependency were considered and **kept**.
+`apr-util` submodules. TortoiseGitUDiff is chalklined. The Revision Graph was
+considered and **kept**; its OGDF dependency moved to a new overlay port.
 The standing goal (per user direction, 2026-08-22) is to keep going — every
 remaining `ext\*` submodule should become a public vcpkg port, a port overlay,
-or nothing at all. Eleven are left. See "Dependency pruning".
+or nothing at all. Eleven checkouts are still vendored, but four of them
+(`libgit2`, `pcre2`, `zlib`, `OGDF`) no longer feed any build and can be
+dropped whenever convenient. See "Dependency pruning".
 
 The recurring test: **what does this actually add over the thing Windows or
 git already ships?** For TortoiseGitMerge the answer was "nothing git's
@@ -565,16 +567,86 @@ port, an overlay, or nothing. Done so far, beyond Phase 1's libgit2/pcre2/zlib:
 - `apr` and `apr-util` -> deleted outright. They existed only for
   TortoiseMerge's vendored `libsvn_diff`, so they left with it. **They were
   never SVN interoperability** — that question came up and the answer is no.
+- `OGDF` -> a **new** overlay port, `ext\vcpkg-ports\ogdf\`. See below.
+
+#### The OGDF port
+
+Unlike the libgit2 overlay, this is not a patch layer over a stock port —
+**vcpkg has no `ogdf` port at all**, so the overlay is the whole thing.
+Surveyed first, 2026-08-25, because the question was "is there a better graph
+geometrizer": `graphviz` 15.0.0 exists but is **EPL-1.0**, which cannot be
+linked into a GPL-2 binary (shelling out to `dot.exe` would be fine — the
+Revision Graph is an in-window canvas, so that means writing a viewer);
+`igraph` 1.0.1 is GPL-2-or-later and has `layout_sugiyama`, but it is a
+network-analysis library and swapping it in rewrites `RevisionGraphWnd`'s
+adapter for equivalent output. Nothing better was low-hanging, so: port it.
+
+**Conan does have a recipe** (`ogdf/2023.09`), which vcpkg does not — worth
+knowing, but not worth taking: it is two years behind the commit this tree
+vendors, and adopting it would put a second package manager and a second
+generated props chain beside the vcpkg one, which is the fragmentation this
+plan exists to remove.
+
+It replaces `ext\build\ogdf.vcxproj` — 157 hand-listed `.cpp` files, 249 of
+them COIN-OR/Clp — plus the hand-written `ext\build\ogdf\...\config_autogen.h`
+that stood in for what CMake generates. Upstream's own CMake build is used
+essentially as-is, which makes this port donatable to microsoft/vcpkg; the one
+patch is a packaging fix, not a TortoiseGit behaviour change.
+
+Two things worth not rediscovering:
+
+- **`CMAKE_DEBUG_POSTFIX` is `set()` without `CACHE`**, so `-D` on the command
+  line loses and both configurations produce `OGDF-debug.lib`. vcpkg separates
+  debug from release by directory, so that name matches no convention in this
+  tree. `cache-debug-postfix.diff` marks it `CACHE`.
+- **Clearing it exposed a latent bug** — `set_target_properties(... DEBUG_POSTFIX
+  ${CMAKE_DEBUG_POSTFIX})` is unquoted, so an empty value drops the argument and
+  configure fails on argument count. Same shape as the Detours `DETOUR_BREAK`
+  finding below: *a migrated dependency that starts failing is usually reporting
+  a defect that was always there.* The patch quotes it; both hunks are upstream
+  material.
+- **`config_autogen.h` is generated per build type** into `include/ogdf-<type>/`,
+  and vcpkg discards `debug/include` entirely. Shipping the release copy as-is
+  would compile a Debug consumer without `OGDF_DEBUG` against a debug `OGDF.lib`
+  that has it — an ODR mismatch, silent at link time. The portfile rewrites that
+  one line to derive the flag from `NDEBUG`, exactly as the hand-written header
+  it replaces did, and installs the result at
+  `include/ogdf/basic/internal/config_autogen.h` where the 18 public headers'
+  `#include <ogdf/basic/internal/config_autogen.h>` finds it. That is also what
+  lets TortoiseProc drop *both* of its OGDF include directories rather than one.
+
+TortoiseProc is the only consumer. It names `OGDF.lib;COIN.lib` in its own
+`AdditionalDependencies` rather than in `TortoiseGit.vcpkg.props` — that file is
+the libgit2 bundle, and the base/bundle split exists precisely so a single-package
+consumer is not forced to link the rest. Neither library takes
+`$(VcpkgLibSuffix)`, because the port clears the postfix.
+
+Verified: 574/574 green, full-solution Debug/x64 clean, the Revision Graph opens
+and lays out a branched-and-merged test repository — which is the real check for
+*this* change, since an ABI-mismatched `OGDF_DEBUG` would corrupt the pool
+allocator during layout rather than fail to link — and, per the standing
+build+run gate, `/command:log` on the SHA256 `test\sha256wc` working copy still
+renders full 64-character ids.
+
+*Also found in passing:* `appveyor.yml`'s submodule-init line still named
+`ext/apr`, `ext/apr-util` and `ext/Detours`, all removed earlier. Fixed with
+this change. **The rest of that file is still stale** — it names
+`ext\Crash-Server\CrashServerSDK\*` targets that went in `306aca834`, and
+carries a Win32 matrix Phase 0 removed. That wants its own pass; the same
+"a green build cannot see a CI target list" lesson as `c9149bc5e`.
 
 Remaining, by how they should end:
 
 | Submodule | Route |
 | --- | --- |
 | `hunspell`, `json`, `googletest`, `lexilla` | stock vcpkg ports exist; migrate |
-| `OGDF` | **stays** — needs an overlay port, none upstream. Asked and answered 2026-08-25: its only consumer is the Revision Graph, and the user chose to keep that feature. `ext\build\ogdf.vcxproj` therefore stays hand-maintained, and this row stays open. `src\AsyncFramework\` rides along — `RevisionGraphWnd.h` is *its* only consumer. |
 | `editorconfig` | **stays** — TortoiseProc consumes it (`AppUtils.cpp`), and no vcpkg port carries this build |
 | `tgit`, `spell` | permanent — `tgit` is the second git backend, `spell` is dictionary data |
-| `libgit2`, `pcre2`, `zlib` | build wiring already retired; checkouts left vendored, safe to drop when convenient |
+| `libgit2`, `pcre2`, `zlib`, `OGDF` | build wiring already retired; checkouts left vendored, safe to drop when convenient |
+
+The Revision Graph itself **stays** — asked and answered 2026-08-25, the user
+uses it. Only its build wiring moved. `src\AsyncFramework\` rides along, since
+`RevisionGraphWnd.h` is *its* only consumer.
 
 Two lessons from the first, failed attempt at this:
 
@@ -654,6 +726,15 @@ What went with it, and what did not:
   Rerouting them to `importpatch` was considered and rejected: `git am` creates
   commits where TortoiseGitMerge patched the working tree, and a silent
   semantic swap is worse than an honest removal.
+- **The interactive half has an almost-idiomatic git spelling** (user, 2026-08-25):
+  `git config --global alias.ipatch '!f() { git apply "$1" && git add -p; }; f'`.
+  That names the two steps exactly — `git apply` lands the hunks in the working
+  tree, `git add -p` is the review. TortoiseGit already owns the second step in
+  GUI form: **the Commit dialog is `git add -p` with a mouse**, and since
+  `00048cc32` the Changed Files dialog hands off to it. So the replacement for
+  the removed "Review/apply single patch" is `git apply` -> Commit dialog, not a
+  rebuilt patch UI. Note the alias itself cannot simply be shelled out to —
+  `git add -p` needs a terminal and TortoiseGitProc has none.
 - The Settings pages for Diff and Merge relabelled their built-in radio button
   from "TortoiseGitMerge" to "Git default", which is what it now selects.
 - Retired ids are annotated, not renumbered: `TGitContextMenuEntries::ApplyPatch`
@@ -770,7 +851,25 @@ used to guarantee before deleting it. A compiler warning found a behavioural
 regression here, not dead code.*
 
 **TortoiseGitUDiff is chalklined** — marked, not cut (user direction,
-2026-08-25). What cutting it will involve, so it need not be rediscovered:
+2026-08-25).
+
+**Scintilla does not fall out with it.** That was the hoped-for side effect and
+it does not happen: `TortoiseGitBlame.vcxproj` uses it
+(`TortoiseGitBlameView.cpp:45`) and so does `TortoiseProc.vcxproj`
+(`SciEdit.cpp` — the commit-message editor). So cutting UDiff frees 1,519 lines
+of TortoiseGit code and **zero** dependencies, which is a materially weaker case
+than TortoiseGitMerge (which dragged out `libsvn_diff` + `apr` + `apr-util`) or
+TortoiseGitPlink (312 vendored PuTTY files).
+
+Nor is there a mature FOSS binary to vendor in its place, checked 2026-08-25:
+the good unified-diff colourisers are terminal programs (`delta`, `bat`) and
+TortoiseGitProc has no console; the GUI options (Notepad3, Notepad++, VS Code)
+are general editors whose diff support *is* a Scintilla lexer — the same thing
+UDiff already is, at 40–200 MB instead of 1,519 lines. WinMerge and Meld are
+comparison tools, not patch viewers. If it goes, the honest floor is the
+existing `PatchViewer` registry key -> `notepad.exe` chain, and users repoint it.
+
+What cutting it will involve, so it need not be rediscovered:
 
 - 1,519 lines in `src\TortoiseUDiff\`, plus `TortoiseUDiffLang` and its
   Settings page (`SettingsTUDiff`).
@@ -908,6 +1007,8 @@ shrinks silently looks exactly like a suite that got greener.
 - `ext\vcpkg-ports\libgit2\` — the port overlay that replaced
   `ext\build\libgit2.vcxproj` (deleted in `f78e98aaf`). It, not a vcxproj, is
   now the source of truth for libgit2's feature flags.
+- `ext\vcpkg-ports\ogdf\` — same role for OGDF, but a whole port rather than an
+  overlay on a stock one: vcpkg has no `ogdf`. Donatable upstream as-is.
 - `src\Utils\GitObjectFormat.h` — the process-level object format:
   `g_gitObjectFormat`, `GitHashSize()`, `GitZeroRevString()`,
   `GitLatchObjectFormat()`. In `Utils` rather than `Git` because `GitWCRev`

@@ -1,0 +1,38 @@
+Let -DCMAKE_DEBUG_POSTFIX= override the hardcoded "-debug".
+
+Upstream sets CMAKE_DEBUG_POSTFIX with a plain set(), which beats a -D on the
+command line, so the debug build always produces OGDF-debug.lib / COIN-debug.lib.
+vcpkg separates debug and release by directory instead of by filename, so the
+postfix leaves consumers with a library name no naming convention in the tree
+matches. Marking it CACHE keeps the standalone default identical while letting a
+packager clear it.
+
+The second hunk is what clearing it exposes: DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX}
+is unquoted, so an empty value drops the argument entirely and
+set_target_properties fails on argument count. That has always been wrong; it just
+could not fire while the only assignment two files away was non-empty.
+
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -3,7 +3,7 @@
+ # we use "xxxx.yy.01" to signify a dev version.
+ project(OGDF-PROJECT LANGUAGES CXX VERSION "2025.10.01")
+ set(CMAKE_CXX_STANDARD 17)
+-set(CMAKE_DEBUG_POSTFIX "-debug")
++set(CMAKE_DEBUG_POSTFIX "-debug" CACHE STRING "Filename postfix for debug builds.")
+
+ set(module_dir "${PROJECT_SOURCE_DIR}/cmake")
+ list(INSERT CMAKE_MODULE_PATH 0 "${module_dir}" )
+diff --git a/cmake/make-user-target.cmake b/cmake/make-user-target.cmake
+--- a/cmake/make-user-target.cmake
++++ b/cmake/make-user-target.cmake
+@@ -9,7 +9,7 @@
+ function(make_user_target TARGET)
+   make_some_target(${TARGET} ${PROJECT_BINARY_DIR}/include)
+   target_link_libraries(${TARGET} OGDF)
+-  set_target_properties(${TARGET} PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
++  set_target_properties(${TARGET} PROPERTIES DEBUG_POSTFIX "${CMAKE_DEBUG_POSTFIX}")
+
+   # link CGAL if enabled
+   if(${OGDF_INCLUDE_CGAL})

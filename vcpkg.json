@@ -15,6 +15,7 @@
       ]
     },
     "detours",
+    "ogdf",
     "pcre2",
     "simpleini",
     "zlib"
