@@ -36,6 +36,8 @@
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   <Import Project="$(SolutionDir)TortoiseGit.common.props" />
+  <!-- for detours.lib, reached through DarkModeHelper.cpp; no libgit2 bundle needed here -->
+  <Import Project="$(SolutionDir)TortoiseGit.vcpkg-base.props" />
   <PropertyGroup Label="UserMacros" />
   <ItemDefinitionGroup Condition="'$(Configuration)'=='Release'">
     <Link>
@@ -50,7 +52,7 @@
       <EnableDpiAwareness>PerMonitorHighDPIAware</EnableDpiAwareness>
     </Manifest>
     <Link>
-      <AdditionalDependencies>UxTheme.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>UxTheme.lib;detours.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -84,9 +86,6 @@
     <None Include="SshAskPass.rc2" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\ext\build\Detours.vcxproj">
-      <Project>{e5af2264-b5a2-424c-9c5c-7e88375583ce}</Project>
-    </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

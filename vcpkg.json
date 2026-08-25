@@ -14,6 +14,7 @@
         "winhttp"
       ]
     },
+    "detours",
     "pcre2",
     "simpleini",
     "zlib"

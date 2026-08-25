@@ -25,7 +25,7 @@
 #include <vector>
 #include <functional>
 #include "scope_exit_noexcept.h"
-#include "../../ext/Detours/src/detours.h"
+#include <detours/detours.h>
 
 
 namespace
