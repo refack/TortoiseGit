@@ -273,10 +273,6 @@
 				<?endif ?>
 
 				<Directory Id="D__Bin" Name="bin">
-					<Component Id="C__touch" Guid="$(var.GuidTouch)" Win64="$(var.Win64YesNo)">
-						<File Id="F__touch" Name="tgittouch.exe" DiskId="1" Source="..\..\bin\$(var.ReleasePath)\bin\tgittouch.exe" KeyPath="yes" />
-					</Component>
-
 					<Component Id="C__gitlibs" Guid="$(var.GuidGitLibs)" Win64="$(var.Win64YesNo)">
 						<?if $(var.Platform) = "x86" ?>
 						<File Id="F__gitdll32" Name="gitdll32.dll" DiskId="1" Source="..\..\bin\$(var.ReleasePath32)\bin\gitdll32.dll" KeyPath="yes" />

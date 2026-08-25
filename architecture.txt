@@ -14,7 +14,6 @@ are of interest here (the project names are in parentheses bebind):
 * SshAskPass.exe (SshAskPass)
 * GitWCRev.exe (GitWCRev)
 * GitWCRevCOM.exe (GitWCRevCOM)
-* tgittouch.exe (tgittouch)
 
 TortoiseGit(32).dll and TortoiseGitStub(32).dll
 ===============================================
@@ -139,13 +138,3 @@ This program is the COM interface of GitWCRev.
 
 cf. https://tortoisegit.org/docs/tortoisegit/tgit-gitwcrev-com-interface.html
 
-tgittouch.exe
-=============
-This is a helper utility which creates/touches a file which is passed as
-command line parameter.
-
-It is needed for interacting with the Putty authentication agent (peagent).
-TortoiseGit needs to know when the user finished entering his/her password,
-but peagent is not blocking. Therefore, peagent is called with the private
-key and tgittouch.exe together with a tmp filename.Then TortoiseGitProc.exe
-waits untils the tmp-file is created.

@@ -15,11 +15,17 @@ sequence from the numbering.
 and green — 574/574 in about 175 seconds, down from 557/29 and roughly 28
 minutes of clicking. See "Test health" below for what that number means.
 
-**Current focus is shrinking the tree.** Two applications and four submodules
-are gone: CrashServer and TortoiseGitMerge, `simpleini`, `Detours`, `apr` and
-`apr-util`. The standing goal (per user direction, 2026-08-22) is to keep
-going — every remaining `ext\*` submodule should become a public vcpkg port, a
-port overlay, or nothing at all. Eleven are left. See "Dependency pruning".
+**Current focus is shrinking the tree.** Gone so far: CrashServer,
+TortoiseGitMerge, TortoiseGitPlink with the bundled PuTTY binaries,
+`tgittouch`, and the `simpleini`, `Detours`, `apr` and `apr-util` submodules.
+The standing goal (per user direction, 2026-08-22) is to keep going — every
+remaining `ext\*` submodule should become a public vcpkg port, a port overlay,
+or nothing at all. Eleven are left. See "Dependency pruning".
+
+The recurring test: **what does this actually add over the thing Windows or
+git already ships?** For TortoiseGitMerge the answer was "nothing git's
+difftool doesn't do"; for TortoiseGitPlink it was "a GUI prompt", which
+`SshAskPass.exe` already provides for OpenSSH. Ask it before adding, too.
 
 Historical landing order, kept because several phases were taken out of
 sequence and the commit trail is otherwise hard to follow:
@@ -54,6 +60,9 @@ sequence and the commit trail is otherwise hard to follow:
   teaching TortoiseGit to fall back to git's own diff and merge tools; the
   third commit cleared the references a green build cannot see.
 - `3e0a0e71f` — an unbalanced Detours hook, exposed by the vcpkg migration.
+- `bf2029b99`, `7defc0e95`, `26c13b9cf`, `ddd23a544` — PuTTY carved out:
+  OpenSSH became the default, then the key-management UI, then TortoiseGitPlink
+  and the bundled binaries, then `tgittouch`.
 
 **Validation scope (set 2026-08-09, per user direction):** this migration
 touches ten libgit2 consumers plus the installer and translation build. Not
@@ -647,6 +656,71 @@ What went with it, and what did not:
   from "TortoiseGitMerge" to "Git default", which is what it now selects.
 - Retired ids are annotated, not renumbered: `TGitContextMenuEntries::ApplyPatch`
   keeps its bit because user menu masks in the registry are persisted state.
+
+### PuTTY carved out (`bf2029b99`, `7defc0e95`, `26c13b9cf`, `ddd23a544`)
+
+Same pattern as TortoiseMerge — delegate first, remove second — in four
+buildable steps: flip the default, drop the UI, drop the binaries, drop what
+the binaries needed.
+
+**What TortoisePlink actually added was a GUI, and nothing else.**
+`src\TortoisePlink\` was a 312-file vendored fork of PuTTY 0.84 carried
+in-tree (not even a submodule), of which exactly three upstream files
+diverged: `version.h` and `Windows\plink.c` for branding, and
+`Windows\console.c` for the real change — host-key confirmation, weak-crypto
+warnings and the passphrase prompt turned into `MessageBox`/`LoginDialog`,
+because plink is a console program and TortoiseGitProc gives it no console.
+Nothing cryptographic, nothing protocol-level.
+
+**That gap was already closed for OpenSSH before this work started.**
+`CGit::CheckMsysGitDir` sets `SSH_ASKPASS`, `GIT_ASKPASS`, `GIT_ASK_YESNO`,
+`DISPLAY` and `SSH_ASKPASS_REQUIRE=force` (the last one added explicitly for
+Win32-OpenSSH), pointing at the shipped `SshAskPass.exe`. The installer had
+offered the choice for years. Only the *default* still pointed at plink. So
+the fork was a second SSH implementation solving a problem the shipping one
+already solved.
+
+**Why the key UI went rather than being translated** (user direction,
+2026-08-25: "This is a use-case engineered for vendor lock-in. Both
+.ssh/config and ssh-agent provide all the needed DoF"): `remote.<name>.puttykeyfile`
+was a TortoiseGit-invented config key honoured by nothing else — not git CLI,
+not any other client. `IdentityFile` per `Host` in `~/.ssh/config` is
+per-host rather than per-remote, needs no UI, and applies everywhere.
+`ssh-agent` replaces Pageant. And Windows OpenSSH supports the `sk-` key types
+(verified `ssh -Q key` on OpenSSH_for_Windows_9.5p2: `sk-ssh-ed25519@openssh.com`,
+`sk-ecdsa-sha2-nistp256@openssh.com`), so key material can sit in the TPM
+behind Windows Hello — a trust loop Pageant structurally cannot close.
+
+Notes worth keeping:
+
+- **`GIT_SSH` must name something.** `ssh-wintunnel.c` hard-errors with "No
+  GIT_SSH tool configured" if it is unset, so the default changed target
+  rather than disappearing.
+- **plink *support* stayed.** `ssh-wintunnel.c` still translates `-P` and
+  `-batch` for a plink-shaped client, because the SSH-client setting is
+  free-form and someone may point it at their own PuTTY. Removing the bundled
+  copy is not a reason to refuse the tool. Only the `tortoiseplink` exemption
+  from `-batch` went.
+- **`tgittouch` fell out.** It creates an empty file and exits; its only
+  purpose was that `pageant.exe` does not block, so `LaunchPAgent` used it as
+  pageant's `-c` command and polled for the file. Nothing invoked it once
+  `LaunchPAgent` was gone.
+- **`ext\putty` was never source** — a `download.bat` fetching signed
+  `pageant.exe`/`puttygen.exe` per architecture with SHA256 checks.
+- The installer's "Choose SSH Client" page stopped being a choice. It explains
+  instead of asking; it should collapse entirely in Phase 5 rather than being
+  rewired now, since the WiX v3 toolchain is not installed here and its Next/Back
+  chain cannot be tested.
+
+**Migration cost, stated plainly:** `.ppk` keys need a one-time conversion
+(`puttygen` exports OpenSSH format), Pageant autostart entries stop meaning
+anything, PuTTY saved-session names stop resolving as hostnames (use
+`~/.ssh/config` `Host` entries), and PuTTY's registry host-key cache is
+abandoned in favour of `~/.ssh/known_hosts`, so first contact re-confirms.
+One further sharp edge: **`ssh-agent` is Disabled by default on Windows** and
+needs a one-time elevated `Set-Service ssh-agent -StartupType Automatic`.
+Pageant just ran. This is the one place the OpenSSH floor is lower out of
+the box.
 
 **Deferred, deliberately:** the TortoiseMerge manual (`doc\source\en\TortoiseMerge\`),
 its `HTMLHelpfiles.wxi` components, `CheckIDD`, the `LanguagePack.wxs` entries,
