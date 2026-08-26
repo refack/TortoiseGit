@@ -16,7 +16,6 @@ Signed-off-by: Sup Yut Sum <ch3cooli@gmail.com>
  attr.c                              |   2 +-
  compat/mingw-posix.h                |   4 +-
  compat/mingw.c                      |   2 +-
- compat/msvc.h                       |   8 +
  config.c                            |   2 +-
  contrib/buildsystems/CMakeLists.txt |  31 +-
  contrib/git.ico                     | Bin 0 -> 55316 bytes
@@ -25,15 +24,14 @@ Signed-off-by: Sup Yut Sum <ch3cooli@gmail.com>
  help.c                              | 560 ----------------------------
  remote.c                            |   3 +-
  submodule-config.c                  |   2 +-
- version.c                           |   6 -
  xdiff/xdiffi.c                      |   4 +-
- 15 files changed, 59 insertions(+), 577 deletions(-)
+ 13 files changed, 51 insertions(+), 571 deletions(-)
  create mode 100644 .tgitconfig
  create mode 100644 contrib/git.ico
 
 diff --git a/.tgitconfig b/.tgitconfig
 new file mode 100644
-index 0000000000..9f5293264a
+index 0000000..9f52932
 --- /dev/null
 +++ b/.tgitconfig
 @@ -0,0 +1,9 @@
@@ -47,7 +45,7 @@ index 0000000000..9f5293264a
 +	projectlanguage = 1033
 +	icon = contrib/git.ico
 diff --git a/attr.c b/attr.c
-index 5458335b67..2bd29d0471 100644
+index 5458335..2bd29d0 100644
 --- a/attr.c
 +++ b/attr.c
 @@ -161,7 +161,7 @@ static void all_attrs_init(struct attr_hashmap *map, struct attr_check *check)
@@ -60,7 +58,7 @@ index 5458335b67..2bd29d0471 100644
  
  		REALLOC_ARRAY(check->all_attrs, size);
 diff --git a/compat/mingw-posix.h b/compat/mingw-posix.h
-index 775758879b..8a8ab8e513 100644
+index 7757588..8a8ab8e 100644
 --- a/compat/mingw-posix.h
 +++ b/compat/mingw-posix.h
 @@ -155,9 +155,9 @@ static inline int sigprocmask(int how UNUSED, const sigset_t *set UNUSED, sigset
@@ -76,7 +74,7 @@ index 775758879b..8a8ab8e513 100644
  /*
   * simple adaptors
 diff --git a/compat/mingw.c b/compat/mingw.c
-index 4db25c8fd0..26ce2c756b 100644
+index 4db25c8..26ce2c7 100644
 --- a/compat/mingw.c
 +++ b/compat/mingw.c
 @@ -693,7 +693,7 @@ int mingw_unlink(const char *pathname, int handle_in_use_error)
@@ -88,34 +86,8 @@ index 4db25c8fd0..26ce2c756b 100644
  	HANDLE handle;
  	wchar_t wbuf[MAX_LONG_PATH + 2];
  	wcscpy(wbuf, wpath);
-diff --git a/compat/msvc.h b/compat/msvc.h
-index cf22f63cf4..df169902f8 100644
---- a/compat/msvc.h
-+++ b/compat/msvc.h
-@@ -4,6 +4,12 @@
- #include "msvc-posix.h"
- #include "mingw.h"
- 
-+/* Git runtime infomation */
-+#define RUNTIME_PREFIX
-+#define FALLBACK_RUNTIME_PREFIX ""
-+#define PREFIX "."
-+#define BINDIR "bin"
-+
- #define ETC_GITCONFIG "etc\\gitconfig"
- #define ETC_GITATTRIBUTES "etc\\gitattributes"
- #define GIT_EXEC_PATH "bin"
-@@ -12,6 +18,8 @@
- #define GIT_HTML_PATH "doc\\git\\html"
- #define DEFAULT_GIT_TEMPLATE_DIR "share\\git-core\\templates"
- #endif
-+
-+/* Git version infomation */
- #ifndef __MSVC__VERSION
- #define __MSVC__VERSION
- #define GIT_VERSION "2.53."
 diff --git a/config.c b/config.c
-index 7fe7ff2644..313634c50b 100644
+index 7fe7ff2..313634c 100644
 --- a/config.c
 +++ b/config.c
 @@ -1805,7 +1805,7 @@ void git_configset_init(struct config_set *set)
@@ -128,7 +100,7 @@ index 7fe7ff2644..313634c50b 100644
  	if (!set->hash_initialized)
  		return;
 diff --git a/contrib/buildsystems/CMakeLists.txt b/contrib/buildsystems/CMakeLists.txt
-index 9077b187e5..dde28496ec 100644
+index 9077b18..dde2849 100644
 --- a/contrib/buildsystems/CMakeLists.txt
 +++ b/contrib/buildsystems/CMakeLists.txt
 @@ -239,7 +239,21 @@ if(NOT HOST_CPU)
@@ -423,7 +395,7 @@ literal 0
 HcmV?d00001
 
 diff --git a/fetch-pack.c b/fetch-pack.c
-index a9fa07c2bb..094f7fc5ec 100644
+index a9fa07c..094f7fc 100644
 --- a/fetch-pack.c
 +++ b/fetch-pack.c
 @@ -56,6 +56,7 @@ static struct strbuf fsck_msg_types = STRBUF_INIT;
@@ -435,7 +407,7 @@ index a9fa07c2bb..094f7fc5ec 100644
  #define ALTERNATE	(1U << 1)
  #define COMMON		(1U << 6)
 diff --git a/hash.h b/hash.h
-index c082a53c9a..f257c7a8e0 100644
+index c082a53..f257c7a 100644
 --- a/hash.h
 +++ b/hash.h
 @@ -454,7 +454,7 @@ static inline unsigned int oidhash(const struct object_id *oid)
@@ -448,7 +420,7 @@ index c082a53c9a..f257c7a8e0 100644
  }
  
 diff --git a/help.c b/help.c
-index 46241492ce..95527fdea8 100644
+index 4624149..95527fd 100644
 --- a/help.c
 +++ b/help.c
 @@ -11,7 +11,6 @@
@@ -1047,7 +1019,7 @@ index 46241492ce..95527fdea8 100644
  {
  	struct strbuf buf = STRBUF_INIT;
 diff --git a/remote.c b/remote.c
-index 00723b385e..2956aa9bf3 100644
+index 00723b3..2956aa9 100644
 --- a/remote.c
 +++ b/remote.c
 @@ -27,6 +27,7 @@
@@ -1068,7 +1040,7 @@ index 00723b385e..2956aa9bf3 100644
  	if (err) {
  		va_list ap;
 diff --git a/submodule-config.c b/submodule-config.c
-index f75997402a..ba3a2b0b6d 100644
+index f759974..ba3a2b0 100644
 --- a/submodule-config.c
 +++ b/submodule-config.c
 @@ -104,7 +104,7 @@ static void free_one_config(struct submodule_entry *entry)
@@ -1080,25 +1052,8 @@ index f75997402a..ba3a2b0b6d 100644
  
  	if (!cache->initialized)
  		return;
-diff --git a/version.c b/version.c
-index 21ec7c0fbe..352cdd9f67 100644
---- a/version.c
-+++ b/version.c
-@@ -3,12 +3,6 @@
- #include "strbuf.h"
- #include "gettext.h"
- 
--#ifndef GIT_VERSION_H
--# include "version-def.h"
--#else
--# include GIT_VERSION_H
--#endif
--
- const char git_version_string[] = GIT_VERSION;
- const char git_built_from_commit_string[] = GIT_BUILT_FROM_COMMIT;
- 
 diff --git a/xdiff/xdiffi.c b/xdiff/xdiffi.c
-index c5a892f91e..fadcd4a380 100644
+index c5a892f..fadcd4a 100644
 --- a/xdiff/xdiffi.c
 +++ b/xdiff/xdiffi.c
 @@ -715,7 +715,7 @@ static void group_init(xdfile_t *xdf, struct xdlgroup *g)

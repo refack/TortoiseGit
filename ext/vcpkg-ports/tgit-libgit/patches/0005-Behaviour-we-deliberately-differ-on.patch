@@ -20,7 +20,7 @@ Signed-off-by: Sven Strickroth <email@cs-ware.de>
  4 files changed, 7 insertions(+), 5 deletions(-)
 
 diff --git a/builtin/log.c b/builtin/log.c
-index 29931239aa..40a6e140ba 100644
+index 2993123..40a6e14 100644
 --- a/builtin/log.c
 +++ b/builtin/log.c
 @@ -339,7 +339,7 @@ static void cmd_log_init_finish(int argc, const char **argv, const char *prefix,
@@ -33,7 +33,7 @@ index 29931239aa..40a6e140ba 100644
  		string_list_init_nodup(rev->mailmap);
  		read_mailmap(the_repository, rev->mailmap);
 diff --git a/commit-graph.c b/commit-graph.c
-index 801471a098..30577f810b 100644
+index 801471a..30577f8 100644
 --- a/commit-graph.c
 +++ b/commit-graph.c
 @@ -243,6 +243,7 @@ static int commit_graph_compatible(struct repository *r)
@@ -55,7 +55,7 @@ index 801471a098..30577f810b 100644
  
  struct commit_graph *load_commit_graph_one_fd_st(struct odb_source *source,
 diff --git a/log-tree.c b/log-tree.c
-index bc6589e556..b5000b9bbb 100644
+index bc6589e..b5000b9 100644
 --- a/log-tree.c
 +++ b/log-tree.c
 @@ -1201,7 +1201,6 @@ int log_tree_commit(struct rev_info *opt, struct commit *commit)
@@ -75,7 +75,7 @@ index bc6589e556..b5000b9bbb 100644
  
  	diff_free(&opt->diffopt);
 diff --git a/object-file.c b/object-file.c
-index 6453b1d6fa..879174d861 100644
+index 6453b1d..879174d 100644
 --- a/object-file.c
 +++ b/object-file.c
 @@ -1037,8 +1037,8 @@ static int index_stream_convert_blob(struct index_state *istate,

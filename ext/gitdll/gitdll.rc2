@@ -12,8 +12,11 @@
 // Version
 //
 #include "..\..\src\version.h"
-#define __MSVC__HEAD
-#include "..\tgit\compat\msvc.h"
+// GIT_VERSION comes from the header git's own build generates, resolved through
+// the tgit-libgit port's include directory. It used to be read out of
+// compat\msvc.h, which hardcoded it and had drifted two releases behind - the
+// DLL described itself as "based on git version 2.53." while linking 2.55.
+#include "version-def.h"
 VS_VERSION_INFO VERSIONINFO
  FILEVERSION FILEVER
  PRODUCTVERSION PRODUCTVER

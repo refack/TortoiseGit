@@ -12,14 +12,14 @@ Subject: Finding the user's git installation
 Signed-off-by: Sven Strickroth <email@cs-ware.de>
 ---
  attr.c        |  8 +++--
- compat/msvc.h | 13 ++++++++
+ compat/msvc.h | 18 +++++++++++
  config.c      |  8 +++--
  exec-cmd.c    | 85 +++++++++++++++++++++++++++++----------------------
  path.c        |  1 +
- 5 files changed, 75 insertions(+), 40 deletions(-)
+ 5 files changed, 80 insertions(+), 40 deletions(-)
 
 diff --git a/attr.c b/attr.c
-index b4ec500147..5458335b67 100644
+index b4ec500..5458335 100644
 --- a/attr.c
 +++ b/attr.c
 @@ -874,8 +874,12 @@ static struct attr_stack *read_attr(struct index_state *istate,
@@ -38,29 +38,34 @@ index b4ec500147..5458335b67 100644
  }
  
 diff --git a/compat/msvc.h b/compat/msvc.h
-index 2b87c0a7c7..cf22f63cf4 100644
+index 2b87c0a..33613f2 100644
 --- a/compat/msvc.h
 +++ b/compat/msvc.h
-@@ -4,4 +4,17 @@
+@@ -4,4 +4,22 @@
  #include "msvc-posix.h"
  #include "mingw.h"
  
-+#define ETC_GITCONFIG "etc\\gitconfig"
-+#define ETC_GITATTRIBUTES "etc\\gitattributes"
-+#define GIT_EXEC_PATH "bin"
-+#define GIT_MAN_PATH "man"
-+#define GIT_INFO_PATH "info"
-+#define GIT_HTML_PATH "doc\\git\\html"
-+#define DEFAULT_GIT_TEMPLATE_DIR "share\\git-core\\templates"
-+#endif
-+#ifndef __MSVC__VERSION
-+#define __MSVC__VERSION
-+#define GIT_VERSION "2.53."
-+#define GIT_USER_AGENT "git/" GIT_VERSION
-+#define GIT_BUILT_FROM_COMMIT "(unknown)"
++/*
++ * This header used to hardcode git's installation paths and version, because
++ * the MSVC build predated any generator that could supply them. It no longer
++ * does: contrib/buildsystems sets the paths with add_compile_definitions() and
++ * generates version-def.h from GIT-VERSION-GEN, and meson does the equivalent.
++ *
++ * Every macro that was here is now supplied by the build, so keeping them
++ * shadowed the real values rather than filling a gap:
++ *
++ *   - RUNTIME_PREFIX was defined unconditionally, which silently overrode the
++ *     build's own setting for it.
++ *   - The path macros duplicated the build's, warning C4005 on every
++ *     translation unit that included both.
++ *   - GIT_VERSION was frozen at "2.53." while the tree was 2.55, so
++ *     git_version_string and the user agent both reported the wrong version.
++ *     version.c includes version-def.h for this; nothing needs a fallback here.
++ */
++
  #endif
 diff --git a/config.c b/config.c
-index 6a0de86e3a..7fe7ff2644 100644
+index 6a0de86..7fe7ff2 100644
 --- a/config.c
 +++ b/config.c
 @@ -1496,8 +1496,12 @@ static int git_config_from_blob_ref(config_fn_t fn,
@@ -79,7 +84,7 @@ index 6a0de86e3a..7fe7ff2644 100644
  	return system_config;
  }
 diff --git a/exec-cmd.c b/exec-cmd.c
-index 507e67d528..77644bef1b 100644
+index 507e67d..77644be 100644
 --- a/exec-cmd.c
 +++ b/exec-cmd.c
 @@ -27,8 +27,6 @@
@@ -190,7 +195,7 @@ index 507e67d528..77644bef1b 100644
  {
  	struct strbuf d = STRBUF_INIT;
 diff --git a/path.c b/path.c
-index f452632109..a8506f3aa7 100644
+index f452632..a8506f3 100644
 --- a/path.c
 +++ b/path.c
 @@ -1597,6 +1597,7 @@ char *xdg_config_home_for(const char *subdir, const char *filename)

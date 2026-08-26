@@ -64,13 +64,13 @@
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <ExceptionHandling>SyncCThrow</ExceptionHandling>
       <LanguageStandard_C>stdc11</LanguageStandard_C>
-      <!-- 4005: compat\msvc.h defines the same path macros the port's generated
-           defines header carries, with identical values - they come from the
-           same build. Suppressed rather than filtered out of the generated
-           header, because a denylist of "macros git's own headers happen to
-           set" would drift exactly the way libgit-defines.h did. -->
-      <DisableSpecificWarnings>4200;4005</DisableSpecificWarnings>
+      <DisableSpecificWarnings>4200</DisableSpecificWarnings>
     </ClCompile>
+    <ResourceCompile>
+      <!-- gitdll.rc2 stamps the DLL description with git's version, which comes
+           from the generated version-def.h in the port. -->
+      <AdditionalIncludeDirectories>$(TGitLibgitInclude);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
     <Link>
       <AdditionalDependencies>ntdll.lib;wininet.lib;ws2_32.lib;zs$(VcpkgLibSuffix).lib;libgit.lib;advapi32.lib;shell32.lib;user32.lib;ole32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>

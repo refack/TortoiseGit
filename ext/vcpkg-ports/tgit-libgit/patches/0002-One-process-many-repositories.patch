@@ -65,7 +65,7 @@ Signed-off-by: Refael Ackermann <refack@gmail.com>
  10 files changed, 289 insertions(+), 217 deletions(-)
 
 diff --git a/compat/mingw-posix.h b/compat/mingw-posix.h
-index ef8df9a7d0..775758879b 100644
+index ef8df9a..7757588 100644
 --- a/compat/mingw-posix.h
 +++ b/compat/mingw-posix.h
 @@ -280,6 +280,8 @@ char *mingw_getcwd(char *pointer, int len);
@@ -78,7 +78,7 @@ index ef8df9a7d0..775758879b 100644
  #define gethostname mingw_gethostname
  
 diff --git a/compat/mingw.c b/compat/mingw.c
-index 82831f571e..4db25c8fd0 100644
+index 82831f5..4db25c8 100644
 --- a/compat/mingw.c
 +++ b/compat/mingw.c
 @@ -2142,89 +2142,49 @@ static int wenvcmp(const void *a, const void *b)
@@ -550,7 +550,7 @@ index 82831f571e..4db25c8fd0 100644
   * Based on https://stackoverflow.com/questions/43002803
   *
 diff --git a/decorate.c b/decorate.c
-index 9f24925263..67e71d51fd 100644
+index 9f24925..67e71d5 100644
 --- a/decorate.c
 +++ b/decorate.c
 @@ -32,6 +32,25 @@ static void *insert_decoration(struct decoration *n, const struct object *base,
@@ -580,7 +580,7 @@ index 9f24925263..67e71d51fd 100644
  {
  	unsigned int i;
 diff --git a/decorate.h b/decorate.h
-index 08af658d34..fa3c359419 100644
+index 08af658..fa3c359 100644
 --- a/decorate.h
 +++ b/decorate.h
 @@ -57,6 +57,7 @@ void *add_decoration(struct decoration *n, const struct object *obj, void *decor
@@ -592,7 +592,7 @@ index 08af658d34..fa3c359419 100644
  /*
   * Clear all decoration entries, releasing any memory used by the structure.
 diff --git a/environment.c b/environment.c
-index ba2c60103f..e247e20085 100644
+index ba2c601..e247e20 100644
 --- a/environment.c
 +++ b/environment.c
 @@ -726,3 +726,22 @@ void repo_config_values_init(struct repo_config_values *cfg)
@@ -619,7 +619,7 @@ index ba2c60103f..e247e20085 100644
 +	FREE_AND_NULL(git_work_tree_cfg);
 +}
 diff --git a/log-tree.c b/log-tree.c
-index 58cb20697f..bc6589e556 100644
+index 58cb206..bc6589e 100644
 --- a/log-tree.c
 +++ b/log-tree.c
 @@ -217,6 +217,15 @@ static int add_graft_decoration(const struct commit_graft *graft,
@@ -639,7 +639,7 @@ index 58cb20697f..bc6589e556 100644
  {
  	if (!decoration_loaded) {
 diff --git a/odb.c b/odb.c
-index 7d555be09f..3a91cf577e 100644
+index 7d555be..3a91cf5 100644
 --- a/odb.c
 +++ b/odb.c
 @@ -14,6 +14,7 @@
@@ -681,7 +681,7 @@ index 7d555be09f..3a91cf577e 100644
  {
  	while (o->sources) {
 diff --git a/packfile.c b/packfile.c
-index 7fbe47ca18..bc7dfb8fc8 100644
+index 7fbe47c..bc7dfb8 100644
 --- a/packfile.c
 +++ b/packfile.c
 @@ -2849,6 +2849,13 @@ void packfile_store_close(struct packfile_store *store)
@@ -699,7 +699,7 @@ index 7fbe47ca18..bc7dfb8fc8 100644
  	struct odb_read_stream base;
  	struct packed_git *pack;
 diff --git a/refs.c b/refs.c
-index d3caa9a633..e60c64ed90 100644
+index d3caa9a..e60c64e 100644
 --- a/refs.c
 +++ b/refs.c
 @@ -2343,6 +2343,14 @@ static struct ref_store *ref_store_init(struct repository *repo,
@@ -718,7 +718,7 @@ index d3caa9a633..e60c64ed90 100644
  {
  	ref_store->be->release(ref_store);
 diff --git a/setup.c b/setup.c
-index fa7a5c1f3e..35ad4cd2e4 100644
+index fa7a5c1..35ad4cd 100644
 --- a/setup.c
 +++ b/setup.c
 @@ -2954,3 +2954,22 @@ int init_db(struct repository *repo,

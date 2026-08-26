@@ -34,7 +34,7 @@ Signed-off-by: Frank Li <lznuaa@gmail.com>
  15 files changed, 204 insertions(+), 73 deletions(-)
 
 diff --git a/attr.c b/attr.c
-index b9852d8587..b4ec500147 100644
+index b9852d8..b4ec500 100644
 --- a/attr.c
 +++ b/attr.c
 @@ -523,7 +523,7 @@ static void check_vector_remove(struct attr_check *check)
@@ -47,7 +47,7 @@ index b9852d8587..b4ec500147 100644
  	int i;
  
 diff --git a/builtin/log.c b/builtin/log.c
-index 2f5142e888..29931239aa 100644
+index 2f5142e..2993123 100644
 --- a/builtin/log.c
 +++ b/builtin/log.c
 @@ -396,6 +396,14 @@ static void cmd_log_init(int argc, const char **argv, const char *prefix,
@@ -66,7 +66,7 @@ index 2f5142e888..29931239aa 100644
  {
  	struct commit *commit;
 diff --git a/chdir-notify.c b/chdir-notify.c
-index f8bfe3cbef..ec2318292b 100644
+index f8bfe3c..ec23182 100644
 --- a/chdir-notify.c
 +++ b/chdir-notify.c
 @@ -97,6 +97,18 @@ int chdir_notify(const char *new_cwd)
@@ -89,7 +89,7 @@ index f8bfe3cbef..ec2318292b 100644
  			     const char *new_cwd,
  			     const char *path)
 diff --git a/compat/mingw-posix.h b/compat/mingw-posix.h
-index 9158f89d89..ef8df9a7d0 100644
+index 9158f89..ef8df9a 100644
 --- a/compat/mingw-posix.h
 +++ b/compat/mingw-posix.h
 @@ -216,12 +216,18 @@ int mingw_open (const char *filename, int oflags, ...);
@@ -112,7 +112,7 @@ index 9158f89d89..ef8df9a7d0 100644
  #define freopen mingw_freopen
  
 diff --git a/compat/mingw.c b/compat/mingw.c
-index 92946af422..82831f571e 100644
+index 92946af..82831f5 100644
 --- a/compat/mingw.c
 +++ b/compat/mingw.c
 @@ -35,6 +35,68 @@
@@ -270,7 +270,7 @@ index 92946af422..82831f571e 100644
  #ifdef _DEBUG
  #include <crtdbg.h>
 diff --git a/compat/posix.h b/compat/posix.h
-index e2e794cad7..468a31ef4d 100644
+index e2e794c..468a31e 100644
 --- a/compat/posix.h
 +++ b/compat/posix.h
 @@ -447,10 +447,17 @@ int inet_pton(int af, const char *src, void *dst);
@@ -294,7 +294,7 @@ index e2e794cad7..468a31ef4d 100644
  #ifndef HOST_NAME_MAX
  #define HOST_NAME_MAX 256
 diff --git a/diff.c b/diff.c
-index de5ff1f7d0..4c415a55b3 100644
+index de5ff1f..4c415a5 100644
 --- a/diff.c
 +++ b/diff.c
 @@ -6575,7 +6575,7 @@ static int diff_flush_patch_quietly(struct diff_filepair *p, struct diff_options
@@ -316,7 +316,7 @@ index de5ff1f7d0..4c415a55b3 100644
  	switch (p->status) {
  	case DIFF_STATUS_UNKNOWN:
 diff --git a/entry.c b/entry.c
-index 3087c35f9e..5b35dbe6fb 100644
+index 3087c35..5b35dbe 100644
 --- a/entry.c
 +++ b/entry.c
 @@ -293,7 +293,7 @@ void update_ce_after_write(const struct checkout *state, struct cache_entry *ce,
@@ -329,7 +329,7 @@ index 3087c35f9e..5b35dbe6fb 100644
  		       int *nr_checkouts)
  {
 diff --git a/git-compat-util.h b/git-compat-util.h
-index eb53bdb309..a4055fbfa7 100644
+index eb53bdb..a4055fb 100644
 --- a/git-compat-util.h
 +++ b/git-compat-util.h
 @@ -1123,11 +1123,10 @@ struct fscache;
@@ -349,7 +349,7 @@ index eb53bdb309..a4055fbfa7 100644
  /*
   * This include must come after system headers, since it introduces macros that
 diff --git a/log-tree.c b/log-tree.c
-index 88b3019293..58cb20697f 100644
+index 88b3019..58cb206 100644
 --- a/log-tree.c
 +++ b/log-tree.c
 @@ -937,7 +937,9 @@ int log_tree_diff_flush(struct rev_info *opt)
@@ -364,7 +364,7 @@ index 88b3019293..58cb20697f 100644
  		    opt->verbose_header &&
  		    opt->commit_format != CMIT_FMT_ONELINE &&
 diff --git a/notes.c b/notes.c
-index ec9c2cb150..a1b9738a00 100644
+index ec9c2cb..a1b9738 100644
 --- a/notes.c
 +++ b/notes.c
 @@ -81,7 +81,7 @@ struct non_note {
@@ -377,7 +377,7 @@ index ec9c2cb150..a1b9738a00 100644
  static void load_subtree(struct notes_tree *t, struct leaf_node *subtree,
  		struct int_node *node, unsigned int n);
 diff --git a/pager.c b/pager.c
-index 35b210e048..b482cf01f8 100644
+index 35b210e..b482cf0 100644
 --- a/pager.c
 +++ b/pager.c
 @@ -84,26 +84,7 @@ static int core_pager_config(const char *var, const char *value,
@@ -454,7 +454,7 @@ index 35b210e048..b482cf01f8 100644
 +	return 0;
  }
 diff --git a/revision.h b/revision.h
-index 00c392be37..eb33dbf430 100644
+index 00c392b..eb33dbf 100644
 --- a/revision.h
 +++ b/revision.h
 @@ -390,6 +390,10 @@ struct rev_info {
@@ -469,7 +469,7 @@ index 00c392be37..eb33dbf430 100644
  
  /**
 diff --git a/run-command.c b/run-command.c
-index e70a8a387b..3b7fc5166d 100644
+index e70a8a3..3b7fc51 100644
 --- a/run-command.c
 +++ b/run-command.c
 @@ -681,6 +681,8 @@ int start_command(struct child_process *cmd)
@@ -562,7 +562,7 @@ index e70a8a387b..3b7fc5166d 100644
  	if (need_in) {
  		if (pipe(fdin) < 0) {
 diff --git a/sub-process.c b/sub-process.c
-index 2d5c965169..fd7a7f09fa 100644
+index 2d5c965..fd7a7f0 100644
 --- a/sub-process.c
 +++ b/sub-process.c
 @@ -78,6 +78,8 @@ int subprocess_start(struct hashmap *hashmap, struct subprocess_entry *entry, co
