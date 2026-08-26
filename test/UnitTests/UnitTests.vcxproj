@@ -53,13 +53,19 @@
   </PropertyGroup>
   <ItemDefinitionGroup>
     <ClCompile>
-      <AdditionalIncludeDirectories>$(ProjectDir);..\..\src\Resources;..\..\src\Git;..\..\ext\hunspell;..\..\src\Utils;..\..\src\Utils\MiscUI;..\..\src\TortoiseShell;..\..\ext\gitdll;..\..\ext\googletest\googletest\include;..\..\ext\googletest\googlemock\include;..\..\ext\json\include;..\..\ext\ResizableLib;..\..\src\TortoiseProc;..\..\src\GitWCRev;..\..\src\TortoiseGitBlame;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>TGIT_TESTS_ONLY;GTEST_HAS_STD_TUPLE_;GTEST_HAS_TR1_TUPLE=0;TGIT_LFS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(ProjectDir);..\..\src\Resources;..\..\src\Git;..\..\ext\hunspell;..\..\src\Utils;..\..\src\Utils\MiscUI;..\..\src\TortoiseShell;..\..\ext\gitdll;..\..\ext\ResizableLib;..\..\src\TortoiseProc;..\..\src\GitWCRev;..\..\src\TortoiseGitBlame;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <!-- GTEST_HAS_STD_TUPLE_ and GTEST_HAS_TR1_TUPLE were for the gtest 1.8-era
+           tuple shims; neither macro exists in the version vcpkg installs. -->
+      <PreprocessorDefinitions>TGIT_TESTS_ONLY;TGIT_LFS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalOptions>/Zm110 %(AdditionalOptions)</AdditionalOptions>
       <ExceptionHandling>SyncCThrow</ExceptionHandling>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
+      <!-- gmock as well as gtest: UnitTests.cpp calls InitGoogleMock, which
+           initialises both. Neither takes $(VcpkgLibSuffix) - vcpkg's gtest port
+           uses the same names in debug and release. -->
+      <AdditionalDependencies>gtest.lib;gmock.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -209,9 +215,6 @@
     <ResourceCompile Include="UnitTests.rc2" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\ext\build\googletest.vcxproj">
-      <Project>{c8f6c172-56f2-4e76-b5fa-c3b423b31be8}</Project>
-    </ProjectReference>
     <ProjectReference Include="..\..\src\libgit2\TGitLibgit2.vcxproj">
       <Project>{2f29bedb-4b28-4f53-9d1c-3be0766e738e}</Project>
     </ProjectReference>

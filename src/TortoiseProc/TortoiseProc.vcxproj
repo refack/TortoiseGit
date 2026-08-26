@@ -46,7 +46,7 @@
            copy ships a no-op git2\experimental.h, so leaving it on the path
            would silently compile this project against the 20-byte git_oid
            while the library it links uses the 33-byte tagged one. -->
-      <AdditionalIncludeDirectories>$(ProjectDir);..\Resources;$InputDir;..\..\ext\ResizableLib;..\Git;..\Utils;..\..\ext\json\include;..\..\ext\scintilla\include;..\..\ext\lexilla\include;..\Utils\TreePropSheet;..\Utils\MiscUI;..\TortoiseShell;..\..\ext\gitdll;..\AsyncFramework;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir);..\Resources;$InputDir;..\..\ext\ResizableLib;..\Git;..\Utils;..\..\ext\scintilla\include;..\..\ext\lexilla\include;..\Utils\TreePropSheet;..\Utils\MiscUI;..\TortoiseShell;..\..\ext\gitdll;..\AsyncFramework;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <!-- GIT_EXPERIMENTAL_SHA256 is no longer listed: vcpkg's generated
            git2\experimental.h defines it, and git2\oid.h includes that header,
            so every TU that can see git_oid gets the flag by construction. -->

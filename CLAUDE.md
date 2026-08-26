@@ -678,7 +678,9 @@ Remaining, by how they should end:
 
 | Submodule | Route |
 | --- | --- |
-| `hunspell`, `json`, `googletest`, `lexilla` | stock vcpkg ports exist; migrate |
+| ~~`json`, `googletest`~~ | **done** in `835cb3e5f` — stock ports, no overlay needed |
+| `lexilla` | **not a lone swap** — see below |
+| `hunspell` | goes with `spell`, once the Windows checker is proven — see "Spell checking" |
 | `editorconfig` | **stays** — TortoiseProc consumes it (`AppUtils.cpp`), and no vcpkg port carries this build |
 | `tgit`, `spell` | permanent — `tgit` is the second git backend, `spell` is dictionary data |
 | ~~`libgit2`, `pcre2`, `zlib`, `OGDF`~~ | **gone** — build wiring retired first, checkouts deinitialised in `91ffe10b1` |
@@ -690,10 +692,10 @@ of them submodules:
 | --- | --- | --- | --- | --- |
 | `spell` | yes | **491** | – | dictionary data, 69 languages |
 | `tgit` | yes | 46 | `libgit.vcxproj` | gitdll — the second git backend |
-| `json` | yes | 15 | – | TortoiseProc, UnitTests (header-only) |
+| `json` | yes | 15 | – | — vcpkg `nlohmann-json` since `835cb3e5f` |
 | `hunspell` | yes | 5.3 | `hunspell.vcxproj` | TortoiseProc (`SciEdit.h`) |
 | `lexilla` | yes | 4.8 | – | Blame, TortoiseProc, UDiff |
-| `googletest` | yes | 4.0 | `googletest.vcxproj` | UnitTests |
+| `googletest` | yes | 4.0 | ~~`googletest.vcxproj`~~ | — vcpkg `gtest` since `835cb3e5f` |
 | `scintilla` | **no** | 1.8 | `scintillalexer.vcxproj` | Blame, TortoiseProc, UDiff |
 | `TortoiseOverlays` | no | 0.8 | – | `StructureFragment.wxi`, three `.registry` files, `IconOverlay.cpp`, both overlay Settings pages |
 | `editorconfig` | yes | 0.3 | `editorconfig.vcxproj` | TortoiseProc |
@@ -715,6 +717,52 @@ Three things that survey turned up:
   overlay Settings pages. **Third time this lesson has bitten** — see the two
   below. Any "who consumes this" sweep must cover `.wxi`/`.wxs`, `.registry`,
   `.rc`/`.rc2` and CI YAML, not just projects and C++.
+
+#### Spell checking: `ext\spell` (491 MB) and `ext\hunspell`
+
+**The Windows spell checker was already implemented and switched off.**
+`SciEdit.cpp` has used `ISpellCheckerFactory`/`ISpellChecker` since 2015, tried
+*before* Hunspell, with locale negotiation down through sublanguages to 1033 and
+a personal-dictionary hookup — all of it behind `Win8SpellChecker`, which
+defaulted to **false**. So every install has run Hunspell not because anyone
+compared them but because an opt-in default from the Windows 8 era was never
+revisited. `4e1cdcd3d` flips it.
+
+The key keeps its name despite no longer meaning "opt in" — persisted user
+state, same reasoning as the `Software\TortoiseGitMerge\*` keys.
+
+Hunspell **stays as the fallback**, and that is the honest division of labour:
+`IsSupported()` reports exactly when Windows has no checker for a language, and
+the existing code already falls through. It even handles the subtle case — when
+Windows offers only a 1033 fallback but a Hunspell dictionary exists for the
+language actually requested, Hunspell wins (`bFallbackUsed`). A user can still
+drop `.aff`/`.dic` into `%APPDATA%\TortoiseGit\dic\`.
+
+What that leaves to remove, and why it is a *separate* decision from the flip:
+
+- **`ext\spell` is 491 MB of dictionaries for the common languages** — which are
+  precisely the ones Windows already covers. `StructureFragment.wxi` ships
+  `en_GB`/`en_US` from `ext\spell\en\`, and every `Languages\Lang_*.wixproj`
+  pulls `spell\<LCID>.wxi` for its language, with a matching per-language MSI
+  feature in `FeaturesFragment.wxi`. Removing the bundle is 98.9% of the disk
+  win and costs only the languages Windows handles anyway.
+- **`ext\hunspell` (5.3 MB) plus `ext\build\hunspell.vcxproj`** is the other
+  question, and removing it is *not* implied by removing the dictionaries. It
+  costs the niche-language capability outright, along with `HUNSPELL_STATIC` and
+  the codepage machinery (`m_spellcodepage`, `enc2locale[]`,
+  `GetWordForSpellChecker`) that exists only because Hunspell dictionaries are
+  8-bit in per-dictionary encodings; `ISpellChecker` is UTF-16 throughout.
+
+#### `lexilla` is not a lone swap
+
+vcpkg has `lexilla` 5.4.6 **and** `scintilla` 5.5.8, but `ext\build\ScintillaLexer.vcxproj`
+compiles both vendored trees into a single `SciLexer_tgit.dll` that TortoiseGit
+loads at runtime. Migrating lexilla alone would leave a vcpkg Lexilla beside a
+hand-built Scintilla — two libraries where there is now one, which is *more*
+fragmentation, not less. Note `scintilla` is vendored directly rather than as a
+submodule, unlike `lexilla` next to it. If this is taken up, take both together
+and decide what replaces the fused DLL; it is a real piece of work, not an
+include-path edit.
 
 Root-level `ext\libgit2-*.patch` — five files — are now **orphaned**: the
 submodule they applied to is gone and the overlay port carries its own
