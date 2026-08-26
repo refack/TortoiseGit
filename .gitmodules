@@ -1,3 +1,0 @@
-[submodule "ext/tgit"]
-	path = ext/tgit
-	url = https://gitlab.com/tortoisegit/tgit.git
