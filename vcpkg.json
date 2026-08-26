@@ -22,6 +22,14 @@
     "pcre2",
     "scintilla",
     "simpleini",
+    "tgit-libgit",
     "zlib"
+  ],
+  "$comment-overrides": "tgit-libgit exists only as an overlay port, so the registry baseline has no version for it and vcpkg refuses with 'the baseline does not contain an entry'. The override supplies one. The other overlays (libgit2, ogdf, scintilla) need no such entry because they shadow ports that do exist upstream.",
+  "overrides": [
+    {
+      "name": "tgit-libgit",
+      "version-string": "2.55.0.windows.5"
+    }
   ]
 }
