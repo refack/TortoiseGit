@@ -1,7 +1,9 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Refael Ackermann <refack@gmail.com>
 Date: Wed, 26 Aug 2026 14:37:55 -0400
-Subject: repository: make repo_clear() reset the flags that guard freed state
+Subject: Upstreamable
+
+repository: make repo_clear() reset the flags that guard freed state
 
 repo_clear() frees the repository state but leaves two booleans still claiming
 it is there, so the second setup of the same struct repository walks into what

@@ -1,62 +1,85 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Sven Strickroth <email@cs-ware.de>
-Date: Thu, 9 May 2013 01:10:41 +0200
-Subject: Use Git system config based on the configured git path in TortoiseGit
+Date: Wed, 8 May 2013 19:10:41 -0400
+Subject: Finding the user's git installation
 
-Related to issue #1184.
+* Use Git system config based on the configured git path in TortoiseGit
+  Related to issue #1184.
+* Add full support for Msys2 Git and Cygwin Git config paths
+* Restrict APPDATA config to Git for Windows >= 2.46 environments
+* Drop support for Git < 2.47
 
 Signed-off-by: Sven Strickroth <email@cs-ware.de>
 ---
- attr.c        |  2 +-
- compat/msvc.h |  5 ----
- config.c      |  2 +-
- exec-cmd.c    | 75 ++++++++++++++++++++++++++-------------------------
- 4 files changed, 41 insertions(+), 43 deletions(-)
+ attr.c        |  8 +++--
+ compat/msvc.h | 13 ++++++++
+ config.c      |  8 +++--
+ exec-cmd.c    | 85 +++++++++++++++++++++++++++++----------------------
+ path.c        |  1 +
+ 5 files changed, 75 insertions(+), 40 deletions(-)
 
 diff --git a/attr.c b/attr.c
-index b4ec500147..b016c18391 100644
+index b4ec500147..5458335b67 100644
 --- a/attr.c
 +++ b/attr.c
-@@ -875,7 +875,7 @@ const char *git_attr_system_file(void)
+@@ -874,8 +874,12 @@ static struct attr_stack *read_attr(struct index_state *istate,
+ const char *git_attr_system_file(void)
  {
  	static const char *system_wide;
- 	if (!system_wide)
+-	if (!system_wide)
 -		system_wide = system_path(ETC_GITATTRIBUTES);
-+		system_wide = system_path("..\\" ETC_GITATTRIBUTES);
++	if (!system_wide) {
++		if (!is_cygwin_msys2_hack_active())
++			system_wide = system_path("..\\" ETC_GITATTRIBUTES);
++		else
++			system_wide = system_path(ETC_GITATTRIBUTES);
++	}
  	return system_wide;
  }
  
 diff --git a/compat/msvc.h b/compat/msvc.h
-index df169902f8..c37a1ba33a 100644
+index 2b87c0a7c7..cf22f63cf4 100644
 --- a/compat/msvc.h
 +++ b/compat/msvc.h
-@@ -5,11 +5,6 @@
+@@ -4,4 +4,17 @@
+ #include "msvc-posix.h"
  #include "mingw.h"
  
- /* Git runtime infomation */
--#define RUNTIME_PREFIX
--#define FALLBACK_RUNTIME_PREFIX ""
--#define PREFIX "."
--#define BINDIR "bin"
--
- #define ETC_GITCONFIG "etc\\gitconfig"
- #define ETC_GITATTRIBUTES "etc\\gitattributes"
- #define GIT_EXEC_PATH "bin"
++#define ETC_GITCONFIG "etc\\gitconfig"
++#define ETC_GITATTRIBUTES "etc\\gitattributes"
++#define GIT_EXEC_PATH "bin"
++#define GIT_MAN_PATH "man"
++#define GIT_INFO_PATH "info"
++#define GIT_HTML_PATH "doc\\git\\html"
++#define DEFAULT_GIT_TEMPLATE_DIR "share\\git-core\\templates"
++#endif
++#ifndef __MSVC__VERSION
++#define __MSVC__VERSION
++#define GIT_VERSION "2.53."
++#define GIT_USER_AGENT "git/" GIT_VERSION
++#define GIT_BUILT_FROM_COMMIT "(unknown)"
+ #endif
 diff --git a/config.c b/config.c
-index 6a0de86e3a..32cb708241 100644
+index 6a0de86e3a..7fe7ff2644 100644
 --- a/config.c
 +++ b/config.c
-@@ -1497,7 +1497,7 @@ char *git_system_config(void)
+@@ -1496,8 +1496,12 @@ static int git_config_from_blob_ref(config_fn_t fn,
+ char *git_system_config(void)
  {
  	char *system_config = xstrdup_or_null(getenv("GIT_CONFIG_SYSTEM"));
- 	if (!system_config)
+-	if (!system_config)
 -		system_config = system_path(ETC_GITCONFIG);
-+		system_config = system_path("..\\" ETC_GITCONFIG);
++	if (!system_config) {
++		if (!is_cygwin_msys2_hack_active())
++			system_config = system_path("..\\" ETC_GITCONFIG);
++		else
++			system_config = system_path(ETC_GITCONFIG);
++	}
  	normalize_path_copy(system_config, system_config);
  	return system_config;
  }
 diff --git a/exec-cmd.c b/exec-cmd.c
-index 507e67d528..817d98a7de 100644
+index 507e67d528..77644bef1b 100644
 --- a/exec-cmd.c
 +++ b/exec-cmd.c
 @@ -27,8 +27,6 @@
@@ -68,7 +91,7 @@ index 507e67d528..817d98a7de 100644
  /**
   * When using a runtime prefix, Git dynamically resolves paths relative to its
   * executable.
-@@ -45,21 +43,46 @@ static const char *executable_dirname;
+@@ -45,21 +43,56 @@ static const char *executable_dirname;
  
  static const char *system_prefix(void)
  {
@@ -97,6 +120,7 @@ index 507e67d528..817d98a7de 100644
 +		{
 +			if (RegQueryValueExW(hKey, L"MSysGit", NULL, &dwType, (LPBYTE)&lszValue, &dwSize) == ERROR_SUCCESS)
 +			{
++				DWORD dwMsys2Hack = 0;
 +				char pointer[MAX_PATH];
 +				xwcstoutf(pointer, lszValue, MAX_PATH);
 +				syspath = strip_path_suffix(pointer, "cmd");
@@ -119,6 +143,15 @@ index 507e67d528..817d98a7de 100644
 +						syspath = xstrdup(configpath);
 +					}
 +				} while (FALSE);
++
++				dwType = REG_DWORD;
++				dwSize = sizeof(DWORD);
++				if (RegQueryValueExW(hKey, L"Msys2Hack", NULL, &dwType, (LPBYTE)&dwMsys2Hack, &dwSize) == ERROR_SUCCESS && dwMsys2Hack) {
++					// for Msys2 the system config is in etc folder, but git.exe is in usr/bin - we also need to strip usr
++					const char *oldsyspath = syspath;
++					syspath = strip_path_suffix(oldsyspath, "usr");
++					free(oldsyspath);
++				}
 +			}
 +			RegCloseKey(hKey);
 +		}
@@ -129,7 +162,7 @@ index 507e67d528..817d98a7de 100644
  }
  
  /*
-@@ -267,26 +290,6 @@ void git_resolve_executable_dir(const char *argv0)
+@@ -267,26 +300,6 @@ void git_resolve_executable_dir(const char *argv0)
  		     executable_dirname);
  }
  
@@ -156,3 +189,15 @@ index 507e67d528..817d98a7de 100644
  char *system_path(const char *path)
  {
  	struct strbuf d = STRBUF_INIT;
+diff --git a/path.c b/path.c
+index f452632109..a8506f3aa7 100644
+--- a/path.c
++++ b/path.c
+@@ -1597,6 +1597,7 @@ char *xdg_config_home_for(const char *subdir, const char *filename)
+ 		home_config = mkpathdup("%s/.config/%s/%s", home, subdir, filename);
+ 
+ 	#ifdef WIN32
++	if (!is_cygwin_msys2_hack_active())
+ 	{
+ 		const char *appdata = getenv("APPDATA");
+ 		if (appdata && *appdata) {

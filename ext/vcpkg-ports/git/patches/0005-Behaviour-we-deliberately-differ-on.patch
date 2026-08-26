@@ -1,0 +1,91 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Sven Strickroth <email@cs-ware.de>
+Date: Sun, 4 Dec 2011 07:45:39 -0500
+Subject: Behaviour we deliberately differ on
+
+* make --follow work with gitdll.dll
+  Related to issue #337 and issue #678.
+* Temporarily disable the use of commit-graph file
+* Skip conversion filters
+* As a preparation to Git update to 2.34.
+* No need to load mailmap for showing the log
+
+Signed-off-by: Sup Yut Sum <ch3cooli@gmail.com>
+Signed-off-by: Sven Strickroth <email@cs-ware.de>
+---
+ builtin/log.c  | 2 +-
+ commit-graph.c | 4 ++++
+ log-tree.c     | 2 --
+ object-file.c  | 4 ++--
+ 4 files changed, 7 insertions(+), 5 deletions(-)
+
+diff --git a/builtin/log.c b/builtin/log.c
+index 29931239aa..40a6e140ba 100644
+--- a/builtin/log.c
++++ b/builtin/log.c
+@@ -339,7 +339,7 @@ static void cmd_log_init_finish(int argc, const char **argv, const char *prefix,
+ 		rev->sources = &revision_sources;
+ 	}
+ 
+-	if (mailmap) {
++	if (mailmap && 0) { /* don't load mailmap */
+ 		rev->mailmap = xmalloc(sizeof(struct string_list));
+ 		string_list_init_nodup(rev->mailmap);
+ 		read_mailmap(the_repository, rev->mailmap);
+diff --git a/commit-graph.c b/commit-graph.c
+index 801471a098..30577f810b 100644
+--- a/commit-graph.c
++++ b/commit-graph.c
+@@ -243,6 +243,7 @@ static int commit_graph_compatible(struct repository *r)
+ 
+ int open_commit_graph(const char *graph_file, int *fd, struct stat *st)
+ {
++#if TGIT_ENABLE_COMMIT_GRAPH
+ 	*fd = git_open(graph_file);
+ 	if (*fd < 0)
+ 		return 0;
+@@ -251,6 +252,9 @@ int open_commit_graph(const char *graph_file, int *fd, struct stat *st)
+ 		return 0;
+ 	}
+ 	return 1;
++#else
++	return 0;
++#endif
+ }
+ 
+ struct commit_graph *load_commit_graph_one_fd_st(struct odb_source *source,
+diff --git a/log-tree.c b/log-tree.c
+index bc6589e556..b5000b9bbb 100644
+--- a/log-tree.c
++++ b/log-tree.c
+@@ -1201,7 +1201,6 @@ int log_tree_commit(struct rev_info *opt, struct commit *commit)
+ 	shown = log_tree_diff(opt, commit, &log);
+ 	if (!shown && opt->loginfo && opt->always_show_header) {
+ 		log.parent = NULL;
+-		show_log(opt);
+ 		shown = 1;
+ 	}
+ 	if (opt->track_linear && !opt->linear && opt->reverse_output_stage)
+@@ -1209,7 +1208,6 @@ int log_tree_commit(struct rev_info *opt, struct commit *commit)
+ 	if (shown)
+ 		show_diff_of_diff(opt);
+ 	opt->loginfo = NULL;
+-	maybe_flush_or_die(opt->diffopt.file, "stdout");
+ 	opt->diffopt.no_free = no_free;
+ 
+ 	diff_free(&opt->diffopt);
+diff --git a/object-file.c b/object-file.c
+index 6453b1d6fa..879174d861 100644
+--- a/object-file.c
++++ b/object-file.c
+@@ -1037,8 +1037,8 @@ static int index_stream_convert_blob(struct index_state *istate,
+ 	assert(path);
+ 	ASSERT(would_convert_to_git_filter_fd(istate, path));
+ 
+-	convert_to_git_filter_fd(istate, path, fd, &sbuf,
+-				 get_conv_flags(flags));
++	/* convert_to_git_filter_fd(istate, path, fd, &sbuf,
++				 get_conv_flags(flags));*/
+ 
+ 	if (write_object)
+ 		ret = odb_write_object(istate->repo->objects, sbuf.buf, sbuf.len, OBJ_BLOB,

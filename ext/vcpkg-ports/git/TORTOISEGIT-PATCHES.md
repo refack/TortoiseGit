@@ -1,124 +1,116 @@
 # TortoiseGit's patches to git
 
-Rendered 2026-08-26 from the `ext/tgit` fork, against **git-for-windows/git at
+Six patches against **git-for-windows/git at
 `f661476ee4698cf7bfa734b91330048a54d7ee11`** (`Merge tag 'v2.55.0.windows.5'`).
-All 31 verified to apply cleanly to a pristine checkout of that commit.
 
-**This series replaces the fork.** `ext/tgit` pointed at
-`gitlab.com/tortoisegit/tgit.git`, a long-lived rebase-on-upstream branch whose
-contents nothing but the fork itself recorded. A patch series says the same
-thing in a form that can be read, reviewed, reordered and — the point — *deleted
-one file at a time*. Note the base is **git-for-windows/git**, not git/git: the
-Windows compat layer (`compat/win32/fscache.c` and friends) is not upstream and
-TortoiseGit compiles it.
+Verified 2026-08-26, and verified in the strong form: applying all six to a
+pristine checkout of that commit produces tree `52bd6550ed64d12335f50ca808c88b5c649a5094`,
+**identical to the fork tip's tree**. The series is not an approximation of the
+fork; it is the fork.
 
-## Why each patch exists, and what would let it go
+The base is **git-for-windows/git**, not git/git. The Windows compat layer —
+`compat/win32/fscache.c` and friends — is not upstream, and TortoiseGit compiles
+it.
 
-Grouped by what has to be true for the patch to become unnecessary. Nothing here
-is grouped by file or by date, because neither tells you whether you can drop it.
+## Why this is a series and not a branch
 
-### A. We are a DLL, not a process (9)
+`ext/tgit` pointed at `gitlab.com/tortoisegit/tgit.git`, a long-lived
+rebase-on-upstream branch whose contents nothing but the branch itself recorded.
+Every version bump was a rebase whose conflicts had to be re-resolved from
+memory. The 2.55 bump showed the cost: three separate breakages, one a segfault
+that no reading of the commit list would have predicted.
+
+Each patch below is grouped by **what would have to become true for it to be
+deleted** — not by file, not by date, because neither answers that question.
+
+---
+
+## 0001 — We are a DLL, not a process
 
 git assumes it owns the process: it may page output, fork, write to stdout, and
-exit without unwinding. gitdll is loaded into TortoiseGit's processes, where all
-four are wrong.
+exit without unwinding. gitdll is loaded *into* TortoiseGit's processes, where
+all four are wrong. Covers the gitdll exports, pager suppression, the exit hook,
+open-handle tracking, scheduled cleanup, critical-section and tracing init, and
+chdir-notify teardown.
 
-    0002-Define-exports-of-gitdll
-    0003-Do-not-use-pager-also-caused-crashes-in-gitdll.dll-i
-    0004-Add-exit-hook-for-gitdll
-    0005-Track-all-open-file-handles
-    0012-Do-not-print-commits-on-STDOUT
-    0013-Do-not-try-to-fork-or-start-sub-processes-exit-early
-    0014-Allow-to-schedule-cleanup-tasks
-    0018-Initialize-critical-sections-and-tracing
-    0020-chdir-notify-needs-cleanup
+**Deletable when:** TortoiseGit shells out to `git.exe` instead of hosting a
+library — which loses the reason gitdll exists. Honest exit condition, unlikely
+route.
 
-*Goes away if:* TortoiseGit shells out to `git.exe` instead of hosting a library.
-That is a large change and loses the reason gitdll exists, but it is the honest
-exit condition.
+## 0002 — One process, many repositories
 
-### B. One process, many repositories (8)
+The largest bucket, and the one worth attacking. Everything here exists because
+gitdll re-points a live process at a different working copy: decoration cache
+reset, refstore reset/free, environment reset, a separate libgit environment,
+UTF-8 environment hardening, accepting TortoiseGit's environment, closing open
+pack files, and the 2.55 forward-port of all of it.
 
-Everything here exists because gitdll re-points a live process at a different
-working copy. git never does: it sets up one repository and exits.
+**Deletable when:** **TGitCache spawns per repository instead of switching.**
+The pattern exists to keep one cache process entangled with `explorer.exe`,
+which was decisive for 2000s-era SVN where every operation was a network round
+trip. Git is local and fast; the assumption deserves re-measuring before the
+vcpkg port freezes it in.
 
-    0008-Reset-decoration-cache
-    0009-Allow-to-reset-and-free-refstore
-    0010-Allow-to-reset-git-environment
-    0016-Use-a-separate-environment-in-libgit
-    0017-UTF-8-environment-be-a-little-bit-more-defensive
-    0026-Allow-to-accept-separate-environment-from-TortoiseGi
-    0028-Allow-to-close-open-pack-files
-    0030-Carry-the-TortoiseGit-repository-switch-hooks-forwar
+This is also where *every* 2.55 rebase conflict landed — upstream is actively
+consolidating exactly this state into `struct repository`, which is the same
+motion that produced the bug in `0006`.
 
-*Goes away if:* **TGitCache spawns per repository instead of switching.** This is
-the bucket most worth attacking. It exists to keep one cache process entangled
-with `explorer.exe`, which was decisive for 2000s-era SVN where every operation
-was a network round trip. Git is local and fast; the assumption deserves
-re-measuring. See CLAUDE.md, "The git 2.55 rebase".
+## 0003 — Finding the user's git installation
 
-This bucket is also where every 2.55 rebase conflict landed, because upstream is
-actively consolidating exactly this state into `struct repository`.
+TortoiseGit is configured with a path to *some* git — Git for Windows, Msys2 or
+Cygwin — and has to read the same system config that git itself would, including
+the `APPDATA` rules and the ≥ 2.47 floor.
 
-### C. Finding the user's git installation (4)
+**Deletable when:** nothing plausible. This is genuinely TortoiseGit's problem
+and always will be.
 
-TortoiseGit is configured with a path to *some* git, which may be Git for
-Windows, Msys2 or Cygwin, and has to read the same system config that git would.
+## 0004 — MSVC build enablement
 
-    0007-Use-Git-system-config-based-on-the-configured-git-pa
-    0015-Add-full-support-for-Msys2-Git-and-Cygwin-Git-config
-    0027-Restrict-APPDATA-config-to-Git-for-Windows-2.46-envi
-    0029-Drop-support-for-Git-2.47
+Making git's sources compile as a library under MSVC rather than through git's
+own Makefile: compile fixes, `ALTERNATE` colliding with `<wingdi.h>`, variable
+initialisation, `.tgitconfig` and icon, dropping `.github`.
 
-*Goes away if:* nothing plausible. This is genuinely TortoiseGit's problem.
+**Deletable when:** the port builds through
+`contrib/buildsystems/CMakeLists.txt`, git's own MSVC-supported CMake build.
+**Expect this patch to shrink a lot on contact** — much of it is doing by hand
+what that build already does, and the `.github` removal is housekeeping rather
+than a code change. Re-derive it against CMake instead of carrying it forward
+unread.
 
-### D. Build enablement (5)
+## 0005 — Behaviour we deliberately differ on
 
-Making git's sources compile as a library in this build, rather than through
-git's own Makefile.
+`--follow` support through gitdll, commit-graph disabled, conversion filters
+skipped, mailmap not loaded for log display.
 
-    0001-Make-libgit-generally-compile
-    0011-Add-.tgitconfig-and-icon
-    0019-Initialize-variables
-    0021-Undefine-ALTERNATE-as-it-is-already-defined-in-wingd
-    0023-Drop-.github-folder
+**Deletable when:** partially, now. `--follow` is load-bearing — rename-following
+log is the log dialog's headline feature and libgit2's revwalk has no equivalent.
+But the commit-graph hunk has said "temporarily" for years and has outlived the
+word; re-test whether it can simply be enabled.
 
-*Goes away if:* the port builds through `contrib/buildsystems/CMakeLists.txt`,
-git's own MSVC-supported CMake build. Several of these are likely already
-unnecessary there — `0023` in particular is housekeeping, not a code change.
-**Check each against the CMake build before carrying it forward.**
-
-### E. Behaviour we deliberately differ on (4)
-
-    0006-make-follow-work-with-gitdll.dll
-    0022-Temporarily-disable-the-use-of-commit-graph-file
-    0024-Skip-conversion-filters
-    0025-No-need-to-load-mailmap-for-showing-the-log
-
-`0006` is load-bearing: `--follow` rename-following log is the log dialog's
-headline feature and libgit2's revwalk has no equivalent. `0022` says
-"temporarily" and has outlived that word; worth re-testing whether commit-graph
-can simply be enabled.
-
-### F. Upstreamable (1)
-
-    0031-repository-make-repo_clear-reset-the-flags-that-guar
+## 0006 — Upstreamable
 
 `repo_clear()` frees repository state but leaves `->initialized` and
 `->worktree_initialized` set, so a second setup of the same `struct repository`
 walks into freed memory: the first `BUG()`s, the second segfaults in
-`set_git_work_tree()` on a `FREE_AND_NULL`'d `->worktree`. Not TortoiseGit
-behaviour — only TortoiseGit *exposure*, since nothing upstream reaches a second
-setup. **Send this to git; do not carry it.** `git format-patch` output is ready
-as-is.
+`set_git_work_tree()` on a `FREE_AND_NULL`'d `->worktree`.
 
-## Refreshing the series
+Not TortoiseGit behaviour — only TortoiseGit *exposure*, since nothing upstream
+reaches a second setup, and 2.55 is the release that added both flags.
 
-The fork is gone, so there is no branch to rebase. To move to a newer git:
+**Send this to git.** It is `git format-patch` output and needs no adaptation.
+Do not fold it into `0002`, however tempting the subject-matter overlap: the
+whole point is that it leaves this series.
 
-1. Bump the `REF` in `portfile.cmake`.
-2. `vcpkg install` and read which patch fails.
-3. Fix that patch, not the source tree — there is no source tree to fix.
+---
 
-If a patch stops applying because upstream did the same thing, delete it. That
-is the intended way for this series to shrink.
+## Refreshing
+
+There is no branch to rebase. To move to a newer git:
+
+1. Bump `REF` in `portfile.cmake`.
+2. `vcpkg install`, and read which patch fails.
+3. Fix *the patch*, not a source tree — there is no source tree to fix.
+
+If a patch stops applying because upstream did the same thing, delete it. That is
+the intended way for this series to shrink, and the reason it is grouped the way
+it is.

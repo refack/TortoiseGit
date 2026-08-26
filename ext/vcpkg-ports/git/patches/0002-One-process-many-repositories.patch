@@ -1,30 +1,84 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
 From: Sven Strickroth <email@cs-ware.de>
-Date: Mon, 28 Mar 2016 00:28:22 +0200
-Subject: Use a separate environment in libgit
+Date: Sun, 3 Mar 2013 13:06:44 -0500
+Subject: One process, many repositories
 
+* Reset decoration cache
+  This is needed for RevisionGraph to include new ref and excluded deleted ones.
+  Related to issue #1663.
+
+* Allow to reset and free refstore
+* Allow to reset git environment
+* Use a separate environment in libgit
+* UTF-8 environment: be a little bit more defensive
+  It is unlikely that we have an empty environment, ever, but *if* we do,
+  when `environ_size - 1` is passed to `bsearchenv()` it is misinterpreted
+  as a real large integer.
+  To make the code truly defensive, refuse to do anything at all if the
+  size is negative (which should not happen, of course).
+
+* Allow to accept separate environment from TortoiseGit
+* Allow to close open pack files
+* Carry the TortoiseGit repository-switch hooks forward to 2.55
+
+Signed-off-by: Johannes Schindelin <johannes.schindelin@gmx.de>
 Signed-off-by: Sven Strickroth <email@cs-ware.de>
+
+These three functions exist only for gitdll, which re-points a long-lived
+process at a different repository. Upstream git sets up one repository and
+exits, so 2.55 restructuring moved the ground under all of them at once.
+
+odb_close_tgit(): odb_source became polymorphic and only the files backend
+owns packs, so source->packfiles is gone. Downcast with
+odb_source_files_downcast(), guarded on type == ODB_SOURCE_FILES because that
+helper BUG()s on anything else and alternates need not be files-backed. What
+this adds over upstream odb_close() is unchanged: closing the handles is not
+enough, the store also has to forget which packs it found, because TGitCache
+and gitdll outlive any single repack.
+
+reset_setup(): the four file-scope caches it cleared no longer exist.
+setup state lives in struct repository now, and is_inside_git_dir() and
+is_inside_work_tree() recompute per call rather than memoising. The one that
+did survive, git_work_tree_initialized, became repo->worktree_initialized and
+is handled where it belongs, in repo_clear(). Kept as an empty marker rather
+than deleted, because it names a requirement upstream has no reason to
+preserve and setup.c may well cache again.
+
+reset_git_env(): test the_repository->initialized rather than ->objects
+before clearing. initialize_repository() sets the flag but not the object
+database, which only appears later during setup_git_directory(), so a
+git_init() that never opened an odb used to skip the clear and then trip
+2.55 new "repository initialized already" BUG().
+
+Signed-off-by: Refael Ackermann <refack@gmail.com>
 ---
  compat/mingw-posix.h |   2 +
- compat/mingw.c       | 372 ++++++++++++++++++-------------------------
- environment.c        |   2 +-
- 3 files changed, 156 insertions(+), 220 deletions(-)
+ compat/mingw.c       | 398 ++++++++++++++++++++-----------------------
+ decorate.c           |  19 +++
+ decorate.h           |   1 +
+ environment.c        |  19 +++
+ log-tree.c           |   9 +
+ odb.c                |  24 +++
+ packfile.c           |   7 +
+ refs.c               |   8 +
+ setup.c              |  19 +++
+ 10 files changed, 289 insertions(+), 217 deletions(-)
 
 diff --git a/compat/mingw-posix.h b/compat/mingw-posix.h
-index 7303a17b70..8ecdccdd7a 100644
+index ef8df9a7d0..775758879b 100644
 --- a/compat/mingw-posix.h
 +++ b/compat/mingw-posix.h
 @@ -280,6 +280,8 @@ char *mingw_getcwd(char *pointer, int len);
  char *mingw_getenv(const char *name);
  int   mingw_putenv(const char *name);
  
-+extern void build_libgit_environment(void);
++extern void build_libgit_environment(const LPWSTR *env);
 +
  int mingw_gethostname(char *host, int namelen);
  #define gethostname mingw_gethostname
  
 diff --git a/compat/mingw.c b/compat/mingw.c
-index 86d32a9a77..204e7606ff 100644
+index 4c7baa5deb..4ac925cd48 100644
 --- a/compat/mingw.c
 +++ b/compat/mingw.c
 @@ -2142,89 +2142,49 @@ static int wenvcmp(const void *a, const void *b)
@@ -118,7 +172,7 @@ index 86d32a9a77..204e7606ff 100644
 +	/* copy the environment, leaving space for changes */
 +	ALLOC_ARRAY(tmpenv, size + i);
 +	if (!libgit_environ)
-+		build_libgit_environment();
++		build_libgit_environment(NULL);
 +	memcpy(tmpenv, libgit_environ, size * sizeof(char *));
  
 -		/* Skip "to delete" entry */
@@ -150,7 +204,7 @@ index 86d32a9a77..204e7606ff 100644
  }
  
  static void do_unset_environment_variables(void)
-@@ -2673,88 +2633,97 @@ int mingw_kill(pid_t pid, int sig)
+@@ -2673,88 +2633,105 @@ int mingw_kill(pid_t pid, int sig)
  }
  
  /*
@@ -169,12 +223,12 @@ index 86d32a9a77..204e7606ff 100644
 -	wchar_t *w_key;
 -	char *value;
 -	wchar_t w_value[32768];
--
--	if (!name || !*name)
--		return NULL;
 +	const char *e1 = *(const char**)v1;
 +	const char *e2 = *(const char**)v2;
  
+-	if (!name || !*name)
+-		return NULL;
+-
 -	len_key = strlen(name) + 1;
 -	/* We cannot use xcalloc() here because that uses getenv() itself */
 -	w_key = calloc(len_key, sizeof(wchar_t));
@@ -209,7 +263,8 @@ index 86d32a9a77..204e7606ff 100644
 -		die("Out of memory, (tried to allocate %"PRIuMAX" bytes)",
 -			(uintmax_t)len_value);
 -	xwcstoutf(value, w_value, len_value);
--
++}
+ 
 -	/*
 -	 * We return `value` which is an allocated value and the caller is NOT
 -	 * expecting to have to free it, so we keep a round-robin array,
@@ -219,19 +274,8 @@ index 86d32a9a77..204e7606ff 100644
 -	values[value_counter++] = value;
 -	if (value_counter >= ARRAY_SIZE(values))
 -		value_counter = 0;
--
--	return value;
- }
- 
--int mingw_putenv(const char *namevalue)
 +static int bsearchenv(char **env, const char *name, size_t size)
- {
--	size_t size;
--	wchar_t *wide, *equal;
--	BOOL result;
--
--	if (!namevalue || !*namevalue)
--		return 0;
++{
 +	unsigned low = 0, high = size;
 +	while (low < high) {
 +		unsigned mid = low + ((high - low) >> 1);
@@ -246,18 +290,7 @@ index 86d32a9a77..204e7606ff 100644
 +	return ~low; /* not found, return 1's complement of insert position */
 +}
  
--	size = strlen(namevalue) * 2 + 1;
--	wide = calloc(size, sizeof(wchar_t));
--	if (!wide)
--		die("Out of memory, (tried to allocate %" PRIuMAX " wchar_t's)",
--		    (uintmax_t)size);
--	xutftowcs(wide, namevalue, size);
--	equal = wcschr(wide, L'=');
--	if (!equal)
--		result = SetEnvironmentVariableW(wide, NULL);
--	else {
--		*equal = L'\0';
--		result = SetEnvironmentVariableW(wide, equal + 1);
+-	return value;
 +/*
 + * If name contains '=', then sets the variable, otherwise it unsets it
 + * Size includes the terminating NULL. Env must have room for size + 1 entries
@@ -289,19 +322,45 @@ index 86d32a9a77..204e7606ff 100644
 +	} else {
 +		/* should be deleted, but not found */
 +		free(name);
- 	}
--	free(wide);
++	}
 +	return size;
-+}
+ }
+ 
+-int mingw_putenv(const char *namevalue)
++char *mingw_getenv(const char *name)
+ {
+-	size_t size;
+-	wchar_t *wide, *equal;
+-	BOOL result;
++	char *value;
++	int pos;
+ 
+-	if (!namevalue || !*namevalue)
+-		return 0;
++	assert(libgit_environ);
++	if (!libgit_environ)
++		build_libgit_environment(NULL);
++	if (environ_size <= 0)
++		return NULL;
+ 
+-	size = strlen(namevalue) * 2 + 1;
+-	wide = calloc(size, sizeof(wchar_t));
+-	if (!wide)
+-		die("Out of memory, (tried to allocate %" PRIuMAX " wchar_t's)",
+-		    (uintmax_t)size);
+-	xutftowcs(wide, namevalue, size);
+-	equal = wcschr(wide, L'=');
+-	if (!equal)
+-		result = SetEnvironmentVariableW(wide, NULL);
+-	else {
+-		*equal = L'\0';
+-		result = SetEnvironmentVariableW(wide, equal + 1);
+-	}
+-	free(wide);
++	pos = bsearchenv(libgit_environ, name, environ_size - 1);
  
 -	if (!result)
 -		errno = err_win_to_posix(GetLastError());
-+char *mingw_getenv(const char *name)
-+{
-+	char *value;
-+	if (!libgit_environ)
-+		build_libgit_environment();
-+	int pos = bsearchenv(libgit_environ, name, environ_size - 1);
 +	if (pos < 0)
 +		return NULL;
 +	value = strchr(libgit_environ[pos], '=');
@@ -311,17 +370,18 @@ index 86d32a9a77..204e7606ff 100644
 -	return result ? 0 : -1;
 +int mingw_putenv(const char *namevalue)
 +{
++	assert(libgit_environ);
 +	if (!libgit_environ)
-+		build_libgit_environment();
++		build_libgit_environment(NULL);
 +	ALLOC_GROW(libgit_environ, (environ_size + 1) * sizeof(char*), environ_alloc);
 +	environ_size = do_putenv(libgit_environ, namevalue, environ_size, 1);
 +	return 0;
  }
  
  static void ensure_socket_initialization(void)
-@@ -4470,100 +4439,65 @@ static BOOL WINAPI handle_ctrl_c(DWORD ctrl_type)
- 	return TRUE; /* we did handle this */
+@@ -4481,100 +4458,71 @@ void libgit_initialize(void)
  }
+ 
  
 -#ifdef _MSC_VER
 -#ifdef _DEBUG
@@ -339,7 +399,7 @@ index 86d32a9a77..204e7606ff 100644
 - * argv into UTF8 and pass them directly to main().
 - */
 -int wmain(int argc, const wchar_t **wargv)
-+void build_libgit_environment(void)
++void build_libgit_environment(const LPWSTR *env)
  {
 -	int i, exit_status;
 -	size_t maxlen;
@@ -352,15 +412,16 @@ index 86d32a9a77..204e7606ff 100644
 -#ifdef _DEBUG
 -	_CrtSetReportMode(_CRT_ASSERT, _CRTDBG_MODE_DEBUG);
 -#endif
--
++	int i, maxlen;
++	char *buffer;
++	wchar_t *wenv = env && *env ? *env : NULL;
++	int needsFree = 0;
+ 
 -#ifdef USE_MSVC_CRTDBG
 -	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
 -#endif
 -#endif
-+	int i, maxlen;
-+	char *buffer;
-+	wchar_t *wenv;
- 
+-
 -	SetConsoleCtrlHandler(handle_ctrl_c, TRUE);
 +	/* cleanup old environment */
 +	if (libgit_environ) {
@@ -372,7 +433,11 @@ index 86d32a9a77..204e7606ff 100644
 -	maybe_redirect_std_handles();
 -	adjust_symlink_flags();
 -	fsync_object_files = 1;
-+	wenv = GetEnvironmentStringsW();
++	assert(wenv);
++	if (!wenv) {
++		wenv = GetEnvironmentStringsW();
++		needsFree = 1;
++	}
 +	maxlen = 0;
 +	i = 0;
  
@@ -419,7 +484,8 @@ index 86d32a9a77..204e7606ff 100644
 +	libgit_environ[i] = NULL;
  	free(buffer);
  
-+	FreeEnvironmentStringsW(wenv);
++	if (needsFree)
++		FreeEnvironmentStringsW(wenv);
 +
 +	/* sort environment for O(log n) getenv / putenv */
 +	git_stable_qsort(libgit_environ, i, sizeof(char*), compareenv);
@@ -460,16 +526,221 @@ index 86d32a9a77..204e7606ff 100644
  }
  
  int uname(struct utsname *buf)
+@@ -4611,6 +4559,22 @@ int mingw_have_unix_sockets(void)
+ }
+ #endif
+ 
++int is_cygwin_msys2_hack_active(void)
++{
++	HKEY hKey;
++	DWORD dwType = REG_DWORD;
++	DWORD dwValue = 0;
++	DWORD dwSize = sizeof(dwValue);
++	if (RegOpenKeyExW(HKEY_CURRENT_USER, L"Software\\TortoiseGit", 0, KEY_ALL_ACCESS, &hKey) == ERROR_SUCCESS)
++	{
++		RegQueryValueExW(hKey, L"CygwinHack", NULL, &dwType, (LPBYTE)&dwValue, &dwSize);
++		if (dwValue != 1)
++			RegQueryValueExW(hKey, L"Msys2Hack", NULL, &dwType, (LPBYTE)&dwValue, &dwSize);
++		RegCloseKey(hKey);
++	}
++	return dwValue == 1;
++}
++
+ /*
+  * Based on https://stackoverflow.com/questions/43002803
+  *
+diff --git a/decorate.c b/decorate.c
+index 9f24925263..67e71d51fd 100644
+--- a/decorate.c
++++ b/decorate.c
+@@ -32,6 +32,25 @@ static void *insert_decoration(struct decoration *n, const struct object *base,
+ 	return NULL;
+ }
+ 
++void free_decoration(struct decoration *n)
++{
++	struct decoration_entry *old_entries;
++
++	if (!n || !n->entries)
++		return;
++
++	old_entries = n->entries;
++
++	for (unsigned int i = 0; i < n->size; ++i) {
++		if (old_entries[i].base && old_entries[i].decoration)
++			free(old_entries[i].decoration);
++	}
++
++	FREE_AND_NULL(n->entries);
++	n->size = 0;
++	n->nr = 0;
++}
++
+ static void grow_decoration(struct decoration *n)
+ {
+ 	unsigned int i;
+diff --git a/decorate.h b/decorate.h
+index 08af658d34..fa3c359419 100644
+--- a/decorate.h
++++ b/decorate.h
+@@ -57,6 +57,7 @@ void *add_decoration(struct decoration *n, const struct object *obj, void *decor
+  * association, this function returns NULL.
+  */
+ void *lookup_decoration(struct decoration *n, const struct object *obj);
++extern void free_decoration(struct decoration *n);
+ 
+ /*
+  * Clear all decoration entries, releasing any memory used by the structure.
 diff --git a/environment.c b/environment.c
-index 0872fbdf72..7356785d9e 100644
+index ba2c60103f..e247e20085 100644
 --- a/environment.c
 +++ b/environment.c
-@@ -729,7 +729,7 @@ void repo_config_values_init(struct repo_config_values *cfg)
+@@ -726,3 +726,22 @@ void repo_config_values_init(struct repo_config_values *cfg)
+ 	cfg->sparse_expect_files_outside_of_patterns = 0;
+ 	cfg->warn_on_object_refname_ambiguity = 1;
+ }
++
++void reset_git_env(const LPCWSTR *env)
++{
++	build_libgit_environment(env); // this resets all environment variables
++	FREE_AND_NULL(comment_line_str_to_free);
++	auto_comment_line_char = 0;
++	is_bare_repository_cfg = -1;
++	/*
++	 * Test ->initialized, not ->objects: initialize_repository() sets the
++	 * flag but not the object database, which only appears later during
++	 * setup_git_directory(). A git_init() that never got as far as opening
++	 * an odb would otherwise skip the clear and then BUG() here on the
++	 * "repository initialized already" guard v2.55 added.
++	 */
++	if (the_repository && the_repository->initialized)
++		repo_clear(the_repository);
++	initialize_repository(the_repository);
++	FREE_AND_NULL(git_work_tree_cfg);
++}
+diff --git a/log-tree.c b/log-tree.c
+index 58cb20697f..bc6589e556 100644
+--- a/log-tree.c
++++ b/log-tree.c
+@@ -217,6 +217,15 @@ static int add_graft_decoration(const struct commit_graft *graft,
+ 	return 0;
+ }
  
- void reset_git_env(void)
++void clear_ref_decorations(void)
++{
++	if (decoration_loaded)
++	{
++		free_decoration(&name_decoration);
++		decoration_loaded = 0;
++	}
++}
++
+ void load_ref_decorations(struct decoration_filter *filter, int flags)
  {
--	putenv("GIT_DIR=");
-+	build_libgit_environment(); // this resets all environment variables
- 	FREE_AND_NULL(comment_line_str_to_free);
- 	auto_comment_line_char = 0;
- 	is_bare_repository_cfg = -1;
+ 	if (!decoration_loaded) {
+diff --git a/odb.c b/odb.c
+index 7d555be09f..3a91cf577e 100644
+--- a/odb.c
++++ b/odb.c
+@@ -14,6 +14,7 @@
+ #include "object-file.h"
+ #include "object-name.h"
+ #include "odb.h"
++#include "odb/source-files.h"
+ #include "odb/source-inmemory.h"
+ #include "packfile.h"
+ #include "path.h"
+@@ -1035,6 +1036,29 @@ void odb_close(struct object_database *o)
+ 	close_commit_graph(o);
+ }
+ 
++void odb_close_tgit(struct object_database *o)
++{
++	clear_delta_base_cache();
++	odb_close(o);
++
++	/*
++	 * odb_close() above closes the pack file handles, which is all upstream
++	 * needs. TortoiseGit additionally has to make the store forget which
++	 * packs it found, so the next lookup rediscovers them - TGitCache and
++	 * gitdll outlive any single repack.
++	 *
++	 * The store used to hang off odb_source directly. Since v2.55 the source
++	 * is polymorphic and only the files backend has packs, so downcast - and
++	 * check the type first, because odb_source_files_downcast() is a BUG()
++	 * on anything else and alternates need not be files-backed.
++	 */
++	for (struct odb_source *source = o->sources; source; source = source->next) {
++		if (source->type != ODB_SOURCE_FILES)
++			continue;
++		packfile_store_close_tgit(odb_source_files_downcast(source)->packed);
++	}
++}
++
+ static void odb_free_sources(struct object_database *o)
+ {
+ 	while (o->sources) {
+diff --git a/packfile.c b/packfile.c
+index 7fbe47ca18..bc7dfb8fc8 100644
+--- a/packfile.c
++++ b/packfile.c
+@@ -2849,6 +2849,13 @@ void packfile_store_close(struct packfile_store *store)
+ 	store->midx = NULL;
+ }
+ 
++void packfile_store_close_tgit(struct packfile_store *store)
++{
++	packfile_list_clear(&store->packs);
++	strmap_clear(&store->packs_by_path, 0);
++	store->initialized = false; // needed?
++}
++
+ struct odb_packed_read_stream {
+ 	struct odb_read_stream base;
+ 	struct packed_git *pack;
+diff --git a/refs.c b/refs.c
+index d3caa9a633..e60c64ed90 100644
+--- a/refs.c
++++ b/refs.c
+@@ -2343,6 +2343,14 @@ static struct ref_store *ref_store_init(struct repository *repo,
+ 	return refs;
+ }
+ 
++void ref_store_release_and_clear(struct repository *repo)
++{
++	if (!repo->refs_private)
++		return;
++	ref_store_release(repo->refs_private);
++	FREE_AND_NULL(repo->refs_private);
++}
++
+ void ref_store_release(struct ref_store *ref_store)
+ {
+ 	ref_store->be->release(ref_store);
+diff --git a/setup.c b/setup.c
+index fa7a5c1f3e..35ad4cd2e4 100644
+--- a/setup.c
++++ b/setup.c
+@@ -2954,3 +2954,22 @@ int init_db(struct repository *repo,
+ 	free(original_git_dir);
+ 	return 0;
+ }
++
++void reset_setup(void)
++{
++	/*
++	 * This used to clear four file-scope caches so that a subsequent
++	 * setup_git_directory() would rediscover everything - gitdll re-points a
++	 * long-lived process at a different repository, which upstream git never
++	 * does.
++	 *
++	 * As of v2.55 those caches are gone: setup state lives in struct
++	 * repository, and is_inside_git_dir()/is_inside_work_tree() recompute per
++	 * call rather than memoising. So there is nothing left here to reset.
++	 *
++	 * The repository-switch teardown that does still matter lives in
++	 * reset_git_env(), which repo_clear()s and re-initialize_repository()s
++	 * the_repository. Kept as the marked place in case setup.c ever
++	 * reintroduces caching of its own.
++	 */
++}

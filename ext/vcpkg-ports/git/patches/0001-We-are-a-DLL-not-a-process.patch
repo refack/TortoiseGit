@@ -1,0 +1,484 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Sven Strickroth <email@cs-ware.de>
+Date: Mon, 6 May 2013 16:06:20 -0400
+Subject: We are a DLL, not a process
+
+* Define exports of gitdll
+* Do not use pager (also caused crashes in gitdll.dll in some cases)
+* Add exit hook for gitdll - exit will cause program termination. Therefore, reimplimented by throw exception in TortoiseGit.
+* Track all open file handles
+* Do not print commits on STDOUT
+* Do not try to fork or start sub processes, exit early before setting up handles and pipes
+* Allow to schedule cleanup tasks
+* Initialize critical sections and tracing
+* chdir notify needs cleanup
+
+Signed-off-by: Sven Strickroth <email@cs-ware.de>
+Signed-off-by: Frank Li <lznuaa@gmail.com>
+---
+ attr.c               |   2 +-
+ builtin/log.c        |   8 ++++
+ chdir-notify.c       |  12 +++++
+ compat/mingw-posix.h |   6 +++
+ compat/mingw.c       | 102 +++++++++++++++++++++++++++++++++++++++++++
+ diff.c               |   4 +-
+ entry.c              |   2 +-
+ git-compat-util.h    |   9 ++--
+ log-tree.c           |   4 +-
+ notes.c              |   2 +-
+ pager.c              |  48 ++------------------
+ revision.h           |   4 ++
+ run-command.c        |   8 +++-
+ sub-process.c        |   2 +
+ 14 files changed, 155 insertions(+), 58 deletions(-)
+
+diff --git a/attr.c b/attr.c
+index b9852d8587..b4ec500147 100644
+--- a/attr.c
++++ b/attr.c
+@@ -523,7 +523,7 @@ static void check_vector_remove(struct attr_check *check)
+ }
+ 
+ /* Iterate through all attr_check instances and drop their stacks */
+-static void drop_all_attr_stacks(void)
++void drop_all_attr_stacks(void)
+ {
+ 	int i;
+ 
+diff --git a/builtin/log.c b/builtin/log.c
+index 2f5142e888..29931239aa 100644
+--- a/builtin/log.c
++++ b/builtin/log.c
+@@ -396,6 +396,14 @@ static void cmd_log_init(int argc, const char **argv, const char *prefix,
+ 	cmd_log_init_finish(argc, argv, prefix, rev, opt, cfg);
+ }
+ 
++void cmd_log_init_tgit(int argc, const char **argv, const char *prefix, struct rev_info *rev, struct setup_revision_opt *opt)
++{
++	struct log_config cfg;
++	log_config_init(&cfg);
++	cfg.use_mailmap_config = 0;
++	cmd_log_init(argc, argv, prefix, rev, opt, &cfg);
++	log_config_release(&cfg);
++}
+ static int cmd_log_walk_no_free(struct rev_info *rev)
+ {
+ 	struct commit *commit;
+diff --git a/chdir-notify.c b/chdir-notify.c
+index f8bfe3cbef..ec2318292b 100644
+--- a/chdir-notify.c
++++ b/chdir-notify.c
+@@ -97,6 +97,18 @@ int chdir_notify(const char *new_cwd)
+ 	return 0;
+ }
+ 
++void cleanup_chdir_notify(void)
++{
++	struct list_head *pos;
++	struct list_head *p;
++	list_for_each_safe(pos, p, &chdir_notify_entries)
++	{
++		struct chdir_notify_entry *e = list_entry(pos, struct chdir_notify_entry, list);
++		free(e);
++	}
++	INIT_LIST_HEAD(&chdir_notify_entries);
++}
++
+ char *reparent_relative_path(const char *old_cwd,
+ 			     const char *new_cwd,
+ 			     const char *path)
+diff --git a/compat/mingw-posix.h b/compat/mingw-posix.h
+index 9158f89d89..ef8df9a7d0 100644
+--- a/compat/mingw-posix.h
++++ b/compat/mingw-posix.h
+@@ -216,12 +216,18 @@ int mingw_open (const char *filename, int oflags, ...);
+ #define open mingw_open
+ #undef OPEN_RETURNS_EINTR
+ 
++int mingw_close(int fileHandle);
++#define close mingw_close
++
+ int mingw_fgetc(FILE *stream);
+ #define fgetc mingw_fgetc
+ 
+ FILE *mingw_fopen (const char *filename, const char *otype);
+ #define fopen mingw_fopen
+ 
++int mingw_fclose (FILE * stream);
++#define fclose mingw_fclose
++
+ FILE *mingw_freopen (const char *filename, const char *otype, FILE *stream);
+ #define freopen mingw_freopen
+ 
+diff --git a/compat/mingw.c b/compat/mingw.c
+index 92946af422..4c7baa5deb 100644
+--- a/compat/mingw.c
++++ b/compat/mingw.c
+@@ -35,6 +35,68 @@
+ 
+ #define HCAST(type, handle) ((type)(intptr_t)handle)
+ 
++struct open_data
++{
++	int fd;
++};
++
++static struct open_data *p_opened_file_handle;
++static int p_opened_file_size;
++static int p_alloc_size;
++
++void add_handle(int fd)
++{
++	struct open_data handle;
++	handle.fd = fd;
++
++	if (!p_opened_file_handle)
++		ALLOC_GROW(p_opened_file_handle, p_opened_file_size + 10, p_alloc_size);
++
++	for (int i = 0; i < p_opened_file_size; ++i)
++	{
++		if (p_opened_file_handle[i].fd == handle.fd)
++			return;
++	}
++
++	ALLOC_GROW(p_opened_file_handle, p_opened_file_size + 1, p_alloc_size);
++	p_opened_file_handle[p_opened_file_size++] = handle;
++}
++
++int remove_handle(int fd)
++{
++	if (!p_opened_file_handle)
++		return FALSE;
++
++	for (int i = 0; i < p_opened_file_size; ++i)
++	{
++		if (p_opened_file_handle[i].fd == fd)
++		{
++			if (i != p_opened_file_size - 1)
++				memmove(p_opened_file_handle + i, p_opened_file_handle + i + 1, (p_opened_file_size - i - 1) * sizeof *(p_opened_file_handle));
++
++			--p_opened_file_size;
++			return TRUE;
++		}
++	}
++	return FALSE;
++}
++
++#undef close
++
++void close_all(void)
++{
++	int i = 0;
++	if (!p_opened_file_handle)
++		return;
++
++	for (i = 0; i < p_opened_file_size; ++i)
++		close(p_opened_file_handle[i].fd);
++
++	FREE_AND_NULL(p_opened_file_handle);
++	p_alloc_size = 0;
++	p_opened_file_size = 0;
++}
++
+ void open_in_gdb(void)
+ {
+ 	static struct child_process cp = CHILD_PROCESS_INIT;
+@@ -1013,6 +1075,10 @@ int mingw_open (const char *filename, int oflags, ...)
+ 		if (fd >= 0 && set_hidden_flag(wfilename, 1))
+ 			warning("could not mark '%s' as hidden.", filename);
+ 	}
++
++	if (fd >= 0)
++		add_handle(fd);
++
+ 	return fd;
+ }
+ 
+@@ -1068,9 +1134,25 @@ FILE *mingw_fopen (const char *filename, const char *otype)
+ 		errno = ENOENT;
+ 	if (file && hide && set_hidden_flag(wfilename, 1))
+ 		warning("could not mark '%s' as hidden.", filename);
++	if (file)
++		add_handle(fileno(file));
+ 	return file;
+ }
+ 
++#undef close
++int mingw_close(int fileHandle)
++{
++	if (fileHandle >= 0)
++	{
++		if (remove_handle(fileHandle) == TRUE)
++			return close(fileHandle);
++
++		return FALSE;
++	}
++
++	return close(fileHandle);
++}
++
+ FILE *mingw_freopen (const char *filename, const char *otype, FILE *stream)
+ {
+ 	int hide = needs_hiding(filename);
+@@ -1098,6 +1180,15 @@ FILE *mingw_freopen (const char *filename, const char *otype, FILE *stream)
+ 	return file;
+ }
+ 
++#undef fclose
++int mingw_fclose(FILE * stream)
++{
++	if (remove_handle(fileno(stream)) == TRUE)
++		return fclose(stream);
++
++	return FALSE;
++}
++
+ #undef fflush
+ int mingw_fflush(FILE *stream)
+ {
+@@ -4379,6 +4470,17 @@ static BOOL WINAPI handle_ctrl_c(DWORD ctrl_type)
+ 	return TRUE; /* we did handle this */
+ }
+ 
++void libgit_initialize(void)
++{
++	trace2_initialize_clock();
++
++	InitializeCriticalSection(&phantom_symlinks_cs);
++
++	/* initialize critical section for fscache */
++	InitializeCriticalSection(&fscache_cs);
++}
++
++
+ #ifdef _MSC_VER
+ #ifdef _DEBUG
+ #include <crtdbg.h>
+diff --git a/diff.c b/diff.c
+index de5ff1f7d0..4c415a55b3 100644
+--- a/diff.c
++++ b/diff.c
+@@ -6575,7 +6575,7 @@ static int diff_flush_patch_quietly(struct diff_filepair *p, struct diff_options
+ 	return ret;
+ }
+ 
+-static void diff_flush_stat(struct diff_filepair *p, struct diff_options *o,
++void diff_flush_stat(struct diff_filepair *p, struct diff_options *o,
+ 			    struct diffstat_t *diffstat)
+ {
+ 	if (diff_unmodified_pair(p))
+@@ -6716,7 +6716,7 @@ static void diff_resolve_rename_copy(void)
+ 	diff_debug_queue("resolve-rename-copy done", q);
+ }
+ 
+-static int check_pair_status(struct diff_filepair *p)
++int check_pair_status(struct diff_filepair *p)
+ {
+ 	switch (p->status) {
+ 	case DIFF_STATUS_UNKNOWN:
+diff --git a/entry.c b/entry.c
+index 3087c35f9e..5b35dbe6fb 100644
+--- a/entry.c
++++ b/entry.c
+@@ -293,7 +293,7 @@ void update_ce_after_write(const struct checkout *state, struct cache_entry *ce,
+ }
+ 
+ /* Note: ca is used (and required) iff the entry refers to a regular file. */
+-static int write_entry(struct cache_entry *ce, char *path, struct conv_attrs *ca,
++int write_entry(struct cache_entry *ce, char *path, struct conv_attrs *ca,
+ 		       const struct checkout *state, int to_tempfile,
+ 		       int *nr_checkouts)
+ {
+diff --git a/git-compat-util.h b/git-compat-util.h
+index eb53bdb309..a4055fbfa7 100644
+--- a/git-compat-util.h
++++ b/git-compat-util.h
+@@ -1123,11 +1123,10 @@ struct fscache;
+ int cmd_main(int, const char **);
+ 
+ /*
+- * Intercept all calls to exit() and route them to trace2 to
+- * optionally emit a message before calling the real exit().
+- */
+-int common_exit(const char *file, int line, int code);
+-#define exit(code) exit(common_exit(__FILE__, __LINE__, (code)))
++ * Intercept all calls to exit() and route them gitdll
++  */
++extern int vc_exit(int code); // defined in gitdll.dll
++#define exit(code) vc_exit((code) & 0xff)
+ 
+ /*
+  * This include must come after system headers, since it introduces macros that
+diff --git a/log-tree.c b/log-tree.c
+index 88b3019293..58cb20697f 100644
+--- a/log-tree.c
++++ b/log-tree.c
+@@ -937,7 +937,9 @@ int log_tree_diff_flush(struct rev_info *opt)
+ 	}
+ 
+ 	if (opt->loginfo && !opt->no_commit_id) {
+-		show_log(opt);
++		//show_log(opt);
++		opt->loginfo = NULL; // TGit: do not print commits on STDOUT and skip all calculations regarding formatting
++		opt->shown_one = 1;
+ 		if ((opt->diffopt.output_format & ~DIFF_FORMAT_NO_OUTPUT) &&
+ 		    opt->verbose_header &&
+ 		    opt->commit_format != CMIT_FMT_ONELINE &&
+diff --git a/notes.c b/notes.c
+index ec9c2cb150..a1b9738a00 100644
+--- a/notes.c
++++ b/notes.c
+@@ -81,7 +81,7 @@ struct non_note {
+ struct notes_tree default_notes_tree;
+ 
+ static struct string_list display_notes_refs = STRING_LIST_INIT_NODUP;
+-static struct notes_tree **display_notes_trees;
++struct notes_tree **display_notes_trees;
+ 
+ static void load_subtree(struct notes_tree *t, struct leaf_node *subtree,
+ 		struct int_node *node, unsigned int n);
+diff --git a/pager.c b/pager.c
+index 35b210e048..b482cf01f8 100644
+--- a/pager.c
++++ b/pager.c
+@@ -84,26 +84,7 @@ static int core_pager_config(const char *var, const char *value,
+ 
+ const char *git_pager(struct repository *r, int stdout_is_tty)
+ {
+-	const char *pager;
+-
+-	if (!stdout_is_tty)
+-		return NULL;
+-
+-	pager = getenv("GIT_PAGER");
+-	if (!pager) {
+-		if (!pager_program)
+-			read_early_config(r,
+-					  core_pager_config, NULL);
+-		pager = pager_program;
+-	}
+-	if (!pager)
+-		pager = getenv("PAGER");
+-	if (!pager)
+-		pager = DEFAULT_PAGER;
+-	if (!*pager || !strcmp(pager, "cat"))
+-		pager = NULL;
+-
+-	return pager;
++	return NULL;
+ }
+ 
+ static void setup_pager_env(struct strvec *env)
+@@ -192,7 +173,7 @@ void setup_pager(struct repository *r)
+ 
+ int pager_in_use(void)
+ {
+-	return git_env_bool("GIT_PAGER_IN_USE", 0);
++	return 0;
+ }
+ 
+ /*
+@@ -275,34 +256,11 @@ static int pager_command_config(const char *var, const char *value,
+ 				const struct config_context *ctx UNUSED,
+ 				void *vdata)
+ {
+-	struct pager_command_config_data *data = vdata;
+-	const char *cmd;
+-
+-	if (skip_prefix(var, "pager.", &cmd) && !strcmp(cmd, data->cmd)) {
+-		int b = git_parse_maybe_bool(value);
+-		if (b >= 0)
+-			data->want = b;
+-		else {
+-			data->want = 1;
+-			data->value = xstrdup(value);
+-		}
+-	}
+-
+ 	return 0;
+ }
+ 
+ /* returns 0 for "no pager", 1 for "use pager", and -1 for "not specified" */
+ int check_pager_config(struct repository *r, const char *cmd)
+ {
+-	struct pager_command_config_data data;
+-
+-	data.cmd = cmd;
+-	data.want = -1;
+-	data.value = NULL;
+-
+-	read_early_config(r, pager_command_config, &data);
+-
+-	if (data.value)
+-		pager_program = data.value;
+-	return data.want;
++	return 0;
+ }
+diff --git a/revision.h b/revision.h
+index 00c392be37..eb33dbf430 100644
+--- a/revision.h
++++ b/revision.h
+@@ -390,6 +390,10 @@ struct rev_info {
+ 
+ 	/* Missing commits to be tracked without failing traversal. */
+ 	struct oidset missing_commits;
++
++	/* TGit extension */
++	void *pPrivate;
++	struct diffstat_t diffstat;
+ };
+ 
+ /**
+diff --git a/run-command.c b/run-command.c
+index e70a8a387b..8fe6a49441 100644
+--- a/run-command.c
++++ b/run-command.c
+@@ -681,6 +681,8 @@ int start_command(struct child_process *cmd)
+ 	int failed_errno;
+ 	const char *str;
+ 
++	return -1; // early return, before we might initialize handles
++
+ 	/*
+ 	 * In case of errors we must keep the promise to close FDs
+ 	 * that have been passed in via ->in and ->out.
+@@ -1105,7 +1107,7 @@ static struct {
+ 
+ static int git_atexit_installed;
+ 
+-static void git_atexit_dispatch(void)
++void git_atexit_dispatch(void)
+ {
+ 	size_t i;
+ 
+@@ -1113,7 +1115,7 @@ static void git_atexit_dispatch(void)
+ 		git_atexit_hdlrs.handlers[i-1]();
+ }
+ 
+-static void git_atexit_clear(void)
++void git_atexit_clear(void)
+ {
+ 	free(git_atexit_hdlrs.handlers);
+ 	memset(&git_atexit_hdlrs, 0, sizeof(git_atexit_hdlrs));
+@@ -1166,6 +1168,8 @@ int start_async(struct async *async)
+ 	int fdin[2], fdout[2];
+ 	int proc_in, proc_out;
+ 
++	return -1; // early return, before we might initialize handles
++
+ 	need_in = async->in < 0;
+ 	if (need_in) {
+ 		if (pipe(fdin) < 0) {
+diff --git a/sub-process.c b/sub-process.c
+index 2d5c965169..fd7a7f09fa 100644
+--- a/sub-process.c
++++ b/sub-process.c
+@@ -78,6 +78,8 @@ int subprocess_start(struct hashmap *hashmap, struct subprocess_entry *entry, co
+ 	int err;
+ 	struct child_process *process;
+ 
++	return -1; // early return, before we might initialize handles
++
+ 	entry->cmd = cmd;
+ 	process = &entry->process;
+ 
