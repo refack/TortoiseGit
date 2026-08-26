@@ -3,7 +3,7 @@
 	<PropertyGroup>
 		<ProjectGuid>{2684f1fc-45ba-446c-bd83-382d32d5a588}</ProjectGuid>
 		<OutputName>TortoiseGit-LanguagePack-lt</OutputName>
-		<DefineConstants>TSVNHelpFile=0;TMergeHelpFile=0;COUNTRYID=1063;LANGNATIVE=Lithuanian;SPELL=1;</DefineConstants>
+		<DefineConstants>TSVNHelpFile=0;TMergeHelpFile=0;COUNTRYID=1063;LANGNATIVE=Lithuanian;</DefineConstants>
 		<Cultures>lt-LT</Cultures>
 	</PropertyGroup>
 	<ItemGroup>
@@ -11,7 +11,6 @@
 		<Compile Include="WixUI_LanguagePacks.wxs" />
 	</ItemGroup>
 	<ItemGroup>
-		<Content Include="spell\1063.wxi" />
 	</ItemGroup>
 	<Import Project="WixProj.common.props" />
 </Project>

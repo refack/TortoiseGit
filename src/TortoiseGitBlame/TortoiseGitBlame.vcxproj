@@ -41,7 +41,7 @@
   <ItemDefinitionGroup>
     <ClCompile>
       <AdditionalIncludeDirectories>$(ProjectDir);..\..\ext\gitdll;..\Git;..\TortoiseProc;..\..\ext\scintilla\include;..\..\ext\lexilla\include;..\Utils;..\Utils\MiscUI;..\..\ext\ResizableLib;..\Resources;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>HUNSPELL_STATIC;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ExceptionHandling>SyncCThrow</ExceptionHandling>
     </ClCompile>
     <ResourceCompile>
@@ -219,10 +219,6 @@
     </ProjectReference>
     <ProjectReference Include="..\..\ext\gitdll\gitdll.vcxproj">
       <Project>{4f0a55de-dafd-4a0b-a03d-2c14cb77e08f}</Project>
-      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
-    </ProjectReference>
-    <ProjectReference Include="..\..\ext\build\hunspell.vcxproj">
-      <Project>{12e5b4ae-d7ef-4a57-a22d-6f9f9d8ce1fb}</Project>
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
     </ProjectReference>
     <ProjectReference Include="..\..\ext\ResizableLib\ResizableLib.vcxproj">

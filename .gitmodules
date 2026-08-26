@@ -1,18 +1,12 @@
 [submodule "ext/tgit"]
 	path = ext/tgit
 	url = https://gitlab.com/tortoisegit/tgit.git
-[submodule "ext/spell"]
-	path = ext/spell
-	url = https://github.com/LibreOffice/dictionaries
 [submodule "ext/editorconfig"]
 	path = ext/editorconfig
 	url = https://github.com/editorconfig/editorconfig-core-c.git
 [submodule "ext/googletest"]
 	path = ext/googletest
 	url = https://github.com/google/googletest.git
-[submodule "ext/hunspell"]
-	path = ext/hunspell
-	url = https://github.com/hunspell/hunspell.git
 [submodule "ext/json"]
 	path = ext/json
 	url = https://github.com/nlohmann/json.git

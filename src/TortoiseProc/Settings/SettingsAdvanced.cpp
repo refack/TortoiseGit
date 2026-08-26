@@ -79,7 +79,6 @@ CSettingsAdvanced::CSettingsAdvanced()
 	AddSetting<BooleanSetting>(L"UseLibgit2", true);
 	AddSetting<BooleanSetting>(L"VersionCheck", true);
 	AddSetting<BooleanSetting>(L"VersionCheckPreview", false);
-	AddSetting<BooleanSetting>(L"Win8SpellChecker", true);
 }
 
 CSettingsAdvanced::~CSettingsAdvanced()

@@ -3,7 +3,7 @@
 	<PropertyGroup>
 		<ProjectGuid>{2fde51b5-1f3c-48c4-a6a0-2e26853d7ff3}</ProjectGuid>
 		<OutputName>TortoiseGit-LanguagePack-el</OutputName>
-		<DefineConstants>TSVNHelpFile=0;TMergeHelpFile=0;COUNTRYID=1032;LANGNATIVE=Greek;SPELL=1;</DefineConstants>
+		<DefineConstants>TSVNHelpFile=0;TMergeHelpFile=0;COUNTRYID=1032;LANGNATIVE=Greek;</DefineConstants>
 		<Cultures>el-GR</Cultures>
 	</PropertyGroup>
 	<ItemGroup>
@@ -11,7 +11,6 @@
 		<Compile Include="WixUI_LanguagePacks.wxs" />
 	</ItemGroup>
 	<ItemGroup>
-		<Content Include="spell\1032.wxi" />
 	</ItemGroup>
 	<Import Project="WixProj.common.props" />
 </Project>

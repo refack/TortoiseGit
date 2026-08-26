@@ -3,7 +3,7 @@
 	<PropertyGroup>
 		<ProjectGuid>{9a0c8658-7f12-4c71-8bbe-ccf9c23b2eaa}</ProjectGuid>
 		<OutputName>TortoiseGit-LanguagePack-ca</OutputName>
-		<DefineConstants>TSVNHelpFile=0;TMergeHelpFile=0;COUNTRYID=1027;LANGNATIVE=Catalan;SPELL=1;</DefineConstants>
+		<DefineConstants>TSVNHelpFile=0;TMergeHelpFile=0;COUNTRYID=1027;LANGNATIVE=Catalan;</DefineConstants>
 		<Cultures>ca-ES</Cultures>
 	</PropertyGroup>
 	<ItemGroup>
@@ -11,7 +11,6 @@
 		<Compile Include="WixUI_LanguagePacks.wxs" />
 	</ItemGroup>
 	<ItemGroup>
-		<Content Include="spell\1027.wxi" />
 	</ItemGroup>
 	<Import Project="WixProj.common.props" />
 </Project>

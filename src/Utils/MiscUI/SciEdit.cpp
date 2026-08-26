@@ -49,29 +49,6 @@ void CSciEditContextMenuInterface::HandleSnippet(int, const CString &, CSciEdit 
 
 #define SCI_ADDWORD			2000
 
-struct loc_map {
-	const char * cp;
-	const char * def_enc;
-};
-
-constexpr struct loc_map enc2locale[] = {
-	{"28591","ISO8859-1"},
-	{"28592","ISO8859-2"},
-	{"28593","ISO8859-3"},
-	{"28594","ISO8859-4"},
-	{"28595","ISO8859-5"},
-	{"28596","ISO8859-6"},
-	{"28597","ISO8859-7"},
-	{"28598","ISO8859-8"},
-	{"28599","ISO8859-9"},
-	{"28605","ISO8859-15"},
-	{"20866","KOI8-R"},
-	{"21866","KOI8-U"},
-	{"1251","microsoft-cp1251"},
-	{"65001","UTF-8"},
-	};
-
-
 IMPLEMENT_DYNAMIC(CSciEdit, CWnd)
 
 CSciEdit::CSciEdit()
@@ -243,29 +220,18 @@ void CSciEdit::Init(LONG lLanguage)
 	Call(SCI_SETWHITESPACECHARS, 0, reinterpret_cast<LPARAM>(static_cast<LPCSTR>(sWhiteSpace)));
 	m_bDoStyle = static_cast<DWORD>(CRegStdDWORD(L"Software\\TortoiseGit\\StyleCommitMessages", TRUE)) == TRUE;
 	m_nAutoCompleteMinChars = static_cast<int>(CRegStdDWORD(L"Software\\TortoiseGit\\AutoCompleteMinChars", 3));
-	// look for dictionary files and use them if found
+	// Spell checking is Windows' own ISpellChecker. TortoiseGit no longer carries a
+	// checker or dictionaries of its own: Windows knows which languages the user has
+	// installed, and for a language it has no checker for there is nothing useful we
+	// could have shipped instead.
 	if (lLanguage >= 0 && static_cast<DWORD>(CRegStdDWORD(L"Software\\TortoiseGit\\Spellchecker", TRUE)) == TRUE)
 	{
-		long langId = GetUserDefaultLCID();
-		long origLangId = langId;
-		if (lLanguage > 0)
-		{
-			// if a specific language is requested, then use that
-			langId = lLanguage;
-			origLangId = lLanguage;
-		}
+		// if a specific language is requested, then use that
+		long langId = lLanguage > 0 ? lLanguage : GetUserDefaultLCID();
 
-		// First try the spell checker Windows itself ships. It is the default now: it
-		// knows the languages the user has actually installed, it is maintained by
-		// somebody else, and it needs no dictionary files of ours. Hunspell stays as
-		// the fallback below for languages Windows has no checker for - that is what
-		// it is genuinely good for, and IsSupported() tells us exactly when.
-		// The key keeps its name despite no longer meaning "opt in": it is persisted
-		// user state, and renaming it would silently discard everyone's choice.
 		BOOL supported = FALSE;
 		HRESULT hr = CoCreateInstance(__uuidof(SpellCheckerFactory), nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&m_spellCheckerFactory));
-		bool bFallbackUsed = false;
-		if (SUCCEEDED(hr) && static_cast<DWORD>(CRegDWORD(L"Software\\TortoiseGit\\Win8SpellChecker", TRUE)) == TRUE)
+		if (SUCCEEDED(hr))
 		{
 			wchar_t localename[LOCALE_NAME_MAX_LENGTH] = { 0 };
 			do
@@ -282,6 +248,10 @@ void CSciEdit::Init(LONG lLanguage)
 						break;
 					}
 				}
+				// Walk down the sublanguages first (en-CA -> en), then try US English
+				// once as a last resort: commit messages are conventionally English
+				// whatever the user's Windows locale is, and that is also what the
+				// installer used to guarantee by always adding the en_US dictionary.
 				DWORD lid = SUBLANGID(langId);
 				--lid;
 				if (lid > 0)
@@ -289,38 +259,8 @@ void CSciEdit::Init(LONG lLanguage)
 				else if (langId == 1033)
 					langId = 0;
 				else
-				{
 					langId = 1033;
-					bFallbackUsed = true;
-				}
 			} while (langId && (!supported || FAILED(hr)));
-		}
-		if (FAILED(hr) || !supported || bFallbackUsed)
-		{
-			if (bFallbackUsed)
-				langId = origLangId;
-			if ((lLanguage == 0) || (lLanguage && !LoadDictionaries(lLanguage)))
-			{
-				do
-				{
-					LoadDictionaries(langId);
-					DWORD lid = SUBLANGID(langId);
-					--lid;
-					if (lid > 0)
-						langId = MAKELANGID(PRIMARYLANGID(langId), lid);
-					else if (langId == 1033)
-						langId = 0;
-					else
-					{
-						if (bFallbackUsed && supported)
-							langId = 0;
-						else
-							langId = 1033;
-					}
-				} while (langId && !pChecker);
-			}
-			if (bFallbackUsed && pChecker)
-				m_SpellChecker = nullptr;
 		}
 	}
 
@@ -378,51 +318,6 @@ void CSciEdit::SetIcon(const std::map<int, UINT> &icons)
 		auto bytes = Icon2Image(hIcon);
 		Call(SCI_REGISTERRGBAIMAGE, icon.first, reinterpret_cast<LPARAM>(bytes.get()));
 	}
-}
-
-BOOL CSciEdit::LoadDictionaries(LONG lLanguageID)
-{
-	// Setup the spell checker
-	wchar_t buf[6] = { 0 };
-	CString sFolderUp = CPathUtils::GetAppParentDirectory();
-	CString sFolderAppData = CPathUtils::GetAppDataDirectory();
-	CString sFile;
-
-	GetLocaleInfo(MAKELCID(lLanguageID, SORT_DEFAULT), LOCALE_SISO639LANGNAME, buf, _countof(buf));
-	sFile = buf;
-	if (lLanguageID == 2074)
-		sFile += L"-Latn";
-	sFile += L'_';
-	GetLocaleInfo(MAKELCID(lLanguageID, SORT_DEFAULT), LOCALE_SISO3166CTRYNAME, buf, _countof(buf));
-	sFile += buf;
-	if (!pChecker)
-	{
-		if ((PathFileExists(sFolderAppData + L"dic\\" + sFile + L".aff")) &&
-			(PathFileExists(sFolderAppData + L"dic\\" + sFile + L".dic")))
-		{
-			pChecker = std::make_unique<Hunspell>(CStringA(sFolderAppData + L"dic\\" + sFile + L".aff"), CStringA(sFolderAppData + L"dic\\" + sFile + L".dic"));
-		}
-		else if ((PathFileExists(sFolderUp + L"Languages\\" + sFile + L".aff")) &&
-			(PathFileExists(sFolderUp + L"Languages\\" + sFile + L".dic")))
-		{
-			pChecker = std::make_unique<Hunspell>(CStringA(sFolderUp + L"Languages\\" + sFile + L".aff"), CStringA(sFolderUp + L"Languages\\" + sFile + L".dic"));
-		}
-		if (pChecker)
-		{
-			const char* encoding = pChecker->get_dic_encoding();
-			CTraceToOutputDebugString::Instance()(__FUNCTION__ ": %s\n", encoding);
-			m_spellcodepage = 0;
-			for (int i = 0; i < _countof(enc2locale); ++i)
-			{
-				if (strcmp(encoding, enc2locale[i].def_enc) == 0)
-					m_spellcodepage = atoi(enc2locale[i].cp);
-			}
-			m_personalDict.Init(lLanguageID);
-		}
-	}
-	if (pChecker)
-		return TRUE;
-	return FALSE;
 }
 
 LRESULT CSciEdit::Call(UINT message, WPARAM wParam, LPARAM lParam)
@@ -600,13 +495,6 @@ BOOL CSciEdit::CheckWordSpelling(const CString& sWord)
 			}
 		}
 	}
-	else if (pChecker)
-	{
-		// convert the string from the control to the encoding of the spell checker module.
-		auto sWordA = GetWordForSpellChecker(sWord);
-		if (!pChecker->spell(sWordA))
-			return TRUE;
-	}
 
 	return FALSE;
 }
@@ -624,9 +512,6 @@ BOOL CSciEdit::IsMisspelled(const CString& sWord)
 	const BOOL *cacheResult = m_SpellingCache.try_get(std::wstring(sWord, sWord.GetLength()));
 	if (cacheResult)
 		return *cacheResult;
-
-	// convert the string from the control to the encoding of the spell checker module.
-	auto sWordA = GetWordForSpellChecker(sWord);
 
 	// now we actually check the spelling...
 	BOOL misspelled = CheckWordSpelling(sWord);
@@ -676,7 +561,7 @@ void CSciEdit::CheckSpelling(Sci_Position startpos, Sci_Position endpos)
 	if (m_bReadOnly)
 		return;
 
-	if (!pChecker && !m_SpellChecker)
+	if (!m_SpellChecker)
 		return;
 
 	Sci_TextRange textrange;
@@ -749,7 +634,7 @@ void CSciEdit::CheckSpelling(Sci_Position startpos, Sci_Position endpos)
 
 void CSciEdit::SuggestSpellingAlternatives()
 {
-	if (!pChecker && !m_SpellChecker)
+	if (!m_SpellChecker)
 		return;
 	CString word = GetWordUnderCursor(true);
 	Call(SCI_SETCURRENTPOS, Call(SCI_WORDSTARTPOSITION, Call(SCI_GETCURRENTPOS), TRUE));
@@ -768,15 +653,6 @@ void CSciEdit::SuggestSpellingAlternatives()
 				suggestions.AppendFormat(L"%s%c%d%c", (LPCWSTR)CString(string), m_typeSeparator, AUTOCOMPLETE_SPELLING, m_separator);
 				CoTaskMemFree(string);
 			}
-		}
-	}
-	else if (pChecker)
-	{
-		auto wlst = pChecker->suggest(GetWordForSpellChecker(word));
-		if (!wlst.empty())
-		{
-			for (const auto& alternative : wlst)
-				suggestions.AppendFormat(L"%s%c%d%c", static_cast<LPCWSTR>(GetWordFromSpellChecker(alternative)), m_typeSeparator, AUTOCOMPLETE_SPELLING, m_separator);
 		}
 	}
 
@@ -1126,13 +1002,10 @@ void CSciEdit::OnContextMenu(CWnd* /*pWnd*/, CPoint point)
 		}
 		else
 			sWord = GetWordUnderCursor();
-		auto worda = GetWordForSpellChecker(sWord);
-
 		int nCorrections = 1;
 		// check if the word under the cursor is spelled wrong
-		if (!bIsReadOnly && (pChecker || m_SpellChecker) && !worda.empty())
+		if (!bIsReadOnly && m_SpellChecker && !sWord.IsEmpty())
 		{
-			if (m_SpellChecker)
 			{
 				IEnumStringPtr enumSpellingSuggestions = nullptr;
 				if (SUCCEEDED(m_SpellChecker->Suggest(sWord, &enumSpellingSuggestions)))
@@ -1142,21 +1015,6 @@ void CSciEdit::OnContextMenu(CWnd* /*pWnd*/, CPoint point)
 					{
 						popup.InsertMenu((UINT)-1, 0, nCorrections++, string);
 						CoTaskMemFree(string);
-					}
-					popup.AppendMenu(MF_SEPARATOR);
-				}
-			}
-			else if (pChecker)
-			{
-				// get the spell suggestions
-				auto wlst = pChecker->suggest(worda);
-				if (!wlst.empty())
-				{
-					// add the suggestions to the context menu
-					for (const auto& alternative : wlst)
-					{
-						CString sug = GetWordFromSpellChecker(alternative);
-						popup.InsertMenu(static_cast<UINT>(-1), 0, nCorrections++, sug);
 					}
 					popup.AppendMenu(MF_SEPARATOR);
 				}
@@ -1537,60 +1395,6 @@ void CSciEdit::StyleURLs(Sci_Position startstylepos, Sci_Position endstylepos)
 				Call(SCI_SETSTYLING, end - start, STYLE_URL); });
 }
 
-std::string CSciEdit::GetWordForSpellChecker(const CString& sWord)
-{
-	// convert the string from the control to the encoding of the spell checker module.
-	std::string sWordA;
-	if (m_spellcodepage)
-	{
-		int lengthIncTerminator = WideCharToMultiByte(m_spellcodepage, 0, sWord, -1, nullptr, 0, nullptr, nullptr);
-		if (lengthIncTerminator <= 1)
-			return ""; // converting to the codepage failed
-		sWordA.resize(lengthIncTerminator - 1);
-		WideCharToMultiByte(m_spellcodepage, 0, sWord, -1, sWordA.data(), lengthIncTerminator - 1, nullptr, nullptr);
-	}
-	else
-		sWordA = std::string(reinterpret_cast<LPCSTR>(static_cast<LPCWSTR>(sWord)));
-
-	sWordA.erase(sWordA.find_last_not_of("\'\".,") + 1);
-	sWordA.erase(0, sWordA.find_first_not_of("\'\".,"));
-
-	if (m_bDoStyle)
-	{
-		for (const auto styleindicator : { '*', '_', '^' })
-		{
-			if (sWordA.empty())
-				break;
-			if (sWordA[sWordA.size() - 1] == styleindicator)
-				sWordA.resize(sWordA.size() - 1);
-			if (sWordA.empty())
-				break;
-			if (sWordA[0] == styleindicator)
-				sWordA = sWordA.substr(sWordA.size() - 1);
-		}
-	}
-
-	return sWordA;
-}
-
-CString CSciEdit::GetWordFromSpellChecker(const std::string& sWordA)
-{
-	CString sWord;
-	if (m_spellcodepage)
-	{
-		wchar_t* buf = sWord.GetBuffer(static_cast<int>(sWordA.size()) * 2);
-		int lengthIncTerminator = MultiByteToWideChar(m_spellcodepage, 0, sWordA.c_str(), -1, buf, static_cast<int>(sWordA.size()) * 2);
-		if (lengthIncTerminator == 0)
-			return L"";
-		sWord.ReleaseBuffer(lengthIncTerminator - 1);
-	}
-	else
-		sWord = CString(sWordA.c_str());
-
-	sWord.Trim(L"\'\".,");
-
-	return sWord;
-}
 
 bool CSciEdit::IsUTF8(LPVOID pBuffer, size_t cb)
 {

@@ -3,7 +3,7 @@
 	<PropertyGroup>
 		<ProjectGuid>{925c4e4c-d427-4051-86ae-a5b1149aacb3}</ProjectGuid>
 		<OutputName>TortoiseGit-LanguagePack-id</OutputName>
-		<DefineConstants>TSVNHelpFile=0;TMergeHelpFile=0;COUNTRYID=1057;LANGNATIVE=Indonesian;SPELL=1;</DefineConstants>
+		<DefineConstants>TSVNHelpFile=0;TMergeHelpFile=0;COUNTRYID=1057;LANGNATIVE=Indonesian;</DefineConstants>
 		<Cultures>en-US</Cultures>
 	</PropertyGroup>
 	<ItemGroup>
@@ -11,7 +11,6 @@
 		<Compile Include="WixUI_LanguagePacks.wxs" />
 	</ItemGroup>
 	<ItemGroup>
-		<Content Include="spell\1057.wxi" />
 	</ItemGroup>
 	<Import Project="WixProj.common.props" />
 </Project>

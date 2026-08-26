@@ -1,4 +1,0 @@
-﻿<Include>
-	<File Id='SPELLKOKRAFF' Name='ko_KR.aff' DiskId='1' Source='..\ext\spell\ko_KR\ko_KR.aff' Vital='no'></File>
-	<File Id='SPELLKOKRDIC' Name='ko_KR.dic' DiskId='1' Source='..\ext\spell\ko_KR\ko_KR.dic' Vital='no'></File>
-</Include>

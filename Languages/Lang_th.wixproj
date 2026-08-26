@@ -3,7 +3,7 @@
 	<PropertyGroup>
 		<ProjectGuid>{11239c70-b18e-4960-8f5a-b078c5059a27}</ProjectGuid>
 		<OutputName>TortoiseGit-LanguagePack-th</OutputName>
-		<DefineConstants>TSVNHelpFile=0;TMergeHelpFile=0;COUNTRYID=1054;LANGNATIVE=Thai;SPELL=1;</DefineConstants>
+		<DefineConstants>TSVNHelpFile=0;TMergeHelpFile=0;COUNTRYID=1054;LANGNATIVE=Thai;</DefineConstants>
 		<Cultures>th-TH</Cultures>
 	</PropertyGroup>
 	<ItemGroup>
@@ -11,7 +11,6 @@
 		<Compile Include="WixUI_LanguagePacks.wxs" />
 	</ItemGroup>
 	<ItemGroup>
-		<Content Include="spell\1054.wxi" />
 	</ItemGroup>
 	<Import Project="WixProj.common.props" />
 </Project>

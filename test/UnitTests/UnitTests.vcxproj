@@ -53,7 +53,7 @@
   </PropertyGroup>
   <ItemDefinitionGroup>
     <ClCompile>
-      <AdditionalIncludeDirectories>$(ProjectDir);..\..\src\Resources;..\..\src\Git;..\..\ext\hunspell;..\..\src\Utils;..\..\src\Utils\MiscUI;..\..\src\TortoiseShell;..\..\ext\gitdll;..\..\ext\ResizableLib;..\..\src\TortoiseProc;..\..\src\GitWCRev;..\..\src\TortoiseGitBlame;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir);..\..\src\Resources;..\..\src\Git;..\..\src\Utils;..\..\src\Utils\MiscUI;..\..\src\TortoiseShell;..\..\ext\gitdll;..\..\ext\ResizableLib;..\..\src\TortoiseProc;..\..\src\GitWCRev;..\..\src\TortoiseGitBlame;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <!-- GTEST_HAS_STD_TUPLE_ and GTEST_HAS_TR1_TUPLE were for the gtest 1.8-era
            tuple shims; neither macro exists in the version vcpkg installs. -->
       <PreprocessorDefinitions>TGIT_TESTS_ONLY;TGIT_LFS;%(PreprocessorDefinitions)</PreprocessorDefinitions>

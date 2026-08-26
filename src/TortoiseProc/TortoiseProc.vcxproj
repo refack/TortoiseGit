@@ -50,7 +50,7 @@
       <!-- GIT_EXPERIMENTAL_SHA256 is no longer listed: vcpkg's generated
            git2\experimental.h defines it, and git2\oid.h includes that header,
            so every TU that can see git_oid gets the flag by construction. -->
-      <PreprocessorDefinitions>TORTOISEGITPROC;HUNSPELL_STATIC;TGIT_LFS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>TORTOISEGITPROC;TGIT_LFS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ExceptionHandling>SyncCThrow</ExceptionHandling>
     </ClCompile>
     <ResourceCompile>
@@ -816,10 +816,6 @@
     </ProjectReference>
     <ProjectReference Include="..\..\ext\gitdll\gitdll.vcxproj">
       <Project>{4f0a55de-dafd-4a0b-a03d-2c14cb77e08f}</Project>
-      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
-    </ProjectReference>
-    <ProjectReference Include="..\..\ext\build\hunspell.vcxproj">
-      <Project>{12e5b4ae-d7ef-4a57-a22d-6f9f9d8ce1fb}</Project>
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
     </ProjectReference>
     <ProjectReference Include="..\..\ext\ResizableLib\ResizableLib.vcxproj">

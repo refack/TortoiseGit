@@ -3,7 +3,7 @@
 	<PropertyGroup>
 		<ProjectGuid>{e6fabb0a-50e9-406e-a049-95e947ef122e}</ProjectGuid>
 		<OutputName>TortoiseGit-LanguagePack-sq</OutputName>
-		<DefineConstants>TSVNHelpFile=0;TMergeHelpFile=0;COUNTRYID=1052;LANGNATIVE=Albanian;SPELL=1;</DefineConstants>
+		<DefineConstants>TSVNHelpFile=0;TMergeHelpFile=0;COUNTRYID=1052;LANGNATIVE=Albanian;</DefineConstants>
 		<Cultures>en-US</Cultures>
 	</PropertyGroup>
 	<ItemGroup>
@@ -11,7 +11,6 @@
 		<Compile Include="WixUI_LanguagePacks.wxs" />
 	</ItemGroup>
 	<ItemGroup>
-		<Content Include="spell\1052.wxi" />
 	</ItemGroup>
 	<Import Project="WixProj.common.props" />
 </Project>

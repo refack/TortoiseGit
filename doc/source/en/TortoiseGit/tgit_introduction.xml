@@ -359,64 +359,31 @@
 				<primary>dictionary</primary>
 			</indexterm>
 			<para>
-				TortoiseGit includes a spell checker which allows you to check your
-				commit log messages. This is especially useful if the project language
-				is not your native language.
-				By default the spell checker uses the same dictionary files as
-				<ulink url="https://www.libreoffice.org/">
-					<citetitle>LibreOffice</citetitle>
-				</ulink>,
-				<ulink url="https://www.openoffice.org/">
-					<citetitle>OpenOffice.org</citetitle>
-				</ulink>
-				and
-				<ulink url="https://mozilla.org">
-					<citetitle>Mozilla</citetitle>
-				</ulink>.
-				By default TortoiseGit uses the spell checker Windows itself provides, which covers the languages you have installed and needs no dictionary files. A bundled dictionary is used only for languages Windows has no checker for, and setting <literal>Win8SpellChecker</literal> to false in advanced settings forces that path always.
+				TortoiseGit can spell check your commit log messages, which is especially
+				useful if the project language is not your native language. It uses the
+				spell checker built into Windows, so it checks against the languages you
+				have installed and TortoiseGit ships no dictionaries of its own.
 			</para>
 			<para>
-				The installer by default automatically adds the US English dictionary.
-				If you want other languages, the easiest option is simply to
-				install one of TortoiseGit's language packs (see <xref linkend="tgit-intro-install-lang"/>). This will install
-				the appropriate dictionary files as well as the TortoiseGit local
-				user interface.
-				After the installation finishes, the translation will be available.
-				When using the Windows spell checker, you need to install the dictionary in Windows first.
+				To add a language, install it in Windows: <menuchoice><guimenu>Settings</guimenu><guimenuitem>Time &amp; language</guimenuitem><guimenuitem>Language &amp; region</guimenuitem></menuchoice>,
+				add the language, and make sure its optional
+				<guilabel>Basic typing</guilabel> feature is installed - that is the part
+				which contains the spell checker. Every application on the machine that
+				uses the Windows spell checker benefits, not only TortoiseGit.
 			</para>
 			<para>
-				Or you can install the dictionaries yourself. If you have OpenOffice.org, LibreOffice or
-				Mozilla installed, you can copy those dictionaries, which are located
-				in the installation folders for those applications.
-				Otherwise, you need to download the required dictionary files from
-				<ulink url="https://cgit.freedesktop.org/libreoffice/dictionaries/">
-					<citetitle>https://cgit.freedesktop.org/libreoffice/dictionaries/</citetitle>
-				</ulink>.
+				If Windows has no spell checker for a language, TortoiseGit falls back to
+				US English, on the assumption that a commit message is more likely to be
+				written in English than in a language nothing on the machine can check.
+				Set <literal>Spellchecker</literal> to false in the advanced settings
+				(cf. <xref linkend="tgit-dug-settings-advanced"/>) to turn the whole
+				feature off.
 			</para>
 			<para>
-				Once you have got the dictionary files, you
-				probably need to rename them so that the filenames only have
-				the locale chars in it.
-				Example:
-				<itemizedlist>
-					<listitem>
-						<para>
-							<filename>en_US.aff</filename>
-						</para>
-					</listitem>
-					<listitem>
-						<para>
-							<filename>en_US.dic</filename>
-						</para>
-					</listitem>
-				</itemizedlist>
-				Then just copy them into the <filename>%APPDATA%\TortoiseGit\dic</filename> folder. If that folder isn't
-				there, you have to create it first.
-				TortoiseGit will also search the <filename>Languages</filename> sub-folder of
-				the TortoiseGit installation folder (normally this will be <filename>C:\Program Files\TortoiseGit\Languages</filename>);
-				this is the place where the language packs put their files.
-				However, the <filename>%APPDATA%</filename>-folder doesn't require administrator privileges and, thus, has higher priority.
-				The next time you start TortoiseGit, the spell checker will be available.
+				Words you add through <guimenuitem>Add to dictionary</guimenuitem> in the
+				log message context menu are stored per language in
+				<filename>%APPDATA%\TortoiseGit</filename> and are private to TortoiseGit;
+				they are not added to Windows' own dictionary.
 			</para>
 			<para>
 				If you install multiple dictionaries, TortoiseGit uses these rules

@@ -27,10 +27,6 @@
 #include "PersonalDictionary.h"
 #include "LruCache.h"
 #include <spellcheck.h>
-// the following should be last
-#pragma include_alias("hunvisapi.h", "../../ext/build/hunspell/hunvisapi.h")
-#pragma include_alias("config.h", "../../ext/build/hunspell/config.h")
-#include "../../ext/hunspell/src/hunspell/hunspell.hxx"
 
 _COM_SMARTPTR_TYPEDEF(ISpellCheckerFactory, __uuidof(ISpellCheckerFactory));
 _COM_SMARTPTR_TYPEDEF(ISpellChecker, __uuidof(ISpellChecker));
@@ -153,8 +149,6 @@ private:
 	CAutoLibrary	m_hModule;
 	LRESULT		m_DirectFunction = 0;
 	LRESULT		m_DirectPointer = 0;
-	std::unique_ptr<Hunspell>	pChecker;
-	UINT		m_spellcodepage = 0;
 	std::map<CString, int> m_autolist;
 	wchar_t		m_separator = '\0';
 	wchar_t		m_typeSeparator = '\x01';
@@ -178,7 +172,6 @@ protected:
 	void		CheckSpelling(Sci_Position startpos, Sci_Position endpos);
 	void		SuggestSpellingAlternatives();
 	void		DoAutoCompletion(Sci_Position nMinPrefixLength);
-	BOOL		LoadDictionaries(LONG lLanguageID);
 	ISpellCheckerFactoryPtr m_spellCheckerFactory;
 	ISpellCheckerPtr m_SpellChecker;
 	BOOL		MarkEnteredBugID(Sci_Position startstylepos, Sci_Position endstylepos);
@@ -191,8 +184,6 @@ protected:
 	BOOL		IsMisspelled(const CString& sWord);
 	BOOL		CheckWordSpelling(const CString& sWord);
 	int			GetStyleAt(Sci_Position pos) { return static_cast<int>(Call(SCI_GETSTYLEAT, pos)) & 0x1f; }
-	std::string GetWordForSpellChecker(const CString& sWord);
-	CString		GetWordFromSpellChecker(const std::string& sWordA);
 
 	static void SetWindowStylesForAutocompletionPopup();
 	static BOOL CALLBACK AdjustThemeProc(HWND hwnd, LPARAM lParam);

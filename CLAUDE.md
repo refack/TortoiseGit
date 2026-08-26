@@ -22,9 +22,10 @@ TortoiseGitMerge, TortoiseGitPlink with the bundled PuTTY binaries,
 considered and **kept**; its OGDF dependency moved to a new overlay port.
 The standing goal (per user direction, 2026-08-22) is to keep going — every
 remaining `ext\*` submodule should become a public vcpkg port, a port overlay,
-or nothing at all. **Seven are left** — `libgit2`, `pcre2`, `zlib` and `OGDF`
-were deinitialised in `91ffe10b1` once nothing built from them. See "Dependency
-pruning".
+or nothing at all. **Five are left** — `libgit2`, `pcre2`, `zlib` and `OGDF`
+were deinitialised in `91ffe10b1`, `hunspell` and `spell` removed in
+`521f2391c`, and `googletest`/`json` moved to stock ports in `835cb3e5f` with
+their checkouts still droppable. See "Dependency pruning".
 
 The recurring test: **what does this actually add over the thing Windows or
 git already ships?** For TortoiseGitMerge the answer was "nothing git's
@@ -571,7 +572,7 @@ Three things landed that the phases above never had a slot for. They share a
 premise with Phase 1 — stop hand-maintaining what someone else already
 maintains — but they subtract code rather than move it.
 
-### Dependency pruning (15 submodules -> 7)
+### Dependency pruning (15 submodules -> 5)
 
 The goal, per user direction: every `ext\*` submodule becomes a public vcpkg
 port, an overlay, or nothing. Done so far, beyond Phase 1's libgit2/pcre2/zlib:
@@ -680,34 +681,32 @@ Remaining, by how they should end:
 | --- | --- |
 | ~~`json`, `googletest`~~ | **done** in `835cb3e5f` — stock ports, no overlay needed |
 | `lexilla` | **not a lone swap** — see below |
-| `hunspell` | goes with `spell`, once the Windows checker is proven — see "Spell checking" |
+| ~~`hunspell`, `spell`~~ | **gone** in `521f2391c` — Windows' own checker replaced both |
 | `editorconfig` | **stays** — TortoiseProc consumes it (`AppUtils.cpp`), and no vcpkg port carries this build |
 | `tgit`, `spell` | permanent — `tgit` is the second git backend, `spell` is dictionary data |
 | ~~`libgit2`, `pcre2`, `zlib`, `OGDF`~~ | **gone** — build wiring retired first, checkouts deinitialised in `91ffe10b1` |
 
-Surveyed 2026-08-25, after the deinit. Thirteen directories under `ext\`, seven
-of them submodules:
+Surveyed 2026-08-25, updated 2026-08-26. **Five submodules left**, eleven
+directories under `ext\`:
 
 | dir | sub | MB | hand-built vcxproj | consumers |
 | --- | --- | --- | --- | --- |
-| `spell` | yes | **491** | – | dictionary data, 69 languages |
 | `tgit` | yes | 46 | `libgit.vcxproj` | gitdll — the second git backend |
-| `json` | yes | 15 | – | — vcpkg `nlohmann-json` since `835cb3e5f` |
-| `hunspell` | yes | 5.3 | `hunspell.vcxproj` | TortoiseProc (`SciEdit.h`) |
 | `lexilla` | yes | 4.8 | – | Blame, TortoiseProc, UDiff |
-| `googletest` | yes | 4.0 | ~~`googletest.vcxproj`~~ | — vcpkg `gtest` since `835cb3e5f` |
 | `scintilla` | **no** | 1.8 | `scintillalexer.vcxproj` | Blame, TortoiseProc, UDiff |
 | `TortoiseOverlays` | no | 0.8 | – | `StructureFragment.wxi`, three `.registry` files, `IconOverlay.cpp`, both overlay Settings pages |
 | `editorconfig` | yes | 0.3 | `editorconfig.vcxproj` | TortoiseProc |
 | `ResizableLib` | no | 0.2 | – | Blame, TortoiseProc |
 | `gitdll` | no | tiny | `gitdll.vcxproj` | Cache, TGitCache, Blame, +3 |
+| `googletest`, `json` | yes | — | – | vcpkg `gtest` / `nlohmann-json` since `835cb3e5f`; checkouts droppable |
 
-Three things that survey turned up:
+`ext\build\` now holds four projects: `editorconfig`, `libgit`,
+`ScintillaLexer`, and the `pcre2\config.h` that editorconfig still needs (that
+directory is **not** orphaned). `ext\build\apr\` **is** orphaned — left behind
+when `apr` went with TortoiseGitMerge.
 
-- **`spell` is 491 MB, 87% of `ext\`** — LibreOffice's complete dictionary set,
-  69 languages, of which the installer packages a subset. The biggest disk item
-  left by an order of magnitude, and the one that most wants "fetch what we
-  ship" rather than a full submodule.
+Two things that survey turned up:
+
 - **`scintilla` is vendored directly, not a submodule**, unlike `lexilla`
   immediately beside it — same upstream org, split provenance. Permanent either
   way: Blame and TortoiseProc's `SciEdit` need it even if UDiff goes.
@@ -718,7 +717,7 @@ Three things that survey turned up:
   below. Any "who consumes this" sweep must cover `.wxi`/`.wxs`, `.registry`,
   `.rc`/`.rc2` and CI YAML, not just projects and C++.
 
-#### Spell checking: `ext\spell` (491 MB) and `ext\hunspell`
+#### Spell checking: `ext\spell` and `ext\hunspell` — both **gone**
 
 **The Windows spell checker was already implemented and switched off.**
 `SciEdit.cpp` has used `ISpellCheckerFactory`/`ISpellChecker` since 2015, tried
@@ -731,27 +730,47 @@ revisited. `4e1cdcd3d` flips it.
 The key keeps its name despite no longer meaning "opt in" — persisted user
 state, same reasoning as the `Software\TortoiseGitMerge\*` keys.
 
-Hunspell **stays as the fallback**, and that is the honest division of labour:
-`IsSupported()` reports exactly when Windows has no checker for a language, and
-the existing code already falls through. It even handles the subtle case — when
-Windows offers only a 1033 fallback but a Hunspell dictionary exists for the
-language actually requested, Hunspell wins (`bFallbackUsed`). A user can still
-drop `.aff`/`.dic` into `%APPDATA%\TortoiseGit\dic\`.
+Hunspell was kept as the fallback for one commit and then removed in
+`521f2391c` (user direction, 2026-08-26): **"If windows is not usable (no lang
+pack) we can't save the day by spell checking commit messages."** That is the
+whole argument. Underlining words in a commit box is not a capability worth
+496 MB and a vendored spell checker; if Windows cannot check a language, the
+honest answer is that TortoiseGit does not check it either.
 
-What that leaves to remove, and why it is a *separate* decision from the flip:
+Spell checking is now `ISpellChecker` and nothing else. What went with it:
 
-- **`ext\spell` is 491 MB of dictionaries for the common languages** — which are
-  precisely the ones Windows already covers. `StructureFragment.wxi` ships
-  `en_GB`/`en_US` from `ext\spell\en\`, and every `Languages\Lang_*.wixproj`
-  pulls `spell\<LCID>.wxi` for its language, with a matching per-language MSI
-  feature in `FeaturesFragment.wxi`. Removing the bundle is 98.9% of the disk
-  win and costs only the languages Windows handles anyway.
-- **`ext\hunspell` (5.3 MB) plus `ext\build\hunspell.vcxproj`** is the other
-  question, and removing it is *not* implied by removing the dictionaries. It
-  costs the niche-language capability outright, along with `HUNSPELL_STATIC` and
-  the codepage machinery (`m_spellcodepage`, `enc2locale[]`,
-  `GetWordForSpellChecker`) that exists only because Hunspell dictionaries are
-  8-bit in per-dictionary encodings; `ISpellChecker` is UTF-16 throughout.
+- `ext\spell` (491 MB, 69 languages) and `ext\hunspell`, plus
+  `ext\build\hunspell.vcxproj` and `HUNSPELL_STATIC`.
+- The per-language MSI dictionary features/components, the `DictionaryENGB` /
+  `DictionaryENUS` constants and their six component GUIDs, and the `SPELL`
+  define plus `spell\<LCID>.wxi` from **32** language packs. `D__Languages`
+  stays — the translation packs still install into it.
+- `Win8SpellChecker` itself. It meant "use Windows rather than Hunspell"; with
+  nothing to choose between, it could only mean "off", which the older
+  `Spellchecker` key already does.
+
+**The US English last resort was kept deliberately.** The ladder walks
+sublanguages (en-CA -> en) and then tries 1033 once. That is not there to serve
+English speakers — it is there because a commit message is likelier to be in
+English than in a language nothing on the machine can check, which is also
+exactly what the installer used to guarantee by always adding `en_US`.
+
+Two defects the removal exposed, both pre-existing:
+
+- **`GetWordForSpellChecker` was already dead on the Windows path.** With no
+  codepage set it did `std::string(reinterpret_cast<LPCSTR>(static_cast<LPCWSTR>(sWord)))`
+  — reinterpreting the UTF-16 buffer as narrow bytes, so the embedded NUL after
+  the first ASCII character truncated every word to one character. It survived
+  because the callers that mattered passed the wide `CString` to
+  `ISpellChecker` anyway, and its only real use was an `!empty()` guard.
+- `IsMisspelled` computed a copy of it and never used the result.
+
+**"Add to dictionary" never touched Windows' store**, which is worth knowing
+before anyone goes looking: it calls TortoiseGit's own `CPersonalDictionary`,
+which writes `%APPDATA%\TortoiseGit\<LCID>.dic` — and only from `Save()`, which
+runs in the destructor. So the write happens when the dialog closes, not when
+the menu item is clicked. (Established 2026-08-26 when a ProcMon trace found no
+store action at click time.)
 
 #### `lexilla` is not a lone swap
 

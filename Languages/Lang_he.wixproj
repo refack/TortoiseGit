@@ -3,7 +3,7 @@
 	<PropertyGroup>
 		<ProjectGuid>{5af16f95-b1b1-4ef7-bcd0-cbd7857f3d5f}</ProjectGuid>
 		<OutputName>TortoiseGit-LanguagePack-he</OutputName>
-		<DefineConstants>TSVNHelpFile=0;TMergeHelpFile=0;COUNTRYID=1037;LANGNATIVE=Hebrew;SPELL=1;</DefineConstants>
+		<DefineConstants>TSVNHelpFile=0;TMergeHelpFile=0;COUNTRYID=1037;LANGNATIVE=Hebrew;</DefineConstants>
 		<Cultures>he-IL</Cultures>
 	</PropertyGroup>
 	<ItemGroup>
@@ -11,7 +11,6 @@
 		<Compile Include="WixUI_LanguagePacks.wxs" />
 	</ItemGroup>
 	<ItemGroup>
-		<Content Include="spell\1037.wxi" />
 	</ItemGroup>
 	<Import Project="WixProj.common.props" />
 </Project>
