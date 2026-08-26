@@ -71,6 +71,12 @@ vcpkg_cmake_configure(
         # only the libgit target and the links target never runs.
         -DPERL_TESTS=OFF
         -DPYTHON_TESTS=OFF
+        # gitdll is loaded into TortoiseGitProc.exe, so "the running executable"
+        # is not git and its directory is not a git installation. TortoiseGit
+        # finds the user's git explicitly instead. Upstream sets this
+        # unconditionally; patch 0004 makes it an option so a library consumer
+        # can decline it.
+        -DRUNTIME_PREFIX=OFF
         -DCMAKE_DISABLE_FIND_PACKAGE_CURL=ON
         -DCMAKE_DISABLE_FIND_PACKAGE_EXPAT=ON
         # PkgConfig is disabled for two reasons, one of them a real bug.

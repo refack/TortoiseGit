@@ -12,21 +12,22 @@ Signed-off-by: Sven Strickroth <email@cs-ware.de>
 Signed-off-by: Frank Li <lznuaa@gmail.com>
 Signed-off-by: Sup Yut Sum <ch3cooli@gmail.com>
 ---
- .tgitconfig          |   9 +
- attr.c               |   2 +-
- compat/mingw-posix.h |   4 +-
- compat/mingw.c       |   2 +-
- compat/msvc.h        |   8 +
- config.c             |   2 +-
- contrib/git.ico      | Bin 0 -> 55316 bytes
- fetch-pack.c         |   1 +
- hash.h               |   2 +-
- help.c               | 560 -------------------------------------------
- remote.c             |   3 +-
- submodule-config.c   |   2 +-
- version.c            |   6 -
- xdiff/xdiffi.c       |   4 +-
- 14 files changed, 29 insertions(+), 576 deletions(-)
+ .tgitconfig                         |   9 +
+ attr.c                              |   2 +-
+ compat/mingw-posix.h                |   4 +-
+ compat/mingw.c                      |   2 +-
+ compat/msvc.h                       |   8 +
+ config.c                            |   2 +-
+ contrib/buildsystems/CMakeLists.txt |  31 +-
+ contrib/git.ico                     | Bin 0 -> 55316 bytes
+ fetch-pack.c                        |   1 +
+ hash.h                              |   2 +-
+ help.c                              | 560 ----------------------------
+ remote.c                            |   3 +-
+ submodule-config.c                  |   2 +-
+ version.c                           |   6 -
+ xdiff/xdiffi.c                      |   4 +-
+ 15 files changed, 59 insertions(+), 577 deletions(-)
  create mode 100644 .tgitconfig
  create mode 100644 contrib/git.ico
 
@@ -126,6 +127,55 @@ index 7fe7ff2644..313634c50b 100644
  	struct hashmap_iter iter;
  	if (!set->hash_initialized)
  		return;
+diff --git a/contrib/buildsystems/CMakeLists.txt b/contrib/buildsystems/CMakeLists.txt
+index 9077b187e5..dde28496ec 100644
+--- a/contrib/buildsystems/CMakeLists.txt
++++ b/contrib/buildsystems/CMakeLists.txt
+@@ -239,7 +239,21 @@ if(NOT HOST_CPU)
+ else()
+ 	add_compile_definitions(GIT_HOST_CPU="${HOST_CPU}")
+ endif()
+-add_compile_definitions(SHA256_BLK INTERNAL_QSORT RUNTIME_PREFIX)
++add_compile_definitions(SHA256_BLK INTERNAL_QSORT)
++
++# RUNTIME_PREFIX makes git derive its installation paths from the location of
++# the running executable. That is right for git.exe and wrong for a library
++# loaded into someone else's process: gitdll lives inside TortoiseGitProc.exe,
++# so the prefix resolves to TortoiseGit's own bin directory. TortoiseGit locates
++# the user's git installation explicitly instead - see the "Finding the user's
++# git installation" patch - and the two mechanisms fight.
++#
++# Upstream applied this unconditionally. Making it an option changes nothing for
++# anyone building git; it lets a library consumer turn it off.
++option(RUNTIME_PREFIX "Derive installation paths from the running executable" ON)
++if(RUNTIME_PREFIX)
++	add_compile_definitions(RUNTIME_PREFIX)
++endif()
+ add_compile_definitions(NO_OPENSSL SHA1_DC SHA1DC_NO_STANDARD_INCLUDES
+ 			SHA1DC_INIT_SAFE_HASH_DEFAULT=0
+ 			SHA1DC_CUSTOM_INCLUDE_SHA1_C="git-compat-util.h"
+@@ -712,6 +726,21 @@ add_custom_command(OUTPUT "${CMAKE_BINARY_DIR}/version-def.h"
+ 	VERBATIM)
+ list(APPEND libgit_SOURCES "${CMAKE_BINARY_DIR}/version-def.h")
+ 
++# TortoiseGit's gitdll calls two builtins directly - cmd_update_index() and
++# cmd_log_init_tgit(). libgit_SOURCES comes from the Makefile's LIB_OBJS, and
++# builtins live in BUILTIN_OBJS, so they are linked into git.exe and nothing
++# else. gitdll is not git.exe, so add just these two to the library.
++#
++# Deliberately not the whole of BUILTIN_OBJS: that would drag in ~131 files and
++# a main() per command for the sake of two entry points.
++#
++# shortlog.c is here for log.c, not for gitdll: generate_shortlog_cover_letter()
++# in the format-patch path calls shortlog_init/add_commit/output.
++list(APPEND libgit_SOURCES
++	"${CMAKE_SOURCE_DIR}/builtin/update-index.c"
++	"${CMAKE_SOURCE_DIR}/builtin/log.c"
++	"${CMAKE_SOURCE_DIR}/builtin/shortlog.c")
++
+ add_library(libgit ${libgit_SOURCES} ${compat_SOURCES})
+ 
+ if(WIN32)
 diff --git a/contrib/git.ico b/contrib/git.ico
 new file mode 100644
 index 0000000000000000000000000000000000000000..b3436d651a16069cf45894910a90a458e37721e3
