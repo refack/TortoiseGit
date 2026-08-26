@@ -83,13 +83,20 @@ milestone doesn't pay for itself. The bar going forward:
   vcpkg, are **"nice to have": migrate and defragment all of them, but the
   bar is a clean build, not a runtime check.** If one breaks in a way that
   isn't a quick fix, it can lag a milestone without blocking the others.
-- **WiX packaging (`WixSetup.wixproj`) and the Languages build
-  (`TortoiseLang.vcxproj`) are assumed working and out of scope for this
-  effort's validation.** Both already fail in this dev environment for
-  reasons unrelated to libgit2/vcpkg (WiX v3 toolchain not installed;
-  `build-lang.cmd` tool missing from PATH — see Phase 0/Phase 5 status).
-  Don't treat their failure as a regression signal; don't spend time getting
-  them building locally as part of this plan.
+- **WiX packaging (`WixSetup.wixproj`) is out of scope** — the WiX v3 toolchain
+  is not installed here, so `WixSetup.wixproj` and the 38 `Languages\Lang_*.wixproj`
+  MSI projects all fail on `WixTargetsPath`. Pre-existing; not a regression
+  signal; not worth installing for this plan.
+- ~~**and the Languages build is assumed working**~~ — **that assumption was
+  wrong and cost eight commits** (fixed in `9eed49598`). `Languages\Makefile`
+  still built `TortoiseMerge<LANGID>.dll` and `TortoiseIdiff<LANGID>.dll` long
+  after both applications were deleted, so NMAKE stopped with U1073. **The Debug
+  configuration does not include `TortoiseLangs`; only Release does** — which is
+  why every "full-solution Debug/x64 build clean" in the notes below was true and
+  still missed it. `build-lang.cmd` was never "missing from PATH" either: the
+  vcxproj invoked it by bare name and relied on the current directory being
+  searched. It resolves through `$(MSBuildProjectDirectory)` now.
+  **Build Release, not just Debug, before calling a removal done.**
 
 ## Goals
 
@@ -1125,6 +1132,10 @@ Resolved, kept only so they are not re-investigated:
   — deferred from Phase 0. They guard real MSI components (gitdll32.dll,
   puttygen-x86.exe, TortoiseGitStub32.dll), so this needs review rather than a
   mechanical strip.
+- **Configurations differ in what they contain.** `TortoiseLangs`, `TortoisePot`
+  and the WiX projects are Release-only, so a green Debug build says nothing
+  about them. This is how `9eed49598` hid: eight commits of "full-solution
+  Debug/x64 clean" over a Makefile that named two deleted applications.
 - **TortoiseMerge doc and asset sweep** — deferred with the WiX x86 work, and
   for the same reason. The manual, help-file components, `CheckIDD`,
   `LanguagePack.wxs`, the `.po` translations and the orphaned
