@@ -46,14 +46,14 @@ if ($null -eq $saved) {
     Write-Host "note: HKCU\Software\TortoiseGit\CacheType was unset (TortoiseGit's own default is 'exe'); it will be removed again afterwards." -ForegroundColor DarkGray
 }
 
-$args = @()
-foreach ($r in $Repo) { $args += @('--repo', $r) }
-$args += @('--limit', $Limit, '--rounds', $Rounds)
+$argList = @()
+foreach ($r in $Repo) { $argList += @('--repo', $r) }
+$argList += @('--limit', $Limit, '--rounds', $Rounds)
 
 try {
     foreach ($ct in $CacheType) {
         Write-Host ("=" * 78) -ForegroundColor DarkCyan
-        & $exe @args --cachetype $ct
+        & $exe @argList --cachetype $ct
         Write-Host ''
     }
 }

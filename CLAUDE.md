@@ -22,9 +22,22 @@ TortoiseGitMerge, TortoiseGitPlink with the bundled PuTTY binaries,
 considered and **kept**; its OGDF dependency moved to a new overlay port.
 The standing goal (per user direction, 2026-08-22) is to keep going — every
 remaining `ext\*` submodule should become a public vcpkg port, a port overlay,
-or nothing at all. **That goal is essentially met: one submodule is left,
-`ext\tgit`, and one hand-maintained project, `ext\build\libgit.vcxproj`** — both
-structural, since they are the second git backend. See "Dependency pruning".
+or nothing at all. **That goal is met.** `.gitmodules` no longer exists, `ext\build\`
+is gone, and `ext\` is three directories — `gitdll`, `TortoiseOverlays`,
+`vcpkg-ports` — all first-party. See "Dependency pruning".
+
+**The focus has moved from `ext\` to `src\`** (user direction, 2026-08-26). The
+target: **one MFC exe/dll, one ATL exe/dll, one static lib.** Two further
+directions from the same session govern how to get there, and both are
+load-bearing:
+
+- **"This whole solution is one meta-application. It does not export any
+  valuable API."** Nothing here is consumed by anyone else, so no signature is
+  frozen by compatibility. That is what makes the string migration below
+  tractable at all.
+- **"We are in 2026. Move ATL / CString to STL."**
+
+See "Making `src\` cohesive" for what that costs and the order to do it in.
 
 The recurring test: **what does this actually add over the thing Windows or
 git already ships?** For TortoiseGitMerge the answer was "nothing git's
@@ -111,7 +124,8 @@ milestone doesn't pay for itself. The bar going forward:
    workstation on 32-bit Windows 11. Removing Win32 configs simplifies every
    step below (no `libgit232_tgit.dll` naming variant, no `GIT_ARCH_32`
    branch, one fewer platform to carry through the SHA256 ABI change).
-- [ ] Retire the `ext\*` git submodules. *(Added 2026-08-22, per user
+- [x] Retire the `ext\*` git submodules. **Done** — `.gitmodules` is deleted and
+   `ext\` holds three first-party directories. *(Added 2026-08-22, per user
    direction: "the goal is to replace them all with vcpkg ports, public ports,
    or overlays if necessary.")* A vendored submodule plus a hand-maintained
    `ext\build\*.vcxproj` is the fragmentation this plan exists to remove; a
@@ -695,16 +709,25 @@ Remaining, by how they should end:
 Surveyed 2026-08-25, updated 2026-08-26. **Five submodules left**, eleven
 directories under `ext\`:
 
-**`ext\` is down to five directories, one submodule, and one hand-maintained
-project.**
+**`ext\` is three directories, zero submodules, and no hand-maintained third-party
+build at all.** `.gitmodules` has been deleted; there is nothing left to
+`git submodule update`.
 
 | dir | kind | what it is |
 | --- | --- | --- |
-| `tgit` | **submodule** | real git.exe C sources -> `ext\build\libgit.vcxproj` -> `libgit.lib` -> `gitdll.dll`. The second git backend, and the **only** remaining hand-maintained build. Supplies `--follow` rename-following log (libgit2's revwalk has no equivalent), git's own diff engine and `.gitignore` precedence, mailmap, notes, and `git_get_hash_algo()` — the SHA256 latch. See "The git 2.55 rebase" for why its build should stop being a vcxproj. |
-| `gitdll` | vendored (1st party) | TortoiseGit's own C shim over `libgit.lib`. Not third-party at all. |
+| `gitdll` | vendored (1st party) | TortoiseGit's own C shim over `libgit.lib`. Not third-party at all. The only vcxproj left under `ext\`. |
 | `TortoiseOverlays` | vendored (**1st party**) | branding/overlay-handler assets. Referenced from `StructureFragment.wxi`, three `.registry` files, `IconOverlay.cpp` and both overlay Settings pages. |
-| `ResizableLib` | vendored | MFC resizable-dialog base classes (`CResizableDialog`), used by ~9 TortoiseProc dialogs and Blame. 0.2 MB, no vcpkg port, no maintenance cost. Keep. |
-| `vcpkg-ports` | 1st party | the `libgit2`, `ogdf` and `scintilla` overlays. |
+| `vcpkg-ports` | 1st party | the `libgit2`, `ogdf`, `scintilla` and `tgit-libgit` overlays. |
+
+`ext\tgit` — the fork of real git's C sources — became the `tgit-libgit` port,
+built by git's own `contrib/buildsystems/CMakeLists.txt`, with the fork reduced
+to a six-patch series. `ext\build\libgit.vcxproj` and its hand-listed 284 source
+files went with it. `ext\ResizableLib` moved to `src\ResizableLib` in
+`e2a0f84b9`: it is TortoiseGit's build to carry either way, so it belongs beside
+its consumers rather than under a directory whose purpose was third-party code.
+That move also found **stale `Debug|Win32` and `Release|Win32` configurations** —
+Phase 0 swept `src\` and `ext\build\`, so this project sat just outside it and
+kept both for two years. Nothing built them, which is why nobody noticed.
 
 Everything else now comes from vcpkg: `libgit2`, `pcre2`, `zlib`, `ogdf`,
 `detours`, `simpleini`, `gtest`, `nlohmann-json`, `scintilla`, `lexilla`.
@@ -910,6 +933,144 @@ button advertising a removed application. All strings and metadata, none of
 them visible to a compiler or linker. After deleting a component, grep for its
 name across sources, resource scripts, project metadata and CI config — then
 run the thing.
+
+### Making `src\` cohesive — the three-binary target
+
+Goal (user, 2026-08-26): **one MFC exe/dll, one ATL exe/dll, one static lib.**
+Surveyed 2026-08-26. Three boundaries are proven and must not be crossed, and
+one wall governs the whole plan.
+
+**The wall: `CString` is a different type in each flavor.** MFC-Dynamic projects
+get `StrTraitMFC_DLL`, ATL-only projects get `StrTraitATL`. Same source file,
+different mangled name — verified with `dumpbin /SYMBOLS` on the *same* file
+compiled by both:
+
+```
+TortoiseGitProc  ?GetWinPathString@CTGitPath@@QEBAAEBV?$CStringT@_WV?$StrTraitMFC_DLL@...
+TortoiseShell    ?GetWinPathString@CTGitPath@@QEBAAEBV?$CStringT@_WV?$StrTraitATL@...
+```
+
+So **one static library cannot serve both flavors while `CString` appears in its
+headers** — not as a parameter, not as a return, not as a member. This is not a
+style preference; it is a link error waiting for whoever tries the merge without
+checking. It is also exactly why the "move to STL" direction is the unlock
+rather than a tidy-up.
+
+Boundaries that stay:
+
+| | why |
+| --- | --- |
+| `gitdll.dll` stays a DLL | `libgit.lib` and `git2.lib` must never share a link line — two implementations of odb/refs/packfiles, first-match collisions. TortoiseProc links `git2.lib` statically *and* loads `gitdll.dll`. |
+| `TortoiseGitStub.dll` stays separate | static CRT by design (`MultiThreaded`, not `...DLL`), two source files, zero dependencies. It is loaded into `explorer.exe`; that hygiene is the whole point of it existing. |
+| `src\libgit2\TGitLibgit2` stays C | compiled as C against libgit2's private headers, `CharacterSet=NotSet`. It can join the static lib, but not by being made C++ or Unicode. |
+
+What the survey found about the current state:
+
+- **`src\Git` and `src\Utils` have no project at all.** Every consumer lists the
+  subset it wants — 1 file (Stub) to 68 (TortoiseProc) — and compiles it itself.
+  `TGitPath.obj` is built **13 times**.
+- **Those 88 `.cpp` files are not self-contained translation units.** All of them
+  open with `#include "stdafx.h"`, and neither directory contains one: with
+  `/Yu` the include is *replaced* by whichever PCH the consuming project built.
+  The same source therefore compiles against TortoiseProc's MFC world or
+  TGitCache's ATL world depending on who is compiling it. Giving each directory
+  a real `stdafx.h` is a prerequisite for any library and is invisible to
+  existing consumers (with `/Yu` the text is ignored).
+- **The two PCHs are ~90% the same prefix** — `SDKDDKVer`, `NOMINMAX` + min/max,
+  `_ATL_CSTRING_EXPLICIT_CONSTRUCTORS`, the WinSock2 trio, `ShlObj`/`Shlwapi`,
+  `atlbase`, the STL set, `git2.h` + `SmartLibgit2Ref.h`, `scope_exit_noexcept.h`,
+  `DebugOutput.h`, `APP_X64_STRING`. MFC's adds `afx*` on top. So the include
+  surface is *not* the blocker; only the string ABI is.
+- **`TGITCACHE` is the only per-consumer conditional** in `src\Git`, and it
+  selects whole function bodies rather than changing any class layout — except
+  in `GitAdminDir.cpp`, where `HasAdminDir` genuinely behaves differently (it
+  skips the HEAD/config existence check and the bare-repo-inside-repo
+  rejection). That one is a real semantic fork and needs a runtime flag, not a
+  merge. Note **`TortoiseShell` does not define `TGITCACHE`** — the two ATL
+  consumers do not agree with each other today.
+- **Resource IDs bind `Utils\MiscUI` to its consumer** — `MessageBox.cpp` alone
+  has 93 `IDS_`/`IDD_` references. Same defect class as the `FileTextLines.cpp`
+  `resource.h` bug, at scale. MiscUI is the last thing to move, not the first.
+
+Order to do it in. Phases A and B are what actually buy the goal:
+
+- **Phase A — purge `CString` from `src\Git` + `src\Utils` headers.** 60 headers,
+  769 occurrences. Consumers then need `.c_str()` at every call site that touched
+  those signatures, which is the real bill (TortoiseProc alone has 3,283 `CString`
+  occurrences, though only the fraction crossing the boundary is affected).
+  **Calibrate on `CTGitPath` first** and price the rest from it.
+- **Phase B — one `TGitCore.lib`**: `src\Git` + `src\Utils` + AsyncFramework +
+  ResizableLib + TGitLibgit2, compiled **ATL-flavor**. With `std::wstring` at the
+  boundary it links into MFC consumers too, so the shell extension never has to
+  take an MFC dependency to get the shared library. `ATL::CStringW` may remain
+  *inside* the `.cpp` files indefinitely — it never crosses a signature.
+- **Phase C** — drain the remaining `ATL::CStringW` from lib internals at leisure.
+- **Phase D** — applet-merge the executables (see below).
+
+**`std::wstring`, not `std::string`, for the first pass.** The user said "STL
+`std::string`"; the concern to state once and then follow their call: a
+`CString` -> `std::wstring` pass is *syntactic* — every site is a mechanical
+change the compiler verifies, and no site changes meaning. A `CString` ->
+UTF-8 `std::string` pass makes every one of those sites an *encoding* decision,
+and encoding bugs are silent rather than red. UTF-8 at the git/libgit2 boundary
+is worth doing — those are byte-oriented and TortoiseGit converts on every
+status call — but it is a separately decidable step, after the ABI is unblocked.
+
+**Applet merge (Phase D).** `TortoiseGitBlame`, `TortoiseGitUDiff` and
+`SshAskPass` fold into `TortoiseGitProc.exe` as busybox-style applets: a fork in
+`wmain` on `argv[1]` dispatching to `<app>_wmain()`. All three are already
+MFC-or-plain and share `Utils`. **`TortoiseGitStub` is excluded by category** —
+it is an in-proc COM DLL with a static CRT, not an exe applet. The real cost is
+**resource-ID unification**, not the dispatch: each app owns a `resource.h` with
+overlapping ranges, and merging them is the `FileTextLines` lesson again. The
+win is one binary, one Scintilla link, one `TortoiseLangs` target instead of
+three. On the ATL side the symmetric move is to reduce `TGitCache.exe` to a thin
+host that loads `TortoiseGit.dll` and calls an exported entry point — the same
+pattern the stub already uses, leaving one ATL binary with code in it.
+
+### ShellBench — measuring the overlay path (`3055b57a6`)
+
+`test\ShellBench\` builds **`ShellTest.exe`** (that name, deliberately: a Debug
+`TortoiseGitStub.dll` refuses to load into an undebugged process, allowlisting
+`ShellTest.exe` and `verclsid.exe` — see its `DllMain`). It drives the shipped
+stub through Explorer's own path: `DllGetClassObject` -> `IClassFactory` ->
+`IShellIconOverlayIdentifier::IsMemberOf`. It links nothing from the product, so
+it measures the binary that ships.
+
+Two lessons, both properties of what is measured rather than of the harness:
+
+- **Agreement between sweeps is not convergence.** `IsMemberOf` returning
+  `S_FALSE` from every handler is ambiguous — it covers both "not versioned" and
+  "TGitCache has not crawled this yet". Two consecutive all-`S_FALSE` sweeps
+  agree perfectly and carry no information, which is exactly what an uncrawled
+  TGitCache produces, and it makes exe mode look instant. Convergence must also
+  require that *something was claimed*.
+- **A depth-first walk truncated at a limit samples one arbitrary corner.**
+  Switching to breadth-first moved explorerplusplus from 486 to 1943 claimed
+  overlays out of 4000 in the same mode: the sample had been reporting directory
+  naming, not the repository.
+
+Release/x64, 4000 paths, steady-state µs per path:
+
+| repo | none | dll | dllFull | exe |
+| --- | --- | --- | --- | --- |
+| ffmpeg | 19.4 | 75.5 | 92.9 | 40.0 |
+| bun | 17.3 | 75.5 | 157.4 | 58.7 |
+| explorerplusplus | 18.9 | 346.7 | 349.1 | 70.5 |
+
+`dllFull` costs 25–100% more than `dll` for identical state counts on clean
+trees — it supports more status modes, which only pays on dirty ones. In exe
+mode TGitCache claimed nothing for explorerplusplus across 25 sweeps, and 40 of
+4000 for bun. **Do not read that as "TGitCache never crawls it":** all three
+repos share one harness process and one crawl queue, and ffmpeg + bun (1.9 +
+6.4 GB) are queued ahead with no settle time between sweeps. The honest claim is
+that nothing came back within ~8s under that load. A `--settle <ms>` between
+rounds, or one invocation per repo, would separate the two readings.
+
+`Run-ShellBench.ps1` drives the matrix and **saves/restores
+`HKCU\Software\TortoiseGit\CacheType`** — that is the same value the installed
+TortoiseGit reads, and `ShellCache` samples it once per process, which is why
+each mode needs its own process rather than a loop.
 
 ### CrashServer removed (`306aca834`, −78,112 lines)
 
@@ -1247,6 +1408,17 @@ shrinks silently looks exactly like a suite that got greener.
   now the source of truth for libgit2's feature flags.
 - `ext\vcpkg-ports\ogdf\` — same role for OGDF, but a whole port rather than an
   overlay on a stock one: vcpkg has no `ogdf`. Donatable upstream as-is.
+- `ext\vcpkg-ports\tgit-libgit\` — real git's C sources, built by git's own
+  `contrib/buildsystems/CMakeLists.txt`, with the former `ext\tgit` fork reduced
+  to a six-patch series grouped by deletion condition (see its
+  `TORTOISEGIT-PATCHES.md`). It generates `tgit-libgit-defines.h` from
+  `compile_commands.json`, so the defines cannot drift from the library that was
+  actually built — the same lesson as libgit2's `git2_features.h`, and the
+  reason the hand-maintained `ext\build\libgit-defines.h` was wrong about
+  `NO_PTHREADS` and `HAVE_FSMONITOR_DAEMON_BACKEND`.
+- `test\ShellBench\` — the icon-overlay benchmark. Builds `ShellTest.exe`; see
+  "ShellBench" for why that name is load-bearing and why sweep agreement is not
+  convergence.
 - `src\Utils\GitObjectFormat.h` — the process-level object format:
   `g_gitObjectFormat`, `GitHashSize()`, `GitZeroRevString()`,
   `GitLatchObjectFormat()`. In `Utils` rather than `Git` because `GitWCRev`
