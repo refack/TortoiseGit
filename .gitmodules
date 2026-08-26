@@ -4,12 +4,3 @@
 [submodule "ext/editorconfig"]
 	path = ext/editorconfig
 	url = https://github.com/editorconfig/editorconfig-core-c.git
-[submodule "ext/googletest"]
-	path = ext/googletest
-	url = https://github.com/google/googletest.git
-[submodule "ext/json"]
-	path = ext/json
-	url = https://github.com/nlohmann/json.git
-[submodule "ext/lexilla"]
-	path = ext/lexilla
-	url = https://github.com/ScintillaOrg/lexilla.git
