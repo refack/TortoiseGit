@@ -700,7 +700,7 @@ project.**
 
 | dir | kind | what it is |
 | --- | --- | --- |
-| `tgit` | **submodule** | real git.exe C sources -> `ext\build\libgit.vcxproj` -> `libgit.lib` -> `gitdll.dll`. The second git backend, and the **only** remaining hand-maintained build. Permanent: it supplies `--follow` rename-following log (libgit2's revwalk has no equivalent), git's own diff engine and `.gitignore` precedence, mailmap, notes, and `git_get_hash_algo()` — the SHA256 latch. |
+| `tgit` | **submodule** | real git.exe C sources -> `ext\build\libgit.vcxproj` -> `libgit.lib` -> `gitdll.dll`. The second git backend, and the **only** remaining hand-maintained build. Supplies `--follow` rename-following log (libgit2's revwalk has no equivalent), git's own diff engine and `.gitignore` precedence, mailmap, notes, and `git_get_hash_algo()` — the SHA256 latch. See "The git 2.55 rebase" for why its build should stop being a vcxproj. |
 | `gitdll` | vendored (1st party) | TortoiseGit's own C shim over `libgit.lib`. Not third-party at all. |
 | `TortoiseOverlays` | vendored (**1st party**) | branding/overlay-handler assets. Referenced from `StructureFragment.wxi`, three `.registry` files, `IconOverlay.cpp` and both overlay Settings pages. |
 | `ResizableLib` | vendored | MFC resizable-dialog base classes (`CResizableDialog`), used by ~9 TortoiseProc dialogs and Blame. 0.2 MB, no vcpkg port, no maintenance cost. Keep. |
@@ -803,6 +803,55 @@ Three things that were not obvious up front:
   `vcpkg_install_msbuild`, which ships no PDBs, so ~400 objects each warn.
   Suppressed with `/ignore:4099` on the three consumers rather than left to
   drown real link warnings.
+
+#### The git 2.55 rebase, and why `libgit.vcxproj` should go
+
+`ext\tgit` was rebased onto git 2.55 (user, 2026-08-26). Everything it broke
+sorts into four buckets, and keeping them apart is the point — see
+`ext\tgit-rebase-todo.txt` for the follow-along list.
+
+- **A, TortoiseGit-only, carry forever** (`c3226fec27` in the fork):
+  `odb_close_tgit()`, `reset_setup()`, `reset_git_env()`. All three exist purely
+  for gitdll's repository switching.
+- **B, upstreamable** (`beaba0ddb9`): **`repo_clear()` leaves `->initialized`
+  and `->worktree_initialized` set on state it has just freed.** The first makes
+  `initialize_repository()` `BUG()`; the second makes `set_git_work_tree()`
+  `strcmp()` against a `FREE_AND_NULL`'d `->worktree` and segfault. Not
+  TortoiseGit behaviour, only TortoiseGit *exposure* — send it to git.
+- **C, self-inflicted** (`251c56d229`): a deleted `#include "hook-list.h"`.
+  That header is **generated** by git's Makefile; nothing here ran the
+  generator, so the include looked stale when it was not.
+- **D, build wiring** (`7a17ec270`): six source files 2.55 added, the
+  `GenerateHookList` target, and three signature changes in `gitdll.c`.
+
+**Bucket D is the whole argument against `libgit.vcxproj`.** It enumerates 284
+source files by hand, so a version bump costs a round of link errors — every
+item in D was found by the linker, not by the build system noticing. Git ships
+`contrib/buildsystems/CMakeLists.txt`: upstream-maintained, MSVC-supported,
+derives its source list from the Makefile, and generates `hook-list.h`,
+`command-list.h` and `config-list.h` itself. Wrapped as
+`ext\vcpkg-ports\git\`, with A and B as its patch series, bucket D stops
+existing and `ext\build\` empties out. **That is the plan.**
+
+*Two design notes from the same session, worth not losing:*
+
+- **`reset_setup()` wants to be a method, not a free function.** Upstream is
+  consolidating this state into `struct repository` for cohesion, but C has no
+  encapsulation beyond idiom, so the invariant "clearing the repo must undo
+  every flag that guards freed state" has nowhere to live and gets violated
+  (that *is* bucket B). One idiom that works is pseudo-methods as function
+  pointers on the struct — `odb_source` already does exactly this in 2.55 with
+  its `free`/`close`/`reprepare` callbacks, which is why bucket A's downcast
+  was needed.
+- **Question the long-lived-process pattern itself** (user, 2026-08-26). All of
+  bucket A exists because gitdll re-points one process at different
+  repositories, which is what TGitCache does to stay entangled with
+  `explorer.exe`. That mattered enormously for 2000s-era SVN, where every
+  operation was a network round trip. Modern git is fast and local. **If
+  TGitCache spawned per-repository instead of switching, bucket A could be
+  deleted outright** and the fork would shrink to bucket B, which is
+  upstreamable. Worth measuring before the vcpkg port locks the current shape
+  in.
 
 #### editorconfig had no consumer at all (`61fac60d7`)
 

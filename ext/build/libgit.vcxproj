@@ -193,6 +193,12 @@
     <ClCompile Include="..\tgit\object.c" />
     <ClCompile Include="..\tgit\odb.c" />
     <ClCompile Include="..\tgit\odb\streaming.c" />
+    <ClCompile Include="..\tgit\odb\source.c" /> 
+    <ClCompile Include="..\tgit\odb\source-files.c" /> 
+    <ClCompile Include="..\tgit\odb\source-inmemory.c" /> 
+    <ClCompile Include="..\tgit\odb\source-loose.c" /> 
+    <ClCompile Include="..\tgit\odb\transaction.c" /> 
+    <ClCompile Include="..\tgit\pack-mtimes.c" />
     <ClCompile Include="..\tgit\oid-array.c" />
     <ClCompile Include="..\tgit\oidmap.c" />
     <ClCompile Include="..\tgit\oidset.c" />
@@ -358,7 +364,6 @@
     <ClInclude Include="..\tgit\blob.h" />
     <ClInclude Include="..\tgit\branch.h" />
     <ClInclude Include="..\tgit\builtin.h" />
-    <ClInclude Include="..\tgit\bulk-checkin.h" />
     <ClInclude Include="..\tgit\bundle.h" />
     <ClInclude Include="..\tgit\cache-tree.h" />
     <ClInclude Include="..\tgit\color.h" />
@@ -533,7 +538,6 @@
     <ClInclude Include="..\tgit\split-index.h" />
     <ClInclude Include="..\tgit\statinfo.h" />
     <ClInclude Include="..\tgit\strbuf.h" />
-    <ClInclude Include="..\tgit\streaming.h" />
     <ClInclude Include="..\tgit\string-list.h" />
     <ClInclude Include="..\tgit\strmap.h" />
     <ClInclude Include="..\tgit\strvec.h" />
@@ -592,6 +596,27 @@
     <ClInclude Include="libgit-defines.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <!--
+    hook-list.h is generated, not source: git's own Makefile builds it from
+    Documentation/githooks.adoc, and hook.c includes it for is_known_hook().
+    This project does not use git's Makefile, so nothing produced it and the
+    header simply was not there.
+
+    Do not "fix" that by deleting the #include - hook_name_list comes from
+    nowhere else - and do not check the generated file in, or it goes stale the
+    next time ext\tgit is bumped. Inputs/Outputs make this incremental, so
+    hook.c is not recompiled on every build.
+
+    sh.exe comes from Git for Windows, which building TortoiseGit already
+    requires.
+  -->
+  <Target Name="GenerateHookList"
+          BeforeTargets="ClCompile"
+          Inputs="..\tgit\Documentation\githooks.adoc;..\tgit\tools\generate-hooklist.sh"
+          Outputs="$(ProjectDir)hook-list.h">
+    <Exec Command="sh ../tgit/tools/generate-hooklist.sh ../tgit hook-list.h"
+          WorkingDirectory="$(ProjectDir)" />
+  </Target>
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
 </Project>

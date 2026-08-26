@@ -123,7 +123,7 @@ int git_init(const LPWSTR* env)
 	assert(getenv("HOME")); // make sure HOME is already set
 	drop_all_attr_stacks();
 	repo_config_clear(the_repository);
-	g_prefix = setup_git_directory();
+	g_prefix = setup_git_directory(the_repository);
 	repo_config(the_repository, git_default_config, NULL);
 	ref_store_release_and_clear(the_repository);
 	clear_ref_decorations();
@@ -316,7 +316,7 @@ int git_free_commit(GIT_COMMIT *commit)
 	struct commit *p = commit->m_pGitCommit;
 
 	if( p->parents)
-		free_commit_list(p->parents);
+		commit_list_free(p->parents);
 
 	if (p->maybe_tree)
 		free_tree_buffer(p->maybe_tree);
@@ -350,7 +350,7 @@ int git_open_log(GIT_LOG* handle, int argc, const char** argv)
 			if (ob->parsed && ob->type == OBJ_COMMIT)
 			{
 				struct commit* commit = (struct commit*)ob;
-				free_commit_list(commit->parents);
+				commit_list_free(commit->parents);
 				commit->parents = NULL;
 				if (commit->maybe_tree)
 					free_tree_buffer(commit->maybe_tree);
@@ -969,7 +969,7 @@ int git_read_mailmap(GIT_MAILMAP *mailmap)
 	if ((map = (struct string_list *)calloc(1, sizeof(struct string_list))) == NULL)
 		return -1;
 
-	if ((result = read_mailmap(map)) != 0)
+	if ((result = read_mailmap(the_repository, map)) != 0)
 	{
 		clear_mailmap(map);
 		free(map);
