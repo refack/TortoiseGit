@@ -1,0 +1,158 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Sven Strickroth <email@cs-ware.de>
+Date: Thu, 9 May 2013 01:10:41 +0200
+Subject: Use Git system config based on the configured git path in TortoiseGit
+
+Related to issue #1184.
+
+Signed-off-by: Sven Strickroth <email@cs-ware.de>
+---
+ attr.c        |  2 +-
+ compat/msvc.h |  5 ----
+ config.c      |  2 +-
+ exec-cmd.c    | 75 ++++++++++++++++++++++++++-------------------------
+ 4 files changed, 41 insertions(+), 43 deletions(-)
+
+diff --git a/attr.c b/attr.c
+index b4ec500147..b016c18391 100644
+--- a/attr.c
++++ b/attr.c
+@@ -875,7 +875,7 @@ const char *git_attr_system_file(void)
+ {
+ 	static const char *system_wide;
+ 	if (!system_wide)
+-		system_wide = system_path(ETC_GITATTRIBUTES);
++		system_wide = system_path("..\\" ETC_GITATTRIBUTES);
+ 	return system_wide;
+ }
+ 
+diff --git a/compat/msvc.h b/compat/msvc.h
+index df169902f8..c37a1ba33a 100644
+--- a/compat/msvc.h
++++ b/compat/msvc.h
+@@ -5,11 +5,6 @@
+ #include "mingw.h"
+ 
+ /* Git runtime infomation */
+-#define RUNTIME_PREFIX
+-#define FALLBACK_RUNTIME_PREFIX ""
+-#define PREFIX "."
+-#define BINDIR "bin"
+-
+ #define ETC_GITCONFIG "etc\\gitconfig"
+ #define ETC_GITATTRIBUTES "etc\\gitattributes"
+ #define GIT_EXEC_PATH "bin"
+diff --git a/config.c b/config.c
+index 6a0de86e3a..32cb708241 100644
+--- a/config.c
++++ b/config.c
+@@ -1497,7 +1497,7 @@ char *git_system_config(void)
+ {
+ 	char *system_config = xstrdup_or_null(getenv("GIT_CONFIG_SYSTEM"));
+ 	if (!system_config)
+-		system_config = system_path(ETC_GITCONFIG);
++		system_config = system_path("..\\" ETC_GITCONFIG);
+ 	normalize_path_copy(system_config, system_config);
+ 	return system_config;
+ }
+diff --git a/exec-cmd.c b/exec-cmd.c
+index 507e67d528..817d98a7de 100644
+--- a/exec-cmd.c
++++ b/exec-cmd.c
+@@ -27,8 +27,6 @@
+ 
+ static const char *system_prefix(void);
+ 
+-#ifdef RUNTIME_PREFIX
+-
+ /**
+  * When using a runtime prefix, Git dynamically resolves paths relative to its
+  * executable.
+@@ -45,21 +43,46 @@ static const char *executable_dirname;
+ 
+ static const char *system_prefix(void)
+ {
+-	static const char *prefix;
+-
+-	assert(executable_dirname);
+-	assert(is_absolute_path(executable_dirname));
+-
+-	if (!prefix &&
+-	    !(prefix = strip_path_suffix(executable_dirname, GIT_EXEC_PATH)) &&
+-	    !(prefix = strip_path_suffix(executable_dirname, BINDIR)) &&
+-	    !(prefix = strip_path_suffix(executable_dirname, "git"))) {
+-		prefix = FALLBACK_RUNTIME_PREFIX;
+-		trace_printf("RUNTIME_PREFIX requested, "
+-				"but prefix computation failed.  "
+-				"Using static fallback '%s'.\n", prefix);
++	static const char *syspath = NULL;
++
++	if (!syspath)
++	{
++		wchar_t lszValue[MAX_PATH];
++		HKEY hKey;
++		DWORD dwType = REG_SZ;
++		DWORD dwSize = MAX_PATH;
++		if (RegOpenKeyExW(HKEY_CURRENT_USER, L"Software\\TortoiseGit", 0, KEY_ALL_ACCESS, &hKey) == ERROR_SUCCESS)
++		{
++			if (RegQueryValueExW(hKey, L"MSysGit", NULL, &dwType, (LPBYTE)&lszValue, &dwSize) == ERROR_SUCCESS)
++			{
++				char pointer[MAX_PATH];
++				xwcstoutf(pointer, lszValue, MAX_PATH);
++				syspath = strip_path_suffix(pointer, "cmd");
++				if (!syspath)
++					syspath = strip_path_suffix(pointer, GIT_EXEC_PATH);
++
++				do {
++					char *configpath;
++#ifdef _WIN64
++					configpath = mkpath("%s\\mingw64", syspath);
++					if (!access(configpath, F_OK)) {
++						free(syspath);
++						syspath = xstrdup(configpath);
++						break;
++					}
++#endif
++					configpath = mkpath("%s\\mingw32", syspath);
++					if (!access(configpath, F_OK)) {
++						free(syspath);
++						syspath = xstrdup(configpath);
++					}
++				} while (FALSE);
++			}
++			RegCloseKey(hKey);
++		}
+ 	}
+-	return prefix;
++
++	return syspath;
+ }
+ 
+ /*
+@@ -267,26 +290,6 @@ void git_resolve_executable_dir(const char *argv0)
+ 		     executable_dirname);
+ }
+ 
+-#else
+-
+-/*
+- * When not using a runtime prefix, Git uses a hard-coded path.
+- */
+-static const char *system_prefix(void)
+-{
+-	return FALLBACK_RUNTIME_PREFIX;
+-}
+-
+-/*
+- * This is called during initialization, but No work needs to be done here when
+- * runtime prefix is not being used.
+- */
+-void git_resolve_executable_dir(const char *argv0 UNUSED)
+-{
+-}
+-
+-#endif /* RUNTIME_PREFIX */
+-
+ char *system_path(const char *path)
+ {
+ 	struct strbuf d = STRBUF_INIT;

@@ -1,0 +1,33 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Frank Li <lznuaa@gmail.com>
+Date: Wed, 8 Sep 2010 15:11:13 +0200
+Subject: Add exit hook for gitdll
+
+exit will cause program termination. Therefore, reimplimented by throw exception in TortoiseGit.
+
+Signed-off-by: Frank Li <lznuaa@gmail.com>
+Signed-off-by: Sven Strickroth <email@cs-ware.de>
+---
+ git-compat-util.h | 9 ++++-----
+ 1 file changed, 4 insertions(+), 5 deletions(-)
+
+diff --git a/git-compat-util.h b/git-compat-util.h
+index eb53bdb309..a4055fbfa7 100644
+--- a/git-compat-util.h
++++ b/git-compat-util.h
+@@ -1123,11 +1123,10 @@ struct fscache;
+ int cmd_main(int, const char **);
+ 
+ /*
+- * Intercept all calls to exit() and route them to trace2 to
+- * optionally emit a message before calling the real exit().
+- */
+-int common_exit(const char *file, int line, int code);
+-#define exit(code) exit(common_exit(__FILE__, __LINE__, (code)))
++ * Intercept all calls to exit() and route them gitdll
++  */
++extern int vc_exit(int code); // defined in gitdll.dll
++#define exit(code) vc_exit((code) & 0xff)
+ 
+ /*
+  * This include must come after system headers, since it introduces macros that

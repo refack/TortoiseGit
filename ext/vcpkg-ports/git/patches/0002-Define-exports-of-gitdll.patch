@@ -1,0 +1,111 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Sven Strickroth <email@cs-ware.de>
+Date: Mon, 6 May 2013 22:06:20 +0200
+Subject: Define exports of gitdll
+
+Signed-off-by: Sven Strickroth <email@cs-ware.de>
+Signed-off-by: Frank Li <lznuaa@gmail.com>
+---
+ attr.c        | 2 +-
+ builtin/log.c | 8 ++++++++
+ diff.c        | 4 ++--
+ entry.c       | 2 +-
+ notes.c       | 2 +-
+ revision.h    | 4 ++++
+ 6 files changed, 17 insertions(+), 5 deletions(-)
+
+diff --git a/attr.c b/attr.c
+index b9852d8587..b4ec500147 100644
+--- a/attr.c
++++ b/attr.c
+@@ -523,7 +523,7 @@ static void check_vector_remove(struct attr_check *check)
+ }
+ 
+ /* Iterate through all attr_check instances and drop their stacks */
+-static void drop_all_attr_stacks(void)
++void drop_all_attr_stacks(void)
+ {
+ 	int i;
+ 
+diff --git a/builtin/log.c b/builtin/log.c
+index 2f5142e888..29931239aa 100644
+--- a/builtin/log.c
++++ b/builtin/log.c
+@@ -396,6 +396,14 @@ static void cmd_log_init(int argc, const char **argv, const char *prefix,
+ 	cmd_log_init_finish(argc, argv, prefix, rev, opt, cfg);
+ }
+ 
++void cmd_log_init_tgit(int argc, const char **argv, const char *prefix, struct rev_info *rev, struct setup_revision_opt *opt)
++{
++	struct log_config cfg;
++	log_config_init(&cfg);
++	cfg.use_mailmap_config = 0;
++	cmd_log_init(argc, argv, prefix, rev, opt, &cfg);
++	log_config_release(&cfg);
++}
+ static int cmd_log_walk_no_free(struct rev_info *rev)
+ {
+ 	struct commit *commit;
+diff --git a/diff.c b/diff.c
+index de5ff1f7d0..4c415a55b3 100644
+--- a/diff.c
++++ b/diff.c
+@@ -6575,7 +6575,7 @@ static int diff_flush_patch_quietly(struct diff_filepair *p, struct diff_options
+ 	return ret;
+ }
+ 
+-static void diff_flush_stat(struct diff_filepair *p, struct diff_options *o,
++void diff_flush_stat(struct diff_filepair *p, struct diff_options *o,
+ 			    struct diffstat_t *diffstat)
+ {
+ 	if (diff_unmodified_pair(p))
+@@ -6716,7 +6716,7 @@ static void diff_resolve_rename_copy(void)
+ 	diff_debug_queue("resolve-rename-copy done", q);
+ }
+ 
+-static int check_pair_status(struct diff_filepair *p)
++int check_pair_status(struct diff_filepair *p)
+ {
+ 	switch (p->status) {
+ 	case DIFF_STATUS_UNKNOWN:
+diff --git a/entry.c b/entry.c
+index 3087c35f9e..5b35dbe6fb 100644
+--- a/entry.c
++++ b/entry.c
+@@ -293,7 +293,7 @@ void update_ce_after_write(const struct checkout *state, struct cache_entry *ce,
+ }
+ 
+ /* Note: ca is used (and required) iff the entry refers to a regular file. */
+-static int write_entry(struct cache_entry *ce, char *path, struct conv_attrs *ca,
++int write_entry(struct cache_entry *ce, char *path, struct conv_attrs *ca,
+ 		       const struct checkout *state, int to_tempfile,
+ 		       int *nr_checkouts)
+ {
+diff --git a/notes.c b/notes.c
+index ec9c2cb150..a1b9738a00 100644
+--- a/notes.c
++++ b/notes.c
+@@ -81,7 +81,7 @@ struct non_note {
+ struct notes_tree default_notes_tree;
+ 
+ static struct string_list display_notes_refs = STRING_LIST_INIT_NODUP;
+-static struct notes_tree **display_notes_trees;
++struct notes_tree **display_notes_trees;
+ 
+ static void load_subtree(struct notes_tree *t, struct leaf_node *subtree,
+ 		struct int_node *node, unsigned int n);
+diff --git a/revision.h b/revision.h
+index 00c392be37..eb33dbf430 100644
+--- a/revision.h
++++ b/revision.h
+@@ -390,6 +390,10 @@ struct rev_info {
+ 
+ 	/* Missing commits to be tracked without failing traversal. */
+ 	struct oidset missing_commits;
++
++	/* TGit extension */
++	void *pPrivate;
++	struct diffstat_t diffstat;
+ };
+ 
+ /**

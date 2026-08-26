@@ -1,0 +1,39 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Johannes Schindelin <johannes.schindelin@gmx.de>
+Date: Tue, 17 Mar 2015 19:41:02 +0100
+Subject: UTF-8 environment: be a little bit more defensive
+
+It is unlikely that we have an empty environment, ever, but *if* we do,
+when `environ_size - 1` is passed to `bsearchenv()` it is misinterpreted
+as a real large integer.
+
+To make the code truly defensive, refuse to do anything at all if the
+size is negative (which should not happen, of course).
+
+Signed-off-by: Johannes Schindelin <johannes.schindelin@gmx.de>
+Signed-off-by: Sven Strickroth <email@cs-ware.de>
+---
+ compat/mingw.c | 8 +++++++-
+ 1 file changed, 7 insertions(+), 1 deletion(-)
+
+diff --git a/compat/mingw.c b/compat/mingw.c
+index 204e7606ff..79259c0f10 100644
+--- a/compat/mingw.c
++++ b/compat/mingw.c
+@@ -2708,9 +2708,15 @@ static int do_putenv(char **env, const char *name, int size, int free_old)
+ char *mingw_getenv(const char *name)
+ {
+ 	char *value;
++	int pos;
++
+ 	if (!libgit_environ)
+ 		build_libgit_environment();
+-	int pos = bsearchenv(libgit_environ, name, environ_size - 1);
++	if (environ_size <= 0)
++		return NULL;
++
++	pos = bsearchenv(libgit_environ, name, environ_size - 1);
++
+ 	if (pos < 0)
+ 		return NULL;
+ 	value = strchr(libgit_environ[pos], '=');

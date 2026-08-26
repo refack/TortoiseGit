@@ -1,0 +1,47 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Sven Strickroth <email@cs-ware.de>
+Date: Sun, 15 Mar 2015 22:36:23 +0100
+Subject: Allow to reset git environment
+
+Signed-off-by: Sven Strickroth <email@cs-ware.de>
+---
+ environment.c | 12 ++++++++++++
+ setup.c       |  8 ++++++++
+ 2 files changed, 20 insertions(+)
+
+diff --git a/environment.c b/environment.c
+index ba2c60103f..0872fbdf72 100644
+--- a/environment.c
++++ b/environment.c
+@@ -726,3 +726,15 @@ void repo_config_values_init(struct repo_config_values *cfg)
+ 	cfg->sparse_expect_files_outside_of_patterns = 0;
+ 	cfg->warn_on_object_refname_ambiguity = 1;
+ }
++
++void reset_git_env(void)
++{
++	putenv("GIT_DIR=");
++	FREE_AND_NULL(comment_line_str_to_free);
++	auto_comment_line_char = 0;
++	is_bare_repository_cfg = -1;
++	if (the_repository && the_repository->objects)
++		repo_clear(the_repository);
++	initialize_repository(the_repository);
++	FREE_AND_NULL(git_work_tree_cfg);
++}
+diff --git a/setup.c b/setup.c
+index fa7a5c1f3e..399acf91bd 100644
+--- a/setup.c
++++ b/setup.c
+@@ -2954,3 +2954,11 @@ int init_db(struct repository *repo,
+ 	free(original_git_dir);
+ 	return 0;
+ }
++
++void reset_setup(void)
++{
++	git_work_tree_initialized = 0;
++	inside_git_dir = -1;
++	inside_work_tree = -1;
++	work_tree_config_is_bogus = 0;
++}

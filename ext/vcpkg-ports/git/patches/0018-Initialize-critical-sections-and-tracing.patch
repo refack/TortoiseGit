@@ -1,0 +1,31 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Sven Strickroth <email@cs-ware.de>
+Date: Wed, 20 Dec 2017 17:52:53 +0100
+Subject: Initialize critical sections and tracing
+
+Signed-off-by: Sven Strickroth <email@cs-ware.de>
+---
+ compat/mingw.c | 10 ++++++++++
+ 1 file changed, 10 insertions(+)
+
+diff --git a/compat/mingw.c b/compat/mingw.c
+index 79259c0f10..42970c9410 100644
+--- a/compat/mingw.c
++++ b/compat/mingw.c
+@@ -4445,6 +4445,16 @@ static BOOL WINAPI handle_ctrl_c(DWORD ctrl_type)
+ 	return TRUE; /* we did handle this */
+ }
+ 
++void libgit_initialize(void)
++{
++	trace2_initialize_clock();
++
++	InitializeCriticalSection(&phantom_symlinks_cs);
++
++	/* initialize critical section for fscache */
++	InitializeCriticalSection(&fscache_cs);
++}
++
+ void build_libgit_environment(void)
+ {
+ 	int i, maxlen;

@@ -1,0 +1,27 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Sven Strickroth <email@cs-ware.de>
+Date: Mon, 14 Feb 2022 12:48:14 +0100
+Subject: Skip conversion filters
+
+As a preparation to Git update to 2.34.
+
+Signed-off-by: Sven Strickroth <email@cs-ware.de>
+---
+ object-file.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/object-file.c b/object-file.c
+index 6453b1d6fa..879174d861 100644
+--- a/object-file.c
++++ b/object-file.c
+@@ -1037,8 +1037,8 @@ static int index_stream_convert_blob(struct index_state *istate,
+ 	assert(path);
+ 	ASSERT(would_convert_to_git_filter_fd(istate, path));
+ 
+-	convert_to_git_filter_fd(istate, path, fd, &sbuf,
+-				 get_conv_flags(flags));
++	/* convert_to_git_filter_fd(istate, path, fd, &sbuf,
++				 get_conv_flags(flags));*/
+ 
+ 	if (write_object)
+ 		ret = odb_write_object(istate->repo->objects, sbuf.buf, sbuf.len, OBJ_BLOB,

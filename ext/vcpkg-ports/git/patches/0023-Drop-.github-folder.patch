@@ -1,0 +1,1305 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Sven Strickroth <email@cs-ware.de>
+Date: Mon, 12 Oct 2020 09:51:16 +0200
+Subject: Drop .github folder
+
+Signed-off-by: Sven Strickroth <email@cs-ware.de>
+---
+ .github/CONTRIBUTING.md                  |  23 -
+ .github/ISSUE_TEMPLATE/bug-report.yml    | 105 -----
+ .github/ISSUE_TEMPLATE/config.yml        |   1 -
+ .github/PULL_REQUEST_TEMPLATE.md         |  22 -
+ .github/dependabot.yml                   |  13 -
+ .github/workflows/check-style.yml        |  34 --
+ .github/workflows/check-whitespace.yml   |  32 --
+ .github/workflows/coverity.yml           | 168 --------
+ .github/workflows/l10n.yml               | 111 -----
+ .github/workflows/main.yml               | 522 -----------------------
+ .github/workflows/monitor-components.yml |  91 ----
+ .github/workflows/nano-server.yml        |  76 ----
+ 12 files changed, 1198 deletions(-)
+ delete mode 100644 .github/CONTRIBUTING.md
+ delete mode 100644 .github/ISSUE_TEMPLATE/bug-report.yml
+ delete mode 100644 .github/ISSUE_TEMPLATE/config.yml
+ delete mode 100644 .github/PULL_REQUEST_TEMPLATE.md
+ delete mode 100644 .github/dependabot.yml
+ delete mode 100644 .github/workflows/check-style.yml
+ delete mode 100644 .github/workflows/check-whitespace.yml
+ delete mode 100644 .github/workflows/coverity.yml
+ delete mode 100644 .github/workflows/l10n.yml
+ delete mode 100644 .github/workflows/main.yml
+ delete mode 100644 .github/workflows/monitor-components.yml
+ delete mode 100644 .github/workflows/nano-server.yml
+
+diff --git a/.github/CONTRIBUTING.md b/.github/CONTRIBUTING.md
+deleted file mode 100644
+index 93042128d6..0000000000
+--- a/.github/CONTRIBUTING.md
++++ /dev/null
+@@ -1,23 +0,0 @@
+-## Contributing to Git
+-
+-Thanks for taking the time to contribute to Git! Please be advised that the
+-Git community does not use github.com for their contributions. Instead, we use
+-a mailing list (git@vger.kernel.org) for code submissions, code
+-reviews, and bug reports.
+-
+-Nevertheless, you can use [GitGitGadget](https://gitgitgadget.github.io/) to
+-conveniently send your Pull Requests commits to our mailing list.
+-
+-Please read ["A note from the maintainer"](https://git.kernel.org/pub/scm/git/git.git/plain/MaintNotes?h=todo)
+-to learn how the Git project is managed, and how you can work with it.
+-In addition, we highly recommend you to read
+-[our submission guidelines](https://git-scm.com/docs/SubmittingPatches).
+-
+-If you prefer video, then [this talk](https://www.youtube.com/watch?v=Q7i_qQW__q4&feature=youtu.be&t=6m4s)
+-might be useful to you as the presenter walks you through the contribution
+-process by example.
+-
+-Or, you can follow the ["My First Contribution"](https://git-scm.com/docs/MyFirstContribution)
+-tutorial for another example of the contribution process.
+-
+-Your friendly Git community!
+diff --git a/.github/ISSUE_TEMPLATE/bug-report.yml b/.github/ISSUE_TEMPLATE/bug-report.yml
+deleted file mode 100644
+index b495933399..0000000000
+--- a/.github/ISSUE_TEMPLATE/bug-report.yml
++++ /dev/null
+@@ -1,105 +0,0 @@
+-name: Bug report
+-description: Use this template to report bugs.
+-body:
+-  - type: checkboxes
+-    id: search
+-    attributes:
+-      label: Existing issues matching what you're seeing
+-      description: Please search for [open](https://github.com/git-for-windows/git/issues?q=is%3Aopen) or [closed](https://github.com/git-for-windows/git/issues?q=is%3Aclosed) issue matching what you're seeing before submitting a new issue.
+-      options:
+-        - label: I was not able to find an open or closed issue matching what I'm seeing
+-  - type: textarea
+-    id: git-for-windows-version
+-    attributes:
+-      label: Git for Windows version
+-      description: Which version of Git for Windows are you using?
+-      placeholder: Please insert the output of `git --version --build-options` here
+-      render: shell
+-    validations:
+-      required: true
+-  - type: dropdown
+-    id: windows-version
+-    attributes:
+-      label: Windows version
+-      description: Which version of Windows are you running?
+-      options:
+-        - Windows 8.1
+-        - Windows 10
+-        - Windows 11
+-        - Other
+-      default: 2
+-    validations:
+-      required: true
+-  - type: dropdown
+-    id: windows-arch
+-    attributes:
+-      label: Windows CPU architecture
+-      description: What CPU Archtitecture does your Windows target?
+-      options:
+-        - i686 (32-bit)
+-        - x86_64 (64-bit)
+-        - ARM64
+-      default: 1
+-    validations:
+-      required: true
+-  - type: textarea
+-    id: windows-version-cmd
+-    attributes:
+-      label: Additional Windows version information
+-      description: This provides us with further information about your Windows such as the build number
+-      placeholder: Please insert the output of `cmd.exe /c ver` here
+-      render: shell
+-  - type: textarea
+-    id: options
+-    attributes:
+-      label: Options set during installation
+-      description: What options did you set as part of the installation? Or did you choose the defaults?
+-      placeholder: |
+-        One of the following:
+-        > type "C:\Program Files\Git\etc\install-options.txt"
+-        > type "C:\Program Files (x86)\Git\etc\install-options.txt"
+-        > type "%USERPROFILE%\AppData\Local\Programs\Git\etc\install-options.txt"
+-        > type "$env:USERPROFILE\AppData\Local\Programs\Git\etc\install-options.txt"
+-        $ cat /etc/install-options.txt
+-      render: shell
+-    validations:
+-      required: true
+-  - type: textarea
+-    id: other-things
+-    attributes:
+-      label: Other interesting things
+-      description: Any other interesting things about your environment that might be related to the issue you're seeing?
+-  - type: input
+-    id: terminal
+-    attributes:
+-      label: Terminal/shell
+-      description: Which terminal/shell are you running Git from? e.g Bash/CMD/PowerShell/other
+-    validations:
+-      required: true
+-  - type: textarea
+-    id: commands
+-    attributes:
+-      label: Commands that trigger the issue
+-      description: What commands did you run to trigger this issue? If you can provide a [Minimal, Complete, and Verifiable example](http://stackoverflow.com/help/mcve) this will help us understand the issue.
+-      render: shell
+-    validations:
+-      required: true
+-  - type: textarea
+-    id: expected-behaviour
+-    attributes:
+-      label: Expected behaviour
+-      description: What did you expect to occur after running these commands?
+-    validations:
+-      required: true
+-  - type: textarea
+-    id: actual-behaviour
+-    attributes:
+-      label: Actual behaviour
+-      description: What actually happened instead?
+-    validations:
+-      required: true
+-  - type: textarea
+-    id: repository
+-    attributes:
+-      label: Repository
+-      description: If the problem was occurring with a specific repository, can you provide the URL to that repository to help us with testing?
+\ No newline at end of file
+diff --git a/.github/ISSUE_TEMPLATE/config.yml b/.github/ISSUE_TEMPLATE/config.yml
+deleted file mode 100644
+index ec4bb386bc..0000000000
+--- a/.github/ISSUE_TEMPLATE/config.yml
++++ /dev/null
+@@ -1 +0,0 @@
+-blank_issues_enabled: false
+\ No newline at end of file
+diff --git a/.github/PULL_REQUEST_TEMPLATE.md b/.github/PULL_REQUEST_TEMPLATE.md
+deleted file mode 100644
+index 7baf31f2c4..0000000000
+--- a/.github/PULL_REQUEST_TEMPLATE.md
++++ /dev/null
+@@ -1,22 +0,0 @@
+-Thanks for taking the time to contribute to Git!
+-
+-Those seeking to contribute to the Git for Windows fork should see
+-http://gitforwindows.org/#contribute on how to contribute Windows specific
+-enhancements.
+-
+-If your contribution is for the core Git functions and documentation
+-please be aware that the Git community does not use the github.com issues
+-or pull request mechanism for their contributions.
+-
+-Instead, we use the Git mailing list (git@vger.kernel.org) for code and
+-documentation submissions, code reviews, and bug reports. The
+-mailing list is plain text only (anything with HTML is sent directly
+-to the spam folder).
+-
+-Nevertheless, you can use GitGitGadget (https://gitgitgadget.github.io/)
+-to conveniently send your Pull Requests commits to our mailing list.
+-
+-For a single-commit pull request, please *leave the pull request description
+-empty*: your commit message itself should describe your changes.
+-
+-Please read the "guidelines for contributing" linked above!
+diff --git a/.github/dependabot.yml b/.github/dependabot.yml
+deleted file mode 100644
+index 22d5376407..0000000000
+--- a/.github/dependabot.yml
++++ /dev/null
+@@ -1,13 +0,0 @@
+-# To get started with Dependabot version updates, you'll need to specify which
+-# package ecosystems to update and where the package manifests are located.
+-# Please see the documentation for all configuration options:
+-# https://docs.github.com/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file
+-# especially
+-# https://docs.github.com/en/code-security/dependabot/working-with-dependabot/keeping-your-actions-up-to-date-with-dependabot#enabling-dependabot-version-updates-for-actions
+-
+-version: 2
+-updates:
+-  - package-ecosystem: "github-actions" # See documentation for possible values
+-    directory: "/" # Location of package manifests
+-    schedule:
+-      interval: "weekly"
+diff --git a/.github/workflows/check-style.yml b/.github/workflows/check-style.yml
+deleted file mode 100644
+index 72e6676260..0000000000
+--- a/.github/workflows/check-style.yml
++++ /dev/null
+@@ -1,34 +0,0 @@
+-name: check-style
+-
+-# Get the repository with all commits to ensure that we can analyze
+-# all of the commits contributed via the Pull Request.
+-
+-on:
+-  pull_request:
+-    types: [opened, synchronize]
+-
+-# Avoid unnecessary builds. Unlike the main CI jobs, these are not
+-# ci-configurable (but could be).
+-concurrency:
+-  group: ${{ github.workflow }}-${{ github.ref }}
+-  cancel-in-progress: true
+-
+-jobs:
+-  check-style:
+-    env:
+-      CC: clang
+-      jobname: ClangFormat
+-    runs-on: ubuntu-latest
+-    steps:
+-    - uses: actions/checkout@v7
+-      with:
+-        fetch-depth: 0
+-
+-    - run: ci/install-dependencies.sh
+-
+-    - name: git clang-format
+-      continue-on-error: true
+-      id: check_out
+-      run: |
+-        ./ci/run-style-check.sh \
+-          "${{github.event.pull_request.base.sha}}"
+diff --git a/.github/workflows/check-whitespace.yml b/.github/workflows/check-whitespace.yml
+deleted file mode 100644
+index 7a35b67a63..0000000000
+--- a/.github/workflows/check-whitespace.yml
++++ /dev/null
+@@ -1,32 +0,0 @@
+-name: check-whitespace
+-
+-# Get the repository with all commits to ensure that we can analyze
+-# all of the commits contributed via the Pull Request.
+-# Process `git log --check` output to extract just the check errors.
+-# Exit with failure upon white-space issues.
+-
+-on:
+-  pull_request:
+-    types: [opened, synchronize]
+-
+-# Avoid unnecessary builds. Unlike the main CI jobs, these are not
+-# ci-configurable (but could be).
+-concurrency:
+-  group: ${{ github.workflow }}-${{ github.ref }}
+-  cancel-in-progress: true
+-
+-jobs:
+-  check-whitespace:
+-    runs-on: ubuntu-latest
+-    steps:
+-    - uses: actions/checkout@v7
+-      with:
+-        fetch-depth: 0
+-
+-    - name: git log --check
+-      id: check_out
+-      run: |
+-        ./ci/check-whitespace.sh \
+-          "${{github.event.pull_request.base.sha}}" \
+-          "$GITHUB_STEP_SUMMARY" \
+-          "https://github.com/${{github.repository}}"
+diff --git a/.github/workflows/coverity.yml b/.github/workflows/coverity.yml
+deleted file mode 100644
+index 283d1cd74b..0000000000
+--- a/.github/workflows/coverity.yml
++++ /dev/null
+@@ -1,168 +0,0 @@
+-name: Coverity
+-
+-# This GitHub workflow automates submitting builds to Coverity Scan. To enable it,
+-# set the repository variable `ENABLE_COVERITY_SCAN_FOR_BRANCHES` (for details, see
+-# https://docs.github.com/en/actions/learn-github-actions/variables) to a JSON
+-# string array containing the names of the branches for which the workflow should be
+-# run, e.g. `["main", "next"]`.
+-#
+-# In addition, two repository secrets must be set (for details how to add secrets, see
+-# https://docs.github.com/en/actions/security-guides/using-secrets-in-github-actions):
+-# `COVERITY_SCAN_EMAIL` and `COVERITY_SCAN_TOKEN`. The former specifies the
+-# email to which the Coverity reports should be sent and the latter can be
+-# obtained from the Project Settings tab of the Coverity project).
+-#
+-# The workflow runs on `ubuntu-latest` by default. This can be overridden by setting
+-# the repository variable `ENABLE_COVERITY_SCAN_ON_OS` to a JSON string array specifying
+-# the operating systems, e.g. `["ubuntu-latest", "windows-latest"]`.
+-#
+-# By default, the builds are submitted to the Coverity project `git`. To override this,
+-# set the repository variable `COVERITY_PROJECT`.
+-
+-on:
+-  push:
+-
+-defaults:
+-  run:
+-    shell: bash
+-
+-jobs:
+-  coverity:
+-    if: contains(fromJSON(vars.ENABLE_COVERITY_SCAN_FOR_BRANCHES || '[""]'), github.ref_name)
+-    strategy:
+-      matrix:
+-        os: ${{ fromJSON(vars.ENABLE_COVERITY_SCAN_ON_OS || '["ubuntu-latest"]') }}
+-    runs-on: ${{ matrix.os }}
+-    env:
+-      COVERITY_PROJECT: ${{ vars.COVERITY_PROJECT || 'git' }}
+-      COVERITY_LANGUAGE: cxx
+-      COVERITY_PLATFORM: overridden-below
+-      NO_RUST: Yup
+-    steps:
+-      - uses: actions/checkout@v7
+-      - name: install minimal Git for Windows SDK
+-        if: contains(matrix.os, 'windows')
+-        uses: git-for-windows/setup-git-for-windows-sdk@v2
+-      - run: ci/install-dependencies.sh
+-        if: contains(matrix.os, 'ubuntu') || contains(matrix.os, 'macos')
+-        env:
+-          CI_JOB_IMAGE: ${{ matrix.os }}
+-
+-      # The Coverity site says the tool is usually updated twice yearly, so the
+-      # MD5 of download can be used to determine whether there's been an update.
+-      - name: get the Coverity Build Tool hash
+-        id: lookup
+-        run: |
+-          case "${{ matrix.os }}" in
+-          *windows*)
+-            COVERITY_PLATFORM=win64
+-            COVERITY_TOOL_FILENAME=cov-analysis.zip
+-            MAKEFLAGS=-j$(nproc)
+-            ;;
+-          *macos*)
+-            COVERITY_PLATFORM=macOSX
+-            COVERITY_TOOL_FILENAME=cov-analysis.dmg
+-            MAKEFLAGS=-j$(sysctl -n hw.physicalcpu)
+-            ;;
+-          *ubuntu*)
+-            COVERITY_PLATFORM=linux64
+-            COVERITY_TOOL_FILENAME=cov-analysis.tgz
+-            MAKEFLAGS=-j$(nproc)
+-            ;;
+-          *)
+-            echo '::error::unhandled OS ${{ matrix.os }}' >&2
+-            exit 1
+-            ;;
+-          esac
+-          echo "COVERITY_PLATFORM=$COVERITY_PLATFORM" >>$GITHUB_ENV
+-          echo "COVERITY_TOOL_FILENAME=$COVERITY_TOOL_FILENAME" >>$GITHUB_ENV
+-          echo "MAKEFLAGS=$MAKEFLAGS" >>$GITHUB_ENV
+-          MD5=$(curl https://scan.coverity.com/download/$COVERITY_LANGUAGE/$COVERITY_PLATFORM \
+-                   --fail \
+-                   --form token='${{ secrets.COVERITY_SCAN_TOKEN }}' \
+-                   --form project="$COVERITY_PROJECT" \
+-                   --form md5=1)
+-          case $? in
+-          0) ;; # okay
+-          22) # 40x, i.e. access denied
+-            echo "::error::incorrect token or project?" >&2
+-            exit 1
+-            ;;
+-          *) # other error
+-            echo "::error::Failed to retrieve MD5" >&2
+-            exit 1
+-            ;;
+-          esac
+-          echo "hash=$MD5" >>$GITHUB_OUTPUT
+-
+-      # Try to cache the tool to avoid downloading 1GB+ on every run.
+-      # A cache miss will add ~30s to create, but a cache hit will save minutes.
+-      - name: restore the Coverity Build Tool
+-        id: cache
+-        uses: actions/cache/restore@v6
+-        with:
+-          path: ${{ runner.temp }}/cov-analysis
+-          key: cov-build-${{ env.COVERITY_LANGUAGE }}-${{ env.COVERITY_PLATFORM }}-${{ steps.lookup.outputs.hash }}
+-      - name: download the Coverity Build Tool (${{ env.COVERITY_LANGUAGE }} / ${{ env.COVERITY_PLATFORM}})
+-        if: steps.cache.outputs.cache-hit != 'true'
+-        run: |
+-          curl https://scan.coverity.com/download/$COVERITY_LANGUAGE/$COVERITY_PLATFORM \
+-            --fail --no-progress-meter \
+-            --output $RUNNER_TEMP/$COVERITY_TOOL_FILENAME \
+-            --form token='${{ secrets.COVERITY_SCAN_TOKEN }}' \
+-            --form project="$COVERITY_PROJECT"
+-      - name: extract the Coverity Build Tool
+-        if: steps.cache.outputs.cache-hit != 'true'
+-        run: |
+-          case "$COVERITY_TOOL_FILENAME" in
+-          *.tgz)
+-            mkdir $RUNNER_TEMP/cov-analysis &&
+-            tar -xzf $RUNNER_TEMP/$COVERITY_TOOL_FILENAME --strip 1 -C $RUNNER_TEMP/cov-analysis
+-            ;;
+-          *.dmg)
+-            cd $RUNNER_TEMP &&
+-            attach="$(hdiutil attach $COVERITY_TOOL_FILENAME)" &&
+-            volume="$(echo "$attach" | cut -f 3 | grep /Volumes/)" &&
+-            mkdir cov-analysis &&
+-            cd cov-analysis &&
+-            sh "$volume"/cov-analysis-macosx-*.sh &&
+-            ls -l &&
+-            hdiutil detach "$volume"
+-            ;;
+-          *.zip)
+-            cd $RUNNER_TEMP &&
+-            mkdir cov-analysis-tmp &&
+-            unzip -d cov-analysis-tmp $COVERITY_TOOL_FILENAME &&
+-            mv cov-analysis-tmp/* cov-analysis
+-            ;;
+-          *)
+-            echo "::error::unhandled archive type: $COVERITY_TOOL_FILENAME" >&2
+-            exit 1
+-            ;;
+-          esac
+-      - name: cache the Coverity Build Tool
+-        if: steps.cache.outputs.cache-hit != 'true'
+-        uses: actions/cache/save@v6
+-        with:
+-          path: ${{ runner.temp }}/cov-analysis
+-          key: cov-build-${{ env.COVERITY_LANGUAGE }}-${{ env.COVERITY_PLATFORM }}-${{ steps.lookup.outputs.hash }}
+-      - name: build with cov-build
+-        run: |
+-          export PATH="$PATH:$RUNNER_TEMP/cov-analysis/bin" &&
+-          cov-configure --gcc &&
+-          if ! cov-build --dir cov-int make
+-          then
+-            cat cov-int/build-log.txt
+-            exit 1
+-          fi
+-      - name: package the build
+-        run: tar -czvf cov-int.tgz cov-int
+-      - name: submit the build to Coverity Scan
+-        run: |
+-          curl \
+-            --fail \
+-            --form token='${{ secrets.COVERITY_SCAN_TOKEN }}' \
+-            --form email='${{ secrets.COVERITY_SCAN_EMAIL }}' \
+-            --form file=@cov-int.tgz \
+-            --form version='${{ github.sha }}' \
+-            "https://scan.coverity.com/builds?project=$COVERITY_PROJECT"
+diff --git a/.github/workflows/l10n.yml b/.github/workflows/l10n.yml
+deleted file mode 100644
+index 114a12a9e5..0000000000
+--- a/.github/workflows/l10n.yml
++++ /dev/null
+@@ -1,111 +0,0 @@
+-name: git-l10n
+-
+-on: [push, pull_request_target]
+-
+-# Avoid unnecessary builds. Unlike the main CI jobs, these are not
+-# ci-configurable (but could be).
+-concurrency:
+-  group: ${{ github.workflow }}-${{ github.ref }}
+-  cancel-in-progress: true
+-
+-jobs:
+-  git-po-helper:
+-    if: >-
+-      endsWith(github.repository, '/git-po') ||
+-      contains(github.head_ref, 'l10n') ||
+-      contains(github.ref, 'l10n')
+-    runs-on: ubuntu-latest
+-    permissions:
+-      pull-requests: write
+-    steps:
+-      - name: Setup base and head objects
+-        id: setup-tips
+-        run: |
+-          if test "${{ github.event_name }}" = "pull_request_target"
+-          then
+-            base=${{ github.event.pull_request.base.sha }}
+-            head=${{ github.event.pull_request.head.sha }}
+-          else
+-            base=${{ github.event.before }}
+-            head=${{ github.event.after }}
+-          fi
+-          echo base=$base >>$GITHUB_OUTPUT
+-          echo head=$head >>$GITHUB_OUTPUT
+-      - name: Run partial clone
+-        run: |
+-          git -c init.defaultBranch=master init --bare .
+-          git remote add \
+-            --mirror=fetch \
+-            origin \
+-            https://github.com/${{ github.repository }}
+-          # Fetch tips that may be unreachable from github.ref:
+-          # - For a forced push, "$base" may be unreachable.
+-          # - For a "pull_request_target" event, "$head" may be unreachable.
+-          args=
+-          for commit in \
+-            ${{ steps.setup-tips.outputs.base }} \
+-            ${{ steps.setup-tips.outputs.head }}
+-          do
+-            case $commit in
+-            *[^0]*)
+-              args="$args $commit"
+-              ;;
+-            *)
+-              # Should not fetch ZERO-OID.
+-              ;;
+-            esac
+-          done
+-          git -c protocol.version=2 fetch \
+-            --progress \
+-            --no-tags \
+-            --no-write-fetch-head \
+-            --filter=blob:none \
+-            origin \
+-            ${{ github.ref }} \
+-            $args
+-      - uses: actions/setup-go@v6
+-        with:
+-          go-version: '>=1.16'
+-          cache: false
+-      - name: Install git-po-helper
+-        run: go install github.com/git-l10n/git-po-helper@main
+-      - name: Install other dependencies
+-        run: |
+-          sudo apt-get update -q &&
+-          sudo apt-get install -q -y gettext
+-      - name: Run git-po-helper
+-        id: check-commits
+-        run: |
+-          exit_code=0
+-          git-po-helper check-commits \
+-            --github-action-event="${{ github.event_name }}" -- \
+-            ${{ steps.setup-tips.outputs.base }}..${{ steps.setup-tips.outputs.head }} \
+-            >git-po-helper.out 2>&1 || exit_code=$?
+-          if test $exit_code -ne 0 || grep -q WARNING git-po-helper.out
+-          then
+-            # Remove ANSI colors which are proper for console logs but not
+-            # proper for PR comment.
+-            echo "COMMENT_BODY<<EOF" >>$GITHUB_ENV
+-            perl -pe 's/\e\[[0-9;]*m//g; s/\bEOF$//g' git-po-helper.out >>$GITHUB_ENV
+-            echo "EOF" >>$GITHUB_ENV
+-          fi
+-          cat git-po-helper.out
+-          exit $exit_code
+-      - name: Create comment in pull request for report
+-        uses: mshick/add-pr-comment@v3
+-        if: >-
+-          always() &&
+-          github.event_name == 'pull_request_target' &&
+-          env.COMMENT_BODY != ''
+-        with:
+-          repo-token: ${{ secrets.GITHUB_TOKEN }}
+-          message: >
+-            ${{ steps.check-commits.outcome == 'failure' && 'Errors and warnings' || 'Warnings' }}
+-            found by [git-po-helper](https://github.com/git-l10n/git-po-helper#readme) in workflow
+-            [#${{ github.run_number }}](${{ env.GITHUB_SERVER_URL }}/${{ github.repository }}/actions/runs/${{ github.run_id }}):
+-
+-            ```
+-
+-            ${{ env.COMMENT_BODY }}
+-
+-            ```
+diff --git a/.github/workflows/main.yml b/.github/workflows/main.yml
+deleted file mode 100644
+index a7ccdb53dd..0000000000
+--- a/.github/workflows/main.yml
++++ /dev/null
+@@ -1,522 +0,0 @@
+-name: CI
+-
+-on: [push, pull_request]
+-
+-env:
+-  DEVELOPER: 1
+-
+-# If more than one workflow run is triggered for the very same commit hash
+-# (which happens when multiple branches pointing to the same commit), only
+-# the first one is allowed to run, the second will be kept in the "queued"
+-# state. This allows a successful completion of the first run to be reused
+-# in the second run via the `skip-if-redundant` logic in the `config` job.
+-#
+-# The only caveat is that if a workflow run is triggered for the same commit
+-# hash that another run is already being held, that latter run will be
+-# canceled. For more details about the `concurrency` attribute, see:
+-# https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#concurrency
+-concurrency:
+-  group: ${{ github.sha }}
+-
+-jobs:
+-  ci-config:
+-    name: config
+-    if: vars.CI_BRANCHES == '' || contains(vars.CI_BRANCHES, github.ref_name)
+-    runs-on: ubuntu-latest
+-    outputs:
+-      enabled: ${{ steps.check-ref.outputs.enabled }}${{ steps.skip-if-redundant.outputs.enabled }}
+-      skip_concurrent: ${{ steps.check-ref.outputs.skip_concurrent }}
+-    steps:
+-      - name: try to clone ci-config branch
+-        run: |
+-          git -c protocol.version=2 clone \
+-            --no-tags \
+-            --single-branch \
+-            -b ci-config \
+-            --depth 1 \
+-            --no-checkout \
+-            --filter=blob:none \
+-            https://github.com/${{ github.repository }} \
+-            config-repo &&
+-          cd config-repo &&
+-          git checkout HEAD -- ci/config || : ignore
+-      - id: check-ref
+-        name: check whether CI is enabled for ref
+-        run: |
+-          enabled=yes
+-          if test -x config-repo/ci/config/allow-ref
+-          then
+-            echo "::warning::ci/config/allow-ref is deprecated; use CI_BRANCHES instead"
+-            if ! config-repo/ci/config/allow-ref '${{ github.ref }}'
+-            then
+-              enabled=no
+-            fi
+-          fi
+-
+-          skip_concurrent=yes
+-          if test -x config-repo/ci/config/skip-concurrent &&
+-             ! config-repo/ci/config/skip-concurrent '${{ github.ref }}'
+-          then
+-            skip_concurrent=no
+-          fi
+-          echo "enabled=$enabled" >>$GITHUB_OUTPUT
+-          echo "skip_concurrent=$skip_concurrent" >>$GITHUB_OUTPUT
+-      - name: skip if the commit or tree was already tested
+-        id: skip-if-redundant
+-        uses: actions/github-script@v9
+-        if: steps.check-ref.outputs.enabled == 'yes'
+-        with:
+-          github-token: ${{secrets.GITHUB_TOKEN}}
+-          script: |
+-            try {
+-              // Figure out workflow ID, commit and tree
+-              const { data: run } = await github.rest.actions.getWorkflowRun({
+-                owner: context.repo.owner,
+-                repo: context.repo.repo,
+-                run_id: context.runId,
+-              });
+-              const workflow_id = run.workflow_id;
+-              const head_sha = run.head_sha;
+-              const tree_id = run.head_commit.tree_id;
+-
+-              // See whether there is a successful run for that commit or tree
+-              const { data: runs } = await github.rest.actions.listWorkflowRuns({
+-                owner: context.repo.owner,
+-                repo: context.repo.repo,
+-                per_page: 500,
+-                status: 'success',
+-                workflow_id,
+-              });
+-              for (const run of runs.workflow_runs) {
+-                if (head_sha === run.head_sha) {
+-                  core.warning(`Successful run for the commit ${head_sha}: ${run.html_url}`);
+-                  core.setOutput('enabled', ' but skip');
+-                  break;
+-                }
+-                if (run.head_commit && tree_id === run.head_commit.tree_id) {
+-                  core.warning(`Successful run for the tree ${tree_id}: ${run.html_url}`);
+-                  core.setOutput('enabled', ' but skip');
+-                  break;
+-                }
+-              }
+-            } catch (e) {
+-              core.warning(e);
+-            }
+-
+-  windows-build:
+-    name: win build
+-    needs: ci-config
+-    if: needs.ci-config.outputs.enabled == 'yes'
+-    runs-on: windows-latest
+-    concurrency:
+-      group: windows-build-${{ github.ref }}
+-      cancel-in-progress: ${{ needs.ci-config.outputs.skip_concurrent == 'yes' }}
+-    steps:
+-    - uses: actions/checkout@v7
+-    - uses: git-for-windows/setup-git-for-windows-sdk@v2
+-    - name: build
+-      shell: bash
+-      env:
+-        HOME: ${{runner.workspace}}
+-        NO_PERL: 1
+-      run: . /etc/profile && ci/make-test-artifacts.sh artifacts
+-    - name: zip up tracked files
+-      run: git archive -o artifacts/tracked.tar.gz HEAD
+-    - name: upload tracked files and build artifacts
+-      uses: actions/upload-artifact@v7
+-      with:
+-        name: windows-artifacts
+-        path: artifacts
+-  windows-test:
+-    name: win test
+-    runs-on: windows-latest
+-    needs: [ci-config, windows-build]
+-    strategy:
+-      fail-fast: false
+-      matrix:
+-        nr: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+-    concurrency:
+-      group: windows-test-${{ matrix.nr }}-${{ github.ref }}
+-      cancel-in-progress: ${{ needs.ci-config.outputs.skip_concurrent == 'yes' }}
+-    steps:
+-    - name: download tracked files and build artifacts
+-      uses: actions/download-artifact@v8
+-      with:
+-        name: windows-artifacts
+-        path: ${{github.workspace}}
+-    - name: extract tracked files and build artifacts
+-      shell: bash
+-      run: tar xf artifacts.tar.gz && tar xf tracked.tar.gz
+-    - uses: git-for-windows/setup-git-for-windows-sdk@v2
+-    - name: test
+-      shell: bash
+-      run: . /etc/profile && ci/run-test-slice.sh $((${{matrix.nr}} + 1)) 10
+-    - name: print test failures
+-      if: failure() && env.FAILED_TEST_ARTIFACTS != ''
+-      shell: bash
+-      run: ci/print-test-failures.sh
+-    - name: Upload failed tests' directories
+-      if: failure() && env.FAILED_TEST_ARTIFACTS != ''
+-      uses: actions/upload-artifact@v7
+-      with:
+-        name: failed-tests-windows-${{ matrix.nr }}
+-        path: ${{env.FAILED_TEST_ARTIFACTS}}
+-  vs-build:
+-    name: win+VS build
+-    needs: ci-config
+-    if: github.event.repository.owner.login == 'git-for-windows' && needs.ci-config.outputs.enabled == 'yes'
+-    env:
+-      NO_PERL: 1
+-      GIT_CONFIG_PARAMETERS: "'user.name=CI' 'user.email=ci@git'"
+-    runs-on: windows-latest
+-    strategy:
+-      matrix:
+-        arch: [x64, arm64]
+-    concurrency:
+-      group: vs-build-${{ github.ref }}-${{ matrix.arch }}
+-      cancel-in-progress: ${{ needs.ci-config.outputs.skip_concurrent == 'yes' }}
+-    steps:
+-    - uses: actions/checkout@v7
+-    - uses: git-for-windows/setup-git-for-windows-sdk@v2
+-    - name: initialize vcpkg
+-      uses: actions/checkout@v7
+-      with:
+-        repository: 'microsoft/vcpkg'
+-        path: 'compat/vcbuild/vcpkg'
+-    - name: download vcpkg artifacts
+-      uses: git-for-windows/get-azure-pipelines-artifact@v0
+-      with:
+-        repository: git/git
+-        definitionId: 9
+-    - name: add msbuild to PATH
+-      uses: microsoft/setup-msbuild@v3
+-    - name: copy dlls to root
+-      shell: cmd
+-      run: compat\vcbuild\vcpkg_copy_dlls.bat release ${{ matrix.arch }}-windows
+-    - name: generate Visual Studio solution
+-      shell: bash
+-      run: |
+-        cmake `pwd`/contrib/buildsystems/ -DCMAKE_PREFIX_PATH=`pwd`/compat/vcbuild/vcpkg/installed/${{ matrix.arch }}-windows \
+-        -DNO_GETTEXT=YesPlease -DPERL_TESTS=OFF -DPYTHON_TESTS=OFF -DCURL_NO_CURL_CMAKE=ON -DCMAKE_GENERATOR_PLATFORM=${{ matrix.arch }} -DVCPKG_ARCH=${{ matrix.arch }}-windows -DHOST_CPU=${{ matrix.arch }}
+-    - name: MSBuild
+-      run: |
+-        $sln = if (Test-Path git.slnx) { 'git.slnx' } else { 'git.sln' }
+-        msbuild $sln -property:Configuration=Release -property:Platform=${{ matrix.arch }} -maxCpuCount:4
+-    - name: bundle artifact tar
+-      shell: bash
+-      env:
+-        MSVC: 1
+-        VCPKG_ROOT: ${{github.workspace}}\compat\vcbuild\vcpkg
+-      run: |
+-        mkdir -p artifacts &&
+-        eval "$(make -n artifacts-tar INCLUDE_DLLS_IN_ARTIFACTS=YesPlease ARTIFACTS_DIRECTORY=artifacts NO_GETTEXT=YesPlease 2>&1 | grep ^tar)"
+-    - name: zip up tracked files
+-      run: git archive -o artifacts/tracked.tar.gz HEAD
+-    - name: upload tracked files and build artifacts
+-      uses: actions/upload-artifact@v7
+-      with:
+-        name: vs-artifacts-${{ matrix.arch }}
+-        path: artifacts
+-  vs-test:
+-    name: win+VS test
+-    runs-on: windows-latest
+-    needs: [ci-config, vs-build]
+-    strategy:
+-      fail-fast: false
+-      matrix:
+-        nr: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+-    concurrency:
+-      group: vs-test-${{ matrix.nr }}-${{ github.ref }}
+-      cancel-in-progress: ${{ needs.ci-config.outputs.skip_concurrent == 'yes' }}
+-    steps:
+-    - uses: git-for-windows/setup-git-for-windows-sdk@v2
+-    - name: download tracked files and build artifacts
+-      uses: actions/download-artifact@v8
+-      with:
+-        name: vs-artifacts-x64
+-        path: ${{github.workspace}}
+-    - name: extract tracked files and build artifacts
+-      shell: bash
+-      run: tar xf artifacts.tar.gz && tar xf tracked.tar.gz
+-    - name: test
+-      shell: bash
+-      env:
+-        NO_SVN_TESTS: 1
+-      run: . /etc/profile && ci/run-test-slice.sh $((${{matrix.nr}} + 1)) 10
+-    - name: print test failures
+-      if: failure() && env.FAILED_TEST_ARTIFACTS != ''
+-      shell: bash
+-      run: ci/print-test-failures.sh
+-    - name: Upload failed tests' directories
+-      if: failure() && env.FAILED_TEST_ARTIFACTS != ''
+-      uses: actions/upload-artifact@v7
+-      with:
+-        name: failed-tests-windows-vs-${{ matrix.nr }}
+-        path: ${{env.FAILED_TEST_ARTIFACTS}}
+-
+-  windows-meson-build:
+-    name: win+Meson build
+-    needs: ci-config
+-    if: needs.ci-config.outputs.enabled == 'yes'
+-    runs-on: windows-latest
+-    concurrency:
+-      group: windows-meson-build-${{ github.ref }}
+-      cancel-in-progress: ${{ needs.ci-config.outputs.skip_concurrent == 'yes' }}
+-    steps:
+-    - uses: actions/checkout@v7
+-    - uses: actions/setup-python@v6
+-    - name: Set up dependencies
+-      shell: pwsh
+-      run: pip install meson ninja
+-    - name: Setup
+-      shell: pwsh
+-      run: meson setup build --vsenv -Dbuildtype=release -Dperl=disabled -Dcredential_helpers=wincred
+-    - name: Compile
+-      shell: pwsh
+-      run: meson compile -C build
+-    - name: Upload build artifacts
+-      uses: actions/upload-artifact@v7
+-      with:
+-        name: windows-meson-artifacts
+-        path: build
+-  windows-meson-test:
+-    name: win+Meson test
+-    runs-on: windows-latest
+-    needs: [ci-config, windows-meson-build]
+-    strategy:
+-      fail-fast: false
+-      matrix:
+-        nr: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+-    concurrency:
+-      group: windows-meson-test-${{ matrix.nr }}-${{ github.ref }}
+-      cancel-in-progress: ${{ needs.ci-config.outputs.skip_concurrent == 'yes' }}
+-    steps:
+-    - uses: actions/checkout@v7
+-    - uses: actions/setup-python@v6
+-    - name: Set up dependencies
+-      shell: pwsh
+-      run: pip install meson ninja
+-    - name: Download build artifacts
+-      uses: actions/download-artifact@v8
+-      with:
+-        name: windows-meson-artifacts
+-        path: build
+-    - name: Test
+-      shell: bash
+-      run: ci/run-test-slice-meson.sh build $((${{matrix.nr}} + 1)) 10
+-    - name: print test failures
+-      if: failure() && env.FAILED_TEST_ARTIFACTS != ''
+-      shell: bash
+-      run: ci/print-test-failures.sh
+-    - name: Upload failed tests' directories
+-      if: failure() && env.FAILED_TEST_ARTIFACTS != ''
+-      uses: actions/upload-artifact@v7
+-      with:
+-        name: failed-tests-windows-meson-${{ matrix.nr }}
+-        path: ${{env.FAILED_TEST_ARTIFACTS}}
+-
+-  regular:
+-    name: ${{matrix.vector.jobname}} (${{matrix.vector.pool}})
+-    needs: ci-config
+-    if: needs.ci-config.outputs.enabled == 'yes'
+-    concurrency:
+-      group: ${{ matrix.vector.jobname }}-${{ matrix.vector.pool }}-${{ github.ref }}
+-      cancel-in-progress: ${{ needs.ci-config.outputs.skip_concurrent == 'yes' }}
+-    strategy:
+-      fail-fast: false
+-      matrix:
+-        vector:
+-          - jobname: osx-clang
+-            cc: clang
+-            pool: macos-14
+-          - jobname: osx-reftable
+-            cc: clang
+-            pool: macos-14
+-          - jobname: osx-gcc
+-            cc: gcc-13
+-            pool: macos-14
+-          - jobname: osx-meson
+-            cc: clang
+-            pool: macos-14
+-    env:
+-      CC: ${{matrix.vector.cc}}
+-      CC_PACKAGE: ${{matrix.vector.cc_package}}
+-      jobname: ${{matrix.vector.jobname}}
+-      CI_JOB_IMAGE: ${{matrix.vector.pool}}
+-      TEST_OUTPUT_DIRECTORY: ${{github.workspace}}/t
+-    runs-on: ${{matrix.vector.pool}}
+-    steps:
+-    - uses: actions/checkout@v7
+-    - run: ci/install-dependencies.sh
+-    - run: ci/run-build-and-tests.sh
+-    - name: print test failures
+-      if: failure() && env.FAILED_TEST_ARTIFACTS != ''
+-      run: ci/print-test-failures.sh
+-    - name: Upload failed tests' directories
+-      if: failure() && env.FAILED_TEST_ARTIFACTS != ''
+-      uses: actions/upload-artifact@v7
+-      with:
+-        name: failed-tests-${{matrix.vector.jobname}}
+-        path: ${{env.FAILED_TEST_ARTIFACTS}}
+-  fuzz-smoke-test:
+-    name: fuzz smoke test
+-    needs: ci-config
+-    if: needs.ci-config.outputs.enabled == 'yes'
+-    env:
+-      CC: clang
+-      CI_JOB_IMAGE: ubuntu-latest
+-    runs-on: ubuntu-latest
+-    steps:
+-    - uses: actions/checkout@v7
+-    - run: ci/install-dependencies.sh
+-    - run: ci/run-build-and-minimal-fuzzers.sh
+-  dockerized:
+-    name: ${{matrix.vector.jobname}} (${{matrix.vector.image}})
+-    needs: ci-config
+-    if: needs.ci-config.outputs.enabled == 'yes'
+-    concurrency:
+-      group: dockerized-${{ matrix.vector.jobname }}-${{ matrix.vector.image }}-${{ github.ref }}
+-      cancel-in-progress: ${{ needs.ci-config.outputs.skip_concurrent == 'yes' }}
+-    strategy:
+-      fail-fast: false
+-      matrix:
+-        vector:
+-        - jobname: linux-sha256
+-          image: ubuntu:rolling
+-          cc: clang
+-        - jobname: linux-reftable
+-          image: ubuntu:rolling
+-          cc: clang
+-        - jobname: linux-TEST-vars
+-          image: ubuntu:20.04
+-          cc: gcc
+-          cc_package: gcc-8
+-        - jobname: linux-breaking-changes
+-          cc: gcc
+-          image: ubuntu:rolling
+-        - jobname: fedora-breaking-changes-meson
+-          image: fedora:latest
+-        - jobname: linux-leaks
+-          image: ubuntu:rolling
+-          cc: gcc
+-        - jobname: linux-reftable-leaks
+-          image: ubuntu:rolling
+-          cc: gcc
+-        - jobname: linux-asan-ubsan
+-          image: ubuntu:rolling
+-          cc: clang
+-        - jobname: linux-meson
+-          image: ubuntu:rolling
+-          cc: gcc
+-        - jobname: linux-musl-meson
+-          image: alpine:latest
+-        # Supported until 2025-04-02.
+-        - jobname: linux32
+-          image: i386/ubuntu:20.04
+-        # A RHEL 8 compatible distro.  Supported until 2029-05-31.
+-        - jobname: almalinux-8
+-          image: almalinux:8
+-        # Supported until 2026-08-31.
+-        - jobname: debian-11
+-          image: debian:11
+-    env:
+-      jobname: ${{matrix.vector.jobname}}
+-      CC: ${{matrix.vector.cc}}
+-      CI_JOB_IMAGE: ${{matrix.vector.image}}
+-      CUSTOM_PATH: /custom
+-    runs-on: ubuntu-latest
+-    container:
+-      image: ${{ matrix.vector.image }}
+-      options: ${{ github.repository_visibility == 'private' && '--pids-limit 16384 --ulimit nproc=16384:16384 --ulimit nofile=32768:32768' || '' }}
+-    steps:
+-    - name: prepare libc6 for actions
+-      if: matrix.vector.jobname == 'linux32'
+-      run: apt -q update && apt -q -y install libc6-amd64 lib64stdc++6
+-    - name: install git in container
+-      run: |
+-        if command -v git
+-        then
+-          : # nothing to do
+-        elif command -v apk
+-        then
+-          apk add --update git
+-        elif command -v dnf
+-        then
+-          dnf -yq update && dnf -yq install git
+-        else
+-          apt-get -q update && apt-get -q -y install git
+-        fi
+-    - uses: actions/checkout@v7
+-    - run: ci/install-dependencies.sh
+-    - run: useradd builder --create-home
+-    - run: chown -R builder .
+-    - run: chmod a+w $GITHUB_ENV && sudo --preserve-env --set-home --user=builder ci/run-build-and-tests.sh
+-    - name: print test failures
+-      if: failure() && env.FAILED_TEST_ARTIFACTS != ''
+-      run: sudo --preserve-env --set-home --user=builder ci/print-test-failures.sh
+-    - name: Upload failed tests' directories
+-      if: failure() && env.FAILED_TEST_ARTIFACTS != ''
+-      uses: actions/upload-artifact@v7
+-      with:
+-        name: failed-tests-${{matrix.vector.jobname}}
+-        path: ${{env.FAILED_TEST_ARTIFACTS}}
+-  static-analysis:
+-    needs: ci-config
+-    if: needs.ci-config.outputs.enabled == 'yes'
+-    env:
+-      jobname: StaticAnalysis
+-      CI_JOB_IMAGE: ubuntu-22.04
+-    runs-on: ubuntu-22.04
+-    concurrency:
+-      group: static-analysis-${{ github.ref }}
+-      cancel-in-progress: ${{ needs.ci-config.outputs.skip_concurrent == 'yes' }}
+-    steps:
+-    - uses: actions/checkout@v7
+-    - run: ci/install-dependencies.sh
+-    - run: ci/run-static-analysis.sh
+-    - run: ci/check-directional-formatting.bash
+-  rust-analysis:
+-    needs: ci-config
+-    if: needs.ci-config.outputs.enabled == 'yes'
+-    env:
+-      jobname: RustAnalysis
+-      CI_JOB_IMAGE: ubuntu:rolling
+-    runs-on: ubuntu-latest
+-    container: ubuntu:rolling
+-    concurrency:
+-      group: rust-analysis-${{ github.ref }}
+-      cancel-in-progress: ${{ needs.ci-config.outputs.skip_concurrent == 'yes' }}
+-    steps:
+-    - uses: actions/checkout@v7
+-    - run: ci/install-dependencies.sh
+-    - run: ci/run-rust-checks.sh
+-  sparse:
+-    needs: ci-config
+-    if: needs.ci-config.outputs.enabled == 'yes'
+-    env:
+-      jobname: sparse
+-      CI_JOB_IMAGE: ubuntu-22.04
+-    runs-on: ubuntu-22.04
+-    concurrency:
+-      group: sparse-${{ github.ref }}
+-      cancel-in-progress: ${{ needs.ci-config.outputs.skip_concurrent == 'yes' }}
+-    steps:
+-    - uses: actions/checkout@v7
+-    - name: Install other dependencies
+-      run: ci/install-dependencies.sh
+-    - run: make sparse
+-  documentation:
+-    name: documentation
+-    needs: ci-config
+-    if: needs.ci-config.outputs.enabled == 'yes'
+-    concurrency:
+-      group: documentation-${{ github.ref }}
+-      cancel-in-progress: ${{ needs.ci-config.outputs.skip_concurrent == 'yes' }}
+-    env:
+-      jobname: Documentation
+-      CI_JOB_IMAGE: ubuntu-latest
+-    runs-on: ubuntu-latest
+-    steps:
+-    - uses: actions/checkout@v7
+-    - run: ci/install-dependencies.sh
+-    - run: ci/test-documentation.sh
+diff --git a/.github/workflows/monitor-components.yml b/.github/workflows/monitor-components.yml
+deleted file mode 100644
+index e9f16e58ff..0000000000
+--- a/.github/workflows/monitor-components.yml
++++ /dev/null
+@@ -1,91 +0,0 @@
+-name: Monitor component updates
+-
+-# Git for Windows is a slightly modified subset of MSYS2. Some of its
+-# components are maintained by Git for Windows, others by MSYS2. To help
+-# keeping the former up to date, this workflow monitors the Atom/RSS feeds
+-# and opens new tickets for each new component version.
+-
+-on:
+-  schedule:
+-    - cron: "23 8,11,14,17 * * *"
+-  workflow_dispatch:
+-
+-env:
+-  CHARACTER_LIMIT: 5000
+-  MAX_AGE: 7d
+-
+-jobs:
+-  job:
+-    # Only run this in Git for Windows' fork
+-    if: github.event.repository.owner.login == 'git-for-windows'
+-    runs-on: ubuntu-latest
+-    permissions:
+-      issues: write
+-    strategy:
+-      matrix:
+-        component:
+-          - label: git
+-            feed: https://github.com/git/git/tags.atom
+-          - label: git-lfs
+-            feed: https://github.com/git-lfs/git-lfs/tags.atom
+-          - label: git-credential-manager
+-            feed: https://github.com/git-ecosystem/git-credential-manager/tags.atom
+-          - label: tig
+-            feed: https://github.com/jonas/tig/tags.atom
+-          - label: cygwin
+-            feed: https://github.com/cygwin/cygwin/releases.atom
+-            title-pattern: ^(?!.*newlib)
+-          - label: msys2-runtime-package
+-            feed: https://github.com/msys2/MSYS2-packages/commits/master/msys2-runtime.atom
+-          - label: msys2-runtime
+-            feed: https://github.com/msys2/msys2-runtime/commits/HEAD.atom
+-            aggregate: true
+-          - label: openssh
+-            feed: https://github.com/openssh/openssh-portable/tags.atom
+-          - label: libfido2
+-            feed: https://github.com/Yubico/libfido2/tags.atom
+-          - label: libcbor
+-            feed: https://github.com/PJK/libcbor/tags.atom
+-          - label: openssl
+-            feed: https://github.com/openssl/openssl/tags.atom
+-            title-pattern: ^(?!.*alpha)
+-          - label: gnutls
+-            feed: https://gnutls.org/news.atom
+-          - label: heimdal
+-            feed: https://github.com/heimdal/heimdal/tags.atom
+-          - label: git-sizer
+-            feed: https://github.com/github/git-sizer/tags.atom
+-          - label: gitflow
+-            feed: https://github.com/petervanderdoes/gitflow-avh/tags.atom
+-          - label: curl
+-            feed: https://github.com/curl/curl/tags.atom
+-            title-pattern: ^(?!rc-)
+-          - label: mintty
+-            feed: https://github.com/mintty/mintty/releases.atom
+-          - label: 7-zip
+-            feed: https://sourceforge.net/projects/sevenzip/rss?path=/7-Zip
+-            aggregate: true
+-          - label: bash
+-            feed: https://git.savannah.gnu.org/cgit/bash.git/atom/?h=master
+-            aggregate: true
+-          - label: perl
+-            feed: https://github.com/Perl/perl5/tags.atom
+-            title-pattern: ^(?!.*(5\.[0-9]+[13579]|RC))
+-          - label: pcre2
+-            feed: https://github.com/PCRE2Project/pcre2/tags.atom
+-          - label: mingw-w64-llvm
+-            feed: https://github.com/msys2/MINGW-packages/commits/master/mingw-w64-llvm.atom
+-          - label: innosetup
+-            feed: https://github.com/jrsoftware/issrc/tags.atom
+-      fail-fast: false
+-    steps:
+-      - uses: git-for-windows/rss-to-issues@v0
+-        with:
+-          feed: ${{matrix.component.feed}}
+-          prefix: "[New ${{matrix.component.label}} version]"
+-          labels: component-update
+-          github-token: ${{ secrets.GITHUB_TOKEN }}
+-          character-limit: ${{ env.CHARACTER_LIMIT }}
+-          max-age: ${{ env.MAX_AGE }}
+-          aggregate: ${{matrix.component.aggregate}}
+-          title-pattern: ${{matrix.component.title-pattern}}
+diff --git a/.github/workflows/nano-server.yml b/.github/workflows/nano-server.yml
+deleted file mode 100644
+index 2e6da3ceea..0000000000
+--- a/.github/workflows/nano-server.yml
++++ /dev/null
+@@ -1,76 +0,0 @@
+-name: Windows Nano Server tests
+-
+-on:
+-  workflow_dispatch:
+-
+-env:
+-  DEVELOPER: 1
+-
+-jobs:
+-  test-nano-server:
+-    runs-on: windows-2022
+-    env:
+-      WINDBG_DIR: "C:/Program Files (x86)/Windows Kits/10/Debuggers/x64"
+-      IMAGE: mcr.microsoft.com/powershell:nanoserver-ltsc2022
+-
+-    steps:
+-      - uses: actions/checkout@v7
+-      - uses: git-for-windows/setup-git-for-windows-sdk@v2
+-      - name: build Git
+-        shell: bash
+-        run: make -j15
+-      - name: pull nanoserver image
+-        shell: bash
+-        run: docker pull $IMAGE
+-      - name: run nano-server test
+-        shell: bash
+-        run: |
+-          docker run \
+-            --user "ContainerAdministrator" \
+-            -v "$WINDBG_DIR:C:/dbg" \
+-            -v "$(cygpath -aw /mingw64/bin):C:/mingw64-bin" \
+-            -v "$(cygpath -aw .):C:/test" \
+-            $IMAGE pwsh.exe -Command '
+-              # Extend the PATH to include the `.dll` files in /mingw64/bin/
+-              $env:PATH += ";C:\mingw64-bin"
+-
+-              # For each executable to test pick some no-operation set of
+-              # flags/subcommands or something that should quickly result in an
+-              # error with known exit code that is not a negative 32-bit
+-              # number, and set the expected return code appropriately.
+-              #
+-              # Only test executables that could be expected to run in a UI
+-              # less environment.
+-              #
+-              # ( Executable path, arguments, expected return code )
+-              # also note space is required before close parenthesis (a
+-              # powershell quirk when defining nested arrays like this)
+-
+-              $executables_to_test = @(
+-                  ("C:\test\git.exe", "", 1 ),
+-                  ("C:\test\scalar.exe", "version", 0 )
+-              )
+-
+-              foreach ($executable in $executables_to_test)
+-              {
+-                  Write-Output "Now testing $($executable[0])"
+-                  &$executable[0] $executable[1]
+-                  if ($LASTEXITCODE -ne $executable[2]) {
+-                      # if we failed, run the debugger to find out what function
+-                      # or DLL could not be found and then exit the script with
+-                      # failure The missing DLL or EXE will be referenced near
+-                      # the end of the output
+-
+-                      # Set a flag to have the debugger show loader stub
+-                      # diagnostics. This requires running as administrator,
+-                      # otherwise the flag will be ignored.
+-                      C:\dbg\gflags -i $executable[0] +SLS
+-
+-                      C:\dbg\cdb.exe -c "g" -c "q" $executable[0] $executable[1]
+-
+-                      exit 1
+-                  }
+-              }
+-
+-              exit 0
+-            '

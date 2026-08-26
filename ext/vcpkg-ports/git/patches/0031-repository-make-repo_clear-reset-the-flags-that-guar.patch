@@ -1,0 +1,60 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Refael Ackermann <refack@gmail.com>
+Date: Wed, 26 Aug 2026 14:37:55 -0400
+Subject: repository: make repo_clear() reset the flags that guard freed state
+
+repo_clear() frees the repository state but leaves two booleans still claiming
+it is there, so the second setup of the same struct repository walks into what
+the first one freed:
+
+  - ->initialized makes initialize_repository() BUG("repository initialized
+    already").
+  - ->worktree_initialized makes set_git_work_tree() strcmp() the new work
+    tree against ->worktree, which repo_clear() has just FREE_AND_NULL()d, so
+    it segfaults rather than reporting anything.
+
+Both are the same defect: repo_clear() is meant to be the inverse of setting
+the repository up, and undoes everything except the flags that say it happened.
+
+Nothing upstream reaches a second setup, because git processes set up one
+repository and exit, and 2.55 is the release that introduced both flags - which
+is why they surface together now. TortoiseGit gitdll does reach it: it clears
+and re-initializes the_repository when it is pointed at a different working
+copy.
+
+This one is not TortoiseGit-specific behaviour, only TortoiseGit-specific
+exposure, and is worth sending to git upstream rather than carrying.
+---
+ repository.c | 19 +++++++++++++++++++
+ 1 file changed, 19 insertions(+)
+
+diff --git a/repository.c b/repository.c
+index cfd00c3746..c07fc0cb71 100644
+--- a/repository.c
++++ b/repository.c
+@@ -430,6 +430,25 @@ void repo_clear(struct repository *repo)
+ 	strmap_clear(&repo->worktree_ref_stores, 1);
+ 
+ 	repo_clear_path_cache(&repo->cached_paths);
++
++	/*
++	 * repo_clear() is the inverse of setting the repository up, so it has to
++	 * undo these two flags as well. Both of them guard state that the code
++	 * above has just freed:
++	 *
++	 *  - ->initialized makes initialize_repository() BUG() a second time.
++	 *  - ->worktree_initialized makes set_git_work_tree() strcmp() against
++	 *    ->worktree, which FREE_AND_NULL'd above, so it segfaults.
++	 *
++	 * Upstream never notices either, because git processes set up one
++	 * repository and exit. gitdll re-points a long-lived process at a
++	 * different repository (see reset_git_env(), which clears and then
++	 * re-initializes), so it is the only caller that ever reaches a second
++	 * setup. ->worktree_initialized is where v2.55 moved the file-scope
++	 * git_work_tree_initialized that reset_setup() used to clear.
++	 */
++	repo->initialized = false;
++	repo->worktree_initialized = false;
+ }
+ 
+ int repo_read_index(struct repository *repo)

@@ -1,0 +1,106 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Sven Strickroth <email@cs-ware.de>
+Date: Tue, 5 Jan 2021 14:40:10 +0100
+Subject: Add full support for Msys2 Git and Cygwin Git config paths
+
+Signed-off-by: Sven Strickroth <email@cs-ware.de>
+---
+ attr.c         |  8 ++++++--
+ compat/mingw.c | 16 ++++++++++++++++
+ config.c       |  8 ++++++--
+ exec-cmd.c     | 10 ++++++++++
+ 4 files changed, 38 insertions(+), 4 deletions(-)
+
+diff --git a/attr.c b/attr.c
+index b016c18391..5458335b67 100644
+--- a/attr.c
++++ b/attr.c
+@@ -874,8 +874,12 @@ static struct attr_stack *read_attr(struct index_state *istate,
+ const char *git_attr_system_file(void)
+ {
+ 	static const char *system_wide;
+-	if (!system_wide)
+-		system_wide = system_path("..\\" ETC_GITATTRIBUTES);
++	if (!system_wide) {
++		if (!is_cygwin_msys2_hack_active())
++			system_wide = system_path("..\\" ETC_GITATTRIBUTES);
++		else
++			system_wide = system_path(ETC_GITATTRIBUTES);
++	}
+ 	return system_wide;
+ }
+ 
+diff --git a/compat/mingw.c b/compat/mingw.c
+index a4f8d56c0b..86d32a9a77 100644
+--- a/compat/mingw.c
++++ b/compat/mingw.c
+@@ -4600,6 +4600,22 @@ int mingw_have_unix_sockets(void)
+ }
+ #endif
+ 
++int is_cygwin_msys2_hack_active(void)
++{
++	HKEY hKey;
++	DWORD dwType = REG_DWORD;
++	DWORD dwValue = 0;
++	DWORD dwSize = sizeof(dwValue);
++	if (RegOpenKeyExW(HKEY_CURRENT_USER, L"Software\\TortoiseGit", 0, KEY_ALL_ACCESS, &hKey) == ERROR_SUCCESS)
++	{
++		RegQueryValueExW(hKey, L"CygwinHack", NULL, &dwType, (LPBYTE)&dwValue, &dwSize);
++		if (dwValue != 1)
++			RegQueryValueExW(hKey, L"Msys2Hack", NULL, &dwType, (LPBYTE)&dwValue, &dwSize);
++		RegCloseKey(hKey);
++	}
++	return dwValue == 1;
++}
++
+ /*
+  * Based on https://stackoverflow.com/questions/43002803
+  *
+diff --git a/config.c b/config.c
+index 32cb708241..7fe7ff2644 100644
+--- a/config.c
++++ b/config.c
+@@ -1496,8 +1496,12 @@ static int git_config_from_blob_ref(config_fn_t fn,
+ char *git_system_config(void)
+ {
+ 	char *system_config = xstrdup_or_null(getenv("GIT_CONFIG_SYSTEM"));
+-	if (!system_config)
+-		system_config = system_path("..\\" ETC_GITCONFIG);
++	if (!system_config) {
++		if (!is_cygwin_msys2_hack_active())
++			system_config = system_path("..\\" ETC_GITCONFIG);
++		else
++			system_config = system_path(ETC_GITCONFIG);
++	}
+ 	normalize_path_copy(system_config, system_config);
+ 	return system_config;
+ }
+diff --git a/exec-cmd.c b/exec-cmd.c
+index 817d98a7de..77644bef1b 100644
+--- a/exec-cmd.c
++++ b/exec-cmd.c
+@@ -55,6 +55,7 @@ static const char *system_prefix(void)
+ 		{
+ 			if (RegQueryValueExW(hKey, L"MSysGit", NULL, &dwType, (LPBYTE)&lszValue, &dwSize) == ERROR_SUCCESS)
+ 			{
++				DWORD dwMsys2Hack = 0;
+ 				char pointer[MAX_PATH];
+ 				xwcstoutf(pointer, lszValue, MAX_PATH);
+ 				syspath = strip_path_suffix(pointer, "cmd");
+@@ -77,6 +78,15 @@ static const char *system_prefix(void)
+ 						syspath = xstrdup(configpath);
+ 					}
+ 				} while (FALSE);
++
++				dwType = REG_DWORD;
++				dwSize = sizeof(DWORD);
++				if (RegQueryValueExW(hKey, L"Msys2Hack", NULL, &dwType, (LPBYTE)&dwMsys2Hack, &dwSize) == ERROR_SUCCESS && dwMsys2Hack) {
++					// for Msys2 the system config is in etc folder, but git.exe is in usr/bin - we also need to strip usr
++					const char *oldsyspath = syspath;
++					syspath = strip_path_suffix(oldsyspath, "usr");
++					free(oldsyspath);
++				}
+ 			}
+ 			RegCloseKey(hKey);
+ 		}
