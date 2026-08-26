@@ -78,7 +78,7 @@ index ef8df9a7d0..775758879b 100644
  #define gethostname mingw_gethostname
  
 diff --git a/compat/mingw.c b/compat/mingw.c
-index 4c7baa5deb..4ac925cd48 100644
+index 82831f571e..4db25c8fd0 100644
 --- a/compat/mingw.c
 +++ b/compat/mingw.c
 @@ -2142,89 +2142,49 @@ static int wenvcmp(const void *a, const void *b)
@@ -379,7 +379,7 @@ index 4c7baa5deb..4ac925cd48 100644
  }
  
  static void ensure_socket_initialization(void)
-@@ -4481,100 +4458,71 @@ void libgit_initialize(void)
+@@ -4495,100 +4472,71 @@ void libgit_initialize(void)
  }
  
  
@@ -526,7 +526,7 @@ index 4c7baa5deb..4ac925cd48 100644
  }
  
  int uname(struct utsname *buf)
-@@ -4611,6 +4559,22 @@ int mingw_have_unix_sockets(void)
+@@ -4625,6 +4573,22 @@ int mingw_have_unix_sockets(void)
  }
  #endif
  

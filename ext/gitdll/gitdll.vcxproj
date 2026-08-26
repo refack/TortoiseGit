@@ -40,18 +40,39 @@
        gitdll is the second, independent git backend (see CLAUDE.md) and must
        not share a link line with git2.lib. -->
   <Import Project="$(SolutionDir)TortoiseGit.vcpkg-base.props" />
-  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Label="UserMacros">
+    <!-- git's headers come from the tgit-libgit vcpkg port, which mirrors the
+         source tree. Must be a property, not ClCompile metadata: inside an
+         ItemDefinitionGroup a child element is metadata and $(...) would expand
+         to nothing. -->
+    <TGitLibgitInclude>$(VcpkgInstalledDir)include\tgit-libgit</TGitLibgitInclude>
+  </PropertyGroup>
   <ItemDefinitionGroup>
     <ClCompile>
-      <AdditionalIncludeDirectories>..\tgit;..\tgit\compat;..\tgit\compat\poll;..\tgit\compat\vcbuild;..\tgit\compat\vcbuild\include;..\tgit\compat\fnmatch;..\tgit\compat\regex;..\tgit\compat\win32;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <!-- The subdirectories match what git's own build puts on the include
+           path. ..\tgit is deliberately absent, so a stale submodule checkout
+           cannot shadow the headers the library was actually built from. -->
+      <AdditionalIncludeDirectories>$(TGitLibgitInclude);$(TGitLibgitInclude)\compat;$(TGitLibgitInclude)\compat\poll;$(TGitLibgitInclude)\compat\vcbuild;$(TGitLibgitInclude)\compat\vcbuild\include;$(TGitLibgitInclude)\compat\fnmatch;$(TGitLibgitInclude)\compat\regex;$(TGitLibgitInclude)\compat\win32;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <!-- The port generates this from the compile command git's CMake actually
+           used. It replaces ext\build\libgit-defines.h, which asserted the same
+           thing by hand and had drifted: it claimed NO_PTHREADS, which the real
+           build does not set, and omitted HAVE_FSMONITOR_DAEMON_BACKEND, which
+           it does. Both change struct layouts, so the disagreement would have
+           been silent corruption rather than a link error. -->
+      <ForcedIncludeFiles>tgit-libgit-defines.h</ForcedIncludeFiles>
       <PreprocessorDefinitions>GITDLL_EXPORTS;MICROSOFT_WINDOWS_WINBASE_H_DEFINE_INTERLOCKED_CPLUSPLUS_OVERLOADS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <ExceptionHandling>SyncCThrow</ExceptionHandling>
       <LanguageStandard_C>stdc11</LanguageStandard_C>
-      <DisableSpecificWarnings>4200</DisableSpecificWarnings>
+      <!-- 4005: compat\msvc.h defines the same path macros the port's generated
+           defines header carries, with identical values - they come from the
+           same build. Suppressed rather than filtered out of the generated
+           header, because a denylist of "macros git's own headers happen to
+           set" would drift exactly the way libgit-defines.h did. -->
+      <DisableSpecificWarnings>4200;4005</DisableSpecificWarnings>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>ntdll.lib;wininet.lib;ws2_32.lib;zs$(VcpkgLibSuffix).lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>ntdll.lib;wininet.lib;ws2_32.lib;zs$(VcpkgLibSuffix).lib;libgit.lib;advapi32.lib;shell32.lib;user32.lib;ole32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -66,12 +87,6 @@
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="gitdll.rc" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\build\libgit.vcxproj">
-      <Project>{f6dec8c3-b803-4a86-8848-430f08b499e3}</Project>
-      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
-    </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

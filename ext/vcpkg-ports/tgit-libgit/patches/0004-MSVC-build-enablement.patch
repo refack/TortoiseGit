@@ -76,7 +76,7 @@ index 775758879b..8a8ab8e513 100644
  /*
   * simple adaptors
 diff --git a/compat/mingw.c b/compat/mingw.c
-index 4ac925cd48..9b00a20a19 100644
+index 4db25c8fd0..26ce2c756b 100644
 --- a/compat/mingw.c
 +++ b/compat/mingw.c
 @@ -693,7 +693,7 @@ int mingw_unlink(const char *pathname, int handle_in_use_error)
