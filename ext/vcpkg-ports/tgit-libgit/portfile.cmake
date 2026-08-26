@@ -29,45 +29,27 @@ vcpkg_from_github(
         patches/0006-Upstreamable.patch
 )
 
-# The CMakeLists shells out to GIT-VERSION-GEN and the header generators, so it
-# needs a real POSIX sh. vcpkg scrubs PATH for the configure step, and its own
-# find_program() only looks in the two default Git for Windows install paths, so
-# any other install (scoop, winget, portable) fails with "shell interpreter was
-# not found".
+# The CMakeLists shells out to GIT-VERSION-GEN and to the generators that
+# produce command-list.h, config-list.h and hook-list.h, so it needs a real
+# POSIX shell and the coreutils those scripts call. vcpkg scrubs PATH for the
+# configure step, and git's own find_program() only looks in the two default Git
+# for Windows install paths, so any other install fails with "shell interpreter
+# was not found".
 #
-# Derive it from git itself rather than guessing at install layouts: --exec-path
-# lands in <root>/mingw64/libexec/git-core, and sh lives at <root>/bin or
-# <root>/usr/bin. Resolve a shim to its target first - a shim would be found on
-# PATH but is not a shell and mangles the arguments these scripts are called
-# with.
-vcpkg_find_acquire_program(GIT)
-execute_process(
-    COMMAND "${GIT}" --exec-path
-    OUTPUT_VARIABLE git_exec_path
-    OUTPUT_STRIP_TRAILING_WHITESPACE
-    RESULT_VARIABLE git_exec_path_result
-)
-if(NOT git_exec_path_result EQUAL 0)
-    message(FATAL_ERROR "Could not ask '${GIT}' for its exec-path.")
+# Take the shell from vcpkg rather than the host: vcpkg_acquire_msys() is the
+# supported way to get one, and it makes the build independent of whether - and
+# where - the person building has Git for Windows installed.
+#
+# sed and coreutils are named explicitly because the scripts need them: sed does
+# the extraction in all three generators, and `LC_ALL=C sort` in
+# generate-hooklist.sh comes from coreutils. usr/bin goes on PATH so CMake's
+# execute_process() finds them when the scripts run.
+vcpkg_acquire_msys(MSYS_ROOT PACKAGES sed coreutils grep)
+vcpkg_add_to_path("${MSYS_ROOT}/usr/bin")
+set(TGIT_SH_EXE "${MSYS_ROOT}/usr/bin/sh.exe")
+if(NOT EXISTS "${TGIT_SH_EXE}")
+    message(FATAL_ERROR "vcpkg_acquire_msys did not provide a shell at ${TGIT_SH_EXE}.")
 endif()
-
-set(sh_hints "")
-foreach(up IN ITEMS "../.." "../../.." "../../../..")
-    get_filename_component(root "${git_exec_path}/${up}" ABSOLUTE)
-    list(APPEND sh_hints "${root}/bin" "${root}/usr/bin")
-endforeach()
-
-find_program(TGIT_SH_EXE
-    NAMES sh
-    PATHS ${sh_hints} "C:/Program Files/Git/bin" "$ENV{LOCALAPPDATA}/Programs/Git/bin"
-    NO_DEFAULT_PATH
-)
-if(NOT TGIT_SH_EXE)
-    message(FATAL_ERROR
-        "No POSIX sh found near '${GIT}'. git's CMake build needs one to run "
-        "GIT-VERSION-GEN and the header generators. Looked in: ${sh_hints}")
-endif()
-message(STATUS "Using shell interpreter: ${TGIT_SH_EXE}")
 
 # USE_VCPKG defaults ON and bootstraps a *second* vcpkg into
 # compat/vcbuild/vcpkg. We are already inside one, so the dependencies come from
@@ -91,6 +73,19 @@ vcpkg_cmake_configure(
         -DPYTHON_TESTS=OFF
         -DCMAKE_DISABLE_FIND_PACKAGE_CURL=ON
         -DCMAKE_DISABLE_FIND_PACKAGE_EXPAT=ON
+        # PkgConfig is disabled for two reasons, one of them a real bug.
+        #
+        # git only uses it to find libpcre2-8 and set USE_LIBPCRE2, which enables
+        # `grep -P`. ext\build\libgit.vcxproj never defined that, so gitdll has
+        # always run without it; leaving it off preserves behaviour rather than
+        # quietly changing it.
+        #
+        # And once msys is on PATH, pkg-config becomes findable and CMake's own
+        # FindPkgConfig then fails parsing any install path containing a
+        # backslash-digit sequence - "E:\3party\..." dies on "Invalid character
+        # escape '\3'". That is a CMake bug we would otherwise have to route
+        # around by moving the checkout.
+        -DCMAKE_DISABLE_FIND_PACKAGE_PkgConfig=ON
     MAYBE_UNUSED_VARIABLES
         # vcpkg injects these into every configure; git's CMakeLists reads none
         # of them, and vcpkg treats an unread -D as a hard error unless listed.
