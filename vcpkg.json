@@ -16,9 +16,11 @@
     },
     "detours",
     "gtest",
+    "lexilla",
     "nlohmann-json",
     "ogdf",
     "pcre2",
+    "scintilla",
     "simpleini",
     "zlib"
   ]

@@ -43,6 +43,7 @@
 #include "Theme.h"
 #include "DarkModeHelper.h"
 #include "Lexilla.h"
+#include "ScintillaRegistration.h"
 #include "CmdLineParser.h"
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -243,6 +244,8 @@ int CTortoiseGitBlameView::OnCreate(LPCREATESTRUCT lpcs)
 	rect.right=rect.Width();
 	rect.top=0;
 	rect.bottom=rect.Height();
+	// Scintilla is a static library now; nothing registers its window class unless we do.
+	EnsureScintillaRegistered(AfxGetInstanceHandle());
 	if (!m_TextView.Create(L"Scintilla", L"source", 0, rect, this, IDC_SCINTILLA, 0))
 	{
 		TRACE0("Failed to create view\n");

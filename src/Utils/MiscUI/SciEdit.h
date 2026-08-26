@@ -146,7 +146,6 @@ public:
 
 private:
 	bool IsUTF8(LPVOID pBuffer, size_t cb);
-	CAutoLibrary	m_hModule;
 	LRESULT		m_DirectFunction = 0;
 	LRESULT		m_DirectPointer = 0;
 	std::map<CString, int> m_autolist;

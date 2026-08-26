@@ -22,10 +22,9 @@ TortoiseGitMerge, TortoiseGitPlink with the bundled PuTTY binaries,
 considered and **kept**; its OGDF dependency moved to a new overlay port.
 The standing goal (per user direction, 2026-08-22) is to keep going — every
 remaining `ext\*` submodule should become a public vcpkg port, a port overlay,
-or nothing at all. **Five are left** — `libgit2`, `pcre2`, `zlib` and `OGDF`
-were deinitialised in `91ffe10b1`, `hunspell` and `spell` removed in
-`521f2391c`, and `googletest`/`json` moved to stock ports in `835cb3e5f` with
-their checkouts still droppable. See "Dependency pruning".
+or nothing at all. **That goal is essentially met: one submodule is left,
+`ext\tgit`, and one hand-maintained project, `ext\build\libgit.vcxproj`** — both
+structural, since they are the second git backend. See "Dependency pruning".
 
 The recurring test: **what does this actually add over the thing Windows or
 git already ships?** For TortoiseGitMerge the answer was "nothing git's
@@ -572,7 +571,7 @@ Three things landed that the phases above never had a slot for. They share a
 premise with Phase 1 — stop hand-maintaining what someone else already
 maintains — but they subtract code rather than move it.
 
-### Dependency pruning (15 submodules -> 5)
+### Dependency pruning (15 submodules -> 1)
 
 The goal, per user direction: every `ext\*` submodule becomes a public vcpkg
 port, an overlay, or nothing. Done so far, beyond Phase 1's libgit2/pcre2/zlib:
@@ -689,27 +688,22 @@ Remaining, by how they should end:
 Surveyed 2026-08-25, updated 2026-08-26. **Five submodules left**, eleven
 directories under `ext\`:
 
-| dir | sub | MB | hand-built vcxproj | consumers |
-| --- | --- | --- | --- | --- |
-| `tgit` | yes | 46 | `libgit.vcxproj` | gitdll — the second git backend |
-| `lexilla` | yes | 4.8 | – | Blame, TortoiseProc, UDiff |
-| `scintilla` | **no** | 1.8 | `scintillalexer.vcxproj` | Blame, TortoiseProc, UDiff |
-| `TortoiseOverlays` | no | 0.8 | – | `StructureFragment.wxi`, three `.registry` files, `IconOverlay.cpp`, both overlay Settings pages |
-| `editorconfig` | yes | 0.3 | `editorconfig.vcxproj` | TortoiseProc |
-| `ResizableLib` | no | 0.2 | – | Blame, TortoiseProc |
-| `gitdll` | no | tiny | `gitdll.vcxproj` | Cache, TGitCache, Blame, +3 |
-| `googletest`, `json` | yes | — | – | vcpkg `gtest` / `nlohmann-json` since `835cb3e5f`; checkouts droppable |
+**`ext\` is down to five directories, one submodule, and one hand-maintained
+project.**
 
-`ext\build\` now holds four projects: `editorconfig`, `libgit`,
-`ScintillaLexer`, and the `pcre2\config.h` that editorconfig still needs (that
-directory is **not** orphaned). `ext\build\apr\` **is** orphaned — left behind
-when `apr` went with TortoiseGitMerge.
+| dir | kind | what it is |
+| --- | --- | --- |
+| `tgit` | **submodule** | real git.exe C sources -> `ext\build\libgit.vcxproj` -> `libgit.lib` -> `gitdll.dll`. The second git backend, and the **only** remaining hand-maintained build. Permanent: it supplies `--follow` rename-following log (libgit2's revwalk has no equivalent), git's own diff engine and `.gitignore` precedence, mailmap, notes, and `git_get_hash_algo()` — the SHA256 latch. |
+| `gitdll` | vendored (1st party) | TortoiseGit's own C shim over `libgit.lib`. Not third-party at all. |
+| `TortoiseOverlays` | vendored (**1st party**) | branding/overlay-handler assets. Referenced from `StructureFragment.wxi`, three `.registry` files, `IconOverlay.cpp` and both overlay Settings pages. |
+| `ResizableLib` | vendored | MFC resizable-dialog base classes (`CResizableDialog`), used by ~9 TortoiseProc dialogs and Blame. 0.2 MB, no vcpkg port, no maintenance cost. Keep. |
+| `vcpkg-ports` | 1st party | the `libgit2`, `ogdf` and `scintilla` overlays. |
 
-Two things that survey turned up:
+Everything else now comes from vcpkg: `libgit2`, `pcre2`, `zlib`, `ogdf`,
+`detours`, `simpleini`, `gtest`, `nlohmann-json`, `scintilla`, `lexilla`.
 
-- **`scintilla` is vendored directly, not a submodule**, unlike `lexilla`
-  immediately beside it — same upstream org, split provenance. Permanent either
-  way: Blame and TortoiseProc's `SciEdit` need it even if UDiff goes.
+One thing that survey turned up and is worth keeping as a rule:
+
 - **`TortoiseOverlays` looked orphaned and is not.** A scan over
   `*.vcxproj`/`*.props`/`*.sln`/sources found nothing; it is referenced from
   `StructureFragment.wxi`, three `.registry` files, `IconOverlay.cpp` and both
@@ -772,16 +766,56 @@ runs in the destructor. So the write happens when the dialog closes, not when
 the menu item is clicked. (Established 2026-08-26 when a ProcMon trace found no
 store action at click time.)
 
-#### `lexilla` is not a lone swap
+#### Scintilla + Lexilla, and the one patch that stayed (`61fac60d7`)
 
-vcpkg has `lexilla` 5.4.6 **and** `scintilla` 5.5.8, but `ext\build\ScintillaLexer.vcxproj`
-compiles both vendored trees into a single `SciLexer_tgit.dll` that TortoiseGit
-loads at runtime. Migrating lexilla alone would leave a vcpkg Lexilla beside a
-hand-built Scintilla — two libraries where there is now one, which is *more*
-fragmentation, not less. Note `scintilla` is vendored directly rather than as a
-submodule, unlike `lexilla` next to it. If this is taken up, take both together
-and decide what replaces the fused DLL; it is a real piece of work, not an
-include-path edit.
+Taken together, because `ext\build\ScintillaLexer.vcxproj` fused both vendored
+trees into one `SciLexer_tgit.dll` — migrating either alone would have turned one
+library into two. The triplet is static, so this landed **directly on static
+libraries**; the intermediate two-DLL step was never needed.
+
+Three things that were not obvious up front:
+
+- **Nothing registers the window class any more.** The DLL's `DllMain` did it as
+  a side effect of being loaded, and the `.rc` dialog templates instantiate
+  `CONTROL "Scintilla"` *directly*, so registration must happen before any
+  dialog is created — "before `DoModal`" is not a safe framing.
+  `src\Utils\ScintillaRegistration.h` wraps `Scintilla_RegisterClasses` in a
+  `once_flag`, called from `CSciEdit`'s constructor (which runs while the owning
+  dialog is being constructed — the same moment the old `LoadLibrary` did) and
+  from the two places that create the window without `CSciEdit`: Blame and
+  UDiff.
+- **Scintilla needed an overlay port**, `ext\vcpkg-ports\scintilla\`. The
+  vendored tree carried `backgroundcolors.patch`, adding `SCN_GETBKCOLOR` so the
+  host can supply a per-line background — that is TortoiseGitBlame's revision-age
+  ramp, and **stock Scintilla cannot express it**: `SCI_MARKERSETBACK` with
+  `SC_MARK_BACKGROUND` is capped at 32 marker slots, which cannot carry a
+  continuous ramp. Rebasing it onto 5.5.8 needed one hunk re-anchored, because it
+  had been keyed to a static function that has since moved. *If Blame is ever
+  reworked onto a stock mechanism, this patch and the overlay both go.*
+- **LNK4099 floods the link.** vcpkg builds these two through
+  `vcpkg_install_msbuild`, which ships no PDBs, so ~400 objects each warn.
+  Suppressed with `/ignore:4099` on the three consumers rather than left to
+  drown real link warnings.
+
+#### editorconfig had no consumer at all (`61fac60d7`)
+
+Removed outright, not migrated. Nothing `ProjectReference`d
+`ext\build\editorconfig.vcxproj` and nothing in `src\` called its API — the
+solution simply built it into nothing, every build, since **`0784142fc`**.
+TortoiseGitMerge was the consumer (`.editorconfig`-driven tab/EOL settings when
+editing a merged file) and it left with that commit.
+
+**This document said "TortoiseProc consumes it (`AppUtils.cpp`)" and that was
+wrong.** The claim came from a grep that matched
+`CAppUtils::IsAlternativeEditorConfigured` — "editor configured", not
+"editorconfig". The only other trace is an `IDC_ENABLEEDITORCONFIG` checkbox in
+the orphaned `TortoiseMergeENG.rc`. *A substring match is not a consumer; check
+that the symbol is actually called.*
+
+`ext\build\pcre2\` went with it, and it was worse than recorded here: not just a
+`config.h` but a **vendored `pcre2.h` shadowing vcpkg's** on editorconfig's
+include path — the exact hazard `TortoiseGit.vcpkg-base.props` warns about for
+libgit2. `ext\build\apr\` was orphaned by the same TortoiseGitMerge removal.
 
 Root-level `ext\libgit2-*.patch` — five files — are now **orphaned**: the
 submodule they applied to is gone and the overlay port carries its own

@@ -40,7 +40,7 @@
   <PropertyGroup Label="UserMacros" />
   <ItemDefinitionGroup>
     <ClCompile>
-      <AdditionalIncludeDirectories>$(ProjectDir);..\..\ext\gitdll;..\Git;..\TortoiseProc;..\..\ext\scintilla\include;..\..\ext\lexilla\include;..\Utils;..\Utils\MiscUI;..\..\ext\ResizableLib;..\Resources;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir);$(VcpkgInstalledDir)include\scintilla;$(VcpkgInstalledDir)include\lexilla;..\..\ext\gitdll;..\Git;..\TortoiseProc;..\Utils;..\Utils\MiscUI;..\..\ext\ResizableLib;..\Resources;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ExceptionHandling>SyncCThrow</ExceptionHandling>
     </ClCompile>
@@ -48,7 +48,11 @@
       <AdditionalIncludeDirectories>$(IntDir);..\TortoiseShell;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ResourceCompile>
     <Link>
-      <AdditionalDependencies>gdiplus.lib;comctl32.lib;shlwapi.lib;UxTheme.lib;wininet.lib;detours.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>gdiplus.lib;comctl32.lib;shlwapi.lib;UxTheme.lib;wininet.lib;detours.lib;Scintilla.lib;Lexilla.lib;imm32.lib;msimg32.lib;ole32.lib;oleaut32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <!-- vcpkg builds Scintilla/Lexilla with vcpkg_install_msbuild, which ships no
+           PDBs, so every one of their ~400 objects emits LNK4099. Suppressed here
+           rather than left to drown real link warnings. -->
+      <AdditionalOptions>/ignore:4099 %(AdditionalOptions)</AdditionalOptions>
     </Link>
     <Manifest>
       <EnableDpiAwareness>true</EnableDpiAwareness>
@@ -212,10 +216,6 @@
   <ItemGroup>
     <ProjectReference Include="..\libgit2\TGitLibgit2.vcxproj">
       <Project>{2f29bedb-4b28-4f53-9d1c-3be0766e738e}</Project>
-    </ProjectReference>
-    <ProjectReference Include="..\..\ext\build\ScintillaLexer.vcxproj">
-      <Project>{a5498556-ce09-4095-8335-08fc8370552d}</Project>
-      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
     </ProjectReference>
     <ProjectReference Include="..\..\ext\gitdll\gitdll.vcxproj">
       <Project>{4f0a55de-dafd-4a0b-a03d-2c14cb77e08f}</Project>

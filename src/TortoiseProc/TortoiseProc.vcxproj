@@ -46,7 +46,7 @@
            copy ships a no-op git2\experimental.h, so leaving it on the path
            would silently compile this project against the 20-byte git_oid
            while the library it links uses the 33-byte tagged one. -->
-      <AdditionalIncludeDirectories>$(ProjectDir);..\Resources;$InputDir;..\..\ext\ResizableLib;..\Git;..\Utils;..\..\ext\scintilla\include;..\..\ext\lexilla\include;..\Utils\TreePropSheet;..\Utils\MiscUI;..\TortoiseShell;..\..\ext\gitdll;..\AsyncFramework;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir);$(VcpkgInstalledDir)include\scintilla;$(VcpkgInstalledDir)include\lexilla;..\Resources;$InputDir;..\..\ext\ResizableLib;..\Git;..\Utils;..\Utils\TreePropSheet;..\Utils\MiscUI;..\TortoiseShell;..\..\ext\gitdll;..\AsyncFramework;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <!-- GIT_EXPERIMENTAL_SHA256 is no longer listed: vcpkg's generated
            git2\experimental.h defines it, and git2\oid.h includes that header,
            so every TU that can see git_oid gets the flag by construction. -->
@@ -63,7 +63,11 @@
            takes $(VcpkgLibSuffix): the overlay port clears upstream's "-debug"
            postfix, so both configurations use the same names out of different
            directories, the way every other vcpkg package here does. -->
-      <AdditionalDependencies>Winmm.lib;gdiplus.lib;shfolder.lib;comctl32.lib;ws2_32.lib;shlwapi.lib;wininet.lib;UxTheme.lib;detours.lib;OGDF.lib;COIN.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>Winmm.lib;gdiplus.lib;shfolder.lib;comctl32.lib;ws2_32.lib;shlwapi.lib;wininet.lib;UxTheme.lib;detours.lib;OGDF.lib;COIN.lib;Scintilla.lib;Lexilla.lib;imm32.lib;msimg32.lib;ole32.lib;oleaut32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <!-- vcpkg builds Scintilla/Lexilla with vcpkg_install_msbuild, which ships no
+           PDBs, so every one of their ~400 objects emits LNK4099. Suppressed here
+           rather than left to drown real link warnings. -->
+      <AdditionalOptions>/ignore:4099 %(AdditionalOptions)</AdditionalOptions>
     </Link>
     <Manifest>
       <EnableDpiAwareness>true</EnableDpiAwareness>
@@ -809,10 +813,6 @@
   <ItemGroup>
     <ProjectReference Include="..\libgit2\TGitLibgit2.vcxproj">
       <Project>{2f29bedb-4b28-4f53-9d1c-3be0766e738e}</Project>
-    </ProjectReference>
-    <ProjectReference Include="..\..\ext\build\ScintillaLexer.vcxproj">
-      <Project>{a5498556-ce09-4095-8335-08fc8370552d}</Project>
-      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
     </ProjectReference>
     <ProjectReference Include="..\..\ext\gitdll\gitdll.vcxproj">
       <Project>{4f0a55de-dafd-4a0b-a03d-2c14cb77e08f}</Project>

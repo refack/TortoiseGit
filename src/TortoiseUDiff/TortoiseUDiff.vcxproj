@@ -41,13 +41,17 @@
   <PropertyGroup Label="UserMacros" />
   <ItemDefinitionGroup>
     <ClCompile>
-      <AdditionalIncludeDirectories>$(ProjectDir);..\..\ext\scintilla\include;..\..\ext\lexilla\include;..\Utils;..\Utils\MiscUI;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir);$(VcpkgInstalledDir)include\scintilla;$(VcpkgInstalledDir)include\lexilla;..\Utils;..\Utils\MiscUI;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Manifest>
       <EnableDpiAwareness>true</EnableDpiAwareness>
     </Manifest>
     <Link>
-      <AdditionalDependencies>uxtheme.lib;detours.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>uxtheme.lib;detours.lib;Scintilla.lib;Lexilla.lib;imm32.lib;msimg32.lib;ole32.lib;oleaut32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <!-- vcpkg builds Scintilla/Lexilla with vcpkg_install_msbuild, which ships no
+           PDBs, so every one of their ~400 objects emits LNK4099. Suppressed here
+           rather than left to drown real link warnings. -->
+      <AdditionalOptions>/ignore:4099 %(AdditionalOptions)</AdditionalOptions>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -105,9 +109,6 @@
     <ResourceCompile Include="TortoiseUDiff.rc" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\ext\build\ScintillaLexer.vcxproj">
-      <Project>{a5498556-ce09-4095-8335-08fc8370552d}</Project>
-    </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -35,6 +35,7 @@
 #include "SciLexer.h"
 #include "Scintilla.h"
 #include "Lexilla.h"
+#include "ScintillaRegistration.h"
 
 const UINT TaskBarButtonCreated = RegisterWindowMessage(L"TaskbarButtonCreated");
 
@@ -592,6 +593,8 @@ LRESULT CMainWindow::SendEditor(UINT Msg, WPARAM wParam, LPARAM lParam)
 bool CMainWindow::Initialize()
 {
 	m_themeCallbackId = CTheme::Instance().RegisterThemeChangeCallback([this]() { SetTheme(CTheme::Instance().IsDarkTheme()); });
+	// Scintilla is a static library now; nothing registers its window class unless we do.
+	EnsureScintillaRegistered(hResource);
 	m_hWndEdit = ::CreateWindow(
 		L"Scintilla",
 		L"Source",

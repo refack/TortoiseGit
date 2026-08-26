@@ -376,7 +376,6 @@
 
 					<Component Id="C__TortoiseBlame" Guid="$(var.GuidTortoiseBlame)" Win64="$(var.Win64YesNo)">
 						<File Id="F__TortoiseBlame" Name="TortoiseGitBlame.exe" DiskId="1" Source="..\..\bin\$(var.ReleasePath)\bin\TortoiseGitBlame.exe" KeyPath="yes" />
-						<File Id="F__SciLexer" Name="SciLexer_tgit.dll" DiskId="1" Source="..\..\bin\$(var.ReleasePath)\bin\SciLexer_tgit.dll" />
 					</Component>
 
 					<Component Id="C__TortoiseGitBlameShortcuts" Guid="$(var.GuidTortoiseGitBlameShortcuts)" Win64="$(var.Win64YesNo)">

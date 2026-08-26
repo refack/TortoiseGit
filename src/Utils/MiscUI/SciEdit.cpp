@@ -29,6 +29,7 @@
 #include "LoadIconEx.h"
 #include "Theme.h"
 #include "Lexilla.h"
+#include "ScintillaRegistration.h"
 #include "DarkModeHelper.h"
 #include "URLFinder.h"
 
@@ -53,7 +54,12 @@ IMPLEMENT_DYNAMIC(CSciEdit, CWnd)
 
 CSciEdit::CSciEdit()
 {
-	m_hModule = ::LoadLibrary(L"SciLexer_tgit.dll");
+	// Scintilla is linked statically, so nothing registers its window class for
+	// us the way SciLexer_tgit.dll's DllMain used to. This constructor runs while
+	// the owning dialog is being constructed, i.e. before its template creates
+	// the CONTROL "Scintilla" - which is the same moment the LoadLibrary here
+	// used to happen, so the ordering is unchanged.
+	EnsureScintillaRegistered(AfxGetInstanceHandle());
 }
 
 CSciEdit::~CSciEdit()
