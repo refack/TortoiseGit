@@ -64,7 +64,7 @@ int CGitDiff::SubmoduleDiffNull(HWND hWnd, const CTGitPath* pPath, const CGitHas
 
 		CGit subgit;
 		subgit.m_IsUseGitDLL = false;
-		subgit.m_CurrentDir = g_Git.CombinePath(pPath);
+		subgit.SetCurrentDirExact(g_Git.CombinePath(pPath));
 		const int encode = CAppUtils::GetLogOutputEncode(&subgit);
 
 		cmd.Format(L"git.exe log -n1 --pretty=format:\"%%s\" %s --", static_cast<LPCWSTR>(newhash.ToString()));
@@ -270,7 +270,7 @@ int CGitDiff::SubmoduleDiff(HWND hWnd, const CTGitPath* pPath, const CTGitPath* 
 
 	CGit subgit;
 	subgit.m_IsUseGitDLL = false;
-	subgit.m_CurrentDir = g_Git.CombinePath(pPath);
+	subgit.SetCurrentDirExact(g_Git.CombinePath(pPath));
 	ChangeType changeType = ChangeType::Unknown;
 
 	if (CTGitPath(subgit.m_CurrentDir.GetString()).HasAdminDir())

@@ -80,10 +80,10 @@ protected:
 			m_Git.m_IsUseLibGit2_mask = 0;
 			m_Git.m_IsUseGitDLL = false;
 		}
-		m_Git.m_CurrentDir = m_Dir.GetTempDir();
+		m_Git.SetCurrentDirExact(m_Dir.GetTempDir());
 		// some methods rely on g_Git, so set values there as well
 		g_Git.m_IsGitDllInited = false;
-		g_Git.m_CurrentDir = m_Git.m_CurrentDir;
+		g_Git.SetCurrentDirExact(m_Git.m_CurrentDir);
 		g_Git.m_IsUseGitDLL = m_Git.m_IsUseGitDLL;
 		g_Git.m_IsUseLibGit2 = m_Git.m_IsUseLibGit2;
 		g_Git.m_IsUseLibGit2_mask = m_Git.m_IsUseLibGit2_mask;

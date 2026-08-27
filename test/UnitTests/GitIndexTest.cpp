@@ -55,7 +55,7 @@ protected:
 		// ====Main Work Tree Setup====
 		SetUpTestRepo(m_MainWorkTreePath);
 
-		m_Git.m_CurrentDir = m_MainWorkTreePath;
+		m_Git.SetCurrentDirExact(m_MainWorkTreePath);
 		EXPECT_NE(0, SetCurrentDirectory(m_MainWorkTreePath));
 
 		CString output;

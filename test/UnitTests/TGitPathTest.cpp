@@ -1665,7 +1665,7 @@ TEST(CTGitPath, FillBasedOnIndexFlags)
 	gitindex.Free();
 	repo.Free();
 
-	g_Git.m_CurrentDir = tmpDir.GetTempDir();
+	g_Git.SetCurrentDirExact(tmpDir.GetTempDir());
 
 	CTGitPathList testList;
 	EXPECT_TRUE(testList.FillBasedOnIndexFlags(0, 0) == 0);
@@ -1922,7 +1922,7 @@ TEST(CTGitPath, FillUnRev)
 	CAutoRepository repo;
 	ASSERT_TRUE(git_repository_init(repo.GetPointer(), CUnicodeUtils::GetUTF8(tmpDir.GetTempDir()), false) == 0);
 
-	g_Git.m_CurrentDir = tmpDir.GetTempDir();
+	g_Git.SetCurrentDirExact(tmpDir.GetTempDir());
 
 	CTGitPathList testList;
 	EXPECT_EQ(0, testList.FillUnRev(0));
@@ -2109,7 +2109,7 @@ TEST(CTGitPath, HashStashDir)
 	text += L"[user]\n  name = User\n  email = user@example.com\n";
 	EXPECT_TRUE(CStringUtils::WriteStringToTextFile(configFile, text));
 
-	g_Git.m_CurrentDir = tmpDir.GetTempDir();
+	g_Git.SetCurrentDirExact(tmpDir.GetTempDir());
 
 	// empty repository no stash
 	EXPECT_FALSE(path.HasStashDir());

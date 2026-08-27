@@ -70,7 +70,7 @@ TEST(CGit, RunGit_Error)
 {
 	CAutoTempDir tempdir;
 	CGit cgit;
-	cgit.m_CurrentDir = tempdir.GetTempDir();
+	cgit.SetCurrentDirExact(tempdir.GetTempDir());
 
 	CString output;
 	EXPECT_NE(0, cgit.Run(L"git-not-found.exe", &output, CP_UTF8)); // Git for Windows returns 2, cygwin-hack returns 127
@@ -124,7 +124,7 @@ TEST(CGit, RunLogFile_Error)
 	CString tmpfile = tempdir.GetTempDir() + L"\\output.txt";
 	CString error;
 	CGit cgit;
-	cgit.m_CurrentDir = tempdir.GetTempDir();
+	cgit.SetCurrentDirExact(tempdir.GetTempDir());
 
 	EXPECT_EQ(128, cgit.RunLogFile(L"git.exe add file.txt", tmpfile, &error));
 	EXPECT_TRUE(CStringUtils::StartsWithI(error, L"fatal: not a git repository (or any"));
@@ -259,7 +259,7 @@ TEST(CGit, StripRefName)
 TEST(CGit, CombinePath)
 {
 	CGit cgit;
-	cgit.m_CurrentDir = L"c:\\something";
+	cgit.SetCurrentDirExact(L"c:\\something");
 	EXPECT_STREQ(L"c:\\something", cgit.CombinePath(L""));
 	EXPECT_STREQ(L"c:\\something\\file.txt", cgit.CombinePath(L"file.txt"));
 	EXPECT_STREQ(L"c:\\something\\sub\\file.txt", cgit.CombinePath(L"sub\\file.txt"));
@@ -345,12 +345,12 @@ TEST(CGit, GetRepository)
 {
 	CAutoTempDir tempdir;
 	CGit cgit;
-	cgit.m_CurrentDir = tempdir.GetTempDir();
+	cgit.SetCurrentDirExact(tempdir.GetTempDir());
 
 	CAutoRepository repo = cgit.GetGitRepository();
 	EXPECT_FALSE(repo.IsValid());
 
-	cgit.m_CurrentDir = tempdir.GetTempDir() + L"\\aöäüb";
+	cgit.SetCurrentDirExact(tempdir.GetTempDir() + L"\\aöäüb");
 	ASSERT_TRUE(CreateDirectory(cgit.m_CurrentDir, nullptr));
 
 	CString output;
@@ -360,7 +360,7 @@ TEST(CGit, GetRepository)
 	CAutoRepository repo2 = cgit.GetGitRepository(); // this tests GetGitRepository as well as m_Git.GetGitPathStringA
 	EXPECT_TRUE(repo2.IsValid());
 
-	cgit.m_CurrentDir = tempdir.GetTempDir() + L"\\aöäüb.git";
+	cgit.SetCurrentDirExact(tempdir.GetTempDir() + L"\\aöäüb.git");
 	ASSERT_TRUE(CreateDirectory(cgit.m_CurrentDir, nullptr));
 
 	output.Empty();
@@ -3896,8 +3896,8 @@ static int DoSubmodule(const CString& cmd, CGit& git, const CString& submoduleDi
 {
 	output.Empty();
 	CString old = git.m_CurrentDir;
-	SCOPE_EXIT { git.m_CurrentDir = old; };
-	git.m_CurrentDir = submoduleDir;
+	SCOPE_EXIT { git.SetCurrentDirExact(old); };
+	git.SetCurrentDirExact(submoduleDir);
 	return git.Run(cmd, &output, CP_UTF8);
 }
 

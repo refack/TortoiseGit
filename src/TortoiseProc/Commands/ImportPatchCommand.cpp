@@ -40,7 +40,7 @@ bool ImportPatchCommand::Execute()
 
 		std::wstring projectTopDir;
 		const bool hasAdminDir = CTGitPath(droppath.GetString()).HasAdminDir(&projectTopDir);
-		g_Git.m_CurrentDir = projectTopDir.c_str();
+		g_Git.SetCurrentDirExact(projectTopDir.c_str());
 		if (!hasAdminDir)
 		{
 			CString err;
@@ -65,7 +65,7 @@ bool ImportPatchCommand::Execute()
 			MessageBox(GetExplorerHWND(), err, L"TortoiseGit", MB_OK | MB_ICONERROR);
 			return FALSE;
 		}
-		g_Git.m_CurrentDir=str;
+		g_Git.SetCurrentDirExact(str);
 	}
 
 	for(int i = 0 ; i < this->orgPathList.GetCount(); ++i)

@@ -113,7 +113,7 @@ bool SubmoduleUpdateCommand::Execute()
 	CProgressDlg progress;
 	theApp.m_pMainWnd = &progress;
 
-	g_Git.m_CurrentDir = super;
+	g_Git.SetCurrentDirExact(super);
 
 	CString params = L" --progress";
 	if (submoduleUpdateDlg.m_bInit)
@@ -196,7 +196,7 @@ bool SubmoduleSyncCommand::Execute()
 		return false;
 	}
 
-	g_Git.m_CurrentDir=super;
+	g_Git.SetCurrentDirExact(super);
 
 	CString str;
 	for (int i = 0; i < this->orgPathList.GetCount(); ++i)

@@ -251,9 +251,9 @@ static bool DoCleanUp(const CTGitPathList& pathList, int cleanType, bool bDir, b
 			{
 				CGit git;
 				if (PathIsRelative(pathList[i].GetWinPathString().c_str()))
-					git.m_CurrentDir = g_Git.CombinePath(pathList[i].GetWinPathString().c_str());
+					git.SetCurrentDirExact(g_Git.CombinePath(pathList[i].GetWinPathString().c_str()));
 				else
-					git.m_CurrentDir = pathList[i].GetWinPathString().c_str();
+					git.SetCurrentDirExact(pathList[i].GetWinPathString().c_str());
 				if (!GetFilesToCleanUp(delList, cmd, &git, path, quotepath, sysProgressDlg))
 					return false;
 			}
@@ -264,7 +264,7 @@ static bool DoCleanUp(const CTGitPathList& pathList, int cleanType, bool bDir, b
 		for (const auto& dir : submoduleList)
 		{
 			CGit git;
-			git.m_CurrentDir = dir;
+			git.SetCurrentDirExact(dir);
 			if (!GetFilesToCleanUp(delList, cmd, &git, L"", quotepath, sysProgressDlg))
 				return false;
 		}

@@ -145,7 +145,7 @@ bool CloneCommand::Execute()
 				CAppUtils::SetupBareRepoIcon(dir);
 
 			// After cloning, change current directory to the cloned directory
-			g_Git.m_CurrentDir = dlg.m_Directory;
+			g_Git.SetCurrentDirExact(dlg.m_Directory);
 
 			postCmdList.emplace_back(IDI_LOG, IDS_MENULOG, [&]
 			{
@@ -175,7 +175,7 @@ bool CloneCommand::Execute()
 				}
 			}
 
-			//g_Git.m_CurrentDir=dlg.m_Directory;
+			//g_Git.SetCurrentDirExact(dlg.m_Directory);
 			cmd = L"git.exe svn clone";
 			try
 			{
@@ -222,7 +222,7 @@ bool CloneCommand::Execute()
 					retry = false;
 					CGitProgressDlg GitDlg;
 					CTGitPathList list;
-					g_Git.m_CurrentDir = GetExistingDirectoryForClone(dlg.m_Directory);
+					g_Git.SetCurrentDirExact(GetExistingDirectoryForClone(dlg.m_Directory));
 					list.AddPath(CTGitPath(dir.GetString()));
 					CloneProgressCommand cloneProgressCommand;
 					GitDlg.SetCommand(&cloneProgressCommand);
@@ -245,7 +245,7 @@ bool CloneCommand::Execute()
 		while (true)
 		{
 			retry = false;
-			g_Git.m_CurrentDir = GetExistingDirectoryForClone(dlg.m_Directory);
+			g_Git.SetCurrentDirExact(GetExistingDirectoryForClone(dlg.m_Directory));
 			CProgressDlg progress;
 			progress.m_GitCmd=cmd;
 			progress.m_PostCmdCallback = postCmdCallback;

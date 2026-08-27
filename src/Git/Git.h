@@ -34,6 +34,7 @@
 #include <string_view>
 #include <concepts>
 #include <type_traits>
+#include <utility>
 
 #define REG_MSYSGIT_PATH L"Software\\TortoiseGit\\MSysGit"
 #define REG_SYSTEM_GITCONFIGPATH L"Software\\TortoiseGit\\SystemConfig"
@@ -389,6 +390,13 @@ public:
 
 	CGit();
 	~CGit();
+	// m_CurrentDir is a reference into *this, so an implicit copy would bind the
+	// copy's member to the *source* object's storage and the two would silently
+	// share a working directory. Nothing copies CGit today - g_Git and the handful
+	// of `CGit subgit;` locals are all default-constructed - so deleting these
+	// costs nothing and closes the hole before someone opens it.
+	CGit(const CGit&) = delete;
+	CGit& operator=(const CGit&) = delete;
 
 	int Run(const CString& cmd, CString* output, int code);
 	int Run(const CString& cmd, CString* output, CString* outputErr, int code);
@@ -469,29 +477,88 @@ public:
 	CString GetGitLastErr(const CString& msg, LIBGIT2_CMD cmd);
 	static CString GetLibGit2LastErr();
 	static CString GetLibGit2LastErr(const CString& msg);
+	/**
+	 * Adopts the working copy that *contains* \a path: walks up looking for the
+	 * admin directory and latches the root it finds. Returns false when there is
+	 * none, in which case the current directory is left as whatever HasAdminDir
+	 * wrote (historically: emptied).
+	 *
+	 * Use SetCurrentDirExact() when the caller already knows the root. That is not
+	 * a stylistic split - it is why the ~30 direct assignments this replaced could
+	 * not simply be rewritten to call this one. They hand over a root they have
+	 * already established (a submodule path, a clone target, a CombinePath result)
+	 * and a re-discovery from there would be at best wasted work and at worst a
+	 * walk up into the *super*project.
+	 */
 	bool SetCurrentDir(CString path, bool submodule = false)
 	{
-		bool b = GitAdminDir::HasAdminDir(path, submodule ? false : !!PathIsDirectory(path), &m_CurrentDir);
+		bool b = GitAdminDir::HasAdminDir(path, submodule ? false : !!PathIsDirectory(path), &m_CurrentDirStorage);
 		if (!b && GitAdminDir::IsBareRepo(path))
 		{
-			m_CurrentDir = path;
+			m_CurrentDirStorage = path;
 			b = true;
 		}
-		if (m_CurrentDir.GetLength() == 2 && m_CurrentDir[1] == L':') //C: D:
-			m_CurrentDir += L'\\';
-
+		NormalizeCurrentDir();
 		return b;
 	}
-	/*
-	 * Root of the working copy this process operates on. Prefer this over touching
-	 * m_CurrentDir directly, and CombinePath() over concatenating onto it: reading
-	 * through here cannot accidentally reassign the directory, which would leave the
-	 * latched object format describing a different repository (see GitObjectFormat.h).
-	 * Returned by value because m_CurrentDir is still publicly assignable, so a
-	 * reference could be repointed underneath the caller.
+
+	/**
+	 * Adopts \a path as the working copy root verbatim, with no discovery - the
+	 * caller asserts it already is one.
+	 *
+	 * This is what every direct `m_CurrentDir = ...` used to be. Naming it does two
+	 * things a raw assignment could not: it distinguishes the two intents above at
+	 * the call site, and it makes the writes enumerable, which is the prerequisite
+	 * for ever latching the object format here (see the open risk in CLAUDE.md -
+	 * today the latch self-corrects on the next CheckAndInitDll()).
 	 */
-	CString GetCurrentDir() const { return m_CurrentDir; }
-	CString m_CurrentDir;
+	void SetCurrentDirExact(CString path)
+	{
+		m_CurrentDirStorage = std::move(path);
+		NormalizeCurrentDir();
+	}
+
+	/*
+	 * Root of the working copy this process operates on. Equivalent to reading
+	 * m_CurrentDir; kept as the spelling new code should use, and now returning a
+	 * reference because the value can no longer be repointed by an assignment
+	 * somewhere else in the expression.
+	 */
+	const CString& GetCurrentDir() const { return m_CurrentDir; }
+
+private:
+	// Only the two setters above may name this. Everything else - some 400 read
+	// sites - goes through the reference below.
+	CString m_CurrentDirStorage;
+
+	void NormalizeCurrentDir()
+	{
+		// "C:" is relative to that drive's own working directory, "C:\" is its root.
+		// Applied by both setters so the two cannot disagree about a drive root; the
+		// raw assignments this replaced only got it when they happened to go through
+		// SetCurrentDir.
+		if (m_CurrentDirStorage.GetLength() == 2 && m_CurrentDirStorage[1] == L':')
+			m_CurrentDirStorage += L'\\';
+	}
+
+public:
+	/*
+	 * Reads exactly like the public member it replaces - `g_Git.m_CurrentDir` still
+	 * compiles verbatim everywhere - but it is a reference to const, so every
+	 * *write* is now a compile error that has to pick one of the two setters above.
+	 *
+	 * That gate is the whole point. The latched object format (GitObjectFormat.h)
+	 * describes the repository this directory names, so a write that bypasses the
+	 * setters can leave the two describing different repositories; the invalid state
+	 * used to be merely representable, and now it has exactly two authors.
+	 *
+	 * Spelled as a reference to a private member rather than as a `const CString`
+	 * written through a const_cast in the setters. The enforcement and the churn
+	 * are identical, but modifying an object that was *declared* const is undefined
+	 * behaviour rather than a trick - the optimizer is entitled to fold reads of it,
+	 * and would be within its rights to serve a stale directory.
+	 */
+	const CString& m_CurrentDir = m_CurrentDirStorage;
 
 	enum
 	{

@@ -25,7 +25,7 @@
 bool InaccessibleCommand ::Execute()
 {
 	CString errorParts;
-	g_Git.m_CurrentDir = orgCmdLinePath.GetWinPathString().c_str();
+	g_Git.SetCurrentDirExact(orgCmdLinePath.GetWinPathString().c_str());
 	::SetCurrentDirectory(orgCmdLinePath.GetWinPath());
 	try
 	{

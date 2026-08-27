@@ -263,7 +263,7 @@ bool ResolveProgressCommand::Run(CGitProgressList* list, CString& sWindowTitle, 
 
 			CGit subgit;
 			subgit.m_IsUseGitDLL = false;
-			subgit.m_CurrentDir = fullPath.GetWinPathString().c_str();
+			subgit.SetCurrentDirExact(fullPath.GetWinPathString().c_str());
 			CGitHash submoduleHead;
 			if (subgit.GetHash(submoduleHead, L"HEAD"))
 			{
@@ -273,16 +273,16 @@ bool ResolveProgressCommand::Run(CGitProgressList* list, CString& sWindowTitle, 
 			if (submoduleHead != destinationHash)
 			{
 				CString origPath = g_Git.m_CurrentDir;
-				g_Git.m_CurrentDir = fullPath.GetWinPathString().c_str();
+				g_Git.SetCurrentDirExact(fullPath.GetWinPathString().c_str());
 				SetCurrentDirectory(g_Git.m_CurrentDir);
 				if (!CAppUtils::GitReset(list->GetSafeHwnd(), destinationHash.ToString()))
 				{
-					g_Git.m_CurrentDir = origPath;
+					g_Git.SetCurrentDirExact(origPath);
 					SetCurrentDirectory(g_Git.m_CurrentDir);
 					list->ReportUserCanceled();
 					return false;
 				}
-				g_Git.m_CurrentDir = origPath;
+				g_Git.SetCurrentDirExact(origPath);
 				SetCurrentDirectory(g_Git.m_CurrentDir);
 			}
 			addTask.AddFile(path);

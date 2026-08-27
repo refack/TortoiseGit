@@ -1050,7 +1050,7 @@ bool CAppUtils::Export(HWND hWnd, const CString* BashHash, const CTGitPath* orgP
 		git.m_IsUseGitDLL = false;
 		if (!dlg.m_bWholeProject && !dlg.m_orgPath.IsEmpty() && PathIsDirectory(dlg.m_orgPath.GetWinPathString().c_str()))
 		{
-			git.m_CurrentDir = dlg.m_orgPath.GetWinPathString().c_str();
+			git.SetCurrentDirExact(dlg.m_orgPath.GetWinPathString().c_str());
 			pro.m_Git = &git;
 		}
 		return (pro.DoModal() == IDOK);
@@ -1745,7 +1745,7 @@ bool CAppUtils::ConflictEdit(HWND hWnd, CTGitPath& path, bool bAlternativeTool /
 		{
 			CGit subgit;
 			subgit.m_IsUseGitDLL = false;
-			subgit.m_CurrentDir = fullMergePath.GetWinPathString().c_str();
+			subgit.SetCurrentDirExact(fullMergePath.GetWinPathString().c_str());
 			subgit.GetHash(baseHash, L"HEAD");
 		}
 
@@ -1758,7 +1758,7 @@ bool CAppUtils::ConflictEdit(HWND hWnd, CTGitPath& path, bool bAlternativeTool /
 		{
 			CGit subgit;
 			subgit.m_IsUseGitDLL = false;
-			subgit.m_CurrentDir = fullMergePath.GetWinPathString().c_str();
+			subgit.SetCurrentDirExact(fullMergePath.GetWinPathString().c_str());
 			CGitDiff::GetSubmoduleChangeType(subgit, baseHash, localHash, baseOK, mineOK, changeTypeMine, baseSubject, mineSubject);
 			CGitDiff::GetSubmoduleChangeType(subgit, baseHash, remoteHash, baseOK, theirsOK, changeTypeTheirs, baseSubject, theirsSubject);
 		}

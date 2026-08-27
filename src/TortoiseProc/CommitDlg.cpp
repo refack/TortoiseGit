@@ -704,7 +704,7 @@ void CCommitDlg::OnOK()
 		{
 			CGit subgit;
 			subgit.m_IsUseGitDLL = false;
-			subgit.m_CurrentDir = g_Git.CombinePath(entry);
+			subgit.SetCurrentDirExact(g_Git.CombinePath(entry));
 			CString subcmdout;
 			subgit.Run(L"git.exe status --porcelain", &subcmdout, CP_UTF8);
 			dirty = !subcmdout.IsEmpty();

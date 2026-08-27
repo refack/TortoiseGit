@@ -105,7 +105,7 @@ TEST(libgit2, ConfigSnaphotRepoHashFile)
 	EXPECT_EQ(0, git_repository_config_snapshot(config.GetPointer(), repo));
 	git_repository_set_config(repo, config);
 
-	g_Git.m_CurrentDir = tmpDir.GetTempDir();
+	g_Git.SetCurrentDirExact(tmpDir.GetTempDir());
 	CString output;
 	EXPECT_EQ(0, g_Git.Run(L"git.exe add test.txt", &output, CP_UTF8));
 	EXPECT_STREQ(L"", output);

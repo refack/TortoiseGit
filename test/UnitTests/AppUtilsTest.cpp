@@ -150,19 +150,19 @@ TEST(CAppUtils, FormatWindowTitle)
 	EXPECT_STREQ(L"D:\\RepoDir - Commit - TortoiseGit", CAppUtils::FormatWindowTitle(L"D:\\RepoDir", L"Commit", L"TortoiseGit", 0));
 	EXPECT_STREQ(L"D:\\Some Veeeeeeeeeeeeeeeeeeeery Long Path\\With ...\\And Even more Subpaths - Commit - TortoiseGit", CAppUtils::FormatWindowTitle(L"D:\\Some Veeeeeeeeeeeeeeeeeeeery Long Path\\With Veeeeeeeeeeeeeeeeeeeery Long Subpaths\\RepoDir\\And Even more Subpaths", L"Commit", L"TortoiseGit", 0));
 
-	g_Git.m_CurrentDir = L"D:\\";
+	g_Git.SetCurrentDirExact(L"D:\\");
 	EXPECT_STREQ(L"D:\\ - Commit - TortoiseGit", CAppUtils::FormatWindowTitle(L"D:\\", L"Commit", L"TortoiseGit", 1));
 	EXPECT_STREQ(L"D:\\SubDir - Commit - TortoiseGit", CAppUtils::FormatWindowTitle(L"D:\\SubDir", L"Commit", L"TortoiseGit", 1));
 	EXPECT_STREQ(L"D:\\Some Veeeeeeeeeeeeeeeeeeeery Long Path - Commit - TortoiseGit", CAppUtils::FormatWindowTitle(L"D:\\Some Veeeeeeeeeeeeeeeeeeeery Long Path", L"Commit", L"TortoiseGit", 1));
 	EXPECT_STREQ(L"D:\\Some Veeeeeeeeeeeeeeeeeeeery Long Path\\With ...\\And Even more Subpaths - Commit - TortoiseGit", CAppUtils::FormatWindowTitle(L"D:\\Some Veeeeeeeeeeeeeeeeeeeery Long Path\\With Veeeeeeeeeeeeeeeeeeeery Long Subpaths\\RepoDir\\And Even more Subpaths", L"Commit", L"TortoiseGit", 1));
 
-	g_Git.m_CurrentDir = L"D:\\RepoDir";
+	g_Git.SetCurrentDirExact(L"D:\\RepoDir");
 	EXPECT_STREQ(L"D:\\ - Commit - TortoiseGit", CAppUtils::FormatWindowTitle(L"D:\\", L"Commit", L"TortoiseGit", 1));
 	EXPECT_STREQ(L"D:\\SubDir - Commit - TortoiseGit", CAppUtils::FormatWindowTitle(L"D:\\SubDir", L"Commit", L"TortoiseGit", 1));
 	EXPECT_STREQ(L"RepoDir - Commit - TortoiseGit", CAppUtils::FormatWindowTitle(L"D:\\RepoDir", L"Commit", L"TortoiseGit", 1));
 	EXPECT_STREQ(L"RepoDir\\SubPath - Commit - TortoiseGit", CAppUtils::FormatWindowTitle(L"D:\\RepoDir\\SubPath", L"Commit", L"TortoiseGit", 1));
 
-	g_Git.m_CurrentDir = L"D:\\Some Veeeeeeeeeeeeeeeeeeeery Long Path\\With Veeeeeeeeeeeeeeeeeeeery Long Subpaths\\RepoDir";
+	g_Git.SetCurrentDirExact(L"D:\\Some Veeeeeeeeeeeeeeeeeeeery Long Path\\With Veeeeeeeeeeeeeeeeeeeery Long Subpaths\\RepoDir");
 	EXPECT_STREQ(L"RepoDir - Commit - TortoiseGit", CAppUtils::FormatWindowTitle(L"D:\\Some Veeeeeeeeeeeeeeeeeeeery Long Path\\With Veeeeeeeeeeeeeeeeeeeery Long Subpaths\\RepoDir", L"Commit", L"TortoiseGit", 1));
 	EXPECT_STREQ(L"RepoDir\\And Even more Subpaths - Commit - TortoiseGit", CAppUtils::FormatWindowTitle(L"D:\\Some Veeeeeeeeeeeeeeeeeeeery Long Path\\With Veeeeeeeeeeeeeeeeeeeery Long Subpaths\\RepoDir\\And Even more Subpaths", L"Commit", L"TortoiseGit", 1));
 }

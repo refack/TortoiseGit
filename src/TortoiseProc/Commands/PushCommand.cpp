@@ -39,7 +39,7 @@ bool PushCommand::Execute()
 				retVal = false;
 				continue;
 			}
-			g_Git.m_CurrentDir = item.GetWinPathString().c_str();
+			g_Git.SetCurrentDirExact(item.GetWinPathString().c_str());
 			SetCurrentDirectory(g_Git.m_CurrentDir);
 			retVal &= CAppUtils::Push(GetExplorerHWND(), branch);
 		}

@@ -208,7 +208,7 @@ UINT CProgressDlg::RunCmdList(CWnd* pWnd, STRING_VECTOR& cmdlist, STRING_VECTOR&
 		for (const auto& dir : dirlist)
 		{
 			auto pGit = std::make_unique<CGit>();
-			pGit->m_CurrentDir = dir;
+			pGit->SetCurrentDirExact(dir);
 			gitList.push_back(std::move(pGit));
 			cacheBlockList.push_back(std::make_unique<CBlockCacheForPath>(dir));
 		}

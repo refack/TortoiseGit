@@ -236,7 +236,14 @@ CGit g_Git;
 CGit::CGit()
 {
 	git_libgit2_init();
-	GetCurrentDirectory(MAX_PATH, CStrBuf(m_CurrentDir, MAX_PATH));
+	// Seeded from the process's own working directory, which is emphatically not
+	// guaranteed to be a working copy root - every caller that cares sets one.
+	// This is the third writer of the directory and the only one a grep for
+	// "m_CurrentDir =" could never find, which is the argument for making the
+	// member const rather than merely documenting that it should not be assigned.
+	// It writes the storage rather than a setter because CStrBuf fills a buffer in
+	// place, and because this write is not choosing a repository.
+	GetCurrentDirectory(MAX_PATH, CStrBuf(m_CurrentDirStorage, MAX_PATH));
 	m_IsUseGitDLL = !!CRegDWORD(L"Software\\TortoiseGit\\UsingGitDLL",1);
 	m_IsUseLibGit2 = !!CRegDWORD(L"Software\\TortoiseGit\\UseLibgit2", TRUE);
 	m_IsUseLibGit2_mask = CRegDWORD(L"Software\\TortoiseGit\\UseLibgit2_mask", DEFAULT_USE_LIBGIT2_MASK);
@@ -343,7 +350,9 @@ int CGit::RunAsync(CString cmd, PROCESS_INFORMATION& piOut, HANDLE* hReadOut, HA
 	}
 
 	CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": executing %s\n", static_cast<LPCWSTR>(cmd));
-	if(!CreateProcess(nullptr, cmd.GetBuffer(), nullptr, nullptr, TRUE, dwFlags, pEnv, m_CurrentDir.GetBuffer(), &si, &pi))
+	// lpCurrentDirectory is LPCWSTR, so the GetBuffer() this used to call was
+	// pointless as well as unbalanced - only lpCommandLine is written to.
+	if (!CreateProcess(nullptr, cmd.GetBuffer(), nullptr, nullptr, TRUE, dwFlags, pEnv, m_CurrentDir, &si, &pi))
 	{
 		CString err { static_cast<LPCWSTR>(CFormatMessageWrapper()) };
 		CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": error while executing command: %s\n", static_cast<LPCWSTR>(err.Trim()));

@@ -35,7 +35,7 @@ bool DropCopyAddCommand::Execute()
 
 	std::wstring projectTopDir;
 	const bool hasAdminDir = CTGitPath(droppath.GetString()).HasAdminDir(&projectTopDir);
-	g_Git.m_CurrentDir = projectTopDir.c_str();
+	g_Git.SetCurrentDirExact(projectTopDir.c_str());
 	if (!hasAdminDir)
 		return FALSE;
 

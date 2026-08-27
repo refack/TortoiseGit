@@ -34,7 +34,7 @@ bool PasteMoveCommand::Execute()
 
 	std::wstring projectTopDir;
 	const bool hasAdminDir = dropPath.HasAdminDir(&projectTopDir);
-	g_Git.m_CurrentDir = projectTopDir.c_str();
+	g_Git.SetCurrentDirExact(projectTopDir.c_str());
 	if (!hasAdminDir)
 		return FALSE;
 

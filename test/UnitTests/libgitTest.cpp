@@ -25,7 +25,7 @@
 TEST(libgit, BrokenConfig)
 {
 	CAutoTempDir tempdir;
-	g_Git.m_CurrentDir = tempdir.GetTempDir();
+	g_Git.SetCurrentDirExact(tempdir.GetTempDir());
 	g_Git.m_IsGitDllInited = false;
 	g_Git.m_IsUseGitDLL = true;
 	g_Git.m_IsUseLibGit2 = false;
@@ -45,7 +45,7 @@ TEST(libgit, BrokenConfig)
 TEST(libgit, Mailmap)
 {
 	CAutoTempDir tempdir;
-	g_Git.m_CurrentDir = tempdir.GetTempDir();
+	g_Git.SetCurrentDirExact(tempdir.GetTempDir());
 	// libgit relies on CWD being set to working tree
 	SetCurrentDirectory(g_Git.m_CurrentDir);
 
@@ -151,7 +151,7 @@ TEST(libgit, MkDir)
 TEST(libgit, RefreshIndex)
 {
 	CAutoTempDir tempdir;
-	g_Git.m_CurrentDir = tempdir.GetTempDir();
+	g_Git.SetCurrentDirExact(tempdir.GetTempDir());
 	g_Git.m_bInitialized = false;
 	g_Git.m_IsGitDllInited = false;
 	g_Git.m_IsUseGitDLL = true;
@@ -273,7 +273,7 @@ TEST(libgit, IncludeIf)
 
 	// .git dir
 	CString repoDir = tempdir.GetTempDir() + L"\\RepoWithAInPath";
-	g_Git.m_CurrentDir = repoDir;
+	g_Git.SetCurrentDirExact(repoDir);
 	EXPECT_TRUE(CreateDirectory(repoDir, nullptr));
 	// libgit relies on CWD being set to working tree
 	EXPECT_TRUE(SetCurrentDirectory(repoDir));
@@ -296,7 +296,7 @@ TEST(libgit, IncludeIf)
 	g_Git.m_IsGitDllInited = false;
 	g_Git.m_IsUseGitDLL = true;
 	repoDir = tempdir.GetTempDir() + L"\\RepoWithBInPath";
-	g_Git.m_CurrentDir = repoDir;
+	g_Git.SetCurrentDirExact(repoDir);
 	EXPECT_TRUE(CreateDirectory(repoDir, nullptr));
 	// libgit relies on CWD being set to working tree
 	EXPECT_TRUE(SetCurrentDirectory(repoDir));
@@ -310,9 +310,9 @@ TEST(libgit, IncludeIf)
 TEST(libgit, StoreUninitializedRepositoryConfig)
 {
 	CAutoTempDir tempdir;
-	g_Git.m_CurrentDir = tempdir.GetTempDir();
+	g_Git.SetCurrentDirExact(tempdir.GetTempDir());
 	g_Git.m_IsGitDllInited = false;
-	g_Git.m_CurrentDir = g_Git.m_CurrentDir;
+	g_Git.SetCurrentDirExact(g_Git.m_CurrentDir);
 	g_Git.m_IsUseGitDLL = true;
 	g_Git.m_IsUseLibGit2 = false;
 	g_Git.m_IsUseLibGit2_mask = 0;
