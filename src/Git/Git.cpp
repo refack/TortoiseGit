@@ -637,7 +637,12 @@ CString CGit::GetCommitterEmail()
 	return GetConfigValue(L"user.email");
 }
 
-CString CGit::GetConfigValue(const CString& name, const CString& def, bool wantBool)
+CString CGit::GetConfigValue(const CString& name, const CString& def)
+{
+	return ReadConfigValue(name, def, false);
+}
+
+CString CGit::ReadConfigValue(const CString& name, const CString& def, bool canonicalizeBool)
 {
 	if(this->m_IsUseGitDLL)
 	{
@@ -670,7 +675,7 @@ CString CGit::GetConfigValue(const CString& name, const CString& def, bool wantB
 		CString cmd;
 		try
 		{
-			cmd.Format(L"git.exe config%s --end-of-options %s", wantBool ? L" --bool" : L"", static_cast<LPCWSTR>(CGit::QuoteParameter(name)));
+			cmd.Format(L"git.exe config%s --end-of-options %s", canonicalizeBool ? L" --bool" : L"", static_cast<LPCWSTR>(CGit::QuoteParameter(name)));
 		}
 		catch (illegal_git_parameter& e)
 		{
@@ -688,13 +693,17 @@ CString CGit::GetConfigValue(const CString& name, const CString& def, bool wantB
 
 bool CGit::GetConfigValueBool(const CString& name, const bool def)
 {
-	CString configValue = GetConfigValue(name, def ? L"true" : L"false", true);
-	configValue.MakeLower();
-	configValue.Trim();
-	if (configValue == L"true" || configValue == L"on" || configValue == L"yes" || StrToInt(configValue) != 0)
-		return true;
-	else
-		return false;
+	// git's own parser, for the same reason GetConfigValueInt32 uses
+	// git_config_parse_int32: "true"/"yes"/"on"/"1"/"-2" and their negatives then
+	// mean here exactly what they mean to git, with no second implementation to
+	// drift. The inline chain this replaces also fell through to `false` for a
+	// value git itself would reject, which disagreed with what the --bool path
+	// did with the same input - the two backends were not answering the same
+	// question. Now an unparseable value yields def on both.
+	int value = def;
+	if (!git_config_parse_bool(&value, CUnicodeUtils::GetUTF8(ReadConfigValue(name, def ? L"true" : L"false", true))))
+		return value != 0;
+	return def;
 }
 
 int CGit::GetConfigValueInt32(const CString& name, const int def)

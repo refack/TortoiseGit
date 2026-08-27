@@ -41,8 +41,12 @@ CMergeDlg::CMergeDlg(CWnd* pParent /*=nullptr*/)
 	, m_bNoFF(BST_UNCHECKED)
 	, m_bFFonly(BST_UNCHECKED)
 {
-	CString mergeLog = g_Git.GetConfigValue(L"merge.log");
-	int nLog = _wtoi(mergeLog);
+	// merge.log is bool-or-int to git: an integer is a shortlog length, `true`
+	// means "the default length", anything else means do not log. Reading it as
+	// an int keeps that - git's parser rejects "true", which lands on the same 20
+	// the _wtoi() here used to reach by returning 0 - and picks up git's size
+	// suffixes on the way.
+	const int nLog = g_Git.GetConfigValueInt32(L"merge.log");
 	m_nLog = nLog > 0 ? nLog : 20;
 	m_bSkipCurrentBranch = true;
 }

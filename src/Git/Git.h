@@ -446,7 +446,35 @@ public:
 	int RunLogFile(const CString& cmd, const CString& filename, CString* stdErr);
 
 	bool IsFastForward(const CString& from, const CString& to, CGitHash* commonAncestor = nullptr);
-	CString GetConfigValue(const CString& name, const CString& def = CString(), bool wantBool = false);
+private:
+	/**
+	 * The single config reader. \a canonicalizeBool asks git.exe for --bool, which
+	 * is what makes a valueless key ("[section]\nkey" with no =) read as true; the
+	 * gitdll path ignores it and leaves the parsing to the caller.
+	 *
+	 * It is a *type* request, so it does not belong on the untyped public getter -
+	 * GetConfigValueBool is its only user.
+	 */
+	CString ReadConfigValue(const CString& name, const CString& def, bool canonicalizeBool);
+
+public:
+	/**
+	 * A git config value as text, or \a def when the key is unset.
+	 *
+	 * Prefer GetConfigValueBool/GetConfigValueInt32 whenever the key has a type.
+	 * They parse with git's own parser, so "yes", "on", "1" and "2k" mean here
+	 * exactly what they mean to git.exe, and cannot drift from it the way an
+	 * inline _wtoi() or an == L"true" chain at the call site does.
+	 *
+	 * What legitimately stays text, so this does not get "cleaned up" again:
+	 *   - free text - user.name, remote.*.url, commit.template
+	 *   - enum-valued keys - core.cleanup, remote.*.tagopt, push.recurseSubmodules
+	 *   - tri-state settings pages, where *unset* is a third state that a bool
+	 *     cannot carry. remote.<name>.prune renders as true / false / inherited,
+	 *     and GetConfigValueBool would fold the third case into the default. That
+	 *     is the reason an untyped reader has to exist at all.
+	 */
+	CString GetConfigValue(const CString& name, const CString& def = CString());
 	bool GetConfigValueBool(const CString& name, const bool def = false);
 	int GetConfigValueInt32(const CString& name, const int def = 0);
 

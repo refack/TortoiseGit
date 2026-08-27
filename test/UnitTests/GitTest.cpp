@@ -1620,6 +1620,19 @@ TEST_P(CBasicGitWithTestRepoFixture, Config)
 	EXPECT_EQ(false, m_Git.GetConfigValueBool(L"booltest.false1"));
 	m_Git.SetConfigValue(L"booltest.false2", L"");
 	EXPECT_EQ(false, m_Git.GetConfigValueBool(L"booltest.false2"));
+	for (const auto* falsy : { L"no", L"nO", L"off", L"FALSE" })
+	{
+		m_Git.SetConfigValue(L"booltest.falsy", falsy);
+		EXPECT_EQ(false, m_Git.GetConfigValueBool(L"booltest.falsy", true)) << falsy;
+	}
+
+	// A value git itself would reject is not "false" - it is unusable, so the
+	// caller's default stands, and it does so identically on every backend. The
+	// inline parser this used to use answered false here while the --bool path
+	// answered the default, so the two disagreed.
+	m_Git.SetConfigValue(L"booltest.garbage", L"banana");
+	EXPECT_EQ(false, m_Git.GetConfigValueBool(L"booltest.garbage"));
+	EXPECT_EQ(true, m_Git.GetConfigValueBool(L"booltest.garbage", true));
 
 	EXPECT_EQ(0, m_Git.GetConfigValueInt32(L"does-not-exist"));
 	EXPECT_EQ(15, m_Git.GetConfigValueInt32(L"does-not-exist", 15));
@@ -1632,6 +1645,11 @@ TEST_P(CBasicGitWithTestRepoFixture, Config)
 	EXPECT_EQ(42, m_Git.GetConfigValueInt32(L"booltest.true4", 42));
 	EXPECT_EQ(0, m_Git.GetConfigValueInt32(L"booltest.true8"));
 	EXPECT_EQ(42, m_Git.GetConfigValueInt32(L"booltest.true8", 42));
+
+	// git's size suffixes, which is the sort of thing a call site that parses the
+	// string itself with _wtoi() silently gets wrong.
+	m_Git.SetConfigValue(L"inttest.suffix", L"2k");
+	EXPECT_EQ(2048, m_Git.GetConfigValueInt32(L"inttest.suffix"));
 
 	EXPECT_NE(0, m_Git.UnsetConfigValue(L"does-not-exist"));
 	EXPECT_STREQ(L"false", m_Git.GetConfigValue(L"core.bare"));
