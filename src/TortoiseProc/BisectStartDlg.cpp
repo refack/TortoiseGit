@@ -58,7 +58,7 @@ END_MESSAGE_MAP()
 
 static void uniqueMergeLists(STRING_VECTOR& list, const STRING_VECTOR& listToMerge)
 {
-	std::map<CString, int> map;
+	std::map<std::wstring, int> map;
 	for (const auto& entry : list)
 		map[entry] = 1;
 

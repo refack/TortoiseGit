@@ -208,9 +208,9 @@ UINT CProgressDlg::RunCmdList(CWnd* pWnd, STRING_VECTOR& cmdlist, STRING_VECTOR&
 		for (const auto& dir : dirlist)
 		{
 			auto pGit = std::make_unique<CGit>();
-			pGit->SetCurrentDirExact(dir);
+			pGit->SetCurrentDirExact(dir.c_str());
 			gitList.push_back(std::move(pGit));
-			cacheBlockList.push_back(std::make_unique<CBlockCacheForPath>(dir));
+			cacheBlockList.push_back(std::make_unique<CBlockCacheForPath>(dir.c_str()));
 		}
 	}
 
@@ -220,17 +220,23 @@ UINT CProgressDlg::RunCmdList(CWnd* pWnd, STRING_VECTOR& cmdlist, STRING_VECTOR&
 
 	for (size_t i = 0; i < cmdlist.size() && !*bAbort; ++i)
 	{
-		if (cmdlist[i].IsEmpty())
+		if (cmdlist[i].empty())
 			continue;
+
+		// Trimmed once. CString::Trim() mutates in place and returns the string, so
+		// the original could write `cmdlist[i].Trim()` inline at four points; the
+		// std::wstring equivalent is a copy plus a call, and doing that four times
+		// would be worse than doing it once.
+		std::wstring command = cmdlist[i];
+		tgit::wstr::Trim(command);
 
 		if (bShowCommand)
 		{
-			CStringA str;
-			if (gitList.empty() || gitList.size() == 1 && gitList[0]->m_CurrentDir == git->m_CurrentDir)
-				str = CUnicodeUtils::GetUTF8((i > 0 ? L"\n" : L"") + cmdlist[i].Trim() + L"\n");
-			else
-				str = CUnicodeUtils::GetUTF8((i > 0 ? L"\n" : L"") + gitList[i]->m_CurrentDir + L"\n" + cmdlist[i].Trim() + L"\n");
-			cliparser.AppendChunk(std::string_view(str, str.GetLength()));
+			const std::string str = CUnicodeUtils::StdGetUTF8(
+				gitList.empty() || (gitList.size() == 1 && gitList[0]->m_CurrentDir == git->m_CurrentDir)
+					? std::format(L"{}{}\n", i > 0 ? L"\n" : L"", command)
+					: std::format(L"{}{}\n{}\n", i > 0 ? L"\n" : L"", gitList[i]->m_CurrentDir, command));
+			cliparser.AppendChunk(str);
 			pWnd->PostMessage(MSG_PROGRESSDLG_UPDATE_UI, MSG_PROGRESSDLG_RUN, 0);
 		}
 
@@ -238,9 +244,9 @@ UINT CProgressDlg::RunCmdList(CWnd* pWnd, STRING_VECTOR& cmdlist, STRING_VECTOR&
 		CAutoGeneralHandle hRead;
 		int runAsyncRet = -1;
 		if (gitList.empty())
-			runAsyncRet = git->RunAsync(cmdlist[i].Trim(), pi, hRead.GetPointer(), nullptr, pfilename);
+			runAsyncRet = git->RunAsync(command.c_str(), pi, hRead.GetPointer(), nullptr, pfilename);
 		else
-			runAsyncRet = gitList[i]->RunAsync(cmdlist[i].Trim(), pi, hRead.GetPointer(), nullptr, pfilename);
+			runAsyncRet = gitList[i]->RunAsync(command.c_str(), pi, hRead.GetPointer(), nullptr, pfilename);
 		if (runAsyncRet)
 		{
 			EnsurePostMessage(pWnd, MSG_PROGRESSDLG_UPDATE_UI, MSG_PROGRESSDLG_FAILED, -1 * runAsyncRet);
@@ -255,19 +261,19 @@ UINT CProgressDlg::RunCmdList(CWnd* pWnd, STRING_VECTOR& cmdlist, STRING_VECTOR&
 		{
 			cliparser.AppendChunk({ buffer, readnumber });
 		}
-		CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": waiting for process to finish (%s), aborted: %d\n", static_cast<LPCWSTR>(cmdlist[i]), *bAbort);
+		CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": waiting for process to finish (%s), aborted: %d\n", cmdlist[i].c_str(), *bAbort);
 
 		WaitForSingleObject(pi.hProcess, INFINITE);
 
 		DWORD status = 0;
 		if (!GetExitCodeProcess(pi.hProcess, &status) || *bAbort)
 		{
-			CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": process %s finished, status code could not be fetched, (error %d; %s), aborted: %d\n", static_cast<LPCWSTR>(cmdlist[i]), GetLastError(), static_cast<LPCWSTR>(CFormatMessageWrapper()), *bAbort);
+			CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": process %s finished, status code could not be fetched, (error %d; %s), aborted: %d\n", cmdlist[i].c_str(), GetLastError(), static_cast<LPCWSTR>(CFormatMessageWrapper()), *bAbort);
 
 			EnsurePostMessage(pWnd, MSG_PROGRESSDLG_UPDATE_UI, MSG_PROGRESSDLG_FAILED, status);
 			return TGIT_GIT_ERROR_GET_EXIT_CODE;
 		}
-		CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": process %s finished with code %d\n", static_cast<LPCWSTR>(cmdlist[i]), status);
+		CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": process %s finished with code %d\n", cmdlist[i].c_str(), status);
 		ret |= status;
 	}
 
@@ -279,7 +285,7 @@ UINT CProgressDlg::RunCmdList(CWnd* pWnd, STRING_VECTOR& cmdlist, STRING_VECTOR&
 UINT CProgressDlg::ProgressThread()
 {
 	if (!m_GitCmd.IsEmpty())
-		m_GitCmdList.push_back(m_GitCmd);
+		m_GitCmdList.push_back(std::wstring(m_GitCmd));
 
 	CString* pfilename;
 

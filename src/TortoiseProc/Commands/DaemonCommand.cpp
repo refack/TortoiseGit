@@ -67,7 +67,7 @@ bool DaemonCommand::Execute()
 			ip = L'[' + ip; // IPv6 addresses needs to be enclosed within braces
 			ip += L']';
 		}
-		ips.push_back(ip);
+		ips.push_back(std::wstring(ip));
 	}
 	if (result)
 		FreeAddrInfoA(result);
@@ -93,7 +93,7 @@ bool DaemonCommand::Execute()
 		for (const auto& ip : ips)
 		{
 			progDlg.m_PreText += L"git://";
-			progDlg.m_PreText += ip;
+			progDlg.m_PreText += ip.c_str();
 			progDlg.m_PreText += L"/\n";
 		}
 	}

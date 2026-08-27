@@ -62,7 +62,7 @@ static int SubmoduleCallback(git_submodule *sm, const char * /*name*/, void *pay
 	{
 		for (size_t i = 0; i < spayload->prefixList.size(); ++i)
 		{
-			CString prefix = spayload->prefixList.at(i) + L'/';
+			CString prefix = (spayload->prefixList.at(i) + L'/').c_str();
 			if (CStringUtils::StartsWith(path, prefix))
 			{
 				CTGitPath subPath(spayload->basePath.GetString());
@@ -189,19 +189,19 @@ static bool DoCleanUp(const CTGitPathList& pathList, int cleanType, bool bDir, b
 			if (pathList[i].IsWCRoot() && pathList[i].GetWinPathString() != g_Git.m_CurrentDir.GetString())
 			{
 				if (PathIsRelative(pathList[i].GetWinPathString().c_str()))
-					progress.m_GitDirList.push_back(g_Git.CombinePath(pathList[i].GetWinPathString().c_str()));
+					progress.m_GitDirList.push_back(std::wstring(g_Git.CombinePath(pathList[i].GetWinPathString().c_str())));
 				else
 					progress.m_GitDirList.push_back(pathList[i].GetWinPathString().c_str());
 			}
 			else
-				progress.m_GitDirList.push_back(g_Git.m_CurrentDir);
-			progress.m_GitCmdList.push_back(cmd + (path.IsEmpty() ? CString() : (L" -- " + CGit::QuoteParameter(path))));
+				progress.m_GitDirList.push_back(std::wstring(g_Git.m_CurrentDir));
+			progress.m_GitCmdList.push_back(std::wstring(cmd + (path.IsEmpty() ? CString() : (L" -- " + CGit::QuoteParameter(path)))));
 		}
 
 		for (const auto& dir : submoduleList)
 		{
-			progress.m_GitDirList.push_back(CTGitPath(dir.GetString()).GetWinPathString().c_str());
-			progress.m_GitCmdList.push_back(cmd);
+			progress.m_GitDirList.push_back(CTGitPath(dir.c_str()).GetWinPathString());
+			progress.m_GitCmdList.push_back(std::wstring(cmd));
 		}
 
 		progress.m_PostCmdCallback = [&](DWORD status, PostCmdList& postCmdList)
@@ -264,7 +264,7 @@ static bool DoCleanUp(const CTGitPathList& pathList, int cleanType, bool bDir, b
 		for (const auto& dir : submoduleList)
 		{
 			CGit git;
-			git.SetCurrentDirExact(dir);
+			git.SetCurrentDirExact(dir.c_str());
 			if (!GetFilesToCleanUp(delList, cmd, &git, L"", quotepath, sysProgressDlg))
 				return false;
 		}

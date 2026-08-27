@@ -311,8 +311,8 @@ void CPullFetchDlg::Refresh()
 
 		for (unsigned int i = 0; i < list.size(); ++i)
 		{
-			m_Remote.AddString(list[i]);
-			if (!m_bAllRemotes && list[i] == pullRemote)
+			m_Remote.AddString(list[i].c_str());
+			if (!m_bAllRemotes && list[i] == tgit::wstr::View(pullRemote))
 				sel = i + (!m_IsPull && list.size() > 1 ? 1 : 0);
 		}
 	}

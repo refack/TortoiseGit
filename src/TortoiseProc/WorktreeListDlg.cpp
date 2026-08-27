@@ -187,7 +187,7 @@ int CWorktreeListDlg::FillListCtrlWithWorktreeList(CString& error)
 	for (size_t i = 0; i < list.size(); ++i)
 	{
 		CAutoWorktree worktree;
-		if (git_worktree_lookup(worktree.GetPointer(), repo, CUnicodeUtils::GetUTF8(list[i])) < 0)
+		if (git_worktree_lookup(worktree.GetPointer(), repo, CUnicodeUtils::StdGetUTF8(list[i]).c_str()) < 0)
 		{
 			error = g_Git.GetLibGit2LastErr();
 			return -1;
@@ -214,7 +214,7 @@ int CWorktreeListDlg::FillListCtrlWithWorktreeList(CString& error)
 		// Can't get information about HEAD and so on because worktree checkout doesn't exist
 		else if (pruneable == 1)
 		{
-			WorktreeDetails worktreeDetails(list[i], worktreePath, CGitHash(), L"");
+			WorktreeDetails worktreeDetails(list[i].c_str(), worktreePath, CGitHash(), L"");
 			worktreeDetails.m_isBaseRepo = FALSE;
 			worktreeDetails.m_IsLocked = locked;
 			if (locked && reason)
@@ -224,7 +224,7 @@ int CWorktreeListDlg::FillListCtrlWithWorktreeList(CString& error)
 		}
 
 		CAutoReference head;
-		if (git_repository_head_for_worktree(head.GetPointer(), repo, CUnicodeUtils::GetUTF8(list[i])) < 0)
+		if (git_repository_head_for_worktree(head.GetPointer(), repo, CUnicodeUtils::StdGetUTF8(list[i]).c_str()) < 0)
 		{
 			error = g_Git.GetLibGit2LastErr();
 			return -1;
@@ -237,7 +237,7 @@ int CWorktreeListDlg::FillListCtrlWithWorktreeList(CString& error)
 			branch = L"detached HEAD";
 		}
 
-		WorktreeDetails worktreeDetails(list[i], worktreePath, git_reference_target(head), branch);
+		WorktreeDetails worktreeDetails(list[i].c_str(), worktreePath, git_reference_target(head), branch);
 		worktreeDetails.m_isBaseRepo = FALSE;
 		worktreeDetails.m_IsLocked = locked;
 		if (locked && reason)

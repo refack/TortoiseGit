@@ -79,24 +79,24 @@ static int SubmoduleCallback(git_submodule *sm, const char * /*name*/, void *pay
 	auto prefixList = *(static_cast<STRING_VECTOR**>(payload) + 1);
 	CString path = CUnicodeUtils::GetUnicode(git_submodule_path(sm));
 	if (prefixList->empty())
-		list->push_back(path);
+		list->push_back(std::wstring(path));
 	else
 	{
 		for (size_t i = 0; i < prefixList->size(); ++i)
 		{
-			CString prefix = prefixList->at(i) + L'/';
+			CString prefix = (prefixList->at(i) + L'/').c_str();
 			if (CStringUtils::StartsWith(path, prefix))
-				list->push_back(path);
+				list->push_back(std::wstring(path));
 		}
 	}
 	return 0;
 }
 
-int LogicalComparePredicate(const CString &left, const CString &right)
+int LogicalComparePredicate(const std::wstring& left, const std::wstring& right)
 {
 	if (CSubmoduleUpdateDlg::s_bSortLogical)
-		return StrCmpLogicalW(left, right) < 0;
-	return StrCmpI(left, right) < 0;
+		return StrCmpLogicalW(left.c_str(), right.c_str()) < 0;
+	return StrCmpI(left.c_str(), right.c_str()) < 0;
 }
 
 static void GetSubmodulePathList(STRING_VECTOR &list, STRING_VECTOR &prefixList)
@@ -165,7 +165,7 @@ BOOL CSubmoduleUpdateDlg::OnInitDialog()
 	m_regRebase = CRegDWORD(L"Software\\TortoiseGit\\TortoiseProc\\SubmoduleUpdate\\" + str + L"\\rebase", FALSE);
 	m_bRebase = m_regRebase;
 
-	DialogEnableWindow(IDC_WHOLE_PROJECT, !(m_PathFilterList.empty() || (m_PathFilterList.size() == 1 && m_PathFilterList[0].IsEmpty())));
+	DialogEnableWindow(IDC_WHOLE_PROJECT, !(m_PathFilterList.empty() || (m_PathFilterList.size() == 1 && m_PathFilterList[0].empty())));
 
 	SetDlgTitle();
 
@@ -186,7 +186,7 @@ void CSubmoduleUpdateDlg::SetDlgTitle()
 	if (!m_bWholeProject)
 	{
 		if (!m_PathFilterList.empty())
-			dir += std::format(L"{}{}", CStringUtils::EndsWith(g_Git.m_CurrentDir, L'\\') ? L"" : L"\\", CTGitPath(m_PathFilterList[0].GetString()).GetWinPathString()).c_str();
+			dir += std::format(L"{}{}", CStringUtils::EndsWith(g_Git.m_CurrentDir, L'\\') ? L"" : L"\\", CTGitPath(m_PathFilterList[0].c_str()).GetWinPathString()).c_str();
 		if (m_PathFilterList.size() > 1)
 			dir += L", ...";
 	}
@@ -207,7 +207,7 @@ void CSubmoduleUpdateDlg::OnBnClickedOk()
 				selected.AppendChar(L'|');
 			CString text;
 			m_PathListBox.GetText(i, text);
-			m_PathList.push_back(text);
+			m_PathList.push_back(std::wstring(text));
 			selected.Append(text);
 		}
 	}
@@ -288,7 +288,7 @@ void CSubmoduleUpdateDlg::Refresh()
 		{
 			CString part = path.Tokenize(L"|", pos);
 			if (!part.IsEmpty())
-				selected.push_back(part);
+				selected.push_back(std::wstring(part));
 		}
 	}
 	else
@@ -299,7 +299,7 @@ void CSubmoduleUpdateDlg::Refresh()
 
 	for (size_t i = 0; i < list.size(); ++i)
 	{
-		m_PathListBox.AddString(list[i]);
+		m_PathListBox.AddString(list[i].c_str());
 		if (selected.size() == 0)
 			m_PathListBox.SetSel(static_cast<int>(i));
 		else

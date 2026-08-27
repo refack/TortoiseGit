@@ -95,7 +95,7 @@ bool SubmoduleUpdateCommand::Execute()
 		{
 			CString path = orgPathList[i].GetSubPath(CTGitPath(super.GetString())).GetGitPathString().c_str();
 			if (!path.IsEmpty())
-				pathFilterList.push_back(path);
+				pathFilterList.push_back(std::wstring(path));
 		}
 	}
 
@@ -105,7 +105,7 @@ bool SubmoduleUpdateCommand::Execute()
 	{
 		CString selectedPath = parser.GetVal(L"selectedpath");
 		selectedPath.Replace(L'\\', L'/');
-		submoduleUpdateDlg.m_PathList.push_back(selectedPath);
+		submoduleUpdateDlg.m_PathList.push_back(std::wstring(selectedPath));
 	}
 	if (submoduleUpdateDlg.DoModal() != IDOK)
 		return false;
@@ -149,7 +149,7 @@ bool SubmoduleUpdateCommand::Execute()
 		}
 	}
 	else
-		progress.m_GitCmdList.push_back(L"git.exe " + cmd);
+		progress.m_GitCmdList.push_back(std::format(L"git.exe {}", cmd));
 
 	progress.m_PostCmdCallback = [&](DWORD status, PostCmdList& postCmdList)
 	{
@@ -218,7 +218,7 @@ bool SubmoduleSyncCommand::Execute()
 					continue;
 				}
 			}
-			progress.m_GitCmdList.push_back(str);
+			progress.m_GitCmdList.push_back(std::wstring(str));
 		}
 	}
 

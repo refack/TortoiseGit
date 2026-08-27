@@ -278,7 +278,7 @@ private:
 
 	bool			UpdateSelectedEntry (ogdf::node clickedentry);
 	void			AppendMenu (CMenu& popup, UINT title, UINT command, UINT flags = MF_ENABLED);
-	void			AppendMenu(CMenu& popup, CString title, UINT command, const CString* extra = nullptr, CMenu* submenu = nullptr);
+	void			AppendMenu(CMenu& popup, CString title, UINT command, const std::wstring* extra = nullptr, CMenu* submenu = nullptr);
 	void			DoShowLog() const;
 	void			DoSwitch(const CString& rev) const;
 	void			DoBrowseRepo() const;

@@ -222,8 +222,8 @@ void CPushDlg::Refresh()
 			m_Remote.AddString(CString(MAKEINTRESOURCE(IDS_PROC_PUSHFETCH_ALLREMOTES)));
 		for (unsigned int i = 0; i < list.size(); ++i)
 		{
-			m_Remote.AddString(list[i]);
-			if(list[i] == remote)
+			m_Remote.AddString(list[i].c_str());
+			if (list[i] == tgit::wstr::View(static_cast<CString>(remote)))
 				sel = i + (list.size() > 1 ? 1 : 0);
 		}
 	}

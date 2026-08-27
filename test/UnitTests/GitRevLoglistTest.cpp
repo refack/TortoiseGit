@@ -401,7 +401,7 @@ static void SafeGetSimpleList(CGit* cGit)
 	EXPECT_EQ(TRUE, rev.m_IsSimpleListReady);
 	EXPECT_EQ(FALSE, rev.m_IsDiffFiles);
 	ASSERT_EQ(1U, rev.m_SimpleFileList.size());
-	EXPECT_STREQ(L"ascii.txt", rev.m_SimpleFileList[0]);
+	EXPECT_STREQ(L"ascii.txt", rev.m_SimpleFileList[0].c_str());
 	rev.Clear();
 	rev.m_CommitHash = CGitHash::FromHexStr(L"dead91b4aedeaddeaddead2a56d3c473c705dead"); // non-existent commit
 	EXPECT_EQ(-1, rev.SafeGetSimpleList(cGit));
@@ -413,34 +413,34 @@ static void SafeGetSimpleList(CGit* cGit)
 	EXPECT_EQ(0, rev.SafeGetSimpleList(cGit));
 	EXPECT_EQ(TRUE, rev.m_IsSimpleListReady);
 	ASSERT_EQ(4U, rev.m_SimpleFileList.size());
-	EXPECT_STREQ(L"copy/ansi.txt", rev.m_SimpleFileList[0]);
-	EXPECT_STREQ(L"copy/utf16-be-nobom.txt", rev.m_SimpleFileList[1]);
-	EXPECT_STREQ(L"copy/utf8-bom.txt", rev.m_SimpleFileList[2]);
-	EXPECT_STREQ(L"copy/utf8-nobom.txt", rev.m_SimpleFileList[3]);
+	EXPECT_STREQ(L"copy/ansi.txt", rev.m_SimpleFileList[0].c_str());
+	EXPECT_STREQ(L"copy/utf16-be-nobom.txt", rev.m_SimpleFileList[1].c_str());
+	EXPECT_STREQ(L"copy/utf8-bom.txt", rev.m_SimpleFileList[2].c_str());
+	EXPECT_STREQ(L"copy/utf8-nobom.txt", rev.m_SimpleFileList[3].c_str());
 	rev.Clear();
 	rev.m_CommitHash = CGitHash::FromHexStr(L"8d1ebbcc7eeb63af10ff8bcf7712afb9fcc90b8a"); // merge commit
 	EXPECT_EQ(0, rev.SafeGetSimpleList(cGit));
 	ASSERT_EQ(1U, rev.m_SimpleFileList.size());
-	EXPECT_STREQ(L"newfiles3.txt", rev.m_SimpleFileList[0]);
+	EXPECT_STREQ(L"newfiles3.txt", rev.m_SimpleFileList[0].c_str());
 	rev.Clear();
 	rev.m_CommitHash = CGitHash::FromHexStr(L"18da7c332dcad0f37f9977d9176dce0b0c66f3eb"); // stash commit
 	EXPECT_EQ(0, rev.SafeGetSimpleList(cGit));
 	ASSERT_EQ(1U, rev.m_SimpleFileList.size());
-	EXPECT_STREQ(L"newfiles.txt", rev.m_SimpleFileList[0]);
+	EXPECT_STREQ(L"newfiles.txt", rev.m_SimpleFileList[0].c_str());
 	rev.Clear();
 	rev.m_CommitHash = CGitHash::FromHexStr(L"844309789a13614b52d5e7cbfe6350dd73d1dc72"); // root commit
 	EXPECT_EQ(0, rev.SafeGetSimpleList(cGit));
 	ASSERT_EQ(1U, rev.m_SimpleFileList.size());
-	EXPECT_STREQ(L"ansi.txt", rev.m_SimpleFileList[0]);
+	EXPECT_STREQ(L"ansi.txt", rev.m_SimpleFileList[0].c_str());
 	rev.Clear();
 	rev.m_CommitHash = CGitHash::FromHexStr(L"4c5c93d2a0b368bc4570d5ec02ab03b9c4334d44");
 	EXPECT_EQ(0, rev.SafeGetSimpleList(cGit));
 	ASSERT_EQ(5U, rev.m_SimpleFileList.size());
-	EXPECT_STREQ(L"ansi.txt", rev.m_SimpleFileList[0]); // has same hash as was-ansi.txt?!
-	EXPECT_STREQ(L"newfiles2 - Cöpy.txt", rev.m_SimpleFileList[1]);
-	EXPECT_STREQ(L"utf16-be-nobom.txt", rev.m_SimpleFileList[2]);
-	EXPECT_STREQ(L"utf8-bom.txt", rev.m_SimpleFileList[3]);
-	EXPECT_STREQ(L"was-ansi.txt", rev.m_SimpleFileList[4]);
+	EXPECT_STREQ(L"ansi.txt", rev.m_SimpleFileList[0].c_str()); // has same hash as was-ansi.txt?!
+	EXPECT_STREQ(L"newfiles2 - Cöpy.txt", rev.m_SimpleFileList[1].c_str());
+	EXPECT_STREQ(L"utf16-be-nobom.txt", rev.m_SimpleFileList[2].c_str());
+	EXPECT_STREQ(L"utf8-bom.txt", rev.m_SimpleFileList[3].c_str());
+	EXPECT_STREQ(L"was-ansi.txt", rev.m_SimpleFileList[4].c_str());
 }
 
 TEST_P(GitRevLoglistCBasicGitWithTestRepoFixture, SafeGetSimpleList)
@@ -460,32 +460,32 @@ static void SafeGetSimpleList_Submodule(CGit* cGit)
 	rev.m_CommitHash = CGitHash::FromHexStr(L"900539cd24776a94d1b642358ccfdb9d897c8254"); // added submodule
 	EXPECT_EQ(0, rev.SafeGetSimpleList(cGit));
 	ASSERT_EQ(1U, rev.m_SimpleFileList.size());
-	EXPECT_STREQ(L"something", rev.m_SimpleFileList[0]);
+	EXPECT_STREQ(L"something", rev.m_SimpleFileList[0].c_str());
 	rev.Clear();
 	rev.m_CommitHash = CGitHash::FromHexStr(L"c8d17f57c7b511aff4aa2fbfae158902281cad8e"); // modified submodule
 	EXPECT_EQ(0, rev.SafeGetSimpleList(cGit));
 	ASSERT_EQ(1U, rev.m_SimpleFileList.size());
-	EXPECT_STREQ(L"something", rev.m_SimpleFileList[0]);
+	EXPECT_STREQ(L"something", rev.m_SimpleFileList[0].c_str());
 	rev.Clear();
 	rev.m_CommitHash = CGitHash::FromHexStr(L"4ed8d1f9ce9aedc6ad044d9051cb584a8bc294ac"); // deleted submodule
 	EXPECT_EQ(0, rev.SafeGetSimpleList(cGit));
 	ASSERT_EQ(1U, rev.m_SimpleFileList.size());
-	EXPECT_STREQ(L"something", rev.m_SimpleFileList[0]);
+	EXPECT_STREQ(L"something", rev.m_SimpleFileList[0].c_str());
 	rev.Clear();
 	rev.m_CommitHash = CGitHash::FromHexStr(L"2e63f1a55bc3dce074897200b226009f575fbcae"); // submodule to file
 	EXPECT_EQ(0, rev.SafeGetSimpleList(cGit));
 	ASSERT_EQ(1U, rev.m_SimpleFileList.size());
-	EXPECT_STREQ(L"something", rev.m_SimpleFileList[0]);
+	EXPECT_STREQ(L"something", rev.m_SimpleFileList[0].c_str());
 	rev.Clear();
 	rev.m_CommitHash = CGitHash::FromHexStr(L"07ac6e5916c03747f7485195deb7ec9100d1c2ef"); // file to submodule
 	EXPECT_EQ(0, rev.SafeGetSimpleList(cGit));
 	ASSERT_EQ(1U, rev.m_SimpleFileList.size());
-	EXPECT_STREQ(L"something", rev.m_SimpleFileList[0]);
+	EXPECT_STREQ(L"something", rev.m_SimpleFileList[0].c_str());
 	rev.Clear();
 	rev.m_CommitHash = CGitHash::FromHexStr(L"2d2017245cf3d016c64e5ad4eb6b0f1bccd1cf7f"); // merge use third
 	EXPECT_EQ(0, rev.SafeGetSimpleList(cGit));
 	ASSERT_EQ(1U, rev.m_SimpleFileList.size());
-	EXPECT_STREQ(L"something", rev.m_SimpleFileList[0]);
+	EXPECT_STREQ(L"something", rev.m_SimpleFileList[0].c_str());
 }
 
 TEST_P(GitRevLoglistCBasicGitWithSubmoduleRepoFixture, SafeGetSimpleList)

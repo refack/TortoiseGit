@@ -570,7 +570,7 @@ void CRevisionGraphWnd::DrawTexts (GraphicsDevice& graphics, const CRect& /*logR
 				auto colors = &colorsAndBrushes.Other;
 
 				CGit::REF_TYPE refType;
-				CString shortname = CGit::GetShortName(ref, &refType);
+				CString shortname = CGit::GetShortName(ref.c_str(), &refType);
 				switch (refType)
 				{
 				case CGit::REF_TYPE::LOCAL_BRANCH:
@@ -725,7 +725,7 @@ void CRevisionGraphWnd::SetNodeRect(GraphicsDevice& graphics, Gdiplus::Font& fon
 	{
 		lines = static_cast<int>((*it).second.size());
 		if (graphics.graphics)
-			std::for_each((*it).second.cbegin(), (*it).second.cend(), [&](const auto& refName) { MeasureTextLength(graphics, font, CGit::GetShortName(refName, nullptr), xmax, ymax); });
+			std::for_each((*it).second.cbegin(), (*it).second.cend(), [&](const auto& refName) { MeasureTextLength(graphics, font, CGit::GetShortName(refName.c_str(), nullptr), xmax, ymax); });
 	}
 	const auto fnMeasureSuperRepoText = [&](const CGitHash& superRepoHash, const CString& label) {
 		if (rev != superRepoHash)

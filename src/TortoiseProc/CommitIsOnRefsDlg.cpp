@@ -150,7 +150,7 @@ void CCommitIsOnRefsDlg::AddToList()
 	for (size_t i = 0; i < m_RefList.size(); ++i)
 	{
 		int nImage = -1;
-		CString ref = m_RefList[i];
+		CString ref = m_RefList[i].c_str();
 		if (CStringUtils::StartsWith(ref, L"refs/tags/"))
 			nImage = 0;
 		else if (CStringUtils::StartsWith(ref, L"refs/remotes/"))
@@ -280,7 +280,7 @@ void CCommitIsOnRefsDlg::OnContextMenu(CWnd* pWnd, CPoint point)
 		STRING_VECTOR selectedRefs;
 		POSITION pos = m_cRefList.GetFirstSelectedItemPosition();
 		while (pos)
-			selectedRefs.push_back(m_cRefList.GetItemText(m_cRefList.GetNextSelectedItem(pos), 0));
+			selectedRefs.push_back(std::wstring(m_cRefList.GetItemText(m_cRefList.GetNextSelectedItem(pos), 0)));
 		bool needSep = false;
 		if (selectedRefs.size() == 2)
 		{
@@ -323,19 +323,19 @@ void CCommitIsOnRefsDlg::OnContextMenu(CWnd* pWnd, CPoint point)
 			CFileDiffDlg dlg;
 			dlg.SetDiff(
 				nullptr,
-				selectedRefs[0],
-				selectedRefs[1]);
+				selectedRefs[0].c_str(),
+				selectedRefs[1].c_str());
 			dlg.DoModal();
 		}
 		break;
 		case eCmd_UnifiedDiff:
-			CAppUtils::StartShowUnifiedDiff(GetSafeHwnd(), CTGitPath(), selectedRefs.at(0), CTGitPath(), selectedRefs.at(1), !!(GetAsyncKeyState(VK_SHIFT) & 0x8000));
+			CAppUtils::StartShowUnifiedDiff(GetSafeHwnd(), CTGitPath(), selectedRefs.at(0).c_str(), CTGitPath(), selectedRefs.at(1).c_str(), !!(GetAsyncKeyState(VK_SHIFT) & 0x8000));
 			break;
 		case eCmd_ViewLog:
 		{
 			CString sCmd = L"/command:log";
 			sCmd += L" /path:\"" + g_Git.m_CurrentDir + L"\" ";
-			sCmd += L" /endrev:" + CCmdLineParser::EscapeValue(selectedRefs.at(0));
+			sCmd += std::format(L" /endrev:{}", CCmdLineParser::EscapeValue(selectedRefs.at(0))).c_str();
 			CAppUtils::RunTortoiseGitProc(sCmd);
 		}
 		break;
@@ -354,7 +354,7 @@ void CCommitIsOnRefsDlg::OnContextMenu(CWnd* pWnd, CPoint point)
 		}
 		break;
 		case eCmd_RepoBrowser:
-			CAppUtils::RunTortoiseGitProc(L"/command:repobrowser /path:\"" + g_Git.m_CurrentDir + L"\" /rev:" + CCmdLineParser::EscapeValue(selectedRefs[0]));
+			CAppUtils::RunTortoiseGitProc(std::format(L"/command:repobrowser /path:\"{}\" /rev:{}", g_Git.m_CurrentDir, CCmdLineParser::EscapeValue(selectedRefs[0])).c_str());
 			break;
 		case eCmd_Copy:
 			CopySelectionToClipboard();
@@ -362,7 +362,7 @@ void CCommitIsOnRefsDlg::OnContextMenu(CWnd* pWnd, CPoint point)
 		case eCmd_DiffWC:
 		{
 			CString sCmd;
-			sCmd.Format(L"/command:showcompare /path:\"%s\" /revision1:%s /revision2:%s", static_cast<LPCWSTR>(g_Git.m_CurrentDir), static_cast<LPCWSTR>(CCmdLineParser::EscapeValue(selectedRefs[0])), GitRev::GetWorkingCopyRef());
+			sCmd = std::format(L"/command:showcompare /path:\"{}\" /revision1:{} /revision2:{}", g_Git.m_CurrentDir, CCmdLineParser::EscapeValue(selectedRefs[0]), GitRev::GetWorkingCopyRef()).c_str();
 			if (!!(GetAsyncKeyState(VK_SHIFT) & 0x8000))
 				sCmd += L" /alternative";
 
@@ -379,7 +379,7 @@ void CCommitIsOnRefsDlg::OnItemChangedListRefs(NMHDR* pNMHDR, LRESULT* pResult)
 	*pResult = 0;
 
 	if (pNMListView->iItem >= 0 && m_RefList.size() > static_cast<size_t>(pNMListView->iItem) && (pNMListView->uNewState & LVIS_SELECTED))
-		m_sLastSelected = m_RefList[pNMListView->iItem];
+		m_sLastSelected = m_RefList[pNMListView->iItem].c_str();
 }
 
 void CCommitIsOnRefsDlg::OnNMDblClickListRefs(NMHDR* pNMHDR, LRESULT* pResult)
@@ -398,10 +398,10 @@ CString CCommitIsOnRefsDlg::GetTwoSelectedRefs(const STRING_VECTOR& selectedRefs
 {
 	ASSERT(selectedRefs.size() == 2);
 
-	if (selectedRefs.at(0) == lastSelected)
-		return g_Git.StripRefName(selectedRefs.at(1)) + separator + g_Git.StripRefName(lastSelected);
+	if (selectedRefs.at(0) == tgit::wstr::View(lastSelected))
+		return g_Git.StripRefName(selectedRefs.at(1).c_str()) + separator + g_Git.StripRefName(lastSelected);
 	else
-		return g_Git.StripRefName(selectedRefs.at(0)) + separator + g_Git.StripRefName(lastSelected);
+		return g_Git.StripRefName(selectedRefs.at(0).c_str()) + separator + g_Git.StripRefName(lastSelected);
 }
 
 void CCommitIsOnRefsDlg::StartGetRefsThread()
@@ -445,7 +445,7 @@ UINT CCommitIsOnRefsDlg::GetRefsThread()
 		STRING_VECTOR refs;
 		g_Git.GetRefList(refs);
 		for (const auto& ref : refs)
-			m_cRevEdit.AddSearchString(ref);
+			m_cRevEdit.AddSearchString(ref.c_str());
 		m_bRefsLoaded = true;
 	}
 

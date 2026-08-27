@@ -98,7 +98,7 @@ BOOL CSettingGitRemote::OnInitDialog()
 
 	m_ctrlRemoteList.ResetContent();
 	for (size_t i = 0; i < remotes.size(); i++)
-		m_ctrlRemoteList.AddString(remotes[i]);
+		m_ctrlRemoteList.AddString(remotes[i].c_str());
 
 	m_ctrlTagOpt.AddString(CString(MAKEINTRESOURCE(IDS_FETCH_REACHABLE)));
 	m_ctrlTagOpt.AddString(CString(MAKEINTRESOURCE(IDS_NONE)));

@@ -137,12 +137,12 @@ struct TGitRef
 	// overload set around it. Say `.name`.
 };
 
-using STRING_VECTOR = std::vector<CString>;
-using MAP_HASH_NAME = std::unordered_map<CGitHash, STRING_VECTOR>;
 // std::wstring rather than CString, for the reason WideString.h opens with:
 // CString is a different type in an MFC project than in an ATL one, so an alias
 // naming it cannot appear in a header both flavors compile. Values, not views -
 // these containers own their strings and outlive whatever produced them.
+using STRING_VECTOR = std::vector<std::wstring>;
+using MAP_HASH_NAME = std::unordered_map<CGitHash, STRING_VECTOR>;
 using MAP_STRING_STRING = std::map<std::wstring, std::wstring>;
 using REF_VECTOR = std::vector<TGitRef>;
 using BYTE_VECTOR = CGitByteArray;

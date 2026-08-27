@@ -106,7 +106,7 @@ BOOL CFirstStartWizardAuthentication::OnWizardFinish()
 			return FALSE;
 		}
 
-		if (m_ctrlSimpleCredential.GetCurSel() == 0 && m_availableHelpers.at(0) == CString(MAKEINTRESOURCE(IDS_NONE)))
+		if (m_ctrlSimpleCredential.GetCurSel() == 0 && m_availableHelpers.at(0) == tgit::wstr::View(CString(MAKEINTRESOURCE(IDS_NONE))))
 		{
 			int ret = git_config_delete_entry(config, "credential.helper");
 			if (ret != 0 && ret != GIT_ENOTFOUND)
@@ -115,7 +115,7 @@ BOOL CFirstStartWizardAuthentication::OnWizardFinish()
 				return FALSE;
 			}
 		}
-		else if (git_config_set_string(config, "credential.helper", CUnicodeUtils::GetUTF8(m_availableHelpers.at(m_ctrlSimpleCredential.GetCurSel()))))
+		else if (git_config_set_string(config, "credential.helper", CUnicodeUtils::StdGetUTF8(m_availableHelpers.at(m_ctrlSimpleCredential.GetCurSel())).c_str()))
 		{
 			MessageBox(g_Git.GetLibGit2LastErr(), L"TortoiseGit", MB_ICONEXCLAMATION);
 			return FALSE;
@@ -127,7 +127,7 @@ BOOL CFirstStartWizardAuthentication::OnWizardFinish()
 
 static void AddHelper(CComboBox& combobox, STRING_VECTOR& availableHelpers, const CString& helper, const CString& selected = L"")
 {
-	availableHelpers.push_back(helper);
+	availableHelpers.push_back(std::wstring(helper));
 	int idx = combobox.AddString(helper);
 	if (selected == helper)
 		combobox.SetCurSel(idx);

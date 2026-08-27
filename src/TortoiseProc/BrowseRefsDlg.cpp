@@ -55,15 +55,15 @@ static int SplitRemoteBranchName(CString ref, CString &remote, CString &branch)
 
 	for (size_t i = 0; i < list.size(); ++i)
 	{
-		if (CStringUtils::StartsWith(ref, list[i] + L"/"))
+		if (CStringUtils::StartsWith(ref, (list[i] + L"/").c_str()))
 		{
-			remote = list[i];
-			branch = ref.Mid(list[i].GetLength() + 1);
+			remote = list[i].c_str();
+			branch = ref.Mid(SafeSizeToInt(list[i].size()) + 1);
 			return 0;
 		}
-		if (ref == list[i])
+		if (ref == list[i].c_str())
 		{
-			remote = list[i];
+			remote = list[i].c_str();
 			branch.Empty();
 			return 0;
 		}
@@ -489,7 +489,7 @@ void CBrowseRefsDlg::Refresh(CString selectRef)
 		CGit::GetShortName(ref.m_UpstreamRef, ref.m_UpstreamRef, L"refs/");
 		treeLeaf.m_csUpstream = ref.m_UpstreamRef;
 		CGit::GetShortName(treeLeaf.m_csUpstream, treeLeaf.m_csUpstream, L"remotes/");
-		if (!ref.m_UpstreamRef.IsEmpty() && !std::binary_search(remoteBranches.cbegin(), remoteBranches.cend(), ref.m_UpstreamRef))
+		if (!ref.m_UpstreamRef.IsEmpty() && !std::binary_search(remoteBranches.cbegin(), remoteBranches.cend(), tgit::wstr::View(ref.m_UpstreamRef)))
 			treeLeaf.m_csUpstream = L"(gone: " + treeLeaf.m_csUpstream + L")";
 		treeLeaf.m_csSubject = ref.GetSubject();
 		treeLeaf.m_csAuthor = ref.GetAuthorName();
@@ -735,7 +735,7 @@ bool CBrowseRefsDlg::DoDeleteRefs(const VectorPShadowTree& leafs)
 			CString branchToDelete = completeRefName.Mid(static_cast<int>(wcslen(L"refs/remotes/")));
 			CString remoteName, remoteBranchToDelete;
 			if (!SplitRemoteBranchName(branchToDelete, remoteName, remoteBranchToDelete))
-				remoteBranches[remoteName].push_back(remoteBranchToDelete);
+				remoteBranches[remoteName].push_back(std::wstring(remoteBranchToDelete));
 		}
 		else
 		{
@@ -805,7 +805,7 @@ bool CBrowseRefsDlg::DoDeleteRef(const CString& completeRefName)
 		sysProgressDlg.ShowModal(this, true);
 
 		STRING_VECTOR list;
-		list.push_back(L"refs/heads/" + remoteBranchToDelete);
+		list.push_back(std::format(L"refs/heads/{}", remoteBranchToDelete));
 		if (g_Git.DeleteRemoteRefs(remoteName, list))
 		{
 			MessageBox(g_Git.GetGitLastErr(L"Could not delete remote ref.", CGit::GIT_CMD_PUSH), L"TortoiseGit", MB_OK | MB_ICONERROR);
@@ -895,7 +895,7 @@ int findVectorPosition(const STRING_VECTOR& vector, const CString& entry)
 	int i = 0;
 	for (auto it = vector.cbegin(); it != vector.cend(); ++it, ++i)
 	{
-		if (*it == entry)
+		if (*it == tgit::wstr::View(entry))
 			return i;
 	}
 	return -1;
@@ -1116,7 +1116,7 @@ void CBrowseRefsDlg::ShowContextMenu(CPoint point, HTREEITEM hTreePos, VectorPSh
 				for (auto it = remotes.cbegin(); it != remotes.cend(); ++it, ++i)
 				{
 					CString temp;
-					temp.Format(IDS_DELETEREMOTETAGON, static_cast<LPCWSTR>(*it));
+					temp.Format(IDS_DELETEREMOTETAGON, it->c_str());
 					popupMenu.AppendMenuIcon(eCmd_DeleteRemoteTag | (i << 16), temp, IDI_DELETE);
 				}
 			}
@@ -1191,7 +1191,7 @@ void CBrowseRefsDlg::ShowContextMenu(CPoint point, HTREEITEM hTreePos, VectorPSh
 			const int remoteInx = selection >> 16;
 			if (remoteInx < 0 || static_cast<size_t>(remoteInx) >= remotes.size())
 				return;
-			deleteRemoteTagDlg.m_sRemote = remotes[remoteInx];
+			deleteRemoteTagDlg.m_sRemote = remotes[remoteInx].c_str();
 			deleteRemoteTagDlg.DoModal();
 		}
 		break;

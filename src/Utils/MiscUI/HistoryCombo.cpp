@@ -247,7 +247,7 @@ void CHistoryCombo::SetList(const STRING_VECTOR& list)
 	Reset();
 	for (size_t i = 0; i < list.size(); ++i)
 	{
-		CString combostring = list[i];
+		CString combostring = list[i].c_str();
 		combostring.Replace('\r', ' ');
 		combostring.Replace('\n', ' ');
 		if (m_bTrim)

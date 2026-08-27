@@ -1249,7 +1249,7 @@ LRESULT CFileDiffDlg::OnRefLoad(WPARAM /*wParam*/, LPARAM /*lParam*/)
 {
 	for (size_t i = 0; i < m_Reflist.size(); ++i)
 	{
-		CString str=m_Reflist[i];
+		CString str=m_Reflist[i].c_str();
 
 		if (CStringUtils::StartsWith(str, L"remotes/"))
 			str = str.Mid(static_cast<int>(wcslen(L"remotes/")));

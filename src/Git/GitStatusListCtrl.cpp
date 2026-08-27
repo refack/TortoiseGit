@@ -3537,7 +3537,9 @@ void CGitStatusListCtrl::ResetChecked(const CTGitPath& entry)
 		adjustedEntry.SetFromWin(tgit::wstr::Right(entry.GetWinPathString(), static_cast<int>(entry.GetWinPathString().size()) - g_Git.m_CurrentDir.GetLength() - 1));
 	if (entry.IsDirectory())
 	{
-		STRING_VECTOR toDelete;
+		// Not a STRING_VECTOR: these are keys of a std::map<CString, bool>, not git
+		// strings, and calling them the same thing is what made this look convertible.
+		std::vector<CString> toDelete;
 		for (auto it = m_mapFilenameToChecked.begin(); it != m_mapFilenameToChecked.end(); ++it)
 		{
 			if (adjustedEntry.IsAncestorOf(CTGitPath{ it->first.GetString() }))

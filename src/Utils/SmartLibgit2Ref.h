@@ -21,6 +21,8 @@
 #include "UnicodeUtils.h"
 #include "GitObjectFormat.h"
 #include <vector>
+#include <string>
+#include <string_view>
 
 /**
 * \ingroup Utils
@@ -50,26 +52,27 @@ public:
 	CSmartBuffer(const CSmartBuffer&) = delete;
 	CSmartBuffer& operator=(const CSmartBuffer&) = delete;
 
-#if defined(_MFC_VER) || defined(CSTRING_AVAILABLE)
 	inline operator std::string_view() const
 		requires std::is_same_v<HandleType, git_buf>
 	{
 		return std::string_view(m_Ref.ptr, m_Ref.size);
 	}
 
+	// Out of the CSTRING_AVAILABLE gate below, along with the string_view
+	// conversion above: with a std::vector<std::wstring> to fill, neither of them
+	// names CString any more, so neither needs a flavor to be chosen for it.
+	inline void AppendTo(std::vector<std::wstring>& list) const
+		requires std::is_same_v<HandleType, git_strarray>
+	{
+		for (size_t i = 0; i < m_Ref.count; ++i)
+			list.push_back(CUnicodeUtils::StdGetUnicode(m_Ref.strings[i]));
+	}
+
+#if defined(_MFC_VER) || defined(CSTRING_AVAILABLE)
 	inline CString ToString() const
 		requires std::is_same_v<HandleType, git_buf>
 	{
 		return CUnicodeUtils::GetUnicode(*this);
-	}
-
-	inline void AppendTo(std::vector<CString>& list) const
-		requires std::is_same_v<HandleType, git_strarray>
-	{
-		for (size_t i = 0; i < m_Ref.count; ++i)
-		{
-			list.push_back(CUnicodeUtils::GetUnicode(m_Ref.strings[i]));
-		}
 	}
 #endif
 

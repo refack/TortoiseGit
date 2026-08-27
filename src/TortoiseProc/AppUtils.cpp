@@ -1388,7 +1388,7 @@ bool CAppUtils::OpenIgnoreFile(HWND hWnd, CIgnoreFile &file, const CString& file
 	{
 		CString fileText;
 		while (file.ReadString(fileText))
-			file.m_Items.push_back(fileText);
+			file.m_Items.push_back(std::wstring(fileText));
 		file.Seek(file.GetLength() - 1, 0);
 		char lastchar[1] = { 0 };
 		file.Read(lastchar, 1);
@@ -1463,7 +1463,7 @@ bool CAppUtils::IgnoreFile(HWND hWnd, const CTGitPathList& path,bool IsMask)
 				bool found = false;
 				for (size_t j = 0; j < file.m_Items.size(); ++j)
 				{
-					if (file.m_Items[j] == ignorePattern)
+					if (file.m_Items[j] == tgit::wstr::View(ignorePattern))
 					{
 						found = true;
 						break;
@@ -1471,7 +1471,7 @@ bool CAppUtils::IgnoreFile(HWND hWnd, const CTGitPathList& path,bool IsMask)
 				}
 				if (!found)
 				{
-					file.m_Items.push_back(ignorePattern);
+					file.m_Items.push_back(std::wstring(ignorePattern));
 					CStringA ignorePatternA = CUnicodeUtils::GetUTF8(ignorePattern);
 					ignorePatternA += file.m_eol.c_str();
 					file.Write(ignorePatternA, ignorePatternA.GetLength());
@@ -2295,7 +2295,7 @@ bool DoPull(HWND hWnd, const CString& url, BOOL bFetchTags, bool bNoFF, bool bFF
 
 			STRING_VECTOR remotes;
 			g_Git.GetRemoteList(remotes);
-			if (std::find(remotes.begin(), remotes.end(), url) != remotes.end())
+			if (std::find(remotes.begin(), remotes.end(), tgit::wstr::View(url)) != remotes.end())
 			{
 				CString currentBranch;
 				if (g_Git.GetCurrentBranchFromFile(g_Git.m_CurrentDir, currentBranch))
@@ -2471,7 +2471,7 @@ static bool DoFetch(HWND hWnd, const CString& url, const bool fetchAllRemotes, c
 		g_Git.GetRemoteList(list);
 		for (auto it = list.cbegin(); it != list.cend(); ++it)
 		{
-			if (url == *it)
+			if (url == it->c_str())
 			{
 				upstream.Empty();
 				if (remoteBranch.IsEmpty()) // pulldlg might clear remote branch if its the default tracked branch
@@ -2484,11 +2484,11 @@ static bool DoFetch(HWND hWnd, const CString& url, const bool fetchAllRemotes, c
 						CString pullRemote, pullBranch;
 						g_Git.GetRemoteTrackedBranch(currentBranch, pullRemote, pullBranch);
 						if (!pullRemote.IsEmpty() && !pullBranch.IsEmpty() && pullRemote == url) // pullRemote == url is just another safety-check and should not be needed
-							upstream = L"remotes/" + *it + L'/' + pullBranch;
+							upstream = std::format(L"remotes/{}/{}", *it, pullBranch).c_str();
 					}
 				}
 				else
-					upstream = L"remotes/" + *it + L'/' + remoteBranch;
+					upstream = std::format(L"remotes/{}/{}", *it, remoteBranch).c_str();
 
 				g_Git.GetHash(oldUpstreamHash, upstream);
 				break;
@@ -2731,7 +2731,7 @@ bool CAppUtils::DoPush(HWND hWnd, bool tags, bool allRemotes, bool allBranches, 
 	if (allRemotes)
 		g_Git.GetRemoteList(remotesList);
 	else
-		remotesList.push_back(remote);
+		remotesList.push_back(std::wstring(remote));
 
 	for (unsigned int i = 0; i < remotesList.size(); ++i)
 	{
@@ -2746,7 +2746,7 @@ bool CAppUtils::DoPush(HWND hWnd, bool tags, bool allRemotes, bool allBranches, 
 
 				if (tags)
 				{
-					progress.m_GitCmdList.push_back(cmd);
+					progress.m_GitCmdList.push_back(std::wstring(cmd));
 					cmd.Format(L"git.exe push --tags %s -- %s",
 							   static_cast<LPCWSTR>(arg),
 							   static_cast<LPCWSTR>(CGit::QuoteParameter(remotesList[i])));
@@ -2771,14 +2771,14 @@ bool CAppUtils::DoPush(HWND hWnd, bool tags, bool allRemotes, bool allBranches, 
 			MessageBox(hWnd, e.cause(), L"TortoiseGit", MB_OK | MB_ICONERROR);
 			return false;
 		}
-		progress.m_GitCmdList.push_back(cmd);
+		progress.m_GitCmdList.push_back(std::wstring(cmd));
 
 		if (!allBranches && !!CRegDWORD(L"Software\\TortoiseGit\\ShowBranchRevisionNumber", FALSE))
 		{
 			try
 			{
 				cmd.Format(L"git.exe rev-list --count --first-parent --end-of-options %s --", static_cast<LPCWSTR>(CGit::QuoteParameter(localBranch)));
-				progress.m_GitCmdList.push_back(cmd);
+				progress.m_GitCmdList.push_back(std::wstring(cmd));
 			}
 			catch (illegal_git_parameter& e)
 			{
@@ -3532,8 +3532,8 @@ bool CAppUtils::BisectStart(HWND hWnd, const CString& lastGood, const CString& f
 		progress.m_GitCmdList.push_back(L"git.exe bisect start");
 		try
 		{
-			progress.m_GitCmdList.push_back(L"git.exe bisect good " + CGit::QuoteParameter(bisectStartDlg.m_LastGoodRevision));
-			progress.m_GitCmdList.push_back(L"git.exe bisect bad " + CGit::QuoteParameter(bisectStartDlg.m_FirstBadRevision));
+			progress.m_GitCmdList.push_back(std::format(L"git.exe bisect good {}", CGit::QuoteParameter(bisectStartDlg.m_LastGoodRevision)));
+			progress.m_GitCmdList.push_back(std::format(L"git.exe bisect bad {}", CGit::QuoteParameter(bisectStartDlg.m_FirstBadRevision)));
 		}
 		catch (illegal_git_parameter& e)
 		{
@@ -3730,7 +3730,7 @@ bool CAppUtils::DeleteRef(CWnd* parent, const CString& ref)
 			sysProgressDlg.SetShowProgressBar(false);
 			sysProgressDlg.ShowModal(parent, true);
 			STRING_VECTOR list;
-			list.push_back(L"refs/heads/" + shortname);
+			list.push_back(std::format(L"refs/heads/{}", shortname));
 			if (g_Git.DeleteRemoteRefs(remoteName, list))
 				CMessageBox::Show(parent->GetSafeOwner()->GetSafeHwnd(), g_Git.GetGitLastErr(L"Could not delete remote ref.", CGit::GIT_CMD_PUSH), L"TortoiseGit", MB_OK | MB_ICONERROR);
 			sysProgressDlg.Stop();

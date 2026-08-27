@@ -922,82 +922,82 @@ static void GetBranchesTagsRefs(CGit& m_Git, config testConfig)
 	EXPECT_EQ(0, m_Git.GetBranchList(branches, &current));
 	ASSERT_EQ(7U, branches.size());
 	EXPECT_EQ(1, current);
-	EXPECT_STREQ(L"forconflict", branches[0]);
-	EXPECT_STREQ(L"master", branches[1]);
-	EXPECT_STREQ(L"master2", branches[2]);
-	EXPECT_STREQ(L"signed-commit", branches[3]);
-	EXPECT_STREQ(L"simple-conflict", branches[4]);
-	EXPECT_STREQ(L"subdir/branch", branches[5]);
-	EXPECT_STREQ(L"tree-ref", branches[6]);
+	EXPECT_STREQ(L"forconflict", branches[0].c_str());
+	EXPECT_STREQ(L"master", branches[1].c_str());
+	EXPECT_STREQ(L"master2", branches[2].c_str());
+	EXPECT_STREQ(L"signed-commit", branches[3].c_str());
+	EXPECT_STREQ(L"simple-conflict", branches[4].c_str());
+	EXPECT_STREQ(L"subdir/branch", branches[5].c_str());
+	EXPECT_STREQ(L"tree-ref", branches[6].c_str());
 
 	branches.clear();
 	current = -2;
 	EXPECT_EQ(0, m_Git.GetBranchList(branches, &current, CGit::BRANCH_ALL));
 	ASSERT_EQ(8U, branches.size());
 	EXPECT_EQ(1, current);
-	EXPECT_STREQ(L"forconflict", branches[0]);
-	EXPECT_STREQ(L"master", branches[1]);
-	EXPECT_STREQ(L"master2", branches[2]);
-	EXPECT_STREQ(L"signed-commit", branches[3]);
-	EXPECT_STREQ(L"simple-conflict", branches[4]);
-	EXPECT_STREQ(L"subdir/branch", branches[5]);
-	EXPECT_STREQ(L"tree-ref", branches[6]);
-	EXPECT_STREQ(L"remotes/origin/master", branches[7]);
+	EXPECT_STREQ(L"forconflict", branches[0].c_str());
+	EXPECT_STREQ(L"master", branches[1].c_str());
+	EXPECT_STREQ(L"master2", branches[2].c_str());
+	EXPECT_STREQ(L"signed-commit", branches[3].c_str());
+	EXPECT_STREQ(L"simple-conflict", branches[4].c_str());
+	EXPECT_STREQ(L"subdir/branch", branches[5].c_str());
+	EXPECT_STREQ(L"tree-ref", branches[6].c_str());
+	EXPECT_STREQ(L"remotes/origin/master", branches[7].c_str());
 
 	branches.clear();
 	current = -2;
 	EXPECT_EQ(0, m_Git.GetBranchList(branches, &current, CGit::BRANCH_ALL, true));
 	ASSERT_EQ(7U, branches.size());
 	EXPECT_EQ(-2, current); // not touched
-	EXPECT_STREQ(L"forconflict", branches[0]);
-	EXPECT_STREQ(L"master2", branches[1]);
-	EXPECT_STREQ(L"signed-commit", branches[2]);
-	EXPECT_STREQ(L"simple-conflict", branches[3]);
-	EXPECT_STREQ(L"subdir/branch", branches[4]);
-	EXPECT_STREQ(L"tree-ref", branches[5]);
-	EXPECT_STREQ(L"remotes/origin/master", branches[6]);
+	EXPECT_STREQ(L"forconflict", branches[0].c_str());
+	EXPECT_STREQ(L"master2", branches[1].c_str());
+	EXPECT_STREQ(L"signed-commit", branches[2].c_str());
+	EXPECT_STREQ(L"simple-conflict", branches[3].c_str());
+	EXPECT_STREQ(L"subdir/branch", branches[4].c_str());
+	EXPECT_STREQ(L"tree-ref", branches[5].c_str());
+	EXPECT_STREQ(L"remotes/origin/master", branches[6].c_str());
 
 	branches.clear();
 	EXPECT_EQ(0, m_Git.GetBranchList(branches, nullptr, CGit::BRANCH_ALL, true));
 	ASSERT_EQ(7U, branches.size());
-	EXPECT_STREQ(L"forconflict", branches[0]);
-	EXPECT_STREQ(L"master2", branches[1]);
-	EXPECT_STREQ(L"signed-commit", branches[2]);
-	EXPECT_STREQ(L"simple-conflict", branches[3]);
-	EXPECT_STREQ(L"subdir/branch", branches[4]);
-	EXPECT_STREQ(L"tree-ref", branches[5]);
-	EXPECT_STREQ(L"remotes/origin/master", branches[6]);
+	EXPECT_STREQ(L"forconflict", branches[0].c_str());
+	EXPECT_STREQ(L"master2", branches[1].c_str());
+	EXPECT_STREQ(L"signed-commit", branches[2].c_str());
+	EXPECT_STREQ(L"simple-conflict", branches[3].c_str());
+	EXPECT_STREQ(L"subdir/branch", branches[4].c_str());
+	EXPECT_STREQ(L"tree-ref", branches[5].c_str());
+	EXPECT_STREQ(L"remotes/origin/master", branches[6].c_str());
 
 	branches.clear();
 	current = -2;
 	EXPECT_EQ(0, m_Git.GetBranchList(branches, &current, CGit::BRANCH_REMOTE));
 	ASSERT_EQ(1U, branches.size());
 	EXPECT_EQ(-2, current); // not touched
-	EXPECT_STREQ(L"remotes/origin/master", branches[0]);
+	EXPECT_STREQ(L"remotes/origin/master", branches[0].c_str());
 
 	STRING_VECTOR tags;
 	EXPECT_EQ(0, m_Git.GetTagList(tags));
 	ASSERT_EQ(3U, tags.size());
-	EXPECT_STREQ(L"all-files-signed", tags[0]);
-	EXPECT_STREQ(L"also-signed", tags[1]);
-	EXPECT_STREQ(L"normal-tag", tags[2]);
+	EXPECT_STREQ(L"all-files-signed", tags[0].c_str());
+	EXPECT_STREQ(L"also-signed", tags[1].c_str());
+	EXPECT_STREQ(L"normal-tag", tags[2].c_str());
 
 	STRING_VECTOR refs;
 	EXPECT_EQ(0, m_Git.GetRefList(refs));
 	ASSERT_EQ(13U, refs.size());
-	EXPECT_STREQ(L"refs/heads/forconflict", refs[0]);
-	EXPECT_STREQ(L"refs/heads/master", refs[1]);
-	EXPECT_STREQ(L"refs/heads/master2", refs[2]);
-	EXPECT_STREQ(L"refs/heads/signed-commit", refs[3]);
-	EXPECT_STREQ(L"refs/heads/simple-conflict", refs[4]);
-	EXPECT_STREQ(L"refs/heads/subdir/branch", refs[5]);
-	EXPECT_STREQ(L"refs/heads/tree-ref", refs[6]);
-	EXPECT_STREQ(L"refs/notes/commits", refs[7]);
-	EXPECT_STREQ(L"refs/remotes/origin/master", refs[8]);
-	EXPECT_STREQ(L"refs/stash", refs[9]);
-	EXPECT_STREQ(L"refs/tags/all-files-signed", refs[10]);
-	EXPECT_STREQ(L"refs/tags/also-signed", refs[11]);
-	EXPECT_STREQ(L"refs/tags/normal-tag", refs[12]);
+	EXPECT_STREQ(L"refs/heads/forconflict", refs[0].c_str());
+	EXPECT_STREQ(L"refs/heads/master", refs[1].c_str());
+	EXPECT_STREQ(L"refs/heads/master2", refs[2].c_str());
+	EXPECT_STREQ(L"refs/heads/signed-commit", refs[3].c_str());
+	EXPECT_STREQ(L"refs/heads/simple-conflict", refs[4].c_str());
+	EXPECT_STREQ(L"refs/heads/subdir/branch", refs[5].c_str());
+	EXPECT_STREQ(L"refs/heads/tree-ref", refs[6].c_str());
+	EXPECT_STREQ(L"refs/notes/commits", refs[7].c_str());
+	EXPECT_STREQ(L"refs/remotes/origin/master", refs[8].c_str());
+	EXPECT_STREQ(L"refs/stash", refs[9].c_str());
+	EXPECT_STREQ(L"refs/tags/all-files-signed", refs[10].c_str());
+	EXPECT_STREQ(L"refs/tags/also-signed", refs[11].c_str());
+	EXPECT_STREQ(L"refs/tags/normal-tag", refs[12].c_str());
 
 	MAP_HASH_NAME map;
 	EXPECT_EQ(0, m_Git.GetMapHashToFriendName(map));
@@ -1007,33 +1007,33 @@ static void GetBranchesTagsRefs(CGit& m_Git, config testConfig)
 		ASSERT_EQ(12U, map.size());
 
 	ASSERT_EQ(1U, map[CGitHash::FromHexStr(L"7c3cbfe13a929d2291a574dca45e4fd2d2ac1aa6")].size());
-	EXPECT_STREQ(L"refs/heads/master", map[CGitHash::FromHexStr(L"7c3cbfe13a929d2291a574dca45e4fd2d2ac1aa6")][0]);
+	EXPECT_STREQ(L"refs/heads/master", map[CGitHash::FromHexStr(L"7c3cbfe13a929d2291a574dca45e4fd2d2ac1aa6")][0].c_str());
 	ASSERT_EQ(1U, map[CGitHash::FromHexStr(L"4c5c93d2a0b368bc4570d5ec02ab03b9c4334d44")].size());
-	EXPECT_STREQ(L"refs/heads/signed-commit", map[CGitHash::FromHexStr(L"4c5c93d2a0b368bc4570d5ec02ab03b9c4334d44")][0]);
+	EXPECT_STREQ(L"refs/heads/signed-commit", map[CGitHash::FromHexStr(L"4c5c93d2a0b368bc4570d5ec02ab03b9c4334d44")][0].c_str());
 	ASSERT_EQ(1U, map[CGitHash::FromHexStr(L"31ff87c86e9f6d3853e438cb151043f30f09029a")].size());
-	EXPECT_STREQ(L"refs/heads/subdir/branch", map[CGitHash::FromHexStr(L"31ff87c86e9f6d3853e438cb151043f30f09029a")][0]);
+	EXPECT_STREQ(L"refs/heads/subdir/branch", map[CGitHash::FromHexStr(L"31ff87c86e9f6d3853e438cb151043f30f09029a")][0].c_str());
 	ASSERT_EQ(1U, map[CGitHash::FromHexStr(L"5e702e1712aa6f8cd8e0328a87be006f3a923710")].size());
-	EXPECT_STREQ(L"refs/notes/commits", map[CGitHash::FromHexStr(L"5e702e1712aa6f8cd8e0328a87be006f3a923710")][0]);
+	EXPECT_STREQ(L"refs/notes/commits", map[CGitHash::FromHexStr(L"5e702e1712aa6f8cd8e0328a87be006f3a923710")][0].c_str());
 	ASSERT_EQ(1U, map[CGitHash::FromHexStr(L"18da7c332dcad0f37f9977d9176dce0b0c66f3eb")].size());
-	EXPECT_STREQ(L"refs/stash", map[CGitHash::FromHexStr(L"18da7c332dcad0f37f9977d9176dce0b0c66f3eb")][0]);
+	EXPECT_STREQ(L"refs/stash", map[CGitHash::FromHexStr(L"18da7c332dcad0f37f9977d9176dce0b0c66f3eb")][0].c_str());
 	ASSERT_EQ(1U, map[CGitHash::FromHexStr(L"c5b89de0335fd674e2e421ac4543098cb2f22cde")].size());
-	EXPECT_STREQ(L"refs/heads/simple-conflict", map[CGitHash::FromHexStr(L"c5b89de0335fd674e2e421ac4543098cb2f22cde")][0]);
+	EXPECT_STREQ(L"refs/heads/simple-conflict", map[CGitHash::FromHexStr(L"c5b89de0335fd674e2e421ac4543098cb2f22cde")][0].c_str());
 	ASSERT_EQ(1U, map[CGitHash::FromHexStr(L"10385764a4d42d7428bbeb245015f8f338fc1e40")].size());
-	EXPECT_STREQ(L"refs/heads/forconflict", map[CGitHash::FromHexStr(L"10385764a4d42d7428bbeb245015f8f338fc1e40")][0]);
+	EXPECT_STREQ(L"refs/heads/forconflict", map[CGitHash::FromHexStr(L"10385764a4d42d7428bbeb245015f8f338fc1e40")][0].c_str());
 	ASSERT_EQ(2U, map[CGitHash::FromHexStr(L"49ecdfff36bfe2b9b499b33e5034f427e2fa54dd")].size());
-	EXPECT_STREQ(L"refs/heads/master2", map[CGitHash::FromHexStr(L"49ecdfff36bfe2b9b499b33e5034f427e2fa54dd")][0]);
-	EXPECT_STREQ(L"refs/tags/also-signed^{}", map[CGitHash::FromHexStr(L"49ecdfff36bfe2b9b499b33e5034f427e2fa54dd")][1]);
+	EXPECT_STREQ(L"refs/heads/master2", map[CGitHash::FromHexStr(L"49ecdfff36bfe2b9b499b33e5034f427e2fa54dd")][0].c_str());
+	EXPECT_STREQ(L"refs/tags/also-signed^{}", map[CGitHash::FromHexStr(L"49ecdfff36bfe2b9b499b33e5034f427e2fa54dd")][1].c_str());
 	ASSERT_EQ(1U, map[CGitHash::FromHexStr(L"b9ef30183497cdad5c30b88d32dc1bed7951dfeb")].size());//
-	EXPECT_STREQ(L"refs/tags/normal-tag", map[CGitHash::FromHexStr(L"b9ef30183497cdad5c30b88d32dc1bed7951dfeb")][0]);
+	EXPECT_STREQ(L"refs/tags/normal-tag", map[CGitHash::FromHexStr(L"b9ef30183497cdad5c30b88d32dc1bed7951dfeb")][0].c_str());
 	ASSERT_EQ(1U, map[CGitHash::FromHexStr(L"a9d53b535cb49640a6099860ac4999f5a0857b91")].size());
-	EXPECT_STREQ(L"refs/remotes/origin/master", map[CGitHash::FromHexStr(L"a9d53b535cb49640a6099860ac4999f5a0857b91")][0]);
+	EXPECT_STREQ(L"refs/remotes/origin/master", map[CGitHash::FromHexStr(L"a9d53b535cb49640a6099860ac4999f5a0857b91")][0].c_str());
 	ASSERT_EQ(1U, map[CGitHash::FromHexStr(L"313a41bc88a527289c87d7531802ab484715974f")].size());
-	EXPECT_STREQ(L"refs/tags/all-files-signed^{}", map[CGitHash::FromHexStr(L"313a41bc88a527289c87d7531802ab484715974f")][0]);
+	EXPECT_STREQ(L"refs/tags/all-files-signed^{}", map[CGitHash::FromHexStr(L"313a41bc88a527289c87d7531802ab484715974f")][0].c_str());
 
 	STRING_VECTOR remotes;
 	EXPECT_EQ(0, m_Git.GetRemoteList(remotes));
 	ASSERT_EQ(1U, remotes.size());
-	EXPECT_STREQ(L"origin", remotes[0]);
+	EXPECT_STREQ(L"origin", remotes[0].c_str());
 
 	EXPECT_EQ(-1, m_Git.DeleteRef(L"refs/tags/gibbednet"));
 	branches.clear();
@@ -1134,13 +1134,13 @@ TEST_P(CBasicGitWithTestRepoFixture, GetBranchList_orphan)
 	EXPECT_EQ(0, m_Git.GetBranchList(branches, &current));
 	ASSERT_EQ(7U, branches.size());
 	EXPECT_EQ(-2, current);
-	EXPECT_STREQ(L"forconflict", branches[0]);
-	EXPECT_STREQ(L"master", branches[1]);
-	EXPECT_STREQ(L"master2", branches[2]);
-	EXPECT_STREQ(L"signed-commit", branches[3]);
-	EXPECT_STREQ(L"simple-conflict", branches[4]);
-	EXPECT_STREQ(L"subdir/branch", branches[5]);
-	EXPECT_STREQ(L"tree-ref", branches[6]);
+	EXPECT_STREQ(L"forconflict", branches[0].c_str());
+	EXPECT_STREQ(L"master", branches[1].c_str());
+	EXPECT_STREQ(L"master2", branches[2].c_str());
+	EXPECT_STREQ(L"signed-commit", branches[3].c_str());
+	EXPECT_STREQ(L"simple-conflict", branches[4].c_str());
+	EXPECT_STREQ(L"subdir/branch", branches[5].c_str());
+	EXPECT_STREQ(L"tree-ref", branches[6].c_str());
 }
 
 TEST_P(CBasicGitWithTestRepoFixture, GetBranchList_utf8)
@@ -1154,14 +1154,14 @@ TEST_P(CBasicGitWithTestRepoFixture, GetBranchList_utf8)
 	EXPECT_EQ(0, m_Git.GetBranchList(branches, &current));
 	ASSERT_EQ(8U, branches.size());
 	EXPECT_EQ(0, current);
-	EXPECT_STREQ(L"branch_\u570B\u7ACB1d\u043A", branches[0]);
-	EXPECT_STREQ(L"forconflict", branches[1]);
-	EXPECT_STREQ(L"master", branches[2]);
-	EXPECT_STREQ(L"master2", branches[3]);
-	EXPECT_STREQ(L"signed-commit", branches[4]);
-	EXPECT_STREQ(L"simple-conflict", branches[5]);
-	EXPECT_STREQ(L"subdir/branch", branches[6]);
-	EXPECT_STREQ(L"tree-ref", branches[7]);
+	EXPECT_STREQ(L"branch_\u570B\u7ACB1d\u043A", branches[0].c_str());
+	EXPECT_STREQ(L"forconflict", branches[1].c_str());
+	EXPECT_STREQ(L"master", branches[2].c_str());
+	EXPECT_STREQ(L"master2", branches[3].c_str());
+	EXPECT_STREQ(L"signed-commit", branches[4].c_str());
+	EXPECT_STREQ(L"simple-conflict", branches[5].c_str());
+	EXPECT_STREQ(L"subdir/branch", branches[6].c_str());
+	EXPECT_STREQ(L"tree-ref", branches[7].c_str());
 }
 
 TEST_P(CBasicGitWithTestRepoFixture, GetBranchList_detachedhead)
@@ -1175,26 +1175,26 @@ TEST_P(CBasicGitWithTestRepoFixture, GetBranchList_detachedhead)
 	EXPECT_EQ(0, m_Git.GetBranchList(branches, &current));
 	ASSERT_EQ(7U, branches.size());
 	EXPECT_EQ(-2, current);
-	EXPECT_STREQ(L"forconflict", branches[0]);
-	EXPECT_STREQ(L"master", branches[1]);
-	EXPECT_STREQ(L"master2", branches[2]);
-	EXPECT_STREQ(L"signed-commit", branches[3]);
-	EXPECT_STREQ(L"simple-conflict", branches[4]);
-	EXPECT_STREQ(L"subdir/branch", branches[5]);
-	EXPECT_STREQ(L"tree-ref", branches[6]);
+	EXPECT_STREQ(L"forconflict", branches[0].c_str());
+	EXPECT_STREQ(L"master", branches[1].c_str());
+	EXPECT_STREQ(L"master2", branches[2].c_str());
+	EXPECT_STREQ(L"signed-commit", branches[3].c_str());
+	EXPECT_STREQ(L"simple-conflict", branches[4].c_str());
+	EXPECT_STREQ(L"subdir/branch", branches[5].c_str());
+	EXPECT_STREQ(L"tree-ref", branches[6].c_str());
 
 	branches.clear();
 	current = -2;
 	EXPECT_EQ(0, m_Git.GetBranchList(branches, &current, CGit::BRANCH_LOCAL, true));
 	ASSERT_EQ(7U, branches.size());
 	EXPECT_EQ(-2, current);
-	EXPECT_STREQ(L"forconflict", branches[0]);
-	EXPECT_STREQ(L"master", branches[1]);
-	EXPECT_STREQ(L"master2", branches[2]);
-	EXPECT_STREQ(L"signed-commit", branches[3]);
-	EXPECT_STREQ(L"simple-conflict", branches[4]);
-	EXPECT_STREQ(L"subdir/branch", branches[5]);
-	EXPECT_STREQ(L"tree-ref", branches[6]);
+	EXPECT_STREQ(L"forconflict", branches[0].c_str());
+	EXPECT_STREQ(L"master", branches[1].c_str());
+	EXPECT_STREQ(L"master2", branches[2].c_str());
+	EXPECT_STREQ(L"signed-commit", branches[3].c_str());
+	EXPECT_STREQ(L"simple-conflict", branches[4].c_str());
+	EXPECT_STREQ(L"subdir/branch", branches[5].c_str());
+	EXPECT_STREQ(L"tree-ref", branches[6].c_str());
 
 	// cygwin and msys git fail here
 	if (CGit::ms_bCygwinGit || CGit::ms_bMsys2Git)
@@ -1209,14 +1209,14 @@ TEST_P(CBasicGitWithTestRepoFixture, GetBranchList_detachedhead)
 	EXPECT_EQ(0, m_Git.GetBranchList(branches, &current));
 	ASSERT_EQ(8U, branches.size());
 	EXPECT_EQ(0, current);
-	EXPECT_STREQ(L"(HEAD", branches[0]);
-	EXPECT_STREQ(L"forconflict", branches[1]);
-	EXPECT_STREQ(L"master", branches[2]);
-	EXPECT_STREQ(L"master2", branches[3]);
-	EXPECT_STREQ(L"signed-commit", branches[4]);
-	EXPECT_STREQ(L"simple-conflict", branches[5]);
-	EXPECT_STREQ(L"subdir/branch", branches[6]);
-	EXPECT_STREQ(L"tree-ref", branches[7]);
+	EXPECT_STREQ(L"(HEAD", branches[0].c_str());
+	EXPECT_STREQ(L"forconflict", branches[1].c_str());
+	EXPECT_STREQ(L"master", branches[2].c_str());
+	EXPECT_STREQ(L"master2", branches[3].c_str());
+	EXPECT_STREQ(L"signed-commit", branches[4].c_str());
+	EXPECT_STREQ(L"simple-conflict", branches[5].c_str());
+	EXPECT_STREQ(L"subdir/branch", branches[6].c_str());
+	EXPECT_STREQ(L"tree-ref", branches[7].c_str());
 }
 
 TEST_P(CBasicGitWithEmptyBareRepositoryFixture, GetEmptyBranchesTagsRefs)
@@ -4283,17 +4283,17 @@ TEST_P(CBasicGitWithTestRepoFixture, GetRefsCommitIsOn)
 	list.clear();
 	EXPECT_EQ(0, m_Git.GetRefsCommitIsOn(list, CGitHash::FromHexStr(L"7c3cbfe13a929d2291a574dca45e4fd2d2ac1aa6"), true, true));
 	ASSERT_EQ(1U, list.size());
-	EXPECT_STREQ(L"refs/heads/master", list[0]);
+	EXPECT_STREQ(L"refs/heads/master", list[0].c_str());
 
 	list.clear();
 	EXPECT_EQ(0, m_Git.GetRefsCommitIsOn(list, CGitHash::FromHexStr(L"1fc3c9688e27596d8717b54f2939dc951568f6cb"), true, true));
 	ASSERT_EQ(1U, list.size());
-	EXPECT_STREQ(L"refs/heads/master", list[0]);
+	EXPECT_STREQ(L"refs/heads/master", list[0].c_str());
 
 	list.clear();
 	EXPECT_EQ(0, m_Git.GetRefsCommitIsOn(list, CGitHash::FromHexStr(L"1fc3c9688e27596d8717b54f2939dc951568f6cb"), false, true));
 	ASSERT_EQ(1U, list.size());
-	EXPECT_STREQ(L"refs/heads/master", list[0]);
+	EXPECT_STREQ(L"refs/heads/master", list[0].c_str());
 
 	list.clear();
 	EXPECT_EQ(0, m_Git.GetRefsCommitIsOn(list, CGitHash::FromHexStr(L"1fc3c9688e27596d8717b54f2939dc951568f6cb"), true, true, CGit::BRANCH_REMOTE));
@@ -4302,7 +4302,7 @@ TEST_P(CBasicGitWithTestRepoFixture, GetRefsCommitIsOn)
 	list.clear();
 	EXPECT_EQ(0, m_Git.GetRefsCommitIsOn(list, CGitHash::FromHexStr(L"1fc3c9688e27596d8717b54f2939dc951568f6cb"), false, true, CGit::BRANCH_ALL));
 	ASSERT_EQ(1U, list.size());
-	EXPECT_STREQ(L"refs/heads/master", list[0]);
+	EXPECT_STREQ(L"refs/heads/master", list[0].c_str());
 
 	list.clear();
 	EXPECT_EQ(0, m_Git.GetRefsCommitIsOn(list, CGitHash::FromHexStr(L"1fc3c9688e27596d8717b54f2939dc951568f6cb"), true, false));
@@ -4311,46 +4311,46 @@ TEST_P(CBasicGitWithTestRepoFixture, GetRefsCommitIsOn)
 	list.clear();
 	EXPECT_EQ(0, m_Git.GetRefsCommitIsOn(list, CGitHash::FromHexStr(L"b9ef30183497cdad5c30b88d32dc1bed7951dfeb"), true, false));
 	ASSERT_EQ(2U, list.size());
-	EXPECT_STREQ(L"refs/tags/also-signed", list[0]);
-	EXPECT_STREQ(L"refs/tags/normal-tag", list[1]);
+	EXPECT_STREQ(L"refs/tags/also-signed", list[0].c_str());
+	EXPECT_STREQ(L"refs/tags/normal-tag", list[1].c_str());
 
 	list.clear();
 	EXPECT_EQ(0, m_Git.GetRefsCommitIsOn(list, CGitHash::FromHexStr(L"35c91b4ae2f77f4f21a7aba56d3c473c705d89e6"), true, true));
 	ASSERT_EQ(3U, list.size());
-	EXPECT_STREQ(L"refs/heads/master", list[0]);
-	EXPECT_STREQ(L"refs/heads/master2", list[1]);
-	EXPECT_STREQ(L"refs/tags/also-signed", list[2]);
+	EXPECT_STREQ(L"refs/heads/master", list[0].c_str());
+	EXPECT_STREQ(L"refs/heads/master2", list[1].c_str());
+	EXPECT_STREQ(L"refs/tags/also-signed", list[2].c_str());
 
 	list.clear();
 	EXPECT_EQ(0, m_Git.GetRefsCommitIsOn(list, CGitHash::FromHexStr(L"313a41bc88a527289c87d7531802ab484715974f"), false, true));
 	ASSERT_EQ(6U, list.size());
-	EXPECT_STREQ(L"refs/heads/forconflict", list[0]);
-	EXPECT_STREQ(L"refs/heads/master", list[1]);
-	EXPECT_STREQ(L"refs/heads/master2", list[2]);
-	EXPECT_STREQ(L"refs/heads/signed-commit", list[3]);
-	EXPECT_STREQ(L"refs/heads/simple-conflict", list[4]);
-	EXPECT_STREQ(L"refs/heads/subdir/branch", list[5]);
+	EXPECT_STREQ(L"refs/heads/forconflict", list[0].c_str());
+	EXPECT_STREQ(L"refs/heads/master", list[1].c_str());
+	EXPECT_STREQ(L"refs/heads/master2", list[2].c_str());
+	EXPECT_STREQ(L"refs/heads/signed-commit", list[3].c_str());
+	EXPECT_STREQ(L"refs/heads/simple-conflict", list[4].c_str());
+	EXPECT_STREQ(L"refs/heads/subdir/branch", list[5].c_str());
 
 	list.clear();
 	EXPECT_EQ(0, m_Git.GetRefsCommitIsOn(list, CGitHash::FromHexStr(L"313a41bc88a527289c87d7531802ab484715974f"), false, true, CGit::BRANCH_REMOTE));
 	ASSERT_EQ(1U, list.size());
-	EXPECT_STREQ(L"refs/remotes/origin/master", list[0]);
+	EXPECT_STREQ(L"refs/remotes/origin/master", list[0].c_str());
 
 	list.clear();
 	EXPECT_EQ(0, m_Git.GetRefsCommitIsOn(list, CGitHash::FromHexStr(L"313a41bc88a527289c87d7531802ab484715974f"), false, true, CGit::BRANCH_LOCAL));
 	ASSERT_EQ(6U, list.size());
-	EXPECT_STREQ(L"refs/heads/forconflict", list[0]);
-	EXPECT_STREQ(L"refs/heads/master", list[1]);
-	EXPECT_STREQ(L"refs/heads/master2", list[2]);
-	EXPECT_STREQ(L"refs/heads/signed-commit", list[3]);
-	EXPECT_STREQ(L"refs/heads/simple-conflict", list[4]);
-	EXPECT_STREQ(L"refs/heads/subdir/branch", list[5]);
+	EXPECT_STREQ(L"refs/heads/forconflict", list[0].c_str());
+	EXPECT_STREQ(L"refs/heads/master", list[1].c_str());
+	EXPECT_STREQ(L"refs/heads/master2", list[2].c_str());
+	EXPECT_STREQ(L"refs/heads/signed-commit", list[3].c_str());
+	EXPECT_STREQ(L"refs/heads/simple-conflict", list[4].c_str());
+	EXPECT_STREQ(L"refs/heads/subdir/branch", list[5].c_str());
 
 	list.clear();
 	EXPECT_EQ(0, m_Git.GetRefsCommitIsOn(list, CGitHash::FromHexStr(L"313a41bc88a527289c87d7531802ab484715974f"), false, true, CGit::BRANCH_ALL));
 	ASSERT_EQ(7U, list.size());
-	EXPECT_STREQ(L"refs/heads/forconflict", list[0]);
-	EXPECT_STREQ(L"refs/remotes/origin/master", list[6]);
+	EXPECT_STREQ(L"refs/heads/forconflict", list[0].c_str());
+	EXPECT_STREQ(L"refs/remotes/origin/master", list[6].c_str());
 
 	// test for symbolic refs
 	CString adminDir;
@@ -4360,9 +4360,9 @@ TEST_P(CBasicGitWithTestRepoFixture, GetRefsCommitIsOn)
 	list.clear();
 	EXPECT_EQ(0, m_Git.GetRefsCommitIsOn(list, CGitHash::FromHexStr(L"313a41bc88a527289c87d7531802ab484715974f"), false, true, CGit::BRANCH_ALL));
 	ASSERT_EQ(8U, list.size());
-	EXPECT_STREQ(L"refs/heads/forconflict", list[0]);
-	EXPECT_STREQ(L"refs/remotes/origin/HEAD", list[6]);
-	EXPECT_STREQ(L"refs/remotes/origin/master", list[7]);
+	EXPECT_STREQ(L"refs/heads/forconflict", list[0].c_str());
+	EXPECT_STREQ(L"refs/remotes/origin/HEAD", list[6].c_str());
+	EXPECT_STREQ(L"refs/remotes/origin/master", list[7].c_str());
 }
 
 TEST_P(CBasicGitWithTestRepoFixture, GetUnifiedDiff)

@@ -374,9 +374,9 @@ void CSettingGitCredential::LoadList()
 	git_config_foreach_match(config, "credential\\..*", GetCredentialAnyEntryCallback, &anyList);
 
 	for (size_t i = 0; i < defaultList.size(); ++i)
-		m_ctrlUrlList.AddString(defaultList[i]);
+		m_ctrlUrlList.AddString(defaultList[i].c_str());
 	for (size_t i = 0; i < urlList.size(); ++i)
-		m_ctrlUrlList.AddString(urlList[i]);
+		m_ctrlUrlList.AddString(urlList[i].c_str());
 
 	if (anyList.empty())
 	{
@@ -390,7 +390,7 @@ void CSettingGitCredential::LoadList()
 		for (size_t i = 0; i < anyList.size(); ++i)
 		{
 			int pos = 0;
-			CString prefix = anyList[i].Tokenize(L"\n", pos);
+			CString prefix = tgit::wstr::Tokenize(anyList[i], L"\n", pos).c_str();
 			if (prefix == L"S" || prefix == L"P")
 			{
 				hasSystemType = true;
@@ -403,9 +403,9 @@ void CSettingGitCredential::LoadList()
 	}
 
 	int pos = 0;
-	CString prefix = anyList[0].Tokenize(L"\n", pos);
-	CString key = anyList[0].Tokenize(L"\n", pos);
-	CString value = anyList[0].Tokenize(L"\n", pos);
+	CString prefix = tgit::wstr::Tokenize(anyList[0], L"\n", pos).c_str();
+	CString key = tgit::wstr::Tokenize(anyList[0], L"\n", pos).c_str();
+	CString value = tgit::wstr::Tokenize(anyList[0], L"\n", pos).c_str();
 	if (key != L"credential.helper")
 	{
 		FillSimpleList(true, false, false, false);
@@ -592,8 +592,8 @@ int CSettingGitCredential::DeleteOtherKeys(int type)
 	for (size_t i = 0; i < list.size(); ++i)
 	{
 		int pos = 0;
-		CString prefix = list[i].Tokenize(L"\n", pos);
-		if ((prefix == L"S" || prefix == L"P") && list[i] != match && !CAppUtils::IsAdminLogin())
+		CString prefix = tgit::wstr::Tokenize(list[i], L"\n", pos).c_str();
+		if ((prefix == L"S" || prefix == L"P") && list[i] != tgit::wstr::View(match) && !CAppUtils::IsAdminLogin())
 		{
 			if (MessageBox(L"Cannot modify a system config without proper rights.\nDiscard changes?", L"TortoiseGit", MB_ICONERROR | MB_YESNO) == IDYES)
 				return 0;
@@ -608,12 +608,12 @@ int CSettingGitCredential::DeleteOtherKeys(int type)
 	SCOPE_EXIT { g_Git.m_IsUseGitDLL = old; };
 	for (size_t i = 0; i < list.size(); ++i)
 	{
-		if (list[i] == match)
+		if (list[i] == tgit::wstr::View(match))
 			continue;
 
 		int pos = 0;
-		CString prefix = list[i].Tokenize(L"\n", pos);
-		CString key = list[i].Tokenize(L"\n", pos);
+		CString prefix = tgit::wstr::Tokenize(list[i], L"\n", pos).c_str();
+		CString key = tgit::wstr::Tokenize(list[i], L"\n", pos).c_str();
 		CONFIG_TYPE configLevel = (prefix == L"S" || prefix == L"P") ? CONFIG_SYSTEM : prefix == L"G" || prefix == L"X" ? CONFIG_GLOBAL : CONFIG_LOCAL;
 		if (g_Git.UnsetConfigValue(key, configLevel))
 		{
@@ -851,7 +851,7 @@ void CSettingGitCredential::OnBnClickedButtonRemove()
 			CStringA pattern = urlA.IsEmpty() ? CStringA("^credential\\.[^.]+$") : ("credential\\." + RegexEscape(urlA) + "\\..*");
 			git_config_foreach_match(config, pattern, GetCredentialEntryCallback, &list);
 			for (size_t i = 0; i < list.size(); ++i)
-				g_Git.UnsetConfigValue(list[i], configLevel);
+				g_Git.UnsetConfigValue(list[i].c_str(), configLevel);
 			m_ctrlUrlList.DeleteString(index);
 			OnLbnSelchangeListUrl();
 		}

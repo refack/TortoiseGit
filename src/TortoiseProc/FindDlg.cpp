@@ -169,7 +169,7 @@ void CFindDlg::AddToList()
 	for (size_t i = 0; i < m_RefList.size(); ++i)
 	{
 		int nImage = -1;
-		CString ref = m_RefList[i];
+		CString ref = m_RefList[i].c_str();
 		if (CStringUtils::StartsWith(ref, L"refs/tags/"))
 			nImage = 0;
 		else if (CStringUtils::StartsWith(ref, L"refs/remotes/"))

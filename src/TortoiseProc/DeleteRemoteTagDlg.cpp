@@ -151,7 +151,7 @@ void CDeleteRemoteTagDlg::OnBnClickedOk()
 	POSITION pos = m_ctrlTags.GetFirstSelectedItemPosition();
 	int index;
 	while ((index = m_ctrlTags.GetNextSelectedItem(pos)) >= 0)
-		list.push_back(L"refs/tags/" + m_ctrlTags.GetItemText(index, 0));
+		list.push_back(std::format(L"refs/tags/{}", m_ctrlTags.GetItemText(index, 0)));
 	CSysProgressDlg sysProgressDlg;
 	sysProgressDlg.SetTitle(CString(MAKEINTRESOURCE(IDS_APPNAME)));
 	sysProgressDlg.SetLine(1, CString(MAKEINTRESOURCE(IDS_DELETING_REMOTE_REFS)));

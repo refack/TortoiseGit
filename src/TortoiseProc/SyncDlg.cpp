@@ -394,7 +394,7 @@ void CSyncDlg::OnBnClickedButtonPull()
 		}
 
 		m_CurrentCmd = GIT_COMMAND_PULL;
-		m_GitCmdList.push_back(cmd);
+		m_GitCmdList.push_back(std::wstring(cmd));
 
 		StartWorkerThread();
 	}
@@ -461,7 +461,7 @@ void CSyncDlg::OnBnClickedButtonPull()
 				return;
 			}
 
-			m_GitCmdList.push_back(cmd);
+			m_GitCmdList.push_back(std::wstring(cmd));
 
 			StartWorkerThread();
 		}
@@ -472,7 +472,7 @@ void CSyncDlg::OnBnClickedButtonPull()
 	{
 		m_CurrentCmd = GIT_COMMAND_REMOTE;
 		cmd = L"git.exe remote update";
-		m_GitCmdList.push_back(cmd);
+		m_GitCmdList.push_back(std::wstring(cmd));
 
 		StartWorkerThread();
 	}
@@ -493,7 +493,7 @@ void CSyncDlg::OnBnClickedButtonPull()
 
 			return;
 		}
-		m_GitCmdList.push_back(cmd);
+		m_GitCmdList.push_back(std::wstring(cmd));
 
 		StartWorkerThread();
 	}
@@ -588,7 +588,7 @@ void CSyncDlg::FetchComplete()
 	m_ctrlURL.GetWindowText(remote);
 	if (!remote.IsEmpty())
 	{
-		if (std::find(m_remotelist.cbegin(), m_remotelist.cend(), remote) == m_remotelist.cend())
+		if (std::find(m_remotelist.cbegin(), m_remotelist.cend(), tgit::wstr::View(remote)) == m_remotelist.cend())
 			remote.Empty();
 	}
 	m_ctrlRemoteBranch.GetWindowText(remotebranch);
@@ -792,7 +792,7 @@ void CSyncDlg::OnBnClickedButtonPush()
 		return;
 	}
 
-	m_GitCmdList.push_back(cmd);
+	m_GitCmdList.push_back(std::wstring(cmd));
 
 	m_CurrentCmd = GIT_COMMAND_PUSH;
 
@@ -1196,7 +1196,7 @@ BOOL CSyncDlg::OnInitDialog()
 	{
 		for (unsigned int i = 0; i < m_remotelist.size(); ++i)
 		{
-			m_ctrlURL.AddString(m_remotelist[i]);
+			m_ctrlURL.AddString(m_remotelist[i].c_str());
 		}
 	}
 	m_ctrlURL.SetCurSel(0);
@@ -1264,8 +1264,8 @@ void CSyncDlg::Refresh()
 	{
 		for (size_t i = 0; i < m_remotelist.size(); ++i)
 		{
-			m_ctrlURL.AddString(m_remotelist[i]);
-			if (m_remotelist[i] == url)
+			m_ctrlURL.AddString(m_remotelist[i].c_str());
+			if (m_remotelist[i] == tgit::wstr::View(url))
 				found = true;
 		}
 	}
@@ -1754,7 +1754,7 @@ void CSyncDlg::OnBnClickedButtonSubmodule()
 		break;
 	}
 
-	m_GitCmdList.push_back(cmd);
+	m_GitCmdList.push_back(std::wstring(cmd));
 
 	m_CurrentCmd = GIT_COMMAND_SUBMODULE;
 
@@ -1802,7 +1802,7 @@ void CSyncDlg::OnBnClickedButtonStash()
 		break;
 	}
 
-	m_GitCmdList.push_back(cmd);
+	m_GitCmdList.push_back(std::wstring(cmd));
 	m_CurrentCmd = GIT_COMMAND_STASH;
 
 	StartWorkerThread();

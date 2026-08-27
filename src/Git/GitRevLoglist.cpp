@@ -90,7 +90,7 @@ int GitRevLoglist::SafeGetSimpleList(CGit* git)
 			for (size_t i = 0; i < deltas; ++i)
 			{
 				const git_diff_delta* delta = git_diff_get_delta(diff, i);
-				m_SimpleFileList.push_back(CUnicodeUtils::GetUnicode(delta->new_file.path));
+				m_SimpleFileList.push_back(CUnicodeUtils::StdGetUnicode(delta->new_file.path));
 			}
 		}
 
@@ -156,7 +156,7 @@ int GitRevLoglist::SafeGetSimpleList(CGit* git)
 				return -1;
 			}
 
-			m_SimpleFileList.push_back(CUnicodeUtils::GetUnicode(newname));
+			m_SimpleFileList.push_back(CUnicodeUtils::StdGetUnicode(newname));
 		}
 
 		git_diff_flush(git->GetGitSimpleListDiff());

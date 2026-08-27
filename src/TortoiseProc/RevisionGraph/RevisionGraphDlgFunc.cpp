@@ -270,7 +270,7 @@ bool CRevisionGraphWnd::FetchRevisionData
 				for (auto name : foundNames->second)
 				{
 					CGit::REF_TYPE refType;
-					CGit::GetShortName(name, &refType);
+					CGit::GetShortName(name.c_str(), &refType);
 					if (refType != CGit::REF_TYPE::ANNOTATED_TAG && refType != CGit::REF_TYPE::TAG)
 					{
 						haveNonTagNames = true;
@@ -406,7 +406,7 @@ CString	CRevisionGraphWnd::GetFriendRefName(ogdf::node v) const
 	if (const auto refsIt = m_HashMap.find(hash); refsIt == m_HashMap.end())
 		return hash.ToString();
 	else
-		return refsIt->second[0];
+		return refsIt->second[0].c_str();
 }
 
 STRING_VECTOR CRevisionGraphWnd::GetFriendRefNames(ogdf::node v, const CString* exclude, CGit::REF_TYPE* onlyRefType) const
@@ -422,13 +422,13 @@ STRING_VECTOR CRevisionGraphWnd::GetFriendRefNames(ogdf::node v, const CString* 
 		for (const auto& ref: refsIt->second)
 		{
 			CGit::REF_TYPE refType;
-			CString shortName = CGit::GetShortName(ref, &refType);
+			CString shortName = CGit::GetShortName(ref.c_str(), &refType);
 			if (exclude && *exclude == shortName)
 				continue;
 			if (!onlyRefType)
 				list.push_back(ref);
 			else if (*onlyRefType == refType)
-				list.push_back(shortName);
+				list.push_back(std::wstring(shortName));
 		}
 		return list;
 	}

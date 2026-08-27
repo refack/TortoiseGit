@@ -1176,8 +1176,8 @@ void CGitLogListBase::OnNMCustomdrawLoglist(NMHDR *pNMHDR, LRESULT *pResult)
 
 					std::vector<REFLABEL> refsToShow;
 					STRING_VECTOR remoteTrackingList;
-					std::vector<CString>::const_iterator refListIt;
-					std::vector<CString>::const_iterator refListItEnd;
+					STRING_VECTOR::const_iterator refListIt;
+					STRING_VECTOR::const_iterator refListItEnd;
 					auto commitRefsIt = hashMap.find(data->m_CommitHash);
 					if (commitRefsIt != hashMap.cend())
 					{
@@ -1191,8 +1191,8 @@ void CGitLogListBase::OnNMCustomdrawLoglist(NMHDR *pNMHDR, LRESULT *pResult)
 						refLabel.singleRemote = false;
 						refLabel.hasTracking = false;
 						refLabel.sameName = false;
-						refLabel.name = CGit::GetShortName(*refListIt, &refLabel.refType);
-						refLabel.fullName = *refListIt;
+						refLabel.name = CGit::GetShortName(refListIt->c_str(), &refLabel.refType);
+						refLabel.fullName = refListIt->c_str();
 
 						switch (refLabel.refType)
 						{
@@ -1218,7 +1218,7 @@ void CGitLogListBase::OnNMCustomdrawLoglist(NMHDR *pNMHDR, LRESULT *pResult)
 									bool found = false;
 									for (auto it2 = refListIt + 1; it2 != refListItEnd; ++it2)
 									{
-										if (*it2 == defaultUpstream)
+										if (*it2 == tgit::wstr::View(defaultUpstream))
 										{
 											found = true;
 											break;
@@ -1248,7 +1248,7 @@ void CGitLogListBase::OnNMCustomdrawLoglist(NMHDR *pNMHDR, LRESULT *pResult)
 										}
 										refLabel.fullName = defaultUpstream;
 										refsToShow.push_back(refLabel);
-										remoteTrackingList.push_back(defaultUpstream);
+										remoteTrackingList.push_back(std::wstring(defaultUpstream));
 										continue;
 									}
 								}
@@ -1624,7 +1624,7 @@ bool CGitLogListBase::IsBisect(const GitRev * pSelLogEntry)
 	const auto refList = hashMap->find(pSelLogEntry->m_CommitHash);
 	if (refList == hashMap->cend())
 		return false;
-	return any_of((*refList).second, [](const auto& ref) { return CStringUtils::StartsWith(ref, L"refs/bisect/"); });
+	return any_of((*refList).second, [](const auto& ref) { return ref.starts_with(L"refs/bisect/"); });
 }
 
 void CGitLogListBase::GetParentHashes(GitRev *pRev, GIT_REV_LIST &parentHash)
@@ -1720,7 +1720,7 @@ void CGitLogListBase::OnContextMenu(CWnd* pWnd, CPoint point)
 			}
 			else
 				str.AppendFormat(L" (%s)", static_cast<LPCWSTR>(parentHash[i].ToString(g_Git.GetShortHASHLength())));
-			parentInfo.push_back(str);
+			parentInfo.push_back(std::wstring(str));
 		}
 
 		if (m_ContextMenuMask & GetContextMenuBit(ID_REBASE_PICK) && !(pSelLogEntry->GetRebaseAction() & (LOGACTIONS_REBASE_CURRENT | LOGACTIONS_REBASE_DONE)))
@@ -1777,7 +1777,7 @@ void CGitLogListBase::OnContextMenu(CWnd* pWnd, CPoint point)
 						popup.AppendMenuIcon(ID_BLAMEPREVIOUS, IDS_LOG_POPUP_BLAMEPREVIOUS, IDI_BLAME, blamemenu.m_hMenu);
 						for (size_t i = 0; i < parentInfo.size(); ++i)
 						{
-							blamemenu.AppendMenuIcon(ID_BLAMEPREVIOUS + ((i + 1) << 16), parentInfo[i]);
+							blamemenu.AppendMenuIcon(ID_BLAMEPREVIOUS + ((i + 1) << 16), parentInfo[i].c_str());
 						}
 						requiresSeparator = true;
 					}
@@ -1801,7 +1801,7 @@ void CGitLogListBase::OnContextMenu(CWnd* pWnd, CPoint point)
 
 						for (size_t i = 0; i < parentInfo.size(); ++i)
 						{
-							gnudiffmenu.AppendMenuIcon(ID_GNUDIFF1 + ((i + 1) << 16), parentInfo[i]);
+							gnudiffmenu.AppendMenuIcon(ID_GNUDIFF1 + ((i + 1) << 16), parentInfo[i].c_str());
 						}
 						requiresSeparator = true;
 					}
@@ -1822,7 +1822,7 @@ void CGitLogListBase::OnContextMenu(CWnd* pWnd, CPoint point)
 						popup.AppendMenuIcon(ID_COMPAREWITHPREVIOUS, IDS_LOG_POPUP_COMPAREWITHPREVIOUS, IDI_DIFF, diffmenu.m_hMenu);
 						for (size_t i = 0; i < parentInfo.size(); ++i)
 						{
-							diffmenu.AppendMenuIcon(ID_COMPAREWITHPREVIOUS + ((i + 1) << 16), parentInfo[i]);
+							diffmenu.AppendMenuIcon(ID_COMPAREWITHPREVIOUS + ((i + 1) << 16), parentInfo[i].c_str());
 							if (i == 0 && CRegDWORD(L"Software\\TortoiseGit\\DiffByDoubleClickInLog", FALSE) && m_ColumnRegKey != L"reflog")
 							{
 								popup.SetDefaultItem(ID_COMPAREWITHPREVIOUS, FALSE);
@@ -1984,10 +1984,10 @@ void CGitLogListBase::OnContextMenu(CWnd* pWnd, CPoint point)
 					&& (m_ContextMenuMask&GetContextMenuBit(ID_SWITCHBRANCH) && m_hasWC && !isStash)
 					)
 				{
-					std::vector<const CString*> branchs;
-					auto addCheck = [&](const CString& ref)
+					std::vector<const std::wstring*> branchs;
+					auto addCheck = [&](const std::wstring& ref)
 					{
-						if (!CStringUtils::StartsWith(ref, L"refs/heads/") || ref == currentBranch)
+						if (!ref.starts_with(L"refs/heads/") || ref == tgit::wstr::View(currentBranch))
 							return;
 						branchs.push_back(&ref);
 					};
@@ -2004,7 +2004,7 @@ void CGitLogListBase::OnContextMenu(CWnd* pWnd, CPoint point)
 					if(branchs.size() == 1)
 					{
 						str2 += L' ';
-						str2 += L'"' + branchs[0]->Mid(static_cast<int>(wcslen(L"refs/heads/"))) + L'"';
+						str2 += std::format(L"\"{}\"", tgit::wstr::Mid(*branchs[0], static_cast<int>(wcslen(L"refs/heads/")))).c_str();
 						popup.AppendMenuIcon(ID_SWITCHBRANCH, str2, IDI_SWITCH);
 
 						popup.SetMenuItemData(ID_SWITCHBRANCH, reinterpret_cast<LONG_PTR>(branchs[0]));
@@ -2015,9 +2015,9 @@ void CGitLogListBase::OnContextMenu(CWnd* pWnd, CPoint point)
 						subbranchmenu.CreatePopupMenu();
 						for (size_t i = 0 ; i < branchs.size(); ++i)
 						{
-							if (*branchs[i] != currentBranch)
+							if (*branchs[i] != tgit::wstr::View(currentBranch))
 							{
-								subbranchmenu.AppendMenuIcon(ID_SWITCHBRANCH + (i << 16), branchs[i]->Mid(static_cast<int>(wcslen(L"refs/heads/"))));
+								subbranchmenu.AppendMenuIcon(ID_SWITCHBRANCH + (i << 16), tgit::wstr::Mid(*branchs[i], static_cast<int>(wcslen(L"refs/heads/"))).c_str());
 								subbranchmenu.SetMenuItemData(ID_SWITCHBRANCH+(i<<16), reinterpret_cast<LONG_PTR>(branchs[i]));
 							}
 						}
@@ -2068,7 +2068,7 @@ void CGitLogListBase::OnContextMenu(CWnd* pWnd, CPoint point)
 
 						for (size_t i = 0; i < parentInfo.size(); ++i)
 						{
-							revertmenu.AppendMenuIcon(ID_REVERTREV + ((i + 1) << 16), parentInfo[i]);
+							revertmenu.AppendMenuIcon(ID_REVERTREV + ((i + 1) << 16), parentInfo[i].c_str());
 						}
 					}
 				}
@@ -2207,7 +2207,7 @@ void CGitLogListBase::OnContextMenu(CWnd* pWnd, CPoint point)
 			if ((m_ContextMenuMask & GetContextMenuBit(ID_PUSH)) && ((!isStash && hashMap.find(pSelLogEntry->m_CommitHash) != hashMap.cend()) || showExtendedMenu))
 			{
 				// show the push-option only if the log entry has an associated local branch
-				const bool isLocal = hashMap.find(pSelLogEntry->m_CommitHash) != hashMap.cend() && any_of(hashMap.find(pSelLogEntry->m_CommitHash)->second, [](const CString& ref) { return CStringUtils::StartsWith(ref, L"refs/heads/") || CStringUtils::StartsWith(ref, L"refs/tags/"); });
+				const bool isLocal = hashMap.find(pSelLogEntry->m_CommitHash) != hashMap.cend() && any_of(hashMap.find(pSelLogEntry->m_CommitHash)->second, [](const std::wstring& ref) { return ref.starts_with(L"refs/heads/") || ref.starts_with(L"refs/tags/"); });
 				if (isLocal || showExtendedMenu)
 				{
 					CString str;
@@ -2242,10 +2242,10 @@ void CGitLogListBase::OnContextMenu(CWnd* pWnd, CPoint point)
 			{
 				if (auto refList = hashMap.find(pSelLogEntry->m_CommitHash); refList != hashMap.end() )
 				{
-					std::vector<const CString*> branchs;
-					auto addCheck = [&](const CString& ref)
+					std::vector<const std::wstring*> branchs;
+					auto addCheck = [&](const std::wstring& ref)
 					{
-						if (ref == currentBranch)
+						if (ref == tgit::wstr::View(currentBranch))
 							return;
 						branchs.push_back(&ref);
 					};
@@ -2261,7 +2261,7 @@ void CGitLogListBase::OnContextMenu(CWnd* pWnd, CPoint point)
 					{
 						str.LoadString(IDS_DELETE_BRANCHTAG_SHORT);
 						str += L' ';
-						str += *branchs[0];
+						str += branchs[0]->c_str();
 						popup.AppendMenuIcon(ID_DELETE, str, IDI_DELETE);
 						popup.SetMenuItemData(ID_DELETE, reinterpret_cast<LONG_PTR>(branchs[0]));
 						bAddSeparator = true;
@@ -2272,7 +2272,7 @@ void CGitLogListBase::OnContextMenu(CWnd* pWnd, CPoint point)
 						submenu.CreatePopupMenu();
 						for (size_t i = 0; i < branchs.size(); ++i)
 						{
-							submenu.AppendMenuIcon(ID_DELETE + (i << 16), *branchs[i]);
+							submenu.AppendMenuIcon(ID_DELETE + (i << 16), branchs[i]->c_str());
 							submenu.SetMenuItemData(ID_DELETE + (i << 16), reinterpret_cast<LONG_PTR>(branchs[i]));
 						}
 						submenu.AppendMenuIcon(ID_DELETE + (branchs.size() << 16), IDS_ALL);
@@ -3095,7 +3095,7 @@ void CGitLogListBase::FetchRemoteList()
 	STRING_VECTOR remoteList;
 	m_SingleRemote.Empty();
 	if (!g_Git.GetRemoteList(remoteList) && remoteList.size() == 1)
-		m_SingleRemote = remoteList[0];
+		m_SingleRemote = remoteList[0].c_str();
 }
 
 const std::pair<CString, CString>& CGitLogListBase::GetTrackingBranch(const CString& localBranch)
@@ -3198,29 +3198,29 @@ bool CGitLogListBase::ShouldShowRefsFilter(GitRevLoglist* pRev, const MAP_HASH_N
 	if (refsIt == hashMap.cend())
 		return false;
 	const auto& refList = refsIt->second;
-	for (const CString &str : refList)
+	for (const std::wstring& str : refList)
 	{
-		if (CStringUtils::StartsWith(str, L"refs/heads/"))
+		if (str.starts_with(L"refs/heads/"))
 		{
 			if (m_ShowRefMask & LOGLIST_SHOWLOCALBRANCHES)
 				return true;
 		}
-		else if (CStringUtils::StartsWith(str, L"refs/remotes/"))
+		else if (str.starts_with(L"refs/remotes/"))
 		{
 			if (m_ShowRefMask & LOGLIST_SHOWREMOTEBRANCHES)
 				return true;
 		}
-		else if (CStringUtils::StartsWith(str, L"refs/tags/"))
+		else if (str.starts_with(L"refs/tags/"))
 		{
 			if (m_ShowRefMask & LOGLIST_SHOWTAGS)
 				return true;
 		}
-		else if (CStringUtils::StartsWith(str, L"refs/stash"))
+		else if (str.starts_with(L"refs/stash"))
 		{
 			if (m_ShowRefMask & LOGLIST_SHOWSTASH)
 				return true;
 		}
-		else if (CStringUtils::StartsWith(str, L"refs/bisect/"))
+		else if (str.starts_with(L"refs/bisect/"))
 		{
 			if (m_ShowRefMask & LOGLIST_SHOWBISECT)
 				return true;
@@ -3275,13 +3275,13 @@ CString CGitLogListBase::GetTagInfo(const STRING_VECTOR& refs) const
 	CString tagInfo;
 	for (auto it = refs.cbegin(); it != refs.cend(); ++it)
 	{
-		if (!CStringUtils::StartsWith((*it), L"refs/tags/"))
+		if (!it->starts_with(L"refs/tags/"))
 			continue;
-		if (!CStringUtils::EndsWith((*it), L"^{}"))
+		if (!it->ends_with(L"^{}"))
 			continue;
 
 		CString output;
-		g_Git.GetTagInfo((*it).Left((*it).GetLength() - static_cast<int>(wcslen(L"^{}"))), output, [&](const CTime& time) { return CLoglistUtils::FormatDateAndTime(time, m_DateFormat, true, m_bRelativeTimes); });
+		g_Git.GetTagInfo(tgit::wstr::Left(*it, SafeSizeToInt(it->size()) - static_cast<int>(wcslen(L"^{}"))).c_str(), output, [&](const CTime& time) { return CLoglistUtils::FormatDateAndTime(time, m_DateFormat, true, m_bRelativeTimes); });
 
 		tagInfo += output;
 	}
@@ -3388,15 +3388,15 @@ LRESULT CGitLogListBase::OnScrollToMessage(WPARAM itemToSelect, LPARAM /*lParam*
 
 LRESULT CGitLogListBase::OnScrollToRef(WPARAM wParam, LPARAM /*lParam*/)
 {
-	CString* ref = reinterpret_cast<CString*>(wParam);
-	if (!ref || ref->IsEmpty())
+	const std::wstring* ref = reinterpret_cast<const std::wstring*>(wParam);
+	if (!ref || ref->empty())
 		return 1;
 
 	const bool bShift = (GetAsyncKeyState(VK_SHIFT) & 0x8000) != 0;
 
 	CGitHash hash;
-	if (g_Git.GetHash(hash, *ref + L"^{}")) // add ^{} in order to get the correct SHA-1 (especially for signed tags)
-		MessageBox(g_Git.GetGitLastErr(L"Could not get hash of ref \"" + *ref + L"^{}\"."), L"TortoiseGit", MB_ICONERROR);
+	if (g_Git.GetHash(hash, (*ref + L"^{}").c_str())) // add ^{} in order to get the correct SHA-1 (especially for signed tags)
+		MessageBox(g_Git.GetGitLastErr((L"Could not get hash of ref \"" + *ref + L"^{}\".").c_str()), L"TortoiseGit", MB_ICONERROR);
 
 	if (hash.IsEmpty())
 		return 1;
@@ -3766,15 +3766,15 @@ bool CGitLogListBase::IsMouseOnRefLabel(const GitRevLoglist* pLogEntry, const PO
 
 	for (size_t i = 0; i < refList->second.size(); ++i)
 	{
-		const auto labelpos = m_RefLabelPosMap.find(refList->second[i]);
+		const auto labelpos = m_RefLabelPosMap.find(refList->second[i].c_str());
 		if (labelpos == m_RefLabelPosMap.cend() || !labelpos->second.PtInRect(pt))
 			continue;
 
 		CGit::REF_TYPE foundType;
 		if (pShortname)
-			*pShortname = CGit::GetShortName(refList->second[i], &foundType);
+			*pShortname = CGit::GetShortName(refList->second[i].c_str(), &foundType);
 		else
-			CGit::GetShortName(refList->second[i], &foundType);
+			CGit::GetShortName(refList->second[i].c_str(), &foundType);
 		if (foundType != type && type != CGit::REF_TYPE::UNKNOWN)
 			return false;
 

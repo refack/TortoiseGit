@@ -72,33 +72,33 @@ BOOL CRevGraphFilterDlg::OnInitDialog()
 
 	for (size_t i = 0; i < list.size(); ++i)
 	{
-		CString str=list[i];
+		CString str=list[i].c_str();
 
-		m_ctrlFromRev.AddSearchString(list[i]);
-		m_ctrlToRev.AddSearchString(list[i]);
+		m_ctrlFromRev.AddSearchString(str);
+		m_ctrlToRev.AddSearchString(str);
 
 		if (CStringUtils::StartsWith(str, L"refs/"))
 		{
-			m_ctrlFromRev.AddSearchString(list[i].Mid(static_cast<int>(wcslen(L"refs/"))));
-			m_ctrlToRev.AddSearchString(list[i].Mid(static_cast<int>(wcslen(L"refs/"))));
+			m_ctrlFromRev.AddSearchString(str.Mid(static_cast<int>(wcslen(L"refs/"))));
+			m_ctrlToRev.AddSearchString(str.Mid(static_cast<int>(wcslen(L"refs/"))));
 		}
 
 		if (CStringUtils::StartsWith(str, L"refs/heads/"))
 		{
-			m_ctrlFromRev.AddSearchString(list[i].Mid(static_cast<int>(wcslen(L"refs/heads/"))));
-			m_ctrlToRev.AddSearchString(list[i].Mid(static_cast<int>(wcslen(L"refs/heads/"))));
+			m_ctrlFromRev.AddSearchString(str.Mid(static_cast<int>(wcslen(L"refs/heads/"))));
+			m_ctrlToRev.AddSearchString(str.Mid(static_cast<int>(wcslen(L"refs/heads/"))));
 		}
 
 		if (CStringUtils::StartsWith(str, L"refs/remotes/"))
 		{
-			m_ctrlFromRev.AddSearchString(list[i].Mid(static_cast<int>(wcslen(L"refs/remotes/"))));
-			m_ctrlToRev.AddSearchString(list[i].Mid(static_cast<int>(wcslen(L"refs/remotes/"))));
+			m_ctrlFromRev.AddSearchString(str.Mid(static_cast<int>(wcslen(L"refs/remotes/"))));
+			m_ctrlToRev.AddSearchString(str.Mid(static_cast<int>(wcslen(L"refs/remotes/"))));
 		}
 
 		if (CStringUtils::StartsWith(str, L"refs/tags/"))
 		{
-			m_ctrlFromRev.AddSearchString(list[i].Mid(static_cast<int>(wcslen(L"refs/tags/"))));
-			m_ctrlToRev.AddSearchString(list[i].Mid(static_cast<int>(wcslen(L"refs/tags/"))));
+			m_ctrlFromRev.AddSearchString(str.Mid(static_cast<int>(wcslen(L"refs/tags/"))));
+			m_ctrlToRev.AddSearchString(str.Mid(static_cast<int>(wcslen(L"refs/tags/"))));
 		}
 	}
 

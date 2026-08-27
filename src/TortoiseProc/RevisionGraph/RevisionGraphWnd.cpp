@@ -1038,7 +1038,7 @@ void CRevisionGraphWnd::AppendMenu
 	popup.AppendMenu (MF_STRING | flags, command, titleString);
 }
 
-void CRevisionGraphWnd::AppendMenu(CMenu& popup, CString title, UINT command, const CString* extra, CMenu* submenu)
+void CRevisionGraphWnd::AppendMenu(CMenu& popup, CString title, UINT command, const std::wstring* extra, CMenu* submenu)
 {
 	// separate different groups / section within the context menu
 	if (popup.GetMenuItemCount() > 0)
@@ -1112,7 +1112,7 @@ void CRevisionGraphWnd::DoCopyRefs() const
 	{
 		if (i > 0)
 			text.Append(L"\r\n");
-		text.Append(list[i]);
+		text.Append(list[i].c_str());
 	}
 	CStringUtils::WriteAsciiStringToClipboard(text, m_hWnd);
 }
@@ -1151,7 +1151,7 @@ void CRevisionGraphWnd::OnContextMenu(CWnd* /*pWnd*/, CPoint point)
 		if (branchNames.size() == 1)
 		{
 			CString text;
-			text.Format(L"%s \"%s\"", static_cast<LPCWSTR>(CString(MAKEINTRESOURCE(IDS_SWITCH_BRANCH))), static_cast<LPCWSTR>(branchNames[0]));
+			text.Format(L"%s \"%s\"", static_cast<LPCWSTR>(CString(MAKEINTRESOURCE(IDS_SWITCH_BRANCH))), branchNames[0].c_str());
 			AppendMenu(popup, text, ID_SWITCH, &branchNames[0]);
 		}
 		else if (branchNames.size() > 1)
@@ -1159,7 +1159,7 @@ void CRevisionGraphWnd::OnContextMenu(CWnd* /*pWnd*/, CPoint point)
 			CMenu switchMenu;
 			switchMenu.CreatePopupMenu();
 			for (size_t i = 0; i < branchNames.size(); ++i)
-				AppendMenu(switchMenu, branchNames[i], ID_SWITCH + (static_cast<int>(i + 1) << 16), &branchNames[i]);
+				AppendMenu(switchMenu, branchNames[i].c_str(), ID_SWITCH + (static_cast<int>(i + 1) << 16), &branchNames[i]);
 			AppendMenu(popup, CString(MAKEINTRESOURCE(IDS_SWITCH_BRANCH)), ID_SWITCH, nullptr, &switchMenu);
 		}
 		else
@@ -1185,7 +1185,7 @@ void CRevisionGraphWnd::OnContextMenu(CWnd* /*pWnd*/, CPoint point)
 			CString str;
 			str.LoadString(IDS_DELETE_BRANCHTAG_SHORT);
 			str += L' ';
-			str += allRefNames[0];
+			str += allRefNames[0].c_str();
 			AppendMenu(popup, str, ID_DELETE, &allRefNames[0]);
 		}
 		else if (allRefNames.size() > 1)
@@ -1196,7 +1196,7 @@ void CRevisionGraphWnd::OnContextMenu(CWnd* /*pWnd*/, CPoint point)
 			submenu.CreatePopupMenu();
 			for (size_t i = 0; i < allRefNames.size(); ++i)
 			{
-				submenu.AppendMenuIcon(ID_DELETE + (i << 16), allRefNames[i]);
+				submenu.AppendMenuIcon(ID_DELETE + (i << 16), allRefNames[i].c_str());
 				submenu.SetMenuItemData(ID_DELETE + (i << 16), reinterpret_cast<ULONG_PTR>(&allRefNames[i]));
 			}
 			submenu.AppendMenuIcon(ID_DELETE + (allRefNames.size() << 16), IDS_ALL);
@@ -1249,10 +1249,10 @@ void CRevisionGraphWnd::OnContextMenu(CWnd* /*pWnd*/, CPoint point)
 		mii.cbSize = sizeof(mii);
 		mii.fMask |= MIIM_DATA;
 		GetMenuItemInfo(popup, cmd, FALSE, &mii);
-		auto rev = reinterpret_cast<CString*>(mii.dwItemData);
+		auto rev = reinterpret_cast<const std::wstring*>(mii.dwItemData);
 		if (rev)
 		{
-			DoSwitch(*rev);
+			DoSwitch(rev->c_str());
 			m_parent->UpdateFullHistory();
 		}
 		break;
@@ -1263,8 +1263,8 @@ void CRevisionGraphWnd::OnContextMenu(CWnd* /*pWnd*/, CPoint point)
 			mii.cbSize = sizeof(mii);
 			mii.fMask |= MIIM_DATA;
 			GetMenuItemInfo(popup, cmd, FALSE, &mii);
-			auto rev = reinterpret_cast<CString*>(mii.dwItemData);
-			CAppUtils::Switch(GetSafeHwnd(), *rev);
+			auto rev = reinterpret_cast<const std::wstring*>(mii.dwItemData);
+			CAppUtils::Switch(GetSafeHwnd(), rev->c_str());
 			m_parent->UpdateFullHistory();
 		}
 		break;
@@ -1277,24 +1277,24 @@ void CRevisionGraphWnd::OnContextMenu(CWnd* /*pWnd*/, CPoint point)
 		mii.cbSize = sizeof(mii);
 		mii.fMask |= MIIM_DATA;
 		GetMenuItemInfo(popup, cmd, FALSE, &mii);
-		auto rev = reinterpret_cast<CString*>(mii.dwItemData);
+		auto rev = reinterpret_cast<const std::wstring*>(mii.dwItemData);
 		if (!rev)
 			break;
 
 		CString shortname;
-		if (rev == reinterpret_cast<CString*>(MAKEINTRESOURCE(IDS_ALL)))
+		if (rev == reinterpret_cast<const std::wstring*>(MAKEINTRESOURCE(IDS_ALL)))
 		{
 			bool nothingDeleted = true;
 			for (const auto& ref : allRefNames)
 			{
-				if (!CAppUtils::DeleteRef(this, ref))
+				if (!CAppUtils::DeleteRef(this, ref.c_str()))
 					break;
 				nothingDeleted = false;
 			}
 			if (nothingDeleted)
 				return;
 		}
-		else if (!CAppUtils::DeleteRef(this, *rev))
+		else if (!CAppUtils::DeleteRef(this, rev->c_str()))
 			return;
 
 		m_parent->UpdateFullHistory();

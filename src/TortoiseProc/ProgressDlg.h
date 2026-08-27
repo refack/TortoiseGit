@@ -92,7 +92,7 @@ private:
 public:
 	CString					m_GitCmd;
 	PostCmdCallback			m_PostCmdCallback;
-	std::vector<CString>	m_GitCmdList;
+	STRING_VECTOR			m_GitCmdList;
 	PostExecCallback		m_PostExecCallback; // After executing command line, this callback can modify exit code / display extra message
 	STRING_VECTOR			m_GitDirList;
 	CString					m_PreText;		// optional text to show in log window before running command

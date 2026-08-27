@@ -533,7 +533,7 @@ int CRepositoryBrowser::ReadTree(CShadowFilesTree* treeroot, const CString& root
 		if (CGit::GetMapHashToFriendName(repository, map))
 			MessageBox(g_Git.GetLibGit2LastErr(L"Could not get all refs."), L"TortoiseGit", MB_ICONERROR);
 		if (!map[hash].empty())
-			m_sRevision = map[hash].at(0);
+			m_sRevision = map[hash].at(0).c_str();
 	}
 	this->GetDlgItem(IDC_BUTTON_REVISION)->SetWindowText(CStringUtils::EscapeAccellerators(m_sRevision));
 

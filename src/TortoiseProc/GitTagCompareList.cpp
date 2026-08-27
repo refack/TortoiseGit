@@ -140,17 +140,17 @@ int CGitTagCompareList::Fill(const CString& remote, CString& err)
 		const auto& refs = it->second;
 		std::for_each(refs.cbegin(), refs.cend(), [&](const auto& ref)
 		{
-			if (CStringUtils::StartsWith(ref, L"refs/tags/"))
+			if (ref.starts_with(L"refs/tags/"))
 			{
-				auto tagname = ref.Mid(static_cast<int>(wcslen(L"refs/tags/")));
-				localTags.emplace_back(TGitRef{ std::wstring(tagname), hash });
-				if (CStringUtils::EndsWith(tagname, L"^{}"))
+				auto tagname = tgit::wstr::Mid(ref, static_cast<int>(wcslen(L"refs/tags/")));
+				localTags.emplace_back(TGitRef{ tagname, hash });
+				if (tagname.ends_with(L"^{}"))
 				{
-					tagname.Truncate(tagname.GetLength() - static_cast<int>(wcslen(L"^{}")));
+					tagname.resize(tagname.size() - wcslen(L"^{}"));
 					CAutoObject gitObject;
-					if (git_revparse_single(gitObject.GetPointer(), repo, CUnicodeUtils::GetUTF8(tagname)))
+					if (git_revparse_single(gitObject.GetPointer(), repo, CUnicodeUtils::StdGetUTF8(tagname).c_str()))
 						return;
-					localTags.emplace_back(TGitRef{ std::wstring(tagname), git_object_id(gitObject) });
+					localTags.emplace_back(TGitRef{ tagname, git_object_id(gitObject) });
 				}
 			}
 		});
@@ -460,7 +460,7 @@ void CGitTagCompareList::OnContextMenuList(CWnd * /*pWnd*/, CPoint point)
 			sysProgressDlg.ShowModal(this, true);
 
 			STRING_VECTOR list;
-			list.push_back(L"refs/tags/" + tag);
+			list.push_back(std::format(L"refs/tags/{}", tag));
 			if (g_Git.DeleteRemoteRefs(m_remote, list))
 			{
 				MessageBox(g_Git.GetGitLastErr(L"Could not delete remote tag.", CGit::GIT_CMD_PUSH), L"TortoiseGit", MB_OK | MB_ICONERROR);

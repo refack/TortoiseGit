@@ -205,12 +205,12 @@ static bool LogicalCompareSz(LPCWSTR left, LPCWSTR right)
 	return StrCmpI(left, right) < 0;
 }
 
-static int LogicalComparePredicate(const CString &left, const CString &right)
+static int LogicalComparePredicate(const std::wstring& left, const std::wstring& right)
 {
-	return LogicalCompareSz(left, right);
+	return LogicalCompareSz(left.c_str(), right.c_str());
 }
 
-static int LogicalCompareReversedPredicate(const CString &left, const CString &right)
+static int LogicalCompareReversedPredicate(const std::wstring& left, const std::wstring& right)
 {
 	return LogicalComparePredicate(right, left);
 }
@@ -230,12 +230,12 @@ static bool LogicalCompareRefReversedPredicate(const TGitRef& left, const TGitRe
 	return LogicalCompareRefPredicate(right, left);
 }
 
-static int LogicalCompareBranchesPredicate(const CString &left, const CString &right)
+static int LogicalCompareBranchesPredicate(const std::wstring& left, const std::wstring& right)
 {
 	if (g_bSortLocalBranchesFirst)
 	{
-		const bool leftIsRemote = CStringUtils::StartsWith(left, L"remotes/");
-		const bool rightIsRemote = CStringUtils::StartsWith(right, L"remotes/");
+		const bool leftIsRemote = left.starts_with(L"remotes/");
+		const bool rightIsRemote = right.starts_with(L"remotes/");
 
 		if (leftIsRemote && !rightIsRemote)
 			return false;
@@ -1538,7 +1538,7 @@ int CGit::GetTagList(STRING_VECTOR &list)
 		{
 			if (lineA.empty())
 				return;
-			list.push_back(CUnicodeUtils::GetUnicode(lineA));
+			list.push_back(CUnicodeUtils::StdGetUnicode(lineA));
 		}, &gitLastErr);
 		if (!ret)
 			std::sort(list.begin() + prevCount, list.end(), g_bSortTagsReversed ? LogicalCompareReversedPredicate : LogicalComparePredicate);
@@ -1654,7 +1654,7 @@ bool CGit::IsLocalBranch(const CString& shortName)
 {
 	STRING_VECTOR list;
 	GetBranchList(list, nullptr, CGit::BRANCH_LOCAL);
-	return std::find(list.cbegin(), list.cend(), shortName) != list.cend();
+	return std::find(list.cbegin(), list.cend(), tgit::wstr::View(shortName)) != list.cend();
 }
 
 bool CGit::BranchTagExists(const CString& name, bool isBranch /*= true*/)
@@ -1747,7 +1747,7 @@ int CGit::GetBranchList(STRING_VECTOR &list, int *current, BRANCH_TYPE type, boo
 {
 	const size_t prevCount = list.size();
 	int ret = 0;
-	CString cur;
+	std::wstring cur;
 	bool headIsDetached = false;
 	if (m_IsUseLibGit2)
 	{
@@ -1778,7 +1778,7 @@ int CGit::GetBranchList(STRING_VECTOR &list, int *current, BRANCH_TYPE type, boo
 				if (git_branch_name(&name, ref))
 					continue;
 
-				CString branchname = CUnicodeUtils::GetUnicode(name);
+				std::wstring branchname = CUnicodeUtils::StdGetUnicode(name);
 				if (branchType & GIT_BRANCH_REMOTE)
 					list.push_back(L"remotes/" + branchname);
 				else
@@ -1811,12 +1811,15 @@ int CGit::GetBranchList(STRING_VECTOR &list, int *current, BRANCH_TYPE type, boo
 			if (lineA.find(" -> ") != std::string_view::npos)
 				return; // skip something like: refs/origin/HEAD -> refs/origin/master
 
-			CString branch = CUnicodeUtils::GetUnicode(lineA);
+			std::wstring branch = CUnicodeUtils::StdGetUnicode(lineA);
 			if (lineA[0] == '*')
 			{
 				if (skipCurrent)
 					return;
-				branch = branch.Mid(static_cast<int>(wcslen(L"* ")));
+				// tgit::wstr::Mid, not substr: these carry CString's clamping, and a
+				// line shorter than the prefix would make substr throw where Mid
+				// returned empty
+				branch = tgit::wstr::Mid(branch, static_cast<int>(wcslen(L"* ")));
 				cur = branch;
 
 				// check whether HEAD is detached
@@ -1828,10 +1831,10 @@ int CGit::GetBranchList(STRING_VECTOR &list, int *current, BRANCH_TYPE type, boo
 				}
 			}
 			else if (lineA[0] == '+') // since Git 2.23 branches that are checked out in other worktrees connected to the same repository prefixed with '+'
-				branch = branch.Mid(static_cast<int>(wcslen(L"+ ")));
+				branch = tgit::wstr::Mid(branch, static_cast<int>(wcslen(L"+ ")));
 			if ((type & BRANCH_REMOTE) != 0 && (type & BRANCH_LOCAL) == 0)
 				branch = L"remotes/" + branch;
-			list.push_back(branch);
+			list.push_back(std::move(branch));
 		});
 		if (ret == 1 && IsInitRepos())
 			return 0;
@@ -1882,7 +1885,7 @@ int CGit::GetRefsCommitIsOn(STRING_VECTOR& list, const CGitHash& hash, bool incl
 				if (!name)
 					return;
 
-				list.push_back(CUnicodeUtils::GetUnicode(name));
+				list.push_back(CUnicodeUtils::StdGetUnicode(name));
 			}
 		};
 
@@ -1949,24 +1952,24 @@ int CGit::GetRefsCommitIsOn(STRING_VECTOR& list, const CGitHash& hash, bool incl
 				if (size_t pos = lineA.find(" -> "); pos != std::string_view::npos) // normalize symbolic refs: "refs/origin/HEAD -> refs/origin/master" to "refs/origin/HEAD"
 					lineA = lineA.substr(0, pos);
 
-				CString branch = CUnicodeUtils::GetUnicode(lineA);
+				std::wstring branch = CUnicodeUtils::StdGetUnicode(lineA);
 				if (lineA[0] == '*')
 				{
-					branch = branch.Mid(static_cast<int>(wcslen(L"* ")));
+					branch = tgit::wstr::Mid(branch, static_cast<int>(wcslen(L"* ")));
 					CString currentHead;
 					if (branch[0] == L'(' && GetCurrentBranchFromFile(m_CurrentDir, currentHead) == 1)
 						return;
 				}
 				else if (lineA[0] == '+')
-					branch = branch.Mid(static_cast<int>(wcslen(L"+ ")));
+					branch = tgit::wstr::Mid(branch, static_cast<int>(wcslen(L"+ ")));
 
 				if ((type & BRANCH_REMOTE) != 0 && (type & BRANCH_LOCAL) == 0)
 					branch = L"refs/remotes/" + branch;
-				else if (CStringUtils::StartsWith(branch, L"remotes/"))
+				else if (branch.starts_with(L"remotes/"))
 					branch = L"refs/" + branch;
 				else
 					branch = L"refs/heads/" + branch;
-				list.push_back(branch);
+				list.push_back(std::move(branch));
 			}))
 				return -1;
 		}
@@ -1978,7 +1981,7 @@ int CGit::GetRefsCommitIsOn(STRING_VECTOR& list, const CGitHash& hash, bool incl
 			{
 				if (lineA.empty())
 					return;
-				list.push_back(L"refs/tags/" + CUnicodeUtils::GetUnicode(lineA));
+				list.push_back(L"refs/tags/" + CUnicodeUtils::StdGetUnicode(lineA));
 			}))
 				return -1;
 		}
@@ -2015,7 +2018,7 @@ int CGit::GetRemoteList(STRING_VECTOR &list)
 	{
 		if (lineA.empty())
 			return;
-		list.push_back(CUnicodeUtils::GetUnicode(lineA));
+		list.push_back(CUnicodeUtils::StdGetUnicode(lineA));
 	}, &gitLastErr);
 }
 
@@ -2141,13 +2144,15 @@ int CGit::DeleteRemoteRefs(const CString& sRemote, const STRING_VECTOR& list)
 		git_remote_callbacks& callbacks = pushOpts.callbacks;
 		callbacks.credentials = g_Git2CredCallback;
 		callbacks.certificate_check = g_Git2CheckCertificateCallback;
-		std::vector<CStringA> refspecs;
+		std::vector<std::string> refspecs;
 		refspecs.reserve(list.size());
-		std::transform(list.cbegin(), list.cend(), std::back_inserter(refspecs), [](auto& ref) { return CUnicodeUtils::GetUTF8(L":" + ref); });
+		std::transform(list.cbegin(), list.cend(), std::back_inserter(refspecs), [](const auto& ref) { return CUnicodeUtils::StdGetUTF8(L":" + ref); });
 
 		std::vector<char*> vc;
 		vc.reserve(refspecs.size());
-		std::transform(refspecs.begin(), refspecs.end(), std::back_inserter(vc), [](CStringA& s) -> char* { return s.GetBuffer(); });
+		// data() rather than CStringA::GetBuffer(): std::string has guaranteed
+		// contiguous, null-terminated storage and needs no matching release
+		std::transform(refspecs.begin(), refspecs.end(), std::back_inserter(vc), [](std::string& s) -> char* { return s.data(); });
 		git_strarray specs = { vc.data(), vc.size() };
 
 		if (git_remote_push(remote, &specs, &pushOpts) < 0)
@@ -2161,7 +2166,7 @@ int CGit::DeleteRemoteRefs(const CString& sRemote, const STRING_VECTOR& list)
 		SCOPE_EXIT{ CGit::s_limitGitExeOutput = false; };
 		CMassiveGitTaskBase mgtPush(L"push -- " + CGit::QuoteParameter(sRemote), FALSE);
 		for (const auto& ref : list)
-			mgtPush.AddFile(L':' + ref);
+			mgtPush.AddFile((L':' + ref).c_str());
 
 		BOOL cancel = FALSE;
 		mgtPush.Execute(cancel);
@@ -2179,7 +2184,7 @@ int libgit2_addto_list_each_ref_fn(git_reference* rawref, void* payload)
 {
 	CAutoReference ref{ std::move(rawref) };
 	auto list = static_cast<STRING_VECTOR*>(payload);
-	list->push_back(CUnicodeUtils::GetUnicode(git_reference_name(ref)));
+	list->push_back(CUnicodeUtils::StdGetUnicode(git_reference_name(ref)));
 	return 0;
 }
 
@@ -2208,9 +2213,9 @@ int CGit::GetRefList(STRING_VECTOR &list)
 		if (start != 2 * GIT_HASH_SIZE || start >= lineA.size())
 			return;
 
-		CString name = CUnicodeUtils::GetUnicode(lineA.substr(start + 1));
+		std::wstring name = CUnicodeUtils::StdGetUnicode(lineA.substr(start + 1));
 		if (list.empty() || name != *list.crbegin() + L"^{}")
-			list.push_back(name);
+			list.push_back(std::move(name));
 	}, &gitLastErr);
 	if (!ret)
 		std::sort(list.begin() + prevCount, list.end(), LogicalComparePredicate);
@@ -2229,7 +2234,7 @@ int libgit2_addto_map_each_ref_fn(git_reference* rawref, void* payload)
 	CAutoReference ref{ std::move(rawref) };
 	auto payloadContent = static_cast<map_each_ref_payload*>(payload);
 
-	CString str = CUnicodeUtils::GetUnicode(git_reference_name(ref));
+	std::wstring str = CUnicodeUtils::StdGetUnicode(git_reference_name(ref));
 
 	CAutoObject gitObject;
 	if (git_revparse_single(gitObject.GetPointer(), payloadContent->repo, git_reference_name(ref)))
@@ -2244,7 +2249,7 @@ int libgit2_addto_map_each_ref_fn(git_reference* rawref, void* payload)
 		gitObject.Swap(derefedTag);
 	}
 
-	(*payloadContent->map)[git_object_id(gitObject)].push_back(str);
+	(*payloadContent->map)[git_object_id(gitObject)].push_back(std::move(str));
 
 	return 0;
 }
@@ -2285,7 +2290,7 @@ int CGit::GetMapHashToFriendName(MAP_HASH_NAME &map)
 			return;
 
 		CGitHash hash = CGitHash::FromHexStr(lineA.substr(0, start));
-		map[hash].push_back(CUnicodeUtils::GetUnicode(lineA.substr(start + 1)));
+		map[hash].push_back(CUnicodeUtils::StdGetUnicode(lineA.substr(start + 1)));
 	}, &gitLastErr);
 
 	if (ret == 1 && IsInitRepos())
@@ -2309,11 +2314,11 @@ int CGit::GuessRefForHash(CString& ref, const CGitHash& hash)
 	const auto& reflist = it->second;
 	for (const auto& reftype : { L"refs/heads/", L"refs/remotes/", L"refs/tags/" })
 	{
-		auto found = std::find_if(reflist.cbegin(), reflist.cend(), [&reftype](const auto& ref) { return CStringUtils::StartsWith(ref, reftype); });
+		auto found = std::find_if(reflist.cbegin(), reflist.cend(), [&reftype](const auto& ref) { return ref.starts_with(reftype); });
 		if (found == reflist.cend())
 			continue;
 
-		GetShortName(*found, ref, reftype);
+		GetShortName(found->c_str(), ref, reftype);
 		return 0;
 	}
 

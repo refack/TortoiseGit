@@ -39,7 +39,7 @@ void CMassiveGitTaskBase::AddFile(const CString& filename)
 	if (m_bIsPath)
 		m_pathList.AddPath(CTGitPath(filename.GetString()));
 	else
-		m_itemList.push_back(filename);
+		m_itemList.push_back(std::wstring(filename));
 }
 
 void CMassiveGitTaskBase::AddFile(const CTGitPath& filename)
@@ -48,7 +48,7 @@ void CMassiveGitTaskBase::AddFile(const CTGitPath& filename)
 	if (m_bIsPath)
 		m_pathList.AddPath(filename);
 	else
-		m_itemList.push_back(filename.GetGitPathString().c_str());
+		m_itemList.push_back(filename.GetGitPathString());
 }
 
 void CMassiveGitTaskBase::SetPaths(const CTGitPathList* pathList)
@@ -203,7 +203,7 @@ bool CMassiveGitTaskBase::IsListEmpty() const
 
 CString CMassiveGitTaskBase::GetListItem(int index) const
 {
-	return m_bIsPath ? CString(m_pathList[index].GetGitPathString().c_str()) : m_itemList[index];
+	return m_bIsPath ? CString(m_pathList[index].GetGitPathString().c_str()) : CString(m_itemList[index].c_str());
 }
 
 void CMassiveGitTaskBase::ConvertToCmdList(CString params, const STRING_VECTOR& pathList, STRING_VECTOR& cmdList)
@@ -215,20 +215,21 @@ void CMassiveGitTaskBase::ConvertToCmdList(CString params, const STRING_VECTOR& 
 	const int max_command_line_length{ (CGit::ms_bCygwinGit || CGit::ms_bMsys2Git) ? 3500 : 30000 };
 	const int quotes_length{ (CGit::ms_bCygwinGit || CGit::ms_bMsys2Git) ? 4 : 2 };
 
-	CString cmd;
-	cmd.Format(L"git.exe %s --", static_cast<LPCWSTR>(params));
+	const std::wstring cmd = std::format(L"git.exe {} --", params);
 
 	bool noCmdYet{ true };
 	for (const auto& filename : pathList)
 	{
-		// add new command if no command yet or last command will exceed max length
-		if (noCmdYet || (cmdList.back().GetLength() + 1 + quotes_length + filename.GetLength()) > max_command_line_length)
+		// add new command if no command yet or last command will exceed max length.
+		// The short circuit is load-bearing: cmdList is empty on the first pass, so
+		// back() must not be reached.
+		if (noCmdYet || cmdList.back().size() + 1 + quotes_length + filename.size() > static_cast<size_t>(max_command_line_length))
 		{
 			noCmdYet = false;
 			cmdList.push_back(cmd);
 		}
 
 		// update last commmand of list
-		cmdList.back().AppendFormat(L" %s", static_cast<LPCWSTR>(CGit::QuoteParameter(filename)));
+		cmdList.back() += std::format(L" {}", CGit::QuoteParameter(filename));
 	}
 }

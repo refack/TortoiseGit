@@ -2635,7 +2635,7 @@ void CLogDlg::OnBnClickedJumpUp()
 		else if (jumpType == JumpType_Tag || jumpType == JumpType_TagFF)
 		{
 			if (auto refList = hashMap.find(data->m_CommitHash); refList != hashMap.cend())
-				found = any_of((*refList).second, [](const auto& ref) { return CStringUtils::StartsWith(ref, L"refs/tags/"); });
+				found = any_of((*refList).second, [](const auto& ref) { return ref.starts_with(L"refs/tags/"); });
 
 			if (found && jumpType == JumpType_TagFF)
 				found = g_Git.IsFastForward(hashValue.ToString(), data->m_CommitHash.ToString());
@@ -2643,7 +2643,7 @@ void CLogDlg::OnBnClickedJumpUp()
 		else if (jumpType == JumpType_Branch || jumpType == JumpType_BranchFF)
 		{
 			if (auto refList = hashMap.find(data->m_CommitHash); refList != hashMap.cend())
-				found = any_of((*refList).second, [](const auto& ref) { return CStringUtils::StartsWith(ref, L"refs/heads/") || CStringUtils::StartsWith(ref, L"refs/remotes/"); });
+				found = any_of((*refList).second, [](const auto& ref) { return ref.starts_with(L"refs/heads/") || ref.starts_with(L"refs/remotes/"); });
 
 			if (found && jumpType == JumpType_BranchFF)
 				found = g_Git.IsFastForward(hashValue.ToString(), data->m_CommitHash.ToString());
@@ -2737,7 +2737,7 @@ void CLogDlg::OnBnClickedJumpDown()
 		else if (jumpType == JumpType_Tag || jumpType == JumpType_TagFF)
 		{
 			if (auto refList = hashMap.find(data->m_CommitHash); refList != hashMap.cend())
-				found = any_of((*refList).second, [](const auto& ref) { return CStringUtils::StartsWith(ref, L"refs/tags/"); });
+				found = any_of((*refList).second, [](const auto& ref) { return ref.starts_with(L"refs/tags/"); });
 
 			if (found && jumpType == JumpType_TagFF)
 				found = g_Git.IsFastForward(data->m_CommitHash.ToString(), hashValue.ToString());
@@ -2745,7 +2745,7 @@ void CLogDlg::OnBnClickedJumpDown()
 		else if (jumpType == JumpType_Branch || jumpType == JumpType_BranchFF)
 		{
 			if (auto refList = hashMap.find(data->m_CommitHash); refList != hashMap.cend())
-				found = any_of((*refList).second, [](const auto& ref) { return CStringUtils::StartsWith(ref, L"refs/heads/") || CStringUtils::StartsWith(ref, L"refs/remotes/"); });
+				found = any_of((*refList).second, [](const auto& ref) { return ref.starts_with(L"refs/heads/") || ref.starts_with(L"refs/remotes/"); });
 
 			if (found && jumpType == JumpType_BranchFF)
 				found = g_Git.IsFastForward(data->m_CommitHash.ToString(), hashValue.ToString());
