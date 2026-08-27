@@ -224,7 +224,7 @@ BOOL CTortoiseGitBlameDoc::OnOpenDocument(LPCWSTR lpszPathName, CString Rev)
 		BYTE_VECTOR err;
 		if(g_Git.Run(cmd, &m_BlameData, &err))
 		{
-			MessageBox(nullptr, CString(MAKEINTRESOURCE(IDS_BLAMEERROR)) + L"\n\n" + err, L"TortoiseGitBlame", MB_OK | MB_ICONERROR);
+			MessageBox(nullptr, std::format(L"{}\n\n{}", CString(MAKEINTRESOURCE(IDS_BLAMEERROR)), err.Decode()).c_str(), L"TortoiseGitBlame", MB_OK | MB_ICONERROR);
 			return FALSE;
 		}
 

@@ -1,4 +1,4 @@
-﻿// TortoiseGit - a Windows shell extension for easy version control
+// TortoiseGit - a Windows shell extension for easy version control
 
 // Copyright (C) 2015-2016, 2018, 2023, 2026 - TortoiseGit
 
@@ -85,6 +85,42 @@ TEST(CGitByteArray, AppendByteArrayWithNoNulls)
 
 	byteArray.append(inputByteArray, sizeof(inputByteArray));
 	EXPECT_EQ(2 * sizeof(inputByteArray), byteArray.size());
+}
+
+TEST(CGitByteArray, Decode)
+{
+	CGitByteArray byteArray;
+	EXPECT_TRUE(byteArray.Decode().empty());
+
+	byteArray.append(std::string_view("1234"));
+	EXPECT_STREQ(L"1234", byteArray.Decode().c_str());
+
+	// UTF-8 is assumed, never detected: five bytes, four characters.
+	byteArray.clear();
+	byteArray.append(std::string_view("caf\xC3\xA9"));
+	EXPECT_EQ(5U, byteArray.size()); // written as escapes so the test does not depend on this file's own encoding
+	EXPECT_STREQ(L"caf\u00e9", byteArray.Decode().c_str());
+}
+
+TEST(CGitByteArray, DecodeStopsAtFirstNul)
+{
+	// git's output is frequently NUL-separated (-z, ls-files --stage -z), which is
+	// what made the old implicit operator CString() a trap: decoding such a buffer
+	// silently yields only its first record. Decode() keeps that behaviour exactly
+	// - naming the conversion was meant to make it visible, not to change it - so
+	// this test is here to notice if anyone ever "fixes" it by accident.
+	constexpr char inputByteArray[] = { "1234\0""5789\0" };
+	CGitByteArray byteArray;
+	byteArray.append(inputByteArray, sizeof(inputByteArray));
+	EXPECT_EQ(11U, byteArray.size());
+	EXPECT_STREQ(L"1234", byteArray.Decode().c_str());
+
+	// A lone NUL is not empty(), so the early-out does not fire; it has to decode
+	// to an empty string by way of strnlen_s returning 0.
+	byteArray.clear();
+	byteArray.append(std::string_view("\0", 1));
+	EXPECT_EQ(1U, byteArray.size());
+	EXPECT_TRUE(byteArray.Decode().empty());
 }
 
 TEST(CGitByteArray, Find)

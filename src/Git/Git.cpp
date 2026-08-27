@@ -1466,7 +1466,7 @@ int CGit::GetCommitDiffList(const CString& rev1, const CString& rev2, CTGitPathL
 	BYTE_VECTOR err;
 	if (Run(cmd, &out, &err))
 	{
-		error = err;
+		error = err.Decode().c_str();
 		return -1;
 	}
 
@@ -3528,7 +3528,7 @@ int CGit::GetWorkingTreeChanges(CTGitPathList& result, bool amend, const CTGitPa
 		BYTE_VECTOR cmdErr;
 		if (Run(cmd, &cmdout, &cmdErr))
 		{
-			CString str{ cmdErr };
+			CString str{ cmdErr.Decode().c_str() };
 			if (str.IsEmpty())
 				str.Format(L"\"%s\" exited with an error code, but did not output any error message", static_cast<LPCWSTR>(cmd));
 			MessageBox(nullptr, str, L"TortoiseGit", MB_OK | MB_ICONERROR);

@@ -1169,7 +1169,7 @@ int CTGitPathList::FillUnRev(unsigned int action, const CTGitPathList* list, std
 		if (g_Git.Run(cmd, &out, &errb))
 		{
 			if (err)
-				*err = static_cast<CString>(errb).GetString();
+				*err = errb.Decode();
 			return -1;
 		}
 

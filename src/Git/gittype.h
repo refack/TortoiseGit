@@ -19,8 +19,10 @@
 
 #pragma once
 #include "GitHash.h"
+#include "UnicodeUtils.h"
 #include <unordered_map>
 #include <span>
+#include <string>
 
 enum
 {
@@ -85,12 +87,26 @@ public:
 		insert(this->end(), v.begin(), v.end());
 	}
 
-	operator CString() const
+	/// Decodes the buffer as UTF-8 text, stopping at the first NUL.
+	///
+	/// This was an implicit `operator CString()`, which meant bytes became text
+	/// wherever a BYTE_VECTOR happened to land in a CString context. Two things
+	/// were invisible at such a call site and both are load-bearing: the buffer
+	/// is *assumed* to be UTF-8, and everything from the first NUL on is
+	/// discarded - which matters because git's own output is frequently
+	/// NUL-separated (`-z`, `ls-files --stage -z`, `for-each-ref` with a NUL
+	/// terminator), so an accidental decode of such a buffer silently yields
+	/// only its first record. Naming it makes the assumption and the truncation
+	/// visible; the behaviour is exactly what the operator did.
+	///
+	/// For a whole, NUL-containing buffer use the bytes directly - `data()` and
+	/// `size()` - and decode each record separately.
+	[[nodiscard]] std::wstring Decode() const
 	{
 		if (empty())
 			return {};
 
-		return CUnicodeUtils::GetUnicode(std::string_view(data(), strnlen_s(data(), size())));
+		return CUnicodeUtils::StdGetUnicode(std::string_view(data(), strnlen_s(data(), size())));
 	}
 
 	static const size_t npos = static_cast<size_t>(-1); // bad/missing length/position
