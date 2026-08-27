@@ -57,12 +57,12 @@ static CString CombinePath(const CString& part1, const CString& part2)
 
 static CString CombinePath(const CString& part1, const CString& part2, const CString& part3)
 {
-	CString path(part1);
+	std::wstring path(part1);
 	path += L'\\';
-	path += part2;
+	path += tgit::wstr::View(part2);
 	CPathUtils::EnsureTrailingPathDelimiter(path);
-	path += part3;
-	return path;
+	path += tgit::wstr::View(part3);
+	return path.c_str();
 }
 
 /**

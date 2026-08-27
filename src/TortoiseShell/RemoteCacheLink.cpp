@@ -1,4 +1,4 @@
-﻿// TortoiseGit - a Windows shell extension for easy version control
+// TortoiseGit - a Windows shell extension for easy version control
 
 // Copyright (C) 2009-2017, 2019, 2023, 2026 - TortoiseGit
 // Copyright (C) 2003-2014, 2017 - TortoiseSVN
@@ -309,6 +309,6 @@ bool CRemoteCacheLink::RunTGitCacheProcess()
 
 CString CRemoteCacheLink::GetTGitCachePath() const
 {
-	CString sCachePath = CPathUtils::GetAppDirectory(g_hmodThisDll) + L"TGitCache.exe";
+	CString sCachePath = (CPathUtils::GetAppDirectory(g_hmodThisDll) + L"TGitCache.exe").c_str();
 	return sCachePath;
 }

@@ -1,4 +1,4 @@
-﻿// TortoiseGit - a Windows shell extension for easy version control
+// TortoiseGit - a Windows shell extension for easy version control
 
 // Copyright (C) 2009-2013, 2015-2020, 2023-2024 - TortoiseGit
 // Copyright (C) 2003-2008 - TortoiseSVN
@@ -213,7 +213,7 @@ LRESULT CResolveDlg::OnFileDropped(WPARAM, LPARAM lParam)
 
 	// check whether the dropped file belongs to the very same repository
 	std::wstring projectDir;
-	if (!path.HasAdminDir(&projectDir) || !CPathUtils::ArePathStringsEqual(g_Git.m_CurrentDir, projectDir.c_str()))
+	if (!path.HasAdminDir(&projectDir) || !CPathUtils::ArePathStringsEqual(tgit::wstr::View(g_Git.m_CurrentDir), projectDir))
 		return 0;
 
 	if (!m_resolveListCtrl.HasPath(path))

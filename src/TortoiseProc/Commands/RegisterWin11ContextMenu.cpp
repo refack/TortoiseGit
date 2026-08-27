@@ -1,4 +1,4 @@
-﻿// TortoiseGit - a Windows shell extension for easy version control
+// TortoiseGit - a Windows shell extension for easy version control
 
 // Copyright (C) 2023-2025 - TortoiseGit
 // Copyright (C) 2025 - TortoiseSVN
@@ -103,9 +103,9 @@ std::wstring RegisterWin11ContextMenuCommand::ReRegisterPackage()
 
 			// now register the package
 			auto appDir = CPathUtils::GetAppParentDirectory();
-			Uri externalUri(static_cast<LPCWSTR>(appDir));
+			Uri externalUri(appDir.c_str());
 			auto packagePath = appDir + L"bin\\package.msix";
-			Uri packageUri(static_cast<LPCWSTR>(packagePath));
+			Uri packageUri(packagePath.c_str());
 			AddPackageOptions options;
 			options.ExternalLocationUri(externalUri);
 			auto deploymentOperation = manager.AddPackageByUriAsync(packageUri, options);

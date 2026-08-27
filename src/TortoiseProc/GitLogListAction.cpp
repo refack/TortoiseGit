@@ -1,4 +1,4 @@
-﻿// TortoiseGit - a Windows shell extension for easy version control
+// TortoiseGit - a Windows shell extension for easy version control
 
 // Copyright (C) 2008-2026 - TortoiseGit
 // Copyright (C) 2005-2007 Marco Costalba
@@ -1263,7 +1263,7 @@ void CGitLogList::ContextMenuAction(int cmd, int FirstSelect, int LastSelect, CM
 			{
 				CString sCmd;
 				sCmd.Format(L"%s /command:export /path:\"%s\" /revision:%ld",
-					static_cast<LPCWSTR>(CPathUtils::GetAppDirectory() + L"TortoiseGitProc.exe"),
+					(CPathUtils::GetAppDirectory() + L"TortoiseGitProc.exe").c_str(),
 					static_cast<LPCWSTR>(pathURL), static_cast<LONG>(revSelected));
 				CAppUtils::LaunchApplication(sCmd, nullptr, false);
 			}

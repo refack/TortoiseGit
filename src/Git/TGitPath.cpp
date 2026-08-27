@@ -190,12 +190,9 @@ void CTGitPath::SetFromUnknown(const std::wstring_view sPath)
 
 void CTGitPath::UpdateCase()
 {
-	// CPathUtils still speaks CString, so the round trip is explicit here
-	// rather than hidden in an implicit conversion. It disappears when
-	// PathUtils moves, which is the next vector after this one.
-	CString longPath = CPathUtils::GetLongPathname(GetWinPathString().c_str());
+	std::wstring longPath = CPathUtils::GetLongPathname(GetWinPathString());
 	CPathUtils::TrimTrailingPathDelimiter(longPath);
-	m_sBackslashPath = longPath.GetString();
+	m_sBackslashPath = std::move(longPath);
 	SanitizeRootPath(m_sBackslashPath, false);
 	SetFwdslashPath(m_sBackslashPath);
 }
@@ -1119,7 +1116,7 @@ void CTGitPathList::UpdateStagingStatusFromPath(const std::wstring_view path, CT
 {
 	for (int i = 0; i < this->GetCount(); ++i)
 	{
-		if (CPathUtils::ArePathStringsEqualWithCase(CString((*this)[i].GetGitPathString().c_str()), CString(path.data(), SafeSizeToInt(path.size()))))
+		if (CPathUtils::ArePathStringsEqualWithCase((*this)[i].GetGitPathString(), path))
 		{
 			m_paths[i].m_stagingStatus = status;
 			break;
@@ -1543,13 +1540,13 @@ bool CTGitPathList::WriteToFile(const std::wstring_view sFilename, bool bUTF8 /*
 void CTGitPathList::LoadFromAsteriskSeparatedString(const std::wstring_view sPathString)
 {
 	int pos = 0;
-	CString temp;
+	std::wstring temp;
 	for(;;)
 	{
-		temp = tgit::wstr::Tokenize(sPathString, L"*", pos).c_str();
-		if(temp.IsEmpty())
+		temp = tgit::wstr::Tokenize(sPathString, L"*", pos);
+		if (temp.empty())
 			break;
-		AddPath(CTGitPath(CPathUtils::GetLongPathname(temp).GetString()));
+		AddPath(CTGitPath(CPathUtils::GetLongPathname(temp)));
 	}
 }
 
@@ -1754,7 +1751,7 @@ void CTGitPathList::RemoveItem(const CTGitPath& path)
 	PathVector::iterator it;
 	for(it = m_paths.begin(); it != m_paths.end(); ++it)
 	{
-		if (CPathUtils::ArePathStringsEqualWithCase(it->GetGitPathString().c_str(), path.GetGitPathString().c_str()))
+		if (CPathUtils::ArePathStringsEqualWithCase(it->GetGitPathString(), path.GetGitPathString()))
 		{
 			m_paths.erase(it);
 			return;
@@ -1790,7 +1787,7 @@ const CTGitPath* CTGitPathList::LookForGitPath(const std::wstring_view path) con
 {
 	for (int i = 0; i < this->GetCount(); ++i)
 	{
-		if (CPathUtils::ArePathStringsEqualWithCase(CString((*this)[i].GetGitPathString().c_str()), CString(path.data(), SafeSizeToInt(path.size()))))
+		if (CPathUtils::ArePathStringsEqualWithCase((*this)[i].GetGitPathString(), path))
 			return &(*this)[i];
 	}
 	return nullptr;

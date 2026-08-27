@@ -1,4 +1,4 @@
-﻿// TortoiseGit - a Windows shell extension for easy version control
+// TortoiseGit - a Windows shell extension for easy version control
 
 // Copyright (C) 2012-2021, 2023, 2025-2026 - TortoiseGit
 // Copyright (C) 2003-2008,2014 - TortoiseSVN
@@ -140,13 +140,13 @@ BOOL CSetSavedDataPage::OnInitDialog()
 	CWindowsCredentialsStore::ListCredentials(L"git:*", credStore);
 	nSimple += static_cast<int>(credStore.GetCount());
 
-	CDirFileEnum logenum(CPathUtils::GetAppDataDirectory() + L"logcache");
+	CDirFileEnum logenum((CPathUtils::GetAppDataDirectory() + L"logcache").c_str());
 	/* while (logenum.NextFile(sFile, &bIsDir))
 		nLogHistRepo++;*/
 	// the "Repositories.dat" is not a cache file
 	nLogHistRepo--;
 
-	BOOL bActionLog = PathFileExists(CPathUtils::GetLocalAppDataDirectory() + L"logfile.txt");
+	BOOL bActionLog = PathFileExists((CPathUtils::GetLocalAppDataDirectory() + L"logfile.txt").c_str());
 
 	m_btnLogHistClear.EnableWindow(nLogHistMsg || nLogHistWC);
 	m_btnUrlHistClear.EnableWindow(nUrlHistItems || nUrlHistWC);
@@ -261,7 +261,7 @@ void CSetSavedDataPage::OnBnClickedAuthhistclear()
 
 void CSetSavedDataPage::OnBnClickedRepologclear()
 {
-	DeleteViaShell(CPathUtils::GetAppDataDirectory() + L"logcache", IDS_SETTINGS_DELCACHE);
+	DeleteViaShell((CPathUtils::GetAppDataDirectory() + L"logcache").c_str(), IDS_SETTINGS_DELCACHE);
 
 	m_btnRepoLogClear.EnableWindow(FALSE);
 	m_tooltips.DelTool(GetDlgItem(IDC_REPOLOG));
@@ -270,13 +270,13 @@ void CSetSavedDataPage::OnBnClickedRepologclear()
 
 void CSetSavedDataPage::OnBnClickedActionlogshow()
 {
-	CString logfile = CPathUtils::GetLocalAppDataDirectory() + L"logfile.txt";
+	CString logfile = (CPathUtils::GetLocalAppDataDirectory() + L"logfile.txt").c_str();
 	CAppUtils::StartTextViewer(logfile);
 }
 
 void CSetSavedDataPage::OnBnClickedActionlogclear()
 {
-	CString logfile = CPathUtils::GetLocalAppDataDirectory() + L"logfile.txt";
+	CString logfile = (CPathUtils::GetLocalAppDataDirectory() + L"logfile.txt").c_str();
 	DeleteFile(logfile);
 	m_btnActionLogClear.EnableWindow(FALSE);
 	m_btnActionLogShow.EnableWindow(FALSE);

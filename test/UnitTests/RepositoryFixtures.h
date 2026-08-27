@@ -33,9 +33,9 @@ enum config
 
 static bool GetResourcesDir(CString& resourcesDir)
 {
-	resourcesDir = CPathUtils::GetAppDirectory() + L"\\resources";
+	resourcesDir = (CPathUtils::GetAppDirectory() + L"\\resources").c_str();
 	if (!PathIsDirectory(resourcesDir))
-		resourcesDir = CPathUtils::GetAppDirectory() + L"\\..\\..\\..\\test\\UnitTests\\resources";
+		resourcesDir = (CPathUtils::GetAppDirectory() + L"\\..\\..\\..\\test\\UnitTests\\resources").c_str();
 	return PathIsDirectory(resourcesDir) != FALSE;
 }
 
@@ -96,7 +96,7 @@ protected:
 
 	virtual void TearDown() override
 	{
-		SetCurrentDirectory(CPathUtils::GetAppDirectory());
+		SetCurrentDirectory(CPathUtils::GetAppDirectory().c_str());
 	}
 
 public:
@@ -117,7 +117,7 @@ protected:
 	{
 		CString resourcesDir;
 		ASSERT_TRUE(GetResourcesDir(resourcesDir));
-		CPathUtils::TrimTrailingPathDelimiter(path);
+		path.TrimRight(L'\\');
 		CreateDirectory(path, nullptr);
 		ASSERT_TRUE(PathIsDirectory(path));
 		if (!prefix.IsEmpty())

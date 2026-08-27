@@ -1,4 +1,4 @@
-﻿// TortoiseGit - a Windows shell extension for easy version control
+// TortoiseGit - a Windows shell extension for easy version control
 
 // Copyright (C) 2012-2023, 2025-2026 - TortoiseGit
 // Copyright (C) 2003-2008, 2013-2015 - TortoiseSVN
@@ -20,12 +20,41 @@
 #include "stdafx.h"
 #include "PathUtils.h"
 #include <memory>
-#include "StringUtils.h"
+#include "WideString.h"
 #include "ReparseData.h"
 #include "SmartHandle.h"
 #include <assert.h>
-#include <ShlObj.h>
+#include <format>
+// These four used to arrive from whichever consumer's stdafx.h happened to
+// include them, which worked only because everything that needed them sat
+// behind #ifdef CSTRING_AVAILABLE and no CString-less project ever compiled
+// that half. With the gate gone the file has to name its own dependencies.
+#include <atlbase.h>  // CComHeapPtr
+#include <ShlObj.h>   // SHGetKnownFolderPath, FOLDERID_*
+#include <Shlwapi.h>  // PathIsURL, PathIsRelative, PathCanonicalize, PathIsDirectory
+#include <tchar.h>    // _totlower
 #include "UnicodeUtils.h"
+
+#pragma comment(lib, "Shlwapi.lib")
+
+namespace
+{
+/// GetModuleFileName has no documented upper bound, so grow until it stops filling the buffer.
+std::wstring GetModuleFileNameString(HMODULE hMod)
+{
+	std::wstring path;
+	DWORD len = 0;
+	DWORD bufferlen = MAX_PATH; // MAX_PATH is not the limit here!
+	do
+	{
+		bufferlen += MAX_PATH; // MAX_PATH is not the limit here!
+		path.resize(bufferlen + 1);
+		len = GetModuleFileName(hMod, path.data(), bufferlen);
+	} while (len == bufferlen);
+	path.resize(len);
+	return path;
+}
+} // namespace
 
 BOOL CPathUtils::MakeSureDirectoryPathExists(LPCWSTR path)
 {
@@ -70,15 +99,14 @@ void CPathUtils::ConvertToBackslash(LPWSTR dest, LPCWSTR src, size_t len)
 			*p = '\\';
 }
 
-#ifdef CSTRING_AVAILABLE
-void CPathUtils::ConvertToBackslash(CString& path)
+void CPathUtils::ConvertToBackslash(std::wstring& path)
 {
-	path.Replace(L'/', L'\\');
+	tgit::wstr::Replace(path, L'/', L'\\');
 }
 
-bool CPathUtils::Touch(const CString& path)
+bool CPathUtils::Touch(const std::wstring& path)
 {
-	CAutoFile hFile = CreateFile(path, GENERIC_WRITE, FILE_SHARE_DELETE, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
+	CAutoFile hFile = CreateFile(path.c_str(), GENERIC_WRITE, FILE_SHARE_DELETE, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
 	if (!hFile)
 		return false;
 
@@ -86,170 +114,159 @@ bool CPathUtils::Touch(const CString& path)
 	SYSTEMTIME st;
 	GetSystemTime(&st);					// Gets the current system time
 	SystemTimeToFileTime(&st, &ft);		// Converts the current system time to file time format
-	return SetFileTime(hFile,			// Sets last-write time of the file 
-		nullptr,						// to the converted current system time 
+	return SetFileTime(hFile,			// Sets last-write time of the file
+		nullptr,						// to the converted current system time
 		nullptr,
 		&ft) != FALSE;
 }
 
-CString CPathUtils::GetFileNameFromPath(CString sPath)
+std::wstring CPathUtils::GetFileNameFromPath(const std::wstring_view sPath)
 {
-	CString ret;
-	sPath.Replace(L'/', L'\\');
-	ret = sPath.Mid(sPath.ReverseFind('\\') + 1);
-	return ret;
+	// This used to normalize every slash to a backslash and then take everything
+	// after the last one. Searching for either separator is the same answer
+	// without the mutable copy a std::wstring_view cannot make anyway.
+	const size_t at = sPath.find_last_of(L"\\/");
+	return std::wstring(at == std::wstring_view::npos ? sPath : sPath.substr(at + 1));
 }
 
-CString CPathUtils::GetFileExtFromPath(const CString& sPath)
+std::wstring CPathUtils::GetFileExtFromPath(const std::wstring_view sPath)
 {
-	const int dotPos = sPath.ReverseFind('.');
-	int slashPos = sPath.ReverseFind('\\');
+	const int dotPos = tgit::wstr::ReverseFind(sPath, L'.');
+	int slashPos = tgit::wstr::ReverseFind(sPath, L'\\');
 	if (slashPos < 0)
-		slashPos = sPath.ReverseFind('/');
+		slashPos = tgit::wstr::ReverseFind(sPath, L'/');
 	if (dotPos > slashPos)
-		return sPath.Mid(dotPos);
-	return CString();
+		return tgit::wstr::Mid(sPath, dotPos);
+	return {};
 }
 
-CString CPathUtils::GetLongPathname(const CString& path)
+std::wstring CPathUtils::GetLongPathname(const std::wstring& path)
 {
-	if (path.IsEmpty())
+	if (path.empty())
 		return path;
 	wchar_t pathbufcanonicalized[MAX_PATH] = { 0 }; // MAX_PATH ok.
 	DWORD ret = 0;
-	CString sRet;
-	if (!PathIsURL(path) && PathIsRelative(path))
+	std::wstring sRet;
+	if (!PathIsURL(path.c_str()) && PathIsRelative(path.c_str()))
 	{
-		ret = GetFullPathName(path, 0, nullptr, nullptr);
+		ret = GetFullPathName(path.c_str(), 0, nullptr, nullptr);
 		if (ret)
 		{
 			auto pathbuf = std::make_unique<wchar_t[]>(ret + 1);
-			if ((ret = GetFullPathName(path, ret, pathbuf.get(), nullptr)) != 0)
-				sRet = CString(pathbuf.get(), ret);
+			if ((ret = GetFullPathName(path.c_str(), ret, pathbuf.get(), nullptr)) != 0)
+				sRet.assign(pathbuf.get(), ret);
 		}
 	}
-	else if (PathCanonicalize(pathbufcanonicalized, path))
+	else if (PathCanonicalize(pathbufcanonicalized, path.c_str()))
 	{
 		ret = ::GetLongPathName(pathbufcanonicalized, nullptr, 0);
 		if (ret == 0)
 			return path;
 		auto pathbuf = std::make_unique<wchar_t[]>(ret + 2);
 		ret = ::GetLongPathName(pathbufcanonicalized, pathbuf.get(), ret + 1);
-		sRet = CString(pathbuf.get(), ret);
+		sRet.assign(pathbuf.get(), ret);
 	}
 	else
 	{
-		ret = ::GetLongPathName(path, nullptr, 0);
+		ret = ::GetLongPathName(path.c_str(), nullptr, 0);
 		if (ret == 0)
 			return path;
 		auto pathbuf = std::make_unique<wchar_t[]>(ret + 2);
-		ret = ::GetLongPathName(path, pathbuf.get(), ret + 1);
-		sRet = CString(pathbuf.get(), ret);
+		ret = ::GetLongPathName(path.c_str(), pathbuf.get(), ret + 1);
+		sRet.assign(pathbuf.get(), ret);
 	}
 	if (ret == 0)
 		return path;
 	return sRet;
 }
 
-BOOL CPathUtils::FileCopy(CString srcPath, CString destPath, BOOL force)
+BOOL CPathUtils::FileCopy(std::wstring srcPath, std::wstring destPath, BOOL force)
 {
-	srcPath.Replace('/', '\\');
-	destPath.Replace('/', '\\');
-	CString destFolder = destPath.Left(destPath.ReverseFind('\\'));
-	MakeSureDirectoryPathExists(destFolder);
-	return (CopyFile(srcPath, destPath, !force));
+	tgit::wstr::Replace(srcPath, L'/', L'\\');
+	tgit::wstr::Replace(destPath, L'/', L'\\');
+	const std::wstring destFolder = tgit::wstr::Left(destPath, tgit::wstr::ReverseFind(destPath, L'\\'));
+	MakeSureDirectoryPathExists(destFolder.c_str());
+	return (CopyFile(srcPath.c_str(), destPath.c_str(), !force));
 }
 
-CString CPathUtils::ParsePathInString(const CString& Str)
+std::wstring CPathUtils::ParsePathInString(const std::wstring_view Str)
 {
 	int curPos = 0;
-	CString sToken = Str.Tokenize(L"'\t\r\n", curPos);
-	while (!sToken.IsEmpty())
+	std::wstring sToken = tgit::wstr::Tokenize(Str, L"'\t\r\n", curPos);
+	while (!sToken.empty())
 	{
-		if ((sToken.Find('/')>=0)||(sToken.Find('\\')>=0))
+		if (sToken.find_first_of(L"/\\") != std::wstring::npos)
 		{
-			sToken.Trim(L"'\"");
+			tgit::wstr::Trim(sToken, L"'\"");
 			return sToken;
 		}
-		sToken = Str.Tokenize(L"'\t\r\n", curPos);
+		sToken = tgit::wstr::Tokenize(Str, L"'\t\r\n", curPos);
 	}
-	sToken.Empty();
-	return sToken;
+	return {};
 }
 
-CString CPathUtils::GetAppDirectory(HMODULE hMod /* = nullptr */)
+std::wstring CPathUtils::GetAppDirectory(HMODULE hMod /* = nullptr */)
 {
-	CString path;
-	DWORD len = 0;
-	DWORD bufferlen = MAX_PATH;     // MAX_PATH is not the limit here!
-	path.GetBuffer(bufferlen);
-	do
-	{
-		bufferlen += MAX_PATH;      // MAX_PATH is not the limit here!
-		path.ReleaseBuffer(0);
-		len = GetModuleFileName(hMod, path.GetBuffer(bufferlen+1), bufferlen);
-	} while(len == bufferlen);
-	path.ReleaseBuffer();
-	path = path.Left(path.ReverseFind('\\')+1);
-	return GetLongPathname(path);
+	const std::wstring path = GetModuleFileNameString(hMod);
+	return GetLongPathname(tgit::wstr::Left(path, tgit::wstr::ReverseFind(path, L'\\') + 1));
 }
 
-CString CPathUtils::GetAppParentDirectory(HMODULE hMod /* = nullptr */)
+std::wstring CPathUtils::GetAppParentDirectory(HMODULE hMod /* = nullptr */)
 {
-	CString path = GetAppDirectory(hMod);
-	path = path.Left(path.ReverseFind('\\'));
-	path = path.Left(path.ReverseFind('\\')+1);
+	std::wstring path = GetAppDirectory(hMod);
+	path = tgit::wstr::Left(path, tgit::wstr::ReverseFind(path, L'\\'));
+	path = tgit::wstr::Left(path, tgit::wstr::ReverseFind(path, L'\\') + 1);
 	return path;
 }
 
-CString CPathUtils::GetAppDataDirectory()
+std::wstring CPathUtils::GetAppDataDirectory()
 {
 	CComHeapPtr<WCHAR> pszPath;
 	if (SHGetKnownFolderPath(FOLDERID_RoamingAppData, KF_FLAG_CREATE, nullptr, &pszPath) != S_OK)
-		return CString();
+		return {};
 
-	CString path { static_cast<LPCWSTR>(pszPath) };
+	std::wstring path { static_cast<LPCWSTR>(pszPath) };
 	path += L"\\TortoiseGit";
-	if (!PathIsDirectory(path))
-		CreateDirectory(path, nullptr);
+	if (!PathIsDirectory(path.c_str()))
+		CreateDirectory(path.c_str(), nullptr);
 
 	path += L'\\';
 	return path;
 }
 
-CString CPathUtils::GetLocalAppDataDirectory()
+std::wstring CPathUtils::GetLocalAppDataDirectory()
 {
 	CComHeapPtr<WCHAR> pszPath;
 	if (SHGetKnownFolderPath(FOLDERID_LocalAppData, KF_FLAG_CREATE, nullptr, &pszPath) != S_OK)
-		return CString();
-	CString path { static_cast<LPCWSTR>(pszPath) };
+		return {};
+	std::wstring path { static_cast<LPCWSTR>(pszPath) };
 	path += L"\\TortoiseGit";
-	if (!PathIsDirectory(path))
-		CreateDirectory(path, nullptr);
+	if (!PathIsDirectory(path.c_str()))
+		CreateDirectory(path.c_str(), nullptr);
 
 	path += L'\\';
 	return path;
 }
 
-CString CPathUtils::GetDocumentsDirectory()
+std::wstring CPathUtils::GetDocumentsDirectory()
 {
 	CComHeapPtr<WCHAR> pszPath;
 	if (SHGetKnownFolderPath(FOLDERID_Documents, KF_FLAG_CREATE, nullptr, &pszPath) != S_OK)
-		return CString();
+		return {};
 
-	return CString(pszPath);
+	return std::wstring(static_cast<LPCWSTR>(pszPath));
 }
 
-CString CPathUtils::GetProgramsDirectory()
+std::wstring CPathUtils::GetProgramsDirectory()
 {
 	CComHeapPtr<WCHAR> pszPath;
 	if (SHGetKnownFolderPath(FOLDERID_ProgramFiles, KF_FLAG_CREATE, nullptr, &pszPath) != S_OK)
-		return CString();
+		return {};
 
-	return CString(pszPath);
+	return std::wstring(static_cast<LPCWSTR>(pszPath));
 }
 
-int CPathUtils::ReadLink(LPCWSTR filename, CStringA* pTargetA)
+int CPathUtils::ReadLink(LPCWSTR filename, std::string* pTargetA)
 {
 	CAutoFile handle  = CreateFileW(filename, GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_DELETE, nullptr, OPEN_EXISTING, FILE_FLAG_OPEN_REPARSE_POINT | FILE_FLAG_BACKUP_SEMANTICS, nullptr);
 	if (!handle)
@@ -275,37 +292,36 @@ int CPathUtils::ReadLink(LPCWSTR filename, CStringA* pTargetA)
 
 	if (pTargetA)
 	{
-		CString targetW(target, target_len);
+		std::wstring targetW(target, target_len);
 		// The path may need to have a prefix removed
 		DropPathPrefixes(targetW);
-		targetW.Replace(L'\\', L'/');
-		*pTargetA = CUnicodeUtils::GetUTF8(targetW);
+		tgit::wstr::Replace(targetW, L'\\', L'/');
+		*pTargetA = CUnicodeUtils::StdGetUTF8(targetW);
 	}
 
 	return 0;
 }
 
-void CPathUtils::DropPathPrefixes(CString& path)
+void CPathUtils::DropPathPrefixes(std::wstring& path)
 {
 	static constexpr wchar_t dosdevices_prefix[] = L"\\\?\?\\";
 	static constexpr wchar_t nt_prefix[] = L"\\\\?\\";
 	static constexpr wchar_t unc_prefix[] = L"UNC\\";
 
-	int skip = 0;
-	if (CStringUtils::StartsWith(path, dosdevices_prefix))
-		skip += static_cast<int>(wcslen(dosdevices_prefix));
-	else if (CStringUtils::StartsWith(path, nt_prefix))
-		skip += static_cast<int>(wcslen(nt_prefix));
+	size_t skip = 0;
+	if (tgit::wstr::StartsWith(path, dosdevices_prefix))
+		skip += wcslen(dosdevices_prefix);
+	else if (tgit::wstr::StartsWith(path, nt_prefix))
+		skip += wcslen(nt_prefix);
 
 	if (skip)
 	{
-		if (path.GetLength() - skip > static_cast<int>(wcslen(unc_prefix)) && CStringUtils::StartsWith(path.GetString() + skip, unc_prefix))
-			skip += static_cast<int>(wcslen(unc_prefix));
+		if (path.size() - skip > wcslen(unc_prefix) && tgit::wstr::StartsWith(std::wstring_view(path).substr(skip), unc_prefix))
+			skip += wcslen(unc_prefix);
 
-		path = path.Mid(skip);
+		path.erase(0, skip);
 	}
 }
-#endif
 
 #pragma comment(lib, "Version.lib")
 std::wstring CPathUtils::GetVersionFromFile(LPCWSTR p_strFilename)
@@ -359,24 +375,13 @@ std::wstring CPathUtils::GetVersionFromFile(LPCWSTR p_strFilename)
 	return {};
 }
 
-#ifdef CSTRING_AVAILABLE
-CString CPathUtils::GetCopyrightForSelf()
+std::wstring CPathUtils::GetCopyrightForSelf()
 {
-	DWORD len = 0;
-	DWORD bufferlen = MAX_PATH; // MAX_PATH is not the limit here!
-	CString path;
-	path.GetBuffer(bufferlen);
-	do
-	{
-		bufferlen += MAX_PATH; // MAX_PATH is not the limit here!
-		path.ReleaseBuffer(0);
-		len = GetModuleFileName(nullptr, path.GetBuffer(bufferlen + 1), bufferlen);
-	} while (len == bufferlen);
-	path.ReleaseBuffer();
+	const std::wstring path = GetModuleFileNameString(nullptr);
 
-	CString strReturn;
+	std::wstring strReturn;
 	DWORD dwReserved = 0;
-	DWORD dwBufferSize = GetFileVersionInfoSize(static_cast<LPCWSTR>(path), &dwReserved);
+	DWORD dwBufferSize = GetFileVersionInfoSize(path.c_str(), &dwReserved);
 
 	if (dwBufferSize > 0)
 	{
@@ -385,7 +390,7 @@ CString CPathUtils::GetCopyrightForSelf()
 		if (pBuffer)
 		{
 			dwReserved = 0;
-			GetFileVersionInfo(static_cast<LPCWSTR>(path),
+			GetFileVersionInfo(path.c_str(),
 				dwReserved,
 				dwBufferSize,
 				pBuffer.get());
@@ -402,12 +407,11 @@ CString CPathUtils::GetCopyrightForSelf()
 			VerQueryValue(pBuffer.get(), L"\\VarFileInfo\\Translation", &lpFixedPointer, &nFixedLength);
 			lpTransArray = static_cast<TRANSARRAY*>(lpFixedPointer);
 
-			CString strLangLegalCopyright;
-			strLangLegalCopyright.Format(L"\\StringFileInfo\\%04x%04x\\LegalCopyright", lpTransArray[0].wLanguageID, lpTransArray[0].wCharacterSet);
+			const std::wstring strLangLegalCopyright = std::format(L"\\StringFileInfo\\{:04x}{:04x}\\LegalCopyright", lpTransArray[0].wLanguageID, lpTransArray[0].wCharacterSet);
 
 			UINT nInfoSize = 0;
 			LPWSTR lpVersion = nullptr;
-			VerQueryValue(pBuffer.get(), static_cast<LPCWSTR>(strLangLegalCopyright), reinterpret_cast<LPVOID*>(&lpVersion), &nInfoSize);
+			VerQueryValue(pBuffer.get(), strLangLegalCopyright.c_str(), reinterpret_cast<LPVOID*>(&lpVersion), &nInfoSize);
 			if (nInfoSize && lpVersion)
 				strReturn = lpVersion;
 		}
@@ -416,65 +420,74 @@ CString CPathUtils::GetCopyrightForSelf()
 	return strReturn;
 }
 
-CString CPathUtils::BuildPathWithPathDelimiter(const CString& path)
+std::wstring CPathUtils::BuildPathWithPathDelimiter(const std::wstring_view path)
 {
-	CString result(path);
+	std::wstring result(path);
 	EnsureTrailingPathDelimiter(result);
 	return result;
 }
 
-void CPathUtils::EnsureTrailingPathDelimiter(CString& path)
+void CPathUtils::EnsureTrailingPathDelimiter(std::wstring& path)
 {
-	if (!path.IsEmpty() && !CStringUtils::EndsWith(path, L'\\'))
-		path.AppendChar(L'\\');
+	if (!path.empty() && path.back() != L'\\')
+		path += L'\\';
 }
 
-void CPathUtils::TrimTrailingPathDelimiter(CString& path)
+void CPathUtils::TrimTrailingPathDelimiter(std::wstring& path)
 {
-	path.TrimRight(L'\\');
+	tgit::wstr::TrimRight(path, L"\\");
 }
 
-CString CPathUtils::ExpandFileName(const CString& path)
+std::wstring CPathUtils::ExpandFileName(const std::wstring& path)
 {
-	if (path.IsEmpty())
+	if (path.empty())
 		return path;
 
-	const DWORD ret = GetFullPathName(path, 0, nullptr, nullptr);
+	const DWORD ret = GetFullPathName(path.c_str(), 0, nullptr, nullptr);
 	if (!ret)
 		return path;
 
-	CString sRet;
-	if (GetFullPathName(path, ret, CStrBuf(sRet, ret), nullptr))
+	// ret counts the terminating null, so ret characters of storage is exactly
+	// what GetFullPathName was asked for; resize back to what it actually wrote.
+	std::wstring sRet;
+	sRet.resize(ret);
+	if (const DWORD written = GetFullPathName(path.c_str(), ret, sRet.data(), nullptr))
+	{
+		sRet.resize(written);
 		return sRet;
+	}
 	return path;
 }
 
-CString CPathUtils::NormalizePath(const CString& path)
+std::wstring CPathUtils::NormalizePath(const std::wstring& path)
 {
 	// Account for ..\ and .\ that may occur in each path
-	CString nPath = ExpandFileName(path);
+	std::wstring nPath = ExpandFileName(path);
 
-	nPath.MakeLower();
+	tgit::wstr::MakeLower(nPath);
 
 	TrimTrailingPathDelimiter(nPath);
 
 	return nPath;
 }
 
-bool CPathUtils::IsSamePath(const CString& path1, const CString& path2)
+bool CPathUtils::IsSamePath(const std::wstring& path1, const std::wstring& path2)
 {
 	return ArePathStringsEqualWithCase(NormalizePath(GetLongPathname(path1)), NormalizePath(GetLongPathname(path2)));
 }
 
-bool CPathUtils::ArePathStringsEqual(const CString& sP1, const CString& sP2)
+bool CPathUtils::ArePathStringsEqual(const std::wstring_view sP1, const std::wstring_view sP2)
 {
-	int length = sP1.GetLength();
-	if (length != sP2.GetLength())
+	if (sP1.size() != sP2.size())
 	{
 		// Different lengths
 		return false;
 	}
-	return CPathUtils::ArePathStringsEqual(sP1, sP2, length);
+	// A default-constructed view has a null data(), which the length-taking
+	// overload asserts against; two empty paths are equal either way.
+	if (sP1.empty())
+		return true;
+	return CPathUtils::ArePathStringsEqual(sP1.data(), sP2.data(), static_cast<int>(sP1.size()));
 }
 
 bool CPathUtils::ArePathStringsEqual(LPCWSTR sP1, LPCWSTR sP2, int length)
@@ -493,15 +506,16 @@ bool CPathUtils::ArePathStringsEqual(LPCWSTR sP1, LPCWSTR sP2, int length)
 	return true;
 }
 
-bool CPathUtils::ArePathStringsEqualWithCase(const CString& sP1, const CString& sP2)
+bool CPathUtils::ArePathStringsEqualWithCase(const std::wstring_view sP1, const std::wstring_view sP2)
 {
-	int length = sP1.GetLength();
-	if (length != sP2.GetLength())
+	if (sP1.size() != sP2.size())
 	{
 		// Different lengths
 		return false;
 	}
-	return CPathUtils::ArePathStringsEqualWithCase(sP1, sP2, length);
+	if (sP1.empty())
+		return true;
+	return CPathUtils::ArePathStringsEqualWithCase(sP1.data(), sP2.data(), static_cast<int>(sP1.size()));
 }
 
 bool CPathUtils::ArePathStringsEqualWithCase(LPCWSTR sP1, LPCWSTR sP2, int length)
@@ -520,7 +534,7 @@ bool CPathUtils::ArePathStringsEqualWithCase(LPCWSTR sP1, LPCWSTR sP2, int lengt
 	return true;
 }
 
-CString CPathUtils::GetCWD()
+std::wstring CPathUtils::GetCWD()
 {
 	DWORD len = GetCurrentDirectory(0, nullptr);
 	if (!len)
@@ -531,4 +545,3 @@ CString CPathUtils::GetCWD()
 
 	return {};
 }
-#endif

@@ -247,6 +247,26 @@ inline void ReleaseBuffer(std::wstring& s, const int newLength = -1)
 	else
 		s.resize(wcsnlen(s.c_str(), s.size()));
 }
+#if defined(_MFC_VER) || defined(CSTRING_AVAILABLE)
+/// Non-owning view of a CString, for calling the std::wstring core from a call
+/// site that has not migrated yet.
+///
+/// It exists to be *visible*. A CString reaches std::wstring_view only through
+/// two user-defined conversions, so the compiler rejects it and each such call
+/// has to say something; this is the shortest true thing it can say, and one
+/// grep for it lists every place still holding a CString on the wrong side of
+/// the boundary. Resist the temptation to make the core's parameters LPCWSTR
+/// instead - a CString converts to that implicitly, so the boundary would
+/// compile silently and nothing would ever pressure it to move.
+///
+/// O(1): CString knows its length, so this does not walk the string the way
+/// std::wstring_view(cstring) would.
+template <typename CharT, typename TraitsT>
+[[nodiscard]] inline std::basic_string_view<CharT> View(const ATL::CStringT<CharT, TraitsT>& s) noexcept
+{
+	return { s.GetString(), static_cast<size_t>(s.GetLength()) };
+}
+#endif
 } // namespace tgit::wstr
 
 #if defined(_MFC_VER) || defined(CSTRING_AVAILABLE)

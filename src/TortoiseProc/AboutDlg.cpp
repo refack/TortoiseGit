@@ -1,4 +1,4 @@
-﻿// TortoiseGit - a Windows shell extension for easy version control
+// TortoiseGit - a Windows shell extension for easy version control
 
 // Copyright (C) 2003-2008 - TortoiseSVN
 // Copyright (C) 2009-2021, 2023-2026 - TortoiseGit
@@ -101,7 +101,7 @@ BOOL CAboutDlg::OnInitDialog()
 #if PREVIEW
 	additionalVersionInformation = _T(PREVIEW_INFO);
 #else
-	if (CString hotfix = CPathUtils::GetAppDirectory() + L"hotfix.ini"; PathFileExists(hotfix))
+	if (CString hotfix = (CPathUtils::GetAppDirectory() + L"hotfix.ini").c_str(); PathFileExists(hotfix))
 	{
 		CVersioncheckParser parser;
 		if (parser.Load(hotfix, err))
@@ -112,10 +112,12 @@ BOOL CAboutDlg::OnInitDialog()
 		}
 	}
 #endif
+	std::wstring appDirectory = CPathUtils::GetAppDirectory();
+	tgit::wstr::TrimRight(appDirectory, L"\\");
 	if (!additionalVersionInformation.IsEmpty())
-		tortoisegitprocpath.Format(L"(%s; %s)", static_cast<LPCWSTR>(additionalVersionInformation), static_cast<LPCWSTR>(CPathUtils::GetAppDirectory().TrimRight(L'\\')));
+		tortoisegitprocpath = std::format(L"({}; {})", additionalVersionInformation, appDirectory).c_str();
 	else
-		tortoisegitprocpath.Format(L"(%s)", static_cast<LPCWSTR>(CPathUtils::GetAppDirectory().TrimRight(L'\\')));
+		tortoisegitprocpath = std::format(L"({})", appDirectory).c_str();
 	temp.Format(IDS_ABOUTVERSION, TGIT_VERMAJOR, TGIT_VERMINOR, TGIT_VERMICRO, TGIT_VERBUILD, static_cast<LPCWSTR>(tortoisegitprocpath), static_cast<LPCWSTR>(out));
 	SetDlgItemText(IDC_VERSIONABOUT, Lf2Crlf(temp));
 

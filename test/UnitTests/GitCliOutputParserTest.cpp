@@ -26,9 +26,9 @@ static std::random_device rd;
 static CStringA loadGitOutput(const CString& filename)
 {
 	CStdioFile file;
-	CString resourcesDir = CPathUtils::GetAppDirectory() + L"\\resources";
+	CString resourcesDir = (CPathUtils::GetAppDirectory() + L"\\resources").c_str();
 	if (!PathIsDirectory(resourcesDir))
-		resourcesDir = CPathUtils::GetAppDirectory() + L"\\..\\..\\..\\test\\UnitTests\\resources";
+		resourcesDir = (CPathUtils::GetAppDirectory() + L"\\..\\..\\..\\test\\UnitTests\\resources").c_str();
 	EXPECT_TRUE(file.Open(resourcesDir + L"\\gitexe-output\\" + filename, CFile::typeBinary | CFile::modeRead | CFile::shareDenyWrite));
 	CStringA fileContent;
 	const UINT filelength = static_cast<UINT>(file.GetLength());

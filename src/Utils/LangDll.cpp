@@ -1,4 +1,4 @@
-﻿// TortoiseGit - a Windows shell extension for easy version control
+// TortoiseGit - a Windows shell extension for easy version control
 
 // Copyright (C) 2016-2017, 2019-2021, 2025 - TortoiseGit
 // Copyright (C) 2003-2006, 2008, 2013-2015 - TortoiseSVN
@@ -94,8 +94,8 @@ std::vector<std::pair<CString, DWORD>> CLangDll::GetInstalledLanguages(bool incl
 		GetLocaleInfo(CLangDll::s_defaultLang, LOCALE_SNATIVELANGNAME, buf, _countof(buf));
 		langs.emplace_back(std::make_pair<>(buf, CLangDll::s_defaultLang));
 	}
-	const std::wstring sVer{ GetCompatibleDLLVersion(CPathUtils::GetAppDirectory().GetString()) };
-	CString path = CPathUtils::GetAppParentDirectory();
+	const std::wstring sVer{ GetCompatibleDLLVersion(CPathUtils::GetAppDirectory().c_str()) };
+	CString path = CPathUtils::GetAppParentDirectory().c_str();
 	path += s_languagesfolder.data();
 	CSimpleFileFind finder(path, L"*.dll");
 	while (finder.FindNextFileNoDirectories())

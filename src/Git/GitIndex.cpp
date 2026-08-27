@@ -288,8 +288,8 @@ int CGitIndexList::GetFileStatus(CAutoRepository& repository, const CString& git
 		CStringA fileA = CUnicodeUtils::GetUTF8(entry.m_FileName);
 		if (isSymlink && S_ISLNK(entry.m_Mode))
 		{
-			CStringA linkDestination;
-			if (!CPathUtils::ReadLink(CombinePath(gitdir, entry.m_FileName), &linkDestination) && !tgit_odb_hash(&actual, static_cast<LPCSTR>(linkDestination), linkDestination.GetLength(), GIT_OBJECT_BLOB) && !git_oid_cmp(&actual, entry.m_IndexHash))
+			std::string linkDestination;
+			if (!CPathUtils::ReadLink(CombinePath(gitdir, entry.m_FileName), &linkDestination) && !tgit_odb_hash(&actual, linkDestination.c_str(), SafeSizeToInt(linkDestination.size()), GIT_OBJECT_BLOB) && !git_oid_cmp(&actual, entry.m_IndexHash))
 			{
 				entry.m_ModifyTime = static_cast<int32_t>(CGit::filetime_to_time_t(time));
 				entry.m_ModifyTimeNanos = (time % 10000000) * 100;
@@ -907,7 +907,7 @@ bool CGitIgnoreList::CheckAndUpdateIgnoreFiles(const CString& gitdir, const CStr
 		}
 
 		temp.Truncate(temp.GetLength() - static_cast<int>(wcslen(L"\\.gitignore")));
-		if (CPathUtils::ArePathStringsEqual(temp, gitdir))
+		if (CPathUtils::ArePathStringsEqual(tgit::wstr::View(temp), tgit::wstr::View(gitdir)))
 		{
 			CString adminDir = g_AdminDirMap.GetAdminDir(temp);
 			CString wcglobalgitignore = adminDir + L"info\\exclude";
@@ -1087,7 +1087,7 @@ int CGitIgnoreList::CheckIgnore(const CString &path, const CString &projectroot,
 
 		temp.Truncate(temp.GetLength() - static_cast<int>(wcslen(L"\\.gitignore")));
 
-		if (CPathUtils::ArePathStringsEqual(temp, projectroot))
+		if (CPathUtils::ArePathStringsEqual(tgit::wstr::View(temp), tgit::wstr::View(projectroot)))
 		{
 			CString wcglobalgitignore = adminDir;
 			wcglobalgitignore += L"info\\exclude";

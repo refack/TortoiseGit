@@ -1,4 +1,4 @@
-﻿// HwSMTP.cpp: implementation of the CHwSMTP class.
+// HwSMTP.cpp: implementation of the CHwSMTP class.
 //
 // Schannel/SSPI implementation based on http://www.coastrd.com/c-schannel-smtp
 //
@@ -1218,7 +1218,7 @@ BOOL CHwSMTP::SendOnAttach(LPCWSTR lpszFileName)
 {
 	ASSERT ( lpszFileName );
 	CString csAttach;
-	CString csShortFileName = GetEncodedHeader(CPathUtils::GetFileNameFromPath(lpszFileName));
+	CString csShortFileName = GetEncodedHeader(CPathUtils::GetFileNameFromPath(lpszFileName).c_str());
 
 	csAttach.AppendFormat(L"--%s\r\n", static_cast<LPCWSTR>(m_csPartBoundary));
 	csAttach.AppendFormat(L"Content-Type: application/octet-stream; file=\"%s\"\r\n", static_cast<LPCWSTR>(csShortFileName));

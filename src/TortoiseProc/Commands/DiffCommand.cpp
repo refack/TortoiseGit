@@ -1,4 +1,4 @@
-﻿// TortoiseGit - a Windows shell extension for easy version control
+// TortoiseGit - a Windows shell extension for easy version control
 
 // Copyright (C) 2007-2008 - TortoiseSVN
 // Copyright (C) 2008-2019, 2023, 2025 - TortoiseGit
@@ -30,7 +30,7 @@
 bool DiffCommand::Execute()
 {
 	bool bRet = false;
-	CString path2 = CPathUtils::GetLongPathname(parser.GetVal(L"path2"));
+	CString path2 = CPathUtils::GetLongPathname(std::wstring(parser.GetVal(L"path2"))).c_str();
 	bool bAlternativeTool = !!parser.HasKey(L"alternative");
 //	bool bBlame = !!parser.HasKey(L"blame");
 	if (path2.IsEmpty())

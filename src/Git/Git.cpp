@@ -2324,7 +2324,8 @@ CString CGit::GetConfiguredSshClient()
 	// pointed at that must keep it.
 	if (!sshclient.IsEmpty() && !PathFileExists(sshclient))
 	{
-		const CString exe = CPathUtils::GetFileNameFromPath(sshclient).MakeLower();
+		std::wstring exe = CPathUtils::GetFileNameFromPath(tgit::wstr::View(sshclient));
+		tgit::wstr::MakeLower(exe);
 		if (exe == L"tortoisegitplink.exe" || exe == L"tortoiseplink.exe")
 			sshclient.Empty();
 	}

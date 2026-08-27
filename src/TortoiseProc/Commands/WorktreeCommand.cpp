@@ -35,14 +35,14 @@ bool WorktreeListCommand::Execute()
 
 bool DropWorktreeCreateCommand::Execute()
 {
-	CString target = parser.GetVal(L"droptarget");
+	std::wstring target(parser.GetVal(L"droptarget"));
 	CPathUtils::EnsureTrailingPathDelimiter(target);
 
-	CString name = CPathUtils::GetFileNameFromPath(g_Git.m_CurrentDir);
-	if (CStringUtils::EndsWith(name, L".git"))
-		name = name.Left(name.GetLength() - static_cast<int>(wcslen(L".git")));
-	if (!CPathUtils::IsSamePath(target + name, g_Git.m_CurrentDir))
+	std::wstring name = CPathUtils::GetFileNameFromPath(tgit::wstr::View(g_Git.m_CurrentDir));
+	if (tgit::wstr::EndsWith(name, L".git"))
+		name = tgit::wstr::Left(name, static_cast<int>(name.size()) - static_cast<int>(wcslen(L".git")));
+	if (!CPathUtils::IsSamePath(target + name, std::wstring(g_Git.m_CurrentDir)))
 		target += name;
 
-	return CAppUtils::CreateWorktree(GetExplorerHWND(), target);
+	return CAppUtils::CreateWorktree(GetExplorerHWND(), target.c_str());
 }

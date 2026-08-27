@@ -34,7 +34,7 @@ CCacheDlg::CCacheDlg(CWnd* pParent /*=nullptr*/)
 : CDialog(CCacheDlg::IDD, pParent)
 {
 	m_hIcon = AfxGetApp()->LoadIcon(IDR_MAINFRAME);
-	m_sRootPath = CPathUtils::GetCWD();
+	m_sRootPath = CPathUtils::GetCWD().c_str();
 }
 
 void CCacheDlg::DoDataExchange(CDataExchange* pDX)

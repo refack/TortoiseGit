@@ -1,4 +1,4 @@
-﻿// TortoiseGit - a Windows shell extension for easy version control
+// TortoiseGit - a Windows shell extension for easy version control
 
 // Copyright (C) 2008-2025 - TortoiseGit
 
@@ -99,7 +99,7 @@ class SharedPtrMapTmpl : private std::map<CString, SharedPtr>
 public:
 	[[nodiscard]] SharedPtr SafeGet(const CString& path)
 	{
-		CString thePath(CPathUtils::NormalizePath(path));
+		CString thePath(CPathUtils::NormalizePath(std::wstring(path)).c_str());
 		CAutoLocker lock(m_critSec);
 		auto lookup = this->find(thePath);
 		if (lookup == this->cend())
@@ -109,7 +109,7 @@ public:
 
 	bool SafeClear(const CString& path)
 	{
-		CString thePath(CPathUtils::NormalizePath(path));
+		CString thePath(CPathUtils::NormalizePath(std::wstring(path)).c_str());
 		CAutoLocker lock(m_critSec);
 		auto lookup = this->find(thePath);
 		if (lookup == this->cend())
@@ -120,7 +120,7 @@ public:
 
 	bool SafeClearRecursively(const CString& path)
 	{
-		CString thePath(CPathUtils::NormalizePath(path));
+		CString thePath(CPathUtils::NormalizePath(std::wstring(path)).c_str());
 		CAutoLocker lock(m_critSec);
 		std::vector<CString> toRemove;
 		for (auto it = this->cbegin(); it != this->cend(); ++it)
@@ -136,7 +136,7 @@ public:
 protected:
 	void SafeSet(const CString& path, SharedPtr ptr)
 	{
-		CString thePath(CPathUtils::NormalizePath(path));
+		CString thePath(CPathUtils::NormalizePath(std::wstring(path)).c_str());
 		CAutoLocker lock(m_critSec);
 		(*this)[thePath] = ptr;
 	}
@@ -432,7 +432,7 @@ public:
 
 	CString GetAdminDir(const CString &path)
 	{
-		CString thePath(CPathUtils::NormalizePath(path));
+		CString thePath(CPathUtils::NormalizePath(std::wstring(path)).c_str());
 		CAutoLocker lock(m_critIndexSec);
 		auto lookup = find(thePath);
 		if (lookup == cend())
@@ -443,11 +443,11 @@ public:
 			{
 				(*this)[thePath] = adminDir;
 				if (!isWorktree) // GitAdminDir::GetAdminDirPath returns the commongit dir ("parent/.git") and this would override the lookup path for the main repo
-					m_reverseLookup[CPathUtils::BuildPathWithPathDelimiter(CPathUtils::NormalizePath(adminDir))] = path;
+					m_reverseLookup[CPathUtils::BuildPathWithPathDelimiter(CPathUtils::NormalizePath(std::wstring(adminDir))).c_str()] = path;
 				return (*this)[thePath];
 			}
 			ATLASSERT(false);
-			return CPathUtils::BuildPathWithPathDelimiter(path) + L".git\\"; // in case of an error stick to old behavior
+			return (CPathUtils::BuildPathWithPathDelimiter(tgit::wstr::View(path)) + L".git\\").c_str(); // in case of an error stick to old behavior
 		}
 
 		return lookup->second;
@@ -462,7 +462,7 @@ public:
 
 	CString GetWorktreeAdminDir(const CString& path)
 	{
-		CString thePath(CPathUtils::NormalizePath(path));
+		CString thePath(CPathUtils::NormalizePath(std::wstring(path)).c_str());
 		CAutoLocker lock(m_critIndexSec);
 		auto lookup = m_WorktreeAdminDirLookup.find(thePath);
 		if (lookup == m_WorktreeAdminDirLookup.cend())
@@ -471,11 +471,11 @@ public:
 			if (GitAdminDir::GetWorktreeAdminDirPath(path, wtadmindir) && PathIsDirectory(wtadmindir))
 			{
 				m_WorktreeAdminDirLookup[thePath] = wtadmindir;
-				m_reverseLookup[CPathUtils::BuildPathWithPathDelimiter(CPathUtils::NormalizePath(wtadmindir))] = path;
+				m_reverseLookup[CPathUtils::BuildPathWithPathDelimiter(CPathUtils::NormalizePath(std::wstring(wtadmindir))).c_str()] = path;
 				return m_WorktreeAdminDirLookup[thePath];
 			}
 			ATLASSERT(false);
-			return CPathUtils::BuildPathWithPathDelimiter(path) + L".git\\"; // we should never get here
+			return (CPathUtils::BuildPathWithPathDelimiter(tgit::wstr::View(path)) + L".git\\").c_str(); // we should never get here
 		}
 		return lookup->second;
 	}
@@ -489,7 +489,7 @@ public:
 
 	CString GetWorkingCopy(const CString &gitDir)
 	{
-		CString path(CPathUtils::BuildPathWithPathDelimiter(CPathUtils::NormalizePath(gitDir)));
+		CString path(CPathUtils::BuildPathWithPathDelimiter(CPathUtils::NormalizePath(std::wstring(gitDir))).c_str());
 		CAutoLocker lock(m_critIndexSec);
 		auto lookup = m_reverseLookup.find(path);
 		if (lookup == m_reverseLookup.cend())

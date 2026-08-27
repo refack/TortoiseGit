@@ -1,4 +1,4 @@
-﻿// TortoiseGit - a Windows shell extension for easy version control
+// TortoiseGit - a Windows shell extension for easy version control
 
 // Copyright (C) 2012, 2015-2016, 2018-2025 - TortoiseGit
 // Copyright (C) 2010-2012, 2016 - TortoiseSVN
@@ -67,7 +67,7 @@ void EnsureGitLibrary(bool bCreate /* = true*/)
 	{
 		// create the path for the icon
 		CString path;
-		CString appDir = CPathUtils::GetAppDirectory();
+		CString appDir = CPathUtils::GetAppDirectory().c_str();
 		if (appDir.GetLength() < MAX_PATH)
 		{
 			wchar_t buf[MAX_PATH] = { 0 };

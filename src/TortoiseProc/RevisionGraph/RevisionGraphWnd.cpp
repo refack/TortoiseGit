@@ -1,4 +1,4 @@
-﻿// TortoiseGit - a Windows shell extension for easy version control
+// TortoiseGit - a Windows shell extension for easy version control
 
 // Copyright (C) 2003-2012, 2015 - TortoiseSVN
 // Copyright (C) 2012-2023, 2025-2026 - TortoiseGit
@@ -810,8 +810,8 @@ CString CRevisionGraphWnd::TooltipText(ogdf::node index)
 
 void CRevisionGraphWnd::SaveGraphAs(CString sSavePath)
 {
-	CString extension = CPathUtils::GetFileExtFromPath(sSavePath);
-	if (extension.CompareNoCase(L".wmf") == 0)
+	const std::wstring extension = CPathUtils::GetFileExtFromPath(tgit::wstr::View(sSavePath));
+	if (tgit::wstr::CompareNoCase(extension, L".wmf") == 0)
 	{
 		// save the graph as an enhanced metafile
 		CMetaFileDC wmfDC;
@@ -829,7 +829,7 @@ void CRevisionGraphWnd::SaveGraphAs(CString sSavePath)
 		m_fZoomFactor = fZoom;
 		DoZoom(m_fZoomFactor);
 	}
-	else if (extension.CompareNoCase(L".svg") == 0)
+	else if (tgit::wstr::CompareNoCase(extension, L".svg") == 0)
 	{
 		// save the graph as a scalable vector graphic
 		SVG svg;
@@ -846,7 +846,7 @@ void CRevisionGraphWnd::SaveGraphAs(CString sSavePath)
 		m_fZoomFactor = fZoom;
 		DoZoom(m_fZoomFactor);
 	}
-	else if (extension.CompareNoCase(L".gv") == 0)
+	else if (tgit::wstr::CompareNoCase(extension, L".gv") == 0)
 	{
 		Graphviz graphviz;
 		float fZoom = m_fZoomFactor;
@@ -913,15 +913,15 @@ void CRevisionGraphWnd::SaveGraphAs(CString sSavePath)
 				{
 					// Get the CLSID of the encoder.
 					int ret = 0;
-					if (CPathUtils::GetFileExtFromPath(sSavePath).CompareNoCase(L".png") == 0)
+					if (tgit::wstr::CompareNoCase(extension, L".png") == 0)
 						ret = GetEncoderClsid(L"image/png", &encoderClsid);
-					else if (CPathUtils::GetFileExtFromPath(sSavePath).CompareNoCase(L".jpg") == 0)
+					else if (tgit::wstr::CompareNoCase(extension, L".jpg") == 0)
 						ret = GetEncoderClsid(L"image/jpeg", &encoderClsid);
-					else if (CPathUtils::GetFileExtFromPath(sSavePath).CompareNoCase(L".jpeg") == 0)
+					else if (tgit::wstr::CompareNoCase(extension, L".jpeg") == 0)
 						ret = GetEncoderClsid(L"image/jpeg", &encoderClsid);
-					else if (CPathUtils::GetFileExtFromPath(sSavePath).CompareNoCase(L".bmp") == 0)
+					else if (tgit::wstr::CompareNoCase(extension, L".bmp") == 0)
 						ret = GetEncoderClsid(L"image/bmp", &encoderClsid);
-					else if (CPathUtils::GetFileExtFromPath(sSavePath).CompareNoCase(L".gif") == 0)
+					else if (tgit::wstr::CompareNoCase(extension, L".gif") == 0)
 						ret = GetEncoderClsid(L"image/gif", &encoderClsid);
 					else
 					{
@@ -934,7 +934,7 @@ void CRevisionGraphWnd::SaveGraphAs(CString sSavePath)
 						bitmap.Save(tfile, &encoderClsid, nullptr);
 					}
 					else
-						sErrormessage.Format(IDS_REVGRAPH_ERR_NOENCODER, static_cast<LPCWSTR>(CPathUtils::GetFileExtFromPath(sSavePath)));
+						sErrormessage.Format(IDS_REVGRAPH_ERR_NOENCODER, CPathUtils::GetFileExtFromPath(tgit::wstr::View(sSavePath)).c_str());
 				}
 				else
 					sErrormessage.LoadString(IDS_REVGRAPH_ERR_NOBITMAP);

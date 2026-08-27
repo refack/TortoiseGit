@@ -1,4 +1,4 @@
-﻿// TortoiseGit - a Windows shell extension for easy version control
+// TortoiseGit - a Windows shell extension for easy version control
 
 // Copyright (C) 2008-2026 - TortoiseGit
 // Copyright (C) 2003-2008, 2012-2014 - TortoiseSVN
@@ -158,7 +158,7 @@ BOOL CTortoiseProcApp::InitInstance()
 #if PREVIEW
 	CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": Preview: %s\n", _T(PREVIEW_INFO));
 #else
-	if (CString hotfix = CPathUtils::GetAppDirectory() + L"hotfix.ini"; PathFileExists(hotfix))
+	if (CString hotfix = (CPathUtils::GetAppDirectory() + L"hotfix.ini").c_str(); PathFileExists(hotfix))
 	{
 		CString err;
 		CVersioncheckParser versionparser;
@@ -252,7 +252,7 @@ BOOL CTortoiseProcApp::InitInstance()
 		g_sGroupingUUID = parser.GetVal(L"groupuuid");
 	if (parser.HasKey(L"pathfile"))
 	{
-		CString sPathfileArgument = CPathUtils::GetLongPathname(parser.GetVal(L"pathfile"));
+		CString sPathfileArgument = CPathUtils::GetLongPathname(std::wstring(parser.GetVal(L"pathfile"))).c_str();
 
 		cmdLinePath.SetFromUnknown(sPathfileArgument.GetString());
 		if (pathList.LoadFromFile(cmdLinePath)==false)

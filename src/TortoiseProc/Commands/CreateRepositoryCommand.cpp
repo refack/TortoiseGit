@@ -1,4 +1,4 @@
-﻿// TortoiseGit - a Windows shell extension for easy version control
+// TortoiseGit - a Windows shell extension for easy version control
 
 // Copyright (C) 2008-2019, 2021, 2023-2026 - TortoiseGit
 
@@ -35,7 +35,7 @@ static bool CheckSpecialFolder(const CString& folder)
 	for (int i = 0; i < _countof(code); i++)
 	{
 		CComHeapPtr<WCHAR> pszPath;
-		if (SUCCEEDED(SHGetKnownFolderPath(code[i], 0, nullptr, &pszPath)) && CPathUtils::IsSamePath(folder, CString(pszPath)))
+		if (SUCCEEDED(SHGetKnownFolderPath(code[i], 0, nullptr, &pszPath)) && CPathUtils::IsSamePath(std::wstring(folder), std::wstring(static_cast<LPCWSTR>(pszPath))))
 			return true;
 	}
 

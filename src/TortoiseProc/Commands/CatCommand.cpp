@@ -1,4 +1,4 @@
-﻿// TortoiseGit - a Windows shell extension for easy version control
+// TortoiseGit - a Windows shell extension for easy version control
 
 // Copyright (C) 2009, 2011-2016, 2018-2019, 2021, 2023, 2026 - TortoiseGit
 
@@ -27,7 +27,7 @@
 
 bool CatCommand::Execute()
 {
-	CString savepath = CPathUtils::GetLongPathname(parser.GetVal(L"savepath"));
+	CString savepath = CPathUtils::GetLongPathname(std::wstring(parser.GetVal(L"savepath"))).c_str();
 	CString revision = parser.GetVal(L"revision");
 
 	if (g_Git.UsingLibGit2(CGit::GIT_CMD_GETONEFILE))

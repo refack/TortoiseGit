@@ -1,4 +1,4 @@
-﻿// TortoiseGit - a Windows shell extension for easy version control
+// TortoiseGit - a Windows shell extension for easy version control
 
 // Copyright (C) 2003-2014 - TortoiseSVN
 // Copyright (C) 2008-2026 - TortoiseGit
@@ -1796,7 +1796,7 @@ LRESULT CCommitDlg::OnFileDropped(WPARAM, LPARAM lParam)
 
 	// check whether the dropped file belongs to the very same repository
 	std::wstring projectDir;
-	if (!path.HasAdminDir(&projectDir) || !CPathUtils::ArePathStringsEqual(g_Git.m_CurrentDir, projectDir.c_str()))
+	if (!path.HasAdminDir(&projectDir) || !CPathUtils::ArePathStringsEqual(tgit::wstr::View(g_Git.m_CurrentDir), projectDir))
 		return 0;
 
 	// just add all the items we get here.
@@ -1948,23 +1948,23 @@ void CCommitDlg::GetAutocompletionList(std::map<CString, int>& autolist)
 	// .cpp = (?<=[^\s]::)\b\w+\b
 
 	std::map<CString, CString> mapRegex;
-	CString sRegexFile = CPathUtils::GetAppDirectory();
+	CString sRegexFile = CPathUtils::GetAppDirectory().c_str();
 	CRegDWORD regtimeout = CRegDWORD(L"Software\\TortoiseGit\\AutocompleteParseTimeout", 5);
 	ULONGLONG timeoutvalue = ULONGLONG(DWORD(regtimeout)) * 1000UL;;
 	sRegexFile += L"autolist.txt";
 	if (!m_bRunThread)
 		return;
 	ParseRegexFile(sRegexFile, mapRegex);
-	sRegexFile = CPathUtils::GetAppDataDirectory();
+	sRegexFile = CPathUtils::GetAppDataDirectory().c_str();
 	sRegexFile += L"autolist.txt";
 	if (PathFileExists(sRegexFile))
 		ParseRegexFile(sRegexFile, mapRegex);
 
 	m_snippet.clear();
-	CString sSnippetFile = CPathUtils::GetAppDirectory();
+	CString sSnippetFile = CPathUtils::GetAppDirectory().c_str();
 	sSnippetFile += L"snippet.txt";
 	ParseSnippetFile(sSnippetFile, m_snippet);
-	sSnippetFile = CPathUtils::GetAppDataDirectory();
+	sSnippetFile = CPathUtils::GetAppDataDirectory().c_str();
 	sSnippetFile += L"snippet.txt";
 	if (PathFileExists(sSnippetFile))
 		ParseSnippetFile(sSnippetFile, m_snippet);
@@ -3058,7 +3058,7 @@ bool CCommitDlg::RestoreFiles(bool doNotAsk, bool allowCancel)
 	{
 		CString dest = g_Git.CombinePath(item.first);
 		CopyFile(item.second, dest, FALSE);
-		CPathUtils::Touch(dest);
+		CPathUtils::Touch(std::wstring(dest));
 	}
 	m_ListCtrl.m_restorepaths.clear();
 

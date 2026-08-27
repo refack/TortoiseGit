@@ -1,4 +1,4 @@
-﻿// TortoiseGit - a Windows shell extension for easy version control
+// TortoiseGit - a Windows shell extension for easy version control
 
 // Copyright (C) 2008-2021, 2023-2025 - TortoiseGit
 // Copyright (C) 2003-2011, 2014-2016, 2018 - TortoiseSVN
@@ -1468,8 +1468,8 @@ void CStatGraphDlg::OnFileSavestatgraphas()
 
 void CStatGraphDlg::SaveGraph(CString sFilename)
 {
-	CString extension = CPathUtils::GetFileExtFromPath(sFilename);
-	if (extension.CompareNoCase(L".wmf") == 0)
+	const std::wstring extension = CPathUtils::GetFileExtFromPath(tgit::wstr::View(sFilename));
+	if (tgit::wstr::CompareNoCase(extension, L".wmf") == 0)
 	{
 		// save the graph as an enhanced meta file
 		CMyMetaFileDC wmfDC;
@@ -1518,15 +1518,15 @@ void CStatGraphDlg::SaveGraph(CString sFilename)
 					{
 						// Get the CLSID of the encoder.
 						int ret = 0;
-						if (CPathUtils::GetFileExtFromPath(sFilename).CompareNoCase(L".png") == 0)
+						if (tgit::wstr::CompareNoCase(extension, L".png") == 0)
 							ret = GetEncoderClsid(L"image/png", &encoderClsid);
-						else if (CPathUtils::GetFileExtFromPath(sFilename).CompareNoCase(L".jpg") == 0)
+						else if (tgit::wstr::CompareNoCase(extension, L".jpg") == 0)
 							ret = GetEncoderClsid(L"image/jpeg", &encoderClsid);
-						else if (CPathUtils::GetFileExtFromPath(sFilename).CompareNoCase(L".jpeg") == 0)
+						else if (tgit::wstr::CompareNoCase(extension, L".jpeg") == 0)
 							ret = GetEncoderClsid(L"image/jpeg", &encoderClsid);
-						else if (CPathUtils::GetFileExtFromPath(sFilename).CompareNoCase(L".bmp") == 0)
+						else if (tgit::wstr::CompareNoCase(extension, L".bmp") == 0)
 							ret = GetEncoderClsid(L"image/bmp", &encoderClsid);
-						else if (CPathUtils::GetFileExtFromPath(sFilename).CompareNoCase(L".gif") == 0)
+						else if (tgit::wstr::CompareNoCase(extension, L".gif") == 0)
 							ret = GetEncoderClsid(L"image/gif", &encoderClsid);
 						else
 						{
@@ -1539,7 +1539,7 @@ void CStatGraphDlg::SaveGraph(CString sFilename)
 							bitmap.Save(tfile, &encoderClsid, nullptr);
 						}
 						else
-							sErrormessage.Format(IDS_REVGRAPH_ERR_NOENCODER, static_cast<LPCWSTR>(CPathUtils::GetFileExtFromPath(sFilename)));
+							sErrormessage.Format(IDS_REVGRAPH_ERR_NOENCODER, CPathUtils::GetFileExtFromPath(tgit::wstr::View(sFilename)).c_str());
 					}
 					else
 						sErrormessage.LoadString(IDS_REVGRAPH_ERR_NOBITMAP);

@@ -167,9 +167,9 @@ bool GitAdminDir::GetAdminDirPath(const CString& projectTopDir, CString& adminDi
 	commonDir.TrimRight(L"\r\n");
 	commonDir.Replace(L'/', L'\\');
 	if (PathIsRelative(commonDir))
-		adminDir = CPathUtils::BuildPathWithPathDelimiter(wtAdminDir + commonDir);
+		adminDir = CPathUtils::BuildPathWithPathDelimiter(tgit::wstr::View(wtAdminDir + commonDir)).c_str();
 	else
-		adminDir = CPathUtils::BuildPathWithPathDelimiter(commonDir);
+		adminDir = CPathUtils::BuildPathWithPathDelimiter(tgit::wstr::View(commonDir)).c_str();
 	if (isWorktree)
 		*isWorktree = true;
 	return true;
@@ -179,22 +179,22 @@ bool GitAdminDir::GetWorktreeAdminDirPath(const CString& projectTopDir, CString&
 {
 	if (IsBareRepo(projectTopDir))
 	{
-		adminDir = CPathUtils::BuildPathWithPathDelimiter(projectTopDir);
+		adminDir = CPathUtils::BuildPathWithPathDelimiter(tgit::wstr::View(projectTopDir)).c_str();
 		return true;
 	}
 
-	CString sDotGitPath = CPathUtils::BuildPathWithPathDelimiter(projectTopDir) + L".git";
-	if (CTGitPath(sDotGitPath.GetString()).IsDirectory())
+	const std::wstring sDotGitPath = CPathUtils::BuildPathWithPathDelimiter(tgit::wstr::View(projectTopDir)) + L".git";
+	if (CTGitPath(sDotGitPath).IsDirectory())
 	{
-		adminDir = CPathUtils::BuildPathWithPathDelimiter(sDotGitPath);
+		adminDir = CPathUtils::BuildPathWithPathDelimiter(sDotGitPath).c_str();
 		return true;
 	}
 	else
 	{
-		CString result = ReadGitLink(projectTopDir, sDotGitPath);
+		const CString result = ReadGitLink(projectTopDir, sDotGitPath.c_str());
 		if (result.IsEmpty())
 			return false;
-		adminDir = CPathUtils::BuildPathWithPathDelimiter(result);
+		adminDir = CPathUtils::BuildPathWithPathDelimiter(tgit::wstr::View(result)).c_str();
 		return true;
 	}
 }
@@ -248,26 +248,26 @@ CString GitAdminDir::ReadGitLink(const CString& topDir, const CString& dotGitPat
 	std::string_view gitPathA(buffer.get(), length);
 	if (!gitPathA.starts_with(GITDIR_PREFIX))
 		return L"";
-	CString gitPath = CUnicodeUtils::GetUnicode(CStringUtils::TrimRight(gitPathA.substr(GITDIR_PREFIX.size()), "\r\n"));
-	if (gitPath.IsEmpty())
-		return gitPath;
+	std::wstring gitPath = CUnicodeUtils::StdGetUnicode(CStringUtils::TrimRight(gitPathA.substr(GITDIR_PREFIX.size()), "\r\n"));
+	if (gitPath.empty())
+		return gitPath.c_str();
 
-	gitPath.Replace('/', '\\');
+	tgit::wstr::Replace(gitPath, L'/', L'\\');
 	// cf. <https://projectzero.google/2016/02/the-definitive-guide-on-win32-to-nt.html> for an overview of special prefixes that need to be handled
-	if (gitPath.GetLength() >= 2 && gitPath[1] == L':')
+	if (gitPath.size() >= 2 && gitPath[1] == L':')
 	{
-		if (gitPath.GetLength() > 2 && gitPath[2] != L'\\') // drive relative paths are unsupported (also unsupported in Git for Windows)
+		if (gitPath.size() > 2 && gitPath[2] != L'\\') // drive relative paths are unsupported (also unsupported in Git for Windows)
 			return {};
 		CPathUtils::TrimTrailingPathDelimiter(gitPath);
-		return gitPath;
+		return gitPath.c_str();
 	}
 	// gate all paths starting with a backslash that are rooted paths
-	if (gitPath[0] == L'\\' && gitPath.GetLength() >= 2 && !IsValidWindowsPathCharacter(gitPath[1]))
+	if (gitPath[0] == L'\\' && gitPath.size() >= 2 && !IsValidWindowsPathCharacter(gitPath[1]))
 	{
-		CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": Found path starting with backslash for worktree \"%s\" in .git-file: %s\n", static_cast<LPCWSTR>(topDir), static_cast<LPCWSTR>(gitPath));
+		CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": Found path starting with backslash for worktree \"%s\" in .git-file: %s\n", static_cast<LPCWSTR>(topDir), gitPath.c_str());
 
 		CPathUtils::TrimTrailingPathDelimiter(gitPath);
-		if (gitPath.IsEmpty()) // gitPath just contained (back)slashes
+		if (gitPath.empty()) // gitPath just contained (back)slashes
 			return {};
 
 		// check whether the topDir (worktree) is listed in safe.directories
@@ -322,19 +322,19 @@ CString GitAdminDir::ReadGitLink(const CString& topDir, const CString& dotGitPat
 		}, &ownership_data) < 0 || !ownership_data.is_safe)
 			return {};
 
-		return gitPath;
+		return gitPath.c_str();
 	}
 	else if (gitPath[0] == L'\\') // rooted path, but not UNC or otherwise special path such as `\\UNC`` or `\\??` etc.
 	{
 		if (topDir.GetLength() < 2 || topDir[1] != L':') // rooted paths are only supported on drives
 			return {};
 		CPathUtils::TrimTrailingPathDelimiter(gitPath);
-		return topDir.Mid(0, 2) + gitPath;
+		return topDir.Mid(0, 2) + gitPath.c_str();
 	}
 
-	gitPath = CPathUtils::BuildPathWithPathDelimiter(topDir) + gitPath;
+	gitPath = CPathUtils::BuildPathWithPathDelimiter(tgit::wstr::View(topDir)) + gitPath;
 	CString adminDir;
-	PathCanonicalize(CStrBuf(adminDir, MAX_PATH), gitPath);
+	PathCanonicalize(CStrBuf(adminDir, MAX_PATH), gitPath.c_str());
 	return adminDir;
 }
 

@@ -1,4 +1,4 @@
-﻿// TortoiseGit - a Windows shell extension for easy version control
+// TortoiseGit - a Windows shell extension for easy version control
 
 // Copyright (C) 2022-2026 - TortoiseGit
 
@@ -177,8 +177,8 @@ int CWorktreeListDlg::FillListCtrlWithWorktreeList(CString& error)
 			workDirPath = CUnicodeUtils::GetUnicode(git_repository_commondir(baseRepo));
 		else
 			workDirPath = CUnicodeUtils::GetUnicode(git_repository_workdir(baseRepo));
-		CPathUtils::ConvertToBackslash(workDirPath);
-		CPathUtils::TrimTrailingPathDelimiter(workDirPath);
+		workDirPath.Replace(L'/', L'\\');
+		workDirPath.TrimRight(L'\\');
 		WorktreeDetails worktreeDetails(L"", workDirPath, git_reference_target(nonWorktreeHead), CUnicodeUtils::GetUnicode(git_reference_shorthand(nonWorktreeHead)));
 		worktreeDetails.m_isBaseRepo = TRUE;
 		m_Worktrees.push_back(worktreeDetails);
@@ -193,7 +193,7 @@ int CWorktreeListDlg::FillListCtrlWithWorktreeList(CString& error)
 			return -1;
 		}
 		CString worktreePath = CUnicodeUtils::GetUnicode(git_worktree_path(worktree));
-		CPathUtils::ConvertToBackslash(worktreePath);
+		worktreePath.Replace(L'/', L'\\');
 
 		CAutoBuf reason;
 		unsigned int locked = git_worktree_is_locked(reason, worktree);

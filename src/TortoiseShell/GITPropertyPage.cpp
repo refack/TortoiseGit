@@ -1,4 +1,4 @@
-﻿// TortoiseGit - a Windows shell extension for easy version control
+// TortoiseGit - a Windows shell extension for easy version control
 
 // Copyright (C) 2003-2008, 2014 - TortoiseSVN
 // Copyright (C) 2008-2023, 2025-2026 - TortoiseGit
@@ -285,7 +285,7 @@ void CGitPropertyPage::PageProcOnCommand(WPARAM wParam)
 
 void CGitPropertyPage::RunCommand(const std::wstring& command)
 {
-	std::wstring tortoiseProcPath { static_cast<LPCWSTR>(CPathUtils::GetAppDirectory(g_hmodThisDll) + L"TortoiseGitProc.exe") };
+	std::wstring tortoiseProcPath { CPathUtils::GetAppDirectory(g_hmodThisDll) + L"TortoiseGitProc.exe" };
 	if (CCreateProcessHelper::CreateProcessDetached(tortoiseProcPath.c_str(), command.c_str()))
 	{
 		// process started - exit

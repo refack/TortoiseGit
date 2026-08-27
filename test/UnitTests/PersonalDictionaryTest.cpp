@@ -26,9 +26,7 @@
 
 static CString GetPath(LONG languageID)
 {
-	CString path;
-	path.Format(L"%s%ld.dic", static_cast<LPCTSTR>(CPathUtils::GetAppDataDirectory()), languageID);
-	return path;
+	return std::format(L"{}{}.dic", CPathUtils::GetAppDataDirectory(), languageID).c_str();
 }
 
 TEST(CPersonalDictionary, UseDictionary)

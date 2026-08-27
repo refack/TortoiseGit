@@ -1,4 +1,4 @@
-﻿// TortoiseGit - a Windows shell extension for easy version control
+// TortoiseGit - a Windows shell extension for easy version control
 
 // External Cache Copyright (C) 2005-2006,2008,2010,2014 - TortoiseSVN
 // Copyright (C) 2008-2019, 2021, 2023, 2026 - TortoiseGit
@@ -61,7 +61,7 @@ void CGitStatusCache::Create()
 #define LOADVALUEFROMFILE2(x) if (fread(&x, sizeof(x), 1, pFile)!=1) goto error;
 	unsigned int value = (unsigned int)-1;
 	// find the location of the cache
-	CString path = CPathUtils::GetLocalAppDataDirectory();
+	CString path = CPathUtils::GetLocalAppDataDirectory().c_str();
 	CString path2;
 	if (!path.IsEmpty())
 	{
@@ -154,7 +154,7 @@ bool CGitStatusCache::SaveCache()
 #define WRITEVALUETOFILE(x) if (fwrite(&x, sizeof(x), 1, pFile)!=1) goto error;
 	// save the cache to disk
 	// find a location to write the cache to
-	CString path = CPathUtils::GetLocalAppDataDirectory();
+	CString path = CPathUtils::GetLocalAppDataDirectory().c_str();
 	if (!path.IsEmpty())
 	{
 		path += STATUSCACHEFILENAME;

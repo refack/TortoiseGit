@@ -1,4 +1,4 @@
-﻿// TortoiseGit - a Windows shell extension for easy version control
+// TortoiseGit - a Windows shell extension for easy version control
 
 // Copyright (C) 2008-2017, 2019-2023, 2025-2026 - TortoiseGit
 
@@ -252,7 +252,7 @@ BOOL CAboutDlg::OnInitDialog()
 	swprintf_s(verbuf, maskbuf, TGIT_VERMAJOR, TGIT_VERMINOR, TGIT_VERMICRO, TGIT_VERBUILD);
 	SetDlgItemText(IDC_VERSION, verbuf);
 
-	SetDlgItemText(IDC_COPYRIGHT, CPathUtils::GetCopyrightForSelf());
+	SetDlgItemText(IDC_COPYRIGHT, CPathUtils::GetCopyrightForSelf().c_str());
 	SetDlgItemText(IDC_STATIC_AUTHORS, L"Sven Strickroth <email@cs-ware.de> (Current Maintainer), Sup Yut Sum <ch3cooli@gmail.com>, Frank Li <lznuaa@gmail.com> and Martin Strauß <MStrauss@MuellerBBM-vas.de>");
 
 	return FALSE;

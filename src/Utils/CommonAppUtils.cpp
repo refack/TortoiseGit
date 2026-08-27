@@ -29,6 +29,7 @@
 #include "LoadIconEx.h"
 #include "IconBitmapUtils.h"
 #include "CreateProcessHelper.h"
+#include <format>
 
 extern CString g_sGroupingUUID;
 
@@ -175,9 +176,8 @@ bool CCommonAppUtils::LaunchApplication(const CString& sCommandLine, const Launc
 
 bool CCommonAppUtils::RunTortoiseGitProc(const CString& sCommandLine, bool uac, bool includeGroupingUUID)
 {
-	CString pathToExecutable = CPathUtils::GetAppDirectory() + L"TortoiseGitProc.exe";
-	CString sCmd;
-	sCmd.Format(L"\"%s\" %s", static_cast<LPCWSTR>(pathToExecutable), static_cast<LPCWSTR>(sCommandLine));
+	const std::wstring pathToExecutable = CPathUtils::GetAppDirectory() + L"TortoiseGitProc.exe";
+	CString sCmd = std::format(L"\"{}\" {}", pathToExecutable, sCommandLine).c_str();
 	if (AfxGetMainWnd()->GetSafeHwnd() && (sCommandLine.Find(L"/hwnd:") < 0))
 		sCmd.AppendFormat(L" /hwnd:%p", static_cast<void*>(AfxGetMainWnd()->GetSafeHwnd()));
 	if (!g_sGroupingUUID.IsEmpty() && includeGroupingUUID)
@@ -253,7 +253,7 @@ bool CCommonAppUtils::FileOpenSave(CString& path, int* filterindex, UINT title, 
 		if (!SUCCEEDED(pfd->SetOptions(dwOptions | FOS_OVERWRITEPROMPT | FOS_FORCEFILESYSTEM | FOS_PATHMUSTEXIST)))
 			return false;
 	}
-	if ((!PathIsDirectory(path) || handleAsFile) && !SUCCEEDED(pfd->SetFileName(CPathUtils::GetFileNameFromPath(path))))
+	if ((!PathIsDirectory(path) || handleAsFile) && !SUCCEEDED(pfd->SetFileName(CPathUtils::GetFileNameFromPath(tgit::wstr::View(path)).c_str())))
 		return false;
 
 	// Set a title
@@ -273,7 +273,7 @@ bool CCommonAppUtils::FileOpenSave(CString& path, int* filterindex, UINT title, 
 		if (filterId == 1602 || filterId == 2501) // IDS_GITEXEFILEFILTER || IDS_PROGRAMSFILEFILTER
 		{
 			pfd->SetClientGuid({ 0x323ca4b0, 0x62df, 0x4a08, { 0xa5, 0x5, 0x58, 0xde, 0xa2, 0xb9, 0x2d, 0xcd } });
-			if (SUCCEEDED(SHCreateItemFromParsingName(CPathUtils::GetProgramsDirectory(), nullptr, IID_PPV_ARGS(&psiDefaultFolder))))
+			if (SUCCEEDED(SHCreateItemFromParsingName(CPathUtils::GetProgramsDirectory().c_str(), nullptr, IID_PPV_ARGS(&psiDefaultFolder))))
 				pfd->SetDefaultFolder(psiDefaultFolder);
 		}
 	}
@@ -434,7 +434,10 @@ bool CCommonAppUtils::StartHtmlHelp(DWORD_PTR id, CString page /* = L"index.html
 	}
 
 	CString appName(MAKEINTRESOURCE(IDS_APPNAME));
-	if (CString appHelp = CPathUtils::GetAppDirectory() + appName + L"_en\\"; PathFileExists(appHelp))
+	// std::format rather than a concatenation chain: this mixes std::wstring,
+	// CString and a literal, and getting one of those conversions wrong is the
+	// silent kind of wrong (see WideString.h's formatter).
+	if (CString appHelp = std::format(L"{}{}_en\\", CPathUtils::GetAppDirectory(), appName).c_str(); PathFileExists(appHelp))
 	{
 		// We have to find the default browser, ourselves, because ShellExecute cannot handle anchors on local HTML files
 		DWORD dwszBuffPathLen = MAX_PATH;

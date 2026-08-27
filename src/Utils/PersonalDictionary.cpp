@@ -20,6 +20,7 @@
 
 #include "stdafx.h"
 #include <fstream>
+#include <format>
 #include "PersonalDictionary.h"
 #include "PathUtils.h"
 
@@ -35,11 +36,10 @@ CPersonalDictionary::~CPersonalDictionary()
 template<class T>
 static void OpenFileStream(T& file, LONG lLanguage, std::ios_base::openmode openmode = 0)
 {
-	wchar_t path[MAX_PATH] = { 0 };		//MAX_PATH ok here.
-	swprintf_s(path, L"%s%ld.dic", static_cast<LPCWSTR>(CPathUtils::GetAppDataDirectory()), !lLanguage ? GetUserDefaultLCID() : lLanguage);
+	const std::wstring path = std::format(L"{}{}.dic", CPathUtils::GetAppDataDirectory(), !lLanguage ? GetUserDefaultLCID() : lLanguage);
 
 	char filepath[MAX_PATH + 1] = { 0 };
-	WideCharToMultiByte(CP_ACP, 0, path, -1, filepath, _countof(filepath) - 1, nullptr, nullptr);
+	WideCharToMultiByte(CP_ACP, 0, path.c_str(), -1, filepath, _countof(filepath) - 1, nullptr, nullptr);
 
 	file.open(filepath, openmode);
 }

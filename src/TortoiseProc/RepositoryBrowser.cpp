@@ -1,4 +1,4 @@
-﻿// TortoiseGit - a Windows shell extension for easy version control
+// TortoiseGit - a Windows shell extension for easy version control
 
 // Copyright (C) 2009-2026 - TortoiseGit
 // Copyright (C) 2003-2013 - TortoiseSVN
@@ -603,7 +603,7 @@ void CRepositoryBrowser::FillListCtrlForShadowTree(CShadowFilesTree* pTree)
 		{
 			CString temp;
 
-			temp = CPathUtils::GetFileExtFromPath((*itShadowTree).second.m_sName);
+			temp = CPathUtils::GetFileExtFromPath(tgit::wstr::View((*itShadowTree).second.m_sName)).c_str();
 			m_RepoList.SetItemText(indexItem, eCol_Extension, temp);
 
 			StrFormatByteSize64((*itShadowTree).second.m_iSize, CStrBuf(temp, 20), 20);

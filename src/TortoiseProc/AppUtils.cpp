@@ -1,4 +1,4 @@
-﻿// TortoiseGit - a Windows shell extension for easy version control
+// TortoiseGit - a Windows shell extension for easy version control
 
 // Copyright (C) 2008-2026 - TortoiseGit
 // Copyright (C) 2003-2011, 2013-2014 - TortoiseSVN
@@ -553,7 +553,7 @@ BOOL CAppUtils::StartUnifiedDiffViewer(const CString& patchfile, const CString& 
 	if (viewer.IsEmpty())
 	{
 		// use TortoiseGitUDiff
-		viewer = CPathUtils::GetAppDirectory();
+		viewer = CPathUtils::GetAppDirectory().c_str();
 		viewer += L"TortoiseGitUDiff.exe";
 		// enquote the path to TortoiseGitUDiff
 		viewer = L'"' + viewer + L'"';
@@ -665,7 +665,7 @@ bool CAppUtils::LaunchRemoteSetting()
 */
 bool CAppUtils::LaunchTortoiseBlame(const CString& sBlameFile, const CString& Rev, const CString& sParams)
 {
-	CString viewer = L'"' + CPathUtils::GetAppDirectory();
+	CString viewer = (L'"' + CPathUtils::GetAppDirectory()).c_str();
 	viewer += L"TortoiseGitBlame.exe";
 	viewer += L"\" /path:";
 	viewer += CCmdLineParser::EscapeValue(sBlameFile);
@@ -891,7 +891,7 @@ bool CAppUtils::StartShowUnifiedDiff(HWND hWnd, const CTGitPath& url1, const CSt
 #if 0
 	CString sCmd;
 	sCmd.Format(L"%s /command:showcompare /unified",
-		static_cast<LPCWSTR>(CPathUtils::GetAppDirectory() + L"TortoiseGitProc.exe"));
+		(CPathUtils::GetAppDirectory() + L"TortoiseGitProc.exe").c_str());
 	sCmd += L" /url1:\"" + url1.GetGitPathString().c_str() + L'"';
 	if (rev1.IsValid())
 		sCmd += L" /revision1:" + rev1.ToString();
@@ -924,7 +924,7 @@ bool CAppUtils::StartShowUnifiedDiff(HWND hWnd, const CTGitPath& url1, const CSt
 
 bool CAppUtils::SetupDiffScripts(bool force, const CString& type)
 {
-	CString scriptsdir = CPathUtils::GetAppParentDirectory();
+	CString scriptsdir = CPathUtils::GetAppParentDirectory().c_str();
 	scriptsdir += L"Diff-Scripts";
 	CSimpleFileFind files(scriptsdir);
 	while (files.FindNextFileNoDirectories())
