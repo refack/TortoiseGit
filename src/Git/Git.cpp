@@ -4025,6 +4025,33 @@ int CGit::ParseConflictHashesFromLsFile(const BYTE_VECTOR& out, CGitHash& baseHa
 	return 0;
 }
 
+std::wstring CGit::SerializeArgv(const STRING_VECTOR& argv)
+{
+	// The msys2/cygwin backend writes the line into a file and runs it through
+	// bash.exe (see RunAsync), so it is shell source there and Win32 command line
+	// here. Same vector, two grammars.
+	const bool posixShell = ms_bMsys2Git || ms_bCygwinGit;
+
+	std::wstring cmd;
+	for (const auto& arg : argv)
+	{
+		if (!cmd.empty())
+			cmd += L' ';
+
+		if (posixShell)
+			cmd += CStringUtils::NeedsPosixShellQuoting(arg) ? CStringUtils::EscapePosixShellArgument(arg) : arg;
+		else
+			cmd += CStringUtils::NeedsWindowsCliQuoting(arg) ? CStringUtils::EscapeWindowsCliArgument(arg) : arg;
+	}
+
+	return cmd;
+}
+
+CGitCall::CGitCall(const STRING_VECTOR& argv)
+	: m_Cmd(CGit::SerializeArgvToCString(argv))
+{
+}
+
 CString CGit::QuoteParameter(CString value, bool relaxed /* false */)
 {
 	if (ms_bMsys2Git || ms_bCygwinGit)

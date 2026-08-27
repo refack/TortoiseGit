@@ -102,6 +102,8 @@ public:
 	CGitCall(const CString& cmd)
 		: m_Cmd(cmd)
 	{}
+	// Out of line because it needs CGit::SerializeArgv, and CGit is declared below.
+	CGitCall(const STRING_VECTOR& argv);
 	virtual ~CGitCall() {}
 
 	const CString GetCmd() const { return m_Cmd; }
@@ -457,6 +459,26 @@ public:
 	CGit(const CGit&) = delete;
 	CGit& operator=(const CGit&) = delete;
 
+	/**
+	 * The invoke API, in two spellings of the same thing.
+	 *
+	 * The argv overloads are the ones to write new code against: an element is
+	 * an element, and quoting happens once, in SerializeArgv. The CString
+	 * overloads take a line that is *already* a command line - the caller has
+	 * done its own quoting, historically with QuoteParameter at every site - and
+	 * they exist because ~280 call sites still spell it that way. They are the
+	 * legacy half of this migration, not a second supported style.
+	 *
+	 * The two cannot be collapsed by conversion: splitting a flat line back into
+	 * argv is not something you can do correctly after the fact, which is the
+	 * reason the flat form has to be retired site by site rather than adapted.
+	 */
+	int Run(const STRING_VECTOR& argv, CString* output, int code) { return Run(SerializeArgvToCString(argv), output, code); }
+	int Run(const STRING_VECTOR& argv, CString* output, CString* outputErr, int code) { return Run(SerializeArgvToCString(argv), output, outputErr, code); }
+	int Run(const STRING_VECTOR& argv, BYTE_VECTOR* byte_array, BYTE_VECTOR* byte_arrayErr = nullptr) { return Run(SerializeArgvToCString(argv), byte_array, byte_arrayErr); }
+	template <typename GitReceiverFunc>
+	int Run(const STRING_VECTOR& argv, GitReceiverFunc recv, CString* outputErr = nullptr) { return Run(SerializeArgvToCString(argv), recv, outputErr); }
+
 	int Run(const CString& cmd, CString* output, int code);
 	int Run(const CString& cmd, CString* output, CString* outputErr, int code);
 	int Run(const CString& cmd, BYTE_VECTOR* byte_array, BYTE_VECTOR* byte_arrayErr = nullptr);
@@ -502,7 +524,9 @@ public:
 	void KillRelatedThreads(CWinThread* thread);
 #endif
 	int RunAsync(CString cmd, PROCESS_INFORMATION& pi, HANDLE* hRead, HANDLE* hErrReadOut, const CString* StdioFile = nullptr);
+	int RunAsync(const STRING_VECTOR& argv, PROCESS_INFORMATION& pi, HANDLE* hRead, HANDLE* hErrReadOut, const CString* StdioFile = nullptr) { return RunAsync(SerializeArgvToCString(argv), pi, hRead, hErrReadOut, StdioFile); }
 	int RunLogFile(const CString& cmd, const CString& filename, CString* stdErr);
+	int RunLogFile(const STRING_VECTOR& argv, const CString& filename, CString* stdErr) { return RunLogFile(SerializeArgvToCString(argv), filename, stdErr); }
 
 	bool IsFastForward(const CString& from, const CString& to, CGitHash* commonAncestor = nullptr);
 private:
@@ -903,6 +927,37 @@ public:
 	[[nodiscard]] static CString QuoteParameter(const T& value, bool relaxed = false)
 	{
 		return QuoteParameter(CString(value.data(), SafeSizeToInt(value.size())), relaxed);
+	}
+
+	/**
+	 * Turns an argv vector into the one flat command line Win32 insists on.
+	 *
+	 * This is the whole point of the argv overloads: CreateProcess has no argv
+	 * API, so *someone* has to do this - and doing it here, once, is the
+	 * difference between one implementation of the quoting rules and the ~256
+	 * QuoteParameter calls scattered over the call sites it replaces.
+	 *
+	 * Two serializations, because RunAsync has two backends. Native git.exe gets
+	 * MSDN's backslash/quote rules, read back by CommandLineToArgvW. For
+	 * msys2/cygwin the line is written to a temp file and handed to bash.exe, so
+	 * there it is shell *source* and gets POSIX single-quoting instead.
+	 *
+	 * Elements are quoted only when quoting changes the reading. That is not an
+	 * optimization: RunAsync decides whether to prepend ms_LastMsysGitDir by
+	 * testing whether the line starts with "git", so a serializer that quoted
+	 * argv[0] unconditionally would silently resolve git through PATH instead.
+	 */
+	[[nodiscard]] static std::wstring SerializeArgv(const STRING_VECTOR& argv);
+
+	/**
+	 * SerializeArgv in the spelling the flat overloads want. It will go away with
+	 * them; SerializeArgv is the one that stays, because it is what a future
+	 * wstring-native (or third-party) process launcher would call.
+	 */
+	[[nodiscard]] static CString SerializeArgvToCString(const STRING_VECTOR& argv)
+	{
+		const std::wstring cmd = SerializeArgv(argv);
+		return CString(cmd.data(), SafeSizeToInt(cmd.size()));
 	}
 };
 extern void GetTempPath(CString &path);

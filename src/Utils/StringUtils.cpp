@@ -864,19 +864,19 @@ CString CStringUtils::ExpandPlaceholdersForCmd(const CString& input, const std::
 }
 #endif
 
-#if defined(_MFC_VER) || defined(CSTRING_AVAILABLE)
 // algorithm based on https://learn.microsoft.com/en-gb/archive/blogs/twistylittlepassagesallalike/everyone-quotes-command-line-arguments-the-wrong-way
 // also cf. https://learn.microsoft.com/en-us/cpp/cpp/main-function-command-line-args
-CString CStringUtils::EscapeWindowsCliArguments(const CString& argument)
+std::wstring CStringUtils::EscapeWindowsCliArgument(const std::wstring_view argument)
 {
-	CString result;
+	std::wstring result;
+	result.reserve(argument.size() + 2);
 	result += L'"';
 
-	const int length = argument.GetLength();
+	const size_t length = argument.size();
 
-	for (int i = 0;; ++i)
+	for (size_t i = 0;; ++i)
 	{
-		unsigned numberBackslashes = 0;
+		size_t numberBackslashes = 0;
 
 		// Count consecutive backslashes
 		while (i < length && argument[i] == L'\\')
@@ -889,18 +889,63 @@ CString CStringUtils::EscapeWindowsCliArguments(const CString& argument)
 		if (i >= length)
 		{
 			// Escape all backslashes, but let the terminating double quotation mark we add below be interpreted as a metacharacter.
-			result += CString(L'\\', numberBackslashes * 2);
+			result.append(numberBackslashes * 2, L'\\');
 			break;
 		}
 		else if (argument[i] == L'"') // Escape all backslashes and the following double quotation mark.
-			result += CString(L'\\', numberBackslashes * 2 + 1);
+			result.append(numberBackslashes * 2 + 1, L'\\');
 		else // Backslashes aren't special here.
-			result += CString(L'\\', numberBackslashes);
+			result.append(numberBackslashes, L'\\');
 		result += argument[i];
 	}
 
 	result += L'"';
 
 	return result;
+}
+
+bool CStringUtils::NeedsWindowsCliQuoting(const std::wstring_view argument)
+{
+	// An empty element has to be quoted or it disappears from the round trip.
+	return argument.empty() || argument.find_first_of(L" \t\n\v\"") != std::wstring_view::npos;
+}
+
+std::wstring CStringUtils::EscapePosixShellArgument(const std::wstring_view argument)
+{
+	// Single quotes suppress every expansion bash performs, and the only thing
+	// that cannot appear between them is a single quote - so close, escape it
+	// outside, and reopen.
+	std::wstring result;
+	result.reserve(argument.size() + 2);
+	result += L'\'';
+	for (const wchar_t c : argument)
+	{
+		if (c == L'\'')
+			result += L"'\\''";
+		else
+			result += c;
+	}
+	result += L'\'';
+
+	return result;
+}
+
+bool CStringUtils::NeedsPosixShellQuoting(const std::wstring_view argument)
+{
+	if (argument.empty())
+		return true;
+	for (const wchar_t c : argument)
+	{
+		if (!((c >= L'a' && c <= L'z') || (c >= L'A' && c <= L'Z') || (c >= L'0' && c <= L'9') || c == L'_' || c == L'-' || c == L'.' || c == L'/' || c == L'=' || c == L':' || c == L',' || c == L'+'))
+			return true;
+	}
+	return false;
+}
+
+#if defined(_MFC_VER) || defined(CSTRING_AVAILABLE)
+CString CStringUtils::EscapeWindowsCliArguments(const CString& argument)
+{
+	const std::wstring escaped = EscapeWindowsCliArgument(std::wstring_view(static_cast<LPCWSTR>(argument), argument.GetLength()));
+	return CString(escaped.data(), static_cast<int>(escaped.size()));
 }
 #endif

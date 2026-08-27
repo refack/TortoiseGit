@@ -4779,3 +4779,119 @@ TEST(CGit, QuoteParameter_Cygwin)
 
 	QuoteParameter_Msys2Cygwin();
 }
+
+TEST(CGit, SerializeArgv)
+{
+	const auto oldCygwinGit = CGit::ms_bCygwinGit;
+	const auto oldMsys2Git = CGit::ms_bMsys2Git;
+	SCOPE_EXIT{ CGit::ms_bCygwinGit = oldCygwinGit; CGit::ms_bMsys2Git = oldMsys2Git; };
+	CGit::ms_bCygwinGit = CGit::ms_bMsys2Git = false;
+
+	EXPECT_STREQ(L"", CGit::SerializeArgv({}).c_str());
+	EXPECT_STREQ(L"git.exe log --pretty=raw", CGit::SerializeArgv({ L"git.exe", L"log", L"--pretty=raw" }).c_str());
+
+	// argv[0] must come out bare: RunAsync decides whether to prepend
+	// ms_LastMsysGitDir by testing whether the line starts with "git", so a
+	// quoted argv[0] would silently resolve git.exe through PATH instead.
+	EXPECT_TRUE(CGit::SerializeArgv({ L"git.exe", L"status" }).starts_with(L"git.exe "));
+
+	// only elements that would read differently unquoted get quotes
+	EXPECT_STREQ(L"git.exe show \"my file.txt\"", CGit::SerializeArgv({ L"git.exe", L"show", L"my file.txt" }).c_str());
+	// backslashes are not special unless a double quote follows them
+	EXPECT_STREQ(L"git.exe add C:\\src\\a.txt", CGit::SerializeArgv({ L"git.exe", L"add", L"C:\\src\\a.txt" }).c_str());
+	// an empty element has to stay an empty element rather than vanish
+	EXPECT_STREQ(L"git.exe commit -m \"\"", CGit::SerializeArgv({ L"git.exe", L"commit", L"-m", L"" }).c_str());
+	// unlike QuoteParameter, a quote is representable rather than a thrown exception
+	EXPECT_STREQ(L"git.exe commit -m \"say \\\"hi\\\"\"", CGit::SerializeArgv({ L"git.exe", L"commit", L"-m", L"say \"hi\"" }).c_str());
+}
+
+static std::vector<std::wstring> ParseWindowsCommandLine(const std::wstring& cmd)
+{
+	std::vector<std::wstring> parsed;
+	int argc = 0;
+	LPWSTR* argv = CommandLineToArgvW(cmd.c_str(), &argc);
+	if (!argv)
+		return parsed;
+	SCOPE_EXIT{ LocalFree(argv); };
+	for (int i = 0; i < argc; ++i)
+		parsed.emplace_back(argv[i]);
+	return parsed;
+}
+
+// The real oracle for the native serializer: hand the line back to the same
+// parser CreateProcess'd children use and require every element to survive
+// unchanged. Testing the *shape* of the quoting only pins today's spelling;
+// this pins the property the spelling exists for.
+TEST(CGit, SerializeArgvRoundTrip)
+{
+	const auto oldCygwinGit = CGit::ms_bCygwinGit;
+	const auto oldMsys2Git = CGit::ms_bMsys2Git;
+	SCOPE_EXIT{ CGit::ms_bCygwinGit = oldCygwinGit; CGit::ms_bMsys2Git = oldMsys2Git; };
+	CGit::ms_bCygwinGit = CGit::ms_bMsys2Git = false;
+
+	const STRING_VECTOR argv = {
+		L"git.exe", // CommandLineToArgvW parses argv[0] by different rules, so it is excluded from the comparison below
+		L"plain",
+		L"with space",
+		L"with\ttab",
+		L"", // an empty argument is a real argument
+		L"quote\"inside",
+		L"\"",
+		L"trailing\\",
+		L"C:\\path\\to\\file",
+		L"C:\\path with space\\",
+		L"back\\\\slashes\"quote",
+		L"\\\\?\\C:\\long\\path",
+		L"\u00fcmlaut \u00e4\u00f6\u00fc",
+		L"--pretty=format:%H %s",
+		L"refs/heads/feature/x",
+		L"HEAD~3",
+		L"^HEAD",
+		L"a*b?c",
+	};
+
+	const std::wstring cmd = CGit::SerializeArgv(argv);
+	const std::vector<std::wstring> parsed = ParseWindowsCommandLine(cmd);
+	ASSERT_EQ(argv.size(), parsed.size()) << "serialized as: " << CUnicodeUtils::StdGetUTF8(cmd);
+	for (size_t i = 1; i < argv.size(); ++i)
+		EXPECT_EQ(argv[i], parsed[i]) << "element " << i << " of: " << CUnicodeUtils::StdGetUTF8(cmd);
+}
+
+static void SerializeArgv_Msys2Cygwin()
+{
+	// bash reads this, so the rules are the shell's, not CommandLineToArgvW's
+	EXPECT_STREQ(L"git.exe log", CGit::SerializeArgv({ L"git.exe", L"log" }).c_str());
+	EXPECT_STREQ(L"git.exe show 'my file.txt'", CGit::SerializeArgv({ L"git.exe", L"show", L"my file.txt" }).c_str());
+	// quoted because ~ is tilde expansion, ^ and * are history/glob - the
+	// whitelist means new shell metacharacters are safe by default
+	EXPECT_STREQ(L"git.exe log 'HEAD~3'", CGit::SerializeArgv({ L"git.exe", L"log", L"HEAD~3" }).c_str());
+	EXPECT_STREQ(L"git.exe log '^HEAD'", CGit::SerializeArgv({ L"git.exe", L"log", L"^HEAD" }).c_str());
+	EXPECT_STREQ(L"git.exe log '$(rm -rf /)'", CGit::SerializeArgv({ L"git.exe", L"log", L"$(rm -rf /)" }).c_str());
+	// a single quote is the one character single quotes cannot hold
+	EXPECT_STREQ(L"git.exe commit -m 'it'\\''s'", CGit::SerializeArgv({ L"git.exe", L"commit", L"-m", L"it's" }).c_str());
+	EXPECT_STREQ(L"git.exe show ''", CGit::SerializeArgv({ L"git.exe", L"show", L"" }).c_str());
+	// argv[0] stays bare here too - RunAsync prepends /usr/bin or /bin to it
+	EXPECT_TRUE(CGit::SerializeArgv({ L"git.exe", L"status" }).starts_with(L"git.exe "));
+}
+
+TEST(CGit, SerializeArgv_Msys2)
+{
+	const auto oldCygwinGit = CGit::ms_bCygwinGit;
+	const auto oldMsys2Git = CGit::ms_bMsys2Git;
+	SCOPE_EXIT{ CGit::ms_bCygwinGit = oldCygwinGit; CGit::ms_bMsys2Git = oldMsys2Git; };
+	CGit::ms_bCygwinGit = false;
+	CGit::ms_bMsys2Git = true;
+
+	SerializeArgv_Msys2Cygwin();
+}
+
+TEST(CGit, SerializeArgv_Cygwin)
+{
+	const auto oldCygwinGit = CGit::ms_bCygwinGit;
+	const auto oldMsys2Git = CGit::ms_bMsys2Git;
+	SCOPE_EXIT{ CGit::ms_bCygwinGit = oldCygwinGit; CGit::ms_bMsys2Git = oldMsys2Git; };
+	CGit::ms_bMsys2Git = false;
+	CGit::ms_bCygwinGit = true;
+
+	SerializeArgv_Msys2Cygwin();
+}

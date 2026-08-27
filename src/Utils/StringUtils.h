@@ -195,6 +195,40 @@ public:
 	static bool StartsWith(const char* heystack, const char* needle);
 
 	/**
+	 * Quotes one argv element the way CommandLineToArgvW / the MSVC runtime read
+	 * it back. Always adds the surrounding quotes; see \ref NeedsWindowsCliQuoting
+	 * for the "only when it matters" test the argv serializer applies first.
+	 *
+	 * Flavor-neutral on purpose: this is the building block CGit::SerializeArgv
+	 * needs, and CGit is on the list of sources the ATL side compiles too.
+	 */
+	[[nodiscard]] static std::wstring EscapeWindowsCliArgument(std::wstring_view argument);
+
+	/**
+	 * True when \a argument would not survive the round trip unquoted. An empty
+	 * element must be quoted (otherwise it vanishes); whitespace and quotes are
+	 * the only other characters CommandLineToArgvW treats as structure.
+	 *
+	 * A lone backslash needs nothing: backslashes are only special immediately
+	 * before a quote, and there is no quote here to be before.
+	 */
+	[[nodiscard]] static bool NeedsWindowsCliQuoting(std::wstring_view argument);
+
+	/**
+	 * Quotes one argv element for a POSIX shell, which is what the msys2/cygwin
+	 * path needs: CGit writes the whole command line into a temp file and hands
+	 * it to bash.exe, so there the "command line" is shell *source*.
+	 */
+	[[nodiscard]] static std::wstring EscapePosixShellArgument(std::wstring_view argument);
+
+	/**
+	 * True unless \a argument is made entirely of characters no shell touches.
+	 * Deliberately a whitelist: a blacklist of bash metacharacters is a list you
+	 * are always one shell feature behind on.
+	 */
+	[[nodiscard]] static bool NeedsPosixShellQuoting(std::wstring_view argument);
+
+	/**
 	 * Writes the string \text to the file \path, either in utf16 or utf8 encoding,
 	 * depending on the \c bUTF8 param.
 	 */
