@@ -19,18 +19,17 @@
 //
 #include "stdafx.h"
 #include "UnicodeUtils.h"
+#include "WideString.h"
 #include <memory>
 
 constexpr size_t FIXED_BUFFER_SIZE = 1024;
-
-#if defined(_MFC_VER) || defined(CSTRING_AVAILABLE)
 
 struct CodeMap
 {
 	int m_Code;
 	const wchar_t* m_CodeName;
 };
-int CUnicodeUtils::GetCPCode(const CString &codename)
+int CUnicodeUtils::StdGetCPCode(const std::wstring_view codename)
 {
 	static constexpr CodeMap map[] =
 	{
@@ -191,14 +190,14 @@ int CUnicodeUtils::GetCPCode(const CString &codename)
 		{65000, L"utf-7"},// Unicode (UTF-7)
 		{65001, L"utf-8"},// Unicode (UTF-8)
 	};
-	if (codename.IsEmpty())
+	if (codename.empty())
 		return CP_UTF8;
-	CString code(codename);
-	code.MakeLower();
-	for (auto& p : map)
+	std::wstring code(codename);
+	tgit::wstr::MakeLower(code);
+	for (const auto& p : map)
 	{
-		CString str = p.m_CodeName;
-		str.MakeLower();
+		std::wstring str(p.m_CodeName);
+		tgit::wstr::MakeLower(str);
 
 		if (str == code)
 			return p.m_Code;
@@ -206,43 +205,6 @@ int CUnicodeUtils::GetCPCode(const CString &codename)
 
 	return CP_UTF8;
 }
-
-CStringA CUnicodeUtils::GetMulti(const CStringW& string,int acp)
-{
-	const int len = string.GetLength();
-	const int size = SafeIntMult(len, 3);
-	if (size <= FIXED_BUFFER_SIZE)
-	{
-		char buf[FIXED_BUFFER_SIZE];
-		const int newlen = WideCharToMultiByte(acp, 0, string, len, buf, size, nullptr, nullptr);
-		return CStringA(buf, newlen);
-	}
-
-	CStringA retVal;
-	auto* buf = retVal.GetBuffer(size);
-	const int newlen = WideCharToMultiByte(acp, 0, string, len, buf, size, nullptr, nullptr);
-	retVal.ReleaseBuffer(newlen);
-	return retVal;
-}
-
-CString CUnicodeUtils::GetUnicodeLength(const char* string, int len, int acp)
-{
-	const int size = SafeIntMult(len, 2);
-	if (size <= FIXED_BUFFER_SIZE)
-	{
-		wchar_t buf[FIXED_BUFFER_SIZE];
-		const int newlen = MultiByteToWideChar(acp, 0, string, len, buf, size);
-		return CString(buf, newlen);
-	}
-
-	CString retVal;
-	auto* buf = retVal.GetBuffer(size);
-	const int newlen = MultiByteToWideChar(acp, 0, string, len, buf, size);
-	retVal.ReleaseBuffer(newlen);
-	return retVal;
-}
-
-#endif //_MFC_VER
 
 namespace
 {
@@ -279,7 +241,7 @@ public:
 };
 } // namespace
 
-std::string CUnicodeUtils::StdGetUTF8(const std::wstring_view wide)
+std::string CUnicodeUtils::StdGetMulti(const std::wstring_view wide, const int acp)
 {
 	const int len = SafeSizeToInt(wide.size());
 	if (len == 0)
@@ -287,11 +249,15 @@ std::string CUnicodeUtils::StdGetUTF8(const std::wstring_view wide)
 
 	const int size = SafeIntMult(len, 3);
 	CBuffer<char> buffer(size);
-	const int ret = WideCharToMultiByte(CP_UTF8, 0, wide.data(), len, buffer, size, nullptr, nullptr);
+	// lpDefaultChar and lpUsedDefaultChar must both be null here: for CP_UTF8
+	// (and CP_UTF7) WideCharToMultiByte fails with ERROR_INVALID_PARAMETER if
+	// either is supplied. WideToMultibyte below passes "." precisely because it
+	// is CP_ACP and may legitimately need a substitution character.
+	const int ret = WideCharToMultiByte(acp, 0, wide.data(), len, buffer, size, nullptr, nullptr);
 	return std::string(buffer, ret);
 }
 
-std::wstring CUnicodeUtils::StdGetUnicode(const std::string_view multibyte)
+std::wstring CUnicodeUtils::StdGetUnicode(const std::string_view multibyte, const int acp)
 {
 	const int len = SafeSizeToInt(multibyte.size());
 	if (len == 0)
@@ -299,7 +265,7 @@ std::wstring CUnicodeUtils::StdGetUnicode(const std::string_view multibyte)
 
 	const int size = SafeIntMult(len, 2);
 	CBuffer<wchar_t> buffer(size);
-	const int ret = MultiByteToWideChar(CP_UTF8, 0, multibyte.data(), len, buffer, size);
+	const int ret = MultiByteToWideChar(acp, 0, multibyte.data(), len, buffer, size);
 	return std::wstring(buffer, ret);
 }
 

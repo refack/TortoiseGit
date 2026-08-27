@@ -164,3 +164,65 @@ TEST(UnicodeUtils, Std)
 	EXPECT_EQ(2u, resultW.size());
 }
 #pragma warning(pop)
+
+
+// Added when the CString overloads became thin adapters over the std:: ones
+// (previously each carried its own WideCharToMultiByte/MultiByteToWideChar
+// copy). These are differential: they assert the two APIs agree rather than
+// asserting either against a written expectation, so the adapters cannot drift
+// from what they adapt. The same technique caught a real error in
+// tgit::wstr::Tokenize on its first run.
+TEST(UnicodeUtils, StdAndCStringAgree)
+{
+	const wchar_t* const subjects[] = {
+		L"", L"plain ascii", L"עברית", L"\U0001F600", L"a\U0001D400b", L"mixed \u00e9 \u4e2d\u6587",
+	};
+	// Not just UTF-8: GetMulti's whole reason to exist is the acp parameter,
+	// and a lossy code page is where an adapter would most plausibly differ.
+	for (const int acp : { CP_UTF8, CP_ACP, 1252, 932 })
+	{
+		for (const wchar_t* subject : subjects)
+		{
+			const CStringA viaCString = CUnicodeUtils::GetMulti(CStringW(subject), acp);
+			const std::string viaStd = CUnicodeUtils::StdGetMulti(subject, acp);
+			ASSERT_EQ(static_cast<size_t>(viaCString.GetLength()), viaStd.size())
+				<< "acp=" << acp << " subject=" << subject;
+			EXPECT_EQ(0, memcmp(static_cast<const char*>(viaCString), viaStd.data(), viaStd.size()))
+				<< "acp=" << acp << " subject=" << subject;
+
+			const CString backViaCString = CUnicodeUtils::GetUnicode(viaCString, acp);
+			const std::wstring backViaStd = CUnicodeUtils::StdGetUnicode(viaStd, acp);
+			EXPECT_STREQ(backViaCString, backViaStd.c_str()) << "acp=" << acp << " subject=" << subject;
+		}
+	}
+}
+
+TEST(UnicodeUtils, StdGetCPCodeMatchesCStringOverload)
+{
+	// Including the case-insensitivity, which now runs through
+	// tgit::wstr::MakeLower rather than CString::MakeLower.
+	const wchar_t* const names[] = {
+		L"", L"utf-8", L"UTF-8", L"Utf-8", L"windows-1252", L"WINDOWS-1252",
+		L"cp1251", L"CP_1251", L"koi8-r", L"big5", L"not-a-code-page", L"IBM037",
+	};
+	for (const wchar_t* name : names)
+		EXPECT_EQ(CUnicodeUtils::GetCPCode(CString(name)), CUnicodeUtils::StdGetCPCode(name)) << "name=" << name;
+
+	// The documented fallback, worth pinning: an unknown or empty name is UTF-8,
+	// not the ANSI code page.
+	EXPECT_EQ(CP_UTF8, CUnicodeUtils::StdGetCPCode(L""));
+	EXPECT_EQ(CP_UTF8, CUnicodeUtils::StdGetCPCode(L"not-a-code-page"));
+	EXPECT_EQ(1251, CUnicodeUtils::StdGetCPCode(L"cp-1251"));
+}
+
+TEST(UnicodeUtils, EmbeddedNulSurvivesTheAdapters)
+{
+	// CString and std::string both allow embedded NULs, and the adapters now
+	// carry an explicit length across rather than relying on a terminator. If
+	// one of them ever regressed to strlen this is the test that would say so.
+	const std::wstring wide(L"a\0b", 3);
+	const std::string narrow = CUnicodeUtils::StdGetUTF8(wide);
+	EXPECT_EQ(3u, narrow.size());
+	EXPECT_EQ(3, CUnicodeUtils::GetUTF8(CStringW(wide.data(), 3)).GetLength());
+	EXPECT_EQ(wide, CUnicodeUtils::StdGetUnicode(narrow));
+}

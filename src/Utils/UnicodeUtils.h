@@ -50,18 +50,38 @@ class CUnicodeUtils
 {
 public:
 	CUnicodeUtils() = delete;
+
+	// The std::string / std::wstring API is the real one, and the only one the
+	// shared library may expose: CString is CStringT<..., StrTraitMFC_DLL> in an
+	// MFC project and CStringT<..., StrTraitATL> in an ATL one, so it mangles
+	// differently and cannot cross a library boundary that serves both.
+	static std::string StdGetMulti(const std::wstring_view wide, int acp);
+	static inline std::string StdGetUTF8(const std::wstring_view wide) { return StdGetMulti(wide, CP_UTF8); }
+	static std::wstring StdGetUnicode(const std::string_view multibyte, int acp = CP_UTF8);
+	static int StdGetCPCode(const std::wstring_view codename);
+
 #if defined(_MFC_VER) || defined(CSTRING_AVAILABLE)
+	// Thin adapters over the above, kept while call sites move across. They
+	// used to carry their own copy of the WideCharToMultiByte /
+	// MultiByteToWideChar dance, which meant a fix to one encoding edge case
+	// had two places to land and no way to notice the second. Delete each of
+	// these once nothing calls it; nothing here needs porting first.
+	static inline CStringA GetMulti(const CStringW& string, int acp)
+	{
+		const std::string converted = StdGetMulti(std::wstring_view(string, string.GetLength()), acp);
+		return CStringA(converted.data(), SafeSizeToInt(converted.size()));
+	}
 	static inline CStringA GetUTF8(const CStringW& string) { return GetMulti(string, CP_UTF8); }
-	static CStringA GetMulti(const CStringW& string, int acp);
+	static inline CString GetUnicodeLength(const char* string, int len, int acp = CP_UTF8)
+	{
+		const std::wstring converted = StdGetUnicode(std::string_view(string, static_cast<size_t>(len)), acp);
+		return CString(converted.data(), SafeSizeToInt(converted.size()));
+	}
 	static inline CString GetUnicode(const CStringA& string, int acp = CP_UTF8) { return GetUnicodeLength(string, string.GetLength(), acp); };
 	static inline CString GetUnicode(const char* string, int acp = CP_UTF8) { return GetUnicode(std::string_view(string), acp); };
 	static inline CString GetUnicode(const std::string_view string, int acp = CP_UTF8) { return GetUnicodeLength(string.data(), SafeSizeToInt(string.size()), acp); };
-	static CString GetUnicodeLength(const char* string, int len, int acp = CP_UTF8);
-	static int GetCPCode(const CString & codename);
+	static inline int GetCPCode(const CString& codename) { return StdGetCPCode(std::wstring_view(codename, codename.GetLength())); }
 #endif
-
-	static std::string StdGetUTF8(const std::wstring_view wide);
-	static std::wstring StdGetUnicode(const std::string_view multibyte);
 };
 
 /* only used in TortoiseGitShell\ContextMenu.h */

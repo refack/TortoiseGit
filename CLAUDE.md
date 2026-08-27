@@ -1047,6 +1047,38 @@ Order to do it in. Phases A and B are what actually buy the goal:
   boundary it links into MFC consumers too, so the shell extension never has to
   take an MFC dependency to get the shared library. `ATL::CStringW` may remain
   *inside* the `.cpp` files indefinitely — it never crosses a signature.
+- **Order by new degrees of freedom, not by churn** (user, 2026-08-26): *"those
+  are all compiler validated. Big if you measure churn, tiny if you measure new
+  DoF."* A type change makes every stale call site a **compile error**, so 2,095
+  edits carrying one decision is cheap and 50 edits carrying 50 decisions is
+  not. `CTGitPath` is therefore a *good* slice, not a bad one — the ranking
+  above by call-site count was measuring the wrong axis.
+
+- **The spanning base.** A small set of conversions covering every distinct kind
+  of string boundary, after which the rest is mechanical:
+
+  | # | boundary | vector | status |
+  | --- | --- | --- | --- |
+  | 1 | bytes ↔ wide (git/libgit2 ↔ Win32) | `UnicodeUtils` | **done**, `51919c55e` |
+  | 2 | OS state | `registry.h` | **already spanned** — see below |
+  | 3 | text idioms | `WideString.h` | **done**, `a483e6f4b` |
+  | 4 | filesystem paths | `PathUtils` | pure functions; churn only |
+  | 5 | the path value type | `CTGitPath`/`CTGitPathList` | one decision, ~2,095 sites |
+  | 6 | subprocess / CLI | `Git.h` | **do last** — this is where the DoF is |
+
+  **`registry.h` needs no port at all.** It is already templated on the string
+  type: `CRegBaseCommon<CString>` gives `CRegString`/`CRegDWORD`,
+  `CRegStdBase` = `CRegBaseCommon<std::wstring>` gives
+  `CRegStdString`/`CRegStdDWORD`, and both are live (162/574 versus 28/220)
+  because the ATL side already cannot rely on MFC. Converting a call site is
+  choosing the `Std` spelling, not writing anything. Its 23 header `CString`
+  occurrences are one instantiation of a generic, not a boundary to port.
+
+  **`Git.h` last, and deliberately.** Its 135 `CString` are not one decision
+  repeated: command construction, argument encoding, the `CGitByteArray` output
+  boundary and `m_CurrentDir`'s admin-dir discovery each decide something
+  different. Everything above it is churn; this one is design.
+
 - **Phase C** — drain the remaining `ATL::CStringW` from lib internals at leisure.
 - **Phase D** — applet-merge the executables (see below).
 
