@@ -102,9 +102,9 @@ void CDeleteRemoteTagDlg::Refresh()
 
 	for (int i = 0; i < static_cast<int>(tags.size()); ++i)
 	{
-		if (CStringUtils::EndsWith(tags[i].name, L"^{}"))
+		if (tags[i].name.ends_with(L"^{}"))
 			continue;
-		m_ctrlTags.InsertItem(i, tags[i].name);
+		m_ctrlTags.InsertItem(i, tags[i].name.c_str());
 	}
 
 	DialogEnableWindow(IDOK, FALSE);

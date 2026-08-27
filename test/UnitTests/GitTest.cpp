@@ -1561,8 +1561,8 @@ static void GetBranchDescriptions(CGit& m_Git)
 
 	EXPECT_EQ(0, m_Git.GetBranchDescriptions(descriptions));
 	ASSERT_EQ(2U, descriptions.size());
-	EXPECT_STREQ(L"test", descriptions[L"master"]);
-	EXPECT_STREQ(L"multi\nline", descriptions[L"subdir/branch"]);
+	EXPECT_STREQ(L"test", descriptions[L"master"].c_str());
+	EXPECT_STREQ(L"multi\nline", descriptions[L"subdir/branch"].c_str());
 }
 
 TEST_P(CBasicGitWithEmptyRepositoryFixture, GetBranchDescriptions)

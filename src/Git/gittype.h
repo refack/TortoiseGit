@@ -129,13 +129,20 @@ public:
 
 struct TGitRef
 {
-	CString name;
+	std::wstring name;
 	CGitHash hash;
-	operator const CString&() const { return name; }
+	// There was an `operator const CString&() const { return name; }` here. Same
+	// disease as CGitByteArray's operator CString(): it let a whole ref stand in
+	// for its name silently, so a call site could not be read without knowing the
+	// overload set around it. Say `.name`.
 };
 
 using STRING_VECTOR = std::vector<CString>;
 using MAP_HASH_NAME = std::unordered_map<CGitHash, STRING_VECTOR>;
-using MAP_STRING_STRING = std::map<CString, CString>;
+// std::wstring rather than CString, for the reason WideString.h opens with:
+// CString is a different type in an MFC project than in an ATL one, so an alias
+// naming it cannot appear in a header both flavors compile. Values, not views -
+// these containers own their strings and outlive whatever produced them.
+using MAP_STRING_STRING = std::map<std::wstring, std::wstring>;
 using REF_VECTOR = std::vector<TGitRef>;
 using BYTE_VECTOR = CGitByteArray;

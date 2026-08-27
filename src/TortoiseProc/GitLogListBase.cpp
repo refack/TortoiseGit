@@ -3615,11 +3615,11 @@ BOOL CGitLogListBase::OnToolTipText(UINT /*id*/, NMHDR* pNMHDR, LRESULT* pResult
 			{
 				MAP_STRING_STRING descriptions;
 				g_Git.GetBranchDescriptions(descriptions);
-				if (descriptions.find(branch) != descriptions.cend())
+				if (const auto it = descriptions.find(std::wstring(branch)); it != descriptions.cend())
 				{
 					strTipText.LoadString(IDS_DESCRIPTION);
 					strTipText += L":\n";
-					strTipText += descriptions[branch];
+					strTipText += it->second.c_str();
 				}
 			}
 		}

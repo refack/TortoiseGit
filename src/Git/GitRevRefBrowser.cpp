@@ -169,7 +169,7 @@ int GitRevRefBrowser::GetGitRevRefMap(MAP_REF_GITREVREFBROWSER& map, int mergefi
 
 			if (git_reference_is_branch(ref))
 			{
-				entry.m_Description = descriptions[refName.Mid(static_cast<int>(wcslen(L"refs/heads/")))];
+				entry.m_Description = descriptions[std::wstring(refName.Mid(static_cast<int>(wcslen(L"refs/heads/"))))].c_str();
 
 				CAutoBuf buf;
 				if (const auto ret = git_branch_upstream_name(buf, repo, git_reference_name(ref)); ret == 0)
@@ -260,7 +260,7 @@ int GitRevRefBrowser::GetGitRevRefMap(MAP_REF_GITREVREFBROWSER& map, int mergefi
 		}
 
 		if (CStringUtils::StartsWith(refName, L"refs/heads/"))
-			ref.m_Description = descriptions[refName.Mid(static_cast<int>(wcslen(L"refs/heads/")))];
+			ref.m_Description = descriptions[std::wstring(refName.Mid(static_cast<int>(wcslen(L"refs/heads/"))))].c_str();
 
 		map.emplace(refName, ref);
 	}

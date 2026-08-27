@@ -1536,7 +1536,7 @@ static REF_VECTOR HashMapToRefMap(MAP_HASH_NAME& map)
 	{
 		for (auto rit = mit->second.cbegin(); rit != mit->second.cend(); ++rit)
 		{
-			rmap.emplace_back(TGitRef{ *rit, mit->first });
+			rmap.emplace_back(TGitRef{ std::wstring(*rit), mit->first });
 		}
 	}
 	return rmap;
@@ -1574,13 +1574,13 @@ void CSyncDlg::FillNewRefMap()
 			if (oit->name == nit->name)
 			{
 				found = true;
-				m_refList.AddEntry(repo, oit->name, &oit->hash, &nit->hash);
+				m_refList.AddEntry(repo, oit->name.c_str(), &oit->hash, &nit->hash);
 				break;
 			}
 		}
 		// deleted ref
 		if (!found)
-			m_refList.AddEntry(repo, oit->name, &oit->hash, nullptr);
+			m_refList.AddEntry(repo, oit->name.c_str(), &oit->hash, nullptr);
 	}
 	for (auto nit = newRefMap.cbegin(); nit != newRefMap.cend(); ++nit)
 	{
@@ -1595,7 +1595,7 @@ void CSyncDlg::FillNewRefMap()
 		}
 		// new ref
 		if (!found)
-			m_refList.AddEntry(repo, nit->name, nullptr, &nit->hash);
+			m_refList.AddEntry(repo, nit->name.c_str(), nullptr, &nit->hash);
 	}
 	m_refList.Show();
 }

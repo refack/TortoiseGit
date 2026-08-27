@@ -198,16 +198,36 @@ static void GetSortOptions()
 #endif
 }
 
-static int LogicalComparePredicate(const CString &left, const CString &right)
+static bool LogicalCompareSz(LPCWSTR left, LPCWSTR right)
 {
 	if (g_bSortLogical)
 		return StrCmpLogicalW(left, right) < 0;
 	return StrCmpI(left, right) < 0;
 }
 
+static int LogicalComparePredicate(const CString &left, const CString &right)
+{
+	return LogicalCompareSz(left, right);
+}
+
 static int LogicalCompareReversedPredicate(const CString &left, const CString &right)
 {
 	return LogicalComparePredicate(right, left);
+}
+
+// A REF_VECTOR sorts by ref name. That used to be spelled by handing the whole
+// TGitRef to the CString predicates and letting `operator const CString&` pick
+// the name out - which is to say, the sort key was invisible at the call site.
+// Separate names rather than overloads: these are passed to std::sort by name,
+// and an overload set cannot be deduced there.
+static bool LogicalCompareRefPredicate(const TGitRef& left, const TGitRef& right)
+{
+	return LogicalCompareSz(left.name.c_str(), right.name.c_str());
+}
+
+static bool LogicalCompareRefReversedPredicate(const TGitRef& left, const TGitRef& right)
+{
+	return LogicalCompareRefPredicate(right, left);
 }
 
 static int LogicalCompareBranchesPredicate(const CString &left, const CString &right)
@@ -2051,11 +2071,11 @@ int CGit::GetRemoteRefs(const CString& remote, REF_VECTOR& list, bool includeTag
 					shortname = ref;
 			}
 			if (includeTags && includeBranches)
-				list.emplace_back(TGitRef{ ref, &heads[i]->oid });
+				list.emplace_back(TGitRef{ std::wstring(ref), &heads[i]->oid });
 			else
-				list.emplace_back(TGitRef{ shortname, &heads[i]->oid });
+				list.emplace_back(TGitRef{ std::wstring(shortname), &heads[i]->oid });
 		}
-		std::sort(list.begin() + prevCount, list.end(), g_bSortTagsReversed && includeTags && !includeBranches ? LogicalCompareReversedPredicate : LogicalComparePredicate);
+		std::sort(list.begin() + prevCount, list.end(), g_bSortTagsReversed && includeTags && !includeBranches ? LogicalCompareRefReversedPredicate : LogicalCompareRefPredicate);
 		return 0;
 	}
 
@@ -2092,15 +2112,15 @@ int CGit::GetRemoteRefs(const CString& remote, REF_VECTOR& list, bool includeTag
 					shortname = ref;
 			}
 			if (includeTags && includeBranches)
-				list.emplace_back(TGitRef{ ref, hash });
+				list.emplace_back(TGitRef{ std::wstring(ref), hash });
 			else if (includeTags && CStringUtils::EndsWith(ref, L"^{}"))
-				list.emplace_back(TGitRef{ shortname + L"^{}", hash });
+				list.emplace_back(TGitRef{ std::wstring(shortname + L"^{}"), hash });
 			else
-				list.emplace_back(TGitRef{ shortname, hash });
+				list.emplace_back(TGitRef{ std::wstring(shortname), hash });
 		},
 		&gitLastErr))
 		return -1;
-	std::sort(list.begin() + prevCount, list.end(), g_bSortTagsReversed && includeTags && !includeBranches ? LogicalCompareReversedPredicate : LogicalComparePredicate);
+	std::sort(list.begin() + prevCount, list.end(), g_bSortTagsReversed && includeTags && !includeBranches ? LogicalCompareRefReversedPredicate : LogicalCompareRefPredicate);
 	return 0;
 }
 
@@ -2309,10 +2329,12 @@ int CGit::GetBranchDescriptions(MAP_STRING_STRING& map)
 	return git_config_foreach_match(config, "^branch\\..*\\.description$", [](const git_config_entry* entry, void* data)
 	{
 		auto descriptions = static_cast<MAP_STRING_STRING*>(data);
-		CString key = CUnicodeUtils::GetUnicode(entry->name);
-		// extract branch name from config key
-		key = key.Mid(static_cast<int>(wcslen(L"branch.")), key.GetLength() - static_cast<int>(wcslen(L"branch.")) - static_cast<int>(wcslen(L".description")));
-		descriptions->insert(std::make_pair(key, CUnicodeUtils::GetUnicode(entry->value)));
+		// extract branch name from config key; the match pattern above guarantees
+		// both affixes are present, so the length arithmetic cannot underflow
+		constexpr size_t prefix = std::size(L"branch.") - 1;
+		constexpr size_t suffix = std::size(L".description") - 1;
+		const std::wstring key = CUnicodeUtils::StdGetUnicode(entry->name);
+		descriptions->emplace(key.substr(prefix, key.size() - prefix - suffix), CUnicodeUtils::StdGetUnicode(entry->value));
 		return 0;
 	}, &map);
 }

@@ -59,11 +59,15 @@ enum IDGITRCLH
 	IDGITRCLH_HIDEUNCHANGED = 1,
 };
 
-inline static bool SortPredicate(bool sortLogical, const CString& e1, const CString& e2)
+// LPCWSTR rather than const CString&: it is called both with the CString columns
+// of a RefEntry and with the std::wstring name of a TGitRef, and both of them
+// hand over a null-terminated buffer for free. wcscmp is what CString::Compare
+// called anyway.
+inline static bool SortPredicate(bool sortLogical, LPCWSTR e1, LPCWSTR e2)
 {
 	if (sortLogical)
 		return StrCmpLogicalW(e1, e2) < 0;
-	return e1.Compare(e2) < 0;
+	return wcscmp(e1, e2) < 0;
 }
 
 CGitTagCompareList::CGitTagCompareList()
@@ -139,53 +143,53 @@ int CGitTagCompareList::Fill(const CString& remote, CString& err)
 			if (CStringUtils::StartsWith(ref, L"refs/tags/"))
 			{
 				auto tagname = ref.Mid(static_cast<int>(wcslen(L"refs/tags/")));
-				localTags.emplace_back(TGitRef{ tagname, hash });
+				localTags.emplace_back(TGitRef{ std::wstring(tagname), hash });
 				if (CStringUtils::EndsWith(tagname, L"^{}"))
 				{
 					tagname.Truncate(tagname.GetLength() - static_cast<int>(wcslen(L"^{}")));
 					CAutoObject gitObject;
 					if (git_revparse_single(gitObject.GetPointer(), repo, CUnicodeUtils::GetUTF8(tagname)))
 						return;
-					localTags.emplace_back(TGitRef{ tagname, git_object_id(gitObject) });
+					localTags.emplace_back(TGitRef{ std::wstring(tagname), git_object_id(gitObject) });
 				}
 			}
 		});
 	}
-	std::sort(remoteTags.begin(), remoteTags.end(), [](const auto& first, const auto& second) { return SortPredicate(!!m_bSortLogical, first, second); });
-	std::sort(localTags.begin(), localTags.end(), [](const auto& first, const auto& second) { return SortPredicate(!!m_bSortLogical, first, second); });
+	std::sort(remoteTags.begin(), remoteTags.end(), [](const TGitRef& first, const TGitRef& second) { return SortPredicate(!!m_bSortLogical, first.name.c_str(), second.name.c_str()); });
+	std::sort(localTags.begin(), localTags.end(), [](const TGitRef& first, const TGitRef& second) { return SortPredicate(!!m_bSortLogical, first.name.c_str(), second.name.c_str()); });
 
 	auto remoteIt = remoteTags.cbegin();
 	auto localIt = localTags.cbegin();
 
 	while (remoteIt != remoteTags.cend() && localIt != localTags.cend())
 	{
-		if (SortPredicate(!!m_bSortLogical, remoteIt->name, localIt->name))
+		if (SortPredicate(!!m_bSortLogical, remoteIt->name.c_str(), localIt->name.c_str()))
 		{
-			AddEntry(repo, remoteIt->name, nullptr, &remoteIt->hash);
+			AddEntry(repo, remoteIt->name.c_str(), nullptr, &remoteIt->hash);
 			++remoteIt;
 			continue;
 		}
 
 		if (remoteIt->name == localIt->name)
 		{
-			AddEntry(repo, remoteIt->name, &localIt->hash, &remoteIt->hash);
+			AddEntry(repo, remoteIt->name.c_str(), &localIt->hash, &remoteIt->hash);
 			++remoteIt;
 		}
 		else
-			AddEntry(repo, localIt->name, &localIt->hash, nullptr);
+			AddEntry(repo, localIt->name.c_str(), &localIt->hash, nullptr);
 
 		++localIt;
 	}
 
 	while (remoteIt != remoteTags.cend())
 	{
-		AddEntry(repo, remoteIt->name, nullptr, &remoteIt->hash);
+		AddEntry(repo, remoteIt->name.c_str(), nullptr, &remoteIt->hash);
 		++remoteIt;
 	}
 
 	while (localIt != localTags.cend())
 	{
-		AddEntry(repo, localIt->name, &localIt->hash, nullptr);
+		AddEntry(repo, localIt->name.c_str(), &localIt->hash, nullptr);
 		++localIt;
 	}
 

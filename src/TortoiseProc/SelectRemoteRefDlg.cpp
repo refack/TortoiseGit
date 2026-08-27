@@ -94,7 +94,7 @@ void CSelectRemoteRefDlg::Refresh()
 
 	for (int i = 0; i < static_cast<int>(refs.size()); ++i)
 	{
-		m_ctrlRefs.AddString(refs[i].name, -1, 0);
+		m_ctrlRefs.AddString(refs[i].name.c_str(), -1, 0);
 	}
 
 	if (m_ctrlRefs.GetCount() > 0)
