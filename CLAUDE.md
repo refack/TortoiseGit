@@ -994,11 +994,54 @@ What the survey found about the current state:
 
 Order to do it in. Phases A and B are what actually buy the goal:
 
-- **Phase A — purge `CString` from `src\Git` + `src\Utils` headers.** 60 headers,
-  769 occurrences. Consumers then need `.c_str()` at every call site that touched
-  those signatures, which is the real bill (TortoiseProc alone has 3,283 `CString`
-  occurrences, though only the fraction crossing the boundary is affected).
-  **Calibrate on `CTGitPath` first** and price the rest from it.
+- **Phase A — purge `CString` from the flavor-neutral core.** Scoped 2026-08-26,
+  and it is **much smaller than "all of `src\Utils`"**: only what the ATL side
+  *and* the MFC side both compile has to be neutral. Taking the union of the
+  `Git`/`Utils` sources listed by `TortoiseShell`, `TGitCache` and `GitWCRev`
+  gives **20 files**:
+
+  > `CmdLineParser`, `DebugOutput`, `Git`, `GitAdminDir`, `GitFolderStatus`,
+  > `GitIndex`, `GitMailmap`, `GitRev`, `GitStatus`, `IconBitmapUtils`,
+  > `LangDll`, `LoadIconEx`, `MassiveGitTaskBase`, `PathUtils`,
+  > `ReaderWriterLock`, `Registry`, `StringUtils`, `SysInfo`, `TGitPath`,
+  > `UnicodeUtils`
+
+  **Everything else in `src\Utils` can keep `CString` indefinitely** —
+  `MessageBox.h` (73 includers), `StandAloneDlg.h` (59), `SciEdit.h`,
+  `HistoryCombo.h`, `GitStatusListCtrl.h`, all of `MiscUI` and `TreePropSheet`
+  are MFC-only UI that lives in the MFC binary and is never compiled by the ATL
+  side. Do not convert them "for consistency"; it is pure cost.
+
+  Header `CString` counts in that core, heaviest first: `Git.h` 135,
+  `gitindex.h` 80, `TGitPath.h` 49, `StringUtils.h` 39, `PathUtils.h` 36,
+  `registry.h` 23, `GitStatus.h` 19, `GitAdminDir.h`/`GitRev.h` 16 each.
+
+- **The cascade follows the data, not the includes.** Ranking headers by
+  includer count suggests converting leaves first, and that is wrong.
+  `GitMailmap.h` has 8 `CString` and 4 includers — a textbook leaf — but
+  `Translate(CString&, CString&)` writes straight into `GitRev`'s `CString`
+  members, so converting it drags `GitRev` (16/13) with it, and `GitRevLoglist`
+  and `GitRevRefBrowser` behind that. **The unit of work is a connected
+  component of the data graph**, and the first one is
+  `{GitRev, GitMailmap, GitRevLoglist, GitRevRefBrowser}`. Expect to price by
+  component, not by file.
+
+- **Call-site fallout is the real bill, and it is large.** `CTGitPath`'s
+  accessors alone are ~2,095 sites (`GetGitPathString` 728, `GetWinPathString`
+  330, `GetGitOldPathString` 251, `m_StatAdd`/`m_StatDel` 236 each,
+  `HasAdminDir` 128). `CUnicodeUtils::GetUTF8`/`GetUnicode` are 359 more. So
+  `CTGitPath` is the *worst* possible first slice despite being the obvious one.
+
+- **`src\Utils\WideString.h` (`a483e6f4b`) is the prerequisite**, and it
+  deliberately is **not** idiomatic STL: it keeps CString's contract — `int`
+  offsets, `-1` for absent, clamping `Left`/`Mid` — so converting a call site
+  stays a rename. Three idioms fail *silently* otherwise: `Find`'s `-1` versus
+  `npos` (`>= 0` becomes always-true), `GetLength()`'s `int` versus `size()`'s
+  `size_t`, and `Mid`/`Left` clamping where `substr` throws. Its tests are
+  **differential against the real `CString`** rather than against written
+  expectations — which immediately caught that `CString::Tokenize` is
+  strtok-like and skips delimiter runs, so `"a//b"` is two tokens, not three.
+  A test written from belief would have agreed with the bug.
 - **Phase B — one `TGitCore.lib`**: `src\Git` + `src\Utils` + AsyncFramework +
   ResizableLib + TGitLibgit2, compiled **ATL-flavor**. With `std::wstring` at the
   boundary it links into MFC consumers too, so the shell extension never has to

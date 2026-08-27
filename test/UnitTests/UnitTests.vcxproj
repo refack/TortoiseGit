@@ -206,6 +206,7 @@
     <ClCompile Include="TortoiseGitBlameDataTest.cpp" />
     <ClCompile Include="UnicodeUtilsTest.cpp" />
     <ClCompile Include="UniqueQueueTests.cpp" />
+    <ClCompile Include="WideStringTest.cpp" />
     <ClCompile Include="UnitTests.cpp" />
     <ClCompile Include="UpdateCryptoTest.cpp" />
     <ClCompile Include="VersioncheckParserTest.cpp" />
