@@ -606,7 +606,7 @@ CString CGit::GetUserName()
 {
 	CEnvironment env;
 	env.CopyProcessEnvironment();
-	CString envname = env.GetEnv(L"GIT_AUTHOR_NAME");
+	CString envname = env.GetEnv(L"GIT_AUTHOR_NAME").c_str();
 	if (!envname.IsEmpty())
 		return envname;
 
@@ -619,7 +619,7 @@ CString CGit::GetUserEmail()
 {
 	CEnvironment env;
 	env.CopyProcessEnvironment();
-	CString envmail = env.GetEnv(L"GIT_AUTHOR_EMAIL");
+	CString envmail = env.GetEnv(L"GIT_AUTHOR_EMAIL").c_str();
 	if (!envmail.IsEmpty())
 		return envmail;
 
@@ -633,7 +633,7 @@ CString CGit::GetCommitterName()
 {
 	CEnvironment env;
 	env.CopyProcessEnvironment();
-	CString envname = env.GetEnv(L"GIT_COMMITTER_NAME");
+	CString envname = env.GetEnv(L"GIT_COMMITTER_NAME").c_str();
 	if (!envname.IsEmpty())
 		return envname;
 
@@ -647,7 +647,7 @@ CString CGit::GetCommitterEmail()
 {
 	CEnvironment env;
 	env.CopyProcessEnvironment();
-	CString envmail = env.GetEnv(L"GIT_AUTHOR_EMAIL");
+	CString envmail = env.GetEnv(L"GIT_AUTHOR_EMAIL").c_str();
 	if (!envmail.IsEmpty())
 		return envmail;
 
@@ -2424,37 +2424,37 @@ BOOL CGit::CheckMsysGitDir(BOOL bFallback)
 	m_Environment.SetEnv(L"TGIT_INITIATED_CALL", L"1");
 
 	// Sanitize GIT_* environment variables, cf. https://github.com/git-for-windows/build-extra/pull/529 and git/environment.h
-	m_Environment.SetEnv(L"GIT_INDEX_FILE", nullptr);
-	m_Environment.SetEnv(L"GIT_INDEX_VERSION", nullptr);
-	m_Environment.SetEnv(L"GIT_OBJECT_DIRECTORY", nullptr);
-	m_Environment.SetEnv(L"GIT_ALTERNATE_OBJECT_DIRECTORIES", nullptr);
-	m_Environment.SetEnv(L"GIT_DIR", nullptr);
-	m_Environment.SetEnv(L"GIT_WORK_TREE", nullptr);
-	m_Environment.SetEnv(L"GIT_NAMESPACE", nullptr);
-	m_Environment.SetEnv(L"GIT_CEILING_DIRECTORIES", nullptr);
-	m_Environment.SetEnv(L"GIT_DISCOVERY_ACROSS_FILESYSTEM", nullptr);
-	m_Environment.SetEnv(L"GIT_COMMON_DIR", nullptr);
-	m_Environment.SetEnv(L"GIT_DEFAULT_HASH", nullptr);
-	m_Environment.SetEnv(L"GIT_CONFIG", nullptr);
-	m_Environment.SetEnv(L"GIT_CONFIG_GLOBAL", nullptr);
-	m_Environment.SetEnv(L"GIT_CONFIG_SYSTEM", nullptr);
-	m_Environment.SetEnv(L"GIT_CONFIG_NOSYSTEM", nullptr);
-	m_Environment.SetEnv(L"GIT_CONFIG_COUNT", nullptr);
-	m_Environment.SetEnv(L"GIT_ATTR_NOSYSTEM", nullptr);
-	m_Environment.SetEnv(L"GIT_ATTR_SOURCE", nullptr);
-	m_Environment.SetEnv(L"GIT_SHALLOW_FILE", nullptr);
-	m_Environment.SetEnv(L"GIT_GRAFT_FILE", nullptr);
+	m_Environment.UnsetEnv(L"GIT_INDEX_FILE");
+	m_Environment.UnsetEnv(L"GIT_INDEX_VERSION");
+	m_Environment.UnsetEnv(L"GIT_OBJECT_DIRECTORY");
+	m_Environment.UnsetEnv(L"GIT_ALTERNATE_OBJECT_DIRECTORIES");
+	m_Environment.UnsetEnv(L"GIT_DIR");
+	m_Environment.UnsetEnv(L"GIT_WORK_TREE");
+	m_Environment.UnsetEnv(L"GIT_NAMESPACE");
+	m_Environment.UnsetEnv(L"GIT_CEILING_DIRECTORIES");
+	m_Environment.UnsetEnv(L"GIT_DISCOVERY_ACROSS_FILESYSTEM");
+	m_Environment.UnsetEnv(L"GIT_COMMON_DIR");
+	m_Environment.UnsetEnv(L"GIT_DEFAULT_HASH");
+	m_Environment.UnsetEnv(L"GIT_CONFIG");
+	m_Environment.UnsetEnv(L"GIT_CONFIG_GLOBAL");
+	m_Environment.UnsetEnv(L"GIT_CONFIG_SYSTEM");
+	m_Environment.UnsetEnv(L"GIT_CONFIG_NOSYSTEM");
+	m_Environment.UnsetEnv(L"GIT_CONFIG_COUNT");
+	m_Environment.UnsetEnv(L"GIT_ATTR_NOSYSTEM");
+	m_Environment.UnsetEnv(L"GIT_ATTR_SOURCE");
+	m_Environment.UnsetEnv(L"GIT_SHALLOW_FILE");
+	m_Environment.UnsetEnv(L"GIT_GRAFT_FILE");
 
 	// Git for Windows 2.10.1 and 2.10.2 require LC_ALL to be set, see https://tortoisegit.org/issue/2859 and https://github.com/git-for-windows/git/issues/945,
 	// because MSys2 changed the default to "ASCII". SO, make sure we have a proper default set
-	if (m_Environment.GetEnv(L"LC_ALL").IsEmpty())
+	if (m_Environment.GetEnv(L"LC_ALL").empty())
 		m_Environment.SetEnv(L"LC_ALL", L"C");
 
 	// set HOME if not set already
 	size_t homesize;
 	_wgetenv_s(&homesize, nullptr, 0, L"HOME");
 	if (!homesize)
-		m_Environment.SetEnv(L"HOME", GetHomeDirectory());
+		m_Environment.SetEnv(L"HOME", tgit::wstr::View(GetHomeDirectory()));
 
 	//setup ssh client
 	CString sshclient = GetConfiguredSshClient();
@@ -2463,8 +2463,8 @@ BOOL CGit::CheckMsysGitDir(BOOL bFallback)
 	{
 		if (ms_bCygwinGit)
 			sshclient.Replace(L'\\', L'/');
-		m_Environment.SetEnv(L"GIT_SSH", sshclient);
-		m_Environment.SetEnv(L"SVN_SSH", sshclient);
+		m_Environment.SetEnv(L"GIT_SSH", tgit::wstr::View(sshclient));
+		m_Environment.SetEnv(L"SVN_SSH", tgit::wstr::View(sshclient));
 	}
 	else
 	{
@@ -2535,7 +2535,7 @@ BOOL CGit::CheckMsysGitDir(BOOL bFallback)
 	SetLibGit2SearchPath(GIT_CONFIG_LEVEL_SYSTEM, CTGitPath(g_Git.GetGitSystemConfig().GetString()).GetContainingDirectory().GetWinPathString().c_str());
 	SetLibGit2SearchPath(GIT_CONFIG_LEVEL_GLOBAL, g_Git.GetHomeDirectory());
 	SetLibGit2SearchPath(GIT_CONFIG_LEVEL_XDG, g_Git.GetGitGlobalXDGConfig(true));
-	static git_smart_subtransport_definition ssh_wintunnel_subtransport_definition = { [](git_smart_subtransport **out, git_transport* owner, void*) -> int { return git_smart_subtransport_ssh_wintunnel(out, owner, FindExecutableOnPath(g_Git.m_Environment.GetEnv(L"GIT_SSH"), g_Git.m_Environment.GetEnv(L"PATH")), g_Git.m_Environment); }, 0 };
+	static git_smart_subtransport_definition ssh_wintunnel_subtransport_definition = { [](git_smart_subtransport **out, git_transport* owner, void*) -> int { return git_smart_subtransport_ssh_wintunnel(out, owner, FindExecutableOnPath(g_Git.m_Environment.GetEnv(L"GIT_SSH").c_str(), g_Git.m_Environment.GetEnv(L"PATH").c_str()), g_Git.m_Environment); }, 0 };
 	git_transport_register("ssh", git_transport_smart, &ssh_wintunnel_subtransport_definition);
 	git_transport_register("ssh+git", git_transport_smart, &ssh_wintunnel_subtransport_definition);
 	git_transport_register("git+ssh", git_transport_smart, &ssh_wintunnel_subtransport_definition);
@@ -2545,8 +2545,8 @@ BOOL CGit::CheckMsysGitDir(BOOL bFallback)
 	else
 		SetLibGit2TemplatePath(CGit::ms_MsysGitRootDir + L"usr\\share\\git-core\\templates");
 
-	m_Environment.AddToPath(CGit::ms_LastMsysGitDir);
-	m_Environment.AddToPath(static_cast<CString>(CRegString(REG_MSYSGIT_EXTRA_PATH, L"", FALSE)));
+	m_Environment.AddToPath(std::wstring(CGit::ms_LastMsysGitDir));
+	m_Environment.AddToPath(std::wstring(static_cast<CString>(CRegString(REG_MSYSGIT_EXTRA_PATH, L"", FALSE))));
 
 #if !defined(TGITCACHE) && !defined(TORTOISESHELL)
 	// register filter only once
@@ -2562,7 +2562,7 @@ BOOL CGit::CheckMsysGitDir(BOOL bFallback)
 				PathCanonicalize(CStrBuf(temp, MAX_PATH), possibleShExe);
 				sh.Format(L"\"%s\"", static_cast<LPCWSTR>(temp));
 				// we need to put the usr\bin folder on the path for Git for Windows based on msys2
-				m_Environment.AddToPath(temp.Left(temp.GetLength() - static_cast<int>(wcslen(L"\\sh.exe"))));
+				m_Environment.AddToPath(std::wstring(temp.Left(temp.GetLength() - static_cast<int>(wcslen(L"\\sh.exe")))));
 				break;
 			}
 		}
@@ -2571,7 +2571,7 @@ BOOL CGit::CheckMsysGitDir(BOOL bFallback)
 		// It is possible that the filter points to a git subcommand, that is located at libexec\git-core
 		CString gitExecPath = CGit::ms_MsysGitRootDir;
 		gitExecPath.Append(L"libexec\\git-core");
-		m_Environment.AddToPath(gitExecPath);
+		m_Environment.AddToPath(std::wstring(gitExecPath));
 
 		if (git_filter_register("filter", git_filter_filter_new(sh, m_Environment), GIT_FILTER_DRIVER_PRIORITY))
 			return FALSE;
@@ -2589,13 +2589,13 @@ CString CGit::GetHomeDirectory() const
 	if (!homeDirectory.IsEmpty())
 		return homeDirectory;
 
-	homeDirectory = m_Environment.GetEnv(L"HOME");
+	homeDirectory = m_Environment.GetEnv(L"HOME").c_str();
 	if (!homeDirectory.IsEmpty())
 		return homeDirectory;
 
-	if (CString tmp = m_Environment.GetEnv(L"HOMEDRIVE"); !tmp.IsEmpty())
+	if (CString tmp = m_Environment.GetEnv(L"HOMEDRIVE").c_str(); !tmp.IsEmpty())
 	{
-		if (CString tmp2 = m_Environment.GetEnv(L"HOMEPATH"); !tmp2.IsEmpty())
+		if (CString tmp2 = m_Environment.GetEnv(L"HOMEPATH").c_str(); !tmp2.IsEmpty())
 		{
 			tmp += tmp2;
 			if (CString windowsSysDirectory; GetSystemDirectory(CStrBuf(windowsSysDirectory, 4096), 4096) != FALSE && windowsSysDirectory != tmp && PathIsDirectory(tmp))
@@ -2606,7 +2606,7 @@ CString CGit::GetHomeDirectory() const
 		}
 	}
 
-	if (CString tmp = m_Environment.GetEnv(L"USERPROFILE"); !tmp.IsEmpty())
+	if (CString tmp = m_Environment.GetEnv(L"USERPROFILE").c_str(); !tmp.IsEmpty())
 	{
 		homeDirectory = tmp;
 		return homeDirectory;
@@ -2636,7 +2636,7 @@ CString CGit::GetGitGlobalConfig() const
 CString CGit::GetGitGlobalXDGConfig(bool returnDirectory) const
 {
 	// Attention: also see GitWCRev/status.cpp!
-	if (CString xdgPath = m_Environment.GetEnv(L"XDG_CONFIG_HOME"); !xdgPath.IsEmpty())
+	if (CString xdgPath = m_Environment.GetEnv(L"XDG_CONFIG_HOME").c_str(); !xdgPath.IsEmpty())
 	{
 		xdgPath += L"\\git";
 		if (!returnDirectory)
@@ -2644,7 +2644,7 @@ CString CGit::GetGitGlobalXDGConfig(bool returnDirectory) const
 		return xdgPath;
 	}
 
-	if (CString appData = m_Environment.GetEnv(L"APPDATA"); !appData.IsEmpty() && !ms_bCygwinGit && !ms_bMsys2Git)
+	if (CString appData = m_Environment.GetEnv(L"APPDATA").c_str(); !appData.IsEmpty() && !ms_bCygwinGit && !ms_bMsys2Git)
 	{
 		appData += L"\\Git";
 		CString appDataConfigFile = appData + L"\\config";
@@ -2927,139 +2927,93 @@ int CGit::GetOneFile(const CString &Refname, const CTGitPath &path, const CStrin
 	}
 }
 
+void CEnvironment::Serialize()
+{
+	m_block.clear();
+	if (m_vars.empty())
+	{
+		// nullptr, not an empty block: CreateProcess reads the former as "inherit"
+		// and the latter as "the child gets nothing".
+		m_baseptr = nullptr;
+		return;
+	}
+
+	for (const auto& [name, value] : m_vars)
+	{
+		m_block.insert(m_block.end(), name.cbegin(), name.cend());
+		m_block.push_back(L'=');
+		m_block.insert(m_block.end(), value.cbegin(), value.cend());
+		m_block.push_back(L'\0');
+	}
+	m_block.push_back(L'\0'); // the block's own terminator, after the last entry's
+
+	m_baseptr = m_block.data();
+}
+
 void CEnvironment::clear()
 {
-	__super::clear();
-	baseptr = nullptr;
-}
-
-bool CEnvironment::empty() const
-{
-	return size() < 3; // three is minimum for an empty environment with an empty key and empty value: "=\0\0"
-}
-
-CEnvironment::operator LPWSTR()
-{
-	if (empty())
-		return nullptr;
-	return data();
-}
-
-CEnvironment::operator const LPWSTR*() const
-{
-	return &baseptr;
+	m_vars.clear();
+	Serialize();
 }
 
 void CEnvironment::CopyProcessEnvironment()
 {
-	if (!empty())
-		pop_back();
 	wchar_t* porig = GetEnvironmentStrings();
-	const wchar_t* p = porig;
-	while(*p !=0 || *(p+1) !=0)
-		this->push_back(*p++);
-
-	push_back(L'\0');
-	push_back(L'\0');
-	baseptr = data();
-
+	for (const wchar_t* p = porig; *p; p += wcslen(p) + 1)
+	{
+		// Split on the first '=' that is not at offset 0. Windows keeps a hidden
+		// per-drive working directory in each environment block as "=C:=C:\some\dir",
+		// and splitting on the very first '=' would give every one of those the same
+		// empty name - so a map would keep exactly one of them.
+		const wchar_t* separator = wcschr(p + 1, L'=');
+		if (!separator)
+			continue;
+		// emplace, not insert_or_assign: what is already set here wins, which is what
+		// the flat block did by returning the first match on lookup.
+		m_vars.emplace(std::wstring(p, separator - p), std::wstring(separator + 1));
+	}
 	FreeEnvironmentStrings(porig);
+
+	Serialize();
 }
 
-CString CEnvironment::GetEnv(const wchar_t* name) const
+std::wstring CEnvironment::GetEnv(const std::wstring_view name) const
 {
-	ASSERT(name);
-	CString str;
-	for (size_t i = 0; i < size(); ++i)
-	{
-		str = &(*this)[i];
-		int start =0;
-		CString sname = str.Tokenize(L"=", start);
-		if(sname.CompareNoCase(name) == 0)
-			return &(*this)[i+start];
-		i+=str.GetLength();
-	}
-	return L"";
+	const auto it = m_vars.find(name);
+	return it == m_vars.cend() ? std::wstring() : it->second;
 }
 
-void CEnvironment::SetEnv(const wchar_t* name, const wchar_t* value)
+void CEnvironment::SetEnv(const std::wstring_view name, const std::wstring_view value)
 {
-	ASSERT(name);
-	unsigned int i;
-	for (i = 0; i < size(); ++i)
-	{
-		CString str = &(*this)[i];
-		int start =0;
-		CString sname = str.Tokenize(L"=", start);
-		if(sname.CompareNoCase(name) == 0)
-			break;
-		i+=str.GetLength();
-	}
-
-	if(i == size())
-	{
-		if (!value) // as we haven't found the variable we want to remove, just return
-			return;
-		if (i == 0) // make inserting into an empty environment work
-		{
-			this->push_back(L'\0');
-			++i;
-		}
-		i -= 1; // roll back terminate \0\0
-		this->push_back(L'\0');
-	}
-
-	CEnvironment::iterator it;
-	it=this->begin();
-	it += i;
-
-	while(*it && i<size())
-	{
-		this->erase(it);
-		it=this->begin();
-		it += i;
-	}
-
-	if (value == nullptr) // remove the variable
-	{
-		this->erase(it);
-		if (empty())
-			baseptr = nullptr;
-		else
-			baseptr = data();
-		return;
-	}
-
-	while(*name)
-	{
-		this->insert(it,*name++);
-		++i;
-		it= begin()+i;
-	}
-
-	this->insert(it, L'=');
-	++i;
-	it= begin()+i;
-
-	while(*value)
-	{
-		this->insert(it,*value++);
-		++i;
-		it= begin()+i;
-	}
-	baseptr = data();
+	// Erase before inserting rather than insert_or_assign, so the *passed* spelling
+	// of the name survives when it differs in case from what is already stored. The
+	// map is case-insensitive, so insert_or_assign would keep the older spelling,
+	// and the cygwin/msys builds hand this block to a shell that is not as relaxed
+	// about that as Windows is.
+	m_vars.erase(std::wstring(name));
+	m_vars.emplace(name, value);
+	Serialize();
 }
 
-void CEnvironment::AddToPath(CString value)
+void CEnvironment::UnsetEnv(const std::wstring_view name)
 {
-	value.TrimRight(L'\\');
-	if (value.IsEmpty())
+	if (m_vars.erase(std::wstring(name)) == 0)
+		return; // nothing removed, so the block cannot have changed
+	Serialize();
+}
+
+void CEnvironment::AddToPath(std::wstring value)
+{
+	tgit::wstr::TrimRight(value, L"\\");
+	if (value.empty())
 		return;
 
-	CString path = GetEnv(L"PATH").TrimRight(L';') + L';';
+	std::wstring path = GetEnv(L"PATH");
+	tgit::wstr::TrimRight(path, L";");
+	path += L';';
 
 	// do not double add paths to %PATH%
-	if (path.Find(value + L';') >= 0 || path.Find(value + L"\\;") >= 0)
+	if (path.find(value + L';') != std::wstring::npos || path.find(value + L"\\;") != std::wstring::npos)
 		return;
 
 	path += value;

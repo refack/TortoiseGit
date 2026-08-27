@@ -55,7 +55,7 @@ bool CloneProgressCommand::Run(CGitProgressList* list, CString& sWindowTitle, in
 
 	CSmartAnimation animate(list->m_pAnimate);
 	cloneOpts.bare = m_bBare;
-	CStringA envTemplateDir = CUnicodeUtils::GetUTF8(g_Git.m_Environment.GetEnv(L"GIT_TEMPLATE_DIR"));
+	CStringA envTemplateDir = CUnicodeUtils::GetUTF8(g_Git.m_Environment.GetEnv(L"GIT_TEMPLATE_DIR").c_str());
 	if (!envTemplateDir.IsEmpty())
 		cloneOpts.repository_cb_payload = const_cast<char*>(static_cast<LPCSTR>(envTemplateDir));
 	cloneOpts.repository_cb = [](git_repository** out, const char* path, int bare, void* payload) -> int

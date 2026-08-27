@@ -69,7 +69,7 @@ bool CreateRepositoryCommand::Execute()
 		git_repository_init_options options = GIT_REPOSITORY_INIT_OPTIONS_INIT;
 		options.flags = GIT_REPOSITORY_INIT_MKPATH | GIT_REPOSITORY_INIT_EXTERNAL_TEMPLATE;
 		options.flags |= dlg.m_bBare ? GIT_REPOSITORY_INIT_BARE : 0;
-		CStringA envTemplateDir = CUnicodeUtils::GetUTF8(g_Git.m_Environment.GetEnv(L"GIT_TEMPLATE_DIR"));
+		CStringA envTemplateDir = CUnicodeUtils::GetUTF8(g_Git.m_Environment.GetEnv(L"GIT_TEMPLATE_DIR").c_str());
 		if (!envTemplateDir.IsEmpty())
 			options.template_path = envTemplateDir;
 		CAutoRepository repo;

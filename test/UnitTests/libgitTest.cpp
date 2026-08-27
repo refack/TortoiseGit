@@ -190,7 +190,7 @@ TEST(libgit, RefreshIndex)
 	auto oldEnv = std::make_unique<wchar_t[]>(size);
 	ASSERT_TRUE(oldEnv);
 	_wgetenv_s(&size, oldEnv.get(), size, L"PATH");
-	_wputenv_s(L"PATH", g_Git.m_Environment.GetEnv(L"PATH"));
+	_wputenv_s(L"PATH", g_Git.m_Environment.GetEnv(L"PATH").c_str());
 	SCOPE_EXIT { _wputenv_s(L"PATH", oldEnv.get()); };
 	EXPECT_TRUE(CStringUtils::WriteStringToTextFile(g_Git.m_CurrentDir + L"\\somefile.txt", L"some content"));
 

@@ -35,6 +35,8 @@
 #include <concepts>
 #include <type_traits>
 #include <utility>
+#include <map>
+#include <vector>
 
 #define REG_MSYSGIT_PATH L"Software\\TortoiseGit\\MSysGit"
 #define REG_SYSTEM_GITCONFIGPATH L"Software\\TortoiseGit\\SystemConfig"
@@ -180,34 +182,91 @@ private:
 	BYTE_VECTOR* m_pvectorErr;
 };
 
-class CEnvironment : protected std::vector<wchar_t>
+/// Ordering for environment variable names. Windows resolves them
+/// case-insensitively - PATH and Path are one variable - so that has to be a
+/// property of the container rather than something every lookup remembers to do.
+/// It also gives the serialized block the case-insensitive name order Windows'
+/// own environment blocks come in, which the flat block lost the moment anything
+/// was added to it.
+struct EnvNameLess
+{
+	using is_transparent = void;
+	[[nodiscard]] bool operator()(const std::wstring_view lhs, const std::wstring_view rhs) const noexcept
+	{
+		return tgit::wstr::CompareNoCase(lhs, rhs) < 0;
+	}
+};
+using MAP_ENVIRONMENT = std::map<std::wstring, std::wstring, EnvNameLess>;
+
+/**
+ * The environment handed to CreateProcess and to gitdll.
+ *
+ * It is a map of name to value, because that is what an environment is. It used
+ * to be the serialized form - a std::vector<wchar_t> of "name=value\0...\0\0" -
+ * with every lookup a linear scan that re-parsed it, and SetEnv splicing
+ * characters in and out of the middle by iterator.
+ *
+ * Three properties of the flat form are load-bearing and are preserved:
+ *
+ *  - `operator const LPWSTR*` returns the address of a member, not of the block.
+ *    gitdll's git_init(const LPWSTR* env), the ssh subtransport and the filter
+ *    driver all *retain* that address and dereference it later, so the extra
+ *    indirection is how a later SetEnv() reaches them without re-registering.
+ *    m_baseptr therefore has a stable address and is repointed at the freshly
+ *    serialized block on every mutation. GitTest's CEnvironment test captures
+ *    the pointer once at the top and re-checks it after every operation, which
+ *    is the contract stated as clearly as a test can state it.
+ *  - An empty environment serializes to nullptr, not to an empty block.
+ *    CreateProcess reads nullptr as "inherit the parent's environment" and an
+ *    empty block as "the child gets no environment at all"; the difference is a
+ *    git.exe with no PATH.
+ *  - Names are matched case-insensitively, and the spelling of the most recent
+ *    SetEnv wins. The second half matters because the msys and cygwin builds run
+ *    git through bash, and a shell is not as forgiving about name case as
+ *    Windows is.
+ */
+class CEnvironment
 {
 public:
-	CEnvironment() : baseptr(nullptr) {}
-	CEnvironment(const CEnvironment& env) : std::vector<wchar_t>(env)
+	CEnvironment() = default;
+	CEnvironment(const CEnvironment& env) : m_vars(env.m_vars) { Serialize(); }
+	CEnvironment& operator=(const CEnvironment& env)
 	{
-		baseptr = data();
-	}
-	CEnvironment& operator =(const CEnvironment& env)
-	{
-		__super::operator=(env);
-		if (empty())
-			baseptr = nullptr;
-		else
-			baseptr = data();
+		if (this != &env)
+		{
+			m_vars = env.m_vars;
+			Serialize();
+		}
 		return *this;
 	}
-	void CopyProcessEnvironment();
-	CString GetEnv(const wchar_t* name) const;
-	void SetEnv(const wchar_t* name, const wchar_t* value);
-	void AddToPath(CString value);
-	void clear();
-	bool empty() const;
-	operator LPWSTR();
-	operator const LPWSTR*() const;
-	LPWSTR baseptr;
+	// Deleted for the same reason they were before: m_baseptr's address is handed
+	// out and retained, so an object that has been moved from would leave its
+	// consumers pointing at an empty block.
 	CEnvironment(CEnvironment&& env) = delete;
 	CEnvironment& operator =(CEnvironment&& env) = delete;
+
+	/// Merges the process's own environment in. Variables already set here win,
+	/// which is what the flat block did by returning the first match on lookup.
+	void CopyProcessEnvironment();
+	[[nodiscard]] std::wstring GetEnv(std::wstring_view name) const;
+	void SetEnv(std::wstring_view name, std::wstring_view value);
+	/// Removes a variable. This used to be SetEnv(name, nullptr) - a deletion
+	/// spelled as an assignment, and invisible at the ~20 call sites that use it.
+	void UnsetEnv(std::wstring_view name);
+	void AddToPath(std::wstring value);
+	void clear();
+	[[nodiscard]] bool empty() const { return m_vars.empty(); }
+	operator LPWSTR() { return m_baseptr; }
+	operator const LPWSTR*() const { return &m_baseptr; }
+
+private:
+	void Serialize();
+
+	MAP_ENVIRONMENT m_vars;
+	/// The serialized "name=value\0...\0\0" block, rebuilt on every mutation.
+	std::vector<wchar_t> m_block;
+	/// Stable address, repointed by Serialize(). See the class comment.
+	LPWSTR m_baseptr = nullptr;
 };
 class CGit
 {

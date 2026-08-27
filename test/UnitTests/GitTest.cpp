@@ -1308,69 +1308,69 @@ TEST(CGit, CEnvironment)
 	ASSERT_TRUE(basePtr);
 	EXPECT_FALSE(*basePtr);
 	EXPECT_TRUE(env.empty());
-	env.SetEnv(L"not-found", nullptr);
+	env.UnsetEnv(L"not-found");
 	EXPECT_FALSE(static_cast<wchar_t*>(env));
-	EXPECT_STREQ(L"", env.GetEnv(L"test"));
+	EXPECT_STREQ(L"", env.GetEnv(L"test").c_str());
 	env.SetEnv(L"key1", L"value1");
-	EXPECT_STREQ(L"value1", env.GetEnv(L"key1"));
-	EXPECT_STREQ(L"value1", env.GetEnv(L"kEy1")); // check case insensitivity
+	EXPECT_STREQ(L"value1", env.GetEnv(L"key1").c_str());
+	EXPECT_STREQ(L"value1", env.GetEnv(L"kEy1").c_str()); // check case insensitivity
 	EXPECT_TRUE(*basePtr);
 	EXPECT_EQ(static_cast<wchar_t*>(env), *basePtr);
 	EXPECT_FALSE(env.empty());
-	EXPECT_STREQ(L"value1", env.GetEnv(L"key1"));
-	env.SetEnv(L"key1", nullptr); // delete first
+	EXPECT_STREQ(L"value1", env.GetEnv(L"key1").c_str());
+	env.UnsetEnv(L"key1"); // delete first
 	EXPECT_FALSE(*basePtr);
 	EXPECT_EQ(static_cast<wchar_t*>(env), *basePtr);
 	EXPECT_TRUE(env.empty());
 	env.SetEnv(L"key1", L"value1");
-	EXPECT_STREQ(L"value1", env.GetEnv(L"key1"));
+	EXPECT_STREQ(L"value1", env.GetEnv(L"key1").c_str());
 	EXPECT_TRUE(*basePtr);
 	EXPECT_EQ(static_cast<wchar_t*>(env), *basePtr);
 	EXPECT_FALSE(env.empty());
 	env.SetEnv(L"key2", L"value2");
-	EXPECT_STREQ(L"value1", env.GetEnv(L"key1"));
-	EXPECT_STREQ(L"value2", env.GetEnv(L"key2"));
+	EXPECT_STREQ(L"value1", env.GetEnv(L"key1").c_str());
+	EXPECT_STREQ(L"value2", env.GetEnv(L"key2").c_str());
 	EXPECT_EQ(static_cast<wchar_t*>(env), *basePtr);
-	env.SetEnv(L"not-found", nullptr);
-	EXPECT_STREQ(L"value1", env.GetEnv(L"key1"));
-	EXPECT_STREQ(L"value2", env.GetEnv(L"key2"));
-	env.SetEnv(L"key2", nullptr); // delete last
-	EXPECT_STREQ(L"value1", env.GetEnv(L"key1"));
-	EXPECT_STREQ(L"", env.GetEnv(L"key2"));
+	env.UnsetEnv(L"not-found");
+	EXPECT_STREQ(L"value1", env.GetEnv(L"key1").c_str());
+	EXPECT_STREQ(L"value2", env.GetEnv(L"key2").c_str());
+	env.UnsetEnv(L"key2"); // delete last
+	EXPECT_STREQ(L"value1", env.GetEnv(L"key1").c_str());
+	EXPECT_STREQ(L"", env.GetEnv(L"key2").c_str());
 	env.SetEnv(L"key3", L"value3");
-	EXPECT_STREQ(L"value1", env.GetEnv(L"key1"));
-	EXPECT_STREQ(L"value3", env.GetEnv(L"key3"));
+	EXPECT_STREQ(L"value1", env.GetEnv(L"key1").c_str());
+	EXPECT_STREQ(L"value3", env.GetEnv(L"key3").c_str());
 	env.SetEnv(L"key4", L"value4");
-	env.SetEnv(L"value3", nullptr); // delete middle
-	EXPECT_STREQ(L"value1", env.GetEnv(L"key1"));
-	EXPECT_STREQ(L"value4", env.GetEnv(L"key4"));
+	env.UnsetEnv(L"value3"); // delete middle
+	EXPECT_STREQ(L"value1", env.GetEnv(L"key1").c_str());
+	EXPECT_STREQ(L"value4", env.GetEnv(L"key4").c_str());
 	env.SetEnv(L"key5", L"value5");
-	EXPECT_STREQ(L"value1", env.GetEnv(L"key1"));
-	EXPECT_STREQ(L"value4", env.GetEnv(L"key4"));
-	EXPECT_STREQ(L"value5", env.GetEnv(L"key5"));
+	EXPECT_STREQ(L"value1", env.GetEnv(L"key1").c_str());
+	EXPECT_STREQ(L"value4", env.GetEnv(L"key4").c_str());
+	EXPECT_STREQ(L"value5", env.GetEnv(L"key5").c_str());
 	env.SetEnv(L"key4", L"value4a");
-	EXPECT_STREQ(L"value1", env.GetEnv(L"key1"));
-	EXPECT_STREQ(L"value4a", env.GetEnv(L"key4"));
-	EXPECT_STREQ(L"value5", env.GetEnv(L"key5"));
+	EXPECT_STREQ(L"value1", env.GetEnv(L"key1").c_str());
+	EXPECT_STREQ(L"value4a", env.GetEnv(L"key4").c_str());
+	EXPECT_STREQ(L"value5", env.GetEnv(L"key5").c_str());
 	env.SetEnv(L"key5", L"value5a");
-	EXPECT_STREQ(L"value1", env.GetEnv(L"key1"));
-	EXPECT_STREQ(L"value4a", env.GetEnv(L"key4"));
-	EXPECT_STREQ(L"value5a", env.GetEnv(L"key5"));
+	EXPECT_STREQ(L"value1", env.GetEnv(L"key1").c_str());
+	EXPECT_STREQ(L"value4a", env.GetEnv(L"key4").c_str());
+	EXPECT_STREQ(L"value5a", env.GetEnv(L"key5").c_str());
 #pragma warning(push)
 #pragma warning(disable: 4996)
 	CString windir = _wgetenv(L"windir");
 #pragma warning(pop)
 	env.CopyProcessEnvironment();
-	EXPECT_STREQ(windir, env.GetEnv(L"windir"));
-	EXPECT_STREQ(L"value1", env.GetEnv(L"key1"));
-	EXPECT_STREQ(L"value4a", env.GetEnv(L"key4"));
-	EXPECT_STREQ(L"value5a", env.GetEnv(L"key5"));
+	EXPECT_STREQ(windir, env.GetEnv(L"windir").c_str());
+	EXPECT_STREQ(L"value1", env.GetEnv(L"key1").c_str());
+	EXPECT_STREQ(L"value4a", env.GetEnv(L"key4").c_str());
+	EXPECT_STREQ(L"value5a", env.GetEnv(L"key5").c_str());
 	env.clear();
 	EXPECT_FALSE(*basePtr);
 	EXPECT_TRUE(env.empty());
-	EXPECT_STREQ(L"", env.GetEnv(L"key4"));
+	EXPECT_STREQ(L"", env.GetEnv(L"key4").c_str());
 	env.CopyProcessEnvironment();
-	EXPECT_STREQ(windir, env.GetEnv(L"windir"));
+	EXPECT_STREQ(windir, env.GetEnv(L"windir").c_str());
 	EXPECT_TRUE(*basePtr);
 
 	// make sure baseptr always points to current values
@@ -1378,34 +1378,34 @@ TEST(CGit, CEnvironment)
 
 	env.clear();
 	CString path = L"c:\\windows;c:\\windows\\system32";
-	env.SetEnv(L"PATH", path);
+	env.SetEnv(L"PATH", tgit::wstr::View(path));
 	env.AddToPath(L"");
-	EXPECT_STREQ(path, env.GetEnv(L"PATH"));
+	EXPECT_STREQ(path, env.GetEnv(L"PATH").c_str());
 	env.AddToPath(L"c:\\windows");
-	EXPECT_STREQ(path, env.GetEnv(L"PATH"));
+	EXPECT_STREQ(path, env.GetEnv(L"PATH").c_str());
 	env.AddToPath(L"c:\\windows\\");
-	EXPECT_STREQ(path, env.GetEnv(L"PATH"));
+	EXPECT_STREQ(path, env.GetEnv(L"PATH").c_str());
 	env.AddToPath(L"c:\\windows\\system32");
-	EXPECT_STREQ(path, env.GetEnv(L"PATH"));
+	EXPECT_STREQ(path, env.GetEnv(L"PATH").c_str());
 	env.AddToPath(L"c:\\windows\\system32\\");
-	EXPECT_STREQ(path, env.GetEnv(L"PATH"));
+	EXPECT_STREQ(path, env.GetEnv(L"PATH").c_str());
 	path += L";c:\\windows\\system";
 	env.AddToPath(L"c:\\windows\\system");
-	EXPECT_STREQ(path, env.GetEnv(L"PATH"));
+	EXPECT_STREQ(path, env.GetEnv(L"PATH").c_str());
 	path += L";c:\\test";
 	env.AddToPath(L"c:\\test\\");
-	EXPECT_STREQ(path, env.GetEnv(L"PATH"));
+	EXPECT_STREQ(path, env.GetEnv(L"PATH").c_str());
 	env.AddToPath(L"c:\\test\\");
-	EXPECT_STREQ(path, env.GetEnv(L"PATH"));
+	EXPECT_STREQ(path, env.GetEnv(L"PATH").c_str());
 	env.AddToPath(L"c:\\test");
-	EXPECT_STREQ(path, env.GetEnv(L"PATH"));
+	EXPECT_STREQ(path, env.GetEnv(L"PATH").c_str());
 	path = L"c:\\windows;c:\\windows\\system32;";
-	env.SetEnv(L"PATH", path);
+	env.SetEnv(L"PATH", tgit::wstr::View(path));
 	env.AddToPath(L"");
-	EXPECT_STREQ(path, env.GetEnv(L"PATH"));
+	EXPECT_STREQ(path, env.GetEnv(L"PATH").c_str());
 	env.AddToPath(L"c:\\test");
 	path += L"c:\\test";
-	EXPECT_STREQ(path, env.GetEnv(L"PATH"));
+	EXPECT_STREQ(path, env.GetEnv(L"PATH").c_str());
 
 	// also test copy constructor
 	CEnvironment env2(env);
@@ -1422,6 +1422,52 @@ TEST(CGit, CEnvironment)
 	EXPECT_EQ(static_cast<const LPWSTR*>(env3a), basePtr);
 	EXPECT_EQ(static_cast<wchar_t*>(env3a), *basePtr);
 	EXPECT_NE(static_cast<wchar_t*>(env3b), *basePtr);
+}
+
+static std::vector<std::wstring> SplitEnvironmentBlock(const wchar_t* block)
+{
+	std::vector<std::wstring> entries;
+	for (const wchar_t* p = block; p && *p; p += wcslen(p) + 1)
+		entries.emplace_back(p);
+	return entries;
+}
+
+TEST(CGit, CEnvironmentBlockLayout)
+{
+	// The serialized block is the actual contract with CreateProcess and with
+	// gitdll, and nothing here used to look at it - the tests above only ever
+	// checked what GetEnv gave back.
+	CEnvironment env;
+	// nullptr rather than an empty block. CreateProcess reads nullptr as "inherit
+	// the parent's environment" and an empty block as "the child gets none".
+	EXPECT_EQ(nullptr, static_cast<wchar_t*>(env));
+
+	env.SetEnv(L"zulu", L"z");
+	env.SetEnv(L"Alpha", L"a");
+	env.SetEnv(L"mike", L"");
+
+	auto entries = SplitEnvironmentBlock(env);
+	ASSERT_EQ(3U, entries.size());
+	// case-insensitive name order, which is the order Windows' own environment
+	// blocks arrive in and which the flat block lost as soon as anything was added
+	EXPECT_STREQ(L"Alpha=a", entries[0].c_str());
+	EXPECT_STREQ(L"mike=", entries[1].c_str());
+	EXPECT_STREQ(L"zulu=z", entries[2].c_str());
+
+	// The spelling of the most recent SetEnv wins. Windows does not care, but the
+	// cygwin and msys builds hand this block to a shell, which does.
+	env.SetEnv(L"ALPHA", L"a2");
+	entries = SplitEnvironmentBlock(env);
+	ASSERT_EQ(3U, entries.size());
+	EXPECT_STREQ(L"ALPHA=a2", entries[0].c_str());
+	EXPECT_STREQ(L"a2", env.GetEnv(L"alpha").c_str());
+
+	env.UnsetEnv(L"mike");
+	entries = SplitEnvironmentBlock(env);
+	ASSERT_EQ(2U, entries.size());
+
+	env.clear();
+	EXPECT_EQ(nullptr, static_cast<wchar_t*>(env));
 }
 
 static void GetOneFile(CGit& m_Git)
