@@ -79,7 +79,7 @@ BOOL CSetHooks::OnInitDialog()
 
 	ProjectProperties pp;
 	pp.ReadProps();
-	CHooks::Instance().SetProjectProperties(g_Git.m_CurrentDir, pp);
+	CHooks::Instance().SetProjectProperties(CTGitPath(g_Git.m_CurrentDir.GetString()), pp);
 
 	RebuildHookList();
 
@@ -121,10 +121,10 @@ void CSetHooks::OnBnClickedRemovebutton()
 		{
 			hookkey key;
 			key.htype = CHooks::GetHookType(static_cast<LPCWSTR>(m_cHookList.GetItemText(index, 0)));
-			key.path = CTGitPath(m_cHookList.GetItemText(index, 1));
+			key.path = CTGitPath(m_cHookList.GetItemText(index, 1).GetString());
 			key.local = m_cHookList.GetItemText(index, 1).Compare(L"local") == 0;;
 			if (key.local)
-				key.path = g_Git.m_CurrentDir;
+				key.path = CTGitPath(g_Git.m_CurrentDir.GetString());
 			CHooks::Instance().Remove(key);
 			bNeedsRefresh = true;
 		}
@@ -147,7 +147,7 @@ void CSetHooks::OnBnClickedEditbutton()
 		CSetHooksAdv dlg;
 		int index = m_cHookList.GetNextSelectedItem(pos);
 		dlg.key.htype = CHooks::GetHookType(static_cast<LPCWSTR>(m_cHookList.GetItemText(index, 0)));
-		dlg.key.path = CTGitPath(m_cHookList.GetItemText(index, 1));
+		dlg.key.path = CTGitPath(m_cHookList.GetItemText(index, 1).GetString());
 		dlg.cmd.bEnabled = m_cHookList.GetCheck(index) == BST_CHECKED;
 		dlg.cmd.commandline = m_cHookList.GetItemText(index, 2);
 		dlg.cmd.bWait = (m_cHookList.GetItemText(index, 3).Compare(L"true") == 0);
@@ -156,12 +156,12 @@ void CSetHooks::OnBnClickedEditbutton()
 		hookkey key = dlg.key;
 		key.local = dlg.cmd.bLocal;
 		if (key.local)
-			key.path = g_Git.m_CurrentDir;
+			key.path = CTGitPath(g_Git.m_CurrentDir.GetString());
 		if (dlg.DoModal() == IDOK)
 		{
 			CHooks::Instance().Remove(key);
 			if (dlg.cmd.bLocal)
-				dlg.key.path = g_Git.m_CurrentDir;
+				dlg.key.path = CTGitPath(g_Git.m_CurrentDir.GetString());
 			CHooks::Instance().Add(dlg.key.htype, dlg.key.path, dlg.cmd.commandline, dlg.cmd.bWait, dlg.cmd.bShow, dlg.cmd.bEnabled, dlg.cmd.bLocal);
 			RebuildHookList();
 			SetModified();
@@ -175,7 +175,7 @@ void CSetHooks::OnBnClickedAddbutton()
 	if (dlg.DoModal() == IDOK)
 	{
 		if (dlg.cmd.bLocal)
-			dlg.key.path = g_Git.m_CurrentDir;
+			dlg.key.path = CTGitPath(g_Git.m_CurrentDir.GetString());
 		CHooks::Instance().Add(dlg.key.htype, dlg.key.path, dlg.cmd.commandline, dlg.cmd.bWait, dlg.cmd.bShow, dlg.cmd.bEnabled, dlg.cmd.bLocal);
 		RebuildHookList();
 		SetModified();
@@ -196,10 +196,10 @@ void CSetHooks::OnLvnItemchangedHooklist(NMHDR* pNMHDR, LRESULT* pResult)
 
 	hookkey key;
 	key.htype = CHooks::GetHookType(static_cast<LPCWSTR>(m_cHookList.GetItemText(pNMLV->iItem, 0)));
-	key.path = CTGitPath(m_cHookList.GetItemText(pNMLV->iItem, 1));
+	key.path = CTGitPath(m_cHookList.GetItemText(pNMLV->iItem, 1).GetString());
 	key.local = m_cHookList.GetItemText(pNMLV->iItem, 1).Compare(L"local") == 0;
 	if (key.local)
-		key.path = g_Git.m_CurrentDir;
+		key.path = CTGitPath(g_Git.m_CurrentDir.GetString());
 	if (CHooks::Instance().SetEnabled(key, m_cHookList.GetCheck(pNMLV->iItem) == BST_CHECKED))
 		SetModified();
 }
@@ -245,7 +245,7 @@ void CSetHooks::OnBnClickedHookcopybutton()
 		if (dlg.DoModal() == IDOK)
 		{
 			if (dlg.cmd.bLocal)
-				dlg.key.path = g_Git.m_CurrentDir;
+				dlg.key.path = CTGitPath(g_Git.m_CurrentDir.GetString());
 			CHooks::Instance().Add(dlg.key.htype, dlg.key.path, dlg.cmd.commandline, dlg.cmd.bWait, dlg.cmd.bShow, dlg.cmd.bEnabled, dlg.cmd.bLocal);
 			RebuildHookList();
 			SetModified();

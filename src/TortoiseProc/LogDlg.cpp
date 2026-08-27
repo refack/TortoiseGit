@@ -612,10 +612,10 @@ void CLogDlg::SetDlgTitle()
 	if (m_sTitle.IsEmpty())
 		GetWindowText(m_sTitle);
 
-	if (m_LogList.m_Path.IsEmpty() || m_orgPath.GetWinPathString().IsEmpty())
+	if (m_LogList.m_Path.IsEmpty() || m_orgPath.GetWinPathString().empty())
 		CAppUtils::SetWindowTitle(m_hWnd, g_Git.m_CurrentDir, m_sTitle);
 	else
-		CAppUtils::SetWindowTitle(m_hWnd, m_orgPath.GetWinPathString(), m_sTitle);
+		CAppUtils::SetWindowTitle(m_hWnd, m_orgPath.GetWinPathString().c_str(), m_sTitle);
 }
 
 void CLogDlg::CheckRegexpTooltip()
@@ -963,7 +963,7 @@ void CLogDlg::FillLogMessageCtrl(bool bShow /* = true*/)
 				return;
 			}
 
-			CString matchpath=this->m_path.GetGitPathString();
+			CString matchpath=this->m_path.GetGitPathString().c_str();
 
 			const int count = files.GetCount();
 			if (!m_bWholeProject && !matchpath.IsEmpty() && m_iHidePaths)
@@ -976,8 +976,8 @@ void CLogDlg::FillLogMessageCtrl(bool bShow /* = true*/)
 				{
 					const_cast<CTGitPath&>(files[i]).m_Action &= ~(CTGitPath::LOGACTIONS_HIDE | CTGitPath::LOGACTIONS_GRAY);
 
-					const bool bothAreDirectory = m_path.IsDirectory() && files[i].IsDirectory() && files[i].GetGitPathString().GetLength() == matchPathLen - 1; // submodules don't end with slash, but we must also not match a submodule in a fodler with an equal prefix
-					if ((bothAreDirectory && wcsncmp(files[i].GetGitPathString(), matchpath, matchPathLen - 1) || !bothAreDirectory && wcsncmp(files[i].GetGitPathString(), matchpath, matchPathLen)) && ((files[i].m_Action & (CTGitPath::LOGACTIONS_REPLACED | CTGitPath::LOGACTIONS_COPY)) == 0 || (bothAreDirectory && wcsncmp(files[i].GetGitOldPathString(), matchpath, matchPathLen - 1) || !bothAreDirectory && wcsncmp(files[i].GetGitOldPathString(), matchpath, matchPathLen))))
+					const bool bothAreDirectory = m_path.IsDirectory() && files[i].IsDirectory() && static_cast<int>(files[i].GetGitPathString().size()) == matchPathLen - 1; // submodules don't end with slash, but we must also not match a submodule in a fodler with an equal prefix
+					if ((bothAreDirectory && wcsncmp(files[i].GetGitPathString().c_str(), matchpath, matchPathLen - 1) || !bothAreDirectory && wcsncmp(files[i].GetGitPathString().c_str(), matchpath, matchPathLen)) && ((files[i].m_Action & (CTGitPath::LOGACTIONS_REPLACED | CTGitPath::LOGACTIONS_COPY)) == 0 || (bothAreDirectory && wcsncmp(files[i].GetGitOldPathString().c_str(), matchpath, matchPathLen - 1) || !bothAreDirectory && wcsncmp(files[i].GetGitOldPathString().c_str(), matchpath, matchPathLen))))
 					{
 						somethingHidden = true;
 						if (m_iHidePaths == 1)
@@ -1117,9 +1117,9 @@ void CLogDlg::FillPatchView(bool onlySetTimer)
 					cmd.Format(L"git.exe diff --end-of-options %s^%d..%s --", static_cast<LPCWSTR>(pLogEntry->m_CommitHash.ToString()), p->m_ParentNo + 1, static_cast<LPCWSTR>(pLogEntry->m_CommitHash.ToString()));
 				try
 				{
-					if (!p->GetGitOldPathString().IsEmpty())
-						cmd.AppendFormat(L" %s", static_cast<LPCWSTR>(CGit::QuoteParameter(p->GetGitOldPathString())));
-					cmd.AppendFormat(L" %s", static_cast<LPCWSTR>(CGit::QuoteParameter(p->GetGitPathString())));
+					if (!p->GetGitOldPathString().empty())
+						cmd.AppendFormat(L" %s", static_cast<LPCWSTR>(CGit::QuoteParameter(p->GetGitOldPathString().c_str())));
+					cmd.AppendFormat(L" %s", static_cast<LPCWSTR>(CGit::QuoteParameter(p->GetGitPathString().c_str())));
 				}
 				catch (illegal_git_parameter& e)
 				{
@@ -1316,7 +1316,7 @@ void CLogDlg::CopyChangedSelectionToClipBoard()
 			auto path = m_ChangedFileListCtrl.GetListEntry(nItem);
 			if (!path)
 				continue;
-			sPaths += path->GetGitPathString();
+			sPaths += path->GetGitPathString().c_str();
 			sPaths += L"\r\n";
 		}
 	}
@@ -1662,7 +1662,7 @@ void CLogDlg::OnOK()
 				// if it was copied, use the copy from revision as lowerRev
 				if ((pLogEntry)&&(pLogEntry->pArChangedPaths)&&(lowerRev == higherRev))
 				{
-					CString sUrl = m_path.GetGitPathString();
+					CString sUrl = m_path.GetGitPathString().c_str();
 					if (!m_path.IsUrl())
 					{
 						sUrl = GetURLFromPath(m_path);

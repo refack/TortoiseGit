@@ -117,7 +117,7 @@ END_MESSAGE_MAP()
 void CFileDiffDlg::SetDiff(const CTGitPath* path, const GitRev& baseRev1, const GitRev& rev2)
 {
 	if (path)
-		m_sFilter = path->GetGitPathString();
+		m_sFilter = path->GetGitPathString().c_str();
 	m_rev1 = baseRev1;
 	m_rev2 = rev2;
 }
@@ -125,7 +125,7 @@ void CFileDiffDlg::SetDiff(const CTGitPath* path, const GitRev& baseRev1, const 
 void CFileDiffDlg::SetDiff(const CTGitPath* path, const CString &baseRev1, const CString& hash2)
 {
 	if (path)
-		m_sFilter = path->GetGitPathString();
+		m_sFilter = path->GetGitPathString().c_str();
 
 	m_strRev1 = baseRev1;
 	m_strRev2 = hash2;
@@ -366,19 +366,19 @@ static CString GetFilename(const CTGitPath* entry)
 	static CString from(MAKEINTRESOURCE(IDS_STATUSLIST_FROM));
 	static bool abbreviateRenamings(static_cast<DWORD>(CRegDWORD(L"Software\\TortoiseGit\\AbbreviateRenamings", FALSE)) == TRUE);
 
-	if (!(entry->m_Action & (CTGitPath::LOGACTIONS_REPLACED | CTGitPath::LOGACTIONS_COPY) && !entry->GetGitOldPathString().IsEmpty()))
-		return entry->GetGitPathString();
+	if (!(entry->m_Action & (CTGitPath::LOGACTIONS_REPLACED | CTGitPath::LOGACTIONS_COPY) && !entry->GetGitOldPathString().empty()))
+		return entry->GetGitPathString().c_str();
 
 	if (!abbreviateRenamings)
 	{
-		CString entryname = entry->GetGitPathString();
+		CString entryname = entry->GetGitPathString().c_str();
 		entryname += L' ';
 		// relative path
-		entryname.AppendFormat(from, static_cast<LPCWSTR>(entry->GetGitOldPathString()));
+		entryname.AppendFormat(from, static_cast<LPCWSTR>(entry->GetGitOldPathString().c_str()));
 		return entryname;
 	}
 
-	return entry->GetAbbreviatedRename();
+	return entry->GetAbbreviatedRename().c_str();
 }
 
 int CFileDiffDlg::AddEntry(const CTGitPath * fd)
@@ -392,13 +392,13 @@ int CFileDiffDlg::AddEntry(const CTGitPath * fd)
 		if (fd->IsDirectory())
 			icon_idx = m_nIconFolder;
 		else
-			icon_idx = SYS_IMAGE_LIST().GetPathIconIndex(fd->GetGitPathString());
+			icon_idx = SYS_IMAGE_LIST().GetPathIconIndex(fd->GetGitPathString().c_str());
 
 		ret = m_cFileList.InsertItem(index, GetFilename(fd), icon_idx);
-		m_cFileList.SetItemText(index, 1, fd->GetFileExtension());
-		m_cFileList.SetItemText(index, 2, fd->GetActionName());
-		m_cFileList.SetItemText(index, 3, fd->m_StatAdd);
-		m_cFileList.SetItemText(index, 4, fd->m_StatDel);
+		m_cFileList.SetItemText(index, 1, fd->GetFileExtension().c_str());
+		m_cFileList.SetItemText(index, 2, fd->GetActionName().c_str());
+		m_cFileList.SetItemText(index, 3, fd->m_StatAdd.c_str());
+		m_cFileList.SetItemText(index, 4, fd->m_StatDel.c_str());
 	}
 	return ret;
 }
@@ -435,7 +435,7 @@ void CFileDiffDlg::DoDiff(int selIndex, bool blame)
 		return;
 	}
 	if (fd1->m_Action & CTGitPath::LOGACTIONS_REPLACED)
-		fd2 = new CTGitPath(fd1->GetGitOldPathString());
+		fd2 = new CTGitPath(fd1->GetGitOldPathString().c_str());
 	CGitDiff::Diff(GetSafeHwnd(), fd1, fd2, m_rev2.m_CommitHash.ToString(), m_rev1.m_CommitHash.ToString(), blame, FALSE, 0, !!(GetAsyncKeyState(VK_SHIFT) & 0x8000));
 	if (fd1 != fd2)
 		delete fd2;
@@ -463,7 +463,7 @@ void CFileDiffDlg::OnLvnGetInfoTipFilelist(NMHDR *pNMHDR, LRESULT *pResult)
 	if (pGetInfoTip->iItem >= static_cast<int>(m_arFilteredList.size()) || CRegDWORD(L"Software\\TortoiseGit\\ShowListFullPathTooltip", TRUE) != TRUE)
 		return;
 
-	CString path = m_arFilteredList[pGetInfoTip->iItem]->GetGitPathString();
+	CString path = m_arFilteredList[pGetInfoTip->iItem]->GetGitPathString().c_str();
 	if (pGetInfoTip->cchTextMax > path.GetLength())
 			wcsncpy_s(pGetInfoTip->pszText, pGetInfoTip->cchTextMax, path, pGetInfoTip->cchTextMax - 1);
 }
@@ -632,7 +632,7 @@ void CFileDiffDlg::OnContextMenu(CWnd* pWnd, CPoint point)
 					auto fd2 = m_arFilteredList[m_cFileList.GetNextSelectedItem(pos)];
 					auto fd1 = fd2;
 					if (fd1->m_Action & CTGitPath::LOGACTIONS_REPLACED)
-						fd2 = new CTGitPath(fd2->GetGitOldPathString());
+						fd2 = new CTGitPath(fd2->GetGitOldPathString().c_str());
 					CAppUtils::StartShowUnifiedDiff(m_hWnd, *fd1, m_rev1.m_CommitHash.ToString(), *fd2, m_rev2.m_CommitHash.ToString(), !!(GetAsyncKeyState(VK_SHIFT) & 0x8000));
 					if (fd1 != fd2)
 						delete fd2;
@@ -656,17 +656,17 @@ void CFileDiffDlg::OnContextMenu(CWnd* pWnd, CPoint point)
 					if (m_arFilteredList[index]->m_Action & CTGitPath::LOGACTIONS_DELETED)
 					{
 						if (!m_rev1.m_CommitHash.IsEmpty())
-							CAppUtils::LaunchTortoiseBlame(m_arFilteredList[index]->GetWinPathString(), m_rev1.m_CommitHash.ToString());
+							CAppUtils::LaunchTortoiseBlame(m_arFilteredList[index]->GetWinPathString().c_str(), m_rev1.m_CommitHash.ToString());
 						continue;
 					}
 					if (m_rev2.m_CommitHash.IsEmpty() && (m_arFilteredList[index]->m_Action & CTGitPath::LOGACTIONS_ADDED))
 						continue;
 					if (m_rev2.m_CommitHash.IsEmpty() && (m_arFilteredList[index]->m_Action & CTGitPath::LOGACTIONS_REPLACED))
 					{
-						CAppUtils::LaunchTortoiseBlame(m_arFilteredList[index]->GetGitOldPathString(), m_rev1.m_CommitHash.ToString());
+						CAppUtils::LaunchTortoiseBlame(m_arFilteredList[index]->GetGitOldPathString().c_str(), m_rev1.m_CommitHash.ToString());
 						continue;
 					}
-					CAppUtils::LaunchTortoiseBlame(m_arFilteredList[index]->GetWinPathString(), m_rev2.m_CommitHash.ToString());
+					CAppUtils::LaunchTortoiseBlame(m_arFilteredList[index]->GetWinPathString().c_str(), m_rev2.m_CommitHash.ToString());
 				}
 			}
 			break;
@@ -685,12 +685,12 @@ void CFileDiffDlg::OnContextMenu(CWnd* pWnd, CPoint point)
 					else if (cmd == ID_LOGSUBMODULE && !m_rev2.m_CommitHash.IsEmpty() && (m_arFilteredList[index]->m_Action & CTGitPath::Actions::LOGACTIONS_DELETED) == 0 && CRegDWORD(L"Software\\TortoiseGit\\LogSubmoduleShowRevision", TRUE))
 					{
 						CGitHash submoduleHash;
-						if (CString error; g_Git.GetSubmoduleHash(m_arFilteredList[index]->GetGitPathString(), m_rev2.m_CommitHash, submoduleHash, error) == 0 && !submoduleHash.IsEmpty())
+						if (CString error; g_Git.GetSubmoduleHash(m_arFilteredList[index]->GetGitPathString().c_str(), m_rev2.m_CommitHash, submoduleHash, error) == 0 && !submoduleHash.IsEmpty())
 							sCmd += L" /endrev:\"" + submoduleHash.ToString() + '"' + L" /rev:\"" + submoduleHash.ToString() + '"';
 						else
 							MessageBox(error, L"TortoiseGit", MB_ICONERROR);
 					}
-					sCmd += L" /path:" + CCmdLineParser::EscapeValue(g_Git.CombinePath(m_arFilteredList[index]->GetWinPathString()));
+					sCmd += L" /path:" + CCmdLineParser::EscapeValue(g_Git.CombinePath(m_arFilteredList[index]->GetWinPathString().c_str()));
 					if (cmd == ID_LOG)
 						sCmd += L" /endrev:" + m_rev2.m_CommitHash.ToString() + L" /rev:" + m_rev2.m_CommitHash.ToString();
 					CAppUtils::RunTortoiseGitProc(sCmd);
@@ -705,12 +705,12 @@ void CFileDiffDlg::OnContextMenu(CWnd* pWnd, CPoint point)
 					CString pathSave;
 					if (!CAppUtils::FileOpenSave(pathSave, nullptr, IDS_FILEDIFF_POPSAVELIST, IDS_TEXTFILEFILTER, false, m_hWnd, L"txt"))
 						break;
-					savePath = CTGitPath(pathSave);
+					savePath = CTGitPath(pathSave.GetString());
 
 					// now open the selected file for writing
 					try
 					{
-						CStdioFile file(savePath.GetWinPathString(), CFile::typeBinary | CFile::modeReadWrite | CFile::modeCreate);
+						CStdioFile file(savePath.GetWinPathString().c_str(), CFile::typeBinary | CFile::modeReadWrite | CFile::modeCreate);
 						CString temp;
 						temp.FormatMessage(IDS_FILEDIFF_CHANGEDLISTINTROROOT, static_cast<LPCWSTR>(m_rev1.m_CommitHash.ToString()), static_cast<LPCWSTR>(m_rev2.m_CommitHash.ToString()));
 						file.WriteString(temp + L"\r\n");
@@ -719,7 +719,7 @@ void CFileDiffDlg::OnContextMenu(CWnd* pWnd, CPoint point)
 						{
 							const int index = m_cFileList.GetNextSelectedItem(pos);
 							auto fd = m_arFilteredList[index];
-							file.WriteString(fd->GetGitPathString());
+							file.WriteString(fd->GetGitPathString().c_str());
 							file.WriteString(L"\r\n");
 						}
 						file.Close();
@@ -757,8 +757,8 @@ void CFileDiffDlg::OnContextMenu(CWnd* pWnd, CPoint point)
 						// we cannot export directories or folders
 						if (fd->m_Action == CTGitPath::LOGACTIONS_DELETED || fd->IsDirectory())
 							continue;
-						CPathUtils::MakeSureDirectoryPathExists(m_strExportDir + L'\\' + fd->GetContainingDirectory().GetWinPathString());
-						CString filename = m_strExportDir + L'\\' + fd->GetWinPathString();
+						CPathUtils::MakeSureDirectoryPathExists(m_strExportDir + L'\\' + fd->GetContainingDirectory().GetWinPathString().c_str());
+						CString filename = m_strExportDir + L'\\' + fd->GetWinPathString().c_str();
 						if (m_rev2.m_CommitHash.IsEmpty())
 						{
 							if(!CopyFile(g_Git.CombinePath(fd), filename, false))
@@ -772,7 +772,7 @@ void CFileDiffDlg::OnContextMenu(CWnd* pWnd, CPoint point)
 							if (g_Git.GetOneFile(m_rev2.m_CommitHash.ToString(), *fd, filename))
 							{
 								CString out;
-								out.FormatMessage(IDS_STATUSLIST_CHECKOUTFILEFAILED, static_cast<LPCWSTR>(fd->GetGitPathString()), static_cast<LPCWSTR>(m_rev2.m_CommitHash.ToString()), static_cast<LPCWSTR>(filename));
+								out.FormatMessage(IDS_STATUSLIST_CHECKOUTFILEFAILED, static_cast<LPCWSTR>(fd->GetGitPathString().c_str()), static_cast<LPCWSTR>(m_rev2.m_CommitHash.ToString()), static_cast<LPCWSTR>(filename));
 								if (CMessageBox::Show(GetSafeHwnd(), g_Git.GetGitLastErr(out, CGit::GIT_CMD_GETONEFILE), IDS_APPNAME, 2, IDI_WARNING, IDS_IGNOREBUTTON, IDS_ABORTBUTTON) == 2)
 									return;
 							}
@@ -1001,22 +1001,22 @@ bool CFileDiffDlg::SortCompare(const CTGitPath& Data1, const CTGitPath& Data2)
 	switch (m_nSortedColumn)
 	{
 	case 0:		//path column
-		result = Data1.GetWinPathString().Compare(Data2.GetWinPathString());
+		result = Data1.GetWinPathString().compare(Data2.GetWinPathString());
 		break;
 	case 1:		//extension column
-		result = Data1.GetFileExtension().Compare(Data2.GetFileExtension());
+		result = Data1.GetFileExtension().compare(Data2.GetFileExtension());
 		break;
 	case 2:		//action column
 		result = Data1.m_Action - Data2.m_Action;
 		break;
 	case 3:
-		d1 = CSorter::A2L(Data1.m_StatAdd);
-		d2 = CSorter::A2L(Data2.m_StatAdd);
+		d1 = CSorter::A2L(Data1.m_StatAdd.c_str());
+		d2 = CSorter::A2L(Data2.m_StatAdd.c_str());
 		result = d1 - d2;
 		break;
 	case 4:
-		d1 = CSorter::A2L(Data1.m_StatDel);;
-		d2 = CSorter::A2L(Data2.m_StatDel);
+		d1 = CSorter::A2L(Data1.m_StatDel.c_str());;
+		d2 = CSorter::A2L(Data2.m_StatDel.c_str());
 		result = d1 - d2;
 		break;
 	default:
@@ -1024,7 +1024,7 @@ bool CFileDiffDlg::SortCompare(const CTGitPath& Data1, const CTGitPath& Data2)
 	}
 	// sort by path name as second priority
 	if (m_nSortedColumn != 0 && result == 0)
-		result = Data1.GetWinPathString().Compare(Data2.GetWinPathString());
+		result = Data1.GetWinPathString().compare(Data2.GetWinPathString());
 
 	if (!m_bAscending)
 		result = -result;
@@ -1207,7 +1207,7 @@ void CFileDiffDlg::Filter(const CString& sFilterText)
 		if (filter(m_arFileList[i]))
 		{
 			// Git 2.29.0 or later, --numstat doesn't show stats for the files with only ignored changes. This check hides such files.
-			const bool showItem = m_arFileList[i].IsDirectory() || !(m_arFileList[i].m_StatAdd.IsEmpty() && m_arFileList[i].m_StatDel.IsEmpty());
+			const bool showItem = m_arFileList[i].IsDirectory() || !(m_arFileList[i].m_StatAdd.empty() && m_arFileList[i].m_StatDel.empty());
 			if (showItem)
 				m_arFilteredList.push_back(&m_arFileList[i]);
 		}
@@ -1304,28 +1304,28 @@ int CFileDiffDlg::RevertSelectedItemToVersion(const CGitHash& rev, bool isOldVer
 		{
 			if ((isOldVersion && fentry->m_Action == CTGitPath::LOGACTIONS_ADDED) || (!isOldVersion && fentry->m_Action == CTGitPath::LOGACTIONS_DELETED))
 			{
-				cmd.Format(L"git.exe rm --cached -- %s", static_cast<LPCWSTR>(CGit::QuoteParameter(fentry->GetGitPathString())));
+				cmd.Format(L"git.exe rm --cached -- %s", static_cast<LPCWSTR>(CGit::QuoteParameter(fentry->GetGitPathString().c_str())));
 				if (isOldVersion && fentry->m_Action == CTGitPath::LOGACTIONS_ADDED) // HACK for issue #3881
-					cmd.Format(L"git.exe rm --cached --ignore-unmatch -- %s", static_cast<LPCWSTR>(CGit::QuoteParameter(fentry->GetGitPathString())));
+					cmd.Format(L"git.exe rm --cached --ignore-unmatch -- %s", static_cast<LPCWSTR>(CGit::QuoteParameter(fentry->GetGitPathString().c_str())));
 				if ((isOldVersion && fentry->m_Action == CTGitPath::LOGACTIONS_ADDED && m_rev2.m_CommitHash.IsEmpty()) || (!isOldVersion && fentry->m_Action == CTGitPath::LOGACTIONS_DELETED && m_rev1.m_CommitHash.IsEmpty()))
-					CTGitPath(g_Git.CombinePath(fentry->GetGitPathString())).Delete(useRecycleBin, true);
-				else if (CTGitPath path = g_Git.CombinePath(fentry->GetGitPathString()); useRecycleBin && !path.IsDirectory())
+					CTGitPath(g_Git.CombinePath(fentry->GetGitPathString().c_str()).GetString()).Delete(useRecycleBin, true);
+				else if (CTGitPath path{ g_Git.CombinePath(fentry->GetGitPathString().c_str()).GetString() }; useRecycleBin && !path.IsDirectory())
 					path.Delete(useRecycleBin, true);
 			}
 			else if (isOldVersion && fentry->m_Action == CTGitPath::LOGACTIONS_REPLACED)
 			{
-				cmd.Format(L"git.exe checkout %s -- %s", static_cast<LPCWSTR>(rev.ToString()), static_cast<LPCWSTR>(CGit::QuoteParameter(fentry->GetGitOldPathString())));
+				cmd.Format(L"git.exe checkout %s -- %s", static_cast<LPCWSTR>(rev.ToString()), static_cast<LPCWSTR>(CGit::QuoteParameter(fentry->GetGitOldPathString().c_str())));
 				if (m_rev2.m_CommitHash.IsEmpty())
-					CTGitPath(g_Git.CombinePath(fentry->GetGitPathString())).Delete(useRecycleBin, true);
-				else if (CTGitPath path = g_Git.CombinePath(fentry->GetGitOldPathString()); useRecycleBin && !path.IsDirectory())
+					CTGitPath(g_Git.CombinePath(fentry->GetGitPathString().c_str()).GetString()).Delete(useRecycleBin, true);
+				else if (CTGitPath path{ g_Git.CombinePath(fentry->GetGitOldPathString().c_str()).GetString() }; useRecycleBin && !path.IsDirectory())
 					path.Delete(useRecycleBin, true);
 			}
 			else
 			{
-				cmd.Format(L"git.exe checkout %s -- %s", static_cast<LPCWSTR>(rev.ToString()), static_cast<LPCWSTR>(CGit::QuoteParameter(fentry->GetGitPathString())));
+				cmd.Format(L"git.exe checkout %s -- %s", static_cast<LPCWSTR>(rev.ToString()), static_cast<LPCWSTR>(CGit::QuoteParameter(fentry->GetGitPathString().c_str())));
 				if (!isOldVersion && fentry->m_Action == CTGitPath::LOGACTIONS_REPLACED && m_rev1.m_CommitHash.IsEmpty())
-					CTGitPath(g_Git.CombinePath(fentry->GetGitOldPathString())).Delete(useRecycleBin, true);
-				if (CTGitPath path = g_Git.CombinePath(fentry->GetGitPathString()); useRecycleBin && !path.IsDirectory())
+					CTGitPath(g_Git.CombinePath(fentry->GetGitOldPathString().c_str()).GetString()).Delete(useRecycleBin, true);
+				if (CTGitPath path{ g_Git.CombinePath(fentry->GetGitPathString().c_str()).GetString() }; useRecycleBin && !path.IsDirectory())
 					path.Delete(useRecycleBin, true);
 			}
 		}
@@ -1558,9 +1558,9 @@ void CFileDiffDlg::FillPatchView(bool onlySetTimer)
 					cmd.Format(L"git.exe diff%s -R %s --", static_cast<LPCWSTR>(ignore), static_cast<LPCWSTR>(m_rev2.m_CommitHash.ToString()));
 				else
 					cmd.Format(L"git.exe diff%s %s..%s --", static_cast<LPCWSTR>(ignore), static_cast<LPCWSTR>(m_rev1.m_CommitHash.ToString()), static_cast<LPCWSTR>(m_rev2.m_CommitHash.ToString()));
-				if (!fentry->GetGitOldPathString().IsEmpty())
-					cmd.AppendFormat(L" %s", static_cast<LPCWSTR>(CGit::QuoteParameter(fentry->GetGitOldPathString())));
-				cmd.AppendFormat(L" %s", static_cast<LPCWSTR>(CGit::QuoteParameter(fentry->GetGitPathString())));
+				if (!fentry->GetGitOldPathString().empty())
+					cmd.AppendFormat(L" %s", static_cast<LPCWSTR>(CGit::QuoteParameter(fentry->GetGitOldPathString().c_str())));
+				cmd.AppendFormat(L" %s", static_cast<LPCWSTR>(CGit::QuoteParameter(fentry->GetGitPathString().c_str())));
 			}
 			catch (illegal_git_parameter& e)
 			{

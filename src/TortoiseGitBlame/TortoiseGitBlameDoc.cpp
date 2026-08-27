@@ -88,7 +88,7 @@ BOOL CTortoiseGitBlameDoc::OnOpenDocument(LPCWSTR lpszPathName, CString Rev)
 	// enable blame for files which do not exist in current working tree
 	if (!PathFileExists(lpszPathName) && Rev != L"HEAD")
 	{
-		if (!CDocument::OnOpenDocument(CTempFiles::Instance().GetTempFilePath(true).GetWinPathString()))
+		if (!CDocument::OnOpenDocument(CTempFiles::Instance().GetTempFilePath(true).GetWinPathString().c_str()))
 			return FALSE;
 	}
 	else
@@ -176,7 +176,7 @@ BOOL CTortoiseGitBlameDoc::OnOpenDocument(LPCWSTR lpszPathName, CString Rev)
 		bool onlyFirstParent = theApp.GetInt(L"OnlyFirstParent", 0) == 1;
 		if (onlyFirstParent)
 		{
-			CString tmpfile = CTempFiles::Instance().GetTempFilePath(true).GetWinPathString();
+			CString tmpfile = CTempFiles::Instance().GetTempFilePath(true).GetWinPathString().c_str();
 			try
 			{
 				cmd.Format(L"git.exe rev-list --first-parent --end-of-options %s --", static_cast<LPCWSTR>(CGit::QuoteParameter(Rev)));
@@ -213,7 +213,7 @@ BOOL CTortoiseGitBlameDoc::OnOpenDocument(LPCWSTR lpszPathName, CString Rev)
 
 		try
 		{
-			cmd.Format(L"git.exe blame -p %s %s -- %s", static_cast<LPCWSTR>(option), static_cast<LPCWSTR>(CGit::QuoteParameter(Rev)), static_cast<LPCWSTR>(CGit::QuoteParameter(path.GetGitPathString())));
+			cmd.Format(L"git.exe blame -p %s %s -- %s", static_cast<LPCWSTR>(option), static_cast<LPCWSTR>(CGit::QuoteParameter(Rev)), static_cast<LPCWSTR>(CGit::QuoteParameter(path.GetGitPathString().c_str())));
 		}
 		catch (illegal_git_parameter& e)
 		{
@@ -229,11 +229,11 @@ BOOL CTortoiseGitBlameDoc::OnOpenDocument(LPCWSTR lpszPathName, CString Rev)
 		}
 
 #ifdef USE_TEMPFILENAME
-		m_TempFileName = CTempFiles::Instance().GetTempFilePath(true).GetWinPathString();
+		m_TempFileName = CTempFiles::Instance().GetTempFilePath(true).GetWinPathString().c_str();
 
 		try
 		{
-			cmd.Format(L"git.exe cat-file blob -- %s:%s", static_cast<LPCWSTR>(CGit::QuoteParameter(Rev)), static_cast<LPCWSTR>(CGit::QuoteParameter(path.GetGitPathString())));
+			cmd.Format(L"git.exe cat-file blob -- %s:%s", static_cast<LPCWSTR>(CGit::QuoteParameter(Rev)), static_cast<LPCWSTR>(CGit::QuoteParameter(path.GetGitPathString().c_str())));
 		}
 		catch (illegal_git_parameter& e)
 		{
@@ -244,7 +244,7 @@ BOOL CTortoiseGitBlameDoc::OnOpenDocument(LPCWSTR lpszPathName, CString Rev)
 		if(g_Git.RunLogFile(cmd, m_TempFileName))
 		{
 			CString str;
-			str.Format(IDS_CHECKOUTFAILED, static_cast<LPCWSTR>(path.GetGitPathString()));
+			str.Format(IDS_CHECKOUTFAILED, static_cast<LPCWSTR>(path.GetGitPathString().c_str()));
 			MessageBox(nullptr, CString(MAKEINTRESOURCE(IDS_BLAMEERROR)) + L"\n\n" + str, L"TortoiseGitBlame", MB_OK | MB_ICONERROR);
 			return FALSE;
 		}
@@ -270,7 +270,7 @@ BOOL CTortoiseGitBlameDoc::OnOpenDocument(LPCWSTR lpszPathName, CString Rev)
 		BOOL bShowCompleteLog = (theApp.GetInt(L"ShowCompleteLog", 1) == 1);
 		if (bShowCompleteLog && BlameIsLimitedToOneFilename(dwDetectMovedOrCopiedLines) && !onlyFirstParent)
 		{
-			if (GetMainFrame()->m_wndOutput.LoadHistory(path.GetGitPathString(), m_Rev, (theApp.GetInt(L"FollowRenames", 0) == 1)))
+			if (GetMainFrame()->m_wndOutput.LoadHistory(path.GetGitPathString().c_str(), m_Rev, (theApp.GetInt(L"FollowRenames", 0) == 1)))
 				return FALSE;
 		}
 		else

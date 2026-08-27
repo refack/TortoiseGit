@@ -109,7 +109,7 @@ void CGitStatusCache::Create()
 							cacheddir.reset();
 							goto error;
 						}
-						CTGitPath KeyPath = CTGitPath(sKey);
+						CTGitPath KeyPath = CTGitPath(sKey.GetString());
 						if (m_pInstance->IsPathAllowed(KeyPath))
 						{
 							// only add the path to the watch list if it is versioned
@@ -173,7 +173,7 @@ bool CGitStatusCache::SaveCache()
 					WRITEVALUETOFILE(value);
 					continue;
 				}
-				const CString& key = I->first.GetWinPathString();
+				const CString& key = I->first.GetWinPathString().c_str();
 				value = key.GetLength();
 				WRITEVALUETOFILE(value);
 				if (value)
@@ -227,7 +227,7 @@ CGitStatusCache::CGitStatusCache()
 	{
 		CString path(GetSpecialFolder(folderid));
 		if (!path.IsEmpty())
-			m_NoWatchPaths[CTGitPath(path)] = forever;
+			m_NoWatchPaths[CTGitPath(path.GetString())] = forever;
 	}
 }
 
@@ -388,9 +388,9 @@ bool CGitStatusCache::RemoveCacheForDirectory(CCachedDirectory* cdir, const CTGi
 	{
 		for (auto it = cdir->m_childDirectories.begin(); it != cdir->m_childDirectories.end();)
 		{
-			CCachedDirectory * childdir = CGitStatusCache::Instance().GetDirectoryCacheEntryNoCreate(it->first);
+			CCachedDirectory * childdir = CGitStatusCache::Instance().GetDirectoryCacheEntryNoCreate(CTGitPath(it->first.GetString()));
 			if ((childdir) && (!cdir->m_directoryPath.IsEquivalentTo(childdir->m_directoryPath)) && (cdir->m_directoryPath.GetFileOrDirectoryName() != L".."))
-				RemoveCacheForDirectory(childdir, it->first);
+				RemoveCacheForDirectory(childdir, CTGitPath(it->first.GetString()));
 			cdir->m_childDirectories.erase(it->first);
 			it = cdir->m_childDirectories.begin();
 		}
@@ -565,14 +565,14 @@ void CGitStatusCache::CloseWatcherHandles(HANDLE hFile)
 	CTGitPath path = watcher.CloseInfoMap(hFile);
 	if (!path.IsEmpty())
 		m_folderCrawler.BlockPath(path);
-	CGitStatusCache::Instance().m_GitStatus.ReleasePathsRecursively(path.GetWinPathString());
+	CGitStatusCache::Instance().m_GitStatus.ReleasePathsRecursively(path.GetWinPathString().c_str());
 }
 
 void CGitStatusCache::CloseWatcherHandles(const CTGitPath& path)
 {
 	watcher.CloseHandlesForPath(path);
 	m_folderCrawler.ReleasePathForUpdate(path);
-	CGitStatusCache::Instance().m_GitStatus.ReleasePathsRecursively(path.GetWinPathString());
+	CGitStatusCache::Instance().m_GitStatus.ReleasePathsRecursively(path.GetWinPathString().c_str());
 }
 
 CString CGitStatusCache::GetSpecialFolder(REFKNOWNFOLDERID rfid)

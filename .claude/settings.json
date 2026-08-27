@@ -1,0 +1,7 @@
+{
+  "enabledPlugins": {
+    "clangd-lsp@claude-plugins-official": true,
+    "cmake@local-lsps": true,
+    "dotnet-msbuild@dotnet-agent-skills": true
+  }
+}

@@ -28,7 +28,7 @@ using Git_WC_Notify_Action = CGitProgressList::WC_File_NotificationData::Git_WC_
 bool AddProgressCommand::Run(CGitProgressList* list, CString& sWindowTitle, int& m_itemCountTotal, int& m_itemCount)
 {
 	ATLASSERT(!(m_bExecutable && m_bSymlink));
-	list->SetWindowTitle(IDS_PROGRS_TITLE_ADD, g_Git.CombinePath(m_targetPathList.GetCommonRoot().GetUIPathString()), sWindowTitle);
+	list->SetWindowTitle(IDS_PROGRS_TITLE_ADD, g_Git.CombinePath(m_targetPathList.GetCommonRoot().GetUIPathString().c_str()), sWindowTitle);
 	list->SetBackgroundImage(IDI_ADD_BKG);
 	if (m_bExecutable)
 		list->ReportCmd(CString(MAKEINTRESOURCE(IDS_STATUSLIST_CONTEXT_ADD_EXE)));
@@ -62,7 +62,7 @@ bool AddProgressCommand::Run(CGitProgressList* list, CString& sWindowTitle, int&
 
 		for (m_itemCount = 0; m_itemCount < m_itemCountTotal; ++m_itemCount)
 		{
-			CStringA filePathA = CUnicodeUtils::GetUTF8(m_targetPathList[m_itemCount].GetGitPathString()).TrimRight(L'/');
+			CStringA filePathA = CUnicodeUtils::GetUTF8(m_targetPathList[m_itemCount].GetGitPathString().c_str()).TrimRight(L'/');
 			if (git_index_add_bypath(index, filePathA))
 			{
 				list->ReportGitError();
@@ -168,7 +168,7 @@ bool AddProgressCommand::SetFileMode(uint32_t mode)
 	{
 		if (m_targetPathList[i].IsDirectory())
 			continue;
-		CStringA filePathA = CUnicodeUtils::GetUTF8(m_targetPathList[i].GetGitPathString()).TrimRight(L'/');
+		CStringA filePathA = CUnicodeUtils::GetUTF8(m_targetPathList[i].GetGitPathString().c_str()).TrimRight(L'/');
 		auto entry = const_cast<git_index_entry*>(git_index_get_bypath(index, filePathA, 0));
 		if (!entry)
 		{

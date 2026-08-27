@@ -30,7 +30,7 @@ bool CloneProgressCommand::Run(CGitProgressList* list, CString& sWindowTitle, in
 		ASSERT(FALSE);
 		return false;
 	}
-	list->SetWindowTitle(IDS_PROGRS_TITLE_CLONE, m_url.GetGitPathString(), sWindowTitle);
+	list->SetWindowTitle(IDS_PROGRS_TITLE_CLONE, m_url.GetGitPathString().c_str(), sWindowTitle);
 	list->SetBackgroundImage(IDI_SWITCH_BKG);
 	list->ReportCmd(CString(MAKEINTRESOURCE(IDS_PROG_CLONE)));
 
@@ -93,9 +93,9 @@ bool CloneProgressCommand::Run(CGitProgressList* list, CString& sWindowTitle, in
 		cloneOpts.checkout_branch = checkout_branch;
 	cloneOpts.checkout_opts = checkout_opts;
 
-	CBlockCacheForPath block(m_targetPathList[0].GetWinPathString());
+	CBlockCacheForPath block(m_targetPathList[0].GetWinPathString().c_str());
 	CAutoRepository cloned_repo;
-	if (git_clone(cloned_repo.GetPointer(), CUnicodeUtils::GetUTF8(m_url.GetGitPathString()), CUnicodeUtils::GetUTF8(m_targetPathList[0].GetWinPathString()), &cloneOpts) < 0)
+	if (git_clone(cloned_repo.GetPointer(), CUnicodeUtils::GetUTF8(m_url.GetGitPathString().c_str()), CUnicodeUtils::GetUTF8(m_targetPathList[0].GetWinPathString().c_str()), &cloneOpts) < 0)
 	{
 		list->ReportGitError();
 		return false;

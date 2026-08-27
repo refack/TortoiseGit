@@ -30,10 +30,13 @@ bool DropCopyAddCommand::Execute()
 {
 	bool bRet = false;
 	CString droppath = parser.GetVal(L"droptarget");
-	if (CTGitPath(droppath).IsAdminDir())
+	if (CTGitPath(droppath.GetString()).IsAdminDir())
 		return FALSE;
 
-	if(!CTGitPath(droppath).HasAdminDir(&g_Git.m_CurrentDir))
+	std::wstring projectTopDir;
+	const bool hasAdminDir = CTGitPath(droppath.GetString()).HasAdminDir(&projectTopDir);
+	g_Git.m_CurrentDir = projectTopDir.c_str();
+	if (!hasAdminDir)
 		return FALSE;
 
 	const int worktreePathLen = g_Git.m_CurrentDir.GetLength();
@@ -41,11 +44,11 @@ bool DropCopyAddCommand::Execute()
 	CTGitPathList copiedFiles;
 	for(int nPath = 0; nPath < orgPathList.GetCount(); ++nPath)
 	{
-		if (orgPathList[nPath].IsEquivalentTo(CTGitPath(droppath)))
+		if (orgPathList[nPath].IsEquivalentTo(CTGitPath(droppath.GetString())))
 			continue;
 
 		//copy the file to the new location
-		CString name = orgPathList[nPath].GetFileOrDirectoryName();
+		CString name = orgPathList[nPath].GetFileOrDirectoryName().c_str();
 		if (::PathFileExists(droppath + L'\\' + name))
 		{
 			if (::PathIsDirectory(droppath + L'\\' + name))
@@ -77,7 +80,7 @@ bool DropCopyAddCommand::Execute()
 		{
 			if (orgPathList[nPath].IsDirectory())
 			{
-				CString fromPath = orgPathList[nPath].GetWinPathString() + L"||";
+				CString fromPath(std::format(L"{}||", orgPathList[nPath].GetWinPathString()).c_str());
 				CString toPath = droppath + L'\\' + name + L"||";
 				auto fromBuf = std::make_unique<wchar_t[]>(fromPath.GetLength() + 1);
 				auto toBuf = std::make_unique<wchar_t[]>(toPath.GetLength() + 1);
@@ -121,13 +124,13 @@ bool DropCopyAddCommand::Execute()
 								return FALSE;
 							if (ret == 1)
 							{
-								CTGitPath(filepath).Delete(false, true);
+								CTGitPath(filepath.GetString()).Delete(false, true);
 								lastRepo.Empty();
 							}
 							continue;
 						}
 						if (!file->IsDirectory())
-							copiedFiles.AddPath(CTGitPath(filepath.Mid(worktreePathLen + 1))); //add the new filepath
+							copiedFiles.AddPath(CTGitPath(filepath.Mid(worktreePathLen + 1).GetString())); //add the new filepath
 					}
 				}
 				continue; // do not add a directory to copiedFiles
@@ -140,7 +143,7 @@ bool DropCopyAddCommand::Execute()
 			}
 		}
 		CString destPath(droppath + L'\\' + name);
-		copiedFiles.AddPath(CTGitPath(destPath.Mid(worktreePathLen + 1))); //add the new filepath
+		copiedFiles.AddPath(CTGitPath(destPath.Mid(worktreePathLen + 1).GetString())); //add the new filepath
 	}
 	//now add all the newly copied files to the working copy
 	CGitProgressDlg progDlg;

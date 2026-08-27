@@ -942,7 +942,7 @@ static public_key_t *download_key(const uint8_t *p_longid, const uint8_t *p_sign
 	CString url;
 	url.Format(L"http://download.tortoisegit.org/keys/%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X.asc", p_longid[0], p_longid[1], p_longid[2], p_longid[3], p_longid[4], p_longid[5], p_longid[6], p_longid[7]);
 
-	CString tempfile = CTempFiles::Instance().GetTempFilePath(true).GetWinPathString();
+	CString tempfile = CTempFiles::Instance().GetTempFilePath(true).GetWinPathString().c_str();
 	if (updateDownloader->DownloadFile(url, tempfile, false))
 		return nullptr;
 

@@ -41,7 +41,7 @@ protected:
 	};
 
 public:
-	void SetUrl(const CString& url) { m_url.SetFromUnknown(url); }
+	void SetUrl(const CString& url) { m_url.SetFromUnknown(url.GetString()); }
 	void SetRefSpec(const CString& spec){ m_RefSpec = spec; }
 	void SetRemote(const CString& remote) { m_remote = remote; }
 };

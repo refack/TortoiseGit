@@ -97,7 +97,7 @@ BOOL CDeleteConflictDlg::OnInitDialog()
 
 	CAppUtils::SetWindowTitle(*this, g_Git.CombinePath(m_File));
 
-	GetDlgItem(IDC_INFOLABEL)->SetWindowText(m_File.GetGitPathString());
+	GetDlgItem(IDC_INFOLABEL)->SetWindowText(m_File.GetGitPathString().c_str());
 
 	SetTheme(CTheme::Instance().IsDarkTheme());
 
@@ -140,10 +140,10 @@ void CDeleteConflictDlg::OnBnClickedShowdiff()
 {
 	CString base;
 	base.LoadString(IDS_PROC_DIFF_BASE);
-	CAppUtils::StartExtDiff(m_FileBaseVersion.GetWinPathString(), g_Git.CombinePath(m_File),
+	CAppUtils::StartExtDiff(m_FileBaseVersion.GetWinPathString().c_str(), g_Git.CombinePath(m_File),
 		base,
 		m_bDiffMine ? m_LocalHash.ToString() : m_RemoteHash.ToString(),
-		m_FileBaseVersion.GetWinPathString(),
+		m_FileBaseVersion.GetWinPathString().c_str(),
 		g_Git.CombinePath(m_File),
 		m_bDiffMine ? m_LocalHash : m_RemoteHash,
 		m_bDiffMine ? m_RemoteHash : m_LocalHash,

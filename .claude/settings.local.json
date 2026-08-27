@@ -9,11 +9,11 @@
       "WebFetch(domain:projectzero.google)",
       "Bash(ls *)",
       "PowerShell(git *)",
-      "PowerShell(& 'E:\\\\3party\\\\TortoiseGit\\\\bin\\\\Debug64\\\\bin\\\\Tests.exe')",
       "PowerShell([guid]::NewGuid\\(\\).ToString\\(\\).ToUpper\\(\\))",
       "PowerShell(dumpbin *)",
       "PowerShell(msbuild *)",
-      "PowerShell(E:\\\\3party\\\\TortoiseGit\\\\bin\\\\Debug64\\\\bin\\\\Tests.exe 2>&1 | Select-Object -Last 22)"
+      "PowerShell(E:\\\\3party\\\\TortoiseGit\\\\bin\\\\Debug64\\\\bin\\\\Tests.exe *)",
+      "PowerShell(Get-Process *)"
     ]
   },
   "outputStyle": "Explanatory",

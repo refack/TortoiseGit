@@ -117,8 +117,8 @@ STDMETHODIMP CShellExt::Initialize(LPCITEMIDLIST pIDFolder, LPDATAOBJECT pDataOb
 
 					CTGitPath strpath;
 					strpath.SetFromWin(str.c_str());
-					itemStates |= (strpath.GetFileExtension().CompareNoCase(L".diff") == 0) ? ITEMIS_PATCHFILE : 0;
-					itemStates |= (strpath.GetFileExtension().CompareNoCase(L".patch") == 0) ? ITEMIS_PATCHFILE : 0;
+					itemStates |= (tgit::wstr::CompareNoCase(strpath.GetFileExtension(), L".diff") == 0) ? ITEMIS_PATCHFILE : 0;
+					itemStates |= (tgit::wstr::CompareNoCase(strpath.GetFileExtension(), L".patch") == 0) ? ITEMIS_PATCHFILE : 0;
 
 					files_.push_back(str);
 					if (i != 0)
@@ -126,7 +126,7 @@ STDMETHODIMP CShellExt::Initialize(LPCITEMIDLIST pIDFolder, LPDATAOBJECT pDataOb
 
 					// get the git status of the item
 					git_wc_status_kind status = git_wc_status_none;
-					CString workTreePath;
+					std::wstring workTreePath;
 					if (!strpath.HasAdminDir(&workTreePath) && GitAdminDir::IsBareRepo(str.c_str()))
 						itemStates |= ITEMIS_BAREREPO; // TODO: optimize
 					uuidSource = workTreePath;
@@ -231,8 +231,8 @@ STDMETHODIMP CShellExt::Initialize(LPCITEMIDLIST pIDFolder, LPDATAOBJECT pDataOb
 					files_.push_back(str);
 					CTGitPath strpath;
 					strpath.SetFromWin(str.c_str());
-					itemStates |= (strpath.GetFileExtension().CompareNoCase(L".diff") == 0) ? ITEMIS_PATCHFILE : 0;
-					itemStates |= (strpath.GetFileExtension().CompareNoCase(L".patch") == 0) ? ITEMIS_PATCHFILE : 0;
+					itemStates |= (tgit::wstr::CompareNoCase(strpath.GetFileExtension(), L".diff") == 0) ? ITEMIS_PATCHFILE : 0;
+					itemStates |= (tgit::wstr::CompareNoCase(strpath.GetFileExtension(), L".patch") == 0) ? ITEMIS_PATCHFILE : 0;
 					if (statfetched)
 						continue;
 
@@ -362,7 +362,7 @@ STDMETHODIMP CShellExt::Initialize(LPCITEMIDLIST pIDFolder, LPDATAOBJECT pDataOb
 		{
 			if (folder_.compare(statuspath)!=0)
 			{
-				CString worktreePath;
+				std::wstring worktreePath;
 				askedpath.HasAdminDir(&worktreePath);
 				uuidTarget = worktreePath;
 				try
@@ -412,10 +412,10 @@ STDMETHODIMP CShellExt::Initialize(LPCITEMIDLIST pIDFolder, LPDATAOBJECT pDataOb
 						itemStatesFolder |= ITEMIS_DELETED;
 
 					bool bareDetectionError = false;
-					if (GitAdminDir::IsBareRepo(askedpath.GetWinPathString(), &bareDetectionError))
+					if (GitAdminDir::IsBareRepo(askedpath.GetWinPathString().c_str(), &bareDetectionError))
 						itemStatesFolder = ITEMIS_BAREREPO;
 
-					if (!(itemStates & (ITEMIS_BAREREPO | ITEMIS_INVERSIONEDFOLDER)) && (PathFileExists(askedpath.GetWinPathString() + L"\\.git") || bareDetectionError))
+					if (!(itemStates & (ITEMIS_BAREREPO | ITEMIS_INVERSIONEDFOLDER)) && (PathFileExists(std::format(L"{}\\.git", askedpath.GetWinPathString()).c_str()) || bareDetectionError))
 						itemStates |= ITEMIS_INACCESSIBLE;
 				}
 				catch ( ... )
@@ -488,7 +488,7 @@ STDMETHODIMP CShellExt::Initialize(LPCITEMIDLIST pIDFolder, LPDATAOBJECT pDataOb
 					itemStates |= ITEMIS_ADDED;
 				if (status == git_wc_status_deleted)
 					itemStates |= ITEMIS_DELETED;
-				if (bool formatError = false; !(itemStates & (ITEMIS_BAREREPO | ITEMIS_INVERSIONEDFOLDER)) && (PathFileExists(askedpath.GetWinPathString() + L"\\.git") || !GitAdminDir::IsBareRepo(folder_.c_str(), &formatError) && formatError))
+				if (bool formatError = false; !(itemStates & (ITEMIS_BAREREPO | ITEMIS_INVERSIONEDFOLDER)) && (PathFileExists(std::format(L"{}\\.git", askedpath.GetWinPathString()).c_str()) || !GitAdminDir::IsBareRepo(folder_.c_str(), &formatError) && formatError))
 					itemStates |= ITEMIS_INACCESSIBLE;
 			}
 		}
@@ -525,7 +525,7 @@ void CShellExt::InsertGitMenu(BOOL istop, HMENU menu, UINT pos, UINT_PTR id, UIN
 	{
 		// get branch name
 		CTGitPath path(folder_.empty() ? files_.front().c_str() : folder_.c_str());
-		CString sProjectRoot;
+		std::wstring sProjectRoot;
 		CString sBranchName;
 
 		if (path.GetAdminDirMask() & ITEMIS_SUBMODULE)
@@ -538,7 +538,7 @@ void CShellExt::InsertGitMenu(BOOL istop, HMENU menu, UINT pos, UINT_PTR id, UIN
 			wcscat_s(menutextbuffer, stringtablebuffer);
 		}
 
-		if (path.HasAdminDir(&sProjectRoot) && !CGit::GetCurrentBranchFromFile(sProjectRoot, sBranchName))
+		if (path.HasAdminDir(&sProjectRoot) && !CGit::GetCurrentBranchFromFile(sProjectRoot.c_str(), sBranchName))
 		{
 			if (sBranchName.GetLength() == 2 * GIT_HASH_SIZE)
 			{

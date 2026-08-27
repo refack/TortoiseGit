@@ -30,7 +30,7 @@ bool LFSSetLockedProgressCommand::Run(CGitProgressList* list, CString& sWindowTi
 	m_itemCountTotal = m_targetPathList.GetCount();
 	m_itemCount = 0;
 
-	list->SetWindowTitle(m_bIsLock ? IDS_PROGRS_TITLE_LFS_LOCK : IDS_PROGRS_TITLE_LFS_UNLOCK, g_Git.CombinePath(m_targetPathList.GetCommonRoot().GetUIPathString()), sWindowTitle);
+	list->SetWindowTitle(m_bIsLock ? IDS_PROGRS_TITLE_LFS_LOCK : IDS_PROGRS_TITLE_LFS_UNLOCK, g_Git.CombinePath(m_targetPathList.GetCommonRoot().GetUIPathString().c_str()), sWindowTitle);
 	list->SetBackgroundImage(m_bIsLock ? IDI_LOCK_BKG : IDI_UNLOCK_BKG);
 	list->ReportCmd(CString(MAKEINTRESOURCE(m_bIsLock ? IDS_PROGRS_CMD_LFS_LOCK : IDS_PROGRS_CMD_LFS_UNLOCK)));
 
@@ -49,8 +49,8 @@ bool LFSSetLockedProgressCommand::Run(CGitProgressList* list, CString& sWindowTi
 		{
 			postCmdList.emplace_back(IDI_LFSUNLOCK, IDS_PROGS_LFS_FORCEUNLOCK, [this]()
 			{
-				CString tempfilename = CTempFiles::Instance().GetTempFilePath(false).GetWinPathString();
-				VERIFY(m_targetPathList.WriteToFile(tempfilename));
+				CString tempfilename = CTempFiles::Instance().GetTempFilePath(false).GetWinPathString().c_str();
+				VERIFY(m_targetPathList.WriteToFile(tempfilename.GetString()));
 				CString sCmd;
 				sCmd.Format(L"/command:lfsunlock /force /pathfile:\"%s\" /deletepathfile", static_cast<LPCWSTR>(tempfilename));
 				CAppUtils::RunTortoiseGitProc(sCmd);
@@ -69,7 +69,7 @@ bool LFSSetLockedProgressCommand::Run(CGitProgressList* list, CString& sWindowTi
 		CString cmd;
 		try
 		{
-			cmd = cmdBase + CGit::QuoteParameter(m_targetPathList[i].GetGitPathString());
+			cmd = cmdBase + CGit::QuoteParameter(m_targetPathList[i].GetGitPathString().c_str());
 		}
 		catch (illegal_git_parameter& e)
 		{

@@ -129,7 +129,7 @@ BOOL CGitPropertyPage::PageProc (HWND /*hwnd*/, UINT uMessage, WPARAM wParam, LP
 					{
 						CTGitPath file;
 						file.SetFromWin(CString(filename.c_str()).Mid(m_iStripLength));
-						CStringA pathA = CUnicodeUtils::GetUTF8(file.GetGitPathString());
+						CStringA pathA = CUnicodeUtils::GetUTF8(file.GetGitPathString().c_str());
 						size_t idx;
 						if (!git_index_find(&idx, index, pathA))
 						{
@@ -483,9 +483,9 @@ int CGitPropertyPage::LogThread()
 		return 0;
 
 	CTGitPath relatepath;
-	relatepath.SetFromWin(path.GetWinPathString().Mid(m_iStripLength));
+	relatepath.SetFromWin(tgit::wstr::Mid(path.GetWinPathString(), m_iStripLength));
 
-	CAutoCommit commit(FindFileRecentCommit(repository, relatepath.GetGitPathString()));
+	CAutoCommit commit(FindFileRecentCommit(repository, relatepath.GetGitPathString().c_str()));
 	if (commit)
 	{
 		SendMessage(m_hwnd, m_UpdateLastCommit, NULL, reinterpret_cast<LPARAM>(static_cast<git_commit*>(commit)));
@@ -603,7 +603,7 @@ void CGitPropertyPage::InitWorkfileView()
 		{
 			CTGitPath file;
 			file.SetFromWin(CString(filename.c_str()).Mid(m_iStripLength));
-			CStringA pathA = CUnicodeUtils::GetUTF8(file.GetGitPathString());
+			CStringA pathA = CUnicodeUtils::GetUTF8(file.GetGitPathString().c_str());
 			size_t idx;
 			if (!git_index_find(&idx, index, pathA))
 			{
@@ -714,19 +714,19 @@ STDMETHODIMP CShellExt::AddPages(LPFNADDPROPSHEETPAGE lpfnAddPage, LPARAM lParam
 
 	CTGitPath firstFile(files_[0].c_str());
 
-	CString projectTopDir;
+	std::wstring projectTopDir;
 	if (!firstFile.HasAdminDir(&projectTopDir))
 		return S_OK;
 
 	if (files_.size() == 1 && firstFile.IsWCRoot()) // might be a submodule
 	{
-		CString parentRepo;
+		std::wstring parentRepo;
 		if (firstFile.IsRegisteredSubmoduleOfParentProject(&parentRepo))
 		{
 			LoadLangDll();
 			PROPSHEETPAGE psp = { 0 };
 			HPROPSHEETPAGE hPage;
-			CGitPropertyPage* sheetpage = new (std::nothrow) CGitPropertyPage(files_, parentRepo, true);
+			CGitPropertyPage* sheetpage = new (std::nothrow) CGitPropertyPage(files_, parentRepo.c_str(), true);
 
 			if (!sheetpage)
 				return E_OUTOFMEMORY;
@@ -754,7 +754,7 @@ STDMETHODIMP CShellExt::AddPages(LPFNADDPROPSHEETPAGE lpfnAddPage, LPARAM lParam
 
 	for (const auto& file_ : files_)
 	{
-		CString currentProjectTopDir;
+		std::wstring currentProjectTopDir;
 		if (!CTGitPath(file_.c_str()).HasAdminDir(&currentProjectTopDir) || !CPathUtils::ArePathStringsEqual(projectTopDir, currentProjectTopDir))
 			return S_OK;
 	}
@@ -762,7 +762,7 @@ STDMETHODIMP CShellExt::AddPages(LPFNADDPROPSHEETPAGE lpfnAddPage, LPARAM lParam
 	LoadLangDll();
 	PROPSHEETPAGE psp = { 0 };
 	HPROPSHEETPAGE hPage;
-	CGitPropertyPage* sheetpage = new (std::nothrow) CGitPropertyPage(files_, projectTopDir, false);
+	CGitPropertyPage* sheetpage = new (std::nothrow) CGitPropertyPage(files_, projectTopDir.c_str(), false);
 
 	if (!sheetpage)
 		return E_OUTOFMEMORY;

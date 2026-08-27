@@ -28,7 +28,7 @@
 bool DropCopyCommand::Execute()
 {
 	CString sDroppath = parser.GetVal(L"droptarget");
-	if (CTGitPath(sDroppath).IsAdminDir())
+	if (CTGitPath(sDroppath.GetString()).IsAdminDir())
 	{
 		MessageBox(GetExplorerHWND(), L"Can't drop to .git repository directory\n", L"TortoiseGit", MB_OK | MB_ICONERROR);
 		return FALSE;
@@ -50,7 +50,7 @@ bool DropCopyCommand::Execute()
 		});
 		renDlg.m_sBaseDir = sDroppath;
 		renDlg.m_windowtitle.LoadString(IDS_PROC_COPYRENAME);
-		renDlg.m_name = pathList[0].GetFileOrDirectoryName();
+		renDlg.m_name = pathList[0].GetFileOrDirectoryName().c_str();
 		if (renDlg.DoModal() != IDOK)
 			return FALSE;
 		sNewName = renDlg.m_name;
@@ -63,12 +63,12 @@ bool DropCopyCommand::Execute()
 	{
 		const CTGitPath& sourcePath = orgPathList[nPath];
 
-		CTGitPath fullDropPath(sDroppath);
+		CTGitPath fullDropPath(sDroppath.GetString());
 
 		if (sNewName.IsEmpty())
-			fullDropPath.AppendPathString(sourcePath.GetFileOrDirectoryName());
+			fullDropPath.AppendPathString(sourcePath.GetFileOrDirectoryName().c_str());
 		else
-			fullDropPath.AppendPathString(sNewName);
+			fullDropPath.AppendPathString(sNewName.GetString());
 
 		// Check for a drop-on-to-ourselves
 		if (sourcePath.IsEquivalentTo(fullDropPath))
@@ -78,16 +78,16 @@ bool DropCopyCommand::Execute()
 			CRenameDlg dlg;
 			dlg.SetInputValidator([&](const int /*nID*/, const CString& input) -> CString
 			{
-				CTGitPath newPath(sDroppath);
-				newPath.AppendPathString(input);
+				CTGitPath newPath(sDroppath.GetString());
+				newPath.AppendPathString(input.GetString());
 				if (newPath.Exists())
 					return CString(static_cast<LPCWSTR>(CFormatMessageWrapper(ERROR_FILE_EXISTS)));
 
 				return{};
 			});
-			dlg.m_sBaseDir = fullDropPath.GetContainingDirectory().GetWinPathString();
-			dlg.m_name = fullDropPath.GetFileOrDirectoryName();
-			dlg.m_windowtitle.Format(IDS_PROC_NEWNAMECOPY, static_cast<LPCWSTR>(sourcePath.GetUIFileOrDirectoryName()));
+			dlg.m_sBaseDir = fullDropPath.GetContainingDirectory().GetWinPathString().c_str();
+			dlg.m_name = fullDropPath.GetFileOrDirectoryName().c_str();
+			dlg.m_windowtitle.Format(IDS_PROC_NEWNAMECOPY, static_cast<LPCWSTR>(sourcePath.GetUIFileOrDirectoryName().c_str()));
 			if (dlg.DoModal() != IDOK)
 				return FALSE;
 			// rebuild the progress dialog
@@ -97,22 +97,22 @@ bool DropCopyCommand::Execute()
 			progress.SetProgress(count, pathList.GetCount());
 			progress.ShowModeless(CWnd::FromHandle(GetExplorerHWND()));
 			// Rebuild the destination path, with the new name
-			fullDropPath.SetFromUnknown(sDroppath);
-			fullDropPath.AppendPathString(dlg.m_name);
+			fullDropPath.SetFromUnknown(sDroppath.GetString());
+			fullDropPath.AppendPathString(dlg.m_name.GetString());
 		}
 
 		if( CopyFile( sourcePath.GetWinPath(), fullDropPath.GetWinPath(), true))
 		{
-			CString ProjectTopDir;
+			std::wstring ProjectTopDir;
 			if(fullDropPath.HasAdminDir(&ProjectTopDir))
 			{
-				g_Git.SetCurrentDir(ProjectTopDir);
-				SetCurrentDirectory(ProjectTopDir);
+				g_Git.SetCurrentDir(ProjectTopDir.c_str());
+				SetCurrentDirectory(ProjectTopDir.c_str());
 				CString cmd;
 				cmd = L"git.exe add -- ";
 
 				CString path;
-				path=fullDropPath.GetGitPathString().Mid(ProjectTopDir.GetLength());
+				path = tgit::wstr::Mid(fullDropPath.GetGitPathString(), static_cast<int>(ProjectTopDir.size())).c_str();
 				if (!path.IsEmpty() && (path[0] == L'\\' || path[0] == L'/'))
 					path = path.Mid(1);
 				try
@@ -136,9 +136,9 @@ bool DropCopyCommand::Execute()
 		{
 			CString str;
 			str += L"Copy from \"";
-			str += sourcePath.GetWinPathString();
+			str += sourcePath.GetWinPathString().c_str();
 			str += L"\" to \"";
-			str += fullDropPath.GetWinPathString();
+			str += fullDropPath.GetWinPathString().c_str();
 			str += L"\" failed:\n";
 			str += static_cast<LPCWSTR>(CFormatMessageWrapper());
 

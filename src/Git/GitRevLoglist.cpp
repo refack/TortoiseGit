@@ -281,8 +281,8 @@ int GitRevLoglist::SafeFetchFullInfo(CGit* git)
 					path.SetFromGit(newname, isDir != FALSE);
 				else
 				{
-					CString oldname = CUnicodeUtils::GetUnicode(delta->old_file.path);
-					path.SetFromGit(newname, &oldname, &isDir);
+					std::wstring oldname = CUnicodeUtils::StdGetUnicode(delta->old_file.path);
+					path.SetFromGit(newname.GetString(), &oldname, &isDir);
 				}
 				oldAction = m_Action;
 				m_Action |= path.ParseAndUpdateStatus(delta->status);
@@ -301,8 +301,8 @@ int GitRevLoglist::SafeFetchFullInfo(CGit* git)
 						m_sErr = CGit::GetLibGit2LastErr();
 						return -1;
 					}
-					path.m_StatAdd.Format(L"%zu", adds);
-					path.m_StatDel.Format(L"%zu", dels);
+					path.m_StatAdd = std::format(L"{}", adds);
+					path.m_StatDel = std::format(L"{}", dels);
 				}
 				m_Files.AddPath(path);
 			}
@@ -380,8 +380,8 @@ int GitRevLoglist::SafeFetchFullInfo(CGit* git)
 				path.SetFromGit(strnewname, isDir != FALSE);
 			else
 			{
-				CString stroldname = CUnicodeUtils::GetUnicode(oldname);
-				path.SetFromGit(strnewname, &stroldname, &isDir);
+				std::wstring stroldname = CUnicodeUtils::StdGetUnicode(oldname);
+				path.SetFromGit(strnewname.GetString(), &stroldname, &isDir);
 			}
 			path.ParseAndUpdateStatus(status);
 			path.m_ParentNo = i;
@@ -395,8 +395,8 @@ int GitRevLoglist::SafeFetchFullInfo(CGit* git)
 			}
 			else
 			{
-				path.m_StatAdd.Format(L"%d", inc);
-				path.m_StatDel.Format(L"%d", dec);
+				path.m_StatAdd = std::format(L"{}", inc);
+				path.m_StatDel = std::format(L"{}", dec);
 			}
 			m_Files.AddPath(path);
 		}

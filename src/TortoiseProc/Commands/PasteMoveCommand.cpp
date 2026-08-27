@@ -28,11 +28,14 @@
 bool PasteMoveCommand::Execute()
 {
 	CString sDroppath = parser.GetVal(L"droptarget");
-	CTGitPath dropPath(sDroppath);
+	CTGitPath dropPath(sDroppath.GetString());
 	if (dropPath.IsAdminDir())
 		return FALSE;
 
-	if(!dropPath.HasAdminDir(&g_Git.m_CurrentDir))
+	std::wstring projectTopDir;
+	const bool hasAdminDir = dropPath.HasAdminDir(&projectTopDir);
+	g_Git.m_CurrentDir = projectTopDir.c_str();
+	if (!hasAdminDir)
 		return FALSE;
 
 	unsigned long count = 0;
@@ -46,12 +49,12 @@ bool PasteMoveCommand::Execute()
 	{
 		CTGitPath destPath;
 		if (sNewName.IsEmpty())
-			destPath = CTGitPath(sDroppath + L'\\' + orgPathList[nPath].GetFileOrDirectoryName());
+			destPath = CTGitPath(std::format(L"{}\\{}", sDroppath, orgPathList[nPath].GetFileOrDirectoryName()));
 		else
-			destPath = CTGitPath(sDroppath + L'\\' + sNewName);
+			destPath = CTGitPath(std::format(L"{}\\{}", sDroppath, sNewName));
 		if (destPath.Exists())
 		{
-			CString name = orgPathList[nPath].GetFileOrDirectoryName();
+			CString name = orgPathList[nPath].GetFileOrDirectoryName().c_str();
 			if (!sNewName.IsEmpty())
 				name = sNewName;
 			progress.Stop();
@@ -62,7 +65,7 @@ bool PasteMoveCommand::Execute()
 				return FALSE;
 			destPath.SetFromWin(sDroppath + L'\\' + dlg.m_name);
 		}
-		CString top;
+		std::wstring top;
 		orgPathList[nPath].HasAdminDir(&top);
 		//git_wc_status_kind s = status.GetAllStatus(orgPathList[nPath]);
 		//if (s == git_wc_status_none || s == git_wc_status_unversioned || s == git_wc_status_ignored || top.CompareNoCase(g_Git.m_CurrentDir) != 0)
@@ -73,7 +76,7 @@ bool PasteMoveCommand::Execute()
 			CString cmd,output;
 			try
 			{
-				cmd.Format(L"git.exe add -- %s", static_cast<LPCWSTR>(CGit::QuoteParameter(destPath.GetWinPathString())));
+				cmd.Format(L"git.exe add -- %s", static_cast<LPCWSTR>(CGit::QuoteParameter(destPath.GetWinPathString().c_str())));
 			}
 			catch (illegal_git_parameter& e)
 			{
@@ -94,7 +97,7 @@ bool PasteMoveCommand::Execute()
 			CString cmd,output;
 			try
 			{
-				cmd.Format(L"git.exe mv %s %s", static_cast<LPCWSTR>(CGit::QuoteParameter(orgPathList[nPath].GetGitPathString())), static_cast<LPCWSTR>(CGit::QuoteParameter(destPath.GetGitPathString())));
+				cmd.Format(L"git.exe mv %s %s", static_cast<LPCWSTR>(CGit::QuoteParameter(orgPathList[nPath].GetGitPathString().c_str())), static_cast<LPCWSTR>(CGit::QuoteParameter(destPath.GetGitPathString().c_str())));
 			}
 			catch (illegal_git_parameter& e)
 			{

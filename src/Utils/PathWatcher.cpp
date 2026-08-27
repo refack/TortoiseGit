@@ -105,8 +105,8 @@ bool CPathWatcher::AddPath(const CTGitPath& path)
 	CTGitPath newRoot;
 	for (int i = 0; i < watchedPaths.GetCount(); ++i)
 	{
-		const CString& watched = watchedPaths[i].GetWinPathString();
-		const CString& sPath   = path.GetWinPathString();
+		const CString& watched = watchedPaths[i].GetWinPathString().c_str();
+		const CString& sPath   = path.GetWinPathString().c_str();
 		int minLen = min(sPath.GetLength(), watched.GetLength());
 		int            len     = 0;
 		for (len = 0; len < minLen; ++len)
@@ -117,11 +117,11 @@ bool CPathWatcher::AddPath(const CTGitPath& path)
 				{
 					if (sPath.GetAt(len) == '\\')
 					{
-						newRoot = CTGitPath(sPath.Left(len));
+						newRoot = CTGitPath(sPath.Left(len).GetString());
 					}
 					else if (watched.GetAt(len) == '\\')
 					{
-						newRoot = CTGitPath(watched.Left(len));
+						newRoot = CTGitPath(watched.Left(len).GetString());
 					}
 				}
 				break;
@@ -149,11 +149,11 @@ bool CPathWatcher::AddPath(const CTGitPath& path)
 				{
 					if (sPath.GetAt(len) == '\\')
 					{
-						newRoot = CTGitPath(watched);
+						newRoot = CTGitPath(watched.GetString());
 					}
 					else if (watched.GetLength() == 3 && watched[1] == ':')
 					{
-						newRoot = CTGitPath(watched);
+						newRoot = CTGitPath(watched.GetString());
 					}
 				}
 			}
@@ -358,7 +358,7 @@ CPathWatcher::CDirWatchInfo::CDirWatchInfo(CAutoFile&& hDir, const CTGitPath& di
 {
 	ATLASSERT(m_hDir && !directoryName.IsEmpty());
 	m_buffer[0] = 0;
-	m_dirPath = m_dirName.GetWinPathString();
+	m_dirPath = m_dirName.GetWinPathString().c_str();
 	if (m_dirPath.GetAt(m_dirPath.GetLength() - 1) != '\\')
 		m_dirPath += L'\\';
 }

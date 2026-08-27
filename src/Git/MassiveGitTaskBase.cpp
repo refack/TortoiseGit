@@ -37,7 +37,7 @@ void CMassiveGitTaskBase::AddFile(const CString& filename)
 {
 	assert(m_bUnused);
 	if (m_bIsPath)
-		m_pathList.AddPath(filename);
+		m_pathList.AddPath(CTGitPath(filename.GetString()));
 	else
 		m_itemList.push_back(filename);
 }
@@ -48,7 +48,7 @@ void CMassiveGitTaskBase::AddFile(const CTGitPath& filename)
 	if (m_bIsPath)
 		m_pathList.AddPath(filename);
 	else
-		m_itemList.push_back(filename.GetGitPathString());
+		m_itemList.push_back(filename.GetGitPathString().c_str());
 }
 
 void CMassiveGitTaskBase::SetPaths(const CTGitPathList* pathList)
@@ -94,7 +94,7 @@ bool CMassiveGitTaskBase::ExecuteCommands(volatile BOOL& cancel)
 		}
 		SCOPE_EXIT { ::DeleteFile(tempFilename); };
 
-		if (!m_pathList.WriteToPathSpecFile(tempFilename))
+		if (!m_pathList.WriteToPathSpecFile(tempFilename.GetString()))
 		{
 			ReportError(L"Error writing to temp file", -1);
 			return false;
@@ -203,7 +203,7 @@ bool CMassiveGitTaskBase::IsListEmpty() const
 
 CString CMassiveGitTaskBase::GetListItem(int index) const
 {
-	return m_bIsPath ? m_pathList[index].GetGitPathString() : m_itemList[index];
+	return m_bIsPath ? CString(m_pathList[index].GetGitPathString().c_str()) : m_itemList[index];
 }
 
 void CMassiveGitTaskBase::ConvertToCmdList(CString params, const STRING_VECTOR& pathList, STRING_VECTOR& cmdList)

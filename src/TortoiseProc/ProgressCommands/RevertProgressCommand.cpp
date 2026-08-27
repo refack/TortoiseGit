@@ -33,7 +33,7 @@ RevertProgressCommand::RevertProgressCommand(const CString& revertToRevision)
 
 bool RevertProgressCommand::Run(CGitProgressList* list, CString& sWindowTitle, int& m_itemCountTotal, int& m_itemCount)
 {
-	list->SetWindowTitle(IDS_PROGRS_TITLE_REVERT, g_Git.CombinePath(m_targetPathList.GetCommonRoot().GetUIPathString()), sWindowTitle);
+	list->SetWindowTitle(IDS_PROGRS_TITLE_REVERT, g_Git.CombinePath(m_targetPathList.GetCommonRoot().GetUIPathString().c_str()), sWindowTitle);
 	list->SetBackgroundImage(IDI_REVERT_BKG);
 
 	CBlockCacheForPath block(g_Git.m_CurrentDir);
@@ -77,12 +77,12 @@ bool RevertProgressCommand::Run(CGitProgressList* list, CString& sWindowTitle, i
 	for (int i = 0; i < m_targetPathList.GetCount(); ++i)
 	{
 		auto& path = m_targetPathList[i];
-		if (path.m_Action & CTGitPath::LOGACTIONS_REPLACED && !path.GetGitOldPathString().IsEmpty())
+		if (path.m_Action & CTGitPath::LOGACTIONS_REPLACED && !path.GetGitOldPathString().empty())
 		{
-			if (CTGitPath(path.GetGitOldPathString()).IsDirectory())
+			if (CTGitPath(path.GetGitOldPathString().c_str()).IsDirectory())
 			{
 				CString err;
-				err.Format(L"Revert failed:\nCannot revert renaming of \"%s\". A directory with the old name \"%s\" exists.", static_cast<LPCWSTR>(path.GetGitPathString()), static_cast<LPCWSTR>(path.GetGitOldPathString()));
+				err.Format(L"Revert failed:\nCannot revert renaming of \"%s\". A directory with the old name \"%s\" exists.", static_cast<LPCWSTR>(path.GetGitPathString().c_str()), static_cast<LPCWSTR>(path.GetGitOldPathString().c_str()));
 				list->ReportError(err);
 				return false;
 			}
@@ -93,13 +93,13 @@ bool RevertProgressCommand::Run(CGitProgressList* list, CString& sWindowTitle, i
 				else
 				{
 					deleteTask.AddFile(path);
-					checkoutTask.AddFile(path.GetGitOldPathString());
+					checkoutTask.AddFile(path.GetGitOldPathString().c_str());
 				}
 			}
 			else
 			{
 				unstageTask.AddFile(path);
-				checkoutTask.AddFile(path.GetGitPathString());
+				checkoutTask.AddFile(path.GetGitPathString().c_str());
 			}
 		}
 		else if (path.m_Action & CTGitPath::LOGACTIONS_ADDED)
@@ -109,7 +109,7 @@ bool RevertProgressCommand::Run(CGitProgressList* list, CString& sWindowTitle, i
 
 		if (path.m_Action & CTGitPath::LOGACTIONS_DELETED)
 			addTask.AddFile(path);
-		if (path.IsDirectory() || ((path.m_Action & CTGitPath::LOGACTIONS_REPLACED) == 0 && !path.GetGitOldPathString().IsEmpty() && CTGitPath(path.GetGitOldPathString()).IsDirectory()))
+		if (path.IsDirectory() || ((path.m_Action & CTGitPath::LOGACTIONS_REPLACED) == 0 && !path.GetGitOldPathString().empty() && CTGitPath(path.GetGitOldPathString()).IsDirectory()))
 			hasSubmodule = true;
 	}
 
@@ -151,12 +151,12 @@ bool RevertProgressCommand::Run(CGitProgressList* list, CString& sWindowTitle, i
 	{
 		CString force;
 		// if the filenames only differ in case, we have to pass "-f"
-		if (path.GetGitPathString().CompareNoCase(path.GetGitOldPathString()) == 0)
+		if (tgit::wstr::CompareNoCase(path.GetGitPathString(), path.GetGitOldPathString()) == 0)
 			force = L"-f ";
 		CString cmd;
 		try
 		{
-			cmd.Format(L"git.exe mv %s-- %s %s", static_cast<LPCWSTR>(force), static_cast<LPCWSTR>(CGit::QuoteParameter(path.GetGitPathString())), static_cast<LPCWSTR>(CGit::QuoteParameter(path.GetGitOldPathString())));
+			cmd.Format(L"git.exe mv %s-- %s %s", static_cast<LPCWSTR>(force), static_cast<LPCWSTR>(CGit::QuoteParameter(path.GetGitPathString().c_str())), static_cast<LPCWSTR>(CGit::QuoteParameter(path.GetGitOldPathString().c_str())));
 		}
 		catch (illegal_git_parameter& e)
 		{
@@ -171,7 +171,7 @@ bool RevertProgressCommand::Run(CGitProgressList* list, CString& sWindowTitle, i
 
 		try
 		{
-			cmd.Format(L"git.exe checkout -f --end-of-options %s -- %s", static_cast<LPCWSTR>(CGit::QuoteParameter(m_sRevertToRevision)), static_cast<LPCWSTR>(CGit::QuoteParameter(path.GetGitOldPathString())));
+			cmd.Format(L"git.exe checkout -f --end-of-options %s -- %s", static_cast<LPCWSTR>(CGit::QuoteParameter(m_sRevertToRevision)), static_cast<LPCWSTR>(CGit::QuoteParameter(path.GetGitOldPathString().c_str())));
 		}
 		catch (illegal_git_parameter& e)
 		{
@@ -203,11 +203,11 @@ bool RevertProgressCommand::Run(CGitProgressList* list, CString& sWindowTitle, i
 			postCmdList.emplace_back(IDI_DIFF, IDS_HANDLESUBMODULES, [this] {
 				for (const auto& path : m_targetPathList)
 				{
-					if (!path.IsDirectory() && !((path.m_Action & CTGitPath::LOGACTIONS_REPLACED) == 0 && !path.GetGitOldPathString().IsEmpty() && CTGitPath(path.GetGitOldPathString()).IsDirectory()))
+					if (!path.IsDirectory() && !((path.m_Action & CTGitPath::LOGACTIONS_REPLACED) == 0 && !path.GetGitOldPathString().empty() && CTGitPath(path.GetGitOldPathString()).IsDirectory()))
 						continue;
-					CString pathString{ path.GetGitPathString() };
+					CString pathString{ path.GetGitPathString().c_str() };
 					if (path.m_Action & CTGitPath::LOGACTIONS_REPLACED)
-						pathString = path.GetGitOldPathString();
+						pathString = path.GetGitOldPathString().c_str();
 
 					CString sCmd;
 					sCmd.Format(L"/command:diff /submodule /startrev:%s /endrev:%s /path:%s", static_cast<LPCWSTR>(CCmdLineParser::EscapeValue(m_sRevertToRevision)), GitRev::GetWorkingCopyRef(), static_cast<LPCWSTR>(CCmdLineParser::EscapeValue(pathString)));

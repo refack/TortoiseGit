@@ -28,8 +28,8 @@
 bool RenameCommand::Execute()
 {
 	bool bRet = true;
-	CString filename = cmdLinePath.GetFileOrDirectoryName();
-	CString basePath = cmdLinePath.GetContainingDirectory().GetGitPathString();
+	CString filename = cmdLinePath.GetFileOrDirectoryName().c_str();
+	CString basePath = cmdLinePath.GetContainingDirectory().GetGitPathString().c_str();
 
 	// show the rename dialog until the user either cancels or enters a new
 	// name (one that's different to the original name
@@ -43,7 +43,7 @@ bool RenameCommand::Execute()
 		else
 			newName = input;
 
-		if (newName.CompareNoCase(cmdLinePath.GetGitPathString()) != 0 && PathFileExists(g_Git.CombinePath(newName)))
+		if (newName.CompareNoCase(cmdLinePath.GetGitPathString().c_str()) != 0 && PathFileExists(g_Git.CombinePath(newName)))
 			return CString(static_cast<LPCWSTR>(CFormatMessageWrapper(ERROR_FILE_EXISTS)));
 
 		return{};
@@ -59,7 +59,7 @@ bool RenameCommand::Execute()
 
 	CString force;
 	// if the filenames only differ in case, we have to pass "-f"
-	if (sNewName.CompareNoCase(cmdLinePath.GetGitPathString()) == 0)
+	if (sNewName.CompareNoCase(cmdLinePath.GetGitPathString().c_str()) == 0)
 		force = L"-f ";
 
 	CString cmd;
@@ -68,7 +68,7 @@ bool RenameCommand::Execute()
 	{
 		cmd.Format(L"git.exe mv %s-- %s %s",
 						static_cast<LPCWSTR>(force),
-						static_cast<LPCWSTR>(CGit::QuoteParameter(cmdLinePath.GetGitPathString())),
+						static_cast<LPCWSTR>(CGit::QuoteParameter(cmdLinePath.GetGitPathString().c_str())),
 						static_cast<LPCWSTR>(CGit::QuoteParameter(sNewName)));
 	}
 	catch (illegal_git_parameter& e)
@@ -84,7 +84,7 @@ bool RenameCommand::Execute()
 	}
 
 	CTGitPath newpath;
-	newpath.SetFromGit(sNewName);
+	newpath.SetFromGit(sNewName.GetString());
 
 	CShellUpdater::Instance().AddPathForUpdate(newpath);
 	CShellUpdater::Instance().Flush();

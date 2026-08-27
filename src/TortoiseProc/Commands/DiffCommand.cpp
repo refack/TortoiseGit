@@ -62,7 +62,7 @@ bool DiffCommand::Execute()
 				unsigned int status_flags = 0;
 				CAutoRepository repo(g_Git.GetGitRepository());
 				if (repo)
-					git_status_file(&status_flags, repo, CUnicodeUtils::GetUTF8(cmdLinePath.GetWinPathString()));
+					git_status_file(&status_flags, repo, CUnicodeUtils::GetUTF8(cmdLinePath.GetWinPathString().c_str()));
 				if (status_flags == GIT_STATUS_INDEX_NEW)
 				{
 					if (!g_Git.IsInitRepos())
@@ -78,9 +78,9 @@ bool DiffCommand::Execute()
 						{
 							if (changedFiles[i].GetGitPathString() == cmdLinePath.GetGitPathString())
 							{
-								if (!changedFiles[i].GetGitOldPathString().IsEmpty())
+								if (!changedFiles[i].GetGitOldPathString().empty())
 								{
-									CTGitPath oldPath(changedFiles[i].GetGitOldPathString());
+									CTGitPath oldPath(changedFiles[i].GetGitOldPathString().c_str());
 									if (parser.HasKey(L"unified"))
 										return !!CAppUtils::StartShowUnifiedDiff(nullptr, cmdLinePath, L"HEAD", cmdLinePath, GitRev::GetWorkingCopyRef(), bAlternativeTool);
 									return !!CGitDiff::Diff(GetExplorerHWND(), &cmdLinePath, &oldPath, GitRev::GetWorkingCopyRef(), L"HEAD", false, parser.HasKey(L"unified") == TRUE, parser.GetLongVal(L"line"), bAlternativeTool);
@@ -111,13 +111,13 @@ bool DiffCommand::Execute()
 		{
 			if (!CheckRepo(PathRequirement::WorkingTreeOrBareRepoRequired))
 				return FALSE;
-			CTGitPath tgitPath2 = path2.Mid(g_Git.m_CurrentDir.GetLength() + 1);
+			CTGitPath tgitPath2(path2.Mid(g_Git.m_CurrentDir.GetLength() + 1).GetString());
 			bRet = !!CGitDiff::Diff(GetExplorerHWND(), &tgitPath2, &cmdLinePath, parser.GetVal(L"endrev"), parser.GetVal(L"startrev"), false, parser.HasKey(L"unified") == TRUE, parser.GetLongVal(L"line"), bAlternativeTool);
 		}
 		else
 		{
 			bRet = CAppUtils::StartExtDiff(
-				path2, orgCmdLinePath.GetWinPathString(), CString(), CString(),
+				path2, orgCmdLinePath.GetWinPathString().c_str(), CString(), CString(),
 				CString(), CString(), CGitHash(), CGitHash(),
 				CAppUtils::DiffFlags().AlternativeTool(bAlternativeTool), parser.GetLongVal(L"line"));
 		}

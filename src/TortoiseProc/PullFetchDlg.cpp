@@ -268,8 +268,9 @@ void CPullFetchDlg::Refresh()
 
 	// determine default remote tracking branch of submodule to remote branch selection
 	CString defaultRemoteTrackingBranch;
-	if (CString parentRepoDir; CTGitPath(g_Git.m_CurrentDir).IsRegisteredSubmoduleOfParentProject(&parentRepoDir))
+	if (std::wstring parentRepoRoot; CTGitPath(g_Git.m_CurrentDir.GetString()).IsRegisteredSubmoduleOfParentProject(&parentRepoRoot))
 	{
+		const CString parentRepoDir(parentRepoRoot.c_str());
 		if (CAutoRepository parentRepo(parentRepoDir); parentRepo)
 		{
 			auto subModulePath = CUnicodeUtils::GetUTF8(g_Git.m_CurrentDir.Mid(parentRepoDir.GetLength() + 1));

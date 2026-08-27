@@ -193,7 +193,7 @@ int CSendMailCombineable::SendAsSingleMail(const CTGitPath& path, CGitProgressLi
 {
 	ASSERT(instance);
 
-	CString pathfile(path.GetWinPathString());
+	CString pathfile(path.GetWinPathString().c_str());
 
 	CString body;
 	CStringArray attachments;
@@ -217,10 +217,10 @@ int CSendMailCombineable::SendAsCombinedMail(const CTGitPathList &list, CGitProg
 	for (int i = 0; i < list.GetCount(); ++i)
 	{
 		if (m_bAttachment)
-			attachments.Add(list[i].GetWinPathString());
+			attachments.Add(list[i].GetWinPathString().c_str());
 		else
 		{
-			CString filename(list[i].GetWinPathString());
+			CString filename(list[i].GetWinPathString().c_str());
 			body += filename + L":\n";
 			if (GetFileContents(filename, body))
 			{

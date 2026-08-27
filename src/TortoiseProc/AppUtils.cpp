@@ -269,7 +269,7 @@ BOOL CAppUtils::StartExtMerge(bool bAlternative,
 	CString mergedfileQuotedGitPathString;
 	try
 	{
-		mergedfileQuotedGitPathString = CGit::QuoteParameter(mergedfile.GetGitPathString());
+		mergedfileQuotedGitPathString = CGit::QuoteParameter(mergedfile.GetGitPathString().c_str());
 	}
 	catch (illegal_git_parameter& e)
 	{
@@ -278,7 +278,7 @@ BOOL CAppUtils::StartExtMerge(bool bAlternative,
 	}
 
 	CRegString regCom = CRegString(L"Software\\TortoiseGit\\Merge");
-	CString ext = mergedfile.GetFileExtension();
+	CString ext = mergedfile.GetFileExtension().c_str();
 	CString com = regCom;
 
 	if (!ext.IsEmpty())
@@ -289,7 +289,9 @@ BOOL CAppUtils::StartExtMerge(bool bAlternative,
 			com = mergetool;
 	}
 	// is there a filename specific merge tool?
-	CRegString mergetool(L"Software\\TortoiseGit\\MergeTools\\." + mergedfile.GetFilename().MakeLower());
+	std::wstring mergedFilename = mergedfile.GetFilename();
+	tgit::wstr::MakeLower(mergedFilename);
+	CRegString mergetool(std::format(L"Software\\TortoiseGit\\MergeTools\\.{}", mergedFilename).c_str());
 	if (!CString(mergetool).IsEmpty())
 		com = mergetool;
 
@@ -347,14 +349,14 @@ BOOL CAppUtils::StartExtMerge(bool bAlternative,
 		com += L" %base %theirs %mine %merged";
 
 	com = CStringUtils::ExpandPlaceholdersForCmd(com, {
-													  { L"base", basefile.GetWinPathString() },
-													  { L"theirs", theirfile.GetWinPathString() },
-													  { L"mine", yourfile.GetWinPathString() }, 
-													  { L"merged", mergedfile.GetWinPathString() },
-													  { L"bname", basename.IsEmpty() ? basefile.GetUIFileOrDirectoryName() : basename },
-													  { L"tname", theirname.IsEmpty() ? theirfile.GetUIFileOrDirectoryName() : theirname },
-													  { L"yname", yourname.IsEmpty() ? yourfile.GetUIFileOrDirectoryName() : yourname },
-													  { L"mname", mergedname.IsEmpty() ? mergedfile.GetUIFileOrDirectoryName() : mergedname },
+													  { L"base", basefile.GetWinPathString().c_str() },
+													  { L"theirs", theirfile.GetWinPathString().c_str() },
+													  { L"mine", yourfile.GetWinPathString().c_str() }, 
+													  { L"merged", mergedfile.GetWinPathString().c_str() },
+													  { L"bname", basename.IsEmpty() ? CString(basefile.GetUIFileOrDirectoryName().c_str()) : basename },
+													  { L"tname", theirname.IsEmpty() ? CString(theirfile.GetUIFileOrDirectoryName().c_str()) : theirname },
+													  { L"yname", yourname.IsEmpty() ? CString(yourfile.GetUIFileOrDirectoryName().c_str()) : yourname },
+													  { L"mname", mergedname.IsEmpty() ? CString(mergedfile.GetUIFileOrDirectoryName().c_str()) : mergedname },
 													  { L"wtroot", g_Git.m_CurrentDir },
 													  },
 												 &EscapeAndQuoteParameters);
@@ -373,9 +375,9 @@ BOOL CAppUtils::StartExtMerge(bool bAlternative,
 
 	if (bDeleteBaseTheirsMineOnClose)
 	{
-		::DeleteFile(basefile.GetWinPathString());
-		::DeleteFile(theirfile.GetWinPathString());
-		::DeleteFile(yourfile.GetWinPathString());
+		::DeleteFile(basefile.GetWinPathString().c_str());
+		::DeleteFile(theirfile.GetWinPathString().c_str());
+		::DeleteFile(yourfile.GetWinPathString().c_str());
 	}
 
 	if (!bLaunched)
@@ -387,7 +389,7 @@ BOOL CAppUtils::StartExtMerge(bool bAlternative,
 	RemoveTempMergeFile(mergedfile, false);
 
 	CString str;
-	str.Format(IDS_MERGESUCCESSFUL, static_cast<LPCWSTR>(mergedfile.GetGitPathString()));
+	str.Format(IDS_MERGESUCCESSFUL, static_cast<LPCWSTR>(mergedfile.GetGitPathString().c_str()));
 	if ((blocktrust == 2 && exitCode == 0) || (blocktrust == 1 && CMessageBox::Show(GetExplorerHWND(), str, IDS_APPNAME, 2, IDI_QUESTION, IDS_RESOLVEDBUTTON, IDS_MSGBOX_NO) == 1))
 	{
 		CString cmd, out;
@@ -426,7 +428,7 @@ BOOL CAppUtils::StartExtPatch(const CTGitPath& patchfile, const CTGitPath& /*dir
 	if (viewer.Trim().IsEmpty())
 		viewer = L"notepad.exe %patchfile";
 
-	const CString quotedPatchFile = L'"' + patchfile.GetWinPathString() + L'"';
+	const CString quotedPatchFile = std::format(L"\"{}\"", patchfile.GetWinPathString()).c_str();
 	if (viewer.Find(L"%patchfile") < 0)
 		viewer += L' ' + quotedPatchFile;
 	else
@@ -437,18 +439,23 @@ BOOL CAppUtils::StartExtPatch(const CTGitPath& patchfile, const CTGitPath& /*dir
 
 CString CAppUtils::PickDiffTool(const CTGitPath& file1, const CTGitPath& file2)
 {
-	CString difftool = CRegString(L"Software\\TortoiseGit\\DiffTools\\" + file2.GetFilename().MakeLower());
+	std::wstring filename2 = file2.GetFilename();
+	tgit::wstr::MakeLower(filename2);
+	CString difftool = CRegString(std::format(L"Software\\TortoiseGit\\DiffTools\\{}", filename2).c_str());
 	if (!difftool.IsEmpty())
 		return difftool;
-	difftool = CRegString(L"Software\\TortoiseGit\\DiffTools\\" + file1.GetFilename().MakeLower());
+	std::wstring filename1 = file1.GetFilename();
+	tgit::wstr::MakeLower(filename1);
+	difftool = CRegString(std::format(L"Software\\TortoiseGit\\DiffTools\\{}", filename1).c_str());
 	if (!difftool.IsEmpty())
 		return difftool;
 
 	// Is there an extension specific diff tool?
-	CString ext = file2.GetFileExtension().MakeLower();
-	if (!ext.IsEmpty())
+	std::wstring ext = file2.GetFileExtension();
+	tgit::wstr::MakeLower(ext);
+	if (!ext.empty())
 	{
-		difftool = CRegString(L"Software\\TortoiseGit\\DiffTools\\" + ext);
+		difftool = CRegString(std::format(L"Software\\TortoiseGit\\DiffTools\\{}", ext).c_str());
 		if (!difftool.IsEmpty())
 			return difftool;
 	}
@@ -467,7 +474,7 @@ bool CAppUtils::StartExtDiff(
 {
 	CString viewer;
 
-	viewer = PickDiffTool(file1, file2);
+	viewer = PickDiffTool(CTGitPath(file1.GetString()), CTGitPath(file2.GetString()));
 	// If registry entry for a diff program is commented out, fall back to git's tool.
 	const bool bCommentedOut = CStringUtils::StartsWith(viewer, L"#");
 	if (flags.bAlternativeTool)
@@ -642,7 +649,7 @@ bool CAppUtils::LaunchAlternativeEditor(const CString& filename)
 
 bool CAppUtils::LaunchRemoteSetting()
 {
-	CTGitPath path(g_Git.m_CurrentDir);
+	CTGitPath path{ g_Git.m_CurrentDir.GetString() };
 	CSettings dlg(IDS_PROC_SETTINGS_TITLE, &path);
 	dlg.SetTreeViewMode(TRUE, TRUE, TRUE);
 	dlg.SetTreeWidth(220);
@@ -885,10 +892,10 @@ bool CAppUtils::StartShowUnifiedDiff(HWND hWnd, const CTGitPath& url1, const CSt
 	CString sCmd;
 	sCmd.Format(L"%s /command:showcompare /unified",
 		static_cast<LPCWSTR>(CPathUtils::GetAppDirectory() + L"TortoiseGitProc.exe"));
-	sCmd += L" /url1:\"" + url1.GetGitPathString() + L'"';
+	sCmd += L" /url1:\"" + url1.GetGitPathString().c_str() + L'"';
 	if (rev1.IsValid())
 		sCmd += L" /revision1:" + rev1.ToString();
-	sCmd += L" /url2:\"" + url2.GetGitPathString() + L'"';
+	sCmd += L" /url2:\"" + url2.GetGitPathString().c_str() + L'"';
 	if (rev2.IsValid())
 		sCmd += L" /revision2:" + rev2.ToString();
 	if (peg.IsValid())
@@ -1008,7 +1015,7 @@ bool CAppUtils::Export(HWND hWnd, const CString* BashHash, const CTGitPath* orgP
 	if (orgPath)
 	{
 		if (PathIsRelative(orgPath->GetWinPath()))
-			dlg.m_orgPath = g_Git.CombinePath(orgPath);
+			dlg.m_orgPath = CTGitPath(g_Git.CombinePath(orgPath).GetString());
 		else
 			dlg.m_orgPath = *orgPath;
 	}
@@ -1041,9 +1048,9 @@ bool CAppUtils::Export(HWND hWnd, const CString* BashHash, const CTGitPath* orgP
 
 		CGit git;
 		git.m_IsUseGitDLL = false;
-		if (!dlg.m_bWholeProject && !dlg.m_orgPath.IsEmpty() && PathIsDirectory(dlg.m_orgPath.GetWinPathString()))
+		if (!dlg.m_bWholeProject && !dlg.m_orgPath.IsEmpty() && PathIsDirectory(dlg.m_orgPath.GetWinPathString().c_str()))
 		{
-			git.m_CurrentDir = dlg.m_orgPath.GetWinPathString();
+			git.m_CurrentDir = dlg.m_orgPath.GetWinPathString().c_str();
 			pro.m_Git = &git;
 		}
 		return (pro.DoModal() == IDOK);
@@ -1197,7 +1204,7 @@ bool CAppUtils::CreateWorktree(HWND hWnd, const CString& target /* CString() */)
 		if (status)
 			return;
 
-		if (CTGitPath path(dlg.m_sWorktreePath); path.HasSubmodules())
+		if (CTGitPath path{ dlg.m_sWorktreePath.GetString() }; path.HasSubmodules())
 		{
 			postCmdList.emplace_back(IDI_UPDATE, IDS_PROC_SUBMODULESUPDATE, [&] {
 				CString sCmd;
@@ -1268,7 +1275,7 @@ bool CAppUtils::PerformSwitch(HWND hWnd, const CString& ref, bool bForce /* fals
 	{
 		if (!status)
 		{
-			CTGitPath gitPath = g_Git.m_CurrentDir;
+			CTGitPath gitPath{ g_Git.m_CurrentDir.GetString() };
 			if (gitPath.HasSubmodules())
 			{
 				postCmdList.emplace_back(IDI_UPDATE, IDS_PROC_SUBMODULESUPDATE, [&]
@@ -1435,19 +1442,19 @@ bool CAppUtils::IgnoreFile(HWND hWnd, const CTGitPathList& path,bool IsMask)
 				CString ignorePattern;
 				if (ignoreDlg.m_IgnoreType == 0)
 				{
-					if (ignoreDlg.m_IgnoreFile != 1 && !path[i].GetContainingDirectory().GetGitPathString().IsEmpty())
-						ignorePattern += L'/' + path[i].GetContainingDirectory().GetGitPathString();
+					if (ignoreDlg.m_IgnoreFile != 1 && !path[i].GetContainingDirectory().GetGitPathString().empty())
+						ignorePattern += std::format(L"/{}", path[i].GetContainingDirectory().GetGitPathString()).c_str();
 
 					ignorePattern += L'/';
 				}
 				if (IsMask)
 				{
-					if (path[i].GetFileExtension().IsEmpty())
+					if (path[i].GetFileExtension().empty())
 						continue;
-					ignorePattern += L'*' + path[i].GetFileExtension();
+					ignorePattern += std::format(L"*{}", path[i].GetFileExtension()).c_str();
 				}
 				else
-					ignorePattern += path[i].GetFileOrDirectoryName();
+					ignorePattern += path[i].GetFileOrDirectoryName().c_str();
 
 				// escape [ and ] so that files get ignored correctly
 				ignorePattern.Replace(L"[", L"\\[");
@@ -1514,7 +1521,7 @@ static bool Reset(HWND hWnd, const CString& resetTo, int resetType)
 				return;
 			}
 
-			CTGitPath gitPath = g_Git.m_CurrentDir;
+			CTGitPath gitPath{ g_Git.m_CurrentDir.GetString() };
 			if (gitPath.HasSubmodules() && resetType == 2)
 			{
 				postCmdList.emplace_back(IDI_UPDATE, IDS_PROC_SUBMODULESUPDATE, [&]
@@ -1553,7 +1560,7 @@ static bool Reset(HWND hWnd, const CString& resetTo, int resetType)
 			return;
 		}
 
-		CTGitPath gitPath = g_Git.m_CurrentDir;
+		CTGitPath gitPath{ g_Git.m_CurrentDir.GetString() };
 		if (gitPath.HasSubmodules() && resetType == 2)
 		{
 			postCmdList.emplace_back(IDI_UPDATE, IDS_PROC_SUBMODULESUPDATE, [&]
@@ -1635,10 +1642,10 @@ void CAppUtils::RemoveTempMergeFile(const CTGitPath& path, bool pathIsRelative /
 
 CString CAppUtils::GetMergeTempFile(const CString& type, const CTGitPath& merge, bool returnAbsolutePath /* = true */)
 {
-	auto path = merge.GetWinPathString() + L'.' + type + merge.GetFileExtension();
+	const auto path = std::format(L"{}.{}{}", merge.GetWinPathString(), type, merge.GetFileExtension());
 	if (returnAbsolutePath)
 		return g_Git.CombinePath(path);
-	return path;
+	return path.c_str();
 }
 
 void CAppUtils::GetConflictTitles(CString* baseText, CString& mineText, CGitHash* mineHash, CString& theirsText, CGitHash* theirsHash, bool rebaseActive)
@@ -1707,7 +1714,7 @@ bool CAppUtils::ConflictEdit(HWND hWnd, CTGitPath& path, bool bAlternativeTool /
 	CString quotedMergeGitPathString;
 	try
 	{
-		quotedMergeGitPathString = CGit::QuoteParameter(merge.GetGitPathString());
+		quotedMergeGitPathString = CGit::QuoteParameter(merge.GetGitPathString().c_str());
 	}
 	catch (illegal_git_parameter& e)
 	{
@@ -1738,7 +1745,7 @@ bool CAppUtils::ConflictEdit(HWND hWnd, CTGitPath& path, bool bAlternativeTool /
 		{
 			CGit subgit;
 			subgit.m_IsUseGitDLL = false;
-			subgit.m_CurrentDir = fullMergePath.GetWinPathString();
+			subgit.m_CurrentDir = fullMergePath.GetWinPathString().c_str();
 			subgit.GetHash(baseHash, L"HEAD");
 		}
 
@@ -1751,7 +1758,7 @@ bool CAppUtils::ConflictEdit(HWND hWnd, CTGitPath& path, bool bAlternativeTool /
 		{
 			CGit subgit;
 			subgit.m_IsUseGitDLL = false;
-			subgit.m_CurrentDir = fullMergePath.GetWinPathString();
+			subgit.m_CurrentDir = fullMergePath.GetWinPathString().c_str();
 			CGitDiff::GetSubmoduleChangeType(subgit, baseHash, localHash, baseOK, mineOK, changeTypeMine, baseSubject, mineSubject);
 			CGitDiff::GetSubmoduleChangeType(subgit, baseHash, remoteHash, baseOK, theirsOK, changeTypeTheirs, baseSubject, theirsSubject);
 		}
@@ -1829,7 +1836,7 @@ bool CAppUtils::ConflictEdit(HWND hWnd, CTGitPath& path, bool bAlternativeTool /
 			return FALSE;
 
 		CSubmoduleResolveConflictDlg resolveSubmoduleConflictDialog(GetParentCWnd(hWnd));
-		resolveSubmoduleConflictDialog.SetDiff(merge.GetGitPathString(), isRebase, baseTitle, mineTitle, theirsTitle, baseHash, baseSubject, baseOK, localHash, mineSubject, mineOK, changeTypeMine, remoteHash, theirsSubject, theirsOK, changeTypeTheirs);
+		resolveSubmoduleConflictDialog.SetDiff(merge.GetGitPathString().c_str(), isRebase, baseTitle, mineTitle, theirsTitle, baseHash, baseSubject, baseOK, localHash, mineSubject, mineOK, changeTypeMine, remoteHash, theirsSubject, theirsOK, changeTypeTheirs);
 		resolveSubmoduleConflictDialog.DoModal();
 		if (resolveSubmoduleConflictDialog.m_bResolved && resolveMsgHwnd)
 		{
@@ -1846,23 +1853,23 @@ bool CAppUtils::ConflictEdit(HWND hWnd, CTGitPath& path, bool bAlternativeTool /
 
 	if (isRebase)
 	{
-		mine.SetFromGit(GetMergeTempFile(L"REMOTE", merge));
-		theirs.SetFromGit(GetMergeTempFile(L"LOCAL", merge));
+		mine.SetFromGit(GetMergeTempFile(L"REMOTE", merge).GetString());
+		theirs.SetFromGit(GetMergeTempFile(L"LOCAL", merge).GetString());
 	}
 	else
 	{
-		mine.SetFromGit(GetMergeTempFile(L"LOCAL", merge));
-		theirs.SetFromGit(GetMergeTempFile(L"REMOTE", merge));
+		mine.SetFromGit(GetMergeTempFile(L"LOCAL", merge).GetString());
+		theirs.SetFromGit(GetMergeTempFile(L"REMOTE", merge).GetString());
 	}
-	base.SetFromGit(GetMergeTempFile(L"BASE",merge));
+	base.SetFromGit(GetMergeTempFile(L"BASE",merge).GetString());
 
 	CFile tempfile;
 	//create a empty file, incase stage is not three
-	tempfile.Open(mine.GetWinPathString(),CFile::modeCreate|CFile::modeReadWrite);
+	tempfile.Open(mine.GetWinPathString().c_str(),CFile::modeCreate|CFile::modeReadWrite);
 	tempfile.Close();
-	tempfile.Open(theirs.GetWinPathString(),CFile::modeCreate|CFile::modeReadWrite);
+	tempfile.Open(theirs.GetWinPathString().c_str(),CFile::modeCreate|CFile::modeReadWrite);
 	tempfile.Close();
-	tempfile.Open(base.GetWinPathString(),CFile::modeCreate|CFile::modeReadWrite);
+	tempfile.Open(base.GetWinPathString().c_str(),CFile::modeCreate|CFile::modeReadWrite);
 	tempfile.Close();
 
 	CString format = L"git.exe checkout-index --temp --stage=%d -- %s";
@@ -1881,11 +1888,11 @@ bool CAppUtils::ConflictEdit(HWND hWnd, CTGitPath& path, bool bAlternativeTool /
 			CMessageBox::Show(hWnd, output + L'\n' + err, L"TortoiseGit", MB_OK | MB_ICONERROR);
 	};
 	if (!baseHash.IsEmpty())
-		prepareFile(1, base.GetWinPathString());
+		prepareFile(1, base.GetWinPathString().c_str());
 	if (!localHash.IsEmpty())
-		prepareFile(2, mine.GetWinPathString());
+		prepareFile(2, mine.GetWinPathString().c_str());
 	if (!remoteHash.IsEmpty())
-		prepareFile(3, theirs.GetWinPathString());
+		prepareFile(3, theirs.GetWinPathString().c_str());
 
 	if (!localHash.IsEmpty() && !remoteHash.IsEmpty())
 	{
@@ -1897,14 +1904,14 @@ bool CAppUtils::ConflictEdit(HWND hWnd, CTGitPath& path, bool bAlternativeTool /
 	}
 	else
 	{
-		::DeleteFile(mine.GetWinPathString());
-		::DeleteFile(theirs.GetWinPathString());
+		::DeleteFile(mine.GetWinPathString().c_str());
+		::DeleteFile(theirs.GetWinPathString().c_str());
 		if (baseHash.IsEmpty())
-			::DeleteFile(base.GetWinPathString());
+			::DeleteFile(base.GetWinPathString().c_str());
 
 		SCOPE_EXIT{
 			if (!baseHash.IsEmpty())
-				::DeleteFile(base.GetWinPathString());
+				::DeleteFile(base.GetWinPathString().c_str());
 		};
 
 		CDeleteConflictDlg dlg(GetParentCWnd(hWnd));
@@ -2344,7 +2351,7 @@ bool DoPull(HWND hWnd, const CString& url, BOOL bFetchTags, bool bNoFF, bool bFF
 		if (showPush)
 			postCmdList.emplace_back(IDI_PUSH, IDS_MENUPUSH, [&hWnd]{ CAppUtils::Push(hWnd); });
 
-		CTGitPath gitPath = g_Git.m_CurrentDir;
+		CTGitPath gitPath{ g_Git.m_CurrentDir.GetString() };
 		if (gitPath.HasSubmodules())
 		{
 			postCmdList.emplace_back(IDI_UPDATE, IDS_PROC_SUBMODULESUPDATE, []
@@ -2663,7 +2670,7 @@ bool CAppUtils::DoPush(HWND hWnd, bool tags, bool allRemotes, bool allBranches, 
 	DWORD exitcode = 0xFFFFFFFF;
 	ProjectProperties pp;
 	pp.ReadProps();
-	CHooks::Instance().SetProjectProperties(g_Git.m_CurrentDir, pp);
+	CHooks::Instance().SetProjectProperties(CTGitPath(g_Git.m_CurrentDir.GetString()), pp);
 	if (CHooks::Instance().PrePush(hWnd, g_Git.m_CurrentDir, exitcode, error))
 	{
 		if (exitcode)
@@ -2789,7 +2796,7 @@ bool CAppUtils::DoPush(HWND hWnd, bool tags, bool allRemotes, bool allBranches, 
 		CString error;
 		ProjectProperties pp;
 		pp.ReadProps();
-		CHooks::Instance().SetProjectProperties(g_Git.m_CurrentDir, pp);
+		CHooks::Instance().SetProjectProperties(CTGitPath(g_Git.m_CurrentDir.GetString()), pp);
 		if (CHooks::Instance().PostPush(hWnd, g_Git.m_CurrentDir, exitcode, error))
 		{
 			if (exitcode)
@@ -2902,7 +2909,7 @@ bool CAppUtils::RequestPull(HWND hWnd, const CString& endrevision, const CString
 		if (dlg.m_bSendMail)
 		{
 			CSendMailDlg sendmaildlg(GetParentCWnd(hWnd));
-			sendmaildlg.m_PathList = CTGitPathList(CTGitPath(tempFileName));
+			sendmaildlg.m_PathList = CTGitPathList(CTGitPath(tempFileName.GetString()));
 			sendmaildlg.m_bCustomSubject = true;
 
 			if (sendmaildlg.DoModal() == IDOK)
@@ -2961,7 +2968,7 @@ bool CAppUtils::CheckUserData(HWND hWnd)
 	{
 		if (CMessageBox::Show(hWnd, IDS_PROC_NOUSERDATA, IDS_APPNAME, MB_YESNO | MB_ICONERROR) == IDYES)
 		{
-			CTGitPath path(g_Git.m_CurrentDir);
+			CTGitPath path{ g_Git.m_CurrentDir.GetString() };
 			CSettings dlg(IDS_PROC_SETTINGS_TITLE, &path, CWnd::FromHandle(hWnd));
 			dlg.SetTreeViewMode(TRUE, TRUE, TRUE);
 			dlg.SetTreeWidth(220);
@@ -3281,7 +3288,7 @@ static bool DoMerge(HWND hWnd, bool noFF, bool ffOnly, bool squash, bool noCommi
 		if (isBranch)
 			postCmdList.emplace_back(IDI_PUSH, IDS_MENUPUSH, [&hWnd]{ CAppUtils::Push(hWnd); });
 
-		BOOL hasGitSVN = CTGitPath(g_Git.m_CurrentDir).GetAdminDirMask() & ITEMIS_GITSVN;
+		BOOL hasGitSVN = CTGitPath(g_Git.m_CurrentDir.GetString()).GetAdminDirMask() & ITEMIS_GITSVN;
 		if (hasGitSVN)
 			postCmdList.emplace_back(IDI_COMMIT, IDS_MENUSVNDCOMMIT, [&hWnd]{ CAppUtils::SVNDCommit(hWnd); });
 	};
@@ -3441,8 +3448,8 @@ CString CAppUtils::FormatWindowTitle(const CString& urlorpath2, const CString& d
 	{
 	case 1:
 	{
-		const CTGitPath filePath{ g_Git.m_CurrentDir };
-		const CString toStrip = filePath.GetContainingDirectory().GetWinPathString();
+		const CTGitPath filePath{ g_Git.m_CurrentDir.GetString() };
+		const CString toStrip = filePath.GetContainingDirectory().GetWinPathString().c_str();
 		if (!CStringUtils::StartsWith(urlorpath2, g_Git.m_CurrentDir))
 			break;
 		else if (toStrip.IsEmpty() || CStringUtils::EndsWith(toStrip, L'\\'))
@@ -3539,7 +3546,7 @@ bool CAppUtils::BisectStart(HWND hWnd, const CString& lastGood, const CString& f
 			if (status)
 				return;
 
-			CTGitPath path(g_Git.m_CurrentDir);
+			CTGitPath path{ g_Git.m_CurrentDir.GetString() };
 			if (path.HasSubmodules())
 			{
 				postCmdList.emplace_back(IDI_UPDATE, IDS_PROC_SUBMODULESUPDATE, []
@@ -3588,7 +3595,7 @@ bool CAppUtils::BisectOperation(HWND hWnd, const CString& op, const CString& ref
 
 	progress.m_PostCmdCallback = [&](DWORD status, PostCmdList& postCmdList)
 	{
-		CTGitPath path = g_Git.m_CurrentDir;
+		CTGitPath path{ g_Git.m_CurrentDir.GetString() };
 		if (status)
 		{
 			if (path.IsBisectActive())

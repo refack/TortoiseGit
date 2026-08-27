@@ -27,7 +27,7 @@ TEST(CTempFiles, UniqueName)
 	auto path2 = CTempFiles::Instance().GetTempFilePath(false, CTGitPath(L"something.cpp"));
 	EXPECT_TRUE(path2.Exists());
 
-	EXPECT_STRNE(path1.GetWinPathString(), path2.GetWinPathString());
+	EXPECT_STRNE(path1.GetWinPathString().c_str(), path2.GetWinPathString().c_str());
 
 	path1.Delete(false, false);
 	path2.Delete(false, false);
@@ -36,7 +36,7 @@ TEST(CTempFiles, UniqueName)
 TEST(CTempFiles, LongName)
 {
 	auto path = CTempFiles::Instance().GetTempFilePath(false, CTGitPath(L"something012345789012345789012345789012345789012345789012345789012345789012345789012345789012345789-100-012345789012345789012345789012345789012345789012345789012345789012345789012345789012345789-200-012345789012345789012345789012345789012345789012345789-256.extension"));
-	ASSERT_LT(path.GetWinPathString().GetLength(), MAX_PATH);
+	ASSERT_LT(path.GetWinPathString().size(), static_cast<size_t>(MAX_PATH));
 	EXPECT_TRUE(path.Exists());
 
 	path.Delete(false, false);

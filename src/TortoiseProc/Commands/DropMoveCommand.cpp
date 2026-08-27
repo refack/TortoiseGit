@@ -29,20 +29,21 @@
 bool DropMoveCommand::Execute()
 {
 	CString droppath = parser.GetVal(L"droptarget");
-	CString ProjectTop;
-	if (!CTGitPath(droppath).HasAdminDir(&ProjectTop))
+	std::wstring ProjectTop;
+	if (!CTGitPath(droppath.GetString()).HasAdminDir(&ProjectTop))
 		return FALSE;
 
-	if (g_Git.m_CurrentDir.CompareNoCase(ProjectTop) != 0)
+	if (g_Git.m_CurrentDir.CompareNoCase(ProjectTop.c_str()) != 0)
 	{
 		CMessageBox::Show(GetExplorerHWND(), IDS_ERR_MUSTBESAMEWT, IDS_APPNAME, MB_OK | MB_ICONEXCLAMATION);
 		return FALSE;
 	}
 
-	if (ProjectTop.GetLength() == 3 && ProjectTop.Mid(1, 2) == L":\\") // working tree root is directly on a drive
-		droppath = droppath.Right(droppath.GetLength() - ProjectTop.GetLength());
+	const int projectTopLen = static_cast<int>(ProjectTop.size());
+	if (projectTopLen == 3 && tgit::wstr::Mid(ProjectTop, 1, 2) == L":\\") // working tree root is directly on a drive
+		droppath = droppath.Right(droppath.GetLength() - projectTopLen);
 	else
-		droppath = droppath.Right(droppath.GetLength() - ProjectTop.GetLength() - 1);
+		droppath = droppath.Right(droppath.GetLength() - projectTopLen - 1);
 	if (!droppath.IsEmpty())
 		droppath += L'\\';
 
@@ -54,7 +55,7 @@ bool DropMoveCommand::Execute()
 	{
 		// ask for a new name of the source item
 		CRenameDlg renDlg;
-		renDlg.SetRenameRequired(pathList[0].GetContainingDirectory().IsEquivalentToWithoutCase(droppath));
+		renDlg.SetRenameRequired(pathList[0].GetContainingDirectory().IsEquivalentToWithoutCase(CTGitPath(droppath.GetString())));
 		renDlg.SetInputValidator([&](const int /*nID*/, const CString& input) -> CString
 		{
 			if (PathFileExists(g_Git.CombinePath(droppath + L'\\' + input)))
@@ -64,7 +65,7 @@ bool DropMoveCommand::Execute()
 		});
 		renDlg.m_sBaseDir = g_Git.CombinePath(droppath);
 		renDlg.m_windowtitle.LoadString(IDS_PROC_MOVERENAME);
-		renDlg.m_name = pathList[0].GetFileOrDirectoryName();
+		renDlg.m_name = pathList[0].GetFileOrDirectoryName().c_str();
 		if (renDlg.DoModal() != IDOK)
 			return FALSE;
 		sNewName = renDlg.m_name;
@@ -80,14 +81,14 @@ bool DropMoveCommand::Execute()
 	{
 		CTGitPath destPath;
 		if (sNewName.IsEmpty())
-			destPath = CTGitPath(droppath + pathList[nPath].GetFileOrDirectoryName());
+			destPath = CTGitPath(std::format(L"{}{}", droppath, pathList[nPath].GetFileOrDirectoryName()));
 		else
-			destPath = CTGitPath(droppath + sNewName);
+			destPath = CTGitPath(std::format(L"{}{}", droppath, sNewName));
 		if (destPath.Exists())
 		{
 			progress.Stop();
 
-			CString name = destPath.GetFileOrDirectoryName();
+			CString name = destPath.GetFileOrDirectoryName().c_str();
 			progress.Stop();
 			CRenameDlg dlg;
 			dlg.SetInputValidator([&](const int /*nID*/, const CString& input) -> CString
@@ -111,14 +112,14 @@ bool DropMoveCommand::Execute()
 			progress.ShowModeless(CWnd::FromHandle(GetExplorerHWND()));
 
 			// Rebuild the destination path, with the new name
-			destPath.SetFromUnknown(droppath);
-			destPath.AppendPathString(dlg.m_name);
+			destPath.SetFromUnknown(droppath.GetString());
+			destPath.AppendPathString(dlg.m_name.GetString());
 		}
 
 		CString cmd,out;
 		try
 		{
-			cmd.Format(L"git.exe mv -- %s %s", static_cast<LPCWSTR>(CGit::QuoteParameter(pathList[nPath].GetGitPathString())), static_cast<LPCWSTR>(CGit::QuoteParameter(destPath.GetGitPathString())));
+			cmd.Format(L"git.exe mv -- %s %s", static_cast<LPCWSTR>(CGit::QuoteParameter(pathList[nPath].GetGitPathString().c_str())), static_cast<LPCWSTR>(CGit::QuoteParameter(destPath.GetGitPathString().c_str())));
 		}
 		catch (illegal_git_parameter& e)
 		{

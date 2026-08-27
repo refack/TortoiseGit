@@ -65,13 +65,13 @@ bool ResetProgressCommand::Run(CGitProgressList* list, CString& sWindowTitle, in
 		CString path(CUnicodeUtils::GetUnicode(pPath));
 		if (DWORD(CRegDWORD(L"Software\\TortoiseGit\\RevertWithRecycleBin", TRUE)))
 		{
-			if (!CTGitPath(g_Git.CombinePath(path)).Delete(true, true))
+			if (!CTGitPath(g_Git.CombinePath(path).GetString()).Delete(true, true))
 			{
 				list->ReportError(L"Could move \"" + path + L"\" to recycle bin");
 				return GIT_EUSER;
 			}
 		}
-		list->AddNotify(new CGitProgressList::WC_File_NotificationData(path, Git_WC_Notify_Action::Checkout));
+		list->AddNotify(new CGitProgressList::WC_File_NotificationData(CTGitPath(path.GetString()), Git_WC_Notify_Action::Checkout));
 		return 0;
 	};
 	checkout_options.notify_flags = GIT_CHECKOUT_NOTIFY_UPDATED;

@@ -23,7 +23,7 @@
 
 bool ConflictEditorCommand::Execute()
 {
-	CTGitPath repo{ g_Git.m_CurrentDir };
+	CTGitPath repo{ g_Git.m_CurrentDir.GetString() };
 	bool bAlternativeTool = !!parser.HasKey(L"alternative");
 	return CAppUtils::ConflictEdit(GetExplorerHWND(), this->cmdLinePath, bAlternativeTool, repo.IsRebaseActive());
 }

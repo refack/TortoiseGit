@@ -95,13 +95,13 @@ int CSysImageList::GetFileIconIndex(const CString& file)
 
 int CSysImageList::GetPathIconIndex(const CTGitPath& filePath)
 {
-	CString strExtension = filePath.GetFileExtension();
+	CString strExtension = filePath.GetFileExtension().c_str();
 	strExtension.MakeUpper();
 	auto it = m_indexCache.lower_bound(strExtension);
 	if (it == m_indexCache.end() || strExtension < it->first)
 	{
 		// We don't have this extension in the map
-		int iconIndex = GetFileIconIndex(filePath.GetFilename());
+		int iconIndex = GetFileIconIndex(filePath.GetFilename().c_str());
 		it = m_indexCache.emplace_hint(it, strExtension, iconIndex);
 	}
 	// We must have found it

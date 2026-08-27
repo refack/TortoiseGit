@@ -59,7 +59,7 @@ BOOL CExportDlg::OnInitDialog()
 	CHorizontalResizableStandAloneDialog::OnInitDialog();
 	CAppUtils::MarkWindowAsUnpinnable(m_hWnd);
 
-	if (g_Git.m_CurrentDir == m_orgPath.GetWinPathString())
+	if (g_Git.m_CurrentDir == m_orgPath.GetWinPathString().c_str())
 	{
 		GetDlgItem(IDC_WHOLE_PROJECT)->EnableWindow(FALSE);
 		static_cast<CButton*>(GetDlgItem(IDC_WHOLE_PROJECT))->SetCheck(TRUE);
@@ -195,5 +195,5 @@ void CExportDlg::SetDlgTitle()
 	if (m_bWholeProject)
 		CAppUtils::SetWindowTitle(m_hWnd, g_Git.m_CurrentDir, m_sTitle);
 	else
-		CAppUtils::SetWindowTitle(m_hWnd, m_orgPath.GetWinPathString(), m_sTitle);
+		CAppUtils::SetWindowTitle(m_hWnd, m_orgPath.GetWinPathString().c_str(), m_sTitle);
 }

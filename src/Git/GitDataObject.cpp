@@ -129,7 +129,7 @@ STDMETHODIMP GitDataObject::GetData(FORMATETC* pformatetcIn, STGMEDIUM* pmedium)
 		}
 		else
 		{
-			filepath = CTempFiles::Instance().GetTempFilePath(true).GetWinPathString();
+			filepath = CTempFiles::Instance().GetTempFilePath(true).GetWinPathString().c_str();
 			if (pformatetcIn->lindex >= 0 && pformatetcIn->lindex < static_cast<LONG>(m_allPaths.size()))
 			{
 				if (g_Git.GetOneFile(m_revision.ToString(), m_allPaths[pformatetcIn->lindex], filepath))
@@ -174,9 +174,9 @@ STDMETHODIMP GitDataObject::GetData(FORMATETC* pformatetcIn, STGMEDIUM* pmedium)
 		int index = 0;
 		for (auto it = m_allPaths.cbegin(); it != m_allPaths.cend(); ++it)
 		{
-			CString temp(m_iStripLength > 0 ? it->GetWinPathString().Mid(m_iStripLength + 1) : (m_iStripLength == 0 ? it->GetWinPathString() : it->GetUIFileOrDirectoryName()));
-			if (temp.GetLength() < MAX_PATH)
-				wcscpy_s(files->fgd[index].cFileName, static_cast<LPCWSTR>(temp));
+			const std::wstring temp(m_iStripLength > 0 ? tgit::wstr::Mid(it->GetWinPathString(), m_iStripLength + 1) : (m_iStripLength == 0 ? it->GetWinPathString() : it->GetUIFileOrDirectoryName()));
+			if (temp.size() < static_cast<size_t>(MAX_PATH))
+				wcscpy_s(files->fgd[index].cFileName, temp.c_str());
 			else
 			{
 				files->cItems--;
@@ -234,7 +234,7 @@ STDMETHODIMP GitDataObject::GetData(FORMATETC* pformatetcIn, STGMEDIUM* pmedium)
 			// create a single string where the URLs are separated by newlines
 			for (int i = 0; i < m_gitPaths.GetCount(); ++i)
 			{
-				text += m_gitPaths[i].GetWinPathString();
+				text += m_gitPaths[i].GetWinPathString().c_str();
 				text += L"\r\n";
 			}
 		}
@@ -261,7 +261,7 @@ STDMETHODIMP GitDataObject::GetData(FORMATETC* pformatetcIn, STGMEDIUM* pmedium)
 			for (int i = 0; i < m_gitPaths.GetCount(); ++i)
 			{
 				if (pformatetcIn->cfFormat == CF_UNICODETEXT)
-					text += m_gitPaths[i].GetWinPathString();
+					text += m_gitPaths[i].GetWinPathString().c_str();
 				else
 					text += g_Git.CombinePath(m_gitPaths[i]);
 				text += L"\r\n";

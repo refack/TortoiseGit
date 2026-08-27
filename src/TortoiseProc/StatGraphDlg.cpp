@@ -170,7 +170,7 @@ BOOL CStatGraphDlg::OnInitDialog()
 	if (m_path.IsEmpty())
 		CAppUtils::SetWindowTitle(*this, g_Git.m_CurrentDir);
 	else
-		CAppUtils::SetWindowTitle(*this, m_path.GetUIPathString());
+		CAppUtils::SetWindowTitle(*this, m_path.GetUIPathString().c_str());
 
 	int iconWidth = GetSystemMetrics(SM_CXSMICON);
 	int iconHeight = GetSystemMetrics(SM_CYSMICON);
@@ -609,13 +609,13 @@ int CStatGraphDlg::GatherData(BOOL fetchdiff, BOOL keepFetchedData)
 			for (int j = 0; j < files; j++)
 			{
 				if (list[j].m_Action & CTGitPath::LOGACTIONS_DELETED)
-					decdeletedfile += _wtol(list[j].m_StatDel);
+					decdeletedfile += _wtol(list[j].m_StatDel.c_str());
 				else if(list[j].m_Action & CTGitPath::LOGACTIONS_ADDED)
-					incnewfile += _wtol(list[j].m_StatAdd);
+					incnewfile += _wtol(list[j].m_StatAdd.c_str());
 				else
 				{
-					inc += _wtol(list[j].m_StatAdd);
-					dec += _wtol(list[j].m_StatDel);
+					inc += _wtol(list[j].m_StatAdd.c_str());
+					dec += _wtol(list[j].m_StatDel.c_str());
 				}
 
 				if (progress.HasUserCancelled())

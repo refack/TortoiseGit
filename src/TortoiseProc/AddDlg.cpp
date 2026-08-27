@@ -69,7 +69,7 @@ BOOL CAddDlg::OnInitDialog()
 	m_addListCtrl.SetBackgroundImage(IDI_ADD_BKG);
 	m_addListCtrl.EnableFileDrop();
 
-	CAppUtils::SetWindowTitle(*this, g_Git.CombinePath(m_pathList.GetCommonRoot().GetUIPathString()));
+	CAppUtils::SetWindowTitle(*this, g_Git.CombinePath(m_pathList.GetCommonRoot().GetUIPathString().c_str()));
 
 	AdjustControlSize(IDC_SELECTALL);
 	AdjustControlSize(IDC_INCLUDE_IGNORED);
@@ -213,8 +213,8 @@ LRESULT CAddDlg::OnFileDropped(WPARAM, LPARAM lParam)
 	path.SetFromWin(reinterpret_cast<LPCWSTR>(lParam));
 
 	// check whether the dropped file belongs to the very same repository
-	CString projectDir;
-	if (!path.HasAdminDir(&projectDir) || !CPathUtils::ArePathStringsEqual(g_Git.m_CurrentDir, projectDir))
+	std::wstring projectDir;
+	if (!path.HasAdminDir(&projectDir) || !CPathUtils::ArePathStringsEqual(g_Git.m_CurrentDir, projectDir.c_str()))
 		return 0;
 
 	if (!m_addListCtrl.HasPath(path))

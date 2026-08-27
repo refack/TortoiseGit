@@ -1,4 +1,4 @@
-// TortoiseGit - a Windows shell extension for easy version control
+﻿// TortoiseGit - a Windows shell extension for easy version control
 
 // Copyright (C) 2009-2013, 2015-2019 - TortoiseGit
 // Copyright (C) 2007-2008 - TortoiseSVN
@@ -35,10 +35,13 @@ bool ImportPatchCommand::Execute()
 	CString droppath = parser.GetVal(L"droptarget");
 	if (!droppath.IsEmpty())
 	{
-		if (CTGitPath(droppath).IsAdminDir())
+		if (CTGitPath(droppath.GetString()).IsAdminDir())
 			return FALSE;
 
-		if (!CTGitPath(droppath).HasAdminDir(&g_Git.m_CurrentDir))
+		std::wstring projectTopDir;
+		const bool hasAdminDir = CTGitPath(droppath.GetString()).HasAdminDir(&projectTopDir);
+		g_Git.m_CurrentDir = projectTopDir.c_str();
+		if (!hasAdminDir)
 		{
 			CString err;
 			err.Format(IDS_ERR_NOT_REPOSITORY, static_cast<LPCWSTR>(g_Git.m_CurrentDir));

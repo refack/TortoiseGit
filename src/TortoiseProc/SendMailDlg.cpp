@@ -96,7 +96,7 @@ BOOL CSendMailDlg::OnInitDialog()
 	EnableSaveRestore(L"SendMailDlg");
 	SetTheme(CTheme::Instance().IsDarkTheme());
 
-	CAppUtils::SetWindowTitle(*this, m_PathList.GetCommonRoot().GetUIPathString());
+	CAppUtils::SetWindowTitle(*this, m_PathList.GetCommonRoot().GetUIPathString().c_str());
 
 	m_ctrlCC.Init();
 	m_ctrlTO.Init();
@@ -117,7 +117,7 @@ BOOL CSendMailDlg::OnInitDialog()
 
 	for (int i = 0; i < m_PathList.GetCount(); ++i)
 	{
-		m_ctrlList.InsertItem(i,m_PathList[i].GetWinPathString());
+		m_ctrlList.InsertItem(i,m_PathList[i].GetWinPathString().c_str());
 		m_ctrlList.SetCheck(i,true);
 	}
 
@@ -232,7 +232,7 @@ void CSendMailDlg::OnNMDblclkSendmailPatchs(NMHDR *pNMHDR, LRESULT *pResult)
 	CTGitPath gitpath;
 	gitpath.SetFromWin(path);
 
-	CAppUtils::StartUnifiedDiffViewer(path,gitpath.GetFilename());
+	CAppUtils::StartUnifiedDiffViewer(path,gitpath.GetFilename().c_str());
 }
 
 void CSendMailDlg::OnEnChangeSendmailSubject()

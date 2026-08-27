@@ -347,8 +347,8 @@ public:
 		CString GetRelativeGitPath() const
 		{
 			if (path.IsEquivalentTo(basepath))
-				return path.GetGitPathString();
-			return path.GetGitPathString().Mid(basepath.GetGitPathString().GetLength()+1);
+				return path.GetGitPathString().c_str();
+			return path.GetGitPathString().Mid(basepath.GetGitPathString().size()+1);
 		}
 		const bool IsFolder() const
 		{
@@ -376,7 +376,7 @@ public:
 			else
 			{
 				// "Display name" must not be empty.
-				return path.GetFileOrDirectoryName();
+				return path.GetFileOrDirectoryName().c_str();
 			}
 		}
 		CString GetChangeList() const

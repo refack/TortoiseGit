@@ -124,7 +124,7 @@ void CCheckCertificateDlg::OnBnClickedOpencert()
 
 	try
 	{
-		CFile file(tempFile.GetWinPathString(), CFile::modeReadWrite);
+		CFile file(tempFile.GetWinPathString().c_str(), CFile::modeReadWrite);
 
 		size_t offset = 0;
 		do
@@ -145,5 +145,5 @@ void CCheckCertificateDlg::OnBnClickedOpencert()
 		return;
 	}
 
-	CAppUtils::ShellOpen(tempFile.GetWinPathString(), GetSafeHwnd());
+	CAppUtils::ShellOpen(tempFile.GetWinPathString().c_str(), GetSafeHwnd());
 }

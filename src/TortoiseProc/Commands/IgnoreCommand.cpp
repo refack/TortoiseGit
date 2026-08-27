@@ -50,7 +50,7 @@ bool IgnoreCommand::Execute()
 		{
 			try
 			{
-				cmd.Format(format, static_cast<LPCWSTR>(CGit::QuoteParameter(pathList[nPath].GetGitPathString())));
+				cmd.Format(format, static_cast<LPCWSTR>(CGit::QuoteParameter(pathList[nPath].GetGitPathString().c_str())));
 			}
 			catch (illegal_git_parameter& e)
 			{

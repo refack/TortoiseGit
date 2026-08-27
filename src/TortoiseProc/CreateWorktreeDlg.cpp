@@ -145,7 +145,7 @@ void CCreateWorktreeDlg::OnBnClickedOk()
 		return;
 	}
 
-	CTGitPath path(m_sWorktreePath);
+	CTGitPath path(m_sWorktreePath.GetString());
 	if (!path.IsValidOnWindows())
 	{
 		ShowEditBalloon(IDC_WORKTREE_DIR, IDS_WARN_NOVALIDPATH, IDS_ERR_ERROR, TTI_ERROR);
@@ -173,7 +173,7 @@ void CCreateWorktreeDlg::OnVersionChanged()
 
 	if (radio == IDC_RADIO_HEAD)
 	{
-		if (CString name = CTGitPath(m_sWorktreePath).GetUIFileOrDirectoryName(); !name.IsEmpty())
+		if (CString name = CTGitPath(m_sWorktreePath.GetString()).GetUIFileOrDirectoryName().c_str(); !name.IsEmpty())
 			m_sNewBranch = name;
 		m_bBranch = FALSE;
 	}

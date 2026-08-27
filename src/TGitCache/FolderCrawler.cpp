@@ -69,7 +69,7 @@ void CFolderCrawler::Initialise()
 void CFolderCrawler::AddDirectoryForUpdate(const CTGitPath& path)
 {
 	/* Index file changing*/
-	if (GitStatus::IsExistIndexLockFile(path.GetWinPathString()))
+	if (GitStatus::IsExistIndexLockFile(path))
 		return;
 
 	if (!CGitStatusCache::Instance().IsPathGood(path))
@@ -93,7 +93,7 @@ void CFolderCrawler::AddDirectoryForUpdate(const CTGitPath& path)
 void CFolderCrawler::AddPathForUpdate(const CTGitPath& path)
 {
 	/* Index file changing*/
-	if (GitStatus::IsExistIndexLockFile(path.GetWinPathString()))
+	if (GitStatus::IsExistIndexLockFile(path))
 		return;
 
 	{
@@ -191,7 +191,7 @@ void CFolderCrawler::WorkerThread()
 			{
 				AutoLocker lock(m_critSec);
 				CTGitPath path = m_pathsToRelease.Pop();
-				GitStatus::ReleasePath(path.GetWinPathString());
+				GitStatus::ReleasePath(path.GetWinPathString().c_str());
 			}
 
 			if (m_foldersToUpdate.empty() && m_pathsToUpdate.empty())
@@ -228,7 +228,7 @@ void CFolderCrawler::WorkerThread()
 				if (!CGitStatusCache::Instance().IsPathAllowed(workingPath))
 					continue;
 				// check if the changed path is inside an .git folder
-				CString projectroot;
+				std::wstring projectroot;
 				if ((workingPath.HasAdminDir(&projectroot)&&workingPath.IsDirectory()) || workingPath.IsAdminDir())
 				{
 					// we don't crawl for paths changed in a tmp folder inside an .git folder.
@@ -239,7 +239,7 @@ void CFolderCrawler::WorkerThread()
 					{
 						// TODO: add git specific filters here. is there really any change besides index file in .git
 						//       that is relevant for overlays?
-						/*CString lowerpath = workingPath.GetWinPathString();
+						/*CString lowerpath = workingPath.GetWinPathString().c_str();
 						lowerpath.MakeLower();
 						if (lowerpath.Find(L"\\tmp\\") > 0)
 							continue;
@@ -274,7 +274,7 @@ void CFolderCrawler::WorkerThread()
 					{
 						AutoLocker lock(m_critSec);
 						// move the path, the root of the repository, to the end of the list
-						if (projectroot.IsEmpty())
+						if (projectroot.empty())
 							m_pathsToUpdate.Push(workingPath);
 						else
 							m_pathsToUpdate.Push(CTGitPath(projectroot));
@@ -379,7 +379,7 @@ void CFolderCrawler::WorkerThread()
 					// create a new CTGitPath object to make sure the cached flags are requested again.
 					// without this, a missing file/folder is still treated as missing even if it is available
 					// now when crawling.
-					workingPath = CTGitPath(m_foldersToUpdate.Pop().GetWinPathString());
+					workingPath = CTGitPath(m_foldersToUpdate.Pop().GetWinPathString().c_str());
 
 					if ((!m_blockedPath.IsEmpty())&&(m_blockedPath.IsAncestorOf(workingPath)))
 					{

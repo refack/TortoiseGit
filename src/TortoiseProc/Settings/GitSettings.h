@@ -139,7 +139,7 @@ protected:
 			}
 			else
 			{
-				CString tmpFile = CTempFiles::Instance().GetTempFilePath(true).GetWinPathString();
+				CString tmpFile = CTempFiles::Instance().GetTempFilePath(true).GetWinPathString().c_str();
 				CTGitPath path(L".tgitconfig");
 				if (g_Git.GetOneFile(L"HEAD", path, tmpFile) == 0)
 				{

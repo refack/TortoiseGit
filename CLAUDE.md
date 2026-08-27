@@ -1,4 +1,4 @@
-# TortoiseGit — libgit2 SHA256 + build de-fragmentation plan
+﻿# TortoiseGit — libgit2 SHA256 + build de-fragmentation plan
 
 Working plan for two intertwined changes to this repo's libgit2 integration.
 Written 2026-08-03, consulted with Fable; status last validated against the
@@ -1063,8 +1063,11 @@ Order to do it in. Phases A and B are what actually buy the goal:
   | 2 | OS state | `registry.h` | **already spanned** — see below |
   | 3 | text idioms | `WideString.h` | **done**, `a483e6f4b` |
   | 4 | filesystem paths | `PathUtils` | pure functions; churn only |
-  | 5 | the path value type | `CTGitPath`/`CTGitPathList` | one decision, ~2,095 sites |
+  | 5 | the path value type | `CTGitPath`/`CTGitPathList` | **done**, `c63032fbd` |
   | 6 | subprocess / CLI | `Git.h` | **do last** — this is where the DoF is |
+
+  Four of six now stand. `PathUtils` is the only churn-only vector left; `Git.h`
+  is the design one.
 
   **`registry.h` needs no port at all.** It is already templated on the string
   type: `CRegBaseCommon<CString>` gives `CRegString`/`CRegDWORD`,
@@ -1079,44 +1082,46 @@ Order to do it in. Phases A and B are what actually buy the goal:
   boundary and `m_CurrentDir`'s admin-dir discovery each decide something
   different. Everything above it is churn; this one is design.
 
-- **`CTGitPath` is in flight, and the core half is done.** Branch
-  `wip/ctgitpath-wstring` (deliberately red; 99 files, ~1,900 lines). On it,
-  **`src\Git`, the converted parts of `src\Utils`, and the entire `test\UnitTests`
-  suite compile with zero errors** — the class itself, `Git.cpp`, `GitStatus`,
-  `GitRevLoglist`, `MassiveGitTaskBase`, `TempFile`, `GitAdminDir`. What remains
-  is **685 errors across ~60 application files** (TortoiseProc, TGitCache,
-  TortoiseShell, Blame), headed by `GitStatusListCtrl.cpp` at 195.
+- **`CTGitPath` is DONE** (`c63032fbd`, 123 files). Its header carries no
+  `CString`: members, accessors and parameters are `std::wstring` /
+  `std::wstring_view`, and `ATL::CStringW` survives only inside `.cpp` files
+  where it never crosses a boundary. Verified Debug **and** Release clean,
+  588/588, and `TortoiseGitProc` opening a working log on SHA1 and SHA256
+  working copies in both configurations.
 
-  **A blanket `.c_str()` sweep is not safe, and fails silently.** Where both
-  sides of a comparison have become `std::wstring`,
-  `a.GetWinPathString() == b.GetWinPathString()` compiles today and is correct;
-  appending `.c_str()` to both turns it into a **pointer comparison** that still
-  compiles and is wrong. So the sweep must skip every line containing `==` or
-  `!=` and those sites get converted by hand — which is why it only cleared 178
-  of 863. Inside gtest `STREQ` macros the sweep *is* safe, because those take
-  `const wchar_t*` by contract.
+  **Four failure modes, every one of which compiled.** These are the return on
+  the whole exercise; re-read them before converting `PathUtils` or `Git.h`:
 
-  Mechanical-pass sizes, for estimating the rest: **1,142** test lines rewritten
-  inside `STREQ`, **361** source lines in the accessor sweep across 84 files.
-
-  Master carries the enabling work: `tgit::wstr` (`a483e6f4b`), the `UnicodeUtils` adapters
-  (`51919c55e`) and `CombinePath`/`QuoteParameter` `std::wstring` overloads
-  (`6d79d90d5`). Measured from the red state, **UnitTests project only** — the
-  TortoiseProc wave is *not* in these numbers, and MSVC caps at 100 per file:
-
-  | file | errors | kind |
+  | # | shape | why it is silent |
   | --- | --- | --- |
-  | `TGitPathTest.cpp` | 100+ | `EXPECT_STREQ` — gtest takes no `std::wstring` |
-  | `GitTest.cpp` | 100+ | same |
-  | `GitRevLoglistTest.cpp` | 100+ | same |
-  | `TGitPath.cpp` | 100+ | the class implementation itself |
-  | `Git.cpp` | 47 | overloads, now landed |
-  | rest | ~50 | scattered over 9 files |
+  | 1 | `a.c_str() == b.c_str()` | both sides `std::wstring` → **pointer** compare. Sweeps must skip lines containing `==` or `!=`. |
+  | 2 | `x.c_str() + L'.'` | `const wchar_t* + wchar_t` is **pointer arithmetic**, not concatenation. `GetMergeTempFile` was silently returning the path tail with 46 characters removed. |
+  | 3 | `SetFromGit(cstring, &oldPath)` | **re-bound to a different overload.** A CString can no longer reach the `wstring_view` overload, and a pointer→`bool` is a *standard* conversion, so it fell through to `SetFromGit(const wchar_t*, bool)` and read the out-parameter as a directory flag. No error, and no diff to review — the line never changed, only the overload set around it. |
+  | 4 | `return MAKEINTRESOURCE(IDS_…)` | `CStringT`'s constructor checks `IS_INTRESOURCE` and calls `LoadString`; **`std::wstring` hands the pseudo-pointer to `wcslen`**. Compiled, linked, passed 587 tests, survived an adversarial diff review, then crashed painting the first Action cell. |
 
-  **241 of the 500 distinct errors are gtest `STREQ`** — one mechanical rewrite,
-  not 241 decisions, which is the "churn, not DoF" reading holding up. Plan the
-  next pass around bulk rewrites per error class rather than per file.
+  (2) is the one I got wrong in analysis: I reasoned that
+  `const wchar_t* + const wchar_t*` is a compile error and concluded the sweep's
+  damage was loud. The `+ wchar_t` form is silent. **`std::format` is the fix
+  for the whole class** — each argument is formatted independently, so there is
+  no `operator+` to resolve; that is why `std::formatter<CStringT>` exists.
 
+  (3) and (4) share a moral worth stating plainly: **changing a type does not
+  only break call sites loudly.** It can re-bind a call to a different overload,
+  or change what a constructor *means*, and in both cases no line of the diff
+  changed, so no review can see it. Only the test suite caught (3) and only
+  running the program caught (4).
+
+- **Mechanical-pass sizes, for whoever converts `PathUtils` or `Git.h` next.**
+  The migration ran as compiler-driven sweeps, and the shape of the work was:
+  **1,142** test lines rewritten inside gtest `STREQ` (safe to sweep — those
+  take `const wchar_t*` by contract), **361** source lines in the accessor
+  sweep, then **173** more that the first sweep missed because its regex
+  required a `.` and the app layer says `entry->`. Error counts fell
+  863 → 685 → 428 → 1 as each class was cleared.
+
+  **The sweep must skip every line containing `==` or `!=`** (failure mode 1
+  above); those sites get converted by hand. That single restriction is why the
+  first blanket pass cleared only 178 of 863.
 - **Widening an overload set in `CGit` needs a constraint, not a new parameter
   type.** Adding `CombinePath(std::wstring_view)` makes every existing
   `CombinePath(L"literal")` **ambiguous**: a `const wchar_t*` converts to

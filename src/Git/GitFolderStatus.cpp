@@ -98,8 +98,8 @@ const FileStatusCacheEntry * GitFolderStatus::BuildCache(const CTGitPath& filepa
 	m_TimeStamp = GetTickCount64();
 	FileStatusCacheEntry* ret = nullptr;
 
-	if (filepath.GetWinPathString().GetLength() == 3)
-		ret = &m_cache[static_cast<LPCWSTR>(filepath.GetWinPathString().Left(2))];
+	if (filepath.GetWinPathString().size() == 3U)
+		ret = &m_cache[tgit::wstr::Left(filepath.GetWinPathString(), 2)];
 	else
 		ret = &m_cache[filepath.GetWinPath()];
 
@@ -162,7 +162,7 @@ const FileStatusCacheEntry * GitFolderStatus::GetFullStatus(const CTGitPath& fil
 
 const FileStatusCacheEntry * GitFolderStatus::GetCachedItem(const CTGitPath& filepath)
 {
-	sCacheKey.assign(filepath.GetWinPath(), filepath.GetWinPathString().GetLength());
+	sCacheKey.assign(filepath.GetWinPath(), filepath.GetWinPathString().size());
 	FileStatusMap::const_iterator iter;
 	const FileStatusCacheEntry* retVal = nullptr;
 

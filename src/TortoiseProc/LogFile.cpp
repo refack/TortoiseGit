@@ -34,7 +34,7 @@ CLogFile::~CLogFile()
 
 bool CLogFile::Open()
 {
-	CTGitPath logfile = CTGitPath(CPathUtils::GetLocalAppDataDirectory() + L"logfile.txt");
+	CTGitPath logfile = CTGitPath((CPathUtils::GetLocalAppDataDirectory() + L"logfile.txt").GetString());
 	return Open(logfile);
 }
 

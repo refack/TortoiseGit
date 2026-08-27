@@ -49,7 +49,7 @@ int ProjectProperties::ReadProps()
 		git_config_add_file_ondisk(gitconfig, CGit::GetGitPathStringA(g_Git.CombinePath(L".tgitconfig")), GIT_CONFIG_LEVEL_LOCAL, nullptr, FALSE); // this needs to have the second highest priority
 	else
 	{
-		CString tmpFile = CTempFiles::Instance().GetTempFilePath(true).GetWinPathString();
+		CString tmpFile = CTempFiles::Instance().GetTempFilePath(true).GetWinPathString().c_str();
 		CTGitPath path(L".tgitconfig");
 		if (g_Git.GetOneFile(L"HEAD", path, tmpFile) == 0)
 			git_config_add_file_ondisk(gitconfig, CGit::GetGitPathStringA(tmpFile), GIT_CONFIG_LEVEL_LOCAL, nullptr, FALSE); // this needs to have the second highest priority

@@ -254,18 +254,18 @@ void CGitLogList::ContextMenuAction(int cmd, int FirstSelect, int LastSelect, CM
 						CAppUtils::StartShowUnifiedDiff(nullptr, m_Path, hash2, m_Path, r1->m_CommitHash.ToString(), bShiftPressed, false, false, bMerge, bCombine);
 					else
 					{
-						CString path = m_Path.GetGitPathString();
+						CString path = m_Path.GetGitPathString().c_str();
 						// start with 1 (0 = working copy changes)
 						for (int i = m_bShowWC ? 1 : 0; i < FirstSelect; ++i)
 						{
 							GitRevLoglist* first = m_arShownList.SafeGetAt(i);
 							auto filesWrapper = first->GetFiles(nullptr);
 							auto& list = filesWrapper.m_files;
-							const CTGitPath* file = list.LookForGitPath(path);
-							if (file && !file->GetGitOldPathString().IsEmpty())
-								path = file->GetGitOldPathString();
+							const CTGitPath* file = list.LookForGitPath(path.GetString());
+							if (file && !file->GetGitOldPathString().empty())
+								path = file->GetGitOldPathString().c_str();
 						}
-						CAppUtils::StartShowUnifiedDiff(nullptr, CTGitPath(path), hash2, CTGitPath(path), r1->m_CommitHash.ToString(), bShiftPressed, false, false, bMerge, bCombine);
+						CAppUtils::StartShowUnifiedDiff(nullptr, CTGitPath(path.GetString()), hash2, CTGitPath(path.GetString()), r1->m_CommitHash.ToString(), bShiftPressed, false, false, bMerge, bCombine);
 					}
 				}
 				else
@@ -281,18 +281,18 @@ void CGitLogList::ContextMenuAction(int cmd, int FirstSelect, int LastSelect, CM
 					CAppUtils::StartShowUnifiedDiff(nullptr, m_Path, r2->m_CommitHash.ToString(), m_Path, r1->m_CommitHash.ToString(), bShiftPressed);
 				else
 				{
-					CString path = m_Path.GetGitPathString();
+					CString path = m_Path.GetGitPathString().c_str();
 					// start with 1 (0 = working copy changes)
 					for (int i = m_bShowWC ? 1 : 0; i < FirstSelect; ++i)
 					{
 						GitRevLoglist* first = m_arShownList.SafeGetAt(i);
 						auto filesWrapper = first->GetFiles(nullptr);
 						auto& list = filesWrapper.m_files;
-						const CTGitPath* file = list.LookForGitPath(path);
-						if (file && !file->GetGitOldPathString().IsEmpty())
-							path = file->GetGitOldPathString();
+						const CTGitPath* file = list.LookForGitPath(path.GetString());
+						if (file && !file->GetGitOldPathString().empty())
+							path = file->GetGitOldPathString().c_str();
 					}
-					CAppUtils::StartShowUnifiedDiff(nullptr, CTGitPath(path), r2->m_CommitHash.ToString(), CTGitPath(path), r1->m_CommitHash.ToString(), bShiftPressed);
+					CAppUtils::StartShowUnifiedDiff(nullptr, CTGitPath(path.GetString()), r2->m_CommitHash.ToString(), CTGitPath(path.GetString()), r1->m_CommitHash.ToString(), bShiftPressed);
 				}
 			}
 			break;
@@ -305,16 +305,16 @@ void CGitLogList::ContextMenuAction(int cmd, int FirstSelect, int LastSelect, CM
 					CGitDiff::DiffCommit(GetParentHWND(), m_Path, r1, r2, bShiftPressed);
 				else
 				{
-					CString path1 = m_Path.GetGitPathString();
+					CString path1 = m_Path.GetGitPathString().c_str();
 					// start with 1 (0 = working copy changes)
 					for (int i = m_bShowWC ? 1 : 0; i < FirstSelect; ++i)
 					{
 						GitRevLoglist* first = m_arShownList.SafeGetAt(i);
 						auto filesWrapper = first->GetFiles(nullptr);
 						auto& list = filesWrapper.m_files;
-						const CTGitPath* file = list.LookForGitPath(path1);
-						if (file && !file->GetGitOldPathString().IsEmpty())
-							path1 = file->GetGitOldPathString();
+						const CTGitPath* file = list.LookForGitPath(path1.GetString());
+						if (file && !file->GetGitOldPathString().empty())
+							path1 = file->GetGitOldPathString().c_str();
 					}
 					CString path2 = path1;
 					for (int i = FirstSelect; i < LastSelect; ++i)
@@ -322,11 +322,11 @@ void CGitLogList::ContextMenuAction(int cmd, int FirstSelect, int LastSelect, CM
 						GitRevLoglist* first = m_arShownList.SafeGetAt(i);
 						auto filesWrapper = first->GetFiles(nullptr);
 						auto& list = filesWrapper.m_files;
-						const CTGitPath* file = list.LookForGitPath(path2);
-						if (file && !file->GetGitOldPathString().IsEmpty())
-							path2 = file->GetGitOldPathString();
+						const CTGitPath* file = list.LookForGitPath(path2.GetString());
+						if (file && !file->GetGitOldPathString().empty())
+							path2 = file->GetGitOldPathString().c_str();
 					}
-					CGitDiff::DiffCommit(GetParentHWND(), CTGitPath(path1), CTGitPath(path2), r1, r2, bShiftPressed);
+					CGitDiff::DiffCommit(GetParentHWND(), CTGitPath(path1.GetString()), CTGitPath(path2.GetString()), r1, r2, bShiftPressed);
 				}
 
 			}
@@ -341,18 +341,18 @@ void CGitLogList::ContextMenuAction(int cmd, int FirstSelect, int LastSelect, CM
 					CGitDiff::DiffCommit(GetParentHWND(), m_Path, r1, r2, bShiftPressed);
 				else
 				{
-					CString path1 = m_Path.GetGitPathString();
+					CString path1 = m_Path.GetGitPathString().c_str();
 					// start with 1 (0 = working copy changes)
 					for (int i = m_bShowWC ? 1 : 0; i < FirstSelect; ++i)
 					{
 						GitRevLoglist* first = m_arShownList.SafeGetAt(i);
 						auto filesWrapper = first->GetFiles(nullptr);
 						auto& list = filesWrapper.m_files;
-						const CTGitPath* file = list.LookForGitPath(path1);
-						if (file && !file->GetGitOldPathString().IsEmpty())
-							path1 = file->GetGitOldPathString();
+						const CTGitPath* file = list.LookForGitPath(path1.GetString());
+						if (file && !file->GetGitOldPathString().empty())
+							path1 = file->GetGitOldPathString().c_str();
 					}
-					CGitDiff::DiffCommit(GetParentHWND(), m_Path, CTGitPath(path1), r1, r2, bShiftPressed);
+					CGitDiff::DiffCommit(GetParentHWND(), m_Path, CTGitPath(path1.GetString()), r1, r2, bShiftPressed);
 				}
 
 				//user clicked on the menu item "compare with working copy"
@@ -389,26 +389,26 @@ void CGitLogList::ContextMenuAction(int cmd, int FirstSelect, int LastSelect, CM
 						CGitDiff::DiffCommit(GetParentHWND(), m_Path, pSelLogEntry->m_CommitHash.ToString(), pSelLogEntry->m_ParentHash[cmd - 1].ToString(), bShiftPressed);
 					else
 					{
-						CString path1 = m_Path.GetGitPathString();
+						CString path1 = m_Path.GetGitPathString().c_str();
 						// start with 1 (0 = working copy changes)
 						for (int i = m_bShowWC ? 1 : 0; i < indexNext; ++i)
 						{
 							GitRevLoglist* first = m_arShownList.SafeGetAt(i);
 							auto filesWrapper = first->GetFiles(nullptr);
 							auto& list = filesWrapper.m_files;
-							const CTGitPath* file = list.LookForGitPath(path1);
-							if (file && !file->GetGitOldPathString().IsEmpty())
-								path1 = file->GetGitOldPathString();
+							const CTGitPath* file = list.LookForGitPath(path1.GetString());
+							if (file && !file->GetGitOldPathString().empty())
+								path1 = file->GetGitOldPathString().c_str();
 						}
 						CString path2 = path1;
 						GitRevLoglist* first = m_arShownList.SafeGetAt(indexNext);
 						auto filesWrapper = first->GetFiles(nullptr);
 						auto& list = filesWrapper.m_files;
-						const CTGitPath* file = list.LookForGitPath(path2);
-						if (file && !file->GetGitOldPathString().IsEmpty())
-							path2 = file->GetGitOldPathString();
+						const CTGitPath* file = list.LookForGitPath(path2.GetString());
+						if (file && !file->GetGitOldPathString().empty())
+							path2 = file->GetGitOldPathString().c_str();
 
-						CGitDiff::DiffCommit(GetParentHWND(), CTGitPath(path1), CTGitPath(path2), pSelLogEntry->m_CommitHash.ToString(), pSelLogEntry->m_ParentHash[cmd - 1].ToString(), bShiftPressed);
+						CGitDiff::DiffCommit(GetParentHWND(), CTGitPath(path1.GetString()), CTGitPath(path2.GetString()), pSelLogEntry->m_CommitHash.ToString(), pSelLogEntry->m_ParentHash[cmd - 1].ToString(), bShiftPressed);
 					}
 				}
 				else
@@ -682,7 +682,7 @@ void CGitLogList::ContextMenuAction(int cmd, int FirstSelect, int LastSelect, CM
 				else
 					dlg.SetTime(m_arShownList.SafeGetAt(LastSelect)->GetAuthorDate());
 				CTGitPathList gpl;
-				gpl.AddPath(CTGitPath(g_Git.m_CurrentDir));
+				gpl.AddPath(CTGitPath(g_Git.m_CurrentDir.GetString()));
 				dlg.m_pathList = gpl;
 				if (lastRevision.ParentsCount() != 1)
 				{
@@ -1222,7 +1222,7 @@ void CGitLogList::ContextMenuAction(int cmd, int FirstSelect, int LastSelect, CM
 					if (!bOpenWith)
 						CAppUtils::ShellOpen(tempfile.GetWinPath(), GetSafeHwnd());
 					else
-						CAppUtils::ShowOpenWithDialog(tempfile.GetWinPathString(), GetSafeHwnd());
+						CAppUtils::ShowOpenWithDialog(tempfile.GetWinPathString().c_str(), GetSafeHwnd());
 				}
 			}
 			break;
@@ -1245,8 +1245,8 @@ void CGitLogList::ContextMenuAction(int cmd, int FirstSelect, int LastSelect, CM
 						}
 						else
 						{
-							CString sParams = L"/path:\"" + m_path.GetGitPathString() + L"\" ";
-							if(!CAppUtils::LaunchTortoiseBlame(tempfile, logfile, CPathUtils::GetFileNameFromPath(m_path.GetFileOrDirectoryName()),sParams))
+							CString sParams = L"/path:\"" + m_path.GetGitPathString().c_str() + L"\" ";
+							if(!CAppUtils::LaunchTortoiseBlame(tempfile, logfile, CPathUtils::GetFileNameFromPath(m_path.GetFileOrDirectoryName().c_str()),sParams))
 							{
 								break;
 							}

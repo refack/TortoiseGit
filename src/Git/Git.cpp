@@ -1163,7 +1163,7 @@ std::vector<std::string> CGit::GetLogCmd(CString range, const CTGitPath* path, i
 	params.push_back("--");
 
 	if (path)
-		params.push_back(CUnicodeUtils::StdGetUTF8(std::wstring_view(path->GetGitPathString(), path->GetGitPathString().GetLength())));
+		params.push_back(CUnicodeUtils::StdGetUTF8(path->GetGitPathString().c_str()));
 
 	return params;
 }
@@ -1382,7 +1382,7 @@ int CGit::GetInitAddList(CTGitPathList& outputlist, bool getStagingStatus)
 		// File shows up both in the output of ls-files and diff-files: partially staged (typically modified after being added)
 		for (int j = 0; j < unstaged.GetCount(); ++j)
 		{
-			CString path = unstaged[j].GetGitPathString();
+			const std::wstring& path = unstaged[j].GetGitPathString().c_str();
 			outputlist.UpdateStagingStatusFromPath(path, CTGitPath::StagingStatus::PartiallyStaged); // TODO: This is inefficient
 		}
 	}
@@ -2486,7 +2486,7 @@ BOOL CGit::CheckMsysGitDir(BOOL bFallback)
 	ms_LastMsysGitVersion = CRegDWORD(L"Software\\TortoiseGit\\git_cached_version");
 
 	// Configure libgit2 search paths
-	SetLibGit2SearchPath(GIT_CONFIG_LEVEL_SYSTEM, CTGitPath(g_Git.GetGitSystemConfig()).GetContainingDirectory().GetWinPathString());
+	SetLibGit2SearchPath(GIT_CONFIG_LEVEL_SYSTEM, CTGitPath(g_Git.GetGitSystemConfig().GetString()).GetContainingDirectory().GetWinPathString().c_str());
 	SetLibGit2SearchPath(GIT_CONFIG_LEVEL_GLOBAL, g_Git.GetHomeDirectory());
 	SetLibGit2SearchPath(GIT_CONFIG_LEVEL_XDG, g_Git.GetGitGlobalXDGConfig(true));
 	static git_smart_subtransport_definition ssh_wintunnel_subtransport_definition = { [](git_smart_subtransport **out, git_transport* owner, void*) -> int { return git_smart_subtransport_ssh_wintunnel(out, owner, FindExecutableOnPath(g_Git.m_Environment.GetEnv(L"GIT_SSH"), g_Git.m_Environment.GetEnv(L"PATH")), g_Git.m_Environment); }, 0 };
@@ -2579,7 +2579,7 @@ CString CGit::GetGitLocalConfig() const
 
 CStringA CGit::GetGitPathStringA(const CString &path)
 {
-	return CUnicodeUtils::GetUTF8(CTGitPath(path).GetGitPathString());
+	return CUnicodeUtils::StdGetUTF8(CTGitPath(path.GetString()).GetGitPathString().c_str()).c_str();
 }
 
 CString CGit::GetGitGlobalConfig() const
@@ -2769,7 +2769,7 @@ unsigned int CGit::Hash2int(const CGitHash &hash)
 int CGit::RefreshGitIndex()
 {
 	// HACK: don't use internal update-index if we have a git-lfs enabled repository as the libgit version fails when executing the filter, issue #3220
-	if (g_Git.m_IsUseGitDLL && !CTGitPath(g_Git.m_CurrentDir).HasLFS())
+	if (g_Git.m_IsUseGitDLL && !CTGitPath(g_Git.m_CurrentDir.GetString()).HasLFS())
 	{
 		CAutoLocker lock(g_Git.m_critGitDllSec);
 		try
@@ -2808,7 +2808,7 @@ int CGit::GetOneFile(const CString &Refname, const CTGitPath &path, const CStrin
 			return -1;
 
 		CAutoTreeEntry entry;
-		if (auto ret = git_tree_entry_bypath(entry.GetPointer(), tree, CUnicodeUtils::GetUTF8(path.GetGitPathString())); ret)
+		if (auto ret = git_tree_entry_bypath(entry.GetPointer(), tree, CUnicodeUtils::StdGetUTF8(path.GetGitPathString().c_str()).c_str()); ret)
 			return ret;
 
 		if (git_tree_entry_filemode(entry) == GIT_FILEMODE_COMMIT)
@@ -2830,7 +2830,7 @@ int CGit::GetOneFile(const CString &Refname, const CTGitPath &path, const CStrin
 		CAutoBuf buf;
 		git_blob_filter_options opts = GIT_BLOB_FILTER_OPTIONS_INIT;
 		opts.flags &= ~static_cast<uint32_t>(GIT_BLOB_FILTER_CHECK_FOR_BINARY);
-		if (git_blob_filter(buf, blob, CUnicodeUtils::GetUTF8(path.GetGitPathString()), &opts))
+		if (git_blob_filter(buf, blob, CUnicodeUtils::StdGetUTF8(path.GetGitPathString().c_str()).c_str(), &opts))
 			return -1;
 		if (fwrite(buf->ptr, sizeof(char), buf->size, file) != buf->size)
 		{
@@ -2848,7 +2848,7 @@ int CGit::GetOneFile(const CString &Refname, const CTGitPath &path, const CStrin
 			g_Git.CheckAndInitDll();
 			CStringA ref, patha, outa;
 			ref = CUnicodeUtils::GetUTF8(Refname);
-			patha = CUnicodeUtils::GetUTF8(path.GetGitPathString());
+			patha = CUnicodeUtils::StdGetUTF8(path.GetGitPathString().c_str()).c_str();
 			outa = CUnicodeUtils::GetUTF8(outputfile);
 			::DeleteFile(outputfile);
 			return git_checkout_file(ref, patha, CStrBufA(outa));
@@ -2869,7 +2869,7 @@ int CGit::GetOneFile(const CString &Refname, const CTGitPath &path, const CStrin
 		CString cmd;
 		try
 		{
-			cmd.Format(L"git.exe cat-file -p -- %s:%s", static_cast<LPCWSTR>(CGit::QuoteParameter(Refname)), static_cast<LPCWSTR>(CGit::QuoteParameter(path.GetGitPathString())));
+			cmd.Format(L"git.exe cat-file -p -- %s:%s", static_cast<LPCWSTR>(CGit::QuoteParameter(Refname)), static_cast<LPCWSTR>(CGit::QuoteParameter(path.GetGitPathString().c_str())));
 		}
 		catch (illegal_git_parameter& e)
 		{
@@ -3125,7 +3125,7 @@ static CString GetUnifiedDiffCmd(const CTGitPath& path, const CString& rev1, con
 	if (!path.IsEmpty())
 	{
 		cmd += L' ';
-		cmd += CGit::QuoteParameter(path.GetGitPathString());
+		cmd += CGit::QuoteParameter(path.GetGitPathString().c_str());
 	}
 
 	return cmd;
@@ -3194,7 +3194,7 @@ static int GetUnifiedDiffLibGit2(const CTGitPath& path, const CString& revOld, c
 		return -1;
 
 	git_diff_options opts = GIT_DIFF_OPTIONS_INIT;
-	CStringA pathA = CUnicodeUtils::GetUTF8(path.GetGitPathString());
+	CStringA pathA = CUnicodeUtils::StdGetUTF8(path.GetGitPathString().c_str()).c_str();
 	char *buf = pathA.GetBuffer();
 	if (!pathA.IsEmpty())
 	{
@@ -3490,7 +3490,7 @@ int CGit::GetWorkingTreeChanges(CTGitPathList& result, bool amend, const CTGitPa
 
 	for (int i = 0; i < count; ++i)
 	{
-		ATLASSERT(!filterlist || !(*filterlist)[i].GetGitPathString().IsEmpty()); // pathspec must not be empty, be compatible with Git >= 2.16.0
+		ATLASSERT(!filterlist || !(*filterlist)[i].GetGitPathString().empty()); // pathspec must not be empty, be compatible with Git >= 2.16.0
 		BYTE_VECTOR cmdout;
 		CString cmd;
 		CString filenameAppendix;
@@ -3498,7 +3498,7 @@ int CGit::GetWorkingTreeChanges(CTGitPathList& result, bool amend, const CTGitPa
 		{
 			try
 			{
-				filenameAppendix.Format(L" %s", static_cast<LPCWSTR>(CGit::QuoteParameter((*filterlist)[i].GetGitPathString())));
+				filenameAppendix.Format(L" %s", static_cast<LPCWSTR>(CGit::QuoteParameter((*filterlist)[i].GetGitPathString().c_str())));
 			}
 			catch (illegal_git_parameter& e)
 			{
@@ -3561,7 +3561,7 @@ int CGit::GetWorkingTreeChanges(CTGitPathList& result, bool amend, const CTGitPa
 		// separately and did this processing there, dropping the new function UpdateStagingStatusFromPath entirely.
 		for (int j = 0; j < stagedUnfiltered.GetCount(); ++j)
 		{
-			CString path = stagedUnfiltered[j].GetGitPathString();
+			const std::wstring& path = stagedUnfiltered[j].GetGitPathString().c_str();
 			if (unstagedUnfiltered.LookForGitPath(path))
 				result.UpdateStagingStatusFromPath(path, CTGitPath::StagingStatus::PartiallyStaged);
 			else
@@ -3569,7 +3569,7 @@ int CGit::GetWorkingTreeChanges(CTGitPathList& result, bool amend, const CTGitPa
 		}
 		for (int j = 0; j < unstagedUnfiltered.GetCount(); ++j)
 		{
-			CString path = unstagedUnfiltered[j].GetGitPathString();
+			const std::wstring& path = unstagedUnfiltered[j].GetGitPathString().c_str();
 			if (!stagedUnfiltered.LookForGitPath(path))
 				result.UpdateStagingStatusFromPath(path, CTGitPath::StagingStatus::TotallyUnstaged);
 		}
@@ -3581,9 +3581,9 @@ int CGit::GetWorkingTreeChanges(CTGitPathList& result, bool amend, const CTGitPa
 		}
 	}
 
-	std::map<CString, int> duplicateMap;
+	std::map<std::wstring, int> duplicateMap;
 	for (int i = 0; i < result.GetCount(); ++i)
-		duplicateMap.insert(std::pair<CString, int>(result[i].GetGitPathString(), i));
+		duplicateMap.insert(std::pair<std::wstring, int>(result[i].GetGitPathString().c_str(), i));
 
 	// handle delete conflict case, when remote : modified, local : deleted.
 	for (int i = 0; i < count; ++i)
@@ -3594,7 +3594,7 @@ int CGit::GetWorkingTreeChanges(CTGitPathList& result, bool amend, const CTGitPa
 		if (!filterlist)
 			cmd = L"git.exe ls-files -u -t -z";
 		else
-			cmd.Format(L"git.exe ls-files -u -t -z -- %s", static_cast<LPCWSTR>(CGit::QuoteParameter((*filterlist)[i].GetGitPathString()))); // already checked above
+			cmd.Format(L"git.exe ls-files -u -t -z -- %s", static_cast<LPCWSTR>(CGit::QuoteParameter((*filterlist)[i].GetGitPathString().c_str()))); // already checked above
 
 		Run(cmd, &cmdout);
 
@@ -3602,7 +3602,7 @@ int CGit::GetWorkingTreeChanges(CTGitPathList& result, bool amend, const CTGitPa
 		conflictlist.ParserFromLsFile(cmdout);
 		for (int j = 0; j < conflictlist.GetCount(); ++j)
 		{
-			auto existing = duplicateMap.find(conflictlist[j].GetGitPathString());
+			auto existing = duplicateMap.find(conflictlist[j].GetGitPathString().c_str());
 			if (existing != duplicateMap.end())
 			{
 				CTGitPath& p = const_cast<CTGitPath&>(result[existing->second]);
@@ -3613,7 +3613,7 @@ int CGit::GetWorkingTreeChanges(CTGitPathList& result, bool amend, const CTGitPa
 				// should we ever get here?
 				ASSERT(false);
 				result.AddPath(conflictlist[j]);
-				duplicateMap.insert(std::pair<CString, int>(result[i].GetGitPathString(), result.GetCount() - 1));
+				duplicateMap.insert(std::pair<std::wstring, int>(result[i].GetGitPathString().c_str(), result.GetCount() - 1));
 			}
 		}
 	}
@@ -3636,9 +3636,9 @@ int CGit::GetWorkingTreeChanges(CTGitPathList& result, bool amend, const CTGitPa
 		else
 		{
 			if (!useOldLSFilesDBehaviorKS)
-				cmd.Format(L"git.exe diff --name-only --diff-filter=D -z -- %s", static_cast<LPCWSTR>(CGit::QuoteParameter((*filterlist)[i].GetGitPathString())));
+				cmd.Format(L"git.exe diff --name-only --diff-filter=D -z -- %s", static_cast<LPCWSTR>(CGit::QuoteParameter((*filterlist)[i].GetGitPathString().c_str())));
 			else
-				cmd.Format(L"git.exe ls-files -d -z -- %s", static_cast<LPCWSTR>(CGit::QuoteParameter((*filterlist)[i].GetGitPathString())));
+				cmd.Format(L"git.exe ls-files -d -z -- %s", static_cast<LPCWSTR>(CGit::QuoteParameter((*filterlist)[i].GetGitPathString().c_str())));
 		}
 
 		Run(cmd, &cmdout);
@@ -3647,11 +3647,11 @@ int CGit::GetWorkingTreeChanges(CTGitPathList& result, bool amend, const CTGitPa
 		deletelist.ParserFromLsFileSimple(cmdout, CTGitPath::LOGACTIONS_DELETED | CTGitPath::LOGACTIONS_MISSING);
 		for (int j = 0; j < deletelist.GetCount(); ++j)
 		{
-			auto existing = duplicateMap.find(deletelist[j].GetGitPathString());
+			auto existing = duplicateMap.find(deletelist[j].GetGitPathString().c_str());
 			if (existing == duplicateMap.end())
 			{
 				result.AddPath(deletelist[j]);
-				duplicateMap.insert(std::pair<CString, int>(result[i].GetGitPathString(), result.GetCount() - 1));
+				duplicateMap.insert(std::pair<std::wstring, int>(result[i].GetGitPathString().c_str(), result.GetCount() - 1));
 			}
 			else
 			{
@@ -3934,7 +3934,7 @@ int CGit::GetSubmodulePointer(SubmoduleInfo& submoduleinfo) const
 		if (their)
 			submoduleinfo.mergeconflictTheirsHash = their->id;
 
-		CTGitPath superProject{superprojectRoot};
+		CTGitPath superProject{superprojectRoot.GetString()};
 		if (superProject.IsRebaseActive())
 		{
 			submoduleinfo.mineLabel = L"super-project-rebase-head";

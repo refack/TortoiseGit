@@ -29,11 +29,14 @@
 bool PasteCopyCommand::Execute()
 {
 	CString sDroppath = parser.GetVal(L"droptarget");
-	CTGitPath dropPath(sDroppath);
+	CTGitPath dropPath(sDroppath.GetString());
 	if (dropPath.IsAdminDir())
 		return FALSE;
 
-	if(!dropPath.HasAdminDir(&g_Git.m_CurrentDir))
+	std::wstring projectTopDir;
+	const bool hasAdminDir = dropPath.HasAdminDir(&projectTopDir);
+	g_Git.m_CurrentDir = projectTopDir.c_str();
+	if (!hasAdminDir)
 		return FALSE;
 	//SVN svn;
 	//SVNStatus status;
@@ -50,9 +53,9 @@ bool PasteCopyCommand::Execute()
 
 		CTGitPath fullDropPath = dropPath;
 		if (sNewName.IsEmpty())
-			fullDropPath.AppendPathString(sourcePath.GetFileOrDirectoryName());
+			fullDropPath.AppendPathString(sourcePath.GetFileOrDirectoryName().c_str());
 		else
-			fullDropPath.AppendPathString(sNewName);
+			fullDropPath.AppendPathString(sNewName.GetString());
 
 		// Check for a drop-on-to-ourselves
 		if (sourcePath.IsEquivalentTo(fullDropPath))
@@ -60,7 +63,7 @@ bool PasteCopyCommand::Execute()
 			// Offer a rename
 			progress.Stop();
 			CRenameDlg dlg;
-			dlg.m_windowtitle.Format(IDS_PROC_NEWNAMECOPY, static_cast<LPCWSTR>(sourcePath.GetUIFileOrDirectoryName()));
+			dlg.m_windowtitle.Format(IDS_PROC_NEWNAMECOPY, static_cast<LPCWSTR>(sourcePath.GetUIFileOrDirectoryName().c_str()));
 			if (dlg.DoModal() != IDOK)
 				return FALSE;
 			// rebuild the progress dialog
@@ -70,8 +73,8 @@ bool PasteCopyCommand::Execute()
 			progress.SetProgress(count, orgPathList.GetCount());
 			progress.ShowModeless(CWnd::FromHandle(GetExplorerHWND()));
 			// Rebuild the destination path, with the new name
-			fullDropPath.SetFromUnknown(sDroppath);
-			fullDropPath.AppendPathString(dlg.m_name);
+			fullDropPath.SetFromUnknown(sDroppath.GetString());
+			fullDropPath.AppendPathString(dlg.m_name.GetString());
 		}
 
 		//svn_wc_status_kind s = status.GetAllStatus(sourcePath);
@@ -82,7 +85,7 @@ bool PasteCopyCommand::Execute()
 			CString cmd,output;
 			try
 			{
-				cmd.Format(L"git.exe add -- %s", static_cast<LPCWSTR>(CGit::QuoteParameter(fullDropPath.GetWinPathString())));
+				cmd.Format(L"git.exe add -- %s", static_cast<LPCWSTR>(CGit::QuoteParameter(fullDropPath.GetWinPathString().c_str())));
 			}
 			catch (illegal_git_parameter& e)
 			{

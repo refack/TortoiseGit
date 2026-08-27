@@ -733,13 +733,13 @@ public:
 
 	CString CombinePath(const CTGitPath &path) const
 	{
-		return CombinePath(path.GetWinPathString());
+		return CombinePath(path.GetWinPathString().c_str());
 	}
 
 	CString CombinePath(const CTGitPath *path) const
 	{
 		ATLASSERT(path);
-		return CombinePath(path->GetWinPathString());
+		return CombinePath(path->GetWinPathString().c_str());
 	}
 
 	[[nodiscard]] static CString QuoteParameter(CString value, bool relaxed = false);

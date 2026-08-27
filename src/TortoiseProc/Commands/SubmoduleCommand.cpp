@@ -31,7 +31,7 @@ bool SubmoduleAddCommand::Execute()
 {
 	bool bRet = false;
 	CSubmoduleAddDlg dlg;
-	dlg.m_strPath = cmdLinePath.GetDirectory().GetWinPathString();
+	dlg.m_strPath = cmdLinePath.GetDirectory().GetWinPathString().c_str();
 	dlg.m_strProject = g_Git.m_CurrentDir;
 	if( dlg.DoModal() == IDOK )
 	{
@@ -74,7 +74,7 @@ bool SubmoduleUpdateCommand::Execute()
 		bkpath = parser.GetVal(L"bkpath");
 	else
 	{
-		bkpath = this->orgPathList[0].GetWinPathString();
+		bkpath = this->orgPathList[0].GetWinPathString().c_str();
 		int start = bkpath.ReverseFind(L'\\');
 		if (start >= 0)
 			bkpath = bkpath.Left(start);
@@ -93,7 +93,7 @@ bool SubmoduleUpdateCommand::Execute()
 	{
 		if (orgPathList[i].IsDirectory())
 		{
-			CString path = orgPathList[i].GetSubPath(CTGitPath(super)).GetGitPathString();
+			CString path = orgPathList[i].GetSubPath(CTGitPath(super.GetString())).GetGitPathString().c_str();
 			if (!path.IsEmpty())
 				pathFilterList.push_back(path);
 		}
@@ -156,7 +156,7 @@ bool SubmoduleUpdateCommand::Execute()
 		if (status)
 			return;
 
-		CTGitPath gitPath = g_Git.m_CurrentDir;
+		CTGitPath gitPath(g_Git.m_CurrentDir.GetString());
 		if (gitPath.IsBisectActive())
 		{
 			postCmdList.emplace_back(IDI_THUMB_UP, IDS_MENUBISECTGOOD, [] { CAppUtils::RunTortoiseGitProc(L"/command:bisect /good"); });
@@ -182,7 +182,7 @@ bool SubmoduleSyncCommand::Execute()
 		bkpath=parser.GetVal(L"bkpath");
 	else
 	{
-		bkpath=this->orgPathList[0].GetWinPathString();
+		bkpath=this->orgPathList[0].GetWinPathString().c_str();
 		int start = bkpath.ReverseFind(L'\\');
 		if( start >= 0 )
 			bkpath=bkpath.Left(start);
@@ -203,7 +203,7 @@ bool SubmoduleSyncCommand::Execute()
 	{
 		if(orgPathList[i].IsDirectory())
 		{
-			CString path = orgPathList[i].GetSubPath(CTGitPath(super)).GetGitPathString();
+			CString path = orgPathList[i].GetSubPath(CTGitPath(super.GetString())).GetGitPathString().c_str();
 			if (path.IsEmpty())
 				str = L"git.exe submodule sync";
 			else

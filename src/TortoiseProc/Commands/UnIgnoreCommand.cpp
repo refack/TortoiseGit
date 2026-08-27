@@ -30,9 +30,9 @@ bool UnIgnoreCommand::Execute()
 	BOOL err = FALSE;
 	for (int nPath = 0; nPath < pathList.GetCount(); ++nPath)
 	{
-		CString name = CPathUtils::PathPatternEscape(pathList[nPath].GetFileOrDirectoryName());
+		CString name = CPathUtils::PathPatternEscape(pathList[nPath].GetFileOrDirectoryName().c_str());
 		if (parser.HasKey(L"onlymask"))
-			name = L'*' + pathList[nPath].GetFileExtension();
+			name = L'*' + pathList[nPath].GetFileExtension().c_str();
 		filelist += name + L'\n';
 		CTSVNPath parentfolder = pathList[nPath].GetContainingDirectory();
 		SVNProperties props(parentfolder, SVNRev::REV_WC, false);

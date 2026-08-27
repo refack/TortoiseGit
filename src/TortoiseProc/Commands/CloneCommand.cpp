@@ -63,7 +63,7 @@ bool CloneCommand::Execute()
 	}
 
 	CCloneDlg dlg;
-	dlg.m_Directory = cloneDirectory.GetWinPathString();
+	dlg.m_Directory = cloneDirectory.GetWinPathString().c_str();
 
 	if (parser.HasKey(L"url"))
 		dlg.m_URL = parser.GetVal(L"url");
@@ -223,7 +223,7 @@ bool CloneCommand::Execute()
 					CGitProgressDlg GitDlg;
 					CTGitPathList list;
 					g_Git.m_CurrentDir = GetExistingDirectoryForClone(dlg.m_Directory);
-					list.AddPath(CTGitPath(dir));
+					list.AddPath(CTGitPath(dir.GetString()));
 					CloneProgressCommand cloneProgressCommand;
 					GitDlg.SetCommand(&cloneProgressCommand);
 					cloneProgressCommand.m_PostCmdCallback = postCmdCallback;

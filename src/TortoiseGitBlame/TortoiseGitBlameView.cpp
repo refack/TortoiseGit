@@ -365,7 +365,7 @@ void CTortoiseGitBlameView::OnRButtonUp(UINT /*nFlags*/, CPoint point)
 		std::vector<CString> parentFilename;
 		try
 		{
-			CTGitPath path(m_data.GetFilename(line));
+			CTGitPath path(m_data.GetFilename(line).GetString());
 			auto files = pRev->GetFiles(nullptr);
 			for (int j = 0, j_size = files.GetCount(); j < j_size; ++j)
 			{
@@ -383,7 +383,7 @@ void CTortoiseGitBlameView::OnRButtonUp(UINT /*nFlags*/, CPoint point)
 							if (parentNo >= 0 && static_cast<size_t>(parentNo) < pRev->m_ParentHash.size())
 							{
 								parentHashWithFile.push_back(pRev->m_ParentHash[parentNo]);
-								parentFilename.push_back((action & CTGitPath::LOGACTIONS_REPLACED) ? file.GetGitOldPathString() : file.GetGitPathString());
+								parentFilename.push_back((action & CTGitPath::LOGACTIONS_REPLACED) ? file.GetGitOldPathString().c_str() : file.GetGitPathString().c_str());
 							}
 						}
 					}
@@ -1515,7 +1515,7 @@ void CTortoiseGitBlameView::ParseBlame()
 	m_data.ParseBlameOutput(GetDocument()->m_BlameData, GetLogData()->m_pLogCache->m_HashMap, m_DateFormat, m_bRelativeTimes, &errors);
 	if (!errors.IsEmpty())
 		MessageBox(errors, L"TortoiseGit", MB_ICONERROR);
-	CString filename = GetDocument()->m_GitPath.GetGitPathString();
+	CString filename = GetDocument()->m_GitPath.GetGitPathString().c_str();
 	m_bBlameOutputContainsOtherFilenames = m_data.ContainsOnlyFilename(filename) ? FALSE : TRUE;
 }
 

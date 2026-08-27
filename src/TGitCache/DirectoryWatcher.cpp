@@ -164,8 +164,8 @@ bool CDirectoryWatcher::AddPath(const CTGitPath& path, bool bCloseInfoMap)
 	CTGitPath newroot;
 	for (int i=0; i<watchedPaths.GetCount(); ++i)
 	{
-		const CString& watched = watchedPaths[i].GetWinPathString();
-		const CString& sPath = path.GetWinPathString();
+		const CString& watched = watchedPaths[i].GetWinPathString().c_str();
+		const CString& sPath = path.GetWinPathString().c_str();
 		const int minlen = min(sPath.GetLength(), watched.GetLength());
 		int len = 0;
 		for (len = 0; len < minlen; ++len)
@@ -175,9 +175,9 @@ bool CDirectoryWatcher::AddPath(const CTGitPath& path, bool bCloseInfoMap)
 				if ((len > 1)&&(len < minlen))
 				{
 					if (sPath.GetAt(len)=='\\')
-						newroot = CTGitPath(sPath.Left(len));
+						newroot = CTGitPath(sPath.Left(len).GetString());
 					else if (watched.GetAt(len)=='\\')
-						newroot = CTGitPath(watched.Left(len));
+						newroot = CTGitPath(watched.Left(len).GetString());
 				}
 				break;
 			}
@@ -199,9 +199,9 @@ bool CDirectoryWatcher::AddPath(const CTGitPath& path, bool bCloseInfoMap)
 				if (sPath.GetLength() > minlen)
 				{
 					if (sPath.GetAt(len)=='\\')
-						newroot = CTGitPath(watched);
+						newroot = CTGitPath(watched.GetString());
 					else if (watched.GetLength() == 3 && watched[1] == ':')
-						newroot = CTGitPath(watched);
+						newroot = CTGitPath(watched.GetString());
 				}
 			}
 		}
@@ -466,7 +466,7 @@ void CDirectoryWatcher::WorkerThread()
 									if ((pnotify->Action == FILE_ACTION_ADDED || pnotify->Action == FILE_ACTION_RENAMED_NEW_NAME) && (wcsstr(pFound, L"index.lock") || wcsstr(pFound, L"HEAD.lock")))
 									{
 										// Lock got added, block path from crawling.
-										CTGitPath path = g_AdminDirMap.GetWorkingCopy(CTGitPath(buf).GetContainingDirectory().GetWinPathString());
+										CTGitPath path(g_AdminDirMap.GetWorkingCopy(CTGitPath(buf).GetContainingDirectory().GetWinPathString().c_str()).GetString());
 										CGitStatusCache::Instance().BlockPath(path);
 									}
 									else if (
@@ -479,7 +479,7 @@ void CDirectoryWatcher::WorkerThread()
 										// because we don't know what we missed during the lock.
 										// We don't unblock directly because during rebase the lock file gets created and deleted rapidly
 										// and we don't want to trigger unnecessary crawls then.
-										CTGitPath path = g_AdminDirMap.GetWorkingCopy(CTGitPath(buf).GetContainingDirectory().GetWinPathString());
+										CTGitPath path(g_AdminDirMap.GetWorkingCopy(CTGitPath(buf).GetContainingDirectory().GetWinPathString().c_str()).GetString());
 										CGitStatusCache::Instance().BlockPath(path, BLOCK_PATH_WAIT_AFTER_UNLOCK);
 										m_FolderCrawler->WakeUp();
 									}
@@ -508,7 +508,7 @@ void CDirectoryWatcher::WorkerThread()
 					{
 						bool available = false;
 						CTGitPath dir;
-						CString topDir;
+						std::wstring topDir;
 						bool hasAdminDir = false;
 					} cache;
 					while (!notifyPaths.empty())
@@ -598,7 +598,7 @@ CTGitPath CDirectoryWatcher::CloseInfoMap(HANDLE hDir)
 	TInfoMap::const_iterator d = watchInfoMap.find(hDir);
 	if (d != watchInfoMap.end())
 	{
-		path = CTGitPath(CTGitPath(d->second->m_DirPath).GetRootPathString());
+		path = CTGitPath(CTGitPath(d->second->m_DirPath.GetString()).GetRootPathString().c_str());
 		RemovePathAndChildren(path);
 		BlockPath(path);
 	}
@@ -630,7 +630,7 @@ bool CDirectoryWatcher::CloseHandlesForPath(const CTGitPath& path)
 	{
 		CDirectoryWatcher::CDirWatchInfo * info = I->second;
 		I->second = nullptr;
-		CTGitPath p = CTGitPath(info->m_DirPath);
+		CTGitPath p = CTGitPath(info->m_DirPath.GetString());
 		if (path.IsAncestorOf(p))
 		{
 			RemovePathAndChildren(p);
@@ -648,7 +648,7 @@ CDirectoryWatcher::CDirWatchInfo::CDirWatchInfo(HANDLE hDir, const CTGitPath& Di
 {
 	ATLASSERT(m_hDir && !DirectoryName.IsEmpty());
 	m_Buffer[0] = '\0';
-	m_DirPath = m_DirName.GetWinPathString();
+	m_DirPath = m_DirName.GetWinPathString().c_str();
 	if (m_DirPath.GetAt(m_DirPath.GetLength() - 1) != L'\\')
 		m_DirPath += L'\\';
 }

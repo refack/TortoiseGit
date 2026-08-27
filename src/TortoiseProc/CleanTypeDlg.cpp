@@ -1,4 +1,4 @@
-// TortoiseGit - a Windows shell extension for easy version control
+﻿// TortoiseGit - a Windows shell extension for easy version control
 
 // Copyright (C) 2008-2017, 2024 - TortoiseGit
 
@@ -109,7 +109,7 @@ void CCleanTypeDlg::SetDlgTitle()
 		GetWindowText(m_sTitle);
 
 	if (m_pathList.GetCount() == 1)
-		CAppUtils::SetWindowTitle(m_hWnd, g_Git.CombinePath(m_pathList[0].GetUIPathString()), m_sTitle);
+		CAppUtils::SetWindowTitle(m_hWnd, g_Git.CombinePath(m_pathList[0].GetUIPathString().c_str()), m_sTitle);
 	else
 		CAppUtils::SetWindowTitle(m_hWnd, g_Git.CombinePath(m_pathList.GetCommonRoot().GetDirectory()), m_sTitle);
 }

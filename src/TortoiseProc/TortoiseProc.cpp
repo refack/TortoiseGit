@@ -254,7 +254,7 @@ BOOL CTortoiseProcApp::InitInstance()
 	{
 		CString sPathfileArgument = CPathUtils::GetLongPathname(parser.GetVal(L"pathfile"));
 
-		cmdLinePath.SetFromUnknown(sPathfileArgument);
+		cmdLinePath.SetFromUnknown(sPathfileArgument.GetString());
 		if (pathList.LoadFromFile(cmdLinePath)==false)
 			return FALSE;		// no path specified!
 		if (parser.HasKey(L"deletepathfile"))
@@ -275,24 +275,24 @@ BOOL CTortoiseProcApp::InitInstance()
 			CMessageBox::Show(hWndExplorer, IDS_ERR_INVALIDPATH, IDS_APPNAME, MB_ICONERROR);
 			return FALSE;
 		}
-		pathList.LoadFromAsteriskSeparatedString(sPathArgument);
+		pathList.LoadFromAsteriskSeparatedString(sPathArgument.GetString());
 		if (!pathList.IsEmpty())
 			cmdLinePath = pathList[0];
 	}
 
 	if (pathList.IsEmpty()) {
-		pathList.AddPath(CTGitPath::CTGitPath(g_Git.m_CurrentDir));
+		pathList.AddPath(CTGitPath(g_Git.m_CurrentDir.GetString()));
 	}
 
 	CAutoGeneralHandle TGitMutex = ::CreateMutex(nullptr, FALSE, L"TortoiseGitProc.exe");
-	if (!g_Git.SetCurrentDir(cmdLinePath.GetWinPathString(), parser.HasKey(L"submodule") == TRUE))
+	if (!g_Git.SetCurrentDir(cmdLinePath.GetWinPathString().c_str(), parser.HasKey(L"submodule") == TRUE))
 	{
 		for (int i = 0; i < pathList.GetCount(); ++i)
-			if (g_Git.SetCurrentDir(pathList[i].GetWinPathString()))
+			if (g_Git.SetCurrentDir(pathList[i].GetWinPathString().c_str()))
 				break;
 	}
 	if (parser.HasKey(L"pathfile") && parser.HasKey(L"submodule"))
-		g_Git.SetCurrentDir(pathList[0].GetWinPathString(), true);
+		g_Git.SetCurrentDir(pathList[0].GetWinPathString().c_str(), true);
 
 	if(!g_Git.m_CurrentDir.IsEmpty())
 		SetCurrentDirectory(g_Git.m_CurrentDir);

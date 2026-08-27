@@ -21,6 +21,7 @@
 #include "stdafx.h"
 #include "ShellUpdater.h"
 #include <ShlObj.h>
+#include <format>
 #include "GitAdminDir.h"
 
 CShellUpdater::CShellUpdater()
@@ -137,9 +138,9 @@ void CShellUpdater::WorkerThread()
 				// first send a notification about a sub folder change, so explorer doesn't discard
 				// the folder notification. Since we only know for sure that the git admin
 				// dir is present, we send a notification for that folder.
-				CString admindir = workingPath.GetWinPathString() + L"\\.git";
-				if(::PathFileExists(admindir))
-					SHChangeNotify(SHCNE_UPDATEITEM, SHCNF_PATH | SHCNF_FLUSHNOWAIT, static_cast<LPCWSTR>(admindir), nullptr);
+				const std::wstring admindir = std::format(L"{}\\.git", workingPath.GetWinPathString());
+				if (::PathFileExists(admindir.c_str()))
+					SHChangeNotify(SHCNE_UPDATEITEM, SHCNF_PATH | SHCNF_FLUSHNOWAIT, admindir.c_str(), nullptr);
 
 				SHChangeNotify(SHCNE_UPDATEITEM, SHCNF_PATH | SHCNF_FLUSHNOWAIT, workingPath.GetWinPath(), nullptr);
 				// Sending an UPDATEDIR notification somehow overwrites/deletes the UPDATEITEM message. And without

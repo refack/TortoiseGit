@@ -103,7 +103,7 @@ bool CHooks::Save()
 		strhooks += L'\n';
 		if (!it->second.bEnabled)
 			strhooks += L'!';
-		strhooks += it->first.path.GetWinPathString();
+		strhooks += it->first.path.GetWinPathString().c_str();
 		strhooks += L'\n';
 		strhooks += it->second.commandline;
 		strhooks += L'\n';
@@ -287,8 +287,8 @@ void CHooks::AddParam(CString& sCmd, const CString& param)
 void CHooks::AddPathParam(CString& sCmd, const CTGitPathList& pathList)
 {
 	CTGitPath temppath = CTempFiles::Instance().GetTempFilePath(true);
-	pathList.WriteToFile(temppath.GetWinPathString(), true);
-	AddParam(sCmd, temppath.GetWinPathString());
+	pathList.WriteToFile(temppath.GetWinPathString().c_str(), true);
+	AddParam(sCmd, temppath.GetWinPathString().c_str());
 }
 
 void CHooks::AddCWDParam(CString& sCmd, const CString& workingTree)
@@ -301,7 +301,7 @@ void CHooks::AddErrorParam(CString& sCmd, const CString& error)
 	CTGitPath tempPath;
 	tempPath = CTempFiles::Instance().GetTempFilePath(true);
 	CStringUtils::WriteStringToTextFile(tempPath.GetWinPath(), error);
-	AddParam(sCmd, tempPath.GetWinPathString());
+	AddParam(sCmd, tempPath.GetWinPathString().c_str());
 }
 
 CTGitPath CHooks::AddMessageFileParam(CString& sCmd, const CString& message)
@@ -309,7 +309,7 @@ CTGitPath CHooks::AddMessageFileParam(CString& sCmd, const CString& message)
 	CTGitPath tempPath;
 	tempPath = CTempFiles::Instance().GetTempFilePath(true);
 	CStringUtils::WriteStringToTextFile(tempPath.GetWinPath(), message);
-	AddParam(sCmd, tempPath.GetWinPathString());
+	AddParam(sCmd, tempPath.GetWinPathString().c_str());
 	return tempPath;
 }
 
@@ -324,14 +324,14 @@ bool CHooks::StartCommit(HWND hWnd, const CString& workingTree, const CTGitPathL
 		return true;
 	}
 	CString sCmd = it->second.commandline;
-	sCmd.Replace(L"%root%", m_RootPath.GetWinPathString());
+	sCmd.Replace(L"%root%", m_RootPath.GetWinPathString().c_str());
 	AddPathParam(sCmd, pathList);
 	CTGitPath temppath = AddMessageFileParam(sCmd, message);
 	AddCWDParam(sCmd, workingTree);
 	exitcode = RunScript(sCmd, workingTree, error, it->second.bWait, it->second.bShow);
 	if (!exitcode && !temppath.IsEmpty())
 	{
-		CStringUtils::ReadStringFromTextFile(temppath.GetWinPathString(), message);
+		CStringUtils::ReadStringFromTextFile(temppath.GetWinPathString().c_str(), message);
 	}
 	return true;
 }
@@ -347,13 +347,13 @@ bool CHooks::PreCommit(HWND hWnd, const CString& workingTree, const CTGitPathLis
 		return true;
 	}
 	CString sCmd = it->second.commandline;
-	sCmd.Replace(L"%root%", m_RootPath.GetWinPathString());
+	sCmd.Replace(L"%root%", m_RootPath.GetWinPathString().c_str());
 	AddPathParam(sCmd, pathList);
 	CTGitPath temppath = AddMessageFileParam(sCmd, message);
 	AddCWDParam(sCmd, workingTree);
 	exitcode = RunScript(sCmd, workingTree, error, it->second.bWait, it->second.bShow);
 	if (!exitcode && !temppath.IsEmpty())
-		CStringUtils::ReadStringFromTextFile(temppath.GetWinPathString(), message);
+		CStringUtils::ReadStringFromTextFile(temppath.GetWinPathString().c_str(), message);
 	return true;
 }
 
@@ -368,7 +368,7 @@ bool CHooks::PostCommit(HWND hWnd, const CString& workingTree, bool amend, DWORD
 		return true;
 	}
 	CString sCmd = it->second.commandline;
-	sCmd.Replace(L"%root%", m_RootPath.GetWinPathString());
+	sCmd.Replace(L"%root%", m_RootPath.GetWinPathString().c_str());
 	AddCWDParam(sCmd, workingTree);
 	if (amend)
 		AddParam(sCmd, L"true");
@@ -389,7 +389,7 @@ bool CHooks::PrePush(HWND hWnd, const CString& workingTree, DWORD& exitcode, CSt
 		return true;
 	}
 	CString sCmd = it->second.commandline;
-	sCmd.Replace(L"%root%", m_RootPath.GetWinPathString());
+	sCmd.Replace(L"%root%", m_RootPath.GetWinPathString().c_str());
 	AddErrorParam(sCmd, error);
 	AddCWDParam(sCmd, workingTree);
 	exitcode = RunScript(sCmd, workingTree, error, it->second.bWait, it->second.bShow);
@@ -407,7 +407,7 @@ bool CHooks::PostPush(HWND hWnd, const CString& workingTree, DWORD& exitcode, CS
 		return true;
 	}
 	CString sCmd = it->second.commandline;
-	sCmd.Replace(L"%root%", m_RootPath.GetWinPathString());
+	sCmd.Replace(L"%root%", m_RootPath.GetWinPathString().c_str());
 	AddErrorParam(sCmd, error);
 	AddCWDParam(sCmd, workingTree);
 	exitcode = RunScript(sCmd, workingTree, error, it->second.bWait, it->second.bShow);
@@ -425,7 +425,7 @@ bool CHooks::PreRebase(HWND hWnd, const CString& workingTree, const CString& ups
 		return true;
 	}
 	CString sCmd = it->second.commandline;
-	sCmd.Replace(L"%root%", m_RootPath.GetWinPathString());
+	sCmd.Replace(L"%root%", m_RootPath.GetWinPathString().c_str());
 	AddParam(sCmd, upstream);
 	AddParam(sCmd, rebasedBranch);
 	AddErrorParam(sCmd, error);
@@ -443,7 +443,7 @@ bool CHooks::IsHookPresent(HookType t, const CString& workingTree)
 hookiterator CHooks::FindItem(HookType t, const CString& workingTree)
 {
 	hookkey key;
-	CTGitPath path = workingTree;
+	CTGitPath path{ workingTree.GetString() };
 	bool local = false;
 	do
 	{
@@ -467,7 +467,7 @@ hookiterator CHooks::FindItem(HookType t, const CString& workingTree)
 	 * recheck whether it is necessary to add a check for "key.path = m_RootPath"
 	 * (e.g., for sparse checkouts or other hook types).
 	 */
-	ATLASSERT(CTGitPath(workingTree).IsWCRoot());
+	ATLASSERT(CTGitPath(workingTree.GetString()).IsWCRoot());
 
 	// look for a script with a path as '*'
 	key.htype = t;
@@ -522,7 +522,7 @@ void CHooks::ParseHookString(CString strhooks, bool bLocal)
 			if (strhooks[0] == L'?' && pos > 0)
 				key.path = CTGitPath(m_RootPath);
 			else
-				key.path = CTGitPath(strhooks.Left(pos));
+				key.path = CTGitPath(strhooks.Left(pos).GetString());
 			if (pos + 1 < strhooks.GetLength())
 				strhooks = strhooks.Mid(pos + 1);
 			else

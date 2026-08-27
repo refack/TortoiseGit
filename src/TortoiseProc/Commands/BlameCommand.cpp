@@ -28,7 +28,7 @@ bool BlameCommand::Execute()
 	if (parser.HasVal(L"line"))
 		params.Format(L"/line:%ld", parser.GetLongVal(L"line"));
 
-	CAppUtils::LaunchTortoiseBlame(orgCmdLinePath.GetWinPathString(), parser.GetVal(L"endrev"), params);
+	CAppUtils::LaunchTortoiseBlame(orgCmdLinePath.GetWinPathString().c_str(), parser.GetVal(L"endrev"), params);
 
 	return TRUE;
 }

@@ -44,7 +44,7 @@ static bool CheckSpecialFolder(const CString& folder)
 
 bool CreateRepositoryCommand::Execute()
 {
-	CString folder = orgCmdLinePath.GetWinPathString();
+	CString folder = orgCmdLinePath.GetWinPathString().c_str();
 	if (folder.IsEmpty())
 		folder = g_Git.m_CurrentDir;
 	if (folder.IsEmpty())

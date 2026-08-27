@@ -32,9 +32,9 @@ bool FetchProgressCommand::Run(CGitProgressList* list, CString& sWindowTitle, in
 
 	list->SetWindowTitle(IDS_PROGRS_TITLE_FETCH, g_Git.m_CurrentDir, sWindowTitle);
 	list->SetBackgroundImage(IDI_UPDATE_BKG);
-	list->ReportCmd(CString(MAKEINTRESOURCE(IDS_PROGRS_TITLE_FETCH)) + L' ' + m_url.GetGitPathString() + L' ' + m_RefSpec);
+	list->ReportCmd(CString(MAKEINTRESOURCE(IDS_PROGRS_TITLE_FETCH)) + L' ' + m_url.GetGitPathString().c_str() + L' ' + m_RefSpec);
 
-	CStringA url = CUnicodeUtils::GetUTF8(m_url.GetGitPathString());
+	CStringA url = CUnicodeUtils::GetUTF8(m_url.GetGitPathString().c_str());
 
 	CSmartAnimation animate(list->m_pAnimate);
 

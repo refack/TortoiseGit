@@ -22,6 +22,7 @@
 #include "GitStatusListCtrl.h"
 #include "TGitPath.h"
 #include "ColumnManager.h"
+#include "WideString.h"
 
 // sorter utility class
 CSorter::CSorter ( ColumnManager* columnManager
@@ -46,7 +47,7 @@ bool CSorter::operator() (const CTGitPath* entry1 , const CTGitPath* entry2) con
 	case eCol_LFSLock: // LFS Locks
 		{
 			if (result == 0)
-				result = entry1->m_LFSLockOwner.CompareNoCase(entry2->m_LFSLockOwner);
+				result = tgit::wstr::CompareNoCase(entry1->m_LFSLockOwner, entry2->m_LFSLockOwner);
 			break;
 		}
 	case eCol_FileSize: // File size
@@ -74,20 +75,20 @@ bool CSorter::operator() (const CTGitPath* entry1 , const CTGitPath* entry2) con
 	case eCol_Del: //Del Number
 		{
 			if (result == 0)
-				result = SGN(A2L(entry1->m_StatDel) - A2L(entry2->m_StatDel));
+				result = SGN(A2L(entry1->m_StatDel.c_str()) - A2L(entry2->m_StatDel.c_str()));
 			break;
 		}
 	case eCol_Add: //Add Number
 		{
 			if (result == 0)
-				result = SGN(A2L(entry1->m_StatAdd) - A2L(entry2->m_StatAdd));
+				result = SGN(A2L(entry1->m_StatAdd.c_str()) - A2L(entry2->m_StatAdd.c_str()));
 			break;
 		}
 
 	case eCol_Status: // Status
 		{
 			if (result == 0)
-				result = entry1->GetActionName(entry1->m_Action).CompareNoCase(entry2->GetActionName(entry2->m_Action));
+				result = tgit::wstr::CompareNoCase(entry1->GetActionName(entry1->m_Action), entry2->GetActionName(entry2->m_Action));
 			break;
 		}
 	case eCol_Extension: //Ext file
@@ -95,9 +96,9 @@ bool CSorter::operator() (const CTGitPath* entry1 , const CTGitPath* entry2) con
 			if (result == 0)
 			{
 				if (s_bSortLogical)
-					result = StrCmpLogicalW(entry1->GetFileExtension(), entry2->GetFileExtension());
+					result = StrCmpLogicalW(entry1->GetFileExtension().c_str(), entry2->GetFileExtension().c_str());
 				else
-					result = StrCmpI(entry1->GetFileExtension(), entry2->GetFileExtension());
+					result = StrCmpI(entry1->GetFileExtension().c_str(), entry2->GetFileExtension().c_str());
 			}
 			break;
 		}
@@ -106,9 +107,9 @@ bool CSorter::operator() (const CTGitPath* entry1 , const CTGitPath* entry2) con
 			if (result == 0)
 			{
 				if (s_bSortLogical)
-					result = StrCmpLogicalW(entry1->GetFileOrDirectoryName(), entry2->GetFileOrDirectoryName());
+					result = StrCmpLogicalW(entry1->GetFileOrDirectoryName().c_str(), entry2->GetFileOrDirectoryName().c_str());
 				else
-					result = StrCmpI(entry1->GetFileOrDirectoryName(), entry2->GetFileOrDirectoryName());
+					result = StrCmpI(entry1->GetFileOrDirectoryName().c_str(), entry2->GetFileOrDirectoryName().c_str());
 			}
 			break;
 		}
@@ -117,9 +118,9 @@ bool CSorter::operator() (const CTGitPath* entry1 , const CTGitPath* entry2) con
 			if (result == 0)
 			{
 				if (s_bSortLogical)
-					result = StrCmpLogicalW(entry1->GetGitPathString(), entry2->GetGitPathString());
+					result = StrCmpLogicalW(entry1->GetGitPathString().c_str(), entry2->GetGitPathString().c_str());
 				else
-					result = StrCmpI(entry1->GetGitPathString(), entry2->GetGitPathString());
+					result = StrCmpI(entry1->GetGitPathString().c_str(), entry2->GetGitPathString().c_str());
 			}
 			break;
 		}
@@ -128,9 +129,9 @@ bool CSorter::operator() (const CTGitPath* entry1 , const CTGitPath* entry2) con
 	if (sortedColumn > 0 && result == 0)
 	{
 		if (s_bSortLogical)
-			result = StrCmpLogicalW(entry1->GetGitPathString(), entry2->GetGitPathString());
+			result = StrCmpLogicalW(entry1->GetGitPathString().c_str(), entry2->GetGitPathString().c_str());
 		else
-			result = StrCmpI(entry1->GetGitPathString(), entry2->GetGitPathString());
+			result = StrCmpI(entry1->GetGitPathString().c_str(), entry2->GetGitPathString().c_str());
 	}
 	if (!ascending)
 		result = -result;

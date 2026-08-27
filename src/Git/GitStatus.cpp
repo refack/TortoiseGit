@@ -38,32 +38,32 @@ GitStatus::GitStatus()
 int GitStatus::GetAllStatus(const CTGitPath& path, bool bIsRecursive, git_wc_status2_t& status)
 {
 	BOOL						isDir;
-	CString						sProjectRoot;
+	std::wstring					sProjectRoot;
 
 	isDir = path.IsDirectory();
 	if (!path.HasAdminDir(&sProjectRoot))
 		return git_wc_status_none;
 
 	CString sSubPath;
-	CString s = path.GetWinPathString();
-	if (s.GetLength() > sProjectRoot.GetLength())
+	CString s = path.GetWinPathString().c_str();
+	if (static_cast<size_t>(s.GetLength()) > sProjectRoot.size())
 	{
-		if (sProjectRoot.GetLength() == 3 && sProjectRoot[1] == L':')
-			sSubPath = s.Right(s.GetLength() - sProjectRoot.GetLength());
+		if (sProjectRoot.size() == 3 && sProjectRoot[1] == L':')
+			sSubPath = s.Right(s.GetLength() - static_cast<int>(sProjectRoot.size()));
 		else
-			sSubPath = s.Right(s.GetLength() - sProjectRoot.GetLength() - 1/*otherwise it gets initial slash*/);
+			sSubPath = s.Right(s.GetLength() - static_cast<int>(sProjectRoot.size()) - 1/*otherwise it gets initial slash*/);
 	}
 
 	const bool isfull = (static_cast<DWORD>(CRegStdDWORD(L"Software\\TortoiseGit\\CacheType", GetSystemMetrics(SM_REMOTESESSION)) ? ShellCache::dll : ShellCache::exe) == ShellCache::dllFull);
 
 	if(isDir)
 	{
-		auto err = GetDirStatus(sProjectRoot, sSubPath, &status.status, isfull, bIsRecursive, isfull);
+		auto err = GetDirStatus(sProjectRoot.c_str(), sSubPath, &status.status, isfull, bIsRecursive, isfull);
 		AdjustFolderStatus(status.status);
 		return err;
 	}
 
-	return GetFileStatus(sProjectRoot, sSubPath, status, isfull, isfull);
+	return GetFileStatus(sProjectRoot.c_str(), sSubPath, status, isfull, isfull);
 }
 #endif
 
@@ -105,7 +105,7 @@ void GitStatus::GetStatus(const CTGitPath& path, bool /*update*/ /* = false */, 
 	//       Tortoise uses this, all places that call GetStatus create a temp GitStatus object which gets destroyed right
 	//       after the call again
 
-	CString sProjectRoot;
+	std::wstring sProjectRoot;
 	if ( !path.HasAdminDir(&sProjectRoot) )
 		return;
 
@@ -115,10 +115,10 @@ void GitStatus::GetStatus(const CTGitPath& path, bool /*update*/ /* = false */, 
 
 	LPCWSTR lpszSubPath = nullptr;
 	CString sSubPath;
-	CString s = path.GetWinPathString();
-	if (s.GetLength() > sProjectRoot.GetLength())
+	CString s = path.GetWinPathString().c_str();
+	if (static_cast<size_t>(s.GetLength()) > sProjectRoot.size())
 	{
-		sSubPath = s.Right(s.GetLength() - sProjectRoot.GetLength());
+		sSubPath = s.Right(s.GetLength() - static_cast<int>(sProjectRoot.size()));
 		lpszSubPath = sSubPath;
 		// skip initial slash if necessary
 		if (*lpszSubPath == L'\\')
@@ -131,11 +131,11 @@ void GitStatus::GetStatus(const CTGitPath& path, bool /*update*/ /* = false */, 
 
 	if (path.IsDirectory())
 	{
-		err = GetDirStatus(sProjectRoot, lpszSubPath, &m_status.status, isfull, false, !noignore);
+		err = GetDirStatus(sProjectRoot.c_str(), lpszSubPath, &m_status.status, isfull, false, !noignore);
 		AdjustFolderStatus(m_status.status);
 	}
 	else
-		err = GetFileStatus(sProjectRoot, lpszSubPath, m_status, isfull, !noignore);
+		err = GetFileStatus(sProjectRoot.c_str(), lpszSubPath, m_status, isfull, !noignore);
 
 	// Error present if function is not under version control
 	if (err)
@@ -716,10 +716,10 @@ int GitStatus::GetDirStatus(const CString& gitdir, const CString& subpath, git_w
 #ifdef TGITCACHE
 bool GitStatus::IsExistIndexLockFile(const CTGitPath& path)
 {
-	CString rootDir;
+	std::wstring rootDir;
 	if (!path.HasAdminDir(&rootDir))
 		return false;
-	CString indexPath = g_AdminDirMap.GetWorktreeAdminDirConcat(rootDir, L"index.lock");
+	CString indexPath = g_AdminDirMap.GetWorktreeAdminDirConcat(rootDir.c_str(), L"index.lock");
 	return !!PathFileExists(indexPath);
 }
 #endif

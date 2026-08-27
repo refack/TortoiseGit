@@ -42,7 +42,7 @@ bool ResolveCommand::Execute()
 					CString cmd, out;
 					try
 					{
-						cmd.Format(L"git.exe add -f -- %s", static_cast<LPCWSTR>(CGit::QuoteParameter(dlg.m_pathList[i].GetGitPathString())));
+						cmd.Format(L"git.exe add -f -- %s", static_cast<LPCWSTR>(CGit::QuoteParameter(dlg.m_pathList[i].GetGitPathString().c_str())));
 					}
 					catch (illegal_git_parameter& e)
 					{

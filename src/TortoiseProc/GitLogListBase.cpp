@@ -155,9 +155,9 @@ int CGitLogListBase::AsyncDiffThread()
 				for (int j = 0; j < files.GetCount(); ++j)
 					action |= files[j].m_Action;
 
-				if (CString err; pRev->GetUnRevFiles().FillUnRev(CTGitPath::LOGACTIONS_UNVER, nullptr, &err))
+				if (std::wstring err; pRev->GetUnRevFiles().FillUnRev(CTGitPath::LOGACTIONS_UNVER, nullptr, &err))
 				{
-					::MessageBox(nullptr, L"Failed to get UnRev file list\n" + err, L"TortoiseGit", MB_OK | MB_ICONERROR);
+					::MessageBox(nullptr, std::format(L"Failed to get UnRev file list\n{}", err).c_str(), L"TortoiseGit", MB_OK | MB_ICONERROR);
 					InterlockedExchange(&m_AsyncThreadRunning, FALSE);
 					return -1;
 				}
@@ -316,7 +316,7 @@ void CGitLogListBase::InsertGitColumn()
 
 	const auto iconItemBorder = CDPIAware::Instance().ScaleX(GetSafeHwnd(), ICONITEMBORDER);
 	const auto columnWidth = CDPIAware::Instance().ScaleX(GetSafeHwnd(), ICONITEMBORDER + 16 * 4);
-	const auto hasSVNDir = CTGitPath(g_Git.m_CurrentDir).HasGitSVNDir();
+	const auto hasSVNDir = CTGitPath(g_Git.m_CurrentDir.GetString()).HasGitSVNDir();
 
 	const ColumnDefinition columns[] = {
 		{ LOGLIST_GRAPH, IDS_LOG_GRAPH, true, !m_IsRebaseReplaceGraph, columnWidth },
@@ -1696,7 +1696,7 @@ void CGitLogListBase::OnContextMenu(CWnd* pWnd, CPoint point)
 		const auto& hashMap = *hashMapSharedPtr;
 		const bool isHeadCommit = (pSelLogEntry->m_CommitHash == headHash);
 		CString currentBranch = L"refs/heads/" + g_Git.GetCurrentBranch();
-		CTGitPath workingTree(g_Git.m_CurrentDir);
+		CTGitPath workingTree(g_Git.m_CurrentDir.GetString());
 		const bool isMergeActive = workingTree.IsMergeActive();
 		const bool isBisectActive = workingTree.IsBisectActive();
 		const bool isStash = IsOnStash(FirstSelect);
@@ -2404,11 +2404,11 @@ void CGitLogListBase::CopySelectionToClipBoard(int toCopy)
 				for (int cpPathIndex = 0; cpPathIndex < files.GetCount(); ++cpPathIndex)
 				{
 					auto& file = files[cpPathIndex];
-					sPaths += file.GetActionName() + L": " + file.GetGitPathString();
-					if (file.m_Action & (CTGitPath::LOGACTIONS_REPLACED | CTGitPath::LOGACTIONS_COPY) && !file.GetGitOldPathString().IsEmpty())
+					sPaths += std::format(L"{}: {}", file.GetActionName(), file.GetGitPathString()).c_str();
+					if (file.m_Action & (CTGitPath::LOGACTIONS_REPLACED | CTGitPath::LOGACTIONS_COPY) && !file.GetGitOldPathString().empty())
 					{
 						sPaths += L' ';
-						sPaths.AppendFormat(from, static_cast<LPCWSTR>(file.GetGitOldPathString()));
+						sPaths.AppendFormat(from, static_cast<LPCWSTR>(file.GetGitOldPathString().c_str()));
 					}
 					sPaths += L"\r\n";
 				}
@@ -3709,34 +3709,34 @@ CString CGitLogListBase::GetToolTipText(int nItem, int nSubItem)
 
 		CString actionText;
 		if (actions & CTGitPath::LOGACTIONS_MODIFIED)
-			actionText += CTGitPath::GetActionName(CTGitPath::LOGACTIONS_MODIFIED);
+			actionText += CTGitPath::GetActionName(CTGitPath::LOGACTIONS_MODIFIED).c_str();
 
 		if (actions & CTGitPath::LOGACTIONS_ADDED)
 		{
 			if (!actionText.IsEmpty())
 				actionText += L"\r\n";
-			actionText += CTGitPath::GetActionName(CTGitPath::LOGACTIONS_ADDED);
+			actionText += CTGitPath::GetActionName(CTGitPath::LOGACTIONS_ADDED).c_str();
 		}
 
 		if (actions & CTGitPath::LOGACTIONS_DELETED)
 		{
 			if (!actionText.IsEmpty())
 				actionText += L"\r\n";
-			actionText += CTGitPath::GetActionName(CTGitPath::LOGACTIONS_DELETED);
+			actionText += CTGitPath::GetActionName(CTGitPath::LOGACTIONS_DELETED).c_str();
 		}
 
 		if (actions & CTGitPath::LOGACTIONS_REPLACED)
 		{
 			if (!actionText.IsEmpty())
 				actionText += L"\r\n";
-			actionText += CTGitPath::GetActionName(CTGitPath::LOGACTIONS_REPLACED);
+			actionText += CTGitPath::GetActionName(CTGitPath::LOGACTIONS_REPLACED).c_str();
 		}
 
 		if (actions & CTGitPath::LOGACTIONS_UNMERGED)
 		{
 			if (!actionText.IsEmpty())
 				actionText += L"\r\n";
-			actionText += CTGitPath::GetActionName(CTGitPath::LOGACTIONS_UNMERGED);
+			actionText += CTGitPath::GetActionName(CTGitPath::LOGACTIONS_UNMERGED).c_str();
 		}
 
 		if (!actionText.IsEmpty())

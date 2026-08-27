@@ -106,7 +106,7 @@ void CBugTraqAssociations::Add(const CBugTraqAssociation &assoc)
 bool CBugTraqAssociations::FindProvider(const CString &path, CBugTraqAssociation *assoc)
 {
 	CTGitPath gitpath;
-	gitpath.SetFromUnknown(path);
+	gitpath.SetFromUnknown(path.GetString());
 
 	if (FindProviderForPath(gitpath, assoc))
 		return true;
@@ -195,7 +195,7 @@ void CBugTraqAssociations::Save() const
 		if (RegCreateKeyEx(hk, szSubKey, 0, nullptr, 0, KEY_WRITE, nullptr, &hk2, nullptr) == ERROR_SUCCESS)
 		{
 			RegSetValueFromCString(hk2, L"Provider", (*it)->GetProviderClassAsString());
-			RegSetValueFromCString(hk2, L"WorkingCopy", (*it)->GetPath().GetWinPathString());
+			RegSetValueFromCString(hk2, L"WorkingCopy", (*it)->GetPath().GetWinPathString().c_str());
 			RegSetValueFromCString(hk2, L"Parameters", (*it)->GetParameters());
 			DWORD enabled = (*it)->IsEnabled() ? 1 : 0;
 			RegSetValueEx(hk2, L"Enabled", 0, REG_DWORD, reinterpret_cast<BYTE*>(&enabled), sizeof(enabled));

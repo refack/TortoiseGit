@@ -85,7 +85,7 @@ void CSetBugTraq::RebuildBugTraqList()
 	// fill the list control with all the hooks
 	for (CBugTraqAssociations::const_iterator it = m_associations.begin(); it != m_associations.end(); ++it)
 	{
-		int pos = m_cBugTraqList.InsertItem(m_cBugTraqList.GetItemCount(), (*it)->GetPath().GetWinPathString());
+		int pos = m_cBugTraqList.InsertItem(m_cBugTraqList.GetItemCount(), (*it)->GetPath().GetWinPathString().c_str());
 		m_cBugTraqList.SetCheck(pos, (*it)->IsEnabled());
 		m_cBugTraqList.SetItemText(pos, 1, (*it)->GetProviderName());
 		m_cBugTraqList.SetItemText(pos, 2, (*it)->GetParameters());

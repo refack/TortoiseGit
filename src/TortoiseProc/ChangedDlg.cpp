@@ -90,7 +90,7 @@ BOOL CChangedDlg::OnInitDialog()
 	m_bShowStaged = m_regShowStaged;
 	SetDlgTitle();
 
-	if (m_pathList.GetCount() == 1 && m_pathList[0].GetWinPathString().IsEmpty())
+	if (m_pathList.GetCount() == 1 && m_pathList[0].GetWinPathString().empty())
 	{
 		m_bWholeProject = BST_CHECKED;
 		DialogEnableWindow(IDC_WHOLE_PROJECT, FALSE);
@@ -254,7 +254,7 @@ void CChangedDlg::SetDlgTitle()
 	else
 	{
 		if (m_pathList.GetCount() == 1)
-			CAppUtils::SetWindowTitle(m_hWnd, g_Git.CombinePath(m_pathList[0].GetUIPathString()), m_sTitle);
+			CAppUtils::SetWindowTitle(m_hWnd, g_Git.CombinePath(m_pathList[0].GetUIPathString().c_str()), m_sTitle);
 		else
 			CAppUtils::SetWindowTitle(m_hWnd, g_Git.CombinePath(m_FileListCtrl.GetCommonDirectory(false)), m_sTitle);
 	}
@@ -392,7 +392,7 @@ void CChangedDlg::OnBnClickedStash()
 	{
 		popup.AppendMenuIcon(ID_STASH_SAVE, IDS_MENUSTASHSAVE, IDI_SHELVE);
 
-		CTGitPath root = g_Git.m_CurrentDir;
+		CTGitPath root(g_Git.m_CurrentDir.GetString());
 		if (root.HasStashDir())
 		{
 			popup.AppendMenuIcon(ID_STASH_POP, IDS_MENUSTASHPOP, IDI_UNSHELVE);

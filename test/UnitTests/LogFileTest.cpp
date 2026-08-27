@@ -27,9 +27,9 @@ TEST(CLogFile, Empty)
 	ASSERT_STRNE(L"", tmpfile);
 	SCOPE_EXIT{ ::DeleteFile(tmpfile); };
 	CLogFile logFile{L"someRepo", 4000};
-	ASSERT_TRUE(logFile.Open(tmpfile));
+	ASSERT_TRUE(logFile.Open(CTGitPath(tmpfile.GetString())));
 	EXPECT_TRUE(logFile.Close());
-	EXPECT_EQ(0, CTGitPath(tmpfile).GetFileSize());
+	EXPECT_EQ(0, CTGitPath(tmpfile.GetString()).GetFileSize());
 }
 
 TEST(CLogFile, NoTruncate)
@@ -39,7 +39,7 @@ TEST(CLogFile, NoTruncate)
 	ASSERT_TRUE(CStringUtils::WriteStringToTextFile(tmpfile, L"1"));
 	SCOPE_EXIT{ ::DeleteFile(tmpfile); };
 	CLogFile logFile{ L"someRepo", 5 };
-	ASSERT_TRUE(logFile.Open(tmpfile));
+	ASSERT_TRUE(logFile.Open(CTGitPath(tmpfile.GetString())));
 	EXPECT_TRUE(logFile.Close());
 	CString text;
 	ASSERT_TRUE(CStringUtils::ReadStringFromTextFile(tmpfile, text));
@@ -53,7 +53,7 @@ TEST(CLogFile, TruncateToFive)
 	ASSERT_TRUE(CStringUtils::WriteStringToTextFile(tmpfile, L"1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n"));
 	SCOPE_EXIT{ ::DeleteFile(tmpfile); };
 	CLogFile logFile{ L"someRepo", 5 };
-	ASSERT_TRUE(logFile.Open(tmpfile));
+	ASSERT_TRUE(logFile.Open(CTGitPath(tmpfile.GetString())));
 	EXPECT_TRUE(logFile.Close());
 	CString text;
 	ASSERT_TRUE(CStringUtils::ReadStringFromTextFile(tmpfile, text));
@@ -67,7 +67,7 @@ TEST(CLogFile, TruncateToOne)
 	ASSERT_TRUE(CStringUtils::WriteStringToTextFile(tmpfile, L"1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n"));
 	SCOPE_EXIT{ ::DeleteFile(tmpfile); };
 	CLogFile logFile{ L"someRepo", 1 };
-	ASSERT_TRUE(logFile.Open(tmpfile));
+	ASSERT_TRUE(logFile.Open(CTGitPath(tmpfile.GetString())));
 	EXPECT_TRUE(logFile.Close());
 	CString text;
 	ASSERT_TRUE(CStringUtils::ReadStringFromTextFile(tmpfile, text));
@@ -81,7 +81,7 @@ TEST(CLogFile, TruncateToOneEmpty)
 	ASSERT_TRUE(CStringUtils::WriteStringToTextFile(tmpfile, L"1\n2\n3\n4\n5\n6\n7\n8\n9\n\n"));
 	SCOPE_EXIT{ ::DeleteFile(tmpfile); };
 	CLogFile logFile{ L"someRepo", 1 };
-	ASSERT_TRUE(logFile.Open(tmpfile));
+	ASSERT_TRUE(logFile.Open(CTGitPath(tmpfile.GetString())));
 	EXPECT_TRUE(logFile.Close());
 	CString text;
 	ASSERT_TRUE(CStringUtils::ReadStringFromTextFile(tmpfile, text));
@@ -95,7 +95,7 @@ TEST(CLogFile, TruncateLarge)
 	ASSERT_TRUE(CStringUtils::WriteStringToTextFile(tmpfile, L"1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n"));
 	SCOPE_EXIT{ ::DeleteFile(tmpfile); };
 	CLogFile logFile{ L"someRepo", 5000 };
-	ASSERT_TRUE(logFile.Open(tmpfile));
+	ASSERT_TRUE(logFile.Open(CTGitPath(tmpfile.GetString())));
 	EXPECT_TRUE(logFile.Close());
 	CString text;
 	ASSERT_TRUE(CStringUtils::ReadStringFromTextFile(tmpfile, text));
@@ -109,7 +109,7 @@ TEST(CLogFile, LoggingDisabled)
 	ASSERT_TRUE(CStringUtils::WriteStringToTextFile(tmpfile, L"1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n"));
 	SCOPE_EXIT{ ::DeleteFile(tmpfile); };
 	CLogFile logFile{ L"someRepo", 0 };
-	ASSERT_FALSE(logFile.Open(tmpfile));
+	ASSERT_FALSE(logFile.Open(CTGitPath(tmpfile.GetString())));
 }
 
 TEST(CLogFile, Append)
@@ -118,7 +118,7 @@ TEST(CLogFile, Append)
 	ASSERT_STRNE(L"", tmpfile);
 	SCOPE_EXIT{ ::DeleteFile(tmpfile); };
 	CLogFile logFile{ L"someRepo", 2 };
-	ASSERT_TRUE(logFile.Open(tmpfile));
+	ASSERT_TRUE(logFile.Open(CTGitPath(tmpfile.GetString())));
 	logFile.AddLine(L"1");
 	logFile.AddLine(L"2");
 	logFile.AddLine(L"3");

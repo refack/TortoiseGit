@@ -23,7 +23,7 @@
 bool SendMailProgressCommand::Run(CGitProgressList* list, CString& sWindowTitle, int& /*m_itemCountTotal*/, int& /*m_itemCount*/)
 {
 	ASSERT(m_SendMail);
-	list->SetWindowTitle(IDS_PROGRS_TITLE_SENDMAIL, g_Git.CombinePath(m_targetPathList.GetCommonRoot().GetUIPathString()), sWindowTitle);
+	list->SetWindowTitle(IDS_PROGRS_TITLE_SENDMAIL, g_Git.CombinePath(m_targetPathList.GetCommonRoot().GetUIPathString().c_str()), sWindowTitle);
 	//SetBackgroundImage(IDI_ADD_BKG);
 	list->ReportCmd(CString(MAKEINTRESOURCE(IDS_PROGRS_CMD_SENDMAIL)));
 

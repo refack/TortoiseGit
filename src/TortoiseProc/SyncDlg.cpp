@@ -739,7 +739,7 @@ void CSyncDlg::OnBnClickedButtonPush()
 
 	CString error;
 	DWORD exitcode = 0xFFFFFFFF;
-	CHooks::Instance().SetProjectProperties(g_Git.m_CurrentDir, m_ProjectProperties);
+	CHooks::Instance().SetProjectProperties(CTGitPath(g_Git.m_CurrentDir.GetString()), m_ProjectProperties);
 	if (CHooks::Instance().PrePush(GetSafeHwnd(), g_Git.m_CurrentDir, exitcode, error))
 	{
 		if (exitcode)
@@ -819,7 +819,7 @@ void CSyncDlg::OnBnClickedButtonApply()
 		{
 			try
 			{
-				cmd.Format(L"git.exe am -- %s", static_cast<LPCWSTR>(CGit::QuoteParameter(dlg.m_PathList[i].GetGitPathString())));
+				cmd.Format(L"git.exe am -- %s", static_cast<LPCWSTR>(CGit::QuoteParameter(dlg.m_PathList[i].GetGitPathString().c_str())));
 			}
 			catch (illegal_git_parameter& e)
 			{
@@ -1611,7 +1611,7 @@ void CSyncDlg::RunPostAction()
 	{
 		DWORD exitcode = 0xFFFFFFFF;
 		CString error;
-		CHooks::Instance().SetProjectProperties(g_Git.m_CurrentDir, m_ProjectProperties);
+		CHooks::Instance().SetProjectProperties(CTGitPath(g_Git.m_CurrentDir.GetString()), m_ProjectProperties);
 		if (CHooks::Instance().PostPush(GetSafeHwnd(), g_Git.m_CurrentDir, exitcode, error))
 		{
 			if (exitcode)

@@ -79,7 +79,7 @@ void CPatchListCtrl::OnNMDblclk(NMHDR *pNMHDR, LRESULT *pResult)
 	CTGitPath gitpath;
 	gitpath.SetFromWin(path);
 
-	CAppUtils::StartUnifiedDiffViewer(path, gitpath.GetFilename(), 0, !!(GetAsyncKeyState(VK_SHIFT) & 0x8000));
+	CAppUtils::StartUnifiedDiffViewer(path, gitpath.GetFilename().c_str(), 0, !!(GetAsyncKeyState(VK_SHIFT) & 0x8000));
 }
 
 void CPatchListCtrl::OnContextMenu(CWnd* /*pWnd*/, CPoint point)
@@ -120,7 +120,7 @@ void CPatchListCtrl::OnContextMenu(CWnd* /*pWnd*/, CPoint point)
 				CTGitPath gitpath;
 				gitpath.SetFromWin(path);
 
-				CAppUtils::StartUnifiedDiffViewer(path, gitpath.GetFilename(), 0, !!(GetAsyncKeyState(VK_SHIFT) & 0x8000));
+				CAppUtils::StartUnifiedDiffViewer(path, gitpath.GetFilename().c_str(), 0, !!(GetAsyncKeyState(VK_SHIFT) & 0x8000));
 				break;
 			}
 		case MENU_VIEWWITHMERGE:
@@ -130,7 +130,7 @@ void CPatchListCtrl::OnContextMenu(CWnd* /*pWnd*/, CPoint point)
 				gitpath.SetFromWin(path);
 
 				CTGitPath dir;
-				dir.SetFromGit(g_Git.m_CurrentDir);
+				dir.SetFromGit(g_Git.m_CurrentDir.GetString());
 
 				CAppUtils::StartExtPatch(gitpath,dir);
 				break;
@@ -166,9 +166,9 @@ int CPatchListCtrl::LaunchProc(const CString& command)
 	while(pos)
 	{
 		int index = this->GetNextSelectedItem(pos);
-		paths.AddPath(GetItemText(index, 0));
+		paths.AddPath(CTGitPath(GetItemText(index, 0).GetString()));
 	}
-	if (!paths.WriteToFile(tempfile, false))
+	if (!paths.WriteToFile(tempfile.GetString(), false))
 	{
 		MessageBox(L"Could not write to temp file.", L"TortoiseGit", MB_OK | MB_ICONERROR);
 		return -1;

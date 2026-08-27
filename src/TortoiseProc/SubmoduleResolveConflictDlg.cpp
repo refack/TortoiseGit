@@ -225,7 +225,7 @@ void CSubmoduleResolveConflictDlg::Resolve(const CString& path, bool useMine)
 	if (CMessageBox::Show(GetSafeHwnd(), IDS_PROC_RESOLVE, IDS_APPNAME, MB_ICONQUESTION | MB_YESNO) != IDYES)
 		return;
 
-	CTGitPath gitpath(path);
+	CTGitPath gitpath(path.GetString());
 	gitpath.m_Action = CTGitPath::LOGACTIONS_UNMERGED;
 
 	CGitProgressDlg progDlg;

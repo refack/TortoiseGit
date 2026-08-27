@@ -29,7 +29,7 @@ using Git_WC_Notify_Action = CGitProgressList::WC_File_NotificationData::Git_WC_
 
 bool ResolveProgressCommand::Run(CGitProgressList* list, CString& sWindowTitle, int& m_itemCountTotal, int& m_itemCount)
 {
-	list->SetWindowTitle(IDS_PROGRS_TITLE_RESOLVE, g_Git.CombinePath(m_targetPathList.GetCommonRoot().GetUIPathString()), sWindowTitle);
+	list->SetWindowTitle(IDS_PROGRS_TITLE_RESOLVE, g_Git.CombinePath(m_targetPathList.GetCommonRoot().GetUIPathString().c_str()), sWindowTitle);
 	list->SetBackgroundImage(IDI_RESOLVE_BKG);
 
 	m_PostCmdCallback = [](DWORD status, PostCmdList& postCmdList)
@@ -103,7 +103,7 @@ bool ResolveProgressCommand::Run(CGitProgressList* list, CString& sWindowTitle, 
 			CString cmd;
 			try
 			{
-				cmd.Format(L"git.exe ls-files -u -t -z -- %s", static_cast<LPCWSTR>(CGit::QuoteParameter(path.GetGitPathString())));
+				cmd.Format(L"git.exe ls-files -u -t -z -- %s", static_cast<LPCWSTR>(CGit::QuoteParameter(path.GetGitPathString().c_str())));
 			}
 			catch (illegal_git_parameter& e)
 			{
@@ -134,7 +134,7 @@ bool ResolveProgressCommand::Run(CGitProgressList* list, CString& sWindowTitle, 
 			const git_index_entry* ancestor = nullptr;
 			const git_index_entry* our = nullptr;
 			const git_index_entry* their = nullptr;
-			if (int err = git_index_conflict_get(&ancestor, &our, &their, gitIndex, CUnicodeUtils::GetUTF8(path.GetGitPathString())); err == GIT_ENOTFOUND)
+			if (int err = git_index_conflict_get(&ancestor, &our, &their, gitIndex, CUnicodeUtils::StdGetUTF8(path.GetGitPathString()).c_str()); err == GIT_ENOTFOUND)
 			{
 				list->AddNotify(new CGitProgressList::WC_File_NotificationData(path, Git_WC_Notify_Action::Skip));
 				++m_itemCount;
@@ -167,7 +167,7 @@ bool ResolveProgressCommand::Run(CGitProgressList* list, CString& sWindowTitle, 
 		CGitHash destinationHash = (m_resolveWith == ResolveWith::Theirs ? remoteHash : localHash);
 		if (destinationHash.IsEmpty())
 		{
-			if (!PathIsDirectory(path.GetGitPathString()))
+			if (!PathIsDirectory(path.GetGitPathString().c_str()))
 			{
 				rmTask.AddFile(path);
 				CAppUtils::RemoveTempMergeFile(path);
@@ -177,7 +177,7 @@ bool ResolveProgressCommand::Run(CGitProgressList* list, CString& sWindowTitle, 
 			CString gitcmd, output; // retest with registered submodule!
 			try
 			{
-				gitcmd.Format(L"git.exe rm -f -- %s", static_cast<LPCWSTR>(CGit::QuoteParameter(path.GetGitPathString())));
+				gitcmd.Format(L"git.exe rm -f -- %s", static_cast<LPCWSTR>(CGit::QuoteParameter(path.GetGitPathString().c_str())));
 			}
 			catch (illegal_git_parameter& e)
 			{
@@ -187,7 +187,7 @@ bool ResolveProgressCommand::Run(CGitProgressList* list, CString& sWindowTitle, 
 			if (g_Git.Run(gitcmd, &output, CP_UTF8))
 			{
 				// a .git folder in a submodule which is not in .gitmodules cannot be deleted using "git rm"
-				if (!PathIsDirectoryEmpty(path.GetGitPathString()))
+				if (!PathIsDirectoryEmpty(path.GetGitPathString().c_str()))
 				{
 					CString message(output);
 					output += L"\n\n";
@@ -228,7 +228,7 @@ bool ResolveProgressCommand::Run(CGitProgressList* list, CString& sWindowTitle, 
 				{
 					try
 					{
-						gitcmd.Format(L"git.exe checkout-index -f --stage=%d -- %s", destinationStage, static_cast<LPCWSTR>(CGit::QuoteParameter(path.GetGitPathString())));
+						gitcmd.Format(L"git.exe checkout-index -f --stage=%d -- %s", destinationStage, static_cast<LPCWSTR>(CGit::QuoteParameter(path.GetGitPathString().c_str())));
 					}
 					catch (illegal_git_parameter& e)
 					{
@@ -243,7 +243,7 @@ bool ResolveProgressCommand::Run(CGitProgressList* list, CString& sWindowTitle, 
 				}
 				try
 				{
-					gitcmd.Format(L"git.exe update-index --replace --cacheinfo 0160000,%s,%s", static_cast<LPCWSTR>(destinationHash.ToString()), static_cast<LPCWSTR>(CGit::QuoteParameter(path.GetGitPathString())));
+					gitcmd.Format(L"git.exe update-index --replace --cacheinfo 0160000,%s,%s", static_cast<LPCWSTR>(destinationHash.ToString()), static_cast<LPCWSTR>(CGit::QuoteParameter(path.GetGitPathString().c_str())));
 				}
 				catch (illegal_git_parameter& e)
 				{
@@ -263,7 +263,7 @@ bool ResolveProgressCommand::Run(CGitProgressList* list, CString& sWindowTitle, 
 
 			CGit subgit;
 			subgit.m_IsUseGitDLL = false;
-			subgit.m_CurrentDir = fullPath.GetWinPathString();
+			subgit.m_CurrentDir = fullPath.GetWinPathString().c_str();
 			CGitHash submoduleHead;
 			if (subgit.GetHash(submoduleHead, L"HEAD"))
 			{
@@ -273,7 +273,7 @@ bool ResolveProgressCommand::Run(CGitProgressList* list, CString& sWindowTitle, 
 			if (submoduleHead != destinationHash)
 			{
 				CString origPath = g_Git.m_CurrentDir;
-				g_Git.m_CurrentDir = fullPath.GetWinPathString();
+				g_Git.m_CurrentDir = fullPath.GetWinPathString().c_str();
 				SetCurrentDirectory(g_Git.m_CurrentDir);
 				if (!CAppUtils::GitReset(list->GetSafeHwnd(), destinationHash.ToString()))
 				{

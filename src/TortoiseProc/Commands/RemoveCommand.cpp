@@ -64,7 +64,7 @@ bool RemoveCommand::Execute()
 	{
 		for (int nPath = 0; nPath < pathList.GetCount(); ++nPath)
 		{
-			CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": remove file %s\n", static_cast<LPCWSTR>(pathList)[nPath].GetUIPathString());
+			CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": remove file %s\n", static_cast<LPCWSTR>(pathList)[nPath].GetUIPathString().c_str());
 			// even though SVN::Remove takes a list of paths to delete at once
 			// we delete each item individually so we can prompt the user
 			// if something goes wrong or unversioned/modified items are
@@ -120,7 +120,7 @@ bool RemoveCommand::Execute()
 	if (pathList.GetCount() > 1)
 		format.Format(keepLocal ? IDS_WARN_DELETE_MANY_FROM_INDEX : IDS_WARN_DELETE_MANY, pathList.GetCount());
 	else
-		format.Format(keepLocal ? IDS_WARN_DELETE_ONE_FROM_INDEX : IDS_WARN_REMOVE, static_cast<LPCWSTR>(pathList[0].GetGitPathString()));
+		format.Format(keepLocal ? IDS_WARN_DELETE_ONE_FROM_INDEX : IDS_WARN_REMOVE, static_cast<LPCWSTR>(pathList[0].GetGitPathString().c_str()));
 	if (CMessageBox::Show(GetExplorerHWND(), format, IDS_APPNAME, 2, IDI_QUESTION, IDS_REMOVEBUTTON, IDS_MSGBOX_ABORT) == 2)
 		return false;
 
@@ -136,7 +136,7 @@ bool RemoveCommand::Execute()
 		CString output;
 		try
 		{
-			cmd.Format(format, static_cast<LPCWSTR>(CGit::QuoteParameter(pathList[nPath].GetGitPathString())));
+			cmd.Format(format, static_cast<LPCWSTR>(CGit::QuoteParameter(pathList[nPath].GetGitPathString().c_str())));
 		}
 		catch (illegal_git_parameter& e)
 		{

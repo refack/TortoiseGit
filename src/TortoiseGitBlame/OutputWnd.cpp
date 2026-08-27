@@ -120,7 +120,7 @@ void COutputWnd::OnSize(UINT nType, int cx, int cy)
 int COutputWnd::LoadHistory(const CString& filename, const CString& revision, bool follow)
 {
 	CTGitPath path;
-	path.SetFromGit(filename);
+	path.SetFromGit(filename.GetString());
 
 	m_LogList.Clear();
 	m_LogList.ShowGraphColumn(!follow);

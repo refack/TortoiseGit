@@ -422,7 +422,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 							wchar_t driveletter = 'A' + i;
 							CString drive = CString(driveletter);
 							drive += L":\\";
-							CGitStatusCache::Instance().CloseWatcherHandles(CTGitPath(drive));
+							CGitStatusCache::Instance().CloseWatcherHandles(CTGitPath(drive.GetString()));
 						}
 					}
 				}

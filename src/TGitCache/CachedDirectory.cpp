@@ -25,6 +25,7 @@
 #include "PathUtils.h"
 #include "GitStatus.h"
 #include "StringUtils.h"
+#include "WideString.h"
 
 CCachedDirectory::CCachedDirectory()
 {
@@ -42,7 +43,7 @@ CCachedDirectory::CCachedDirectory(const CTGitPath& directoryPath)
 	directoryPath.HasAdminDir(); // make sure HasAdminDir is always initialized
 	m_directoryPath = directoryPath;
 	m_directoryPath.UpdateCase();
-	m_directoryPath.GetGitPathString(); // make sure git path string is set
+	m_directoryPath.GetGitPathString().c_str(); // make sure git path string is set
 }
 
 BOOL CCachedDirectory::SaveToDisk(FILE * pFile)
@@ -83,7 +84,7 @@ BOOL CCachedDirectory::SaveToDisk(FILE * pFile)
 			WRITEVALUETOFILE(status);
 		}
 	}
-	value = m_directoryPath.GetWinPathString().GetLength();
+	value = m_directoryPath.GetWinPathString().size();
 	WRITEVALUETOFILE(value);
 	if (value)
 	{
@@ -167,7 +168,7 @@ BOOL CCachedDirectory::LoadFromDisk(FILE * pFile)
 			if (sPath.GetLength() > 3 && sPath[sPath.GetLength() - 1] == L'\\')
 				sPath.TrimRight(L'\\');
 			m_directoryPath.SetFromWin(sPath);
-			m_directoryPath.GetGitPathString(); // make sure git path string is set
+			m_directoryPath.GetGitPathString().c_str(); // make sure git path string is set
 		}
 		if (!m_ownStatus.LoadFromDisk(pFile))
 			return false;
@@ -259,7 +260,7 @@ CStatusCacheEntry CCachedDirectory::GetStatusFromCache(const CTGitPath& path, bo
 CStatusCacheEntry CCachedDirectory::GetStatusFromGit(const CTGitPath &path, const CString& sProjectRoot, bool isSelf, bool bRecursive)
 {
 	CString subpaths;
-	CString s = path.GetGitPathString();
+	CString s = path.GetGitPathString().c_str();
 	if (s.GetLength() > sProjectRoot.GetLength())
 	{
 		if (s[sProjectRoot.GetLength()] == L'/')
@@ -281,7 +282,7 @@ CStatusCacheEntry CCachedDirectory::GetStatusFromGit(const CTGitPath &path, cons
 		{
 			AutoLocker lock(m_critSec);
 			for (auto it = m_childDirectories.cbegin(); it != m_childDirectories.cend(); ++it)
-				CGitStatusCache::Instance().AddFolderForCrawling(it->first);
+				CGitStatusCache::Instance().AddFolderForCrawling(CTGitPath(it->first.GetString()));
 			m_childDirectories.clear();
 			m_entryCache.clear();
 		}
@@ -291,7 +292,7 @@ CStatusCacheEntry CCachedDirectory::GetStatusFromGit(const CTGitPath &path, cons
 		CGitStatusCache::Instance().AddFolderForCrawling(m_directoryPath);
 		return CStatusCacheEntry();
 	}
-	if (!path.IsDirectory() && CStringUtils::EndsWith(path.GetWinPathString(), L".gitignore"))
+	if (!path.IsDirectory() && CStringUtils::EndsWith(path.GetWinPathString().c_str(), L".gitignore"))
 	{
 		// A change in .gitignore can affect the status of any file in this directory.
 		CGitStatusCache::Instance().AddFolderForCrawling(m_directoryPath);
@@ -314,7 +315,7 @@ CStatusCacheEntry CCachedDirectory::GetStatusForMember(const CTGitPath& path, bo
 	// In all most circumstances, we ask for the status of a member of this directory.
 	ATLASSERT(m_directoryPath.IsEquivalentToWithoutCase(path.GetContainingDirectory()) || bRequestForSelf);
 
-	if (GitAdminDir::IsAdminDirPath(path.GetWinPathString()))
+	if (GitAdminDir::IsAdminDirPath(path.GetWinPathString().c_str()))
 	{
 		// We're being asked for the status of an .git directory
 		// It's not worth asking for this
@@ -323,7 +324,7 @@ CStatusCacheEntry CCachedDirectory::GetStatusForMember(const CTGitPath& path, bo
 
 	if (bFetch)
 	{
-		CString sProjectRoot;
+		std::wstring sProjectRoot;
 		{
 			AutoLocker lock(m_critSec);
 			// HasAdminDir(..., true) might modify m_directoryPath, so we need to do it synchronized (also write access to m_childDirectories, ... requires it)
@@ -336,7 +337,7 @@ CStatusCacheEntry CCachedDirectory::GetStatusForMember(const CTGitPath& path, bo
 				if (bRecursive)
 				{
 					for (auto it = m_childDirectories.cbegin(); it != m_childDirectories.cend(); ++it)
-						CGitStatusCache::Instance().AddFolderForCrawling(it->first);
+						CGitStatusCache::Instance().AddFolderForCrawling(CTGitPath(it->first.GetString()));
 				}
 				m_childDirectories.clear();
 				m_entryCache.clear();
@@ -348,7 +349,7 @@ CStatusCacheEntry CCachedDirectory::GetStatusForMember(const CTGitPath& path, bo
 			{
 				// Update folder status if it's invalid and member status is requested.
 				// Otherwise the ignore shortcut path won't be triggered for newly created ignored folders.
-				GetStatusFromGit(m_directoryPath, sProjectRoot, true, bRecursive);
+				GetStatusFromGit(m_directoryPath, sProjectRoot.c_str(), true, bRecursive);
 			}
 			if (m_ownStatus.GetEffectiveStatus() == git_wc_status_ignored)
 			{
@@ -370,7 +371,7 @@ CStatusCacheEntry CCachedDirectory::GetStatusForMember(const CTGitPath& path, bo
 			return CStatusCacheEntry();
 		}
 
-		return GetStatusFromGit(path, sProjectRoot, bRequestForSelf, bRecursive);
+		return GetStatusFromGit(path, sProjectRoot.c_str(), bRequestForSelf, bRecursive);
 	}
 	else
 	{
@@ -380,9 +381,9 @@ CStatusCacheEntry CCachedDirectory::GetStatusForMember(const CTGitPath& path, bo
 
 CString CCachedDirectory::GetProjectRoot() const
 {
-	CString sProjectRoot;
+	std::wstring sProjectRoot;
 	m_directoryPath.HasAdminDir(&sProjectRoot, false);
-	return sProjectRoot;
+	return CString(sProjectRoot.c_str());
 }
 
 CStatusCacheEntry CCachedDirectory::GetCacheStatusForMember(const CTGitPath& path)
@@ -418,7 +419,7 @@ int CCachedDirectory::EnumFiles(const CTGitPath& path, CString sProjectRoot, con
 			CGitStatusCache::Instance().AddFolderForCrawling(m_directoryPath);
 			return 0;
 		}
-		GetStatusCallback(path.GetWinPathString(), &status, false, path.GetLastWriteTime(true), this);
+		GetStatusCallback(path.GetWinPathString().c_str(), &status, false, path.GetLastWriteTime(true), this);
 		RefreshMostImportant(false);
 	}
 	else
@@ -488,13 +489,15 @@ CCachedDirectory::GetCacheKey(const CTGitPath& path)
 {
 	// All we put into the cache as a key is just the end portion of the pathname
 	// There's no point storing the path of the containing directory for every item
-	return path.GetWinPathString().Mid(m_directoryPath.GetWinPathString().GetLength()).TrimLeft(L'\\');
+	std::wstring cacheKey = tgit::wstr::Mid(path.GetWinPathString(), static_cast<int>(m_directoryPath.GetWinPathString().size()));
+	tgit::wstr::TrimLeft(cacheKey, L"\\");
+	return CString(cacheKey.c_str());
 }
 
 CString
 CCachedDirectory::GetFullPathString(const CString& cacheKey)
 {
-	CString fullpath(m_directoryPath.GetWinPathString());
+	CString fullpath(m_directoryPath.GetWinPathString().c_str());
 	fullpath += L'\\';
 	fullpath += cacheKey;
 	return fullpath;
@@ -502,7 +505,7 @@ CCachedDirectory::GetFullPathString(const CString& cacheKey)
 
 BOOL CCachedDirectory::GetStatusCallback(const CString& path, const git_wc_status2_t* pGitStatus, bool isDir, __int64 lastwritetime, void* baton)
 {
-	CTGitPath gitPath(path, isDir);
+	CTGitPath gitPath(path.GetString(), isDir);
 
 	auto pThis = reinterpret_cast<CCachedDirectory*>(baton);
 
@@ -543,7 +546,7 @@ BOOL CCachedDirectory::GetStatusCallback(const CString& path, const git_wc_statu
 						// subfolder is no longer ignored. Reset status so the fast ignore path is skipped during crawling.
 						dirEntry->m_ownStatus = git_wc_status_none;
 					}
-					if (crawl && !dirEntry && GitAdminDir::IsBareRepo(gitPath.GetWinPathString()))
+					if (crawl && !dirEntry && GitAdminDir::IsBareRepo(gitPath.GetWinPathString().c_str()))
 					{
 						// Skip crawling of nested non-ignored bare directories
 						// This isn't quite correct if the bare repo isn't ignored in our repo, but the shell overlay
@@ -557,14 +560,14 @@ BOOL CCachedDirectory::GetStatusCallback(const CString& path, const git_wc_statu
 				// deleted subfolders are reported as modified whereas deleted submodules are reported as deleted
 				if (pGitStatus->status == git_wc_status_deleted || pGitStatus->status == git_wc_status_modified)
 				{
-					pThis->SetChildStatus(gitPath.GetWinPathString(), pGitStatus->status);
+					pThis->SetChildStatus(gitPath.GetWinPathString().c_str(), pGitStatus->status);
 					return FALSE;
 				}
 
 				// Make sure we know about this child directory
 				// and keep the last known status so that we can use this
 				// to check whether we need to refresh explorer
-				pThis->KeepChildStatus(gitPath.GetWinPathString());
+				pThis->KeepChildStatus(gitPath.GetWinPathString().c_str());
 			}
 		}
 	}
@@ -636,7 +639,7 @@ void CCachedDirectory::UpdateCurrentStatus()
 	{
 		// We have a parent
 		// just version controlled directory need to cache.
-		CString ownRoot;
+		std::wstring ownRoot;
 		m_directoryPath.HasAdminDir(&ownRoot);
 		const bool sameRoot = !CPathUtils::ArePathStringsEqualWithCase(m_directoryPath.GetWinPathString(), ownRoot); // If our directory is different than our root, our parent must have the same root.
 		if (sameRoot || (CGitStatusCache::Instance().IsRecurseSubmodules() && parentPath.HasAdminDir()))
@@ -654,12 +657,12 @@ void CCachedDirectory::UpdateChildDirectoryStatus(const CTGitPath& childDir, git
 	git_wc_status_kind currentStatus = git_wc_status_none;
 	{
 		AutoLocker lock(m_critSec);
-		currentStatus = m_childDirectories[childDir.GetWinPathString()];
-		m_childDirectories_tmp[childDir.GetWinPathString()] = childStatus;
+		currentStatus = m_childDirectories[childDir.GetWinPathString().c_str()];
+		m_childDirectories_tmp[childDir.GetWinPathString().c_str()] = childStatus;
 	}
 	if ((currentStatus != childStatus)||(!IsOwnStatusValid()))
 	{
-		SetChildStatus(childDir.GetWinPathString(), childStatus);
+		SetChildStatus(childDir.GetWinPathString().c_str(), childStatus);
 		UpdateCurrentStatus();
 	}
 }
@@ -674,8 +677,8 @@ void CCachedDirectory::KeepChildStatus(const CString& childDir)
 		// ATM only missing submodules are reported as deleted, so that this check only performed for submodules which were deleted
 		if (it->second == git_wc_status_deleted)
 		{
-			CTGitPath child(childDir);
-			CString root1, root2;
+			CTGitPath child(childDir.GetString());
+			std::wstring root1, root2;
 			if (child.HasAdminDir(&root1) && m_directoryPath.HasAdminDir(&root2) && !CPathUtils::ArePathStringsEqualWithCase(root1, root2))
 				return;
 		}

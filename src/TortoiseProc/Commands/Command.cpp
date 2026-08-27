@@ -478,7 +478,7 @@ bool Command::CheckRepo(PathRequirement requirement) const
 
 	InaccessibleCommand iac;
 	iac.SetExplorerHwnd(GetExplorerHWND());
-	iac.orgCmdLinePath = g_Git.m_CurrentDir;
+	iac.orgCmdLinePath = CTGitPath(g_Git.m_CurrentDir.GetString());
 	iac.Execute();
 
 	return false;

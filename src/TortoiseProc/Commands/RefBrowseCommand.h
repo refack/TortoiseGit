@@ -30,7 +30,7 @@ public:
 
 	bool Execute() override
 	{
-		CBrowseRefsDlg dlg(orgCmdLinePath.GetWinPathString());
+		CBrowseRefsDlg dlg(orgCmdLinePath.GetWinPathString().c_str());
 		theApp.m_pMainWnd = &dlg;
 		dlg.DoModal();
 		return true;

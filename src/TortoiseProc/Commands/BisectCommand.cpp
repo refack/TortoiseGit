@@ -24,7 +24,7 @@
 
 bool BisectCommand::Execute()
 {
-	CTGitPath path = g_Git.m_CurrentDir;
+	CTGitPath path(g_Git.m_CurrentDir.GetString());
 
 	if (parser.HasKey(L"start") && !path.IsBisectActive())
 	{

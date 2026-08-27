@@ -183,7 +183,7 @@ UINT CCheckForUpdatesDlg::CheckThread()
 	m_bThreadRunning = TRUE;
 
 	CString temp;
-	CString tempfile = CTempFiles::Instance().GetTempFilePath(true).GetWinPathString();
+	CString tempfile = CTempFiles::Instance().GetTempFilePath(true).GetWinPathString().c_str();
 
 	bool official = false;
 
@@ -226,7 +226,7 @@ UINT CCheckForUpdatesDlg::CheckThread()
 	DWORD ret = m_updateDownloader->DownloadFile(sCheckURL, tempfile, false);
 	if (!ret && official)
 	{
-		CString signatureTempfile = CTempFiles::Instance().GetTempFilePath(true).GetWinPathString();
+		CString signatureTempfile = CTempFiles::Instance().GetTempFilePath(true).GetWinPathString().c_str();
 		ret = m_updateDownloader->DownloadFile(sCheckURL + SIGNATURE_FILE_ENDING, signatureTempfile, false);
 		if (ret || VerifyIntegrity(tempfile, signatureTempfile, m_updateDownloader))
 		{
@@ -404,7 +404,7 @@ void CCheckForUpdatesDlg::FillChangelog(CVersioncheckParser& versioncheck, bool 
 	CString sChangelogURL;
 	sChangelogURL.FormatMessage(versioncheck.GetTortoiseGitChangelogURL(), m_myVersion.major, m_myVersion.minor, m_myVersion.micro, static_cast<LPCWSTR>(m_updateDownloader->m_sWindowsPlatform), static_cast<LPCWSTR>(m_updateDownloader->m_sWindowsVersion), static_cast<LPCWSTR>(m_updateDownloader->m_sWindowsServicePack));
 
-	CString tempchangelogfile = CTempFiles::Instance().GetTempFilePath(true).GetWinPathString();
+	CString tempchangelogfile = CTempFiles::Instance().GetTempFilePath(true).GetWinPathString().c_str();
 	if (DWORD err = m_updateDownloader->DownloadFile(sChangelogURL, tempchangelogfile, false); err != ERROR_SUCCESS)
 	{
 		CString msg = L"Could not load changelog.\r\nError: " + GetWinINetError(err) + L" (on " + sChangelogURL + L")";
@@ -413,7 +413,7 @@ void CCheckForUpdatesDlg::FillChangelog(CVersioncheckParser& versioncheck, bool 
 	}
 	if (official)
 	{
-		CString signatureTempfile = CTempFiles::Instance().GetTempFilePath(true).GetWinPathString();
+		CString signatureTempfile = CTempFiles::Instance().GetTempFilePath(true).GetWinPathString().c_str();
 		if (DWORD err = m_updateDownloader->DownloadFile(sChangelogURL + SIGNATURE_FILE_ENDING, signatureTempfile, false); err != ERROR_SUCCESS || VerifyIntegrity(tempchangelogfile, signatureTempfile, m_updateDownloader))
 		{
 			CString error = L"Could not verify digital signature.";
@@ -615,8 +615,8 @@ bool CCheckForUpdatesDlg::Download(const CString& filename, const CString& versi
 		m_pTaskbarList->SetProgressValue(m_hWnd, 0, 1);
 	}
 
-	CString tempfile = CTempFiles::Instance().GetTempFilePath(true).GetWinPathString();
-	CString signatureTempfile = CTempFiles::Instance().GetTempFilePath(true).GetWinPathString();
+	CString tempfile = CTempFiles::Instance().GetTempFilePath(true).GetWinPathString().c_str();
+	CString signatureTempfile = CTempFiles::Instance().GetTempFilePath(true).GetWinPathString().c_str();
 	DWORD ret = m_updateDownloader->DownloadFile(url, tempfile, true);
 	if (!ret)
 	{

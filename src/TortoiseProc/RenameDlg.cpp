@@ -96,7 +96,7 @@ void CRenameDlg::OnOK()
 		return;
 	}
 
-	CTGitPath path(m_name);
+	CTGitPath path(m_name.GetString());
 	if (!path.IsValidOnWindows() || !PathIsRelative(m_name))
 	{
 		m_bBalloonVisible = true;
@@ -143,18 +143,18 @@ void CRenameDlg::OnBnClickedButtonBrowseRef()
 	CString path;
 	if (!m_originalName.IsEmpty())
 	{
-		CTGitPath origname(m_sBaseDir);
-		origname.AppendPathString(m_originalName);
-		ext = origname.GetFileExtension();
-		path = origname.GetWinPathString();
+		CTGitPath origname(m_sBaseDir.GetString());
+		origname.AppendPathString(m_originalName.GetString());
+		ext = origname.GetFileExtension().c_str();
+		path = origname.GetWinPathString().c_str();
 	}
 
 	if (CAppUtils::FileOpenSave(path, nullptr, AFX_IDD_FILESAVE, 0, false, GetSafeHwnd(), ext.Mid(1), !path.IsEmpty()))
 	{
 		GetDlgItem(IDC_NAME)->SetFocus();
-		CTGitPath target(path);
-		CString targetRoot;
-		if (!target.HasAdminDir(&targetRoot) || g_Git.m_CurrentDir.CompareNoCase(targetRoot) != 0)
+		CTGitPath target(path.GetString());
+		std::wstring targetRoot;
+		if (!target.HasAdminDir(&targetRoot) || g_Git.m_CurrentDir.CompareNoCase(targetRoot.c_str()) != 0)
 		{
 			CMessageBox::Show(GetSafeHwnd(), IDS_ERR_MUSTBESAMEWT, IDS_APPNAME, MB_OK | MB_ICONEXCLAMATION);
 			return;

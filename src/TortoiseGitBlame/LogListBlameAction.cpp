@@ -183,7 +183,7 @@ void CGitBlameLogList::GetPaths(const CGitHash& hash, std::vector<CTGitPath>& pa
 					filenames.insert(pView->m_data.GetFilename(i));
 			}
 			for (auto it = filenames.cbegin(); it != filenames.cend(); ++it)
-				paths.emplace_back(*it);
+				paths.emplace_back(it->GetString());
 		}
 		if (paths.empty())
 		{
@@ -278,7 +278,7 @@ void CGitBlameLogList::GetParentHash(GitRevLoglist* pRev, int index, CGitHash& p
 						if (action & (CTGitPath::LOGACTIONS_MODIFIED | CTGitPath::LOGACTIONS_REPLACED))
 						{
 							if (parentNo == (file.m_ParentNo & PARENT_MASK) && static_cast<size_t>(parentNo) < pRev->m_ParentHash.size())
-								parentFilenames.push_back( (action & CTGitPath::LOGACTIONS_REPLACED) ? file.GetGitOldPathString() : file.GetGitPathString());
+								parentFilenames.push_back( (action & CTGitPath::LOGACTIONS_REPLACED) ? file.GetGitOldPathString().c_str() : file.GetGitPathString().c_str());
 						}
 					}
 				}

@@ -60,7 +60,7 @@ CTGitPath CTempFiles::GetTempFilePath(bool bRemoveAtEnd, const CTGitPath& path /
 		do
 		{
 			// use the UI path, which does unescaping for urls
-			CString filename = path.GetBaseFilename();
+			CString filename = path.GetBaseFilename().c_str();
 			// remove illegal chars which could be present in urls
 			filename.Remove('?');
 			filename.Remove('*');
@@ -74,12 +74,12 @@ CTGitPath CTempFiles::GetTempFilePath(bool bRemoveAtEnd, const CTGitPath& path /
 			do
 			{
 				if (!hash.IsEmpty())
-					possibletempfile.Format(L"%s%s-%s.%3.3x%s", temppath.get(), static_cast<LPCWSTR>(filename), static_cast<LPCWSTR>(hash.ToString(g_Git.GetShortHASHLength())), i, static_cast<LPCWSTR>(path.GetFileExtension()));
+					possibletempfile.Format(L"%s%s-%s.%3.3x%s", temppath.get(), static_cast<LPCWSTR>(filename), static_cast<LPCWSTR>(hash.ToString(g_Git.GetShortHASHLength())), i, path.GetFileExtension().c_str());
 				else
-					possibletempfile.Format(L"%s%s.%3.3x%s", temppath.get(), static_cast<LPCWSTR>(filename), i, static_cast<LPCWSTR>(path.GetFileExtension()));
+					possibletempfile.Format(L"%s%s.%3.3x%s", temppath.get(), static_cast<LPCWSTR>(filename), i, path.GetFileExtension().c_str());
 				tempfile.SetFromWin(possibletempfile);
 				filename.Truncate(std::max(0, filename.GetLength() - 1));
-			} while (filename.GetLength() > 4 && tempfile.GetWinPathString().GetLength() >= MAX_PATH);
+			} while (filename.GetLength() > 4 && tempfile.GetWinPathString().size() >= MAX_PATH);
 			++i;
 			// now create the temp file in a thread safe way, so that subsequent calls to GetTempFile() return different filenames.
 			CAutoFile hFile = CreateFile(tempfile.GetWinPath(), GENERIC_READ, FILE_SHARE_READ, nullptr, CREATE_NEW, FILE_ATTRIBUTE_TEMPORARY, nullptr);

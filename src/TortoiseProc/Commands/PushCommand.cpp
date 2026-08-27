@@ -34,12 +34,12 @@ bool PushCommand::Execute()
 		for (int i = 0; i < orgPathList.GetCount(); ++i)
 		{
 			auto item = orgPathList[i];
-			if (!item.IsWCRoot() && !GitAdminDir::IsBareRepo(item.GetWinPathString()))
+			if (!item.IsWCRoot() && !GitAdminDir::IsBareRepo(item.GetWinPathString().c_str()))
 			{
 				retVal = false;
 				continue;
 			}
-			g_Git.m_CurrentDir = item.GetWinPathString();
+			g_Git.m_CurrentDir = item.GetWinPathString().c_str();
 			SetCurrentDirectory(g_Git.m_CurrentDir);
 			retVal &= CAppUtils::Push(GetExplorerHWND(), branch);
 		}

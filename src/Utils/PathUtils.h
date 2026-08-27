@@ -19,6 +19,10 @@
 //
 #pragma once
 
+#include <string>
+#include <concepts>
+#include <type_traits>
+
 #if defined(_MFC_VER)
 // CSTRING is always available in an MFC build
 #define CSTRING_AVAILABLE
@@ -166,6 +170,29 @@ public:
 	static bool ArePathStringsEqual(LPCWSTR sP1, LPCWSTR sP2, int length);
 	static bool ArePathStringsEqualWithCase(const CString& sP1, const CString& sP2);
 	static bool ArePathStringsEqualWithCase(LPCWSTR sP1, LPCWSTR sP2, int length);
+
+	// std::wstring overloads, for callers whose paths have already moved off
+	// CString (CTGitPath's accessors, principally). They forward to the
+	// length-taking overloads rather than to the CString ones, so no copy is
+	// made just to compare.
+	//
+	// Constrained to std::wstring exactly, for the reason recorded on
+	// CGit::CombinePath: an unconstrained std::wstring_view parameter makes
+	// every existing call with a literal ambiguous, because a const wchar_t*
+	// reaches CString and wstring_view by one user-defined conversion each.
+	template <typename T1, typename T2>
+		requires std::same_as<std::remove_cvref_t<T1>, std::wstring> && std::same_as<std::remove_cvref_t<T2>, std::wstring>
+	static bool ArePathStringsEqual(const T1& sP1, const T2& sP2)
+	{
+		return sP1.size() == sP2.size() && ArePathStringsEqual(sP1.c_str(), sP2.c_str(), static_cast<int>(sP1.size()));
+	}
+
+	template <typename T1, typename T2>
+		requires std::same_as<std::remove_cvref_t<T1>, std::wstring> && std::same_as<std::remove_cvref_t<T2>, std::wstring>
+	static bool ArePathStringsEqualWithCase(const T1& sP1, const T2& sP2)
+	{
+		return sP1.size() == sP2.size() && ArePathStringsEqualWithCase(sP1.c_str(), sP2.c_str(), static_cast<int>(sP1.size()));
+	}
 
 	static CString GetCopyrightForSelf();
 

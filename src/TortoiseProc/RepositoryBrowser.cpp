@@ -851,7 +851,7 @@ void CRepositoryBrowser::ShowContextMenu(CPoint point, TShadowFilesTreeList &sel
 		break;
 	case eCmd_CompareWC:
 		{
-			CTGitPath file(selectedLeafs.at(0)->GetFullName());
+			CTGitPath file(selectedLeafs.at(0)->GetFullName().GetString());
 			CGitDiff::Diff(GetSafeHwnd(), &file, &file, GitRev::GetWorkingCopyRef(), m_sRevision);
 		}
 		break;
@@ -900,8 +900,8 @@ void CRepositoryBrowser::ShowContextMenu(CPoint point, TShadowFilesTreeList &sel
 		{
 			if (auto reg = CRegString(L"Software\\TortoiseGit\\DiffLater", L""); m_sMarkForDiffFilename == reg)
 				reg.removeValue();
-			CTGitPath savedFile(m_sMarkForDiffFilename);
-			CTGitPath selectedFile(selectedLeafs.at(0)->GetFullName());
+			CTGitPath savedFile(m_sMarkForDiffFilename.GetString());
+			CTGitPath selectedFile(selectedLeafs.at(0)->GetFullName().GetString());
 			CGitHash currentHash;
 			if (g_Git.GetHash(currentHash, m_sRevision + L"^{}")) // add ^{} in order to dereference signed tags
 			{
@@ -1227,7 +1227,7 @@ BOOL CRepositoryBrowser::OnSetCursor(CWnd* pWnd, UINT nHitTest, UINT message)
 
 void CRepositoryBrowser::FileSaveAs(const CString path)
 {
-	CTGitPath gitPath(path);
+	CTGitPath gitPath(path.GetString());
 
 	CGitHash hash;
 	if (g_Git.GetHash(hash, m_sRevision + L"^{}")) // add ^{} in order to dereference signed tags
@@ -1237,21 +1237,21 @@ void CRepositoryBrowser::FileSaveAs(const CString path)
 	}
 
 	CString filename;
-	filename.Format(L"%s\\%s-%s%s", static_cast<LPCWSTR>(g_Git.CombinePath(gitPath.GetContainingDirectory())), static_cast<LPCWSTR>(gitPath.GetBaseFilename()), static_cast<LPCWSTR>(hash.ToString(g_Git.GetShortHASHLength())), static_cast<LPCWSTR>(gitPath.GetFileExtension()));
+	filename.Format(L"%s\\%s-%s%s", static_cast<LPCWSTR>(g_Git.CombinePath(gitPath.GetContainingDirectory())), static_cast<LPCWSTR>(gitPath.GetBaseFilename().c_str()), static_cast<LPCWSTR>(hash.ToString(g_Git.GetShortHASHLength())), static_cast<LPCWSTR>(gitPath.GetFileExtension().c_str()));
 	if (!CAppUtils::FileOpenSave(filename, nullptr, 0, 0, false, GetSafeHwnd()))
 		return;
 
 	if (g_Git.GetOneFile(m_sRevision, gitPath, filename))
 	{
 		CString out;
-		out.FormatMessage(IDS_STATUSLIST_CHECKOUTFILEFAILED, static_cast<LPCWSTR>(gitPath.GetGitPathString()), static_cast<LPCWSTR>(m_sRevision), static_cast<LPCWSTR>(filename));
+		out.FormatMessage(IDS_STATUSLIST_CHECKOUTFILEFAILED, static_cast<LPCWSTR>(gitPath.GetGitPathString().c_str()), static_cast<LPCWSTR>(m_sRevision), static_cast<LPCWSTR>(filename));
 		MessageBox(g_Git.GetGitLastErr(out, CGit::GIT_CMD_GETONEFILE), L"TortoiseGit", MB_ICONERROR);
 	}
 }
 
 void CRepositoryBrowser::OpenFile(const CString path, eOpenType mode, bool isSubmodule, const CGitHash& itemHash)
 {
-	CTGitPath gitPath(path);
+	CTGitPath gitPath(path.GetString());
 
 	CGitHash hash;
 	if (g_Git.GetHash(hash, m_sRevision + L"^{}")) // add ^{} in order to dereference signed tags
@@ -1260,24 +1260,24 @@ void CRepositoryBrowser::OpenFile(const CString path, eOpenType mode, bool isSub
 		return;
 	}
 
-	CString file = CTempFiles::Instance().GetTempFilePath(false, gitPath, hash).GetWinPathString();
+	CString file = CTempFiles::Instance().GetTempFilePath(false, gitPath, hash).GetWinPathString().c_str();
 	if (isSubmodule)
 	{
 		if (mode == OPEN && !GitAdminDir::IsBareRepo(g_Git.m_CurrentDir))
 		{
-			CTGitPath subPath = CTGitPath(g_Git.m_CurrentDir);
-			subPath.AppendPathString(gitPath.GetWinPathString());
-			CAutoRepository repo(subPath.GetGitPathString());
+			CTGitPath subPath = CTGitPath(g_Git.m_CurrentDir.GetString());
+			subPath.AppendPathString(gitPath.GetWinPathString().c_str());
+			CAutoRepository repo(subPath.GetGitPathString().c_str());
 			CAutoCommit commit;
 			if (!repo || git_commit_lookup(commit.GetPointer(), repo, itemHash))
 			{
 				CString out;
-				out.FormatMessage(IDS_REPOBROWSEASKSUBMODULEUPDATE, static_cast<LPCWSTR>(itemHash.ToString()), static_cast<LPCWSTR>(gitPath.GetGitPathString()));
+				out.FormatMessage(IDS_REPOBROWSEASKSUBMODULEUPDATE, static_cast<LPCWSTR>(itemHash.ToString()), static_cast<LPCWSTR>(gitPath.GetGitPathString().c_str()));
 				if (MessageBox(out, L"TortoiseGit", MB_YESNO | MB_ICONQUESTION) != IDYES)
 					return;
 
 				CString sCmd;
-				sCmd.Format(L"/command:subupdate /bkpath:\"%s\" /selectedpath:%s", static_cast<LPCWSTR>(g_Git.m_CurrentDir), static_cast<LPCWSTR>(CCmdLineParser::EscapeValue(gitPath.GetGitPathString())));
+				sCmd.Format(L"/command:subupdate /bkpath:\"%s\" /selectedpath:%s", static_cast<LPCWSTR>(g_Git.m_CurrentDir), CCmdLineParser::EscapeValue(gitPath.GetGitPathString()).c_str());
 				CAppUtils::RunTortoiseGitProc(sCmd);
 				return;
 			}
@@ -1296,7 +1296,7 @@ void CRepositoryBrowser::OpenFile(const CString path, eOpenType mode, bool isSub
 	else if (g_Git.GetOneFile(m_sRevision, gitPath, file))
 	{
 		CString out;
-		out.FormatMessage(IDS_STATUSLIST_CHECKOUTFILEFAILED, static_cast<LPCWSTR>(gitPath.GetGitPathString()), static_cast<LPCWSTR>(m_sRevision), static_cast<LPCWSTR>(file));
+		out.FormatMessage(IDS_STATUSLIST_CHECKOUTFILEFAILED, static_cast<LPCWSTR>(gitPath.GetGitPathString().c_str()), static_cast<LPCWSTR>(m_sRevision), static_cast<LPCWSTR>(file));
 		MessageBox(g_Git.GetGitLastErr(out, CGit::GIT_CMD_GETONEFILE), L"TortoiseGit", MB_ICONERROR);
 		return;
 	}

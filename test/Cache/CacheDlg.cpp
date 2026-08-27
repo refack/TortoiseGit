@@ -150,7 +150,7 @@ UINT CCacheDlg::TestThread()
 			filepath2 = filelist.GetAt(dist(mt));
 		//}while(filepath.Find(L".git") >= 0);
 		GetDlgItem(IDC_FILEPATH)->SetWindowText(filepath2);
-		GetStatusFromRemoteCache(CTGitPath(filepath2), true);
+		GetStatusFromRemoteCache(CTGitPath(filepath2.GetString()), true);
 		sNumber.Format(L"%d", i);
 		GetDlgItem(IDC_DONE)->SetWindowText(sNumber);
 		if ((GetTickCount64()%10)==1)
@@ -436,7 +436,7 @@ UINT CCacheDlg::WatchTestThread()
 	std::mt19937 mt(rd());
 	std::uniform_int_distribution<INT_PTR> dist(0, max(INT_PTR(0), filelist.GetCount() - 1));
 	CString filepath = filelist.GetAt(dist(mt));
-	GetStatusFromRemoteCache(CTGitPath(m_sRootPath), false);
+	GetStatusFromRemoteCache(CTGitPath(m_sRootPath.GetString()), false);
 	for (int i=0; i < 10000; ++i)
 	{
 		filepath = filelist.GetAt(dist(mt));

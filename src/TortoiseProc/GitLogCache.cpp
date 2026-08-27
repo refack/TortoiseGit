@@ -21,6 +21,7 @@
 #include "GitLogCache.h"
 #include "registry.h"
 #include <intsafe.h>
+#include <format>
 
 int static Compare(const void *p1, const void*p2)
 {
@@ -266,14 +267,14 @@ int CLogCache::SaveOneItem(const GitRevLoglist& Rev, LARGE_INTEGER offset)
 		revfileheader.m_IsSubmodule = Rev.m_Files[i].IsDirectory() ? 1 : 0;
 		revfileheader.m_Action = Rev.m_Files[i].m_Action;
 		revfileheader.m_ParentNo = Rev.m_Files[i].m_ParentNo;
-		name =  Rev.m_Files[i].GetGitPathString();
+		name = Rev.m_Files[i].GetGitPathString().c_str();
 		revfileheader.m_FileNameSize = name.GetLength();
-		oldname = Rev.m_Files[i].GetGitOldPathString();
+		oldname = Rev.m_Files[i].GetGitOldPathString().c_str();
 		revfileheader.m_OldFileNameSize = oldname.GetLength();
 
-		stat = Rev.m_Files[i].m_StatAdd;
+		stat = Rev.m_Files[i].m_StatAdd.c_str();
 		revfileheader.m_Add = (stat == L"-") ? 0xFFFFFFFF : _wtol(stat);
-		stat = Rev.m_Files[i].m_StatDel;
+		stat = Rev.m_Files[i].m_StatDel.c_str();
 		revfileheader.m_Del = (stat == L"-") ? 0xFFFFFFFF : _wtol(stat);
 
 		if (!WriteFile(this->m_DataFile, &revfileheader, sizeof(revfileheader) - sizeof(wchar_t), &dwWritten, 0))
@@ -345,7 +346,8 @@ int CLogCache::LoadOneItem(GitRevLoglist& Rev, ULONGLONG ullOffset) const
 			oldfile = CString(fileheader->m_FileName + fileheader->m_FileNameSize, fileheader->m_OldFileNameSize);
 		CTGitPath path;
 		int isSubmodule = fileheader->m_IsSubmodule;
-		path.SetFromGit(file, oldfile.IsEmpty() ? nullptr : &oldfile, static_cast<int*>(&isSubmodule));
+		std::wstring oldfileW(oldfile.GetString(), oldfile.GetLength());
+		path.SetFromGit(file.GetString(), oldfile.IsEmpty() ? nullptr : &oldfileW, static_cast<int*>(&isSubmodule));
 
 		path.m_ParentNo = fileheader ->m_ParentNo;
 		path.m_Action = fileheader->m_Action & ~(CTGitPath::LOGACTIONS_HIDE | CTGitPath::LOGACTIONS_GRAY);
@@ -354,12 +356,12 @@ int CLogCache::LoadOneItem(GitRevLoglist& Rev, ULONGLONG ullOffset) const
 		if(fileheader->m_Add == 0xFFFFFFFF)
 			path.m_StatAdd = L"-";
 		else
-			path.m_StatAdd.Format(L"%d", fileheader->m_Add);
+			path.m_StatAdd = std::format(L"{}", fileheader->m_Add);
 
 		if(fileheader->m_Del == 0xFFFFFFFF)
 			path.m_StatDel = L"-";
 		else
-			path.m_StatDel.Format(L"%d", fileheader->m_Del);
+			path.m_StatDel = std::format(L"{}", fileheader->m_Del);
 
 		Rev.m_Files.AddPath(path);
 	}

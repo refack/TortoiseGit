@@ -33,7 +33,7 @@ CSetBugTraqAdv::CSetBugTraqAdv(CWnd* pParent /*= nullptr*/)
 
 CSetBugTraqAdv::CSetBugTraqAdv(const CBugTraqAssociation& assoc, CWnd* pParent /*= nullptr*/)
 	: CResizableStandAloneDialog(CSetBugTraqAdv::IDD, pParent)
-	, m_sPath(assoc.GetPath().GetWinPathString())
+	, m_sPath(assoc.GetPath().GetWinPathString().c_str())
 	, m_provider_clsid(assoc.GetProviderClass())
 	, m_sParameters(assoc.GetParameters())
 	, m_bEnabled(assoc.IsEnabled())

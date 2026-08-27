@@ -20,6 +20,22 @@
 
 #pragma once
 #include "gittype.h"
+#include <string>
+#include <string_view>
+#include <concepts>
+
+// The string type here is std::wstring rather than CString on purpose, and it
+// is not a style choice: CString is CStringT<wchar_t, StrTraitMFC_DLL<...>> in
+// an MFC project and CStringT<wchar_t, StrTraitATL<...>> in an ATL one. Those
+// mangle differently, so a header carrying CString members or signatures cannot
+// be compiled once and linked by both TortoiseGitProc and TortoiseGit.dll.
+// CTGitPath is passed through every layer of both, which makes it the widest
+// piece of that boundary. See CLAUDE.md, "Making src\ cohesive".
+//
+// Parameters are std::wstring_view uniformly. A CString call site therefore
+// converts by spelling .GetString(), which is one implicit conversion; passing
+// the CString itself would need two (operator PCWSTR, then the view's
+// constructor) and will not compile.
 
 #define PARENT_MASK   0xFFFFFF
 #define MERGE_MASK	(0x1000000)
@@ -33,8 +49,8 @@ public:
 #else
 	~CTGitPath();
 #endif
-	CTGitPath(const CString& sUnknownPath);
-	CTGitPath(const CString& sUnknownPath, bool bIsDirectory);
+	CTGitPath(const std::wstring_view sUnknownPath);
+	CTGitPath(const std::wstring_view sUnknownPath, bool bIsDirectory);
 	int m_ParentNo = 0;
 
 	enum class StagingStatus
@@ -65,38 +81,58 @@ public:
 		LOGACTIONS_GRAY		= 0x10000000,
 	};
 
-	CString m_StatAdd;
-	CString m_StatDel;
+	std::wstring m_StatAdd;
+	std::wstring m_StatDel;
 	StagingStatus m_stagingStatus = StagingStatus::DontCare;
 #ifdef TGIT_LFS
-	CString m_LFSLockOwner;
+	std::wstring m_LFSLockOwner;
 #endif
 	unsigned int m_Action = 0;
 	bool m_Checked = false;
 	static unsigned ParseStatus(const char status);
 	inline void ParseAndUpdateStatus(const char status) { m_Action |= ParseStatus(status); }
 	unsigned int ParseAndUpdateStatus(git_delta_t status);
-	CString GetActionName() const;
-	static CString GetActionName(unsigned int action);
+	std::wstring GetActionName() const;
+	static std::wstring GetActionName(unsigned int action);
 	/**
 	 * Set the path as an UTF8 string with forward slashes
 	 */
 	void SetFromGit(const char* pPath);
 	void SetFromGit(const char* pPath, bool bIsDirectory);
 	void SetFromGit(const wchar_t* pPath, bool bIsDirectory);
-	void SetFromGit(const CString& sPath, CString* oldPath = nullptr, int* bIsDirectory = nullptr);
+	void SetFromGit(const std::wstring_view sPath, std::wstring* oldPath = nullptr, int* bIsDirectory = nullptr);
+
+	// Poison, and it earned its place. SetFromGit(cstring, &oldPath) reached the
+	// out-parameter overload back when that took CString. It now takes
+	// std::wstring_view, which a CString cannot reach implicitly (two
+	// user-defined conversions), so the call silently re-bound to
+	// SetFromGit(const wchar_t*, bool) - because a pointer converts to bool by
+	// a *standard* conversion, which outranks a user-defined one. The
+	// out-parameter was read as "this is a directory", the old path was never
+	// set, and nothing complained: no compiler error, and no diff to review,
+	// because the line itself never changed. Only
+	// CTGitPath.GetAbbreviatedRename failing caught it.
+	//
+	// Deleted for every pointer type including std::wstring*, deliberately.
+	// With a const wchar_t* first argument the two-argument call is ambiguous
+	// anyway (exact/standard against user-defined/exact, neither better), so
+	// there is no spelling of it worth keeping. Pass a std::wstring or an
+	// explicit std::wstring_view as the first argument and the intended
+	// overload is the only viable one.
+	template <typename T>
+	void SetFromGit(const wchar_t* pPath, T* notADirectoryFlag) = delete;
 
 	/**
 	 * Set the path as UNICODE with backslashes
 	 */
 	void SetFromWin(LPCWSTR pPath);
-	void SetFromWin(const CString& sPath);
+	void SetFromWin(const std::wstring_view sPath);
 	void SetFromWin(LPCWSTR pPath, bool bIsDirectory);
-	void SetFromWin(const CString& sPath, bool bIsDirectory);
+	void SetFromWin(const std::wstring_view sPath, bool bIsDirectory);
 	/**
 	 * Set the path from an unknown source.
 	 */
-	void SetFromUnknown(const CString& sPath);
+	void SetFromUnknown(const std::wstring_view sPath);
 	/**
 	 * Returns the path in Windows format, i.e. with backslashes
 	 */
@@ -104,13 +140,13 @@ public:
 	/**
 	 * Returns the path in Windows format, i.e. with backslashes
 	 */
-	const CString& GetWinPathString() const;
+	const std::wstring& GetWinPathString() const;
 	/**
 	 * Returns the path with forward slashes.
 	 */
-	const CString& GetGitPathString() const;
+	const std::wstring& GetGitPathString() const;
 
-	const CString& GetGitOldPathString() const;
+	const std::wstring& GetGitOldPathString() const;
 
 	/**
 	 * Returns the path for showing in an UI.
@@ -118,7 +154,7 @@ public:
 	 * URL's are returned with forward slashes, unescaped if necessary
 	 * Paths are returned with backward slashes
 	 */
-	const CString& GetUIPathString() const;
+	const std::wstring& GetUIPathString() const;
 	/**
 	 * Returns true if the path points to a directory
 	 */
@@ -149,26 +185,26 @@ public:
 	/**
 	 * Get the 'root path' (e.g. "c:\") - Used to pass to GetDriveType
 	 */
-	CString GetRootPathString() const;
+	std::wstring GetRootPathString() const;
 	/**
 	 * Returns the filename part of the full path.
 	 * \remark don't call this for directories.
 	 */
-	CString GetFilename() const;
-	CString GetBaseFilename() const;
+	std::wstring GetFilename() const;
+	std::wstring GetBaseFilename() const;
 	/**
 	 * Returns the item's name without the full path.
 	 */
-	CString GetFileOrDirectoryName() const;
+	std::wstring GetFileOrDirectoryName() const;
 	/**
 	 * Returns the item's name without the full path, unescaped if necessary.
 	 */
-	CString GetUIFileOrDirectoryName() const;
+	std::wstring GetUIFileOrDirectoryName() const;
 	/**
 	 * Returns the file extension, including the dot.
 	 * \remark Returns an empty string for directories
 	 */
-	CString GetFileExtension() const;
+	std::wstring GetFileExtension() const;
 
 	void UpdateCase();
 
@@ -190,7 +226,7 @@ public:
 	 * section stripped off the front
 	 * Returns a string with fwdslash paths
 	 */
-	CString GetDisplayString(const CTGitPath* pOptionalBasePath = nullptr) const;
+	std::wstring GetDisplayString(const CTGitPath* pOptionalBasePath = nullptr) const;
 	/**
 	 * Compares two paths. Slash format is irrelevant.
 	 */
@@ -215,14 +251,14 @@ public:
 	 * preservation of the proper caching behavior.
 	 * If you want to join a file- or directory-name onto the path, you should use AppendPathString
 	 */
-	void AppendRawString(const CString& sAppend);
+	void AppendRawString(const std::wstring_view sAppend);
 
 	/**
 	* appends a part of a path to this path.
 	*\remark - missing slashes are dealt with properly. Don't use this to append a file extension, for example
 	*
 	*/
-	void AppendPathString(const CString& sAppend);
+	void AppendPathString(const std::wstring_view sAppend);
 
 	/**
 	 * Get the file modification time - returns zero for files which don't exist
@@ -252,8 +288,8 @@ public:
 	 * is done in the same directory. For folders, it checks if the folder itself
 	 * contains an admin directory.
 	 */
-	bool HasAdminDir(CString* projectTopDir = nullptr, bool force = false) const;
-	void SetHasAdminDir(bool hasAdminDir, const CString& projectTopDir) const;
+	bool HasAdminDir(std::wstring* projectTopDir = nullptr, bool force = false) const;
+	void SetHasAdminDir(bool hasAdminDir, const std::wstring_view projectTopDir) const;
 	bool HasSubmodules() const;
 	bool HasGitSVNDir() const;
 	bool IsBisectActive() const;
@@ -268,7 +304,7 @@ public:
 
 	int  GetAdminDirMask() const;
 
-	bool IsRegisteredSubmoduleOfParentProject(CString* parentProjectRoot = nullptr) const;
+	bool IsRegisteredSubmoduleOfParentProject(std::wstring* parentProjectRoot = nullptr) const;
 
 	/**
 	 * Checks if the path point to or below a git admin directory (.Git).
@@ -286,7 +322,7 @@ public:
 	 */
 	bool IsValidOnWindows() const;
 
-	CString GetAbbreviatedRename() const;
+	std::wstring GetAbbreviatedRename() const;
 
 private:
 	// All these functions are const, and all the data
@@ -295,8 +331,8 @@ private:
 	// likely to be passed between functions
 	// The public 'SetFromxxx' functions are not const, and so the proper
 	// const-correctness semantics are preserved
-	void SetFwdslashPath(const CString& sPath) const;
-	void SetBackslashPath(const CString& sPath) const;
+	void SetFwdslashPath(const std::wstring_view sPath) const;
+	void SetBackslashPath(const std::wstring_view sPath) const;
 	void EnsureBackslashPathSet() const;
 	void EnsureFwdslashPathSet() const;
 
@@ -316,7 +352,7 @@ private:
 	/**
 	 * Adds the required trailing slash to local root paths such as 'C:'
 	 */
-	void SanitizeRootPath(CString& sPath, bool bIsForwardPath) const;
+	void SanitizeRootPath(std::wstring& sPath, bool bIsForwardPath) const;
 
 #ifdef GOOGLEMOCK_INCLUDE_GMOCK_GMOCK_H_
 protected:
@@ -326,17 +362,17 @@ private:
 	void UpdateAttributes() const;
 #endif
 
-	bool HasStashDir(const CString& adminDirPath) const;
+	bool HasStashDir(const std::wstring_view adminDirPath) const;
 
 private:
-	mutable CString m_sBackslashPath;
-	mutable CString m_sLongBackslashPath;
-	mutable CString m_sFwdslashPath;
-	mutable CString m_sUIPath;
-	mutable CString m_sProjectRoot;
+	mutable std::wstring m_sBackslashPath;
+	mutable std::wstring m_sLongBackslashPath;
+	mutable std::wstring m_sFwdslashPath;
+	mutable std::wstring m_sUIPath;
+	mutable std::wstring m_sProjectRoot;
 
 	//used for rename case
-	mutable CString m_sOldFwdslashPath;
+	mutable std::wstring m_sOldFwdslashPath;
 
 	// Have we yet determined if this is a directory or not?
 	mutable bool m_bDirectoryKnown = false;
@@ -382,20 +418,20 @@ public:
 public:
 	void AddPath(const CTGitPath& newPath);
 	bool LoadFromFile(const CTGitPath& filename);
-	bool WriteToFile(const CString& sFilename, bool bUTF8 = false) const;
-	bool WriteToPathSpecFile(const CString& sFilename) const;
-	const CTGitPath* LookForGitPath(const CString& path) const;
+	bool WriteToFile(const std::wstring_view sFilename, bool bUTF8 = false) const;
+	bool WriteToPathSpecFile(const std::wstring_view sFilename) const;
+	const CTGitPath* LookForGitPath(const std::wstring_view path) const;
 	int	ParserFromLog(const BYTE_VECTOR& log);
 	int ParserFromLsFileSimple(const BYTE_VECTOR& out, unsigned int action, bool clear = true);
 	int ParserFromLsFile(const BYTE_VECTOR& out);
-	void UpdateStagingStatusFromPath(const CString& path, CTGitPath::StagingStatus status);
-	int FillUnRev(unsigned int Action, const CTGitPathList* filterlist = nullptr, CString* err = nullptr);
+	void UpdateStagingStatusFromPath(const std::wstring_view path, CTGitPath::StagingStatus status);
+	int FillUnRev(unsigned int Action, const CTGitPathList* filterlist = nullptr, std::wstring* err = nullptr);
 #ifdef TGIT_LFS
-	int FillLFSLocks(unsigned int action, CString* err = nullptr);
+	int FillLFSLocks(unsigned int action, std::wstring* err = nullptr);
 #ifndef GOOGLETEST_INCLUDE_GTEST_GTEST_H_
 private:
 #endif
-	int ParserFromLFSLocks(unsigned int action, const CString& output, CString* err = nullptr);
+	int ParserFromLFSLocks(unsigned int action, const std::wstring_view output, std::wstring* err = nullptr);
 #endif
 public:
 	int FillBasedOnIndexFlags(unsigned short flag, unsigned short flagextended, const CTGitPathList* filterlist = nullptr);
@@ -404,8 +440,8 @@ public:
 	 * Load from the path argument string, when the 'path' parameter is used
 	 * This is a list of paths, with '*' between them
 	 */
-	void LoadFromAsteriskSeparatedString(const CString& sPathString);
-	CString CreateAsteriskSeparatedString() const;
+	void LoadFromAsteriskSeparatedString(const std::wstring_view sPathString);
+	std::wstring CreateAsteriskSeparatedString() const;
 
 	int GetCount() const;
 	bool IsEmpty() const;

@@ -96,7 +96,7 @@ BOOL CSetHooksAdv::OnInitDialog()
 		}
 	}
 
-	m_sPath = key.path.GetWinPathString();
+	m_sPath = key.path.GetWinPathString().c_str();
 	m_sCommandLine = cmd.commandline;
 	m_bWait = cmd.bWait;
 	m_bHide = !cmd.bShow;
@@ -135,7 +135,7 @@ void CSetHooksAdv::OnOK()
 	if (cursel != CB_ERR)
 	{
 		key.htype = static_cast<HookType>(m_cHookTypeCombo.GetItemData(cursel));
-		key.path = CTGitPath(m_sPath);
+		key.path = CTGitPath(m_sPath.GetString());
 		cmd.commandline = m_sCommandLine;
 		cmd.bEnabled = m_bEnabled == BST_CHECKED;
 		cmd.bWait = !!m_bWait;
@@ -154,7 +154,7 @@ void CSetHooksAdv::OnOK()
 			ShowEditBalloon(IDC_HOOKPATH, IDS_ERR_NOHOOKPATHSPECIFIED, IDS_ERR_ERROR, TTI_ERROR);
 			return;
 		}
-		if (key.path.GetWinPathString() != L"*" && (!PathIsDirectory(key.path.GetWinPathString()) || PathIsRelative(key.path.GetWinPathString())))
+		if (key.path.GetWinPathString() != L"*" && (!PathIsDirectory(key.path.GetWinPathString().c_str()) || PathIsRelative(key.path.GetWinPathString().c_str())))
 		{
 			ShowEditBalloon(IDC_HOOKPATH, static_cast<LPCWSTR>(CFormatMessageWrapper(ERROR_PATH_NOT_FOUND)), CString(MAKEINTRESOURCE(IDS_ERR_ERROR)), TTI_ERROR);
 			return;

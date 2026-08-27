@@ -974,7 +974,7 @@ int CRebaseDlg::CheckRebaseCondition()
 	{
 		CString error;
 		DWORD exitcode = 0xFFFFFFFF;
-		CHooks::Instance().SetProjectProperties(g_Git.m_CurrentDir, m_ProjectProperties);
+		CHooks::Instance().SetProjectProperties(CTGitPath(g_Git.m_CurrentDir.GetString()), m_ProjectProperties);
 		if (CHooks::Instance().PreRebase(GetSafeHwnd(), g_Git.m_CurrentDir, m_UpstreamCtrl.GetString(), m_BranchCtrl.GetString(), exitcode, error))
 		{
 			if (exitcode)
@@ -1396,33 +1396,33 @@ void CRebaseDlg::OnBnClickedContinue()
 			if (entry->m_Checked)
 			{
 				if ((entry->m_Action & CTGitPath::LOGACTIONS_UNVER) || (entry->IsDirectory() && !(entry->m_Action & CTGitPath::LOGACTIONS_DELETED)))
-					mgtAdd.AddFile(entry->GetGitPathString());
+					mgtAdd.AddFile(entry->GetGitPathString().c_str());
 				else if (entry->m_Action & CTGitPath::LOGACTIONS_DELETED)
-					mgtUpdateIndexForceRemove.AddFile(entry->GetGitPathString());
+					mgtUpdateIndexForceRemove.AddFile(entry->GetGitPathString().c_str());
 				else
-					mgtUpdateIndex.AddFile(entry->GetGitPathString());
+					mgtUpdateIndex.AddFile(entry->GetGitPathString().c_str());
 
-				if ((entry->m_Action & CTGitPath::LOGACTIONS_REPLACED) && !entry->GetGitOldPathString().IsEmpty())
-					mgtRm.AddFile(entry->GetGitOldPathString());
+				if ((entry->m_Action & CTGitPath::LOGACTIONS_REPLACED) && !entry->GetGitOldPathString().empty())
+					mgtRm.AddFile(entry->GetGitOldPathString().c_str());
 			}
 			else
 			{
 				if (entry->m_Action & CTGitPath::LOGACTIONS_ADDED || entry->m_Action & CTGitPath::LOGACTIONS_REPLACED)
 				{
-					mgtRmFCache.AddFile(entry->GetGitPathString());
+					mgtRmFCache.AddFile(entry->GetGitPathString().c_str());
 					mgtReAddAfterCommit.AddFile(*entry);
 
-					if (entry->m_Action & CTGitPath::LOGACTIONS_REPLACED && !entry->GetGitOldPathString().IsEmpty())
+					if (entry->m_Action & CTGitPath::LOGACTIONS_REPLACED && !entry->GetGitOldPathString().empty())
 					{
-						mgtReset.AddFile(entry->GetGitOldPathString());
-						mgtReDelAfterCommit.AddFile(entry->GetGitOldPathString());
+						mgtReset.AddFile(entry->GetGitOldPathString().c_str());
+						mgtReDelAfterCommit.AddFile(entry->GetGitOldPathString().c_str());
 					}
 				}
 				else if(!(entry->m_Action & CTGitPath::LOGACTIONS_UNVER))
 				{
-					mgtReset.AddFile(entry->GetGitPathString());
+					mgtReset.AddFile(entry->GetGitPathString().c_str());
 					if (entry->m_Action & CTGitPath::LOGACTIONS_DELETED && !(entry->m_Action & CTGitPath::LOGACTIONS_MISSING))
-						mgtReDelAfterCommit.AddFile(entry->GetGitPathString());
+						mgtReDelAfterCommit.AddFile(entry->GetGitPathString().c_str());
 				}
 			}
 		}

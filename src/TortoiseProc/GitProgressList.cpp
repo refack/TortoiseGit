@@ -1093,7 +1093,7 @@ CGitProgressList::WC_File_NotificationData::WC_File_NotificationData(const CTGit
 , action(action)
 {
 	this->path = path;
-	sPathColumnText = path.GetGitPathString();
+	sPathColumnText = path.GetGitPathString().c_str();
 
 	switch (action)
 	{
@@ -1177,8 +1177,8 @@ void CGitProgressList::WC_File_NotificationData::GetContextMenu(CIconMenu& popup
 			CTGitPathList pathList(path);
 
 			actions.push_back([&] {
-				CString tempfilename = CTempFiles::Instance().GetTempFilePath(false).GetWinPathString();
-				VERIFY(pathList.WriteToFile(tempfilename));
+				CString tempfilename = CTempFiles::Instance().GetTempFilePath(false).GetWinPathString().c_str();
+				VERIFY(pathList.WriteToFile(tempfilename.GetString()));
 				CString sCmd;
 				sCmd.Format(L"/command:lfslock /pathfile:\"%s\" /deletepathfile", static_cast<LPCWSTR>(tempfilename));
 				CAppUtils::RunTortoiseGitProc(sCmd);
@@ -1186,8 +1186,8 @@ void CGitProgressList::WC_File_NotificationData::GetContextMenu(CIconMenu& popup
 			popup.AppendMenuIcon(actions.size(), IDS_PROGRS_TITLE_LFS_LOCK, IDI_LFSLOCK);
 
 			actions.push_back([&] {
-				CString tempfilename = CTempFiles::Instance().GetTempFilePath(false).GetWinPathString();
-				VERIFY(pathList.WriteToFile(tempfilename));
+				CString tempfilename = CTempFiles::Instance().GetTempFilePath(false).GetWinPathString().c_str();
+				VERIFY(pathList.WriteToFile(tempfilename.GetString()));
 				CString sCmd;
 				sCmd.Format(L"/command:lfsunlock /pathfile:\"%s\" /deletepathfile", static_cast<LPCWSTR>(tempfilename));
 				CAppUtils::RunTortoiseGitProc(sCmd);

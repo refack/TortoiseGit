@@ -56,7 +56,7 @@ public:
 	void					SetPaths(const CTGitPathList& plist, const CTGitPath &path)
 							{
 								orgCmdLinePath = path;
-								CString WinPath = path.GetWinPathString();
+								CString WinPath = path.GetWinPathString().c_str();
 								if (CStringUtils::StartsWith(WinPath, g_Git.m_CurrentDir))
 								{
 									if (g_Git.m_CurrentDir[g_Git.m_CurrentDir.GetLength() - 1] == L'\\')
@@ -67,7 +67,7 @@ public:
 								orgPathList = plist;
 								for (int i = 0; i < plist.GetCount(); ++i)
 								{
-									WinPath = plist[i].GetWinPathString();
+									WinPath = plist[i].GetWinPathString().c_str();
 									CTGitPath p;
 									if (CStringUtils::StartsWith(WinPath, g_Git.m_CurrentDir))
 									{
