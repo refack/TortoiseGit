@@ -1810,6 +1810,11 @@ std::wstring CTGitPath::GetActionName(unsigned int action)
 	// tests, because nothing in the suite called this. The resource id is now
 	// chosen first and loaded explicitly, which keeps the CString conversion -
 	// and therefore the module's resource lookup - exactly where it was.
+	return CString(MAKEINTRESOURCE(GetActionNameResourceId(action))).GetString();
+}
+
+UINT CTGitPath::GetActionNameResourceId(unsigned int action)
+{
 	UINT id = IDS_PATHACTIONS_UNKNOWN;
 	if (action & CTGitPath::LOGACTIONS_UNMERGED)
 		id = IDS_PATHACTIONS_CONFLICT;
@@ -1834,7 +1839,7 @@ std::wstring CTGitPath::GetActionName(unsigned int action)
 	else if (action & CTGitPath::LOGACTIONS_IGNORE)
 		id = IDS_PATHACTIONS_IGNORED;
 
-	return CString(MAKEINTRESOURCE(id)).GetString();
+	return id;
 }
 
 std::wstring CTGitPath::GetActionName() const

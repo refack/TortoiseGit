@@ -23,6 +23,7 @@
 #include "WideString.h"
 #include "Git.h"
 #include "StringUtils.h"
+#include <Resources/LoglistCommonResource.h>
 #include "PreserveChdir.h"
 #include "AutoTempDir.h"
 
@@ -2436,13 +2437,60 @@ TEST(CTGitPath, GetActionNameDoesNotDereferenceAResourceId)
 	for (const unsigned int action : actions)
 	{
 		const std::wstring name = CTGitPath::GetActionName(action);
-		// Any length is acceptable; reading it is what would fault.
+		// Any length is acceptable - the string resources are not linked into
+		// the test binary, so LoadString legitimately yields empty here.
+		// Merely RETURNING is the check: the pseudo-pointer dereference faults
+		// whether or not the resource exists.
+		//
+		// This prints "afxwin1.inl(24) : Assertion failed!" because there is no
+		// CWinApp to supply a resource handle. That noise is DELIBERATE and
+		// should not be silenced: it is evidence that the real MFC path ran
+		// rather than a mock, which is exactly the path that was broken. A
+		// quiet version of this test would be a weaker one.
 		EXPECT_LT(name.size(), static_cast<size_t>(4096)) << "action=" << action;
 	}
 
 	// The instance overload takes the same path via m_Action.
 	CTGitPath path;
 	path.m_Action = CTGitPath::LOGACTIONS_ADDED;
-	const std::wstring viaInstance = path.GetActionName();
-	EXPECT_LT(viaInstance.size(), static_cast<size_t>(4096));
+	EXPECT_LT(path.GetActionName().size(), static_cast<size_t>(4096));
+}
+
+// The mapping itself, asserted properly. This needs no resource module, so it
+// is exact rather than a liveness check - and it pins the PRECEDENCE, which
+// the original chain of early returns encoded implicitly and which a
+// reordering would silently change.
+TEST(CTGitPath, GetActionNameResourceIdMapping)
+{
+	using P = CTGitPath;
+	EXPECT_EQ(IDS_PATHACTIONS_UNKNOWN, P::GetActionNameResourceId(0));
+	EXPECT_EQ(IDS_PATHACTIONS_CONFLICT, P::GetActionNameResourceId(P::LOGACTIONS_UNMERGED));
+	EXPECT_EQ(IDS_PATHACTIONS_ADD, P::GetActionNameResourceId(P::LOGACTIONS_ADDED));
+	EXPECT_EQ(IDS_PATHACTIONS_MISSING, P::GetActionNameResourceId(P::LOGACTIONS_MISSING));
+	EXPECT_EQ(IDS_PATHACTIONS_DELETE, P::GetActionNameResourceId(P::LOGACTIONS_DELETED));
+	EXPECT_EQ(IDS_PATHACTIONS_MERGED, P::GetActionNameResourceId(P::LOGACTIONS_MERGED));
+	EXPECT_EQ(IDS_PATHACTIONS_MODIFIED, P::GetActionNameResourceId(P::LOGACTIONS_MODIFIED));
+	EXPECT_EQ(IDS_PATHACTIONS_RENAME, P::GetActionNameResourceId(P::LOGACTIONS_REPLACED));
+	EXPECT_EQ(IDS_PATHACTIONS_COPY, P::GetActionNameResourceId(P::LOGACTIONS_COPY));
+	EXPECT_EQ(IDS_PATHACTIONS_ASSUMEUNCHANGED, P::GetActionNameResourceId(P::LOGACTIONS_ASSUMEVALID));
+	EXPECT_EQ(IDS_PATHACTIONS_SKIPWORKTREE, P::GetActionNameResourceId(P::LOGACTIONS_SKIPWORKTREE));
+	EXPECT_EQ(IDS_PATHACTIONS_IGNORED, P::GetActionNameResourceId(P::LOGACTIONS_IGNORE));
+
+	// Unhandled bits fall through to UNKNOWN rather than to whatever was tested last.
+	EXPECT_EQ(IDS_PATHACTIONS_UNKNOWN, P::GetActionNameResourceId(P::LOGACTIONS_UNVER));
+	EXPECT_EQ(IDS_PATHACTIONS_UNKNOWN, P::GetActionNameResourceId(P::LOGACTIONS_HIDE));
+
+	// Precedence, in the order the original if-chain returned. A file that is
+	// both unmerged and modified reports the conflict, not the modification.
+	EXPECT_EQ(IDS_PATHACTIONS_CONFLICT, P::GetActionNameResourceId(P::LOGACTIONS_UNMERGED | P::LOGACTIONS_MODIFIED));
+	EXPECT_EQ(IDS_PATHACTIONS_ADD, P::GetActionNameResourceId(P::LOGACTIONS_ADDED | P::LOGACTIONS_MODIFIED));
+	EXPECT_EQ(IDS_PATHACTIONS_DELETE, P::GetActionNameResourceId(P::LOGACTIONS_DELETED | P::LOGACTIONS_MODIFIED));
+	EXPECT_EQ(IDS_PATHACTIONS_MODIFIED, P::GetActionNameResourceId(P::LOGACTIONS_MODIFIED | P::LOGACTIONS_REPLACED));
+	EXPECT_EQ(IDS_PATHACTIONS_ASSUMEUNCHANGED, P::GetActionNameResourceId(P::LOGACTIONS_ASSUMEVALID | P::LOGACTIONS_IGNORE));
+
+	// 0x4E87 == 20103 is the address the original crash dereferenced, and it is
+	// IDS_PATHACTIONS_MODIFIED - the log list was painting a modified file's
+	// Action cell. Pinned because recognising a resource id in a fault address
+	// is what made that stack readable at all.
+	EXPECT_EQ(0x4E87u, static_cast<unsigned>(IDS_PATHACTIONS_MODIFIED));
 }

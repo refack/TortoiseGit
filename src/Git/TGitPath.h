@@ -94,6 +94,10 @@ public:
 	unsigned int ParseAndUpdateStatus(git_delta_t status);
 	std::wstring GetActionName() const;
 	static std::wstring GetActionName(unsigned int action);
+	// Split out so the action-to-resource mapping, including its precedence
+	// order, can be asserted without a resource module: loading the string
+	// needs an MFC app instance that the test binary does not have.
+	static UINT GetActionNameResourceId(unsigned int action);
 	/**
 	 * Set the path as an UTF8 string with forward slashes
 	 */
