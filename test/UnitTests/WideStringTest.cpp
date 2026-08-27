@@ -1,4 +1,4 @@
-// TortoiseGit - a Windows shell extension for easy version control
+﻿// TortoiseGit - a Windows shell extension for easy version control
 
 // Copyright (C) 2026 - TortoiseGit
 
@@ -243,4 +243,36 @@ TEST(WideString, ReleaseBufferTrimsToTheNulLikeCString)
 	ASSERT_GT(len2, 0u);
 	tgit::wstr::ReleaseBuffer(implicitLen);
 	EXPECT_EQ(buffer, implicitLen);
+}
+
+
+// The formatter exists so that a concatenation chain can be rewritten as one
+// std::format call instead of a sequence of operator+ resolutions between
+// CString, std::wstring, wchar_t and const wchar_t*. These assert that the
+// mixed case - which is the whole point - actually works, and that the CString
+// path agrees with the std::wstring path for the same text.
+TEST(WideString, FormatterAcceptsCStringAndWStringAlike)
+{
+	const CString cs(L"alpha");
+	const std::wstring ws(L"alpha");
+	EXPECT_EQ(std::format(L"[{}]", ws), std::format(L"[{}]", cs));
+
+	// The shape this was added for: a path chain that previously mixed types.
+	const CString dir(L"C:\\temp");
+	const std::wstring name(L"file");
+	const std::wstring ext(L".txt");
+	EXPECT_EQ(L"C:\\temp\\file.BASE.txt", std::format(L"{}\\{}.BASE{}", dir, name, ext));
+
+	// Width and alignment come from the inherited string_view formatter, so
+	// spec handling is not reimplemented and cannot drift.
+	EXPECT_EQ(L"|alpha     |", std::format(L"|{:<10}|", cs));
+	EXPECT_EQ(L"|     alpha|", std::format(L"|{:>10}|", cs));
+
+	// Embedded NUL: CString carries an explicit length, and the formatter uses
+	// GetLength() rather than treating the buffer as NUL-terminated.
+	CString withNul(L"a\0b", 3);
+	EXPECT_EQ(3, withNul.GetLength());
+	EXPECT_EQ(std::wstring(L"a\0b", 3), std::format(L"{}", withNul));
+
+	EXPECT_EQ(L"", std::format(L"{}", CString()));
 }

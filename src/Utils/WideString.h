@@ -55,6 +55,7 @@
 #include <string_view>
 #include <algorithm>
 #include <cwctype>
+#include <format>
 
 namespace tgit::wstr
 {
@@ -247,3 +248,32 @@ inline void ReleaseBuffer(std::wstring& s, const int newLength = -1)
 		s.resize(wcsnlen(s.c_str(), s.size()));
 }
 } // namespace tgit::wstr
+
+#if defined(_MFC_VER) || defined(CSTRING_AVAILABLE)
+// Lets std::format take a CString wherever it already takes a std::wstring.
+//
+// This is what makes std::format the right fix for a concatenation chain
+// rather than a cosmetic rewrite of one. The chains in this codebase mix
+// CString, std::wstring, wchar_t and const wchar_t*, and every conversion
+// between them is a place to get it wrong - appending .c_str() to two of them
+// silently produces "const wchar_t* + const wchar_t*", which is pointer
+// arithmetic that compiles. std::format has no such failure mode: each
+// argument is formatted independently, so there is no operator+ to resolve and
+// no mixed-type expression to reason about.
+//
+// Specialized on the traits parameter rather than on CString, deliberately:
+// CString is CStringT<wchar_t, StrTraitMFC_DLL<...>> in an MFC project and
+// CStringT<wchar_t, StrTraitATL<...>> in an ATL one, so naming either would
+// only cover half the tree. This covers both, and CStringA too if a narrow
+// format context ever needs it.
+template <typename CharT, typename TraitsT>
+struct std::formatter<ATL::CStringT<CharT, TraitsT>, CharT> : std::formatter<std::basic_string_view<CharT>, CharT>
+{
+	template <typename FormatContext>
+	auto format(const ATL::CStringT<CharT, TraitsT>& value, FormatContext& ctx) const
+	{
+		return std::formatter<std::basic_string_view<CharT>, CharT>::format(
+			std::basic_string_view<CharT>(value.GetString(), static_cast<size_t>(value.GetLength())), ctx);
+	}
+};
+#endif

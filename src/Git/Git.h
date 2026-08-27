@@ -26,6 +26,10 @@
 #include "StringUtils.h"
 #include "PathUtils.h"
 #include "UnicodeUtils.h"
+// Also brings the std::formatter specialization for CString, so std::format
+// works uniformly across CString and std::wstring in the ~121 files that
+// include this header.
+#include "WideString.h"
 #include <format>
 #include <string_view>
 #include <concepts>
