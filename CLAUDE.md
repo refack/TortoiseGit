@@ -1079,6 +1079,55 @@ Order to do it in. Phases A and B are what actually buy the goal:
   boundary and `m_CurrentDir`'s admin-dir discovery each decide something
   different. Everything above it is churn; this one is design.
 
+- **`CTGitPath` is in flight, and the core half is done.** Branch
+  `wip/ctgitpath-wstring` (deliberately red; 99 files, ~1,900 lines). On it,
+  **`src\Git`, the converted parts of `src\Utils`, and the entire `test\UnitTests`
+  suite compile with zero errors** — the class itself, `Git.cpp`, `GitStatus`,
+  `GitRevLoglist`, `MassiveGitTaskBase`, `TempFile`, `GitAdminDir`. What remains
+  is **685 errors across ~60 application files** (TortoiseProc, TGitCache,
+  TortoiseShell, Blame), headed by `GitStatusListCtrl.cpp` at 195.
+
+  **A blanket `.c_str()` sweep is not safe, and fails silently.** Where both
+  sides of a comparison have become `std::wstring`,
+  `a.GetWinPathString() == b.GetWinPathString()` compiles today and is correct;
+  appending `.c_str()` to both turns it into a **pointer comparison** that still
+  compiles and is wrong. So the sweep must skip every line containing `==` or
+  `!=` and those sites get converted by hand — which is why it only cleared 178
+  of 863. Inside gtest `STREQ` macros the sweep *is* safe, because those take
+  `const wchar_t*` by contract.
+
+  Mechanical-pass sizes, for estimating the rest: **1,142** test lines rewritten
+  inside `STREQ`, **361** source lines in the accessor sweep across 84 files.
+
+  Master carries the enabling work: `tgit::wstr` (`a483e6f4b`), the `UnicodeUtils` adapters
+  (`51919c55e`) and `CombinePath`/`QuoteParameter` `std::wstring` overloads
+  (`6d79d90d5`). Measured from the red state, **UnitTests project only** — the
+  TortoiseProc wave is *not* in these numbers, and MSVC caps at 100 per file:
+
+  | file | errors | kind |
+  | --- | --- | --- |
+  | `TGitPathTest.cpp` | 100+ | `EXPECT_STREQ` — gtest takes no `std::wstring` |
+  | `GitTest.cpp` | 100+ | same |
+  | `GitRevLoglistTest.cpp` | 100+ | same |
+  | `TGitPath.cpp` | 100+ | the class implementation itself |
+  | `Git.cpp` | 47 | overloads, now landed |
+  | rest | ~50 | scattered over 9 files |
+
+  **241 of the 500 distinct errors are gtest `STREQ`** — one mechanical rewrite,
+  not 241 decisions, which is the "churn, not DoF" reading holding up. Plan the
+  next pass around bulk rewrites per error class rather than per file.
+
+- **Widening an overload set in `CGit` needs a constraint, not a new parameter
+  type.** Adding `CombinePath(std::wstring_view)` makes every existing
+  `CombinePath(L"literal")` **ambiguous**: a `const wchar_t*` converts to
+  `CString` and to `wstring_view` by one user-defined conversion each, so
+  neither wins. It broke `ProjectProperties`, `GitSettings` and `CloneCommand`,
+  and the arity errors it produced on those same lines pointed at
+  `git_config_add_file_ondisk` rather than at the real cause. A
+  `requires std::same_as<std::remove_cvref_t<T>, std::wstring>` template never
+  enters overload resolution for a literal. Same trap awaits every other
+  CString-taking API in the core.
+
 - **Phase C** — drain the remaining `ATL::CStringW` from lib internals at leisure.
 - **Phase D** — applet-merge the executables (see below).
 
@@ -1430,6 +1479,28 @@ Resolved, kept only so they are not re-investigated:
 - **Phase 5, MSIX packaging** — not started; WiX v3 cannot emit MSIX at all.
 - **ARM64 unverified** — this machine has no `Hostx64\arm64` cross-compiler.
   Best-effort, not a blocker.
+- **clangd works here, but only on `.cpp` files, and only with background
+  indexing off** (`.clangd`, added 2026-08-27). Two things it independently
+  confirmed, both of which the compilation database makes machine-visible:
+  - `src\Git\TGitPath.cpp` has **six entries** in `compile_commands.json`, one
+    per consuming project. Hovering `GetWinPathString` there reports
+    `CStringT<wchar_t, StrTraitATL<...>>`, because clangd took the first entry
+    (TGitCache). Had it taken TortoiseProc's it would read `StrTraitMFC_DLL` —
+    the ABI split, visible without `dumpbin`.
+  - Opening a `src\Git` or `src\Utils` **header** on its own leaves `CString`
+    undefined and degrades every signature to error recovery
+    (`GetWinPathString()` hovers as returning `const int&`). That is the
+    not-self-contained-TU defect, not a clangd bug: `/Yu` replaces
+    `#include "stdafx.h"` with the consumer's PCH and clangd has no
+    equivalent. Giving those directories their own `stdafx.h` fixes it and is
+    a prerequisite for the library anyway.
+
+  Background indexing over ~590 entries measured **7.9 GB resident and ~55
+  CPU-minutes without finishing**; with `Index: Background: Skip` the same
+  session is **0.76 GB and 5 CPU-seconds**, and diagnostics, hover and
+  go-to-definition still work because those come from parsing the open file.
+  What is lost is project-wide `findReferences`/`workspaceSymbol`, which grep
+  covers here.
 - **sccache is shelved**, switch left in the tree and off by default. Two
   configuration faults plus one structural blocker; see the experiment report
   rather than re-deriving: precompiled headers are load-bearing for include

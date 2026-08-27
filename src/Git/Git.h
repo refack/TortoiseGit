@@ -25,7 +25,11 @@
 #include <functional>
 #include "StringUtils.h"
 #include "PathUtils.h"
+#include "UnicodeUtils.h"
 #include <format>
+#include <string_view>
+#include <concepts>
+#include <type_traits>
 
 #define REG_MSYSGIT_PATH L"Software\\TortoiseGit\\MSysGit"
 #define REG_SYSTEM_GITCONFIGPATH L"Software\\TortoiseGit\\SystemConfig"
@@ -704,6 +708,25 @@ public:
 		return m_CurrentDir + (CStringUtils::EndsWith(m_CurrentDir, L'\\') ? L"" : L"\\") + path;
 	}
 
+	// Exists so that CTGitPath's accessors can return std::wstring without every
+	// CombinePath call site having to convert: a std::wstring does not reach the
+	// CString overload implicitly, since that would need two user-defined
+	// conversions.
+	//
+	// Constrained to std::wstring exactly, and that is not fussiness. Taking
+	// std::wstring_view (or const std::wstring&) makes every existing
+	// CombinePath(L"literal") call ambiguous, because a const wchar_t* converts
+	// to CString and to the new parameter by one user-defined conversion each,
+	// so neither wins. That is not hypothetical - it broke ProjectProperties,
+	// GitSettings and CloneCommand the first time this was written. A
+	// constrained template never enters overload resolution for a literal.
+	template <typename T>
+		requires std::same_as<std::remove_cvref_t<T>, std::wstring>
+	CString CombinePath(const T& path) const
+	{
+		return CombinePath(CString(path.data(), SafeSizeToInt(path.size())));
+	}
+
 	CString CombinePath(const CTGitPath &path) const
 	{
 		return CombinePath(path.GetWinPathString());
@@ -716,6 +739,13 @@ public:
 	}
 
 	[[nodiscard]] static CString QuoteParameter(CString value, bool relaxed = false);
+	// Same reason, and the same constraint, as the CombinePath overload above.
+	template <typename T>
+		requires std::same_as<std::remove_cvref_t<T>, std::wstring>
+	[[nodiscard]] static CString QuoteParameter(const T& value, bool relaxed = false)
+	{
+		return QuoteParameter(CString(value.data(), SafeSizeToInt(value.size())), relaxed);
+	}
 };
 extern void GetTempPath(CString &path);
 extern CString GetTempFile();

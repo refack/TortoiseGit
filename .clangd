@@ -1,0 +1,48 @@
+# clangd configuration for this tree.
+#
+# Background indexing is OFF on purpose. compile_commands.json here has ~590
+# entries over MFC, ATL, libgit2 and git's own C sources, and the shared files
+# are listed once per consuming project - src\Git\TGitPath.cpp appears six
+# times, once each for TGitCache, TortoiseGitBlame, TortoiseProc,
+# TortoiseShell, test\Cache and test\UnitTests. Indexing that measured at
+# ~8 GB resident and ~55 CPU-minutes without finishing, and what it buys is
+# project-wide findReferences and workspaceSymbol - which grep already covers
+# here.
+#
+# What still works with it off, because it comes from parsing the open file
+# rather than from the index: diagnostics, hover, go-to-definition and
+# document symbols within a translation unit. That is the part worth having,
+# and it is what makes clangd useful for a refactor that would otherwise need
+# a full rebuild to see each error.
+#
+# Turn it back on (delete this block) if you specifically need cross-project
+# reference search, and expect to pay for it.
+Index:
+  Background: Skip
+
+CompileFlags:
+  # MFC's message-map macros (BEGIN_MESSAGE_MAP, ON_NOTIFY, ...) and the
+  # afxcontrolbars headers need clang to emulate a recent MSVC. Without a
+  # version pinned high enough, GitStatusListCtrl.cpp fails inside an included
+  # header and then reports every ON_NOTIFY line as "call to non-static member
+  # function without an object argument" - artifacts, not real findings, which
+  # makes diagnostics on MFC UI files worse than useless.
+  # 14.51 is the toolset in use here; the compiler version that pairs with it
+  # is 19.51.
+  Add: [-fms-compatibility-version=19.51]
+
+# Deliberately NOT configured here: a forced include to make src\Git and
+# src\Utils headers parseable on their own. Those 88 .cpp files all open with
+# #include "stdafx.h" and neither directory contains one, so under MSVC's /Yu
+# the line is replaced by whichever PCH the consuming project built - the same
+# source compiles against TortoiseProc's MFC world or TGitCache's ATL world
+# depending on who compiles it. clangd has no PCH substitution, so opening one
+# of those headers alone leaves CString undefined and every signature degrades
+# to error recovery: GetWinPathString() hovers as returning "const int&".
+#
+# Pointing clangd at one project's stdafx.h would hide that, and it would take
+# an absolute path to do it. The defect is real and belongs fixed at the
+# source - those directories need their own stdafx.h, which is a prerequisite
+# for the shared library anyway and is invisible to the MSVC build, since /Yu
+# ignores the text. See CLAUDE.md, "Making src\ cohesive". Until then, hover
+# and diagnostics are trustworthy in .cpp files and not in these headers.
