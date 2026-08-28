@@ -19,9 +19,11 @@ most rules below are the residue of a wrong turn recorded there.
   three first-party directories — `gitdll`, `TortoiseOverlays`, `vcpkg-ports`.
   Everything third-party comes from vcpkg. Eight applications or dependencies
   were removed outright; the Revision Graph was considered and **kept**.
-- **`src\`**: **all six spanning-base string conversions are done.** `Git.h` was
-  the design one and its six decisions have each landed; what is left there is
-  consumer migration against a settled API, not design.
+- **`src\`**: **all six spanning-base string conversions are done, and the
+  argv migration behind the sixth is finished too.** Every command builder in
+  `src\` speaks argv; the only flat command lines left are
+  `CMassiveGitTaskBase`'s prefix (a design question, not a conversion) and one
+  shell script that is not a command line. Phase A next.
 - **Tests**: 597/597, unattended, about 40 seconds via `test\Run-Tests.ps1`
   (125s single-process). 590 → 597 is +2 `Decode`, +1 `CEnvironmentBlockLayout`,
   +4 `SerializeArgv`.
@@ -345,37 +347,47 @@ executed smallest-first — 2, 3, 6, 4, 5, 1):
 
 | the CString in question | the actual decision | landed as |
 | --- | --- | --- |
-| `Run(const CString& cmd, …)`, `CGitCall`, `RunAsync`, `RunLogFile` | flat command line versus **`std::vector<std::wstring>` argv**. `GetLogCmd` *already* returned `std::vector<std::string>` for the dll path, so the codebase was half-converted and did not know it; argv moves quoting to one chokepoint instead of `QuoteParameter` at every call site. **This was the headline DoF** — retyping `cmd` to `std::wstring` buys nothing and forecloses it. The tell that it is design: `Run` has five overloads differing only in *what shape the output takes*, over one flat input. | `CGit::SerializeArgv` + argv overloads; **API done, call sites in progress** — see "The argv tail" |
+| `Run(const CString& cmd, …)`, `CGitCall`, `RunAsync`, `RunLogFile` | flat command line versus **`std::vector<std::wstring>` argv**. `GetLogCmd` *already* returned `std::vector<std::string>` for the dll path, so the codebase was half-converted and did not know it; argv moves quoting to one chokepoint instead of `QuoteParameter` at every call site. **This was the headline DoF** — retyping `cmd` to `std::wstring` buys nothing and forecloses it. The tell that it is design: `Run` has five overloads differing only in *what shape the output takes*, over one flat input. | `CGit::SerializeArgv` + argv overloads, `7adf4b438`; call sites drained through `ebaa13667` |
 | `CGitByteArray::operator CString()` (`gittype.h:88`) | an **implicit decode** — `strnlen_s` plus UTF-8 → wide, fired wherever a `BYTE_VECTOR` landed in a `CString` context, and silently truncating at the first NUL. The decision is whether bytes → text stays invisible. | `BYTE_VECTOR::Decode()`, `265dc2ec9` |
 | `m_CurrentDir` | a **privatization** problem, not a retype: `SetCurrentDir()` performs admin-dir discovery and latches the object format, direct assignment does neither. Changing the type does not fix that. | read-only reference to a private member, two named setters, `cb959b4df` |
 | `STRING_VECTOR` / `MAP_STRING_STRING` / `TGitRef` (`gittype.h:114-125`) | one typedef, whole-codebase fan-out; `TGitRef` even had `operator const CString&()`. Its own slice, and it is `gittype.h` work that `Git.h` merely surfaces. | `819a6c518` + `b5f8a4420` |
 | `CEnvironment` | a double-NUL-terminated `std::vector<wchar_t>` block for `CreateProcess`. Its `GetEnv`/`SetEnv`/`AddToPath` CString API is *incidental* to a structure that is not a string. | a `std::map` with a serializer, `daa98ca5a` |
 | `GetConfigValue(name, def, wantBool)` | git config values are bytes with a type the caller asserts. `GetConfigValueBool`/`GetConfigValueInt32` already exist; the question is whether the untyped one should. | typed readers public, untyped one kept for tri-state settings pages, `27df019dd` |
 
-**The argv tail.** The API exists, is oracle-tested against `CommandLineToArgvW`,
-and **both invoke chokepoints speak argv**: `CGit::Run`/`RunAsync`/`RunLogFile`,
-and `CProgressDlg::RunCmdList` (everything that shows a progress window). All of
-`src\Git` is argv-only, as are `RebaseDlg`, `GitDiff`, `GitLogListAction`,
-`SyncDlg`, `AppUtils`' git half and the `Commands\` directory. Measure progress
-by counting flat command builders, `git grep -c -E '\.Format\(L"(git|bash)|Run\(L"(git|bash)' -- 'src/*.cpp' 'src/*.h'`:
-**208 → 71** so far. What is left is the long tail — `FileDiffDlg` (10),
-`CommitDlg`'s diff viewer (7), `ProgressCommands\`, `TortoiseGitBlameDoc`,
-`LogDlg`, `SettingGitRemote`, then ones and twos. Three things are **not** part
-of that tail and should not be counted into it:
+**The argv tail is drained.** The API exists, is oracle-tested against
+`CommandLineToArgvW`, and **both invoke chokepoints speak argv**:
+`CGit::Run`/`RunAsync`/`RunLogFile`, and `CProgressDlg::RunCmdList` (everything
+that shows a progress window). Every `src\` consumer now builds argv; the only
+flat command lines left are the two below, both by design.
 
-- **`AppUtils.cpp`'s ~44 `QuoteParameter` uses are mostly a different
-  serializer** — `StartExtDiff`/`StartExtMerge`/`ExpandPlaceholdersForCmd` build
-  *external tool* command lines from user-configured `%`-placeholder templates.
-  A flat string is the product there, not an accident. Its own slice.
-- **`CMassiveGitTaskBase`'s command prefix** (`L"push -- " + QuoteParameter(…)`)
-  is a design question of the same shape as `Run` was, not a conversion. Its
-  *static* `ConvertToCmdList` is already argv; the instance `m_sParams` is not.
-- **`GitTest.cpp`'s ~67** are `QuoteParameter`'s own pin tests, which retire when
-  it does.
+**Measure with `git grep -n 'CGit::QuoteParameter' -- 'src/*.cpp' 'src/*.h'`,
+not with a regex over `.Format(L"git`.** The old metric (208 → 3) was wrong in
+both directions and cost a wrong claim in this file: it never matched
+`StartExtDiff`/`StartExtMerge`/`ExpandPlaceholdersForCmd` at all, so "AppUtils'
+git half is argv-only" was asserted on the strength of a grep that could not
+see the 14 real builders still there; and it missed `cmd += QuoteParameter(x)`
+and `cmd.Format(format, …)` with the template in a *variable*, which is how
+`DropCopyCommand`, `IgnoreCommand`, `RemoveCommand` and `ImportPatchDlg` were
+building commands. **A call to `QuoteParameter` is the actual tell**, because
+the flat line only needs quoting when something is being interpolated into it.
 
-**Do not `[[deprecated]]` the flat overloads** while ~250 sites remain: it is a
-warning flood, and `QuoteParameter` and `illegal_git_parameter` cannot go until
-their last consumer does.
+What is left, and why each stays:
+
+- **`CMassiveGitTaskBase`'s command prefix** — `Git.cpp`'s
+  `L"push -- " + QuoteParameter(sRemote)`, `RevertProgressCommand`'s
+  `L"checkout -f --end-of-options " + …`, and `MassiveGitTaskBase`'s own
+  `m_sParams` and `--pathspec-from-file=`. This is a design question of the
+  same shape as `Run` was, not a conversion. Its *static* `ConvertToCmdList`
+  is already argv; the instance `m_sParams` is not.
+- **`RebaseDlg.cpp`'s `L"git notes copy --for-rewrite=rebase < %s"`** is a
+  **false positive** under either metric: it is the *contents* of a shell
+  script written to a pipe file, not a command line. Do not "convert" it.
+- **`GitTest.cpp`'s ~67** are `QuoteParameter`'s own pin tests, which retire
+  when it does.
+
+**Do not `[[deprecated]]` the flat overloads** yet: `QuoteParameter` and
+`illegal_git_parameter` cannot go until `CMassiveGitTaskBase` does, and the
+flat `Run` overloads are what its `m_sParams` path still needs.
 
 **`SerializeArgv` does not rewrite argument content**, unlike non-relaxed
 `QuoteParameter`, which converted `\` → `/`. Call sites that hand git a
@@ -383,14 +395,33 @@ their last consumer does.
 and `ApplyPatchToIndex` has an explicit `AsGitPath` for the temp file it is
 given. Native git takes backslashes either way; this only bites msys2/cygwin.
 
-**Two shapes recur when converting, and both are invisible in a flat string:**
-a `CString` that only ever holds `"--flag "` or nothing is a **bool**
-(`--allow-empty`, `--no-commit`, `-x` were all this), and a format argument
-quoted *inside* the command line — `--pretty=format:"%s"`, `rev-list "A...B"`,
-`for-each-ref --format="…"` — is **one element with no quotes**, because the
-quotes existed only to survive being parsed back into argv. Leaving them makes
-them literal. Watch also for `x.IsEmpty() ? L"" : …`: an empty interpolation is
-*omission*, but an empty argv element is a real empty argument.
+**Three shapes recur when converting, and all are invisible in a flat string:**
+
+1. A `CString` that only ever holds `"--flag "` or nothing is a **bool**
+   (`--allow-empty`, `--no-commit`, `-x`, `-f` were all this).
+2. A `CString` that accumulates a *run* of flags — `ignore += L" --ignore-*"`,
+   `args += L" --track"`, blame's `option.Format(L"-C -C -C%d", …)` — is a
+   **list**, and the spaces holding it together stop being load-bearing. Note
+   that `"-C -C -C40"` is *three* elements, not one.
+3. A format argument quoted *inside* the command line —
+   `--pretty=format:"%s"`, `rev-list "A...B"`, `--set-upstream-to="o/b"`,
+   `--cacheinfo 0160000,<h>,"<p>"`, `cat-file blob -- "<rev>":"<path>"` — is
+   **one element with no quotes**, because the quotes existed only to survive
+   being parsed back into argv. Leaving them makes them literal.
+
+Watch also for `x.IsEmpty() ? L"" : …` and bare `%s` on a possibly-empty
+variable: an empty interpolation is *omission*, but an empty argv element is a
+real empty argument, which git will try to resolve. And `%%` in a printf format
+is a literal percent — `std::format` does not escape it, so `-M%d%%` becomes
+`-M{}%`.
+
+**Editing source files: do not round-trip them through PowerShell's
+`ReadAllText`/`WriteAllText`.** Most of `src\` is UTF-8 **with** a BOM;
+`ReadAllText` strips it and `WriteAllText`'s default encoding does not put it
+back, so a targeted string replacement silently drops the BOM. Pass
+`New-Object System.Text.UTF8Encoding($true)` if you must, and check
+`[System.IO.File]::ReadAllBytes(f)[0..2]` against `git show HEAD:f` afterwards
+either way.
 
 **Phase B — one `TGitCore.lib`**: `src\Git` + `src\Utils` + AsyncFramework +
 ResizableLib + TGitLibgit2, compiled **ATL-flavor**. With `std::wstring` at the

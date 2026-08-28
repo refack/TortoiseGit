@@ -108,25 +108,13 @@ bool DropCopyCommand::Execute()
 			{
 				g_Git.SetCurrentDir(ProjectTopDir.c_str());
 				SetCurrentDirectory(ProjectTopDir.c_str());
-				CString cmd;
-				cmd = L"git.exe add -- ";
-
 				CString path;
 				path = tgit::wstr::Mid(fullDropPath.GetGitPathString(), static_cast<int>(ProjectTopDir.size())).c_str();
 				if (!path.IsEmpty() && (path[0] == L'\\' || path[0] == L'/'))
 					path = path.Mid(1);
-				try
-				{
-					cmd += CGit::QuoteParameter(path);
-				}
-				catch (illegal_git_parameter& e)
-				{
-					MessageBox(GetExplorerHWND(), e.cause(), L"TortoiseGit", MB_OK | MB_ICONERROR);
-					continue;
-				}
 
 				CString output;
-				if (g_Git.Run(cmd, &output, CP_UTF8))
+				if (g_Git.Run({ L"git.exe", L"add", L"--", std::wstring(path) }, &output, CP_UTF8))
 					MessageBox(GetExplorerHWND(), output, L"TortoiseGit", MB_OK | MB_ICONERROR);
 				else
 					CShellUpdater::Instance().AddPathForUpdate(fullDropPath);

@@ -37,26 +37,18 @@ bool IgnoreCommand::Execute()
 
 	if (parser.HasKey(L"delete"))
 	{
-		CString format;
+		// The two format strings differed by one flag; that is what they say now.
+		STRING_VECTOR baseCmd{ L"git.exe", L"rm" };
 		if(CMessageBox::Show(GetExplorerHWND(), IDS_PROC_KEEPFILELOCAL, IDS_APPNAME, MB_ICONERROR|MB_YESNO) == IDYES)
-			format = L"git.exe rm --cache -r -f -- %s";
-		else
-			format = L"git.exe rm -r -f -- %s";
+			baseCmd.emplace_back(L"--cache");
+		baseCmd.insert(baseCmd.cend(), { L"-r", L"-f", L"--" });
 
 		CString output;
-		CString cmd;
 		int nPath;
 		for (nPath = 0; nPath < pathList.GetCount(); ++nPath)
 		{
-			try
-			{
-				cmd.Format(format, static_cast<LPCWSTR>(CGit::QuoteParameter(pathList[nPath].GetGitPathString().c_str())));
-			}
-			catch (illegal_git_parameter& e)
-			{
-				MessageBox(GetExplorerHWND(), e.cause(), L"TortoiseGit", MB_OK | MB_ICONERROR);
-				return false;
-			}
+			STRING_VECTOR cmd(baseCmd);
+			cmd.emplace_back(pathList[nPath].GetGitPathString());
 			if (g_Git.Run(cmd, &output, CP_UTF8))
 			{
 				if (MessageBox(GetExplorerHWND(), output, L"TortoiseGit", MB_ICONERROR | MB_OKCANCEL) == IDCANCEL)

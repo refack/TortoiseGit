@@ -124,26 +124,19 @@ bool RemoveCommand::Execute()
 	if (CMessageBox::Show(GetExplorerHWND(), format, IDS_APPNAME, 2, IDI_QUESTION, IDS_REMOVEBUTTON, IDS_MSGBOX_ABORT) == 2)
 		return false;
 
+	// The two command templates differed by one flag. (Note the flag order is
+	// not the same as IgnoreCommand's; both are preserved as they were.)
+	STRING_VECTOR baseCmd{ L"git.exe", L"rm", L"-r", L"-f" };
 	if (keepLocal)
-		format= L"git.exe rm -r -f --cached -- %s";
-	else
-		format = L"git.exe rm -r -f -- %s";
+		baseCmd.emplace_back(L"--cached");
+	baseCmd.emplace_back(L"--");
 
 	int pathsHandled = 0;
 	for (int nPath = 0; nPath < pathList.GetCount(); ++nPath)
 	{
-		CString cmd;
+		STRING_VECTOR cmd(baseCmd);
+		cmd.emplace_back(pathList[nPath].GetGitPathString());
 		CString output;
-		try
-		{
-			cmd.Format(format, static_cast<LPCWSTR>(CGit::QuoteParameter(pathList[nPath].GetGitPathString().c_str())));
-		}
-		catch (illegal_git_parameter& e)
-		{
-			MessageBox(GetExplorerHWND(), e.cause(), L"TortoiseGit", MB_OK | MB_ICONERROR);
-			bRet = false;
-			break;
-		}
 		if (g_Git.Run(cmd, &output, CP_UTF8))
 		{
 			if (CMessageBox::Show(GetExplorerHWND(), output, IDS_APPNAME, 2, IDI_ERROR, IDS_IGNOREBUTTON, IDS_ABORTBUTTON) == 2)

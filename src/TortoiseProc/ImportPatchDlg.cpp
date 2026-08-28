@@ -374,7 +374,7 @@ UINT CImportPatchDlg::PatchThread()
 
 		if(m_cList.GetCheck(i))
 		{
-			CString cmd;
+			STRING_VECTOR cmd;
 
 			while(path.HasRebaseApply())
 			{
@@ -388,25 +388,25 @@ UINT CImportPatchDlg::PatchThread()
 				switch(ret)
 				{
 				case 1:
-					cmd = L"git.exe am --abort";
+					cmd = { L"git.exe", L"am", L"--abort" };
 					break;
 				case 2:
-					cmd = L"git.exe am --skip";
+					cmd = { L"git.exe", L"am", L"--skip" };
 					++i;
 					break;
 				case 3:
-					cmd = L"git.exe am --resolved";
+					cmd = { L"git.exe", L"am", L"--resolved" };
 					break;
 				default:
-					cmd.Empty();
+					cmd.clear();
 				}
-				if(cmd.IsEmpty())
+				if(cmd.empty())
 				{
 					m_bExitThread = TRUE;
 					break;
 				}
 
-				this->AddLogString(cmd);
+				this->AddLogString(CGit::SerializeArgvToCString(cmd));
 				CString output;
 				if (g_Git.Run(cmd, &output, CP_UTF8))
 				{
@@ -422,31 +422,22 @@ UINT CImportPatchDlg::PatchThread()
 			if(m_bExitThread)
 				break;
 
-			cmd = L"git.exe am ";
+			cmd = { L"git.exe", L"am" };
 
 			if(this->m_bAddSignedOffBy)
-				cmd += L"--signoff ";
+				cmd.emplace_back(L"--signoff");
 
 			if(this->m_b3Way)
-				cmd += L"--3way ";
+				cmd.emplace_back(L"--3way");
 
 			if(this->m_bIgnoreSpace)
-				cmd += L"--ignore-space-change ";
+				cmd.emplace_back(L"--ignore-space-change");
 
 			if(this->m_bKeepCR)
-				cmd += L"--keep-cr ";
-			cmd += L"-- ";
-			try
-			{
-				cmd += CGit::QuoteParameter(m_cList.GetItemText(i, 0));
-			}
-			catch (illegal_git_parameter& e)
-			{
-				AddLogString(e.cause());
-				break;
-			}
+				cmd.emplace_back(L"--keep-cr");
+			cmd.insert(cmd.cend(), { std::wstring(L"--"), std::wstring(m_cList.GetItemText(i, 0)) });
 
-			this->AddLogString(cmd);
+			this->AddLogString(CGit::SerializeArgvToCString(cmd));
 			CString output;
 			if (g_Git.Run(cmd, &output, CP_UTF8))
 			{
