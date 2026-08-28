@@ -1110,22 +1110,15 @@ void CLogDlg::FillPatchView(bool onlySetTimer)
 			auto p = m_ChangedFileListCtrl.GetListEntry(nSelect);
 			if (p && !(p->m_Action&CTGitPath::LOGACTIONS_UNVER))
 			{
-				CString cmd;
+				STRING_VECTOR cmd{ L"git.exe", L"diff" };
 				if (pLogEntry->m_CommitHash.IsEmpty())
-					cmd = L"git.exe diff HEAD --";
+					cmd.emplace_back(L"HEAD");
 				else
-					cmd.Format(L"git.exe diff --end-of-options %s^%d..%s --", static_cast<LPCWSTR>(pLogEntry->m_CommitHash.ToString()), p->m_ParentNo + 1, static_cast<LPCWSTR>(pLogEntry->m_CommitHash.ToString()));
-				try
-				{
-					if (!p->GetGitOldPathString().empty())
-						cmd.AppendFormat(L" %s", static_cast<LPCWSTR>(CGit::QuoteParameter(p->GetGitOldPathString().c_str())));
-					cmd.AppendFormat(L" %s", static_cast<LPCWSTR>(CGit::QuoteParameter(p->GetGitPathString().c_str())));
-				}
-				catch (illegal_git_parameter& e)
-				{
-					out += L"\n\nSkipped diff." + e.cause() + L"\n\n";
-					continue;
-				}
+					cmd.insert(cmd.cend(), { std::wstring(L"--end-of-options"), std::format(L"{}^{}..{}", pLogEntry->m_CommitHash.ToString(), p->m_ParentNo + 1, pLogEntry->m_CommitHash.ToString()) });
+				cmd.emplace_back(L"--");
+				if (!p->GetGitOldPathString().empty())
+					cmd.emplace_back(p->GetGitOldPathString());
+				cmd.emplace_back(p->GetGitPathString());
 				g_Git.Run(cmd, &out, CP_UTF8);
 			}
 		}

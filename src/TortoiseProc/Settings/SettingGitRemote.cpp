@@ -441,17 +441,8 @@ BOOL CSettingGitRemote::OnApply()
 			}
 		}
 
-		CString cmd,out;
-		try
-		{
-			cmd.Format(L"git.exe remote add -- %s %s", static_cast<LPCWSTR>(CGit::QuoteParameter(m_strRemote)), static_cast<LPCWSTR>(CGit::QuoteParameter(m_strUrl)));
-		}
-		catch (illegal_git_parameter& e)
-		{
-			MessageBox(e.cause(), L"TortoiseGit", MB_OK | MB_ICONERROR);
-			return FALSE;
-		}
-		if (g_Git.Run(cmd, &out, CP_UTF8))
+		CString out;
+		if (g_Git.Run({ L"git.exe", L"remote", L"add", L"--", std::wstring(m_strRemote), std::wstring(m_strUrl) }, &out, CP_UTF8))
 		{
 			CMessageBox::Show(GetSafeHwnd(), out, L"TorotiseGit", MB_OK | MB_ICONERROR);
 			return FALSE;
@@ -520,17 +511,8 @@ void CSettingGitRemote::OnBnClickedButtonRemove()
 		msg.Format(IDS_WARN_REMOVE, static_cast<LPCWSTR>(str));
 		if (CMessageBox::Show(GetSafeHwnd(), msg, L"TortoiseGit", MB_YESNO | MB_ICONQUESTION) == IDYES)
 		{
-			CString cmd,out;
-			try
-			{
-				cmd.Format(L"git.exe remote rm -- %s", static_cast<LPCWSTR>(CGit::QuoteParameter(str)));
-			}
-			catch (illegal_git_parameter& e)
-			{
-				MessageBox(e.cause(), L"TortoiseGit", MB_OK | MB_ICONERROR);
-				return;
-			}
-			if (g_Git.Run(cmd, &out, CP_UTF8))
+			CString out;
+			if (g_Git.Run({ L"git.exe", L"remote", L"rm", L"--", std::wstring(str) }, &out, CP_UTF8))
 			{
 				CMessageBox::Show(GetSafeHwnd(), out, L"TortoiseGit", MB_OK | MB_ICONERROR);
 				return;
@@ -552,17 +534,8 @@ void CSettingGitRemote::OnBnClickedButtonRenameRemote()
 		m_ctrlRemoteList.GetText(sel, oldRemote);
 		GetDlgItem(IDC_EDIT_REMOTE)->GetWindowText(newRemote);
 
-		CString cmd, out;
-		try
-		{
-			cmd.Format(L"git.exe remote rename -- %s %s", static_cast<LPCWSTR>(CGit::QuoteParameter(oldRemote)), static_cast<LPCWSTR>(CGit::QuoteParameter(newRemote)));
-		}
-		catch (illegal_git_parameter& e)
-		{
-			MessageBox(e.cause(), L"TortoiseGit", MB_OK | MB_ICONERROR);
-			return;
-		}
-		if (g_Git.Run(cmd, &out, CP_UTF8))
+		CString out;
+		if (g_Git.Run({ L"git.exe", L"remote", L"rename", L"--", std::wstring(oldRemote), std::wstring(newRemote) }, &out, CP_UTF8))
 		{
 			CMessageBox::Show(GetSafeHwnd(), out, L"TortoiseGit", MB_OK | MB_ICONERROR);
 			return;

@@ -146,7 +146,10 @@ BOOL CTortoiseGitBlameDoc::OnOpenDocument(LPCWSTR lpszPathName, CString Rev)
 			return FALSE;
 		}
 
-		CString cmd, option;
+		// `option` was a CString holding a run of blame flags: "-C -C -C40 -w".
+		// It is a list of flags, so it is a list now, and the spaces that used to
+		// join them stop being part of any single option.
+		STRING_VECTOR cmd, option;
 		int dwDetectMovedOrCopiedLines = theApp.GetInt(L"DetectMovedOrCopiedLines", BLAME_DETECT_MOVED_OR_COPIED_LINES_DISABLED);
 		int dwDetectMovedOrCopiedLinesNumCharactersWithinFile = theApp.GetInt(L"DetectMovedOrCopiedLinesNumCharactersWithinFile", BLAME_DETECT_MOVED_OR_COPIED_LINES_NUM_CHARACTERS_WITHIN_FILE_DEFAULT);
 		int dwDetectMovedOrCopiedLinesNumCharactersFromFiles = theApp.GetInt(L"DetectMovedOrCopiedLinesNumCharactersFromFiles", BLAME_DETECT_MOVED_OR_COPIED_LINES_NUM_CHARACTERS_FROM_FILES_DEFAULT);
@@ -154,38 +157,30 @@ BOOL CTortoiseGitBlameDoc::OnOpenDocument(LPCWSTR lpszPathName, CString Rev)
 		{
 		default:
 		case BLAME_DETECT_MOVED_OR_COPIED_LINES_DISABLED:
-			option.Empty();
 			break;
 		case BLAME_DETECT_MOVED_OR_COPIED_LINES_WITHIN_FILE:
-			option.Format(L"-M%d", dwDetectMovedOrCopiedLinesNumCharactersWithinFile);
+			option.emplace_back(std::format(L"-M{}", dwDetectMovedOrCopiedLinesNumCharactersWithinFile));
 			break;
 		case BLAME_DETECT_MOVED_OR_COPIED_LINES_FROM_MODIFIED_FILES:
-			option.Format(L"-C%d", dwDetectMovedOrCopiedLinesNumCharactersFromFiles);
+			option.emplace_back(std::format(L"-C{}", dwDetectMovedOrCopiedLinesNumCharactersFromFiles));
 			break;
 		case BLAME_DETECT_MOVED_OR_COPIED_LINES_FROM_EXISTING_FILES_AT_FILE_CREATION:
-			option.Format(L"-C -C%d", dwDetectMovedOrCopiedLinesNumCharactersFromFiles);
+			option.insert(option.cend(), { std::wstring(L"-C"), std::format(L"-C{}", dwDetectMovedOrCopiedLinesNumCharactersFromFiles) });
 			break;
 		case BLAME_DETECT_MOVED_OR_COPIED_LINES_FROM_EXISTING_FILES:
-			option.Format(L"-C -C -C%d", dwDetectMovedOrCopiedLinesNumCharactersFromFiles);
+			option.insert(option.cend(), { std::wstring(L"-C"), std::wstring(L"-C"), std::format(L"-C{}", dwDetectMovedOrCopiedLinesNumCharactersFromFiles) });
 			break;
 		}
 
 		if (theApp.GetInt(L"IgnoreWhitespace", 0) == 1)
-			option += L" -w";
+			option.emplace_back(L"-w");
 
 		bool onlyFirstParent = theApp.GetInt(L"OnlyFirstParent", 0) == 1;
 		if (onlyFirstParent)
 		{
-			CString tmpfile = CTempFiles::Instance().GetTempFilePath(true).GetWinPathString().c_str();
-			try
-			{
-				cmd.Format(L"git.exe rev-list --first-parent --end-of-options %s --", static_cast<LPCWSTR>(CGit::QuoteParameter(Rev)));
-			}
-			catch (illegal_git_parameter& e)
-			{
-				MessageBox(nullptr, CString(MAKEINTRESOURCE(IDS_BLAMEERROR)) + L"\n\n" + e.cause(), L"TortoiseGitBlame", MB_OK | MB_ICONERROR);
-				return FALSE;
-			}
+			const CTGitPath tmpfilePath = CTempFiles::Instance().GetTempFilePath(true);
+			CString tmpfile = tmpfilePath.GetWinPathString().c_str();
+			cmd = { L"git.exe", L"rev-list", L"--first-parent", L"--end-of-options", std::wstring(Rev), L"--" };
 			CString err;
 			CAutoFILE file = _wfsopen(tmpfile, L"wb", SH_DENYWR);
 			if (!file)
@@ -208,18 +203,15 @@ BOOL CTortoiseGitBlameDoc::OnOpenDocument(LPCWSTR lpszPathName, CString Rev)
 				MessageBox(nullptr, CString(MAKEINTRESOURCE(IDS_BLAMEERROR)) + L"\n\n" + err, L"TortoiseGitBlame", MB_OK | MB_ICONERROR);
 				return FALSE;
 			}
-			option.AppendFormat(L" -S %s", static_cast<LPCWSTR>(CGit::QuoteParameter(tmpfile)));
+			// GetGitPathString(), not the Windows spelling: the old QuoteParameter
+			// here was also converting the backslashes, and SerializeArgv does not
+			// rewrite argument content.
+			option.insert(option.cend(), { std::wstring(L"-S"), tmpfilePath.GetGitPathString() });
 		}
 
-		try
-		{
-			cmd.Format(L"git.exe blame -p %s %s -- %s", static_cast<LPCWSTR>(option), static_cast<LPCWSTR>(CGit::QuoteParameter(Rev)), static_cast<LPCWSTR>(CGit::QuoteParameter(path.GetGitPathString().c_str())));
-		}
-		catch (illegal_git_parameter& e)
-		{
-			MessageBox(nullptr, CString(MAKEINTRESOURCE(IDS_BLAMEERROR)) + L"\n\n" + e.cause(), L"TortoiseGitBlame", MB_OK | MB_ICONERROR);
-			return FALSE;
-		}
+		cmd = { L"git.exe", L"blame", L"-p" };
+		cmd.insert(cmd.cend(), option.cbegin(), option.cend());
+		cmd.insert(cmd.cend(), { std::wstring(Rev), std::wstring(L"--"), path.GetGitPathString() });
 		m_BlameData.clear();
 		BYTE_VECTOR err;
 		if(g_Git.Run(cmd, &m_BlameData, &err))
@@ -231,15 +223,10 @@ BOOL CTortoiseGitBlameDoc::OnOpenDocument(LPCWSTR lpszPathName, CString Rev)
 #ifdef USE_TEMPFILENAME
 		m_TempFileName = CTempFiles::Instance().GetTempFilePath(true).GetWinPathString().c_str();
 
-		try
-		{
-			cmd.Format(L"git.exe cat-file blob -- %s:%s", static_cast<LPCWSTR>(CGit::QuoteParameter(Rev)), static_cast<LPCWSTR>(CGit::QuoteParameter(path.GetGitPathString().c_str())));
-		}
-		catch (illegal_git_parameter& e)
-		{
-			MessageBox(nullptr, CString(MAKEINTRESOURCE(IDS_BLAMEERROR)) + L"\n\n" + e.cause(), L"TortoiseGitBlame", MB_OK | MB_ICONERROR);
-			return FALSE;
-		}
+		// "<rev>:<path>" was two separately quoted pieces joined by a colon, which
+		// CommandLineToArgvW would have handed the child as one token anyway. It
+		// is one argv element, and it carries no quotes.
+		cmd = { L"git.exe", L"cat-file", L"blob", L"--", std::format(L"{}:{}", Rev, path.GetGitPathString()) };
 
 		if(g_Git.RunLogFile(cmd, m_TempFileName))
 		{
