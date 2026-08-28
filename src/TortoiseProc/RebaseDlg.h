@@ -96,7 +96,7 @@ protected:
 	void UpdateProgress();
 	void UpdateCurrentStatus();
 	void ListConflictFile(bool noStoreScrollPosition);
-	int	RunGitCmdRetryOrAbort(const CString& cmd);
+	int	RunGitCmdRetryOrAbort(const STRING_VECTOR& argv);
 	int  DoRebase();
 	afx_msg LRESULT OnGitStatusListCtrlNeedsRefresh(WPARAM, LPARAM);
 	void Refresh();
@@ -161,18 +161,19 @@ protected:
 			return temp;
 		}
 
-		CString GetAsParam(bool now) const
+		// Two argv elements, not one string of two options. The author no longer
+		// needs quoting here: "--author=A B <c@d>" is one element, and whatever
+		// quoting the command line needs is SerializeArgv's business.
+		STRING_VECTOR GetAsParams(bool now) const
 		{
 			if (!set)
-				return CString();
+				return {};
 
 			CString date = time.Format(L"%Y-%m-%dT%H:%M:%S");
 			if (now)
 				date = L"now";
 
-			CString temp;
-			temp.Format(L"--date=%s --author=%s ", static_cast<LPCWSTR>(date), static_cast<LPCWSTR>(CGit::QuoteParameter(GetAuthor(), true)));
-			return temp;
+			return { std::wstring(L"--date=" + date), std::wstring(L"--author=" + GetAuthor()) };
 		}
 	} m_SquashFirstMetaData;
 	int m_iSquashdate = 0;

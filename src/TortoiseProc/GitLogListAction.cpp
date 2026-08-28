@@ -143,9 +143,8 @@ int CGitLogList::CherryPickFrom(const CString& from, const CString& to)
 		}
 		if (progress.HasUserCancelled())
 			throw std::exception(CUnicodeUtils::GetUTF8(CString(MAKEINTRESOURCE(IDS_USERCANCELLED))));
-		CString cmd,out;
-		cmd.Format(L"git.exe cherry-pick %s", static_cast<LPCWSTR>(logs.GetGitRevAt(i).m_CommitHash.ToString()));
-		if(g_Git.Run(cmd,&out,CP_UTF8))
+		CString out;
+		if (g_Git.Run({ L"git.exe", L"cherry-pick", std::wstring(logs.GetGitRevAt(i).m_CommitHash.ToString()) }, &out, CP_UTF8))
 			throw std::exception(CUnicodeUtils::GetUTF8(CString(MAKEINTRESOURCE(IDS_PROC_CHERRYPICKFAILED)) + L":\r\n\r\n" + out));
 	}
 
@@ -645,19 +644,17 @@ void CGitLogList::ContextMenuAction(int cmd, int FirstSelect, int LastSelect, CM
 				CMessageBox::Show(GetParentHWND(), IDS_PROC_NOCLEAN, IDS_APPNAME, MB_OK | MB_ICONEXCLAMATION);
 				break;
 			}
-			CString sCmd, out;
+			CString out;
 
 			//Use throw to abort this process (reset back to original HEAD)
 			try
 			{
-				sCmd.Format(L"git.exe reset --hard %s --", static_cast<LPCWSTR>(pFirstEntry->m_CommitHash.ToString()));
-				if(g_Git.Run(sCmd, &out, CP_UTF8))
+				if (g_Git.Run({ L"git.exe", L"reset", L"--hard", std::wstring(pFirstEntry->m_CommitHash.ToString()), L"--" }, &out, CP_UTF8))
 				{
 					MessageBox(out, L"TortoiseGit", MB_OK | MB_ICONERROR);
 					throw std::exception(CUnicodeUtils::GetUTF8(CString(MAKEINTRESOURCE(IDS_PROC_COMBINE_ERRORSTEP1)) + L"\r\n\r\n" + out));
 				}
-				sCmd.Format(L"git.exe reset --soft %s --", static_cast<LPCWSTR>(hashLast.ToString()));
-				if(g_Git.Run(sCmd, &out, CP_UTF8))
+				if (g_Git.Run({ L"git.exe", L"reset", L"--soft", std::wstring(hashLast.ToString()), L"--" }, &out, CP_UTF8))
 				{
 					MessageBox(out, L"TortoiseGit", MB_OK | MB_ICONERROR);
 					throw std::exception(CUnicodeUtils::GetUTF8(CString(MAKEINTRESOURCE(IDS_PROC_COMBINE_ERRORSTEP2)) + L"\r\n\r\n"+out));
@@ -712,9 +709,8 @@ void CGitLogList::ContextMenuAction(int cmd, int FirstSelect, int LastSelect, CM
 			catch(std::exception& e)
 			{
 				CMessageBox::Show(GetParentHWND(), CUnicodeUtils::GetUnicode(e.what()), L"TortoiseGit", MB_OK | MB_ICONERROR);
-				sCmd.Format(L"git.exe reset --hard %s --", static_cast<LPCWSTR>(headhash.ToString()));
 				out.Empty();
-				if(g_Git.Run(sCmd, &out, CP_UTF8))
+				if (g_Git.Run({ L"git.exe", L"reset", L"--hard", std::wstring(headhash.ToString()), L"--" }, &out, CP_UTF8))
 					MessageBox(CString(MAKEINTRESOURCE(IDS_PROC_COMBINE_ERRORRESETHEAD)) + L"\r\n\r\n" + out, L"TortoiseGit", MB_OK | MB_ICONERROR);
 			}
 			Refresh();
@@ -839,22 +835,15 @@ void CGitLogList::ContextMenuAction(int cmd, int FirstSelect, int LastSelect, CM
 				for (auto revIt = refsToDelete.crbegin(); revIt != refsToDelete.crend(); ++revIt)
 				{
 					CString ref = *revIt;
-					CString sCmd, out;
-					try
-					{
-						if (CStringUtils::StartsWith(ref, L"stash"))
-							sCmd.Format(L"git.exe stash drop -- %s", static_cast<LPCWSTR>(CGit::QuoteParameter(ref)));
-						else
-							sCmd.Format(L"git.exe reflog delete -- %s", static_cast<LPCWSTR>(CGit::QuoteParameter(ref)));
-					}
-					catch (illegal_git_parameter& e)
-					{
-						MessageBox(e.cause(), L"TortoiseGit", MB_OK | MB_ICONERROR);
-						::PostMessage(this->GetParent()->m_hWnd,MSG_REFLOG_CHANGED,0,0);
-						break;
-					}
+					CString out;
+					STRING_VECTOR argv{ L"git.exe" };
+					if (CStringUtils::StartsWith(ref, L"stash"))
+						argv.insert(argv.cend(), { L"stash", L"drop" });
+					else
+						argv.insert(argv.cend(), { L"reflog", L"delete" });
+					argv.insert(argv.cend(), { L"--", std::wstring(ref) });
 
-					if (g_Git.Run(sCmd, &out, CP_UTF8))
+					if (g_Git.Run(argv, &out, CP_UTF8))
 						MessageBox(out, L"TortoiseGit", MB_OK | MB_ICONERROR);
 
 					::PostMessage(this->GetParent()->m_hWnd,MSG_REFLOG_CHANGED,0,0);

@@ -33,22 +33,14 @@ int CGitDiff::SubmoduleDiffNull(HWND hWnd, const CTGitPath* pPath, const CGitHas
 	CString newsub;
 	CGitHash newhash;
 
-	CString cmd;
-	try
-	{
-		if (!hash.IsEmpty())
-			cmd.Format(L"git.exe ls-tree %s -- %s", static_cast<LPCWSTR>(hash.ToString()), static_cast<LPCWSTR>(CGit::QuoteParameter(pPath->GetGitPathString().c_str())));
-		else
-			cmd.Format(L"git.exe ls-files -s -- %s", static_cast<LPCWSTR>(CGit::QuoteParameter(pPath->GetGitPathString().c_str())));
-	}
-	catch (illegal_git_parameter& e)
-	{
-		MessageBox(hWnd, e.cause(), L"TortoiseGit", MB_OK | MB_ICONERROR);
-		return -1;
-	}
+	STRING_VECTOR argv;
+	if (!hash.IsEmpty())
+		argv = { L"git.exe", L"ls-tree", std::wstring(hash.ToString()), L"--", pPath->GetGitPathString() };
+	else
+		argv = { L"git.exe", L"ls-files", L"-s", L"--", pPath->GetGitPathString() };
 
 	CString output, err;
-	if (g_Git.Run(cmd, &output, &err, CP_UTF8))
+	if (g_Git.Run(argv, &output, &err, CP_UTF8))
 	{
 		CMessageBox::Show(hWnd, output + L'\n' + err, L"TortoiseGit", MB_OK | MB_ICONERROR);
 		return -1;
@@ -67,14 +59,16 @@ int CGitDiff::SubmoduleDiffNull(HWND hWnd, const CTGitPath* pPath, const CGitHas
 		subgit.SetCurrentDirExact(g_Git.CombinePath(pPath));
 		const int encode = CAppUtils::GetLogOutputEncode(&subgit);
 
-		cmd.Format(L"git.exe log -n1 --pretty=format:\"%%s\" %s --", static_cast<LPCWSTR>(newhash.ToString()));
-		const bool toOK = !subgit.Run(cmd, &newsub, encode);
+		// The format used to be spelled --pretty=format:"%s" - the quotes were
+		// there so the flat command line survived being parsed back into argv.
+		// As an argv element it is one string and the quotes would be literal.
+		const bool toOK = !subgit.Run({ L"git.exe", L"log", L"-n1", L"--pretty=format:%s", std::wstring(newhash.ToString()), L"--" }, &newsub, encode);
 
 		bool dirty = false;
 		if (hash.IsEmpty() && !(pPath->m_Action & CTGitPath::LOGACTIONS_DELETED))
 		{
 			CString dirtyList;
-			subgit.Run(L"git.exe status --porcelain", &dirtyList, encode);
+			subgit.Run({ L"git.exe", L"status", L"--porcelain" }, &dirtyList, encode);
 			dirty = !dirtyList.IsEmpty();
 		}
 
@@ -110,7 +104,6 @@ int CGitDiff::DiffNull(HWND hWnd, const CTGitPath* pPath, const CString& rev1, b
 	}
 	CString file1;
 	CString nullfile;
-	CString cmd;
 
 	if(pPath->IsDirectory())
 	{
@@ -165,18 +158,8 @@ int CGitDiff::SubmoduleDiff(HWND hWnd, const CTGitPath* pPath, const CTGitPath* 
 	CGitHash newhash;
 	bool dirty = false;
 
-	CString quotedPath;
-	try
-	{
-		quotedPath = CGit::QuoteParameter(pPath->GetGitPathString().c_str());
-	}
-	catch (illegal_git_parameter& e)
-	{
-		MessageBox(hWnd, e.cause(), L"TortoiseGit", MB_OK | MB_ICONERROR);
-		return -1;
-	}
+	const std::wstring gitPath = pPath->GetGitPathString();
 
-	CString cmd;
 	bool isWorkingCopy = false;
 	if (rev2.IsEmpty() || rev1.IsEmpty())
 	{
@@ -188,11 +171,8 @@ int CGitDiff::SubmoduleDiff(HWND hWnd, const CTGitPath* pPath, const CTGitPath* 
 
 		isWorkingCopy = true;
 
-		cmd.Format(L"git.exe diff --submodule=short %s -- %s",
-		static_cast<LPCWSTR>(rev.ToString()), static_cast<LPCWSTR>(quotedPath));
-
 		CString output, err;
-		if (g_Git.Run(cmd, &output, &err, CP_UTF8))
+		if (g_Git.Run({ L"git.exe", L"diff", L"--submodule=short", std::wstring(rev.ToString()), L"--", gitPath }, &output, &err, CP_UTF8))
 		{
 			CMessageBox::Show(hWnd, output + L'\n' + err, L"TortoiseGit", MB_OK | MB_ICONERROR);
 			return -1;
@@ -203,8 +183,7 @@ int CGitDiff::SubmoduleDiff(HWND hWnd, const CTGitPath* pPath, const CTGitPath* 
 			output.Empty();
 			err.Empty();
 			// also compare against index
-			cmd.Format(L"git.exe diff --submodule=short -- %s", static_cast<LPCWSTR>(quotedPath));
-			if (g_Git.Run(cmd, &output, &err, CP_UTF8))
+			if (g_Git.Run({ L"git.exe", L"diff", L"--submodule=short", L"--", gitPath }, &output, &err, CP_UTF8))
 			{
 				CMessageBox::Show(hWnd, output + L'\n' + err, L"TortoiseGit", MB_OK | MB_ICONERROR);
 				return -1;
@@ -244,11 +223,8 @@ int CGitDiff::SubmoduleDiff(HWND hWnd, const CTGitPath* pPath, const CTGitPath* 
 	}
 	else
 	{
-		cmd.Format(L"git.exe diff-tree -r -z %s %s -- %s",
-		static_cast<LPCWSTR>(rev2.ToString()), static_cast<LPCWSTR>(rev1.ToString()), static_cast<LPCWSTR>(quotedPath));
-
 		BYTE_VECTOR bytes, errBytes;
-		if(g_Git.Run(cmd, &bytes, &errBytes))
+		if (g_Git.Run({ L"git.exe", L"diff-tree", L"-r", L"-z", std::wstring(rev2.ToString()), std::wstring(rev1.ToString()), L"--", gitPath }, &bytes, &errBytes))
 		{
 			CString err = errBytes.Decode().c_str();
 			CMessageBox::Show(hWnd, err, L"TortoiseGit", MB_OK | MB_ICONERROR);
@@ -287,15 +263,13 @@ int CGitDiff::SubmoduleDiff(HWND hWnd, const CTGitPath* pPath, const CTGitPath* 
 
 void CGitDiff::GetSubmoduleChangeType(CGit& subgit, const CGitHash& oldhash, const CGitHash& newhash, bool& oldOK, bool& newOK, ChangeType& changeType, CString& oldsub, CString& newsub)
 {
-	CString cmd;
 	const int encode = CAppUtils::GetLogOutputEncode(&subgit);
 	int oldTime = 0, newTime = 0;
 
 	if (!oldhash.IsEmpty())
 	{
 		CString cmdout, cmderr;
-		cmd.Format(L"git.exe log -n1 --pretty=format:\"%%ct %%s\" %s --", static_cast<LPCWSTR>(oldhash.ToString()));
-		oldOK = !subgit.Run(cmd, &cmdout, &cmderr, encode);
+		oldOK = !subgit.Run({ L"git.exe", L"log", L"-n1", L"--pretty=format:%ct %s", std::wstring(oldhash.ToString()), L"--" }, &cmdout, &cmderr, encode);
 		if (oldOK)
 		{
 			int pos = cmdout.Find(L' ');
@@ -308,8 +282,7 @@ void CGitDiff::GetSubmoduleChangeType(CGit& subgit, const CGitHash& oldhash, con
 	if (!newhash.IsEmpty())
 	{
 		CString cmdout, cmderr;
-		cmd.Format(L"git.exe log -n1 --pretty=format:\"%%ct %%s\" %s --", static_cast<LPCWSTR>(newhash.ToString()));
-		newOK = !subgit.Run(cmd, &cmdout, &cmderr, encode);
+		newOK = !subgit.Run({ L"git.exe", L"log", L"-n1", L"--pretty=format:%ct %s", std::wstring(newhash.ToString()), L"--" }, &cmdout, &cmderr, encode);
 		if (newOK)
 		{
 			int pos = cmdout.Find(L' ');
@@ -382,7 +355,6 @@ int CGitDiff::Diff(HWND hWnd, const CTGitPath* pPath, const CTGitPath* pPath2, c
 
 	CString file1;
 	CString title1;
-	CString cmd;
 
 	if(pPath->IsDirectory() || pPath2->IsDirectory())
 	{
