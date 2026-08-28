@@ -73,17 +73,10 @@ bool PasteMoveCommand::Execute()
 		{
 			// source file is unversioned: move the file to the target, then add it
 			MoveFile(orgPathList[nPath].GetWinPath(), destPath.GetWinPath());
-			CString cmd,output;
-			try
-			{
-				cmd.Format(L"git.exe add -- %s", static_cast<LPCWSTR>(CGit::QuoteParameter(destPath.GetWinPathString().c_str())));
-			}
-			catch (illegal_git_parameter& e)
-			{
-				MessageBox(GetExplorerHWND(), e.cause(), L"TortoiseGit", MB_OK | MB_ICONERROR);
-				return false;
-			}
-			if (g_Git.Run(cmd, &output, CP_UTF8))
+			// GetGitPathString(), not GetWinPathString(): non-relaxed
+			// QuoteParameter used to convert the backslashes here.
+			CString output;
+			if (g_Git.Run({ L"git.exe", L"add", L"--", destPath.GetGitPathString() }, &output, CP_UTF8))
 			//if (!Git.Add(CTGitorgPathList(destPath), &props, Git_depth_infinity, true, false, true))
 			{
 				TRACE(L"%s\n", static_cast<LPCWSTR>(output));
@@ -94,17 +87,8 @@ bool PasteMoveCommand::Execute()
 		}
 		else
 		{
-			CString cmd,output;
-			try
-			{
-				cmd.Format(L"git.exe mv %s %s", static_cast<LPCWSTR>(CGit::QuoteParameter(orgPathList[nPath].GetGitPathString().c_str())), static_cast<LPCWSTR>(CGit::QuoteParameter(destPath.GetGitPathString().c_str())));
-			}
-			catch (illegal_git_parameter& e)
-			{
-				MessageBox(GetExplorerHWND(), e.cause(), L"TortoiseGit", MB_OK | MB_ICONERROR);
-				return false;
-			}
-			if (g_Git.Run(cmd, &output, CP_UTF8))
+			CString output;
+			if (g_Git.Run({ L"git.exe", L"mv", orgPathList[nPath].GetGitPathString(), destPath.GetGitPathString() }, &output, CP_UTF8))
 			//if (!Git.Move(CTGitorgPathList(orgPathList[nPath]), destPath, FALSE))
 			{
 #if 0

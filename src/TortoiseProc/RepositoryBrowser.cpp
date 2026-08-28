@@ -1316,17 +1316,8 @@ void CRepositoryBrowser::OpenFile(const CString path, eOpenType mode, bool isSub
 }
 bool CRepositoryBrowser::RevertItemToVersion(const CString &path)
 {
-	CString cmd, out;
-	try
-	{
-		cmd.Format(L"git.exe checkout --end-of-options %s -- %s", static_cast<LPCWSTR>(CGit::QuoteParameter(m_sRevision)), static_cast<LPCWSTR>(CGit::QuoteParameter(path)));
-	}
-	catch (illegal_git_parameter& e)
-	{
-		MessageBox(e.cause(), L"TortoiseGit", MB_OK | MB_ICONERROR);
-		return false;
-	}
-	if (g_Git.Run(cmd, &out, CP_UTF8))
+	CString out;
+	if (g_Git.Run({ L"git.exe", L"checkout", L"--end-of-options", std::wstring(m_sRevision), L"--", std::wstring(path) }, &out, CP_UTF8))
 	{
 		if (MessageBox(out, L"TortoiseGit", MB_ICONEXCLAMATION | MB_OKCANCEL) == IDCANCEL)
 			return false;

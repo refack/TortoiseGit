@@ -744,22 +744,14 @@ void CSyncDlg::OnBnClickedButtonApply()
 	}
 
 	CImportPatchDlg dlg;
-	CString cmd,output;
+	CString output;
 
 	if(dlg.DoModal() == IDOK)
 	{
 		int err=0;
 		for (int i = 0; i < dlg.m_PathList.GetCount(); ++i)
 		{
-			try
-			{
-				cmd.Format(L"git.exe am -- %s", static_cast<LPCWSTR>(CGit::QuoteParameter(dlg.m_PathList[i].GetGitPathString().c_str())));
-			}
-			catch (illegal_git_parameter& e)
-			{
-				MessageBox(e.cause(), L"TortoiseGit", MB_OK | MB_ICONERROR);
-				return;
-			}
+			const STRING_VECTOR cmd{ L"git.exe", L"am", L"--", dlg.m_PathList[i].GetGitPathString() };
 
 			if (g_Git.Run(cmd, &output, CP_UTF8))
 			{
@@ -769,7 +761,8 @@ void CSyncDlg::OnBnClickedButtonApply()
 				break;
 			}
 			this->m_ctrlCmdOut.SetSel(-1,-1);
-			this->m_ctrlCmdOut.ReplaceSel(cmd + L'\n');
+			// The pane echoes what was run, so it wants the serialized line.
+			this->m_ctrlCmdOut.ReplaceSel(CGit::SerializeArgvToCString(cmd) + L'\n');
 			this->m_ctrlCmdOut.SetSel(-1,-1);
 			this->m_ctrlCmdOut.ReplaceSel(output);
 		}
@@ -819,7 +812,7 @@ void CSyncDlg::OnBnClickedButtonApply()
 
 void CSyncDlg::OnBnClickedButtonEmail()
 {
-	CString cmd, out, err;
+	CString out, err;
 
 	this->m_strLocalBranch = this->m_ctrlLocalBranch.GetString();
 	this->m_ctrlRemoteBranch.GetWindowText(this->m_strRemoteBranch);
@@ -827,17 +820,13 @@ void CSyncDlg::OnBnClickedButtonEmail()
 	m_strURL=m_strURL.Trim();
 	m_strRemoteBranch=m_strRemoteBranch.Trim();
 
-	try
-	{
-		cmd.Format(L"git.exe format-patch -o %s --end-of-options %s/%s..%s",
-						static_cast<LPCWSTR>(CGit::QuoteParameter(g_Git.m_CurrentDir)),
-						static_cast<LPCWSTR>(CGit::QuoteParameter(m_strURL)), static_cast<LPCWSTR>(CGit::QuoteParameter(m_strRemoteBranch)), static_cast<LPCWSTR>(CGit::QuoteParameter(g_Git.FixBranchName(m_strLocalBranch))));
-	}
-	catch (illegal_git_parameter& e)
-	{
-		MessageBox(e.cause(), L"TortoiseGit", MB_OK | MB_ICONERROR);
-		return;
-	}
+	// The revision range was three separately quoted pieces glued together with
+	// '/' and '..'; the quotes only had to survive being parsed back out of the
+	// flat command line, so as one argv element it carries none. The output
+	// directory takes the forward-slash spelling that QuoteParameter used to
+	// give it for free.
+	const STRING_VECTOR cmd{ L"git.exe", L"format-patch", L"-o", CTGitPath(g_Git.m_CurrentDir.GetString()).GetGitPathString(),
+		L"--end-of-options", std::format(L"{}/{}..{}", m_strURL, m_strRemoteBranch, g_Git.FixBranchName(m_strLocalBranch)) };
 
 	if (g_Git.Run(cmd, &out, &err, CP_UTF8))
 	{
@@ -845,7 +834,9 @@ void CSyncDlg::OnBnClickedButtonEmail()
 		return ;
 	}
 
-	CAppUtils::SendPatchMail(GetSafeHwnd(), cmd, out);
+	// SendPatchMail skips past the echoed command line in the output, so it
+	// needs the same spelling that was run.
+	CAppUtils::SendPatchMail(GetSafeHwnd(), CGit::SerializeArgvToCString(cmd), out);
 }
 void CSyncDlg::ShowProgressCtrl(bool bShow)
 {

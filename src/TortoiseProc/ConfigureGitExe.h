@@ -161,7 +161,7 @@ protected:
 		if (g_Git.CheckMsysGitDir(FALSE))
 		{
 			CString out;
-			int ret = g_Git.Run(L"git.exe --version", &out, CP_UTF8);
+			int ret = g_Git.Run({ L"git.exe", L"--version" }, &out, CP_UTF8);
 			SetWindowText(GetDlgItem(hwnd, versionLabelId), out);
 			if (out.IsEmpty())
 			{

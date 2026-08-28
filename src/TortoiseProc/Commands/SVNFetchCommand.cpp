@@ -26,7 +26,7 @@
 bool SVNFetchCommand::Execute()
 {
 	CString out, err;
-	if (!g_Git.Run(L"git.exe config svn-remote.svn.fetch", &out, &err, CP_UTF8))
+	if (!g_Git.Run({ L"git.exe", L"config", L"svn-remote.svn.fetch" }, &out, &err, CP_UTF8))
 	{
 		int start = out.Find(L':');
 		if( start >=0 )

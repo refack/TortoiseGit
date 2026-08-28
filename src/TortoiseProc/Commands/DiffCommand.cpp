@@ -68,10 +68,10 @@ bool DiffCommand::Execute()
 					if (!g_Git.IsInitRepos())
 					{
 						// this might be a rename, try to find original name
-						CString cmd;
-						cmd.Format(L"git.exe diff-index --raw HEAD -M%d%% -C%d%% -z --", CGit::ms_iSimilarityIndexThreshold, CGit::ms_iSimilarityIndexThreshold);
+						// %% was a literal percent in the format string; in std::format
+						// the percent is ordinary and the placeholder is {}.
 						BYTE_VECTOR cmdout;
-						g_Git.Run(cmd, &cmdout);
+						g_Git.Run({ L"git.exe", L"diff-index", L"--raw", L"HEAD", std::format(L"-M{}%", CGit::ms_iSimilarityIndexThreshold), std::format(L"-C{}%", CGit::ms_iSimilarityIndexThreshold), L"-z", L"--" }, &cmdout);
 						CTGitPathList changedFiles;
 						changedFiles.ParserFromLog(cmdout);
 						for (int i = 0; i < changedFiles.GetCount(); ++i)

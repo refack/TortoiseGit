@@ -39,17 +39,8 @@ bool ResolveCommand::Execute()
 			{
 				for (int i = 0; i < dlg.m_pathList.GetCount(); ++i)
 				{
-					CString cmd, out;
-					try
-					{
-						cmd.Format(L"git.exe add -f -- %s", static_cast<LPCWSTR>(CGit::QuoteParameter(dlg.m_pathList[i].GetGitPathString().c_str())));
-					}
-					catch (illegal_git_parameter& e)
-					{
-						MessageBox(GetExplorerHWND(), e.cause(), L"TortoiseGit", MB_OK | MB_ICONERROR);
-						return false;
-					}
-					if (g_Git.Run(cmd, &out, CP_UTF8))
+					CString out;
+					if (g_Git.Run({ L"git.exe", L"add", L"-f", L"--", dlg.m_pathList[i].GetGitPathString() }, &out, CP_UTF8))
 					{
 						MessageBox(GetExplorerHWND(), out, L"TortoiseGit", MB_OK | MB_ICONERROR);
 						return false;

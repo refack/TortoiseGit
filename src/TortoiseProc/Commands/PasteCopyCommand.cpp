@@ -82,17 +82,10 @@ bool PasteCopyCommand::Execute()
 		{
 			// source file is unversioned: move the file to the target, then add it
 			CopyFile(sourcePath.GetWinPath(), fullDropPath.GetWinPath(), FALSE);
-			CString cmd,output;
-			try
-			{
-				cmd.Format(L"git.exe add -- %s", static_cast<LPCWSTR>(CGit::QuoteParameter(fullDropPath.GetWinPathString().c_str())));
-			}
-			catch (illegal_git_parameter& e)
-			{
-				MessageBox(GetExplorerHWND(), e.cause(), L"TortoiseGit", MB_OK | MB_ICONERROR);
-				return false;
-			}
-			if (g_Git.Run(cmd, &output, CP_UTF8))
+			// GetGitPathString(), not GetWinPathString(): non-relaxed
+			// QuoteParameter used to convert the backslashes here.
+			CString output;
+			if (g_Git.Run({ L"git.exe", L"add", L"--", fullDropPath.GetGitPathString() }, &output, CP_UTF8))
 			{
 				TRACE(L"%s\n", static_cast<LPCWSTR>(output));
 				CMessageBox::Show(GetExplorerHWND(), output, L"TortoiseGit", MB_ICONERROR);

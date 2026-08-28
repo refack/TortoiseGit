@@ -122,7 +122,7 @@ void CRefLogDlg::OnBnClickedClearStash()
 	if (CMessageBox::Show(GetSafeHwnd(), msg, IDS_APPNAME, 2, IDI_QUESTION, IDS_DELETEBUTTON, IDS_ABORTBUTTON) == 1)
 	{
 		CString cmdOut;
-		if (g_Git.Run(L"git.exe stash clear", &cmdOut, CP_UTF8))
+		if (g_Git.Run({ L"git.exe", L"stash", L"clear" }, &cmdOut, CP_UTF8))
 		{
 			MessageBox(cmdOut, L"TortoiseGit", MB_ICONERROR);
 			return;

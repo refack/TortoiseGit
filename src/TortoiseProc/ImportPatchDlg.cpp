@@ -638,7 +638,7 @@ void CImportPatchDlg::OnBnClickedCancel()
 			switch(result)
 			{
 			case IDYES:
-				if (CString output; g_Git.Run(L"git.exe am --abort", &output, CP_UTF8))
+				if (CString output; g_Git.Run({ L"git.exe", L"am", L"--abort" }, &output, CP_UTF8))
 					MessageBox(output, L"TortoiseGit", MB_OK | MB_ICONERROR);
 				[[fallthrough]];
 			case IDNO:

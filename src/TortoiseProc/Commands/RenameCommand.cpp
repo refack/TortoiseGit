@@ -57,26 +57,13 @@ bool RenameCommand::Execute()
 	else
 		sNewName = dlg.m_name;
 
-	CString force;
+	STRING_VECTOR cmd{ L"git.exe", L"mv" };
 	// if the filenames only differ in case, we have to pass "-f"
 	if (sNewName.CompareNoCase(cmdLinePath.GetGitPathString().c_str()) == 0)
-		force = L"-f ";
+		cmd.emplace_back(L"-f");
+	cmd.insert(cmd.cend(), { std::wstring(L"--"), cmdLinePath.GetGitPathString(), std::wstring(sNewName) });
 
-	CString cmd;
 	CString output;
-	try
-	{
-		cmd.Format(L"git.exe mv %s-- %s %s",
-						static_cast<LPCWSTR>(force),
-						static_cast<LPCWSTR>(CGit::QuoteParameter(cmdLinePath.GetGitPathString().c_str())),
-						static_cast<LPCWSTR>(CGit::QuoteParameter(sNewName)));
-	}
-	catch (illegal_git_parameter& e)
-	{
-		MessageBox(GetExplorerHWND(), e.cause(), L"TortoiseGit", MB_OK | MB_ICONERROR);
-		return false;
-	}
-
 	if (g_Git.Run(cmd, &output, CP_UTF8))
 	{
 		CMessageBox::Show(GetExplorerHWND(), output, L"TortoiseGit", MB_OK);

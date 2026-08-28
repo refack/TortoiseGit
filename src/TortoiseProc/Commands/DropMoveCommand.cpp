@@ -116,17 +116,8 @@ bool DropMoveCommand::Execute()
 			destPath.AppendPathString(dlg.m_name.GetString());
 		}
 
-		CString cmd,out;
-		try
-		{
-			cmd.Format(L"git.exe mv -- %s %s", static_cast<LPCWSTR>(CGit::QuoteParameter(pathList[nPath].GetGitPathString().c_str())), static_cast<LPCWSTR>(CGit::QuoteParameter(destPath.GetGitPathString().c_str())));
-		}
-		catch (illegal_git_parameter& e)
-		{
-			MessageBox(GetExplorerHWND(), e.cause(), L"TortoiseGit", MB_OK | MB_ICONERROR);
-			return FALSE;
-		}
-		if (g_Git.Run(cmd, &out, CP_UTF8))
+		CString out;
+		if (g_Git.Run({ L"git.exe", L"mv", L"--", pathList[nPath].GetGitPathString(), destPath.GetGitPathString() }, &out, CP_UTF8))
 		{
 			if (CMessageBox::Show(GetExplorerHWND(), out, IDS_APPNAME, 2, IDI_EXCLAMATION, IDS_IGNOREBUTTON, IDS_ABORTBUTTON) == 1)
 			{
