@@ -215,6 +215,14 @@ Set 2026-08-09, per user direction. Not every target carries equal weight:
 ### Build and tooling
 
 - Build through `Build-Nice.ps1` (caps `/m:8`, BelowNormal). Never bare `/m`.
+- Run the suite through **`test\Run-Tests.ps1`** — 125s single-process, ~40s
+  across 8. The suite has **no cross-process interference** (checked: 597/597
+  with real process isolation), but gtest's own `GTEST_TOTAL_SHARDS` distributes
+  round-robin *by index*, so it balances test counts rather than time and gets
+  only 2×. The script bin-packs by measured duration instead, caching timings
+  next to `Tests.exe`; the first run is round-robin, every run after is balanced.
+  **The floor is one test**: `GetWorkingTreeChanges/3` (`LIBGIT2_ALL`) alone is
+  35s — see "Open risk areas".
 - vcpkg root is `E:\.vcpkg-clion`. `vcpkg install --triplet x64-windows-static-md`
   is the restore step; `TortoiseGit.vcpkg-base.props` carries paths only and
   `TortoiseGit.vcpkg.props` adds the libgit2 bundle, so a single-package consumer
@@ -396,6 +404,14 @@ What cutting it involves, so it need not be rediscovered:
 
 ### Open risk areas
 
+- **`GetWorkingTreeChanges` under `LIBGIT2_ALL` is ~350× slower than the CLI.**
+  Measured 2026-08-27 while parallelising the suite. The four fixture params run
+  the same 192 calls; `GIT_CLI`, `LIBGIT` and `LIBGIT2` each take ~90ms total,
+  `LIBGIT2_ALL` (mask `0xffffffff`) takes **33s** — about 174ms per call against
+  ~0.5ms. That one test is a quarter of the whole suite and is now the floor on
+  how fast a parallel run can be. It has never been investigated because a
+  single-process suite hides it in an aggregate. Suspect a per-call repository
+  open or index reload rather than the diff itself. **Not diagnosed.**
 - **Last-open-wins on the libgit2 object-format latch.** `CAutoRepository::Open()`
   re-latches `g_gitObjectFormat`, so opening a submodule re-latches from it.
   Harmless while everything is SHA1 and correct for a uniform SHA256 working
