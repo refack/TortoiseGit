@@ -36,11 +36,18 @@ bool LFSSetLockedProgressCommand::Run(CGitProgressList* list, CString& sWindowTi
 
 	Git_WC_Notify_Action notifyAction = m_bIsLock ? Git_WC_Notify_Action::LFS_Lock : Git_WC_Notify_Action::LFS_Unlock;
 
-	CString cmdBase = L"git.exe lfs ";
-	cmdBase += m_bIsLock ? L"lock " : L"unlock ";
-	cmdBase += m_bIsForce ? L"--force " : L"";
-	cmdBase += L"-- ";
+	STRING_VECTOR cmdBase{ L"git.exe", L"lfs", m_bIsLock ? L"lock" : L"unlock" };
+	if (m_bIsForce)
+		cmdBase.emplace_back(L"--force");
+	cmdBase.emplace_back(L"--");
 
+	// PRESERVED, NOT FIXED: hasError is written and never read - the function
+	// returns true whatever happened. Failure is not lost, because ReportError
+	// sets the list's m_bErrorsOccurred, and that is what feeds both the taskbar
+	// state and the post-command status; the only thing this bool would change
+	// is the window title, which says "finished" after a partly failed run.
+	// "return !hasError" looks like the intent, but it is a behaviour change and
+	// does not belong in an argv conversion.
 	bool hasError = false;
 
 	m_PostCmdCallback = [this](DWORD status, PostCmdList& postCmdList)
@@ -66,16 +73,8 @@ bool LFSSetLockedProgressCommand::Run(CGitProgressList* list, CString& sWindowTi
 
 	for (int i = 0; i < m_targetPathList.GetCount(); ++i)
 	{
-		CString cmd;
-		try
-		{
-			cmd = cmdBase + CGit::QuoteParameter(m_targetPathList[i].GetGitPathString().c_str());
-		}
-		catch (illegal_git_parameter& e)
-		{
-			list->ReportError(e.cause());
-			return false;
-		}
+		STRING_VECTOR cmd(cmdBase);
+		cmd.emplace_back(m_targetPathList[i].GetGitPathString());
 
 		list->AddNotify(new CGitProgressList::WC_File_NotificationData(m_targetPathList[i], notifyAction));
 

@@ -85,37 +85,23 @@ bool CatCommand::Execute()
 		return true;
 	}
 
-	CString cmd, output, err;
-	try
-	{
-		cmd.Format(L"git.exe cat-file -t -- %s", static_cast<LPCWSTR>(CGit::QuoteParameter(revision)));
-	}
-	catch (illegal_git_parameter& e)
-	{
-		MessageBox(GetExplorerHWND(), e.cause(), L"TortoiseGit", MB_OK | MB_ICONERROR);
-		return false;
-	}
-
-	if (g_Git.Run(cmd, &output, &err, CP_UTF8))
+	CString output, err;
+	if (g_Git.Run({ L"git.exe", L"cat-file", L"-t", L"--", std::wstring(revision) }, &output, &err, CP_UTF8))
 	{
 		::DeleteFile(savepath);
 		MessageBox(GetExplorerHWND(), output + L'\n' + err, L"TortoiseGit", MB_ICONERROR);
 		return false;
 	}
 
-	try
+	STRING_VECTOR cmd;
+	if (CStringUtils::StartsWith(output, L"blob"))
+		cmd = { L"git.exe", L"cat-file", L"-p", L"--", std::wstring(revision) };
+	else
 	{
-		if (CStringUtils::StartsWith(output, L"blob"))
-			cmd.Format(L"git.exe cat-file -p -- %s", static_cast<LPCWSTR>(CGit::QuoteParameter(revision)));
-		else
-		{
-			cmd.Format(L"git.exe show --end-of-options %s -- %s", static_cast<LPCWSTR>(CGit::QuoteParameter(revision)), static_cast<LPCWSTR>(CGit::QuoteParameter(cmdLinePath.GetWinPathString().c_str())));
-		}
-	}
-	catch (illegal_git_parameter& e)
-	{
-		MessageBox(GetExplorerHWND(), e.cause(), L"TortoiseGit", MB_OK | MB_ICONERROR);
-		return false;
+		// GetGitPathString(), not GetWinPathString(): the old spelling ran the
+		// Windows path through non-relaxed QuoteParameter, which turned the
+		// backslashes into slashes on the way past. SerializeArgv does not.
+		cmd = { L"git.exe", L"show", L"--end-of-options", std::wstring(revision), L"--", cmdLinePath.GetGitPathString() };
 	}
 
 	if (g_Git.RunLogFile(cmd, savepath, &err))

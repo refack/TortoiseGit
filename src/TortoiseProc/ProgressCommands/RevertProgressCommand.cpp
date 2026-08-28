@@ -149,36 +149,19 @@ bool RevertProgressCommand::Run(CGitProgressList* list, CString& sWindowTitle, i
 	// for handling submodule renames
 	for (const auto& path : moveList)
 	{
-		CString force;
+		STRING_VECTOR cmd{ L"git.exe", L"mv" };
+		// A CString that only ever held "-f " or nothing was a bool all along.
 		// if the filenames only differ in case, we have to pass "-f"
 		if (tgit::wstr::CompareNoCase(path.GetGitPathString(), path.GetGitOldPathString()) == 0)
-			force = L"-f ";
-		CString cmd;
-		try
-		{
-			cmd.Format(L"git.exe mv %s-- %s %s", static_cast<LPCWSTR>(force), static_cast<LPCWSTR>(CGit::QuoteParameter(path.GetGitPathString().c_str())), static_cast<LPCWSTR>(CGit::QuoteParameter(path.GetGitOldPathString().c_str())));
-		}
-		catch (illegal_git_parameter& e)
-		{
-			list->ReportError(e.cause());
-			return false;
-		}
+			cmd.emplace_back(L"-f");
+		cmd.insert(cmd.cend(), { L"--", path.GetGitPathString(), path.GetGitOldPathString() });
 		if (CString err; g_Git.Run(cmd, &err, CP_UTF8))
 		{
 			list->ReportError(err);
 			return false;
 		}
 
-		try
-		{
-			cmd.Format(L"git.exe checkout -f --end-of-options %s -- %s", static_cast<LPCWSTR>(CGit::QuoteParameter(m_sRevertToRevision)), static_cast<LPCWSTR>(CGit::QuoteParameter(path.GetGitOldPathString().c_str())));
-		}
-		catch (illegal_git_parameter& e)
-		{
-			list->ReportError(e.cause());
-			return false;
-		}
-		if (CString err; g_Git.Run(cmd, &err, CP_UTF8))
+		if (CString err; g_Git.Run({ L"git.exe", L"checkout", L"-f", L"--end-of-options", std::wstring(m_sRevertToRevision), L"--", path.GetGitOldPathString() }, &err, CP_UTF8))
 		{
 			list->ReportError(err);
 			return false;

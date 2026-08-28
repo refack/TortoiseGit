@@ -100,18 +100,8 @@ bool ResolveProgressCommand::Run(CGitProgressList* list, CString& sWindowTitle, 
 		CGitHash baseHash, localHash, remoteHash;
 		if (!gitIndex)
 		{
-			CString cmd;
-			try
-			{
-				cmd.Format(L"git.exe ls-files -u -t -z -- %s", static_cast<LPCWSTR>(CGit::QuoteParameter(path.GetGitPathString().c_str())));
-			}
-			catch (illegal_git_parameter& e)
-			{
-				list->ReportError(e.cause());
-				return false;
-			}
 			BYTE_VECTOR vector;
-			if (g_Git.Run(cmd, &vector))
+			if (g_Git.Run({ L"git.exe", L"ls-files", L"-u", L"-t", L"-z", L"--", path.GetGitPathString() }, &vector))
 			{
 				list->ReportError(L"git ls-files failed!");
 				return false;
@@ -174,16 +164,8 @@ bool ResolveProgressCommand::Run(CGitProgressList* list, CString& sWindowTitle, 
 				continue;
 			}
 
-			CString gitcmd, output; // retest with registered submodule!
-			try
-			{
-				gitcmd.Format(L"git.exe rm -f -- %s", static_cast<LPCWSTR>(CGit::QuoteParameter(path.GetGitPathString().c_str())));
-			}
-			catch (illegal_git_parameter& e)
-			{
-				list->ReportError(e.cause());
-				return false;
-			}
+			CString output; // retest with registered submodule!
+			const STRING_VECTOR gitcmd{ L"git.exe", L"rm", L"-f", L"--", path.GetGitPathString() };
 			if (g_Git.Run(gitcmd, &output, CP_UTF8))
 			{
 				// a .git folder in a submodule which is not in .gitmodules cannot be deleted using "git rm"
@@ -223,34 +205,20 @@ bool ResolveProgressCommand::Run(CGitProgressList* list, CString& sWindowTitle, 
 			fullPath.SetFromWin(g_Git.CombinePath(path));
 			if (!fullPath.IsWCRoot()) // check if submodule is initialized
 			{
-				CString gitcmd, output;
+				CString output;
 				if (!fullPath.IsDirectory())
 				{
-					try
-					{
-						gitcmd.Format(L"git.exe checkout-index -f --stage=%d -- %s", destinationStage, static_cast<LPCWSTR>(CGit::QuoteParameter(path.GetGitPathString().c_str())));
-					}
-					catch (illegal_git_parameter& e)
-					{
-						list->ReportError(e.cause());
-						return false;
-					}
-					if (g_Git.Run(gitcmd, &output, CP_UTF8))
+					if (g_Git.Run({ L"git.exe", L"checkout-index", L"-f", std::format(L"--stage={}", destinationStage), L"--", path.GetGitPathString() }, &output, CP_UTF8))
 					{
 						list->ReportError(output);
 						return false;
 					}
 				}
-				try
-				{
-					gitcmd.Format(L"git.exe update-index --replace --cacheinfo 0160000,%s,%s", static_cast<LPCWSTR>(destinationHash.ToString()), static_cast<LPCWSTR>(CGit::QuoteParameter(path.GetGitPathString().c_str())));
-				}
-				catch (illegal_git_parameter& e)
-				{
-					list->ReportError(e.cause());
-					return false;
-				}
-				if (g_Git.Run(gitcmd, &output, CP_UTF8))
+				// The path used to be quoted *inside* the --cacheinfo value, which
+				// only made sense while the value had to survive being parsed back
+				// out of a flat command line. As a single argv element it carries no
+				// quotes, or git would look for a file whose name begins with one.
+				if (g_Git.Run({ L"git.exe", L"update-index", L"--replace", L"--cacheinfo", std::format(L"0160000,{},{}", destinationHash.ToString(), path.GetGitPathString()) }, &output, CP_UTF8))
 				{
 					list->ReportError(output);
 					return false;
