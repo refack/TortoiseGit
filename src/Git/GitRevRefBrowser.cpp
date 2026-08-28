@@ -192,19 +192,21 @@ int GitRevRefBrowser::GetGitRevRefMap(MAP_REF_GITREVREFBROWSER& map, int mergefi
 		return 0;
 	}
 
-	CString args;
+	STRING_VECTOR cmd{ L"git.exe", L"for-each-ref" };
 	switch (mergefilter)
 	{
 	case 1:
-		args = L" --merged HEAD";
+		cmd.insert(cmd.cend(), { L"--merged", L"HEAD" });
 		break;
 	case 2:
-		args = L" --no-merged HEAD";
+		cmd.insert(cmd.cend(), { L"--no-merged", L"HEAD" });
 		break;
 	}
 
-	CString cmd;
-	cmd.Format(L"git.exe for-each-ref%s --format=\"%%(refname)%%04 %%(objectname)%%04 %%(objecttype)%%04 %%(upstream)%%04 %%(subject)%%04 %%(authorname)%%04 %%(authoremail)%%04 %%(authordate:raw)%%04 %%(committername)%%04 %%(committeremail)%%04 %%(committerdate:raw)%%04%%(creator)%%04 %%(creatordate:raw)%%03\"", static_cast<LPCWSTR>(args));
+	// One element. The %% doubling was Format's, and the surrounding quotes were
+	// the command line's; neither is needed now.
+	cmd.emplace_back(L"--format=%(refname)%04 %(objectname)%04 %(objecttype)%04 %(upstream)%04 %(subject)%04 %(authorname)%04 %(authoremail)%04 %(authordate:raw)%04 %(committername)%04 %(committeremail)%04 %(committerdate:raw)%04%(creator)%04 %(creatordate:raw)%03");
+
 	CString allRefs;
 	if (g_Git.Run(cmd, &allRefs, &err, CP_UTF8))
 		return -1;

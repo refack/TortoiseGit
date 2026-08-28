@@ -1137,32 +1137,14 @@ int CTGitPathList::FillUnRev(unsigned int action, const CTGitPathList* list, std
 	}();
 	for (int i = 0; i < count; ++i)
 	{
-		CString cmd;
-		CString ignored;
-		if(action & CTGitPath::LOGACTIONS_IGNORE)
-			ignored = L" -i";
+		STRING_VECTOR cmd{ L"git.exe", L"ls-files", L"--exclude-standard", L"--full-name", L"--others", L"-z" };
+		if (action & CTGitPath::LOGACTIONS_IGNORE)
+			cmd.emplace_back(L"-i");
 
-		if (!list)
-		{
-			cmd = L"git.exe ls-files --exclude-standard --full-name --others -z";
-			cmd+=ignored;
-
-		}
-		else
+		if (list)
 		{
 			ATLASSERT(!(*list)[i].GetWinPathString().empty());
-			try
-			{
-				cmd.Format(L"git.exe ls-files --exclude-standard --full-name --others -z%s -- %s",
-						   static_cast<LPCWSTR>(ignored),
-						   static_cast<LPCWSTR>(CGit::QuoteParameter((*list)[i].GetGitPathString().c_str())));
-			}
-			catch (illegal_git_parameter& e)
-			{
-				if (err)
-					*err = e.cause();
-				return -1;
-			}
+			cmd.insert(cmd.cend(), { L"--", (*list)[i].GetGitPathString() });
 		}
 
 		BYTE_VECTOR out, errb;
@@ -1186,7 +1168,7 @@ int CTGitPathList::FillLFSLocks(unsigned int action, std::wstring* err)
 
 	CString output;
 	CString errCmd;
-	if (g_Git.Run(L"git.exe lfs locks --json", &output, &errCmd, CP_UTF8) != 0)
+	if (g_Git.Run({ L"git.exe", L"lfs", L"locks", L"--json" }, &output, &errCmd, CP_UTF8) != 0)
 	{
 		if (err)
 			err->append(errCmd.GetString(), errCmd.GetLength());

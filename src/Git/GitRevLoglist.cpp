@@ -502,17 +502,10 @@ int GitRevLoglist::GetRefLog(const CString& ref, std::vector<GitRevLoglist>& ref
 	if (!PathFileExists(dotGitDir + ref))
 		return 0;
 
-	CString cmd, out;
-	try
-	{
-		cmd.Format(L"git.exe reflog show --pretty=\"%%H %%gD: %%gs\" --date=raw --end-of-options %s", static_cast<LPCWSTR>(CGit::QuoteParameter(ref)));
-	}
-	catch (illegal_git_parameter& e)
-	{
-		error = e.cause();
-		return -1;
-	}
-	if (g_Git.Run(cmd, &out, &error, CP_UTF8))
+	CString out;
+	// The --pretty format was quoted inside the command line because it contains
+	// spaces; as an argv element it is one string and needs no quotes of its own.
+	if (g_Git.Run({ L"git.exe", L"reflog", L"show", L"--pretty=%H %gD: %gs", L"--date=raw", L"--end-of-options", std::wstring(ref) }, &out, &error, CP_UTF8))
 		return -1;
 
 	int i = 0;

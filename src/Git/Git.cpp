@@ -812,22 +812,23 @@ int CGit::UnsetConfigValue(const CString& key, CONFIG_TYPE type)
 	}
 	else
 	{
-		CString cmd;
-		CString option;
-		switch(type)
+		STRING_VECTOR argv{ L"git.exe", L"config" };
+		switch (type)
 		{
 		case CONFIG_GLOBAL:
-			option = L"--global";
+			argv.emplace_back(L"--global");
 			break;
 		case CONFIG_SYSTEM:
-			option = L"--system";
+			argv.emplace_back(L"--system");
 			break;
 		default:
+			// CONFIG_LOCAL passes no scope flag; see SetConfigValue above.
 			break;
 		}
-		cmd.Format(L"git.exe config %s --unset --end-of-options %s", static_cast<LPCWSTR>(option), static_cast<LPCWSTR>(key));
+		argv.insert(argv.cend(), { L"--unset", L"--end-of-options", std::wstring(key) });
+
 		CString out;
-		if (Run(cmd, &out, nullptr, CP_UTF8))
+		if (Run(argv, &out, nullptr, CP_UTF8))
 			return -1;
 	}
 	return 0;
@@ -1367,7 +1368,7 @@ int CGit::GetInitAddList(CTGitPathList& outputlist, bool getStagingStatus)
 	BYTE_VECTOR cmdout;
 
 	outputlist.Clear();
-	if (Run(L"git.exe ls-files -s -t -z", &cmdout))
+	if (Run({ L"git.exe", L"ls-files", L"-s", L"-t", L"-z" }, &cmdout))
 		return -1;
 
 	if (outputlist.ParserFromLsFile(cmdout))
@@ -1380,7 +1381,7 @@ int CGit::GetInitAddList(CTGitPathList& outputlist, bool getStagingStatus)
 		BYTE_VECTOR cmdunstagedout;
 		for (int i = 0; i < outputlist.GetCount(); ++i)
 			const_cast<CTGitPath&>(outputlist[i]).m_stagingStatus = CTGitPath::StagingStatus::TotallyStaged;
-		if (Run(L"git.exe diff-files --raw --numstat -C -M -z --", &cmdunstagedout))
+		if (Run({ L"git.exe", L"diff-files", L"--raw", L"--numstat", L"-C", L"-M", L"-z", L"--" }, &cmdunstagedout))
 			return -1;
 
 		CTGitPathList unstaged;
@@ -1509,7 +1510,7 @@ int CGit::GetTagList(STRING_VECTOR &list)
 	else
 	{
 		gitLastErr.Empty();
-		const int ret = Run(L"git.exe tag -l", [&](const std::string_view lineA)
+		const int ret = Run({ L"git.exe", L"tag", L"-l" }, [&](const std::string_view lineA)
 		{
 			if (lineA.empty())
 				return;
@@ -1964,7 +1965,7 @@ int CGit::GetRemoteList(STRING_VECTOR &list)
 	}
 
 	gitLastErr.Empty();
-	return Run(L"git.exe remote", [&](const std::string_view lineA)
+	return Run({ L"git.exe", L"remote" }, [&](const std::string_view lineA)
 	{
 		if (lineA.empty())
 			return;
@@ -2149,7 +2150,7 @@ int CGit::GetRefList(STRING_VECTOR &list)
 	}
 
 	gitLastErr.Empty();
-	const int ret = Run(L"git.exe show-ref -d", [&](const std::string_view lineA)
+	const int ret = Run({ L"git.exe", L"show-ref", L"-d" }, [&](const std::string_view lineA)
 	{
 		const size_t start = lineA.find(' ');
 		ASSERT(start == 2 * GIT_HASH_SIZE);
@@ -2225,7 +2226,7 @@ int CGit::GetMapHashToFriendName(MAP_HASH_NAME &map)
 	}
 
 	gitLastErr.Empty();
-	const int ret = Run(L"git.exe show-ref -d", [&](const std::string_view lineA)
+	const int ret = Run({ L"git.exe", L"show-ref", L"-d" }, [&](const std::string_view lineA)
 	{
 		const size_t start = lineA.find(' ');
 		ASSERT(start == 2 * GIT_HASH_SIZE);
@@ -2639,16 +2640,16 @@ BOOL CGit::CheckCleanWorkTree(bool stagedOk /* false */)
 		return (0 == git_status_list_entrycount(status));
 	}
 
-	if (Run(L"git.exe rev-parse --verify HEAD", nullptr, nullptr, CP_UTF8))
+	if (Run({ L"git.exe", L"rev-parse", L"--verify", L"HEAD" }, nullptr, nullptr, CP_UTF8))
 		return FALSE;
 
-	if (Run(L"git.exe update-index --ignore-submodules --refresh", nullptr, nullptr, CP_UTF8))
+	if (Run({ L"git.exe", L"update-index", L"--ignore-submodules", L"--refresh" }, nullptr, nullptr, CP_UTF8))
 		return FALSE;
 
-	if (Run(L"git.exe diff-files --quiet --ignore-submodules", nullptr, nullptr, CP_UTF8))
+	if (Run({ L"git.exe", L"diff-files", L"--quiet", L"--ignore-submodules" }, nullptr, nullptr, CP_UTF8))
 		return FALSE;
 
-	if (!stagedOk && Run(L"git.exe diff-index --cached --quiet HEAD --ignore-submodules --", nullptr, nullptr, CP_UTF8))
+	if (!stagedOk && Run({ L"git.exe", L"diff-index", L"--cached", L"--quiet", L"HEAD", L"--ignore-submodules", L"--" }, nullptr, nullptr, CP_UTF8))
 		return FALSE;
 
 	return TRUE;
@@ -2656,9 +2657,9 @@ BOOL CGit::CheckCleanWorkTree(bool stagedOk /* false */)
 
 BOOL CGit::IsResultingCommitBecomeEmpty(bool amend /* = false */)
 {
-	CString cmd;
-	cmd.Format(L"git.exe diff-index --cached --quiet HEAD%s --", amend ? L"~1" : L"");
-	return Run(cmd, nullptr, nullptr, CP_UTF8) == 0;
+	// "HEAD~1" is one revision, so the suffix is part of the element rather than
+	// something appended to the command line.
+	return Run({ L"git.exe", L"diff-index", L"--cached", L"--quiet", amend ? L"HEAD~1" : L"HEAD", L"--" }, nullptr, nullptr, CP_UTF8) == 0;
 }
 
 int CGit::HasWorkingTreeConflicts(git_repository* repo)
@@ -2685,7 +2686,7 @@ int CGit::HasWorkingTreeConflicts()
 
 	CString output;
 	gitLastErr.Empty();
-	if (Run(L"git.exe ls-files -u", &output, &gitLastErr, CP_UTF8))
+	if (Run({ L"git.exe", L"ls-files", L"-u" }, &output, &gitLastErr, CP_UTF8))
 		return -1;
 
 	return output.IsEmpty() ? 0 : 1;
@@ -2763,7 +2764,7 @@ int CGit::RefreshGitIndex()
 		return -1;
 	}
 	else
-		return Run(L"git.exe update-index --refresh", nullptr, nullptr, CP_UTF8);
+		return Run({ L"git.exe", L"update-index", L"--refresh" }, nullptr, nullptr, CP_UTF8);
 }
 
 int CGit::GetOneFile(const CString &Refname, const CTGitPath &path, const CString &outputfile)
@@ -3289,12 +3290,12 @@ int CGit::GitRevert(int parent, const CGitHash &hash)
 	}
 	else
 	{
-		CString cmd, merge;
+		STRING_VECTOR argv{ L"git.exe", L"revert", L"--no-edit", L"--no-commit" };
 		if (parent)
-			merge.Format(L"-m %d ", parent);
-		cmd.Format(L"git.exe revert --no-edit --no-commit %s%s", static_cast<LPCWSTR>(merge), static_cast<LPCWSTR>(hash.ToString()));
-		gitLastErr = cmd + L'\n';
-		if (Run(cmd, &gitLastErr, CP_UTF8))
+			argv.insert(argv.cend(), { L"-m", std::to_wstring(parent) });
+		argv.emplace_back(std::wstring(hash.ToString()));
+		gitLastErr = SerializeArgvToCString(argv) + L'\n';
+		if (Run(argv, &gitLastErr, CP_UTF8))
 			return -1;
 		else
 		{
@@ -3614,7 +3615,7 @@ void CGit::GetBisectTerms(CString* good, CString* bad)
 int CGit::GetGitVersion(CString* versiondebug, CString* errStr)
 {
 	CString version, err;
-	if (Run(L"git.exe --version", &version, &err, CP_UTF8))
+	if (Run({ L"git.exe", L"--version" }, &version, &err, CP_UTF8))
 	{
 		if (errStr)
 			*errStr = err;

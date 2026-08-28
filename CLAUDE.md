@@ -346,11 +346,14 @@ executed smallest-first — 2, 3, 6, 4, 5, 1):
 | `GetConfigValue(name, def, wantBool)` | git config values are bytes with a type the caller asserts. `GetConfigValueBool`/`GetConfigValueInt32` already exist; the question is whether the untyped one should. | typed readers public, untyped one kept for tri-state settings pages, `27df019dd` |
 
 **The argv tail.** The API exists, is oracle-tested against `CommandLineToArgvW`,
-and `Git.cpp` invokes itself through it. What is left is consumer migration —
-mechanical per-cluster edits against a settled API, roughly in this order:
-`SyncDlg`, `CloneCommand`, `CommitDlg`, `RebaseDlg`, `FileDiffDlg`,
-`GitStatusListCtrl`, then the `Commands\` directory. Three things are **not**
-part of that tail and should not be counted into it:
+and **all of `src\Git` invokes git through it** — the core is argv-only.
+`RebaseDlg`, `GitDiff` and `GitLogListAction` are converted too. Measure progress
+by counting flat command builders, `git grep -c -E '\.Format\(L"(git|bash)|Run\(L"(git|bash)' -- 'src/*.cpp' 'src/*.h'`:
+**208 → 101** so far. What is left is consumer migration — mechanical per-cluster
+edits against a settled API — roughly: `CommitDlg` (10), `FileDiffDlg` (10),
+`SyncDlg` (7), the `ProgressCommands\` and `Commands\` directories, then the
+long tail of one- and two-site files. Three things are **not** part of that tail
+and should not be counted into it:
 
 - **`AppUtils.cpp`'s ~44 `QuoteParameter` uses are mostly a different
   serializer** — `StartExtDiff`/`StartExtMerge`/`ExpandPlaceholdersForCmd` build
@@ -370,6 +373,15 @@ their last consumer does.
 *Windows* path must convert it themselves — `GetGitPathString()` already does,
 and `ApplyPatchToIndex` has an explicit `AsGitPath` for the temp file it is
 given. Native git takes backslashes either way; this only bites msys2/cygwin.
+
+**Two shapes recur when converting, and both are invisible in a flat string:**
+a `CString` that only ever holds `"--flag "` or nothing is a **bool**
+(`--allow-empty`, `--no-commit`, `-x` were all this), and a format argument
+quoted *inside* the command line — `--pretty=format:"%s"`, `rev-list "A...B"`,
+`for-each-ref --format="…"` — is **one element with no quotes**, because the
+quotes existed only to survive being parsed back into argv. Leaving them makes
+them literal. Watch also for `x.IsEmpty() ? L"" : …`: an empty interpolation is
+*omission*, but an empty argv element is a real empty argument.
 
 **Phase B — one `TGitCore.lib`**: `src\Git` + `src\Utils` + AsyncFramework +
 ResizableLib + TGitLibgit2, compiled **ATL-flavor**. With `std::wstring` at the

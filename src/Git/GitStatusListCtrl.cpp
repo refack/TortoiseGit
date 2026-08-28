@@ -930,52 +930,39 @@ void CGitStatusListCtrl::RestoreScrollPos()
 // This probably should be moved to the commit window
 void CGitStatusListCtrl::GitStageEntry(CTGitPath* entry)
 {
-	CString cmd, out;
-	try
-	{
-		cmd.Format(L"git.exe add -- %s", static_cast<LPCWSTR>(CGit::QuoteParameter(entry->GetGitPathString().c_str())));
-	}
-	catch (illegal_git_parameter& e)
-	{
-		MessageBox(e.cause(), L"TortoiseGit", MB_OK | MB_ICONERROR);
-	}
-	if (g_Git.Run(cmd, &out, CP_UTF8))
+	// Note that the catch this replaces did not return, so a rejected path used
+	// to leave cmd empty and then run an empty command line.
+	CString out;
+	if (g_Git.Run({ L"git.exe", L"add", L"--", entry->GetGitPathString() }, &out, CP_UTF8))
 		MessageBox(L"Error staging file", L"TortoiseGit", MB_OK | MB_ICONERROR);
 }
 
 // This probably should be moved to the commit window
 void CGitStatusListCtrl::GitUnstageEntry(CTGitPath* entry)
 {
-	CString cmd1, cmd2, out;
-	try
+	CString out;
+	STRING_VECTOR cmd1, cmd2;
+	// git restore --staged would avoid the whole mess below but requires at least git version 2.23
+	if (entry->m_Action & CTGitPath::Actions::LOGACTIONS_ADDED)
+		cmd1 = { L"git.exe", L"rm", L"-f", L"--cached", L"--", entry->GetGitPathString() };
+	else if (entry->m_Action & CTGitPath::Actions::LOGACTIONS_DELETED)
+		cmd1 = { L"git.exe", L"reset", L"--", entry->GetGitPathString() };
+	else if (entry->m_Action & CTGitPath::Actions::LOGACTIONS_MODIFIED)
+		cmd1 = { L"git.exe", L"reset", L"--", entry->GetGitPathString() };
+	else if (entry->m_Action & CTGitPath::Actions::LOGACTIONS_REPLACED)
 	{
-		// git restore --staged would avoid the whole mess below but requires at least git version 2.23
-		if (entry->m_Action & CTGitPath::Actions::LOGACTIONS_ADDED)
-			cmd1.Format(L"git.exe rm -f --cached -- %s", static_cast<LPCTSTR>(CGit::QuoteParameter(entry->GetGitPathString().c_str())));
-		else if (entry->m_Action & CTGitPath::Actions::LOGACTIONS_DELETED)
-			cmd1.Format(L"git.exe reset -- %s", static_cast<LPCTSTR>(CGit::QuoteParameter(entry->GetGitPathString().c_str())));
-		else if (entry->m_Action & CTGitPath::Actions::LOGACTIONS_MODIFIED)
-			cmd1.Format(L"git.exe reset -- %s", static_cast<LPCTSTR>(CGit::QuoteParameter(entry->GetGitPathString().c_str())));
-		else if (entry->m_Action & CTGitPath::Actions::LOGACTIONS_REPLACED)
-		{
-			cmd1.Format(L"git.exe rm -f --cached -- %s", static_cast<LPCTSTR>(CGit::QuoteParameter(entry->GetGitPathString().c_str())));
-			cmd2.Format(L"git.exe reset -- %s", static_cast<LPCTSTR>(CGit::QuoteParameter(entry->GetGitOldPathString().c_str())));
-		}
-		else
-			return;
+		cmd1 = { L"git.exe", L"rm", L"-f", L"--cached", L"--", entry->GetGitPathString() };
+		cmd2 = { L"git.exe", L"reset", L"--", entry->GetGitOldPathString() };
 	}
-	catch (illegal_git_parameter& e)
-	{
-		MessageBox(e.cause(), L"TortoiseGit", MB_OK | MB_ICONERROR);
+	else
 		return;
-	}
 
 	if (g_Git.Run(cmd1, &out, CP_UTF8))
 	{
 		MessageBox(L"Error unstaging file:\n" + out, L"TortoiseGit", MB_OK | MB_ICONERROR);
 		return;
 	}
-	if (!cmd2.IsEmpty() && g_Git.Run(cmd2, &out, CP_UTF8))
+	if (!cmd2.empty() && g_Git.Run(cmd2, &out, CP_UTF8))
 	{
 		MessageBox(L"Error unstaging file:\n" + out, L"TortoiseGit", MB_OK | MB_ICONERROR);
 		return;
@@ -3140,11 +3127,8 @@ void CGitStatusListCtrl::StartDiff(int fileindex)
 
 				if(parent1>=0 && parent2>=0)
 				{
-					CString cmd, output;
-					cmd.Format(L"git.exe merge-base -- %s^%d %s^%d", static_cast<LPCWSTR>(m_CurrentVersion.ToString()), parent1 + 1,
-						static_cast<LPCWSTR>(m_CurrentVersion.ToString()), parent2 + 1);
-
-					if (!g_Git.Run(cmd, &output, nullptr, CP_UTF8))
+					CString output;
+					if (!g_Git.Run({ L"git.exe", L"merge-base", L"--", std::format(L"{}^{}", m_CurrentVersion.ToString(), parent1 + 1), std::format(L"{}^{}", m_CurrentVersion.ToString(), parent2 + 1) }, &output, nullptr, CP_UTF8))
 					{
 						if (g_Git.GetOneFile(output.Left(2 * GIT_HASH_SIZE), file1, base.GetWinPathString().c_str()))
 							CMessageBox::Show(GetParentHWND(), IDS_STATUSLIST_FAILEDGETBASEFILE, IDS_APPNAME, MB_OK | MB_ICONERROR);
@@ -4156,33 +4140,17 @@ int CGitStatusListCtrl::UpdateFileList(const CTGitPathList* list, bool getStagin
 			}
 			if (deleteFromIndex == 1)
 			{
-				try
-				{
-					if (CString err; g_Git.Run(L"git.exe checkout -- " + CGit::QuoteParameter(gitpatch->GetGitPathString().c_str()), &err, CP_UTF8))
-						MessageBox(L"Restoring from index failed:\n" + err, L"TortoiseGit", MB_ICONERROR);
-					else
-						needsRefresh = true;
-				}
-				catch (illegal_git_parameter& e)
-				{
-					MessageBox(e.cause(), L"TortoiseGit", MB_OK | MB_ICONERROR);
-					return -1;
-				}
+				if (CString err; g_Git.Run({ L"git.exe", L"checkout", L"--", gitpatch->GetGitPathString() }, &err, CP_UTF8))
+					MessageBox(L"Restoring from index failed:\n" + err, L"TortoiseGit", MB_ICONERROR);
+				else
+					needsRefresh = true;
 			}
 			else if (deleteFromIndex == 2)
 			{
-				try
-				{
-					if (CString err; g_Git.Run(L"git.exe rm -f --cache -- " + CGit::QuoteParameter(gitpatch->GetGitPathString().c_str()), &err, CP_UTF8))
-						MessageBox(L"Removing from index failed:\n" + err, L"TortoiseGit", MB_ICONERROR);
-					else
-						needsRefresh = true;
-				}
-				catch (illegal_git_parameter& e)
-				{
-					MessageBox(e.cause(), L"TortoiseGit", MB_OK | MB_ICONERROR);
-					return -1;
-				}
+				if (CString err; g_Git.Run({ L"git.exe", L"rm", L"-f", L"--cache", L"--", gitpatch->GetGitPathString() }, &err, CP_UTF8))
+					MessageBox(L"Removing from index failed:\n" + err, L"TortoiseGit", MB_ICONERROR);
+				else
+					needsRefresh = true;
 			}
 		}
 
@@ -4636,19 +4604,13 @@ int CGitStatusListCtrl::RevertSelectedItemToVersion(bool parent)
 		boolean isAdded = parent && (fentry->m_Action & CTGitPath::LOGACTIONS_ADDED);
 		if (CTGitPath path{ g_Git.CombinePath(filename).GetString() }; useRecycleBin && !isAdded && !path.IsDirectory())
 			path.Delete(useRecycleBin, true);
-		CString cmd, out;
-		try
-		{
-			cmd.Format(L"git.exe checkout %s -- %s", static_cast<LPCWSTR>(CGit::QuoteParameter(version)), static_cast<LPCWSTR>(CGit::QuoteParameter(filename))); // remember to use --end-of-options as soon as version is not a hash any more
-			if (isAdded) // HACK for issue #4097
-				cmd.Format(L"git.exe rm --cached --ignore-unmatch -- %s", static_cast<LPCWSTR>(CGit::QuoteParameter(filename)));
-		}
-		catch (illegal_git_parameter& e)
-		{
-			MessageBox(e.cause(), L"TortoiseGit", MB_OK | MB_ICONERROR);
-			return -1;
-		}
-		if (g_Git.Run(cmd, &out, CP_UTF8))
+		CString out;
+		STRING_VECTOR argv;
+		if (isAdded) // HACK for issue #4097
+			argv = { L"git.exe", L"rm", L"--cached", L"--ignore-unmatch", L"--", std::wstring(filename) };
+		else // remember to use --end-of-options as soon as version is not a hash any more
+			argv = { L"git.exe", L"checkout", std::wstring(version), L"--", std::wstring(filename) };
+		if (g_Git.Run(argv, &out, CP_UTF8))
 		{
 			if (CMessageBox::Show(GetSafeHwnd(), out, IDS_APPNAME, 1, IDI_WARNING, IDS_IGNOREBUTTON, IDS_ABORTBUTTON) == 2)
 				break;
