@@ -111,9 +111,6 @@
     <ClCompile Include="..\Utils\MiscUI\IconBitmapUtils.cpp">
       <Filter>Utils\MiscUI</Filter>
     </ClCompile>
-    <ClCompile Include="..\Git\MassiveGitTaskBase.cpp">
-      <Filter>Git</Filter>
-    </ClCompile>
     <ClCompile Include="ShellCache.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -227,9 +224,6 @@
       <Filter>Git</Filter>
     </ClInclude>
     <ClInclude Include="..\Git\gittype.h">
-      <Filter>Git</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Git\MassiveGitTaskBase.h">
       <Filter>Git</Filter>
     </ClInclude>
     <ClInclude Include="..\TGitCache\CacheInterface.h">

@@ -23,12 +23,17 @@
     <RootNamespace>Cache</RootNamespace>
     <Keyword>MFCProj</Keyword>
   </PropertyGroup>
-  <Import Project="$(SolutionDir)TortoiseGit.toolset.props" />
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseOfMfc>Dynamic</UseOfMfc>
     <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Label="Configuration" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <PlatformToolset>v145</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Label="Configuration" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <PlatformToolset>v145</PlatformToolset>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
@@ -41,7 +46,6 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\..\src\Git\Git.cpp" />
-    <ClCompile Include="..\..\src\Git\MassiveGitTaskBase.cpp" />
     <ClCompile Include="..\..\src\Utils\DebugOutput.cpp" />
     <ClCompile Include="..\..\src\Utils\LoadIconEx.cpp" />
     <ClCompile Include="..\..\src\Utils\SysInfo.cpp" />
@@ -64,7 +68,6 @@
     <ClInclude Include="..\..\src\Git\Git.h" />
     <ClInclude Include="..\..\src\Git\GitAdminDir.h" />
     <ClInclude Include="..\..\src\Git\GitHash.h" />
-    <ClInclude Include="..\..\src\Git\MassiveGitTaskBase.h" />
     <ClInclude Include="..\..\src\Git\TGitPath.h" />
     <ClInclude Include="..\..\src\Utils\DebugOutput.h" />
     <ClInclude Include="..\..\src\Utils\LoadIconEx.h" />

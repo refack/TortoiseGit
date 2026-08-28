@@ -6,7 +6,6 @@
 
 #define _CRT_SECURE_NO_WARNINGS
 
-#define NOMINMAX
 #include <algorithm>
 using std::max;
 using std::min;

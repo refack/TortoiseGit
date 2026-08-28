@@ -90,9 +90,6 @@
     <ClCompile Include="..\Utils\Registry.cpp">
       <Filter>Utils</Filter>
     </ClCompile>
-    <ClCompile Include="..\Git\MassiveGitTaskBase.cpp">
-      <Filter>Git</Filter>
-    </ClCompile>
     <ClCompile Include="..\TortoiseShell\ShellCache.cpp">
       <Filter>TortoiseShell</Filter>
     </ClCompile>
@@ -178,9 +175,6 @@
     </ClInclude>
     <ClInclude Include="..\TortoiseShell\ShellCache.h">
       <Filter>TortoiseShell</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Git\MassiveGitTaskBase.h">
-      <Filter>Git</Filter>
     </ClInclude>
     <ClInclude Include="..\Git\GitForWindows.h">
       <Filter>Git</Filter>

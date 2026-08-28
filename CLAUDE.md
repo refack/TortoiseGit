@@ -189,6 +189,14 @@ the boundary would compile silently and nothing would ever pressure it to move.
   29 failures were described that way on the strength of a revert that backed out
   a single commit rather than the whole stack; 16 of them turned out to be caused
   by this work. A revert proves only what it reverts.
+- **"I only touched TortoiseProc, so the suite is unaffected" is not sound.**
+  `test\UnitTests\UnitTests.vcxproj` compiles `src\TortoiseProc\AppUtils.cpp`
+  (and `src\Utils\CommonAppUtils.cpp`) directly, so a TortoiseProc-only change
+  can move the suite. This is the consumer-sweep rule above pointing the other
+  way: **the question is which projects compile the file, and the answer is in
+  the `.vcxproj` files, not in the directory the file lives in.** Claimed
+  wrongly here across five commits before a build log gave it away — the suite
+  was green anyway, but the reasoning was not.
 
 ### Validation gates
 

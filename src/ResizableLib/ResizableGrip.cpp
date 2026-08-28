@@ -1,4 +1,4 @@
-/////////////////////////////////////////////////////////////////////////////
+﻿/////////////////////////////////////////////////////////////////////////////
 //
 // This file is part of ResizableLib
 // http://sourceforge.net/projects/resizablelib
@@ -22,6 +22,8 @@
 
 #include "stdafx.h"
 #include "ResizableGrip.h"
+
+#include <cassert>
 
 #ifdef _DEBUG
 #undef THIS_FILE
@@ -71,7 +73,7 @@ void CResizableGrip::UpdateSizeGrip()
 
 void CResizableGrip::ShowSizeGrip(DWORD* pStatus, DWORD dwMask /*= 1*/)
 {
-	ASSERT(pStatus != NULL);
+	assert(pStatus != nullptr);
 
 	if (!(*pStatus & dwMask))
 	{
@@ -91,7 +93,7 @@ void CResizableGrip::HideSizeGrip(DWORD* pStatus, DWORD dwMask /*= 1*/)
 	}
 }
 
-BOOL CResizableGrip::IsSizeGripVisible()
+BOOL CResizableGrip::IsSizeGripVisible() const
 {
 	// NB: visibility is effective only after an update
 	return (m_nShowCount > 0);

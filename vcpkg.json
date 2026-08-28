@@ -1,10 +1,14 @@
 {
+  "$comment-overrides": "tgit-libgit exists only as an overlay port, so the registry baseline has no version for it and vcpkg refuses with 'the baseline does not contain an entry'. The override supplies one. The other overlays (libgit2, ogdf, scintilla) need no such entry because they shadow ports that do exist upstream.",
   "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg-tool/main/docs/vcpkg.schema.json",
   "name": "tortoisegit",
   "version-string": "2.19.1",
   "description": "Dependencies TortoiseGit consumes through vcpkg instead of a hand-maintained ext/build/*.vcxproj.",
   "builtin-baseline": "4e82e29f14eac2b3422f18f72c7524d04f19924e",
   "dependencies": [
+    "detours",
+    "gtest",
+    "lexilla",
     {
       "name": "libgit2",
       "default-features": false,
@@ -14,22 +18,19 @@
         "winhttp"
       ]
     },
-    "detours",
-    "gtest",
-    "lexilla",
     "nlohmann-json",
     "ogdf",
     "pcre2",
     "scintilla",
     "simpleini",
     "tgit-libgit",
-    "zlib"
+    "zlib",
+    "ms-gsl"
   ],
-  "$comment-overrides": "tgit-libgit exists only as an overlay port, so the registry baseline has no version for it and vcpkg refuses with 'the baseline does not contain an entry'. The override supplies one. The other overlays (libgit2, ogdf, scintilla) need no such entry because they shadow ports that do exist upstream.",
   "overrides": [
     {
       "name": "tgit-libgit",
-      "version-string": "2.55.0.windows.5"
+      "version": "2.55.0.windows.5"
     }
   ]
 }

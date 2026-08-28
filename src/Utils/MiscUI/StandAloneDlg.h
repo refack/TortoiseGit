@@ -19,7 +19,7 @@
 //
 #pragma once
 
-#include "ResizableDialog.h"
+#include "ResizableLib/ResizableDialog.h"
 #include "TaskbarUUID.h"
 #include "Tooltip.h"
 #include "CommonDialogFunctions.h"

@@ -23,7 +23,6 @@
     <RootNamespace>TortoiseGitBlame</RootNamespace>
     <Keyword>MFCProj</Keyword>
   </PropertyGroup>
-  <Import Project="$(SolutionDir)TortoiseGit.toolset.props" />
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
@@ -32,6 +31,12 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)'=='Release'" Label="Configuration">
     <WholeProgramOptimization>true</WholeProgramOptimization>
+  </PropertyGroup>
+  <PropertyGroup Label="Configuration" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <PlatformToolset>v145</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Label="Configuration" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <PlatformToolset>v145</PlatformToolset>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
@@ -64,7 +69,6 @@
     <ClCompile Include="..\Git\GitMailmap.cpp" />
     <ClCompile Include="..\Git\GitRev.cpp" />
     <ClCompile Include="..\Git\GitRevLoglist.cpp" />
-    <ClCompile Include="..\Git\MassiveGitTaskBase.cpp" />
     <ClCompile Include="..\Git\TGitPath.cpp" />
     <ClCompile Include="..\TortoiseProc\Colors.cpp" />
     <ClCompile Include="..\TortoiseProc\ColumnManager.cpp" />
@@ -132,7 +136,6 @@
     <ClInclude Include="..\Git\GitRev.h" />
     <ClInclude Include="..\Git\GitRevLoglist.h" />
     <ClInclude Include="..\Git\gittype.h" />
-    <ClInclude Include="..\Git\MassiveGitTaskBase.h" />
     <ClInclude Include="..\Git\TGitPath.h" />
     <ClInclude Include="..\Resources\LoglistCommonResource.h" />
     <ClInclude Include="..\TortoiseProc\ColumnManager.h" />

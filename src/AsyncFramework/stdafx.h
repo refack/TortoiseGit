@@ -1,4 +1,4 @@
-/***************************************************************************
+﻿/***************************************************************************
  *   Copyright (C) 2009-2010 by Stefan Fuhrmann                            *
  *   stefanfuhrmann@alice-dsl.de                                           *
  *                                                                         *
@@ -20,19 +20,10 @@
 
 #pragma once
 
-#define NOMINMAX
-
-#define WINVER 0x0600           // Change this to the appropriate value to target other versions of Windows.
-#define _WIN32_WINNT 0x0600     // Change this to the appropriate value to target other versions of Windows.
-#define _WIN32_WINDOWS 0x0410 // Change this to the appropriate value to target Windows Me or later.
-#define _WIN32_IE 0x0600        // Change this to the appropriate value to target other versions of IE.
-
-#define VC_EXTRALEAN            // Exclude rarely-used stuff from Windows headers
-
 #include <windows.h>
-
-#include <assert.h>
 #include <process.h>
+
+#include <cassert>
 
 #include <vector>
 #include <algorithm>

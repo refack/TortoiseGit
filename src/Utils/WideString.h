@@ -1,4 +1,4 @@
-// TortoiseGit - a Windows shell extension for easy version control
+﻿// TortoiseGit - a Windows shell extension for easy version control
 
 // Copyright (C) 2026 - TortoiseGit
 
@@ -94,43 +94,45 @@ inline int FindOneOf(const std::wstring_view s, const std::wstring_view chars) n
 	return at == std::wstring_view::npos ? -1 : static_cast<int>(at);
 }
 
-/// CString::Left, including its clamping: substr() would throw instead.
-inline std::wstring Left(const std::wstring_view s, const int count)
+inline std::wstring Left(const std::wstring_view s, const size_t count) {
+	return std::wstring{ s.substr(0, count) };
+}
+
+/// CString::Left, including its clamping: substr() would give the full str.
+inline std::wstring Left(const std::wstring_view s, const int _count)
 {
-	if (count <= 0)
+	if (_count < 0)
 		return {};
-	return std::wstring(s.substr(0, (std::min)(static_cast<size_t>(count), s.size())));
+	const auto count = static_cast<size_t>(_count);
+	return Left(s, count);
 }
 
 /// CString::Right, including its clamping.
-inline std::wstring Right(const std::wstring_view s, const int count)
+inline std::wstring Right(const std::wstring_view s, const long _count)
 {
-	if (count <= 0)
+	if (_count < 0)
 		return {};
-	const size_t take = (std::min)(static_cast<size_t>(count), s.size());
+	auto count = static_cast<std::wstring_view::size_type>(_count);
+	const size_t take = std::min(count, s.size());
 	return std::wstring(s.substr(s.size() - take));
 }
 
-/// CString::Mid(from), including its clamping.
-inline std::wstring Mid(const std::wstring_view s, const int from)
-{
-	if (from < 0)
-		return std::wstring(s);
-	if (static_cast<size_t>(from) >= s.size())
+inline std::wstring Mid(const std::wstring_view s, const std::wstring_view::size_type from, const std::wstring_view::size_type count = 0) {
+	if (from > s.size())
 		return {};
-	return std::wstring(s.substr(static_cast<size_t>(from)));
+	return std::wstring{ s.substr(from, count) };
 }
 
-/// CString::Mid(from, count), including its clamping.
-inline std::wstring Mid(const std::wstring_view s, const int from, const int count)
+/// CString::Mid(from, count = 0), including its clamping.
+inline std::wstring Mid(const std::wstring_view s, const int _from, const int _count = 0)
 {
-	if (count <= 0)
+	if (_count < 0)
 		return {};
-	if (from < 0)
+	auto count = static_cast<std::wstring_view::size_type>(_count);
+	if (_from < 0)
 		return Left(s, count);
-	if (static_cast<size_t>(from) >= s.size())
-		return {};
-	return std::wstring(s.substr(static_cast<size_t>(from), static_cast<size_t>(count)));
+	auto from = static_cast<std::wstring_view::size_type>(_from);
+	return Mid(s, from, count);
 }
 
 /// CString::Replace contract, including its return value: how many were replaced.

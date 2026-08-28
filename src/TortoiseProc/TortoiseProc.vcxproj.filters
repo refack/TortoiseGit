@@ -890,9 +890,6 @@
     <ClCompile Include="..\Utils\ReaderWriterLock.cpp">
       <Filter>Utils\General</Filter>
     </ClCompile>
-    <ClCompile Include="..\Git\MassiveGitTaskBase.cpp">
-      <Filter>Git</Filter>
-    </ClCompile>
     <ClCompile Include="CheckCertificateDlg.cpp">
       <Filter>Utility Dialogs</Filter>
     </ClCompile>
@@ -1773,9 +1770,6 @@
     </ClInclude>
     <ClInclude Include="..\Utils\ReaderWriterLock.h">
       <Filter>Utils\General</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Git\MassiveGitTaskBase.h">
-      <Filter>Git</Filter>
     </ClInclude>
     <ClInclude Include="CheckCertificateDlg.h">
       <Filter>Utility Dialogs</Filter>

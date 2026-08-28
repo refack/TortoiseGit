@@ -18,10 +18,9 @@
 // along with this program; if not, write to the Free Software Foundation,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
-#ifndef INCLUDE_git_transport_ssh_wintunnel_h__
-#define INCLUDE_git_transport_ssh_wintunnel_h__
+#pragma once
 
-//#include "transport.h"
+#include <git2/sys/transport.h>
 
 /**
  * @file git2/transport.h
@@ -55,4 +54,3 @@ GIT_EXTERN(int) git_smart_subtransport_ssh_wintunnel(
 
 /** @} */
 GIT_END_DECL
-#endif

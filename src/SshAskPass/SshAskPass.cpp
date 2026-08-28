@@ -50,10 +50,12 @@ wchar_t g_PassWord[MAX_LOADSTRING];
 // Forward declarations of functions included in this code module:
 INT_PTR CALLBACK PasswdDlg(HWND, UINT, WPARAM, LPARAM);
 
-int APIENTRY _tWinMain(HINSTANCE	/*hInstance*/,
-					 HINSTANCE		/*hPrevInstance*/,
-					 LPWSTR			lpCmdLine,
-					 int			/*nCmdShow*/)
+int WINAPI _tWinMain(
+	_In_ HINSTANCE hInstance,
+	_In_opt_ HINSTANCE hPrevInstance,
+	_In_ LPWSTR lpCmdLine,
+	_In_ int nShowCmd
+)
 {
 	SetDllDirectory(L"");
 
@@ -105,11 +107,11 @@ int APIENTRY _tWinMain(HINSTANCE	/*hInstance*/,
 	{
 		auto len = static_cast<int>(_tcslen(g_PassWord));
 		auto size = WideCharToMultiByte(CP_UTF8, 0, g_PassWord, len, nullptr, 0, nullptr, nullptr);
-		auto buf = std::make_unique<char[]>(size + 1);
+		auto buf = std::make_unique<char[]>(size + 1ull);
 		auto ret = WideCharToMultiByte(CP_UTF8, 0, g_PassWord, len, buf.get(), size, nullptr, nullptr);
 		buf[ret] = '\0';
 		printf("%s\n", buf.get());
-		SecureZeroMemory(buf.get(), size + 1);
+		SecureZeroMemory(buf.get(), size + 1ull);
 		SecureZeroMemory(&g_PassWord, sizeof(g_PassWord));
 		return 0;
 	}
@@ -117,7 +119,7 @@ int APIENTRY _tWinMain(HINSTANCE	/*hInstance*/,
 	return -1;
 }
 
-void MarkWindowAsUnpinnable(HWND hWnd)
+static void MarkWindowAsUnpinnable(HWND hWnd)
 {
 	using SHGPSFW = HRESULT(WINAPI*)(HWND hwnd, REFIID riid, void** ppv);
 
@@ -129,7 +131,7 @@ void MarkWindowAsUnpinnable(HWND hWnd)
 			IPropertyStore *pps;
 			HRESULT hr = pfnSHGPSFW(hWnd, IID_PPV_ARGS(&pps));
 			if (SUCCEEDED(hr)) {
-				PROPVARIANT var;
+				PROPVARIANT var{};
 				var.vt = VT_BOOL;
 				var.boolVal = VARIANT_TRUE;
 				pps->SetValue(PKEY_AppUserModel_PreventPinning, var);
@@ -160,7 +162,7 @@ static void MoveButton(HWND hDlg, DWORD id, const POINT& diff)
 	::MoveWindow(button, rect.left + diff.x / 2, rect.top + diff.y, rect.right - rect.left, rect.bottom - rect.top, TRUE);
 }
 
-void SetTheme(HWND hWnd)
+static void SetTheme(HWND hWnd)
 {
 	HIGHCONTRAST hc = { sizeof(HIGHCONTRAST) };
 	SystemParametersInfo(SPI_GETHIGHCONTRAST, sizeof(HIGHCONTRAST), &hc, FALSE);
@@ -228,8 +230,8 @@ INT_PTR CALLBACK PasswdDlg(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam
 			::GetClientRect(title, &titleRect);
 			auto promptRect = GetTextSize(title, g_Prompt);
 			POINT diff = { 0 };
-			diff.y = max(0, promptRect.cy - titleRect.bottom);
-			diff.x = max(0, promptRect.cx - titleRect.right);
+			diff.y = std::max(0l, promptRect.cy - titleRect.bottom);
+			diff.x = std::max(0l, promptRect.cx - titleRect.right);
 			::SetWindowPos(title, nullptr, 0, 0, titleRect.right + diff.x, titleRect.bottom + diff.y, SWP_NOMOVE);
 
 			HWND textfield = ::GetDlgItem(hDlg, IDC_PASSWORD);

@@ -44,9 +44,6 @@
     <ClInclude Include="..\..\src\Git\Git.h">
       <Filter>Git</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\Git\MassiveGitTaskBase.h">
-      <Filter>Git</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\src\Git\TGitPath.h">
       <Filter>Git</Filter>
     </ClInclude>
@@ -215,9 +212,6 @@
       <Filter>Utils</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\Git\Git.cpp">
-      <Filter>Git</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\Git\MassiveGitTaskBase.cpp">
       <Filter>Git</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\Git\TGitPath.cpp">
@@ -394,9 +388,6 @@
     <ClCompile Include="GitWCRevStatusTest.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="PatchTest.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="TempFileTest.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -443,6 +434,9 @@
       <Filter>TortoiseProc</Filter>
     </ClCompile>
     <ClCompile Include="GitCliOutputParserTest.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="WideStringTest.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

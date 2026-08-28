@@ -435,7 +435,7 @@ int CStringUtils::GetMatchingLength (const CString& lhs, const CString& rhs)
 {
 	const int lhsLength = lhs.GetLength();
 	const int rhsLength = rhs.GetLength();
-	const int maxResult = min(lhsLength, rhsLength);
+	const int maxResult = std::min(lhsLength, rhsLength);
 
 	LPCWSTR pLhs = lhs;
 	LPCWSTR pRhs = rhs;
@@ -451,7 +451,7 @@ int CStringUtils::FastCompareNoCase (const CStringW& lhs, const CStringW& rhs)
 {
 	// attempt latin-only comparison
 
-	INT_PTR count = min (lhs.GetLength(), rhs.GetLength()+1);
+	INT_PTR count = std::min(lhs.GetLength(), rhs.GetLength()+1);
 	const wchar_t* left = lhs;
 	const wchar_t* right = rhs;
 	for (const wchar_t* last = left + count+1; left < last; ++left, ++right)

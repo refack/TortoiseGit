@@ -9,13 +9,8 @@
 #define _SECURE_ATL 1
 #endif
 
-#ifndef VC_EXTRALEAN
-#define VC_EXTRALEAN            // Exclude rarely-used stuff from Windows headers
-#endif
-
 #include <SDKDDKVer.h>
 
-#define NOMINMAX
 #include <algorithm>
 using std::max;
 using std::min;

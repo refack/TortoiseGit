@@ -19,13 +19,14 @@
 
 #include "stdafx.h"
 #include "SubmoduleCommand.h"
-#include "MessageBox.h"
+
+#include "AppUtils.h"
 #include "Git.h"
+#include "MassiveGitTask.h"
+#include "MessageBox.h"
+#include "ProgressDlg.h"
 #include "SubmoduleAddDlg.h"
 #include "SubmoduleUpdateDlg.h"
-#include "ProgressDlg.h"
-#include "AppUtils.h"
-#include "MassiveGitTaskBase.h"
 
 bool SubmoduleAddCommand::Execute()
 {
@@ -126,7 +127,7 @@ bool SubmoduleUpdateCommand::Execute()
 		// Otherwise, there is no need to specify any submodule.
 		STRING_VECTOR base = cmd;
 		base.emplace_back(L"--");
-		CMassiveGitTaskBase::ConvertToCmdList(base, submoduleUpdateDlg.m_PathList, progress.m_GitCmdList);
+		CMassiveGitTask::ConvertToCmdList(base, submoduleUpdateDlg.m_PathList, progress.m_GitCmdList);
 	}
 	else
 		progress.m_GitCmdList.push_back(cmd);

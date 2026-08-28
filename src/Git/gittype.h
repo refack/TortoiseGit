@@ -24,7 +24,7 @@
 #include <span>
 #include <string>
 
-enum
+enum: std::uint8_t
 {
 	TGIT_GIT_SUCCESS=0,
 	TGIT_GIT_ERROR_OPEN_PIP,

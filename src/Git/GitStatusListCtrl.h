@@ -581,7 +581,7 @@ public:
 	 * If not set, it defaults to "please wait..."
 	 */
 	void SetBusyString(const CString& str) {m_sBusy = str;}
-	void SetBusyString(UINT id) {m_sBusy.LoadString(id);}
+	void SetBusyString(UINT id) { std::ignore = m_sBusy.LoadString(id); }
 
 	/**
 	 * Sets the string shown in the control if no items are shown. This
@@ -590,7 +590,7 @@ public:
 	 * If not set, it defaults to "file list is empty".
 	 */
 	void SetEmptyString(const CString& str) {m_sEmpty = str;}
-	void SetEmptyString(UINT id) {m_sEmpty.LoadString(id);}
+	void SetEmptyString(UINT id) { std::ignore = m_sEmpty.LoadString(id); }
 
 	/**
 	 * Returns the number of selected items

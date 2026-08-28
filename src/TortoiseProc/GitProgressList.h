@@ -18,16 +18,17 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 #pragma once
-#include "TGitPath.h"
+
 #include "Colors.h"
-#include "IconMenu.h"
 #include "ProgressDlg.h"
+#include "TGitPath.h"
+#include "Utils/MiscUI/IconMenu.h"
 
 /**
  * \ingroup TortoiseProc
  * Options which can be used to configure the way the dialog box works
  */
-enum ProgressOptions
+enum ProgressOptions: std::uint8_t
 {
 	ProgOptNone = 0,
 	/// Don't actually do the merge - just practice it
@@ -41,13 +42,15 @@ enum ProgressOptions
 #define WM_PROG_CMD_START		(WM_APP + 201)
 
 class ProgressCommand;
+
 class CGitProgressList : public CListCtrl
 {
+private:
 	DECLARE_DYNAMIC(CGitProgressList)
 
 public:
 	CGitProgressList();
-	virtual ~CGitProgressList();
+	~CGitProgressList() override;
 
 	void SetCommand(ProgressCommand* command) { ATLASSERT(command); m_Command = command; }
 	void SetOptions(DWORD opts) {m_options = opts;}

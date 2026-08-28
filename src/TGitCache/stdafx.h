@@ -7,7 +7,6 @@
 
 #include <SDKDDKVer.h>
 
-#define NOMINMAX
 #include <algorithm>
 using std::min;
 using std::max;

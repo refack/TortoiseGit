@@ -18,11 +18,12 @@
 //
 #pragma once
 
-#include "StandAloneDlg.h"
+#include "Utils/MiscUI/StandAloneDlg.h"
 #include "Git.h"
 #include "MenuButton.h"
 #include "GestureEnabledControl.h"
 #include "GitCliOutputParser.h"
+#include "resource.h"
 
 #define MSG_PROGRESSDLG_UPDATE_UI	(WM_USER+121)
 
@@ -79,15 +80,15 @@ using PostExecCallback = std::function<void(HWND hWnd, DWORD& exitCode, CString&
 class CProgressDlg : public CResizableStandAloneDialog
 {
 	DECLARE_DYNAMIC(CProgressDlg)
+
 public:
 	CProgressDlg(CWnd* pParent = nullptr); // standard constructor
-	virtual ~CProgressDlg();
+	~CProgressDlg() override;
 
 private:
-	BOOL OnInitDialog() override;
 
 	// Dialog Data
-	enum { IDD = IDD_GITPROGRESS };
+	static constexpr int IDD = IDD_GITPROGRESS;
 
 public:
 	STRING_VECTOR			m_GitCmd;		// one command, as argv
@@ -107,6 +108,13 @@ public:
 
 	CString					GetLogText() const { CString text; m_Log.GetWindowText(text); return text; }
 
+protected:
+	BOOL OnInitDialog() override;
+	void DoDataExchange(CDataExchange* pDX) override; // DDX/DDV support
+	void OnCancel() override;
+	BOOL PreTranslateMessage(MSG* pMsg) override;
+	LRESULT DefWindowProc(UINT message, WPARAM wParam, LPARAM lParam) override;
+
 private:
 	PostCmdList				m_PostCmdList;
 	void					WriteLog() const;
@@ -123,7 +131,6 @@ private:
 	bool					m_bDone;
 	ULONGLONG				m_startTick;
 
-	void					DoDataExchange(CDataExchange* pDX) override;    // DDX/DDV support
 	static UINT				ProgressThreadEntry(LPVOID pVoid);
 	UINT					ProgressThread();
 
@@ -133,7 +140,6 @@ private:
 	afx_msg LRESULT			OnTaskbarBtnCreated(WPARAM wParam, LPARAM lParam);
 	CComPtr<ITaskbarList3>	m_pTaskbarList;
 
-	void					OnCancel() override;
 	afx_msg void			OnClose();
 
 	void					SetupLogMessageViewControl();
@@ -172,8 +178,6 @@ private:
 	afx_msg void OnBnClickedOk();
 	afx_msg void OnBnClickedButton1();
 
-	BOOL PreTranslateMessage(MSG* pMsg) override;
-
 	struct ACCELLERATOR {
 		int id;
 		int cnt;
@@ -181,5 +185,4 @@ private:
 	};
 	std::map<wchar_t, ACCELLERATOR>	m_accellerators;
 	HACCEL							m_hAccel;
-	LRESULT DefWindowProc(UINT message, WPARAM wParam, LPARAM lParam) override;
 };

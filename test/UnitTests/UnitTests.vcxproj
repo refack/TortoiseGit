@@ -24,7 +24,6 @@
     <RootNamespace>UnitTest</RootNamespace>
     <ProjectName>UnitTests</ProjectName>
   </PropertyGroup>
-  <Import Project="$(SolutionDir)TortoiseGit.toolset.props" />
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
@@ -33,6 +32,12 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)'=='Release'" Label="Configuration">
     <WholeProgramOptimization>true</WholeProgramOptimization>
+  </PropertyGroup>
+  <PropertyGroup Label="Configuration" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <PlatformToolset>v145</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Label="Configuration" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <PlatformToolset>v145</PlatformToolset>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
@@ -81,7 +86,6 @@
     <ClInclude Include="..\..\src\Git\GitRevRefBrowser.h" />
     <ClInclude Include="..\..\src\Git\GitStatus.h" />
     <ClInclude Include="..\..\src\Git\gittype.h" />
-    <ClInclude Include="..\..\src\Git\MassiveGitTaskBase.h" />
     <ClInclude Include="..\..\src\Git\TGitPath.h" />
     <ClInclude Include="..\..\src\TortoiseGitBlame\TortoiseGitBlameData.h" />
     <ClInclude Include="..\..\src\Utils\FileTextLines.h" />
@@ -139,7 +143,6 @@
     <ClCompile Include="..\..\src\Git\GitRevLoglist.cpp" />
     <ClCompile Include="..\..\src\Git\GitRevRefBrowser.cpp" />
     <ClCompile Include="..\..\src\Git\GitStatus.cpp" />
-    <ClCompile Include="..\..\src\Git\MassiveGitTaskBase.cpp" />
     <ClCompile Include="..\..\src\Git\TGitPath.cpp" />
     <ClCompile Include="..\..\src\TortoiseGitBlame\TortoiseGitBlameData.cpp" />
     <ClCompile Include="..\..\src\Utils\FileTextLines.cpp" />

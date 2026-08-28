@@ -10,7 +10,6 @@
 
 #define _ATL_CSTRING_EXPLICIT_CONSTRUCTORS	// some CString constructors will be explicit
 
-#define NOMINMAX
 #include <algorithm>
 using std::max;
 using std::min;
@@ -48,6 +47,9 @@ using std::min;
 #include <map>
 #include <set>
 #include <functional>
+#include <format>
+#include <locale>
+#include <xlocale>
 
 #include <vfw.h>
 #include <shlobj.h>
@@ -76,3 +78,8 @@ using std::min;
 #else
 #	define APP_X64_STRING ""
 #endif
+
+#include "Git.h"
+#include "WideString.h"
+#include "PathUtils.h"
+#include "TGitPath.h"

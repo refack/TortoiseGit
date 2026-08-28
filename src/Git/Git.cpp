@@ -19,21 +19,23 @@
 
 #include "stdafx.h"
 #include "Git.h"
-#include "GitRev.h"
-#include "registry.h"
-#include "GitForWindows.h"
-#include "UnicodeUtils.h"
-#include "gitdll.h"
+
 #include <fstream>
 #include <iterator>
-#include "FormatMessageWrapper.h"
-#include "SmartHandle.h"
-#include "MassiveGitTaskBase.h"
-#include "git2/sys/filter.h"
-#include "git2/sys/transport.h"
-#include "git2/sys/errors.h"
 #include <libgit2/filter-filter.h>
 #include <libgit2/ssh-wintunnel.h>
+
+#include "FormatMessageWrapper.h"
+#include "gitdll.h"
+#include "GitForWindows.h"
+#include "GitRev.h"
+#include "registry.h"
+#include "SmartHandle.h"
+#include "UnicodeUtils.h"
+#include "git2/sys/errors.h"
+#include "git2/sys/filter.h"
+#include "git2/sys/transport.h"
+#include "TortoiseProc/MassiveGitTask.h"
 
 constexpr static int CalculateDiffSimilarityIndexThreshold(DWORD index) noexcept
 {
@@ -432,8 +434,8 @@ DWORD WINAPI CGit::AsyncReadStdErrThread(LPVOID lpParam)
 {
 	auto pDataArray = static_cast<ASYNCREADSTDERRTHREADARGS*>(lpParam);
 
-	DWORD readnumber;
-	char data[CALL_OUTPUT_READ_CHUNK_SIZE];
+	DWORD readnumber{};
+	char data[CALL_OUTPUT_READ_CHUNK_SIZE] = {};
 	bool dropMode = false;
 	while (ReadFile(pDataArray->fileHandle, data, CALL_OUTPUT_READ_CHUNK_SIZE, &readnumber, nullptr))
 	{
@@ -468,9 +470,7 @@ int CGit::Run(CGitCall& pcall)
 	CAutoGeneralHandle piThread(std::move(pi.hThread));
 	CAutoGeneralHandle piProcess(std::move(pi.hProcess));
 
-	ASYNCREADSTDERRTHREADARGS threadArguments;
-	threadArguments.fileHandle = hReadErr;
-	threadArguments.pcall = &pcall;
+	ASYNCREADSTDERRTHREADARGS threadArguments{ .fileHandle = hReadErr, .pcall = &pcall };
 	CAutoGeneralHandle thread = CreateThread(nullptr, 0, AsyncReadStdErrThread, &threadArguments, 0, nullptr);
 
 	if (thread)
@@ -479,8 +479,8 @@ int CGit::Run(CGitCall& pcall)
 		m_AsyncReadStdErrThreadMap[GetCurrentThreadId()] = thread;
 	}
 
-	DWORD readnumber;
-	char data[CALL_OUTPUT_READ_CHUNK_SIZE];
+	DWORD readnumber = {};
+	char data[CALL_OUTPUT_READ_CHUNK_SIZE] = {};
 	bool bAborted=false;
 	while (ReadFile(hRead, data, CALL_OUTPUT_READ_CHUNK_SIZE, &readnumber, nullptr))
 	{
@@ -1233,19 +1233,17 @@ DWORD GetTortoiseGitTempPath(DWORD nBufferLength, LPWSTR lpBuffer)
 
 int CGit::RunLogFile(const CString& cmd, const CString& filename, CString* stdErr)
 {
-	PROCESS_INFORMATION pi;
-	CAutoGeneralHandle hReadErr;
+	PROCESS_INFORMATION pi{};
+	CAutoGeneralHandle hReadErr{};
 	if (RunAsync(cmd, pi, nullptr, hReadErr.GetPointer(), &filename))
 		return TGIT_GIT_ERROR_CREATE_PROCESS;
 
 	CAutoGeneralHandle piThread(std::move(pi.hThread));
 	CAutoGeneralHandle piProcess(std::move(pi.hProcess));
 
-	BYTE_VECTOR stderrVector;
+	BYTE_VECTOR stderrVector{};
 	CGitCall_ByteVector pcall(L"", nullptr, &stderrVector);
-	ASYNCREADSTDERRTHREADARGS threadArguments;
-	threadArguments.fileHandle = hReadErr;
-	threadArguments.pcall = &pcall;
+	ASYNCREADSTDERRTHREADARGS threadArguments{ .fileHandle = hReadErr, .pcall = &pcall };
 	CAutoGeneralHandle thread = CreateThread(nullptr, 0, AsyncReadStdErrThread, &threadArguments, 0, nullptr);
 
 	if (thread)
@@ -2108,12 +2106,11 @@ int CGit::DeleteRemoteRefs(const CString& sRemote, const STRING_VECTOR& list)
 	{
 		CGit::s_limitGitExeOutput = true;
 		SCOPE_EXIT{ CGit::s_limitGitExeOutput = false; };
-		CMassiveGitTaskBase mgtPush(L"push -- " + CGit::QuoteParameter(sRemote), FALSE);
+		CMassiveGitTaskBase mgtPush(L"push -- " + CGit::QuoteParameter(sRemote), false, false);
 		for (const auto& ref : list)
 			mgtPush.AddFile((L':' + ref).c_str());
 
-		BOOL cancel = FALSE;
-		mgtPush.Execute(cancel);
+		mgtPush.Execute(false);
 	}
 	catch (illegal_git_parameter& e)
 	{
@@ -2479,7 +2476,18 @@ BOOL CGit::CheckMsysGitDir(BOOL bFallback)
 	SetLibGit2SearchPath(GIT_CONFIG_LEVEL_SYSTEM, CTGitPath(g_Git.GetGitSystemConfig().GetString()).GetContainingDirectory().GetWinPathString().c_str());
 	SetLibGit2SearchPath(GIT_CONFIG_LEVEL_GLOBAL, g_Git.GetHomeDirectory());
 	SetLibGit2SearchPath(GIT_CONFIG_LEVEL_XDG, g_Git.GetGitGlobalXDGConfig(true));
-	static git_smart_subtransport_definition ssh_wintunnel_subtransport_definition = { [](git_smart_subtransport **out, git_transport* owner, void*) -> int { return git_smart_subtransport_ssh_wintunnel(out, owner, FindExecutableOnPath(g_Git.m_Environment.GetEnv(L"GIT_SSH").c_str(), g_Git.m_Environment.GetEnv(L"PATH").c_str()), g_Git.m_Environment); }, 0 };
+	static git_smart_subtransport_definition ssh_wintunnel_subtransport_definition = {
+		.callback{
+			[](git_smart_subtransport **out, git_transport* owner, void*) -> int {
+				auto sshtoolpath = FindExecutableOnPath(g_Git.m_Environment.GetEnv(L"GIT_SSH").c_str(), g_Git.m_Environment.GetEnv(L"PATH").c_str());
+
+				auto ret = git_smart_subtransport_ssh_wintunnel(out, owner, sshtoolpath, g_Git.m_Environment);
+				return ret;
+			}
+		},
+		.rpc{},
+		.param{}
+	};
 	git_transport_register("ssh", git_transport_smart, &ssh_wintunnel_subtransport_definition);
 	git_transport_register("ssh+git", git_transport_smart, &ssh_wintunnel_subtransport_definition);
 	git_transport_register("git+ssh", git_transport_smart, &ssh_wintunnel_subtransport_definition);

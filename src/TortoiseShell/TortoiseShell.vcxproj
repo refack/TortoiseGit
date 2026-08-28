@@ -22,7 +22,6 @@
     <ProjectGuid>{E873DD32-5A31-4DE1-8341-A56A2A5489EA}</ProjectGuid>
     <RootNamespace>TortoiseShell</RootNamespace>
   </PropertyGroup>
-  <Import Project="$(SolutionDir)TortoiseGit.toolset.props" />
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
@@ -31,6 +30,12 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)'=='Release'" Label="Configuration">
     <WholeProgramOptimization>true</WholeProgramOptimization>
+  </PropertyGroup>
+  <PropertyGroup Label="Configuration" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <PlatformToolset>v145</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Label="Configuration" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <PlatformToolset>v145</PlatformToolset>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
@@ -61,7 +66,6 @@
     </Manifest>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\Git\MassiveGitTaskBase.cpp" />
     <ClCompile Include="..\TGitCache\CacheInterface.cpp" />
     <ClCompile Include="..\Utils\CmdLineParser.cpp" />
     <ClCompile Include="..\Utils\DebugOutput.cpp" />
@@ -112,7 +116,6 @@
     <ClInclude Include="..\Git\GitRev.h" />
     <ClInclude Include="..\Git\GitStatus.h" />
     <ClInclude Include="..\Git\gittype.h" />
-    <ClInclude Include="..\Git\MassiveGitTaskBase.h" />
     <ClInclude Include="..\Git\TGitPath.h" />
     <ClInclude Include="..\TGitCache\CacheInterface.h" />
     <ClInclude Include="..\Utils\CmdLineParser.h" />

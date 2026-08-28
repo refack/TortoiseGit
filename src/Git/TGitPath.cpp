@@ -325,7 +325,6 @@ bool CTGitPath::IsReadOnly() const
 void CTGitPath::UpdateAttributes() const
 {
 	EnsureBackslashPathSet();
-	WIN32_FILE_ATTRIBUTE_DATA attribs;
 	if (m_sBackslashPath.empty())
 		m_sLongBackslashPath = L".";
 	else if (m_sBackslashPath.size() >= 248)
@@ -335,7 +334,9 @@ void CTGitPath::UpdateAttributes() const
 		else
 			m_sLongBackslashPath = std::wstring(L"\\\\?\\") + g_Git.CombinePath(m_sBackslashPath).GetString();
 	}
-	if (GetFileAttributesEx((m_sBackslashPath.empty() || m_sBackslashPath.size() >= 248 ? m_sLongBackslashPath : m_sBackslashPath).c_str(), GetFileExInfoStandard, &attribs))
+
+	const auto lp_file_name = (m_sBackslashPath.empty() || m_sBackslashPath.size() >= 248 ? m_sLongBackslashPath : m_sBackslashPath).c_str();
+	if (WIN32_FILE_ATTRIBUTE_DATA attribs{}; GetFileAttributesEx(lp_file_name, GetFileExInfoStandard, &attribs))
 	{
 		m_bIsDirectory = !!(attribs.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY);
 		// don't cast directly to an __int64:
@@ -356,7 +357,7 @@ void CTGitPath::UpdateAttributes() const
 		m_lastWriteTime = 0;
 		m_fileSize = 0;
 		DWORD err = GetLastError();
-		if ((err == ERROR_FILE_NOT_FOUND)||(err == ERROR_PATH_NOT_FOUND)||(err == ERROR_INVALID_NAME))
+		if ((err == ERROR_FILE_NOT_FOUND) || (err == ERROR_PATH_NOT_FOUND) || (err == ERROR_INVALID_NAME))
 			m_bExists = false;
 		else
 		{
@@ -1837,8 +1838,8 @@ std::wstring CTGitPath::GetAbbreviatedRename() const
 		return GetFileOrDirectoryName();
 
 	// Find common prefix which ends with a slash
-	int prefix_length = 0;
-	for (int i = 0, maxLength = min(m_sOldFwdslashPath.size(), m_sFwdslashPath.size()); i < maxLength; ++i)
+	auto prefix_length = 0ull;
+	for (size_t i = 0, maxLength = min(m_sOldFwdslashPath.size(), m_sFwdslashPath.size()); i < maxLength; ++i)
 	{
 		if (m_sOldFwdslashPath[i] != m_sFwdslashPath[i])
 			break;
@@ -1849,14 +1850,14 @@ std::wstring CTGitPath::GetAbbreviatedRename() const
 	LPCWSTR oldName = m_sOldFwdslashPath.c_str() + m_sOldFwdslashPath.size();
 	LPCWSTR newName = m_sFwdslashPath.c_str() + m_sFwdslashPath.size();
 
-	int suffix_length = 0;
-	int prefix_adjust_for_slash = (prefix_length ? 1 : 0);
+	auto suffix_length = 0ull;
+	auto prefix_adjust_for_slash = (prefix_length ? 1ul : 0ul);
 	while (m_sOldFwdslashPath.c_str() + prefix_length - prefix_adjust_for_slash <= oldName &&
 		   m_sFwdslashPath.c_str() + prefix_length - prefix_adjust_for_slash <= newName &&
 		   *oldName == *newName)
 	{
-		if (*oldName == L'/')
-			suffix_length = m_sOldFwdslashPath.size() - static_cast<int>(oldName - m_sOldFwdslashPath.c_str());
+		if (oldName[0] == L'/')
+			suffix_length = max(m_sOldFwdslashPath.size() - (oldName - m_sOldFwdslashPath.c_str()), 0ull);
 		--oldName;
 		--newName;
 	}
@@ -1867,17 +1868,13 @@ std::wstring CTGitPath::GetAbbreviatedRename() const
 	* pfx{sfx-old => sfx-new}
 	* name-old => name-new
 	*/
-	int old_midlen = m_sOldFwdslashPath.size() - prefix_length - suffix_length;
-	int new_midlen = m_sFwdslashPath.size() - prefix_length - suffix_length;
-	if (old_midlen < 0)
-		old_midlen = 0;
-	if (new_midlen < 0)
-		new_midlen = 0;
+	auto old_midlen = max(m_sOldFwdslashPath.size() - prefix_length - suffix_length, 0ull);
+	auto new_midlen = max(m_sFwdslashPath.size() - prefix_length - suffix_length, 0ull);
 
 	std::wstring ret;
 	if (prefix_length + suffix_length)
 	{
-		ret = tgit::wstr::Left(m_sOldFwdslashPath, prefix_length);
+		ret = tgit::wstr::Left(m_sOldFwdslashPath, static_cast<int>(prefix_length));
 		ret += L'{';
 	}
 	ret += tgit::wstr::Mid(m_sOldFwdslashPath, prefix_length, old_midlen);
@@ -1886,7 +1883,7 @@ std::wstring CTGitPath::GetAbbreviatedRename() const
 	if (prefix_length + suffix_length)
 	{
 		ret += L'}';
-		ret += tgit::wstr::Mid(m_sFwdslashPath, static_cast<int>(m_sFwdslashPath.size()) - suffix_length, suffix_length);
+		ret += tgit::wstr::Mid(m_sFwdslashPath, m_sFwdslashPath.size() - suffix_length, suffix_length);
 	}
 	return ret;
 }

@@ -1,4 +1,4 @@
-/***************************************************************************
+﻿/***************************************************************************
  *   Copyright (C) 2009 by Stefan Fuhrmann                                 *
  *   stefanfuhrmann@alice-dsl.de                                           *
  *                                                                         *
@@ -28,7 +28,7 @@ namespace async
 
 CCriticalSection::CCriticalSection()
 {
-    InitializeCriticalSectionAndSpinCount (&section, 5000);
+    std::ignore = InitializeCriticalSectionAndSpinCount (&section, 5000);
 }
 
 CCriticalSection::~CCriticalSection()

@@ -159,9 +159,6 @@
     <ClCompile Include="..\Git\TGitPath.cpp">
       <Filter>Git</Filter>
     </ClCompile>
-    <ClCompile Include="..\Git\MassiveGitTaskBase.cpp">
-      <Filter>Git</Filter>
-    </ClCompile>
     <ClCompile Include="..\Git\GitRevLoglist.cpp">
       <Filter>Git</Filter>
     </ClCompile>
@@ -342,9 +339,6 @@
       <Filter>Git</Filter>
     </ClInclude>
     <ClInclude Include="..\Git\TGitPath.h">
-      <Filter>Git</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Git\MassiveGitTaskBase.h">
       <Filter>Git</Filter>
     </ClInclude>
     <ClInclude Include="..\Git\GitForWindows.h">
