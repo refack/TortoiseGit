@@ -19,9 +19,12 @@ most rules below are the residue of a wrong turn recorded there.
   three first-party directories — `gitdll`, `TortoiseOverlays`, `vcpkg-ports`.
   Everything third-party comes from vcpkg. Eight applications or dependencies
   were removed outright; the Revision Graph was considered and **kept**.
-- **`src\`**: five of six spanning-base string conversions done. `Git.h` is the
-  one left, and it is the design one.
-- **Tests**: 590/590, unattended, about 145 seconds.
+- **`src\`**: **all six spanning-base string conversions are done.** `Git.h` was
+  the design one and its six decisions have each landed; what is left there is
+  consumer migration against a settled API, not design.
+- **Tests**: 597/597, unattended, about 40 seconds via `test\Run-Tests.ps1`
+  (125s single-process). 590 → 597 is +2 `Decode`, +1 `CEnvironmentBlockLayout`,
+  +4 `SerializeArgv`.
 
 ## Goals
 
@@ -319,7 +322,7 @@ which the rest is mechanical:
 | 3 | text idioms | `WideString.h` | **done**, `a483e6f4b` |
 | 4 | filesystem paths | `PathUtils` | **done**, `94e4dc92d` |
 | 5 | the path value type | `CTGitPath`/`CTGitPathList` | **done**, `c63032fbd` |
-| 6 | subprocess / CLI | `Git.h` | **the one left** |
+| 6 | subprocess / CLI | `Git.h` | **done** — see the six decisions below |
 
 **The cascade follows the data, not the includes.** Ranking headers by includer
 count suggests converting leaves first, and that is wrong: `GitMailmap.h` is a
@@ -329,17 +332,44 @@ textbook leaf, but `Translate(CString&, CString&)` writes straight into
 data graph.** Remaining header `CString` counts: `Git.h` 135, `gitindex.h` 80,
 `StringUtils.h` 39, `GitStatus.h` 19, `GitAdminDir.h`/`GitRev.h` 16 each.
 
-**`Git.h` last, and deliberately.** Its 135 `CString` are six distinct decisions,
-only one of which is a retype:
+**`Git.h` last, and deliberately.** Its 135 `CString` were six distinct decisions,
+only one of which was a retype. All six have landed (user direction, 2026-08-27,
+executed smallest-first — 2, 3, 6, 4, 5, 1):
 
-| the CString in question | the actual decision |
-| --- | --- |
-| `Run(const CString& cmd, …)`, `CGitCall`, `RunAsync`, `RunLogFile` | flat command line versus **`std::vector<std::wstring>` argv**. `GetLogCmd` *already* returns `std::vector<std::string>` for the dll path, so the codebase is half-converted and does not know it; argv moves quoting to one chokepoint instead of `QuoteParameter` at every call site. **This is the headline DoF** — retyping `cmd` to `std::wstring` buys nothing and forecloses it. The tell that it is design: `Run` has five overloads differing only in *what shape the output takes*, over one flat input. |
-| `CGitByteArray::operator CString()` (`gittype.h:88`) | an **implicit decode** — `strnlen_s` plus UTF-8 → wide, fired wherever a `BYTE_VECTOR` lands in a `CString` context, and silently truncating at the first NUL. The decision is whether bytes → text stays invisible. |
-| `m_CurrentDir` | a **privatization** problem, not a retype: `SetCurrentDir()` performs admin-dir discovery and latches the object format, direct assignment does neither. Changing the type does not fix that. |
-| `STRING_VECTOR` / `MAP_STRING_STRING` / `TGitRef` (`gittype.h:114-125`) | one typedef, whole-codebase fan-out; `TGitRef` even has `operator const CString&()`. Its own slice, and it is `gittype.h` work that `Git.h` merely surfaces. |
-| `CEnvironment` | a double-NUL-terminated `std::vector<wchar_t>` block for `CreateProcess`. Its `GetEnv`/`SetEnv`/`AddToPath` CString API is *incidental* to a structure that is not a string. |
-| `GetConfigValue(name, def, wantBool)` | git config values are bytes with a type the caller asserts. `GetConfigValueBool`/`GetConfigValueInt32` already exist; the question is whether the untyped one should. |
+| the CString in question | the actual decision | landed as |
+| --- | --- | --- |
+| `Run(const CString& cmd, …)`, `CGitCall`, `RunAsync`, `RunLogFile` | flat command line versus **`std::vector<std::wstring>` argv**. `GetLogCmd` *already* returned `std::vector<std::string>` for the dll path, so the codebase was half-converted and did not know it; argv moves quoting to one chokepoint instead of `QuoteParameter` at every call site. **This was the headline DoF** — retyping `cmd` to `std::wstring` buys nothing and forecloses it. The tell that it is design: `Run` has five overloads differing only in *what shape the output takes*, over one flat input. | `CGit::SerializeArgv` + argv overloads; **API done, call sites in progress** — see "The argv tail" |
+| `CGitByteArray::operator CString()` (`gittype.h:88`) | an **implicit decode** — `strnlen_s` plus UTF-8 → wide, fired wherever a `BYTE_VECTOR` landed in a `CString` context, and silently truncating at the first NUL. The decision is whether bytes → text stays invisible. | `BYTE_VECTOR::Decode()`, `265dc2ec9` |
+| `m_CurrentDir` | a **privatization** problem, not a retype: `SetCurrentDir()` performs admin-dir discovery and latches the object format, direct assignment does neither. Changing the type does not fix that. | read-only reference to a private member, two named setters, `cb959b4df` |
+| `STRING_VECTOR` / `MAP_STRING_STRING` / `TGitRef` (`gittype.h:114-125`) | one typedef, whole-codebase fan-out; `TGitRef` even had `operator const CString&()`. Its own slice, and it is `gittype.h` work that `Git.h` merely surfaces. | `819a6c518` + `b5f8a4420` |
+| `CEnvironment` | a double-NUL-terminated `std::vector<wchar_t>` block for `CreateProcess`. Its `GetEnv`/`SetEnv`/`AddToPath` CString API is *incidental* to a structure that is not a string. | a `std::map` with a serializer, `daa98ca5a` |
+| `GetConfigValue(name, def, wantBool)` | git config values are bytes with a type the caller asserts. `GetConfigValueBool`/`GetConfigValueInt32` already exist; the question is whether the untyped one should. | typed readers public, untyped one kept for tri-state settings pages, `27df019dd` |
+
+**The argv tail.** The API exists, is oracle-tested against `CommandLineToArgvW`,
+and `Git.cpp` invokes itself through it. What is left is consumer migration —
+mechanical per-cluster edits against a settled API, roughly in this order:
+`SyncDlg`, `CloneCommand`, `CommitDlg`, `RebaseDlg`, `FileDiffDlg`,
+`GitStatusListCtrl`, then the `Commands\` directory. Three things are **not**
+part of that tail and should not be counted into it:
+
+- **`AppUtils.cpp`'s ~44 `QuoteParameter` uses are mostly a different
+  serializer** — `StartExtDiff`/`StartExtMerge`/`ExpandPlaceholdersForCmd` build
+  *external tool* command lines from user-configured `%`-placeholder templates.
+  A flat string is the product there, not an accident. Its own slice.
+- **`CMassiveGitTaskBase`'s command prefix** (`L"push -- " + QuoteParameter(…)`)
+  is a design question of the same shape as `Run` was, not a conversion.
+- **`GitTest.cpp`'s ~67** are `QuoteParameter`'s own pin tests, which retire when
+  it does.
+
+**Do not `[[deprecated]]` the flat overloads** while ~250 sites remain: it is a
+warning flood, and `QuoteParameter` and `illegal_git_parameter` cannot go until
+their last consumer does.
+
+**`SerializeArgv` does not rewrite argument content**, unlike non-relaxed
+`QuoteParameter`, which converted `\` → `/`. Call sites that hand git a
+*Windows* path must convert it themselves — `GetGitPathString()` already does,
+and `ApplyPatchToIndex` has an explicit `AsGitPath` for the temp file it is
+given. Native git takes backslashes either way; this only bites msys2/cygwin.
 
 **Phase B — one `TGitCore.lib`**: `src\Git` + `src\Utils` + AsyncFramework +
 ResizableLib + TGitLibgit2, compiled **ATL-flavor**. With `std::wstring` at the

@@ -692,18 +692,14 @@ CString CGit::ReadConfigValue(const CString& name, const CString& def, bool cano
 	}
 	else
 	{
-		CString cmd;
-		try
-		{
-			cmd.Format(L"git.exe config%s --end-of-options %s", canonicalizeBool ? L" --bool" : L"", static_cast<LPCWSTR>(CGit::QuoteParameter(name)));
-		}
-		catch (illegal_git_parameter& e)
-		{
-			::MessageBox(nullptr, L"Could not get config.\n" + e.cause(), L"TortoiseGit", MB_OK | MB_ICONERROR);
-			return def;
-		}
+		STRING_VECTOR argv{ L"git.exe", L"config" };
+		if (canonicalizeBool)
+			argv.emplace_back(L"--bool");
+		argv.emplace_back(L"--end-of-options");
+		argv.emplace_back(std::wstring(name));
+
 		CString configValue;
-		if (Run(cmd, &configValue, nullptr, CP_UTF8))
+		if (Run(argv, &configValue, nullptr, CP_UTF8))
 			return def;
 		if (configValue.IsEmpty())
 			return configValue;
@@ -763,30 +759,27 @@ int CGit::SetConfigValue(const CString& key, const CString& value, CONFIG_TYPE t
 	}
 	else
 	{
-		CString cmd;
-		CString option;
-		switch(type)
+		STRING_VECTOR argv{ L"git.exe", L"config" };
+		switch (type)
 		{
 		case CONFIG_GLOBAL:
-			option = L"--global";
+			argv.emplace_back(L"--global");
 			break;
 		case CONFIG_SYSTEM:
-			option = L"--system";
+			argv.emplace_back(L"--system");
 			break;
 		default:
+			// CONFIG_LOCAL passes no scope flag. It used to interpolate an empty
+			// %s, which simply left a double space; an empty argv element would
+			// instead reach git as a real empty argument.
 			break;
 		}
-		try
-		{
-			cmd.Format(L"git.exe config %s --end-of-options %s %s", static_cast<LPCWSTR>(option), static_cast<LPCWSTR>(CGit::QuoteParameter(key)), static_cast<LPCWSTR>(CGit::QuoteParameter(value, true)));
-		}
-		catch (illegal_git_parameter& e)
-		{
-			::MessageBox(nullptr, L"Could not get config.\n" + e.cause(), L"TortoiseGit", MB_OK | MB_ICONERROR);
-			return -1;
-		}
+		argv.emplace_back(L"--end-of-options");
+		argv.emplace_back(std::wstring(key));
+		argv.emplace_back(std::wstring(value));
+
 		CString out;
-		if (Run(cmd, &out, nullptr, CP_UTF8))
+		if (Run(argv, &out, nullptr, CP_UTF8))
 			return -1;
 	}
 	return 0;
@@ -840,34 +833,28 @@ int CGit::UnsetConfigValue(const CString& key, CONFIG_TYPE type)
 	return 0;
 }
 
+/**
+ * SerializeArgv deliberately does not rewrite argument content, so a call site
+ * that hands git a Windows path has to say so. Both callers of the two
+ * functions below pass a temp file path with backslashes, and under
+ * msys2/cygwin git those do not resolve - which is what the old non-relaxed
+ * QuoteParameter's \ -> / conversion was quietly doing for them.
+ */
+static std::wstring AsGitPath(const CString& path)
+{
+	std::wstring gitPath(path);
+	std::replace(gitPath.begin(), gitPath.end(), L'\\', L'/');
+	return gitPath;
+}
+
 int CGit::ApplyPatchToIndex(const CString& patchPath, CString* out)
 {
-	CString cmd;
-	try
-	{
-		cmd.Format(L"git.exe apply --cached -- %s", static_cast<LPCWSTR>(CGit::QuoteParameter(patchPath)));
-	}
-	catch (illegal_git_parameter& e)
-	{
-		*out = e.cause();
-		return -1;
-	}
-	return Run(cmd, out, CP_UTF8);
+	return Run({ L"git.exe", L"apply", L"--cached", L"--", AsGitPath(patchPath) }, out, CP_UTF8);
 }
 
 int CGit::ApplyPatchToIndexReverse(const CString& patchPath, CString* out)
 {
-	CString cmd;
-	try
-	{
-		cmd.Format(L"git.exe apply --cached -R -- %s", static_cast<LPCWSTR>(CGit::QuoteParameter(patchPath)));
-	}
-	catch (illegal_git_parameter& e)
-	{
-		*out = e.cause();
-		return -1;
-	}
-	return Run(cmd, out, CP_UTF8);
+	return Run({ L"git.exe", L"apply", L"--cached", L"-R", L"--", AsGitPath(patchPath) }, out, CP_UTF8);
 }
 
 CString CGit::GetCurrentBranch(bool fallback)
@@ -933,16 +920,7 @@ void CGit::GetRemotePushBranch(const CString& localBranch, CString& pushRemote, 
 CString CGit::GetFullRefName(const CString& shortRefName)
 {
 	CString refName;
-	CString cmd;
-	try
-	{
-		cmd.Format(L"git.exe rev-parse --symbolic-full-name --verify --end-of-options %s", static_cast<LPCWSTR>(CGit::QuoteParameter(shortRefName)));
-	}
-	catch (illegal_git_parameter&)
-	{
-		return {}; // Error
-	}
-	if (Run(cmd, &refName, nullptr, CP_UTF8) != 0)
+	if (Run({ L"git.exe", L"rev-parse", L"--symbolic-full-name", L"--verify", L"--end-of-options", std::wstring(shortRefName) }, &refName, nullptr, CP_UTF8) != 0)
 		return CString();//Error
 	return refName.TrimRight();
 }
@@ -1367,18 +1345,8 @@ int CGit::GetHash(CGitHash &hash, const CString& friendname)
 		CString branch = FixBranchName(friendname);
 		if (friendname == L"FETCH_HEAD" && branch.IsEmpty())
 			branch = friendname;
-		CString cmd;
-		try
-		{
-			cmd.Format(L"git.exe rev-parse --verify --end-of-options %s", static_cast<LPCWSTR>(CGit::QuoteParameter(branch)));
-		}
-		catch (illegal_git_parameter& e)
-		{
-			gitLastErr = e.cause();
-			return -1;
-		}
 		gitLastErr.Empty();
-		const int ret = Run(cmd, &gitLastErr, nullptr, CP_UTF8);
+		const int ret = Run({ L"git.exe", L"rev-parse", L"--verify", L"--end-of-options", std::wstring(branch) }, &gitLastErr, nullptr, CP_UTF8);
 		hash = CGitHash::FromHexStr(gitLastErr.Trim());
 		if (ret == 0)
 			gitLastErr.Empty();
@@ -1472,37 +1440,44 @@ int CGit::GetSubmoduleHash(const CString& pathOfSubmodule, const CGitHash& revis
 
 int CGit::GetCommitDiffList(const CString& rev1, const CString& rev2, CTGitPathList& outputlist, CString& error, bool ignoreSpaceAtEol, bool ignoreSpaceChange, bool ignoreAllSpace, bool ignoreBlankLines)
 {
-	CString cmd;
-	CString ignore;
+	// One flag per element now, rather than one string of space-separated flags
+	// that only worked because it was interpolated into a command line.
+	STRING_VECTOR ignore;
 	if (ignoreSpaceAtEol)
-		ignore += L" --ignore-space-at-eol";
+		ignore.emplace_back(L"--ignore-space-at-eol");
 	if (ignoreSpaceChange)
-		ignore += L" --ignore-space-change";
+		ignore.emplace_back(L"--ignore-space-change");
 	if (ignoreAllSpace)
-		ignore += L" --ignore-all-space";
+		ignore.emplace_back(L"--ignore-all-space");
 	if (ignoreBlankLines)
-		ignore += L" --ignore-blank-lines";
+		ignore.emplace_back(L"--ignore-blank-lines");
 
-	try
+	const bool rev1IsWorkingCopy = rev1 == GitRev::GetWorkingCopyRef();
+	const bool rev2IsWorkingCopy = rev2 == GitRev::GetWorkingCopyRef();
+	const bool againstWorkingCopy = rev1IsWorkingCopy || rev2IsWorkingCopy;
+
+	STRING_VECTOR argv{ L"git.exe", againstWorkingCopy ? L"diff" : L"diff-tree", L"-r" };
+	if (againstWorkingCopy && !rev1IsWorkingCopy)
+		argv.emplace_back(L"-R");
+	argv.emplace_back(L"--raw");
+	argv.emplace_back(std::format(L"-C{}%", ms_iSimilarityIndexThreshold));
+	argv.emplace_back(std::format(L"-M{}%", ms_iSimilarityIndexThreshold));
+	argv.emplace_back(L"--numstat");
+	argv.emplace_back(L"-z");
+	argv.insert(argv.cend(), ignore.cbegin(), ignore.cend());
+	argv.emplace_back(L"--end-of-options");
+	if (againstWorkingCopy)
+		argv.emplace_back(std::wstring(rev1IsWorkingCopy ? rev2 : rev1));
+	else
 	{
-		if (rev1 == GitRev::GetWorkingCopyRef() || rev2 == GitRev::GetWorkingCopyRef())
-		{
-			if (rev1 == GitRev::GetWorkingCopyRef())
-				cmd.Format(L"git.exe diff -r --raw -C%d%% -M%d%% --numstat -z %s --end-of-options %s --", ms_iSimilarityIndexThreshold, ms_iSimilarityIndexThreshold, static_cast<LPCWSTR>(ignore), static_cast<LPCWSTR>(CGit::QuoteParameter(rev2)));
-			else
-				cmd.Format(L"git.exe diff -r -R --raw -C%d%% -M%d%% --numstat -z %s --end-of-options %s --", ms_iSimilarityIndexThreshold, ms_iSimilarityIndexThreshold, static_cast<LPCWSTR>(ignore), static_cast<LPCWSTR>(CGit::QuoteParameter(rev1)));
-		}
-		else
-			cmd.Format(L"git.exe diff-tree -r --raw -C%d%% -M%d%% --numstat -z %s --end-of-options %s %s --", ms_iSimilarityIndexThreshold, ms_iSimilarityIndexThreshold, static_cast<LPCWSTR>(ignore), static_cast<LPCWSTR>(CGit::QuoteParameter(rev2)), static_cast<LPCWSTR>(CGit::QuoteParameter(rev1)));
+		argv.emplace_back(std::wstring(rev2));
+		argv.emplace_back(std::wstring(rev1));
 	}
-	catch (illegal_git_parameter&)
-	{
-		return -1;
-	}
+	argv.emplace_back(L"--");
 
 	BYTE_VECTOR out;
 	BYTE_VECTOR err;
-	if (Run(cmd, &out, &err))
+	if (Run(argv, &out, &err))
 	{
 		error = err.Decode().c_str();
 		return -1;
@@ -1629,18 +1604,8 @@ bool CGit::IsBranchTagNameUnique(const CString& name)
 		return false;
 	}
 	// else
-	CString cmd;
-	try
-	{
-		cmd.Format(L"git.exe show-ref --tags --heads -- %s %s", static_cast<LPCWSTR>(CGit::QuoteParameter(L"refs/heads/" + name)), static_cast<LPCWSTR>(CGit::QuoteParameter(L"refs/tags/" + name)));
-	}
-	catch (illegal_git_parameter&)
-	{
-		return false; // TODO: optimize error reporting
-	}
-
 	int refCnt = 0;
-	Run(cmd, [&](const std::string_view lineA)
+	Run({ L"git.exe", L"show-ref", L"--tags", L"--heads", L"--", std::format(L"refs/heads/{}", name), std::format(L"refs/tags/{}", name) }, [&](const std::string_view lineA)
 	{
 		if (lineA.empty())
 			return;
@@ -1678,27 +1643,12 @@ bool CGit::BranchTagExists(const CString& name, bool isBranch /*= true*/)
 		return true;
 	}
 	// else
-	CString cmd, output;
+	// Note that both refs are always passed, whichever of --heads/--tags is
+	// asked for; that predates the argv rewrite and is left as it was.
+	const STRING_VECTOR argv{ L"git.exe", L"show-ref", isBranch ? L"--heads" : L"--tags", L"--", std::format(L"refs/heads/{}", name), std::format(L"refs/tags/{}", name) };
 
-	cmd = L"git.exe show-ref ";
-	if (isBranch)
-		cmd += L"--heads ";
-	else
-		cmd += L"--tags ";
-
-	cmd += L"-- ";
-	try
-	{
-		cmd += CGit::QuoteParameter(L"refs/heads/" + name);
-		cmd += L' ';
-		cmd += CGit::QuoteParameter(L"refs/tags/" + name);
-	}
-	catch (illegal_git_parameter&)
-	{
-		return false; // TODO: optimize error reporting
-	}
-
-	if (!Run(cmd, &output, nullptr, CP_UTF8))
+	CString output;
+	if (!Run(argv, &output, nullptr, CP_UTF8))
 	{
 		if (!output.IsEmpty())
 			return true;
@@ -2082,21 +2032,14 @@ int CGit::GetRemoteRefs(const CString& remote, REF_VECTOR& list, bool includeTag
 		return 0;
 	}
 
-	CString cmd;
-	try
-	{
-		cmd.Format(L"git.exe ls-remote%s -- %s", (includeTags && !includeBranches) ? L" -t" : L" --refs", static_cast<LPCWSTR>(CGit::QuoteParameter(remote)));
-	}
-	catch (illegal_git_parameter& e)
-	{
-		gitLastErr = e.cause();
-		return -1;
-	}
-	gitLastErr = cmd + L'\n';
+	const STRING_VECTOR argv{ L"git.exe", L"ls-remote", (includeTags && !includeBranches) ? L"-t" : L"--refs", L"--", std::wstring(remote) };
+	// The command line is echoed into the error output, so it still has to be
+	// serialized here even though nothing else needs it flat.
+	gitLastErr = SerializeArgvToCString(argv) + L'\n';
 	CGit::s_limitGitExeOutput = true;
 	SCOPE_EXIT{ CGit::s_limitGitExeOutput = false; };
 	if (Run(
-		cmd, [&](const std::string_view origLineA) {
+		argv, [&](const std::string_view origLineA) {
 			if (origLineA.size() <= GIT_HASH_SIZE * 2 + strlen("\t") || origLineA[GIT_HASH_SIZE * 2] != '\t') // OID, tab, refname
 				return;
 			CGitHash hash = CGitHash::FromHexStr(origLineA.substr(0, GIT_HASH_SIZE * 2));
@@ -2777,19 +2720,9 @@ bool CGit::IsFastForward(const CString &from, const CString &to, CGitHash * comm
 	// else
 	CString base;
 	CGitHash basehash,hash;
-	CString cmd;
-	try
-	{
-		cmd.Format(L"git.exe merge-base -- %s %s", static_cast<LPCWSTR>(CGit::QuoteParameter(FixBranchName(to))), static_cast<LPCWSTR>(CGit::QuoteParameter(FixBranchName(from))));
-	}
-	catch (illegal_git_parameter& e)
-	{
-		gitLastErr = e.cause();
-		return false; // TODO: Improve error reporting
-	}
 
 	gitLastErr.Empty();
-	if (Run(cmd, &base, &gitLastErr, CP_UTF8))
+	if (Run({ L"git.exe", L"merge-base", L"--", std::wstring(FixBranchName(to)), std::wstring(FixBranchName(from)) }, &base, &gitLastErr, CP_UTF8))
 		return false;
 	basehash = CGitHash::FromHexStr(base.Trim());
 
@@ -2912,18 +2845,11 @@ int CGit::GetOneFile(const CString &Refname, const CTGitPath &path, const CStrin
 	}
 	else
 	{
-		CString cmd;
-		try
-		{
-			cmd.Format(L"git.exe cat-file -p -- %s:%s", static_cast<LPCWSTR>(CGit::QuoteParameter(Refname)), static_cast<LPCWSTR>(CGit::QuoteParameter(path.GetGitPathString().c_str())));
-		}
-		catch (illegal_git_parameter& e)
-		{
-			gitLastErr = e.cause();
-			return -1;
-		}
+		// "<rev>:<path>" is one argument, not two. The old spelling quoted the two
+		// halves separately and joined them with a bare colon, which the command
+		// line parser then glued back together into a single element anyway.
 		gitLastErr.Empty();
-		return RunLogFile(cmd, outputfile, &gitLastErr);
+		return RunLogFile({ L"git.exe", L"cat-file", L"-p", L"--", std::format(L"{}:{}", Refname, path.GetGitPathString()) }, outputfile, &gitLastErr);
 	}
 }
 
@@ -3100,35 +3026,54 @@ void CGit::SetGit2CertificateCheckCertificate(void* callback)
 	g_Git2CheckCertificateCallback = static_cast<git_transport_certificate_check_cb>(callback);
 }
 
-static CString GetUnifiedDiffCmd(const CTGitPath& path, const CString& rev1, const CString& rev2, bool bMerge, bool bCombine, int diffContext, bool bNoPrefix = false)
+static STRING_VECTOR GetUnifiedDiffCmd(const CTGitPath& path, const CString& rev1, const CString& rev2, bool bMerge, bool bCombine, int diffContext, bool bNoPrefix = false)
 {
-	CString cmd;
-	if (rev2 == GitRev::GetWorkingCopyRef())
-		cmd.Format(L"git.exe diff --stat%s -p --end-of-options %s --", bNoPrefix ? L" --no-prefix" : L"", static_cast<LPCWSTR>(CGit::QuoteParameter(rev1)));
-	else if (rev1 == GitRev::GetWorkingCopyRef())
-		cmd.Format(L"git.exe diff -R --stat%s -p --end-of-options %s --", bNoPrefix ? L" --no-prefix" : L"", static_cast<LPCWSTR>(CGit::QuoteParameter(rev2)));
+	STRING_VECTOR argv{ L"git.exe" };
+	// rev2 is tested first, so a call with *both* revs set to the working copy
+	// diffs rev1 forwards. That is what the format strings did; note that
+	// GetCommitDiffList above tests rev1 first and so resolves the same case the
+	// other way round. Neither is obviously right, and neither is changed here.
+	if (rev2 == GitRev::GetWorkingCopyRef() || rev1 == GitRev::GetWorkingCopyRef())
+	{
+		const bool reverse = rev2 != GitRev::GetWorkingCopyRef();
+		argv.emplace_back(L"diff");
+		if (reverse)
+			argv.emplace_back(L"-R");
+		argv.emplace_back(L"--stat");
+		if (bNoPrefix)
+			argv.emplace_back(L"--no-prefix");
+		argv.emplace_back(L"-p");
+		argv.emplace_back(L"--end-of-options");
+		argv.emplace_back(std::wstring(reverse ? rev2 : rev1));
+	}
 	else
 	{
-		CString merge;
+		argv.emplace_back(L"diff-tree");
+		argv.emplace_back(L"-r");
+		argv.emplace_back(L"-p");
 		if (bMerge)
-			merge += L" -m";
-
+			argv.emplace_back(L"-m");
 		if (bCombine)
-			merge += L" -c";
-
-		CString unified;
+			argv.emplace_back(L"-c");
 		if (diffContext >= 0)
-			unified.Format(L" --unified=%d", diffContext);
-		cmd.Format(L"git.exe diff-tree -r -p%s%s --stat%s --end-of-options %s %s --", static_cast<LPCWSTR>(merge), static_cast<LPCWSTR>(unified), bNoPrefix ? L" --no-prefix" : L"", rev1.IsEmpty() ? L"" : static_cast<LPCWSTR>(CGit::QuoteParameter(rev1)), rev2.IsEmpty() ? L"" : static_cast<LPCWSTR>(CGit::QuoteParameter(rev2)));
+			argv.emplace_back(std::format(L"--unified={}", diffContext));
+		argv.emplace_back(L"--stat");
+		if (bNoPrefix)
+			argv.emplace_back(L"--no-prefix");
+		argv.emplace_back(L"--end-of-options");
+		// An empty rev used to interpolate as nothing at all. As an argv element
+		// it would be a real empty argument, so it has to be skipped instead.
+		if (!rev1.IsEmpty())
+			argv.emplace_back(std::wstring(rev1));
+		if (!rev2.IsEmpty())
+			argv.emplace_back(std::wstring(rev2));
 	}
 
+	argv.emplace_back(L"--");
 	if (!path.IsEmpty())
-	{
-		cmd += L' ';
-		cmd += CGit::QuoteParameter(path.GetGitPathString().c_str());
-	}
+		argv.emplace_back(path.GetGitPathString());
 
-	return cmd;
+	return argv;
 }
 
 static void UnifiedDiffStatToFile(const git_buf* text, void* payload)
@@ -3289,18 +3234,8 @@ int CGit::GetUnifiedDiff(const CTGitPath& path, const CString& rev1, const CStri
 	}
 	else
 	{
-		CString cmd;
-		try
-		{
-			cmd = GetUnifiedDiffCmd(path, rev1, rev2, bMerge, bCombine, diffContext, bNoPrefix);
-		}
-		catch (illegal_git_parameter& e)
-		{
-			gitLastErr = e.cause();
-			return -1;
-		}
 		gitLastErr.Empty();
-		return RunLogFile(cmd, patchfile, &gitLastErr);
+		return RunLogFile(GetUnifiedDiffCmd(path, rev1, rev2, bMerge, bCombine, diffContext, bNoPrefix), patchfile, &gitLastErr);
 	}
 }
 
@@ -3328,18 +3263,8 @@ int CGit::GetUnifiedDiff(const CTGitPath& path, const CString& rev1, const CStri
 		return GetUnifiedDiffLibGit2(path, rev1, rev2, UnifiedDiffStatToStringA, UnifiedDiffToStringA, &buffer, bMerge, false);
 	else
 	{
-		CString cmd;
-		try
-		{
-			cmd = GetUnifiedDiffCmd(path, rev1, rev2, bMerge, bCombine, diffContext);
-		}
-		catch (illegal_git_parameter& e)
-		{
-			gitLastErr = e.cause();
-			return -1;
-		}
 		BYTE_VECTOR vector;
-		const int ret = Run(cmd, &vector);
+		const int ret = Run(GetUnifiedDiffCmd(path, rev1, rev2, bMerge, bCombine, diffContext), &vector);
 		if (!vector.empty())
 			buffer.Append(vector.data(), SafeSizeToInt(vector.size()));
 		return ret;
@@ -3411,29 +3336,24 @@ int CGit::DeleteRef(const CString& reference)
 	}
 	else
 	{
-		CString cmd, shortname;
-		try
+		STRING_VECTOR argv{ L"git.exe" };
+		CString shortname;
+		if (GetShortName(reference, shortname, L"refs/heads/"))
+			argv.insert(argv.cend(), { L"branch", L"-D" });
+		else if (GetShortName(reference, shortname, L"refs/tags/"))
+			argv.insert(argv.cend(), { L"tag", L"-d" });
+		else if (GetShortName(reference, shortname, L"refs/remotes/"))
+			argv.insert(argv.cend(), { L"branch", L"-r", L"-D" });
+		else
 		{
-			if (GetShortName(reference, shortname, L"refs/heads/"))
-				cmd.Format(L"git.exe branch -D -- %s", static_cast<LPCWSTR>(CGit::QuoteParameter(shortname)));
-			else if (GetShortName(reference, shortname, L"refs/tags/"))
-				cmd.Format(L"git.exe tag -d -- %s", static_cast<LPCWSTR>(CGit::QuoteParameter(shortname)));
-			else if (GetShortName(reference, shortname, L"refs/remotes/"))
-				cmd.Format(L"git.exe branch -r -D -- %s", static_cast<LPCWSTR>(CGit::QuoteParameter(shortname)));
-			else
-			{
-				gitLastErr = L"unsupported reference type: " + reference;
-				return -1;
-			}
-		}
-		catch (illegal_git_parameter& e)
-		{
-			gitLastErr = e.cause();
+			gitLastErr = L"unsupported reference type: " + reference;
 			return -1;
 		}
+		argv.emplace_back(L"--");
+		argv.emplace_back(std::wstring(shortname));
 
 		gitLastErr.Empty();
-		if (Run(cmd, &gitLastErr, CP_UTF8))
+		if (Run(argv, &gitLastErr, CP_UTF8))
 			return -1;
 
 		gitLastErr.Empty();
@@ -3486,50 +3406,41 @@ int CGit::GetWorkingTreeChanges(CTGitPathList& result, bool amend, const CTGitPa
 	if (amend)
 		head = L"HEAD~1";
 
-	CString gitStatusParams = L" --no-ahead-behind";
-
 	for (int i = 0; i < count; ++i)
 	{
 		ATLASSERT(!filterlist || !(*filterlist)[i].GetGitPathString().empty()); // pathspec must not be empty, be compatible with Git >= 2.16.0
 		BYTE_VECTOR cmdout;
-		CString cmd;
-		CString filenameAppendix;
+		// The pathspec that used to be a pre-quoted " %s" appendix. Kept as a
+		// vector rather than an optional string so appending it is the same
+		// expression whether or not there is one.
+		STRING_VECTOR pathspec;
 		if (filterlist)
-		{
-			try
-			{
-				filenameAppendix.Format(L" %s", static_cast<LPCWSTR>(CGit::QuoteParameter((*filterlist)[i].GetGitPathString().c_str())));
-			}
-			catch (illegal_git_parameter& e)
-			{
-				MessageBox(nullptr, e.cause(), L"TortoiseGit", MB_OK | MB_ICONERROR);
-				return -1;
-			}
-		}
+			pathspec.emplace_back((*filterlist)[i].GetGitPathString());
 
 		if (ms_bCygwinGit || ms_bMsys2Git)
 		{
 			// Prevent showing all files as modified when using cygwin's git
-			cmd.Format(L"git.exe status%s --%s", static_cast<LPCWSTR>(gitStatusParams), static_cast<LPCWSTR>(filenameAppendix));
-			Run(cmd, &cmdout);
+			STRING_VECTOR status{ L"git.exe", L"status", L"--no-ahead-behind", L"--" };
+			status.insert(status.cend(), pathspec.cbegin(), pathspec.cend());
+			Run(status, &cmdout);
 			cmdout.clear();
 		}
 
 		// also list staged files which will be in the commit
-		if (includedStaged || !filterlist)
-			cmd.Format(L"git.exe diff-index --cached --raw %s --numstat -C -M -z --", static_cast<LPCWSTR>(head));
-		else
-			cmd.Format(L"git.exe diff-index --cached --raw %s --numstat -C -M -z --%s", static_cast<LPCWSTR>(head), static_cast<LPCWSTR>(filenameAppendix));
-		Run(cmd, &cmdout);
+		STRING_VECTOR argv{ L"git.exe", L"diff-index", L"--cached", L"--raw", std::wstring(head), L"--numstat", L"-C", L"-M", L"-z", L"--" };
+		if (!includedStaged && filterlist)
+			argv.insert(argv.cend(), pathspec.cbegin(), pathspec.cend());
+		Run(argv, &cmdout);
 
-		cmd.Format(L"git.exe diff-index --raw %s --numstat -C%d%% -M%d%% -z --%s", static_cast<LPCWSTR>(head), ms_iSimilarityIndexThreshold, ms_iSimilarityIndexThreshold, static_cast<LPCWSTR>(filenameAppendix));
+		argv = { L"git.exe", L"diff-index", L"--raw", std::wstring(head), L"--numstat", std::format(L"-C{}%", ms_iSimilarityIndexThreshold), std::format(L"-M{}%", ms_iSimilarityIndexThreshold), L"-z", L"--" };
+		argv.insert(argv.cend(), pathspec.cbegin(), pathspec.cend());
 
 		BYTE_VECTOR cmdErr;
-		if (Run(cmd, &cmdout, &cmdErr))
+		if (Run(argv, &cmdout, &cmdErr))
 		{
 			CString str{ cmdErr.Decode().c_str() };
 			if (str.IsEmpty())
-				str.Format(L"\"%s\" exited with an error code, but did not output any error message", static_cast<LPCWSTR>(cmd));
+				str.Format(L"\"%s\" exited with an error code, but did not output any error message", static_cast<LPCWSTR>(SerializeArgvToCString(argv)));
 			MessageBox(nullptr, str, L"TortoiseGit", MB_OK | MB_ICONERROR);
 		}
 
@@ -3541,15 +3452,12 @@ int CGit::GetWorkingTreeChanges(CTGitPathList& result, bool amend, const CTGitPa
 	{
 		// This will show staged files regardless of any filterlist, so that it has the same behavior that the commit window has when staging support is disabled
 		BYTE_VECTOR cmdStagedUnfilteredOut, cmdUnstagedUnfilteredOut;
-		CString cmd;
-		cmd.Format(L"git.exe diff-index --cached --raw %s --numstat -C -M -z --", static_cast<LPCWSTR>(head));
-		Run(cmd, &cmdStagedUnfilteredOut);
+		Run({ L"git.exe", L"diff-index", L"--cached", L"--raw", std::wstring(head), L"--numstat", L"-C", L"-M", L"-z", L"--" }, &cmdStagedUnfilteredOut);
 
 		CTGitPathList stagedUnfiltered;
 		stagedUnfiltered.ParserFromLog(cmdStagedUnfilteredOut);
 
-		cmd = L"git.exe diff-files --raw --numstat -C -M -z --";
-		Run(cmd, &cmdUnstagedUnfilteredOut);
+		Run({ L"git.exe", L"diff-files", L"--raw", L"--numstat", L"-C", L"-M", L"-z", L"--" }, &cmdUnstagedUnfilteredOut);
 
 		CTGitPathList unstagedUnfiltered;
 		unstagedUnfiltered.ParserFromLog(cmdUnstagedUnfilteredOut); // Necessary to detect partially staged files outside the filterlist
@@ -3589,14 +3497,12 @@ int CGit::GetWorkingTreeChanges(CTGitPathList& result, bool amend, const CTGitPa
 	for (int i = 0; i < count; ++i)
 	{
 		BYTE_VECTOR cmdout;
-		CString cmd;
 
-		if (!filterlist)
-			cmd = L"git.exe ls-files -u -t -z";
-		else
-			cmd.Format(L"git.exe ls-files -u -t -z -- %s", static_cast<LPCWSTR>(CGit::QuoteParameter((*filterlist)[i].GetGitPathString().c_str()))); // already checked above
+		STRING_VECTOR argv{ L"git.exe", L"ls-files", L"-u", L"-t", L"-z" };
+		if (filterlist)
+			argv.insert(argv.cend(), { L"--", (*filterlist)[i].GetGitPathString() }); // already checked above
 
-		Run(cmd, &cmdout);
+		Run(argv, &cmdout);
 
 		CTGitPathList conflictlist;
 		conflictlist.ParserFromLsFile(cmdout);
@@ -3624,24 +3530,16 @@ int CGit::GetWorkingTreeChanges(CTGitPathList& result, bool amend, const CTGitPa
 	for (int i = 0; i < count; ++i)
 	{
 		BYTE_VECTOR cmdout;
-		CString cmd;
 
-		if (!filterlist)
-		{
-			if (!useOldLSFilesDBehaviorKS)
-				cmd = L"git.exe diff --name-only --diff-filter=D -z";
-			else
-				cmd = L"git.exe ls-files -d -z";
-		}
+		STRING_VECTOR argv;
+		if (!useOldLSFilesDBehaviorKS)
+			argv = { L"git.exe", L"diff", L"--name-only", L"--diff-filter=D", L"-z" };
 		else
-		{
-			if (!useOldLSFilesDBehaviorKS)
-				cmd.Format(L"git.exe diff --name-only --diff-filter=D -z -- %s", static_cast<LPCWSTR>(CGit::QuoteParameter((*filterlist)[i].GetGitPathString().c_str())));
-			else
-				cmd.Format(L"git.exe ls-files -d -z -- %s", static_cast<LPCWSTR>(CGit::QuoteParameter((*filterlist)[i].GetGitPathString().c_str())));
-		}
+			argv = { L"git.exe", L"ls-files", L"-d", L"-z" };
+		if (filterlist)
+			argv.insert(argv.cend(), { L"--", (*filterlist)[i].GetGitPathString() });
 
-		Run(cmd, &cmdout);
+		Run(argv, &cmdout);
 
 		CTGitPathList deletelist;
 		deletelist.ParserFromLsFileSimple(cmdout, CTGitPath::LOGACTIONS_DELETED | CTGitPath::LOGACTIONS_MISSING);
@@ -3845,17 +3743,7 @@ int CGit::GetTagInfo(const CString& tagName, CString& output, const std::functio
 	}
 
 	output.Empty();
-	CString cmd;
-	try
-	{
-		cmd.Format(L"git.exe cat-file tag -- %s", static_cast<LPCWSTR>(CGit::QuoteParameter(tagName)));
-	}
-	catch (illegal_git_parameter& e)
-	{
-		output = e.cause();
-		return -1;
-	}
-	if (g_Git.Run(cmd, &output, CP_UTF8) != 0)
+	if (g_Git.Run({ L"git.exe", L"cat-file", L"tag", L"--", std::wstring(tagName) }, &output, CP_UTF8) != 0)
 		return -1;
 
 	if (CStringUtils::StartsWith(output, L"object "))
