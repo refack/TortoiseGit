@@ -1298,41 +1298,34 @@ int CFileDiffDlg::RevertSelectedItemToVersion(const CGitHash& rev, bool isOldVer
 	int count = 0;
 	while ((index = m_cFileList.GetNextSelectedItem(pos)) >= 0)
 	{
-		CString cmd, out;
+		STRING_VECTOR cmd;
+		CString out;
 		auto fentry = m_arFilteredList[index];
-		try
+		if ((isOldVersion && fentry->m_Action == CTGitPath::LOGACTIONS_ADDED) || (!isOldVersion && fentry->m_Action == CTGitPath::LOGACTIONS_DELETED))
 		{
-			if ((isOldVersion && fentry->m_Action == CTGitPath::LOGACTIONS_ADDED) || (!isOldVersion && fentry->m_Action == CTGitPath::LOGACTIONS_DELETED))
-			{
-				cmd.Format(L"git.exe rm --cached -- %s", static_cast<LPCWSTR>(CGit::QuoteParameter(fentry->GetGitPathString().c_str())));
-				if (isOldVersion && fentry->m_Action == CTGitPath::LOGACTIONS_ADDED) // HACK for issue #3881
-					cmd.Format(L"git.exe rm --cached --ignore-unmatch -- %s", static_cast<LPCWSTR>(CGit::QuoteParameter(fentry->GetGitPathString().c_str())));
-				if ((isOldVersion && fentry->m_Action == CTGitPath::LOGACTIONS_ADDED && m_rev2.m_CommitHash.IsEmpty()) || (!isOldVersion && fentry->m_Action == CTGitPath::LOGACTIONS_DELETED && m_rev1.m_CommitHash.IsEmpty()))
-					CTGitPath(g_Git.CombinePath(fentry->GetGitPathString().c_str()).GetString()).Delete(useRecycleBin, true);
-				else if (CTGitPath path{ g_Git.CombinePath(fentry->GetGitPathString().c_str()).GetString() }; useRecycleBin && !path.IsDirectory())
-					path.Delete(useRecycleBin, true);
-			}
-			else if (isOldVersion && fentry->m_Action == CTGitPath::LOGACTIONS_REPLACED)
-			{
-				cmd.Format(L"git.exe checkout %s -- %s", static_cast<LPCWSTR>(rev.ToString()), static_cast<LPCWSTR>(CGit::QuoteParameter(fentry->GetGitOldPathString().c_str())));
-				if (m_rev2.m_CommitHash.IsEmpty())
-					CTGitPath(g_Git.CombinePath(fentry->GetGitPathString().c_str()).GetString()).Delete(useRecycleBin, true);
-				else if (CTGitPath path{ g_Git.CombinePath(fentry->GetGitOldPathString().c_str()).GetString() }; useRecycleBin && !path.IsDirectory())
-					path.Delete(useRecycleBin, true);
-			}
-			else
-			{
-				cmd.Format(L"git.exe checkout %s -- %s", static_cast<LPCWSTR>(rev.ToString()), static_cast<LPCWSTR>(CGit::QuoteParameter(fentry->GetGitPathString().c_str())));
-				if (!isOldVersion && fentry->m_Action == CTGitPath::LOGACTIONS_REPLACED && m_rev1.m_CommitHash.IsEmpty())
-					CTGitPath(g_Git.CombinePath(fentry->GetGitOldPathString().c_str()).GetString()).Delete(useRecycleBin, true);
-				if (CTGitPath path{ g_Git.CombinePath(fentry->GetGitPathString().c_str()).GetString() }; useRecycleBin && !path.IsDirectory())
-					path.Delete(useRecycleBin, true);
-			}
+			cmd = { L"git.exe", L"rm", L"--cached", L"--", fentry->GetGitPathString() };
+			if (isOldVersion && fentry->m_Action == CTGitPath::LOGACTIONS_ADDED) // HACK for issue #3881
+				cmd = { L"git.exe", L"rm", L"--cached", L"--ignore-unmatch", L"--", fentry->GetGitPathString() };
+			if ((isOldVersion && fentry->m_Action == CTGitPath::LOGACTIONS_ADDED && m_rev2.m_CommitHash.IsEmpty()) || (!isOldVersion && fentry->m_Action == CTGitPath::LOGACTIONS_DELETED && m_rev1.m_CommitHash.IsEmpty()))
+				CTGitPath(g_Git.CombinePath(fentry->GetGitPathString().c_str()).GetString()).Delete(useRecycleBin, true);
+			else if (CTGitPath path{ g_Git.CombinePath(fentry->GetGitPathString().c_str()).GetString() }; useRecycleBin && !path.IsDirectory())
+				path.Delete(useRecycleBin, true);
 		}
-		catch (illegal_git_parameter& e)
+		else if (isOldVersion && fentry->m_Action == CTGitPath::LOGACTIONS_REPLACED)
 		{
-			MessageBox(e.cause(), L"TortoiseGit", MB_OK | MB_ICONERROR);
-			break;
+			cmd = { L"git.exe", L"checkout", std::wstring(rev.ToString()), L"--", fentry->GetGitOldPathString() };
+			if (m_rev2.m_CommitHash.IsEmpty())
+				CTGitPath(g_Git.CombinePath(fentry->GetGitPathString().c_str()).GetString()).Delete(useRecycleBin, true);
+			else if (CTGitPath path{ g_Git.CombinePath(fentry->GetGitOldPathString().c_str()).GetString() }; useRecycleBin && !path.IsDirectory())
+				path.Delete(useRecycleBin, true);
+		}
+		else
+		{
+			cmd = { L"git.exe", L"checkout", std::wstring(rev.ToString()), L"--", fentry->GetGitPathString() };
+			if (!isOldVersion && fentry->m_Action == CTGitPath::LOGACTIONS_REPLACED && m_rev1.m_CommitHash.IsEmpty())
+				CTGitPath(g_Git.CombinePath(fentry->GetGitOldPathString().c_str()).GetString()).Delete(useRecycleBin, true);
+			if (CTGitPath path{ g_Git.CombinePath(fentry->GetGitPathString().c_str()).GetString() }; useRecycleBin && !path.IsDirectory())
+				path.Delete(useRecycleBin, true);
 		}
 		if (g_Git.Run(cmd, &out, CP_UTF8))
 		{
@@ -1520,27 +1513,29 @@ void CFileDiffDlg::FillPatchView(bool onlySetTimer)
 		return;
 	}
 
-	CString ignore;
+	STRING_VECTOR ignore;
 	if (m_bIgnoreSpaceAtEol)
-		ignore += L" --ignore-space-at-eol";
+		ignore.emplace_back(L"--ignore-space-at-eol");
 	if (m_bIgnoreSpaceChange)
-		ignore += L" --ignore-space-change";
+		ignore.emplace_back(L"--ignore-space-change");
 	if (m_bIgnoreAllSpace)
-		ignore += L" --ignore-all-space";
+		ignore.emplace_back(L"--ignore-all-space");
 	if (m_bIgnoreBlankLines)
-		ignore += L" --ignore-blank-lines";
+		ignore.emplace_back(L"--ignore-blank-lines");
 
 	POSITION pos = m_cFileList.GetFirstSelectedItemPosition();
 	CString out;
 	if (!pos)
 	{
-		CString cmd;
+		STRING_VECTOR cmd{ L"git.exe", L"diff" };
+		cmd.insert(cmd.cend(), ignore.cbegin(), ignore.cend());
 		if (m_rev2.m_CommitHash.IsEmpty())
-			cmd.Format(L"git.exe diff%s --stat -p  %s --", static_cast<LPCWSTR>(ignore), static_cast<LPCWSTR>(m_rev1.m_CommitHash.ToString()));
+			cmd.insert(cmd.cend(), { L"--stat", L"-p", std::wstring(m_rev1.m_CommitHash.ToString()) });
 		else if (m_rev1.m_CommitHash.IsEmpty())
-			cmd.Format(L"git.exe diff%s --stat -Rp %s --", static_cast<LPCWSTR>(ignore), static_cast<LPCWSTR>(m_rev2.m_CommitHash.ToString()));
+			cmd.insert(cmd.cend(), { L"--stat", L"-Rp", std::wstring(m_rev2.m_CommitHash.ToString()) });
 		else
-			cmd.Format(L"git.exe diff%s --stat -p %s..%s --", static_cast<LPCWSTR>(ignore), static_cast<LPCWSTR>(m_rev1.m_CommitHash.ToString()), static_cast<LPCWSTR>(m_rev2.m_CommitHash.ToString()));
+			cmd.insert(cmd.cend(), { L"--stat", L"-p", std::format(L"{}..{}", m_rev1.m_CommitHash.ToString(), m_rev2.m_CommitHash.ToString()) });
+		cmd.emplace_back(L"--");
 		g_Git.Run(cmd, &out, CP_UTF8);
 	}
 	else
@@ -1549,24 +1544,18 @@ void CFileDiffDlg::FillPatchView(bool onlySetTimer)
 		{
 			const int nSelect = m_cFileList.GetNextSelectedItem(pos);
 			auto fentry = m_arFilteredList[nSelect];
-			CString cmd;
-			try
-			{
-				if (m_rev2.m_CommitHash.IsEmpty())
-					cmd.Format(L"git.exe diff%s %s --", static_cast<LPCWSTR>(ignore), static_cast<LPCWSTR>(m_rev1.m_CommitHash.ToString()));
-				else if (m_rev1.m_CommitHash.IsEmpty())
-					cmd.Format(L"git.exe diff%s -R %s --", static_cast<LPCWSTR>(ignore), static_cast<LPCWSTR>(m_rev2.m_CommitHash.ToString()));
-				else
-					cmd.Format(L"git.exe diff%s %s..%s --", static_cast<LPCWSTR>(ignore), static_cast<LPCWSTR>(m_rev1.m_CommitHash.ToString()), static_cast<LPCWSTR>(m_rev2.m_CommitHash.ToString()));
-				if (!fentry->GetGitOldPathString().empty())
-					cmd.AppendFormat(L" %s", static_cast<LPCWSTR>(CGit::QuoteParameter(fentry->GetGitOldPathString().c_str())));
-				cmd.AppendFormat(L" %s", static_cast<LPCWSTR>(CGit::QuoteParameter(fentry->GetGitPathString().c_str())));
-			}
-			catch (illegal_git_parameter& e)
-			{
-				out += L"\n\nCannot show diff." + e.cause() + L"\n\n";
-				continue;
-			}
+			STRING_VECTOR cmd{ L"git.exe", L"diff" };
+			cmd.insert(cmd.cend(), ignore.cbegin(), ignore.cend());
+			if (m_rev2.m_CommitHash.IsEmpty())
+				cmd.emplace_back(m_rev1.m_CommitHash.ToString());
+			else if (m_rev1.m_CommitHash.IsEmpty())
+				cmd.insert(cmd.cend(), { std::wstring(L"-R"), std::wstring(m_rev2.m_CommitHash.ToString()) });
+			else
+				cmd.emplace_back(std::format(L"{}..{}", m_rev1.m_CommitHash.ToString(), m_rev2.m_CommitHash.ToString()));
+			cmd.emplace_back(L"--");
+			if (!fentry->GetGitOldPathString().empty())
+				cmd.emplace_back(fentry->GetGitOldPathString());
+			cmd.emplace_back(fentry->GetGitPathString());
 			g_Git.Run(cmd, &out, CP_UTF8);
 		}
 	}

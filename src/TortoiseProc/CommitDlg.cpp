@@ -706,22 +706,13 @@ void CCommitDlg::OnOK()
 			subgit.m_IsUseGitDLL = false;
 			subgit.SetCurrentDirExact(g_Git.CombinePath(entry));
 			CString subcmdout;
-			subgit.Run(L"git.exe status --porcelain", &subcmdout, CP_UTF8);
+			subgit.Run({ L"git.exe", L"status", L"--porcelain" }, &subcmdout, CP_UTF8);
 			dirty = !subcmdout.IsEmpty();
 		}
 		else
 		{
-			CString cmd, cmdout;
-			try
-			{
-				cmd.Format(L"git.exe diff -- %s", static_cast<LPCWSTR>(CGit::QuoteParameter(entry->GetGitPathString().c_str())));
-			}
-			catch (illegal_git_parameter& e)
-			{
-				MessageBox(e.cause(), L"TortoiseGit", MB_OK | MB_ICONERROR);
-				return;
-			}
-			g_Git.Run(cmd, &cmdout, CP_UTF8);
+			CString cmdout;
+			g_Git.Run({ L"git.exe", L"diff", L"--", entry->GetGitPathString() }, &cmdout, CP_UTF8);
 			dirty = CStringUtils::EndsWith(cmdout, L"-dirty\n");
 		}
 
@@ -755,7 +746,6 @@ void CCommitDlg::OnOK()
 	CMassiveGitTask mgtReAddAfterCommit(L"add --ignore-errors -f");
 	CMassiveGitTask mgtReDelAfterCommit(L"rm --cached --ignore-unmatch");
 
-	CString cmd;
 	CString out;
 
 	bool bAddSuccess=true;
@@ -1793,17 +1783,11 @@ LRESULT CCommitDlg::OnFileDropped(WPARAM, LPARAM lParam)
 	// just add all the items we get here.
 	// if the item is versioned, the add will fail but nothing
 	// more will happen.
-	CString cmd;
-	try
-	{
-		cmd.Format(L"git.exe add -- %s", static_cast<LPCWSTR>(CGit::QuoteParameter(path.GetWinPathString().c_str())));
-	}
-	catch (illegal_git_parameter& e)
-	{
-		MessageBox(e.cause(), L"TortoiseGit", MB_OK | MB_ICONERROR);
-		return 0;
-	}
-	g_Git.Run(cmd, nullptr, CP_UTF8);
+	// GetGitPathString(), not GetWinPathString(): the old spelling here was
+	// QuoteParameter(GetWinPathString()), and non-relaxed QuoteParameter turned
+	// the backslashes into slashes on the way past. SerializeArgv does not, so
+	// the conversion has to be asked for.
+	g_Git.Run({ L"git.exe", L"add", L"--", path.GetGitPathString() }, nullptr, CP_UTF8);
 
 	if (!m_ListCtrl.HasPath(path))
 	{
@@ -2415,7 +2399,7 @@ void CCommitDlg::FillPatchView(bool onlySetTimer)
 			return;
 		}
 		POSITION pos=m_ListCtrl.GetFirstSelectedItemPosition();
-		CString cmd,out;
+		CString out;
 
 		CString head = L"HEAD";
 		if (m_bCommitAmend == TRUE && m_bAmendDiffToLastCommit == FALSE)
@@ -2426,46 +2410,41 @@ void CCommitDlg::FillPatchView(bool onlySetTimer)
 			auto p = m_ListCtrl.GetListEntry(nSelect);
 			if(p && !(p->m_Action&CTGitPath::LOGACTIONS_UNVER) )
 			{
-				try
+				STRING_VECTOR cmd{ L"git.exe", L"diff" };
+				if (m_bStagingSupport)
 				{
-					if (m_bStagingSupport)
+					// This will only work if called after ShowPartialStagingTextAndUpdateDisplayStatus (or Unstaging)
+
+					if (!(p->m_Action & CTGitPath::LOGACTIONS_ADDED) && !(p->m_Action & CTGitPath::LOGACTIONS_DELETED) && !(p->m_Action & CTGitPath::LOGACTIONS_MISSING) && !(p->m_Action & CTGitPath::LOGACTIONS_UNMERGED) && !(p->IsDirectory()))
 					{
-						// This will only work if called after ShowPartialStagingTextAndUpdateDisplayStatus (or Unstaging)
-
-						if (!(p->m_Action & CTGitPath::LOGACTIONS_ADDED) && !(p->m_Action & CTGitPath::LOGACTIONS_DELETED) && !(p->m_Action & CTGitPath::LOGACTIONS_MISSING) && !(p->m_Action & CTGitPath::LOGACTIONS_UNMERGED) && !(p->IsDirectory()))
-						{
-							if (!(m_stagingDisplayState & SHOW_STAGING))        // link does not currently display show staging, then it's "hide staging", meaning the staging window is open
-								m_patchViewdlg.EnableStaging(EnableStagingTypes::Staging);
-							else if (!(m_stagingDisplayState & SHOW_UNSTAGING)) // link does not currently display show unstaging, then it's "hide unstaging", meaning the unstaging window is open
-								m_patchViewdlg.EnableStaging(EnableStagingTypes::Unstaging);
-						}
-						else
-							m_patchViewdlg.EnableStaging(EnableStagingTypes::None);
-
-						bool useCachedParameter = false;
-						if (!(m_stagingDisplayState & SHOW_UNSTAGING)) // link does not currently display show unstaging, then it's "hide unstaging", meaning the unstaging window is open
-							useCachedParameter = true;
-						else
-							head.Empty();
-
-						if (!p->GetGitOldPathString().empty())
-							cmd.Format(L"git.exe diff %s%s -- %s %s", static_cast<LPCWSTR>(head), useCachedParameter ? L" --cached" : L"", static_cast<LPCWSTR>(CGit::QuoteParameter(p->GetGitOldPathString().c_str())), static_cast<LPCWSTR>(CGit::QuoteParameter(p->GetGitPathString().c_str())));
-						else
-							cmd.Format(L"git.exe diff %s%s -- %s", static_cast<LPCWSTR>(head), useCachedParameter ? L" --cached" : L"", static_cast<LPCWSTR>(CGit::QuoteParameter(p->GetGitPathString().c_str())));
+						if (!(m_stagingDisplayState & SHOW_STAGING))        // link does not currently display show staging, then it's "hide staging", meaning the staging window is open
+							m_patchViewdlg.EnableStaging(EnableStagingTypes::Staging);
+						else if (!(m_stagingDisplayState & SHOW_UNSTAGING)) // link does not currently display show unstaging, then it's "hide unstaging", meaning the unstaging window is open
+							m_patchViewdlg.EnableStaging(EnableStagingTypes::Unstaging);
 					}
 					else
-					{
-						if (!p->GetGitOldPathString().empty())
-							cmd.Format(L"git.exe diff %s -- %s %s", static_cast<LPCWSTR>(head), static_cast<LPCWSTR>(CGit::QuoteParameter(p->GetGitOldPathString().c_str())), static_cast<LPCWSTR>(CGit::QuoteParameter(p->GetGitPathString().c_str())));
-						else
-							cmd.Format(L"git.exe diff %s -- %s", static_cast<LPCWSTR>(head), static_cast<LPCWSTR>(CGit::QuoteParameter(p->GetGitPathString().c_str())));
-					}
+						m_patchViewdlg.EnableStaging(EnableStagingTypes::None);
+
+					bool useCachedParameter = false;
+					if (!(m_stagingDisplayState & SHOW_UNSTAGING)) // link does not currently display show unstaging, then it's "hide unstaging", meaning the unstaging window is open
+						useCachedParameter = true;
+					else
+						head.Empty();
+
+					// An emptied `head` used to be an empty interpolation in the flat
+					// command line, which is omission. As an argv element it would be
+					// a real empty argument, so it has to be skipped explicitly.
+					if (!head.IsEmpty())
+						cmd.emplace_back(head);
+					if (useCachedParameter)
+						cmd.emplace_back(L"--cached");
 				}
-				catch (illegal_git_parameter& e)
-				{
-					out += L"\n\nCannot show diff. " + e.cause() + L"\n\n";
-					continue;
-				}
+				else
+					cmd.emplace_back(head);
+				cmd.emplace_back(L"--");
+				if (!p->GetGitOldPathString().empty())
+					cmd.emplace_back(p->GetGitOldPathString());
+				cmd.emplace_back(p->GetGitPathString());
 				g_Git.Run(cmd, &out, CP_UTF8);
 			}
 			else
