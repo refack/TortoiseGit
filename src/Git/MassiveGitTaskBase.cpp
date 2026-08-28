@@ -206,30 +206,34 @@ CString CMassiveGitTaskBase::GetListItem(int index) const
 	return m_bIsPath ? CString(m_pathList[index].GetGitPathString().c_str()) : CString(m_itemList[index].c_str());
 }
 
-void CMassiveGitTaskBase::ConvertToCmdList(CString params, const STRING_VECTOR& pathList, STRING_VECTOR& cmdList)
+void CMassiveGitTaskBase::ConvertToCmdList(const STRING_VECTOR& baseArgv, const STRING_VECTOR& pathList, ARGV_VECTOR& cmdList)
 {
 	if (pathList.empty())
 		return;
 
 	// see issue https://tortoisegit.org/issue/3542
-	const int max_command_line_length{ (CGit::ms_bCygwinGit || CGit::ms_bMsys2Git) ? 3500 : 30000 };
-	const int quotes_length{ (CGit::ms_bCygwinGit || CGit::ms_bMsys2Git) ? 4 : 2 };
+	const size_t max_command_line_length{ (CGit::ms_bCygwinGit || CGit::ms_bMsys2Git) ? 3500u : 30000u };
+	const size_t quotes_length{ (CGit::ms_bCygwinGit || CGit::ms_bMsys2Git) ? 4u : 2u };
 
-	const std::wstring cmd = std::format(L"git.exe {} --", params);
+	// The limit is on the command line CreateProcess is handed, which is still a
+	// flat string however the arguments are spelled here, so the accounting is
+	// unchanged - element lengths plus a separator and worst-case quoting.
+	size_t baseLength = 0;
+	for (const auto& arg : baseArgv)
+		baseLength += 1 + quotes_length + arg.size();
 
-	bool noCmdYet{ true };
+	size_t currentLength = 0;
 	for (const auto& filename : pathList)
 	{
-		// add new command if no command yet or last command will exceed max length.
-		// The short circuit is load-bearing: cmdList is empty on the first pass, so
-		// back() must not be reached.
-		if (noCmdYet || cmdList.back().size() + 1 + quotes_length + filename.size() > static_cast<size_t>(max_command_line_length))
+		// add new command if no command yet or last command will exceed max length
+		if (cmdList.empty() || currentLength + 1 + quotes_length + filename.size() > max_command_line_length)
 		{
-			noCmdYet = false;
-			cmdList.push_back(cmd);
+			cmdList.push_back(baseArgv);
+			currentLength = baseLength;
 		}
 
 		// update last commmand of list
-		cmdList.back() += std::format(L" {}", CGit::QuoteParameter(filename));
+		cmdList.back().push_back(filename);
+		currentLength += 1 + quotes_length + filename.size();
 	}
 }

@@ -94,11 +94,11 @@ static bool GetSubmodulePathList(SubmodulePayload &payload)
 	return true;
 }
 
-static bool GetFilesToCleanUp(CTGitPathList& delList, const CString& baseCmd, CGit *pGit, const CString& path, const boolean quotepath, CSysProgressDlg& sysProgressDlg)
+static bool GetFilesToCleanUp(CTGitPathList& delList, const STRING_VECTOR& baseCmd, CGit *pGit, const CString& path, const boolean quotepath, CSysProgressDlg& sysProgressDlg)
 {
-	CString cmd(baseCmd);
+	STRING_VECTOR cmd(baseCmd);
 	if (!path.IsEmpty())
-		cmd += L" -- " + CGit::QuoteParameter(path);
+		cmd.insert(cmd.cend(), { L"--", std::wstring(path) });
 
 	CString cmdouterr;
 	if (pGit->Run(cmd, [&](std::string_view line)
@@ -117,7 +117,7 @@ static bool GetFilesToCleanUp(CTGitPathList& delList, const CString& baseCmd, CG
 		}, &cmdouterr))
 	{
 		if (cmdouterr.IsEmpty())
-			cmdouterr.Format(IDS_GITEXEERROR_NOMESSAGE, static_cast<LPCWSTR>(cmd));
+			cmdouterr.Format(IDS_GITEXEERROR_NOMESSAGE, static_cast<LPCWSTR>(CGit::SerializeArgvToCString(cmd)));
 		MessageBox(GetExplorerHWND(), cmdouterr, L"TortoiseGit", MB_ICONERROR);
 		return false;
 	}
@@ -133,26 +133,25 @@ static bool GetFilesToCleanUp(CTGitPathList& delList, const CString& baseCmd, CG
 
 static bool DoCleanUp(const CTGitPathList& pathList, int cleanType, bool bDir, bool bDirUnmanagedRepos, bool bSubmodules, bool bDryRun, bool bNoRecycleBin)
 {
-	CString cmd;
-	cmd.Format(L"git.exe clean");
+	STRING_VECTOR cmd{ L"git.exe", L"clean" };
 	if (bDryRun || !bNoRecycleBin)
-		cmd += L" -n ";
+		cmd.emplace_back(L"-n");
 	if (bDir)
-		cmd += L" -d ";
+		cmd.emplace_back(L"-d");
 	switch (cleanType)
 	{
 	case 0:
-		cmd += L" -fx";
+		cmd.emplace_back(L"-fx");
 		break;
 	case 1:
-		cmd += L" -f";
+		cmd.emplace_back(L"-f");
 		break;
 	case 2:
-		cmd += L" -fX";
+		cmd.emplace_back(L"-fX");
 		break;
 	}
 	if (bDirUnmanagedRepos)
-		cmd += L" -f";
+		cmd.emplace_back(L"-f");
 
 	STRING_VECTOR submoduleList;
 	if (bSubmodules)
@@ -195,13 +194,16 @@ static bool DoCleanUp(const CTGitPathList& pathList, int cleanType, bool bDir, b
 			}
 			else
 				progress.m_GitDirList.push_back(std::wstring(g_Git.m_CurrentDir));
-			progress.m_GitCmdList.push_back(std::wstring(cmd + (path.IsEmpty() ? CString() : (L" -- " + CGit::QuoteParameter(path)))));
+			STRING_VECTOR clean = cmd;
+			if (!path.IsEmpty())
+				clean.insert(clean.cend(), { L"--", std::wstring(path) });
+			progress.m_GitCmdList.push_back(std::move(clean));
 		}
 
 		for (const auto& dir : submoduleList)
 		{
 			progress.m_GitDirList.push_back(CTGitPath(dir.c_str()).GetWinPathString());
-			progress.m_GitCmdList.push_back(std::wstring(cmd));
+			progress.m_GitCmdList.push_back(cmd);
 		}
 
 		progress.m_PostCmdCallback = [&](DWORD status, PostCmdList& postCmdList)

@@ -218,14 +218,21 @@ Set 2026-08-09, per user direction. Not every target carries equal weight:
 ### Build and tooling
 
 - Build through `Build-Nice.ps1` (caps `/m:8`, BelowNormal). Never bare `/m`.
-- Run the suite through **`test\Run-Tests.ps1`** — 125s single-process, ~40s
-  across 8. The suite has **no cross-process interference** (checked: 597/597
-  with real process isolation), but gtest's own `GTEST_TOTAL_SHARDS` distributes
-  round-robin *by index*, so it balances test counts rather than time and gets
-  only 2×. The script bin-packs by measured duration instead, caching timings
-  next to `Tests.exe`; the first run is round-robin, every run after is balanced.
-  **The floor is one test**: `GetWorkingTreeChanges/3` (`LIBGIT2_ALL`) alone is
-  35s — see "Open risk areas".
+- Run the suite through **`test\Run-Tests.ps1`** — 125s single-process, ~44s
+  across 8. gtest's own `GTEST_TOTAL_SHARDS` distributes round-robin *by index*,
+  so it balances test counts rather than time and gets only 2×; the script
+  bin-packs by measured duration instead, caching timings next to `Tests.exe`.
+  The first run is round-robin, every run after is balanced. **The floor is one
+  test**: `GetWorkingTreeChanges/3` (`LIBGIT2_ALL`) alone is 35s — see "Open risk
+  areas".
+- **Parallelism is a test-isolation test, and the suite failed it once.**
+  `CAutoTempDir` did `GetTempFileName` → `DeleteFile` → `CreateDirectory` with
+  the result unchecked; the uniqueness guarantee lives in the *file*, so deleting
+  it reopened the name and a loser of the race silently shared another process's
+  directory. It surfaced as an unrelated `UpdateCrypto` test failing about one
+  run in five. **Do not conclude "no interference" from a few green runs** — that
+  conclusion was drawn here and was wrong. A parallel failure that vanishes in
+  isolation is shared state until proven otherwise.
 - vcpkg root is `E:\.vcpkg-clion`. `vcpkg install --triplet x64-windows-static-md`
   is the restore step; `TortoiseGit.vcpkg-base.props` carries paths only and
   `TortoiseGit.vcpkg.props` adds the libgit2 bundle, so a single-package consumer
@@ -346,21 +353,23 @@ executed smallest-first — 2, 3, 6, 4, 5, 1):
 | `GetConfigValue(name, def, wantBool)` | git config values are bytes with a type the caller asserts. `GetConfigValueBool`/`GetConfigValueInt32` already exist; the question is whether the untyped one should. | typed readers public, untyped one kept for tri-state settings pages, `27df019dd` |
 
 **The argv tail.** The API exists, is oracle-tested against `CommandLineToArgvW`,
-and **all of `src\Git` invokes git through it** — the core is argv-only.
-`RebaseDlg`, `GitDiff` and `GitLogListAction` are converted too. Measure progress
+and **both invoke chokepoints speak argv**: `CGit::Run`/`RunAsync`/`RunLogFile`,
+and `CProgressDlg::RunCmdList` (everything that shows a progress window). All of
+`src\Git` is argv-only, as are `RebaseDlg`, `GitDiff`, `GitLogListAction`,
+`SyncDlg`, `AppUtils`' git half and the `Commands\` directory. Measure progress
 by counting flat command builders, `git grep -c -E '\.Format\(L"(git|bash)|Run\(L"(git|bash)' -- 'src/*.cpp' 'src/*.h'`:
-**208 → 101** so far. What is left is consumer migration — mechanical per-cluster
-edits against a settled API — roughly: `CommitDlg` (10), `FileDiffDlg` (10),
-`SyncDlg` (7), the `ProgressCommands\` and `Commands\` directories, then the
-long tail of one- and two-site files. Three things are **not** part of that tail
-and should not be counted into it:
+**208 → 71** so far. What is left is the long tail — `FileDiffDlg` (10),
+`CommitDlg`'s diff viewer (7), `ProgressCommands\`, `TortoiseGitBlameDoc`,
+`LogDlg`, `SettingGitRemote`, then ones and twos. Three things are **not** part
+of that tail and should not be counted into it:
 
 - **`AppUtils.cpp`'s ~44 `QuoteParameter` uses are mostly a different
   serializer** — `StartExtDiff`/`StartExtMerge`/`ExpandPlaceholdersForCmd` build
   *external tool* command lines from user-configured `%`-placeholder templates.
   A flat string is the product there, not an accident. Its own slice.
 - **`CMassiveGitTaskBase`'s command prefix** (`L"push -- " + QuoteParameter(…)`)
-  is a design question of the same shape as `Run` was, not a conversion.
+  is a design question of the same shape as `Run` was, not a conversion. Its
+  *static* `ConvertToCmdList` is already argv; the instance `m_sParams` is not.
 - **`GitTest.cpp`'s ~67** are `QuoteParameter`'s own pin tests, which retire when
   it does.
 

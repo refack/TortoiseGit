@@ -72,20 +72,9 @@ bool DaemonCommand::Execute()
 	if (result)
 		FreeAddrInfoA(result);
 
-	CString cmd;
-	try
-	{
-		cmd.Format(L"git.exe daemon --verbose --export-all --base-path=%s", static_cast<LPCWSTR>(CGit::QuoteParameter(g_Git.m_CurrentDir)));
-	}
-	catch (illegal_git_parameter& e)
-	{
-		MessageBox(GetExplorerHWND(), e.cause(), L"TortoiseGit", MB_OK | MB_ICONERROR);
-		return false;
-	}
-
 	CProgressDlg progDlg;
 	theApp.m_pMainWnd = &progDlg;
-	progDlg.m_GitCmd = cmd;
+	progDlg.m_GitCmd = { L"git.exe", L"daemon", L"--verbose", L"--export-all", std::format(L"--base-path={}", g_Git.m_CurrentDir) };
 	if (ips.empty())
 		progDlg.m_PreText = L"git://localhost/";
 	else

@@ -142,6 +142,10 @@ struct TGitRef
 // naming it cannot appear in a header both flavors compile. Values, not views -
 // these containers own their strings and outlive whatever produced them.
 using STRING_VECTOR = std::vector<std::wstring>;
+// A list of *commands*, each one an argv vector. Named because the distinction
+// was previously invisible: CProgressDlg's list of whole command lines was also
+// spelled STRING_VECTOR, one alias away from a single command's arguments.
+using ARGV_VECTOR = std::vector<STRING_VECTOR>;
 using MAP_HASH_NAME = std::unordered_map<CGitHash, STRING_VECTOR>;
 using MAP_STRING_STRING = std::map<std::wstring, std::wstring>;
 using REF_VECTOR = std::vector<TGitRef>;

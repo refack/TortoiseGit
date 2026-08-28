@@ -481,15 +481,7 @@ void CGitTagCompareList::OnContextMenuList(CWnd * /*pWnd*/, CPoint point)
 		case IDGITRCL_PUSH:
 		{
 			CProgressDlg dlg;
-			try
-			{
-				dlg.m_GitCmd.Format(L"git.exe push --force -- %s %s", static_cast<LPCWSTR>(CGit::QuoteParameter(m_remote)), static_cast<LPCWSTR>(CGit::QuoteParameter(L"refs/tags/" + tag)));
-			}
-			catch (illegal_git_parameter& e)
-			{
-				MessageBox(e.cause(), L"TortoiseGit", MB_OK | MB_ICONERROR);
-				break;
-			}
+			dlg.m_GitCmd = { L"git.exe", L"push", L"--force", L"--", std::wstring(m_remote), std::format(L"refs/tags/{}", tag) };
 			dlg.DoModal();
 
 			if (CString err; Fill(m_remote, err))
@@ -500,15 +492,7 @@ void CGitTagCompareList::OnContextMenuList(CWnd * /*pWnd*/, CPoint point)
 		case IDGITRCL_FETCH:
 		{
 			CProgressDlg dlg;
-			try
-			{
-				dlg.m_GitCmd.Format(L"git.exe fetch -- %s %s", static_cast<LPCWSTR>(CGit::QuoteParameter(m_remote)), static_cast<LPCWSTR>(CGit::QuoteParameter(L"refs/tags/" + tag + L":refs/tags/" + tag)));
-			}
-			catch (illegal_git_parameter& e)
-			{
-				MessageBox(e.cause(), L"TortoiseGit", MB_OK | MB_ICONERROR);
-				break;
-			}
+			dlg.m_GitCmd = { L"git.exe", L"fetch", L"--", std::wstring(m_remote), std::format(L"refs/tags/{0}:refs/tags/{0}", tag) };
 			dlg.DoModal();
 
 			if (CString err; Fill(m_remote, err))

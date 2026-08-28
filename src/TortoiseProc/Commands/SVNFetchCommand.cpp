@@ -52,7 +52,7 @@ bool SVNFetchCommand::Execute()
 	}
 
 	CProgressDlg progress;
-	progress.m_GitCmd = L"git.exe svn fetch";
+	progress.m_GitCmd = { L"git.exe", L"svn", L"fetch" };
 
 	CGitHash upstreamNewHash; // declare outside lambda, because it is captured by reference
 	progress.m_PostCmdCallback = [&](DWORD status, PostCmdList& postCmdList)

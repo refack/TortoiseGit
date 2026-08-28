@@ -90,9 +90,9 @@ private:
 	enum { IDD = IDD_GITPROGRESS };
 
 public:
-	CString					m_GitCmd;
+	STRING_VECTOR			m_GitCmd;		// one command, as argv
 	PostCmdCallback			m_PostCmdCallback;
-	STRING_VECTOR			m_GitCmdList;
+	ARGV_VECTOR				m_GitCmdList;	// several commands, run in order
 	PostExecCallback		m_PostExecCallback; // After executing command line, this callback can modify exit code / display extra message
 	STRING_VECTOR			m_GitDirList;
 	CString					m_PreText;		// optional text to show in log window before running command
@@ -157,7 +157,12 @@ public:
 	/**
 	 *@param dirlist if empty, the current directory of param git is used; otherwise each entry in param cmdlist uses the corresponding entry in param dirlist
 	 */
-	static UINT RunCmdList(CWnd* pWnd, STRING_VECTOR& cmdlist, STRING_VECTOR& dirlist, bool bShowCommand, const CString* pfilename, CGitCliOutputParser& cliOutputParser, volatile bool* bAbort, CGit* git = &g_Git);
+	/**
+	 * \a cmdlist is a list of *commands*, each an argv vector - not one command's
+	 * argv. \a dirlist stays a plain STRING_VECTOR because it really is a list of
+	 * directories, and it is indexed in lockstep with \a cmdlist.
+	 */
+	static UINT RunCmdList(CWnd* pWnd, ARGV_VECTOR& cmdlist, STRING_VECTOR& dirlist, bool bShowCommand, const CString* pfilename, CGitCliOutputParser& cliOutputParser, volatile bool* bAbort, CGit* git = &g_Git);
 
 	static void KillProcessTree(DWORD dwProcessId, unsigned int depth = 0);
 

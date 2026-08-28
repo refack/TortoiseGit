@@ -146,7 +146,7 @@ protected:
 		}
 	}
 
-	STRING_VECTOR m_GitCmdList;
+	ARGV_VECTOR m_GitCmdList;
 	STRING_VECTOR	m_remotelist;
 
 	volatile bool	m_bAbort = false;

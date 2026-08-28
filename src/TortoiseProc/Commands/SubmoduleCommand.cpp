@@ -35,31 +35,20 @@ bool SubmoduleAddCommand::Execute()
 	dlg.m_strProject = g_Git.m_CurrentDir;
 	if( dlg.DoModal() == IDOK )
 	{
-		CString cmd;
 		if (CStringUtils::StartsWith(dlg.m_strPath, g_Git.m_CurrentDir))
 			dlg.m_strPath = dlg.m_strPath.Right(dlg.m_strPath.GetLength()-g_Git.m_CurrentDir.GetLength()-1);
 
-		try
-		{
-			CString args;
-			if (dlg.m_bBranch)
-				args.Format(L" -b %s", static_cast<LPCWSTR>(CGit::QuoteParameter(dlg.m_strBranch)));
-
-			if (dlg.m_bForce)
-				args = L" --force";
-
-			cmd.Format(L"git.exe submodule add%s -- %s %s",
-							static_cast<LPCWSTR>(args),
-							static_cast<LPCWSTR>(CGit::QuoteParameter(dlg.m_strRepos)), static_cast<LPCWSTR>(CGit::QuoteParameter(dlg.m_strPath)));
-		}
-		catch (illegal_git_parameter& e)
-		{
-			MessageBox(GetExplorerHWND(), e.cause(), L"TortoiseGit", MB_OK | MB_ICONERROR);
-			return false;
-		}
+		STRING_VECTOR cmd{ L"git.exe", L"submodule", L"add" };
+		// Note the "=" rather than "+=" below in the original: --force *replaced*
+		// the branch option rather than adding to it. Preserved.
+		if (dlg.m_bForce)
+			cmd.emplace_back(L"--force");
+		else if (dlg.m_bBranch)
+			cmd.insert(cmd.cend(), { L"-b", std::wstring(dlg.m_strBranch) });
+		cmd.insert(cmd.cend(), { L"--", std::wstring(dlg.m_strRepos), std::wstring(dlg.m_strPath) });
 
 		CProgressDlg progress;
-		progress.m_GitCmd=cmd;
+		progress.m_GitCmd = cmd;
 		progress.DoModal();
 
 		bRet = TRUE;
@@ -115,41 +104,32 @@ bool SubmoduleUpdateCommand::Execute()
 
 	g_Git.SetCurrentDirExact(super);
 
-	CString params = L" --progress";
+	STRING_VECTOR cmd{ L"git.exe", L"submodule", L"update", L"--progress" };
 	if (submoduleUpdateDlg.m_bInit)
-		params += L" --init";
+		cmd.emplace_back(L"--init");
 	if (submoduleUpdateDlg.m_bRecursive)
-		params += L" --recursive";
+		cmd.emplace_back(L"--recursive");
 	if (submoduleUpdateDlg.m_bForce)
-		params += L" --force";
+		cmd.emplace_back(L"--force");
 	if (submoduleUpdateDlg.m_bNoFetch)
-		params += L" --no-fetch";
+		cmd.emplace_back(L"--no-fetch");
 	if (submoduleUpdateDlg.m_bMerge)
-		params += L" --merge";
+		cmd.emplace_back(L"--merge");
 	if (submoduleUpdateDlg.m_bRebase)
-		params += L" --rebase";
+		cmd.emplace_back(L"--rebase");
 	if (submoduleUpdateDlg.m_bRemote)
-		params += L" --remote";
+		cmd.emplace_back(L"--remote");
 
-
-	CString cmd;
-	cmd.Format(L"submodule update%s", static_cast<LPCWSTR>(params));
 	if (!submoduleUpdateDlg.m_bAllSubmodulesSelected)
 	{
 		// If not all submodules are selected, let CMassiveGitTaskBase create the list of commands.
 		// Otherwise, there is no need to specify any submodule.
-		try
-		{
-			CMassiveGitTaskBase::ConvertToCmdList(cmd, submoduleUpdateDlg.m_PathList, progress.m_GitCmdList);
-		}
-		catch (illegal_git_parameter& e)
-		{
-			MessageBox(GetExplorerHWND(), e.cause(), L"TortoiseGit", MB_OK | MB_ICONERROR);
-			return false;
-		}
+		STRING_VECTOR base = cmd;
+		base.emplace_back(L"--");
+		CMassiveGitTaskBase::ConvertToCmdList(base, submoduleUpdateDlg.m_PathList, progress.m_GitCmdList);
 	}
 	else
-		progress.m_GitCmdList.push_back(std::format(L"git.exe {}", cmd));
+		progress.m_GitCmdList.push_back(cmd);
 
 	progress.m_PostCmdCallback = [&](DWORD status, PostCmdList& postCmdList)
 	{
@@ -198,27 +178,14 @@ bool SubmoduleSyncCommand::Execute()
 
 	g_Git.SetCurrentDirExact(super);
 
-	CString str;
 	for (int i = 0; i < this->orgPathList.GetCount(); ++i)
 	{
 		if(orgPathList[i].IsDirectory())
 		{
-			CString path = orgPathList[i].GetSubPath(CTGitPath(super.GetString())).GetGitPathString().c_str();
-			if (path.IsEmpty())
-				str = L"git.exe submodule sync";
-			else
-			{
-				try
-				{
-					str.Format(L"git.exe submodule sync -- %s", static_cast<LPCWSTR>(CGit::QuoteParameter(path)));
-				}
-				catch (illegal_git_parameter& e)
-				{
-					MessageBox(GetExplorerHWND(), e.cause(), L"TortoiseGit", MB_OK | MB_ICONERROR);
-					continue;
-				}
-			}
-			progress.m_GitCmdList.push_back(std::wstring(str));
+			STRING_VECTOR str{ L"git.exe", L"submodule", L"sync" };
+			if (const std::wstring path = orgPathList[i].GetSubPath(CTGitPath(super.GetString())).GetGitPathString(); !path.empty())
+				str.insert(str.cend(), { L"--", path });
+			progress.m_GitCmdList.push_back(str);
 		}
 	}
 

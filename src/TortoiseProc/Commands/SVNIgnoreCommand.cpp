@@ -34,7 +34,7 @@ bool SVNIgnoreCommand::Execute()
 		{
 		case 0:
 			{
-				progress.m_GitCmd = L"git.exe svn show-ignore";
+				progress.m_GitCmd = { L"git.exe", L"svn", L"show-ignore" };
 				CString dotGitPath;
 				GitAdminDir::GetAdminDirPath(g_Git.m_CurrentDir, dotGitPath);
 				progress.m_LogFile = dotGitPath + L"info\\exclude";
@@ -43,7 +43,7 @@ bool SVNIgnoreCommand::Execute()
 			}
 			break;
 		case 1:
-			progress.m_GitCmd = L"git.exe svn create-ignore";
+			progress.m_GitCmd = { L"git.exe", L"svn", L"create-ignore" };
 			break;
 		default:
 			MessageBox(GetExplorerHWND(), L"Unknown SVN Ignore Type", L"TortoiseGit", MB_OK | MB_ICONERROR);

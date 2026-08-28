@@ -33,7 +33,12 @@ public:
 	bool					Execute(volatile BOOL& cancel);
 	int						GetListCount() const;
 	bool					IsListEmpty() const;
-	static void				ConvertToCmdList(CString params, const STRING_VECTOR& pathList, STRING_VECTOR& cmdList);
+	/**
+	 * Splits \a pathList over as many copies of \a baseArgv as it takes to stay
+	 * under the command line length limit. \a baseArgv must already end with the
+	 * "--" separator; the paths are appended as further elements.
+	 */
+	static void				ConvertToCmdList(const STRING_VECTOR& baseArgv, const STRING_VECTOR& pathList, ARGV_VECTOR& cmdList);
 protected:
 	void					SetPaths(const CTGitPathList* pathList);
 	bool					ExecuteCommands(volatile BOOL& cancel);

@@ -72,29 +72,21 @@ bool CloneCommand::Execute()
 
 	if(dlg.DoModal()==IDOK)
 	{
-		CString args;
+		STRING_VECTOR args;
 		if(dlg.m_bRecursive)
-			args += L" --recursive";
+			args.emplace_back(L"--recursive");
 
 		if(dlg.m_bBare)
-			args += L" --bare";
+			args.emplace_back(L"--bare");
 
 		if (dlg.m_bNoCheckout)
-			args += L" --no-checkout";
+			args.emplace_back(L"--no-checkout");
 
-		try
-		{
-			if (dlg.m_bBranch)
-				args += L" --branch " + CGit::QuoteParameter(dlg.m_strBranch);
+		if (dlg.m_bBranch)
+			args.insert(args.cend(), { L"--branch", std::wstring(dlg.m_strBranch) });
 
-			if (dlg.m_bOrigin && !dlg.m_bSVN)
-				args += L" --origin " + CGit::QuoteParameter(dlg.m_strOrigin);
-		}
-		catch (illegal_git_parameter& e)
-		{
-			MessageBox(GetExplorerHWND(), e.cause(), L"TortoiseGit", MB_OK | MB_ICONERROR);
-			return false;
-		}
+		if (dlg.m_bOrigin && !dlg.m_bSVN)
+			args.insert(args.cend(), { L"--origin", std::wstring(dlg.m_strOrigin) });
 
 		CString dir=dlg.m_Directory;
 		CString url=dlg.m_URL;
@@ -116,21 +108,11 @@ bool CloneCommand::Execute()
 		}
 
 		if (dlg.m_bDepth)
-			args.AppendFormat(L" --depth %d", dlg.m_nDepth);
+			args.insert(args.cend(), { L"--depth", std::to_wstring(dlg.m_nDepth) });
 
-		CString cmd;
-		try
-		{
-			cmd.Format(L"git.exe clone --progress%s -v -- %s %s",
-					   static_cast<LPCWSTR>(args),
-					   static_cast<LPCWSTR>(CGit::QuoteParameter(url)),
-					   static_cast<LPCWSTR>(CGit::QuoteParameter(dir)));
-		}
-		catch (illegal_git_parameter& e)
-		{
-			MessageBox(GetExplorerHWND(), e.cause(), L"TortoiseGit", MB_OK | MB_ICONERROR);
-			return false;
-		}
+		STRING_VECTOR cmd{ L"git.exe", L"clone", L"--progress" };
+		cmd.insert(cmd.cend(), args.cbegin(), args.cend());
+		cmd.insert(cmd.cend(), { L"-v", L"--", std::wstring(url), std::wstring(dir) });
 
 		bool retry = false;
 		auto postCmdCallback = [&](DWORD status, PostCmdList& postCmdList)
@@ -176,42 +158,30 @@ bool CloneCommand::Execute()
 			}
 
 			//g_Git.SetCurrentDirExact(dlg.m_Directory);
-			cmd = L"git.exe svn clone";
-			try
+			cmd = { L"git.exe", L"svn", L"clone" };
+			if (dlg.m_bOrigin)
 			{
-				if (dlg.m_bOrigin)
-				{
-					if (dlg.m_strOrigin.IsEmpty())
-						cmd += L" --prefix " + CGit::QuoteParameter(L"");
-					else
-						cmd.AppendFormat(L" --prefix %s", static_cast<LPCWSTR>(CGit::QuoteParameter(dlg.m_strOrigin + L"/")));
-				}
-
-				if (dlg.m_bSVNTrunk)
-					cmd += L" -T " + CGit::QuoteParameter(dlg.m_strSVNTrunk);
-
-				if (dlg.m_bSVNBranch)
-					cmd += L" -b " + CGit::QuoteParameter(dlg.m_strSVNBranchs);
-
-				if (dlg.m_bSVNTags)
-					cmd += L" -t " + CGit::QuoteParameter(dlg.m_strSVNTags);
-
-				if (dlg.m_bSVNFrom)
-					cmd.AppendFormat(L" -r %d:HEAD", dlg.m_nSVNFrom);
-
-				if (dlg.m_bSVNUserName)
-				{
-					cmd += L" --username ";
-					cmd += CGit::QuoteParameter(dlg.m_strUserName);
-				}
-
-				cmd.AppendFormat(L" -- %s %s", static_cast<LPCWSTR>(CGit::QuoteParameter(url)), static_cast<LPCWSTR>(CGit::QuoteParameter(dlg.m_Directory)));
+				// An empty prefix is meaningful here - it used to be spelled
+				// QuoteParameter(L""), which produced an explicit "" argument.
+				cmd.insert(cmd.cend(), { L"--prefix", dlg.m_strOrigin.IsEmpty() ? std::wstring() : std::format(L"{}/", dlg.m_strOrigin) });
 			}
-			catch (illegal_git_parameter& e)
-			{
-				MessageBox(GetExplorerHWND(), e.cause(), L"TortoiseGit", MB_OK | MB_ICONERROR);
-				return false;
-			}
+
+			if (dlg.m_bSVNTrunk)
+				cmd.insert(cmd.cend(), { L"-T", std::wstring(dlg.m_strSVNTrunk) });
+
+			if (dlg.m_bSVNBranch)
+				cmd.insert(cmd.cend(), { L"-b", std::wstring(dlg.m_strSVNBranchs) });
+
+			if (dlg.m_bSVNTags)
+				cmd.insert(cmd.cend(), { L"-t", std::wstring(dlg.m_strSVNTags) });
+
+			if (dlg.m_bSVNFrom)
+				cmd.insert(cmd.cend(), { L"-r", std::format(L"{}:HEAD", dlg.m_nSVNFrom) });
+
+			if (dlg.m_bSVNUserName)
+				cmd.insert(cmd.cend(), { L"--username", std::wstring(dlg.m_strUserName) });
+
+			cmd.insert(cmd.cend(), { L"--", std::wstring(url), std::wstring(dlg.m_Directory) });
 		}
 		else
 		{

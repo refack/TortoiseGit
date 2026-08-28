@@ -19,17 +19,36 @@
 
 #include "stdafx.h"
 #include "AutoTempDir.h"
+#include <atomic>
 
 CAutoTempDir::CAutoTempDir()
 {
+	// This used to be GetTempFileName + DeleteFile + CreateDirectory. That is a
+	// race: GetTempFileName's uniqueness guarantee comes from the *file* it
+	// creates, so deleting it reopens the name to anyone else asking at the same
+	// moment - and CreateDirectory's result was not checked, so a loser of that
+	// race silently ended up pointing at somebody else's directory. Harmless
+	// while the suite ran in one process; not harmless once it runs in eight,
+	// where it showed up as an unrelated test failing about one run in five.
+	//
+	// The process id makes collisions between processes impossible rather than
+	// unlikely, and the loop covers reuse within one process.
 	CString temppath;
 	GetTempPath(MAX_PATH, temppath.GetBufferSetLength(MAX_PATH));
-	TCHAR szTempName[MAX_PATH] = { 0 };
 	temppath.ReleaseBuffer();
-	GetTempFileName(temppath, L"tgit-tests", 0, szTempName);
-	DeleteFile(szTempName);
-	CreateDirectory(szTempName, nullptr);
-	tempdir = szTempName;
+
+	static std::atomic<unsigned int> s_nextIndex{ 0 };
+	for (int attempt = 0; attempt < 1000; ++attempt)
+	{
+		CString candidate;
+		candidate.Format(L"%stgit-tests-%lu-%u", static_cast<LPCWSTR>(temppath), GetCurrentProcessId(), s_nextIndex++);
+		if (CreateDirectory(candidate, nullptr))
+		{
+			tempdir = candidate;
+			return;
+		}
+	}
+	ATLASSERT(false); // could not create a temp directory at all
 }
 
 void CAutoTempDir::DeleteDirectoryRecursive(const CString& dir)

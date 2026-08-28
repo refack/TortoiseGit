@@ -47,36 +47,27 @@ bool FormatPatchCommand::Execute()
 
 	if(dlg.DoModal()==IDOK)
 	{
-		CString cmd;
-		CString range;
+		STRING_VECTOR cmd{ L"git.exe", L"format-patch" };
+		if (dlg.m_bNoPrefix)
+			cmd.emplace_back(L"--no-prefix");
+		cmd.insert(cmd.cend(), { L"-o", std::wstring(dlg.m_Dir) });
 
-		try
+		switch (dlg.m_Radio)
 		{
-			switch (dlg.m_Radio)
-			{
-			case IDC_RADIO_SINCE:
-				range = L"--end-of-options " + CGit::QuoteParameter(g_Git.FixBranchName(dlg.m_Since));
-				break;
-			case IDC_RADIO_NUM:
-				range.Format(L"-%d", dlg.m_Num);
-				break;
-			case IDC_RADIO_RANGE:
-				range.Format(L"--end-of-options %s", static_cast<LPCWSTR>(CGit::QuoteParameter(dlg.m_From + L".." + dlg.m_To)));
-				break;
-			}
-			cmd.Format(L"git.exe format-patch%s -o %s %s --",
-					   dlg.m_bNoPrefix ? L" --no-prefix" : L"",
-					   static_cast<LPCWSTR>(CGit::QuoteParameter(dlg.m_Dir)),
-					   static_cast<LPCWSTR>(range));
+		case IDC_RADIO_SINCE:
+			cmd.insert(cmd.cend(), { L"--end-of-options", std::wstring(g_Git.FixBranchName(dlg.m_Since)) });
+			break;
+		case IDC_RADIO_NUM:
+			cmd.emplace_back(std::format(L"-{}", dlg.m_Num));
+			break;
+		case IDC_RADIO_RANGE:
+			cmd.insert(cmd.cend(), { L"--end-of-options", std::format(L"{}..{}", dlg.m_From, dlg.m_To) });
+			break;
 		}
-		catch (illegal_git_parameter& e)
-		{
-			MessageBox(GetExplorerHWND(), e.cause(), L"TortoiseGit", MB_OK | MB_ICONERROR);
-			return false;
-		}
+		cmd.emplace_back(L"--");
 
 		CProgressDlg progress;
-		progress.m_GitCmd=cmd;
+		progress.m_GitCmd = cmd;
 		progress.DoModal();
 
 		CShellUpdater::Instance().AddPathForUpdate(CTGitPath(dlg.m_Dir.GetString()));
@@ -85,7 +76,9 @@ bool FormatPatchCommand::Execute()
 		if(!progress.m_GitStatus)
 		{
 			if(dlg.m_bSendMail)
-				CAppUtils::SendPatchMail(GetExplorerHWND(), cmd, progress.m_LogText);
+				// SendPatchMail looks for the echoed command line in the log output
+				// and skips past it, so it needs the same spelling CProgressDlg logged.
+				CAppUtils::SendPatchMail(GetExplorerHWND(), CGit::SerializeArgvToCString(cmd), progress.m_LogText);
 		}
 		return !progress.m_GitStatus;
 	}

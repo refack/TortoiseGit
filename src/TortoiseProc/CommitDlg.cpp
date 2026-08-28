@@ -776,22 +776,14 @@ void CCommitDlg::OnOK()
 
 	if (bAddSuccess && m_bCreateNewBranch)
 	{
-		try
+		if (g_Git.Run({ L"git.exe", L"branch", L"--", std::wstring(newBranch) }, &out, CP_UTF8))
 		{
-			if (g_Git.Run(L"git.exe branch -- " + CGit::QuoteParameter(newBranch), &out, CP_UTF8))
-			{
-				MessageBox(L"Creating new branch failed:\n" + out, L"TortoiseGit", MB_OK | MB_ICONERROR);
-				bAddSuccess = false;
-			}
-			if (g_Git.Run(L"git.exe checkout --end-of-options " + CGit::QuoteParameter(newBranch) + L" --", &out, CP_UTF8))
-			{
-				MessageBox(L"Switching to new branch failed:\n" + out, L"TortoiseGit", MB_OK | MB_ICONERROR);
-				bAddSuccess = false;
-			}
+			MessageBox(L"Creating new branch failed:\n" + out, L"TortoiseGit", MB_OK | MB_ICONERROR);
+			bAddSuccess = false;
 		}
-		catch (illegal_git_parameter& e)
+		if (g_Git.Run({ L"git.exe", L"checkout", L"--end-of-options", std::wstring(newBranch), L"--" }, &out, CP_UTF8))
 		{
-			MessageBox(e.cause(), L"TortoiseGit", MB_OK | MB_ICONERROR);
+			MessageBox(L"Switching to new branch failed:\n" + out, L"TortoiseGit", MB_OK | MB_ICONERROR);
 			bAddSuccess = false;
 		}
 	}
@@ -855,9 +847,10 @@ void CCommitDlg::OnOK()
 		const BOOL IsGitSVN = path.GetAdminDirMask() & ITEMIS_GITSVN;
 
 		out.Empty();
-		CString amend;
-		if(this->m_bCommitAmend)
-			amend = L"--amend";
+		// Four independently-optional options that used to be four %s slots, each
+		// interpolating as nothing when unset. As argv elements an empty one would
+		// be a real empty argument, so each is now a conditional push.
+		STRING_VECTOR cmd{ L"git.exe", L"commit" };
 
 		CString dateTime;
 		if (m_bSetCommitDateTime)
@@ -877,25 +870,22 @@ void CCommitDlg::OnOK()
 			else
 				dateTime.Format(L"--date=%sT%s", static_cast<LPCWSTR>(date.Format(L"%Y-%m-%d")), static_cast<LPCWSTR>(time.Format(L"%H:%M:%S")));
 		}
-		CString author;
+
+		// "--author=Name <mail>" is one element; the space inside it no longer
+		// needs escaping at this level.
 		if (m_bSetAuthor)
-		{
-			try
-			{
-				author.Format(L"--author=%s", static_cast<LPCWSTR>(CGit::QuoteParameter(m_sAuthor, true)));
-			}
-			catch (illegal_git_parameter& e)
-			{
-				MessageBox(L"Setting author failed.\n" + e.cause(), L"TortoiseGit", MB_OK | MB_ICONERROR);
-				return;
-			}
-		}
-		CString allowEmpty = m_bCommitMessageOnly ? L"--allow-empty" : L"";
+			cmd.emplace_back(std::format(L"--author={}", m_sAuthor));
+		if (!dateTime.IsEmpty())
+			cmd.emplace_back(std::wstring(dateTime));
+		if (m_bCommitAmend)
+			cmd.emplace_back(L"--amend");
+		if (m_bCommitMessageOnly)
+			cmd.emplace_back(L"--allow-empty");
 		// TODO: make sure notes.amend.rewrite does still work when switching to libgit2
-		cmd.Format(L"git.exe commit %s %s %s %s -F %s", static_cast<LPCWSTR>(author), static_cast<LPCWSTR>(dateTime), static_cast<LPCWSTR>(amend), static_cast<LPCWSTR>(allowEmpty), static_cast<LPCWSTR>(CGit::QuoteParameter(tempfile)));
+		cmd.insert(cmd.cend(), { L"-F", std::wstring(tempfile) });
 
 		CProgressDlg progress;
-		progress.m_GitCmd=cmd;
+		progress.m_GitCmd = cmd;
 		progress.m_bShowCommand = FALSE;	// don't show the commit command
 		progress.m_PreText = out;			// show any output already generated in log window
 		if (m_ctrlOkButton.GetCurrentEntry() > 0)
@@ -977,7 +967,8 @@ void CCommitDlg::OnOK()
 			DWORD exitcode = 0xFFFFFFFF;
 			CString error;
 			CHooks::Instance().SetProjectProperties(CTGitPath(g_Git.m_CurrentDir.GetString()), m_ProjectProperties);
-			if (CHooks::Instance().PostCommit(GetSafeHwnd(), g_Git.m_CurrentDir, amend.IsEmpty(), exitcode, error))
+			// was amend.IsEmpty() on the CString that held "--amend" or nothing
+			if (CHooks::Instance().PostCommit(GetSafeHwnd(), g_Git.m_CurrentDir, !m_bCommitAmend, exitcode, error))
 			{
 				if (exitcode)
 				{

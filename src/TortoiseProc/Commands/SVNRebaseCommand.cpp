@@ -95,7 +95,7 @@ bool SVNRebaseCommand::Execute()
 		return false;
 	}
 	CProgressDlg progress;
-	progress.m_GitCmd = L"git.exe svn fetch";
+	progress.m_GitCmd = { L"git.exe", L"svn", L"fetch" };
 	progress.m_AutoClose = GitProgressAutoClose::AUTOCLOSE_IF_NO_ERRORS;
 
 	if(progress.DoModal()!=IDOK)
@@ -124,17 +124,7 @@ bool SVNRebaseCommand::Execute()
 	if (g_Git.IsFastForward(L"HEAD", out))
 	{
 		CProgressDlg progressReset;
-		CString cmd;
-		try
-		{
-			cmd.Format(L"git.exe reset --hard --end-of-options %s --", static_cast<LPCWSTR>(CGit::QuoteParameter(out)));
-		}
-		catch (illegal_git_parameter& e)
-		{
-			MessageBox(GetExplorerHWND(), e.cause(), L"TortoiseGit", MB_OK | MB_ICONERROR);
-			return false;
-		}
-		progressReset.m_GitCmd = cmd;
+		progressReset.m_GitCmd = { L"git.exe", L"reset", L"--hard", L"--end-of-options", std::wstring(out), L"--" };
 		progressReset.m_AutoClose = GitProgressAutoClose::AUTOCLOSE_IF_NO_ERRORS;
 
 		if (progressReset.DoModal() != IDOK)

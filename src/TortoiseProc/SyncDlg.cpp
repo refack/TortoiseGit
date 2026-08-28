@@ -175,20 +175,9 @@ void CSyncDlg::OnBnClickedButtonPull()
 			if (CMessageBox::Show(GetSafeHwnd(), CString(MAKEINTRESOURCE(IDS_PROC_SYNC_PULLWRONGBRANCH)), L"TortoiseGit", 2, IDI_QUESTION, tmp, CString(MAKEINTRESOURCE(IDS_ABORTBUTTON))) == 2)
 				return;
 
-			CString cmd;
-			try
-			{
-				cmd.Format(L"git.exe checkout --end-of-options %s --", static_cast<LPCWSTR>(CGit::QuoteParameter(m_strLocalBranch)));
-			}
-			catch (illegal_git_parameter& e)
-			{
-				MessageBox(e.cause(), L"TortoiseGit", MB_OK | MB_ICONERROR);
-				return;
-			}
-
 			CProgressDlg progress(this);
 			progress.m_AutoClose = GitProgressAutoClose::AUTOCLOSE_IF_NO_ERRORS;
-			progress.m_GitCmd = cmd;
+			progress.m_GitCmd = { L"git.exe", L"checkout", L"--end-of-options", std::wstring(m_strLocalBranch), L"--" };
 			if (progress.DoModal() != IDOK || progress.m_GitStatus != 0)
 				return;
 		}
@@ -290,11 +279,7 @@ void CSyncDlg::OnBnClickedButtonPull()
 		return;
 	}
 
-	CString force;
-	if(this->m_bForce)
-		force = L" --force";
-
-	CString cmd;
+	STRING_VECTOR cmd;
 
 	m_iPullRebase = 0;
 	if (CurrentEntry == 0) // check whether we need to override Pull if pull.rebase is set
@@ -378,23 +363,15 @@ void CSyncDlg::OnBnClickedButtonPull()
 				remotebranch.Empty();
 		}
 
-		try
-		{
-			cmd.Format(L"git.exe pull -v --progress%s -- %s %s",
-					   static_cast<LPCWSTR>(force),
-					   static_cast<LPCWSTR>(CGit::QuoteParameter(m_strURL)),
-					   remotebranch.IsEmpty() ? L"" : static_cast<LPCWSTR>(CGit::QuoteParameter(remotebranch)));
-		}
-		catch (illegal_git_parameter& e)
-		{
-			MessageBox(e.cause(), L"TortoiseGit", MB_OK | MB_ICONERROR);
-			SwitchToInput();
-			EnableControlButton();
-			return;
-		}
+		cmd = { L"git.exe", L"pull", L"-v", L"--progress" };
+		if (m_bForce)
+			cmd.emplace_back(L"--force");
+		cmd.insert(cmd.cend(), { L"--", std::wstring(m_strURL) });
+		if (!remotebranch.IsEmpty())
+			cmd.emplace_back(std::wstring(remotebranch));
 
 		m_CurrentCmd = GIT_COMMAND_PULL;
-		m_GitCmdList.push_back(std::wstring(cmd));
+		m_GitCmdList.push_back(cmd);
 
 		StartWorkerThread();
 	}
@@ -442,26 +419,16 @@ void CSyncDlg::OnBnClickedButtonPull()
 		}
 		else
 		{
-			CString args;
+			cmd = { L"git.exe", L"fetch", L"--progress" };
 			if (CRegDWORD(L"Software\\TortoiseGit\\FetchVerbose", TRUE) == TRUE)
-				args += L" -v";
-			try
-			{
-				cmd.Format(L"git.exe fetch --progress%s%s -- %s %s",
-						   static_cast<LPCWSTR>(args),
-						   static_cast<LPCWSTR>(force),
-						   static_cast<LPCWSTR>(CGit::QuoteParameter(m_strURL)),
-						   remotebranch.IsEmpty() ? L"" : static_cast<LPCWSTR>(CGit::QuoteParameter(remotebranch)));
-			}
-			catch (illegal_git_parameter& e)
-			{
-				MessageBox(e.cause(), L"TortoiseGit", MB_OK | MB_ICONERROR);
-				SwitchToInput();
-				EnableControlButton();
-				return;
-			}
+				cmd.emplace_back(L"-v");
+			if (m_bForce)
+				cmd.emplace_back(L"--force");
+			cmd.insert(cmd.cend(), { L"--", std::wstring(m_strURL) });
+			if (!remotebranch.IsEmpty())
+				cmd.emplace_back(std::wstring(remotebranch));
 
-			m_GitCmdList.push_back(std::wstring(cmd));
+			m_GitCmdList.push_back(cmd);
 
 			StartWorkerThread();
 		}
@@ -471,8 +438,7 @@ void CSyncDlg::OnBnClickedButtonPull()
 	if (CurrentEntry == 4)
 	{
 		m_CurrentCmd = GIT_COMMAND_REMOTE;
-		cmd = L"git.exe remote update";
-		m_GitCmdList.push_back(std::wstring(cmd));
+		m_GitCmdList.push_back({ L"git.exe", L"remote", L"update" });
 
 		StartWorkerThread();
 	}
@@ -481,19 +447,7 @@ void CSyncDlg::OnBnClickedButtonPull()
 	if (CurrentEntry == 5)
 	{
 		m_CurrentCmd = GIT_COMMAND_REMOTE;
-		try
-		{
-			cmd.Format(L"git.exe remote prune -- %s", static_cast<LPCWSTR>(CGit::QuoteParameter(m_strURL)));
-		}
-		catch (illegal_git_parameter& e)
-		{
-			MessageBox(e.cause(), L"TortoiseGit", MB_OK | MB_ICONERROR);
-			SwitchToInput();
-			EnableControlButton();
-
-			return;
-		}
-		m_GitCmdList.push_back(std::wstring(cmd));
+		m_GitCmdList.push_back({ L"git.exe", L"remote", L"prune", L"--", std::wstring(m_strURL) });
 
 		StartWorkerThread();
 	}
@@ -622,15 +576,7 @@ void CSyncDlg::FetchComplete()
 		if (ret == 1)
 		{
 			CProgressDlg mergeProgress;
-			try
-			{
-				mergeProgress.m_GitCmd = L"git.exe merge --ff-only -- " + CGit::QuoteParameter(upstream);
-			}
-			catch (illegal_git_parameter& e)
-			{
-				MessageBox(e.cause(), L"TortoiseGit", MB_OK | MB_ICONERROR);
-				return;
-			}
+			mergeProgress.m_GitCmd = { L"git.exe", L"merge", L"--ff-only", L"--", std::wstring(upstream) };
 			mergeProgress.m_AutoClose = GitProgressAutoClose::AUTOCLOSE_IF_NO_ERRORS;
 			mergeProgress.m_PostCmdCallback = [](DWORD status, PostCmdList& postCmdList)
 			{
@@ -734,8 +680,7 @@ void CSyncDlg::OnBnClickedButtonPush()
 
 	ShowTab(IDC_CMD_LOG);
 
-	CString cmd;
-	CString arg;
+	STRING_VECTOR cmd{ L"git.exe", L"push", L"-v", L"--progress" };
 
 	CString error;
 	DWORD exitcode = 0xFFFFFFFF;
@@ -764,7 +709,7 @@ void CSyncDlg::OnBnClickedButtonPush()
 	switch (m_ctrlPush.GetCurrentEntry())
 	{
 	case 1:
-		arg += L" --tags";
+		cmd.emplace_back(L"--tags");
 		break;
 	case 2:
 		refName = g_Git.GetNotesRef();
@@ -772,27 +717,16 @@ void CSyncDlg::OnBnClickedButtonPush()
 	}
 
 	if(this->m_bForce)
-		arg += L" --force";
+		cmd.emplace_back(L"--force");
 
 	if (!m_strRemoteBranch.IsEmpty() && m_ctrlPush.GetCurrentEntry() != 2)
 		refName += L':' + m_strRemoteBranch;
 
-	try
-	{
-		cmd.Format(L"git.exe push -v --progress%s -- %s %s",
-					static_cast<LPCWSTR>(arg),
-					static_cast<LPCWSTR>(CGit::QuoteParameter(m_strURL)),
-					refName.IsEmpty() ? L"" : static_cast<LPCWSTR>(CGit::QuoteParameter(refName)));
-	}
-	catch (illegal_git_parameter& e)
-	{
-		MessageBox(e.cause(), L"TortoiseGit", MB_OK | MB_ICONERROR);
-		SwitchToInput();
-		EnableControlButton();
-		return;
-	}
+	cmd.insert(cmd.cend(), { L"--", std::wstring(m_strURL) });
+	if (!refName.IsEmpty())
+		cmd.emplace_back(std::wstring(refName));
 
-	m_GitCmdList.push_back(std::wstring(cmd));
+	m_GitCmdList.push_back(cmd);
 
 	m_CurrentCmd = GIT_COMMAND_PUSH;
 
@@ -1737,24 +1671,24 @@ void CSyncDlg::OnBnClickedButtonSubmodule()
 
 	ShowTab(IDC_CMD_LOG);
 
-	CString cmd;
+	STRING_VECTOR cmd;
 
 	switch (m_ctrlSubmodule.GetCurrentEntry())
 	{
 	case 0:
-		cmd = L"git.exe submodule update --init --recursive";
+		cmd = { L"git.exe", L"submodule", L"update", L"--init", L"--recursive" };
 		if (m_bForce)
-			cmd += L" --force";
+			cmd.emplace_back(L"--force");
 		break;
 	case 1:
-		cmd = L"git.exe submodule init";
+		cmd = { L"git.exe", L"submodule", L"init" };
 		break;
 	case 2:
-		cmd = L"git.exe submodule sync --recursive";
+		cmd = { L"git.exe", L"submodule", L"sync", L"--recursive" };
 		break;
 	}
 
-	m_GitCmdList.push_back(std::wstring(cmd));
+	m_GitCmdList.push_back(cmd);
 
 	m_CurrentCmd = GIT_COMMAND_SUBMODULE;
 
@@ -1788,21 +1722,21 @@ void CSyncDlg::OnBnClickedButtonStash()
 	m_ctrlTabCtrl.ShowTab(IDC_IN_CHANGELIST -1, false);
 	m_ctrlTabCtrl.ShowTab(IDC_IN_CONFLICT -1, false);
 
-	CString cmd;
+	STRING_VECTOR cmd;
 	switch (m_ctrlStash.GetCurrentEntry())
 	{
 	case 0:
-		cmd = L"git.exe stash save";
+		cmd = { L"git.exe", L"stash", L"save" };
 		break;
 	case 1:
-		cmd = L"git.exe stash pop";
+		cmd = { L"git.exe", L"stash", L"pop" };
 		break;
 	case 2:
-		cmd = L"git.exe stash apply";
+		cmd = { L"git.exe", L"stash", L"apply" };
 		break;
 	}
 
-	m_GitCmdList.push_back(std::wstring(cmd));
+	m_GitCmdList.push_back(cmd);
 	m_CurrentCmd = GIT_COMMAND_STASH;
 
 	StartWorkerThread();

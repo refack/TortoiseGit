@@ -142,8 +142,8 @@ BOOL CProgressDlg::OnInitDialog()
 	if (!m_PreText.IsEmpty())
 		InitialText = m_PreText + L"\r\n";
 #if 0
-	if (m_bShowCommand && (!m_GitCmd.IsEmpty() ))
-		InitialText += m_GitCmd + L"\r\n\r\n";
+	if (m_bShowCommand && !m_GitCmd.empty())
+		InitialText += CGit::SerializeArgvToCString(m_GitCmd) + L"\r\n\r\n";
 #endif
 	m_Log.SetWindowTextW(InitialText);
 	m_CurrentWork.SetWindowText(L"");
@@ -195,7 +195,7 @@ UINT CProgressDlg::ProgressThreadEntry(LPVOID pVoid)
 }
 
 //static function, Share with SyncDialog
-UINT CProgressDlg::RunCmdList(CWnd* pWnd, STRING_VECTOR& cmdlist, STRING_VECTOR& dirlist, bool bShowCommand, const CString* pfilename, CGitCliOutputParser& cliparser, volatile bool* bAbort, CGit* git)
+UINT CProgressDlg::RunCmdList(CWnd* pWnd, ARGV_VECTOR& cmdlist, STRING_VECTOR& dirlist, bool bShowCommand, const CString* pfilename, CGitCliOutputParser& cliparser, volatile bool* bAbort, CGit* git)
 {
 	UINT ret = 0;
 
@@ -223,12 +223,12 @@ UINT CProgressDlg::RunCmdList(CWnd* pWnd, STRING_VECTOR& cmdlist, STRING_VECTOR&
 		if (cmdlist[i].empty())
 			continue;
 
-		// Trimmed once. CString::Trim() mutates in place and returns the string, so
-		// the original could write `cmdlist[i].Trim()` inline at four points; the
-		// std::wstring equivalent is a copy plus a call, and doing that four times
-		// would be worse than doing it once.
-		std::wstring command = cmdlist[i];
-		tgit::wstr::Trim(command);
+		// The flat line is only wanted for the log and the traces now, so it is
+		// built once here rather than being the thing that gets run. The Trim
+		// this replaces existed because the command was assembled by pasting
+		// optional pieces together and could pick up stray spaces; argv elements
+		// have no such seams.
+		const CString command = CGit::SerializeArgvToCString(cmdlist[i]);
 
 		if (bShowCommand)
 		{
@@ -244,9 +244,9 @@ UINT CProgressDlg::RunCmdList(CWnd* pWnd, STRING_VECTOR& cmdlist, STRING_VECTOR&
 		CAutoGeneralHandle hRead;
 		int runAsyncRet = -1;
 		if (gitList.empty())
-			runAsyncRet = git->RunAsync(command.c_str(), pi, hRead.GetPointer(), nullptr, pfilename);
+			runAsyncRet = git->RunAsync(cmdlist[i], pi, hRead.GetPointer(), nullptr, pfilename);
 		else
-			runAsyncRet = gitList[i]->RunAsync(command.c_str(), pi, hRead.GetPointer(), nullptr, pfilename);
+			runAsyncRet = gitList[i]->RunAsync(cmdlist[i], pi, hRead.GetPointer(), nullptr, pfilename);
 		if (runAsyncRet)
 		{
 			EnsurePostMessage(pWnd, MSG_PROGRESSDLG_UPDATE_UI, MSG_PROGRESSDLG_FAILED, -1 * runAsyncRet);
@@ -261,19 +261,19 @@ UINT CProgressDlg::RunCmdList(CWnd* pWnd, STRING_VECTOR& cmdlist, STRING_VECTOR&
 		{
 			cliparser.AppendChunk({ buffer, readnumber });
 		}
-		CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": waiting for process to finish (%s), aborted: %d\n", cmdlist[i].c_str(), *bAbort);
+		CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": waiting for process to finish (%s), aborted: %d\n", static_cast<LPCWSTR>(command), *bAbort);
 
 		WaitForSingleObject(pi.hProcess, INFINITE);
 
 		DWORD status = 0;
 		if (!GetExitCodeProcess(pi.hProcess, &status) || *bAbort)
 		{
-			CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": process %s finished, status code could not be fetched, (error %d; %s), aborted: %d\n", cmdlist[i].c_str(), GetLastError(), static_cast<LPCWSTR>(CFormatMessageWrapper()), *bAbort);
+			CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": process %s finished, status code could not be fetched, (error %d; %s), aborted: %d\n", static_cast<LPCWSTR>(command), GetLastError(), static_cast<LPCWSTR>(CFormatMessageWrapper()), *bAbort);
 
 			EnsurePostMessage(pWnd, MSG_PROGRESSDLG_UPDATE_UI, MSG_PROGRESSDLG_FAILED, status);
 			return TGIT_GIT_ERROR_GET_EXIT_CODE;
 		}
-		CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": process %s finished with code %d\n", cmdlist[i].c_str(), status);
+		CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": process %s finished with code %d\n", static_cast<LPCWSTR>(command), status);
 		ret |= status;
 	}
 
@@ -284,8 +284,8 @@ UINT CProgressDlg::RunCmdList(CWnd* pWnd, STRING_VECTOR& cmdlist, STRING_VECTOR&
 
 UINT CProgressDlg::ProgressThread()
 {
-	if (!m_GitCmd.IsEmpty())
-		m_GitCmdList.push_back(std::wstring(m_GitCmd));
+	if (!m_GitCmd.empty())
+		m_GitCmdList.push_back(m_GitCmd);
 
 	CString* pfilename;
 
@@ -329,11 +329,13 @@ LRESULT CProgressDlg::OnProgressUpdateUI(WPARAM wParam, LPARAM lParam)
 		this->DialogEnableWindow(IDOK, TRUE);
 
 		m_GitStatus = static_cast<DWORD>(lParam);
-		if (m_GitCmd.IsEmpty() && m_GitCmdList.empty())
+		if (m_GitCmd.empty() && m_GitCmdList.empty())
 			m_GitStatus = DWORD(-1);
 
 		// detect crashes of perl when performing git svn actions
-		if (m_GitStatus == 0 && m_GitCmd.Find(L" svn ") > 1)
+		// The old test was m_GitCmd.Find(L" svn ") > 1 on the flat line, which is
+		// the same question asked awkwardly: is this a "git svn ..." command?
+		if (m_GitStatus == 0 && m_GitCmd.size() > 1 && m_GitCmd[1] == L"svn")
 		{
 			CString log;
 			m_Log.GetWindowText(log);
@@ -382,7 +384,7 @@ LRESULT CProgressDlg::OnProgressUpdateUI(WPARAM wParam, LPARAM lParam)
 				err.Format(L"\r\n\r\n%s (%I64u ms @ %s)\r\n", static_cast<LPCWSTR>(log), tickSpent, static_cast<LPCWSTR>(strEndTime));
 			else
 				err.Format(L"\r\n\r\n%s\r\n", static_cast<LPCWSTR>(log));
-			if (!m_GitCmd.IsEmpty() || !m_GitCmdList.empty())
+			if (!m_GitCmd.empty() || !m_GitCmdList.empty())
 				InsertColorText(this->m_Log, err, CTheme::Instance().IsDarkTheme() ? RGB(207, 47, 47) : RGB(255, 0, 0));
 			if (CRegDWORD(L"Software\\TortoiseGit\\NoSounds", FALSE) == FALSE)
 				PlaySound(reinterpret_cast<LPCWSTR>(SND_ALIAS_SYSTEMEXCLAMATION), nullptr, SND_ALIAS_ID | SND_ASYNC);

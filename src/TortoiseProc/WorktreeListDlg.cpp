@@ -447,21 +447,10 @@ void CWorktreeListDlg::OnBnClickedButtonAdd()
 
 bool CWorktreeListDlg::RemoveWorktree(const CString& path, bool force)
 {
-	CString params;
+	STRING_VECTOR cmd{ L"git.exe", L"worktree", L"remove" };
 	if (force)
-		params += L" --force";
-
-	CString cmd;
-	try
-	{
-		cmd.Format(L"git.exe worktree remove%s -- %s", static_cast<LPCWSTR>(params), static_cast<LPCWSTR>(CGit::QuoteParameter(path)));
-	}
-	catch (illegal_git_parameter& e)
-	{
-		MessageBox(e.cause(), L"TortoiseGit", MB_OK | MB_ICONERROR);
-		return false;
-	}
-
+		cmd.emplace_back(L"--force");
+	cmd.insert(cmd.cend(), { L"--", std::wstring(path) });
 
 	CProgressDlg progress;
 	progress.m_GitCmd = cmd;
@@ -476,7 +465,7 @@ bool CWorktreeListDlg::RemoveWorktree(const CString& path, bool force)
 bool CWorktreeListDlg::PruneWorktrees()
 {
 	CProgressDlg progress;
-	progress.m_GitCmd = L"git.exe worktree prune";
+	progress.m_GitCmd = { L"git.exe", L"worktree", L"prune" };
 	return progress.DoModal() == IDOK;
 }
 
