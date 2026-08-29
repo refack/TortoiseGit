@@ -1876,8 +1876,16 @@ std::wstring CTGitPath::GetAbbreviatedRename() const
 	* pfx{sfx-old => sfx-new}
 	* name-old => name-new
 	*/
-	auto old_midlen = max(m_sOldFwdslashPath.size() - prefix_length - suffix_length, 0ull);
-	auto new_midlen = max(m_sFwdslashPath.size() - prefix_length - suffix_length, 0ull);
+	// The prefix and the suffix can overlap: renaming D/E to D/F/E leaves the old
+	// path with nothing of its own between them, and its mid length wants to be
+	// negative. With CString's int lengths that was an "if (< 0) = 0" guard; on
+	// size_t the subtraction wraps first, so max(.., 0ull) reads like the same
+	// guard and is a no-op. Test the sum instead of clamping the difference.
+	const auto midlen = [prefix_length, suffix_length](const size_t total) {
+		return total > prefix_length + suffix_length ? total - prefix_length - suffix_length : 0ull;
+	};
+	const auto old_midlen = midlen(m_sOldFwdslashPath.size());
+	const auto new_midlen = midlen(m_sFwdslashPath.size());
 
 	std::wstring ret;
 	if (prefix_length + suffix_length)

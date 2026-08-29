@@ -117,20 +117,40 @@ inline std::wstring Right(const std::wstring_view s, const long _count)
 	return std::wstring(s.substr(s.size() - take));
 }
 
-inline std::wstring Mid(const std::wstring_view s, const std::wstring_view::size_type from, const std::wstring_view::size_type count = std::wstring_view::npos) {
+/// substr's contract rather than CString's: unsigned, and npos means "to the
+/// end". This is the overload for a caller that already holds real sizes; the
+/// int ones below are the CString bridge, and they are not the same function.
+inline std::wstring Mid(const std::wstring_view s, const std::wstring_view::size_type from, const std::wstring_view::size_type count)
+{
 	if (from > s.size())
 		return {};
 	return std::wstring{ s.substr(from, count) };
 }
 
-/// CString::Mid(from, count = 0), including its clamping.
-inline std::wstring Mid(const std::wstring_view s, const int _from, const int _count = -1)
+/// CString::Mid(iFirst), including its clamping. CString spells this as
+/// Mid(iFirst, GetLength() - iFirst), so a negative iFirst asks for *more* than
+/// the whole string and clamps back to all of it.
+inline std::wstring Mid(const std::wstring_view s, const int from)
 {
-	auto count = (_count >= 0) ? static_cast<std::wstring_view::size_type>(_count) : std::wstring_view::npos;
-	if (_from < 0)
-		return Left(s, count);
-	auto from = static_cast<std::wstring_view::size_type>(_from);
-	return Mid(s, from, count);
+	if (from < 0)
+		return std::wstring{ s };
+	return Mid(s, static_cast<std::wstring_view::size_type>(from), std::wstring_view::npos);
+}
+
+/// CString::Mid(iFirst, nCount), including its clamping. **A negative nCount is
+/// clamped to zero before anything else**, so Mid(n, -1) is the empty string and
+/// emphatically not "the rest of it".
+///
+/// That is why there is no default argument here: one signature cannot say both
+/// "no count was given, so take the tail" and "a count of -1 was given, so take
+/// nothing". Defaulting it to npos made Mid(n, -1) return the tail; defaulting
+/// it to 0 makes Mid(n) return nothing. Two overloads, no default, and each one
+/// matches its CString counterpart exactly.
+inline std::wstring Mid(const std::wstring_view s, const int from, const int count)
+{
+	if (count <= 0)
+		return {};
+	return Mid(s, static_cast<std::wstring_view::size_type>(std::max(from, 0)), static_cast<std::wstring_view::size_type>(count));
 }
 
 /// CString::Replace contract, including its return value: how many were replaced.
