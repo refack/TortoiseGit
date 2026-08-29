@@ -3076,84 +3076,24 @@ static int resolve_to_tree(git_repository *repo, const char *identifier, git_tre
 	return err;
 }
 
-/* use libgit2 get unified diff */
-static int GetUnifiedDiffLibGit2(const CTGitPath& path, const CString& revOld, const CString& revNew, std::function<void(const git_buf*, void*)> statCallback, git_diff_line_cb callback, void* data, bool /* bMerge */, bool bNoPrefix)
+static int resolve_to_commit(git_repository* repo, const char* identifier, git_commit** commit)
 {
-	CStringA tree1 = CUnicodeUtils::GetUTF8(revNew);
-	CStringA tree2 = CUnicodeUtils::GetUTF8(revOld);
+	ATLASSERT(repo && identifier && commit);
 
-	CAutoRepository repo(g_Git.GetGitRepository());
-	if (!repo)
+	CAutoObject obj;
+	if (git_revparse_single(obj.GetPointer(), repo, identifier))
 		return -1;
 
-	int isHeadOrphan = git_repository_head_unborn(repo);
-	if (isHeadOrphan == 1)
-		return 0;
-	else if (isHeadOrphan != 0)
-		return -1;
+	if (obj == nullptr)
+		return GIT_ENOTFOUND;
 
-	git_diff_options opts = GIT_DIFF_OPTIONS_INIT;
-	CStringA pathA = CUnicodeUtils::StdGetUTF8(path.GetGitPathString().c_str()).c_str();
-	char *buf = pathA.GetBuffer();
-	if (!pathA.IsEmpty())
-	{
-		opts.pathspec.strings = &buf;
-		opts.pathspec.count = 1;
-	}
-	if (bNoPrefix)
-	{
-		opts.new_prefix = "";
-		opts.old_prefix = "";
-	}
-	CAutoDiff diff;
+	return git_object_peel(reinterpret_cast<git_object**>(commit), obj, GIT_OBJECT_COMMIT);
+}
 
-	if (revNew == GitRev::GetWorkingCopyRef() || revOld == GitRev::GetWorkingCopyRef())
-	{
-		CAutoTree t1;
-		CAutoDiff diff2;
-
-		if (revNew != GitRev::GetWorkingCopyRef() && resolve_to_tree(repo, tree1, t1.GetPointer()))
-			return -1;
-
-		if (revOld != GitRev::GetWorkingCopyRef() && resolve_to_tree(repo, tree2, t1.GetPointer()))
-			return -1;
-
-		if (git_diff_tree_to_index(diff.GetPointer(), repo, t1, nullptr, &opts))
-			return -1;
-
-		if (git_diff_index_to_workdir(diff2.GetPointer(), repo, nullptr, &opts))
-			return -1;
-
-		if (git_diff_merge(diff, diff2))
-			return -1;
-	}
-	else
-	{
-		if (tree1.IsEmpty() && tree2.IsEmpty())
-			return -1;
-
-		if (tree1.IsEmpty())
-		{
-			tree1 = tree2;
-			tree2.Empty();
-		}
-
-		CAutoTree t1;
-		CAutoTree t2;
-		if (!tree1.IsEmpty() && resolve_to_tree(repo, tree1, t1.GetPointer()))
-			return -1;
-
-		if (tree2.IsEmpty())
-		{
-			/* don't check return value, there are not parent commit at first commit*/
-			resolve_to_tree(repo, tree1 + "~1", t2.GetPointer());
-		}
-		else if (resolve_to_tree(repo, tree2, t2.GetPointer()))
-			return -1;
-		if (git_diff_tree_to_tree(diff.GetPointer(), repo, t2, t1, &opts))
-			return -1;
-	}
-
+/* the tail every diff below shares. It is not done once at the end because a
+   merge diffed with -m emits one stat block and one patch series per parent. */
+static int EmitUnifiedDiff(git_diff* diff, const std::function<void(const git_buf*, void*)>& statCallback, git_diff_line_cb callback, void* data)
+{
 	CAutoDiffStats stats;
 	if (git_diff_get_stats(stats.GetPointer(), diff))
 		return -1;
@@ -3172,19 +3112,145 @@ static int GetUnifiedDiffLibGit2(const CTGitPath& path, const CString& revOld, c
 			return -1;
 	}
 
-	pathA.ReleaseBuffer();
-
 	return 0;
+}
+
+/* use libgit2 get unified diff */
+static int GetUnifiedDiffLibGit2(const CTGitPath& path, const CString& revOld, const CString& revNew, std::function<void(const git_buf*, void*)> statCallback, git_diff_line_cb callback, void* data, bool bMerge, int diffContext, bool bNoPrefix)
+{
+	CStringA tree1 = CUnicodeUtils::GetUTF8(revNew);
+	CStringA tree2 = CUnicodeUtils::GetUTF8(revOld);
+
+	CAutoRepository repo(g_Git.GetGitRepository());
+	if (!repo)
+		return -1;
+
+	int isHeadOrphan = git_repository_head_unborn(repo);
+	if (isHeadOrphan == 1)
+		return 0;
+	else if (isHeadOrphan != 0)
+		return -1;
+
+	git_diff_options opts = GIT_DIFF_OPTIONS_INIT;
+	// GetString() rather than GetBuffer(): nothing writes through the pointer, and
+	// every early return below skipped the matching ReleaseBuffer anyway.
+	CStringA pathA = CUnicodeUtils::StdGetUTF8(path.GetGitPathString().c_str()).c_str();
+	const char* buf = pathA.GetString();
+	if (!pathA.IsEmpty())
+	{
+		opts.pathspec.strings = const_cast<char**>(&buf);
+		opts.pathspec.count = 1;
+	}
+	if (bNoPrefix)
+	{
+		opts.new_prefix = "";
+		opts.old_prefix = "";
+	}
+	// -1 is "whatever git's default is", which GIT_DIFF_OPTIONS_INIT already set.
+	if (diffContext >= 0)
+		opts.context_lines = static_cast<uint32_t>(diffContext);
+
+	if (revNew == GitRev::GetWorkingCopyRef() || revOld == GitRev::GetWorkingCopyRef())
+	{
+		// At most one side is a tree. When it is the *new* side, the working copy is
+		// the old one and the diff runs backwards - the `-R` of the command line
+		// spelling, which this had no equivalent of and so produced the diff the
+		// wrong way round. git_diff__merge swaps its two sides when GIT_DIFF_REVERSE
+		// is set, so the flag composes through tree -> index -> workdir correctly.
+		if (revNew != GitRev::GetWorkingCopyRef())
+			opts.flags |= GIT_DIFF_REVERSE;
+
+		CAutoTree t1;
+		if (revNew != GitRev::GetWorkingCopyRef() && resolve_to_tree(repo, tree1, t1.GetPointer()))
+			return -1;
+
+		if (revOld != GitRev::GetWorkingCopyRef() && resolve_to_tree(repo, tree2, t1.GetPointer()))
+			return -1;
+
+		// One call rather than a hand-rolled tree_to_index + index_to_workdir + merge:
+		// it is the same three steps, but it loads the index once and hands the same
+		// one to both halves instead of letting each reload it.
+		CAutoDiff diff;
+		if (git_diff_tree_to_workdir_with_index(diff.GetPointer(), repo, t1, &opts))
+			return -1;
+
+		return EmitUnifiedDiff(diff, statCallback, callback, data);
+	}
+
+	if (tree1.IsEmpty() && tree2.IsEmpty())
+		return -1;
+
+	if (tree1.IsEmpty())
+	{
+		tree1 = tree2;
+		tree2.Empty();
+	}
+
+	CAutoTree t1;
+	if (!tree1.IsEmpty() && resolve_to_tree(repo, tree1, t1.GetPointer()))
+		return -1;
+
+	// With no old rev, `-m` means "against each parent in turn" - which is the
+	// entire difference between a merge commit's diff and any other one. The
+	// single tree1~1 diff below is the first parent only, so every other parent
+	// used to be dropped without a word.
+	CAutoCommit commit;
+	if (bMerge && tree2.IsEmpty() && !resolve_to_commit(repo, tree1, commit.GetPointer()) && git_commit_parentcount(commit) > 1)
+	{
+		for (unsigned int i = 0; i < git_commit_parentcount(commit); ++i)
+		{
+			CAutoCommit parent;
+			if (git_commit_parent(parent.GetPointer(), commit, i))
+				return -1;
+
+			CAutoTree parentTree;
+			if (git_commit_tree(parentTree.GetPointer(), parent))
+				return -1;
+
+			CAutoDiff diff;
+			if (git_diff_tree_to_tree(diff.GetPointer(), repo, parentTree, t1, &opts))
+				return -1;
+
+			// A parent the merge result is identical to contributes nothing at all,
+			// not an empty stat block - which is what git prints, and what the stat
+			// callback would otherwise emit a stray newline for.
+			if (!git_diff_num_deltas(diff))
+				continue;
+
+			if (EmitUnifiedDiff(diff, statCallback, callback, data))
+				return -1;
+		}
+
+		return 0;
+	}
+
+	CAutoTree t2;
+	if (tree2.IsEmpty())
+	{
+		/* don't check return value, there are not parent commit at first commit*/
+		resolve_to_tree(repo, tree1 + "~1", t2.GetPointer());
+	}
+	else if (resolve_to_tree(repo, tree2, t2.GetPointer()))
+		return -1;
+
+	CAutoDiff diff;
+	if (git_diff_tree_to_tree(diff.GetPointer(), repo, t2, t1, &opts))
+		return -1;
+
+	return EmitUnifiedDiff(diff, statCallback, callback, data);
 }
 
 int CGit::GetUnifiedDiff(const CTGitPath& path, const CString& rev1, const CString& rev2, CString patchfile, bool bMerge, bool bCombine, int diffContext, bool bNoPrefix)
 {
-	if (UsingLibGit2(GIT_CMD_DIFF))
+	// bCombine is not a fallback but a capability fork, of the same kind as the
+	// `--cc` in GitLogListAction: libgit2 has no combined-diff support at all, so
+	// `-c` only ever had the git.exe implementation and always will.
+	if (UsingLibGit2(GIT_CMD_DIFF) && !bCombine)
 	{
 		CAutoFILE file = _wfsopen(patchfile, L"wb", SH_DENYRW);
 		if (!file)
 			return -1;
-		return GetUnifiedDiffLibGit2(path, rev1, rev2, UnifiedDiffStatToFile, UnifiedDiffToFile, file, bMerge, bNoPrefix);
+		return GetUnifiedDiffLibGit2(path, rev1, rev2, UnifiedDiffStatToFile, UnifiedDiffToFile, file, bMerge, diffContext, bNoPrefix);
 	}
 	else
 	{
@@ -3213,8 +3279,8 @@ static int UnifiedDiffToStringA(const git_diff_delta * /*delta*/, const git_diff
 
 int CGit::GetUnifiedDiff(const CTGitPath& path, const CString& rev1, const CString& rev2, CStringA& buffer, bool bMerge, bool bCombine, int diffContext)
 {
-	if (UsingLibGit2(GIT_CMD_DIFF))
-		return GetUnifiedDiffLibGit2(path, rev1, rev2, UnifiedDiffStatToStringA, UnifiedDiffToStringA, &buffer, bMerge, false);
+	if (UsingLibGit2(GIT_CMD_DIFF) && !bCombine)
+		return GetUnifiedDiffLibGit2(path, rev1, rev2, UnifiedDiffStatToStringA, UnifiedDiffToStringA, &buffer, bMerge, diffContext, false);
 	else
 	{
 		BYTE_VECTOR vector;

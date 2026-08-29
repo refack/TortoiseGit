@@ -19,6 +19,7 @@
 
 #include "stdafx.h"
 #include "Git.h"
+#include "GitRev.h"
 #include "StringUtils.h"
 #include "RepositoryFixtures.h"
 
@@ -4418,6 +4419,69 @@ TEST_P(CBasicGitWithTestRepoFixture, GetUnifiedDiff)
 	CString fileContents;
 	EXPECT_EQ(true, CStringUtils::ReadStringFromTextFile(tmpfile, fileContents));
 	EXPECT_STREQ(L" utf8-nobom.txt | 4 ++--\n 1 file changed, 2 insertions(+), 2 deletions(-)\n\ndiff --git a/utf8-nobom.txt b/utf8-nobom.txt\nindex ffa0d50..c225b3f 100644\n--- a/utf8-nobom.txt\n+++ b/utf8-nobom.txt\n@@ -1,9 +1,9 @@\n-ä#äf34öööäß€9875oe\r\n+ä#äf34ööcöäß€9875oe\r\n fgdjkglsfdg\r\n öäöü45g\r\n fdgi&§$%&hfdsgä\r\n ä#äf34öööäß€9875oe\r\n-öäüpfgmfdg\r\n+öäcüpfgmfdg\r\n €fgfdsg\r\n 45\r\n äü\n\\ No newline at end of file\n", fileContents);
+}
+
+// GIT_CMD_DIFF is not in the default mask, so which backend GetUnifiedDiff picks
+// is decided here rather than by the fixture parameter: the whole point is to run
+// both and compare them.
+static CString GetUnifiedDiffWith(CGit& git, bool useLibGit2, const CString& rev1, const CString& rev2, bool bMerge, int diffContext, const CString& tmpfile)
+{
+	const bool oldUse = git.m_IsUseLibGit2;
+	const DWORD oldMask = git.m_IsUseLibGit2_mask;
+	SCOPE_EXIT
+	{
+		git.m_IsUseLibGit2 = oldUse;
+		git.m_IsUseLibGit2_mask = oldMask;
+		g_Git.m_IsUseLibGit2 = oldUse;
+		g_Git.m_IsUseLibGit2_mask = oldMask;
+	};
+	git.m_IsUseLibGit2 = useLibGit2;
+	git.m_IsUseLibGit2_mask = useLibGit2 ? (1 << CGit::GIT_CMD_DIFF) : 0;
+	// the libgit2 path opens the repository through g_Git, not through the CGit it
+	// was called on, so both have to agree
+	g_Git.m_IsUseLibGit2 = git.m_IsUseLibGit2;
+	g_Git.m_IsUseLibGit2_mask = git.m_IsUseLibGit2_mask;
+
+	CString contents;
+	EXPECT_EQ(0, git.GetUnifiedDiff(CTGitPath(L""), rev1, rev2, tmpfile, bMerge, false, diffContext, false));
+	EXPECT_TRUE(CStringUtils::ReadStringFromTextFile(tmpfile, contents));
+	return contents;
+}
+
+TEST_P(CBasicGitWithTestRepoFixture, GetUnifiedDiffLibGit2MatchesGitExe)
+{
+	const CString tmpfile = m_Dir.GetTempDir() + L"\\output.txt";
+	constexpr auto rev1 = L"b02add66f48814a73aa2f0876d6bbc8662d6a9a8";
+	constexpr auto rev2 = L"b9ef30183497cdad5c30b88d32dc1bed7951dfeb";
+
+	// -1 is "leave it to git"; the other two are --unified=N, which the libgit2 path
+	// used to drop on the floor - it took no diffContext argument at all.
+	for (const int diffContext : { -1, 1, 7 })
+	{
+		SCOPED_TRACE(diffContext);
+		EXPECT_STREQ(GetUnifiedDiffWith(m_Git, false, rev1, rev2, false, diffContext, tmpfile),
+					 GetUnifiedDiffWith(m_Git, true, rev1, rev2, false, diffContext, tmpfile));
+	}
+
+	// A merge, against every parent. 18da7c33 differs from both of its parents, so
+	// the first-parent-only diff the libgit2 path used to emit is half the answer:
+	// its bMerge argument was a named-out, unused parameter.
+	// git.exe prints the commit id ahead of each parent's diff and libgit2 has no
+	// such line to print, which is the one difference the comparison allows for.
+	CString cli = GetUnifiedDiffWith(m_Git, false, L"", L"18da7c332dcad0f37f9977d9176dce0b0c66f3eb", true, -1, tmpfile);
+	cli.Replace(L"18da7c332dcad0f37f9977d9176dce0b0c66f3eb\n", L"");
+	EXPECT_STREQ(cli, GetUnifiedDiffWith(m_Git, true, L"", L"18da7c332dcad0f37f9977d9176dce0b0c66f3eb", true, -1, tmpfile));
+
+	// And the direction. With the working copy as the *old* side the diff runs
+	// backwards - the `-R` of the command line spelling, which the libgit2 path had
+	// no equivalent of and so produced the diff the wrong way round.
+	CString output;
+	ASSERT_EQ(0, m_Git.Run(L"git.exe reset --hard master", &output, CP_UTF8));
+	ASSERT_TRUE(CStringUtils::WriteStringToTextFile(m_Dir.GetTempDir() + L"\\utf8-nobom.txt", L"changed in the working copy\n"));
+	EXPECT_STREQ(GetUnifiedDiffWith(m_Git, false, GitRev::GetWorkingCopyRef(), L"HEAD", false, -1, tmpfile),
+				 GetUnifiedDiffWith(m_Git, true, GitRev::GetWorkingCopyRef(), L"HEAD", false, -1, tmpfile));
+	EXPECT_STREQ(GetUnifiedDiffWith(m_Git, false, L"HEAD", GitRev::GetWorkingCopyRef(), false, -1, tmpfile),
+				 GetUnifiedDiffWith(m_Git, true, L"HEAD", GitRev::GetWorkingCopyRef(), false, -1, tmpfile));
 }
 
 static void GetGitNotes(CGit& m_Git, config testConfig)

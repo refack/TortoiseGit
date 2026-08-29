@@ -34,6 +34,30 @@ Patches 1–3 are collapsed into one diff because all three edit the same
 `validate_ownership_cb` region; 3 is a refactor of the code 1 introduces, so they
 are not separable as context diffs.
 
+## Patches authored here
+
+These have no `ext/libgit2-*.patch` ancestor; they were written against the
+extracted source and are maintained as ordinary context diffs.
+
+| diff | files touched | why |
+| --- | --- | --- |
+| `tortoisegit-no-experimental-rename.diff` | `cmake/ExperimentalFeatures.cmake` | stop `EXPERIMENTAL` renaming the library *and* the installed header directory |
+| `tortoisegit-reverse-workdir-oid.diff` | `src/libgit2/diff_generate.c` | `GIT_DIFF_REVERSE` on a working-copy diff emitted `index 0000000..` and `--- /dev/null` |
+
+`tortoisegit-reverse-workdir-oid.diff` is an upstream bug, not a TortoiseGit
+preference. `diff_delta__from_two` marks `old_file` `GIT_DIFF_FLAG_VALID_ID`
+unconditionally, while `new_file` two lines below only gets it when its id is
+non-zero. A working-copy entry's id *is* zero until the content is loaded — the
+loader fills it in, but only for a file that is not already claiming a valid id.
+Ordinarily the workdir side lands in `new_file` and the asymmetry never shows;
+under `GIT_DIFF_REVERSE` the swap immediately above puts it in `old_file`, and
+the header comes out naming a null blob, which `diff_print.c` then renders as
+`/dev/null`. The patch applies the `new_file` test to `old_file` as well.
+
+This is what `CGit::GetUnifiedDiff` needs for the `-R` case (a working copy
+diffed as the *old* side), and it is the one thing on the "Donate upstream" list
+that is a straight bug fix with no TortoiseGit flavour to it.
+
 ## Regenerating after a libgit2 bump
 
 ```bash

@@ -1,0 +1,19 @@
+diff --git a/src/libgit2/diff_generate.c b/src/libgit2/diff_generate.c
+--- a/src/libgit2/diff_generate.c
++++ b/src/libgit2/diff_generate.c
+@@ -264,8 +264,13 @@ static int diff_delta__from_two(
+ 		delta->old_file.mode = old_mode;
+ 		git_oid_cpy(&delta->old_file.id, old_id);
+ 		delta->old_file.id_abbrev = (uint16_t)git_oid_hexsize(oid_type);
+-		delta->old_file.flags |= GIT_DIFF_FLAG_VALID_ID |
+-			GIT_DIFF_FLAG_EXISTS;
++		delta->old_file.flags |= GIT_DIFF_FLAG_EXISTS;
++
++		/* Not unconditionally VALID_ID: under GIT_DIFF_REVERSE the swap above can
++		 * put a workdir entry here, whose id is only filled in when the content is
++		 * loaded. Same test the new_file side below already makes for itself. */
++		if (!git_oid_is_zero(old_id))
++			delta->old_file.flags |= GIT_DIFF_FLAG_VALID_ID;
+ 	}
+ 
+ 	if (!git_index_entry_is_conflict(new_entry)) {

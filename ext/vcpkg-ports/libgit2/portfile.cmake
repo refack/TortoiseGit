@@ -16,6 +16,7 @@ vcpkg_from_github(
         tortoisegit-admin-owner-check.diff
         tortoisegit-enum-casts.diff
         tortoisegit-no-experimental-rename.diff
+        tortoisegit-reverse-workdir-oid.diff
 )
 
 file(REMOVE_RECURSE
