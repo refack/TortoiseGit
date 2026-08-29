@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Project DefaultTargets="Build" ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|ARM64">
       <Configuration>Debug</Configuration>
@@ -18,62 +18,43 @@
       <Platform>x64</Platform>
     </ProjectConfiguration>
   </ItemGroup>
+  <PropertyGroup Label="UserMacros">
+  </PropertyGroup>
+  <PropertyGroup Label="Vcpkg">
+  </PropertyGroup>
   <PropertyGroup Label="Globals">
     <ProjectName>TortoiseGitUDiff</ProjectName>
+    <VCProjectVersion>18.0</VCProjectVersion>
+    <Keyword>Win32Proj</Keyword>
     <ProjectGuid>{BC5A5F3B-E41A-4C56-B16F-263D2C6D6475}</ProjectGuid>
     <RootNamespace>TortoiseUDiff</RootNamespace>
-    <Keyword>Win32Proj</Keyword>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
-    <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)'=='Release'" Label="Configuration">
-    <WholeProgramOptimization>true</WholeProgramOptimization>
-  </PropertyGroup>
-  <PropertyGroup Label="Configuration" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <PlatformToolset>v145</PlatformToolset>
-  </PropertyGroup>
-  <PropertyGroup Label="Configuration" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <PlatformToolset>v145</PlatformToolset>
-  </PropertyGroup>
+  <Import Project="$(SolutionDir)src\TortoiseGit.common.props" />
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
-  <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-  <Import Project="$(SolutionDir)TortoiseGit.common.props" />
-  <!-- for SimpleIni.h, reached through LangDll.cpp; no libgit2 bundle needed here -->
-  <Import Project="$(SolutionDir)TortoiseGit.vcpkg-base.props" />
-  <PropertyGroup Label="UserMacros" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="Shared">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
   <ItemDefinitionGroup>
     <ClCompile>
-      <AdditionalIncludeDirectories>$(ProjectDir);$(VcpkgInstalledDir)include\scintilla;$(VcpkgInstalledDir)include\lexilla;..\Utils;..\Utils\MiscUI;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)src\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PrecompiledHeader>Use</PrecompiledHeader>
     </ClCompile>
+    <Link>
+      <AdditionalDependencies>uxtheme.lib;detours.lib;Scintilla.lib;Lexilla.lib;imm32.lib;msimg32.lib;ole32.lib;oleaut32.lib;comdlg32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
     <Manifest>
       <EnableDpiAwareness>true</EnableDpiAwareness>
     </Manifest>
-    <Link>
-      <AdditionalDependencies>uxtheme.lib;detours.lib;Scintilla.lib;Lexilla.lib;imm32.lib;msimg32.lib;ole32.lib;oleaut32.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <!-- vcpkg builds Scintilla/Lexilla with vcpkg_install_msbuild, which ships no
-           PDBs, so every one of their ~400 objects emits LNK4099. Suppressed here
-           rather than left to drown real link warnings. -->
-      <AdditionalOptions>/ignore:4099 %(AdditionalOptions)</AdditionalOptions>
-    </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\Utils\CmdLineParser.cpp" />
-    <ClCompile Include="..\Utils\DarkModeHelper.cpp" />
-    <ClCompile Include="..\Utils\Hash.cpp" />
-    <ClCompile Include="..\Utils\LangDll.cpp" />
-    <ClCompile Include="..\Utils\LoadIconEx.cpp" />
-    <ClCompile Include="..\Utils\MiscUI\BaseDialog.cpp" />
-    <ClCompile Include="..\Utils\MiscUI\BaseWindow.cpp" />
-    <ClCompile Include="..\Utils\Monitor.cpp" />
-    <ClCompile Include="..\Utils\PathUtils.cpp" />
-    <ClCompile Include="..\Utils\Registry.cpp" />
-    <ClCompile Include="..\Utils\StringUtils.cpp" />
-    <ClCompile Include="..\Utils\TaskbarUUID.cpp" />
-    <ClCompile Include="..\Utils\Theme.cpp" />
-    <ClCompile Include="..\Utils\UnicodeUtils.cpp" />
     <ClCompile Include="FindBar.cpp" />
     <ClCompile Include="MainWindow.cpp" />
     <ClCompile Include="stdafx.cpp">
@@ -82,23 +63,6 @@
     <ClCompile Include="TortoiseUDiff.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\Utils\CmdLineParser.h" />
-    <ClInclude Include="..\Utils\CreateProcessHelper.h" />
-    <ClInclude Include="..\Utils\DarkModeHelper.h" />
-    <ClInclude Include="..\Utils\DPIAware.h" />
-    <ClInclude Include="..\Utils\Hash.h" />
-    <ClInclude Include="..\Utils\LangDll.h" />
-    <ClInclude Include="..\Utils\LoadIconEx.h" />
-    <ClInclude Include="..\Utils\MiscUI\BaseDialog.h" />
-    <ClInclude Include="..\Utils\MiscUI\BaseWindow.h" />
-    <ClInclude Include="..\Utils\MiscUI\ResString.h" />
-    <ClInclude Include="..\Utils\Monitor.h" />
-    <ClInclude Include="..\Utils\PathUtils.h" />
-    <ClInclude Include="..\Utils\registry.h" />
-    <ClInclude Include="..\Utils\StringUtils.h" />
-    <ClInclude Include="..\Utils\TaskbarUUID.h" />
-    <ClInclude Include="..\Utils\Theme.h" />
-    <ClInclude Include="..\Utils\UnicodeUtils.h" />
     <ClInclude Include="FindBar.h" />
     <ClInclude Include="MainWindow.h" />
     <ClInclude Include="resource.h" />
@@ -107,7 +71,6 @@
     <ClInclude Include="UDiffColors.h" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\Resources\cancel-normal.ico" />
     <None Include="TortoiseUDiff.ico" />
   </ItemGroup>
   <ItemGroup>

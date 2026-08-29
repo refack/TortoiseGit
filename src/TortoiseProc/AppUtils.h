@@ -18,8 +18,8 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 #pragma once
-#include "GitRevLoglist.h"
-#include "CommonAppUtils.h"
+#include <Git/GitRevLoglist.h>
+#include <Utils/CommonAppUtils.h>
 
 class CTGitPath;
 struct git_credential;

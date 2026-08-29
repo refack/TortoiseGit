@@ -20,8 +20,8 @@
 #include "afxwin.h"
 #include "LogDlg.h"
 #include "BrowseRefsDlg.h"
-#include "MessageBox.h"
-#include "registry.h"
+#include <Utils/MiscUI/MessageBox.h>
+#include <Utils/registry.h>
 #include "StringUtils.h"
 
 static UINT WM_GUIUPDATES = RegisterWindowMessage(L"TORTOISEGIT_CHOOSEVERSION_GUIUPDATES");

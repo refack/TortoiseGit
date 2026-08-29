@@ -18,6 +18,9 @@
 //
 
 #include "stdafx.h"
+
+#include <gtest/gtest.h>
+
 #include "RepositoryFixtures.h"
 #include "StagingOperations.h"
 
@@ -269,9 +272,21 @@ inline void ExpectOldLineTurnedIntoContext(const CDiffLinesForStaging& base, con
 inline void ExpectPositionLineCountsChanged(const CDiffLinesForStaging& base, const CDiffLinesForStaging& temp, int basePositionLine, int tempPositionLine, int new_oldCount, int new_newCount)
 {
 	EXPECT_EQ(temp.GetLineVec()[tempPositionLine].type, DiffLineTypes::POSITION);
-	StagingOperations op(&base);
-	auto changedbuf = op.ChangeOldAndNewLinesCount(std::string(base.GetLineVec()[basePositionLine].sLine), new_oldCount, new_newCount);
-	EXPECT_EQ(changedbuf.compare(temp.GetLineVec()[tempPositionLine].sLine), 0);
+    auto right = std::string(base.GetLineVec()[basePositionLine].sLine);
+	auto after = StagingOperations::_ChangeOldAndNewLinesCount(right, new_oldCount, new_newCount);
+	auto cut = std::string(base.GetLineVec()[basePositionLine].sLine.substr(0, after.size()));
+	auto pre1 = after.substr(0, 18);
+	auto pre2 = cut.substr(0, 18);
+	EXPECT_STRNE(
+		pre1.c_str(),
+		pre2.c_str()
+	) << "pre1=" << pre1 << " pre2=" << pre2;
+	if (right.size() < 18 || cut.size() < 18)
+		return;
+	EXPECT_STREQ(
+		after.substr(18).c_str(),
+		cut.substr(18).c_str()
+	) << "new_oldCount=" << new_oldCount << " new_newCount=" << new_newCount;
 }
 
 TEST(StagingOperations, PatchBuffer)

@@ -18,13 +18,15 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 #include "stdafx.h"
-#include "SmartHandle.h"
-#include <io.h>
-#include <fcntl.h>
 #include "GitWCRev.h"
-#include "status.h"
-#include "UnicodeUtils.h"
+
+#include <fcntl.h>
+#include <io.h>
 #include <version.h>
+import RIAA;
+import wstr;
+
+#include "status.h"
 
 // Define the help text as a multi-line macro
 // Every line except the last must be terminated with a backslash

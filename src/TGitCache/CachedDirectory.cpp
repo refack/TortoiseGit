@@ -20,9 +20,12 @@
 
 #include "stdafx.h"
 #include "CachedDirectory.h"
-#include "GitAdminDir.h"
+
+#include <gsl/narrow>
+
+import GitAdminDir;
 #include "GitStatusCache.h"
-#include "PathUtils.h"
+import PathUtils;
 #include "GitStatus.h"
 #include "StringUtils.h"
 #include "WideString.h"
@@ -43,53 +46,60 @@ CCachedDirectory::CCachedDirectory(const CTGitPath& directoryPath)
 	directoryPath.HasAdminDir(); // make sure HasAdminDir is always initialized
 	m_directoryPath = directoryPath;
 	m_directoryPath.UpdateCase();
-	m_directoryPath.GetGitPathString().c_str(); // make sure git path string is set
+	std::ignore = m_directoryPath.GetGitPathString().c_str(); // make sure git path string is set
 }
 
-BOOL CCachedDirectory::SaveToDisk(FILE * pFile)
+BOOL CCachedDirectory::SaveToDisk(FILE* pFile)
 {
 	AutoLocker lock(m_critSec);
-#define WRITEVALUETOFILE(x) if (fwrite(&x, sizeof(x), 1, pFile)!=1) return false;
-
-	unsigned int value = GIT_CACHE_VERSION;
-	WRITEVALUETOFILE(value);	// 'version' of this save-format
-	value = static_cast<int>(m_entryCache.size());
-	WRITEVALUETOFILE(value);	// size of the cache map
+#define WRITEVALUETOFILE(x) if (fwrite(&(x), sizeof(x), 1, pFile) != 1) return false
+	{
+		auto value = GIT_CACHE_VERSION;
+		WRITEVALUETOFILE(value); // 'version' of this save-format
+	}
+	{
+		auto value = gsl::narrow<int>(m_entryCache.size());
+		WRITEVALUETOFILE(value); // size of the cache map
+	}
 	// now iterate through the maps and save every entry.
 	for (const auto& entry : m_entryCache)
 	{
 		const CString& key = entry.first;
-		value = key.GetLength();
+		auto value = key.GetLength();
 		WRITEVALUETOFILE(value);
 		if (value)
 		{
-			if (fwrite(static_cast<LPCWSTR>(key), sizeof(wchar_t), value, pFile) != value)
+			if (fwrite(key, sizeof(wchar_t), value, pFile) != gsl::narrow<size_t>(value))
 				return false;
 			if (!entry.second.SaveToDisk(pFile))
 				return false;
 		}
 	}
-	value = static_cast<int>(m_childDirectories.size());
-	WRITEVALUETOFILE(value);
-	for (const auto& entry : m_childDirectories)
 	{
+		auto value = static_cast<int>(m_childDirectories.size());
+		WRITEVALUETOFILE(value);
+	}
+	for (const auto& entry : m_childDirectories) {
 		const CString& path = entry.first;
-		value = path.GetLength();
+		auto value = path.GetLength();
 		WRITEVALUETOFILE(value);
 		if (value)
 		{
-			if (fwrite(static_cast<LPCWSTR>(path), sizeof(wchar_t), value, pFile) != value)
+			if (fwrite(path, sizeof(wchar_t), value, pFile) != gsl::narrow<size_t>(value))
 				return false;
 			git_wc_status_kind status = entry.second;
 			WRITEVALUETOFILE(status);
 		}
 	}
-	value = m_directoryPath.GetWinPathString().size();
-	WRITEVALUETOFILE(value);
-	if (value)
+
 	{
-		if (fwrite(m_directoryPath.GetWinPath(), sizeof(wchar_t), value, pFile) != value)
-			return false;
+		auto value = m_directoryPath.GetWinPathString().size();
+		WRITEVALUETOFILE(value);
+		if (value)
+		{
+			if (fwrite(m_directoryPath.GetWinPath(), sizeof(wchar_t), value, pFile) != value)
+				return false;
+		}
 	}
 	if (!m_ownStatus.SaveToDisk(pFile))
 		return false;
@@ -101,10 +111,10 @@ BOOL CCachedDirectory::SaveToDisk(FILE * pFile)
 BOOL CCachedDirectory::LoadFromDisk(FILE * pFile)
 {
 	AutoLocker lock(m_critSec);
-#define LOADVALUEFROMFILE(x) if (fread(&x, sizeof(x), 1, pFile)!=1) return false;
+#define LOADVALUEFROMFILE(x) if (fread(&(x), sizeof(x), 1, pFile)!=1) return false
 	try
 	{
-		unsigned int value = 0;
+		int value = 0;
 		LOADVALUEFROMFILE(value);
 		if (value != GIT_CACHE_VERSION)
 			return false;		// not the correct version
@@ -118,7 +128,7 @@ BOOL CCachedDirectory::LoadFromDisk(FILE * pFile)
 			if (value)
 			{
 				CString sKey;
-				if (fread(sKey.GetBuffer(value+1), sizeof(wchar_t), value, pFile) != value)
+				if (fread(sKey.GetBuffer(value+1), sizeof(wchar_t), value, pFile) != gsl::narrow<size_t>(value))
 				{
 					sKey.ReleaseBuffer(0);
 					return false;
@@ -127,7 +137,7 @@ BOOL CCachedDirectory::LoadFromDisk(FILE * pFile)
 				CStatusCacheEntry entry;
 				if (!entry.LoadFromDisk(pFile))
 					return false;
-				// only read non empty keys (just needed for transition from old TGit clients)
+				// only read non-empty keys (just needed for transition from old TGit clients)
 				if (!sKey.IsEmpty())
 					m_entryCache[sKey] = entry;
 			}
@@ -141,7 +151,7 @@ BOOL CCachedDirectory::LoadFromDisk(FILE * pFile)
 			if (value)
 			{
 				CString sPath;
-				if (fread(sPath.GetBuffer(value), sizeof(wchar_t), value, pFile) != value)
+				if (fread(sPath.GetBuffer(value), sizeof(wchar_t), value, pFile) != gsl::narrow<size_t>(value))
 				{
 					sPath.ReleaseBuffer(0);
 					return false;
@@ -158,7 +168,7 @@ BOOL CCachedDirectory::LoadFromDisk(FILE * pFile)
 		if (value)
 		{
 			CString sPath;
-			if (fread(sPath.GetBuffer(value+1), sizeof(wchar_t), value, pFile) != value)
+			if (fread(sPath.GetBuffer(value+1), sizeof(wchar_t), value, pFile) != gsl::narrow<size_t>(value))
 			{
 				sPath.ReleaseBuffer(0);
 				return false;
@@ -168,7 +178,7 @@ BOOL CCachedDirectory::LoadFromDisk(FILE * pFile)
 			if (sPath.GetLength() > 3 && sPath[sPath.GetLength() - 1] == L'\\')
 				sPath.TrimRight(L'\\');
 			m_directoryPath.SetFromWin(sPath);
-			m_directoryPath.GetGitPathString().c_str(); // make sure git path string is set
+			std::ignore = m_directoryPath.GetGitPathString().c_str(); // make sure git path string is set
 		}
 		if (!m_ownStatus.LoadFromDisk(pFile))
 			return false;
@@ -176,7 +186,7 @@ BOOL CCachedDirectory::LoadFromDisk(FILE * pFile)
 		LOADVALUEFROMFILE(m_currentFullStatus);
 		LOADVALUEFROMFILE(m_mostImportantFileStatus);
 	}
-	catch ( CAtlException )
+	catch ( const CAtlException& )
 	{
 		return false;
 	}
@@ -455,7 +465,7 @@ int CCachedDirectory::EnumFiles(const CTGitPath& path, CString sProjectRoot, con
 	return 0;
 }
 void
-CCachedDirectory::AddEntry(const CTGitPath& path, const git_wc_status2_t* pGitStatus, __int64 lastwritetime)
+CCachedDirectory::AddEntry(const CTGitPath& path, const git_wc_status2_t* pGitStatus, int64 lastwritetime)
 {
 	if (!path.IsDirectory())
 	{
@@ -503,7 +513,7 @@ CCachedDirectory::GetFullPathString(const CString& cacheKey)
 	return fullpath;
 }
 
-BOOL CCachedDirectory::GetStatusCallback(const CString& path, const git_wc_status2_t* pGitStatus, bool isDir, __int64 lastwritetime, void* baton)
+BOOL CCachedDirectory::GetStatusCallback(const CString& path, const git_wc_status2_t* pGitStatus, bool isDir, int64 lastwritetime, void* baton)
 {
 	CTGitPath gitPath(path.GetString(), isDir);
 
@@ -580,7 +590,7 @@ BOOL CCachedDirectory::GetStatusCallback(const CString& path, const git_wc_statu
 bool
 CCachedDirectory::IsOwnStatusValid() const
 {
-	return m_ownStatus.HasBeenSet() && !m_ownStatus.HasExpired(GetTickCount64());
+	return m_ownStatus.HasBeenSet() && !m_ownStatus.HasExpired(gsl::narrow<long long>(GetTickCount64()));
 }
 
 void CCachedDirectory::Invalidate()
@@ -595,8 +605,7 @@ git_wc_status_kind CCachedDirectory::CalculateRecursiveStatus()
 
 	// Now combine all our child-directorie's status
 	AutoLocker lock(m_critSec);
-	ChildDirStatus::const_iterator it;
-	for(it = m_childDirectories.begin(); it != m_childDirectories.end(); ++it)
+	for(auto it = m_childDirectories.begin(); it != m_childDirectories.end(); ++it)
 	{
 		retVal = GitStatus::GetMoreImportant(retVal, it->second);
 	}
@@ -604,7 +613,8 @@ git_wc_status_kind CCachedDirectory::CalculateRecursiveStatus()
 	// folders can only be none, unversioned, normal, modified, and conflicted
 	GitStatus::AdjustFolderStatus(retVal);
 
-	if (retVal == git_wc_status_ignored && m_ownStatus.GetEffectiveStatus() != git_wc_status_ignored) // hack to show folders which have only ignored files inside but are not ignored themself
+	// hack to show folders which have only ignored files inside but are not ignored themselves
+	if (retVal == git_wc_status_ignored && m_ownStatus.GetEffectiveStatus() != git_wc_status_ignored)
 		retVal = git_wc_status_unversioned;
 
 	return retVal;
@@ -652,9 +662,9 @@ void CCachedDirectory::UpdateCurrentStatus()
 }
 
 // Receive a notification from a child that its status has changed
-void CCachedDirectory::UpdateChildDirectoryStatus(const CTGitPath& childDir, git_wc_status_kind childStatus)
+void CCachedDirectory::UpdateChildDirectoryStatus(const CTGitPath& childDir, const git_wc_status_kind childStatus)
 {
-	git_wc_status_kind currentStatus = git_wc_status_none;
+	git_wc_status_kind currentStatus;
 	{
 		AutoLocker lock(m_critSec);
 		currentStatus = m_childDirectories[childDir.GetWinPathString().c_str()];

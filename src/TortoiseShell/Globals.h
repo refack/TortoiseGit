@@ -18,6 +18,7 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 #pragma once
+#include <type_traits>
 
 enum class TGitContextMenuEntries : unsigned __int64
 {
@@ -82,15 +83,15 @@ enum class TGitContextMenuEntries : unsigned __int64
 	About			= 0x8000000000000000,
 };
 
-constexpr inline TGitContextMenuEntries operator|(TGitContextMenuEntries a, TGitContextMenuEntries b) noexcept
+constexpr TGitContextMenuEntries operator|(TGitContextMenuEntries a, TGitContextMenuEntries b) noexcept
 {
 	return static_cast<TGitContextMenuEntries>(static_cast<std::underlying_type_t<TGitContextMenuEntries>>(a) | static_cast<std::underlying_type_t<TGitContextMenuEntries>>(b));
 }
-constexpr inline TGitContextMenuEntries operator&(TGitContextMenuEntries a, TGitContextMenuEntries b) noexcept
+constexpr TGitContextMenuEntries operator&(TGitContextMenuEntries a, TGitContextMenuEntries b) noexcept
 {
 	return static_cast<TGitContextMenuEntries>(static_cast<std::underlying_type_t<TGitContextMenuEntries>>(a) & static_cast<std::underlying_type_t<TGitContextMenuEntries>>(b));
 }
-constexpr inline TGitContextMenuEntries& operator|=(TGitContextMenuEntries& self, TGitContextMenuEntries a) noexcept
+constexpr TGitContextMenuEntries& operator|=(TGitContextMenuEntries& self, const TGitContextMenuEntries a) noexcept
 {
 	self = self | a;
 	return self;
@@ -103,7 +104,7 @@ constexpr E from_underlying(std::underlying_type_t<E> value) noexcept
 	return static_cast<E>(value);
 }
 
-constexpr TGitContextMenuEntries to_TGitContextMenuEntries(DWORD high, DWORD low) noexcept
+constexpr TGitContextMenuEntries to_TGitContextMenuEntries(const DWORD high, const DWORD low) noexcept
 {
 	static_assert(sizeof(std::underlying_type_t<TGitContextMenuEntries>) == 2 * sizeof(DWORD));
 	ULARGE_INTEGER tmp;

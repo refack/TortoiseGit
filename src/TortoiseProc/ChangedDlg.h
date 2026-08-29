@@ -19,8 +19,8 @@
 //
 #pragma once
 
-#include "StandAloneDlg.h"
-#include "registry.h"
+#include <Utils/MiscUI/StandAloneDlg.h>
+#include <Utils/registry.h>
 #include "MenuButton.h"
 #include "TGitPath.h"
 #include "GitStatusListCtrl.h"

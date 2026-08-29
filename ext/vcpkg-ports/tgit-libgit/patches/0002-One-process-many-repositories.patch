@@ -399,7 +399,7 @@ index 82831f5..4db25c8 100644
 - * argv into UTF8 and pass them directly to main().
 - */
 -int wmain(int argc, const wchar_t **wargv)
-+void build_libgit_environment(const LPWSTR *env)
++void build_libgit_environment(const wchar_t* wenv)
  {
 -	int i, exit_status;
 -	size_t maxlen;
@@ -414,7 +414,7 @@ index 82831f5..4db25c8 100644
 -#endif
 +	int i, maxlen;
 +	char *buffer;
-+	wchar_t *wenv = env && *env ? *env : NULL;
++//	wchar_t *wenv = env && *env ? *env : NULL;
 +	int needsFree = 0;
  
 -#ifdef USE_MSVC_CRTDBG
@@ -475,11 +475,11 @@ index 82831f5..4db25c8 100644
 -		argv[i] = save[i] = wcstoutfdup_startup(buffer, wargv[i], maxlen);
 -	argv[i] = save[i] = NULL;
 +	/* convert environment to UTF-8 */
-+	i = 0;
-+	for (int pos = 0; wenv && wenv[pos] && wenv[pos + 1]; ++i) {
-+		int len = wcslen(wenv + pos);
-+		libgit_environ[i] = wcstoutfdup_startup(buffer, wenv + pos, maxlen);
-+		pos += len + 1;
++	;
++	for (int i = 0, npos = 0; wenv[npos]; ++i, ++npos) {
++       ;		
++		libgit_environ[i] = wcstoutfdup_startup(buffer, npos, maxlen);
++		npos += wcslen(wenv + npos); 
 +	}
 +	libgit_environ[i] = NULL;
  	free(buffer);

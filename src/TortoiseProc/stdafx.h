@@ -3,9 +3,7 @@
 // but are changed infrequently
 
 #pragma once
-#define XMESSAGEBOX_APPREGPATH "Software\\TortoiseGit\\"
-#define REGSTRING_DARKTHEME L"Software\\TortoiseGit\\DarkTheme"
-
+import invarients;
 #include <SDKDDKVer.h>
 
 #define _ATL_CSTRING_EXPLICIT_CONSTRUCTORS	// some CString constructors will be explicit
@@ -37,10 +35,7 @@ using std::min;
 
 #include <atlbase.h>
 
-#include "SmartHandle.h"
-
-#include "git2.h"
-#include "SmartLibgit2Ref.h"
+#include <git2.h>
 
 #include <string>
 #include <vector>
@@ -50,6 +45,14 @@ using std::min;
 #include <format>
 #include <locale>
 #include <xlocale>
+#include <concepts>
+#include <format>
+#include <functional>
+#include <map>
+#include <sstream>
+#include <string_view>
+#include <type_traits>
+#include <vector>
 
 #include <vfw.h>
 #include <shlobj.h>
@@ -61,16 +64,11 @@ using std::min;
 #include <assert.h>
 #include <math.h>
 #include <gdiplus.h>
-
-#define __WIN32__
-
+#include <intsafe.h>
 
 #define USE_GDI_GRADIENT
 #define HISTORYCOMBO_WITH_SYSIMAGELIST
 
-#include "scope_exit_noexcept.h"
-#include "ProfilingInfo.h"
-#include "DebugOutput.h"
 #include <afxdhtml.h>
 
 #ifdef _WIN64
@@ -79,7 +77,19 @@ using std::min;
 #	define APP_X64_STRING ""
 #endif
 
-#include "Git.h"
-#include "WideString.h"
-#include "PathUtils.h"
-#include "TGitPath.h"
+#include <Git/Git.h>
+#include <Git/TGitPath.h>
+import GitAdminDir;
+#include <Git/gittype.h>
+
+#include <Utils/DebugOutput.h>
+#include <Utils/PathUtils.h>
+#include <Utils/ProfilingInfo.h>
+#include <Utils/scope_exit_noexcept.h>
+#include <Utils/SmartHandle.h>
+import SmartLibgit2;
+#include <Utils/StringUtils.h>
+#include <Utils/UnicodeUtils.h>
+#include <Utils/WideString.h>
+
+#include <gitdll.h>

@@ -1,4 +1,4 @@
-// TortoiseGit - a Windows shell extension for easy version control
+﻿// TortoiseGit - a Windows shell extension for easy version control
 
 // Copyright (C) 2009, 2023 - TortoiseGit
 
@@ -20,7 +20,7 @@
 #pragma once
 
 #include "Settings/SettingsPropPage.h"
-#include "TreePropSheet/TreePropSheet.h"
+#include <Utils/TreePropSheet/TreePropSheet.h>
 
 class CSinglePropSheetDlg : public TreePropSheet::CTreePropSheet
 {

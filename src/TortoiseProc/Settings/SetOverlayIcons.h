@@ -20,7 +20,7 @@
 
 #pragma once
 #include "SettingsPropPage.h"
-#include "registry.h"
+#include <Utils/registry.h>
 
 /**
  * \ingroup TortoiseProc

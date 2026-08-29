@@ -35,12 +35,13 @@ using std::min;
 
 #define CSTRING_AVAILABLE
 
-#include "SmartHandle.h"
 
-#include "git2.h"
-#include "SmartLibgit2Ref.h"
+#include <gitdll.h>
+#include <git2.h>
+import SmartLibgit2;
 
-#include "scope_exit_noexcept.h"
-#include "SysInfo.h"
-#include "DebugOutput.h"
+#include <Utils/scope_exit_noexcept.h>
+#include <Utils/SysInfo.h>
+import DebugOutput;
+import RIAA;
 

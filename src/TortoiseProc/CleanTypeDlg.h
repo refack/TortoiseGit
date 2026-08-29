@@ -1,4 +1,4 @@
-// TortoiseGit - a Windows shell extension for easy version control
+﻿// TortoiseGit - a Windows shell extension for easy version control
 
 // Copyright (C) 2008-2017, 2023 - TortoiseGit
 
@@ -19,8 +19,8 @@
 #pragma once
 
 
-#include "StandAloneDlg.h"
-#include "registry.h"
+#include <Utils/MiscUI/StandAloneDlg.h>
+#include <Utils/registry.h>
 #include "TGitPath.h"
 
 // CCleanTypeDlg dialog

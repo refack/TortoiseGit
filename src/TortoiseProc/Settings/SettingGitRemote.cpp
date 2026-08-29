@@ -22,7 +22,7 @@
 #include "stdafx.h"
 #include "TortoiseProc.h"
 #include "SettingGitRemote.h"
-#include "GitAdminDir.h"
+import GitAdminDir;
 #include "MessageBox.h"
 #include "AppUtils.h"
 #include "Git.h"

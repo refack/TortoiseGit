@@ -20,7 +20,6 @@
 #pragma once
 #include <wrl/client.h>
 #include "Globals.h"
-#include "registry.h"
 #include "resource.h"
 #include "ShellCache.h"
 #include "RemoteCacheLink.h"
@@ -29,6 +28,8 @@
 #include "MenuInfo.h"
 #include "ExplorerCommand.h"
 #include "LangDll.h"
+
+import Registry;
 
 class CExplorerCommand;
 extern	volatile LONG		g_cRefThisDll;			// Reference count of this DLL.

@@ -67,7 +67,7 @@ void CAutoTempDir::DeleteDirectoryRecursive(const CString& dir)
 		else
 		{
 			CString file = dir + L'\\' + ffd.cFileName;
-			bool failed = !DeleteFile(file);
+			[[maybe_unused]] bool failed = !DeleteFile(file);
 			if (failed && GetLastError() == ERROR_ACCESS_DENIED)
 			{
 				SetFileAttributes(file, GetFileAttributes(file) & ~FILE_ATTRIBUTE_READONLY);

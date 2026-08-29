@@ -22,7 +22,7 @@
 #include "TortoiseProc.h"
 #include "SettingsColors.h"
 #include "Theme.h"
-#include "DarkModeHelper.h"
+import DarkModeHelper;
 #include "Settings/Settings.h"
 
 IMPLEMENT_DYNAMIC(CSettingsColors, ISettingsPropPage)

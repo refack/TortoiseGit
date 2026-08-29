@@ -18,10 +18,10 @@
 //
 
 #pragma once
-#include "Git.h"
-#include "StringUtils.h"
-#include "PathUtils.h"
-#include "DirFileEnum.h"
+#include <Git/Git.h>
+#include <Utils/DirFileEnum.h>
+import PathUtils;
+import StringUtils;
 
 enum config
 {
@@ -91,7 +91,7 @@ protected:
 		SetCurrentDirectory(m_Git.m_CurrentDir);
 
 		if (CGit::ms_LastMsysGitVersion == 0)
-			CGit::ms_LastMsysGitVersion = max(0, m_Git.GetGitVersion(nullptr, nullptr));
+			CGit::ms_LastMsysGitVersion = std::max(0, m_Git.GetGitVersion(nullptr, nullptr));
 	}
 
 	virtual void TearDown() override

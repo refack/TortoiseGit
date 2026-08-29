@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Project DefaultTargets="Build" ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|ARM64">
       <Configuration>Debug</Configuration>
@@ -18,139 +18,36 @@
       <Platform>x64</Platform>
     </ProjectConfiguration>
   </ItemGroup>
+  <PropertyGroup Label="UserMacros">
+  </PropertyGroup>
   <PropertyGroup Label="Globals">
     <ProjectName>TortoiseGitProc</ProjectName>
+    <Keyword>MFCProj</Keyword>
     <ProjectGuid>{50797F06-39C5-4802-8E2B-7B7A4EF03214}</ProjectGuid>
     <RootNamespace>TortoiseProc</RootNamespace>
-    <Keyword>MFCProj</Keyword>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
-    <UseOfMfc>Dynamic</UseOfMfc>
-    <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)'=='Release'" Label="Configuration">
-    <WholeProgramOptimization>true</WholeProgramOptimization>
-  </PropertyGroup>
-  <PropertyGroup Label="Configuration" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <PlatformToolset>v145</PlatformToolset>
-  </PropertyGroup>
-  <PropertyGroup Label="Configuration" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <PlatformToolset>v145</PlatformToolset>
-  </PropertyGroup>
+  <Import Project="$(SolutionDir)src\TortoiseGit.common.props" />
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
-  <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-  <Import Project="$(SolutionDir)TortoiseGit.common.props" />
-  <Import Project="$(SolutionDir)TortoiseGit.vcpkg.props" />
-  <PropertyGroup Label="UserMacros" />
   <ItemDefinitionGroup>
     <ClCompile>
-      <!-- ..\..\ext\libgit2\include is deliberately absent: libgit2's public
-           headers now come from vcpkg (TortoiseGit.vcpkg.props). The in-tree
-           copy ships a no-op git2\experimental.h, so leaving it on the path
-           would silently compile this project against the 20-byte git_oid
-           while the library it links uses the 33-byte tagged one. -->
-      <AdditionalIncludeDirectories>$(ProjectDir);$(VcpkgInstalledDir)include\scintilla;$(VcpkgInstalledDir)include\lexilla;..\Resources;$InputDir;..\ResizableLib;..\Git;..\Utils;..\Utils\TreePropSheet;..\Utils\MiscUI;..\TortoiseShell;..\..\ext\gitdll;..\AsyncFramework;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <!-- GIT_EXPERIMENTAL_SHA256 is no longer listed: vcpkg's generated
-           git2\experimental.h defines it, and git2\oid.h includes that header,
-           so every TU that can see git_oid gets the flag by construction. -->
+      <AdditionalIncludeDirectories>$(SolutionDir)src/Utils;$(SolutionDir)src/Utils/MiscUI;$(SolutionDir)src/Git;$(VcpkgIncludeDir)scintilla2;$(VcpkgIncludeDir)lexilla;$(OutDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>TORTOISEGITPROC;TGIT_LFS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <ExceptionHandling>SyncCThrow</ExceptionHandling>
     </ClCompile>
-    <ResourceCompile>
-      <AdditionalIncludeDirectories>$(IntDir);..\TortoiseShell;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-    </ResourceCompile>
     <Link>
-      <!-- OGDF and its bundled COIN-OR/Clp solver come from vcpkg, and are named
-           here rather than in TortoiseGit.vcpkg.props because that file carries
-           the libgit2 bundle and TortoiseProc is OGDF's only consumer. Neither
-           takes $(VcpkgLibSuffix): the overlay port clears upstream's "-debug"
-           postfix, so both configurations use the same names out of different
-           directories, the way every other vcpkg package here does. -->
       <AdditionalDependencies>Winmm.lib;gdiplus.lib;shfolder.lib;comctl32.lib;ws2_32.lib;shlwapi.lib;wininet.lib;UxTheme.lib;detours.lib;OGDF.lib;COIN.lib;Scintilla.lib;Lexilla.lib;imm32.lib;msimg32.lib;ole32.lib;oleaut32.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <!-- vcpkg builds Scintilla/Lexilla with vcpkg_install_msbuild, which ships no
-           PDBs, so every one of their ~400 objects emits LNK4099. Suppressed here
-           rather than left to drown real link warnings. -->
-      <AdditionalOptions>/ignore:4099 %(AdditionalOptions)</AdditionalOptions>
     </Link>
+    <ResourceCompile>
+    </ResourceCompile>
     <Manifest>
       <EnableDpiAwareness>true</EnableDpiAwareness>
     </Manifest>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\Git\Git.cpp" />
-    <ClCompile Include="..\Git\GitAdminDir.cpp" />
-    <ClCompile Include="..\Git\GitDataObject.cpp" />
-    <ClCompile Include="..\Git\GitMailmap.cpp" />
-    <ClCompile Include="..\Git\GitRev.cpp" />
-    <ClCompile Include="..\Git\GitRevLoglist.cpp" />
-    <ClCompile Include="..\Git\GitRevRefBrowser.cpp" />
-    <ClCompile Include="..\Git\TGitPath.cpp" />
-    <ClCompile Include="..\Utils\FileTextLines.cpp" />
-    <ClCompile Include="..\TortoiseShell\ShellCache.cpp" />
-    <ClCompile Include="..\Utils\ACEdit.cpp" />
-    <ClCompile Include="..\Utils\ACListWnd.cpp" />
-    <ClCompile Include="..\Utils\BugTraqAssociations.cpp" />
-    <ClCompile Include="..\Utils\CmdLineParser.cpp" />
-    <ClCompile Include="..\Utils\COMError.cpp" />
-    <ClCompile Include="..\Utils\CommonAppUtils.cpp" />
-    <ClCompile Include="..\Utils\DarkModeHelper.cpp" />
-    <ClCompile Include="..\Utils\DebugOutput.cpp" />
-    <ClCompile Include="..\Utils\DirFileEnum.cpp" />
-    <ClCompile Include="..\Utils\DragDropImpl.cpp" />
-    <ClCompile Include="..\Utils\Graphviz.cpp" />
-    <ClCompile Include="..\Utils\Hash.cpp" />
-    <ClCompile Include="..\Utils\Hooks.cpp" />
-    <ClCompile Include="..\Utils\IconExtractor.cpp" />
-    <ClCompile Include="..\Utils\JumpListHelpers.cpp" />
-    <ClCompile Include="..\Utils\LangDll.cpp" />
-    <ClCompile Include="..\Utils\LoadIconEx.cpp" />
-    <ClCompile Include="..\Utils\MiscUI\AnimationManager.cpp" />
-    <ClCompile Include="..\Utils\MiscUI\BrowseFolder.cpp" />
-    <ClCompile Include="..\Utils\MiscUI\BufferDC.cpp" />
-    <ClCompile Include="..\Utils\MiscUI\DIB.cpp" />
-    <ClCompile Include="..\Utils\MiscUI\EditWordBreak.cpp" />
-    <ClCompile Include="..\Utils\MiscUI\FileDlgEventHandler.cpp" />
-    <ClCompile Include="..\Utils\MiscUI\FileDropEdit.cpp" />
-    <ClCompile Include="..\Utils\MiscUI\FilterEdit.cpp" />
-    <ClCompile Include="..\Utils\MiscUI\HistoryCombo.cpp" />
-    <ClCompile Include="..\Utils\MiscUI\HyperLink.cpp" />
-    <ClCompile Include="..\Utils\MiscUI\IconBitmapUtils.cpp" />
-    <ClCompile Include="..\Utils\MiscUI\IconMenu.cpp" />
-    <ClCompile Include="..\Utils\MiscUI\MenuButton.cpp" />
-    <ClCompile Include="..\Utils\MiscUI\MessageBox.cpp" />
-    <ClCompile Include="..\Utils\MiscUI\MyGraph.cpp" />
-    <ClCompile Include="..\Utils\MiscUI\Picture.cpp" />
-    <ClCompile Include="..\Utils\MiscUI\RegexEdit.cpp" />
-    <ClCompile Include="..\Utils\MiscUI\SplitterControl.cpp" />
-    <ClCompile Include="..\Utils\MiscUI\SVG.cpp" />
-    <ClCompile Include="..\Utils\MiscUI\SysProgressDlg.cpp" />
-    <ClCompile Include="..\Utils\MiscUI\ThemeControls.cpp" />
-    <ClCompile Include="..\Utils\MiscUI\ThemeMFCVisualManager.cpp" />
-    <ClCompile Include="..\Utils\MiscUI\Tooltip.cpp" />
-    <ClCompile Include="..\Utils\MiscUI\WaterEffect.cpp" />
-    <ClCompile Include="..\Utils\Monitor.cpp" />
-    <ClCompile Include="..\Utils\PathUtils.cpp" />
-    <ClCompile Include="..\Utils\PathWatcher.cpp" />
-    <ClCompile Include="..\Utils\PersonalDictionary.cpp" />
-    <ClCompile Include="..\Utils\ReaderWriterLock.cpp" />
-    <ClCompile Include="..\Utils\RegHistory.cpp" />
-    <ClCompile Include="..\Utils\Registry.cpp" />
-    <ClCompile Include="..\Utils\ShellUpdater.cpp" />
-    <ClCompile Include="..\Utils\StringUtils.cpp" />
-    <ClCompile Include="..\Utils\SysImageList.cpp" />
-    <ClCompile Include="..\Utils\SysInfo.cpp" />
-    <ClCompile Include="..\Utils\TaskbarUUID.cpp" />
-    <ClCompile Include="..\Utils\TempFile.cpp" />
-    <ClCompile Include="..\Utils\Theme.cpp" />
-    <ClCompile Include="..\Utils\TreePropSheet\PropPageFrame.cpp" />
-    <ClCompile Include="..\Utils\TreePropSheet\PropPageFrameDefault.cpp" />
-    <ClCompile Include="..\Utils\TreePropSheet\TreePropSheet.cpp" />
-    <ClCompile Include="..\Utils\UnicodeUtils.cpp" />
-    <ClCompile Include="..\Utils\WindowsCredentialsStore.cpp" />
     <ClCompile Include="AddRemoteDlg.cpp" />
-    <ClCompile Include="..\TGitCache\CacheInterface.cpp" />
     <ClCompile Include="AutoTextTestDlg.cpp" />
     <ClCompile Include="BugtraqRegexTestDlg.cpp" />
     <ClCompile Include="BrowseRefsDlgFilter.cpp" />
@@ -190,9 +87,9 @@
     <ClCompile Include="ProgressCommands\ResetProgressCommand.cpp" />
     <ClCompile Include="ProgressCommands\ResolveProgressCommand.cpp" />
     <ClCompile Include="ProgressCommands\RevertProgressCommand.cpp" />
+    <ClCompile Include="PromptDlg.cpp" />
     <ClCompile Include="SelectRemoteRefDlg.cpp" />
     <ClCompile Include="FindDlg.cpp" />
-    <ClCompile Include="..\Utils\Libraries.cpp" />
     <ClCompile Include="GitProgressList.cpp" />
     <ClCompile Include="LogFile.cpp" />
     <ClCompile Include="LogOrdering.cpp" />
@@ -202,15 +99,12 @@
     <ClCompile Include="Settings\SetDialogs3.cpp" />
     <ClCompile Include="Settings\SettingGitCredential.cpp" />
     <ClCompile Include="Settings\SettingsTUDiff.cpp" />
+    <ClCompile Include="SimplePrompt.cpp" />
     <ClCompile Include="SinglePropSheetDlg.cpp" />
     <ClCompile Include="AppUtils.cpp" />
     <ClCompile Include="DeleteConflictDlg.cpp" />
     <ClCompile Include="HistoryDlg.cpp" />
     <ClCompile Include="Colors.cpp" />
-    <ClCompile Include="..\Utils\MiscUI\HorizontalResizableStandAloneDialog.cpp" />
-    <ClCompile Include="..\Utils\MiscUI\LinkControl.cpp" />
-    <ClCompile Include="..\Utils\MiscUI\SciEdit.cpp" />
-    <ClCompile Include="..\Utils\MiscUI\StandAloneDlg.cpp" />
     <ClCompile Include="Commands\Command.cpp" />
     <ClCompile Include="Commands\CommitCommand.cpp" />
     <ClCompile Include="CommitDlg.cpp" />
@@ -263,7 +157,6 @@
     <ClCompile Include="Commands\FormatPatchCommand.cpp" />
     <ClCompile Include="FormatPatchDlg.cpp" />
     <ClCompile Include="Commands\CatCommand.cpp" />
-    <ClCompile Include="..\TortoiseShell\MenuInfo.cpp" />
     <ClCompile Include="Settings\SetBugTraq.cpp" />
     <ClCompile Include="Settings\SetBugTraqAdv.cpp" />
     <ClCompile Include="Settings\SetDialogs.cpp" />
@@ -334,6 +227,7 @@
     <ClCompile Include="BisectStartDlg.cpp" />
     <ClCompile Include="RepositoryBrowser.cpp" />
     <ClCompile Include="Commands\RepositoryBrowserCommand.cpp" />
+    <ClCompile Include="URLDlg.cpp" />
     <ClCompile Include="WorktreeListDlg.cpp" />
     <ClCompile Include="RevisionGraph\RevGraphFilterDlg.cpp" />
     <ClCompile Include="Commands\RevisionGraphCommand.cpp" />
@@ -351,7 +245,6 @@
     <ClCompile Include="ResetDlg.cpp" />
     <ClCompile Include="SubmoduleDiffDlg.cpp" />
     <ClCompile Include="GitDiff.cpp" />
-    <ClCompile Include="..\Git\GitStatusListCtrl.cpp" />
     <ClCompile Include="GitStatusListCtrlHelpers.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader>Create</PrecompiledHeader>
@@ -361,101 +254,14 @@
     <ClCompile Include="VersioncheckParser.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\Git\Git.h" />
-    <ClInclude Include="..\Git\GitAdminDir.h" />
-    <ClInclude Include="..\Git\GitDataObject.h" />
-    <ClInclude Include="..\Git\GitForWindows.h" />
-    <ClInclude Include="..\Git\GitHash.h" />
-    <ClInclude Include="..\Git\GitMailmap.h" />
-    <ClInclude Include="..\Git\GitRev.h" />
-    <ClInclude Include="..\Git\GitRevLoglist.h" />
-    <ClInclude Include="..\Git\GitRevRefBrowser.h" />
-    <ClInclude Include="..\Git\GitStatus.h" />
-    <ClInclude Include="..\Git\gittype.h" />
-    <ClInclude Include="..\Git\TGitPath.h" />
-    <ClInclude Include="..\Resources\LoglistCommonResource.h" />
-    <ClInclude Include="..\Resources\TGitHelpMapping.ini" />
-    <ClInclude Include="..\Utils\FileTextLines.h" />
-    <ClInclude Include="..\TortoiseShell\ShellCache.h" />
-    <ClInclude Include="..\Utils\ACEdit.h" />
-    <ClInclude Include="..\Utils\ACListWnd.h" />
-    <ClInclude Include="..\Utils\BugTraqAssociations.h" />
-    <ClInclude Include="..\Utils\CertificateValidationHelper.h" />
-    <ClInclude Include="..\Utils\CmdLineParser.h" />
-    <ClInclude Include="..\Utils\COMError.h" />
-    <ClInclude Include="..\Utils\CommonAppUtils.h" />
-    <ClInclude Include="..\Utils\CreateProcessHelper.h" />
-    <ClInclude Include="..\Utils\DarkModeHelper.h" />
-    <ClInclude Include="..\Utils\DebugOutput.h" />
-    <ClInclude Include="..\Utils\DirFileEnum.h" />
-    <ClInclude Include="..\Utils\DragDropImpl.h" />
-    <ClInclude Include="..\Utils\Graphviz.h" />
-    <ClInclude Include="..\Utils\Hash.h" />
-    <ClInclude Include="..\Utils\Hooks.h" />
-    <ClInclude Include="..\Utils\IconExtractor.h" />
-    <ClInclude Include="..\Utils\IInputValidator.h" />
-    <ClInclude Include="..\Utils\JumpListHelpers.h" />
-    <ClInclude Include="..\Utils\LangDll.h" />
-    <ClInclude Include="..\Utils\Libraries.h" />
-    <ClInclude Include="..\Utils\LoadIconEx.h" />
-    <ClInclude Include="..\Utils\LruCache.h" />
-    <ClInclude Include="..\Utils\MiscUI\AnimationManager.h" />
-    <ClInclude Include="..\Utils\MiscUI\BrowseFolder.h" />
-    <ClInclude Include="..\Utils\MiscUI\BufferDC.h" />
-    <ClInclude Include="..\Utils\MiscUI\CommonDialogFunctions.h" />
-    <ClInclude Include="..\Utils\MiscUI\ControlsBridge.h" />
-    <ClInclude Include="..\Utils\MiscUI\DIB.h" />
-    <ClInclude Include="..\Utils\MiscUI\EditWordBreak.h" />
-    <ClInclude Include="..\Utils\MiscUI\FileDlgEventHandler.h" />
-    <ClInclude Include="..\Utils\MiscUI\FileDropEdit.h" />
-    <ClInclude Include="..\Utils\MiscUI\FilterEdit.h" />
-    <ClInclude Include="..\Utils\MiscUI\GestureEnabledControl.h" />
-    <ClInclude Include="..\Utils\MiscUI\HighColorTab.hpp" />
-    <ClInclude Include="..\Utils\MiscUI\HintCtrl.h" />
-    <ClInclude Include="..\Utils\MiscUI\HistoryCombo.h" />
-    <ClInclude Include="..\Utils\MiscUI\HyperLink.h" />
-    <ClInclude Include="..\Utils\MiscUI\IconBitmapUtils.h" />
-    <ClInclude Include="..\Utils\MiscUI\IconMenu.h" />
-    <ClInclude Include="..\Utils\MiscUI\MenuButton.h" />
-    <ClInclude Include="..\Utils\MiscUI\MessageBox.h" />
-    <ClInclude Include="..\Utils\MiscUI\MyGraph.h" />
-    <ClInclude Include="..\Utils\MiscUI\Picture.h" />
-    <ClInclude Include="..\Utils\MiscUI\RegexEdit.h" />
-    <ClInclude Include="..\Utils\MiscUI\SplitterControl.h" />
-    <ClInclude Include="..\Utils\MiscUI\SVG.h" />
-    <ClInclude Include="..\Utils\MiscUI\SysProgressDlg.h" />
-    <ClInclude Include="..\Utils\MiscUI\ThemeControls.h" />
-    <ClInclude Include="..\Utils\MiscUI\ThemeMFCVisualManager.h" />
-    <ClInclude Include="..\Utils\MiscUI\Tooltip.h" />
-    <ClInclude Include="..\Utils\MiscUI\WaterEffect.h" />
-    <ClInclude Include="..\Utils\Monitor.h" />
-    <ClInclude Include="..\Utils\PathUtils.h" />
-    <ClInclude Include="..\Utils\PathWatcher.h" />
-    <ClInclude Include="..\Utils\PersonalDictionary.h" />
-    <ClInclude Include="..\Utils\ReaderWriterLock.h" />
-    <ClInclude Include="..\Utils\RegHistory.h" />
-    <ClInclude Include="..\Utils\registry.h" />
-    <ClInclude Include="..\Utils\ShellUpdater.h" />
-    <ClInclude Include="..\Utils\SmartHandle.h" />
-    <ClInclude Include="..\Utils\SmartLibgit2Ref.h" />
-    <ClInclude Include="..\Utils\StringUtils.h" />
-    <ClInclude Include="..\Utils\SysImageList.h" />
-    <ClInclude Include="..\Utils\SysInfo.h" />
-    <ClInclude Include="..\Utils\TaskbarUUID.h" />
-    <ClInclude Include="..\Utils\TempFile.h" />
-    <ClInclude Include="..\Utils\Theme.h" />
-    <ClInclude Include="..\Utils\TreePropSheet\PropPageFrame.h" />
-    <ClInclude Include="..\Utils\TreePropSheet\PropPageFrameDefault.h" />
-    <ClInclude Include="..\Utils\TreePropSheet\TreePropSheet.h" />
-    <ClInclude Include="..\Utils\UnicodeUtils.h" />
-    <ClInclude Include="..\Utils\URLFinder.h" />
-    <ClInclude Include="..\Utils\WindowsCredentialsStore.h" />
     <ClInclude Include="AddRemoteDlg.h" />
+    <ClInclude Include="AppUtils.h" />
     <ClInclude Include="AutoTextTestDlg.h" />
     <ClInclude Include="BstrSafeVector.h" />
     <ClInclude Include="BugtraqRegexTestDlg.h" />
     <ClInclude Include="BrowseRefsDlgFilter.h" />
     <ClInclude Include="CheckCertificateDlg.h" />
+    <ClInclude Include="Colors.h" />
     <ClInclude Include="ColumnManager.h" />
     <ClInclude Include="Commands\AutoTextTestCommand.h" />
     <ClInclude Include="Commands\CommitIsOnRefsCommand.h" />
@@ -496,6 +302,7 @@
     <ClInclude Include="ProgressCommands\ResetProgressCommand.h" />
     <ClInclude Include="ProgressCommands\ResolveProgressCommand.h" />
     <ClInclude Include="ProgressCommands\RevertProgressCommand.h" />
+    <ClInclude Include="PromptDlg.h" />
     <ClInclude Include="ResizableColumnsListCtrl.h" />
     <ClInclude Include="SelectRemoteRefDlg.h" />
     <ClInclude Include="FindDlg.h" />
@@ -504,7 +311,6 @@
     <ClInclude Include="LogOrdering.h" />
     <ClInclude Include="MassiveGitTask.h" />
     <ClInclude Include="ProjectProperties.h" />
-    <ClInclude Include="..\TortoiseShell\resource.h" />
     <ClInclude Include="Settings\GitSettings.h" />
     <ClInclude Include="Settings\SetDialogs2.h" />
     <ClInclude Include="Settings\SetDialogs3.h" />
@@ -513,13 +319,10 @@
     <ClInclude Include="Settings\SettingsProgsMerge.h" />
     <ClInclude Include="Settings\SettingsTUDiff.h" />
     <ClInclude Include="Settings\SetWin11ContextMenu.h" />
+    <ClInclude Include="SimplePrompt.h" />
     <ClInclude Include="SinglePropSheetDlg.h" />
     <ClInclude Include="DeleteConflictDlg.h" />
     <ClInclude Include="HistoryDlg.h" />
-    <ClInclude Include="..\Utils\MiscUI\HorizontalResizableStandAloneDialog.h" />
-    <ClInclude Include="..\Utils\MiscUI\LinkControl.h" />
-    <ClInclude Include="..\Utils\MiscUI\SciEdit.h" />
-    <ClInclude Include="..\Utils\MiscUI\StandAloneDlg.h" />
     <ClInclude Include="Commands\Command.h" />
     <ClInclude Include="Commands\CommitCommand.h" />
     <ClInclude Include="CommitDlg.h" />
@@ -530,7 +333,6 @@
     <ClInclude Include="gitlogcache.h" />
     <ClInclude Include="GitLogList.h" />
     <ClInclude Include="GitLogListBase.h" />
-    <ClInclude Include="lanes.h" />
     <ClInclude Include="Commands\LogCommand.h" />
     <ClInclude Include="LogDlg.h" />
     <ClInclude Include="LogDlgHelper.h" />
@@ -640,6 +442,7 @@
     <ClInclude Include="BisectStartDlg.h" />
     <ClInclude Include="RepositoryBrowser.h" />
     <ClInclude Include="Commands\RepositoryBrowserCommand.h" />
+    <ClInclude Include="URLDlg.h" />
     <ClInclude Include="WorktreeListDlg.h" />
     <ClInclude Include="RevisionGraph\RevGraphFilterDlg.h" />
     <ClInclude Include="Commands\RevisionGraphCommand.h" />
@@ -657,7 +460,6 @@
     <ClInclude Include="ResetDlg.h" />
     <ClInclude Include="SubmoduleDiffDlg.h" />
     <ClInclude Include="GitDiff.h" />
-    <ClInclude Include="..\Git\GitStatusListCtrl.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="TortoiseProc.h" />
@@ -665,137 +467,14 @@
     <ClInclude Include="VersioncheckParser.h" />
   </ItemGroup>
   <ItemGroup>
-    <Image Include="..\Resources\actionadded.ico" />
-    <Image Include="..\Resources\actionconflicted.ico" />
-    <Image Include="..\Resources\actiondeleted.ico" />
-    <Image Include="..\Resources\actionerror.ico" />
-    <Image Include="..\Resources\actionfetching.ico" />
-    <Image Include="..\Resources\actionmodified.ico" />
-    <Image Include="..\Resources\actionreplaced.ico" />
-    <Image Include="..\Resources\AddBackground.ico" />
-    <Image Include="..\Resources\bugtraq.ico" />
-    <Image Include="..\Resources\cancel-normal.ico" />
-    <Image Include="..\Resources\cancel-pressed.ico" />
-    <Image Include="..\Resources\certcheck.ico" />
-    <Image Include="..\Resources\CFMBackground.ico" />
-    <Image Include="..\Resources\checkout.ico" />
-    <Image Include="..\Resources\cherry-pick.ico" />
-    <Image Include="..\Resources\clippaste.ico" />
-    <Image Include="..\Resources\code.ico" />
-    <Image Include="..\Resources\CommitBackground.ico" />
-    <Image Include="..\Resources\copy.ico" />
-    <Image Include="..\Resources\dialogs.ico" />
-    <Image Include="..\Resources\Drives.ico" />
-    <Image Include="..\Resources\executableovl.ico" />
-    <Image Include="..\Resources\explorer.ico" />
-    <Image Include="..\Resources\externalovl.ico" />
-    <Image Include="..\Resources\file.ico" />
-    <Image Include="..\Resources\filteredit.ico" />
-    <Image Include="..\Resources\general.ico" />
-    <Image Include="..\Resources\gitconfig.ico" />
-    <Image Include="..\Resources\gitcredential.ico" />
-    <Image Include="..\Resources\gitfolder.ico" />
-    <Image Include="..\Resources\gitremote.ico" />
-    <Image Include="..\Resources\graph-bar-stacked.ico" />
-    <Image Include="..\Resources\graph-bar.ico" />
-    <Image Include="..\Resources\graph-line-stacked.ico" />
-    <Image Include="..\Resources\graph-line.ico" />
-    <Image Include="..\Resources\graph-pie.ico" />
-    <Image Include="..\Resources\hook.ico" />
-    <Image Include="..\Resources\iconset.ico" />
-    <Image Include="..\Resources\ImportPatchesBackground.ico" />
-    <Image Include="..\Resources\indeterminate.ico" />
-    <Image Include="..\Resources\jumpdown.ico" />
-    <Image Include="..\Resources\jumpup.ico" />
-    <Image Include="..\Resources\lineadded.ico" />
-    <Image Include="..\Resources\lineconflicted.ico" />
-    <Image Include="..\Resources\lineremoved.ico" />
-    <Image Include="..\Resources\LockBackground.ico" />
-    <Image Include="..\Resources\logfilter.ico" />
-    <Image Include="..\Resources\lookandfeel.ico" />
-    <Image Include="..\Resources\menuabout.ico" />
-    <Image Include="..\Resources\menuadd.ico" />
-    <Image Include="..\Resources\menucheckout.ico" />
-    <Image Include="..\Resources\menucleanup.ico" />
-    <Image Include="..\Resources\menucommit.ico" />
-    <Image Include="..\Resources\menucompare.ico" />
-    <Image Include="..\Resources\menuconflict.ico" />
-    <Image Include="..\Resources\menucopy.ico" />
-    <Image Include="..\Resources\menucreaterepos.ico" />
-    <Image Include="..\Resources\menudelete.ico" />
-    <Image Include="..\Resources\menudiff.ico" />
-    <Image Include="..\Resources\menuexport.ico" />
-    <Image Include="..\Resources\menuhelp.ico" />
-    <Image Include="..\Resources\menuignore.ico" />
-    <Image Include="..\Resources\menulog.ico" />
-    <Image Include="..\Resources\menumerge.ico" />
-    <Image Include="..\Resources\menupatch.ico" />
-    <Image Include="..\Resources\menurelocate.ico" />
-    <Image Include="..\Resources\menurename.ico" />
-    <Image Include="..\Resources\menuresolve.ico" />
-    <Image Include="..\Resources\menurevert.ico" />
-    <Image Include="..\Resources\menusettings.ico" />
-    <Image Include="..\Resources\menushowchanged.ico" />
-    <Image Include="..\Resources\menuswitch.ico" />
-    <Image Include="..\Resources\menuupdate.ico" />
-    <Image Include="..\Resources\misc.ico" />
-    <Image Include="..\Resources\notepad.ico" />
-    <Image Include="..\Resources\open.ico" />
-    <Image Include="..\Resources\Overlays.ico" />
-    <Image Include="..\Resources\proxy.ico" />
-    <Image Include="..\Resources\pull1.ico" />
-    <Image Include="..\Resources\refresh.ico" />
-    <Image Include="..\Resources\reftype.bmp" />
-    <Image Include="..\Resources\RepoBrowserBackground.ico" />
-    <Image Include="..\Resources\reset.ico" />
-    <Image Include="..\Resources\ResolveBackground.ico" />
-    <Image Include="..\Resources\restore.ico" />
-    <Image Include="..\Resources\restoreovl.ico" />
-    <Image Include="..\Resources\RevertBackground.ico" />
-    <Image Include="..\Resources\revgraphbar.bmp" />
-    <Image Include="..\Resources\revgraphglyphs.bmp" />
-    <Image Include="..\Resources\save.ico" />
-    <Image Include="..\Resources\saveas.ico" />
-    <Image Include="..\Resources\saveddata.ico" />
-    <Image Include="..\Resources\snippet.ico" />
-    <Image Include="..\Resources\spell.ico" />
-    <Image Include="..\Resources\UnlockBackground.ico" />
-    <Image Include="..\Resources\UpdateBackground.ico" />
-    <Image Include="..\Resources\switch.ico" />
-    <Image Include="..\Resources\SwitchBackground.ico" />
-    <Image Include="..\Resources\symlinkovl.ico" />
-    <Image Include="..\Resources\Toolbar.bmp" />
-    <Image Include="..\Resources\Tortoise.ico" />
-    <Image Include="..\Resources\TortoiseGitBlame.ico" />
-    <Image Include="..\Resources\tortoisegit_logoflipped.bmp" />
-    <Image Include="..\Resources\TortoiseMerge.ico" />
-    <Image Include="..\Resources\TortoiseSmall.ico" />
-    <Image Include="..\Resources\tsvnmenufile.ico" />
-    <Image Include="..\Resources\tsvnmenufolder.ico" />
-    <Image Include="..\Resources\tsvnmenulink.ico" />
-    <Image Include="..\Resources\tsvnmenumultiple.ico" />
-    <Image Include="..\Resources\warning-general.ico" />
-    <Image Include="..\TortoiseUDiff\TortoiseUDiff.ico" />
-    <Image Include="..\Resources\library-win10.ico" />
-    <Image Include="gitfolder.ico" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="..\Resources\download.avi" />
-    <None Include="..\Resources\pan.cur" />
-    <None Include="..\Resources\pandown.cur" />
-    <None Include="..\Resources\TortoiseGit_Logo.svgz" />
-    <None Include="..\Resources\TortoiseLoglistCommon.rc2" />
-  </ItemGroup>
-  <ItemGroup>
-    <ResourceCompile Include="..\Resources\TortoiseProcENG.rc" />
-  </ItemGroup>
-  <ItemGroup>
     <ProjectReference Include="..\libgit2\TGitLibgit2.vcxproj">
       <Project>{2f29bedb-4b28-4f53-9d1c-3be0766e738e}</Project>
     </ProjectReference>
     <ProjectReference Include="..\..\ext\gitdll\gitdll.vcxproj">
       <Project>{4f0a55de-dafd-4a0b-a03d-2c14cb77e08f}</Project>
-      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+      <ReferenceOutputAssembly>true</ReferenceOutputAssembly>
+      <CopyLocalSatelliteAssemblies>true</CopyLocalSatelliteAssemblies>
+      <UseLibraryDependencyInputs>true</UseLibraryDependencyInputs>
     </ProjectReference>
     <ProjectReference Include="..\ResizableLib\ResizableLib.vcxproj">
       <Project>{4be529fb-c2f2-49f7-a897-054b955564cf}</Project>
@@ -804,6 +483,7 @@
     <ProjectReference Include="..\AsyncFramework\AsyncFramework.vcxproj">
       <Project>{98e4e6d3-0ef6-4570-a29e-274dacf3b784}</Project>
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+      <UseLibraryDependencyInputs>true</UseLibraryDependencyInputs>
     </ProjectReference>
     <ProjectReference Include="..\IBugTraqProvider\IBugTraqProvider.vcxproj">
       <Project>{2c879469-db8f-4bf0-b016-ae864d2a7bbc}</Project>

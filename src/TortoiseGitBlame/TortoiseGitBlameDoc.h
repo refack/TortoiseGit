@@ -22,7 +22,7 @@
 
 
 #pragma once
-#include "TGitPath.h"
+#include <Git/TGitPath.h>
 
 class CMainFrame ;
 

@@ -1,130 +1,172 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Project DefaultTargets="Build" ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <PropertyGroup>
-    <LinkIncremental Condition="'$(Configuration)'=='Debug'">true</LinkIncremental>
-    <LinkIncremental Condition="'$(Configuration)'=='Release'">false</LinkIncremental>
-    <IntDir Condition="'$(Platform)'=='x64'">$(SolutionDir)..\obj\$(ProjectName)\$(Configuration)64\</IntDir>
-    <OutDir Condition="'$(Platform)'=='x64'">$(SolutionDir)..\bin\$(Configuration)64\bin\</OutDir>
-    <IntDir Condition="'$(Platform)'=='ARM64'">$(SolutionDir)..\obj\$(ProjectName)\$(Configuration)ARM64\</IntDir>
-    <OutDir Condition="'$(Platform)'=='ARM64'">$(SolutionDir)..\bin\$(Configuration)ARM64\bin\</OutDir>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|ARM64">
+      <Configuration>Debug</Configuration>
+      <Platform>ARM64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|ARM64">
+      <Configuration>Release</Configuration>
+      <Platform>ARM64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="UserMacros">
+    <IsRelease Condition="'$(Configuration)'=='Release'">true</IsRelease>
+    <IsRelease Condition="'$(Configuration)'=='Debug'">false</IsRelease>
+    <IsDebug Condition="'$(Configuration)'=='Release'">false</IsDebug>
+    <IsDebug Condition="'$(Configuration)'=='Debug'">true</IsDebug>
+    <SolutionDir Condition="'$(SolutionDir)' == ''">$([MSBuild]::NormalizeDirectory('$(MSBuildThisFileDirectory)', '..'))</SolutionDir>
   </PropertyGroup>
-  <PropertyGroup>
-    <!-- opt-in compiler cache: msbuild ... /p:UseSccache=true -->
-    <UseSccache Condition="'$(UseSccache)'==''">false</UseSccache>
+  <PropertyGroup Label="Globals">
+    <!-- ProjectName>gitdll</ProjectName -->
+    <!-- Keyword>Win32Proj</Keyword -->
+    <!-- ProjectGuid>{4F0A55DE-DAFD-4A0B-A03D-2C14CB77E08F}</ProjectGuid -->
+    <!-- RootNamespace>gitdll</RootNamespace -->
+    <VCProjectVersion>18.0</VCProjectVersion>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <!-- Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" / -->
+  <PropertyGroup Label="Configuration">
+    <!-- ConfigurationType>DynamicLibrary</ConfigurationType -->
+    <CharacterSet>Unicode</CharacterSet>
+    <!-- LinkIncremental>$(IsDebug)</LinkIncremental -->
+    <IntDir>$([MSBuild]::NormalizeDirectory('.build', 'obj', '$(Configuration)', '$(ProjectName)'))</IntDir>
+    <OutDir>$([MSBuild]::NormalizeDirectory('.build', 'bin', '$(Configuration)_$(Platform)'))</OutDir>
+    <PlatformToolset>v145</PlatformToolset>
+    <VCToolsVersion>14.51.36231</VCToolsVersion>
+    <MSVCPreviewEnabled>true</MSVCPreviewEnabled>
+    <PreferredToolArchitecture>x64</PreferredToolArchitecture>
+    <UseOfMfc>Dynamic</UseOfMfc>
+    <UseDebugLibraries>$(IsDebug)</UseDebugLibraries>
+    <WholeProgramOptimization>$(IsRelease)</WholeProgramOptimization>
+    <UseStructuredOutput>true</UseStructuredOutput>
+  </PropertyGroup>
+  <PropertyGroup Label="Vcpkg">
+    <VcpkgEnabled>true</VcpkgEnabled>
+    <VcpkgTriplet>$(Platform.ToLowerInvariant())-windows-static-md</VcpkgTriplet>
+    <VcpkgInstalledDir>$(SolutionDir)vcpkg_installed\</VcpkgInstalledDir>
+    <VcpkgDeployedDir>$([MSBuild]::NormalizeDirectory('$(VcpkgInstalledDir)', '$(VcpkgTriplet)'))</VcpkgDeployedDir>
+    <VcpkgIncludeDir>$(VcpkgDeployedDir)include\</VcpkgIncludeDir>
+    <VcpkgLibDir Condition="'$(Configuration)' == 'Debug'">$(VcpkgDeployedDir)debug\lib\</VcpkgLibDir>
+    <VcpkgLibDir Condition="'$(Configuration)' != 'Debug'">$(VcpkgDeployedDir)lib\</VcpkgLibDir>
+    <!-- vcpkg suffixes debug builds of some ports; libgit2 itself does not. -->
+    <VcpkgLibSuffix Condition="'$(Configuration)' == 'Debug'">d</VcpkgLibSuffix>
+    <VcpkgSentinel>$(VcpkgIncludeDir)zlib.h</VcpkgSentinel>
+    <VcpkgEnableManifest>true</VcpkgEnableManifest>
+  </PropertyGroup>
+  <!-- Import Project="$(SolutionDir)src\TortoiseGit.common.props" / -->
+  <!-- Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" / -->
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="Shared">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets">
+  </ImportGroup>
+  <Target Name="VerifyVcpkgRestore" BeforeTargets="ClCompile">
+    <!-- zlib.h is used as the sentinel because every port installed by the
+         manifest depends on zlib, unlike git2.lib, which a package-neutral
+         consumer of this file has no reason to need. -->
+    <Error Condition="!Exists('$(VcpkgSentinel)')"
+           Text="vcpkg package not restored for $(VcpkgTriplet). Run:  vcpkg install --triplet $(VcpkgTriplet)   (expected $(VcpkgSentinel))" />
+  </Target>
+  <PropertyGroup Label="MSBuildBinlog">
+    <!-- 1. Define your dynamic path using valid project properties -->
+    <CustomBinlogPath>$(IntDir)$(ProjectName)-{}.binlog</CustomBinlogPath>
+    
+    <!-- 2. Pass this path to the MSBuild engine's binary logger property hook -->
+    <MSBuildBinaryLogger>File=$(CustomBinlogPath);ProjectImports=Embed</MSBuildBinaryLogger>
   </PropertyGroup>
   <ItemDefinitionGroup>
     <ClCompile>
-      <!--
-        Shared source roots, so that a header belonging to another project is reached
-        as <TGitCache/CacheInterface.h> rather than "../TGitCache/CacheInterface.h".
-        A relative include hardcodes the on-disk layout into the source, where no build
-        file declares it and no tool can check it; the compiler is then the only thing
-        that knows the dependency exists. The project-qualified form also keeps the
-        many same-named resource.h files apart. Utils is listed as well because
-        Utils\MiscUI reaches its parent the same way.
-      -->
-      <AdditionalIncludeDirectories>$(SolutionDir);$(SolutionDir)Utils;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <BufferSecurityCheck>true</BufferSecurityCheck>
+      <CompileAs>Default</CompileAs>
       <ExceptionHandling>Sync</ExceptionHandling>
-      <FunctionLevelLinking>true</FunctionLevelLinking>
-      <PrecompiledHeader>Use</PrecompiledHeader>
-      <PrecompiledHeaderFile>stdafx.h</PrecompiledHeaderFile>
-      <PreprocessorDefinitions>_WINDOWS;WINDOWS;GIT_DEPRECATE_HARD;ENABLE_INTSAFE_SIGNED_FUNCTIONS;NOMINMAX;VC_EXTRALEAN;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <PreprocessorDefinitions Condition="'$(Platform)'=='x64'">_WIN64;WIN64;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <PreprocessorDefinitions Condition="'$(Platform)'=='ARM64'">_WIN64;WIN64;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <WarningLevel>Level4</WarningLevel>
-      <LanguageStandard>stdcpp23</LanguageStandard>
-      <AdditionalOptions>/utf-8 /Zc:__cplusplus %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalIncludeDirectories>$(ProjectDir);$(SolutionDir)src;$(VcpkgIncludeDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <!-- AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories -->
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <StringPooling>true</StringPooling>
+      <WholeProgramOptimization>$(IsRelease)</WholeProgramOptimization>
+      <LanguageStandard>stdcpplatest</LanguageStandard>
+      <LanguageStandard_C>stdclatest</LanguageStandard_C>
+      <TreatAngleIncludeAsExternal>true</TreatAngleIncludeAsExternal>
+      <ExternalWarningLevel>TurnOffAllWarnings</ExternalWarningLevel>
+      <WarningLevel>Level3</WarningLevel>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <!-- PreprocessorDefinitions>_WIN32_WINNT=0x0A00;_WINDOWS;WINDOWS;NOMINMAX;VC_EXTRALEAN;WIN32_LEAN_AND_MEAN;%(PreprocessorDefinitions)</PreprocessorDefinitions -->
+      <PreprocessorDefinitions>_WIN32_WINNT=0x0A00;_WINDOWS;WINDOWS;NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>UNICODE;_UNICODE;GIT_DEPRECATE_HARD;ENABLE_INTSAFE_SIGNED_FUNCTIONS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_WIN64;WIN64;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions Condition="'$(Platform)'=='x64'">_AMD64_;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions Condition="'$(Platform)'=='ARM64'">_ARM64_;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <!-- BuildStlModules>true</BuildStlModules -->
+      <!-- debug -->
+      <DebugInformationFormat Condition="'$(Configuration)'=='Debug'">OldStyle</DebugInformationFormat>
+      <BasicRuntimeChecks Condition="'$(Configuration)'=='Debug'">EnableFastChecks</BasicRuntimeChecks>
+      <Optimization Condition="'$(Configuration)'=='Debug'">Disabled</Optimization>
+      <PreprocessorDefinitions Condition="'$(Configuration)'=='Debug'">_DEBUG;DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <RuntimeLibrary Condition="'$(Configuration)'=='Debug'">MultiThreadedDebugDLL</RuntimeLibrary>
+      <!-- release -->
+      <DebugInformationFormat Condition="'$(Configuration)'=='Release'">ProgramDatabase</DebugInformationFormat>
+      <InlineFunctionExpansion Condition="'$(Configuration)'=='Release'">AnySuitable</InlineFunctionExpansion>
+      <FavorSizeOrSpeed Condition="'$(Configuration)'=='Release'">Speed</FavorSizeOrSpeed>
+      <Optimization Condition="'$(Configuration)'=='Release'">MaxSpeed</Optimization>
+      <PreprocessorDefinitions Condition="'$(Configuration)'=='Release'">NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Lib>
+      <LinkTimeCodeGeneration>$(IsRelease)</LinkTimeCodeGeneration>
       <TargetMachine Condition="'$(Platform)'=='x64'">MachineX64</TargetMachine>
+      <Verbose>$(IsDebug)</Verbose>
     </Lib>
     <Link>
+      <AdditionalDependencies>winhttp.lib;rpcrt4.lib;gdi32.lib;crypt32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(VcpkgLibDir);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <DataExecutionPrevention>true</DataExecutionPrevention>
+      <EnableCOMDATFolding>$(IsRelease)</EnableCOMDATFolding>
       <GenerateDebugInformation>true</GenerateDebugInformation>
+      <ImageHasSafeExceptionHandlers>$(IsRelease)</ImageHasSafeExceptionHandlers>
+      <LinkTimeCodeGeneration Condition="'$(Configuration)'=='Release'">UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
+      <OptimizeReferences>$(IsRelease)</OptimizeReferences>
       <RandomizedBaseAddress>true</RandomizedBaseAddress>
-      <SubSystem>Windows</SubSystem>
+      <SetChecksum>$(IsRelease)</SetChecksum>
       <TargetMachine Condition="'$(Platform)'=='x64'">MachineX64</TargetMachine>
     </Link>
     <Midl>
       <TargetEnvironment Condition="'$(Platform)'=='x64'">X64</TargetEnvironment>
       <WarningLevel>3</WarningLevel>
     </Midl>
+    <ProjectReference>
+      <LinkLibraryDependencies>true</LinkLibraryDependencies>
+    </ProjectReference>
     <ResourceCompile>
-      <Culture>0x0409</Culture>
+      <AdditionalIncludeDirectories>$(SolutionDir)src;$(VcpkgIncludeDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <Culture>0x0009</Culture>
       <PreprocessorDefinitions Condition="'$(Platform)'=='x64'">_WIN64;WIN64;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions Condition="'$(Configuration)'=='Debug'">_DEBUG;DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions Condition="'$(Configuration)'=='Release'">_NDEBUG;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ResourceCompile>
     <Manifest>
-      <AdditionalManifestFiles>$(SolutionDir)compatibility.manifest.xml;%(AdditionalManifestFiles)</AdditionalManifestFiles>
+      <!-- EnableDpiAwareness>true</EnableDpiAwareness -->
+      <AdditionalIncludeDirectories>$(VcpkgIncludeDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalManifestFiles>$(SolutionDir)src\compatibility.manifest.xml;%(AdditionalManifestFiles)</AdditionalManifestFiles>
     </Manifest>
   </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)'=='Debug'">
-    <ClCompile>
-      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
-      <DebugInformationFormat Condition="'$(Platform)'=='x64'">ProgramDatabase</DebugInformationFormat>
-      <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>_DEBUG;DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
-    </ClCompile>
-    <ResourceCompile>
-      <PreprocessorDefinitions>_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-    </ResourceCompile>
-    <Link>
-      <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
-    </Link>
-  </ItemDefinitionGroup>
-  <ItemDefinitionGroup Condition="'$(Configuration)'=='Release'">
-    <ClCompile>
-      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
-      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
-      <InlineFunctionExpansion Condition="'$(Platform)|$(MSBuildVersion)'=='x64|16.4.0' OR '$(Platform)|$(MSBuildVersion)'=='x64|16.5.0'">OnlyExplicitInline</InlineFunctionExpansion>
-      <IntrinsicFunctions>true</IntrinsicFunctions>
-      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
-      <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <Optimization>MaxSpeed</Optimization>
-      <PreprocessorDefinitions>NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
-      <StringPooling>true</StringPooling>
-      <WholeProgramOptimization>true</WholeProgramOptimization>
-      <AdditionalOptions>/d2Zi+ %(AdditionalOptions)</AdditionalOptions>
-    </ClCompile>
-    <Lib>
-      <LinkTimeCodeGeneration>true</LinkTimeCodeGeneration>
-    </Lib>
-    <Link>
-      <EnableCOMDATFolding>true</EnableCOMDATFolding>
-      <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
-      <OptimizeReferences>true</OptimizeReferences>
-      <SetChecksum>true</SetChecksum>
-    </Link>
-    <ResourceCompile>
-      <PreprocessorDefinitions>NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-    </ResourceCompile>
-  </ItemDefinitionGroup>
-  <!--
-    Keep last: ItemDefinitionGroups are applied in order, so this has to come after the
-    groups above to be able to override them.
+  <ItemGroup>
+  </ItemGroup>
+  <ItemGroup>
+  </ItemGroup>
+  <ItemGroup>
 
-    MSBuild has no compiler-launcher property (that is a CMake concept), so the cache is
-    hooked in by pointing CLToolExe at a copy of sccache.exe named cl.exe, which then finds
-    the real cl.exe via PATH. /MP batches several source files into a single cl.exe
-    invocation, so it is turned off here. Debug info has to be /Z7 (OldStyle) as well:
-    /Zi routes PDB writes through mspdbsrv, which sccache cannot cache.
 
-    Precompiled headers are off too, since sccache does not cache compilations that consume
-    one. Projects whose sources include their PCH by name and rely on /Yu to resolve it have
-    to pin PrecompiledHeader themselves, in an ItemDefinitionGroup after this file is
-    imported (PrecompiledHeader=Use plus PrecompiledHeaderFile pointing at the header the
-    sources #include by name).
-  -->
-  <ItemDefinitionGroup Condition="'$(UseSccache)'=='true'">
-    <ClCompile>
-      <CLToolPath>$(SolutionDir)..\.git\</CLToolPath>
-      <CLToolExe>cl.exe</CLToolExe>
-      <PrecompiledHeader>NotUsing</PrecompiledHeader>
-      <MultiProcessorCompilation>false</MultiProcessorCompilation>
-      <DebugInformationFormat>OldStyle</DebugInformationFormat>
-    </ClCompile>
-  </ItemDefinitionGroup>
+
+  </ItemGroup>
+  <!-- Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" / -->
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
 </Project>

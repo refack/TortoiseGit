@@ -17,7 +17,7 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 #pragma once
-#include "CommonDialogFunctions.h"
+#include "Utils/MiscUI/CommonDialogFunctions.h"
 
 /**
  * base class for the merge wizard property pages

@@ -1,4 +1,4 @@
-// TortoiseGit - a Windows shell extension for easy version control
+﻿// TortoiseGit - a Windows shell extension for easy version control
 
 // Copyright (C) 2011, 2023 Sven Strickroth, <email@cs-ware.de>
 //
@@ -22,7 +22,7 @@
 
 #pragma once
 
-#include "StandAloneDlg.h"
+#include <Utils/MiscUI/StandAloneDlg.h>
 
 class CSVNDCommitDlg : public CStandAloneDialog
 {

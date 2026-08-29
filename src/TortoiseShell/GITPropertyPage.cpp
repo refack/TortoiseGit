@@ -22,7 +22,7 @@
 #include "ShellExt.h"
 #include "gitpropertypage.h"
 #include "UnicodeUtils.h"
-#include "PathUtils.h"
+import PathUtils;
 #include "CreateProcessHelper.h"
 #include "FormatMessageWrapper.h"
 #include "StringUtils.h"

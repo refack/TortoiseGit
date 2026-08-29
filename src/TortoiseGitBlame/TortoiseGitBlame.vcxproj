@@ -40,8 +40,7 @@
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-  <Import Project="$(SolutionDir)TortoiseGit.common.props" />
-  <Import Project="$(SolutionDir)TortoiseGit.vcpkg.props" />
+  <Import Project="$(SolutionDir)src\TortoiseGit.common.props" />
   <PropertyGroup Label="UserMacros" />
   <ItemDefinitionGroup>
     <ClCompile>
@@ -54,9 +53,6 @@
     </ResourceCompile>
     <Link>
       <AdditionalDependencies>gdiplus.lib;comctl32.lib;shlwapi.lib;UxTheme.lib;wininet.lib;detours.lib;Scintilla.lib;Lexilla.lib;imm32.lib;msimg32.lib;ole32.lib;oleaut32.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <!-- vcpkg builds Scintilla/Lexilla with vcpkg_install_msbuild, which ships no
-           PDBs, so every one of their ~400 objects emits LNK4099. Suppressed here
-           rather than left to drown real link warnings. -->
       <AdditionalOptions>/ignore:4099 %(AdditionalOptions)</AdditionalOptions>
     </Link>
     <Manifest>
@@ -64,61 +60,11 @@
     </Manifest>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\Git\Git.cpp" />
-    <ClCompile Include="..\Git\GitAdminDir.cpp" />
-    <ClCompile Include="..\Git\GitMailmap.cpp" />
-    <ClCompile Include="..\Git\GitRev.cpp" />
-    <ClCompile Include="..\Git\GitRevLoglist.cpp" />
-    <ClCompile Include="..\Git\TGitPath.cpp" />
-    <ClCompile Include="..\TortoiseProc\Colors.cpp" />
-    <ClCompile Include="..\TortoiseProc\ColumnManager.cpp" />
-    <ClCompile Include="..\TortoiseProc\FilterHelper.cpp" />
-    <ClCompile Include="..\TortoiseProc\GravatarPictureBox.cpp" />
-    <ClCompile Include="..\TortoiseProc\LogDlgFilter.cpp" />
-    <ClCompile Include="..\Utils\CmdLineParser.cpp" />
-    <ClCompile Include="..\Utils\CommonAppUtils.cpp" />
-    <ClCompile Include="..\Utils\DarkModeHelper.cpp" />
-    <ClCompile Include="..\Utils\DebugOutput.cpp" />
-    <ClCompile Include="..\Utils\DirFileEnum.cpp" />
-    <ClCompile Include="..\Utils\Hash.cpp" />
-    <ClCompile Include="..\Utils\LangDll.cpp" />
-    <ClCompile Include="..\Utils\LoadIconEx.cpp" />
-    <ClCompile Include="..\Utils\MiscUI\DockablePaneUnscaledStoredState.cpp" />
-    <ClCompile Include="..\Utils\MiscUI\EditWordBreak.cpp" />
-    <ClCompile Include="..\Utils\MiscUI\FilterEdit.cpp" />
-    <ClCompile Include="..\Utils\MiscUI\HistoryCombo.cpp" />
-    <ClCompile Include="..\Utils\MiscUI\IconBitmapUtils.cpp" />
-    <ClCompile Include="..\Utils\MiscUI\IconMenu.cpp" />
-    <ClCompile Include="..\Utils\MiscUI\MessageBox.cpp" />
-    <ClCompile Include="..\Utils\MiscUI\Picture.cpp" />
-    <ClCompile Include="..\Utils\MiscUI\ThemeMFCVisualManager.cpp" />
-    <ClCompile Include="..\Utils\MiscUI\Tooltip.cpp" />
-    <ClCompile Include="..\Utils\Monitor.cpp" />
-    <ClCompile Include="..\Utils\PathUtils.cpp" />
-    <ClCompile Include="..\Utils\PersonalDictionary.cpp" />
-    <ClCompile Include="..\Utils\Registry.cpp" />
-    <ClCompile Include="..\Utils\StringUtils.cpp" />
-    <ClCompile Include="..\Utils\SysImageList.cpp" />
-    <ClCompile Include="..\Utils\SysInfo.cpp" />
-    <ClCompile Include="..\Utils\TaskbarUUID.cpp" />
-    <ClCompile Include="..\Utils\TempFile.cpp" />
-    <ClCompile Include="..\Utils\Theme.cpp" />
-    <ClCompile Include="..\Utils\UnicodeUtils.cpp" />
     <ClCompile Include="EditGotoDlg.cpp" />
-    <ClCompile Include="..\Utils\FileTextLines.cpp" />
-    <ClCompile Include="..\TortoiseProc\FindDlg.cpp" />
-    <ClCompile Include="..\TortoiseProc\GitLogCache.cpp" />
-    <ClCompile Include="..\TortoiseProc\GitLogListBase.cpp" />
-    <ClCompile Include="..\TortoiseProc\lanes.cpp" />
-    <ClCompile Include="..\TortoiseProc\LogDataVector.cpp" />
     <ClCompile Include="LogListBlameAction.cpp" />
-    <ClCompile Include="..\TortoiseProc\LoglistUtils.cpp" />
     <ClCompile Include="MainFrm.cpp" />
     <ClCompile Include="OutputWnd.cpp" />
-    <ClCompile Include="..\TortoiseProc\ProjectProperties.cpp" />
     <ClCompile Include="PropertiesWnd.cpp" />
-    <ClCompile Include="..\Utils\MiscUI\SciEdit.cpp" />
-    <ClCompile Include="..\Utils\MiscUI\StandAloneDlg.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader>Create</PrecompiledHeader>
     </ClCompile>
@@ -128,66 +74,10 @@
     <ClCompile Include="TortoiseGitBlameView.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\Git\Git.h" />
-    <ClInclude Include="..\Git\GitAdminDir.h" />
-    <ClInclude Include="..\Git\GitForWindows.h" />
-    <ClInclude Include="..\Git\GitHash.h" />
-    <ClInclude Include="..\Git\GitMailmap.h" />
-    <ClInclude Include="..\Git\GitRev.h" />
-    <ClInclude Include="..\Git\GitRevLoglist.h" />
-    <ClInclude Include="..\Git\gittype.h" />
-    <ClInclude Include="..\Git\TGitPath.h" />
-    <ClInclude Include="..\Resources\LoglistCommonResource.h" />
-    <ClInclude Include="..\TortoiseProc\ColumnManager.h" />
-    <ClInclude Include="..\TortoiseProc\FilterHelper.h" />
-    <ClInclude Include="..\TortoiseProc\LogDlgFilter.h" />
-    <ClInclude Include="..\Utils\CmdLineParser.h" />
-    <ClInclude Include="..\Utils\DarkModeHelper.h" />
-    <ClInclude Include="..\Utils\DebugOutput.h" />
-    <ClInclude Include="..\Utils\DirFileEnum.h" />
-    <ClInclude Include="..\Utils\DPIAware.h" />
-    <ClInclude Include="..\Utils\Hash.h" />
-    <ClInclude Include="..\Utils\LangDll.h" />
-    <ClInclude Include="..\Utils\LoadIconEx.h" />
-    <ClInclude Include="..\Utils\LruCache.h" />
-    <ClInclude Include="..\Utils\MiscUI\CommonDialogFunctions.h" />
-    <ClInclude Include="..\Utils\MiscUI\DockablePaneUnscaledStoredState.h" />
-    <ClInclude Include="..\Utils\MiscUI\EditWordBreak.h" />
-    <ClInclude Include="..\Utils\MiscUI\FilterEdit.h" />
-    <ClInclude Include="..\Utils\MiscUI\GestureEnabledControl.h" />
-    <ClInclude Include="..\Utils\MiscUI\HintCtrl.h" />
-    <ClInclude Include="..\Utils\MiscUI\HistoryCombo.h" />
-    <ClInclude Include="..\Utils\MiscUI\IconBitmapUtils.h" />
-    <ClInclude Include="..\Utils\MiscUI\IconMenu.h" />
-    <ClInclude Include="..\Utils\MiscUI\MessageBox.h" />
-    <ClInclude Include="..\Utils\MiscUI\Picture.h" />
-    <ClInclude Include="..\Utils\MiscUI\StandAloneDlg.h" />
-    <ClInclude Include="..\Utils\MiscUI\ThemeMFCVisualManager.h" />
-    <ClInclude Include="..\Utils\MiscUI\Tooltip.h" />
-    <ClInclude Include="..\Utils\Monitor.h" />
-    <ClInclude Include="..\Utils\PathUtils.h" />
-    <ClInclude Include="..\Utils\PersonalDictionary.h" />
-    <ClInclude Include="..\Utils\registry.h" />
-    <ClInclude Include="..\Utils\StringUtils.h" />
-    <ClInclude Include="..\Utils\SysImageList.h" />
-    <ClInclude Include="..\Utils\SysInfo.h" />
-    <ClInclude Include="..\Utils\TaskbarUUID.h" />
-    <ClInclude Include="..\Utils\TempFile.h" />
-    <ClInclude Include="..\Utils\Theme.h" />
-    <ClInclude Include="..\Utils\UnicodeUtils.h" />
-    <ClInclude Include="..\Utils\URLFinder.h" />
     <ClInclude Include="BlameDetectMovedOrCopiedLines.h" />
     <ClInclude Include="BlameIndexColors.h" />
     <ClInclude Include="GitBlameLogList.h" />
-    <ClInclude Include="..\TortoiseProc\gitlogcache.h" />
-    <ClInclude Include="..\TortoiseProc\GitLogListBase.h" />
-    <ClInclude Include="..\TortoiseProc\lanes.h" />
-    <ClInclude Include="..\TortoiseProc\LogDlgHelper.h" />
-    <ClInclude Include="..\Utils\MiscUI\SciEdit.h" />
-    <ClInclude Include="..\Utils\CommonAppUtils.h" />
     <ClInclude Include="EditGotoDlg.h" />
-    <ClInclude Include="..\Utils\FileTextLines.h" />
-    <ClInclude Include="..\TortoiseProc\LoglistUtils.h" />
     <ClInclude Include="MainFrm.h" />
     <ClInclude Include="MenuEncode.h" />
     <ClInclude Include="OutputWnd.h" />
@@ -198,23 +88,6 @@
     <ClInclude Include="TortoiseGitBlameData.h" />
     <ClInclude Include="TortoiseGitBlameDoc.h" />
     <ClInclude Include="TortoiseGitBlameView.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <Image Include="..\Resources\copy.ico" />
-    <Image Include="..\Resources\menucompare.ico" />
-    <Image Include="..\Resources\blameres\output_wnd.ico" />
-    <Image Include="..\Resources\blameres\output_wnd_hc.ico" />
-    <Image Include="..\Resources\blameres\properties_wnd.ico" />
-    <Image Include="..\Resources\blameres\properties_wnd_hc.ico" />
-    <Image Include="..\Resources\blameres\Toolbar.bmp" />
-    <Image Include="..\Resources\blameres\Toolbar256.bmp" />
-    <Image Include="..\Resources\TortoiseGitBlame.ico" />
-    <Image Include="..\Resources\menulog.ico" />
-  </ItemGroup>
-  <ItemGroup>
-    <ResourceCompile Include="..\Resources\TortoiseGitBlameENG.rc">
-      <AdditionalIncludeDirectories>$(IntDir);..\TortoiseShell;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-    </ResourceCompile>
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\libgit2\TGitLibgit2.vcxproj">
@@ -230,7 +103,7 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\Resources\TortoiseLoglistCommon.rc2" />
+    <None Include="res\TortoiseGitBlame.rc2" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

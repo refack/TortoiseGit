@@ -19,6 +19,12 @@
     <ClCompile Include="IBugTraqProvider_i.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="dlldata.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="IBugTraqProvider_p.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="IBugTraqProvider_h.h">

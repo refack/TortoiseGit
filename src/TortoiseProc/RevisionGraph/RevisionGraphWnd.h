@@ -19,12 +19,12 @@
 //
 
 #pragma once
-#include "Future.h"
-#include "ProgressDlg.h"
 #include "Colors.h"
-#include "SVG.h"
-#include "LogDlgHelper.h"
 #include "Graphviz.h"
+#include "LogDlgHelper.h"
+#include "ProgressDlg.h"
+#include "SVG.h"
+#include <AsyncFramework/Future.h>
 
 #pragma warning(push)
 #pragma warning(disable: 4100) // unreferenced formal parameter

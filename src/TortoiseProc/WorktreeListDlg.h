@@ -18,10 +18,10 @@
 //
 
 #pragma once
-#include "StandAloneDlg.h"
+#include "Utils/MiscUI/StandAloneDlg.h"
 #include "gittype.h"
 #include "GitHash.h"
-#include "GestureEnabledControl.h"
+#include "Utils/MiscUI/GestureEnabledControl.h"
 #include "ResizableColumnsListCtrl.h"
 
 class WorktreeDetails
@@ -42,7 +42,7 @@ public:
 	bool m_IsLocked = false;
 	CString m_LockedReason;
 
-	CString GetFullName() const
+	[[nodiscard]]CString GetFullName() const
 	{
 		return m_WorktreeName;
 	}
@@ -50,19 +50,19 @@ public:
 
 class CWorktreeListDlg : public CResizableStandAloneDialog
 {
-	DECLARE_DYNAMIC(CWorktreeListDlg)
-
 public:
-	CWorktreeListDlg(CWnd* pParent = nullptr); // standard constructor
-	virtual ~CWorktreeListDlg();
+	DECLARE_DYNAMIC(CWorktreeListDlg, CResizableStandAloneDialog)
+
+	explicit CWorktreeListDlg(CWnd* pParent = nullptr) : CResizableStandAloneDialog(IDD, pParent) {}
+	~CWorktreeListDlg() override = default;
 
 	// Dialog Data
-	enum
+	enum: byte
 	{
 		IDD = IDD_WORKTREE_LIST
 	};
 
-	enum eCmd
+	enum eCmd : byte
 	{
 		eCmd_Open = WM_APP,
 		eCmd_Remove,
@@ -71,7 +71,7 @@ public:
 		eCmd_RemoveWithForce,
 	};
 
-	enum eCol
+	enum eCol : byte
 	{
 		eCol_Path,
 		eCol_Hash,
@@ -80,9 +80,14 @@ public:
 		eCol_Reason,
 	};
 
-private:
-	void DoDataExchange(CDataExchange* pDX) override; // DDX/DDV support
+protected:
+	void DoDataExchange(CDataExchange* pDX) override // DDX/DDV support
+	{
+		CDialog::DoDataExchange(pDX);
+		DDX_Control(pDX, IDC_WORKTREE_LIST, m_WorktreeList);
+	}
 
+private:
 	DECLARE_MESSAGE_MAP()
 
 	afx_msg void OnOK() override;

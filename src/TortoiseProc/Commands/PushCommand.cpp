@@ -20,7 +20,7 @@
 #include "stdafx.h"
 #include "PushCommand.h"
 #include "AppUtils.h"
-#include "GitAdminDir.h"
+import GitAdminDir;
 
 bool PushCommand::Execute()
 {

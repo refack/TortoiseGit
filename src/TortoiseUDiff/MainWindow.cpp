@@ -19,30 +19,35 @@
 //
 
 #include "stdafx.h"
-#include "TortoiseUDiff.h"
 #include "MainWindow.h"
-#include "UnicodeUtils.h"
-#include "StringUtils.h"
-#include "TaskbarUUID.h"
-#include "CreateProcessHelper.h"
+
+#include <commdlg.h>
+#include <scintilla/ILexer.h>
+#include <scintilla/Scintilla.h>
+#include <lexilla/Lexilla.h>
+#include <lexilla/SciLexer.h>
+#include <Utils/CreateProcessHelper.h>
+import DarkModeHelper;
+#include <Utils/DPIAware.h>
+#include <Utils/LoadIconEx.h>
+import Registry;
+#include <Utils/ScintillaRegistration.h>
+import StringUtils;
+import TaskbarUUID;
+#include <Utils/Theme.h>
+import wstr;
+#include <Utils/MiscUI/BaseWindow.h>
+
+#include "TortoiseUDiff.h"
 #include "UDiffColors.h"
-#include "registry.h"
-#include "DPIAware.h"
-#include "LoadIconEx.h"
-#include "Theme.h"
-#include "DarkModeHelper.h"
-#include "ILexer.h"
-#include "SciLexer.h"
-#include "Scintilla.h"
-#include "Lexilla.h"
-#include "ScintillaRegistration.h"
 
 const UINT TaskBarButtonCreated = RegisterWindowMessage(L"TaskbarButtonCreated");
 
 #define SEARCHBARHEIGHT 30
 
 CMainWindow::CMainWindow(HINSTANCE hInst, const WNDCLASSEX* wcx /* = nullptr*/)
-	: CWindow(hInst, wcx)
+	:
+	::CWindow(hInst, wcx)
 {
 	SetWindowTitle(L"TortoiseGitUDiff");
 }
@@ -53,7 +58,7 @@ CMainWindow::~CMainWindow()
 
 bool CMainWindow::RegisterAndCreateWindow()
 {
-	WNDCLASSEX wcx;
+	WNDCLASSEX wcx{};
 
 	// Fill in the window class structure with default parameters
 	wcx.cbSize = sizeof(WNDCLASSEX);
@@ -339,7 +344,7 @@ LRESULT CMainWindow::DoCommand(int id)
 		break;
 	case ID_FILE_PRINT:
 		{
-			PRINTDLGEX pdlg = {0};
+			PRINTDLGEXW pdlg = {0};
 			pdlg.lStructSize = sizeof(PRINTDLGEX);
 			pdlg.hwndOwner = *this;
 			pdlg.hInstance = nullptr;

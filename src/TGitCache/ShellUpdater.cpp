@@ -22,7 +22,7 @@
 #include "ShellUpdater.h"
 #include <ShlObj.h>
 #include <format>
-#include "GitAdminDir.h"
+import GitAdminDir;
 
 CShellUpdater::CShellUpdater()
 {

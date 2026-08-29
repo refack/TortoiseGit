@@ -20,7 +20,7 @@
 #pragma once
 #include "StringUtils.h"
 #include "Git.h"
-#include "MessageBox.h"
+#include <Utils/MiscUI/MessageBox.h>
 #include "AppUtils.h"
 #include <TGitCache/CacheInterface.h>
 

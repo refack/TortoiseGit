@@ -19,13 +19,15 @@
 //
 
 #include "stdafx.h"
-#include "TGitPath.h"
-#include "WideString.h"
-#include "Git.h"
-#include "StringUtils.h"
+
 #include <Resources/LoglistCommonResource.h>
-#include "PreserveChdir.h"
+
 #include "AutoTempDir.h"
+#include "Git.h"
+#include "PreserveChdir.h"
+#include "StringUtils.h"
+#include "WideString.h"
+import TGitPath;
 
 TEST(CTGitPath, GetDirectoryTest)
 {

@@ -22,7 +22,7 @@
 #include "stdafx.h"
 #include "TortoiseProc.h"
 #include "SettingGitConfig.h"
-#include "GitAdminDir.h"
+import GitAdminDir;
 #include "AppUtils.h"
 
 // CSettingGitConfig dialog

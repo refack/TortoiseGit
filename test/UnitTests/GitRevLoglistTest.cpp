@@ -20,7 +20,7 @@
 #include "stdafx.h"
 #include "RepositoryFixtures.h"
 #include "GitRevLoglist.h"
-#include "TGitPath.h"
+import TGitPath;
 
 class GitRevLoglistCBasicGitWithTestRepoFixture : public CBasicGitWithTestRepoFixture
 {

@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Project DefaultTargets="Build" ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|ARM64">
       <Configuration>Debug</Configuration>
@@ -18,118 +18,88 @@
       <Platform>x64</Platform>
     </ProjectConfiguration>
   </ItemGroup>
+  <PropertyGroup Label="UserMacros">
+  </PropertyGroup>
+  <PropertyGroup Label="Vcpkg">
+  </PropertyGroup>
   <PropertyGroup Label="Globals">
-    <ProjectGuid>{A00D2EDC-B4F5-4B41-94BA-13961DE5D296}</ProjectGuid>
-    <RootNamespace>TGitCache</RootNamespace>
+    <ProjectName>TGitCache</ProjectName>
     <Keyword>Win32Proj</Keyword>
+    <ProjectGuid>{A00D2EDC-B4F5-4B41-94BA-13961DE5D296}</ProjectGuid>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseOfAtl>Static</UseOfAtl>
-    <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)'=='Release'" Label="Configuration">
-    <WholeProgramOptimization>true</WholeProgramOptimization>
+  <PropertyGroup Label="Configuration">
+    <UseOfMfc>false</UseOfMfc>
   </PropertyGroup>
-  <PropertyGroup Label="Configuration" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <PlatformToolset>v145</PlatformToolset>
-  </PropertyGroup>
-  <PropertyGroup Label="Configuration" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <PlatformToolset>v145</PlatformToolset>
-  </PropertyGroup>
+  <Import Project="$(SolutionDir)src\TortoiseGit.common.props" />
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
-  <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-  <Import Project="$(SolutionDir)TortoiseGit.common.props" />
-  <Import Project="$(SolutionDir)TortoiseGit.vcpkg.props" />
-  <PropertyGroup Label="UserMacros" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="Shared">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets">
+  </ImportGroup>
   <ItemDefinitionGroup>
     <ClCompile>
-      <AdditionalIncludeDirectories>$(ProjectDir);..\..\ext\gitdll;..\Utils;..\TortoiseShell;..\Git;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir);$(SolutionDir)src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)ext\gitdll;$(SolutionDir)src\Utils;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)src\TortoiseShell;$(SolutionDir)src\Git;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>TGITCACHE;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
+    <ProjectReference />
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <AdditionalDependencies>git2.lib;winhttp.lib;rpcrt4.lib;gdi32.lib;crypt32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
     <Manifest>
       <EnableDpiAwareness>true</EnableDpiAwareness>
     </Manifest>
+    <ProjectReference>
+      <UseLibraryDependencyInputs>true</UseLibraryDependencyInputs>
+    </ProjectReference>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\Git\GitMailmap.cpp" />
-    <ClCompile Include="..\TortoiseShell\ShellCache.cpp" />
-    <ClCompile Include="..\Utils\DebugOutput.cpp" />
-    <ClCompile Include="..\Utils\LoadIconEx.cpp" />
     <ClCompile Include="CachedDirectory.cpp" />
     <ClCompile Include="CacheInterface.cpp" />
     <ClCompile Include="DirectoryWatcher.cpp" />
     <ClCompile Include="FolderCrawler.cpp" />
-    <ClCompile Include="..\Git\Git.cpp" />
-    <ClCompile Include="..\Git\GitAdminDir.cpp" />
-    <ClCompile Include="..\Git\GitIndex.cpp" />
-    <ClCompile Include="..\Git\GitRev.cpp" />
-    <ClCompile Include="..\Git\GitStatus.cpp" />
     <ClCompile Include="GITStatusCache.cpp" />
-    <ClCompile Include="..\Utils\PathUtils.cpp" />
-    <ClCompile Include="..\Utils\ReaderWriterLock.cpp" />
-    <ClCompile Include="..\Utils\Registry.cpp" />
     <ClCompile Include="ShellUpdater.cpp" />
     <ClCompile Include="StatusCacheEntry.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader>Create</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="..\Utils\StringUtils.cpp" />
-    <ClCompile Include="..\Utils\SysInfo.cpp" />
     <ClCompile Include="TGITCache.cpp" />
-    <ClCompile Include="..\Git\TGitPath.cpp" />
-    <ClCompile Include="..\Utils\UnicodeUtils.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\Git\Git.h" />
-    <ClInclude Include="..\Git\GitForWindows.h" />
-    <ClInclude Include="..\Git\GitHash.h" />
-    <ClInclude Include="..\Git\GitMailmap.h" />
-    <ClInclude Include="..\Git\GitRev.h" />
-    <ClInclude Include="..\Git\gittype.h" />
-    <ClInclude Include="..\Utils\CreateProcessHelper.h" />
-    <ClInclude Include="..\Utils\DebugOutput.h" />
-    <ClInclude Include="..\Utils\LoadIconEx.h" />
     <ClInclude Include="CachedDirectory.h" />
     <ClInclude Include="CacheInterface.h" />
     <ClInclude Include="DirectoryWatcher.h" />
     <ClInclude Include="FolderCrawler.h" />
-    <ClInclude Include="..\Git\GitAdminDir.h" />
-    <ClInclude Include="..\Git\gitindex.h" />
-    <ClInclude Include="..\Git\GitStatus.h" />
     <ClInclude Include="GitStatusCache.h" />
-    <ClInclude Include="..\Utils\PathUtils.h" />
-    <ClInclude Include="..\Utils\ReaderWriterLock.h" />
-    <ClInclude Include="..\Utils\registry.h" />
     <ClInclude Include="resource.h" />
-    <ClInclude Include="..\TortoiseShell\ShellCache.h" />
     <ClInclude Include="ShellUpdater.h" />
-    <ClInclude Include="..\Utils\SmartHandle.h" />
     <ClInclude Include="StatusCacheEntry.h" />
     <ClInclude Include="stdafx.h" />
-    <ClInclude Include="..\Utils\StringUtils.h" />
-    <ClInclude Include="..\Utils\SysInfo.h" />
     <ClInclude Include="TGitCache.h" />
-    <ClInclude Include="..\Git\TGitPath.h" />
-    <ClInclude Include="..\Utils\UnicodeUtils.h" />
-    <ClInclude Include="..\Utils\UniqueQueue.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="TGitCache.rc" />
   </ItemGroup>
   <ItemGroup>
-    <Image Include="..\Resources\Tortoise.ico" />
-    <Image Include="..\Resources\menudelete.ico" />
-  </ItemGroup>
-  <ItemGroup>
+    <ProjectReference Include="..\..\ext\gitdll\gitdll.vcxproj">
+      <Project>{4f0a55de-dafd-4a0b-a03d-2c14cb77e08f}</Project>
+    </ProjectReference>
     <ProjectReference Include="..\libgit2\TGitLibgit2.vcxproj">
       <Project>{2f29bedb-4b28-4f53-9d1c-3be0766e738e}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\..\ext\gitdll\gitdll.vcxproj">
-      <Project>{4f0a55de-dafd-4a0b-a03d-2c14cb77e08f}</Project>
-      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
-    </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="TGITCache.rc2" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -5,13 +5,11 @@
 
 #pragma once
 
-#include <SDKDDKVer.h>
 
 #include <algorithm>
 using std::min;
 using std::max;
 
-#define _ATL_CSTRING_EXPLICIT_CONSTRUCTORS	// some CString constructors will be explicit
 #define CSTRING_AVAILABLE
 
 #include <WinSock2.h>
@@ -22,6 +20,9 @@ using std::max;
 
 #include <ShlObj.h>
 #include <Shlwapi.h>
+#include <initguid.h>
+#include <ioevent.h>
+#include <shellapi.h>
 
 #include <atlbase.h>
 #include <atlstr.h>
@@ -37,11 +38,10 @@ using namespace ATL;
 #include <deque>
 #include <functional>
 
-#include "git2.h"
-#include "SmartLibgit2Ref.h"
-
-#include "scope_exit_noexcept.h"
-#include "DebugOutput.h"
+#include <git2.h>
+import SmartLibgit2;
+#include <Utils/scope_exit_noexcept.h>
+import DebugOutput;
 
 using AutoLocker = CComCritSecLock<CComAutoCriticalSection>;
 

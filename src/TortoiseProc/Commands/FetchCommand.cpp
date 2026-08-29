@@ -19,7 +19,7 @@
 #include "stdafx.h"
 #include "FetchCommand.h"
 #include "AppUtils.h"
-#include "GitAdminDir.h"
+import GitAdminDir;
 
 bool FetchCommand::Execute()
 {

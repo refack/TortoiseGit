@@ -29,8 +29,8 @@ TEST(CTempFiles, UniqueName)
 
 	EXPECT_STRNE(path1.GetWinPathString().c_str(), path2.GetWinPathString().c_str());
 
-	path1.Delete(false, false);
-	path2.Delete(false, false);
+	std::ignore = path1.Delete(false, false);
+	std::ignore = path2.Delete(false, false);
 }
 
 TEST(CTempFiles, LongName)
@@ -39,20 +39,20 @@ TEST(CTempFiles, LongName)
 	ASSERT_LT(path.GetWinPathString().size(), static_cast<size_t>(MAX_PATH));
 	EXPECT_TRUE(path.Exists());
 
-	path.Delete(false, false);
+	std::ignore = path.Delete(false, false);
 }
 
 TEST(CTempFiles, ValidName)
 {
 	auto path1 = CTempFiles::Instance().GetTempFilePath(false, CTGitPath(L"invalid?file|name.txt"), CGitHash::FromHexStr(L"012345678901234567890abcdef123456789abfd"));
 	EXPECT_TRUE(path1.Exists());
-	path1.Delete(false, false);
+	std::ignore = path1.Delete(false, false);
 
 	auto path2 = CTempFiles::Instance().GetTempFilePath(false, CTGitPath(L">"));
 	EXPECT_TRUE(path2.Exists());
-	path2.Delete(false, false);
+	std::ignore = path2.Delete(false, false);
 
 	auto path3 = CTempFiles::Instance().GetTempFilePath(false, CTGitPath(L".gitattribute"));
 	EXPECT_TRUE(path3.Exists());
-	path3.Delete(false, false);
+	std::ignore = path3.Delete(false, false);
 }

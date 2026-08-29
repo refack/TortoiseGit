@@ -25,7 +25,7 @@
 #include "SinglePropSheetDlg.h"
 #include "Git.h"
 #include "AppUtils.h"
-#include "DarkModeHelper.h"
+import DarkModeHelper;
 #include "DPIAware.h"
 
 // CSinglePropSheetDlg dialog

@@ -18,12 +18,12 @@
 //
 #pragma once
 #include "resource.h"
-#include "StandAloneDlg.h"
-#include "FilterEdit.h"
+#include <Utils/MiscUI/StandAloneDlg.h>
+#include "Utils/MiscUI/FilterEdit.h"
 #include "ResizableColumnsListCtrl.h"
-#include "gittype.h"
-#include "HistoryCombo.h"
-#include "GestureEnabledControl.h"
+#include "Git/gittype.h"
+#include "Utils/MiscUI/HistoryCombo.h"
+#include "Utils/MiscUI/GestureEnabledControl.h"
 
 const int gPickRef_Head		= 1;
 const int gPickRef_Tag		= 2;

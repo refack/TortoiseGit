@@ -921,7 +921,7 @@ What the survey found about the current state:
   subset it wants — 1 file (Stub) to 68 (TortoiseProc) — and compiles it itself.
   `TGitPath.obj` is built **13 times**.
 - **Those 88 `.cpp` files are not self-contained translation units.** All of them
-  open with `#include "stdafx.h"`, and neither directory contains one: with
+  open with ``, and neither directory contains one: with
   `/Yu` the include is *replaced* by whichever PCH the consuming project built.
   The same source therefore compiles against TortoiseProc's MFC world or
   TGitCache's ATL world depending on who is compiling it. Giving each directory
@@ -1123,7 +1123,7 @@ Order to do it in. Phases A and B are what actually buy the goal:
     the entry point was already flavor-neutral. A view on `GetLongPathname`
     would be a lie, and the unterminated `.data()` it invites is the silent
     class this migration exists to avoid.
-  - **`tgit::wstr::View(cstring)`** (`WideString.h`) is the bridge for a view
+  - **`tgit::wstr::StringView(cstring)`** (`WideString.h`) is the bridge for a view
     parameter, `std::wstring(x)` for an owning one — note the latter needs
     *direct*-initialization, since copy-init would need two user-defined
     conversions. **Making the core's parameters `LPCWSTR` instead would have

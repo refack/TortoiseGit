@@ -20,19 +20,15 @@
 #include "stdafx.h"
 #include "TortoiseUDiff.h"
 #include "MainWindow.h"
-#include "CmdLineParser.h"
-#include "TaskbarUUID.h"
-#include "registry.h"
-#include "LangDll.h"
-#include "Monitor.h"
-#include <version.h>
-#pragma warning(push)
-#pragma warning(disable: 4458)
+#include <Utils/CmdLineParser.h>
+import TaskbarUUID;
+import Registry;
+#include <Utils/LangDll.h>
+#include <Utils/Monitor.h>
 #include <GdiPlus.h>
-#pragma warning(pop)
 #include <commctrl.h>
-#pragma comment(lib, "comctl32.lib")
 
+#pragma comment(lib, "comctl32.lib")
 #pragma comment(linker, "\"/manifestdependency:type='win32' name='Microsoft.Windows.Common-Controls' version='6.0.0.0' processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'\"")
 
 HINSTANCE hResource; // the resource dll

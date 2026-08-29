@@ -20,7 +20,7 @@
 
 #pragma once
 #include "resource.h"
-#include "Globals.h"
+#include <TortoiseShell/Globals.h>
 
 class CSetExtMenu : public ISettingsPropPage
 {

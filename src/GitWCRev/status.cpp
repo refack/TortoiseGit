@@ -20,9 +20,9 @@
 #include "stdafx.h"
 #include "GitWCRev.h"
 #include "status.h"
-#include "registry.h"
-#include "StringUtils.h"
-#include "UnicodeUtils.h"
+import Registry;
+import StringUtils;
+import wstr;
 #include <fstream>
 
 void LoadIgnorePatterns(const char* wc, GitWCRev_t* GitStat)

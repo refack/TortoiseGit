@@ -1,0 +1,234 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="patches\filter-filter.c">
+      <Filter>TGit2</Filter>
+    </ClCompile>
+    <ClCompile Include="patches\ssh-wintunnel.c">
+      <Filter>TGit2</Filter>
+    </ClCompile>
+    <ClCompile Include="patches\system-call.c">
+      <Filter>TGit2</Filter>
+    </ClCompile>
+    <ClCompile Include="Utils\accHelper.cpp">
+      <Filter>Utils</Filter>
+    </ClCompile>
+    <ClCompile Include="Utils\ACEdit.cpp">
+      <Filter>Utils</Filter>
+    </ClCompile>
+    <ClCompile Include="Utils\ACListWnd.cpp">
+      <Filter>Utils</Filter>
+    </ClCompile>
+    <ClCompile Include="Utils\BugTraqAssociations.cpp">
+      <Filter>Utils</Filter>
+    </ClCompile>
+    <ClCompile Include="Utils\CmdLineParser.cpp">
+      <Filter>Utils</Filter>
+    </ClCompile>
+    <ClCompile Include="Utils\DarkModeHelper.cpp">
+      <Filter>Utils</Filter>
+    </ClCompile>
+    <ClCompile Include="Utils\Debug.cpp">
+      <Filter>Utils</Filter>
+    </ClCompile>
+    <ClCompile Include="Utils\DebugOutput.cpp">
+      <Filter>Utils</Filter>
+    </ClCompile>
+    <ClCompile Include="Utils\DirFileEnum.cpp">
+      <Filter>Utils</Filter>
+    </ClCompile>
+    <ClCompile Include="Utils\DragDropImpl.cpp">
+      <Filter>Utils</Filter>
+    </ClCompile>
+    <ClCompile Include="Utils\FileTextLines.cpp">
+      <Filter>Utils</Filter>
+    </ClCompile>
+    <ClCompile Include="Utils\Graphviz.cpp">
+      <Filter>Utils</Filter>
+    </ClCompile>
+    <ClCompile Include="Utils\Hash.cpp">
+      <Filter>Utils</Filter>
+    </ClCompile>
+    <ClCompile Include="Utils\Hooks.cpp">
+      <Filter>Utils</Filter>
+    </ClCompile>
+    <ClCompile Include="Utils\LangDll.cpp">
+      <Filter>Utils</Filter>
+    </ClCompile>
+    <ClCompile Include="Utils\Libraries.cpp">
+      <Filter>Utils</Filter>
+    </ClCompile>
+    <ClCompile Include="Utils\Monitor.cpp">
+      <Filter>Utils</Filter>
+    </ClCompile>
+    <ClCompile Include="Utils\PathUtils.cpp">
+      <Filter>Utils</Filter>
+    </ClCompile>
+    <ClCompile Include="Utils\PathWatcher.cpp">
+      <Filter>Utils</Filter>
+    </ClCompile>
+    <ClCompile Include="Utils\PersonalDictionary.cpp">
+      <Filter>Utils</Filter>
+    </ClCompile>
+    <ClCompile Include="Utils\ProfilingInfo.cpp">
+      <Filter>Utils</Filter>
+    </ClCompile>
+    <ClCompile Include="Utils\ReaderWriterLock.cpp">
+      <Filter>Utils</Filter>
+    </ClCompile>
+    <ClCompile Include="Utils\RegHistory.cpp">
+      <Filter>Utils</Filter>
+    </ClCompile>
+    <ClCompile Include="Utils\ShellUpdater.cpp">
+      <Filter>Utils</Filter>
+    </ClCompile>
+    <ClCompile Include="Utils\StringUtils.cpp">
+      <Filter>Utils</Filter>
+    </ClCompile>
+    <ClCompile Include="Utils\SysImageList.cpp">
+      <Filter>Utils</Filter>
+    </ClCompile>
+    <ClCompile Include="Utils\SysInfo.cpp">
+      <Filter>Utils</Filter>
+    </ClCompile>
+    <ClCompile Include="Utils\TaskbarUUID.cpp">
+      <Filter>Utils</Filter>
+    </ClCompile>
+    <ClCompile Include="Utils\TempFile.cpp">
+      <Filter>Utils</Filter>
+    </ClCompile>
+    <ClCompile Include="Utils\Theme.cpp">
+      <Filter>Utils</Filter>
+    </ClCompile>
+    <ClCompile Include="Utils\UnicodeUtils.cpp">
+      <Filter>Utils</Filter>
+    </ClCompile>
+    <ClCompile Include="Git\Git.cpp" />
+    <ClCompile Include="Git\GitAdminDir.cpp" />
+    <ClCompile Include="Git\GitDataObject.cpp" />
+    <ClCompile Include="Git\GitIndex.cpp" />
+    <ClCompile Include="Git\GitMailmap.cpp" />
+    <ClCompile Include="Git\GitRev.cpp" />
+    <ClCompile Include="Git\GitRevLoglist.cpp" />
+    <ClCompile Include="Git\GitRevRefBrowser.cpp" />
+    <ClCompile Include="Git\GitStatus.cpp" />
+    <ClCompile Include="Git\TGitPath.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\ext\gitdll\gitdll.h" />
+    <ClInclude Include="include\libgit2\filter-filter.h" />
+    <ClInclude Include="include\GitRevRefBrowser.h" />
+    <ClInclude Include="include\gittype.h" />
+    <ClInclude Include="include\Utils\ACEdit.h" />
+    <ClInclude Include="include\Utils\ACListWnd.h" />
+    <ClInclude Include="include\Utils\BrowseFolder.h" />
+    <ClInclude Include="include\Utils\BugTraqAssociations.h" />
+    <ClInclude Include="include\Utils\CacheType.h" />
+    <ClInclude Include="include\Utils\CertificateValidationHelper.h" />
+    <ClInclude Include="include\Utils\ClipboardHelper.h" />
+    <ClInclude Include="include\Utils\CmdLineParser.h" />
+    <ClInclude Include="include\Utils\CommonDialogFunctions.h" />
+    <ClInclude Include="include\Utils\ControlsBridge.h" />
+    <ClInclude Include="include\Utils\CreateProcessHelper.h" />
+    <ClInclude Include="include\Utils\Cursor.h" />
+    <ClInclude Include="include\Utils\DarkModeHelper.h" />
+    <ClInclude Include="include\Utils\Debug.h" />
+    <ClInclude Include="include\Utils\DebugHelpers.h" />
+    <ClInclude Include="include\Utils\DebugOutput.h" />
+    <ClInclude Include="include\Utils\DirFileEnum.h" />
+    <ClInclude Include="include\Utils\DlgTemplate.h" />
+    <ClInclude Include="include\Utils\DllVersion.h" />
+    <ClInclude Include="include\Utils\DPIAware.h" />
+    <ClInclude Include="include\Utils\DragDropImpl.h" />
+    <ClInclude Include="include\Utils\EOL.h" />
+    <ClInclude Include="include\Utils\ExtTextOutFL.h" />
+    <ClInclude Include="include\Utils\FileTextLines.h" />
+    <ClInclude Include="include\Utils\FormatMessageWrapper.h" />
+    <ClInclude Include="include\Utils\GestureEnabledControl.h" />
+    <ClInclude Include="include\Utils\GitObjectFormat.h" />
+    <ClInclude Include="include\Utils\Graphviz.h" />
+    <ClInclude Include="include\Utils\Hash.h" />
+    <ClInclude Include="include\Utils\HighResClock.h" />
+    <ClInclude Include="include\Utils\HintCtrl.h" />
+    <ClInclude Include="include\Utils\HistoryCombo.h" />
+    <ClInclude Include="include\Utils\Hooks.h" />
+    <ClInclude Include="include\Utils\IInputValidator.h" />
+    <ClInclude Include="include\Utils\LangDll.h" />
+    <ClInclude Include="include\Utils\Libraries.h" />
+    <ClInclude Include="include\Utils\LineColors.h" />
+    <ClInclude Include="include\Utils\LoadIconEx.h" />
+    <ClInclude Include="include\Utils\LruCache.h" />
+    <ClInclude Include="include\Utils\Monitor.h" />
+    <ClInclude Include="include\Utils\MyMemDC.h" />
+    <ClInclude Include="include\Utils\PathUtils.h" />
+    <ClInclude Include="include\Utils\PathWatcher.h" />
+    <ClInclude Include="include\Utils\PersonalDictionary.h" />
+    <ClInclude Include="include\Utils\ProfilingInfo.h" />
+    <ClInclude Include="include\Utils\ReaderWriterLock.h" />
+    <ClInclude Include="include\Utils\RegHistory.h" />
+    <ClInclude Include="include\Utils\registry.h" />
+    <ClInclude Include="include\Utils\ReparseData.h" />
+    <ClInclude Include="include\Utils\ResString.h" />
+    <ClInclude Include="include\Utils\ScintillaRegistration.h" />
+    <ClInclude Include="include\Utils\scope_exit_noexcept.h" />
+    <ClInclude Include="include\Utils\SelectFileFilter.h" />
+    <ClInclude Include="include\Utils\ShellUpdater.h" />
+    <ClInclude Include="include\Utils\SmartHandle.h" />
+    <ClInclude Include="include\Utils\SmartLibgit2Ref.h" />
+    <ClInclude Include="include\Utils\SysImageList.h" />
+    <ClInclude Include="include\Utils\SysInfo.h" />
+    <ClInclude Include="include\Utils\TaskbarUUID.h" />
+    <ClInclude Include="include\Utils\TempFile.h" />
+    <ClInclude Include="include\Utils\Theme.h" />
+    <ClInclude Include="include\Utils\TripleClick.h" />
+    <ClInclude Include="include\Utils\UnicodeUtils.h" />
+    <ClInclude Include="include\Utils\UniqueQueue.h" />
+    <ClInclude Include="include\Utils\URLFinder.h" />
+    <ClInclude Include="include\Utils\WideString.h" />
+    <ClInclude Include="include\Utils\WindowsCredentialsStore.h" />
+    <ClInclude Include="include\raii-win32-formatmessage.h" />
+    <ClInclude Include="include\libgit2\ssh-wintunnel.h" />
+    <ClInclude Include="include\system-call.h" />
+    <ClInclude Include="include\Utils\StringUtils.h" />
+    <ClInclude Include="include\GitRevLoglist.h" />
+    <ClInclude Include="include\Git.h" />
+    <ClInclude Include="include\GitAdminDir.h" />
+    <ClInclude Include="include\GitDataObject.h" />
+    <ClInclude Include="include\GitForWindows.h" />
+    <ClInclude Include="include\GitHash.h" />
+    <ClInclude Include="include\gitindex.h" />
+    <ClInclude Include="include\GitMailmap.h" />
+    <ClInclude Include="include\GitRev.h" />
+    <ClInclude Include="include\GitStatus.h" />
+    <ClInclude Include="include\lanes.h" />
+    <ClInclude Include="include\TGitPath.h" />
+    <ClInclude Include="include\Colors.h" />
+    <ClInclude Include="include\ProjectProperties.h" />
+    <ClInclude Include="include\ResizableColumnsListCtrl.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Git">
+      <UniqueIdentifier>{a47865b2-24c2-4558-91cf-1a4c67a320d5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Utils">
+      <UniqueIdentifier>{bf61c386-c151-4f50-91e2-a0079cb98567}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Utils\MiscUI">
+      <UniqueIdentifier>{b636e8f1-ea72-42c4-9826-15cfc09e9ea7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Utils\TreePropSheet">
+      <UniqueIdentifier>{1311916e-96ca-41e4-97a4-885632ccccdb}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="TGit2">
+      <UniqueIdentifier>{4376c995-436b-4e38-abea-7ad6001f444c}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="Utils\resource.rc">
+      <Filter>Utils</Filter>
+    </ResourceCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include=".clang-format" />
+  </ItemGroup>
+</Project>

@@ -19,11 +19,11 @@
 
 #pragma once
 
-#include "HistoryCombo.h"
-#include "StandAloneDlg.h"
-#include "LoglistCommonResource.h"
-#include "registry.h"
-#include "GestureEnabledControl.h"
+#include "Utils/MiscUI/HistoryCombo.h"
+#include "Utils/MiscUI/StandAloneDlg.h"
+#include <Resources/LoglistCommonResource.h>
+#include "Utils/registry.h"
+#include "Utils/MiscUI/GestureEnabledControl.h"
 
 // CFindDlg dialog
 

@@ -18,8 +18,9 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 #pragma once
-#include "registry.h"
-#include "Globals.h"
+import Registry;
+#include <Utils/CacheType.h>
+#include <TortoiseShell/Globals.h>
 
 #define ADMINDIRTIMEOUT 10000
 #define DRIVETYPETIMEOUT 300000		// 5 min
@@ -69,13 +70,8 @@ enum class Tristate
 class ShellCache
 {
 public:
-	enum CacheType
-	{
-		none,
-		exe,
-		dll,
-		dllFull,// same as dll except it uses commandline git tool with all status modes supported
-	};
+	using CacheType = TGitCacheType::CacheType;
+	using enum TGitCacheType::CacheType; // keeps ShellCache::dll etc. spelled as before
 
 	ShellCache();
 	~ShellCache();

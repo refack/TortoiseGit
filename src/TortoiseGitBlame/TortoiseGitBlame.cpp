@@ -1,4 +1,4 @@
-// TortoiseGit - a Windows shell extension for easy version control
+﻿// TortoiseGit - a Windows shell extension for easy version control
 
 // Copyright (C) 2008-2017, 2019-2023, 2025-2026 - TortoiseGit
 
@@ -21,16 +21,16 @@
 //
 
 #include "stdafx.h"
-#include "afxwinappex.h"
+#include <afxwinappex.h>
 #include "TortoiseGitBlame.h"
 #include "MainFrm.h"
 #include <version.h>
 #include "TortoiseGitBlameDoc.h"
 #include "TortoiseGitBlameView.h"
 #include "CmdLineParser.h"
-#include "PathUtils.h"
+import PathUtils;
 #include "CommonAppUtils.h"
-#include "TaskbarUUID.h"
+import TaskbarUUID;
 #include "DPIAware.h"
 
 #ifdef _DEBUG

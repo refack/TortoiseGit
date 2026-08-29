@@ -20,7 +20,7 @@
 #pragma once
 
 #include "StatusCacheEntry.h"
-#include "TGitPath.h"
+import TGitPath;
 
 /**
  * \ingroup TGitCache
@@ -59,13 +59,16 @@ private:
 public:
 	/// Get the current full status of this folder
 	git_wc_status_kind GetCurrentFullStatus() const {return m_currentFullStatus;}
+
+
 private:
 
 	CStatusCacheEntry GetStatusFromCache(const CTGitPath &path, bool bRecursive);
 	CStatusCacheEntry GetStatusFromGit(const CTGitPath &path, const CString& sProjectRoot, bool isSelf, bool bRecursive);
 
-	static BOOL GetStatusCallback(const CString& path, const git_wc_status2_t* status, bool isDir, __int64 lastwritetime, void* baton);
-	void AddEntry(const CTGitPath& path, const git_wc_status2_t* pGitStatus, __int64 lastwritetime);
+	using int64 = std::int64_t;
+	static BOOL GetStatusCallback(const CString& path, const git_wc_status2_t* status, bool isDir, int64 lastwritetime, void* baton);
+	void AddEntry(const CTGitPath& path, const git_wc_status2_t* pGitStatus, int64 lastwritetime);
 	CString GetCacheKey(const CTGitPath& path);
 	CString GetFullPathString(const CString& cacheKey);
 	void UpdateChildDirectoryStatus(const CTGitPath& childDir, git_wc_status_kind childStatus);
@@ -78,7 +81,6 @@ private:
 	void SetChildStatus(const CString& childDir, git_wc_status_kind childStatus);
 	void KeepChildStatus(const CString& childDir);
 
-private:
 	CComAutoCriticalSection m_critSec;
 
 	// The cache of files and directories within this directory

@@ -23,7 +23,7 @@
 #include "BrowseFolder.h"
 #include "AppUtils.h"
 #include "Git.h"
-#include "GitAdminDir.h"
+import GitAdminDir;
 
 IMPLEMENT_DYNAMIC(CSetHooksAdv, CResizableStandAloneDialog)
 

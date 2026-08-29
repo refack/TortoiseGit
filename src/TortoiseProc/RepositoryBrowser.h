@@ -19,7 +19,7 @@
 
 #pragma once
 #include <map>
-#include "StandAloneDlg.h"
+#include <Utils/MiscUI/StandAloneDlg.h>
 #include "GitHash.h"
 #include "GestureEnabledControl.h"
 #include "TGitPath.h"

@@ -19,9 +19,9 @@
 //
 
 #pragma once
-#include "BaseWindow.h"
-#include "FindBar.h"
+#include <Utils/MiscUI/BaseWindow.h>
 #include <string>
+#include "FindBar.h"
 
 /**
  * \ingroup TortoiseUDiff

@@ -18,15 +18,15 @@
 //
 
 #pragma once
-#include "HintCtrl.h"
+#include "Utils/MiscUI/HintCtrl.h"
 #include "ResizableColumnsListCtrl.h"
-#include "Git.h"
+#include "Git/Git.h"
 #include "ProjectProperties.h"
-#include "TGitPath.h"
-#include "registry.h"
+#include "Git/TGitPath.h"
+#include "Utils/registry.h"
 #include "Colors.h"
 #include "LogDlgHelper.h"
-#include "GitRevLoglist.h"
+#include "Git/GitRevLoglist.h"
 #include "lanes.h"
 #include "GitLogCache.h"
 #include "FindDlg.h"

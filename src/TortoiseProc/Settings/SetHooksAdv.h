@@ -1,4 +1,4 @@
-// TortoiseGit - a Windows shell extension for easy version control
+﻿// TortoiseGit - a Windows shell extension for easy version control
 
 // Copyright (C) 2016, 2018, 2023 - TortoiseGit
 // Copyright (C) 2003-2008,2010 - TortoiseSVN
@@ -19,7 +19,7 @@
 //
 #pragma once
 #include "Hooks.h"
-#include "StandAloneDlg.h"
+#include <Utils/MiscUI/StandAloneDlg.h>
 
 /**
  * \ingroup TortoiseProc

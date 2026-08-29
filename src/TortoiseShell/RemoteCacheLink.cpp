@@ -1,4 +1,4 @@
-// TortoiseGit - a Windows shell extension for easy version control
+﻿// TortoiseGit - a Windows shell extension for easy version control
 
 // Copyright (C) 2009-2017, 2019, 2023, 2026 - TortoiseGit
 // Copyright (C) 2003-2014, 2017 - TortoiseSVN
@@ -21,8 +21,8 @@
 #include "RemoteCacheLink.h"
 #include "ShellExt.h"
 #include <TGitCache/CacheInterface.h>
-#include "TGitPath.h"
-#include "PathUtils.h"
+import TGitPath;
+import PathUtils;
 #include "CreateProcessHelper.h"
 
 CRemoteCacheLink::CRemoteCacheLink()

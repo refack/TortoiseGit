@@ -19,7 +19,7 @@
 //
 #pragma once
 #include "resource.h"
-#include "StandAloneDlg.h"
+#include <Utils/MiscUI/StandAloneDlg.h>
 
 class CBugTraqAssociation;
 

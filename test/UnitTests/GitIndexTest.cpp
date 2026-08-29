@@ -21,7 +21,7 @@
 #include "RepositoryFixtures.h"
 #include "gitindex.h"
 #include "gitdll.h"
-#include "PathUtils.h"
+import PathUtils;
 
 extern CGitAdminDirMap g_AdminDirMap; // not optimal yet
 
@@ -896,7 +896,7 @@ TEST_P(CBasicGitWithMultiLinkedTestWithSubmoduleRepoFixture, AdminDirMap) // Sub
 
 	// CGitAdminDirMap still speaks CString; CPathUtils speaks std::wstring. Rather
 	// than convert on each of the twenty lines below, name the two roots once.
-	const std::wstring mainRoot = CPathUtils::BuildPathWithPathDelimiter(tgit::wstr::View(m_MainWorkTreePath));
+	const std::wstring mainRoot = CPathUtils::BuildPathWithPathDelimiter(tgit::wstr::StringView(m_MainWorkTreePath));
 	const std::wstring linkedRoot(m_LinkedWorkTreePath);
 
 	// Test if the main work tree admin directory can be found

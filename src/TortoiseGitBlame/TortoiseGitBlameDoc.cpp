@@ -20,21 +20,22 @@
 
 // TortoiseGitBlameDoc.cpp : implementation of the CTortoiseGitBlameDoc class
 //
-
 #include "stdafx.h"
-#include "TortoiseGitBlame.h"
 
 #include "TortoiseGitBlameDoc.h"
-#include "GitAdminDir.h"
-#include "Git.h"
-#include "MainFrm.h"
-#include "TGitPath.h"
-#include "TortoiseGitBlameView.h"
-#include "CmdLineParser.h"
-#include "CommonAppUtils.h"
 #include "BlameDetectMovedOrCopiedLines.h"
-#include "TempFile.h"
-#include "GitMailmap.h"
+#include "MainFrm.h"
+#include "TortoiseGitBlame.h"
+#include "TortoiseGitBlameView.h"
+
+#include <Git/Git.h>
+import GitAdminDir;
+#include <Git/GitMailmap.h>
+#include <Git/TGitPath.h>
+#include <Utils/CmdLineParser.h>
+#include <Utils/CommonAppUtils.h>
+#include <Utils/TempFile.h>
+
 
 #ifdef _DEBUG
 #define new DEBUG_NEW

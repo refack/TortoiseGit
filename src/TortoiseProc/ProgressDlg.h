@@ -18,12 +18,13 @@
 //
 #pragma once
 
-#include "Utils/MiscUI/StandAloneDlg.h"
-#include "Git.h"
-#include "MenuButton.h"
-#include "GestureEnabledControl.h"
+#include <resource.h>
+#include <Git/Git.h>
+#include <Utils/MiscUI/GestureEnabledControl.h>
+#include <Utils/MiscUI/MenuButton.h>
+#include <Utils/MiscUI/StandAloneDlg.h>
+
 #include "GitCliOutputParser.h"
-#include "resource.h"
 
 #define MSG_PROGRESSDLG_UPDATE_UI	(WM_USER+121)
 

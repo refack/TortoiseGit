@@ -4,20 +4,20 @@
   "name": "tortoisegit",
   "version-string": "2.19.1",
   "description": "Dependencies TortoiseGit consumes through vcpkg instead of a hand-maintained ext/build/*.vcxproj.",
-  "builtin-baseline": "4e82e29f14eac2b3422f18f72c7524d04f19924e",
+  "builtin-baseline": "083b127bd091f04806ea9203ed13268decb9de20",
   "dependencies": [
     "detours",
     "gtest",
     "lexilla",
     {
       "name": "libgit2",
-      "default-features": false,
       "features": [
         "pcre2",
         "sha256",
         "winhttp"
       ]
     },
+    "ms-gsl",
     "nlohmann-json",
     "ogdf",
     "pcre2",
@@ -25,7 +25,7 @@
     "simpleini",
     "tgit-libgit",
     "zlib",
-    "ms-gsl"
+    "wil"
   ],
   "overrides": [
     {

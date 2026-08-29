@@ -19,7 +19,7 @@
 
 #pragma once
 #include "resource.h"
-#include "Globals.h"
+#include <TortoiseShell/Globals.h>
 
 class CSetWin11ContextMenu : public ISettingsPropPage
 {

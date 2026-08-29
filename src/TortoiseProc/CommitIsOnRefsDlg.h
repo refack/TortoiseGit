@@ -18,13 +18,14 @@
 //
 
 #pragma once
-#include "StandAloneDlg.h"
 #include "GitRev.h"
-#include "ACEdit.h"
-#include "MenuButton.h"
-#include "FilterEdit.h"
-#include "HintCtrl.h"
-#include "GestureEnabledControl.h"
+
+#include <Utils/MiscUI/StandAloneDlg.h>
+#include <Utils/ACEdit.h>
+#include <Utils/MiscUI/MenuButton.h>
+#include <Utils/MiscUI/FilterEdit.h>
+#include <Utils/MiscUI/HintCtrl.h>
+#include <Utils/MiscUI/GestureEnabledControl.h>
 
 // CCommitIsOnRefsDlg dialog
 

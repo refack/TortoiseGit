@@ -18,22 +18,24 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
+// PCH
 #include "stdafx.h"
-#include <ShellAPI.h>
+
+// regulars
 #include "TGITCache.h"
-#include "GitStatusCache.h"
-#include "CacheInterface.h"
-#include "Resource.h"
-#include "registry.h"
-#include <Dbt.h>
-#include <InitGuid.h>
-#include <Ioevent.h>
+
+#include <CreateProcessHelper.h>
+#include <dbt.h>
+import GitIndex;
+#include <LoadIconEx.h>
+#include <registry.h>
+import RIAA;
+import wstr;
 #include <wrl/client.h>
-#include <version.h>
-#include "SmartHandle.h"
-#include "CreateProcessHelper.h"
-#include "gitindex.h"
-#include "LoadIconEx.h"
+
+#include "CacheInterface.h"
+#include "GitStatusCache.h"
+#include "resource.h"
 
 #ifndef GET_X_LPARAM
 #define GET_X_LPARAM(lp)                        static_cast<int>(static_cast<short>(LOWORD(lp)))
@@ -83,9 +85,9 @@ volatile LONG		nThreadCount = 0;
 
 #define PACKVERSION(major,minor) MAKELONG(minor,major)
 
-void HandleCommandLine(LPSTR lpCmdLine)
+void HandleCommandLine(LPCSTR lpCmdLine)
 {
-	char *ptr = strstr(lpCmdLine, "/kill:");
+	const char *ptr = strstr(lpCmdLine, "/kill:");
 	if (ptr)
 	{
 		DWORD pid = static_cast<DWORD>(atoi(ptr + strlen("/kill:")));
@@ -147,94 +149,6 @@ static void AddSystrayIcon()
 	// free icon handle
 	if (niData.hIcon && DestroyIcon(niData.hIcon))
 		niData.hIcon = nullptr;
-}
-
-int __stdcall WinMain(HINSTANCE hInstance, HINSTANCE /*hPrevInstance*/, LPSTR lpCmdLine, int /*cmdShow*/)
-{
-	SetDllDirectory(L"");
-	git_libgit2_init();
-	git_libgit2_opts(GIT_OPT_SET_WINDOWS_SHAREMODE, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE);
-	HandleCommandLine(lpCmdLine);
-	CAutoGeneralHandle hReloadProtection = ::CreateMutex(nullptr, FALSE, GetCacheMutexName());
-
-	if ((!hReloadProtection) || (GetLastError() == ERROR_ALREADY_EXISTS))
-	{
-		// An instance of TGitCache is already running
-		CTraceToOutputDebugString::Instance()(__FUNCTION__ ": TGitCache ignoring restart\n");
-		return 0;
-	}
-
-	CGitStatusCache::Create();
-	CGitStatusCache::Instance().Init();
-
-	SecureZeroMemory(szCurrentCrawledPath, sizeof(szCurrentCrawledPath));
-
-	DWORD dwThreadId;
-	MSG msg;
-	constexpr wchar_t szWindowClass[] = { TGIT_CACHE_WINDOW_NAME };
-
-	MONITORINFO mi = { sizeof(MONITORINFO) };
-	::GetMonitorInfo(::MonitorFromWindow(nullptr, MONITOR_DEFAULTTOPRIMARY), &mi);
-
-	// create a hidden window to receive window messages.
-	WNDCLASSEX wcex = { 0 };
-	wcex.cbSize = sizeof(WNDCLASSEX);
-	wcex.style			= CS_HREDRAW | CS_VREDRAW;
-	wcex.lpfnWndProc	= reinterpret_cast<WNDPROC>(WndProc);
-	wcex.hInstance		= hInstance;
-	wcex.hCursor		= LoadCursor(nullptr, IDC_ARROW);
-	wcex.lpszClassName	= szWindowClass;
-	RegisterClassEx(&wcex);
-	hWndHidden = ::CreateWindow(TGIT_CACHE_WINDOW_NAME, TGIT_CACHE_WINDOW_NAME, WS_CAPTION, mi.rcWork.left, mi.rcWork.top, 800, 300, nullptr, 0, hInstance, 0);
-	hTrayWnd = hWndHidden;
-	if (!hWndHidden)
-		return 0;
-
-	// Create a thread which waits for incoming pipe connections
-	CAutoGeneralHandle hPipeThread = CreateThread(
-		nullptr,           // no security attribute
-		0,                 // default stack size
-		PipeThread,
-		&bRun,             // thread parameter
-		0,                 // not suspended
-		&dwThreadId);      // returns thread ID
-
-	if (!hPipeThread)
-		return 0;
-	else hPipeThread.CloseHandle();
-
-	// Create a thread which waits for incoming pipe connections
-	CAutoGeneralHandle hCommandWaitThread = CreateThread(
-		nullptr,           // no security attribute
-		0,                 // default stack size
-		CommandWaitThread,
-		&bRun,             // thread parameter
-		0,                 // not suspended
-		&dwThreadId);      // returns thread ID
-
-	if (!hCommandWaitThread)
-		return 0;
-
-	// create a thread that monitors explorer windows
-	CAutoGeneralHandle hExplorerMonitorThread = CreateThread(nullptr, 0, ExplorerMonitorThread, &bRun, 0, &dwThreadId);
-	if (!hExplorerMonitorThread)
-		return 0;
-
-	AddSystrayIcon();
-
-	// loop to handle window messages.
-	while (bRun)
-	{
-		BOOL bLoopRet = GetMessage(&msg, nullptr, 0, 0);
-		if ((bLoopRet != -1)&&(bLoopRet != 0))
-			DispatchMessage(&msg);
-	}
-
-	bRun = false;
-
-	CGitStatusCache::Destroy();
-	HandleRestart();
-	return 0;
 }
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
@@ -901,5 +815,91 @@ DWORD WINAPI CommandThread(LPVOID lpvParam)
 	FlushFileBuffers(hPipe);
 	DisconnectNamedPipe(hPipe);
 	CTraceToOutputDebugString::Instance()(__FUNCTION__ ": Command thread exited\n");
+	return 0;
+}
+
+
+int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLine, int nCmdShow) {
+	SetDllDirectory(L"");
+	git_libgit2_init();
+	git_libgit2_opts(GIT_OPT_SET_WINDOWS_SHAREMODE, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE);
+	HandleCommandLine(CUnicodeUtils::GetUTF8(lpCmdLine));
+	CAutoGeneralHandle hReloadProtection = ::CreateMutex(nullptr, FALSE, GetCacheMutexName());
+
+	if ((!hReloadProtection) || (GetLastError() == ERROR_ALREADY_EXISTS)) {
+		// An instance of TGitCache is already running
+		CTraceToOutputDebugString::Instance()(__FUNCTION__ ": TGitCache ignoring restart\n");
+		return 0;
+	}
+
+	CGitStatusCache::Create();
+	CGitStatusCache::Instance().Init();
+
+	SecureZeroMemory(szCurrentCrawledPath, sizeof(szCurrentCrawledPath));
+
+	DWORD dwThreadId;
+	MSG msg;
+	constexpr wchar_t szWindowClass[] = { TGIT_CACHE_WINDOW_NAME };
+
+	MONITORINFO mi = { sizeof(MONITORINFO) };
+	::GetMonitorInfo(::MonitorFromWindow(nullptr, MONITOR_DEFAULTTOPRIMARY), &mi);
+
+	// create a hidden window to receive window messages.
+	WNDCLASSEX wcex = { 0 };
+	wcex.cbSize = sizeof(WNDCLASSEX);
+	wcex.style = CS_HREDRAW | CS_VREDRAW;
+	wcex.lpfnWndProc = reinterpret_cast<WNDPROC>(WndProc);
+	wcex.hInstance = hInstance;
+	wcex.hCursor = LoadCursor(nullptr, IDC_ARROW);
+	wcex.lpszClassName = szWindowClass;
+	RegisterClassEx(&wcex);
+	hWndHidden = ::CreateWindow(TGIT_CACHE_WINDOW_NAME, TGIT_CACHE_WINDOW_NAME, WS_CAPTION, mi.rcWork.left, mi.rcWork.top, 800, 300, nullptr, 0, hInstance, 0);
+	hTrayWnd = hWndHidden;
+	if (!hWndHidden)
+		return 0;
+
+	// Create a thread which waits for incoming pipe connections
+	CAutoGeneralHandle hPipeThread = CreateThread(
+		nullptr,           // no security attribute
+		0,                 // default stack size
+		PipeThread,
+		&bRun,             // thread parameter
+		0,                 // not suspended
+		&dwThreadId);      // returns thread ID
+
+	if (!hPipeThread)
+		return 0;
+	else hPipeThread.CloseHandle();
+
+	// Create a thread which waits for incoming pipe connections
+	CAutoGeneralHandle hCommandWaitThread = CreateThread(
+		nullptr,           // no security attribute
+		0,                 // default stack size
+		CommandWaitThread,
+		&bRun,             // thread parameter
+		0,                 // not suspended
+		&dwThreadId);      // returns thread ID
+
+	if (!hCommandWaitThread)
+		return 0;
+
+	// create a thread that monitors explorer windows
+	CAutoGeneralHandle hExplorerMonitorThread = CreateThread(nullptr, 0, ExplorerMonitorThread, &bRun, 0, &dwThreadId);
+	if (!hExplorerMonitorThread)
+		return 0;
+
+	AddSystrayIcon();
+
+	// loop to handle window messages.
+	while (bRun) {
+		BOOL bLoopRet = GetMessage(&msg, nullptr, 0, 0);
+		if ((bLoopRet != -1) && (bLoopRet != 0))
+			DispatchMessage(&msg);
+	}
+
+	bRun = false;
+
+	CGitStatusCache::Destroy();
+	HandleRestart();
 	return 0;
 }

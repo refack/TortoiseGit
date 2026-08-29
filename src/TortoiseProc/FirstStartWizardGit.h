@@ -18,9 +18,9 @@
 //
 #pragma once
 #include "FirstStartWizardBasePage.h"
-#include "Tooltip.h"
+#include <Utils/MiscUI/Tooltip.h>
 #include "ConfigureGitExe.h"
-#include "HyperLink.h"
+#include <Utils/MiscUI/HyperLink.h>
 
 /**
  * Git page in the first start wizard

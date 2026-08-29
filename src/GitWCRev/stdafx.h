@@ -16,7 +16,7 @@ using std::min;
 #include <windows.h>
 
 #include "git2.h"
-#include "SmartLibgit2Ref.h"
+import SmartLibgit2;
 
 #include <vector>
 #include <set>

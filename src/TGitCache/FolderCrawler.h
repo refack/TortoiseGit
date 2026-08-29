@@ -19,8 +19,8 @@
 //
 
 #pragma once
-#include "TGitPath.h"
-#include "SmartHandle.h"
+import TGitPath;
+import RIAA;
 #include "UniqueQueue.h"
 //////////////////////////////////////////////////////////////////////////
 

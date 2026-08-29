@@ -14,6 +14,16 @@
 # TORTOISEGIT-PATCHES.md before adding a seventh - each one is grouped by what
 # would have to be true for it to be deleted, and two of them are close.
 
+# libgit is a static library whatever the triplet says. git's CMakeLists
+# declares it with a bare add_library(), so a dynamic triplet (x64-windows,
+# x86-windows) turns BUILD_SHARED_LIBS on and links a libgit.dll - which cannot
+# succeed, because the library is incomplete by design: patch 0001 redirects
+# exit() to vc_exit(), and vc_exit() lives in gitdll's die.cpp. A static archive
+# never runs the linker, so that hole (and every other symbol gitdll or its
+# consumer is expected to supply) only shows up as LNK2019 the moment the
+# target becomes a DLL.
+vcpkg_check_linkage(ONLY_STATIC_LIBRARY)
+
 vcpkg_from_github(
     OUT_SOURCE_PATH SOURCE_PATH
     REPO git-for-windows/git
@@ -215,6 +225,25 @@ file(WRITE "${include_root}/tgit-libgit-defines.h"
  */
 #pragma once
 
-${defines_body}")
+${defines_body}
+/*
+ * Link dependencies. libgit.lib is a static archive, and a static archive
+ * carries no record of the system libraries its objects call into - that
+ * knowledge otherwise lives in every consumer's link line, where it drifts.
+ * A /DEFAULTLIB directive is the one thing MSVC lets an object carry to the
+ * final link, so emit one from the header every consumer already compiles:
+ *
+ *   ws2_32 - connect.c and ident.c call getaddrinfo/getnameinfo/freeaddrinfo.
+ *   ntdll  - compat/win32 and compat/poll call into ntdll directly; git's own
+ *            CMakeLists links both of these into git.exe for the same reason.
+ *
+ * zlib is deliberately not named here: it is a vcpkg port with its own
+ * per-configuration library name, and the consumer's build system resolves it.
+ */
+#ifdef _MSC_VER
+#pragma comment(lib, \"ws2_32.lib\")
+#pragma comment(lib, \"ntdll.lib\")
+#endif
+")
 
 vcpkg_install_copyright(FILE_LIST "${SOURCE_PATH}/COPYING")

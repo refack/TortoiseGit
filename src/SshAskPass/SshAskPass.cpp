@@ -21,17 +21,19 @@
 //
 
 #include "stdafx.h"
-#include "resource.h"
-#include <propsys.h>
-#include <PropKey.h>
-#include "SmartHandle.h"
-#include <memory>
-#include "DarkModeHelper.h"
-#include "registry.h"
-#include "DPIAware.h"
-#include <afxtaskdialog.h>
 
+#include <afxtaskdialog.h>
 #include <commctrl.h>
+#include <memory>
+#include <algorithm>
+#include <PropKey.h>
+#include <propsys.h>
+
+import DarkModeHelper;
+#include "DPIAware.h"
+#include "registry.h"
+#include "resource.h"
+import RIAA;
 #pragma comment(lib, "comctl32.lib")
 #pragma comment(linker, "\"/manifestdependency:type='win32' name='Microsoft.Windows.Common-Controls' version='6.0.0.0' processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'\"")
 

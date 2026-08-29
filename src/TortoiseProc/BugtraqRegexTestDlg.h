@@ -18,9 +18,9 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 #pragma once
-#include "StandAloneDlg.h"
-#include "RegexEdit.h"
-#include "SciEdit.h"
+#include <Utils/MiscUI/StandAloneDlg.h>
+#include <Utils/MiscUI/RegexEdit.h>
+#include <Utils/MiscUI/SciEdit.h>
 
 // CBugtraqRegexTestDlg dialog
 

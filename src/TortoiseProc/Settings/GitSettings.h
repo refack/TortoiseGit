@@ -21,7 +21,7 @@
 #include "TortoiseProc.h"
 #include "Git.h"
 #include "Tooltip.h"
-#include "UnicodeUtils.h"
+#include <Utils/UnicodeUtils.h>
 #include "TempFile.h"
 
 class CSettings;

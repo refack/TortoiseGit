@@ -18,10 +18,10 @@
 //
 
 #pragma once
-#include "StandAloneDlg.h"
+#include <Utils/MiscUI/StandAloneDlg.h>
 #include "HistoryCombo.h"
 #include "MenuButton.h"
-#include "registry.h"
+#include <Utils/registry.h>
 #include "BranchCombox.h"
 #include "GitLoglist.h"
 #include "GitProgressList.h"

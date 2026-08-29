@@ -24,7 +24,7 @@
 #include "stdafx.h"
 #include "TortoiseGitBlame.h"
 #include "MainFrm.h"
-#include "TaskbarUUID.h"
+import TaskbarUUID;
 #include "ThemeMFCVisualManager.h"
 
 #ifdef _DEBUG

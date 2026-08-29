@@ -23,16 +23,16 @@
 #include "LoglistUtils.h"
 #include "Tooltip.h"
 #include "GitRev.h"
-#include "LoglistCommonResource.h"
+#include <Resources/LoglistCommonResource.h>
 
 class CBranchCombox
 {
 public:
-	CBranchCombox(const CString& dialogName)
+	explicit CBranchCombox(const CString& dialogName) : m_DialogName(dialogName) { }
+	virtual ~CBranchCombox() = default;
 
-		: m_DialogName(dialogName)
-	{
-	}
+	CString m_strLocalBranch;
+	CString m_strRemoteBranch;
 
 protected:
 	CHistoryCombo m_ctrlLocalBranch;
@@ -122,9 +122,9 @@ protected:
 		}
 	}
 
-	virtual void LocalBranchChange(){};
-	virtual void RemoteBranchChange(){};
-	virtual void SetRemote(const CString& /* remote */) {};
+	virtual void LocalBranchChange(){}
+	virtual void RemoteBranchChange(){}
+	virtual void SetRemote(const CString& /* remote */) {}
 
 	void AddBranchToolTips(CHistoryCombo& pBranch, CToolTips* tip) const
 	{
@@ -209,10 +209,6 @@ protected:
 		this->LocalBranchChange();
 		this->RemoteBranchChange();
 	}
-
-public:
-	CString m_strLocalBranch;
-	CString m_strRemoteBranch;
 
 	void SaveHistory()
 	{

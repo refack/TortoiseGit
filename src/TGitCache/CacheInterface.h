@@ -19,8 +19,7 @@
 //
 
 #pragma once
-#include <wininet.h>
-#include "GitStatus.h"
+#include <GitStatus.h>
 
 // The name of the named-pipe for the cache
 
@@ -30,12 +29,12 @@
 #define TGIT_CACHE_MUTEX_NAME L"TGitCacheMutex"
 
 
-CString GetCachePipeName();
-CString GetCacheCommandPipeName();
-CString GetCacheMutexName();
+std::wstring GetCachePipeName();
+std::wstring GetCacheCommandPipeName();
+std::wstring GetCacheMutexName();
 
-CString GetCacheID();
-bool	SendCacheCommand(BYTE command, const WCHAR* path = nullptr);
+std::wstring GetCacheID();
+bool	SendCacheCommand(BYTE command, std::wstring_view path = {});
 
 /**
  * \ingroup TGitCache

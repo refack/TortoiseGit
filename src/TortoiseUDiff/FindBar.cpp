@@ -22,8 +22,8 @@
 #include "resource.h"
 #include "FindBar.h"
 #include <string>
-#include "LoadIconEx.h"
-#include "Theme.h"
+#include <Utils/LoadIconEx.h>
+#include <Utils/Theme.h>
 
 CFindBar::CFindBar()
 {

@@ -22,8 +22,8 @@
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-  <Import Project="$(SolutionDir)TortoiseGit.common.props" />
-  <Import Project="$(SolutionDir)TortoiseGit.common-dll.props" />
+  <Import Project="$(SolutionDir)src\TortoiseGit.common.props" />
+  <Import Project="$(SolutionDir)src\TortoiseGit.common-dll.props" />
   <PropertyGroup Label="UserMacros" />
   <ItemDefinitionGroup>
     <ClCompile>

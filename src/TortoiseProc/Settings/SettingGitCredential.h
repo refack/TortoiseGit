@@ -18,7 +18,7 @@
 //
 #pragma once
 #include "SettingsPropPage.h"
-#include "registry.h"
+#include <Utils/registry.h>
 #include "Git.h"
 
 // CSettingGitCredential dialog

@@ -66,30 +66,6 @@
     <ClCompile Include="TortoiseGIT.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\Git\GitIndex.cpp">
-      <Filter>Git</Filter>
-    </ClCompile>
-    <ClCompile Include="..\Git\GitFolderStatus.cpp">
-      <Filter>Git</Filter>
-    </ClCompile>
-    <ClCompile Include="..\Git\GitAdminDir.cpp">
-      <Filter>Git</Filter>
-    </ClCompile>
-    <ClCompile Include="..\Git\Git.cpp">
-      <Filter>Git</Filter>
-    </ClCompile>
-    <ClCompile Include="..\Utils\DebugOutput.cpp">
-      <Filter>Utils</Filter>
-    </ClCompile>
-    <ClCompile Include="..\TGitCache\CacheInterface.cpp">
-      <Filter>TGitCache</Filter>
-    </ClCompile>
-    <ClCompile Include="..\Git\GitStatus.cpp">
-      <Filter>Git</Filter>
-    </ClCompile>
-    <ClCompile Include="..\Utils\ReaderWriterLock.cpp">
-      <Filter>Utils</Filter>
-    </ClCompile>
     <ClCompile Include="..\Utils\UnicodeUtils.cpp">
       <Filter>Utils</Filter>
     </ClCompile>
@@ -99,40 +75,22 @@
     <ClCompile Include="..\Utils\StringUtils.cpp">
       <Filter>Utils</Filter>
     </ClCompile>
-    <ClCompile Include="..\Utils\Registry.cpp">
-      <Filter>Utils</Filter>
-    </ClCompile>
     <ClCompile Include="..\Git\TGitPath.cpp">
       <Filter>Git</Filter>
-    </ClCompile>
-    <ClCompile Include="..\Utils\PathUtils.cpp">
-      <Filter>Utils</Filter>
-    </ClCompile>
-    <ClCompile Include="..\Utils\MiscUI\IconBitmapUtils.cpp">
-      <Filter>Utils\MiscUI</Filter>
     </ClCompile>
     <ClCompile Include="ShellCache.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\Utils\LoadIconEx.cpp">
-      <Filter>Utils</Filter>
-    </ClCompile>
     <ClCompile Include="ExplorerCommand.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\Utils\LangDll.cpp">
-      <Filter>Utils</Filter>
-    </ClCompile>
-    <ClCompile Include="..\Utils\CmdLineParser.cpp">
-      <Filter>Utils</Filter>
+    <ClCompile Include="GitFolderStatus.cpp">
+      <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="ShellExt.def">
       <Filter>Source Files</Filter>
-    </None>
-    <None Include="resourceshell.rc2">
-      <Filter>Resource Files</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>
@@ -175,206 +133,17 @@
     <ClInclude Include="stdafx.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\Utils\DebugOutput.h">
-      <Filter>Utils</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Utils\UnicodeUtils.h">
-      <Filter>Utils</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Utils\SysInfo.h">
-      <Filter>Utils</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Utils\StringUtils.h">
-      <Filter>Utils</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Utils\ReaderWriterLock.h">
-      <Filter>Utils</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Utils\registry.h">
-      <Filter>Utils</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Utils\PathUtils.h">
-      <Filter>Utils</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Utils\MiscUI\IconBitmapUtils.h">
-      <Filter>Utils\MiscUI</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Git\Git.h">
-      <Filter>Git</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Git\GitAdminDir.h">
-      <Filter>Git</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Git\GitFolderStatus.h">
-      <Filter>Git</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Git\GitForWindows.h">
-      <Filter>Git</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Git\GitHash.h">
-      <Filter>Git</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Git\gitindex.h">
-      <Filter>Git</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Git\GitStatus.h">
-      <Filter>Git</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Git\TGitPath.h">
-      <Filter>Git</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Git\gittype.h">
-      <Filter>Git</Filter>
-    </ClInclude>
-    <ClInclude Include="..\TGitCache\CacheInterface.h">
-      <Filter>TGitCache</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Utils\CreateProcessHelper.h">
-      <Filter>Utils</Filter>
-    </ClInclude>
     <ClInclude Include="MenuInfo.h">
       <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Utils\LoadIconEx.h">
-      <Filter>Utils</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Git\GitRev.h">
-      <Filter>Git</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Utils\SmartHandle.h">
-      <Filter>Utils</Filter>
     </ClInclude>
     <ClInclude Include="ExplorerCommand.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\Utils\LangDll.h">
-      <Filter>Utils</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Utils\CmdLineParser.h">
-      <Filter>Utils</Filter>
+    <ClInclude Include="GitFolderStatus.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <Image Include="..\Resources\clippaste.ico">
-      <Filter>Resource Files</Filter>
-    </Image>
-    <Image Include="..\Resources\copy.ico">
-      <Filter>Resource Files</Filter>
-    </Image>
-    <Image Include="..\Resources\menuabout.ico">
-      <Filter>Resource Files</Filter>
-    </Image>
-    <Image Include="..\Resources\menuadd.ico">
-      <Filter>Resource Files</Filter>
-    </Image>
-    <Image Include="..\Resources\menubisect.ico">
-      <Filter>Resource Files</Filter>
-    </Image>
-    <Image Include="..\Resources\menubisectreset.ico">
-      <Filter>Resource Files</Filter>
-    </Image>
-    <Image Include="..\Resources\menucheckout.ico">
-      <Filter>Resource Files</Filter>
-    </Image>
-    <Image Include="..\Resources\menucleanup.ico">
-      <Filter>Resource Files</Filter>
-    </Image>
-    <Image Include="..\Resources\menucombine.ico">
-      <Filter>Resource Files</Filter>
-    </Image>
-    <Image Include="..\Resources\menucommit.ico">
-      <Filter>Resource Files</Filter>
-    </Image>
-    <Image Include="..\Resources\menucompare.ico">
-      <Filter>Resource Files</Filter>
-    </Image>
-    <Image Include="..\Resources\menuconflict.ico">
-      <Filter>Resource Files</Filter>
-    </Image>
-    <Image Include="..\Resources\menucopy.ico">
-      <Filter>Resource Files</Filter>
-    </Image>
-    <Image Include="..\Resources\menucreaterepos.ico">
-      <Filter>Resource Files</Filter>
-    </Image>
-    <Image Include="..\Resources\menudelete.ico">
-      <Filter>Resource Files</Filter>
-    </Image>
-    <Image Include="..\Resources\menudiff.ico">
-      <Filter>Resource Files</Filter>
-    </Image>
-    <Image Include="..\Resources\menuedit.ico">
-      <Filter>Resource Files</Filter>
-    </Image>
-    <Image Include="..\Resources\menuexport.ico">
-      <Filter>Resource Files</Filter>
-    </Image>
-    <Image Include="..\Resources\menuhelp.ico">
-      <Filter>Resource Files</Filter>
-    </Image>
-    <Image Include="..\Resources\menuignore.ico">
-      <Filter>Resource Files</Filter>
-    </Image>
-    <Image Include="..\Resources\menulog.ico">
-      <Filter>Resource Files</Filter>
-    </Image>
-    <Image Include="..\Resources\menumerge.ico">
-      <Filter>Resource Files</Filter>
-    </Image>
-    <Image Include="..\Resources\menupatch.ico">
-      <Filter>Resource Files</Filter>
-    </Image>
-    <Image Include="..\Resources\menupick.ico">
-      <Filter>Resource Files</Filter>
-    </Image>
-    <Image Include="..\Resources\menurebase.ico">
-      <Filter>Resource Files</Filter>
-    </Image>
-    <Image Include="..\Resources\menurelocate.ico">
-      <Filter>Resource Files</Filter>
-    </Image>
-    <Image Include="..\Resources\menurename.ico">
-      <Filter>Resource Files</Filter>
-    </Image>
-    <Image Include="..\Resources\menurepobrowse.ico">
-      <Filter>Resource Files</Filter>
-    </Image>
-    <Image Include="..\Resources\menuresolve.ico">
-      <Filter>Resource Files</Filter>
-    </Image>
-    <Image Include="..\Resources\menurevert.ico">
-      <Filter>Resource Files</Filter>
-    </Image>
-    <Image Include="..\Resources\menusendmail.ico">
-      <Filter>Resource Files</Filter>
-    </Image>
-    <Image Include="..\Resources\menusettings.ico">
-      <Filter>Resource Files</Filter>
-    </Image>
-    <Image Include="..\Resources\menushowchanged.ico">
-      <Filter>Resource Files</Filter>
-    </Image>
-    <Image Include="..\Resources\menuskip.ico">
-      <Filter>Resource Files</Filter>
-    </Image>
-    <Image Include="..\Resources\menusquash.ico">
-      <Filter>Resource Files</Filter>
-    </Image>
-    <Image Include="..\Resources\menuswitch.ico">
-      <Filter>Resource Files</Filter>
-    </Image>
-    <Image Include="..\Resources\menusync.ico">
-      <Filter>Resource Files</Filter>
-    </Image>
-    <Image Include="..\Resources\menuupdate.ico">
-      <Filter>Resource Files</Filter>
-    </Image>
-    <Image Include="..\Resources\pull1.ico">
-      <Filter>Resource Files</Filter>
-    </Image>
-    <Image Include="..\Resources\Push.ico">
-      <Filter>Resource Files</Filter>
-    </Image>
     <Image Include="..\Resources\showbranches.ico">
       <Filter>Resource Files</Filter>
     </Image>
@@ -405,31 +174,7 @@
     <Image Include="..\Resources\tsvnmenumultiple.ico">
       <Filter>Resource Files</Filter>
     </Image>
-    <Image Include="..\Resources\menurevisiongraph.ico">
-      <Filter>Resource Files</Filter>
-    </Image>
-    <Image Include="..\Resources\menudaemon.ico">
-      <Filter>Resource Files</Filter>
-    </Image>
-    <Image Include="..\Resources\menumergeabort.ico">
-      <Filter>Resource Files</Filter>
-    </Image>
-    <Image Include="..\Resources\menulfs.ico">
-      <Filter>Resource Files</Filter>
-    </Image>
-    <Image Include="..\Resources\menulock.ico">
-      <Filter>Resource Files</Filter>
-    </Image>
-    <Image Include="..\Resources\menuunlock.ico">
-      <Filter>Resource Files</Filter>
-    </Image>
     <Image Include="..\Resources\TortoiseGitBlame.ico">
-      <Filter>Resource Files</Filter>
-    </Image>
-    <Image Include="..\Resources\menushelve.ico">
-      <Filter>Resource Files</Filter>
-    </Image>
-    <Image Include="..\Resources\menuunshelve.ico">
       <Filter>Resource Files</Filter>
     </Image>
   </ItemGroup>
@@ -437,10 +182,5 @@
     <ResourceCompile Include="resourceshell.rc">
       <Filter>Resource Files</Filter>
     </ResourceCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <Manifest Include="..\identity.manifest">
-      <Filter>Resource Files</Filter>
-    </Manifest>
   </ItemGroup>
 </Project>

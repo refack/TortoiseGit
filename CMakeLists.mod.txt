@@ -1,0 +1,57 @@
+cmake_minimum_required(VERSION 4.0)
+
+# The triplet is a project decision, not a per-machine one: static libraries
+# over the dynamic CRT, which is what UseOfMfc=Dynamic and every target's
+# MSVC_RUNTIME_LIBRARY MultiThreadedDLL already assume. It has to be set before
+# project(), because that is when the vcpkg toolchain reads it and runs the
+# manifest install. The toolchain FORCE-lifts this value into the cache, so a
+# build directory configured under another triplet corrects itself on the next
+# configure - and a -DVCPKG_TARGET_TRIPLET on the command line does not win;
+# change this line instead.
+#
+# Left alone, the toolchain derives the triplet from the compiler's platform
+# and lands on plain x64-windows - the *dynamic* triplet, under which every
+# vcpkg library becomes a DLL. VCPKG_DEFAULT_TRIPLET in the environment does
+# not change that; the toolchain never reads it.
+set(VCPKG_TARGET_TRIPLET "x64-windows-static-md")
+
+project(TortoiseGit)
+
+# The vcpkg layout, spelled the way src\TortoiseGit.common.props spelled it so
+# the generated CMakeLists can keep their names. VCPKG_INSTALLED_DIR and
+# VCPKG_TARGET_TRIPLET are cache entries the toolchain defines during project().
+#
+# The toolchain already puts VcpkgIncludeDir on every target's include path,
+# and library paths are resolved per configuration by find_package(). These
+# variables exist for the two things the toolchain cannot do on its own:
+# subdirectories *inside* a port's include tree (tgit-libgit's compat shims,
+# scintilla's headers) that a target has to name explicitly.
+if(NOT DEFINED VCPKG_INSTALLED_DIR)
+    message(FATAL_ERROR "VCPKG_INSTALLED_DIR is not set - configure with -DCMAKE_TOOLCHAIN_FILE=<vcpkg root>/scripts/buildsystems/vcpkg.cmake.")
+endif()
+set(VcpkgInstalledDir "${VCPKG_INSTALLED_DIR}/")
+set(VcpkgDeployedDir "${VcpkgInstalledDir}${VCPKG_TARGET_TRIPLET}/")
+set(VcpkgIncludeDir "${VcpkgDeployedDir}include/")
+
+# tgit-libgit installs git's headers as a mirror of its source tree, and
+# gitdll compiles against git's *compat* layer by naming its subdirectories.
+set(TgitIncludeDir "${VcpkgIncludeDir}tgit-libgit/")
+set(TgitCompatDir "${TgitIncludeDir}compat/")
+
+add_subdirectory(ext/gitdll)
+#add_subdirectory(src/AsyncFramework)
+#add_subdirectory(src/IBugTraqProvider)
+add_subdirectory(src/libgit2)
+#add_subdirectory(src/GitWCRev)
+#add_subdirectory(src/GitWCRevCOM)
+#add_subdirectory(src/ResizableLib)
+#add_subdirectory(src/SshAskPass)
+#add_subdirectory(src/TGitCache)
+#add_subdirectory(src/TortoiseGitBlame)
+#add_subdirectory(src/TortoiseProc)
+#add_subdirectory(src/TortoiseShell)
+#add_subdirectory(src/TortoiseStub)
+#add_subdirectory(src/TortoiseUDiff)
+#add_subdirectory(test/Cache)
+#add_subdirectory(test/ShellBench)
+#add_subdirectory(test/UnitTests)

@@ -20,14 +20,14 @@
 
 #include "stdafx.h"
 #include "RegisterWin11ContextMenu.h"
-#include "SysInfo.h"
 #include <oobenotification.h>
-#include "PathUtils.h"
-#include "UnicodeUtils.h"
 #include <winrt/Windows.Management.Deployment.h>
 #include <winrt/Windows.Foundation.Collections.h>
 #include <winrt/Windows.ApplicationModel.h>
 #include <future>
+import SysInfo;
+import PathUtils;
+import wstr;
 
 using namespace winrt::Windows::Foundation;
 using namespace winrt::Windows::Management::Deployment;
@@ -36,7 +36,7 @@ using namespace winrt::Windows::Management::Deployment;
 
 bool RegisterWin11ContextMenuCommand::Execute()
 {
-	if (!SysInfo::Instance().IsWin11OrLater())
+	if (!SysInfo::IsWin11OrLater())
 		return true;
 
 	if (BOOL isOOBEComplete = false, ooBECompleteOk = OOBEComplete(&isOOBEComplete); !ooBECompleteOk || !isOOBEComplete)

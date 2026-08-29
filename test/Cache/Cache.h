@@ -1,4 +1,4 @@
-// TortoiseSVN - a Windows shell extension for easy version control
+﻿// TortoiseSVN - a Windows shell extension for easy version control
 
 // Copyright (C) 2003-2006 - Stefan Kueng
 
@@ -32,11 +32,10 @@
 class CCacheApp : public CWinApp
 {
 public:
-	CCacheApp();
+	CCacheApp() = default;
 
 // Overrides
-	public:
-	virtual BOOL InitInstance();
+    BOOL InitInstance() override;
 
 // Implementation
 

@@ -163,7 +163,7 @@ must be added, constrain it with
 overload resolution for a literal.
 
 **Bridge visibly.** A call site still holding a `CString` says so, with
-`tgit::wstr::View(x)` for a view parameter and `std::wstring(x)` (direct-init —
+`tgit::wstr::StringView(x)` for a view parameter and `std::wstring(x)` (direct-init —
 copy-init would need two user-defined conversions) for an owning one. Making the
 core's parameters `LPCWSTR` instead would erase most of those edits and was
 rejected for exactly that reason: a CString converts to `LPCWSTR` implicitly, so
@@ -488,7 +488,7 @@ Two prerequisites, both already diagnosed:
 - **`src\Git` and `src\Utils` have no project at all.** Every consumer lists the
   subset it wants — 1 file to 68 — and compiles it itself. `TGitPath.obj` is
   built 13 times.
-- **Those 88 `.cpp` files are not self-contained.** All open with
+- **Those 88 `.cpp` files are not self-contained.** Unmigrated files open with
   `#include "stdafx.h"` and neither directory contains one, so under `/Yu` the
   include is *replaced* by whichever PCH the consuming project built. Giving each
   directory a real `stdafx.h` is a prerequisite and is invisible to existing
@@ -610,7 +610,7 @@ Each needs review, not a mechanical strip:
   flags. `tgit-libgit` generates its defines from `compile_commands.json` so they
   cannot drift from the library that was actually built.
 - `src\Utils\WideString.h` — `tgit::wstr::*` (CString-contract helpers,
-  differentially tested against the real `CString`), `tgit::wstr::View` (the
+  differentially tested against the real `CString`), `tgit::wstr::StringView` (the
   migration bridge), and `std::formatter<CStringT>`.
 - `src\Utils\GitObjectFormat.h` — the process-level object format:
   `g_gitObjectFormat`, `GitHashSize()`, `GitZeroRevString()`,

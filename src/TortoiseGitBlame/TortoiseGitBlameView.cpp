@@ -23,28 +23,33 @@
 //
 
 #include "stdafx.h"
-#include "TortoiseGitBlame.h"
-#include "CommonAppUtils.h"
-#include "TortoiseGitBlameDoc.h"
+
 #include "TortoiseGitBlameView.h"
-#include "MainFrm.h"
+#include "BlameDetectMovedOrCopiedLines.h"
+#include "BlameIndexColors.h"
 #include "EditGotoDlg.h"
 #include "LoglistUtils.h"
-#include "FileTextLines.h"
-#include "UnicodeUtils.h"
+#include "MainFrm.h"
 #include "MenuEncode.h"
-#include "gitdll.h"
-#include "StringUtils.h"
-#include "BlameIndexColors.h"
-#include "BlameDetectMovedOrCopiedLines.h"
-#include "TGitPath.h"
-#include "IconMenu.h"
-#include "DPIAware.h"
-#include "Theme.h"
-#include "DarkModeHelper.h"
-#include "Lexilla.h"
 #include "ScintillaRegistration.h"
-#include "CmdLineParser.h"
+#include "TortoiseGitBlame.h"
+#include "TortoiseGitBlameDoc.h"
+
+#include <Git/TGitPath.h>
+// Needed for lexilla
+#include <scintilla/ILexer.h>
+#include <lexilla/Lexilla.h>
+#include <lexilla/SciLexer.h>
+#include <Utils/CmdLineParser.h>
+#include <Utils/CommonAppUtils.h>
+import DarkModeHelper;
+#include <Utils/DPIAware.h>
+#include <Utils/FileTextLines.h>
+import StringUtils;
+#include <Utils/Theme.h>
+import wstr;
+#include <Utils/MiscUI/IconMenu.h>
+
 #ifdef _DEBUG
 #define new DEBUG_NEW
 #endif
@@ -123,7 +128,14 @@ END_MESSAGE_MAP()
 
 // CTortoiseGitBlameView construction/destruction
 
-CTortoiseGitBlameView::CTortoiseGitBlameView()
+CTortoiseGitBlameView::CTortoiseGitBlameView() :
+	m_mouserevcolor(0),
+	m_mouseauthorcolor(0),
+	m_selectedrevcolor(0),
+	m_selectedauthorcolor(0),
+	m_windowcolor(0),
+	m_textcolor(0),
+	m_texthighlightcolor(0)
 {
 	m_colorage = !!theApp.GetInt(L"ColorAge", !CTheme::Instance().IsHighContrastMode());
 	m_bLexer = !!theApp.GetInt(L"EnableLexer", !CTheme::Instance().IsHighContrastMode());
@@ -144,8 +156,7 @@ CTortoiseGitBlameView::CTortoiseGitBlameView()
 
 	m_FindDialogMessage = ::RegisterWindowMessage(FINDMSGSTRING);
 	// get short/long datetime setting from registry
-	DWORD RegUseShortDateFormat = CRegDWORD(L"Software\\TortoiseGit\\LogDateFormat", TRUE);
-	if ( RegUseShortDateFormat )
+	if (DWORD RegUseShortDateFormat = CRegDWORD(L"Software\\TortoiseGit\\LogDateFormat", TRUE))
 	{
 		m_DateFormat = DATE_SHORTDATE;
 	}
@@ -309,7 +320,8 @@ int CTortoiseGitBlameView::GetLineUnderCursor(CPoint point)
 	auto height = static_cast<int>(SendEditor(SCI_TEXTHEIGHT));
 	const auto linesTotal = static_cast<int>(SendEditor(SCI_GETLINECOUNT));
 
-	int i = 0, y = 0;
+	int i;
+	int y = 0;
 	for (i = line; y <= point.y && i < (line + linesonscreen) && i < linesTotal; ++i)
 	{
 		auto wrapcount = static_cast<int>(SendEditor(SCI_WRAPCOUNT, i));
@@ -374,7 +386,7 @@ void CTortoiseGitBlameView::OnRButtonUp(UINT /*nFlags*/, CPoint point)
 				{
 					if (!(file.m_ParentNo & MERGE_MASK))
 					{
-						int action = file.m_Action;
+						auto action = file.m_Action;
 						// ignore (action & CTGitPath::LOGACTIONS_ADDED), as then there is nothing to blame/diff
 						// ignore (action & CTGitPath::LOGACTIONS_DELETED), should never happen as the file must exist
 						if (action & (CTGitPath::LOGACTIONS_MODIFIED | CTGitPath::LOGACTIONS_REPLACED))
@@ -383,7 +395,8 @@ void CTortoiseGitBlameView::OnRButtonUp(UINT /*nFlags*/, CPoint point)
 							if (parentNo >= 0 && static_cast<size_t>(parentNo) < pRev->m_ParentHash.size())
 							{
 								parentHashWithFile.push_back(pRev->m_ParentHash[parentNo]);
-								parentFilename.push_back((action & CTGitPath::LOGACTIONS_REPLACED) ? file.GetGitOldPathString().c_str() : file.GetGitPathString().c_str());
+								const auto& gitPath = action & CTGitPath::LOGACTIONS_REPLACED ? file.GetGitOldPathString() : file.GetGitPathString();
+								parentFilename.emplace_back(gitPath.c_str());
 							}
 						}
 					}
@@ -521,6 +534,10 @@ void CTortoiseGitBlameView::ContextMenuAction(int cmd, GitRev *pRev, GIT_REV_LIS
 	case ID_COPYLOGTOCLIPBOARD:
 		this->GetLogList()->CopySelectionToClipBoard(CGitLogListBase::ID_COPYCLIPBOARDFULL);
 		break;
+
+	default:
+		break;
+
 	}
 }
 

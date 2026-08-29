@@ -19,7 +19,7 @@
 //
 #include "stdafx.h"
 #include "CacheInterface.h"
-#include "SmartHandle.h"
+import RIAA;
 #include <memory>
 
 CString GetCachePipeName()

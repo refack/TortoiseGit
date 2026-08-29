@@ -28,8 +28,7 @@
 #include "UnicodeUtils.h"
 #include "Git.h"
 #include "GitStatus.h"
-#include "TGitPath.h"
-#include "PathUtils.h"
+import PathUtils;
 #include "CreateProcessHelper.h"
 #include "FormatMessageWrapper.h"
 #include <TGitCache/CacheInterface.h>
@@ -44,6 +43,8 @@
 
 #define GetPIDLFolder(pida) reinterpret_cast<LPCITEMIDLIST>(reinterpret_cast<LPBYTE>(pida) + (pida)->aoffset[0])
 #define GetPIDLItem(pida, i) reinterpret_cast<LPCITEMIDLIST>(reinterpret_cast<LPBYTE>(pida) + (pida)->aoffset[i + 1])
+
+import TGitPath;
 
 int g_shellidlist=RegisterClipboardFormat(CFSTR_SHELLIDLIST);
 
@@ -171,8 +172,8 @@ STDMETHODIMP CShellExt::Initialize(LPCITEMIDLIST pIDFolder, LPDATAOBJECT pDataOb
 									if (status != git_wc_status_unversioned && status != git_wc_status_ignored && status != git_wc_status_none)
 										itemStates |= ITEMIS_FOLDERINGIT;
 								}
-								// if ((stat.status->entry)&&(stat.status->entry->uuid))
-								//	uuidSource = CUnicodeUtils::StdGetUnicode(stat.status->entry->uuid);
+								if ((stat.status->entry)&&(stat.status->entry->uuid))
+									uuidSource = CUnicodeUtils::StdGetUnicode(stat.status->entry->uuid);
 							}
 							else
 							{

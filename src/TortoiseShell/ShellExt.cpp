@@ -24,8 +24,11 @@
 #include "Guids.h"
 
 #include "ShellExt.h"
+
+#include <shellapi.h>
+
 #include "ShellObjects.h"
-#include "GitAdminDir.h"
+import GitAdminDir;
 #include "LangDll.h"
 #undef swprintf
 

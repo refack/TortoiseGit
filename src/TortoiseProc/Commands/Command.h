@@ -19,9 +19,9 @@
 //
 #pragma once
 #include "TortoiseProc.h"
-#include "CmdLineParser.h"
-#include "TGitPath.h"
-#include "Git.h"
+#include <Utils/CmdLineParser.h>
+#include <TGitPath.h>
+#include <Git.h>
 
 enum class PathRequirement
 {

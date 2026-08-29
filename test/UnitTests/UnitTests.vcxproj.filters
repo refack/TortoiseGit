@@ -38,223 +38,22 @@
     <ClInclude Include="stdafx.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\Utils\UnicodeUtils.h">
-      <Filter>Utils</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\Git\Git.h">
-      <Filter>Git</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\Git\TGitPath.h">
-      <Filter>Git</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\Utils\registry.h">
-      <Filter>Utils</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\Utils\SmartHandle.h">
-      <Filter>Utils</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\Utils\SmartLibgit2Ref.h">
-      <Filter>Utils</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\Utils\StringUtils.h">
-      <Filter>Utils</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\Git\GitAdminDir.h">
-      <Filter>Git</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\Utils\DebugHelpers.h">
-      <Filter>Utils</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\Utils\DebugOutput.h">
-      <Filter>Utils</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\Utils\PathUtils.h">
-      <Filter>Utils</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\Utils\ProfilingInfo.h">
-      <Filter>Utils</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\Git\GitForWindows.h">
-      <Filter>Git</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\Git\GitHash.h">
-      <Filter>Git</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\Git\GitRev.h">
-      <Filter>Git</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\Git\gittype.h">
-      <Filter>Git</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\Git\GitStatus.h">
-      <Filter>Git</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\Git\gitindex.h">
-      <Filter>Git</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\Utils\ReaderWriterLock.h">
-      <Filter>Utils</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\TortoiseProc\ProjectProperties.h">
-      <Filter>TortoiseProc</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\Utils\CommonAppUtils.h">
-      <Filter>Utils</Filter>
-    </ClInclude>
     <ClInclude Include="AutoTempDir.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\Utils\DirFileEnum.h">
-      <Filter>Utils</Filter>
-    </ClInclude>
     <ClInclude Include="RepositoryFixtures.h">
       <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\Git\GitRevLoglist.h">
-      <Filter>Git</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\Git\GitRevRefBrowser.h">
-      <Filter>Git</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\Utils\SysInfo.h">
-      <Filter>Utils</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\Utils\CmdLineParser.h">
-      <Filter>Utils</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\Utils\UniqueQueue.h">
-      <Filter>Utils</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\version.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\TortoiseProc\UpdateCrypto.h">
-      <Filter>TortoiseProc</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\TortoiseProc\UpdateDownloader.h">
-      <Filter>TortoiseProc</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\TortoiseProc\lanes.h">
-      <Filter>TortoiseProc</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\TortoiseProc\LogDlgHelper.h">
-      <Filter>TortoiseProc</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\TortoiseProc\gitlogcache.h">
-      <Filter>TortoiseProc</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\Utils\LruCache.h">
-      <Filter>TortoiseProc</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\Utils\FileTextLines.h">
-      <Filter>Utils</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\Utils\WindowsCredentialsStore.h">
-      <Filter>Utils</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\Utils\PersonalDictionary.h">
-      <Filter>Utils</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\TortoiseProc\VersioncheckParser.h">
-      <Filter>TortoiseProc</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\Utils\TempFile.h">
-      <Filter>Utils</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\TortoiseShell\PreserveChdir.h">
-      <Filter>TortoiseShell</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\Utils\LoadIconEx.h">
-      <Filter>Utils</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\GitWCRev\status.h">
-      <Filter>GitWCRev</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\Git\GitMailmap.h">
-      <Filter>Git</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\Utils\MiscUI\IconBitmapUtils.h">
-      <Filter>Utils\UI</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\TortoiseProc\DiffLinesForStaging.h">
-      <Filter>TortoiseProc</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\TortoiseProc\StagingOperations.h">
-      <Filter>TortoiseProc</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\TortoiseProc\AppUtils.h">
-      <Filter>TortoiseProc</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\Utils\URLFinder.h">
-      <Filter>Utils</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\TortoiseProc\LogFile.h">
-      <Filter>TortoiseProc</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\TortoiseGitBlame\TortoiseGitBlameData.h">
-      <Filter>TortoiseGitBlame</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\TortoiseProc\LoglistUtils.h">
-      <Filter>TortoiseProc</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\TortoiseProc\GitCliOutputParser.h">
-      <Filter>TortoiseProc</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\Utils\UnicodeUtils.cpp">
-      <Filter>Utils</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\Git\Git.cpp">
-      <Filter>Git</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\Git\TGitPath.cpp">
-      <Filter>Git</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\Utils\Registry.cpp">
-      <Filter>Utils</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\Utils\StringUtils.cpp">
-      <Filter>Utils</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\Git\GitAdminDir.cpp">
-      <Filter>Git</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\Utils\DebugOutput.cpp">
-      <Filter>Utils</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\Utils\PathUtils.cpp">
-      <Filter>Utils</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\Utils\ProfilingInfo.cpp">
-      <Filter>Utils</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\Git\GitRev.cpp">
-      <Filter>Git</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\Git\GitStatus.cpp">
-      <Filter>Git</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\Git\GitIndex.cpp">
-      <Filter>Git</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\Utils\ReaderWriterLock.cpp">
-      <Filter>Utils</Filter>
-    </ClCompile>
     <ClCompile Include="StringUtilsTest.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="GitTest.cpp">
       <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\TortoiseProc\ProjectProperties.cpp">
-      <Filter>TortoiseProc</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\Utils\CommonAppUtils.cpp">
-      <Filter>Utils</Filter>
     </ClCompile>
     <ClCompile Include="ProjectPropertiesTest.cpp">
       <Filter>Source Files</Filter>
@@ -268,9 +67,6 @@
     <ClCompile Include="AutoTempDir.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\Utils\DirFileEnum.cpp">
-      <Filter>Utils</Filter>
-    </ClCompile>
     <ClCompile Include="UnitTests.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -283,29 +79,17 @@
     <ClCompile Include="GitRevTest.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\Git\GitRevLoglist.cpp">
-      <Filter>Git</Filter>
-    </ClCompile>
     <ClCompile Include="GitRevLoglistTest.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="libgit2Test.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\Git\GitRevRefBrowser.cpp">
-      <Filter>Git</Filter>
-    </ClCompile>
     <ClCompile Include="GitRevRefBrowseTest.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\Utils\SysInfo.cpp">
-      <Filter>Utils</Filter>
-    </ClCompile>
     <ClCompile Include="CmdLineParserTest.cpp">
       <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\Utils\CmdLineParser.cpp">
-      <Filter>Utils</Filter>
     </ClCompile>
     <ClCompile Include="UniqueQueueTests.cpp">
       <Filter>Source Files</Filter>
@@ -316,20 +100,8 @@
     <ClCompile Include="UpdateCryptoTest.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\TortoiseProc\UpdateCrypto.cpp">
-      <Filter>TortoiseProc</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\TortoiseProc\LogDataVector.cpp">
-      <Filter>TortoiseProc</Filter>
-    </ClCompile>
     <ClCompile Include="LogDataVectorTest.cpp">
       <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\TortoiseProc\lanes.cpp">
-      <Filter>TortoiseProc</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\TortoiseProc\GitLogCache.cpp">
-      <Filter>TortoiseProc</Filter>
     </ClCompile>
     <ClCompile Include="GitHashTest.cpp">
       <Filter>Source Files</Filter>
@@ -340,14 +112,8 @@
     <ClCompile Include="LruCacheTest.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\Utils\FileTextLines.cpp">
-      <Filter>Utils</Filter>
-    </ClCompile>
     <ClCompile Include="FileTextLinesTest.cpp">
       <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\Utils\WindowsCredentialsStore.cpp">
-      <Filter>Utils</Filter>
     </ClCompile>
     <ClCompile Include="WindowsCredentialsStoreTests.cpp">
       <Filter>Source Files</Filter>
@@ -355,26 +121,8 @@
     <ClCompile Include="PersonalDictionaryTest.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\Utils\PersonalDictionary.cpp">
-      <Filter>Utils</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\TortoiseProc\VersioncheckParser.cpp">
-      <Filter>TortoiseProc</Filter>
-    </ClCompile>
     <ClCompile Include="VersioncheckParserTest.cpp">
       <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\Utils\TempFile.cpp">
-      <Filter>Utils</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\TortoiseShell\PreserveChdir.cpp">
-      <Filter>TortoiseShell</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\Utils\LoadIconEx.cpp">
-      <Filter>Utils</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\GitWCRev\status.cpp">
-      <Filter>GitWCRev</Filter>
     </ClCompile>
     <ClCompile Include="GitWCRevStatusTest.cpp">
       <Filter>Source Files</Filter>
@@ -382,47 +130,20 @@
     <ClCompile Include="TempFileTest.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\Git\GitMailmap.cpp">
-      <Filter>Git</Filter>
-    </ClCompile>
     <ClCompile Include="UnicodeUtilsTest.cpp">
       <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\Utils\MiscUI\IconBitmapUtils.cpp">
-      <Filter>Utils\UI</Filter>
     </ClCompile>
     <ClCompile Include="StagingTest.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\TortoiseProc\DiffLinesForStaging.cpp">
-      <Filter>TortoiseProc</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\TortoiseProc\StagingOperations.cpp">
-      <Filter>TortoiseProc</Filter>
-    </ClCompile>
     <ClCompile Include="AppUtilsTest.cpp">
       <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\TortoiseProc\AppUtils.cpp">
-      <Filter>TortoiseProc</Filter>
     </ClCompile>
     <ClCompile Include="LogFileTest.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\TortoiseProc\LogFile.cpp">
-      <Filter>TortoiseProc</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\TortoiseGitBlame\TortoiseGitBlameData.cpp">
-      <Filter>TortoiseGitBlame</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\TortoiseProc\LoglistUtils.cpp">
-      <Filter>TortoiseProc</Filter>
-    </ClCompile>
     <ClCompile Include="TortoiseGitBlameDataTest.cpp">
       <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\TortoiseProc\GitCliOutputParser.cpp">
-      <Filter>TortoiseProc</Filter>
     </ClCompile>
     <ClCompile Include="GitCliOutputParserTest.cpp">
       <Filter>Source Files</Filter>

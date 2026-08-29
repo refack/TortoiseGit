@@ -46,11 +46,9 @@ private:
 	int FindHunkEndForwardsFrom(int line, int topBoundaryLine) const;
 	int FindHunkEndGivenHunkStartAndCounts(int hunkStart, int oldCount, int newCount) const;
 	std::string FindFileHeaderBackwardsFrom(int line) const;
-#ifdef GOOGLETEST_INCLUDE_GTEST_GTEST_H_
-public:
-#endif
-	std::string ChangeOldAndNewLinesCount(const std::string& strHunkStart, int oldCount, int newCount) const;
-
-private:
 	bool ParseHunkOnEitherSelectionBoundary(std::string& hunkWithoutStartLine, int hunkStartLine, int hunkLastLine, int firstLineSelected, int lastLineSelected, int* oldCount, int* newCount, StagingType stagingType) const;
+
+public:
+	static std::string _ChangeOldAndNewLinesCount(const std::string& strHunkStart, int oldCount, int newCount);
+
 };

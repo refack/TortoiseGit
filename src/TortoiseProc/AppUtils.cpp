@@ -33,7 +33,7 @@
 #ifndef TGIT_TESTS_ONLY
 #include "ExportDlg.h"
 #include "ProgressDlg.h"
-#include "GitAdminDir.h"
+import GitAdminDir;
 #include "BrowseFolder.h"
 #include "DirFileEnum.h"
 #include "CreateBranchTagDlg.h"

@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Project DefaultTargets="Build" ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|ARM64">
       <Configuration>Debug</Configuration>
@@ -18,69 +18,37 @@
       <Platform>x64</Platform>
     </ProjectConfiguration>
   </ItemGroup>
+  <PropertyGroup Label="UserMacros">
+  </PropertyGroup>
   <PropertyGroup Label="Globals">
+    <ProjectName>TestCache</ProjectName>
+    <Keyword>MFCProj</Keyword>
     <ProjectGuid>{948733DE-FC5A-46C2-8CD6-429017508D63}</ProjectGuid>
     <RootNamespace>Cache</RootNamespace>
-    <Keyword>MFCProj</Keyword>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
-    <UseOfMfc>Dynamic</UseOfMfc>
-    <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
-  <PropertyGroup Label="Configuration" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <PlatformToolset>v145</PlatformToolset>
-  </PropertyGroup>
-  <PropertyGroup Label="Configuration" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <PlatformToolset>v145</PlatformToolset>
-  </PropertyGroup>
+  <Import Project="$(SolutionDir)src\TortoiseGit.common.props" />
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
-  <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-  <Import Project="$(SolutionDir)TortoiseGit.common.props" />
-  <Import Project="$(SolutionDir)TortoiseGit.vcpkg.props" />
   <ItemDefinitionGroup>
     <ClCompile>
       <AdditionalIncludeDirectories>..\..\src\TortoiseShell;..\..\ext\gitdll;..\..\src\Utils;..\..\src\Git;..\..\src\TortoiseProc;..\..\src\Utils\MiscUI;..\..\src\TGitCache;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\src\Git\Git.cpp" />
-    <ClCompile Include="..\..\src\Utils\DebugOutput.cpp" />
-    <ClCompile Include="..\..\src\Utils\LoadIconEx.cpp" />
-    <ClCompile Include="..\..\src\Utils\SysInfo.cpp" />
     <ClCompile Include="Cache.cpp" />
     <ClCompile Include="CacheDlg.cpp" />
-    <ClCompile Include="..\..\src\TGitCache\CacheInterface.cpp" />
-    <ClCompile Include="..\..\src\Utils\DirFileEnum.cpp" />
-    <ClCompile Include="..\..\src\Git\GitAdminDir.cpp" />
-    <ClCompile Include="..\..\src\Utils\MiscUI\MessageBox.cpp" />
-    <ClCompile Include="..\..\src\Utils\PathUtils.cpp" />
-    <ClCompile Include="..\..\src\Utils\Registry.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader>Create</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="..\..\src\Utils\StringUtils.cpp" />
-    <ClCompile Include="..\..\src\Git\TGitPath.cpp" />
-    <ClCompile Include="..\..\src\Utils\UnicodeUtils.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\src\Git\Git.h" />
-    <ClInclude Include="..\..\src\Git\GitAdminDir.h" />
-    <ClInclude Include="..\..\src\Git\GitHash.h" />
-    <ClInclude Include="..\..\src\Git\TGitPath.h" />
-    <ClInclude Include="..\..\src\Utils\DebugOutput.h" />
-    <ClInclude Include="..\..\src\Utils\LoadIconEx.h" />
-    <ClInclude Include="..\..\src\Utils\SysInfo.h" />
     <ClInclude Include="Cache.h" />
     <ClInclude Include="CacheDlg.h" />
-    <ClInclude Include="..\..\src\Utils\DirFileEnum.h" />
-    <ClInclude Include="..\..\src\Utils\PathUtils.h" />
-    <ClInclude Include="..\..\src\Utils\registry.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="stdafx.h" />
-    <ClInclude Include="..\..\src\Utils\StringUtils.h" />
-    <ClInclude Include="..\..\src\Utils\UnicodeUtils.h" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="res\Cache.ico" />
@@ -94,10 +62,14 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\libgit2\TGitLibgit2.vcxproj">
       <Project>{2f29bedb-4b28-4f53-9d1c-3be0766e738e}</Project>
+      <LinkLibraryDependencies>true</LinkLibraryDependencies>
+      <UseLibraryDependencyInputs>false</UseLibraryDependencyInputs>
     </ProjectReference>
     <ProjectReference Include="..\..\ext\gitdll\gitdll.vcxproj">
       <Project>{4f0a55de-dafd-4a0b-a03d-2c14cb77e08f}</Project>
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+      <LinkLibraryDependencies>true</LinkLibraryDependencies>
+      <UseLibraryDependencyInputs>false</UseLibraryDependencyInputs>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

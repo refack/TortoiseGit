@@ -19,7 +19,7 @@
 //
 
 #pragma once
-#include "StandAloneDlg.h"
+#include <Utils/MiscUI/StandAloneDlg.h>
 #include "MyGraph.h"
 #include "TGitPath.h"
 #include "GitRevLoglist.h"

@@ -18,8 +18,8 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 #pragma once
-#include "SciEdit.h"
-#include "StandAloneDlg.h"
+#include <Utils/MiscUI/SciEdit.h>
+#include <Utils/MiscUI/StandAloneDlg.h>
 #include <afxcmn.h>
 
 // CAutoTextTestDlg dialog

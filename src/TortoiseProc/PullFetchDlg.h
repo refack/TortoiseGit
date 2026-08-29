@@ -1,4 +1,4 @@
-// TortoiseGit - a Windows shell extension for easy version control
+﻿// TortoiseGit - a Windows shell extension for easy version control
 
 // Copyright (C) 2008-2017, 2023 - TortoiseGit
 
@@ -22,7 +22,7 @@
 #include "HorizontalResizableStandAloneDialog.h"
 #include "HistoryCombo.h"
 #include "HyperLink.h"
-#include "registry.h"
+#include <Utils/registry.h>
 // CPullFetchDlg dialog
 
 class CPullFetchDlg : public CHorizontalResizableStandAloneDialog

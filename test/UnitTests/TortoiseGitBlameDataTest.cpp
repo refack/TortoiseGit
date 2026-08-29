@@ -18,6 +18,7 @@
 //
 
 #include "stdafx.h"
+
 #include "Git.h"
 #include "TortoiseGitBlameData.h"
 #include "RepositoryFixtures.h"
@@ -25,16 +26,16 @@
 class CTortoiseGitBlameDataRepositoryFixture : public CBasicGitWithTestRepoFixture
 {
 public:
-	CTortoiseGitBlameDataRepositoryFixture() : CBasicGitWithTestRepoFixture(L"blame") {};
+	CTortoiseGitBlameDataRepositoryFixture() : CBasicGitWithTestRepoFixture(L"blame") {}
 };
 
 INSTANTIATE_TEST_SUITE_P(CTortoiseGitBlameData, CTortoiseGitBlameDataRepositoryFixture, testing::Values(LIBGIT));
 
 namespace
 {
-	constexpr auto TEST_COMMIT = L"106b2e870129ed29a3213fb3c8ddf089ec9a9a82";
-	const std::vector<const char*> kBlameContentTwoNewLines = { "dsad", "sad", "ds\xC3\xB6""d", "dssdddd", "dd", "sdas", "", "" };
-	const std::vector<const char*> kBlameContentTwoNewLinesUtf16 = { "dsad", "sad", "ds\xC3\xB6""d", "dssdddd", "dd", "sdas", "", "", "" };
+    constexpr auto TEST_COMMIT = L"106b2e870129ed29a3213fb3c8ddf089ec9a9a82";
+	constexpr auto kBlameContentTwoNewLines = std::array{ "dsad", "sad", "ds\xC3\xB6""d", "dssdddd", "dd", "sdas", "", "" };  // NOLINT(bugprone-suspicious-missing-comma)
+	constexpr auto kBlameContentTwoNewLinesUtf16 = std::array{ L"dsad", L"sad", L"ds\xC3\xB6""d", L"dssdddd", L"dd", L"sdas", L"", L"", L"" };  // NOLINT(bugprone-suspicious-missing-comma)
 
 	BYTE_VECTOR RunBlame(const wchar_t* revision, const wchar_t* file)
 	{
@@ -55,11 +56,20 @@ namespace
 		return data;
 	}
 
-	void ExpectLines(const CTortoiseGitBlameData& data, const std::vector<const char*>& expectedLines)
-	{
+	template<typename T>
+	concept CStringLike = requires(const T & s) {
+		{ s.c_str() } -> std::same_as<const char*>;
+	};
+
+	template<typename ArrT, size_t N>
+        requires std::is_pointer_v<ArrT>
+	void ExpectLines(const CTortoiseGitBlameData& data, const std::array<ArrT, N>& expectedLines) {
 		ASSERT_EQ(expectedLines.size(), data.GetNumberOfLines());
-		for (size_t i = 0; i < expectedLines.size(); ++i)
-			EXPECT_STREQ(expectedLines[i], data.GetUtf8Line(i));
+		for (size_t i = 0; i < expectedLines.size(); ++i) {
+			const char* expected = reinterpret_cast<const char*>(expectedLines[i]);
+			const char* result   =  data.GetUtf8Line(i);
+			EXPECT_STREQ(expected, result);
+		}
 	}
 }
 

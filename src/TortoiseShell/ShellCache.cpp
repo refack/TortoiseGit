@@ -19,7 +19,7 @@
 //
 #include "stdafx.h"
 #include "ShellCache.h"
-#include "GitAdminDir.h"
+import GitAdminDir;
 #include "Git.h"
 #include "LangDll.h"
 

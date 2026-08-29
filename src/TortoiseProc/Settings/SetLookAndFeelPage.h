@@ -20,8 +20,10 @@
 #pragma once
 
 #include "SettingsPropPage.h"
-#include "registry.h"
-#include "Globals.h"
+#include <Utils/registry.h>
+#include <TortoiseShell/Globals.h>
+
+#include "resource.h"
 
 /**
  * \ingroup TortoiseProc

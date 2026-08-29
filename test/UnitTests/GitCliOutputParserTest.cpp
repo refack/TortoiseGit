@@ -18,7 +18,7 @@
 //
 #include "stdafx.h"
 #include "GitCliOutputParser.h"
-#include "PathUtils.h"
+import PathUtils;
 #include <random>
 
 static std::random_device rd;

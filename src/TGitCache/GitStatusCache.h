@@ -19,7 +19,7 @@
 //
 #pragma once
 
-#include "TGitPath.h"
+import TGitPath;
 #include "StatusCacheEntry.h"
 #include "CachedDirectory.h"
 #include "FolderCrawler.h"

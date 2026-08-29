@@ -1379,7 +1379,7 @@ TEST(CGit, CEnvironment)
 
 	env.clear();
 	CString path = L"c:\\windows;c:\\windows\\system32";
-	env.SetEnv(L"PATH", tgit::wstr::View(path));
+	env.SetEnv(L"PATH", tgit::wstr::StringView(path));
 	env.AddToPath(L"");
 	EXPECT_STREQ(path, env.GetEnv(L"PATH").c_str());
 	env.AddToPath(L"c:\\windows");
@@ -1401,7 +1401,7 @@ TEST(CGit, CEnvironment)
 	env.AddToPath(L"c:\\test");
 	EXPECT_STREQ(path, env.GetEnv(L"PATH").c_str());
 	path = L"c:\\windows;c:\\windows\\system32;";
-	env.SetEnv(L"PATH", tgit::wstr::View(path));
+	env.SetEnv(L"PATH", tgit::wstr::StringView(path));
 	env.AddToPath(L"");
 	EXPECT_STREQ(path, env.GetEnv(L"PATH").c_str());
 	env.AddToPath(L"c:\\test");
@@ -1478,7 +1478,7 @@ static void GetOneFile(CGit& m_Git)
 	EXPECT_EQ(0, m_Git.GetOneFile(L"b9ef30183497cdad5c30b88d32dc1bed7951dfeb", CTGitPath(L"utf8-nobom.txt"), tmpFile));
 	CString fileContents;
 	EXPECT_EQ(true, CStringUtils::ReadStringFromTextFile(tmpFile, fileContents));
-	struct _stat32 stat_buf = { 0 };
+	struct _stat32 stat_buf{};
 	EXPECT_EQ(0, _wstat32(tmpFile, &stat_buf));
 	EXPECT_EQ(139, stat_buf.st_size);
 	EXPECT_EQ(108, fileContents.GetLength());
@@ -1642,7 +1642,7 @@ TEST_P(CBasicGitWithTestRepoFixture, Config)
 	EXPECT_EQ(true, m_Git.GetConfigValueBool(L"core.ignorecase"));
 
 	CString values[] = { L"", L" ", L"\n", L"\n\n", L"ending-with-space ", L" starting with-space", L"test1", L"some\\backslashes\\in\\it", L"with \" doublequote", L"with backslash before \\\" doublequote", L"with'quote", L"multi\nline", L"no-multi\\nline", L"new line at end\n", L"with ümlaut", L"*", L"`pwd`" };
-	for (int i = 0; i < _countof(values); ++i)
+	for (auto i = 0ull; i < _countof(values); ++i)
 	{
 		CString key;
 		key.Format(L"re-read.test%d", i);
@@ -4685,7 +4685,7 @@ TEST(CGit, ParseConflictHashesFromLsFile_DeletedFileConflict)
 TEST(CGit, ParseConflictHashesFromLsFile_Invalid)
 {
 	constexpr char git_ls_file_u_t_z_output[] = { "M 160000 533da4ea00703f4ad6d5518e1ce81d20261c40c0 2	libgit2\0M 100644 9ae3e601584cc03f8f03f93761416b6599ac7c0d 3	libgit2" };
-	for (int i = 1; i < sizeof(git_ls_file_u_t_z_output); ++i)
+	for (auto i = 1ull; i < sizeof(git_ls_file_u_t_z_output); ++i)
 	{
 		if (i == 60)
 			continue;

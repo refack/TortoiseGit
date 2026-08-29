@@ -27,8 +27,8 @@
 #include "resource.h"		// main symbols
 
 #include <TortoiseShell/resource.h>
-#include "LoglistCommonResource.h"
-#include "LangDll.h"
+#include <Resources/LoglistCommonResource.h>
+#include <Utils/LangDll.h>
 
 /**
  * \ingroup TortoiseProc

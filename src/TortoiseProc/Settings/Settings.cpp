@@ -23,10 +23,10 @@
 #include "Git.h"
 #include "MessageBox.h"
 #include <TGitCache/CacheInterface.h>
-#include "GitAdminDir.h"
+import GitAdminDir;
 #include "AppUtils.h"
 #include "Theme.h"
-#include "DarkModeHelper.h"
+import DarkModeHelper;
 #include "SetMainPage.h"
 #include "SetProxyPage.h"
 #include "SetOverlayPage.h"
@@ -53,7 +53,7 @@
 #include "SetWin11ContextMenu.h"
 #include "SettingsAdvanced.h"
 #include "SettingsTUDiff.h"
-#include "SysInfo.h"
+import SysInfo;
 
 IMPLEMENT_DYNAMIC(CSettings, CTreePropSheet)
 CSettings::CSettings(UINT nIDCaption, CTGitPath * /*cmdPath*/, CWnd* pParentWnd, UINT iSelectPage)
@@ -101,7 +101,7 @@ void CSettings::AddPropPages()
 	auto pMainPage = AddPropPage(new CSetMainPage(), L"main");
 	AddPropPage(new CSetLookAndFeelPage(), L"look", pMainPage);
 	AddPropPage(new CSetExtMenu(), L"extmenu", pMainPage);
-	if (SysInfo::Instance().IsWin11OrLater())
+	if (SysInfo::IsWin11OrLater())
 		AddPropPage(new CSetWin11ContextMenu(), L"win11menu", pMainPage);
 	AddPropPage(new CSetDialogs(), L"dialog", pMainPage);
 	AddPropPage(new CSetDialogs2(), L"dialog2", pMainPage);

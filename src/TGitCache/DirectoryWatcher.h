@@ -18,10 +18,10 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 #pragma once
-#include "TGitPath.h"
+import TGitPath;
 #include "FolderCrawler.h"
 #include "ShellCache.h"
-#include "SmartHandle.h"
+import RIAA;
 
 #define READ_DIR_CHANGE_BUFFER_SIZE 4096
 

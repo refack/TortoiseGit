@@ -1,4 +1,4 @@
-// TortoiseGit - a Windows shell extension for easy version control
+﻿// TortoiseGit - a Windows shell extension for easy version control
 
 // Copyright (C) 2015-2018, 2020 - TortoiseGit
 // Copyright (C) 2003-2008, 2013-2014 - TortoiseSVN
@@ -19,7 +19,7 @@
 //
 
 #include "stdafx.h"
-#include "PathUtils.h"
+import PathUtils;
 
 TEST(CPathUtils, GetFileNameFromPath)
 {

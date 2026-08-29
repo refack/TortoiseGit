@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Project DefaultTargets="Build" ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|ARM64">
       <Configuration>Debug</Configuration>
@@ -18,162 +18,48 @@
       <Platform>x64</Platform>
     </ProjectConfiguration>
   </ItemGroup>
+  <PropertyGroup Label="UserMacros">
+  </PropertyGroup>
+  <PropertyGroup Label="Vcpkg">
+  </PropertyGroup>
   <PropertyGroup Label="Globals">
-    <ProjectGuid>{20988578-4A14-441C-886F-61F2B9307D44}</ProjectGuid>
-    <Keyword>Win32Proj</Keyword>
-    <RootNamespace>UnitTest</RootNamespace>
     <ProjectName>UnitTests</ProjectName>
+    <VCProjectVersion>18.0</VCProjectVersion>
+    <Keyword>Win32Proj</Keyword>
+    <ProjectGuid>{20988578-4A14-441C-886F-61F2B9307D44}</ProjectGuid>
+    <RootNamespace>UnitTest</RootNamespace>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
-    <UseOfMfc>Dynamic</UseOfMfc>
-    <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)'=='Release'" Label="Configuration">
-    <WholeProgramOptimization>true</WholeProgramOptimization>
-  </PropertyGroup>
-  <PropertyGroup Label="Configuration" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <PlatformToolset>v145</PlatformToolset>
-  </PropertyGroup>
-  <PropertyGroup Label="Configuration" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <PlatformToolset>v145</PlatformToolset>
-  </PropertyGroup>
+  <Import Project="$(SolutionDir)src\TortoiseGit.common.props" />
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
-  <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-  <Import Project="$(SolutionDir)TortoiseGit.common.props" />
-  <Import Project="$(SolutionDir)TortoiseGit.vcpkg.props" />
-  <PropertyGroup Label="UserMacros" />
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <TargetName>Tests</TargetName>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
-    <TargetName>Tests</TargetName>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <TargetName>Tests</TargetName>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
-    <TargetName>Tests</TargetName>
-  </PropertyGroup>
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="Shared">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets">
+  </ImportGroup>
   <ItemDefinitionGroup>
     <ClCompile>
-      <AdditionalIncludeDirectories>$(ProjectDir);..\..\src\Resources;..\..\src\Git;..\..\src\Utils;..\..\src\Utils\MiscUI;..\..\src\TortoiseShell;..\..\ext\gitdll;..\..\ext\ResizableLib;..\..\src\TortoiseProc;..\..\src\GitWCRev;..\..\src\TortoiseGitBlame;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <!-- GTEST_HAS_STD_TUPLE_ and GTEST_HAS_TR1_TUPLE were for the gtest 1.8-era
-           tuple shims; neither macro exists in the version vcpkg installs. -->
+      <AdditionalIncludeDirectories>$(SolutionDir)src\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>TGIT_TESTS_ONLY;TGIT_LFS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalOptions>/Zm110 %(AdditionalOptions)</AdditionalOptions>
-      <ExceptionHandling>SyncCThrow</ExceptionHandling>
+      <DebugInformationFormat Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">EditAndContinue</DebugInformationFormat>
+      <TreatWarningAsError Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</TreatWarningAsError>
     </ClCompile>
     <Link>
-      <SubSystem>Console</SubSystem>
-      <!-- gmock as well as gtest: UnitTests.cpp calls InitGoogleMock, which
-           initialises both. Neither takes $(VcpkgLibSuffix) - vcpkg's gtest port
-           uses the same names in debug and release. -->
       <AdditionalDependencies>gtest.lib;gmock.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <SubSystem>Console</SubSystem>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\src\GitWCRev\status.h" />
-    <ClInclude Include="..\..\src\Git\Git.h" />
-    <ClInclude Include="..\..\src\Git\GitAdminDir.h" />
-    <ClInclude Include="..\..\src\Git\GitForWindows.h" />
-    <ClInclude Include="..\..\src\Git\GitHash.h" />
-    <ClInclude Include="..\..\src\Git\gitindex.h" />
-    <ClInclude Include="..\..\src\Git\GitMailmap.h" />
-    <ClInclude Include="..\..\src\Git\GitRev.h" />
-    <ClInclude Include="..\..\src\Git\GitRevLoglist.h" />
-    <ClInclude Include="..\..\src\Git\GitRevRefBrowser.h" />
-    <ClInclude Include="..\..\src\Git\GitStatus.h" />
-    <ClInclude Include="..\..\src\Git\gittype.h" />
-    <ClInclude Include="..\..\src\Git\TGitPath.h" />
-    <ClInclude Include="..\..\src\TortoiseGitBlame\TortoiseGitBlameData.h" />
-    <ClInclude Include="..\..\src\Utils\FileTextLines.h" />
-    <ClInclude Include="..\..\src\TortoiseProc\AppUtils.h" />
-    <ClInclude Include="..\..\src\TortoiseProc\DiffLinesForStaging.h" />
-    <ClInclude Include="..\..\src\TortoiseProc\GitCliOutputParser.h" />
-    <ClInclude Include="..\..\src\TortoiseProc\gitlogcache.h" />
-    <ClInclude Include="..\..\src\TortoiseProc\lanes.h" />
-    <ClInclude Include="..\..\src\TortoiseProc\LogDlgHelper.h" />
-    <ClInclude Include="..\..\src\TortoiseProc\LogFile.h" />
-    <ClInclude Include="..\..\src\TortoiseProc\LoglistUtils.h" />
-    <ClInclude Include="..\..\src\TortoiseProc\ProjectProperties.h" />
-    <ClInclude Include="..\..\src\TortoiseProc\StagingOperations.h" />
-    <ClInclude Include="..\..\src\TortoiseProc\UpdateCrypto.h" />
-    <ClInclude Include="..\..\src\TortoiseProc\UpdateDownloader.h" />
-    <ClInclude Include="..\..\src\TortoiseProc\VersioncheckParser.h" />
-    <ClInclude Include="..\..\src\TortoiseShell\PreserveChdir.h" />
-    <ClInclude Include="..\..\src\Utils\CmdLineParser.h" />
-    <ClInclude Include="..\..\src\Utils\CommonAppUtils.h" />
-    <ClInclude Include="..\..\src\Utils\DebugHelpers.h" />
-    <ClInclude Include="..\..\src\Utils\DebugOutput.h" />
-    <ClInclude Include="..\..\src\Utils\DirFileEnum.h" />
-    <ClInclude Include="..\..\src\Utils\LoadIconEx.h" />
-    <ClInclude Include="..\..\src\Utils\LruCache.h" />
-    <ClInclude Include="..\..\src\Utils\MiscUI\IconBitmapUtils.h" />
-    <ClInclude Include="..\..\src\Utils\PathUtils.h" />
-    <ClInclude Include="..\..\src\Utils\PersonalDictionary.h" />
-    <ClInclude Include="..\..\src\Utils\ProfilingInfo.h" />
-    <ClInclude Include="..\..\src\Utils\ReaderWriterLock.h" />
-    <ClInclude Include="..\..\src\Utils\registry.h" />
-    <ClInclude Include="..\..\src\Utils\SmartHandle.h" />
-    <ClInclude Include="..\..\src\Utils\SmartLibgit2Ref.h" />
-    <ClInclude Include="..\..\src\Utils\StringUtils.h" />
-    <ClInclude Include="..\..\src\Utils\SysInfo.h" />
-    <ClInclude Include="..\..\src\Utils\TempFile.h" />
-    <ClInclude Include="..\..\src\Utils\UnicodeUtils.h" />
-    <ClInclude Include="..\..\src\Utils\UniqueQueue.h" />
-    <ClInclude Include="..\..\src\Utils\URLFinder.h" />
-    <ClInclude Include="..\..\src\Utils\WindowsCredentialsStore.h" />
-    <ClInclude Include="..\..\src\version.h" />
     <ClInclude Include="AutoTempDir.h" />
     <ClInclude Include="RepositoryFixtures.h" />
     <ClInclude Include="stdafx.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\src\GitWCRev\status.cpp">
-      <DisableSpecificWarnings>4996</DisableSpecificWarnings>
-    </ClCompile>
-    <ClCompile Include="..\..\src\Git\Git.cpp" />
-    <ClCompile Include="..\..\src\Git\GitAdminDir.cpp" />
-    <ClCompile Include="..\..\src\Git\GitIndex.cpp" />
-    <ClCompile Include="..\..\src\Git\GitMailmap.cpp" />
-    <ClCompile Include="..\..\src\Git\GitRev.cpp" />
-    <ClCompile Include="..\..\src\Git\GitRevLoglist.cpp" />
-    <ClCompile Include="..\..\src\Git\GitRevRefBrowser.cpp" />
-    <ClCompile Include="..\..\src\Git\GitStatus.cpp" />
-    <ClCompile Include="..\..\src\Git\TGitPath.cpp" />
-    <ClCompile Include="..\..\src\TortoiseGitBlame\TortoiseGitBlameData.cpp" />
-    <ClCompile Include="..\..\src\Utils\FileTextLines.cpp" />
-    <ClCompile Include="..\..\src\TortoiseProc\AppUtils.cpp" />
-    <ClCompile Include="..\..\src\TortoiseProc\DiffLinesForStaging.cpp" />
-    <ClCompile Include="..\..\src\TortoiseProc\GitCliOutputParser.cpp" />
-    <ClCompile Include="..\..\src\TortoiseProc\GitLogCache.cpp" />
-    <ClCompile Include="..\..\src\TortoiseProc\lanes.cpp" />
-    <ClCompile Include="..\..\src\TortoiseProc\LogDataVector.cpp" />
-    <ClCompile Include="..\..\src\TortoiseProc\LogFile.cpp" />
-    <ClCompile Include="..\..\src\TortoiseProc\LoglistUtils.cpp" />
-    <ClCompile Include="..\..\src\TortoiseProc\ProjectProperties.cpp" />
-    <ClCompile Include="..\..\src\TortoiseProc\StagingOperations.cpp" />
-    <ClCompile Include="..\..\src\TortoiseProc\UpdateCrypto.cpp" />
-    <ClCompile Include="..\..\src\TortoiseProc\VersioncheckParser.cpp" />
-    <ClCompile Include="..\..\src\TortoiseShell\PreserveChdir.cpp" />
-    <ClCompile Include="..\..\src\Utils\CmdLineParser.cpp" />
-    <ClCompile Include="..\..\src\Utils\CommonAppUtils.cpp" />
-    <ClCompile Include="..\..\src\Utils\DebugOutput.cpp" />
-    <ClCompile Include="..\..\src\Utils\DirFileEnum.cpp" />
-    <ClCompile Include="..\..\src\Utils\LoadIconEx.cpp" />
-    <ClCompile Include="..\..\src\Utils\MiscUI\IconBitmapUtils.cpp" />
-    <ClCompile Include="..\..\src\Utils\PathUtils.cpp" />
-    <ClCompile Include="..\..\src\Utils\PersonalDictionary.cpp" />
-    <ClCompile Include="..\..\src\Utils\ProfilingInfo.cpp" />
-    <ClCompile Include="..\..\src\Utils\ReaderWriterLock.cpp" />
-    <ClCompile Include="..\..\src\Utils\Registry.cpp" />
-    <ClCompile Include="..\..\src\Utils\StringUtils.cpp" />
-    <ClCompile Include="..\..\src\Utils\SysInfo.cpp" />
-    <ClCompile Include="..\..\src\Utils\TempFile.cpp" />
-    <ClCompile Include="..\..\src\Utils\UnicodeUtils.cpp" />
-    <ClCompile Include="..\..\src\Utils\WindowsCredentialsStore.cpp" />
     <ClCompile Include="AutoTempDir.cpp" />
     <ClCompile Include="AppUtilsTest.cpp" />
     <ClCompile Include="CmdLineParserTest.cpp" />

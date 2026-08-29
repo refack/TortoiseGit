@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|ARM64">
       <Configuration>Debug</Configuration>
@@ -18,40 +18,35 @@
       <Platform>x64</Platform>
     </ProjectConfiguration>
   </ItemGroup>
+  <PropertyGroup Label="UserMacros">
+  </PropertyGroup>
+  <PropertyGroup Label="Vcpkg">
+  </PropertyGroup>
   <PropertyGroup Label="Globals">
+    <Keyword>Win32Proj</Keyword>
     <ProjectGuid>{1F29DBDD-7DFF-4178-98F0-9137636788BC}</ProjectGuid>
     <RootNamespace>GitWCRev</RootNamespace>
-    <Keyword>Win32Proj</Keyword>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
-    <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
-  <PropertyGroup Label="Configuration" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <PlatformToolset>v145</PlatformToolset>
-  </PropertyGroup>
-  <PropertyGroup Label="Configuration" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <PlatformToolset>v145</PlatformToolset>
-  </PropertyGroup>
+  <Import Project="$(SolutionDir)src\TortoiseGit.common.props" />
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
-  <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-  <Import Project="..\TortoiseGit.common.props" />
-  <Import Project="..\TortoiseGit.vcpkg.props" />
-  <PropertyGroup Label="UserMacros" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="Shared">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets">
+  </ImportGroup>
   <ItemDefinitionGroup>
-    <ClCompile>
-      <AdditionalIncludeDirectories>$(ProjectDir);..\Utils;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-    </ClCompile>
     <Link>
       <AdditionalDependencies>shlwapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <SubSystem>Console</SubSystem>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\Utils\Registry.cpp" />
-    <ClCompile Include="..\Utils\StringUtils.cpp" />
-    <ClCompile Include="..\Utils\UnicodeUtils.cpp" />
+    <ClCompile Include="Register.cpp" />
     <ClCompile Include="status.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader>Create</PrecompiledHeader>
@@ -59,16 +54,16 @@
     <ClCompile Include="GitWCRev.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\Utils\scope_exit_noexcept.h" />
-    <ClInclude Include="..\Utils\StringUtils.h" />
-    <ClInclude Include="..\Utils\UnicodeUtils.h" />
+    <ClInclude Include="Register.h" />
     <ClInclude Include="resource.h" />
+    <ClInclude Include="resourcecom.h" />
     <ClInclude Include="status.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="GitWCRev.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="GitWCRev.ico" />
+    <None Include="GitWCRev.rc2" />
     <None Include="Test.bat" />
     <None Include="Test.tmpl" />
     <None Include="TestW.tmpl" />

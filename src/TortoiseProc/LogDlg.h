@@ -20,9 +20,9 @@
 
 #pragma once
 #include "resource.h"
-#include "StandAloneDlg.h"
+#include <Utils/MiscUI/StandAloneDlg.h>
 #include "TGitPath.h"
-#include "registry.h"
+#include <Utils/registry.h>
 #include "RegHistory.h"
 #include "SplitterControl.h"
 #include "Colors.h"

@@ -1,4 +1,4 @@
-// TortoiseSVN - a Windows shell extension for easy version control
+﻿// TortoiseSVN - a Windows shell extension for easy version control
 
 // Copyright (C) 2003-2006 - Stefan Kueng
 
@@ -32,15 +32,7 @@ BEGIN_MESSAGE_MAP(CCacheApp, CWinApp)
 END_MESSAGE_MAP()
 
 
-// CCacheApp construction
-
-CCacheApp::CCacheApp()
-{
-}
-
-
 // The one and only CCacheApp object
-
 CCacheApp theApp;
 
 

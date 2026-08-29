@@ -20,7 +20,7 @@
 #include "stdafx.h"
 #include "PullCommand.h"
 #include "AppUtils.h"
-#include "GitAdminDir.h"
+import GitAdminDir;
 
 bool PullCommand::Execute()
 {

@@ -21,7 +21,7 @@
 #include "HorizontalResizableStandAloneDialog.h"
 #include "HistoryCombo.h"
 #include "MenuButton.h"
-#include "registry.h"
+#include <Utils/registry.h>
 // CCloneDlg dialog
 
 class CCloneDlg : public CHorizontalResizableStandAloneDialog

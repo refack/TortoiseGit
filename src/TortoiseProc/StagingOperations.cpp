@@ -204,7 +204,7 @@ std::string StagingOperations::CreatePatchBufferToStageOrUnstageSelectedLines(St
 	const int firstLineSelected = m_lines->GetFirstLineNumberSelected();
 	const int lastLineSelected = m_lines->GetLastLineNumberSelected();
 
-	bool includeFirstHunkAtAll = ParseHunkOnEitherSelectionBoundary(firstHunkWithoutStartLine, firstHunkStartLine, firstHunkLastLine, firstLineSelected, lastLineSelected, &firstHunkOldCount, &firstHunkNewCount, stagingType);
+	bool includeFirstHunkAtAll = this->ParseHunkOnEitherSelectionBoundary(firstHunkWithoutStartLine, firstHunkStartLine, firstHunkLastLine, firstLineSelected, lastLineSelected, &firstHunkOldCount, &firstHunkNewCount, stagingType);
 
 	auto firstFileHeader = FindFileHeaderBackwardsFrom(firstHunkStartLine);
 	fullTempPatch.append(firstFileHeader);
@@ -213,7 +213,7 @@ std::string StagingOperations::CreatePatchBufferToStageOrUnstageSelectedLines(St
 	// about a corrupt patch (unless we passed --recount to git apply, but that could potentially cause other issues)
 	if (includeFirstHunkAtAll)
 	{
-		auto strHunkStartLineChanged = ChangeOldAndNewLinesCount(std::string(strFirstHunkStartLine), firstHunkOldCount, firstHunkNewCount);
+		auto strHunkStartLineChanged = _ChangeOldAndNewLinesCount(std::string(strFirstHunkStartLine), firstHunkOldCount, firstHunkNewCount);
 
 		fullTempPatch.append(strHunkStartLineChanged);
 		fullTempPatch.append(firstHunkWithoutStartLine);
@@ -247,7 +247,7 @@ std::string StagingOperations::CreatePatchBufferToStageOrUnstageSelectedLines(St
 	const bool includeLastHunkAtAll = ParseHunkOnEitherSelectionBoundary(lastHunkWithoutStartLine, lastHunkStartLine, lastHunkLastLine, firstLineSelected, lastLineSelected, &lastHunkOldCount, &lastHunkNewCount, stagingType);
 	if (includeLastHunkAtAll)
 	{
-		auto strHunkStartLineChanged = ChangeOldAndNewLinesCount(std::string(strLastHunkStartLine), lastHunkOldCount, lastHunkNewCount);
+		auto strHunkStartLineChanged = _ChangeOldAndNewLinesCount(std::string(strLastHunkStartLine), lastHunkOldCount, lastHunkNewCount);
 
 		fullTempPatch.append(strHunkStartLineChanged);
 		fullTempPatch.append(lastHunkWithoutStartLine);
@@ -261,7 +261,7 @@ std::string StagingOperations::CreatePatchBufferToStageOrUnstageSelectedLines(St
 
 // Takes a buffer containing the first line of a hunk (@@xxxxxx@@)
 // Returns a new buffer with its old lines count and new lines count changed to the given ones.
-std::string StagingOperations::ChangeOldAndNewLinesCount(const std::string& strHunkStart, int oldCount, int newCount) const
+std::string StagingOperations::_ChangeOldAndNewLinesCount(const std::string& strHunkStart, int oldCount, int newCount)
 {
 	std::string pattern = "^@@ -(\\d+?),(\\d+?) \\+(\\d+?),(\\d+?) @@";
 	std::regex rx(pattern, std::regex_constants::ECMAScript);

@@ -30,6 +30,7 @@
 #include <TortoiseShell/Resource.h>
 #include "CommonAppUtils.h"
 #include "DPIAware.h"
+import TGitPath;
 
 const UINT CGitLogListBase::m_FindDialogMessage = RegisterWindowMessage(FINDMSGSTRING);
 const UINT CGitLogListBase::m_ScrollToMessage = RegisterWindowMessage(L"TORTOISEGIT_LOG_SCROLLTO");
@@ -155,7 +156,7 @@ int CGitLogListBase::AsyncDiffThread()
 				for (int j = 0; j < files.GetCount(); ++j)
 					action |= files[j].m_Action;
 
-				if (std::wstring err; pRev->GetUnRevFiles().FillUnRev(CTGitPath::LOGACTIONS_UNVER, nullptr, &err))
+				if (std::wstring err = pRev->GetUnRevFiles().FillUnRev(CTGitPath::LOGACTIONS_UNVER))
 				{
 					::MessageBox(nullptr, std::format(L"Failed to get UnRev file list\n{}", err).c_str(), L"TortoiseGit", MB_OK | MB_ICONERROR);
 					InterlockedExchange(&m_AsyncThreadRunning, FALSE);
@@ -2700,11 +2701,10 @@ std::expected<bool, CString> CGitLogListBase::BeginFetchLog()
 	CAutoLocker lock{ g_Git.m_critGitDllSec };
 	try
 	{
-		auto argvData = CGit::VectorToARGV(cmd);
+		auto argvData = ArgvData::VectorToARGV(cmd);
 		m_DllGitLog = nullptr;
-		if (!argvData || git_open_log(&m_DllGitLog, argvData.argc, argvData.argv))
+		if (argvData || CGit::git_open_log_ex(&m_DllGitLog, argvData))
 			return std::unexpected(L"Could not open log.");
-		argvData.argv = nullptr; // now we know it'll be freed by git_close_log()
 	}
 	catch (const char* msg)
 	{

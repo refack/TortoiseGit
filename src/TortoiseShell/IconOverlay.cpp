@@ -23,7 +23,7 @@
 #include "PreserveChdir.h"
 #include "GitStatus.h"
 #include <TGitCache/CacheInterface.h>
-#include "GitAdminDir.h"
+import GitAdminDir;
 #include "StringUtils.h"
 
 // "The Shell calls IShellIconOverlayIdentifier::GetOverlayInfo to request the

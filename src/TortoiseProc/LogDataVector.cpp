@@ -27,7 +27,6 @@
 */
 
 #include "stdafx.h"
-#include "TortoiseProc.h"
 #include "Git.h"
 #include "GitHash.h"
 #include "TGitPath.h"
@@ -95,10 +94,9 @@ int CLogDataVector::ParserFromLog(const CTGitPath* path, DWORD count, DWORD info
 	try
 	{
 		CAutoLocker lock(g_Git.m_critGitDllSec);
-		auto argvData = CGit::VectorToARGV(cmd);
-		if (!argvData || git_open_log(&handle, argvData.argc, argvData.argv))
+		auto argvData = ArgvData::VectorToARGV(cmd);
+		if (!argvData || CGit::git_open_log_ex(&handle, argvData))
 			return -1;
-		argvData.argv = nullptr; // now we know it'll be freed by git_close_log()
 	}
 	catch (const char* msg)
 	{

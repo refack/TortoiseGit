@@ -17,7 +17,7 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 #include "stdafx.h"
-#include "GitAdminDir.h"
+import GitAdminDir;
 #include "GitLogCache.h"
 #include "registry.h"
 #include <intsafe.h>

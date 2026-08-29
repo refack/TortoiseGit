@@ -19,7 +19,7 @@
 //
 
 #pragma once
-#include "SmartHandle.h"
+import RIAA;
 
 struct TGITCacheResponse;
 class CTGitPath;

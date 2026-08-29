@@ -24,7 +24,7 @@
 #include "ResModule.h"
 #include "POFile.h"
 
-#include <Utils/UnicodeUtils.h>
+import wstr;
 
 #include <algorithm>
 #include <cctype>

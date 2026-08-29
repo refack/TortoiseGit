@@ -1,4 +1,4 @@
-// TortoiseGit - a Windows shell extension for easy version control
+﻿// TortoiseGit - a Windows shell extension for easy version control
 
 // Copyright (C) 2011, 2013, 2016, 2017, 2023 - TortoiseGit
 // Copyright (C) 2003-2007 - TortoiseSVN
@@ -19,8 +19,10 @@
 //
 #pragma once
 
-#include "StandAloneDlg.h"
+#include <Utils/MiscUI/StandAloneDlg.h>
+
 #include "GitStatusListCtrl.h"
+#include "resource.h"
 
 /**
  * \ingroup TortoiseProc
@@ -32,11 +34,13 @@ class CAddDlg : public CResizableStandAloneDialog
 	DECLARE_DYNAMIC(CAddDlg)
 
 public:
-	CAddDlg(CWnd* pParent = nullptr);   // standard constructor
-	virtual ~CAddDlg();
+	explicit CAddDlg(CWnd* pParent=nullptr)
+		: CResizableStandAloneDialog(CAddDlg::IDD, pParent) {}
+
+	~CAddDlg() override = default;
 
 // Dialog Data
-	enum { IDD = IDD_ADD };
+	enum: byte { IDD = IDD_ADD };
 
 protected:
 	void DoDataExchange(CDataExchange* pDX) override;    // DDX/DDV support

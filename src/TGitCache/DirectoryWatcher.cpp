@@ -21,8 +21,8 @@
 #include <Dbt.h>
 #include "GitStatusCache.h"
 #include "DirectoryWatcher.h"
-#include "GitIndex.h"
-#include "SmartHandle.h"
+import GitIndex;
+import RIAA;
 
 #include <list>
 

@@ -18,7 +18,8 @@
 //
 
 #pragma once
-#include "StandAloneDlg.h"
+#include "resource.h"
+#include <Utils/MiscUI/StandAloneDlg.h>
 
 // CEditGotoDlg dialog
 

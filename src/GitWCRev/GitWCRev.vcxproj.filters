@@ -27,14 +27,8 @@
     <ClCompile Include="GitWCRev.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\Utils\Registry.cpp">
+    <ClCompile Include="Register.cpp">
       <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\Utils\StringUtils.cpp">
-      <Filter>Utils</Filter>
-    </ClCompile>
-    <ClCompile Include="..\Utils\UnicodeUtils.cpp">
-      <Filter>Utils</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -47,17 +41,14 @@
     <ClInclude Include="GitWCRev.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\Utils\StringUtils.h">
-      <Filter>Utils</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Utils\UnicodeUtils.h">
-      <Filter>Utils</Filter>
-    </ClInclude>
     <ClInclude Include="status.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\Utils\scope_exit_noexcept.h">
-      <Filter>Utils</Filter>
+    <ClInclude Include="Register.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="resourcecom.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -67,6 +58,9 @@
     <None Include="Test.tmpl" />
     <None Include="Test.bat" />
     <None Include="TestW.tmpl" />
+    <None Include="GitWCRev.rc2">
+      <Filter>Resource Files</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="GitWCRev.rc">

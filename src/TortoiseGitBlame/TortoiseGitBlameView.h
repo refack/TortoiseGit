@@ -24,21 +24,21 @@
 
 
 #pragma once
-#include "Scintilla.h"
-#include "registry.h"
-#include "SciEdit.h"
+#include <Scintilla/Scintilla.h>
+import Registry;
+#include <Utils/MiscUI/SciEdit.h>
+#include "Utils/MiscUI/Tooltip.h"
 #include "GitBlameLogList.h"
 #include "TortoiseGitBlameData.h"
-#include "Tooltip.h"
+#include "TortoiseGitBlameDoc.h"
 
-const COLORREF black = RGB(0,0,0);
-const COLORREF white = RGB(0xff,0xff,0xff);
-const COLORREF red = RGB(0xFF, 0, 0);
-const COLORREF offWhite = RGB(0xFF, 0xFB, 0xF0);
-const COLORREF darkGreen = RGB(0, 0x80, 0);
-const COLORREF darkBlue = RGB(0, 0, 0x80);
-const COLORREF lightBlue = RGB(0xA6, 0xCA, 0xF0);
-const int blockSize = 128 * 1024;
+constexpr COLORREF black = RGB(0,0,0);
+constexpr COLORREF white = RGB(0xff,0xff,0xff);
+constexpr COLORREF red = RGB(0xFF, 0, 0);
+constexpr COLORREF offWhite = RGB(0xFF, 0xFB, 0xF0);
+constexpr COLORREF darkGreen = RGB(0, 0x80, 0);
+constexpr COLORREF darkBlue = RGB(0, 0, 0x80);
+constexpr COLORREF lightBlue = RGB(0xA6, 0xCA, 0xF0);
 
 #define BLAMESPACE 5
 #define LOCATOR_WIDTH 10
@@ -46,10 +46,10 @@ const int blockSize = 128 * 1024;
 class CSciEditBlame: public CSciEdit
 {
 	DECLARE_DYNAMIC(CSciEditBlame)
-public:
+protected:
 	afx_msg void OnKeyDown(UINT nChar, UINT nRepCnt, UINT nFlags) override
 	{
-		switch (nChar)
+		switch (nChar)  // NOLINT(hicpp-multiway-paths-covered)
 		{
 			case (VK_ESCAPE):
 			{
@@ -59,7 +59,8 @@ public:
 					return;
 				}
 			}
-			break;
+			default:
+				break;
 		}
 		CWnd::OnKeyDown(nChar, nRepCnt, nFlags);
 	}
@@ -67,7 +68,7 @@ public:
 
 class CTortoiseGitBlameView : public CView
 {
-	enum
+	enum: byte
 	{
 	// needs to start with 1, since 0 is the return value if *nothing* is clicked on in the context menu
 	ID_BLAMEPREVIOUS = 1,
@@ -83,28 +84,28 @@ protected: // create from serialization only
 
 // Attributes
 public:
+	// ReSharper disable once CppHidingFunction
 	CTortoiseGitBlameDoc* GetDocument() const;
 	int GetEncode(unsigned char * buffer, int size, int *bomoffset);
 
 // Overrides
-public:
-	afx_msg void OnDraw(CDC* pDC);  // overridden to draw this view
 	afx_msg BOOL OnEraseBkgnd(CDC* pDC);
-	BOOL PreCreateWindow(CREATESTRUCT& cs) override;
 protected:
+	afx_msg void OnDraw(CDC* pDC) override;  // overridden to draw this view
+	BOOL PreCreateWindow(CREATESTRUCT& cs) override;
 	ULONG GetGestureStatus(CPoint ptTouch) override;
 
 // Implementation
 public:
-	virtual ~CTortoiseGitBlameView();
+	~CTortoiseGitBlameView() override;
 #ifdef _DEBUG
 	void AssertValid() const override;
 	void Dump(CDumpContext& dc) const override;
 #endif
+	BOOL PreTranslateMessage(MSG* pMsg) override;
 
 // Generated message map functions
 protected:
-	BOOL PreTranslateMessage(MSG* pMsg) override;
 	afx_msg void OnSysColorChange();
 	afx_msg void OnDestroy();
 	afx_msg void OnChangeEncode(UINT nID);
@@ -117,7 +118,7 @@ protected:
 	afx_msg void OnSize(UINT nType, int cx, int cy);
 	afx_msg void OnSciPainted(NMHDR*, LRESULT*);
 	afx_msg void OnLButtonDown(UINT nFlags,CPoint point);
-	afx_msg void OnRButtonDown(UINT nFlags,CPoint point){OnLButtonDown(nFlags,point);CView::OnRButtonDown(nFlags,point);};
+	afx_msg void OnRButtonDown(UINT nFlags,CPoint point){ OnLButtonDown(nFlags,point); CView::OnRButtonDown(nFlags,point); }
 	afx_msg void OnSciGetBkColor(NMHDR*, LRESULT*);
 	afx_msg void OnSciZoom(NMHDR*, LRESULT*);
 	afx_msg void OnMouseHover(UINT nFlags, CPoint point);
@@ -216,7 +217,7 @@ public:
 	bool GotoLine(int line);
 	bool ScrollToLine(long line);
 
-	void SetSelectedLine(int line) { m_SelectedLine = line;};
+	void SetSelectedLine(const int line) { m_SelectedLine = line; }
 
 	int						m_MouseLine = -1;
 	std::unordered_set<CGitHash>	m_selectedHashes;

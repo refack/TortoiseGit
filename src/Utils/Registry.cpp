@@ -39,22 +39,6 @@ CRegBase::CRegBase (const CString& key, bool force, HKEY base, REGSAM sam)
 }
 #endif
 
-//////////////////////////////////////////////////////////////////////////////////////////////
-
-CRegStdBase::CRegStdBase()
-{
-}
-
-CRegStdBase::CRegStdBase(const std::wstring& key, bool force, HKEY base, REGSAM sam)
-	: CRegBaseCommon<std::wstring>(key, force, base, sam)
-{
-	std::wstring::size_type pos = key.find_last_of(L'\\');
-	m_path = key.substr(0, pos);
-	m_key = key.substr(pos + 1);
-}
-
-//////////////////////////////////////////////////////////////////////////////////////////////
-
 #ifdef __ATLTYPES_H__   // defines CRect
 CRegRect::CRegRect()
 	: CRegTypedBase<CRect, CRegBase>(CRect(0,0,0,0))

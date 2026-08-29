@@ -19,12 +19,12 @@
 //
 
 #include "stdafx.h"
-#include "GitAdminDir.h"
+import GitAdminDir;
 #include "GitStatus.h"
 #include "GitStatusCache.h"
 #include "CacheInterface.h"
 #include <ShlObj.h>
-#include "PathUtils.h"
+import PathUtils;
 
 //////////////////////////////////////////////////////////////////////////
 

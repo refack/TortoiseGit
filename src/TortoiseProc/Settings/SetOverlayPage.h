@@ -1,4 +1,4 @@
-// TortoiseGit - a Windows shell extension for easy version control
+﻿// TortoiseGit - a Windows shell extension for easy version control
 
 // Copyright (C) 2014, 2023 - TortoiseGit
 // Copyright (C) 2003-2008, 2010, 2017 - TortoiseSVN
@@ -20,7 +20,7 @@
 #pragma once
 
 #include "SettingsPropPage.h"
-#include "registry.h"
+#include <Utils/registry.h>
 
 /**
  * \ingroup TortoiseProc

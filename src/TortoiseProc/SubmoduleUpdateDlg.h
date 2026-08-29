@@ -18,8 +18,8 @@
 //
 
 #pragma once
-#include "StandAloneDlg.h"
-#include "registry.h"
+#include <Utils/MiscUI/StandAloneDlg.h>
+#include <Utils/registry.h>
 #include "gittype.h"
 
 class CSubmoduleUpdateDlg : public CResizableStandAloneDialog

@@ -28,7 +28,7 @@
 #include "StringUtils.h"
 #include "UnicodeUtils.h"
 #include "MessageBox.h"
-#include "GitAdminDir.h"
+import GitAdminDir;
 #include "Git.h"
 #include "SmartHandle.h"
 #include "Commands\Command.h"

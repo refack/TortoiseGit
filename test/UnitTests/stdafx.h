@@ -5,51 +5,47 @@
 #pragma once
 #define XMESSAGEBOX_APPREGPATH "Software\\TortoiseGit\\"
 
-#include <SDKDDKVer.h>
-
 #include <algorithm>
-using std::min;
-using std::max;
+#include <array>
+#include <deque>
+#include <functional>
+#include <map>
+#include <set>
+#include <string>
+#include <vector>
 
-#include <afxwin.h>         // MFC core and standard components
+#include <afxcmn.h>			// MFC support for Windows Common Controls
+#include <afxcontrolbars.h> // MFC support for ribbons and control bars
+#include <afxctl.h>
+#include <afxdlgs.h>
+#include <afxdtctl.h>		// MFC support for Internet Explorer 4 Common Controls
 #include <afxext.h>         // MFC extensions
+#include <afxext.h>         // MFC extensions
+#include <afxmt.h>
+#include <afxtempl.h>
+#include <afxwin.h>         // MFC core and standard components
+
+// ATL
+#include <atlbase.h>
+
+// Windows SDK
+#include <SDKDDKVer.h>
+#include <WinInet.h>
 #include <WinSock2.h>
 #include <Ws2tcpip.h>
 #include <Wspiapi.h>
-#include <WinInet.h>
 
-#include <afxdtctl.h>		// MFC support for Internet Explorer 4 Common Controls
-#ifndef _AFX_NO_AFXCMN_SUPPORT
-#include <afxcmn.h>			// MFC support for Windows Common Controls
-#endif // _AFX_NO_AFXCMN_SUPPORT
-#include <afxdlgs.h>
-#include <afxctl.h>
-#include <afxtempl.h>
-#include <afxmt.h>
-#include <afxext.h>         // MFC extensions
-#include <afxcontrolbars.h>     // MFC support for ribbons and control bars
-
-#include <atlbase.h>
-
-#include "git2.h"
-#include "SmartLibgit2Ref.h"
-
-#include <string>
-#include <vector>
-#include <map>
-#include <deque>
-#include <set>
-#include <functional>
-
-#define __WIN32__
-
-#include "scope_exit_noexcept.h"
-#include "DebugOutput.h"
-
-#include "SmartHandle.h"
+//libgit2
+#include <git2.h>
 
 // Header for gtest
-#include "gtest/gtest.h"
-#include "gmock/gmock.h"
+#include <gmock/gmock.h>
+#include <gtest/gtest.h>
+
+// TGit/Utils
+import DebugOutput;
+#include <Utils/scope_exit_noexcept.h>
+import RIAA;
+#include <Utils/SmartLibgit2Ref.h>
 
 #include "AutoTempDir.h"

@@ -44,16 +44,15 @@ CDiffLinesForStaging::CDiffLinesForStaging(const char* text, int numLines, int f
 		int eol_len = 0;
 		if (!ptr[i])
 			break;
-		if (ptr[i] == '\r' && ptr[i + 1] == '\n' ||
-			ptr[i] == '\n' && ptr[i + 1] == '\r')
+		if (ptr[i] == '\r' && ptr[i + 1] == '\n' || ptr[i] == '\n' && ptr[i + 1] == '\r')
 			eol_len = 2;
 		else if (ptr[i] == '\r' || ptr[i] == '\n')
 			eol_len = 1;
 		else
-		{
 			++i;
+
+	    if (eol_len == 0)
 			continue;
-		}
 
 		size_t linebuflen = i - last_i + eol_len + 1;
 		auto line = std::string_view(text + last_i, linebuflen - 1);

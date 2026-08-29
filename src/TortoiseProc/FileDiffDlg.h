@@ -20,7 +20,7 @@
 
 #pragma once
 #include "afxcmn.h"
-#include "StandAloneDlg.h"
+#include <Utils/MiscUI/StandAloneDlg.h>
 #include "GitRev.h"
 #include "TGitPath.h"
 #include "HintCtrl.h"

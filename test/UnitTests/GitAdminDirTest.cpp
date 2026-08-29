@@ -19,6 +19,10 @@
 //
 
 #include "stdafx.h"
+
+#include <git2/config.h>
+#include <git2/repository.h>
+
 #include "RepositoryFixtures.h"
 #include "GitAdminDir.h"
 #include "StringUtils.h"
@@ -30,7 +34,7 @@ class CGitAdminDirWithTestRepoFixture : public CBasicGitWithTestRepoFixture
 class CGitAdminDirWithReftableTestRepoFixture : public CBasicGitWithTestRepoFixture
 {
 public:
-	CGitAdminDirWithReftableTestRepoFixture() : CBasicGitWithTestRepoFixture(L"git-repo1.reftable") {};
+	CGitAdminDirWithReftableTestRepoFixture() : CBasicGitWithTestRepoFixture(L"git-repo1.reftable") {}
 };
 
 class CGitAdminDirWithTestRepoBareFixture : public CBasicGitWithTestRepoBareFixture
@@ -40,7 +44,7 @@ class CGitAdminDirWithTestRepoBareFixture : public CBasicGitWithTestRepoBareFixt
 class CGitAdminDirWithReftableTestRepoBareFixture : public CBasicGitWithTestRepoBareFixture
 {
 public:
-	CGitAdminDirWithReftableTestRepoBareFixture() : CBasicGitWithTestRepoBareFixture(L"git-repo1.reftable") {};
+	CGitAdminDirWithReftableTestRepoBareFixture() : CBasicGitWithTestRepoBareFixture(L"git-repo1.reftable") {}
 };
 
 INSTANTIATE_TEST_SUITE_P(CGitAdminDir, CGitAdminDirWithTestRepoFixture, testing::Values(LIBGIT2));
@@ -487,7 +491,7 @@ TEST(CGitAdminDir, ReadGitLink)
 	EXPECT_STREQ(L"", GitAdminDir::ReadGitLink(L"\\\\192.168.0.1\\share", gitFile));
 	EXPECT_STREQ(L"", GitAdminDir::ReadGitLink(L"\\\\127.0.0.1\\test\\somerepo", gitFile)); // we do not do any name resolution
 
-	auto& config = GitAdminDir::config;
+    CAutoConfig config{true};
 	SCOPE_EXIT{ config.New(); };
 	EXPECT_EQ(0, git_config_add_file_ondisk(config, CGit::GetGitPathStringA(tmpDir.GetTempDir() + L"aconfig"), GIT_CONFIG_LEVEL_GLOBAL, nullptr, FALSE));
 	EXPECT_TRUE(CStringUtils::WriteStringToTextFile(gitFile, L"gitdir: //localhost/test/repository"));

@@ -136,11 +136,11 @@ inline bool CMassiveGitTaskBase::ExecuteCommands(const bool cancel) {
 		}
 
 		std::wstring pathSpecFileParam = std::format(L" --pathspec-from-file=%s --pathspec-file-nul", CGit::QuoteParameter(tempFilename));
-		const std::wstring::size_type endOfParamsPosition = m_sParams.find(L" --end-of-options", 0);
+		const auto endOfParamsPosition = m_sParams.find(L" --end-of-options", 0);
 		const std::wstring params =
 			endOfParamsPosition == std::wstring::npos ?
 			m_sParams + pathSpecFileParam : 
-			tgit::wstr::Mid(m_sParams, 0ul, endOfParamsPosition) + pathSpecFileParam + tgit::wstr::Mid(m_sParams, endOfParamsPosition);
+			tgit::wstr::Mid(m_sParams, 0ul, endOfParamsPosition) + pathSpecFileParam + tgit::wstr::Mid(m_sParams, gsl::narrow<int>(endOfParamsPosition));
 		CString cmd, out;
 		cmd.Format(L"git.exe %s", params.c_str());
 		const int exitCode = g_Git.Run(cmd, &out, CP_UTF8);

@@ -19,8 +19,8 @@
 //
 #pragma once
 
-#include "registry.h"
-#include "StandAloneDlg.h"
+#include <Utils/registry.h>
+#include <Utils/MiscUI/StandAloneDlg.h>
 
 /**
  * \ingroup TortoiseProc

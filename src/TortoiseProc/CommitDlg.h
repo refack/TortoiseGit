@@ -19,19 +19,19 @@
 //
 
 #pragma once
-#include "StandAloneDlg.h"
-#include "GitStatusListCtrl.h"
-#include "RegHistory.h"
-#include "registry.h"
-#include "SciEdit.h"
-#include "SplitterControl.h"
-#include "LinkControl.h"
-#include "PathWatcher.h"
-#include "BugTraqAssociations.h"
+#include <Utils/MiscUI/StandAloneDlg.h>
+#include "Git/GitStatusListCtrl.h"
+#include "Utils/RegHistory.h"
+#include "Utils/registry.h"
+#include "Utils/MiscUI/SciEdit.h"
+#include "Utils/MiscUI/SplitterControl.h"
+#include "Utils/MiscUI/LinkControl.h"
+#include "Utils/PathWatcher.h"
+#include "Utils/BugTraqAssociations.h"
 #include <IBugTraqProvider/IBugTraqProvider_h.h>
-#include "HyperLink.h"
+#include "Utils/MiscUI/HyperLink.h"
 #include "PatchViewDlg.h"
-#include "MenuButton.h"
+#include "Utils/MiscUI/MenuButton.h"
 #include "MassiveGitTask.h"
 
 #define ENDDIALOGTIMER	100
