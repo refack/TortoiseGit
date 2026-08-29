@@ -154,7 +154,6 @@
     <ClCompile Include="AutoTextTestDlg.cpp" />
     <ClCompile Include="BugtraqRegexTestDlg.cpp" />
     <ClCompile Include="BrowseRefsDlgFilter.cpp" />
-    <ClCompile Include="CGit_2.cpp" />
     <ClCompile Include="CheckCertificateDlg.cpp" />
     <ClCompile Include="ColumnManager.cpp" />
     <ClCompile Include="Commands\CommitIsOnRefsCommand.cpp" />

@@ -24,9 +24,14 @@ most rules below are the residue of a wrong turn recorded there.
   `src\` speaks argv; the only flat command lines left are
   `CMassiveGitTaskBase`'s prefix (a design question, not a conversion) and one
   shell script that is not a command line. Phase A next.
-- **Tests**: 597/597, unattended, about 40 seconds via `test\Run-Tests.ps1`
-  (125s single-process). 590 → 597 is +2 `Decode`, +1 `CEnvironmentBlockLayout`,
-  +4 `SerializeArgv`.
+- **Backends**: ten `LIBGIT2_CMD` values have no `git.exe` twin any more; see
+  "The three backends" below for the six that survive and why.
+- **Tests**: 598/600, unattended, about 45 seconds via `test\Run-Tests.ps1`.
+  590 → 600 is +2 `Decode`, +1 `CEnvironmentBlockLayout`, +4 `SerializeArgv`,
+  −1 `SerialPatch` (deleted with the mail feature), +4
+  `GetUnifiedDiffLibGit2MatchesGitExe`. The two failures are
+  `CTGitPath.GetAbbreviatedRename` and
+  `WideString.LeftRightMidClampLikeCString`, both in-flight elsewhere.
 
 ## Goals
 
@@ -161,6 +166,40 @@ the boundary would compile silently and nothing would ever pressure it to move.
 `src\TGitCache\stdafx.h`, `src\TortoiseShell\stdafx.h` and `test\Cache\stdafx.h`.
 `StringUtils.h`, `CmdLineParser.h`, `SmartLibgit2Ref.h`, `UnicodeUtils.h` and
 `WideString.h` still gate on it; only PathUtils' own `#ifdef` died.
+
+### The three backends, and why `LIBGIT2_CMD` is shrinking
+
+TortoiseGit reaches git three ways: `git.exe` as a subprocess, `gitdll.dll`
+(real git code, gated by the single bool `m_IsUseGitDLL`), and libgit2 (gated
+per operation by `CGit::UsingLibGit2(LIBGIT2_CMD)` against a registry bitmask).
+
+**`LIBGIT2_CMD` was a duplication mechanism, not a replacement one.** Because
+the mask is a *runtime* toggle, every gated operation carried a libgit2
+implementation *and* a `git.exe` one forever; widening the enum could only ever
+add code. **"libgit2 is the app's pathway, freeform cli calls are always
+available for users"** (user, 2026-08-28) is the direction: where libgit2 does
+the job, the `git.exe` twin goes.
+
+Ten values lost their fallback in `2d61fbb07` and live in `LIBGIT2_ONLY_MASK`,
+for which `UsingLibGit2` answers true unconditionally. Six survive, and the
+reasons are the taxonomy to apply to anything new:
+
+| survivor | why |
+| --- | --- |
+| `GETONEFILE`, `GET_COMMIT`, `LOGLISTDIFF` | the other branch is **gitdll**, not `git.exe`. gitdll is a backend to use *more* of, so these keep their fork. |
+| `FOREACHREF` | the `git.exe` path is the **primary** implementation when Browse References filters on merge status. Not a fallback. |
+| `CLONE`, `FETCH`, `RESET`, `COMMIT_UPDATE_INDEX` | they select between two whole **dialogs**, not two implementations of one function. |
+
+`FETCH` also pins `CGit::GetRemoteRefs`: that one function *could* go
+libgit2-only, but the enum value is still switchable elsewhere, and
+`GetGitLastErr(msg, cmd)` would then report the wrong side's error.
+
+**The enum has a second job**, which is why it survives its gates:
+`GetGitLastErr(msg, cmd)` uses it at 36 call sites to choose between libgit2's
+error and `gitLastErr`. **That is the machinery step, and it is separate**:
+when `LIBGIT2_ONLY_MASK` has swallowed the enum, `UsingLibGit2`, the registry
+mask and that parameter go in one move — and two of the four
+`RepositoryFixtures` parameters collapse with them.
 
 ### A green build proves less than it looks like it proves
 
@@ -547,8 +586,15 @@ Each needs review, not a mechanical strip:
   per-repository instead of switching, that patch bucket could be deleted
   outright** and the fork would shrink to what is upstreamable. Worth measuring.
 - **Donate upstream**: the two OGDF patch hunks (`ext\vcpkg-ports\ogdf\`) are
-  genuine upstream bugs, and `repo_clear()` leaving `->initialized` set on freed
-  state is a git bug, not TortoiseGit behaviour.
+  genuine upstream bugs; `repo_clear()` leaving `->initialized` set on freed
+  state is a git bug, not TortoiseGit behaviour; and
+  `ext\vcpkg-ports\libgit2\tortoisegit-reverse-workdir-oid.diff` is a libgit2
+  bug with no TortoiseGit flavour at all — `diff_delta__from_two` marks
+  `old_file` `GIT_DIFF_FLAG_VALID_ID` unconditionally while `new_file` two lines
+  below only gets it when its id is non-zero, so under `GIT_DIFF_REVERSE` (which
+  swaps a working-copy entry into `old_file`, and its id is zero until the
+  content is loaded) the header comes out as `index 0000000..` / `--- /dev/null`
+  on a plainly modified file.
 
 ## Critical files
 

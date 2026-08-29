@@ -1016,9 +1016,6 @@
     <ClCompile Include="Commands\FirstStartWizardCommand.cpp">
       <Filter>Commands\FirstStart</Filter>
     </ClCompile>
-    <ClCompile Include="CGit_2.cpp">
-      <Filter>Utils</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AddRemoteDlg.h">

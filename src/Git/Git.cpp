@@ -1812,125 +1812,69 @@ int CGit::GetRefsCommitIsOn(STRING_VECTOR& list, const CGitHash& hash, bool incl
 		return 0;
 
 	const size_t prevCount = list.size();
-	if (UsingLibGit2(GIT_CMD_BRANCH_CONTAINS))
-	{
-		CAutoRepository repo(GetGitRepository());
-		if (!repo)
-			return -1;
+	CAutoRepository repo(GetGitRepository());
+	if (!repo)
+		return -1;
 
-		CAutoReferenceIterator it;
-		if (git_reference_iterator_new(it.GetPointer(), repo))
-			return -1;
+	CAutoReferenceIterator it;
+	if (git_reference_iterator_new(it.GetPointer(), repo))
+		return -1;
 
-		auto checkDescendent = [&list, &hash, &repo](const git_oid* oid, const git_reference* ref) {
-			if (!oid)
+	auto checkDescendent = [&list, &hash, &repo](const git_oid* oid, const git_reference* ref) {
+		if (!oid)
+			return;
+		if (git_oid_equal(oid, hash) || git_graph_descendant_of(repo, oid, hash) == 1)
+		{
+			const char* name = git_reference_name(ref);
+			if (!name)
 				return;
-			if (git_oid_equal(oid, hash) || git_graph_descendant_of(repo, oid, hash) == 1)
-			{
-				const char* name = git_reference_name(ref);
-				if (!name)
-					return;
 
-				list.push_back(CUnicodeUtils::StdGetUnicode(name));
-			}
-		};
-
-		CAutoReference ref;
-		while (git_reference_next(ref.GetPointer(), it) == 0)
-		{
-			if (git_reference_is_tag(ref))
-			{
-				if (!includeTags)
-					continue;
-
-				CAutoTag tag;
-				if (git_tag_lookup(tag.GetPointer(), repo, git_reference_target(ref)) == 0)
-				{
-					CAutoObject obj;
-					if (git_tag_peel(obj.GetPointer(), tag) < 0)
-						continue;
-					checkDescendent(git_object_id(obj), ref);
-					continue;
-				}
-			}
-			else if (git_reference_is_remote(ref))
-			{
-				if (!includeBranches || !(type & BRANCH_REMOTE))
-					continue;
-			}
-			else if (git_reference_is_branch(ref))
-			{
-				if (!includeBranches || !(type & BRANCH_LOCAL))
-					continue;
-			}
-			else
-				continue;
-
-			if (git_reference_type(ref) == GIT_REFERENCE_SYMBOLIC)
-			{
-				CAutoReference peeledRef;
-				if (git_reference_resolve(peeledRef.GetPointer(), ref) < 0)
-					continue;
-
-				checkDescendent(git_reference_target(peeledRef), ref);
-				continue;
-			}
-
-			checkDescendent(git_reference_target(ref), ref);
+			list.push_back(CUnicodeUtils::StdGetUnicode(name));
 		}
-	}
-	else
+	};
+
+	CAutoReference ref;
+	while (git_reference_next(ref.GetPointer(), it) == 0)
 	{
-		if (includeBranches)
+		if (git_reference_is_tag(ref))
 		{
-			CString cmd = L"git.exe branch --no-color";
-			if ((type & BRANCH_ALL) == BRANCH_ALL)
-				cmd += L" -a";
-			else if (type & BRANCH_REMOTE)
-				cmd += L" -r";
-			cmd += L" --contains " + hash.ToString();
+			if (!includeTags)
+				continue;
 
-			if (Run(cmd, [&](std::string_view lineA)
+			CAutoTag tag;
+			if (git_tag_lookup(tag.GetPointer(), repo, git_reference_target(ref)) == 0)
 			{
-				CStringUtils::TrimLeft(lineA);
-				if (lineA.empty())
-					return;
-				if (size_t pos = lineA.find(" -> "); pos != std::string_view::npos) // normalize symbolic refs: "refs/origin/HEAD -> refs/origin/master" to "refs/origin/HEAD"
-					lineA = lineA.substr(0, pos);
+				CAutoObject obj;
+				if (git_tag_peel(obj.GetPointer(), tag) < 0)
+					continue;
+				checkDescendent(git_object_id(obj), ref);
+				continue;
+			}
+		}
+		else if (git_reference_is_remote(ref))
+		{
+			if (!includeBranches || !(type & BRANCH_REMOTE))
+				continue;
+		}
+		else if (git_reference_is_branch(ref))
+		{
+			if (!includeBranches || !(type & BRANCH_LOCAL))
+				continue;
+		}
+		else
+			continue;
 
-				std::wstring branch = CUnicodeUtils::StdGetUnicode(lineA);
-				if (lineA[0] == '*')
-				{
-					branch = tgit::wstr::Mid(branch, static_cast<int>(wcslen(L"* ")));
-					CString currentHead;
-					if (branch[0] == L'(' && GetCurrentBranchFromFile(m_CurrentDir, currentHead) == 1)
-						return;
-				}
-				else if (lineA[0] == '+')
-					branch = tgit::wstr::Mid(branch, static_cast<int>(wcslen(L"+ ")));
+		if (git_reference_type(ref) == GIT_REFERENCE_SYMBOLIC)
+		{
+			CAutoReference peeledRef;
+			if (git_reference_resolve(peeledRef.GetPointer(), ref) < 0)
+				continue;
 
-				if ((type & BRANCH_REMOTE) != 0 && (type & BRANCH_LOCAL) == 0)
-					branch = L"refs/remotes/" + branch;
-				else if (branch.starts_with(L"remotes/"))
-					branch = L"refs/" + branch;
-				else
-					branch = L"refs/heads/" + branch;
-				list.push_back(std::move(branch));
-			}))
-				return -1;
+			checkDescendent(git_reference_target(peeledRef), ref);
+			continue;
 		}
 
-		if (includeTags)
-		{
-			CString cmd = L"git.exe tag --contains " + hash.ToString();
-			if (Run(cmd, [&list](const std::string_view lineA)
-			{
-				if (lineA.empty())
-					return;
-				list.push_back(L"refs/tags/" + CUnicodeUtils::StdGetUnicode(lineA));
-			}))
-				return -1;
-		}
+		checkDescendent(git_reference_target(ref), ref);
 	}
 
 	std::sort(list.begin() + prevCount, list.end(), LogicalCompareBranchesPredicate);
@@ -1974,6 +1918,10 @@ int CGit::GetRemoteRefs(const CString& remote, REF_VECTOR& list, bool includeTag
 		return 0;
 
 	const size_t prevCount = list.size();
+	// GIT_CMD_FETCH is the one gate in this file that is deliberately left alone:
+	// it also selects between two whole dialogs in CAppUtils::Fetch and SyncDlg,
+	// so it cannot become libgit2-only here without GetGitLastErr(.., GIT_CMD_FETCH)
+	// starting to report the wrong side's error at the call sites of this function.
 	if (UsingLibGit2(GIT_CMD_FETCH))
 	{
 		CAutoRepository repo(GetGitRepository());
@@ -2573,39 +2521,22 @@ CString CGit::GetNotesRef() const
 
 BOOL CGit::CheckCleanWorkTree(bool stagedOk /* false */)
 {
-	if (UsingLibGit2(GIT_CMD_CHECK_CLEAN_WT))
-	{
-		CAutoRepository repo(GetGitRepository());
-		if (!repo)
-			return FALSE;
-
-		if (git_repository_head_unborn(repo))
-			return FALSE;
-
-		git_status_options statusopt = GIT_STATUS_OPTIONS_INIT;
-		statusopt.show = stagedOk ? GIT_STATUS_SHOW_WORKDIR_ONLY : GIT_STATUS_SHOW_INDEX_AND_WORKDIR;
-		statusopt.flags = GIT_STATUS_OPT_UPDATE_INDEX | GIT_STATUS_OPT_EXCLUDE_SUBMODULES;
-
-		CAutoStatusList status;
-		if (git_status_list_new(status.GetPointer(), repo, &statusopt))
-			return FALSE;
-
-		return (0 == git_status_list_entrycount(status));
-	}
-
-	if (Run({ L"git.exe", L"rev-parse", L"--verify", L"HEAD" }, nullptr, nullptr, CP_UTF8))
+	CAutoRepository repo(GetGitRepository());
+	if (!repo)
 		return FALSE;
 
-	if (Run({ L"git.exe", L"update-index", L"--ignore-submodules", L"--refresh" }, nullptr, nullptr, CP_UTF8))
+	if (git_repository_head_unborn(repo))
 		return FALSE;
 
-	if (Run({ L"git.exe", L"diff-files", L"--quiet", L"--ignore-submodules" }, nullptr, nullptr, CP_UTF8))
+	git_status_options statusopt = GIT_STATUS_OPTIONS_INIT;
+	statusopt.show = stagedOk ? GIT_STATUS_SHOW_WORKDIR_ONLY : GIT_STATUS_SHOW_INDEX_AND_WORKDIR;
+	statusopt.flags = GIT_STATUS_OPT_UPDATE_INDEX | GIT_STATUS_OPT_EXCLUDE_SUBMODULES;
+
+	CAutoStatusList status;
+	if (git_status_list_new(status.GetPointer(), repo, &statusopt))
 		return FALSE;
 
-	if (!stagedOk && Run({ L"git.exe", L"diff-index", L"--cached", L"--quiet", L"HEAD", L"--ignore-submodules", L"--" }, nullptr, nullptr, CP_UTF8))
-		return FALSE;
-
-	return TRUE;
+	return (0 == git_status_list_entrycount(status));
 }
 
 BOOL CGit::IsResultingCommitBecomeEmpty(bool amend /* = false */)
@@ -2628,64 +2559,36 @@ int CGit::HasWorkingTreeConflicts(git_repository* repo)
 
 int CGit::HasWorkingTreeConflicts()
 {
-	if (UsingLibGit2(GIT_CMD_CHECKCONFLICTS))
-	{
-		CAutoRepository repo(GetGitRepository());
-		if (!repo)
-			return -1;
-
-		return HasWorkingTreeConflicts(repo);
-	}
-
-	CString output;
-	gitLastErr.Empty();
-	if (Run({ L"git.exe", L"ls-files", L"-u" }, &output, &gitLastErr, CP_UTF8))
+	CAutoRepository repo(GetGitRepository());
+	if (!repo)
 		return -1;
 
-	return output.IsEmpty() ? 0 : 1;
+	return HasWorkingTreeConflicts(repo);
 }
 
 bool CGit::IsFastForward(const CString &from, const CString &to, CGitHash * commonAncestor)
 {
-	if (UsingLibGit2(GIT_CMD_MERGE_BASE))
-	{
-		CAutoRepository repo(GetGitRepository());
-		if (!repo)
-			return false;
-
-		CGitHash fromHash, toHash, baseHash;
-		if (GetHash(repo, toHash, FixBranchName(to)))
-			return false;
-
-		if (GetHash(repo, fromHash, FixBranchName(from)))
-			return false;
-
-		git_oid baseOid;
-		if (git_merge_base(&baseOid, repo, toHash, fromHash))
-			return false;
-
-		baseHash = baseOid;
-
-		if (commonAncestor)
-			*commonAncestor = baseHash;
-
-		return fromHash == baseHash;
-	}
-	// else
-	CString base;
-	CGitHash basehash,hash;
-
-	gitLastErr.Empty();
-	if (Run({ L"git.exe", L"merge-base", L"--", std::wstring(FixBranchName(to)), std::wstring(FixBranchName(from)) }, &base, &gitLastErr, CP_UTF8))
+	CAutoRepository repo(GetGitRepository());
+	if (!repo)
 		return false;
-	basehash = CGitHash::FromHexStr(base.Trim());
 
-	GetHash(hash, from);
+	CGitHash fromHash, toHash, baseHash;
+	if (GetHash(repo, toHash, FixBranchName(to)))
+		return false;
+
+	if (GetHash(repo, fromHash, FixBranchName(from)))
+		return false;
+
+	git_oid baseOid;
+	if (git_merge_base(&baseOid, repo, toHash, fromHash))
+		return false;
+
+	baseHash = baseOid;
 
 	if (commonAncestor)
-		*commonAncestor = basehash;
+		*commonAncestor = baseHash;
 
-	return hash == basehash;
+	return fromHash == baseHash;
 }
 
 unsigned int CGit::Hash2int(const CGitHash &hash)
@@ -2722,7 +2625,10 @@ int CGit::RefreshGitIndex()
 
 int CGit::GetOneFile(const CString &Refname, const CTGitPath &path, const CString &outputfile)
 {
-	if (UsingLibGit2(GIT_CMD_GETONEFILE))
+	// The other branch here is gitdll, not git.exe, so this gate stays: it runs
+	// git's own checkout and with it the configured smudge filters, which
+	// git_blob_filter below does not - that is the difference on an LFS repository.
+	if (UsingLibGit2(GIT_CMD_GETONEFILE) || !g_Git.m_IsUseGitDLL)
 	{
 		CAutoRepository repo(GetGitRepository());
 		if (!repo)
@@ -2773,37 +2679,27 @@ int CGit::GetOneFile(const CString &Refname, const CTGitPath &path, const CStrin
 
 		return 0;
 	}
-	else if (g_Git.m_IsUseGitDLL)
+
+	CAutoLocker lock(g_Git.m_critGitDllSec);
+	try
 	{
-		CAutoLocker lock(g_Git.m_critGitDllSec);
-		try
-		{
-			g_Git.CheckAndInitDll();
-			CStringA ref, patha, outa;
-			ref = CUnicodeUtils::GetUTF8(Refname);
-			patha = CUnicodeUtils::StdGetUTF8(path.GetGitPathString().c_str()).c_str();
-			outa = CUnicodeUtils::GetUTF8(outputfile);
-			::DeleteFile(outputfile);
-			return git_checkout_file(ref, patha, CStrBufA(outa));
-		}
-		catch (const char * msg)
-		{
-			gitLastErr = L"gitdll.dll reports: " + CUnicodeUtils::GetUnicode(msg);
-			return -1;
-		}
-		catch (...)
-		{
-			gitLastErr = L"An unknown gitdll.dll error occurred.";
-			return -1;
-		}
+		g_Git.CheckAndInitDll();
+		CStringA ref, patha, outa;
+		ref = CUnicodeUtils::GetUTF8(Refname);
+		patha = CUnicodeUtils::StdGetUTF8(path.GetGitPathString().c_str()).c_str();
+		outa = CUnicodeUtils::GetUTF8(outputfile);
+		::DeleteFile(outputfile);
+		return git_checkout_file(ref, patha, CStrBufA(outa));
 	}
-	else
+	catch (const char * msg)
 	{
-		// "<rev>:<path>" is one argument, not two. The old spelling quoted the two
-		// halves separately and joined them with a bare colon, which the command
-		// line parser then glued back together into a single element anyway.
-		gitLastErr.Empty();
-		return RunLogFile({ L"git.exe", L"cat-file", L"-p", L"--", std::format(L"{}:{}", Refname, path.GetGitPathString()) }, outputfile, &gitLastErr);
+		gitLastErr = L"gitdll.dll reports: " + CUnicodeUtils::GetUnicode(msg);
+		return -1;
+	}
+	catch (...)
+	{
+		gitLastErr = L"An unknown gitdll.dll error occurred.";
+		return -1;
 	}
 }
 
@@ -2967,6 +2863,9 @@ CString CGit::GetShortName(const CString& ref, REF_TYPE *out_type)
 
 bool CGit::UsingLibGit2(LIBGIT2_CMD cmd) const
 {
+	if ((1 << cmd) & LIBGIT2_ONLY_MASK)
+		return true;
+
 	return m_IsUseLibGit2 && ((1 << cmd) & m_IsUseLibGit2_mask) ? true : false;
 }
 
@@ -3242,21 +3141,25 @@ static int GetUnifiedDiffLibGit2(const CTGitPath& path, const CString& revOld, c
 
 int CGit::GetUnifiedDiff(const CTGitPath& path, const CString& rev1, const CString& rev2, CString patchfile, bool bMerge, bool bCombine, int diffContext, bool bNoPrefix)
 {
-	// bCombine is not a fallback but a capability fork, of the same kind as the
-	// `--cc` in GitLogListAction: libgit2 has no combined-diff support at all, so
-	// `-c` only ever had the git.exe implementation and always will.
-	if (UsingLibGit2(GIT_CMD_DIFF) && !bCombine)
-	{
-		CAutoFILE file = _wfsopen(patchfile, L"wb", SH_DENYRW);
-		if (!file)
-			return -1;
-		return GetUnifiedDiffLibGit2(path, rev1, rev2, UnifiedDiffStatToFile, UnifiedDiffToFile, file, bMerge, diffContext, bNoPrefix);
-	}
-	else
+	// The remaining git.exe path is not a fallback but a capability fork, of the
+	// same kind as the `--cc` in GitLogListAction: libgit2 has no combined-diff
+	// support at all, so `-c` only ever had this implementation and always will.
+	if (bCombine)
 	{
 		gitLastErr.Empty();
-		return RunLogFile(GetUnifiedDiffCmd(path, rev1, rev2, bMerge, bCombine, diffContext, bNoPrefix), patchfile, &gitLastErr);
+		const int ret = RunLogFile(GetUnifiedDiffCmd(path, rev1, rev2, bMerge, bCombine, diffContext, bNoPrefix), patchfile, &gitLastErr);
+		// GIT_CMD_DIFF is libgit2-only now, so GetGitLastErr(.., GIT_CMD_DIFF) reads
+		// libgit2's error slot. Put git.exe's message there rather than leaving the
+		// one path that still shells out reporting nothing.
+		if (ret)
+			git_error_set_str(GIT_ERROR_NONE, CUnicodeUtils::GetUTF8(gitLastErr));
+		return ret;
 	}
+
+	CAutoFILE file = _wfsopen(patchfile, L"wb", SH_DENYRW);
+	if (!file)
+		return -1;
+	return GetUnifiedDiffLibGit2(path, rev1, rev2, UnifiedDiffStatToFile, UnifiedDiffToFile, file, bMerge, diffContext, bNoPrefix);
 }
 
 static void UnifiedDiffStatToStringA(const git_buf* text, void* payload)
@@ -3279,106 +3182,94 @@ static int UnifiedDiffToStringA(const git_diff_delta * /*delta*/, const git_diff
 
 int CGit::GetUnifiedDiff(const CTGitPath& path, const CString& rev1, const CString& rev2, CStringA& buffer, bool bMerge, bool bCombine, int diffContext)
 {
-	if (UsingLibGit2(GIT_CMD_DIFF) && !bCombine)
+	if (!bCombine) // see the note on the overload above
 		return GetUnifiedDiffLibGit2(path, rev1, rev2, UnifiedDiffStatToStringA, UnifiedDiffToStringA, &buffer, bMerge, diffContext, false);
-	else
-	{
-		BYTE_VECTOR vector;
-		const int ret = Run(GetUnifiedDiffCmd(path, rev1, rev2, bMerge, bCombine, diffContext), &vector);
-		if (!vector.empty())
-			buffer.Append(vector.data(), SafeSizeToInt(vector.size()));
-		return ret;
-	}
+
+	BYTE_VECTOR vector;
+	const int ret = Run(GetUnifiedDiffCmd(path, rev1, rev2, bMerge, bCombine, diffContext), &vector);
+	if (!vector.empty())
+		buffer.Append(vector.data(), SafeSizeToInt(vector.size()));
+	return ret;
 }
 
 int CGit::GitRevert(int parent, const CGitHash &hash)
 {
-	if (UsingLibGit2(GIT_CMD_REVERT))
-	{
-		CAutoRepository repo(GetGitRepository());
-		if (!repo)
-			return -1;
+	CAutoRepository repo(GetGitRepository());
+	if (!repo)
+		return -1;
 
-		CAutoCommit commit;
-		if (git_commit_lookup(commit.GetPointer(), repo, hash))
-			return -1;
+	CAutoCommit commit;
+	if (git_commit_lookup(commit.GetPointer(), repo, hash))
+		return -1;
 
-		git_revert_options revert_opts = GIT_REVERT_OPTIONS_INIT;
-		revert_opts.mainline = parent;
-		return !git_revert(repo, commit, &revert_opts) ? 0 : -1;
-	}
-	else
-	{
-		STRING_VECTOR argv{ L"git.exe", L"revert", L"--no-edit", L"--no-commit" };
-		if (parent)
-			argv.insert(argv.cend(), { L"-m", std::to_wstring(parent) });
-		argv.emplace_back(std::wstring(hash.ToString()));
-		gitLastErr = SerializeArgvToCString(argv) + L'\n';
-		if (Run(argv, &gitLastErr, CP_UTF8))
-			return -1;
-		else
-		{
-			gitLastErr.Empty();
-			return 0;
-		}
-	}
+	git_revert_options revert_opts = GIT_REVERT_OPTIONS_INIT;
+	revert_opts.mainline = parent;
+	return !git_revert(repo, commit, &revert_opts) ? 0 : -1;
 }
 
 int CGit::DeleteRef(const CString& reference)
 {
-	if (UsingLibGit2(GIT_CMD_DELETETAGBRANCH))
-	{
-		CAutoRepository repo(GetGitRepository());
-		if (!repo)
-			return -1;
+	CAutoRepository repo(GetGitRepository());
+	if (!repo)
+		return -1;
 
-		CStringA refA;
-		if (CStringUtils::EndsWith(reference, L"^{}"))
-			refA = CUnicodeUtils::GetUTF8(reference.Left(reference.GetLength() - static_cast<int>(wcslen(L"^{}"))));
-		else
-			refA = CUnicodeUtils::GetUTF8(reference);
-
-		CAutoReference ref;
-		if (git_reference_lookup(ref.GetPointer(), repo, refA))
-			return -1;
-
-		int result = -1;
-		if (git_reference_is_tag(ref))
-			result = git_tag_delete(repo, git_reference_shorthand(ref));
-		else if (git_reference_is_branch(ref))
-			result = git_branch_delete(ref);
-		else if (git_reference_is_remote(ref))
-			result = git_branch_delete(ref);
-		else
-			result = git_reference_delete(ref);
-
-		return result;
-	}
+	CStringA refA;
+	if (CStringUtils::EndsWith(reference, L"^{}"))
+		refA = CUnicodeUtils::GetUTF8(reference.Left(reference.GetLength() - static_cast<int>(wcslen(L"^{}"))));
 	else
-	{
-		STRING_VECTOR argv{ L"git.exe" };
-		CString shortname;
-		if (GetShortName(reference, shortname, L"refs/heads/"))
-			argv.insert(argv.cend(), { L"branch", L"-D" });
-		else if (GetShortName(reference, shortname, L"refs/tags/"))
-			argv.insert(argv.cend(), { L"tag", L"-d" });
-		else if (GetShortName(reference, shortname, L"refs/remotes/"))
-			argv.insert(argv.cend(), { L"branch", L"-r", L"-D" });
-		else
-		{
-			gitLastErr = L"unsupported reference type: " + reference;
-			return -1;
-		}
-		argv.emplace_back(L"--");
-		argv.emplace_back(std::wstring(shortname));
+		refA = CUnicodeUtils::GetUTF8(reference);
 
-		gitLastErr.Empty();
-		if (Run(argv, &gitLastErr, CP_UTF8))
-			return -1;
+	CAutoReference ref;
+	if (git_reference_lookup(ref.GetPointer(), repo, refA))
+		return -1;
 
-		gitLastErr.Empty();
-		return 0;
-	}
+	int result = -1;
+	if (git_reference_is_tag(ref))
+		result = git_tag_delete(repo, git_reference_shorthand(ref));
+	else if (git_reference_is_branch(ref))
+		result = git_branch_delete(ref);
+	else if (git_reference_is_remote(ref))
+		result = git_branch_delete(ref);
+	else
+		result = git_reference_delete(ref);
+
+	return result;
+}
+
+// This lived in src\TortoiseProc\CGit_2.cpp, which existed only because its
+// git.exe fallback used CMassiveGitTaskBase - an MFC-aware header that a file
+// compiled by TortoiseShell and TGitCache cannot reach. With the fallback gone
+// so is the reason for the split.
+int CGit::DeleteRemoteRefs(const CString& sRemote, const STRING_VECTOR& list)
+{
+	CAutoRepository repo(GetGitRepository());
+	if (!repo)
+		return -1;
+
+	CStringA remoteA = CUnicodeUtils::GetUTF8(sRemote);
+	CAutoRemote remote;
+	if (git_remote_lookup(remote.GetPointer(), repo, remoteA) < 0)
+		return -1;
+
+	git_push_options pushOpts = GIT_PUSH_OPTIONS_INIT;
+	git_remote_callbacks& callbacks = pushOpts.callbacks;
+	callbacks.credentials = g_Git2CredCallback;
+	callbacks.certificate_check = g_Git2CheckCertificateCallback;
+	std::vector<std::string> refspecs;
+	refspecs.reserve(list.size());
+	std::transform(list.cbegin(), list.cend(), std::back_inserter(refspecs), [](const auto& ref) { return CUnicodeUtils::StdGetUTF8(L":" + ref); });
+
+	std::vector<char*> vc;
+	vc.reserve(refspecs.size());
+	// data() rather than CStringA::GetBuffer(): std::string has guaranteed
+	// contiguous, null-terminated storage and needs no matching release
+	std::transform(refspecs.begin(), refspecs.end(), std::back_inserter(vc), [](std::string& s) -> char* { return s.data(); });
+	git_strarray specs = { vc.data(), vc.size() };
+
+	if (git_remote_push(remote, &specs, &pushOpts) < 0)
+		return -1;
+
+	return 0;
 }
 
 bool CGit::LoadTextFile(const CString &filename, CString &msg)

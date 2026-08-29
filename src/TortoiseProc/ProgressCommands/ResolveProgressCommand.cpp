@@ -78,7 +78,6 @@ bool ResolveProgressCommand::Run(CGitProgressList* list, CString& sWindowTitle, 
 	}
 
 	CAutoIndex gitIndex;
-	if (g_Git.UsingLibGit2(CGit::GIT_CMD_GETCONFLICTINFO))
 	{
 		CAutoRepository repo = g_Git.GetGitRepository();
 		if (!repo || git_repository_index(gitIndex.GetPointer(), repo) < 0)
@@ -98,28 +97,6 @@ bool ResolveProgressCommand::Run(CGitProgressList* list, CString& sWindowTitle, 
 	{
 		bool baseIsFile = true, localIsFile = true, remoteIsFile = true;
 		CGitHash baseHash, localHash, remoteHash;
-		if (!gitIndex)
-		{
-			BYTE_VECTOR vector;
-			if (g_Git.Run({ L"git.exe", L"ls-files", L"-u", L"-t", L"-z", L"--", path.GetGitPathString() }, &vector))
-			{
-				list->ReportError(L"git ls-files failed!");
-				return false;
-			}
-
-			if (int ret = CGit::ParseConflictHashesFromLsFile(vector, baseHash, baseIsFile, localHash, localIsFile, remoteHash, remoteIsFile); ret == 1)
-			{
-				list->AddNotify(new CGitProgressList::WC_File_NotificationData(path, Git_WC_Notify_Action::Skip));
-				++m_itemCount;
-				continue;
-			}
-			else if (ret == -1)
-			{
-				list->ReportError(L"Parsing git ls-files for conflict info failed!");
-				return false;
-			}
-		}
-		else
 		{
 			const git_index_entry* ancestor = nullptr;
 			const git_index_entry* our = nullptr;

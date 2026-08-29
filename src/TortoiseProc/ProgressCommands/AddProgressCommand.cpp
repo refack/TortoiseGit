@@ -39,80 +39,61 @@ bool AddProgressCommand::Run(CGitProgressList* list, CString& sWindowTitle, int&
 
 	m_itemCountTotal = m_targetPathList.GetCount();
 
-	if (g_Git.UsingLibGit2(CGit::GIT_CMD_ADD))
+	CAutoRepository repo(g_Git.GetGitRepository());
+	if (!repo)
 	{
-		CAutoRepository repo(g_Git.GetGitRepository());
-		if (!repo)
+		list->ReportGitError();
+		return false;
+	}
+
+	CAutoIndex index;
+	if (git_repository_index(index.GetPointer(), repo))
+	{
+		list->ReportGitError();
+		return false;
+	}
+	if (git_index_read(index, true))
+	{
+		list->ReportGitError();
+		return false;
+	}
+
+	for (m_itemCount = 0; m_itemCount < m_itemCountTotal; ++m_itemCount)
+	{
+		CStringA filePathA = CUnicodeUtils::GetUTF8(m_targetPathList[m_itemCount].GetGitPathString().c_str()).TrimRight(L'/');
+		if (git_index_add_bypath(index, filePathA))
 		{
 			list->ReportGitError();
 			return false;
 		}
 
-		CAutoIndex index;
-		if (git_repository_index(index.GetPointer(), repo))
+		if (!m_targetPathList[m_itemCount].IsDirectory() && (m_bExecutable || m_bSymlink))
 		{
-			list->ReportGitError();
-			return false;
-		}
-		if (git_index_read(index, true))
-		{
-			list->ReportGitError();
-			return false;
-		}
-
-		for (m_itemCount = 0; m_itemCount < m_itemCountTotal; ++m_itemCount)
-		{
-			CStringA filePathA = CUnicodeUtils::GetUTF8(m_targetPathList[m_itemCount].GetGitPathString().c_str()).TrimRight(L'/');
-			if (git_index_add_bypath(index, filePathA))
+			auto entry = const_cast<git_index_entry*>(git_index_get_bypath(index, filePathA, 0));
+			if (m_bExecutable)
+				entry->mode = GIT_FILEMODE_BLOB_EXECUTABLE;
+			else if (m_bSymlink)
+				entry->mode = GIT_FILEMODE_LINK;
+			if (git_index_add(index, entry))
 			{
 				list->ReportGitError();
 				return false;
 			}
-
-			if (!m_targetPathList[m_itemCount].IsDirectory() && (m_bExecutable || m_bSymlink))
-			{
-				auto entry = const_cast<git_index_entry*>(git_index_get_bypath(index, filePathA, 0));
-				if (m_bExecutable)
-					entry->mode = GIT_FILEMODE_BLOB_EXECUTABLE;
-				else if (m_bSymlink)
-					entry->mode = GIT_FILEMODE_LINK;
-				if (git_index_add(index, entry))
-				{
-					list->ReportGitError();
-					return false;
-				}
-			}
-
-			list->AddNotify(new CGitProgressList::WC_File_NotificationData(m_targetPathList[m_itemCount], Git_WC_Notify_Action::Add));
-
-			if (list->IsCancelled() == TRUE)
-			{
-				list->ReportUserCanceled();
-				return false;
-			}
 		}
 
-		if (git_index_write(index))
+		list->AddNotify(new CGitProgressList::WC_File_NotificationData(m_targetPathList[m_itemCount], Git_WC_Notify_Action::Add));
+
+		if (list->IsCancelled() == TRUE)
 		{
-			list->ReportGitError();
+			list->ReportUserCanceled();
 			return false;
 		}
 	}
-	else
+
+	if (git_index_write(index))
 	{
-		CMassiveGitTask mgt(L"add -f");
-		if (!mgt.ExecuteWithNotify(&m_targetPathList, list->m_bCancelled, Git_WC_Notify_Action::Add, list))
-			return false;
-		if (m_bExecutable)
-		{
-			if (!SetFileMode(GIT_FILEMODE_BLOB_EXECUTABLE))
-				return false;
-		}
-		else if (m_bSymlink)
-		{
-			if (!SetFileMode(GIT_FILEMODE_LINK))
-				return false;
-		}
+		list->ReportGitError();
+		return false;
 	}
 
 	CShellUpdater::Instance().AddPathsForUpdate(m_targetPathList);

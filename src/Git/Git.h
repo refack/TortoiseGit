@@ -42,7 +42,26 @@
 #define REG_SYSTEM_GITCONFIGPATH L"Software\\TortoiseGit\\SystemConfig"
 #define REG_MSYSGIT_EXTRA_PATH L"Software\\TortoiseGit\\MSysGitExtra"
 
-#define DEFAULT_USE_LIBGIT2_MASK (1 << CGit::GIT_CMD_MERGE_BASE) | (1 << CGit::GIT_CMD_DELETETAGBRANCH) | (1 << CGit::GIT_CMD_GETONEFILE) | (1 << CGit::GIT_CMD_ADD) | (1 << CGit::GIT_CMD_CHECKCONFLICTS) | (1 << CGit::GIT_CMD_GET_COMMIT) | (1 << CGit::GIT_CMD_GETCONFLICTINFO) | (1 << CGit::GIT_CMD_FOREACHREF)
+// Only the commands that still fork at runtime appear here; the ones in
+// LIBGIT2_ONLY_MASK are on whatever the registry says. GETONEFILE, GET_COMMIT
+// and FOREACHREF are what is left of the old default list - the other five
+// entries moved into LIBGIT2_ONLY_MASK, which is not a change of behaviour for
+// anyone since they were on by default already.
+#define DEFAULT_USE_LIBGIT2_MASK (1 << CGit::GIT_CMD_GETONEFILE) | (1 << CGit::GIT_CMD_GET_COMMIT) | (1 << CGit::GIT_CMD_FOREACHREF)
+
+// Commands whose git.exe implementation is gone, so there is nothing left to
+// switch between. They keep their LIBGIT2_CMD value because GetGitLastErr still
+// has to know that the error worth reporting is libgit2's - and because when
+// this mask has swallowed the enum, UsingLibGit2 and the registry mask can go
+// with it in one move.
+//
+// GETONEFILE, GET_COMMIT and LOGLISTDIFF are deliberately absent: their other
+// branch is gitdll, not git.exe, and gitdll is a backend this project wants more
+// of rather than less. FOREACHREF is absent because its git.exe path is the
+// primary implementation when Browse References filters on merge status, not a
+// fallback. CLONE, FETCH, RESET and COMMIT_UPDATE_INDEX are absent because they
+// select between two whole dialogs, which is a bigger change than this one.
+#define LIBGIT2_ONLY_MASK ((1 << CGit::GIT_CMD_DIFF) | (1 << CGit::GIT_CMD_REVERT) | (1 << CGit::GIT_CMD_MERGE_BASE) | (1 << CGit::GIT_CMD_DELETETAGBRANCH) | (1 << CGit::GIT_CMD_ADD) | (1 << CGit::GIT_CMD_PUSH) | (1 << CGit::GIT_CMD_CHECK_CLEAN_WT) | (1 << CGit::GIT_CMD_CHECKCONFLICTS) | (1 << CGit::GIT_CMD_BRANCH_CONTAINS) | (1 << CGit::GIT_CMD_GETCONFLICTINFO))
 
 constexpr size_t GIT_EXE_BUFFER_LIMIT = 50 * 1024 * 1024; // arbitrary chosen 50 MiB limit that should be large enough for all real life situations in remote situations
 constexpr size_t GIT_EXE_STDERR_BUFFER_LIMIT = 1024; // arbitrary chosen 1 KiB limit that should be large enough for all real life situations in remote situations
