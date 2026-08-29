@@ -191,8 +191,6 @@ public:
 	static CString GetClipboardLink(const CString& skipGitPrefix = L"", int paramsCount = 0);
 	static CString ChooseRepository(HWND hWnd, const CString* path);
 
-	static bool SendPatchMail(HWND hWnd, CTGitPathList& pathlist);
-	static bool SendPatchMail(HWND hWnd, const CString& cmd, const CString& formatpatchoutput);
 
 	static int  SaveCommitUnicodeFile(const CString& filename, CString& mesage);
 	static bool MessageContainsConflictHints(HWND hWnd, const CString& message);

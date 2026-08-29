@@ -32,9 +32,7 @@ IMPLEMENT_DYNAMIC(CRequestPullDlg, CHorizontalResizableStandAloneDialog)
 
 CRequestPullDlg::CRequestPullDlg(CWnd* pParent /*=nullptr*/)
 	: CHorizontalResizableStandAloneDialog(CRequestPullDlg::IDD, pParent)
-	, m_regSendMail(L"Software\\TortoiseGit\\TortoiseProc\\RequestPull\\SendMail", FALSE)
 {
-	m_bSendMail = m_regSendMail;
 }
 
 CRequestPullDlg::~CRequestPullDlg()
@@ -47,7 +45,6 @@ void CRequestPullDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_COMBOBOXEX_LOCAL_BRANCH, m_cStartRevision);
 	DDX_Control(pDX, IDC_COMBOBOXEX_URL, m_cRepositoryURL);
 	DDX_Control(pDX, IDC_REMOTE_BRANCH, m_cEndRevision);
-	DDX_Check(pDX, IDC_CHECK_SENDMAIL, m_bSendMail);
 }
 
 
@@ -132,7 +129,6 @@ void CRequestPullDlg::OnBnClickedOk()
 	if (CStringUtils::StartsWith(m_StartRevision, L"remotes/"))
 		m_StartRevision = m_StartRevision.Mid(static_cast<int>(wcslen(L"remotes/")));
 
-	m_regSendMail = m_bSendMail;
 
 	CHorizontalResizableStandAloneDialog::OnOK();
 }

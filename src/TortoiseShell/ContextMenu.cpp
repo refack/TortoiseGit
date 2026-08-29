@@ -1,4 +1,4 @@
-// TortoiseGit - a Windows shell extension for easy version control
+﻿// TortoiseGit - a Windows shell extension for easy version control
 
 // Copyright (C) 2003-2012, 2014-2016, 2018 - TortoiseSVN
 // Copyright (C) 2008-2026 - TortoiseGit
@@ -801,11 +801,6 @@ STDMETHODIMP CShellExt::QueryDropContext(UINT uFlags, UINT idCmdFirst, HMENU hMe
 	//if ((itemStates & ITEMIS_INGIT)&&(itemStates & ITEMIS_FOLDER))
 	//	InsertGitMenu(FALSE, hMenu, indexMenu++, idCmd++, IDS_DROPEXPORTEXTENDEDMENU, 0, idCmdFirst, TGitShellCommand::DropExportExtended, uFlags);
 
-	// apply patch
-	// available if source is a patchfile
-	if (itemStates & ITEMIS_PATCHFILE)
-		InsertGitMenu(FALSE, hMenu, indexMenu++, idCmd++, IDS_MENUIMPORTPATCH, 0, idCmdFirst, TGitShellCommand::ImportPatchDrop, uFlags);
-
 	if ((itemStates & ITEMIS_ONLYONE) && (itemStates & (ITEMIS_WCROOT | ITEMIS_BAREREPO)) && !(itemStatesFolder & ITEMIS_INVERSIONEDFOLDER))
 		InsertGitMenu(FALSE, hMenu, indexMenu++, idCmd++, IDS_DROPNEWWORKTREE, 0, idCmdFirst, TGitShellCommand::DropNewWorktree, uFlags);
 
@@ -1273,9 +1268,6 @@ void CShellExt::InvokeCommand(TGitShellCommand cmd, const std::wstring& appDir, 
 	case TGitShellCommand::Cleanup:
 		AddPathFileCommand(gitCmd, L"cleanup", paths, folder);
 		break;
-	case TGitShellCommand::Sendmail:
-		AddPathFileCommand(gitCmd, L"sendmail", paths, folder);
-		break;
 	case TGitShellCommand::Resolve:
 		AddPathFileCommand(gitCmd, L"resolve", paths, folder);
 		break;
@@ -1537,12 +1529,6 @@ void CShellExt::InvokeCommand(TGitShellCommand cmd, const std::wstring& appDir, 
 		break;
 	case TGitShellCommand::FormatPatch:
 		AddPathCommand(gitCmd, L"formatpatch", false, paths, folder);
-		break;
-	case TGitShellCommand::ImportPatch:
-		AddPathFileCommand(gitCmd, L"importpatch", paths, folder);
-		break;
-	case TGitShellCommand::ImportPatchDrop:
-		AddPathFileDropCommand(gitCmd, L"importpatch", paths, folder);
 		break;
 	case TGitShellCommand::Fetch:
 		AddPathFileCommand(gitCmd, L"fetch", paths, folder, true);

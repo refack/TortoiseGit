@@ -117,18 +117,16 @@ inline std::wstring Right(const std::wstring_view s, const long _count)
 	return std::wstring(s.substr(s.size() - take));
 }
 
-inline std::wstring Mid(const std::wstring_view s, const std::wstring_view::size_type from, const std::wstring_view::size_type count = 0) {
+inline std::wstring Mid(const std::wstring_view s, const std::wstring_view::size_type from, const std::wstring_view::size_type count = std::wstring_view::npos) {
 	if (from > s.size())
 		return {};
 	return std::wstring{ s.substr(from, count) };
 }
 
 /// CString::Mid(from, count = 0), including its clamping.
-inline std::wstring Mid(const std::wstring_view s, const int _from, const int _count = 0)
+inline std::wstring Mid(const std::wstring_view s, const int _from, const int _count = -1)
 {
-	if (_count < 0)
-		return {};
-	auto count = static_cast<std::wstring_view::size_type>(_count);
+	auto count = (_count >= 0) ? static_cast<std::wstring_view::size_type>(_count) : std::wstring_view::npos;
 	if (_from < 0)
 		return Left(s, count);
 	auto from = static_cast<std::wstring_view::size_type>(_from);

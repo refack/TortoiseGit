@@ -41,7 +41,6 @@
 #include "GitSwitchDlg.h"
 #include "ResetDlg.h"
 #include "DeleteConflictDlg.h"
-#include "SendMailDlg.h"
 #include "GitProgressDlg.h"
 #include "PushDlg.h"
 #include "CommitDlg.h"
@@ -62,11 +61,9 @@
 #include "BisectStartDlg.h"
 #include "SysProgressDlg.h"
 #include "UserPassword.h"
-#include "SendmailPatch.h"
 #include "Globals.h"
 #include "ProgressCommands/ResetProgressCommand.h"
 #include "ProgressCommands/FetchProgressCommand.h"
-#include "ProgressCommands/SendMailProgressCommand.h"
 #include "CertificateValidationHelper.h"
 #include "CheckCertificateDlg.h"
 #include "SubmoduleResolveConflictDlg.h"
@@ -1956,67 +1953,6 @@ CString CAppUtils::ChooseRepository(HWND hWnd, const CString* path)
 		return CString();
 }
 
-bool CAppUtils::SendPatchMail(HWND hWnd, CTGitPathList& list)
-{
-	CSendMailDlg dlg(GetParentCWnd(hWnd));
-
-	dlg.m_PathList  = list;
-
-	if(dlg.DoModal()==IDOK)
-	{
-		if (dlg.m_PathList.IsEmpty())
-			return FALSE;
-
-		CGitProgressDlg progDlg(GetParentCWnd(hWnd));
-		if (GetExplorerHWND() == hWnd)
-			theApp.m_pMainWnd = &progDlg;
-		SendMailProgressCommand sendMailProgressCommand;
-		progDlg.SetCommand(&sendMailProgressCommand);
-
-		sendMailProgressCommand.SetPathList(dlg.m_PathList);
-		progDlg.SetItemCount(dlg.m_PathList.GetCount());
-
-		CSendMailPatch sendMailPatch(dlg.m_To, dlg.m_CC, dlg.m_Subject, !!dlg.m_bAttachment, !!dlg.m_bCombine);
-		sendMailProgressCommand.SetSendMailOption(&sendMailPatch);
-
-		progDlg.DoModal();
-
-		return true;
-	}
-	return false;
-}
-
-bool CAppUtils::SendPatchMail(HWND hWnd, const CString& cmd, const CString& formatpatchoutput)
-{
-	CTGitPathList list;
-	CString log=formatpatchoutput;
-	int start=log.Find(cmd);
-	if(start >=0)
-		log.Tokenize(L"\n", start);
-	else
-		start = 0;
-
-	while(start>=0)
-	{
-		CString one = log.Tokenize(L"\n", start);
-		one=one.Trim();
-		if (one.IsEmpty() || CStringUtils::StartsWith(one, CString(MAKEINTRESOURCE(IDS_SUCCESS))))
-			continue;
-		one.Replace(L'/', L'\\');
-		CTGitPath path;
-		path.SetFromWin(one);
-		list.AddPath(path);
-	}
-	if (!list.IsEmpty())
-		return SendPatchMail(hWnd, list);
-	else
-	{
-		CMessageBox::Show(hWnd, IDS_ERR_NOPATCHES, IDS_APPNAME, MB_ICONINFORMATION);
-		return true;
-	}
-}
-
-
 int CAppUtils::GetLogOutputEncode(CGit *pGit)
 {
 	CString output;
@@ -2311,7 +2247,6 @@ bool CAppUtils::RebaseAfterFetch(HWND hWnd, const CString& upstream, int rebase,
 			dlg.m_Upstream = upstream;
 		dlg.m_PostButtonTexts.Add(CString(MAKEINTRESOURCE(IDS_MENULOG)));
 		dlg.m_PostButtonTexts.Add(CString(MAKEINTRESOURCE(IDS_MENUPUSH)));
-		dlg.m_PostButtonTexts.Add(CString(MAKEINTRESOURCE(IDS_MENUDESSENDMAIL)));
 		dlg.m_PostButtonTexts.Add(CString(MAKEINTRESOURCE(IDS_MENUREBASE)));
 		dlg.m_bRebaseAutoStart = (rebase == 2);
 		dlg.m_bPreserveMerges = preserveMerges;
@@ -2327,23 +2262,10 @@ bool CAppUtils::RebaseAfterFetch(HWND hWnd, const CString& upstream, int rebase,
 		}
 		else if (response == IDC_REBASE_POST_BUTTON + 1)
 			return Push(hWnd);
+		// The "email patches" button used to sit at +2; removing it renumbers
+		// "rebase" from +3 down to +2. The offsets are positions in
+		// m_PostButtonTexts, so the two lists have to be edited together.
 		else if (response == IDC_REBASE_POST_BUTTON + 2)
-		{
-			// The revision range was two separately quoted refs glued with "..";
-			// that is one argv element, and it carries no quotes.
-			const STRING_VECTOR cmd{ L"git.exe", L"format-patch", L"-o", CTGitPath(g_Git.m_CurrentDir.GetString()).GetGitPathString(),
-				L"--end-of-options", std::format(L"{}..{}", g_Git.FixBranchName(dlg.m_Upstream), g_Git.FixBranchName(dlg.m_Branch)) };
-			CString out, err;
-			if (g_Git.Run(cmd, &out, &err, CP_UTF8))
-			{
-				CMessageBox::Show(hWnd, out + L'\n' + err, L"TortoiseGit", MB_OK | MB_ICONERROR);
-				return false;
-			}
-			// SendPatchMail skips past the echoed command line in the output.
-			CAppUtils::SendPatchMail(hWnd, CGit::SerializeArgvToCString(cmd), out);
-			return true;
-		}
-		else if (response == IDC_REBASE_POST_BUTTON + 3)
 			continue;
 		else if (response == IDCANCEL)
 			return false;
@@ -2739,34 +2661,6 @@ bool CAppUtils::RequestPull(HWND hWnd, const CString& endrevision, const CString
 		}
 
 		sysProgressDlg.Stop();
-
-		if (dlg.m_bSendMail)
-		{
-			CSendMailDlg sendmaildlg(GetParentCWnd(hWnd));
-			sendmaildlg.m_PathList = CTGitPathList(CTGitPath(tempFileName.GetString()));
-			sendmaildlg.m_bCustomSubject = true;
-
-			if (sendmaildlg.DoModal() == IDOK)
-			{
-				if (sendmaildlg.m_PathList.IsEmpty())
-					return FALSE;
-
-				CGitProgressDlg progDlg(GetParentCWnd(hWnd));
-				SendMailProgressCommand sendMailProgressCommand;
-				progDlg.SetCommand(&sendMailProgressCommand);
-
-				sendMailProgressCommand.SetPathList(sendmaildlg.m_PathList);
-				progDlg.SetItemCount(sendmaildlg.m_PathList.GetCount());
-
-				CSendMailCombineable sendMailCombineable(sendmaildlg.m_To, sendmaildlg.m_CC, sendmaildlg.m_Subject, !!sendmaildlg.m_bAttachment, !!sendmaildlg.m_bCombine);
-				sendMailProgressCommand.SetSendMailOption(&sendMailCombineable);
-
-				progDlg.DoModal();
-
-				return true;
-			}
-			return false;
-		}
 
 		CAppUtils::LaunchAlternativeEditor(tempFileName);
 	}

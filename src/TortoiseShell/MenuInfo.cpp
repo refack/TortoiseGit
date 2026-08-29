@@ -218,16 +218,22 @@ constinit const MenuInfo menuInfo[] =
 	{ TGitShellCommand::FormatPatch,					TGitContextMenuEntries::FormatPatch,		IDI_CREATEPATCH,		IDS_MENUFORMATPATCH,		IDS_MENUDESCCREATEPATCH,
 		{ITEMIS_FOLDERINGIT|ITEMIS_ONLYONE, 0}, {0, 0}, {0, 0}, {0, 0} },
 
-	// Really apply patch
-	{ TGitShellCommand::ImportPatch,					TGitContextMenuEntries::ImportPatch,		IDI_PATCH,				IDS_MENUIMPORTPATCH,		IDS_MENUDESCIMPORTPATCH,
-		{ITEMIS_PATCHFILE, 0}, {ITEMIS_FOLDERINGIT|ITEMIS_ONLYONE, 0}, {0, 0}, {0, 0} },
+	// Two patch entries used to live here and both are gone. "Review/apply single
+	// patch" handed the file to TortoiseGitMerge's patch view, and that application
+	// was removed; "Apply patch serial" ran git am through a dialog that added a
+	// file list to what `git am *.patch` already does. Applying a patch is now
+	// git am or git apply on the command line; viewing one is TortoiseGitUDiff,
+	// which owns the .diff/.patch association.
+	//
+	// TGitContextMenuEntries::ImportPatch is deliberately left in MenuInfo.h - see
+	// the note below about that enum being implicitly numbered and persisted.
 
-	// "Review/apply single patch" used to hand the file to TortoiseGitMerge's patch view; that
-	// application is gone. Applying a patch is ImportPatch (git am) or git apply on the command
-	// line, and viewing one is TortoiseGitUDiff, which owns the .diff/.patch association.
-
-	{ TGitShellCommand::Sendmail,					TGitContextMenuEntries::Sendmail,			IDI_MENUSENDMAIL,		IDS_MENUSENDMAIL,			IDS_MENUDESSENDMAIL,
-		{ITEMIS_PATCHFILE, 0}, {ITEMIS_EXTENDED, ITEMIS_FOLDER}, {0, 0}, {0, 0} },
+	// "Send Mail" was here. The feature is gone - it shipped a hand-rolled SMTP
+	// client to do what any mail program does. TGitContextMenuEntries::Sendmail
+	// deliberately survives in MenuInfo.h: that enum is implicitly numbered and
+	// is stored as a 64-bit mask in HKCU\Software\TortoiseGit\ContextMenuEntries,
+	// so deleting the enumerator would shift every entry after it and silently
+	// rewrite everyone's context menu. Leave the hole.
 
 // we do not support paste atm
 //	{ ShellSeparator, 0, 0, 0, 0, {0, 0}, {0, 0}, {0, 0}, {0, 0} },

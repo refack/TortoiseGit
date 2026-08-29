@@ -52,7 +52,6 @@
 #include "SetExtMenu.h"
 #include "SetWin11ContextMenu.h"
 #include "SettingsAdvanced.h"
-#include "SettingSMTP.h"
 #include "SettingsTUDiff.h"
 #include "SysInfo.h"
 
@@ -131,8 +130,7 @@ void CSettings::AddPropPages()
 	AddPropPage(new CSetOverlayIcons(), L"overlays", pOverlayPage);
 	AddPropPage(new CSetOverlayHandlers(), L"overlayshandlers", pOverlayPage);
 
-	auto pProxyPage = AddPropPage(new CSetProxyPage(), L"proxy");
-	AddPropPage(new CSettingSMTP(), L"smtp", pProxyPage);
+	AddPropPage(new CSetProxyPage(), L"proxy");
 
 	auto pProgsDiffPage = AddPropPage(new CSettingsProgsDiff(), L"diff");
 	AddPropPage(new CSettingsProgsMerge(), L"merge", pProgsDiffPage);

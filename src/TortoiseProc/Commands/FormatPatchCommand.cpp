@@ -73,13 +73,6 @@ bool FormatPatchCommand::Execute()
 		CShellUpdater::Instance().AddPathForUpdate(CTGitPath(dlg.m_Dir.GetString()));
 		CShellUpdater::Instance().Flush();
 
-		if(!progress.m_GitStatus)
-		{
-			if(dlg.m_bSendMail)
-				// SendPatchMail looks for the echoed command line in the log output
-				// and skips past it, so it needs the same spelling CProgressDlg logged.
-				CAppUtils::SendPatchMail(GetExplorerHWND(), CGit::SerializeArgvToCString(cmd), progress.m_LogText);
-		}
 		return !progress.m_GitStatus;
 	}
 	return FALSE;

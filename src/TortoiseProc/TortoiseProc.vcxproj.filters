@@ -108,9 +108,6 @@
     <Filter Include="Commands\Copy">
       <UniqueIdentifier>{233c5ed2-26e3-42f4-8d89-5ba9d5c7ad22}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Commands\SendMail">
-      <UniqueIdentifier>{f5393fb2-8396-4eec-ba0f-55bd6f452f30}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Commands\Stash">
       <UniqueIdentifier>{2b65b0fe-f970-45f5-9361-46d97266bff2}</UniqueIdentifier>
     </Filter>
@@ -371,12 +368,6 @@
     <ClCompile Include="FormatPatchDlg.cpp">
       <Filter>Commands\Patch</Filter>
     </ClCompile>
-    <ClCompile Include="Commands\ImportPatchCommand.cpp">
-      <Filter>Commands\Patch</Filter>
-    </ClCompile>
-    <ClCompile Include="ImportPatchDlg.cpp">
-      <Filter>Commands\Patch</Filter>
-    </ClCompile>
     <ClCompile Include="Commands\CatCommand.cpp">
       <Filter>Commands\cat</Filter>
     </ClCompile>
@@ -449,9 +440,6 @@
     <ClCompile Include="Commands\SettingsCommand.cpp">
       <Filter>Commands\setting</Filter>
     </ClCompile>
-    <ClCompile Include="Settings\SettingSMTP.cpp">
-      <Filter>Commands\setting</Filter>
-    </ClCompile>
     <ClCompile Include="Settings\SettingsProgsAlternativeEditor.cpp">
       <Filter>Commands\setting</Filter>
     </ClCompile>
@@ -514,12 +502,6 @@
     </ClCompile>
     <ClCompile Include="Commands\DropCopyCommand.cpp">
       <Filter>Commands\Copy</Filter>
-    </ClCompile>
-    <ClCompile Include="Commands\SendMailCommand.cpp">
-      <Filter>Commands\SendMail</Filter>
-    </ClCompile>
-    <ClCompile Include="SendMailDlg.cpp">
-      <Filter>Commands\SendMail</Filter>
     </ClCompile>
     <ClCompile Include="Commands\StashCommand.cpp">
       <Filter>Commands\Stash</Filter>
@@ -662,9 +644,6 @@
     <ClCompile Include="Settings\SettingGitCredential.cpp">
       <Filter>Commands\setting</Filter>
     </ClCompile>
-    <ClCompile Include="SendMail.cpp">
-      <Filter>Utils</Filter>
-    </ClCompile>
     <ClCompile Include="Commands\DaemonCommand.cpp">
       <Filter>Commands\Daemon</Filter>
     </ClCompile>
@@ -716,9 +695,6 @@
     <ClCompile Include="ProgressCommands\FetchProgressCommand.cpp">
       <Filter>Utility Dialogs\ProgressCommands</Filter>
     </ClCompile>
-    <ClCompile Include="ProgressCommands\SendMailProgressCommand.cpp">
-      <Filter>Utility Dialogs\ProgressCommands</Filter>
-    </ClCompile>
     <ClCompile Include="ProgressCommands\RemoteProgressCommand.cpp">
       <Filter>Utility Dialogs\ProgressCommands</Filter>
     </ClCompile>
@@ -731,13 +707,7 @@
     <ClCompile Include="..\Utils\DirFileEnum.cpp">
       <Filter>Utils\General</Filter>
     </ClCompile>
-    <ClCompile Include="..\Utils\HwSMTP.cpp">
-      <Filter>Utils\General</Filter>
-    </ClCompile>
     <ClCompile Include="..\Utils\JumpListHelpers.cpp">
-      <Filter>Utils\General</Filter>
-    </ClCompile>
-    <ClCompile Include="..\Utils\MailMsg.cpp">
       <Filter>Utils\General</Filter>
     </ClCompile>
     <ClCompile Include="..\Utils\PathUtils.cpp">
@@ -908,15 +878,6 @@
     <ClCompile Include="FindBar.cpp">
       <Filter>Commands\Commit</Filter>
     </ClCompile>
-    <ClCompile Include="PatchListCtrl.cpp">
-      <Filter>Commands\Patch</Filter>
-    </ClCompile>
-    <ClCompile Include="SerialPatch.cpp">
-      <Filter>Commands\SendMail</Filter>
-    </ClCompile>
-    <ClCompile Include="SendMailPatch.cpp">
-      <Filter>Commands\SendMail</Filter>
-    </ClCompile>
     <ClCompile Include="..\Git\GitDataObject.cpp">
       <Filter>Git</Filter>
     </ClCompile>
@@ -1054,6 +1015,9 @@
     </ClCompile>
     <ClCompile Include="Commands\FirstStartWizardCommand.cpp">
       <Filter>Commands\FirstStart</Filter>
+    </ClCompile>
+    <ClCompile Include="CGit_2.cpp">
+      <Filter>Utils</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -1237,12 +1201,6 @@
     <ClInclude Include="FormatPatchDlg.h">
       <Filter>Commands\Patch</Filter>
     </ClInclude>
-    <ClInclude Include="Commands\ImportPatchCommand.h">
-      <Filter>Commands\Patch</Filter>
-    </ClInclude>
-    <ClInclude Include="ImportPatchDlg.h">
-      <Filter>Commands\Patch</Filter>
-    </ClInclude>
     <ClInclude Include="Commands\CatCommand.h">
       <Filter>Commands\cat</Filter>
     </ClInclude>
@@ -1315,9 +1273,6 @@
     <ClInclude Include="Commands\SettingsCommand.h">
       <Filter>Commands\setting</Filter>
     </ClInclude>
-    <ClInclude Include="Settings\SettingSMTP.h">
-      <Filter>Commands\setting</Filter>
-    </ClInclude>
     <ClInclude Include="Settings\SettingsProgsAlternativeEditor.h">
       <Filter>Commands\setting</Filter>
     </ClInclude>
@@ -1374,12 +1329,6 @@
     </ClInclude>
     <ClInclude Include="Commands\DropCopyCommand.h">
       <Filter>Commands\Copy</Filter>
-    </ClInclude>
-    <ClInclude Include="Commands\SendMailCommand.h">
-      <Filter>Commands\SendMail</Filter>
-    </ClInclude>
-    <ClInclude Include="SendMailDlg.h">
-      <Filter>Commands\SendMail</Filter>
     </ClInclude>
     <ClInclude Include="Commands\StashCommand.h">
       <Filter>Commands\Stash</Filter>
@@ -1519,9 +1468,6 @@
     <ClInclude Include="Settings\SettingGitCredential.h">
       <Filter>Commands\setting</Filter>
     </ClInclude>
-    <ClInclude Include="SendMail.h">
-      <Filter>Utils</Filter>
-    </ClInclude>
     <ClInclude Include="Commands\DaemonCommand.h">
       <Filter>Commands\Daemon</Filter>
     </ClInclude>
@@ -1585,9 +1531,6 @@
     <ClInclude Include="ProgressCommands\FetchProgressCommand.h">
       <Filter>Utility Dialogs\ProgressCommands</Filter>
     </ClInclude>
-    <ClInclude Include="ProgressCommands\SendMailProgressCommand.h">
-      <Filter>Utility Dialogs\ProgressCommands</Filter>
-    </ClInclude>
     <ClInclude Include="ProgressCommands\RemoteProgressCommand.h">
       <Filter>Utility Dialogs\ProgressCommands</Filter>
     </ClInclude>
@@ -1600,16 +1543,10 @@
     <ClInclude Include="..\Utils\DirFileEnum.h">
       <Filter>Utils\General</Filter>
     </ClInclude>
-    <ClInclude Include="..\Utils\HwSMTP.h">
-      <Filter>Utils\General</Filter>
-    </ClInclude>
     <ClInclude Include="..\Utils\JumpListHelpers.h">
       <Filter>Utils\General</Filter>
     </ClInclude>
     <ClInclude Include="..\Utils\Libraries.h">
-      <Filter>Utils\General</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Utils\MailMsg.h">
       <Filter>Utils\General</Filter>
     </ClInclude>
     <ClInclude Include="..\Utils\PathUtils.h">
@@ -1798,17 +1735,8 @@
     <ClInclude Include="FindBar.h">
       <Filter>Commands\Commit</Filter>
     </ClInclude>
-    <ClInclude Include="PatchListCtrl.h">
-      <Filter>Commands\Patch</Filter>
-    </ClInclude>
     <ClInclude Include="..\Utils\SmartHandle.h">
       <Filter>Utils\General</Filter>
-    </ClInclude>
-    <ClInclude Include="SerialPatch.h">
-      <Filter>Commands\SendMail</Filter>
-    </ClInclude>
-    <ClInclude Include="SendMailPatch.h">
-      <Filter>Commands\SendMail</Filter>
     </ClInclude>
     <ClInclude Include="..\Utils\LruCache.h">
       <Filter>Utils\General</Filter>

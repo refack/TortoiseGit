@@ -102,12 +102,10 @@
     <ClCompile Include="..\Utils\Graphviz.cpp" />
     <ClCompile Include="..\Utils\Hash.cpp" />
     <ClCompile Include="..\Utils\Hooks.cpp" />
-    <ClCompile Include="..\Utils\HwSMTP.cpp" />
     <ClCompile Include="..\Utils\IconExtractor.cpp" />
     <ClCompile Include="..\Utils\JumpListHelpers.cpp" />
     <ClCompile Include="..\Utils\LangDll.cpp" />
     <ClCompile Include="..\Utils\LoadIconEx.cpp" />
-    <ClCompile Include="..\Utils\MailMsg.cpp" />
     <ClCompile Include="..\Utils\MiscUI\AnimationManager.cpp" />
     <ClCompile Include="..\Utils\MiscUI\BrowseFolder.cpp" />
     <ClCompile Include="..\Utils\MiscUI\BufferDC.cpp" />
@@ -156,6 +154,7 @@
     <ClCompile Include="AutoTextTestDlg.cpp" />
     <ClCompile Include="BugtraqRegexTestDlg.cpp" />
     <ClCompile Include="BrowseRefsDlgFilter.cpp" />
+    <ClCompile Include="CGit_2.cpp" />
     <ClCompile Include="CheckCertificateDlg.cpp" />
     <ClCompile Include="ColumnManager.cpp" />
     <ClCompile Include="Commands\CommitIsOnRefsCommand.cpp" />
@@ -192,18 +191,14 @@
     <ClCompile Include="ProgressCommands\ResetProgressCommand.cpp" />
     <ClCompile Include="ProgressCommands\ResolveProgressCommand.cpp" />
     <ClCompile Include="ProgressCommands\RevertProgressCommand.cpp" />
-    <ClCompile Include="ProgressCommands\SendMailProgressCommand.cpp" />
     <ClCompile Include="SelectRemoteRefDlg.cpp" />
-    <ClCompile Include="SendMail.cpp" />
     <ClCompile Include="FindDlg.cpp" />
     <ClCompile Include="..\Utils\Libraries.cpp" />
     <ClCompile Include="GitProgressList.cpp" />
     <ClCompile Include="LogFile.cpp" />
     <ClCompile Include="LogOrdering.cpp" />
     <ClCompile Include="MassiveGitTask.cpp" />
-    <ClCompile Include="SendMailPatch.cpp" />
     <ClCompile Include="ProjectProperties.cpp" />
-    <ClCompile Include="SerialPatch.cpp" />
     <ClCompile Include="Settings\SetDialogs2.cpp" />
     <ClCompile Include="Settings\SetDialogs3.cpp" />
     <ClCompile Include="Settings\SettingGitCredential.cpp" />
@@ -268,8 +263,6 @@
     <ClCompile Include="Commands\IgnoreCommand.cpp" />
     <ClCompile Include="Commands\FormatPatchCommand.cpp" />
     <ClCompile Include="FormatPatchDlg.cpp" />
-    <ClCompile Include="Commands\ImportPatchCommand.cpp" />
-    <ClCompile Include="ImportPatchDlg.cpp" />
     <ClCompile Include="Commands\CatCommand.cpp" />
     <ClCompile Include="..\TortoiseShell\MenuInfo.cpp" />
     <ClCompile Include="Settings\SetBugTraq.cpp" />
@@ -294,7 +287,6 @@
     <ClCompile Include="Settings\SettingsColors2.cpp" />
     <ClCompile Include="Settings\SettingsColors3.cpp" />
     <ClCompile Include="Commands\SettingsCommand.cpp" />
-    <ClCompile Include="Settings\SettingSMTP.cpp" />
     <ClCompile Include="Settings\SettingsProgsAlternativeEditor.cpp" />
     <ClCompile Include="Settings\SettingsProgsDiff.cpp" />
     <ClCompile Include="Settings\SettingsProgsMerge.cpp" />
@@ -316,8 +308,6 @@
     <ClCompile Include="Commands\RepoStatusCommand.cpp" />
     <ClCompile Include="Commands\DropCopyAddCommand.cpp" />
     <ClCompile Include="Commands\DropCopyCommand.cpp" />
-    <ClCompile Include="Commands\SendMailCommand.cpp" />
-    <ClCompile Include="SendMailDlg.cpp" />
     <ClCompile Include="Commands\StashCommand.cpp" />
     <ClCompile Include="StashSave.cpp" />
     <ClCompile Include="BrowseRefsDlg.cpp" />
@@ -364,7 +354,6 @@
     <ClCompile Include="GitDiff.cpp" />
     <ClCompile Include="..\Git\GitStatusListCtrl.cpp" />
     <ClCompile Include="GitStatusListCtrlHelpers.cpp" />
-    <ClCompile Include="PatchListCtrl.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader>Create</PrecompiledHeader>
     </ClCompile>
@@ -404,7 +393,6 @@
     <ClInclude Include="..\Utils\Graphviz.h" />
     <ClInclude Include="..\Utils\Hash.h" />
     <ClInclude Include="..\Utils\Hooks.h" />
-    <ClInclude Include="..\Utils\HwSMTP.h" />
     <ClInclude Include="..\Utils\IconExtractor.h" />
     <ClInclude Include="..\Utils\IInputValidator.h" />
     <ClInclude Include="..\Utils\JumpListHelpers.h" />
@@ -412,7 +400,6 @@
     <ClInclude Include="..\Utils\Libraries.h" />
     <ClInclude Include="..\Utils\LoadIconEx.h" />
     <ClInclude Include="..\Utils\LruCache.h" />
-    <ClInclude Include="..\Utils\MailMsg.h" />
     <ClInclude Include="..\Utils\MiscUI\AnimationManager.h" />
     <ClInclude Include="..\Utils\MiscUI\BrowseFolder.h" />
     <ClInclude Include="..\Utils\MiscUI\BufferDC.h" />
@@ -510,19 +497,15 @@
     <ClInclude Include="ProgressCommands\ResetProgressCommand.h" />
     <ClInclude Include="ProgressCommands\ResolveProgressCommand.h" />
     <ClInclude Include="ProgressCommands\RevertProgressCommand.h" />
-    <ClInclude Include="ProgressCommands\SendMailProgressCommand.h" />
     <ClInclude Include="ResizableColumnsListCtrl.h" />
     <ClInclude Include="SelectRemoteRefDlg.h" />
-    <ClInclude Include="SendMail.h" />
     <ClInclude Include="FindDlg.h" />
     <ClInclude Include="GitProgressList.h" />
     <ClInclude Include="LogFile.h" />
     <ClInclude Include="LogOrdering.h" />
     <ClInclude Include="MassiveGitTask.h" />
-    <ClInclude Include="SendMailPatch.h" />
     <ClInclude Include="ProjectProperties.h" />
     <ClInclude Include="..\TortoiseShell\resource.h" />
-    <ClInclude Include="SerialPatch.h" />
     <ClInclude Include="Settings\GitSettings.h" />
     <ClInclude Include="Settings\SetDialogs2.h" />
     <ClInclude Include="Settings\SetDialogs3.h" />
@@ -589,8 +572,6 @@
     <ClInclude Include="Commands\IgnoreCommand.h" />
     <ClInclude Include="Commands\FormatPatchCommand.h" />
     <ClInclude Include="FormatPatchDlg.h" />
-    <ClInclude Include="Commands\ImportPatchCommand.h" />
-    <ClInclude Include="ImportPatchDlg.h" />
     <ClInclude Include="Commands\CatCommand.h" />
     <ClInclude Include="Settings\SetBugTraq.h" />
     <ClInclude Include="Settings\SetBugTraqAdv.h" />
@@ -615,7 +596,6 @@
     <ClInclude Include="Settings\SettingsColors2.h" />
     <ClInclude Include="Settings\SettingsColors3.h" />
     <ClInclude Include="Commands\SettingsCommand.h" />
-    <ClInclude Include="Settings\SettingSMTP.h" />
     <ClInclude Include="Settings\SettingsProgsAlternativeEditor.h" />
     <ClInclude Include="Settings\SettingsPropPage.h" />
     <ClInclude Include="Settings\SettingsTBlame.h" />
@@ -635,8 +615,6 @@
     <ClInclude Include="Commands\RepoStatusCommand.h" />
     <ClInclude Include="Commands\DropCopyAddCommand.h" />
     <ClInclude Include="Commands\DropCopyCommand.h" />
-    <ClInclude Include="Commands\SendMailCommand.h" />
-    <ClInclude Include="SendMailDlg.h" />
     <ClInclude Include="Commands\StashCommand.h" />
     <ClInclude Include="StashSave.h" />
     <ClInclude Include="BrowseRefsDlg.h" />
@@ -681,7 +659,6 @@
     <ClInclude Include="SubmoduleDiffDlg.h" />
     <ClInclude Include="GitDiff.h" />
     <ClInclude Include="..\Git\GitStatusListCtrl.h" />
-    <ClInclude Include="PatchListCtrl.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="TortoiseProc.h" />

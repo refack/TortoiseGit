@@ -35,11 +35,9 @@ IMPLEMENT_DYNAMIC(CFormatPatchDlg, CHorizontalResizableStandAloneDialog)
 
 CFormatPatchDlg::CFormatPatchDlg(CWnd* pParent /*=nullptr*/)
 	: CHorizontalResizableStandAloneDialog(CFormatPatchDlg::IDD, pParent)
-	, m_regSendMail(L"Software\\TortoiseGit\\TortoiseProc\\FormatPatch\\SendMail", 0)
 	, m_regNoPrefix(L"Software\\TortoiseGit\\TortoiseProc\\FormatPatch\\NoPrefix", FALSE)
 	, m_Num(1)
 {
-	this->m_bSendMail = m_regSendMail;
 	this->m_Radio = IDC_RADIO_SINCE;
 	m_bNoPrefix = m_regNoPrefix;
 
@@ -69,7 +67,6 @@ void CFormatPatchDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Text(pDX, IDC_COMBOBOXEX_FROM,	m_From);
 	DDX_Text(pDX, IDC_COMBOBOXEX_TO,	m_To);
 
-	DDX_Check(pDX, IDC_CHECK_SENDMAIL, m_bSendMail);
 	DDX_Check(pDX, IDC_CHECK_NOPREFIX, m_bNoPrefix);
 }
 
@@ -94,7 +91,6 @@ BOOL CFormatPatchDlg::OnInitDialog()
 	AdjustControlSize(IDC_RADIO_SINCE);
 	AdjustControlSize(IDC_RADIO_NUM);
 	AdjustControlSize(IDC_RADIO_RANGE);
-	AdjustControlSize(IDC_CHECK_SENDMAIL);
 	AdjustControlSize(IDC_CHECK_NOPREFIX);
 
 	AddAnchor(IDC_GROUP_DIR, TOP_LEFT, TOP_RIGHT);
@@ -111,7 +107,6 @@ BOOL CFormatPatchDlg::OnInitDialog()
 
 	AddAnchor(IDC_BUTTON_FROM,  TOP_RIGHT);
 	AddAnchor(IDC_BUTTON_TO,	TOP_RIGHT);
-	AddAnchor(IDC_CHECK_SENDMAIL,BOTTOM_LEFT);
 	AddAnchor(IDC_CHECK_NOPREFIX, BOTTOM_LEFT);
 	AddAnchor(IDOK,BOTTOM_RIGHT);
 	AddAnchor(IDCANCEL,BOTTOM_RIGHT);
@@ -236,7 +231,6 @@ void CFormatPatchDlg::OnBnClickedOk()
 	if (m_Radio == IDC_RADIO_SINCE && !m_Since.IsEmpty())
 		m_regSince = m_Since;
 
-	m_regSendMail=this->m_bSendMail;
 	m_regNoPrefix = m_bNoPrefix;
 	OnOK();
 }

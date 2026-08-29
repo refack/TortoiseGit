@@ -45,7 +45,6 @@
 #include "AddCommand.h"
 #include "IgnoreCommand.h"
 #include "FormatPatchCommand.h"
-#include "ImportPatchCommand.h"
 #include "BlameCommand.h"
 #include "SettingsCommand.h"
 #include "ConflictEditorCommand.h"
@@ -58,7 +57,6 @@
 #include "StashCommand.h"
 #include "SubmoduleCommand.h"
 #include "ReflogCommand.h"
-#include "SendMailCommand.h"
 #include "CatCommand.h"
 #include "RefBrowseCommand.h"
 #include "SVNDCommitCommand.h"
@@ -109,7 +107,6 @@ enum TGitCommand
 	cmdExport,
 	cmdHelp,
 	cmdIgnore,
-	cmdImportPatch,
 	cmdLog,
 	cmdMerge,
 	cmdPasteCopy,
@@ -126,7 +123,6 @@ enum TGitCommand
 	cmdRepoStatus,
 	cmdResolve,
 	cmdRevert,
-	cmdSendMail,
 	cmdSettings,
 	cmdShowCompare,
 	cmdSwitch,
@@ -191,7 +187,6 @@ static constexpr struct CommandInfo
 	{	cmdExport,			L"export"			},
 	{	cmdHelp,			L"help"				},
 	{	cmdIgnore,			L"ignore"			},
-	{	cmdImportPatch,		L"importpatch"		},
 	{	cmdLog,				L"log"				},
 	{	cmdMerge,			L"merge"			},
 	{	cmdPasteCopy,		L"pastecopy"		},
@@ -208,7 +203,6 @@ static constexpr struct CommandInfo
 	{	cmdRepoStatus,		L"repostatus"		},
 	{	cmdResolve,			L"resolve"			},
 	{	cmdRevert,			L"revert"			},
-	{	cmdSendMail,		L"sendmail"			},
 	{	cmdSettings,		L"settings"			},
 	{	cmdShowCompare,		L"showcompare"		},
 	{	cmdSwitch,			L"switch"			},
@@ -337,8 +331,6 @@ Command* CommandServer::CreateRawCommand(const CString& sCmd)
 		return new IgnoreCommand;
 	case cmdFormatPatch:
 		return new FormatPatchCommand;
-	case cmdImportPatch:
-		return new ImportPatchCommand;
 	case cmdBlame:
 		return new BlameCommand;
 	case cmdSettings:
@@ -375,8 +367,6 @@ Command* CommandServer::CreateRawCommand(const CString& sCmd)
 		return new RefLogCommand;
 	case cmdSubSync:
 		return new SubmoduleSyncCommand;
-	case cmdSendMail:
-		return new SendMailCommand;
 	case cmdCat:
 		return new CatCommand;
 	case cmdRefBrowse:

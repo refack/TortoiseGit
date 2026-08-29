@@ -98,7 +98,6 @@
     <ClInclude Include="..\..\src\TortoiseProc\LogFile.h" />
     <ClInclude Include="..\..\src\TortoiseProc\LoglistUtils.h" />
     <ClInclude Include="..\..\src\TortoiseProc\ProjectProperties.h" />
-    <ClInclude Include="..\..\src\TortoiseProc\SerialPatch.h" />
     <ClInclude Include="..\..\src\TortoiseProc\StagingOperations.h" />
     <ClInclude Include="..\..\src\TortoiseProc\UpdateCrypto.h" />
     <ClInclude Include="..\..\src\TortoiseProc\UpdateDownloader.h" />
@@ -155,7 +154,6 @@
     <ClCompile Include="..\..\src\TortoiseProc\LogFile.cpp" />
     <ClCompile Include="..\..\src\TortoiseProc\LoglistUtils.cpp" />
     <ClCompile Include="..\..\src\TortoiseProc\ProjectProperties.cpp" />
-    <ClCompile Include="..\..\src\TortoiseProc\SerialPatch.cpp" />
     <ClCompile Include="..\..\src\TortoiseProc\StagingOperations.cpp" />
     <ClCompile Include="..\..\src\TortoiseProc\UpdateCrypto.cpp" />
     <ClCompile Include="..\..\src\TortoiseProc\VersioncheckParser.cpp" />
@@ -198,7 +196,6 @@
     <ClCompile Include="PathUtilsTest.cpp" />
     <ClCompile Include="PersonalDictionaryTest.cpp" />
     <ClCompile Include="ProjectPropertiesTest.cpp" />
-    <ClCompile Include="SerialPatchTest.cpp" />
     <ClCompile Include="StagingTest.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader>Create</PrecompiledHeader>

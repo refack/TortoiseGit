@@ -1,4 +1,4 @@
-// TortoiseGit - a Windows shell extension for easy version control
+﻿// TortoiseGit - a Windows shell extension for easy version control
 
 // Copyright (C) 2008-2026 - TortoiseGit
 // Copyright (C) 2003-2008, 2012-2014 - TortoiseSVN
@@ -40,7 +40,6 @@
 #include "ProjectProperties.h"
 #include "HistoryCombo.h"
 #include <random>
-#include "SendMail.h"
 #include "WindowsCredentialsStore.h"
 #include "AnimationManager.h"
 #include "VersioncheckParser.h"
@@ -472,16 +471,13 @@ void CTortoiseProcApp::CheckUpgrade() const
 
 	if (lVersion <= ConvertVersionToInt(2, 2, 1))
 	{
-		CString username = CRegString(L"Software\\TortoiseGit\\TortoiseProc\\SendMail\\Username", L"");
-		CString password = CRegString(L"Software\\TortoiseGit\\TortoiseProc\\SendMail\\Password", L"");
-		if (!username.IsEmpty() && !password.IsEmpty())
-		{
-			if (CWindowsCredentialsStore::SaveCredential(L"TortoiseGit:SMTP-Credentials", username, password) == 0)
-			{
-				CRegString(L"Software\\TortoiseGit\\TortoiseProc\\SendMail\\Username").removeValue();
-				CRegString(L"Software\\TortoiseGit\\TortoiseProc\\SendMail\\Password").removeValue();
-			}
-		}
+		// This used to migrate the SMTP password out of the registry and into the
+		// Windows credential store. The mail feature is gone, so there is nothing
+		// left to migrate it *for* - but leaving a plaintext password behind in
+		// the registry because its consumer was deleted would be worse than the
+		// bug the migration was written to fix. Delete both, unconditionally.
+		CRegString(L"Software\\TortoiseGit\\TortoiseProc\\SendMail\\Username").removeValue();
+		CRegString(L"Software\\TortoiseGit\\TortoiseProc\\SendMail\\Password").removeValue();
 		for (const CString& setting : { L"SyncIn", L"SyncOut" })
 		{
 			CRegDWORD reg(L"Software\\TortoiseGit\\StatusColumns\\" + setting + L"loglistVersion", 0xff);
@@ -520,9 +516,10 @@ void CTortoiseProcApp::CheckUpgrade() const
 
 	if (lVersion <= ConvertVersionToInt(1, 8, 4, 1))
 	{
-		if (CRegStdDWORD(L"Software\\TortoiseGit\\TortoiseProc\\SendMail\\UseMAPI", FALSE) == TRUE)
-			CRegStdDWORD(L"Software\\TortoiseGit\\TortoiseProc\\SendMail\\DeliveryType") = SEND_MAIL_MAPI;
+		// Was: migrate UseMAPI to DeliveryType. Both settings belonged to the
+		// removed mail feature, so both just go.
 		CRegStdDWORD(L"Software\\TortoiseGit\\TortoiseProc\\SendMail\\UseMAPI").removeValue();
+		CRegStdDWORD(L"Software\\TortoiseGit\\TortoiseProc\\SendMail\\DeliveryType").removeValue();
 	}
 
 	if (lVersion <= ConvertVersionToInt(1, 8, 2, 2))

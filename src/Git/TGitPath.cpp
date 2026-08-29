@@ -1790,7 +1790,15 @@ std::wstring CTGitPath::GetActionName(unsigned int action)
 	// tests, because nothing in the suite called this. The resource id is now
 	// chosen first and loaded explicitly, which keeps the CString conversion -
 	// and therefore the module's resource lookup - exactly where it was.
-	return CString(MAKEINTRESOURCE(GetActionNameResourceId(action))).GetString();
+	UINT action_name_resource_id = GetActionNameResourceId(action);
+	auto ret = CString{};
+	if (ret.LoadStringW(action_name_resource_id)) {
+		return ret.GetString();
+	} else {
+		auto dbg = std::format(L"CTGitPath::GetActionName({}) = {}", action, action_name_resource_id);
+		OutputDebugStringW(dbg.c_str());
+		return L"";
+	}
 }
 
 UINT CTGitPath::GetActionNameResourceId(unsigned int action)

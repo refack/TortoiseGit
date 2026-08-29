@@ -76,8 +76,6 @@ protected:
 	afx_msg void OnCbnEditchangeComboboxex();
 	afx_msg void OnBnClickedButtonPull();
 	afx_msg void OnBnClickedButtonPush();
-	afx_msg void OnBnClickedButtonApply();
-	afx_msg void OnBnClickedButtonEmail();
 	afx_msg void OnTimer(UINT_PTR nIDEvent);
 	afx_msg void OnDestroy();
 	void SetTheme(bool bDark) override;

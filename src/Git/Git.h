@@ -965,3 +965,6 @@ extern CString GetTempFile();
 extern DWORD GetTortoiseGitTempPath(DWORD nBufferLength, LPWSTR lpBuffer);
 
 extern CGit g_Git;
+
+static inline git_credential_acquire_cb g_Git2CredCallback;
+static inline git_transport_certificate_check_cb g_Git2CheckCertificateCallback;

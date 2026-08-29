@@ -26,7 +26,6 @@
 #include "AppUtils.h"
 #include "ProgressDlg.h"
 #include "MessageBox.h"
-#include "ImportPatchDlg.h"
 #include "Hooks.h"
 #include "SmartHandle.h"
 #include "ProgressCommands/FetchProgressCommand.h"
@@ -73,8 +72,6 @@ void CSyncDlg::DoDataExchange(CDataExchange* pDX)
 BEGIN_MESSAGE_MAP(CSyncDlg, CResizableStandAloneDialog)
 	ON_BN_CLICKED(IDC_BUTTON_PULL, &CSyncDlg::OnBnClickedButtonPull)
 	ON_BN_CLICKED(IDC_BUTTON_PUSH, &CSyncDlg::OnBnClickedButtonPush)
-	ON_BN_CLICKED(IDC_BUTTON_APPLY, &CSyncDlg::OnBnClickedButtonApply)
-	ON_BN_CLICKED(IDC_BUTTON_EMAIL, &CSyncDlg::OnBnClickedButtonEmail)
 	ON_BN_CLICKED(IDC_BUTTON_MANAGE, &CSyncDlg::OnBnClickedButtonManage)
 	BRANCH_COMBOX_EVENT
 	ON_CBN_EDITCHANGE(IDC_COMBOBOXEX_URL, &CSyncDlg::OnCbnEditchangeComboboxex)
@@ -95,8 +92,6 @@ void CSyncDlg::EnableControlButton(bool bEnabled)
 {
 	GetDlgItem(IDC_BUTTON_PULL)->EnableWindow(bEnabled);
 	GetDlgItem(IDC_BUTTON_PUSH)->EnableWindow(bEnabled);
-	GetDlgItem(IDC_BUTTON_APPLY)->EnableWindow(bEnabled);
-	GetDlgItem(IDC_BUTTON_EMAIL)->EnableWindow(bEnabled);
 	GetDlgItem(IDOK)->EnableWindow(bEnabled);
 	GetDlgItem(IDC_BUTTON_SUBMODULE)->EnableWindow(bEnabled);
 	GetDlgItem(IDC_BUTTON_STASH)->EnableWindow(bEnabled);
@@ -734,110 +729,6 @@ void CSyncDlg::OnBnClickedButtonPush()
 	StartWorkerThread();
 }
 
-void CSyncDlg::OnBnClickedButtonApply()
-{
-	CGitHash oldhash;
-	if (g_Git.GetHash(oldhash, L"HEAD"))
-	{
-		MessageBox(g_Git.GetGitLastErr(L"Could not get HEAD hash."), L"TortoiseGit", MB_ICONERROR);
-		return;
-	}
-
-	CImportPatchDlg dlg;
-	CString output;
-
-	if(dlg.DoModal() == IDOK)
-	{
-		int err=0;
-		for (int i = 0; i < dlg.m_PathList.GetCount(); ++i)
-		{
-			const STRING_VECTOR cmd{ L"git.exe", L"am", L"--", dlg.m_PathList[i].GetGitPathString() };
-
-			if (g_Git.Run(cmd, &output, CP_UTF8))
-			{
-				CMessageBox::Show(GetSafeHwnd(), output, L"TortoiseGit", MB_OK | MB_ICONERROR);
-
-				err=1;
-				break;
-			}
-			this->m_ctrlCmdOut.SetSel(-1,-1);
-			// The pane echoes what was run, so it wants the serialized line.
-			this->m_ctrlCmdOut.ReplaceSel(CGit::SerializeArgvToCString(cmd) + L'\n');
-			this->m_ctrlCmdOut.SetSel(-1,-1);
-			this->m_ctrlCmdOut.ReplaceSel(output);
-		}
-
-		CGitHash newhash;
-		if (g_Git.GetHash(newhash, L"HEAD"))
-		{
-			MessageBox(g_Git.GetGitLastErr(L"Could not get HEAD hash after applying patches."), L"TortoiseGit", MB_ICONERROR);
-			return;
-		}
-
-		this->m_InLogList.Clear();
-		this->m_InChangeFileList.Clear();
-
-		if(newhash == oldhash)
-		{
-			this->m_ctrlTabCtrl.ShowTab(IDC_IN_CHANGELIST-1,false);
-			this->m_InLogList.ShowText(L"No commits get from patch");
-			this->m_ctrlTabCtrl.ShowTab(IDC_IN_LOGLIST-1,true);
-
-		}
-		else
-		{
-			this->m_ctrlTabCtrl.ShowTab(IDC_IN_CHANGELIST-1,true);
-			this->m_ctrlTabCtrl.ShowTab(IDC_IN_LOGLIST-1,true);
-
-			CString range;
-			range.Format(L"%s..%s", static_cast<LPCWSTR>(m_oldHash.ToString()), static_cast<LPCWSTR>(newhash.ToString()));
-			this->AddDiffFileList(&m_InChangeFileList, &m_arInChangeList, newhash, oldhash);
-			m_InLogList.FillGitLog(nullptr, &range, CGit::LOG_INFO_STAT| CGit::LOG_INFO_FILESTATE | CGit::LOG_INFO_SHOW_MERGEDFILE);
-
-			this->FetchOutList(true);
-		}
-
-		this->m_ctrlTabCtrl.ShowTab(IDC_CMD_LOG-1,true);
-
-		if(err)
-		{
-			this->ShowTab(IDC_CMD_LOG);
-		}
-		else
-		{
-			this->ShowTab(IDC_IN_LOGLIST);
-		}
-	}
-}
-
-void CSyncDlg::OnBnClickedButtonEmail()
-{
-	CString out, err;
-
-	this->m_strLocalBranch = this->m_ctrlLocalBranch.GetString();
-	this->m_ctrlRemoteBranch.GetWindowText(this->m_strRemoteBranch);
-	this->m_ctrlURL.GetWindowText(this->m_strURL);
-	m_strURL=m_strURL.Trim();
-	m_strRemoteBranch=m_strRemoteBranch.Trim();
-
-	// The revision range was three separately quoted pieces glued together with
-	// '/' and '..'; the quotes only had to survive being parsed back out of the
-	// flat command line, so as one argv element it carries none. The output
-	// directory takes the forward-slash spelling that QuoteParameter used to
-	// give it for free.
-	const STRING_VECTOR cmd{ L"git.exe", L"format-patch", L"-o", CTGitPath(g_Git.m_CurrentDir.GetString()).GetGitPathString(),
-		L"--end-of-options", std::format(L"{}/{}..{}", m_strURL, m_strRemoteBranch, g_Git.FixBranchName(m_strLocalBranch)) };
-
-	if (g_Git.Run(cmd, &out, &err, CP_UTF8))
-	{
-		CMessageBox::Show(GetSafeHwnd(), out + L'\n' + err, L"TortoiseGit", MB_OK | MB_ICONERROR);
-		return ;
-	}
-
-	// SendPatchMail skips past the echoed command line in the output, so it
-	// needs the same spelling that was run.
-	CAppUtils::SendPatchMail(GetSafeHwnd(), CGit::SerializeArgvToCString(cmd), out);
-}
 void CSyncDlg::ShowProgressCtrl(bool bShow)
 {
 	const int b = bShow ? SW_NORMAL : SW_HIDE;
@@ -1049,8 +940,6 @@ BOOL CSyncDlg::OnInitDialog()
 	AddAnchor(IDC_BUTTON_PUSH,BOTTOM_LEFT);
 	AddAnchor(IDC_BUTTON_SUBMODULE,BOTTOM_LEFT);
 	AddAnchor(IDC_BUTTON_STASH,BOTTOM_LEFT);
-	AddAnchor(IDC_BUTTON_APPLY,BOTTOM_RIGHT);
-	AddAnchor(IDC_BUTTON_EMAIL,BOTTOM_RIGHT);
 	AddAnchor(IDC_PROGRESS_SYNC,TOP_LEFT,TOP_RIGHT);
 	AddAnchor(IDOK,BOTTOM_RIGHT);
 	AddAnchor(IDHELP,BOTTOM_RIGHT);
@@ -1277,7 +1166,6 @@ void CSyncDlg::FetchOutList(bool force)
 		m_OutLocalBranch.Empty();
 		m_OutRemoteBranch.Empty();
 
-		this->GetDlgItem(IDC_BUTTON_EMAIL)->EnableWindow(FALSE);
 		return ;
 
 	}
@@ -1290,7 +1178,6 @@ void CSyncDlg::FetchOutList(bool force)
 		m_OutLocalBranch.Empty();
 		m_OutRemoteBranch.Empty();
 
-		this->GetDlgItem(IDC_BUTTON_EMAIL)->EnableWindow(FALSE);
 		return ;
 	}
 	else
@@ -1317,8 +1204,7 @@ void CSyncDlg::FetchOutList(bool force)
 				m_OutLogList.ShowText(str);
 				this->m_ctrlStatus.SetWindowText(str);
 				this->m_ctrlTabCtrl.ShowTab(m_OutChangeFileList.GetDlgCtrlID()-1,FALSE);
-				this->GetDlgItem(IDC_BUTTON_EMAIL)->EnableWindow(FALSE);
-			}
+					}
 			else if (isFastForward || m_bForce)
 			{
 				CString range;
@@ -1337,7 +1223,6 @@ void CSyncDlg::FetchOutList(bool force)
 				}
 
 				this->m_ctrlTabCtrl.ShowTab(m_OutChangeFileList.GetDlgCtrlID()-1,TRUE);
-				this->GetDlgItem(IDC_BUTTON_EMAIL)->EnableWindow(TRUE);
 			}
 			else
 			{
@@ -1346,8 +1231,7 @@ void CSyncDlg::FetchOutList(bool force)
 				m_OutLogList.ShowText(str);
 				this->m_ctrlStatus.SetWindowText(str);
 				this->m_ctrlTabCtrl.ShowTab(m_OutChangeFileList.GetDlgCtrlID() - 1, FALSE);
-				this->GetDlgItem(IDC_BUTTON_EMAIL)->EnableWindow(FALSE);
-			}
+					}
 		}
 		this->m_OutLocalBranch=localbranch;
 		this->m_OutRemoteBranch=remotebranch;
