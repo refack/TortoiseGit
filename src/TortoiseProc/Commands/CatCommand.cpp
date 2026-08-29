@@ -27,7 +27,7 @@
 
 bool CatCommand::Execute()
 {
-	CString savepath = CPathUtils::GetLongPathname(std::wstring(parser.GetVal(L"savepath"))).c_str();
+	CString savepath = CPathUtils::GetLongPathname(parser.GetValStr(L"savepath")).c_str();
 	CString revision = parser.GetVal(L"revision");
 
 	if (g_Git.UsingLibGit2(CGit::GIT_CMD_GETONEFILE))

@@ -251,7 +251,7 @@ BOOL CTortoiseProcApp::InitInstance()
 		g_sGroupingUUID = parser.GetVal(L"groupuuid");
 	if (parser.HasKey(L"pathfile"))
 	{
-		CString sPathfileArgument = CPathUtils::GetLongPathname(std::wstring(parser.GetVal(L"pathfile"))).c_str();
+		CString sPathfileArgument = CPathUtils::GetLongPathname(parser.GetValStr(L"pathfile")).c_str();
 
 		cmdLinePath.SetFromUnknown(sPathfileArgument.GetString());
 		if (pathList.LoadFromFile(cmdLinePath)==false)

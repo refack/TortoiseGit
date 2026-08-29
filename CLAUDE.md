@@ -26,10 +26,11 @@ most rules below are the residue of a wrong turn recorded there.
   shell script that is not a command line. Phase A next.
 - **Backends**: ten `LIBGIT2_CMD` values have no `git.exe` twin any more; see
   "The three backends" below for the six that survive and why.
-- **Tests**: 598/600, unattended, about 45 seconds via `test\Run-Tests.ps1`.
-  590 → 600 is +2 `Decode`, +1 `CEnvironmentBlockLayout`, +4 `SerializeArgv`,
+- **Tests**: 599/601, unattended, about 45 seconds via `test\Run-Tests.ps1`.
+  590 → 601 is +2 `Decode`, +1 `CEnvironmentBlockLayout`, +4 `SerializeArgv`,
   −1 `SerialPatch` (deleted with the mail feature), +4
-  `GetUnifiedDiffLibGit2MatchesGitExe`. The two failures are
+  `GetUnifiedDiffLibGit2MatchesGitExe`, +1 `GetValStrIsEmptyForAMissingKey`.
+  The two failures are
   `CTGitPath.GetAbbreviatedRename` and
   `WideString.LeftRightMidClampLikeCString`, both in-flight elsewhere.
 
@@ -128,7 +129,7 @@ headers** — not as a parameter, not as a return, not as a member. This is not 
 style preference; it is a link error waiting for whoever tries the merge without
 checking, and it is why "move to STL" is the unlock rather than a tidy-up.
 
-### Four failure modes of a type migration — every one of which compiled
+### Five failure modes of a type migration — every one of which compiled
 
 Learned converting `CTGitPath` and `CPathUtils`. Re-read before converting `Git.h`:
 
@@ -138,12 +139,18 @@ Learned converting `CTGitPath` and `CPathUtils`. Re-read before converting `Git.
 | 2 | `x.c_str() + L'.'` | `const wchar_t* + wchar_t` is **pointer arithmetic**, not concatenation. `GetMergeTempFile` was silently returning the path tail with 46 characters removed. |
 | 3 | `SetFromGit(cstring, &oldPath)` | **re-bound to a different overload.** A CString can no longer reach the `wstring_view` overload, and pointer→`bool` is a *standard* conversion, so it fell through to `SetFromGit(const wchar_t*, bool)` and read the out-parameter as a directory flag. No error, and no diff to review — the line never changed, only the overload set around it. |
 | 4 | `return MAKEINTRESOURCE(IDS_…)` | `CStringT`'s constructor checks `IS_INTRESOURCE` and calls `LoadString`; **`std::wstring` hands the pseudo-pointer to `wcslen`**. Compiled, linked, passed 587 tests, survived an adversarial diff review, then crashed painting the first Action cell. |
+| 5 | `std::wstring(parser.GetVal(L"path2"))` | **a total constructor became a partial one.** `CString(nullptr)` is a defined empty string; `std::wstring(nullptr)` is UB. Nothing at the call site changed shape and no overload re-bound — only the set of accepted values shrank, and the removed value (`GetVal` returns `nullptr` for an absent key) is the one the parser returns most often. Crashed **every** `TortoiseGitProc /command:diff`, which reaches for an optional `/path2` unconditionally. |
 
-(3) and (4) share a moral worth stating plainly: **changing a type does not only
+(3), (4) and (5) share a moral worth stating plainly: **changing a type does not only
 break call sites loudly.** It can re-bind a call to a different overload, or
-change what a constructor *means*, and in both cases no line of the diff changed,
+change what a constructor *means*, and in every case no line of the diff changed,
 so no review can see it. Only the test suite caught (3); only running the
-program caught (4). **`std::format` is the fix for the whole of (2)** — each
+program caught (4) and (5) — (5) survived a full green suite for a week,
+because nothing in `test\` launches a command by its command line. **Where a
+conversion narrows what a parameter accepts, the sweep is over the callers'
+*values*, not their spellings**: grep the new type's constructor against every
+API that can hand it a null (`CCmdLineParser::GetVal` is the one here, and
+`GetValStr` now exists so no call site has to spell that trap again). **`std::format` is the fix for the whole of (2)** — each
 argument is formatted independently, so there is no `operator+` to resolve, which
 is why `std::formatter<CStringT>` exists in `WideString.h`.
 

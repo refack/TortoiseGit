@@ -119,6 +119,21 @@ public:
 	LPCWSTR GetVal(LPCWSTR sKey) const;
 
 	/**
+	 * Reads the value for a key as an owning string. A key that is not there
+	 * yields an empty string.
+	 *
+	 * This exists because GetVal's nullptr cannot safely be handed to a
+	 * std::wstring: CString's constructor reads a null pointer as an empty
+	 * string, std::wstring's is undefined behaviour, and that difference turned
+	 * "TortoiseGitProc /command:diff" - which reaches for an optional /path2 on
+	 * every invocation - into an access violation. GetVal itself keeps returning
+	 * nullptr, because CAppUtils::CreateBranchTag reads it as "no name given".
+	 * \param sKey the key to get the value from
+	 * \return the value of the key, or an empty string if it has none
+	 */
+	[[nodiscard]] std::wstring GetValStr(LPCWSTR sKey) const;
+
+	/**
 	 * Reads the value for a key as a long. If the value is a string which can't be
 	 * converted to a number then 0 is returned.
 	 * \param sKey the key to get the value from

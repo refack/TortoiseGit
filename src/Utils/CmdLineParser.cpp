@@ -199,6 +199,14 @@ LPCWSTR CCmdLineParser::GetVal(LPCWSTR sKey) const
 	return it->second.c_str();
 }
 
+std::wstring CCmdLineParser::GetValStr(LPCWSTR sKey) const
+{
+	CValsMap::const_iterator it = findKey(sKey);
+	if (it == m_valueMap.cend())
+		return {};
+	return it->second;
+}
+
 LONG CCmdLineParser::GetLongVal(LPCWSTR sKey) const
 {
 	CValsMap::const_iterator it = findKey(sKey);

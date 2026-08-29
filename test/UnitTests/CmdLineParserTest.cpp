@@ -50,6 +50,25 @@ TEST(CCmdLineParser, Text)
 	EXPECT_EQ(0, parser.GetLongLongVal(L"action"));
 }
 
+// GetVal's nullptr is load-bearing (CAppUtils::CreateBranchTag reads it as "no
+// name given"), which is why GetValStr exists beside it rather than replacing
+// it: std::wstring(nullptr) is undefined behaviour, not an empty string, and
+// three command-line paths were building one from an absent optional switch.
+TEST(CCmdLineParser, GetValStrIsEmptyForAMissingKey)
+{
+	CString args[] = { L"", L"action", L"/other:1", L"/action" };
+	for (const CString& arg : args)
+	{
+		SCOPED_TRACE(static_cast<LPCWSTR>(arg));
+		CCmdLineParser parser(arg);
+		EXPECT_STREQ(L"", parser.GetValStr(L"action").c_str());
+	}
+
+	CCmdLineParser withValue(L"/action:something");
+	EXPECT_STREQ(L"something", withValue.GetValStr(L"action").c_str());
+	EXPECT_STREQ(L"", withValue.GetValStr(L"missing").c_str());
+}
+
 TEST(CCmdLineParser, SingleSimpleArgValue)
 {
 	CString args[] = { L"/action", L"-action" };

@@ -30,7 +30,10 @@
 bool DiffCommand::Execute()
 {
 	bool bRet = false;
-	CString path2 = CPathUtils::GetLongPathname(std::wstring(parser.GetVal(L"path2"))).c_str();
+	// GetValStr, not std::wstring(GetVal(..)): /path2 is optional, GetVal returns
+	// nullptr when it is absent, and constructing a std::wstring from that is
+	// undefined behaviour rather than the empty string CString used to give.
+	CString path2 = CPathUtils::GetLongPathname(parser.GetValStr(L"path2")).c_str();
 	bool bAlternativeTool = !!parser.HasKey(L"alternative");
 //	bool bBlame = !!parser.HasKey(L"blame");
 	if (path2.IsEmpty())
@@ -54,7 +57,11 @@ bool DiffCommand::Execute()
 				if (parser.HasKey(L"unified"))
 					bRet = !!CAppUtils::StartShowUnifiedDiff(nullptr, cmdLinePath, parser.GetVal(L"startrev"), cmdLinePath, parser.GetVal(L"endrev"), bAlternativeTool);
 				else
-					bRet = !!CGitDiff::Diff(GetExplorerHWND(), &cmdLinePath, &cmdLinePath, parser.GetVal(L"endrev"), parser.GetVal(L"startrev"), false, parser.HasKey(L"unified") == TRUE, parser.GetLongVal(L"line"), bAlternativeTool, false);
+					// CGitDiff::Diff returns 0 for success, -1 for an error and 1 when
+					// the user declined to locate a missing file, so `!!` reported
+					// success as failure: ExitInstance turns a false here into an exit
+					// code of -1, and a *failed* diff into 0.
+					bRet = CGitDiff::Diff(GetExplorerHWND(), &cmdLinePath, &cmdLinePath, parser.GetVal(L"endrev"), parser.GetVal(L"startrev"), false, parser.HasKey(L"unified") == TRUE, parser.GetLongVal(L"line"), bAlternativeTool, false) == 0;
 			}
 			else
 			{
@@ -83,7 +90,7 @@ bool DiffCommand::Execute()
 									CTGitPath oldPath(changedFiles[i].GetGitOldPathString().c_str());
 									if (parser.HasKey(L"unified"))
 										return !!CAppUtils::StartShowUnifiedDiff(nullptr, cmdLinePath, L"HEAD", cmdLinePath, GitRev::GetWorkingCopyRef(), bAlternativeTool);
-									return !!CGitDiff::Diff(GetExplorerHWND(), &cmdLinePath, &oldPath, GitRev::GetWorkingCopyRef(), L"HEAD", false, parser.HasKey(L"unified") == TRUE, parser.GetLongVal(L"line"), bAlternativeTool);
+									return CGitDiff::Diff(GetExplorerHWND(), &cmdLinePath, &oldPath, GitRev::GetWorkingCopyRef(), L"HEAD", false, parser.HasKey(L"unified") == TRUE, parser.GetLongVal(L"line"), bAlternativeTool) == 0;
 								}
 								break;
 							}
@@ -95,13 +102,13 @@ bool DiffCommand::Execute()
 						return !!CAppUtils::StartShowUnifiedDiff(nullptr, cmdLinePath, L"HEAD", cmdLinePath, GitRev::GetWorkingCopyRef(), bAlternativeTool);
 					}
 					else
-						return !!CGitDiff::DiffNull(GetExplorerHWND(), &cmdLinePath, GitRev::GetWorkingCopyRef(), true, parser.GetLongVal(L"line"), bAlternativeTool);
+						return CGitDiff::DiffNull(GetExplorerHWND(), &cmdLinePath, GitRev::GetWorkingCopyRef(), true, parser.GetLongVal(L"line"), bAlternativeTool) == 0;
 				}
 
 				if (parser.HasKey(L"unified"))
 					bRet = !!CAppUtils::StartShowUnifiedDiff(nullptr, cmdLinePath, L"HEAD", cmdLinePath, GitRev::GetWorkingCopyRef(), bAlternativeTool);
 				else
-					bRet = !!CGitDiff::Diff(GetExplorerHWND(), &cmdLinePath, &cmdLinePath, GitRev::GetWorkingCopyRef(), L"HEAD", false, parser.HasKey(L"unified") == TRUE, parser.GetLongVal(L"line"), bAlternativeTool);
+					bRet = CGitDiff::Diff(GetExplorerHWND(), &cmdLinePath, &cmdLinePath, GitRev::GetWorkingCopyRef(), L"HEAD", false, parser.HasKey(L"unified") == TRUE, parser.GetLongVal(L"line"), bAlternativeTool) == 0;
 			}
 		}
 	}
@@ -112,7 +119,7 @@ bool DiffCommand::Execute()
 			if (!CheckRepo(PathRequirement::WorkingTreeOrBareRepoRequired))
 				return FALSE;
 			CTGitPath tgitPath2(path2.Mid(g_Git.m_CurrentDir.GetLength() + 1).GetString());
-			bRet = !!CGitDiff::Diff(GetExplorerHWND(), &tgitPath2, &cmdLinePath, parser.GetVal(L"endrev"), parser.GetVal(L"startrev"), false, parser.HasKey(L"unified") == TRUE, parser.GetLongVal(L"line"), bAlternativeTool);
+			bRet = CGitDiff::Diff(GetExplorerHWND(), &tgitPath2, &cmdLinePath, parser.GetVal(L"endrev"), parser.GetVal(L"startrev"), false, parser.HasKey(L"unified") == TRUE, parser.GetLongVal(L"line"), bAlternativeTool) == 0;
 		}
 		else
 		{
