@@ -20,8 +20,8 @@
 #pragma once
 #include <windows.h>
 #include <atlstr.h>
-#include <vector>
 
+import std;
 import wstr;
 import TGitPath;
 import PathUtils;

@@ -19,8 +19,7 @@
 
 #pragma once
 #include "GitRev.h"
-#include <map>
-#include <functional>
+import std;
 
 class GitRevRefBrowser;
 using MAP_REF_GITREVREFBROWSER = std::map<CString, GitRevRefBrowser>;

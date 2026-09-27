@@ -1,17 +1,17 @@
 ﻿module;
+#include <sys/stat.h>
+#include "git2/sys/repository.h"
+#include <atlstr.h>
 #include "GitHash.h"
 #include "gitdll.h"
 #include "GitStatus.h"
 #include "Utils/ReaderWriterLock.h"
-import GitAdminDir;
-import SmartLibgit2;
-
-#include <sys/stat.h>
-#include "git2/sys/repository.h"
-#include <atlstr.h>
 
 export module GitIndex;
+import std;
 import gsl;
+import GitAdminDir;
+import SmartLibgit2;
 import wstr;
 import StringUtils;
 import Registry;

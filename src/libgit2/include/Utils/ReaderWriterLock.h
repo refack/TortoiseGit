@@ -44,7 +44,7 @@ protect writers against indefinite blockage by readers..."
 #pragma once
 
 #include <windows.h>
-#include <map>
+import std;
 
 #if (_WIN32_WINNT >= 0x0403)
 //////////////////////////////////////////////////////////////////
