@@ -1,29 +1,10 @@
-﻿// TortoiseGit - a Windows shell extension for easy version control
-
-// Copyright (C) 2008-2023, 2025-2026 - TortoiseGit
-
-// This program is free software; you can redistribute it and/or
-// modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; either version 2
-// of the License, or (at your option) any later version.
-
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-
-// You should have received a copy of the GNU General Public License
-// along with this program; if not, write to the Free Software Foundation,
-// 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-//
-#pragma once
-
-import std;
-
+﻿module;
 #include <git2/oid.h>
-
 #define GIT_HASH_MAX_HEXSIZE (2 * GIT_OID_MAX_SIZE)
 
+
+export module TGitHash;
+import std;
 import invarients;
 import wstr;
 using namespace tgit::invarients;
@@ -31,6 +12,9 @@ using namespace tgit::invarients;
 /* also see gitdll.c */
 static_assert(GIT_OID_MAX_SIZE <= sizeof(git_oid::id), "git_oid raw storage must be able to hold the largest id");
 
+
+export namespace GitHash
+{
 class CGitHash;
 
 template<> struct std::hash<CGitHash>;
@@ -221,8 +205,14 @@ public:
 	friend struct std::hash<CGitHash>;
 };
 
-template <>
-struct std::hash<CGitHash>
+
+using GIT_REV_LIST = std::vector<GitHash::CGitHash>;
+
+
+}
+
+export template <>
+struct std::hash<GitHash::CGitHash>
 {
 	/*
 	 * Converts a cryptographic hash (such as SHA-1) into a hash value. Since cryptographic
@@ -230,7 +220,7 @@ struct std::hash<CGitHash>
 	 * The resulting value depends on platform endianness, so it should not be stored
 	 * or transmitted across systems.
 	 */
-	std::size_t operator()(const CGitHash& k) const noexcept
+	std::size_t operator()(const GitHash::CGitHash& k) const noexcept
 	{
 		static_assert(sizeof(size_t) <= GIT_OID_SHA1_SIZE);
 		size_t hash;
@@ -239,3 +229,6 @@ struct std::hash<CGitHash>
 		return hash;
 	}
 };
+
+
+export using namespace GitHash;

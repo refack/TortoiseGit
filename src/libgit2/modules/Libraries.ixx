@@ -12,6 +12,7 @@ module;
 #include <TortoiseProc/resource.h>
 
 export module Libraries;
+import std;
 import PathUtils;
 
 
@@ -115,7 +116,7 @@ void EnsureGitLibrary(const bool bCreate = true)
 	{
 		// create the path for the icon
 		CString path;
-		CString appDir = CPathUtils::GetAppDirectory().c_str();
+		CString appDir = PathUtils::GetAppDirectory().c_str();
 		if (appDir.GetLength() < MAX_PATH)
 		{
 			wchar_t buf[MAX_PATH] = {};

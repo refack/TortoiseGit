@@ -24,10 +24,6 @@
 #include <git2.h>
 
 #include <intsafe.h>
-
-#include "GitHash.h"
-#include "gittype.h"
-
 #include <atlstr.h>
 #include <atlbase.h>
 #include "sanity.h"
@@ -35,6 +31,7 @@
 import std;
 import gsl;
 import wil;
+import invarients;
 import SmartLibgit2;
 import GitAdminDir;
 import PathUtils;
@@ -43,8 +40,10 @@ import wstr;
 import TGitPath;
 import DebugOutput;
 import Registry;
+import tgittypes;
+import TGitHash;
 
-namespace TGit {
+namespace TGitH {
 
 
 using std::operator ""s;
@@ -54,6 +53,7 @@ using TGString = std::wstring;
 using TGStringView = std::wstring_view;
 using namespace TGitPath;
 using namespace CGit;
+using namespace tgit::types;
 
 constexpr auto REG_MSYSGIT_PATH = L"Software\\TortoiseGit\\MSysGit"sv;
 constexpr auto REG_SYSTEM_GITCONFIGPATH = L"Software\\TortoiseGit\\SystemConfig"sv;
@@ -347,6 +347,61 @@ private:
 	MAP_ENVIRONMENT m_vars;
 	/// The serialized "name=value\0...\0\0" block, rebuilt on every mutation.
 	std::vector<wchar_t> m_block;
+};
+
+enum
+{
+	LOG_ORDER_CHRONOLOGIALREVERSED,
+	LOG_ORDER_TOPOORDER,
+	LOG_ORDER_DATEORDER,
+	LOG_ORDER_AUTHORDATEORDER,
+};
+
+enum BRANCH_TYPE
+{
+	BRANCH_LOCAL		= 0x1,
+	BRANCH_REMOTE		= 0x2,
+	BRANCH_FETCH_HEAD	= 0x4,
+	BRANCH_LOCAL_F		= BRANCH_LOCAL	| BRANCH_FETCH_HEAD,
+	BRANCH_ALL			= BRANCH_LOCAL	| BRANCH_REMOTE,
+	BRANCH_ALL_F		= BRANCH_ALL	| BRANCH_FETCH_HEAD,
+};
+
+enum LOG_INFO_MASK
+{
+	LOG_INFO_STAT=0x1,
+	LOG_INFO_FILESTATE=0x2,
+	LOG_INFO_BOUNDARY=0x10,
+	LOG_INFO_ALL_BRANCH=0x20,
+	LOG_INFO_ONLY_HASH=0x40,
+	LOG_INFO_DETECT_RENAME=0x80,
+	LOG_INFO_DETECT_COPYRENAME=0x100,
+	LOG_INFO_FIRST_PARENT = 0x200,
+	LOG_INFO_NO_MERGE = 0x400,
+	LOG_INFO_FOLLOW = 0x800,
+	LOG_INFO_SHOW_MERGEDFILE=0x1000,
+	LOG_INFO_FULL_DIFF = 0x2000,
+	LOG_INFO_SIMPILFY_BY_DECORATION = 0x4000,
+	LOG_INFO_LOCAL_BRANCHES = 0x8000,
+	LOG_INFO_BASIC_REFS = 0x10000,
+	LOG_INFO_SPARSE = 0x20000,
+	LOG_INFO_ALWAYS_APPLY_RANGE = 0x40000,
+	LOG_INFO_FULL_HISTORY = 0x80000,
+};
+
+enum REF_TYPE
+{
+	LOCAL_BRANCH,
+	REMOTE_BRANCH,
+	ANNOTATED_TAG,
+	TAG,
+	STASH,
+	BISECT_GOOD,
+	BISECT_BAD,
+	BISECT_SKIP,
+	NOTES,
+	UNKNOWN,
+
 };
 
 
@@ -682,8 +737,6 @@ public:
 	*/
 	CString GetGitLastErr(const CString& msg);
 	CString GetGitLastErr(const CString& msg, LIBGIT2_CMD cmd);
-	static CString GetLibGit2LastErr();
-	static CString GetLibGit2LastErr(const CString& msg);
 	bool SetCurrentDir(CString path, bool submodule = false);
 
 	/**
@@ -743,61 +796,6 @@ public:
 	 * and would be within its rights to serve a stale directory.
 	 */
 	const CString& m_CurrentDir = m_CurrentDirStorage;
-
-	enum
-	{
-		LOG_ORDER_CHRONOLOGIALREVERSED,
-		LOG_ORDER_TOPOORDER,
-		LOG_ORDER_DATEORDER,
-		LOG_ORDER_AUTHORDATEORDER,
-	};
-
-	enum BRANCH_TYPE
-	{
-		BRANCH_LOCAL		= 0x1,
-		BRANCH_REMOTE		= 0x2,
-		BRANCH_FETCH_HEAD	= 0x4,
-		BRANCH_LOCAL_F		= BRANCH_LOCAL	| BRANCH_FETCH_HEAD,
-		BRANCH_ALL			= BRANCH_LOCAL	| BRANCH_REMOTE,
-		BRANCH_ALL_F		= BRANCH_ALL	| BRANCH_FETCH_HEAD,
-	};
-
-	enum LOG_INFO_MASK
-	{
-		LOG_INFO_STAT=0x1,
-		LOG_INFO_FILESTATE=0x2,
-		LOG_INFO_BOUNDARY=0x10,
-		LOG_INFO_ALL_BRANCH=0x20,
-		LOG_INFO_ONLY_HASH=0x40,
-		LOG_INFO_DETECT_RENAME=0x80,
-		LOG_INFO_DETECT_COPYRENAME=0x100,
-		LOG_INFO_FIRST_PARENT = 0x200,
-		LOG_INFO_NO_MERGE = 0x400,
-		LOG_INFO_FOLLOW = 0x800,
-		LOG_INFO_SHOW_MERGEDFILE=0x1000,
-		LOG_INFO_FULL_DIFF = 0x2000,
-		LOG_INFO_SIMPILFY_BY_DECORATION = 0x4000,
-		LOG_INFO_LOCAL_BRANCHES = 0x8000,
-		LOG_INFO_BASIC_REFS = 0x10000,
-		LOG_INFO_SPARSE = 0x20000,
-		LOG_INFO_ALWAYS_APPLY_RANGE = 0x40000,
-		LOG_INFO_FULL_HISTORY = 0x80000,
-	};
-
-	enum REF_TYPE
-	{
-		LOCAL_BRANCH,
-		REMOTE_BRANCH,
-		ANNOTATED_TAG,
-		TAG,
-		STASH,
-		BISECT_GOOD,
-		BISECT_BAD,
-		BISECT_SKIP,
-		NOTES,
-		UNKNOWN,
-
-	};
 
 	int GetRemoteList(STRING_VECTOR &list);
 	int GetBranchList(STRING_VECTOR& list, int* current, BRANCH_TYPE type = BRANCH_LOCAL, bool skipCurrent = false);
@@ -871,70 +869,11 @@ public:
 	//Example: master -> refs/heads/master
 	CString GetFullRefName(const CString& shortRefName);
 	//Removes 'refs/heads/' or just 'refs'. Example: refs/heads/master -> master
-	static CString StripRefName(CString refName);
 
 	int GetCommitDiffList(const CString& rev1, const CString& rev2, CTGitPathList& outpathlist, CString& error, bool ignoreSpaceAtEol = false, bool ignoreSpaceChange = false, bool ignoreAllSpace = false, bool ignoreBlankLines = false);
 	int GetInitAddList(CTGitPathList &outpathlist, bool getStagingStatus = false);
 	int GetWorkingTreeChanges(CTGitPathList& result, bool amend = false, const CTGitPathList* filterlist = nullptr, bool includedStaged = false, bool getStagingStatus = false);
-
-	static int ParseConflictHashesFromLsFile(const BYTE_VECTOR& out, CGitHash& baseHash, bool& baseIsFile, CGitHash& mineHash, bool& mineIsFile, CGitHash& remoteHash, bool& remoteIsFile);
-
-	constexpr static std::int64_t filetime_to_time_t(std::int64_t winTime) noexcept
-	{
-		winTime -= 116444736000000000LL; /* Windows to Unix Epoch conversion */
-		winTime /= 10000000;		 /* Nano to seconds resolution */
-		return static_cast<time_t>(winTime);
-	}
-
-	static int GetFileModifyTime(LPCWSTR filename, std::int64_t* time, bool* isDir = nullptr, std::int64_t* size = nullptr, bool* isSymlink = nullptr)
-	{
-		WIN32_FILE_ATTRIBUTE_DATA fdata{};
-		if (GetFileAttributesEx(filename, GetFileExInfoStandard, &fdata))
-		{
-			if (time)
-				*time = static_cast<std::int64_t>(fdata.ftLastWriteTime.dwHighDateTime) << 32 | fdata.ftLastWriteTime.dwLowDateTime;
-
-			if (size)
-				*size = static_cast<std::int64_t>(fdata.nFileSizeHigh) << 32 | fdata.nFileSizeLow;
-
-			if(isDir)
-				*isDir = !!( fdata.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY);
-
-			if (isSymlink)
-				*isSymlink = (fdata.dwFileAttributes & FILE_ATTRIBUTE_REPARSE_POINT) && !PathUtils::CPathUtils::ReadLink(filename);
-
-			return 0;
-		}
-		return -1;
-	}
-
 	int GetShortHASHLength() const;
-
-	static TGString GetShortName(const TGStringView ref, TGStringView prefix)
-	{
-		constexpr auto weird_tail = L"^{}"sv;
-		if (ref.starts_with(prefix))
-		{
-			auto shortname = ref.substr(prefix.length());
-			if (shortname.ends_with(weird_tail))
-				shortname.remove_suffix(weird_tail.length());
-			return TGString{shortname};
-		}
-		return {};
-
-	}
-	static BOOL GetShortName(const CString& ref, CString& shortname, const CString& prefix)
-	{
-		if (const auto str = GetShortName(tgit::wstr::StringView{ ref }, tgit::wstr::StringView{ prefix }); !str.empty()) {
-			shortname = str.c_str();
-			return TRUE;
-		}
-		return FALSE;
-	}
-
-	static CString GetShortName(const CString& ref, REF_TYPE *type);
-
-	static bool LoadTextFile(const CString &filename, CString &msg);
 
 	int GetGitNotes(const CGitHash& hash, CString& notes);
 	int SetGitNotes(const CGitHash& hash, const CString& notes);
@@ -981,11 +920,11 @@ public:
 		return CombinePath(path.GetWinPathString().c_str());
 	}
 
-	CString CombinePath(const CTGitPath *path) const
-	{
-		Expects(path);
-		return CombinePath(path->GetWinPathString().c_str());
-	}
+	// CString CombinePath(const CTGitPath *path) const
+	// {
+	// 	Expects(path != nullptr);
+	// 	return CombinePath(path->GetWinPathString().c_str());
+	// }
 
 	[[nodiscard]] static CString QuoteParameter(CString value, bool relaxed = false);
 	// Same reason, and the same constraint, as the CombinePath overload above.
@@ -1079,6 +1018,68 @@ constexpr BITS32 LIBGIT2_ONLY_MASK = (
 	1 << CGit::GIT_CMD_GETCONFLICTINFO
 );
 
+static CString GetLibGit2LastErr();
+static CString GetLibGit2LastErr(const CString& msg);
+static CString StripRefName(CString refName);
+static int ParseConflictHashesFromLsFile(const BYTE_VECTOR& out, CGitHash& baseHash, bool& baseIsFile, CGitHash& mineHash, bool& mineIsFile, CGitHash& remoteHash, bool& remoteIsFile);
+
+constexpr static std::int64_t filetime_to_time_t(std::int64_t winTime) noexcept
+{
+	winTime -= 116444736000000000LL; /* Windows to Unix Epoch conversion */
+	winTime /= 10000000;		 /* Nano to seconds resolution */
+	return static_cast<time_t>(winTime);
 }
 
-using namespace TGit;
+static int GetFileModifyTime(LPCWSTR filename, std::int64_t* time, bool* isDir = nullptr, std::int64_t* size = nullptr, bool* isSymlink = nullptr)
+{
+	WIN32_FILE_ATTRIBUTE_DATA fdata{};
+	if (GetFileAttributesEx(filename, GetFileExInfoStandard, &fdata))
+	{
+		if (time)
+			*time = static_cast<std::int64_t>(fdata.ftLastWriteTime.dwHighDateTime) << 32 | fdata.ftLastWriteTime.dwLowDateTime;
+
+		if (size)
+			*size = static_cast<std::int64_t>(fdata.nFileSizeHigh) << 32 | fdata.nFileSizeLow;
+
+		if(isDir)
+			*isDir = !!( fdata.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY);
+
+		if (isSymlink)
+			*isSymlink = (fdata.dwFileAttributes & FILE_ATTRIBUTE_REPARSE_POINT) && !PathUtils::PathUtils::ReadLink(filename);
+
+		return 0;
+	}
+	return -1;
+}
+
+
+inline TGString GetShortName(const TGStringView ref, TGStringView prefix)
+{
+	constexpr auto weird_tail = L"^{}"sv;
+	if (ref.starts_with(prefix))
+	{
+		auto shortname = ref.substr(prefix.length());
+		if (shortname.ends_with(weird_tail))
+			shortname.remove_suffix(weird_tail.length());
+		return TGString{shortname};
+	}
+	return {};
+
+}
+inline BOOL GetShortName(const CString& ref, CString& shortname, const CString& prefix)
+{
+	if (const auto str = GetShortName(tgit::wstr::StringView{ ref }, tgit::wstr::StringView{ prefix }); !str.empty()) {
+		shortname = str.c_str();
+		return TRUE;
+	}
+	return FALSE;
+}
+
+static CString GetShortName(const CString& ref, REF_TYPE *type);
+
+static bool LoadTextFile(const CString &filename, CString &msg);
+
+
+}
+
+using namespace TGitH;

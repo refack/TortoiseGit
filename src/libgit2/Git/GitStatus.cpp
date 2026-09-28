@@ -305,7 +305,7 @@ int GitStatus::GetFileList(const CString& path, std::vector<CGitFileName>& list,
 			continue;
 
 		CGitFileName filename(data.cFileName, static_cast<__int64>(data.nFileSizeHigh) << 32 | data.nFileSizeLow, static_cast<__int64>(data.ftLastWriteTime.dwHighDateTime) << 32 | data.ftLastWriteTime.dwLowDateTime);
-		if ((data.dwFileAttributes & FILE_ATTRIBUTE_REPARSE_POINT) && !CPathUtils::ReadLink(CombinePath(path, filename.m_FileName)))
+		if ((data.dwFileAttributes & FILE_ATTRIBUTE_REPARSE_POINT) && !PathUtils::ReadLink(CombinePath(path, filename.m_FileName)))
 			filename.m_bSymlink = true;
 		else if (data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
 			filename.m_FileName += L'/';

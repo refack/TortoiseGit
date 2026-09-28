@@ -1093,7 +1093,7 @@ Order to do it in. Phases A and B are what actually buy the goal:
   CString-taking API in the core.
 
 - **`PathUtils` is DONE** (`94e4dc92d`, 46 files), and this document was wrong
-  about it. "Pure functions; churn only" missed that `CPathUtils` had **two**
+  about it. "Pure functions; churn only" missed that `PathUtils` had **two**
   APIs: a small flavor-neutral one, and a much larger CString one behind
   `#ifdef CSTRING_AVAILABLE` — a macro `PathUtils.h` defined for MFC builds and
   which `src\TGitCache`, `src\TortoiseShell` and `test\Cache` define in their
@@ -1147,7 +1147,7 @@ Order to do it in. Phases A and B are what actually buy the goal:
     half. `TortoiseGitUDiff` is that project, and it broke the moment the gate
     went. Expect the same when `src\Git`/`src\Utils` get their own `stdafx.h`.
   - **A grep over a project's own directory is not a consumer sweep.**
-    `grep CPathUtils:: src\TortoiseUDiff` returns nothing, so I removed
+    `grep PathUtils:: src\TortoiseUDiff` returns nothing, so I removed
     `PathUtils.cpp` from its vcxproj — and the linker disagreed: it consumes
     `GetVersionFromFile` from `DarkModeHelper`, `LangDll` and `Theme`, which
     live in `src\Utils` and are compiled *into* it. Restored. The sweep has to
@@ -1472,7 +1472,7 @@ The count has moved, and every move has to be accounted for — **a suite that
 shrinks silently looks exactly like a suite that got greener.** 586 → 574 when
 `PatchTest.cpp`'s twelve cases went with `GitPatch` in `0784142fc`; → 588 and
 589 with the `CTGitPath` migration's `GetActionName` tests (`c63032fbd`,
-`69e75cc05`); → 590 with `CPathUtils.ArePathStringsEqual` (`94e4dc92d`).
+`69e75cc05`); → 590 with `PathUtils.ArePathStringsEqual` (`94e4dc92d`).
 
 **`afxwin1.inl(24) : Assertion failed!` in the test output is signal, not
 noise** (user, 2026-08-27: *"It means magic was invoked in an unaccounted

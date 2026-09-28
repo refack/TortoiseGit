@@ -1,39 +1,50 @@
-﻿// TortoiseGit - a Windows shell extension for easy version control
-
-// Copyright (C) 2016-2017, 2019-2021, 2025 - TortoiseGit
-// Copyright (C) 2003-2006, 2008, 2013-2015 - TortoiseSVN
-
-// This program is free software; you can redistribute it and/or
-// modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; either version 2
-// of the License, or (at your option) any later version.
-
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-
-// You should have received a copy of the GNU General Public License
-// along with this program; if not, write to the Free Software Foundation,
-// 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-//
-
-#include "Utils/LangDll.h"
-
+﻿module;
+#include <windows.h>
 #include <SimpleIni.h>
 #include <version.h>
-
-
-import PathUtils;
-import StringUtils;
-
 #ifdef TORTOISEGITPROC
 #include "Utils/DirFileEnum.h"
 #endif
 
+export module LandDll;
 import std;
+import RIAA;
 import Registry;
+import PathUtils;
+import StringUtils;
 
+export namespace LangDll
+{
+/**
+ * \ingroup Utils
+ * Helper class to load language dependent resource dlls.
+ */
+class CLangDll
+{
+public:
+	CLangDll() = default;
+	~CLangDll() = default;
+
+	CLangDll(const CLangDll&) = delete;
+	CLangDll& operator=(const CLangDll&) = delete;
+
+	HINSTANCE Init(LPCWSTR appname);
+	HINSTANCE Init(LPCWSTR appname, HMODULE hModule, DWORD langID);
+	DWORD GetLoadedLangId() const { return m_langId; }
+
+	static constexpr DWORD s_defaultLang = 1033;
+	static constexpr std::wstring_view s_languagesfolder = L"Languages\\";
+
+#if defined(TORTOISEGITPROC)
+	static std::vector<std::pair<CString, DWORD>> GetInstalledLanguages(bool includeNative = false, bool checkVersion = true);
+#endif
+
+	static std::wstring GetCompatibleDLLVersion(const std::wstring& appPath);
+
+private:
+	CAutoLibrary m_hInstance;
+	DWORD m_langId = s_defaultLang;
+};
 
 HINSTANCE CLangDll::Init(LPCWSTR appname)
 {
@@ -67,7 +78,7 @@ HINSTANCE CLangDll::Init(LPCWSTR appname, HMODULE hModule, DWORD langID)
 	do
 	{
 		const std::wstring langdllpath = std::format(L"{}{}{}{}.dll", langpath, s_languagesfolder, appname, langID);
-		if (CPathUtils::GetVersionFromFile(langdllpath.data()) == sVer)
+		if (PathUtils::GetVersionFromFile(langdllpath.data()) == sVer)
 		{
 			if (hModule)
 				m_hInstance = ::LoadLibraryEx(langdllpath.data(), nullptr, LOAD_LIBRARY_AS_DATAFILE_EXCLUSIVE | LOAD_LIBRARY_AS_IMAGE_RESOURCE);
@@ -100,8 +111,8 @@ std::vector<std::pair<CString, DWORD>> CLangDll::GetInstalledLanguages(bool incl
 		GetLocaleInfo(CLangDll::s_defaultLang, LOCALE_SNATIVELANGNAME, buf, _countof(buf));
 		langs.emplace_back(std::make_pair<>(buf, CLangDll::s_defaultLang));
 	}
-	const std::wstring sVer{ GetCompatibleDLLVersion(CPathUtils::GetAppDirectory().c_str()) };
-	CString path = CPathUtils::GetAppParentDirectory().c_str();
+	const std::wstring sVer{ GetCompatibleDLLVersion(PathUtils::GetAppDirectory().c_str()) };
+	CString path = PathUtils::GetAppParentDirectory().c_str();
 	path += s_languagesfolder.data();
 	CSimpleFileFind finder(path, L"*.dll");
 	while (finder.FindNextFileNoDirectories())
@@ -111,7 +122,7 @@ std::vector<std::pair<CString, DWORD>> CLangDll::GetInstalledLanguages(bool incl
 			continue;
 
 		CString file = finder.GetFilePath();
-		if (checkVersion && CPathUtils::GetVersionFromFile(file) != sVer)
+		if (checkVersion && PathUtils::GetVersionFromFile(file) != sVer)
 			continue;
 		CString sLoc = filename.Mid(static_cast<int>(wcslen(L"TortoiseProc")));
 		sLoc = sLoc.Left(sLoc.GetLength() - static_cast<int>(wcslen(L".dll"))); // cut off ".dll"
@@ -143,10 +154,12 @@ std::wstring CLangDll::GetCompatibleDLLVersion(const std::wstring& appPath)
 		if (auto langpackversion = hotfixIniFile.GetValue(L"tortoisegit", L"versionstringlanguagepacks"); langpackversion)
 		{
 			std::vector<int> versionComponents;
-			stringtok(versionComponents, std::wstring(langpackversion), false, L".");
+			StringUtils::stringtok(versionComponents, std::wstring(langpackversion), false, L".");
 			if (versionComponents.size() == 4 && versionComponents.at(0) == TGIT_VERMAJOR && versionComponents.at(1) == TGIT_VERMINOR && versionComponents.at(2) <= TGIT_VERMICRO)
 				return langpackversion;
 		}
 	}
 	return TEXT(STRPRODUCTVER);
 }
+
+} // namespace LangDll

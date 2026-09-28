@@ -971,7 +971,7 @@ bool CTheme::IsDarkModeAllowed()
 	// we only allow the dark mode for Win10 1809 and later,
 	// because on earlier versions it would look really, really ugly!
 	m_bDarkModeIsAllowed = false;
-	auto version = CPathUtils::GetVersionFromFile(L"uiribbon.dll");
+	auto version = PathUtils::GetVersionFromFile(L"uiribbon.dll");
 	std::vector<long> tokens;
 	stringtok(tokens, version, false, L".");
 	if (tokens.size() == 4)

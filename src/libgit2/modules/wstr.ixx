@@ -172,10 +172,13 @@ inline std::wstring Mid(const std::wstring_view s, const int from, const int cou
 	return Mid(s, static_cast<std::wstring_view::size_type>(std::max(from, 0)), static_cast<std::wstring_view::size_type>(count));
 }
 
-/// CString::Replace(wchar_t, wchar_t) contract.
-auto Replace(auto& s, const auto from, const auto to) noexcept
+auto Replace(auto& s, const auto from, std::wstring_view to) noexcept
 {
-	return std::ranges::replace(s, from, to);
+	size_t pos = 0;
+	while ((pos = s.find(from, pos)) != std::string::npos) {
+		s.replace(pos, to.size(), to);
+		pos += to.size();
+	}
 }
 
 inline void TrimLeft(std::wstring& s, const std::wstring_view chars = kDefaultTrimChars)

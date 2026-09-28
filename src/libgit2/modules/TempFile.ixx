@@ -1,6 +1,6 @@
 ﻿module;
 #include "Git.h"
-#include "GitHash.h"
+import GitHash;
 
 export module TempFile;
 import TGitPath;

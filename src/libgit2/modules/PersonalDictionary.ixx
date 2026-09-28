@@ -36,7 +36,7 @@ private:
 template<class T>
 static void OpenFileStream(T& file, LONG lLanguage, std::ios_base::openmode openmode = 0)
 {
-	const std::wstring path = std::format(L"{}{}.dic", CPathUtils::GetAppDataDirectory(), !lLanguage ? GetUserDefaultLCID() : lLanguage);
+	const std::wstring path = std::format(L"{}{}.dic", PathUtils::GetAppDataDirectory(), !lLanguage ? GetUserDefaultLCID() : lLanguage);
 
 	const auto filepath = CUnicodeUtils::StdGetMulti(path);
 

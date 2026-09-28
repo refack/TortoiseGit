@@ -32,8 +32,6 @@ import gsl;
 #include "libgit2/ssh-wintunnel.h"
 
 #include "GitForWindows.h"
-#include "GitRev.h"
-#include "gittype.h"
 
 #include "raii-win32-formatmessage.h"
 #include "Utils/scope_exit_noexcept.h"
@@ -43,15 +41,18 @@ import Registry;
 import RIAA;
 import TGitPath;
 import GitAdminDir;
+import tgittypes;
+import GitRev;
 
 using std::operator ""sv;
+using namespace tgit::types;
 
 
 namespace
 {
-constexpr auto DiffSimilarityIndexThreshold = L"Software\\TortoiseGit\\DiffSimilarityIndexThreshold";
-constexpr auto CygwinHack = L"Software\\TortoiseGit\\CygwinHack";
-constexpr auto Msys2Hack = L"Software\\TortoiseGit\\Msys2Hack";
+constexpr auto DiffSimilarityIndexThreshold = L"Software\\TortoiseGit\\DiffSimilarityIndexThreshold"sv;
+constexpr auto CygwinHack = L"Software\\TortoiseGit\\CygwinHack"sv;
+constexpr auto Msys2Hack = L"Software\\TortoiseGit\\Msys2Hack"sv;
 
 template<typename DT>
 constexpr int RegTyped(const wchar_t* key, const DT def = 0) noexcept
@@ -61,14 +62,14 @@ constexpr int RegTyped(const wchar_t* key, const DT def = 0) noexcept
 
 constexpr int CalculateDiffSimilarityIndexThreshold() noexcept
 {
-	const auto index = RegTyped<size_t>(DiffSimilarityIndexThreshold);
+	const auto index = RegTyped<size_t>(DiffSimilarityIndexThreshold.data());
 	return (0 > index || index > 100) ? gsl::narrow<int>(index) : 50;
 }
 }
 
 // ReSharper disable CppClangTidyBugproneThrowingStaticInitialization
-auto CGit::ms_bCygwinGit = RegTyped<bool>(CygwinHack);
-auto CGit::ms_bMsys2Git = RegTyped<bool>(Msys2Hack);
+auto CGit::ms_bCygwinGit = RegTyped<bool>(CygwinHack.data());
+auto CGit::ms_bMsys2Git = RegTyped<bool>(Msys2Hack.data());
 auto CGit::ms_iSimilarityIndexThreshold = CalculateDiffSimilarityIndexThreshold();
 auto CGit::m_LogEncode = CP_UTF8;
 auto CGit::s_limitGitExeOutput = false;
@@ -1468,7 +1469,7 @@ CString CGit::GetGitLastErr(const CString& msg, LIBGIT2_CMD cmd)
 	}
 }
 
-CString CGit::GetLibGit2LastErr()
+CString TGit::GetLibGit2LastErr()
 {
 	const git_error *libgit2err = git_error_last();
 	if (libgit2err)
@@ -2150,7 +2151,7 @@ std::wstring CGit::GetConfiguredSshClient()
 	// pointed at that must keep it.
 	if (sshclient.exists() && !PathFileExists(sshclient.get().c_str()))
 	{
-		std::wstring exe = CPathUtils::GetFileNameFromPath(sshclient.get());
+		std::wstring exe = PathUtils::GetFileNameFromPath(sshclient.get());
 		tgit::wstr::MakeLower(exe);
 		if (exe == L"tortoisegitplink.exe" || exe == L"tortoiseplink.exe")
 			sshclient.removeKey();

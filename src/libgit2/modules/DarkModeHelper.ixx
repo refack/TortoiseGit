@@ -2,12 +2,7 @@
 #include <windef.h>
 #include <Uxtheme.h>
 #include <minwindef.h>
-#include <winerror.h>
-
-#include "Utils/scope_exit_noexcept.h"
-// #include <atlstr.h>
 #include "Git.h"
-#include <detours/detours.h>
 
 
 export module DarkModeHelper;

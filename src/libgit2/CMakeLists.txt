@@ -33,73 +33,6 @@ add_library(TGitLibgit2 SHARED)
 
 target_sources(TGitLibgit2
     PRIVATE
-        ../gitdll/gitdll.h
-        Git/Git.cpp
-        Git/GitRev.cpp
-        Git/GitRevLoglist.cpp
-        Git/GitRevRefBrowser.cpp
-        Git/GitStatus.cpp
-        Git/TGitPath.cpp
-        include/Git.h
-        include/GitForWindows.h
-        include/GitHash.h
-        include/GitRev.h
-        include/GitRevLoglist.h
-        include/GitRevRefBrowser.h
-        include/GitStatus.h
-        include/gittype.h
-        include/lanes.h
-        include/libgit2/filter-filter.h
-        include/libgit2/ssh-wintunnel.h
-        include/raii-win32-formatmessage.h
-        include/ResizableColumnsListCtrl.h
-        include/system-call.h
-        include/Utils/BrowseFolder.h
-        include/Utils/CacheType.h
-        include/Utils/CertificateValidationHelper.h
-        include/Utils/ClipboardHelper.h
-        include/Utils/CmdLineParser.h
-        include/Utils/CommonDialogFunctions.h
-        include/Utils/ControlsBridge.h
-        include/Utils/CreateProcessHelper.h
-        include/Utils/Cursor.h
-        include/Utils/Debug.h
-        include/Utils/DebugHelpers.h
-        include/Utils/DlgTemplate.h
-        include/Utils/DllVersion.h
-        include/Utils/DPIAware.h
-        include/Utils/DragDropImpl.h
-        include/Utils/EOL.h
-        include/Utils/ExtTextOutFL.h
-        include/Utils/FileTextLines.h
-        include/Utils/GestureEnabledControl.h
-        include/Utils/Hash.h
-        include/Utils/HighResClock.h
-        include/Utils/HintCtrl.h
-        include/Utils/HistoryCombo.h
-        include/Utils/IInputValidator.h
-        include/Utils/LangDll.h
-        include/Utils/LineColors.h
-        include/Utils/LoadIconEx.h
-        include/Utils/LruCache.h
-        include/Utils/Monitor.h
-        include/Utils/MyMemDC.h
-        include/Utils/PathWatcher.h
-        include/Utils/ProfilingInfo.h
-        include/Utils/ReaderWriterLock.h
-        include/Utils/RegHistory.h
-        include/Utils/ReparseData.h
-        include/Utils/ResString.h
-        include/Utils/ScintillaRegistration.h
-        include/Utils/scope_exit_noexcept.h
-        include/Utils/SelectFileFilter.h
-        include/Utils/SysImageList.h
-        include/Utils/Theme.h
-        include/Utils/TripleClick.h
-        include/Utils/UniqueQueue.h
-        include/Utils/URLFinder.h
-        include/Utils/WideString.h
-        include/Utils/WindowsCredentialsStore.h
         patches/filter-filter.c
         patches/ssh-wintunnel.c
         patches/system-call.c
@@ -108,7 +41,6 @@ target_sources(TGitLibgit2
         Utils/Debug.cpp
         Utils/DragDropImpl.cpp
         Utils/FileTextLines.cpp
-        Utils/LangDll.cpp
         Utils/PathWatcher.cpp
         Utils/ReaderWriterLock.cpp
 #        Utils/resource.rc
@@ -194,7 +126,10 @@ target_sources(TGitLibgit2
         modules/FormatMessageWrapper.ixx
         modules/GitAdminDir.ixx
         modules/GitDataObject.ixx
+        modules/GitHash.ixx
         modules/GitMailmap.ixx
+        modules/GitRev.ixx
+        modules/GitRevLogList.ixx
         modules/Graphviz.ixx
         modules/Libraries.ixx
         modules/PathUtils.ixx
@@ -208,6 +143,9 @@ target_sources(TGitLibgit2
         modules/TaskbarUUID.ixx
         modules/TempFile.ixx
         modules/gitindex.ixx
+        modules/tgittypes.ixx
         modules/invarients.ixx
         modules/wstr.ixx
+        modules/lanes.ixx
+        modules/LangDll.ixx
 )

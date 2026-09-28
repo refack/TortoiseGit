@@ -131,7 +131,7 @@ checking, and it is why "move to STL" is the unlock rather than a tidy-up.
 
 ### Five failure modes of a type migration — every one of which compiled
 
-Learned converting `CTGitPath` and `CPathUtils`. Re-read before converting `Git.h`:
+Learned converting `CTGitPath` and `PathUtils`. Re-read before converting `Git.h`:
 
 | # | shape | why it is silent |
 | --- | --- | --- |
@@ -216,7 +216,7 @@ mask and that parameter go in one move — and two of the four
   `CreateProcess` calls naming a deleted exe, a CI target list, `.filters`
   entries and a Settings radio button, all invisible to a compiler.
 - **A grep over a project's own directory is not a consumer sweep.** A project
-  compiles files from elsewhere: `grep CPathUtils:: src\TortoiseUDiff` returns
+  compiles files from elsewhere: `grep PathUtils:: src\TortoiseUDiff` returns
   nothing, yet it consumes `GetVersionFromFile` through `DarkModeHelper`,
   `LangDll` and `Theme`, which live in `src\Utils`. Sweep the files a project
   **compiles**, not the files it contains.

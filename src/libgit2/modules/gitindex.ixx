@@ -1,9 +1,10 @@
 ﻿module;
 #include <sys/stat.h>
-#include "git2/sys/repository.h"
+#include <gitdll.h>
+#include <git2.h>
 #include <atlstr.h>
-#include "GitHash.h"
-#include "gitdll.h"
+
+#include "Git.h"
 #include "GitStatus.h"
 #include "Utils/ReaderWriterLock.h"
 
@@ -18,6 +19,13 @@ import Registry;
 import PathUtils;
 import DebugOutput;
 import RIAA;
+import TGitPath;
+import TGitHash;
+
+using SmartLibgit2::CAutoRepository;
+using SmartLibgit2::CAutoConfig;
+using namespace Registry;
+using namespace PathUtils::PathUtils;
 
 #ifndef S_IFLNK
 #define S_IFLNK 0120000
@@ -94,7 +102,7 @@ class SharedPtrMapTmpl : private std::map<CString, SharedPtr>
 public:
 	[[nodiscard]] SharedPtr SafeGet(const CString& path)
 	{
-		CString thePath(CPathUtils::NormalizePath(std::wstring(path)).c_str());
+		CString thePath(NormalizePath(std::wstring(path)).c_str());
 		[[maybe_unused]]CAutoLocker lock(m_critSec);
 		auto lookup = this->find(thePath);
 		if (lookup == this->cend())
@@ -104,7 +112,7 @@ public:
 
 	bool SafeClear(const CString& path)
 	{
-		CString thePath(CPathUtils::NormalizePath(std::wstring(path)).c_str());
+		CString thePath(NormalizePath(std::wstring(path)).c_str());
 		[[maybe_unused]]CAutoLocker lock(m_critSec);
 		auto lookup = this->find(thePath);
 		if (lookup == this->cend())
@@ -115,12 +123,12 @@ public:
 
 	bool SafeClearRecursively(const CString& path)
 	{
-		CString thePath(CPathUtils::NormalizePath(std::wstring(path)).c_str());
+		CString thePath(NormalizePath(std::wstring(path)).c_str());
 		[[maybe_unused]]CAutoLocker lock(m_critSec);
 		std::vector<CString> toRemove;
 		for (auto it = this->cbegin(); it != this->cend(); ++it)
 		{
-			if (CStringUtils::StartsWith((*it).first, thePath))
+			if (StringUtils::CStringUtils::StartsWith((*it).first, thePath))
 				toRemove.push_back((*it).first);
 		}
 		for (auto it = toRemove.cbegin(); it != toRemove.cend(); ++it)
@@ -131,7 +139,7 @@ public:
 protected:
 	void SafeSet(const CString& path, SharedPtr ptr)
 	{
-		CString thePath(CPathUtils::NormalizePath(std::wstring(path)).c_str());
+		CString thePath(NormalizePath(std::wstring(path)).c_str());
 		[[maybe_unused]]CAutoLocker lock(m_critSec);
 		(*this)[thePath] = ptr;
 	}
@@ -427,7 +435,7 @@ public:
 
 	CString GetAdminDir(const CString &path)
 	{
-		CString thePath(CPathUtils::NormalizePath(std::wstring(path)).c_str());
+		CString thePath(NormalizePath(std::wstring(path)).c_str());
 		[[maybe_unused]]CAutoLocker lock(m_critIndexSec);
 		auto lookup = find(thePath);
 		if (lookup == cend())
@@ -438,11 +446,11 @@ public:
 			{
 				(*this)[thePath] = adminDir;
 				if (!isWorktree) // GitAdminDir::GetAdminDirPath returns the commongit dir ("parent/.git") and this would override the lookup path for the main repo
-					m_reverseLookup[CPathUtils::BuildPathWithPathDelimiter(CPathUtils::NormalizePath(std::wstring(adminDir))).c_str()] = path;
+					m_reverseLookup[BuildPathWithPathDelimiter(NormalizePath(std::wstring(adminDir))).c_str()] = path;
 				return (*this)[thePath];
 			}
 			ATLASSERT(false);
-			return (CPathUtils::BuildPathWithPathDelimiter(tgit::wstr::StringView(path)) + L".git\\").c_str(); // in case of an error stick to old behavior
+			return (BuildPathWithPathDelimiter(tgit::wstr::StringView(path)) + L".git\\").c_str(); // in case of an error stick to old behavior
 		}
 
 		return lookup->second;
@@ -457,7 +465,7 @@ public:
 
 	CString GetWorktreeAdminDir(const CString& path)
 	{
-		CString thePath(CPathUtils::NormalizePath(std::wstring(path)).c_str());
+		CString thePath(NormalizePath(std::wstring(path)).c_str());
 		[[maybe_unused]]CAutoLocker lock(m_critIndexSec);
 		auto lookup = m_WorktreeAdminDirLookup.find(thePath);
 		if (lookup == m_WorktreeAdminDirLookup.cend())
@@ -466,11 +474,11 @@ public:
 			if (GitAdminDir::GetWorktreeAdminDirPath(path, wtadmindir) && PathIsDirectory(wtadmindir))
 			{
 				m_WorktreeAdminDirLookup[thePath] = wtadmindir;
-				m_reverseLookup[CPathUtils::BuildPathWithPathDelimiter(CPathUtils::NormalizePath(std::wstring(wtadmindir))).c_str()] = path;
+				m_reverseLookup[BuildPathWithPathDelimiter(NormalizePath(std::wstring(wtadmindir))).c_str()] = path;
 				return m_WorktreeAdminDirLookup[thePath];
 			}
 			ATLASSERT(false);
-			return (CPathUtils::BuildPathWithPathDelimiter(tgit::wstr::StringView(path)) + L".git\\").c_str(); // we should never get here
+			return (BuildPathWithPathDelimiter(tgit::wstr::StringView(path)) + L".git\\").c_str(); // we should never get here
 		}
 		return lookup->second;
 	}
@@ -484,7 +492,7 @@ public:
 
 	CString GetWorkingCopy(const CString &gitDir)
 	{
-		CString path(CPathUtils::BuildPathWithPathDelimiter(CPathUtils::NormalizePath(std::wstring(gitDir))).c_str());
+		CString path(BuildPathWithPathDelimiter(NormalizePath(std::wstring(gitDir))).c_str());
 		[[maybe_unused]]CAutoLocker lock(m_critIndexSec);
 		auto lookup = m_reverseLookup.find(path);
 		if (lookup == m_reverseLookup.cend())
@@ -539,7 +547,7 @@ bool CGitIndexList::HasIndexChangedOnDisk(const CString& gitdir) const
 
 	CString indexFile = g_AdminDirMap.GetWorktreeAdminDirConcat(gitdir, L"index");
 	// no need to refresh if there is no index right now and the current index is empty, but otherwise lastFileSize or lastmodifiedTime differ
-	return (CGit::GetFileModifyTime(indexFile, &time, nullptr, &size) && !empty()) || m_LastModifyTime != time || m_LastFileSize != size;
+	return (GetFileModifyTime(indexFile, &time, nullptr, &size) && !empty()) || m_LastModifyTime != time || m_LastFileSize != size;
 }
 
 int CGitIndexList::ReadIndex(const CString& dgitdir)
@@ -556,14 +564,14 @@ int CGitIndexList::ReadIndex(const CString& dgitdir)
 	CAutoRepository repository(repodir);
 	if (!repository)
 	{
-		CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": Could not open git repository in %s: %s\n", static_cast<LPCWSTR>(dgitdir), static_cast<LPCWSTR>(CGit::GetLibGit2LastErr()));
+		tgit::DebugOutput::CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": Could not open git repository in %s: %s\n", static_cast<LPCWSTR>(dgitdir), static_cast<LPCWSTR>(GetLibGit2LastErr()));
 		return -1;
 	}
 
 	CString projectConfig = g_AdminDirMap.GetAdminDir(dgitdir) + L"config";
 	CString globalConfig = g_Git.GetGitGlobalConfig();
 	CString globalXDGConfig = g_Git.GetGitGlobalXDGConfig();
-	CString systemConfig(CRegString<CString>(REG_SYSTEM_GITCONFIGPATH, L"", false));
+	CString systemConfig(CRegStdString<CString>(REG_SYSTEM_GITCONFIGPATH, L"", false));
 
 	CAutoConfig temp { true };
 	git_config_add_file_ondisk(temp, CGit::GetGitPathStringA(projectConfig), GIT_CONFIG_LEVEL_LOCAL, repository, FALSE);
@@ -583,7 +591,7 @@ int CGitIndexList::ReadIndex(const CString& dgitdir)
 	if (git_repository_index(index.GetPointer(), repository))
 	{
 		config.Free();
-		CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": Could not get index of git repository in %s: %s\n", static_cast<LPCWSTR>(dgitdir), static_cast<LPCWSTR>(CGit::GetLibGit2LastErr()));
+		CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": Could not get index of git repository in %s: %s\n", static_cast<LPCWSTR>(dgitdir), static_cast<LPCWSTR>(GetLibGit2LastErr()));
 		return -1;
 	}
 
@@ -759,7 +767,7 @@ int CGitIndexList::GetFileStatus(CAutoRepository& repository, const CString& git
 		if (isSymlink && S_ISLNK(entry.m_Mode))
 		{
 			std::string linkDestination;
-			if (!CPathUtils::ReadLink(CombinePath(gitdir, entry.m_FileName), &linkDestination) && !tgit_odb_hash(&actual, linkDestination.c_str(), gsl::narrow<int>(linkDestination.size()), GIT_OBJECT_BLOB) && !git_oid_cmp(&actual, entry.m_IndexHash))
+			if (!PathUtils::ReadLink(CombinePath(gitdir, entry.m_FileName), &linkDestination) && !tgit_odb_hash(&actual, linkDestination.c_str(), gsl::narrow<int>(linkDestination.size()), GIT_OBJECT_BLOB) && !git_oid_cmp(&actual, entry.m_IndexHash))
 			{
 				entry.m_ModifyTime = static_cast<int32_t>(CGit::filetime_to_time_t(time));
 				entry.m_ModifyTimeNanos = (time % 10000000) * 100;
@@ -1377,7 +1385,7 @@ bool CGitIgnoreList::CheckAndUpdateIgnoreFiles(const CString& gitdir, const CStr
 		}
 
 		temp.Truncate(temp.GetLength() - static_cast<int>(wcslen(L"\\.gitignore")));
-		if (CPathUtils::ArePathStringsEqual(tgit::wstr::StringView(temp), tgit::wstr::StringView(gitdir)))
+		if (PathUtils::ArePathStringsEqual(tgit::wstr::StringView(temp), tgit::wstr::StringView(gitdir)))
 		{
 			CString adminDir = g_AdminDirMap.GetAdminDir(temp);
 			CString wcglobalgitignore = adminDir + L"info\\exclude";
@@ -1557,7 +1565,7 @@ int CGitIgnoreList::CheckIgnore(const CString &path, const CString &projectroot,
 
 		temp.Truncate(temp.GetLength() - static_cast<int>(wcslen(L"\\.gitignore")));
 
-		if (CPathUtils::ArePathStringsEqual(tgit::wstr::StringView(temp), tgit::wstr::StringView(projectroot)))
+		if (PathUtils::ArePathStringsEqual(tgit::wstr::StringView(temp), tgit::wstr::StringView(projectroot)))
 		{
 			CString wcglobalgitignore = adminDir;
 			wcglobalgitignore += L"info\\exclude";

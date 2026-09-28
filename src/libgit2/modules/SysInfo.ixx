@@ -14,7 +14,7 @@ static bool InitializeIsWin11OrLater()
 		return false;
 	const auto sysPath = std::filesystem::path{ pszPath } / "shell32.dll";
 	CoTaskMemFree(pszPath);
-	const auto explorerVersion = CPathUtils::GetVersionFromFile(sysPath.wstring().c_str());
+	const auto explorerVersion = PathUtils::GetVersionFromFile(sysPath.wstring().c_str());
 	const auto versionParts = explorerVersion
 		| std::views::split('.')
 		| std::views::transform([](auto r) {

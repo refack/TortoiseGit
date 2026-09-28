@@ -1,39 +1,25 @@
-﻿// TortoiseGit - a Windows shell extension for easy version control
-
-// Copyright (C) 2008-2025 - TortoiseGit
-
-// This program is free software; you can redistribute it and/or
-// modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; either version 2
-// of the License, or (at your option) any later version.
-
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-
-// You should have received a copy of the GNU General Public License
-// along with this program; if not, write to the Free Software Foundation,
-// 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-//
-
-#pragma once
-#include "GitRev.h"
-import TGitPath;
+﻿module;
 #include "gitdll.h"
-#include "lanes.h"
+#include "Utils/ClipboardHelper.h"
 
-class CGit;
-extern CGit g_Git;
-class GitRevLoglist;
+export module GitRevLoglist;
+import lanes;
+import GitRev;
+import TGitPath;
+import GitMailmap;
+
+using TGitPath::CTGitPath;
+using TGitPath::CTGitPathList;
+
 class CLogCache;
 class IAsyncDiffCB;
 
-using CALL_UPDATE_DIFF_ASYNC = void(GitRevLoglist* pRev, IAsyncDiffCB* data);
-
-class GitRevLoglist : public GitRev
+export struct GitRevLoglist : GitRev
 {
-public:
+	using CString = GitRev::StringType;
+	using CTime = GitRev::TimeType;
+	using CALL_UPDATE_DIFF_ASYNC = void(GitRevLoglist* pRev, IAsyncDiffCB* data);
+
 	friend class CLogCache;
 
 	GitRevLoglist();
@@ -42,7 +28,7 @@ public:
 	class GitRevLoglistSharedFiles
 	{
 	public:
-		GitRevLoglistSharedFiles(PSRWLOCK lock, const CTGitPathList& files)
+		GitRevLoglistSharedFiles(PSRWLOCK lock, const TGitPath::CTGitPathList& files)
 			: m_lock(lock)
 			, m_files(files)
 		{
@@ -156,7 +142,7 @@ public:
 		return m_UnRevFiles;
 	}
 
-	void Parse(GIT_COMMIT* commit, const CGitMailmap* mailmap)
+	void Parse(GIT_COMMIT* commit, const GitMailmap::CGitMailmap* mailmap)
 	{
 		ParserParentFromCommit(commit);
 		ParserFromCommit(commit);

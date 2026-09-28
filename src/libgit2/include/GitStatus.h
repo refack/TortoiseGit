@@ -65,7 +65,7 @@ static CString CombinePath(const CString& part1, const CString& part2, const CSt
 	std::wstring path(part1);
 	path += L'\\';
 	path += tgit::wstr::StringView(part2);
-	CPathUtils::EnsureTrailingPathDelimiter(path);
+	PathUtils::EnsureTrailingPathDelimiter(path);
 	path += tgit::wstr::StringView(part3);
 	return path.c_str();
 }

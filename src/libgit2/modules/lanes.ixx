@@ -1,18 +1,12 @@
-﻿/*
-	Author: Marco Costalba (C) 2005-2007
-	Author: TortoiseGit (C) 2008-2013, 2017, 2021, 2023
+﻿module;
 
-	Copyright: See COPYING file that comes with this distribution
 
-*/
-#ifndef LANES_H
-#define LANES_H
-
-#include "githash.h"
-
+export module lanes;
+import std;
+import TGitHash;
 using CGitHashList = std::vector<CGitHash>;
 
-class Lanes {
+export class Lanes {
 public:
 	// graph elements
 	enum class LaneType {
@@ -88,5 +82,3 @@ private:
 	LaneType NODE_L = LaneType::EMPTY;
 	LaneType NODE_R = LaneType::EMPTY;
 };
-
-#endif

@@ -1,20 +1,21 @@
 ﻿module;
 #include <windows.h>
-
 #include "Utils/ReparseData.h"
 #include "Utils/WideString.h"
+#include "sanity.h"
 
-#include "cassert"
 
 export module PathUtils;
 import std;
 import gsl;
 import wil;
-
 import RIAA;
 namespace fs = std::filesystem;
+using std::operator""sv;
 
-namespace
+#pragma comment(lib, "Version.lib")
+
+export namespace PathUtils
 {
 
 // ====== WINNT decrufting ======
@@ -114,10 +115,8 @@ fs::path TortoiseGitSubfolderOf(const wil::KnownFolderCLSID& folderId)
 	const auto path = GetKnownFolder(folderId);
 	return EnsureTGitSubfolder(path);
 }
-} // namespace
 
-export namespace PathUtils
-{
+
 
 /**
  * \ingroup Utils
@@ -140,14 +139,12 @@ export namespace PathUtils
  * termination, and LPCWSTR kept as-is where the entry point was already
  * flavor-neutral (converting those would be churn with nothing bought).
  */
-namespace CPathUtils
-{
 void ConvertToBackslash(std::wstring& path)
 {
-	tgit::wstr::Replace(path, L'/', L'\\');
+	tgit::wstr::Replace(path, L"/"sv, L"\\"sv);
 }
 
-bool MakeSureDirectoryPathExists(LPCWSTR path)
+bool MakeSureDirectoryPathExists(const LPCWSTR path)
 {
 	auto internalpathbuf = std::wstring{ path };
 	ConvertToBackslash(internalpathbuf);
@@ -159,7 +156,53 @@ bool MakeSureDirectoryPathExists(LPCWSTR path)
  * \param p_strFilename path to the dll or exe
  * \return the version string
  */
-std::wstring GetVersionFromFile(LPCWSTR p_strFilename);
+std::wstring GetVersionFromFile(const LPCWSTR p_strFilename)
+{
+	struct TRANSARRAY
+	{
+		WORD wLanguageID;
+		WORD wCharacterSet;
+	};
+
+	DWORD dwReserved = 0;
+	if (const DWORD dwBufferSize = GetFileVersionInfoSize(p_strFilename, &dwReserved); dwBufferSize > 0)
+	{
+		const auto pBuffer = std::make_unique<BYTE[]>(dwBufferSize);
+
+		if (pBuffer)
+		{
+			UINT nInfoSize = 0,
+				 nFixedLength = 0;
+			LPSTR lpVersion = nullptr;
+			VOID* lpFixedPointer;
+
+			GetFileVersionInfo(p_strFilename,
+							   0,
+							   dwBufferSize,
+							   pBuffer.get());
+
+			// Check the current language
+			VerQueryValue(pBuffer.get(),
+						  L"\\VarFileInfo\\Translation",
+						  &lpFixedPointer,
+						  &nFixedLength);
+			const auto lpTransArray = static_cast<TRANSARRAY*>(lpFixedPointer);
+
+			const auto strLangProductVersion = std::format(
+				L"\\StringFileInfo\\{:04x}{:04x}\\ProductVersion", lpTransArray[0].wLanguageID, lpTransArray[0].wCharacterSet
+			);
+
+			VerQueryValue(pBuffer.get(),
+						  strLangProductVersion.c_str(),
+						  reinterpret_cast<LPVOID*>(&lpVersion),
+						  &nInfoSize);
+			if (nInfoSize && lpVersion)
+				return reinterpret_cast<LPCWSTR>(lpVersion);
+		}
+	}
+
+	return {};
+}
 
 /**
  * returns the filename of a full path
@@ -192,13 +235,13 @@ std::wstring ParsePathInString(std::wstring_view Str);
  * Returns the path to the installation folder, in our case the TortoiseSVN/bin folder.
  * \remark the path returned has a trailing backslash
  */
-std::wstring GetAppDirectory(HMODULE hMod = nullptr);
+std::wstring GetAppDirectory(HMODULE hMod = {});
 
 /**
  * Returns the path to the installation parent folder, in our case the TortoiseSVN folder.
  * \remark the path returned has a trailing backslash
  */
-std::wstring GetAppParentDirectory(HMODULE hMod = nullptr);
+std::wstring GetAppParentDirectory(HMODULE hMod = {});
 
 std::wstring GetDocumentsDirectory();
 std::wstring GetProgramsDirectory();
@@ -219,7 +262,7 @@ void DropPathPrefixes(std::wstring& path);
  * Reads a symlink's target, as UTF-8 bytes with forward slashes - the form git stores
  * a symlink blob in, which is why the out-parameter is a byte string and not a wide one.
  */
-int ReadLink(LPCWSTR filename, std::string* target = nullptr);
+int ReadLink(LPCWSTR filename, std::string* pTargetA = {});
 
 /**
  * Ensures that the path ends with a folder separator.
@@ -281,23 +324,18 @@ bool IsSamePath(const std::wstring& path1, const std::wstring& path2);
  * which a whole-value comparison cannot express.
  */
 bool ArePathStringsEqual(std::wstring_view sP1, std::wstring_view sP2);
-bool ArePathStringsEqual(LPCWSTR sP1, LPCWSTR sP2, int length);
+bool ArePathStringsEqual(gsl::not_null<LPCWSTR> sP1, gsl::not_null<LPCWSTR> sP2, int length);
 bool ArePathStringsEqualWithCase(std::wstring_view sP1, std::wstring_view sP2);
-bool ArePathStringsEqualWithCase(LPCWSTR sP1, LPCWSTR sP2, int length);
+bool ArePathStringsEqualWithCase(gsl::not_null<LPCWSTR> sP1, gsl::not_null<LPCWSTR> sP2, int length);
 
 std::wstring GetCopyrightForSelf();
 
 /**
  * Sets the last-write-time of the file to the current time
  */
-bool Touch(std::wstring& path);
-
-std::wstring GetCWD();
-}; // namespace CPathUtils
-
-bool CPathUtils::Touch(std::wstring& path)
+bool Touch(const std::wstring& path)
 {
-	CAutoFile hFile = CreateFile(path.data(), GENERIC_WRITE, FILE_SHARE_DELETE, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
+	const CAutoFile hFile = CreateFile(path.data(), GENERIC_WRITE, FILE_SHARE_DELETE, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
 	if (!hFile)
 		return false;
 
@@ -311,7 +349,7 @@ bool CPathUtils::Touch(std::wstring& path)
 					   &ft) != FALSE;
 }
 
-std::wstring CPathUtils::GetFileNameFromPath(const std::wstring_view sPath)
+std::wstring GetFileNameFromPath(const std::wstring_view sPath)
 {
 	// This used to normalize every slash to a backslash and then take everything
 	// after the last one. Searching for either separator is the same answer
@@ -320,7 +358,7 @@ std::wstring CPathUtils::GetFileNameFromPath(const std::wstring_view sPath)
 	return std::wstring(at == std::wstring_view::npos ? sPath : sPath.substr(at + 1));
 }
 
-std::wstring CPathUtils::GetFileExtFromPath(const std::wstring_view sPath)
+std::wstring GetFileExtFromPath(const std::wstring_view sPath)
 {
 	const int dotPos = tgit::wstr::ReverseFind(sPath, L'.');
 	int slashPos = tgit::wstr::ReverseFind(sPath, L'\\');
@@ -331,16 +369,16 @@ std::wstring CPathUtils::GetFileExtFromPath(const std::wstring_view sPath)
 	return {};
 }
 
-bool CPathUtils::FileCopy(std::wstring srcPath, std::wstring destPath, bool force)
+bool FileCopy(std::wstring srcPath, std::wstring destPath, const bool force)
 {
-	tgit::wstr::Replace(srcPath, L'/', L'\\');
-	tgit::wstr::Replace(destPath, L'/', L'\\');
+	tgit::wstr::Replace(srcPath, L"/"sv, L"\\"sv);
+	tgit::wstr::Replace(destPath, L"/"sv, L"\\"sv);
 	const std::wstring destFolder = tgit::wstr::Left(destPath, tgit::wstr::ReverseFind(destPath, L'\\'));
 	std::ignore = MakeSureDirectoryPathExists(destFolder.c_str());
 	return (CopyFile(srcPath.c_str(), destPath.c_str(), !force));
 }
 
-std::wstring CPathUtils::ParsePathInString(const std::wstring_view Str)
+std::wstring ParsePathInString(const std::wstring_view Str)
 {
 	int curPos = 0;
 	std::wstring sToken = tgit::wstr::Tokenize(Str, L"'\t\r\n", curPos);
@@ -356,13 +394,13 @@ std::wstring CPathUtils::ParsePathInString(const std::wstring_view Str)
 	return {};
 }
 
-std::wstring CPathUtils::GetAppDirectory(HMODULE hMod /* = nullptr */)
+std::wstring GetAppDirectory(const HMODULE hMod /* = nullptr */)
 {
 	const std::wstring path = GetModuleFileNameString(hMod);
 	return GetLongPathname(tgit::wstr::Left(path, tgit::wstr::ReverseFind(path, L'\\') + 1));
 }
 
-std::wstring CPathUtils::GetAppParentDirectory(HMODULE hMod /* = nullptr */)
+std::wstring GetAppParentDirectory(const HMODULE hMod /* = nullptr */)
 {
 	std::wstring path = GetAppDirectory(hMod);
 	path = tgit::wstr::Left(path, tgit::wstr::ReverseFind(path, L'\\'));
@@ -370,75 +408,39 @@ std::wstring CPathUtils::GetAppParentDirectory(HMODULE hMod /* = nullptr */)
 	return path;
 }
 
-std::wstring CPathUtils::GetAppDataDirectory()
+std::wstring GetAppDataDirectory()
 {
-	if (auto env = wil::GetEnvVar(wil::KnownEnvVars::XDGConfig); !env.empty())
+	if (const auto env = wil::GetEnvVar(wil::KnownEnvVars::XDGConfig); !env.empty())
 		return EnsureTGitSubfolder(env);
 
 	return TortoiseGitSubfolderOf(wil::KnownFolders::RoamingAppData);
 }
 
-std::wstring CPathUtils::GetLocalAppDataDirectory()
+std::wstring GetLocalAppDataDirectory()
 {
-	if (auto env = wil::GetEnvVar(wil::KnownEnvVars::XDGCache); !env.empty())
+	if (const auto env = wil::GetEnvVar(wil::KnownEnvVars::XDGCache); !env.empty())
 		return EnsureTGitSubfolder(env);
 
 	return TortoiseGitSubfolderOf(wil::KnownFolders::LocalAppData);
 }
 
-std::wstring CPathUtils::GetDocumentsDirectory()
+std::wstring GetDocumentsDirectory()
 {
-	if (auto env = wil::GetEnvVar(wil::KnownEnvVars::XDGData); !env.empty())
+	if (const auto env = wil::GetEnvVar(wil::KnownEnvVars::XDGData); !env.empty())
 		return EnsureTGitSubfolder(env);
 
 	return GetKnownFolder(wil::KnownFolders::Documents);
 }
 
-std::wstring CPathUtils::GetProgramsDirectory()
+std::wstring GetProgramsDirectory()
 {
-	if (auto env = wil::GetEnvVar(wil::KnownEnvVars::XDGBin); !env.empty())
+	if (const auto env = wil::GetEnvVar(wil::KnownEnvVars::XDGBin); !env.empty())
 		return EnsureTGitSubfolder(env);
 
 	return GetKnownFolder(wil::KnownFolders::ProgramFiles);
 }
 
-int CPathUtils::ReadLink(LPCWSTR filename, std::string* pTargetA)
-{
-	CAutoFile handle = CreateFileW(filename, GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_DELETE, nullptr, OPEN_EXISTING, FILE_FLAG_OPEN_REPARSE_POINT | FILE_FLAG_BACKUP_SEMANTICS, nullptr);
-	if (!handle)
-		return -1;
-
-	DWORD ioctl_ret;
-	BYTE buf[MAXIMUM_REPARSE_DATA_BUFFER_SIZE] = {};
-	auto reparse_buf = reinterpret_cast<TGIT_REPARSE_DATA_BUFFER*>(&buf);
-	if (!DeviceIoControl(handle, FSCTL_GET_REPARSE_POINT, nullptr, 0, reparse_buf, sizeof(buf), &ioctl_ret, nullptr))
-		return -1;
-
-	if (reparse_buf->ReparseTag != IO_REPARSE_TAG_SYMLINK)
-		return -1;
-
-	const wchar_t* target = reparse_buf->ReparseBuffer.SymbolicLink.PathBuffer + (reparse_buf->ReparseBuffer.SymbolicLink.SubstituteNameOffset / sizeof(WCHAR));
-	int target_len = reparse_buf->ReparseBuffer.SymbolicLink.SubstituteNameLength / sizeof(WCHAR);
-	if (!target_len)
-		return -1;
-
-	// not a symlink
-	if (wcsncmp(target, L"\\??\\Volume{", 11) == 0)
-		return -1;
-
-	if (pTargetA)
-	{
-		std::wstring targetW(target, target_len);
-		// The path may need to have a prefix removed
-		DropPathPrefixes(targetW);
-		tgit::wstr::Replace(targetW, L'\\', L'/');
-		*pTargetA = CUnicodeUtils::StdGetUTF8(targetW);
-	}
-
-	return 0;
-}
-
-void CPathUtils::DropPathPrefixes(std::wstring& path)
+void DropPathPrefixes(std::wstring& path)
 {
 	constexpr wchar_t dosdevices_prefix[] = L"\\\?\?\\";
 	constexpr wchar_t nt_prefix[] = L"\\\\?\\";
@@ -459,74 +461,56 @@ void CPathUtils::DropPathPrefixes(std::wstring& path)
 	}
 }
 
-#pragma comment(lib, "Version.lib")
-std::wstring CPathUtils::GetVersionFromFile(LPCWSTR p_strFilename)
+int ReadLink(const LPCWSTR filename, std::string* pTargetA)
 {
-	struct TRANSARRAY
+	const CAutoFile handle = CreateFileW(filename, GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_DELETE, nullptr, OPEN_EXISTING, FILE_FLAG_OPEN_REPARSE_POINT | FILE_FLAG_BACKUP_SEMANTICS, nullptr);
+	if (!handle)
+		return -1;
+
+	DWORD ioctl_ret;
+	BYTE buf[MAXIMUM_REPARSE_DATA_BUFFER_SIZE] = {};
+	const auto reparse_buf = reinterpret_cast<TGIT_REPARSE_DATA_BUFFER*>(&buf);
+	if (!DeviceIoControl(handle, FSCTL_GET_REPARSE_POINT, nullptr, 0, reparse_buf, sizeof(buf), &ioctl_ret, nullptr))
+		return -1;
+
+	if (reparse_buf->ReparseTag != IO_REPARSE_TAG_SYMLINK)
+		return -1;
+
+	const wchar_t* target = reparse_buf->ReparseBuffer.SymbolicLink.PathBuffer + (reparse_buf->ReparseBuffer.SymbolicLink.SubstituteNameOffset / sizeof(WCHAR));
+	const int target_len = reparse_buf->ReparseBuffer.SymbolicLink.SubstituteNameLength / sizeof(WCHAR);
+	if (!target_len)
+		return -1;
+
+	// not a symlink
+	if (wcsncmp(target, L"\\??\\Volume{", 11) == 0)
+		return -1;
+
+	if (pTargetA)
 	{
-		WORD wLanguageID;
-		WORD wCharacterSet;
-	};
-
-	DWORD dwReserved = 0;
-	DWORD dwBufferSize = GetFileVersionInfoSize(p_strFilename, &dwReserved);
-
-	if (dwBufferSize > 0)
-	{
-		auto pBuffer = std::make_unique<BYTE[]>(dwBufferSize);
-
-		if (pBuffer)
-		{
-			UINT nInfoSize = 0,
-				 nFixedLength = 0;
-			LPSTR lpVersion = nullptr;
-			VOID* lpFixedPointer;
-			TRANSARRAY* lpTransArray;
-
-			dwReserved = 0;
-			GetFileVersionInfo(p_strFilename,
-							   dwReserved,
-							   dwBufferSize,
-							   pBuffer.get());
-
-			// Check the current language
-			VerQueryValue(pBuffer.get(),
-						  L"\\VarFileInfo\\Translation",
-						  &lpFixedPointer,
-						  &nFixedLength);
-			lpTransArray = static_cast<TRANSARRAY*>(lpFixedPointer);
-
-			auto strLangProductVersion = std::format(L"\\StringFileInfo\\{:04x}{:04x}\\ProductVersion", lpTransArray[0].wLanguageID, lpTransArray[0].wCharacterSet);
-
-			VerQueryValue(pBuffer.get(),
-						  strLangProductVersion.c_str(),
-						  reinterpret_cast<LPVOID*>(&lpVersion),
-						  &nInfoSize);
-			if (nInfoSize && lpVersion)
-				return reinterpret_cast<LPCWSTR>(lpVersion);
-		}
+		std::wstring targetW(target, target_len);
+		// The path may need to have a prefix removed
+		DropPathPrefixes(targetW);
+		tgit::wstr::Replace(targetW, L"\\"sv, L"/"sv);
+		*pTargetA = CUnicodeUtils::StdGetUTF8(targetW);
 	}
 
-	return {};
+	return 0;
 }
 
-std::wstring CPathUtils::GetCopyrightForSelf()
+std::wstring GetCopyrightForSelf()
 {
 	const std::wstring path = GetModuleFileNameString(nullptr);
 
 	std::wstring strReturn;
 	DWORD dwReserved = 0;
-	DWORD dwBufferSize = GetFileVersionInfoSize(path.c_str(), &dwReserved);
-
-	if (dwBufferSize > 0)
+	if (const DWORD dwBufferSize = GetFileVersionInfoSize(path.c_str(), &dwReserved); dwBufferSize > 0)
 	{
-		auto pBuffer = std::make_unique<BYTE[]>(dwBufferSize);
+		const auto pBuffer = std::make_unique<BYTE[]>(dwBufferSize);
 
 		if (pBuffer)
 		{
-			dwReserved = 0;
 			GetFileVersionInfo(path.c_str(),
-							   dwReserved,
+							   0,
 							   dwBufferSize,
 							   pBuffer.get());
 
@@ -537,10 +521,9 @@ std::wstring CPathUtils::GetCopyrightForSelf()
 				WORD wLanguageID;
 				WORD wCharacterSet;
 			};
-			TRANSARRAY* lpTransArray;
 			// Check the current language
 			VerQueryValue(pBuffer.get(), L"\\VarFileInfo\\Translation", &lpFixedPointer, &nFixedLength);
-			lpTransArray = static_cast<TRANSARRAY*>(lpFixedPointer);
+			const auto lpTransArray = static_cast<TRANSARRAY*>(lpFixedPointer);
 
 			const std::wstring strLangLegalCopyright = std::format(L"\\StringFileInfo\\{:04x}{:04x}\\LegalCopyright", lpTransArray[0].wLanguageID, lpTransArray[0].wCharacterSet);
 
@@ -555,25 +538,25 @@ std::wstring CPathUtils::GetCopyrightForSelf()
 	return strReturn;
 }
 
-std::wstring CPathUtils::BuildPathWithPathDelimiter(const std::wstring_view path)
+std::wstring BuildPathWithPathDelimiter(const std::wstring_view path)
 {
 	std::wstring result(path);
 	EnsureTrailingPathDelimiter(result);
 	return result;
 }
 
-void CPathUtils::EnsureTrailingPathDelimiter(std::wstring& path)
+void EnsureTrailingPathDelimiter(std::wstring& path)
 {
 	if (!path.empty() && path.back() != L'\\')
 		path += L'\\';
 }
 
-void CPathUtils::TrimTrailingPathDelimiter(std::wstring& path)
+void TrimTrailingPathDelimiter(std::wstring& path)
 {
 	tgit::wstr::TrimRight(path, L"\\");
 }
 
-std::wstring CPathUtils::ExpandFileName(const std::wstring& path)
+std::wstring ExpandFileName(const std::wstring& path)
 {
 	if (path.empty())
 		return path;
@@ -584,7 +567,7 @@ std::wstring CPathUtils::ExpandFileName(const std::wstring& path)
 	return ret;
 }
 
-std::wstring CPathUtils::NormalizePath(const std::wstring& path)
+std::wstring NormalizePath(const std::wstring& path)
 {
 	// Account for ..\ and .\ that may occur in each path
 	std::wstring nPath = ExpandFileName(path);
@@ -596,29 +579,8 @@ std::wstring CPathUtils::NormalizePath(const std::wstring& path)
 	return nPath;
 }
 
-bool CPathUtils::IsSamePath(const std::wstring& path1, const std::wstring& path2)
+bool ArePathStringsEqual(const gsl::not_null<LPCWSTR> sP1, const gsl::not_null<LPCWSTR> sP2, int length)
 {
-	return ArePathStringsEqualWithCase(NormalizePath(GetLongPathname(path1)), NormalizePath(GetLongPathname(path2)));
-}
-
-bool CPathUtils::ArePathStringsEqual(const std::wstring_view sP1, const std::wstring_view sP2)
-{
-	if (sP1.size() != sP2.size())
-	{
-		// Different lengths
-		return false;
-	}
-	// A default-constructed view has a null data(), which the length-taking
-	// overload asserts against; two empty paths are equal either way.
-	if (sP1.empty())
-		return true;
-	return CPathUtils::ArePathStringsEqual(sP1.data(), sP2.data(), static_cast<int>(sP1.size()));
-}
-
-bool CPathUtils::ArePathStringsEqual(LPCWSTR sP1, LPCWSTR sP2, int length)
-{
-	assert(sP1 && sP2);
-
 	// We work from the end of the strings, because path differences
 	// are more likely to occur at the far end of a string
 	LPCWSTR pP1 = sP1 + (length - 1);
@@ -631,22 +593,22 @@ bool CPathUtils::ArePathStringsEqual(LPCWSTR sP1, LPCWSTR sP2, int length)
 	return true;
 }
 
-bool CPathUtils::ArePathStringsEqualWithCase(const std::wstring_view sP1, const std::wstring_view sP2)
+bool ArePathStringsEqual(const std::wstring_view sP1, const std::wstring_view sP2)
 {
 	if (sP1.size() != sP2.size())
 	{
 		// Different lengths
 		return false;
 	}
+	// A default-constructed view has a null data(), which the length-taking
+	// overload asserts against; two empty paths are equal either way.
 	if (sP1.empty())
 		return true;
-	return CPathUtils::ArePathStringsEqualWithCase(sP1.data(), sP2.data(), static_cast<int>(sP1.size()));
+	return ArePathStringsEqual(sP1.data(), sP2.data(), static_cast<int>(sP1.size()));
 }
 
-bool CPathUtils::ArePathStringsEqualWithCase(LPCWSTR sP1, LPCWSTR sP2, int length)
+bool ArePathStringsEqualWithCase(const gsl::not_null<LPCWSTR> sP1, const gsl::not_null<LPCWSTR> sP2, int length)
 {
-	assert(sP1 && sP2);
-
 	// We work from the end of the strings, because path differences
 	// are more likely to occur at the far end of a string
 	LPCWSTR pP1 = sP1 + (length - 1);
@@ -659,7 +621,19 @@ bool CPathUtils::ArePathStringsEqualWithCase(LPCWSTR sP1, LPCWSTR sP2, int lengt
 	return true;
 }
 
-std::wstring CPathUtils::GetCWD()
+bool ArePathStringsEqualWithCase(const std::wstring_view sP1, const std::wstring_view sP2)
+{
+	if (sP1.size() != sP2.size())
+	{
+		// Different lengths
+		return false;
+	}
+	if (sP1.empty())
+		return true;
+	return ArePathStringsEqualWithCase(sP1.data(), sP2.data(), static_cast<int>(sP1.size()));
+}
+
+std::wstring GetCWD()
 {
 	const std::wstring cwd = fs::current_path();
 	if (cwd.empty())
@@ -668,9 +642,11 @@ std::wstring CPathUtils::GetCWD()
 	return GetLongPathname(cwd);
 }
 
-void ConvertToBackslash(std::wstring& path) {
-	tgit::wstr::Replace(path, L'/', L'\\');
+bool IsSamePath(const std::wstring& path1, const std::wstring& path2)
+{
+	return ArePathStringsEqualWithCase(NormalizePath(GetLongPathname(path1)), NormalizePath(GetLongPathname(path2)));
 }
+
 
 } // namespace PathUtils
 
