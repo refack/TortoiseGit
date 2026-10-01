@@ -112,7 +112,7 @@ int CGitLogList::RevertSelectedCommits(int parent)
 			break;
 	}
 	if (!mergeMsg.IsEmpty())
-		CStringUtils::WriteStringToTextFile(dotGitPath + L"MERGE_MSG", mergeMsg);
+		StringUtils::WriteStringToTextFile(dotGitPath + L"MERGE_MSG", mergeMsg);
 	return ret;
 }
 int CGitLogList::CherryPickFrom(const CString& from, const CString& to)
@@ -512,7 +512,7 @@ void CGitLogList::ContextMenuAction(int cmd, int FirstSelect, int LastSelect, CM
 						sClipboard += L"\r\n";
 					}
 				}
-				CStringUtils::WriteAsciiStringToClipboard(sClipboard, GetSafeHwnd());
+				StringUtils::WriteAsciiStringToClipboard(sClipboard, GetSafeHwnd());
 			}
 			break;
 		case ID_EXPORT:
@@ -824,7 +824,7 @@ void CGitLogList::ContextMenuAction(int cmd, int FirstSelect, int LastSelect, CM
 				while (pos2)
 				{
 					CString ref = m_arShownList.SafeGetAt(GetNextSelectedItem(pos2))->m_Ref;
-					if (CStringUtils::StartsWith(ref, L"refs/"))
+					if (StringUtils::StartsWith(ref, L"refs/"))
 						ref = ref.Mid(static_cast<int>(wcslen(L"refs/")));
 					const int refpos = ref.ReverseFind(L'{');
 					if (refpos > 0 && ref.Mid(refpos - 1, 2) != L"@{")
@@ -837,7 +837,7 @@ void CGitLogList::ContextMenuAction(int cmd, int FirstSelect, int LastSelect, CM
 					CString ref = *revIt;
 					CString out;
 					STRING_VECTOR argv{ L"git.exe" };
-					if (CStringUtils::StartsWith(ref, L"stash"))
+					if (StringUtils::StartsWith(ref, L"stash"))
 						argv.insert(argv.cend(), { L"stash", L"drop" });
 					else
 						argv.insert(argv.cend(), { L"reflog", L"delete" });
@@ -970,7 +970,7 @@ void CGitLogList::ContextMenuAction(int cmd, int FirstSelect, int LastSelect, CM
 						GetFirstEntryStartingWith(refList->second, L"refs/tags/", guessAssociatedBranch);
 				}
 
-				if (CStringUtils::EndsWith(guessAssociatedBranch, L"^{}"))
+				if (StringUtils::EndsWith(guessAssociatedBranch, L"^{}"))
 					guessAssociatedBranch.Truncate(guessAssociatedBranch.GetLength() - static_cast<int>(wcslen(L"^{}")));
 
 				if (CAppUtils::Push(GetParentHWND(), guessAssociatedBranch, pushAllBranches))

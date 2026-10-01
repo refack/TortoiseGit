@@ -1275,7 +1275,7 @@ void CGitLogListBase::OnNMCustomdrawLoglist(NMHDR *pNMHDR, LRESULT *pResult)
 							refLabel.color = CTheme::Instance().GetThemeColor(m_Colors.GetColor(CColors::RemoteBranch), true);
 							if (m_bSymbolizeRefNames)
 							{
-								if (!m_SingleRemote.IsEmpty() && CStringUtils::StartsWith(refLabel.name, m_SingleRemote + L"/"))
+								if (!m_SingleRemote.IsEmpty() && StringUtils::StartsWith(refLabel.name, m_SingleRemote + L"/"))
 								{
 									refLabel.simplifiedName = L'/' + refLabel.name.Mid(m_SingleRemote.GetLength() + 1);
 									refLabel.singleRemote = true;
@@ -1717,7 +1717,7 @@ void CGitLogListBase::OnContextMenu(CWnd* pWnd, CPoint point)
 					commitTitle.Truncate(20);
 					commitTitle += L"...";
 				}
-				str.AppendFormat(L": \"%s\" (%s)", static_cast<LPCWSTR>(CStringUtils::EscapeAccellerators(commitTitle)), static_cast<LPCWSTR>(parentHash[i].ToString(g_Git.GetShortHASHLength())));
+				str.AppendFormat(L": \"%s\" (%s)", static_cast<LPCWSTR>(StringUtils::EscapeAccellerators(commitTitle)), static_cast<LPCWSTR>(parentHash[i].ToString(g_Git.GetShortHASHLength())));
 			}
 			else
 				str.AppendFormat(L" (%s)", static_cast<LPCWSTR>(parentHash[i].ToString(g_Git.GetShortHASHLength())));
@@ -2084,7 +2084,7 @@ void CGitLogListBase::OnContextMenu(CWnd* pWnd, CPoint point)
 		if(!pSelLogEntry->m_Ref.IsEmpty())
 		{
 			popup.AppendMenuIcon(ID_REFLOG_DEL, IDS_REFLOG_DEL, IDI_DELETE);
-			if (selectedCount == 1 && CStringUtils::StartsWith(pSelLogEntry->m_Ref, L"refs/stash"))
+			if (selectedCount == 1 && StringUtils::StartsWith(pSelLogEntry->m_Ref, L"refs/stash"))
 				popup.AppendMenuIcon(ID_REFLOG_STASH_APPLY, IDS_MENUSTASHAPPLY, IDI_UNSHELVE);
 			if (selectedCount <= 2)
 				popup.AppendMenu(MF_SEPARATOR, NULL);
@@ -2488,7 +2488,7 @@ void CGitLogListBase::CopySelectionToClipBoard(int toCopy)
 
 			first = false;
 		}
-		CStringUtils::WriteAsciiStringToClipboard(sClipdata, GetSafeHwnd());
+		StringUtils::WriteAsciiStringToClipboard(sClipdata, GetSafeHwnd());
 	}
 }
 
@@ -2703,7 +2703,7 @@ std::expected<bool, CString> CGitLogListBase::BeginFetchLog()
 	{
 		auto argvData = ArgvData::VectorToARGV(cmd);
 		m_DllGitLog = nullptr;
-		if (argvData || CGit::git_open_log_ex(&m_DllGitLog, argvData))
+		if (!rgvData || CGit::git_open_log_ex(&m_DllGitLog, argvData))
 			return std::unexpected(L"Could not open log.");
 	}
 	catch (const char* msg)

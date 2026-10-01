@@ -2,7 +2,7 @@
 import std;
 import wstr;
 import gsl;
-import TGitHash;
+import GitHash;
 
 export namespace tgit::types
 {
@@ -135,6 +135,46 @@ using MAP_HASH_NAME = std::unordered_map<CGitHash, STRING_VECTOR>;
 using MAP_STRING_STRING = std::map<std::wstring, std::wstring>;
 using REF_VECTOR = std::vector<TGitRef>;
 using BYTE_VECTOR = CGitByteArray;
+
+
+
+template <typename D>
+struct scope_exit_t
+{
+	using func_type = D;
+	explicit scope_exit_t(D&& f) : func(f) {}
+	scope_exit_t(scope_exit_t&& s) noexcept : func(s.func) {}
+
+	~scope_exit_t() { func(); }
+
+	// Prohibit construction from lvalues.
+	scope_exit_t(D&) = delete;
+
+	// Prohibit copying.
+	scope_exit_t(const scope_exit_t&) = delete;
+	scope_exit_t& operator=(const scope_exit_t&) = delete;
+
+	// Prohibit new/delete.
+	void* operator new(size_t) = delete;
+	void* operator new[](size_t) = delete;
+	void operator delete(void*) = delete;
+	void operator delete[](void*) = delete;
+
+private:
+	const func_type func;
+};
+
+
+struct scope_exit_helper
+{
+	template <typename D>
+	scope_exit_t<D> operator<< (D&& f) {
+		return scope_exit_t<D>(std::forward<D>(f));
+	}
+};
+
+
 }
 
 export using namespace tgit::types;
+export using tgit::types::scope_exit_helper;

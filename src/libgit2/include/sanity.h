@@ -6,3 +6,7 @@
 
 #define Implies(A,B) (Ensures(!(A) || (B)), (A))
 
+
+#define SCOPE_EXIT_CAT2(x, y) x##y
+#define SCOPE_EXIT_CAT1(x, y) SCOPE_EXIT_CAT2(x, y)
+#define SCOPE_EXIT auto SCOPE_EXIT_CAT1(scope_exit_, __COUNTER__) = scope_exit_helper() << [&]

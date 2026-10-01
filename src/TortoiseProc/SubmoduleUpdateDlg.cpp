@@ -85,7 +85,7 @@ static int SubmoduleCallback(git_submodule *sm, const char * /*name*/, void *pay
 		for (size_t i = 0; i < prefixList->size(); ++i)
 		{
 			CString prefix = (prefixList->at(i) + L'/').c_str();
-			if (CStringUtils::StartsWith(path, prefix))
+			if (StringUtils::StartsWith(path, prefix))
 				list->push_back(std::wstring(path));
 		}
 	}
@@ -186,7 +186,7 @@ void CSubmoduleUpdateDlg::SetDlgTitle()
 	if (!m_bWholeProject)
 	{
 		if (!m_PathFilterList.empty())
-			dir += std::format(L"{}{}", CStringUtils::EndsWith(g_Git.m_CurrentDir, L'\\') ? L"" : L"\\", CTGitPath(m_PathFilterList[0].c_str()).GetWinPathString()).c_str();
+			dir += std::format(L"{}{}", StringUtils::EndsWith(g_Git.m_CurrentDir, L'\\') ? L"" : L"\\", CTGitPath(m_PathFilterList[0].c_str()).GetWinPathString()).c_str();
 		if (m_PathFilterList.size() > 1)
 			dir += L", ...";
 	}

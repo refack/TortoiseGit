@@ -50,10 +50,11 @@ inline void CSelectFileFilter::Load(UINT stringId)
 	ResetAll();
 	CString sFilter;
 	sFilter.LoadString(stringId);
-	const int bufferLength = sFilter.GetLength()+4;
-	buffer = std::make_unique<wchar_t[]>(bufferLength);
-	wcscpy_s (buffer.get(), bufferLength, sFilter);
-	CStringUtils::PipesToNulls(buffer.get());
+	// the filter with its '|' turned into NULs, plus the double-NUL terminator
+	// the common dialogs want (make_unique<T[]> value-initializes, so the tail is zero)
+	const size_t length = static_cast<size_t>(sFilter.GetLength());
+	buffer = std::make_unique<wchar_t[]>(length + 4);
+	std::replace_copy(sFilter.GetString(), sFilter.GetString() + length, buffer.get(), L'|', L'\0');
 
 	int pos = 0;
 	CString temp;

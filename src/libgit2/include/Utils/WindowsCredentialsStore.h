@@ -56,7 +56,14 @@ inline int CWindowsCredentialsStore::GetCredential(const CString& entryName, CCr
 		return -1;
 
 	credentials.m_username = cred->UserName;
-	wcsncpy_s(credentials.m_password, _countof(credentials.m_password), reinterpret_cast<wchar_t*>(cred->CredentialBlob), cred->CredentialBlobSize / sizeof(wchar_t));
+	// The blob is the password's UTF-16 without a terminator. Copy what fits and
+	// terminate: wcsncpy_s with an explicit count sent an over-long blob (another
+	// program can store one under our entry name) to the invalid-parameter handler.
+	const auto blob = reinterpret_cast<const wchar_t*>(cred->CredentialBlob);
+	const size_t blobLength = cred->CredentialBlobSize / sizeof(wchar_t);
+	const size_t copied = (std::min)(blobLength, std::size(credentials.m_password) - 1);
+	std::copy_n(blob, copied, credentials.m_password);
+	credentials.m_password[copied] = L'\0';
 	SecureZeroMemory(cred->CredentialBlob, cred->CredentialBlobSize);
 	CredFree(cred);
 	return 0;

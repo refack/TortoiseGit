@@ -114,7 +114,7 @@ bool DiffCommand::Execute()
 	}
 	else
 	{
-		if (parser.HasKey(L"startrev") && parser.HasKey(L"endrev") && CStringUtils::StartsWith(path2, g_Git.m_CurrentDir + L"\\"))
+		if (parser.HasKey(L"startrev") && parser.HasKey(L"endrev") && StringUtils::StartsWith(path2, g_Git.m_CurrentDir + L"\\"))
 		{
 			if (!CheckRepo(PathRequirement::WorkingTreeOrBareRepoRequired))
 				return FALSE;

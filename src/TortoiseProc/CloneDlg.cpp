@@ -331,7 +331,7 @@ void CCloneDlg::OnCbnEditchangeUrlcombo()
 	temp=temp.MakeLower();
 
 	// we've to check whether the URL ends with .git (instead of using the first .git)
-	int end = CStringUtils::EndsWith(temp, L".git") ? (temp.GetLength() - 4) : temp.GetLength();
+	int end = StringUtils::EndsWith(temp, L".git") ? (temp.GetLength() - 4) : temp.GetLength();
 
 	//CString modulename;
 	m_ModuleName=url.Mid(start+1,end);
@@ -363,7 +363,7 @@ void CCloneDlg::OnBnClickedCheckSvn()
 		m_URLCombo.GetWindowText(str);
 
 		str.TrimRight(L"\\/");
-		if (CStringUtils::EndsWithI(str, L"trunk"))
+		if (StringUtils::EndsWithI(str, L"trunk"))
 			this->m_bSVNBranch=this->m_bSVNTags=this->m_bSVNTrunk = FALSE;
 		else
 			this->m_bSVNBranch=this->m_bSVNTags=this->m_bSVNTrunk = TRUE;

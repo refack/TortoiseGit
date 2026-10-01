@@ -72,17 +72,17 @@ protected:
 		path.Replace(L'/', L'\\');
 		path.Replace(L"\\\\", L"\\");
 
-		if (CStringUtils::EndsWith(path, L"git.exe"))
+		if (StringUtils::EndsWith(path, L"git.exe"))
 			path.Truncate(path.GetLength() - 7);
 
 		path.TrimRight(L'\\');
 
 		// prefer git.exe in cmd-directory for Git for Windows based on msys2
-		if (path.GetLength() > 12 && (CStringUtils::EndsWith(path, L"\\mingw32\\bin") || CStringUtils::EndsWith(path, L"\\mingw64\\bin")) && PathFileExists(path.Left(path.GetLength() - 12) + L"\\cmd\\git.exe"))
+		if (path.GetLength() > 12 && (StringUtils::EndsWith(path, L"\\mingw32\\bin") || StringUtils::EndsWith(path, L"\\mingw64\\bin")) && PathFileExists(path.Left(path.GetLength() - 12) + L"\\cmd\\git.exe"))
 			path = path.Left(path.GetLength() - 12) + L"\\cmd";
 
 		// prefer git.exe in bin-directory, see https://github.com/msysgit/msysgit/issues/103
-		if (path.GetLength() > 5 && CStringUtils::EndsWith(path, L"\\cmd") && PathFileExists(path.Left(path.GetLength() - 4) + L"\\bin\\git.exe"))
+		if (path.GetLength() > 5 && StringUtils::EndsWith(path, L"\\cmd") && PathFileExists(path.Left(path.GetLength() - 4) + L"\\bin\\git.exe"))
 			path = path.Left(path.GetLength() - 4) + L"\\bin";
 	}
 
@@ -93,7 +93,7 @@ protected:
 
 		PerformCommonGitPathCleanup(gitpath);
 
-		if (!CStringUtils::EndsWith(gitpath, L"bin"))
+		if (!StringUtils::EndsWith(gitpath, L"bin"))
 			return false;
 
 		gitpath.Truncate(gitpath.GetLength() - 3);
@@ -101,7 +101,7 @@ protected:
 		if (!::PathFileExists(gitpath))
 			return false;
 
-		if (pathaddition.Find(gitpath + L';') >= 0 || CStringUtils::EndsWith(pathaddition, gitpath))
+		if (pathaddition.Find(gitpath + L';') >= 0 || StringUtils::EndsWith(pathaddition, gitpath))
 			return false;
 
 		pathaddition = gitpath + pathaddition;
@@ -180,7 +180,7 @@ protected:
 					callHelp(IDD_SETTINGSMAIN);
 				return false;
 			}
-			else if (!CStringUtils::StartsWith(out.Trim(), L"git version "))
+			else if (!StringUtils::StartsWith(out.Trim(), L"git version "))
 			{
 				CString tmp;
 				tmp.Format(IDS_ERR_GITNOVALIDOUTPUT, static_cast<LPCWSTR>(out.Trim()));

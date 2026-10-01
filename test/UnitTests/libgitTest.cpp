@@ -37,7 +37,7 @@ TEST(libgit, BrokenConfig)
 	EXPECT_EQ(0, g_Git.Run(L"git.exe init -b master", &output, CP_UTF8));
 	EXPECT_STRNE(L"", output);
 	CString testFile = tempdir.GetTempDir() + L"\\.git\\config";
-	EXPECT_TRUE(CStringUtils::WriteStringToTextFile(testFile, L"[push]\ndefault=something-that-is-invalid\n"));
+	EXPECT_TRUE(StringUtils::WriteStringToTextFile(testFile, L"[push]\ndefault=something-that-is-invalid\n"));
 
 	EXPECT_THROW(g_Git.CheckAndInitDll(), const char*);
 }
@@ -59,13 +59,13 @@ TEST(libgit, Mailmap)
 	EXPECT_EQ(nullptr, mailmap);
 
 	CString mailmapFile = tempdir.GetTempDir() + L"\\.mailmap";
-	EXPECT_TRUE(CStringUtils::WriteStringToTextFile(mailmapFile, L""));
+	EXPECT_TRUE(StringUtils::WriteStringToTextFile(mailmapFile, L""));
 
 	mailmap = reinterpret_cast<void*>(0x12345678);
 	git_read_mailmap(&mailmap);
 	EXPECT_EQ(nullptr, mailmap);
 
-	EXPECT_TRUE(CStringUtils::WriteStringToTextFile(mailmapFile, L"Sven Strickroth <sven@tortoisegit.org>"));
+	EXPECT_TRUE(StringUtils::WriteStringToTextFile(mailmapFile, L"Sven Strickroth <sven@tortoisegit.org>"));
 	git_read_mailmap(&mailmap);
 	EXPECT_NE(nullptr, mailmap);
 	const char* email1 = nullptr;
@@ -85,7 +85,7 @@ TEST(libgit, Mailmap)
 	CString content;
 	for (auto& entry : { L"", L"1", L"2", L"A", L"4", L"5", L"b", L"7" })
 		content.AppendFormat(L"Sven%s Strickroth <sven%s@tortoisegit.org> <email%s@cs-ware.de>\n", entry, entry, entry);
-	EXPECT_TRUE(CStringUtils::WriteStringToTextFile(mailmapFile, content));
+	EXPECT_TRUE(StringUtils::WriteStringToTextFile(mailmapFile, content));
 	git_read_mailmap(&mailmap);
 	EXPECT_NE(nullptr, mailmap);
 	email1 = nullptr;
@@ -113,7 +113,7 @@ TEST(libgit, Mailmap)
 	EXPECT_STREQ("Sven Strickroth", author1);
 
 	git_free_mailmap(mailmap);
-	EXPECT_TRUE(CStringUtils::WriteStringToTextFile(mailmapFile, L"<sven@tortoisegit.org> <email@cs-ware.de>\nSven S. <sven@tortoisegit.org> Sven Strickroth <email@cs-ware.de>\n<another@example.com> S. Strickroth <email@cs-ware.de>\n"));
+	EXPECT_TRUE(StringUtils::WriteStringToTextFile(mailmapFile, L"<sven@tortoisegit.org> <email@cs-ware.de>\nSven S. <sven@tortoisegit.org> Sven Strickroth <email@cs-ware.de>\n<another@example.com> S. Strickroth <email@cs-ware.de>\n"));
 	git_read_mailmap(&mailmap);
 	EXPECT_NE(nullptr, mailmap);
 	email1 = nullptr;
@@ -174,9 +174,9 @@ TEST(libgit, RefreshIndex)
 	EXPECT_EQ(0, git_config_set_string(config, "filter.openssl.smudge", path + "/smudge_filter_openssl"));
 	EXPECT_EQ(0, git_config_set_bool(config, "filter.openssl.required", 1));
 	CString cleanFilterFilename = g_Git.m_CurrentDir + L"\\clean_filter_openssl";
-	EXPECT_TRUE(CStringUtils::WriteStringToTextFile(cleanFilterFilename, L"#!/bin/bash\nopenssl version | grep -q \" 1\\\\.0\\\\.\"\nif [[ $? = 0 ]]; then\n\topenssl enc -base64 -aes-256-ecb -S FEEDDEADBEEF -k PASS_FIXED\nelse\n\topenssl enc -base64 -pbkdf2 -aes-256-ecb -nosalt -k PASS_FIXED\nfi\n"));
+	EXPECT_TRUE(StringUtils::WriteStringToTextFile(cleanFilterFilename, L"#!/bin/bash\nopenssl version | grep -q \" 1\\\\.0\\\\.\"\nif [[ $? = 0 ]]; then\n\topenssl enc -base64 -aes-256-ecb -S FEEDDEADBEEF -k PASS_FIXED\nelse\n\topenssl enc -base64 -pbkdf2 -aes-256-ecb -nosalt -k PASS_FIXED\nfi\n"));
 	CString smudgeFilterFilename = g_Git.m_CurrentDir + L"\\smudge_filter_openssl";
-	EXPECT_TRUE(CStringUtils::WriteStringToTextFile(smudgeFilterFilename, L"#!/bin/bash\nopenssl version | grep -q \" 1\\\\.0\\\\.\"\nif [[ $? = 0 ]]; then\n\topenssl enc -d -base64 -aes-256-ecb -k PASS_FIXED\nelse\n\topenssl enc -d -base64 -pbkdf2 -aes-256-ecb -nosalt -k PASS_FIXED\nfi\n"));
+	EXPECT_TRUE(StringUtils::WriteStringToTextFile(smudgeFilterFilename, L"#!/bin/bash\nopenssl version | grep -q \" 1\\\\.0\\\\.\"\nif [[ $? = 0 ]]; then\n\topenssl enc -d -base64 -aes-256-ecb -k PASS_FIXED\nelse\n\topenssl enc -d -base64 -pbkdf2 -aes-256-ecb -nosalt -k PASS_FIXED\nfi\n"));
 	EXPECT_EQ(0, git_config_set_string(config, "filter.test.clean", path + "/clean_filter_openssl"));
 	EXPECT_EQ(0, git_config_set_string(config, "filter.test.smudge", path + "/smudge_filter_openssl"));
 	EXPECT_EQ(0, git_config_set_string(config, "filter.test.process", path + "/clean_filter_openssl"));
@@ -192,7 +192,7 @@ TEST(libgit, RefreshIndex)
 	_wgetenv_s(&size, oldEnv.get(), size, L"PATH");
 	_wputenv_s(L"PATH", g_Git.m_Environment.GetEnv(L"PATH").c_str());
 	SCOPE_EXIT { _wputenv_s(L"PATH", oldEnv.get()); };
-	EXPECT_TRUE(CStringUtils::WriteStringToTextFile(g_Git.m_CurrentDir + L"\\somefile.txt", L"some content"));
+	EXPECT_TRUE(StringUtils::WriteStringToTextFile(g_Git.m_CurrentDir + L"\\somefile.txt", L"some content"));
 
 	g_Git.RefreshGitIndex();
 
@@ -202,7 +202,7 @@ TEST(libgit, RefreshIndex)
 
 	g_Git.RefreshGitIndex();
 
-	EXPECT_TRUE(CStringUtils::WriteStringToTextFile(g_Git.m_CurrentDir + L"\\somefile.txt", L"some other content"));
+	EXPECT_TRUE(StringUtils::WriteStringToTextFile(g_Git.m_CurrentDir + L"\\somefile.txt", L"some other content"));
 
 	g_Git.RefreshGitIndex();
 
@@ -214,10 +214,10 @@ TEST(libgit, RefreshIndex)
 
 	// now check with external command filters defined
 	CString attributesFile = g_Git.m_CurrentDir + L"\\.gitattributes";
-	EXPECT_TRUE(CStringUtils::WriteStringToTextFile(attributesFile, L"*.enc filter=openssl\n"));
+	EXPECT_TRUE(StringUtils::WriteStringToTextFile(attributesFile, L"*.enc filter=openssl\n"));
 
 	CString encryptedFileOne = g_Git.m_CurrentDir + L"\\1.enc";
-	EXPECT_TRUE(CStringUtils::WriteStringToTextFile(encryptedFileOne, L"This should be encrypted...\nAnd decrypted on the fly\n"));
+	EXPECT_TRUE(StringUtils::WriteStringToTextFile(encryptedFileOne, L"This should be encrypted...\nAnd decrypted on the fly\n"));
 
 	output.Empty();
 	EXPECT_EQ(0, g_Git.Run(L"git.exe add 1.enc", &output, CP_UTF8));
@@ -229,12 +229,12 @@ TEST(libgit, RefreshIndex)
 
 	g_Git.RefreshGitIndex();
 
-	EXPECT_TRUE(CStringUtils::WriteStringToTextFile(g_Git.m_CurrentDir + L"\\1.enc", L"some other content"));
+	EXPECT_TRUE(StringUtils::WriteStringToTextFile(g_Git.m_CurrentDir + L"\\1.enc", L"some other content"));
 
 	g_Git.RefreshGitIndex();
 
 	// need racy timestamp
-	EXPECT_TRUE(CStringUtils::WriteStringToTextFile(g_Git.m_CurrentDir + L"\\1.enc", L"somE other content"));
+	EXPECT_TRUE(StringUtils::WriteStringToTextFile(g_Git.m_CurrentDir + L"\\1.enc", L"somE other content"));
 	{
 		CAutoGeneralHandle handle = ::CreateFile(g_Git.m_CurrentDir + L"\\1.enc", FILE_WRITE_ATTRIBUTES, 0, nullptr, 0, 0, nullptr);
 		SetFileTime(handle, &fdata.ftCreationTime, &fdata.ftLastAccessTime, &fdata.ftLastWriteTime);
@@ -243,17 +243,17 @@ TEST(libgit, RefreshIndex)
 	g_Git.RefreshGitIndex();
 
 	// now check with external command filters with multi-filter (process) defined
-	EXPECT_TRUE(CStringUtils::WriteStringToTextFile(attributesFile, L"*.enc filter=test\n"));
+	EXPECT_TRUE(StringUtils::WriteStringToTextFile(attributesFile, L"*.enc filter=test\n"));
 
 	g_Git.RefreshGitIndex();
 
-	EXPECT_TRUE(CStringUtils::WriteStringToTextFile(g_Git.m_CurrentDir + L"\\1.enc", L"somE other conTentsome other conTentsome other conTen"));
+	EXPECT_TRUE(StringUtils::WriteStringToTextFile(g_Git.m_CurrentDir + L"\\1.enc", L"somE other conTentsome other conTentsome other conTen"));
 
 	g_Git.RefreshGitIndex();
 
 	// need racy timestamp
 	GetFileAttributesEx(g_Git.m_CurrentDir + L"\\.git\\index", GetFileExInfoStandard, &fdata);
-	EXPECT_TRUE(CStringUtils::WriteStringToTextFile(g_Git.m_CurrentDir + L"\\1.enc", L"some other conTentsome other conTentsome other conTen"));
+	EXPECT_TRUE(StringUtils::WriteStringToTextFile(g_Git.m_CurrentDir + L"\\1.enc", L"some other conTentsome other conTentsome other conTen"));
 	{
 		CAutoGeneralHandle handle = ::CreateFile(g_Git.m_CurrentDir + L"\\1.enc", FILE_WRITE_ATTRIBUTES, 0, nullptr, 0, 0, nullptr);
 		SetFileTime(handle, &fdata.ftCreationTime, &fdata.ftLastAccessTime, &fdata.ftLastWriteTime);
@@ -283,9 +283,9 @@ TEST(libgit, IncludeIf)
 	CAutoRepository repo;
 	ASSERT_EQ(0, git_repository_init_ext(repo.GetPointer(), CUnicodeUtils::GetUTF8(repoDir), &options));
 
-	EXPECT_TRUE(CStringUtils::WriteStringToTextFile(repoDir + L"\\.git\\config", L"[core]\n	repositoryformatversion = 0\n	filemode = false\n	bare = false\n	logallrefupdates = true\n	symlinks = false\n	ignorecase = true\n	hideDotFiles = dotGitOnly\n[something]\n	thevalue = jap\n[includeIf \"gitdir:RepoWithAInPath/**\"]\n	path = configA\n[includeIf \"gitdir:RepoWithBInPath/**\"]\n	path = configB\n"));
-	EXPECT_TRUE(CStringUtils::WriteStringToTextFile(repoDir + L"\\.git\\configA", L"[somethinga]\n	thevalue = jop\n"));
-	EXPECT_TRUE(CStringUtils::WriteStringToTextFile(repoDir + L"\\.git\\configB", L"[somethingb]\n	thevalue = jup\n"));
+	EXPECT_TRUE(StringUtils::WriteStringToTextFile(repoDir + L"\\.git\\config", L"[core]\n	repositoryformatversion = 0\n	filemode = false\n	bare = false\n	logallrefupdates = true\n	symlinks = false\n	ignorecase = true\n	hideDotFiles = dotGitOnly\n[something]\n	thevalue = jap\n[includeIf \"gitdir:RepoWithAInPath/**\"]\n	path = configA\n[includeIf \"gitdir:RepoWithBInPath/**\"]\n	path = configB\n"));
+	EXPECT_TRUE(StringUtils::WriteStringToTextFile(repoDir + L"\\.git\\configA", L"[somethinga]\n	thevalue = jop\n"));
+	EXPECT_TRUE(StringUtils::WriteStringToTextFile(repoDir + L"\\.git\\configB", L"[somethingb]\n	thevalue = jup\n"));
 
 	EXPECT_STREQ(L"jap", g_Git.GetConfigValue(L"something.thevalue"));
 	EXPECT_STREQ(L"jop",g_Git.GetConfigValue(L"somethinga.thevalue"));
@@ -300,7 +300,7 @@ TEST(libgit, IncludeIf)
 	EXPECT_TRUE(CreateDirectory(repoDir, nullptr));
 	// libgit relies on CWD being set to working tree
 	EXPECT_TRUE(SetCurrentDirectory(repoDir));
-	EXPECT_TRUE(CStringUtils::WriteStringToTextFile(repoDir + L"\\.git", L"gitdir: ../RepoWithAInPath/.git\n"));
+	EXPECT_TRUE(StringUtils::WriteStringToTextFile(repoDir + L"\\.git", L"gitdir: ../RepoWithAInPath/.git\n"));
 
 	EXPECT_STREQ(L"jap", g_Git.GetConfigValue(L"something.thevalue"));
 	EXPECT_STREQ(L"jop", g_Git.GetConfigValue(L"somethinga.thevalue"));

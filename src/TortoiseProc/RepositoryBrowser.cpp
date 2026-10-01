@@ -535,7 +535,7 @@ int CRepositoryBrowser::ReadTree(CShadowFilesTree* treeroot, const CString& root
 		if (!map[hash].empty())
 			m_sRevision = map[hash].at(0).c_str();
 	}
-	this->GetDlgItem(IDC_BUTTON_REVISION)->SetWindowText(CStringUtils::EscapeAccellerators(m_sRevision));
+	this->GetDlgItem(IDC_BUTTON_REVISION)->SetWindowText(StringUtils::EscapeAccellerators(m_sRevision));
 
 	return 0;
 }
@@ -880,7 +880,7 @@ void CRepositoryBrowser::ShowContextMenu(CPoint point, TShadowFilesTreeList &sel
 			{
 				sClipboard += (*itShadowTree)->m_sName + L"\r\n";
 			}
-			CStringUtils::WriteAsciiStringToClipboard(sClipboard);
+			StringUtils::WriteAsciiStringToClipboard(sClipboard);
 		}
 		break;
 	case eCmd_CopyHash:
@@ -1339,7 +1339,7 @@ void CRepositoryBrowser::CopyHashToClipboard(TShadowFilesTreeList &selectedLeafs
 			sClipdata += selectedLeafs[i]->m_hash.ToString();
 			first = false;
 		}
-		CStringUtils::WriteAsciiStringToClipboard(sClipdata, GetSafeHwnd());
+		StringUtils::WriteAsciiStringToClipboard(sClipdata, GetSafeHwnd());
 	}
 }
 

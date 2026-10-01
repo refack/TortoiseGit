@@ -207,15 +207,15 @@ int CHistoryCombo::InsertEntry(const CString& combostring, INT_PTR pos)
 		cbei.iImage = SYS_IMAGE_LIST().GetPathIconIndex(combostring);
 		if (cbei.iImage == 0 || cbei.iImage == SYS_IMAGE_LIST().GetDefaultIconIndex())
 		{
-			if (CStringUtils::StartsWith(combostring, L"http:"))
+			if (StringUtils::StartsWith(combostring, L"http:"))
 				cbei.iImage = SYS_IMAGE_LIST().GetPathIconIndex(L".html");
-			else if (CStringUtils::StartsWith(combostring, L"https:"))
+			else if (StringUtils::StartsWith(combostring, L"https:"))
 				cbei.iImage = SYS_IMAGE_LIST().GetPathIconIndex(L".html");
-			else if (CStringUtils::StartsWith(combostring, L"file:"))
+			else if (StringUtils::StartsWith(combostring, L"file:"))
 				cbei.iImage = SYS_IMAGE_LIST().GetDirIconIndex();
-			else if (CStringUtils::StartsWith(combostring, L"git:"))
+			else if (StringUtils::StartsWith(combostring, L"git:"))
 				cbei.iImage = m_nGitIconIndex;
-			else if (CStringUtils::StartsWith(combostring, L"ssh:"))
+			else if (StringUtils::StartsWith(combostring, L"ssh:"))
 				cbei.iImage = m_nGitIconIndex;
 			else
 				cbei.iImage = SYS_IMAGE_LIST().GetDirIconIndex();

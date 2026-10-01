@@ -38,6 +38,12 @@ import StringUtils;
 import RIAA;
 using namespace RIAA;
 
+// The module exports both a namespace and a class named DarkModeHelper, plus a
+// using-directive for the namespace, so an unqualified `DarkModeHelper::` finds
+// both and is ambiguous (C2872). `::DarkModeHelper` finds the namespace directly,
+// and qualified lookup does not follow using-directives when it has a direct hit.
+using DarkMode = ::DarkModeHelper::DarkModeHelper;
+
 #define WM_MENUBAR_DRAWMENU 0x0091 // lParam is MENUBAR_MENU
 #define WM_MENUBAR_DRAWMENUITEM 0x0092 // lParam is MENUBAR_DRAWMENUITEM
 
@@ -129,7 +135,7 @@ void CTheme::Load()
 {
 	IsDarkModeAllowed();
 	OnSysColorChanged();
-	m_dark = !!m_regDarkTheme && IsDarkModeAllowed() && !IsHighContrastMode() && DarkModeHelper::Instance().ShouldAppsUseDarkMode();
+	m_dark = !!m_regDarkTheme && IsDarkModeAllowed() && !IsHighContrastMode() && DarkMode::Instance().ShouldAppsUseDarkMode();
 	m_bLoaded = true;
 }
 
@@ -198,8 +204,8 @@ bool CTheme::RemoveRegisteredCallback(int id)
 bool CTheme::SetThemeForDialog(HWND hWnd, bool bDark)
 {
 	Expects(hWnd);
-	DarkModeHelper::Instance().AllowDarkModeForWindow(hWnd, bDark);
-	if (bDark && !DarkModeHelper::Instance().CanHaveDarkMode())
+	DarkMode::Instance().AllowDarkModeForWindow(hWnd, bDark);
+	if (bDark && !DarkMode::Instance().CanHaveDarkMode())
 		return false;
 	if (bDark)
 		SetWindowSubclass(hWnd, MainSubclassProc, SubclassID, reinterpret_cast<DWORD_PTR>(&s_backBrush));
@@ -208,16 +214,16 @@ bool CTheme::SetThemeForDialog(HWND hWnd, bool bDark)
 	AdjustThemeForChildrenProc(hWnd, bDark ? TRUE : FALSE);
 	EnumChildWindows(hWnd, AdjustThemeForChildrenProc, bDark ? TRUE : FALSE);
 	EnumThreadWindows(GetCurrentThreadId(), AdjustThemeForChildrenProc, bDark ? TRUE : FALSE);
-	DarkModeHelper::Instance().RefreshTitleBarThemeColor(hWnd, bDark);
+	DarkMode::Instance().RefreshTitleBarThemeColor(hWnd, bDark);
 	::RedrawWindow(hWnd, nullptr, nullptr, RDW_FRAME | RDW_INVALIDATE | RDW_ERASE | RDW_INTERNALPAINT | RDW_ALLCHILDREN | RDW_UPDATENOW);
-	DarkModeHelper::Instance().RefreshTitleBarThemeColor(hWnd, bDark);
+	DarkMode::Instance().RefreshTitleBarThemeColor(hWnd, bDark);
 	return true;
 }
 
 
 BOOL CTheme::AdjustThemeForChildrenProc(HWND hwnd, LPARAM lParam)
 {
-	DarkModeHelper::Instance().AllowDarkModeForWindow(hwnd, static_cast<BOOL>(lParam));
+	DarkMode::Instance().AllowDarkModeForWindow(hwnd, static_cast<BOOL>(lParam));
 	wchar_t szWndClassName[MAX_PATH] = { 0 };
 	GetClassName(hwnd, szWndClassName, _countof(szWndClassName));
 	if (lParam)
@@ -229,14 +235,14 @@ BOOL CTheme::AdjustThemeForChildrenProc(HWND hwnd, LPARAM lParam)
 			// "explorer" for the scrollbars, which then will be drawn in dark mode
 			SetWindowTheme(hwnd, L"ItemsView", nullptr);
 			auto header = ListView_GetHeader(hwnd);
-			DarkModeHelper::Instance().AllowDarkModeForWindow(header, static_cast<BOOL>(lParam));
+			DarkMode::Instance().AllowDarkModeForWindow(header, static_cast<BOOL>(lParam));
 			SetWindowTheme(header, L"Explorer", nullptr);
 			ListView_SetTextColor(hwnd, darkTextColor);
 			ListView_SetTextBkColor(hwnd, darkBkColor);
 			ListView_SetBkColor(hwnd, darkBkColor);
 			if (auto hTT = ListView_GetToolTips(hwnd))
 			{
-				DarkModeHelper::Instance().AllowDarkModeForWindow(hTT, static_cast<BOOL>(lParam));
+				DarkMode::Instance().AllowDarkModeForWindow(hTT, static_cast<BOOL>(lParam));
 				SetWindowTheme(hTT, L"Explorer", nullptr);
 			}
 			SetWindowSubclass(hwnd, ListViewSubclassProc, SubclassID, reinterpret_cast<DWORD_PTR>(&s_backBrush));
@@ -276,9 +282,9 @@ BOOL CTheme::AdjustThemeForChildrenProc(HWND hwnd, LPARAM lParam)
 				info.cbSize = sizeof(COMBOBOXINFO);
 				if (SendMessage(hCombo, CB_GETCOMBOBOXINFO, 0, reinterpret_cast<LPARAM>(&info)))
 				{
-					DarkModeHelper::Instance().AllowDarkModeForWindow(info.hwndList, static_cast<BOOL>(lParam));
-					DarkModeHelper::Instance().AllowDarkModeForWindow(info.hwndItem, static_cast<BOOL>(lParam));
-					DarkModeHelper::Instance().AllowDarkModeForWindow(info.hwndCombo, static_cast<BOOL>(lParam));
+					DarkMode::Instance().AllowDarkModeForWindow(info.hwndList, static_cast<BOOL>(lParam));
+					DarkMode::Instance().AllowDarkModeForWindow(info.hwndItem, static_cast<BOOL>(lParam));
+					DarkMode::Instance().AllowDarkModeForWindow(info.hwndCombo, static_cast<BOOL>(lParam));
 
 					SetWindowTheme(info.hwndList, L"Explorer", nullptr);
 					SetWindowTheme(info.hwndItem, L"Explorer", nullptr);
@@ -293,7 +299,7 @@ BOOL CTheme::AdjustThemeForChildrenProc(HWND hwnd, LPARAM lParam)
 			TreeView_SetBkColor(hwnd, darkBkColor);
 			if (auto hTT = TreeView_GetToolTips(hwnd))
 			{
-				DarkModeHelper::Instance().AllowDarkModeForWindow(hTT, static_cast<BOOL>(lParam));
+				DarkMode::Instance().AllowDarkModeForWindow(hTT, static_cast<BOOL>(lParam));
 				SetWindowTheme(hTT, L"Explorer", nullptr);
 			}
 		}
@@ -343,7 +349,7 @@ BOOL CTheme::AdjustThemeForChildrenProc(HWND hwnd, LPARAM lParam)
 			ListView_SetBkColor(hwnd, color);
 			if (auto hTT = ListView_GetToolTips(hwnd))
 			{
-				DarkModeHelper::Instance().AllowDarkModeForWindow(hTT, static_cast<BOOL>(lParam));
+				DarkMode::Instance().AllowDarkModeForWindow(hTT, static_cast<BOOL>(lParam));
 				SetWindowTheme(hTT, L"Explorer", nullptr);
 			}
 			RemoveWindowSubclass(hwnd, ListViewSubclassProc, SubclassID);
@@ -369,9 +375,9 @@ BOOL CTheme::AdjustThemeForChildrenProc(HWND hwnd, LPARAM lParam)
 				info.cbSize = sizeof(COMBOBOXINFO);
 				if (SendMessage(hCombo, CB_GETCOMBOBOXINFO, 0, reinterpret_cast<LPARAM>(&info)))
 				{
-					DarkModeHelper::Instance().AllowDarkModeForWindow(info.hwndList, static_cast<BOOL>(lParam));
-					DarkModeHelper::Instance().AllowDarkModeForWindow(info.hwndItem, static_cast<BOOL>(lParam));
-					DarkModeHelper::Instance().AllowDarkModeForWindow(info.hwndCombo, static_cast<BOOL>(lParam));
+					DarkMode::Instance().AllowDarkModeForWindow(info.hwndList, static_cast<BOOL>(lParam));
+					DarkMode::Instance().AllowDarkModeForWindow(info.hwndItem, static_cast<BOOL>(lParam));
+					DarkMode::Instance().AllowDarkModeForWindow(info.hwndCombo, static_cast<BOOL>(lParam));
 
 					SetWindowTheme(info.hwndList, L"Explorer", nullptr);
 					SetWindowTheme(info.hwndItem, L"Explorer", nullptr);
@@ -407,7 +413,7 @@ BOOL CTheme::AdjustThemeForChildrenProc(HWND hwnd, LPARAM lParam)
 			}
 			if (auto hTT = TreeView_GetToolTips(hwnd))
 			{
-				DarkModeHelper::Instance().AllowDarkModeForWindow(hTT, static_cast<BOOL>(lParam));
+				DarkMode::Instance().AllowDarkModeForWindow(hTT, static_cast<BOOL>(lParam));
 				SetWindowTheme(hTT, L"Explorer", nullptr);
 			}
 		}
@@ -958,7 +964,7 @@ void CTheme::OnSysColorChanged()
 		RGBtoHSL(::GetSysColor(COLOR_WINDOW), h2, s2, l2);
 		m_isHighContrastModeDark = l2 < l1;
 	}
-	m_dark = !!m_regDarkTheme && IsDarkModeAllowed() && !IsHighContrastMode() && DarkModeHelper::Instance().ShouldAppsUseDarkMode();
+	m_dark = !!m_regDarkTheme && IsDarkModeAllowed() && !IsHighContrastMode() && DarkMode::Instance().ShouldAppsUseDarkMode();
 }
 
 bool CTheme::IsDarkModeAllowed()
@@ -992,7 +998,7 @@ bool CTheme::IsDarkModeAllowed()
 				m_bDarkModeIsAllowed = true;
 		}
 	}
-	m_bDarkModeIsAllowed = m_bDarkModeIsAllowed && DarkModeHelper::Instance().ShouldAppsUseDarkMode();
+	m_bDarkModeIsAllowed = m_bDarkModeIsAllowed && DarkMode::Instance().ShouldAppsUseDarkMode();
 	return m_bDarkModeIsAllowed;
 }
 
@@ -1003,8 +1009,8 @@ void CTheme::SetDarkTheme(bool b /*= true*/, bool force /*= false*/)
 	if (force || m_dark != b)
 	{
 		bool highContrast = IsHighContrastMode();
-		m_dark = b && !highContrast && DarkModeHelper::Instance().ShouldAppsUseDarkMode();
-		if (!highContrast && DarkModeHelper::Instance().ShouldAppsUseDarkMode())
+		m_dark = b && !highContrast && DarkMode::Instance().ShouldAppsUseDarkMode();
+		if (!highContrast && DarkMode::Instance().ShouldAppsUseDarkMode())
 			m_regDarkTheme = b ? 1 : 0;
 		for (auto& cb : m_themeChangeCallbacks)
 			cb.second();

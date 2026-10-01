@@ -21,13 +21,15 @@
 #include "GitStatus.h"
 #include "Utils/CacheType.h"
 import GitAdminDir;
-
+import std;
 import Registry;
 import RIAA;
 import DebugOutput;
-import GitIndex;
+import GitHash;
+import GitIndex; // exports g_AdminDirMap itself; the extern declaration here named a different, global one
 
-extern CGitAdminDirMap g_AdminDirMap;
+using std::operator""sv;
+
 CGitIndexFileMap g_IndexFileMap;
 CGitHeadFileMap g_HeadFileMap;
 CGitIgnoreList  g_IgnoreList;
@@ -55,7 +57,7 @@ int GitStatus::GetAllStatus(const CTGitPath& path, bool bIsRecursive, git_wc_sta
 			sSubPath = s.Right(s.GetLength() - static_cast<int>(sProjectRoot.size()) - 1/*otherwise it gets initial slash*/);
 	}
 
-	const bool isfull = (static_cast<DWORD>(CRegStdDWORD(L"Software\\TortoiseGit\\CacheType", GetSystemMetrics(SM_REMOTESESSION)) ? TGitCacheType::dll : TGitCacheType::exe) == TGitCacheType::dllFull);
+	const bool isfull = (static_cast<DWORD>(Registry::CRegStdDWORD(L"Software\\TortoiseGit\\CacheType", GetSystemMetrics(SM_REMOTESESSION)) ? TGitCacheType::dll : TGitCacheType::exe) == TGitCacheType::dllFull);
 
 	if(isDir)
 	{
@@ -108,7 +110,7 @@ void GitStatus::GetStatus(const CTGitPath& path, bool /*update*/ /* = false */, 
 	if ( !path.HasAdminDir(&sProjectRoot) )
 		return;
 
-	const bool isfull = (static_cast<DWORD>(CRegStdDWORD(L"Software\\TortoiseGit\\CacheType", GetSystemMetrics(SM_REMOTESESSION)) ? TGitCacheType::dll : TGitCacheType::exe) == TGitCacheType::dllFull);
+	const bool isfull = (static_cast<DWORD>(Registry::CRegStdDWORD(L"Software\\TortoiseGit\\CacheType", GetSystemMetrics(SM_REMOTESESSION)) ? TGitCacheType::dll : TGitCacheType::exe) == TGitCacheType::dllFull);
 
 	int err = 0;
 
@@ -230,7 +232,7 @@ static int GetFileStatus_int(const CString& gitdir, CGitRepoLists& repolists, co
 		if (start == NPOS)
 		{
 			status.status = git_wc_status_added;
-			CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": File miss in head tree %s\n", static_cast<LPCWSTR>(path));
+			tgit::DebugOutput::CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": File miss in head tree %s\n", static_cast<LPCWSTR>(path));
 			return 0;
 		}
 
@@ -269,7 +271,7 @@ int GitStatus::GetFileStatus(const CString& gitdir, CString path, git_wc_status2
 // checks whether indexPath is a direct submodule and not one in a subfolder
 static bool IsDirectSubmodule(const CString& indexPath, int prefix)
 {
-	if (!CStringUtils::EndsWith(indexPath, L'/'))
+	if (!StringUtils::EndsWith(indexPath, L"/"sv))
 		return false;
 
 	auto ptr = indexPath.GetString() + prefix;

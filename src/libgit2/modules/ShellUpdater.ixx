@@ -1,14 +1,16 @@
 module;
 #include <TGitCache/CacheInterface.h>
-#include "Git.h"
-#include "Utils/scope_exit_noexcept.h"
-
 #include <shlobj_core.h>
 
 export module CShellUpdater;
+import git_h;
+import tgittypes;
+import wstr;
 import RIAA;
 import TGitPath;
 import DebugOutput;
+
+using tgit::wstr::StringView;
 
 /**
  * \ingroup Utils
@@ -92,7 +94,7 @@ void CShellUpdater::Flush()
 	if (m_pathsForUpdating.IsEmpty())
 		return;
 
-	CTraceToOutputDebugString::Instance()(__FUNCTION__ ": Flushing shell update list\n");
+	tgit::DebugOutput::CTraceToOutputDebugString::Instance()(__FUNCTION__ ": Flushing shell update list\n");
 
 	UpdateShell();
 	m_pathsForUpdating.Clear();
@@ -101,7 +103,7 @@ void CShellUpdater::Flush()
 void CShellUpdater::UpdateShell()
 {
 	// Tell the shell extension to purge its cache
-	CTraceToOutputDebugString::Instance()(__FUNCTION__ ": Setting cache invalidation event %I64u\n", GetTickCount64());
+	tgit::DebugOutput::CTraceToOutputDebugString::Instance()(__FUNCTION__ ": Setting cache invalidation event %I64u\n", GetTickCount64());
 	SetEvent(m_hInvalidationEvent);
 
 	// We use the SVN 'notify' call-back to add items to the list
@@ -134,14 +136,14 @@ void CShellUpdater::UpdateShell()
 			nullptr, // don't set maximum bytes
 			nullptr)) // don't set maximum time
 	{
-		CTraceToOutputDebugString::Instance()(__FUNCTION__ ": SetNamedPipeHandleState failed\n");
+		tgit::DebugOutput::CTraceToOutputDebugString::Instance()(__FUNCTION__ ": SetNamedPipeHandleState failed\n");
 		return;
 	}
 
 	CTGitPath path;
 	for (int nPath = 0; nPath < m_pathsForUpdating.GetCount(); ++nPath) {
-		path.SetFromWin(g_Git.CombinePath(m_pathsForUpdating[nPath]));
-		CTraceToOutputDebugString::Instance()(
+		path.SetFromWin(StringView{g_Git.CombinePath(m_pathsForUpdating[nPath])});
+		tgit::DebugOutput::CTraceToOutputDebugString::Instance()(
 			_T(__FUNCTION__) L": Cache Item Update for %s (%I64u)\n",
 			path.GetWinPathString().c_str(),
 			GetTickCount64()
@@ -151,9 +153,9 @@ void CShellUpdater::UpdateShell()
 			SHChangeNotify(SHCNE_UPDATEITEM, SHCNF_PATH | SHCNF_FLUSHNOWAIT, path.GetWinPath(), nullptr);
 		}
 		DWORD cbWritten;
-		TGITCacheCommand cmd;
+		TGITCacheCommand cmd{}; // the whole struct goes down the pipe, so no uninitialized bytes after the path
 		cmd.command = TGITCACHECOMMAND_CRAWL;
-		wcsncpy_s(cmd.path, path.GetDirectory().GetWinPath(), _countof(cmd.path) - 1);
+		tgit::wstr::CopyTruncating(cmd.path, path.GetDirectory().GetWinPathString());
 		const BOOL fSuccess = WriteFile(
 			hPipe, // handle to pipe
 			&cmd, // buffer to write from
@@ -187,14 +189,9 @@ bool CShellUpdater::RebuildIcons()
 	constexpr int BUFFER_SIZE = 1024;
 	wchar_t buf[BUFFER_SIZE] = {};
 
-	HKEY hRegKey = nullptr;
-	if (RegOpenKeyEx(HKEY_CURRENT_USER, L"Control Panel\\Desktop\\WindowMetrics", 0, KEY_READ | KEY_WRITE, &hRegKey) != ERROR_SUCCESS)
+	RIAA::CAutoRegKey hRegKey;
+	if (RegOpenKeyEx(HKEY_CURRENT_USER, L"Control Panel\\Desktop\\WindowMetrics", 0, KEY_READ | KEY_WRITE, hRegKey.GetPointer()) != ERROR_SUCCESS)
 		return false;
-
-	SCOPE_EXIT
-	{
-		RegCloseKey(hRegKey);
-	};
 
 	// we're going to change the Shell Icon Size value
 

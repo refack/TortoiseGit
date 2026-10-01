@@ -4,20 +4,17 @@
 #include <Shlwapi.h>
 #include <crtdbg.h>
 #include <limits.h>
-#include <share.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <wchar.h>
-#include <sys/stat.h>
 #include <git2.h>
 // Both are leaves of #defines: the action names' string ids, and the shell's
 // ITEMIS_* flags that GetAdminDirMask() answers in.
+#include <corecrt_share.h>
+#include <corecrt_wstdio.h>
 #include <Resources/LoglistCommonResource.h>
 #include <TortoiseShell/Globals.h>
 #ifdef TGIT_LFS
 #include <nlohmann/json.hpp>
 #endif
+
 
 export module TGitPath;
 import std;
@@ -36,6 +33,7 @@ import DebugOutput;
 using std::operator""sv;
 using tgit::types::BYTE_VECTOR;
 using tgit::types::STRING_VECTOR;
+using tgit::wstr::StringView;
 
 // This module is layered, and each layer uses only the ones above it:
 //
@@ -102,23 +100,23 @@ std::wstring ToBackslash(const std::wstring_view path)
 	return result;
 }
 
-bool FileExists(const std::wstring& path)
+bool FileExists(std::wstring_view path)
 {
-	return !!::PathFileExists(path.c_str());
+	return !!::PathFileExists(path.data());
 }
 
-bool IsDirectoryPath(const std::wstring& path)
+bool IsDirectoryPath(std::wstring_view path)
 {
-	return !!::PathIsDirectory(path.c_str());
+	return !!::PathIsDirectory(path.data());
 }
 
-/// CStringUtils::StartsWithI.
+/// StringUtils::StartsWithI.
 bool StartsWithNoCase(const std::wstring_view s, const std::wstring_view prefix)
 {
 	return s.size() >= prefix.size() && _wcsnicmp(s.data(), prefix.data(), prefix.size()) == 0;
 }
 
-/// CStringUtils::FastCompareNoCase: ASCII-only case folding while every
+/// StringUtils::FastCompareNoCase: ASCII-only case folding while every
 /// differing character is ASCII, and the CRT's _wcsicmp over the *whole* string
 /// the moment one is not. The sort order of CTGitPathList depends on this, so it
 /// is reproduced rather than approximated with towlower.
@@ -151,7 +149,7 @@ int FastCompareNoCase(const std::wstring& lhs, const std::wstring& rhs)
 	return 0;
 }
 
-/// CStringUtils::GetMatchingLength: the length of the common prefix, case-sensitive.
+/// StringUtils::GetMatchingLength: the length of the common prefix, case-sensitive.
 int GetMatchingLength(const std::wstring_view lhs, const std::wstring_view rhs)
 {
 	return static_cast<int>(std::ranges::mismatch(lhs, rhs).in1 - lhs.begin());
@@ -384,7 +382,7 @@ bool IsListedInSafeDirectory(const std::wstring_view topDir)
 		std::wstring_view topDir;
 		const Host& host;
 		bool isSafe = false;
-	} payload{ topDir, host };
+	} payload{ .topDir = topDir, .host = host };
 
 	const auto visit = [](const git_config_entry* entry, void* opaque) -> int {
 		auto& data = *static_cast<Payload*>(opaque);
@@ -505,7 +503,7 @@ std::wstring ReadGitLink(const std::wstring_view topDir, const std::wstring_view
 
 	constexpr int size = 65536;
 	auto buffer = std::make_unique<char[]>(size);
-	const int length = static_cast<int>(fread(buffer.get(), sizeof(char), size, pFile));
+	const int length = static_cast<int>(std::fread(buffer.get(), sizeof(char), size, pFile));
 	std::string_view gitPathA(buffer.get(), static_cast<size_t>(length));
 	if (!gitPathA.starts_with(GITDIR_PREFIX))
 		return {};
@@ -593,21 +591,21 @@ std::optional<AdminDir> GetAdminDirPath(const std::wstring_view projectTopDir)
 
 	const std::wstring pathToCommonDir = *wtAdminDir + L"commondir";
 	if (!TGitPath::detail::FileExists(pathToCommonDir))
-		return AdminDir{ *wtAdminDir, false };
+		return AdminDir{ .path = *wtAdminDir, .isWorktree = false };
 
 	const RIAA::CAutoFILE pFile = _wfsopen(pathToCommonDir.c_str(), L"rb", SH_DENYWR);
 	if (!pFile)
 		return std::nullopt;
 
 	constexpr int size = 65536;
-	auto buffer = std::make_unique<char[]>(size);
-	const int length = static_cast<int>(fread(buffer.get(), sizeof(char), size, pFile));
-	std::wstring commonDir = CUnicodeUtils::StdGetUnicode(std::string_view(buffer.get(), static_cast<size_t>(length)));
-	tgit::wstr::TrimRight(commonDir, L"\r\n");
-	std::ranges::replace(commonDir, L'/', L'\\');
+	const auto buffer = std::make_unique<char[]>(size);
+	const auto length = std::fread(buffer.get(), sizeof(char), size, pFile);
+	auto commonDir = CUnicodeUtils::StdGetUnicode(std::string_view{buffer.get(), length});
+	tgit::wstr::Trim(commonDir, L"\r\n"sv);
+	PathUtils::ConvertToBackslash(commonDir);
 	if (::PathIsRelative(commonDir.c_str()))
-		return AdminDir{ PathUtils::BuildPathWithPathDelimiter(*wtAdminDir + commonDir), true };
-	return AdminDir{ PathUtils::BuildPathWithPathDelimiter(commonDir), true };
+		return AdminDir{ .path = PathUtils::BuildPathWithPathDelimiter(*wtAdminDir + commonDir), .isWorktree = true };
+	return AdminDir{ .path = PathUtils::BuildPathWithPathDelimiter(commonDir), .isWorktree = true };
 }
 
 /**
@@ -844,6 +842,11 @@ public:
 		m_bIsDirectory = bIsDirectory;
 	}
 
+	auto operator>(const CTGitPath& b) const
+	{
+		return this->m_sUIPath.compare(b.m_sUIPath);
+	}
+
 	int m_ParentNo = 0;
 
 	enum class StagingStatus
@@ -939,15 +942,13 @@ public:
 	/**
 	 * Set the path as UNICODE with backslashes
 	 */
-	void SetFromWin(LPCWSTR pPath);
-	void SetFromWin(std::wstring_view sPath);
-	void SetFromWin(const LPCWSTR pPath, const std::same_as<bool> auto bIsDirectory) { SetFromWin(std::wstring_view(pPath), bIsDirectory); }
-	void SetFromWin(const std::wstring_view sPath, const std::same_as<bool> auto bIsDirectory)
+	void SetFromWin(const LPCWSTR pPath, const std::optional<bool> bIsDirectory) { SetFromWin(std::wstring_view(pPath), bIsDirectory); }
+	void SetFromWin(const std::wstring_view sPath, const std::optional<bool> bIsDirectory = std::nullopt)
 	{
 		Reset();
 		m_sBackslashPath = sPath;
-		m_bIsDirectory = bIsDirectory;
-		m_bDirectoryKnown = true;
+		m_bIsDirectory = bIsDirectory.value_or(false);
+		m_bDirectoryKnown = bIsDirectory.has_value();
 		detail::SanitizeRootPath(m_sBackslashPath, L'\\');
 	}
 	/**
@@ -1027,13 +1028,26 @@ public:
 	 */
 	std::wstring GetFileExtension() const;
 
-	void UpdateCase();
+	void UpdateCase() const
+	{
+		std::wstring longPath = PathUtils::GetLongPathname(GetWinPathString()).wstring();
+		PathUtils::TrimTrailingPathDelimiter(longPath);
+		m_sBackslashPath = std::move(longPath);
+		detail::SanitizeRootPath(m_sBackslashPath, L'\\');
+		SetFwdslashPath(m_sBackslashPath);
+	}
 
 	bool IsEmpty() const;
 	void Reset();
 	/**
 	 * Checks if two paths are equal. The slashes are taken care of.
 	 */
+	auto operator<=>(const CTGitPath& rhs) const
+	{
+		return !m_sBackslashPath.empty() ?
+			m_sBackslashPath <=> rhs.m_sBackslashPath :
+			m_sFwdslashPath <=> rhs.m_sFwdslashPath;
+	}
 	bool IsEquivalentTo(const CTGitPath& rhs) const;
 	bool IsEquivalentToWithoutCase(const CTGitPath& rhs) const;
 	bool operator==(const CTGitPath& x) const { return IsEquivalentTo(x); }
@@ -1211,14 +1225,6 @@ private:
 	mutable bool m_bExistsKnown = false;
 };
 
-/**
- * Compares two paths and return true if left is earlier in sort order than right
- * (Uses CTGitPath::Compare logic, but is suitable for std::sort and similar)
- */
-bool operator<(const CTGitPath& left, const CTGitPath& right)
-{
-	return CTGitPath::Compare(left, right) < 0;
-}
 
 //////////////////////////////////////////////////////////////////////////
 
@@ -1286,7 +1292,14 @@ public:
 	 * the same drive/root.
 	 */
 	[[nodiscard]] CTGitPath GetCommonRoot() const;
-	void SortByPathname(bool bReverse = false);
+	void SortByPathname(const bool bReverse = false)
+	{
+		if (bReverse) {
+			std::ranges::sort(m_paths, std::ranges::greater{});
+		} else {
+			std::ranges::sort(m_paths);
+		}
+	}
 	/**
 	 * Delete all the files in the list, then clear the list.
 	 * \param bTrash if true, the items are deleted using the Windows trash bin
@@ -1323,12 +1336,11 @@ public:
 	auto end() const noexcept { return m_paths.cend(); }
 	auto cend() const noexcept { return m_paths.cend(); }
 };
-} // export namespace TGitPath
 
-namespace TGitPath
-{
+
 //////////////////////////////////////////////////////////////////////////
 // CTGitPath: status and action names
+
 
 unsigned int CTGitPath::ParseStatus(const char status)
 {
@@ -1428,19 +1440,6 @@ std::wstring CTGitPath::GetActionName() const
 //////////////////////////////////////////////////////////////////////////
 // CTGitPath: the two string forms
 
-void CTGitPath::SetFromWin(const LPCWSTR pPath)
-{
-	SetFromWin(std::wstring_view(pPath));
-	_ASSERTE(tgit::wstr::Find(m_sBackslashPath, L'/') < 0);
-}
-
-void CTGitPath::SetFromWin(const std::wstring_view sPath)
-{
-	Reset();
-	m_sBackslashPath = sPath;
-	detail::ReplaceAll(m_sBackslashPath, L"\\\\?\\", L"");
-	detail::SanitizeRootPath(m_sBackslashPath, L'\\');
-}
 
 void CTGitPath::SetFromUnknown(const std::wstring_view sPath)
 {
@@ -1529,14 +1528,6 @@ void CTGitPath::Reset()
 	_ASSERTE(IsEmpty());
 }
 
-void CTGitPath::UpdateCase()
-{
-	std::wstring longPath = PathUtils::GetLongPathname(GetWinPathString()).wstring();
-	PathUtils::TrimTrailingPathDelimiter(longPath);
-	m_sBackslashPath = std::move(longPath);
-	detail::SanitizeRootPath(m_sBackslashPath, L'\\');
-	SetFwdslashPath(m_sBackslashPath);
-}
 
 void CTGitPath::AppendRawString(const std::wstring_view sAppend)
 {
@@ -2113,11 +2104,11 @@ bool CTGitPath::IsRegisteredSubmoduleOfParentProject(std::wstring* parentProject
 
 	const detail::ConfigPtr config = detail::NewConfig();
 	git_config_add_file_ondisk(config.get(), ToGitPathA(gitmodules).c_str(), GIT_CONFIG_LEVEL_APP, nullptr, FALSE);
-	std::wstring relativePath = tgit::wstr::Mid(GetWinPathString(), static_cast<int>(topProjectDir.size()));
+	std::wstring relativePath = tgit::wstr::Mid(GetWinPathString(), gsl::narrow<int>(topProjectDir.size()));
 	std::ranges::replace(relativePath, L'\\', L'/');
 	tgit::wstr::Trim(relativePath, L"/");
 	std::string submodulePath = CUnicodeUtils::StdGetUTF8(relativePath);
-	const auto matches = [](const git_config_entry* entry, void* data) {
+	const git_config_foreach_cb matches = [](const git_config_entry* entry, void* data) -> int {
 		return *static_cast<const std::string*>(data) == entry->value ? GIT_EUSER : 0;
 	};
 	return git_config_foreach_match(config.get(), "submodule\\..*\\.path", matches, &submodulePath) == GIT_EUSER;
@@ -2257,12 +2248,6 @@ CTGitPath CTGitPathList::GetCommonRoot() const
 	return CTGitPath(root);
 }
 
-void CTGitPathList::SortByPathname(const bool bReverse /*= false*/)
-{
-	std::sort(m_paths.begin(), m_paths.end());
-	if (bReverse)
-		std::reverse(m_paths.begin(), m_paths.end());
-}
 
 void CTGitPathList::DeleteAllFiles(const bool bTrash, const bool bFilesOnly, const bool bShowErrorUI)
 {
@@ -2528,8 +2513,9 @@ int CTGitPathList::ParserFromLsFile(const BYTE_VECTOR& out)
 		if (fileNameEnd == BYTE_VECTOR::npos || fileNameEnd == pos || pos - lineStart != "H 100644 "sv.size() + 2 * tgit::invarients::HashSize() + " 0\t"sv.size())
 			return -1;
 		const std::wstring pathstring = CUnicodeUtils::StdGetUnicode(std::string_view(&out[pos], fileNameEnd - pos));
+		const bool isDir = (strtol(&out[modestart], nullptr, 8) & GIT_FILEMODE_TREE) == GIT_FILEMODE_TREE;
 		// SetFromGit resets the path
-		path.SetFromGit(pathstring, (strtol(&out[modestart], nullptr, 8) & S_IFDIR) == S_IFDIR);
+		path.SetFromGit(pathstring, isDir);
 		if (strtol(&out[stagestart], nullptr, 10) != 0)
 		{
 			if (!IsEmpty() && path == m_paths.back())
@@ -2614,9 +2600,9 @@ int CTGitPathList::ParserFromLog(const BYTE_VECTOR& log)
 					p.ParseAndUpdateStatus(log[statusStart]);
 
 				// reset submodule/folder status if a staged entry is not a folder
-				if (p.IsDirectory() && ((modeOld && !(modeOld & S_IFDIR)) || (modeNew && !(modeNew & S_IFDIR))))
+				if (p.IsDirectory() && ((modeOld && !(modeOld & GIT_FILEMODE_TREE)) || (modeNew && !(modeNew & GIT_FILEMODE_TREE))))
 					p.UnsetDirectoryStatus();
-				else if (!p.IsDirectory() && (modeNew && (modeNew & S_IFDIR)))
+				else if (!p.IsDirectory() && (modeNew && (modeNew & GIT_FILEMODE_TREE)))
 					p.SetDirectoryStatus();
 
 				if (merged)
@@ -2629,7 +2615,7 @@ int CTGitPathList::ParserFromLog(const BYTE_VECTOR& log)
 				ac |= merged ? CTGitPath::LOGACTIONS_MERGED : 0;
 
 				const int relevantMode = (ac & (CTGitPath::LOGACTIONS_DELETED | CTGitPath::LOGACTIONS_UNMERGED)) ? modeOld : modeNew;
-				const bool isSubmodule = (relevantMode & S_IFDIR) == S_IFDIR;
+				const bool isSubmodule = (relevantMode & GIT_FILEMODE_TREE) == GIT_FILEMODE_TREE;
 
 				// SetFromGit resets the path, hence action must be set afterwards
 				path.SetFromGit(pathname, oldPathname, isSubmodule);
@@ -2818,7 +2804,7 @@ int CTGitPathList::FillBasedOnIndexFlags(git_repository* const repository, const
 			}
 
 			//SetFromGit will clear all status
-			path.SetFromGit(one, (e->mode & S_IFDIR) == S_IFDIR);
+			path.SetFromGit(one, (e->mode & GIT_FILEMODE_TREE) == GIT_FILEMODE_TREE);
 			if (e->flags_extended & GIT_INDEX_ENTRY_SKIP_WORKTREE)
 				path.m_Action = CTGitPath::LOGACTIONS_SKIPWORKTREE;
 			else if (e->flags & GIT_INDEX_ENTRY_VALID)
@@ -2832,4 +2818,6 @@ int CTGitPathList::FillBasedOnIndexFlags(git_repository* const repository, const
 } // namespace TGitPath
 
 export using namespace TGitPath;
+export using TGitPath::CTGitPathList;
+export using TGitPath::CTGitPath;
 export using namespace GitAdminDir;

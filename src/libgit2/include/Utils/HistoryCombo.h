@@ -37,7 +37,7 @@
  *
  * thats it.
  */
-#include "Git.h"
+import git_h;
 class CHistoryCombo : public CComboBoxEx
 {
 // Construction

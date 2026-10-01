@@ -118,7 +118,7 @@ std::vector<std::pair<CString, DWORD>> CLangDll::GetInstalledLanguages(bool incl
 	while (finder.FindNextFileNoDirectories())
 	{
 		CString filename = finder.GetFileName();
-		if (!CStringUtils::StartsWithI(filename, L"TortoiseProc"))
+		if (!StringUtils::StartsWithI(filename, L"TortoiseProc"))
 			continue;
 
 		CString file = finder.GetFilePath();
@@ -126,7 +126,7 @@ std::vector<std::pair<CString, DWORD>> CLangDll::GetInstalledLanguages(bool incl
 			continue;
 		CString sLoc = filename.Mid(static_cast<int>(wcslen(L"TortoiseProc")));
 		sLoc = sLoc.Left(sLoc.GetLength() - static_cast<int>(wcslen(L".dll"))); // cut off ".dll"
-		if (CStringUtils::StartsWith(sLoc, L"32") && (sLoc.GetLength() > 5))
+		if (StringUtils::StartsWith(sLoc, L"32") && (sLoc.GetLength() > 5))
 			continue;
 		const DWORD loc = _wtoi(filename.Mid(static_cast<int>(wcslen(L"TortoiseProc"))));
 		if (!loc)

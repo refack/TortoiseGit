@@ -22,6 +22,5 @@ using std::operator+;
 using std::wstring_view;
 using std::wstring;
 namespace fs = std::filesystem;
+
 using tgit::wstr::StringView;
-
-

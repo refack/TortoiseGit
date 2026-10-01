@@ -43,9 +43,9 @@
 
 static int SplitRemoteBranchName(CString ref, CString &remote, CString &branch)
 {
-	if (CStringUtils::StartsWith(ref, L"refs/remotes/"))
+	if (StringUtils::StartsWith(ref, L"refs/remotes/"))
 		ref = ref.Mid(static_cast<int>(wcslen(L"refs/remotes/")));
-	else if (CStringUtils::StartsWith(ref, L"remotes/"))
+	else if (StringUtils::StartsWith(ref, L"remotes/"))
 		ref = ref.Mid(static_cast<int>(wcslen(L"remotes/")));
 
 	STRING_VECTOR list;
@@ -55,7 +55,7 @@ static int SplitRemoteBranchName(CString ref, CString &remote, CString &branch)
 
 	for (size_t i = 0; i < list.size(); ++i)
 	{
-		if (CStringUtils::StartsWith(ref, (list[i] + L"/").c_str()))
+		if (StringUtils::StartsWith(ref, (list[i] + L"/").c_str()))
 		{
 			remote = list[i].c_str();
 			branch = ref.Mid(SafeSizeToInt(list[i].size()) + 1);
@@ -373,11 +373,11 @@ CShadowTree* CShadowTree::GetNextSub(CString& nameLeft, bool bCreateIfNotExist)
 {
 	if(IsLeaf())
 	{
-		if (CStringUtils::EndsWith(partialRefName, m_csRefName))
+		if (StringUtils::EndsWith(partialRefName, m_csRefName))
 		{
 			//Match of leaf name. Try match on total name.
 			CString totalRefName = GetRefName();
-			if (CStringUtils::EndsWith(totalRefName, partialRefName))
+			if (StringUtils::EndsWith(totalRefName, partialRefName))
 				return this; //Also match. Found.
 		}
 	}
@@ -411,9 +411,9 @@ CString CBrowseRefsDlg::GetSelectedRef(bool onlyIfLeaf, bool pickFirstSelIfMulti
 		while ((index = m_ListRefLeafs.GetNextSelectedItem(pos)) >= 0)
 		{
 			CString ref = GetListEntry(index)->GetRefName();
-			if (CStringUtils::StartsWith(ref, L"refs/"))
+			if (StringUtils::StartsWith(ref, L"refs/"))
 				ref = ref.Mid(static_cast<int>(wcslen(L"refs/")));
-			if (CStringUtils::StartsWith(ref, L"heads/"))
+			if (StringUtils::StartsWith(ref, L"heads/"))
 				ref = ref.Mid(static_cast<int>(wcslen(L"heads/")));
 			refs += ref + L' ';
 		}
@@ -459,13 +459,13 @@ void CBrowseRefsDlg::Refresh(CString selectRef)
 	if (CString err; GitRevRefBrowser::GetGitRevRefMap(refMap, m_cBranchFilter.GetCurSel(), err, [&](const CString& refName)
 	{
 		//Use ref based on m_pickRef_Kind
-		if (CStringUtils::StartsWith(refName, L"refs/heads/") && !(m_pickRef_Kind & gPickRef_Head))
+		if (StringUtils::StartsWith(refName, L"refs/heads/") && !(m_pickRef_Kind & gPickRef_Head))
 			return false; //Skip
-		if (CStringUtils::StartsWith(refName, L"refs/tags/") && !(m_pickRef_Kind & gPickRef_Tag))
+		if (StringUtils::StartsWith(refName, L"refs/tags/") && !(m_pickRef_Kind & gPickRef_Tag))
 			return false; //Skip
-		if (CStringUtils::StartsWith(refName, L"refs/remotes/") && !(m_pickRef_Kind & gPickRef_Remote))
+		if (StringUtils::StartsWith(refName, L"refs/remotes/") && !(m_pickRef_Kind & gPickRef_Remote))
 			return false; //Skip
-		if (m_pickRef_Kind == gPickRef_Remote && !CStringUtils::StartsWith(refName, L"refs/remotes/")) // do not show refs/stash if only remote branches are requested
+		if (m_pickRef_Kind == gPickRef_Remote && !StringUtils::StartsWith(refName, L"refs/remotes/")) // do not show refs/stash if only remote branches are requested
 			return false;
 		return true;
 	}))
@@ -519,7 +519,7 @@ bool CBrowseRefsDlg::SelectRef(CString refName, bool bExactMatch)
 			refName = newRefName;
 		//else refName is not a valid ref. Try to select as good as possible.
 	}
-	if (!CStringUtils::StartsWith(refName, L"refs"))
+	if (!StringUtils::StartsWith(refName, L"refs"))
 		return false; // Not a ref name
 
 	CShadowTree& treeLeafHead = GetTreeNode(refName, nullptr, false);
@@ -553,7 +553,7 @@ CShadowTree& CBrowseRefsDlg::GetTreeNode(CString refName, CShadowTree* pTreePos,
 {
 	if (!pTreePos)
 	{
-		if (CStringUtils::StartsWith(refName, L"refs/"))
+		if (StringUtils::StartsWith(refName, L"refs/"))
 			refName = refName.Mid(static_cast<int>(wcslen(L"refs/")));
 		pTreePos=&m_TreeRoot;
 	}
@@ -730,7 +730,7 @@ bool CBrowseRefsDlg::DoDeleteRefs(const VectorPShadowTree& leafs)
 	for (auto i = leafs.cbegin(); i != leafs.cend(); ++i)
 	{
 		CString completeRefName = (*i)->GetRefName();
-		if (CStringUtils::StartsWith(completeRefName, L"refs/remotes/"))
+		if (StringUtils::StartsWith(completeRefName, L"refs/remotes/"))
 		{
 			CString branchToDelete = completeRefName.Mid(static_cast<int>(wcslen(L"refs/remotes/")));
 			CString remoteName, remoteBranchToDelete;
@@ -782,12 +782,12 @@ bool CBrowseRefsDlg::DoDeleteRef(const CString& completeRefName)
 {
 	bool bIsRemoteBranch = false;
 	bool bIsBranch = false;
-	if (CStringUtils::StartsWith(completeRefName, L"refs/remotes/"))
+	if (StringUtils::StartsWith(completeRefName, L"refs/remotes/"))
 	{
 		bIsBranch = true;
 		bIsRemoteBranch = true;
 	}
-	else if (CStringUtils::StartsWith(completeRefName, L"refs/heads/"))
+	else if (StringUtils::StartsWith(completeRefName, L"refs/heads/"))
 		bIsBranch = true;
 
 	if (bIsRemoteBranch)
@@ -824,7 +824,7 @@ bool CBrowseRefsDlg::DoDeleteRef(const CString& completeRefName)
 			return false;
 		}
 	}
-	else if (CStringUtils::StartsWith(completeRefName, L"refs/tags/"))
+	else if (StringUtils::StartsWith(completeRefName, L"refs/tags/"))
 	{
 		if (g_Git.DeleteRef(completeRefName))
 		{
@@ -1335,7 +1335,7 @@ void CBrowseRefsDlg::ShowContextMenu(CPoint point, HTREEITEM hTreePos, VectorPSh
 				sClipdata += CGit::StripRefName(leaf->GetRefName());
 				first = false;
 			}
-			CStringUtils::WriteAsciiStringToClipboard(sClipdata, GetSafeHwnd());
+			StringUtils::WriteAsciiStringToClipboard(sClipdata, GetSafeHwnd());
 		}
 		break;
 	}
@@ -1567,7 +1567,7 @@ void CBrowseRefsDlg::OnLvnEndlabeleditListRefLeafs(NMHDR *pNMHDR, LRESULT *pResu
 		newName = m_pListCtrlRoot->GetRefName() + L'/';
 	newName += pDispInfo->item.pszText;
 
-	if (!CStringUtils::StartsWith(newName, L"refs/heads/"))
+	if (!StringUtils::StartsWith(newName, L"refs/heads/"))
 	{
 		CMessageBox::Show(m_hWnd, IDS_PROC_BROWSEREFS_NOCHANGEOFTYPE, IDS_APPNAME, MB_OK | MB_ICONERROR);
 		return;
@@ -1681,21 +1681,21 @@ void CBrowseRefsDlg::SetFilterCueText()
 
 	if (m_SelectedFilters & LOGFILTER_SUBJECT)
 	{
-		if (!CStringUtils::EndsWith(temp, L' '))
+		if (!StringUtils::EndsWith(temp, L' '))
 			temp += L", ";
 		temp += CString(MAKEINTRESOURCE(IDS_LOG_FILTER_SUBJECT));
 	}
 
 	if (m_SelectedFilters & LOGFILTER_AUTHORS)
 	{
-		if (!CStringUtils::EndsWith(temp, L' '))
+		if (!StringUtils::EndsWith(temp, L' '))
 			temp += L", ";
 		temp += CString(MAKEINTRESOURCE(IDS_LOG_FILTER_AUTHORS));
 	}
 
 	if (m_SelectedFilters & LOGFILTER_REVS)
 	{
-		if (!CStringUtils::EndsWith(temp, L' '))
+		if (!StringUtils::EndsWith(temp, L' '))
 			temp += L", ";
 		temp += CString(MAKEINTRESOURCE(IDS_LOG_FILTER_REVS));
 	}

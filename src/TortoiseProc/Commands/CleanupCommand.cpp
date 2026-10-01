@@ -63,7 +63,7 @@ static int SubmoduleCallback(git_submodule *sm, const char * /*name*/, void *pay
 		for (size_t i = 0; i < spayload->prefixList.size(); ++i)
 		{
 			CString prefix = (spayload->prefixList.at(i) + L'/').c_str();
-			if (CStringUtils::StartsWith(path, prefix))
+			if (StringUtils::StartsWith(path, prefix))
 			{
 				CTGitPath subPath(spayload->basePath.GetString());
 				subPath.AppendPathString(path.GetString());
@@ -111,7 +111,7 @@ static bool GetFilesToCleanUp(CTGitPathList& delList, const STRING_VECTOR& baseC
 				return;
 
 			if (quotepath && line[0] == '"')
-				delList.AddPath(CTGitPath(pGit->CombinePath(CStringUtils::UnescapeGitQuotePathA(line.substr(1))).GetString()));
+				delList.AddPath(CTGitPath(pGit->CombinePath(StringUtils::UnescapeGitQuotePathA(line.substr(1))).GetString()));
 			else
 				delList.AddPath(CTGitPath(pGit->CombinePath(CUnicodeUtils::GetUnicode(line)).GetString()));
 		}, &cmdouterr))

@@ -126,7 +126,7 @@ void CRequestPullDlg::OnBnClickedOk()
 		return;
 	}
 
-	if (CStringUtils::StartsWith(m_StartRevision, L"remotes/"))
+	if (StringUtils::StartsWith(m_StartRevision, L"remotes/"))
 		m_StartRevision = m_StartRevision.Mid(static_cast<int>(wcslen(L"remotes/")));
 
 

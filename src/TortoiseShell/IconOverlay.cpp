@@ -205,7 +205,7 @@ STDMETHODIMP CShellExt::IsMemberOf(LPCWSTR pwszPath, DWORD dwAttrib)
 						else
 							status = git_wc_status_none;
 					}
-					else if (CStringUtils::EndsWith(pPath, L".git"))
+					else if (StringUtils::EndsWith(pPath, L".git"))
 						status = git_wc_status_none;
 					else
 					{

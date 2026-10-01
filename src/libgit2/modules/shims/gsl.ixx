@@ -10,4 +10,6 @@ export namespace gsl
 	using ::gsl::span;
 	using ::gsl::narrow;
 	using ::gsl::copy;
+	using ::gsl::finally;
+	using ::gsl::final_action;
 }

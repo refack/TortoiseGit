@@ -26,7 +26,7 @@ TEST(libgit2, Config)
 {
 	CAutoTempDir tempdir;
 	CString testFile = tempdir.GetTempDir() + L"\\config";
-	EXPECT_TRUE(CStringUtils::WriteStringToTextFile(testFile, L"[core]\nemail=dummy@example.com\ntrue=true\nfalse=false\n"));
+	EXPECT_TRUE(StringUtils::WriteStringToTextFile(testFile, L"[core]\nemail=dummy@example.com\ntrue=true\nfalse=false\n"));
 	CAutoConfig config(true);
 	EXPECT_EQ(0, git_config_add_file_ondisk(config, CUnicodeUtils::GetUTF8(testFile), GIT_CONFIG_LEVEL_LOCAL, nullptr, 1));
 	bool ret = false;
@@ -53,21 +53,21 @@ TEST(libgit2, ConfigSnaphot)
 	ASSERT_TRUE(git_repository_set_head(repo, "refs/heads/master") == 0);
 	CString configFile = tmpDir.GetTempDir() + L"\\.git\\config";
 	CString text;
-	ASSERT_TRUE(CStringUtils::ReadStringFromTextFile(configFile, text));
+	ASSERT_TRUE(StringUtils::ReadStringFromTextFile(configFile, text));
 	text += L"[includeIf \"onbranch:master\"]\n\tpath = master.txt\n";
 	text += L"[includeIf \"onbranch:other\"]\n\tpath = other.txt\n";
 	text += L"[include]\n\tpath = include.txt\n";
-	EXPECT_TRUE(CStringUtils::WriteStringToTextFile(configFile, text));
+	EXPECT_TRUE(StringUtils::WriteStringToTextFile(configFile, text));
 
-	EXPECT_TRUE(CStringUtils::WriteStringToTextFile(tmpDir.GetTempDir() + L"\\.git\\master.txt", L"[blup]\n\tbran = master\nmaster\n"));
-	EXPECT_TRUE(CStringUtils::WriteStringToTextFile(tmpDir.GetTempDir() + L"\\.git\\other.txt", L"[blup]\n\tbran = other\nother\n"));
-	EXPECT_TRUE(CStringUtils::WriteStringToTextFile(tmpDir.GetTempDir() + L"\\.git\\include.txt", L"[blup]\n\tfoo = bar\n"));
+	EXPECT_TRUE(StringUtils::WriteStringToTextFile(tmpDir.GetTempDir() + L"\\.git\\master.txt", L"[blup]\n\tbran = master\nmaster\n"));
+	EXPECT_TRUE(StringUtils::WriteStringToTextFile(tmpDir.GetTempDir() + L"\\.git\\other.txt", L"[blup]\n\tbran = other\nother\n"));
+	EXPECT_TRUE(StringUtils::WriteStringToTextFile(tmpDir.GetTempDir() + L"\\.git\\include.txt", L"[blup]\n\tfoo = bar\n"));
 
 	CAutoConfig config;
 	EXPECT_EQ(0, git_repository_config_snapshot(config.GetPointer(), repo));
 	repo.Free();
 
-	EXPECT_TRUE(CStringUtils::WriteStringToTextFile(tmpDir.GetTempDir() + L"\\.git\\include.txt", L"[blup]\n\tfoo = changedafterwards\n"));
+	EXPECT_TRUE(StringUtils::WriteStringToTextFile(tmpDir.GetTempDir() + L"\\.git\\include.txt", L"[blup]\n\tfoo = changedafterwards\n"));
 
 	bool bResult = false;
 	EXPECT_EQ(-3, config.GetBool(L"blup.doesnotexist", bResult));
@@ -92,11 +92,11 @@ TEST(libgit2, ConfigSnaphotRepoHashFile)
 	ASSERT_TRUE(git_repository_init(repo.GetPointer(), CUnicodeUtils::GetUTF8(tmpDir.GetTempDir()), false) == 0);
 	CString configFile = tmpDir.GetTempDir() + L"\\.git\\config";
 	CString text;
-	ASSERT_TRUE(CStringUtils::ReadStringFromTextFile(configFile, text));
+	ASSERT_TRUE(StringUtils::ReadStringFromTextFile(configFile, text));
 	text += L"[user]\n\tuser = Someone\n\temail = some@one.de\n";
-	EXPECT_TRUE(CStringUtils::WriteStringToTextFile(configFile, text));
+	EXPECT_TRUE(StringUtils::WriteStringToTextFile(configFile, text));
 
-	EXPECT_TRUE(CStringUtils::WriteStringToTextFile(tmpDir.GetTempDir() + L"\\test.txt", L"something"));
+	EXPECT_TRUE(StringUtils::WriteStringToTextFile(tmpDir.GetTempDir() + L"\\test.txt", L"something"));
 	git_oid oid;
 	EXPECT_EQ(0, git_repository_hashfile(&oid, repo, "test.txt", GIT_OBJECT_BLOB, nullptr));
 	EXPECT_STREQ(L"a459bc245bdbc45e1bca99e7fe61731da5c48da4", CGitHash(oid).ToString());
@@ -113,13 +113,13 @@ TEST(libgit2, ConfigSnaphotRepoHashFile)
 	EXPECT_EQ(0, g_Git.Run(L"git.exe commit -m \"Add test.txt\"", &output, CP_UTF8));
 	EXPECT_STRNE(L"", output);
 
-	EXPECT_TRUE(CStringUtils::WriteStringToTextFile(tmpDir.GetTempDir() + L"\\test.txt", L"something else"));
+	EXPECT_TRUE(StringUtils::WriteStringToTextFile(tmpDir.GetTempDir() + L"\\test.txt", L"something else"));
 
 	git_oid oid2;
 	EXPECT_EQ(0, git_repository_hashfile(&oid2, repo, "test.txt", GIT_OBJECT_BLOB, nullptr));
 	EXPECT_STREQ(L"339f0be6c0f5257a3279fcefc45373e805b7ebc3", CGitHash(oid2).ToString());
 
-	EXPECT_TRUE(CStringUtils::WriteStringToTextFile(tmpDir.GetTempDir() + L"\\test.txt", L"something"));
+	EXPECT_TRUE(StringUtils::WriteStringToTextFile(tmpDir.GetTempDir() + L"\\test.txt", L"something"));
 
 	git_oid oid3;
 	EXPECT_EQ(0, git_repository_hashfile(&oid3, repo, "test.txt", GIT_OBJECT_BLOB, nullptr));

@@ -67,7 +67,7 @@ bool IsUrlOrEmail(const T& sText)
 	static const T prefixes[] = { T("http://"), T("https://"), T("git://"), T("ftp://"), T("file://"), T("mailto:") };
 	for (auto& prefix : prefixes)
 	{
-		if (CStringUtils::StartsWith(sText, prefix) && sText.GetLength() != prefix.GetLength())
+		if (StringUtils::StartsWith(sText, prefix) && sText.GetLength() != prefix.GetLength())
 			return true;
 	}
 	return false;

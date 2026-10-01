@@ -12,7 +12,23 @@
 #include "Utils/DragDropImpl.h"
 #include <new>
 #include <cassert>
-#include <Strsafe.h>
+
+import std;
+import wil;
+import wstr;
+
+/// A DROPDESCRIPTION in the HGLOBAL form SetData takes. A null \a format or
+/// \a insert leaves that field empty.
+static wil::unique_hglobal MakeDropDescription(const DROPIMAGETYPE image, const LPCWSTR format, const LPCWSTR insert)
+{
+	DROPDESCRIPTION description{};
+	description.type = image;
+	if (insert)
+		tgit::wstr::CopyTruncating(description.szInsert, insert);
+	if (format)
+		tgit::wstr::CopyTruncating(description.szMessage, format);
+	return wil::make_moveable_hglobal(std::as_bytes(std::span(&description, 1)));
+}
 
 //////////////////////////////////////////////////////////////////////
 // CIDataObject Class
@@ -264,19 +280,16 @@ HRESULT CIDataObject::SetDropDescription(DROPIMAGETYPE image, LPCWSTR format, LP
 	fetc.lindex = -1;
 	fetc.tymed = TYMED_HGLOBAL;
 
-	STGMEDIUM medium = {0};
-	medium.hGlobal = GlobalAlloc(GHND, sizeof(DROPDESCRIPTION));
-	if (!medium.hGlobal)
+	auto block = MakeDropDescription(image, format, insert);
+	if (!block)
 		return E_OUTOFMEMORY;
-
-	auto pDropDescription = static_cast<DROPDESCRIPTION*>(GlobalLock(medium.hGlobal));
-	if (pDropDescription == nullptr)
-		return E_OUTOFMEMORY;
-	StringCchCopy(pDropDescription->szInsert, _countof(pDropDescription->szInsert), insert);
-	StringCchCopy(pDropDescription->szMessage, _countof(pDropDescription->szMessage), format);
-	pDropDescription->type = image;
-	GlobalUnlock(medium.hGlobal);
-	return SetData(&fetc, &medium, TRUE);
+	STGMEDIUM medium = {};
+	medium.tymed = TYMED_HGLOBAL; // SetData asserts it matches fetc.tymed; this used to be left TYMED_NULL
+	medium.hGlobal = block.get();
+	const HRESULT hr = SetData(&fetc, &medium, TRUE);
+	if (SUCCEEDED(hr))
+		block.release(); // the data object owns it now; on failure we still do
+	return hr;
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -641,33 +654,15 @@ HRESULT CIDropTarget::SetDropDescription(DROPIMAGETYPE image, LPCWSTR format, LP
 	fetc.lindex = -1;
 	fetc.tymed = TYMED_HGLOBAL;
 
-	STGMEDIUM medium = {0};
+	auto block = MakeDropDescription(image, format, insert);
+	if (!block)
+		return hr;
+	STGMEDIUM medium = {};
 	medium.tymed = TYMED_HGLOBAL;
-	medium.hGlobal = GlobalAlloc(GHND, sizeof(DROPDESCRIPTION));
-	if(medium.hGlobal)
-	{
-		auto pDropDescription = static_cast<DROPDESCRIPTION*>(GlobalLock(medium.hGlobal));
-		if (pDropDescription == nullptr)
-			return hr;
-
-		if (insert)
-			StringCchCopy(pDropDescription->szInsert, _countof(pDropDescription->szInsert), insert);
-		else
-			pDropDescription->szInsert[0] = 0;
-		if (format)
-			StringCchCopy(pDropDescription->szMessage, _countof(pDropDescription->szMessage), format);
-		else
-			pDropDescription->szMessage[0] = 0;
-		pDropDescription->type = image;
-		GlobalUnlock(medium.hGlobal);
-
-		hr = m_pIDataObject->SetData(&fetc, &medium, TRUE);
-		if (FAILED(hr))
-		{
-			GlobalFree(medium.hGlobal);
-		}
-	}
-
+	medium.hGlobal = block.get();
+	hr = m_pIDataObject->SetData(&fetc, &medium, TRUE);
+	if (SUCCEEDED(hr))
+		block.release(); // the data object owns it now; on failure we still do
 	return hr;
 }
 

@@ -592,7 +592,7 @@ int CACListWnd::FindString(int nStartAfter, LPCWSTR lpszString, bool m_bDisplayO
 			}
 			else  // _MODE_FIND_EXACT_
 			{
-				if (CStringUtils::StartsWith(m_Str1, m_Str2))
+				if (StringUtils::StartsWith(m_Str1, m_Str2))
 				{
 					m_DisplayList.Add(m_SearchList.GetAt(i));
 				}

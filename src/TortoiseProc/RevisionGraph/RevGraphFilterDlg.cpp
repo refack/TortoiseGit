@@ -77,25 +77,25 @@ BOOL CRevGraphFilterDlg::OnInitDialog()
 		m_ctrlFromRev.AddSearchString(str);
 		m_ctrlToRev.AddSearchString(str);
 
-		if (CStringUtils::StartsWith(str, L"refs/"))
+		if (StringUtils::StartsWith(str, L"refs/"))
 		{
 			m_ctrlFromRev.AddSearchString(str.Mid(static_cast<int>(wcslen(L"refs/"))));
 			m_ctrlToRev.AddSearchString(str.Mid(static_cast<int>(wcslen(L"refs/"))));
 		}
 
-		if (CStringUtils::StartsWith(str, L"refs/heads/"))
+		if (StringUtils::StartsWith(str, L"refs/heads/"))
 		{
 			m_ctrlFromRev.AddSearchString(str.Mid(static_cast<int>(wcslen(L"refs/heads/"))));
 			m_ctrlToRev.AddSearchString(str.Mid(static_cast<int>(wcslen(L"refs/heads/"))));
 		}
 
-		if (CStringUtils::StartsWith(str, L"refs/remotes/"))
+		if (StringUtils::StartsWith(str, L"refs/remotes/"))
 		{
 			m_ctrlFromRev.AddSearchString(str.Mid(static_cast<int>(wcslen(L"refs/remotes/"))));
 			m_ctrlToRev.AddSearchString(str.Mid(static_cast<int>(wcslen(L"refs/remotes/"))));
 		}
 
-		if (CStringUtils::StartsWith(str, L"refs/tags/"))
+		if (StringUtils::StartsWith(str, L"refs/tags/"))
 		{
 			m_ctrlFromRev.AddSearchString(str.Mid(static_cast<int>(wcslen(L"refs/tags/"))));
 			m_ctrlToRev.AddSearchString(str.Mid(static_cast<int>(wcslen(L"refs/tags/"))));

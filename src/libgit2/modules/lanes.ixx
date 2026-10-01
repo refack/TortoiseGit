@@ -3,7 +3,7 @@
 
 export module lanes;
 import std;
-import TGitHash;
+import GitHash;
 using CGitHashList = std::vector<CGitHash>;
 
 export class Lanes {

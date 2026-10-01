@@ -69,7 +69,7 @@ bool SVNRebaseCommand::Execute()
 		if( start >=0 )
 			out=out.Mid(start);
 
-		if (CStringUtils::StartsWith(out, L":refs"))
+		if (StringUtils::StartsWith(out, L":refs"))
 			out = out.Mid(static_cast<int>(wcslen(L":refs")) + 1);
 
 		start = 0;

@@ -113,7 +113,7 @@ BOOL CCreateWorktreeDlg::OnInitDialog()
 
 	if (m_sWorktreePath.IsEmpty())
 	{
-		if (CStringUtils::EndsWith(g_Git.m_CurrentDir, L".git"))
+		if (StringUtils::EndsWith(g_Git.m_CurrentDir, L".git"))
 			m_sWorktreePath = g_Git.m_CurrentDir.Left(g_Git.m_CurrentDir.GetLength() - static_cast<int>(wcslen(L".git")));
 		else
 			m_sWorktreePath = g_Git.m_CurrentDir + L"-worktree";
@@ -166,9 +166,9 @@ void CCreateWorktreeDlg::OnVersionChanged()
 	CString version = m_VersionName;
 
 	int start = -1;
-	if (CStringUtils::StartsWith(version, L"origin/"))
+	if (StringUtils::StartsWith(version, L"origin/"))
 		start = version.Find(L'/', static_cast<int>(wcslen(L"origin/")) + 1);
-	else if (CStringUtils::StartsWith(version, L"remotes/"))
+	else if (StringUtils::StartsWith(version, L"remotes/"))
 		start = version.Find(L'/', static_cast<int>(wcslen(L"remotes/")) + 1);
 
 	if (radio == IDC_RADIO_HEAD)
@@ -186,7 +186,7 @@ void CCreateWorktreeDlg::OnVersionChanged()
 	}
 	else
 	{
-		if (CStringUtils::StartsWith(m_VersionName, L"refs/heads/"))
+		if (StringUtils::StartsWith(m_VersionName, L"refs/heads/"))
 			version = m_VersionName.Mid(static_cast<int>(wcslen(L"refs/heads/")));
 		else if (radio == IDC_RADIO_VERSION)
 			version = version.Left(g_Git.GetShortHASHLength());
@@ -221,7 +221,7 @@ void CCreateWorktreeDlg::OnBnClickedCheckBranch()
 	GetDlgItem(IDC_EDIT_BRANCH)->EnableWindow(m_bBranch);
 
 	const int radio = GetCheckedRadioButton(IDC_RADIO_HEAD, IDC_RADIO_VERSION);
-	if (!m_bBranch && (radio == IDC_RADIO_VERSION || radio == IDC_RADIO_TAGS || radio == IDC_RADIO_BRANCH && CStringUtils::StartsWith(m_VersionName, L"remotes/")))
+	if (!m_bBranch && (radio == IDC_RADIO_VERSION || radio == IDC_RADIO_TAGS || radio == IDC_RADIO_BRANCH && StringUtils::StartsWith(m_VersionName, L"remotes/")))
 		m_bDetach = TRUE;
 	else
 		m_bDetach = FALSE;
@@ -240,7 +240,7 @@ void CCreateWorktreeDlg::OnBnClickedCheckDetach()
 	UpdateData(FALSE);
 	GetDlgItem(IDC_EDIT_BRANCH)->EnableWindow(m_bBranch);
 	const int radio = GetCheckedRadioButton(IDC_RADIO_HEAD, IDC_RADIO_VERSION);
-	if (radio == IDC_RADIO_VERSION || radio == IDC_RADIO_TAGS || radio == IDC_RADIO_BRANCH && CStringUtils::StartsWith(m_VersionName, L"remotes/"))
+	if (radio == IDC_RADIO_VERSION || radio == IDC_RADIO_TAGS || radio == IDC_RADIO_BRANCH && StringUtils::StartsWith(m_VersionName, L"remotes/"))
 		GetDlgItem(IDC_CHECK_DETACH)->EnableWindow(FALSE);
 }
 

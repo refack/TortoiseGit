@@ -16,77 +16,64 @@
 // along with this program; if not, write to the Free Software Foundation,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
+module;
 
-import std;
-import gsl;
-
-#include "Git.h"
-
+#include <atlstr.h>
 #include <gitdll.h>
 
 #include <git2/sys/errors.h>
 #include <git2/sys/filter.h>
 #include <git2/sys/transport.h>
+#include <git2.h>
 
 #include "libgit2/filter-filter.h"
 #include "libgit2/ssh-wintunnel.h"
 
-#include "GitForWindows.h"
 
-#include "raii-win32-formatmessage.h"
-#include "Utils/scope_exit_noexcept.h"
+// A module implementation unit: everything defined below - CGit's members and
+// the free functions in TGitH - is attached to module git_h by its declaration
+// in Git.ixx, and an ordinary translation unit cannot define those.
+module git_h;
 
+import std;
+import gsl;
+
+import wil;
+import wstr;
+import StringUtils;
 import DebugOutput;
 import Registry;
-import RIAA;
+import PathUtils;
 import TGitPath;
+import GitHash;
 import GitAdminDir;
 import tgittypes;
 import GitRev;
+import RIAA;
+import FormatMessageWrapper;
 
 using std::operator ""sv;
 using namespace tgit::types;
 
+using tgit::DebugOutput::CTraceToOutputDebugString;
+using TGitPath::CTGitPath;
+using Registry::CRegDWORD;
 
-namespace
+
+/// Splits the next entry off a PATH-style list into \a entry: ';'-separated,
+/// and an entry that starts with '"' runs to the closing quote. Returns where
+/// the following entry starts, or nullptr when nothing was consumed.
+LPCWSTR nextpath(const wchar_t* path, std::wstring& entry)
 {
-constexpr auto DiffSimilarityIndexThreshold = L"Software\\TortoiseGit\\DiffSimilarityIndexThreshold"sv;
-constexpr auto CygwinHack = L"Software\\TortoiseGit\\CygwinHack"sv;
-constexpr auto Msys2Hack = L"Software\\TortoiseGit\\Msys2Hack"sv;
-
-template<typename DT>
-constexpr int RegTyped(const wchar_t* key, const DT def = 0) noexcept
-{
-	return reinterpret_cast<DT>(CRegDWORD(key, def));
-}
-
-constexpr int CalculateDiffSimilarityIndexThreshold() noexcept
-{
-	const auto index = RegTyped<size_t>(DiffSimilarityIndexThreshold.data());
-	return (0 > index || index > 100) ? gsl::narrow<int>(index) : 50;
-}
-}
-
-// ReSharper disable CppClangTidyBugproneThrowingStaticInitialization
-auto CGit::ms_bCygwinGit = RegTyped<bool>(CygwinHack.data());
-auto CGit::ms_bMsys2Git = RegTyped<bool>(Msys2Hack.data());
-auto CGit::ms_iSimilarityIndexThreshold = CalculateDiffSimilarityIndexThreshold();
-auto CGit::m_LogEncode = CP_UTF8;
-auto CGit::s_limitGitExeOutput = false;
-// ReSharper enable CppClangTidyBugproneThrowingStaticInitialization
-
-LPCWSTR nextpath(const wchar_t* path, wchar_t* buf, size_t buflen)
-{
-	if (!path || !buf || buflen == 0)
+	entry.clear();
+	if (!path)
 		return nullptr;
 
 	const wchar_t* base = path;
 	const wchar_t term = (*path == L'"') ? *path++ : L';';
 
-	for (buflen--; *path && *path != term && buflen; buflen--)
-		*buf++ = *path++;
-
-	*buf = L'\0'; /* reserved a byte via initial subtract */
+	while (*path && *path != term)
+		entry += *path++;
 
 	while (*path == term || *path == L';')
 		++path;
@@ -94,36 +81,28 @@ LPCWSTR nextpath(const wchar_t* path, wchar_t* buf, size_t buflen)
 	return (path != base) ? path : nullptr;
 }
 
-CString FindFileOnPath(const CString& filename, LPCWSTR env, bool wantDirectory = false)
+
+CString FindFileOnPath(const CString& filename, LPCWSTR env, const bool wantDirectory = false)
 {
-	wchar_t buf[MAX_PATH] = { 0 };
-
-	// search in all paths defined in PATH
-	while ((env = nextpath(env, buf, _countof(buf) - 1)) != nullptr && *buf)
+	// search in all paths defined in PATH, stopping at the first empty entry
+	std::wstring directory;
+	while ((env = nextpath(env, directory)) != nullptr && !directory.empty())
 	{
-		wchar_t* pfin = buf + wcslen(buf) - 1;
-
 		// ensure trailing slash
-		if (*pfin != L'/' && *pfin != L'\\')
-			wcscpy_s(++pfin, 2, L"\\"); // we have enough space left, MAX_PATH-1 is used in nextpath above
+		if (directory.back() != L'/' && directory.back() != L'\\')
+			directory += L'\\';
 
-		const size_t len = wcslen(buf);
-
-		if ((len + filename.GetLength()) < _countof(buf))
-			wcscpy_s(pfin + 1, _countof(buf) - len, filename);
-		else
+		std::wstring candidate = directory + filename.GetString();
+		if (candidate.size() >= MAX_PATH) // PathFileExists is MAX_PATH-bound; as before, give up rather than probe a truncated path
 			break;
 
-		if (PathFileExists(buf))
-		{
-			if (wantDirectory)
-				pfin[1] = L'\0';
-			return CString(buf);
-		}
+		if (PathFileExists(candidate.c_str()))
+			return (wantDirectory ? directory : candidate).c_str();
 	}
 
 	return L"";
 }
+
 
 BOOL FindGitPath()
 {
@@ -132,7 +111,7 @@ BOOL FindGitPath()
 	if (!size)
 		return FALSE;
 
-	auto env = std::make_unique<wchar_t[]>(size);
+	const auto env = std::make_unique<wchar_t[]>(size);
 	if (!env)
 		return FALSE;
 	_wgetenv_s(&size, env.get(), size, L"PATH");
@@ -140,11 +119,11 @@ BOOL FindGitPath()
 	CString gitExeDirectory = FindFileOnPath(L"git.exe", env.get(), true);
 	if (!gitExeDirectory.IsEmpty())
 	{
-		CGit::ms_LastMsysGitDir = gitExeDirectory;
-		CGit::ms_LastMsysGitDir.TrimRight(L'\\');
+		TGitH::ms_LastMsysGitDir = gitExeDirectory;
+		TGitH::ms_LastMsysGitDir.TrimRight(L'\\');
 
 		// check for (broken) scoop shim, cf. issue #4033
-		if (CString contents; CGit::LoadTextFile(CGit::ms_LastMsysGitDir + L"\\git.shim", contents))
+		if (CString contents; LoadTextFile(TGitH::ms_LastMsysGitDir + L"\\git.shim", contents))
 		{
 			tgit::DebugOutput::CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": found git.shim\n");
 			int start = 0 ;
@@ -156,26 +135,26 @@ BOOL FindGitPath()
 					CString path = line.Mid(separatorPos + 1).Trim();
 					if (path.GetLength() >= 2 && path[0] == L'"' && path[path.GetLength() - 1] == L'"')
 						path = path.Mid(1, path.GetLength() - 2);
-					if (CStringUtils::EndsWithI(path, L"\\git.exe") && PathFileExists(path))
-						CGit::ms_LastMsysGitDir = path.Mid(0, path.GetLength() - static_cast<int>(wcslen(L"\\git.exe")));
+					if (StringUtils::EndsWithI(path, L"\\git.exe") && PathFileExists(path))
+						TGitH::ms_LastMsysGitDir = path.Mid(0, path.GetLength() - static_cast<int>(wcslen(L"\\git.exe")));
 					break;
 				}
 			}
 		}
 
-		if (CStringUtils::EndsWith(CGit::ms_LastMsysGitDir, L"\\mingw32\\bin") || CStringUtils::EndsWith(CGit::ms_LastMsysGitDir, L"\\mingw64\\bin"))
+		if (StringUtils::EndsWith(TGitH::ms_LastMsysGitDir, L"\\mingw32\\bin") || StringUtils::EndsWith(TGitH::ms_LastMsysGitDir, L"\\mingw64\\bin"))
 		{
 			// prefer cmd directory as early Git for Windows 2.x releases only had this
-			CString installRoot = CGit::ms_LastMsysGitDir.Left(CGit::ms_LastMsysGitDir.GetLength() - static_cast<int>(wcslen(L"\\mingw64\\bin"))) + L"\\cmd\\git.exe";
+			CString installRoot = TGitH::ms_LastMsysGitDir.Left(TGitH::ms_LastMsysGitDir.GetLength() - static_cast<int>(wcslen(L"\\mingw64\\bin"))) + L"\\cmd\\git.exe";
 			if (PathFileExists(installRoot))
-				CGit::ms_LastMsysGitDir = CGit::ms_LastMsysGitDir.Left(CGit::ms_LastMsysGitDir.GetLength() - static_cast<int>(wcslen(L"\\mingw64\\bin"))) + L"\\cmd";
+				TGitH::ms_LastMsysGitDir = TGitH::ms_LastMsysGitDir.Left(TGitH::ms_LastMsysGitDir.GetLength() - static_cast<int>(wcslen(L"\\mingw64\\bin"))) + L"\\cmd";
 		}
-		if (CStringUtils::EndsWith(CGit::ms_LastMsysGitDir, L"\\cmd"))
+		if (StringUtils::EndsWith(TGitH::ms_LastMsysGitDir, L"\\cmd"))
 		{
 			// often the msysgit\cmd folder is on the %PATH%, but
 			// that git.exe does not work, so try to guess the bin folder
-			if (PathFileExists(CGit::ms_LastMsysGitDir.Left(CGit::ms_LastMsysGitDir.GetLength() - static_cast<int>(wcslen(L"\\cmd"))) + L"\\bin\\git.exe"))
-				CGit::ms_LastMsysGitDir = CGit::ms_LastMsysGitDir.Left(CGit::ms_LastMsysGitDir.GetLength() - static_cast<int>(wcslen(L"\\cmd"))) + L"\\bin";
+			if (PathFileExists(TGitH::ms_LastMsysGitDir.Left(TGitH::ms_LastMsysGitDir.GetLength() - static_cast<int>(wcslen(L"\\cmd"))) + L"\\bin\\git.exe"))
+				TGitH::ms_LastMsysGitDir = TGitH::ms_LastMsysGitDir.Left(TGitH::ms_LastMsysGitDir.GetLength() - static_cast<int>(wcslen(L"\\cmd"))) + L"\\bin";
 		}
 		return TRUE;
 	}
@@ -183,11 +162,12 @@ BOOL FindGitPath()
 	return FALSE;
 }
 
-constexpr CString FindExecutableOnPath(const CString& executable, LPCWSTR env)
+
+constexpr CString FindExecutableOnPath(const CString& executable, const LPCWSTR env)
 {
 	CString filename = executable;
 
-	if (!CStringUtils::EndsWith(executable, L".exe"))
+	if (!StringUtils::EndsWith(executable, L".exe"))
 		filename += L".exe";
 
 	if (PathFileExists(filename))
@@ -223,7 +203,7 @@ void GetSortOptions()
 #endif
 }
 
-bool LogicalCompareSz(LPCWSTR left, LPCWSTR right)
+bool LogicalCompareSz(const LPCWSTR left, const LPCWSTR right)
 {
 	if (g_bSortLogical)
 		return StrCmpLogicalW(left, right) < 0;
@@ -271,13 +251,6 @@ int LogicalCompareBranchesPredicate(const std::wstring& left, const std::wstring
 }
 constexpr auto CALL_OUTPUT_READ_CHUNK_SIZE = 1024u;
 
-}
-
-
-CString CGit::ms_LastMsysGitDir;
-CString CGit::ms_MsysGitRootDir;
-int CGit::ms_LastMsysGitVersion = 0;
-
 
 CGit::CGit()
 {
@@ -290,9 +263,9 @@ CGit::CGit()
 	// It writes the storage rather than a setter because CStrBuf fills a buffer in
 	// place, and because this write is not choosing a repository.
 	GetCurrentDirectory(MAX_PATH, CStrBuf(m_CurrentDirStorage, MAX_PATH));
-	m_IsUseGitDLL = RegTyped<bool>(L"Software\\TortoiseGit\\UsingGitDLL");
-	m_IsUseLibGit2 = RegTyped<bool>(L"Software\\TortoiseGit\\UseLibgit2", true);
-	m_IsUseLibGit2_mask = RegTyped<BITS32>(L"Software\\TortoiseGit\\UseLibgit2_mask", DEFAULT_USE_LIBGIT2_MASK);
+	m_IsUseGitDLL = wil::reg::get_value_typed<bool>(L"UsingGitDLL"sv);
+	m_IsUseLibGit2 = wil::reg::get_value_typed<bool>(L"UseLibgit2"sv, true);
+	m_IsUseLibGit2_mask = wil::reg::get_value_typed<BITS32>(L"UseLibgit2_mask"sv, DEFAULT_USE_LIBGIT2_MASK);
 
 	GetSortOptions();
 	CheckMsysGitDir();
@@ -318,61 +291,63 @@ bool CGit::IsBranchNameValid(const CString& branchname)
 	if (branchname.FindOneOf(L"\"|<>") >= 0) // not valid on Windows
 		return false;
 	int valid = 0;
-	git_branch_name_is_valid(&valid, CUnicodeUtils::GetUTF8(branchname));
+	git_branch_name_is_valid(&valid, CUnicodeUtils::GetUTF8<CStringA>(branchname));
 	return valid == 1;
 }
 
 int CGit::RunAsync(CString cmd, PROCESS_INFORMATION& piOut, HANDLE* hReadOut, HANDLE* hErrReadOut, const CString* StdioFile)
 {
-	CAutoGeneralHandle hRead, hWrite, hReadErr, hWriteErr, hWriteIn, hReadIn;
-	CAutoFile hStdioFile;
+	wil::CAutoGeneralHandle hRead, hWrite, hReadErr, hWriteErr, hWriteIn, hReadIn;
+	wil::CAutoFile hStdioFile;
 
 	SECURITY_ATTRIBUTES sa = { 0 };
 	sa.nLength = sizeof(SECURITY_ATTRIBUTES);
 	sa.bInheritHandle=TRUE;
-	if (!CreatePipe(hReadIn.GetPointer(), hWriteIn.GetPointer(), &sa, 0))
+	if (!CreatePipe(&hReadIn, &hWriteIn, &sa, 0))
 	{
-		CString err { static_cast<LPCWSTR>(CFormatMessageWrapper()) };
+		CString err { CFormatMessageWrapper().c_str() };
 		CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": could not open stdin pipe: %s\n", static_cast<LPCWSTR>(err.Trim()));
 		return TGIT_GIT_ERROR_OPEN_PIP;
 	}
-	if (!CreatePipe(hRead.GetPointer(), hWrite.GetPointer(), &sa, 0))
+	if (!CreatePipe(&hRead, &hWrite, &sa, 0))
 	{
-		CString err { static_cast<LPCWSTR>(CFormatMessageWrapper()) };
+		CString err { CFormatMessageWrapper().c_str() };
 		CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": could not open stdout pipe: %s\n", static_cast<LPCWSTR>(err.Trim()));
 		return TGIT_GIT_ERROR_OPEN_PIP;
 	}
-	if (hErrReadOut && !CreatePipe(hReadErr.GetPointer(), hWriteErr.GetPointer(), &sa, 0))
+	if (hErrReadOut && !CreatePipe(&hReadErr, &hWriteErr, &sa, 0))
 	{
-		CString err { static_cast<LPCWSTR>(CFormatMessageWrapper()) };
+		CString err { CFormatMessageWrapper().c_str() };
 		CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": could not open stderr pipe: %s\n", static_cast<LPCWSTR>(err.Trim()));
 		return TGIT_GIT_ERROR_OPEN_PIP;
 	}
 
 	if(StdioFile)
-		hStdioFile = CreateFile(*StdioFile, GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, &sa, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
+		// Not CreateFileUnique: that throws, and a failed open here has always meant
+		// an invalid stdout handle for the child, not an exception.
+		hStdioFile.reset(CreateFile(StdioFile->GetString(), GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, &sa, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr));
 
 	STARTUPINFO si = { 0 };
 	PROCESS_INFORMATION pi = { 0 };
 	si.cb=sizeof(STARTUPINFO);
-	si.hStdInput = hReadIn;
+	si.hStdInput = hReadIn.get();
 	if (hErrReadOut)
-		si.hStdError = hWriteErr;
+		si.hStdError = hWriteErr.get();
 	else
-		si.hStdError = hWrite;
+		si.hStdError = hWrite.get();
 	if(StdioFile)
-		si.hStdOutput=hStdioFile;
+		si.hStdOutput=hStdioFile.get();
 	else
-		si.hStdOutput=hWrite;
+		si.hStdOutput=hWrite.get();
 
-	si.wShowWindow=SW_HIDE;
+	si.wShowWindow = SW_HIDE;
 	si.dwFlags=STARTF_USESTDHANDLES|STARTF_USESHOWWINDOW;
 
 	const DWORD dwFlags = CREATE_UNICODE_ENVIRONMENT | CREATE_NEW_PROCESS_GROUP | DETACHED_PROCESS;
 
 	memset(&this->m_CurrentGitPi,0,sizeof(PROCESS_INFORMATION));
 
-	bool startsWithGit = CStringUtils::StartsWith(cmd, L"git");
+	bool startsWithGit = StringUtils::StartsWith(cmd, L"git");
 	if ((ms_bMsys2Git || ms_bCygwinGit) && startsWithGit)
 	{
 		CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": executing via bash: %s\n", static_cast<LPCWSTR>(cmd));
@@ -381,17 +356,17 @@ int CGit::RunAsync(CString cmd, PROCESS_INFORMATION& piOut, HANDLE* hReadOut, HA
 			cmd = L"/usr/bin/" + cmd;
 		else if (ms_bCygwinGit)
 			cmd = L"/bin/" + cmd;
-		CStringUtils::WriteStringToTextFile(tmpFile, cmd);
+		StringUtils::WriteStringToTextFile(tmpFile, cmd);
 		tmpFile.Replace(L'\\', L'/');
-		cmd = L'"' + CGit::ms_LastMsysGitDir + L"\\bash.exe\" \"" + tmpFile + L'"';
+		cmd = L'"' + TGitH::ms_LastMsysGitDir + L"\\bash.exe\" \"" + tmpFile + L'"';
 	}
-	else if (startsWithGit || CStringUtils::StartsWith(cmd, L"bash"))
+	else if (startsWithGit || StringUtils::StartsWith(cmd, L"bash"))
 	{
 		const int firstSpace = cmd.Find(L' ');
 		if (firstSpace > 0)
-			cmd = L'"' + CGit::ms_LastMsysGitDir + L'\\' + cmd.Left(firstSpace) + L'"' + cmd.Mid(firstSpace);
+			cmd = L'"' + TGitH::ms_LastMsysGitDir + L'\\' + cmd.Left(firstSpace) + L'"' + cmd.Mid(firstSpace);
 		else
-			cmd = L'"' + CGit::ms_LastMsysGitDir + L'\\' + cmd + L'"';
+			cmd = L'"' + TGitH::ms_LastMsysGitDir + L'\\' + cmd + L'"';
 	}
 
 	CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": executing %s\n", static_cast<LPCWSTR>(cmd));
@@ -401,25 +376,25 @@ int CGit::RunAsync(CString cmd, PROCESS_INFORMATION& piOut, HANDLE* hReadOut, HA
 
 	if (!CreateProcess(nullptr, cmd.GetBuffer(), nullptr, nullptr, TRUE, dwFlags, pEnv, m_CurrentDir, &si, &pi))
 	{
-		CString err { static_cast<LPCWSTR>(CFormatMessageWrapper()) };
+		CString err { CFormatMessageWrapper().c_str() };
 		CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": error while executing command: %s\n", static_cast<LPCWSTR>(err.Trim()));
 		return TGIT_GIT_ERROR_CREATE_PROCESS;
 	}
 
 	// Close the pipe handle so the child process stops reading.
-	hWriteIn.CloseHandle();
+	hWriteIn.reset();
 
 	m_CurrentGitPi = pi;
 	piOut = pi;
 	if(hReadOut)
-		*hReadOut = hRead.Detach();
+		*hReadOut = hRead.release();
 	if(hErrReadOut)
-		*hErrReadOut = hReadErr.Detach();
+		*hErrReadOut = hReadErr.release();
 	return 0;
 }
 //Must use sperate function to convert ANSI str to union code string
 //Because A2W use stack as internal convert buffer.
-void CGit::StringAppend(CString& str, const std::string_view append, int code)
+void CGit::StringAppend(CString& str, const std::string_view append, const int code)
 {
 	if (append.length() == 0)
 		return;
@@ -455,7 +430,7 @@ BOOL CGit::IsInitRepos()
 	return hash.IsEmpty() ? TRUE : FALSE;
 }
 
-DWORD WINAPI CGit::AsyncReadStdErrThread(LPVOID lpParam)
+DWORD WINAPI CGit::AsyncReadStdErrThread(const LPVOID lpParam)
 {
 	auto pDataArray = static_cast<ASYNCREADSTDERRTHREADARGS*>(lpParam);
 
@@ -488,26 +463,26 @@ void CGit::KillRelatedThreads(CWinThread* thread)
 int CGit::Run(CGitCall& pcall)
 {
 	PROCESS_INFORMATION pi;
-	CAutoGeneralHandle hRead, hReadErr;
-	if (RunAsync(pcall.GetCmd(), pi, hRead.GetPointer(), hReadErr.GetPointer()))
+	wil::CAutoGeneralHandle hRead, hReadErr;
+	if (RunAsync(pcall.GetCmd(), pi, &hRead, &hReadErr))
 		return TGIT_GIT_ERROR_CREATE_PROCESS;
 
-	CAutoGeneralHandle piThread(std::move(pi.hThread));
-	CAutoGeneralHandle piProcess(std::move(pi.hProcess));
+	wil::CAutoGeneralHandle piThread(pi.hThread);
+	wil::CAutoGeneralHandle piProcess(pi.hProcess);
 
-	ASYNCREADSTDERRTHREADARGS threadArguments{ .fileHandle = hReadErr, .pcall = &pcall };
-	CAutoGeneralHandle thread = CreateThread(nullptr, 0, AsyncReadStdErrThread, &threadArguments, 0, nullptr);
+	ASYNCREADSTDERRTHREADARGS threadArguments{ .fileHandle = hReadErr.get(), .pcall = &pcall };
+	wil::CAutoGeneralHandle thread{ CreateThread(nullptr, 0, AsyncReadStdErrThread, &threadArguments, 0, nullptr) };
 
 	if (thread)
 	{
 		CAutoLocker lock(m_critSecThreadMap);
-		m_AsyncReadStdErrThreadMap[GetCurrentThreadId()] = thread;
+		m_AsyncReadStdErrThreadMap[GetCurrentThreadId()] = thread.get();
 	}
 
 	DWORD readnumber = {};
 	char data[CALL_OUTPUT_READ_CHUNK_SIZE] = {};
 	bool bAborted=false;
-	while (ReadFile(hRead, data, CALL_OUTPUT_READ_CHUNK_SIZE, &readnumber, nullptr))
+	while (ReadFile(hRead.get(), data, CALL_OUTPUT_READ_CHUNK_SIZE, &readnumber, nullptr))
 	{
 		// TODO: when OnOutputData() returns 'true', abort git-command. Send CTRL-C signal?
 		if(!bAborted)//For now, flush output when command aborted.
@@ -519,7 +494,7 @@ int CGit::Run(CGitCall& pcall)
 
 	if (thread)
 	{
-		WaitForSingleObject(thread, INFINITE);
+		WaitForSingleObject(thread.get(), INFINITE);
 
 		CAutoLocker lock(m_critSecThreadMap);
 		m_AsyncReadStdErrThreadMap.erase(GetCurrentThreadId());
@@ -530,7 +505,7 @@ int CGit::Run(CGitCall& pcall)
 
 	if(!GetExitCodeProcess(pi.hProcess,&exitcode))
 	{
-		CString err { static_cast<LPCWSTR>(CFormatMessageWrapper()) };
+		CString err { CFormatMessageWrapper().c_str() };
 		CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": could not get exit code: %s\n", static_cast<LPCWSTR>(err.Trim()));
 		return TGIT_GIT_ERROR_GET_EXIT_CODE;
 	}
@@ -567,7 +542,7 @@ public:
 		ATLASSERT(data.size() <= 1024); // data.size() cannot be larger than 1024, as RunAsync uses a buffer of that size
 		if (!m_pvectorErr)
 			return true;
-		if (m_maxLength != SIZE_T_MAX && m_pvectorErr->size() > GIT_EXE_STDERR_BUFFER_LIMIT) // arbitrary length limit for remote connections as a safety measure
+		if (m_maxLength != std::numeric_limits<size_t>::max() && m_pvectorErr->size() > GIT_EXE_STDERR_BUFFER_LIMIT) // arbitrary length limit for remote connections as a safety measure
 			return true;
 		m_pvectorErr->append(data);
 		return false;
@@ -594,7 +569,7 @@ int CGit::Run(const CString& cmd, BYTE_VECTOR* vector, BYTE_VECTOR* vectorErr)
 	}
 	return Run(call);
 }
-int CGit::Run(const CString& cmd, CString* output, int code)
+int CGit::Run(const CString& cmd, CString* output, const int code)
 {
 	CString err;
 	const int ret = Run(cmd, output, &err, code);
@@ -608,7 +583,7 @@ int CGit::Run(const CString& cmd, CString* output, int code)
 
 	return ret;
 }
-int CGit::Run(const CString& cmd, CString* output, CString* outputErr, int code)
+int CGit::Run(const CString& cmd, CString* output, CString* outputErr, const int code)
 {
 	BYTE_VECTOR vector, vectorErr;
 	int ret;
@@ -686,7 +661,7 @@ CString CGit::GetConfigValue(const CString& name, const CString& def)
 	return ReadConfigValue(name, def, false);
 }
 
-CString CGit::ReadConfigValue(const CString& name, const CString& def, bool canonicalizeBool)
+CString CGit::ReadConfigValue(const CString& name, const CString& def, const bool canonicalizeBool)
 {
 	if(this->m_IsUseGitDLL)
 	{
@@ -699,7 +674,7 @@ CString CGit::ReadConfigValue(const CString& name, const CString& def, bool cano
 		{
 		}
 		CStringA key, value;
-		key =  CUnicodeUtils::GetUTF8(name);
+		key =  CUnicodeUtils::GetUTF8<CStringA>(name);
 
 		try
 		{
@@ -708,11 +683,11 @@ CString CGit::ReadConfigValue(const CString& name, const CString& def, bool cano
 		}
 		catch (const char *msg)
 		{
-			::MessageBox(nullptr, L"Could not get config.\nlibgit reports:\n" + CUnicodeUtils::GetUnicode(msg), L"TortoiseGit", MB_OK | MB_ICONERROR);
+			::MessageBox(nullptr, L"Could not get config.\nlibgit reports:\n" + CUnicodeUtils::GetUnicode<CString>(msg), L"TortoiseGit", MB_OK | MB_ICONERROR);
 			return def;
 		}
 
-		return CUnicodeUtils::GetUnicode(value);
+		return CUnicodeUtils::GetUnicode<CString>(value);
 	}
 	else
 	{
@@ -741,7 +716,7 @@ bool CGit::GetConfigValueBool(const CString& name, const bool def)
 	// did with the same input - the two backends were not answering the same
 	// question. Now an unparseable value yields def on both.
 	int value = def;
-	if (!git_config_parse_bool(&value, CUnicodeUtils::GetUTF8(ReadConfigValue(name, def ? L"true" : L"false", true))))
+	if (!git_config_parse_bool(&value, CUnicodeUtils::GetUTF8<CStringA>(ReadConfigValue(name, def ? L"true" : L"false", true))))
 		return value != 0;
 	return def;
 }
@@ -750,7 +725,7 @@ int CGit::GetConfigValueInt32(const CString& name, const int def)
 {
 	CString configValue = GetConfigValue(name);
 	int value = def;
-	if (!git_config_parse_int32(&value, CUnicodeUtils::GetUTF8(configValue)))
+	if (!git_config_parse_int32(&value, CUnicodeUtils::GetUTF8<CStringA>(configValue)))
 		return value;
 	return def;
 }
@@ -780,7 +755,7 @@ int CGit::ApplyPatchToIndexReverse(const CString& patchPath, CString* out)
 	return Run({ L"git.exe", L"apply", L"--cached", L"-R", L"--", AsGitPath(patchPath) }, out, CP_UTF8);
 }
 
-CString CGit::GetCurrentBranch(bool fallback)
+CString CGit::GetCurrentBranch(const bool fallback)
 {
 	CString output;
 	const int result = GetCurrentBranchFromFile(m_CurrentDir, output, fallback);
@@ -836,7 +811,7 @@ void CGit::GetRemotePushBranch(const CString& localBranch, CString& pushRemote, 
 	if (pushBranch.IsEmpty())
 	{
 		configName.Format(L"branch.%s.merge", static_cast<LPCWSTR>(localBranch));
-		pushBranch = CGit::StripRefName(g_Git.GetConfigValue(configName));
+		pushBranch = TGitH::StripRefName(g_Git.GetConfigValue(configName));
 	}
 }
 
@@ -848,29 +823,29 @@ CString CGit::GetFullRefName(const CString& shortRefName)
 	return refName.TrimRight();
 }
 
-CString CGit::StripRefName(CString refName)
+CString TGitH::StripRefName(CString refName)
 {
-	if (CStringUtils::StartsWith(refName, L"refs/heads/"))
+	if (StringUtils::StartsWith(refName, L"refs/heads/"))
 		refName = refName.Mid(static_cast<int>(wcslen(L"refs/heads/")));
-	else if (CStringUtils::StartsWith(refName, L"refs/"))
+	else if (StringUtils::StartsWith(refName, L"refs/"))
 		refName = refName.Mid(static_cast<int>(wcslen(L"refs/")));
 	return refName.TrimRight();
 }
 
-int CGit::GetCurrentBranchFromFile(const CString &sProjectRoot, CString &sBranchOut, bool fallback)
+int CGit::GetCurrentBranchFromFile(const CString &sProjectRoot, CString &sBranchOut, const bool fallback)
 {
 	// read current branch name like git-gui does, by parsing the .git/HEAD file directly
 
 	if ( sProjectRoot.IsEmpty() )
 		return -1;
 
-	CString sDotGitPath;
-	if (!GitAdminDir::GetWorktreeAdminDirPath(sProjectRoot, sDotGitPath))
+	const auto sDotGitPath = GitAdminDir::GetWorktreeAdminDirPath(sProjectRoot.GetString());
+	if (!sDotGitPath)
 		return -1;
 
-	CString sHeadFile = sDotGitPath + L"HEAD";
+	CString sHeadFile = (*sDotGitPath + L"HEAD").c_str();
 
-	CAutoFILE pFile = _wfsopen(sHeadFile.GetString(), L"r", SH_DENYWR);
+	RIAA::CAutoFILE pFile = _wfsopen(sHeadFile.GetString(), L"r", SH_DENYWR);
 	if (!pFile)
 		return -1;
 
@@ -885,7 +860,7 @@ int CGit::GetCurrentBranchFromFile(const CString &sProjectRoot, CString &sBranch
 		//# We're on a branch.  It might not exist.  But
 		//# HEAD looks good enough to be a branch.
 		CStringA utf8Branch(s + len);
-		sBranchOut = CUnicodeUtils::GetUnicode(utf8Branch);
+		sBranchOut = CUnicodeUtils::GetUnicode<CString>(utf8Branch);
 		sBranchOut.TrimRight(L" \r\n\t");
 
 		if ( sBranchOut.IsEmpty() )
@@ -894,7 +869,7 @@ int CGit::GetCurrentBranchFromFile(const CString &sProjectRoot, CString &sBranch
 	else if (fallback)
 	{
 		std::string_view utf8Hash{s};
-		CStringUtils::TrimRight(utf8Hash);
+		StringUtils::TrimRight(utf8Hash);
 		bool ok = false;
 		CGitHash hash = CGitHash::FromHexStr(utf8Hash, &ok);
 		if (ok)
@@ -915,47 +890,7 @@ int CGit::GetCurrentBranchFromFile(const CString &sProjectRoot, CString &sBranch
 	return 0;
 }
 
-ArgvData ArgvData::VectorToARGV(const std::vector<std::string>& args)
-{
-	if (args.size() >= INT_MAX - 1)
-		return {};
-
-	const int argc = static_cast<int>(args.size()); // +1 because argv[0] is also needed
-
-	size_t stringBytes = 1; // argv[0] empty string: '\0'
-	for (const auto& arg : args)
-	{
-		if (arg.size() >= INT_MAX)
-			return {};
-		if (SizeTAdd(stringBytes, arg.size() + 1, &stringBytes) != S_OK)
-			return {};
-	}
-
-	size_t pointerBytes;
-	if (SizeTMult(argc + 1, sizeof(char*), &pointerBytes) != S_OK) // +1 because argv is null-terminated
-		return {};
-
-	size_t sizeToAlloc;
-	if (SizeTAdd(pointerBytes, stringBytes, &sizeToAlloc) != S_OK)
-		return {};
-	auto block = std::make_unique<char[]>(sizeToAlloc);
-	auto argv = std::vector<char const*>(argc);
-	argv.clear();
-
-	char* p = block.get();
-
-	for (const auto& arg : args)
-	{
-		argv.emplace_back(p);
-		const size_t arg_str_len = arg.size() + 1;
-		arg.copy(p, arg_str_len);
-		p += arg_str_len;
-	}
-
-	return ArgvData{block.release(), argv};
-}
-
-std::vector<std::string> CGit::GetLogCmd(CString range, const CTGitPath* path, int mask, const CFilterData* Filter, const int logOrderBy)
+std::vector<std::string> CGit::GetLogCmd(CString range, const CTGitPath* path, const int mask, const CFilterData* Filter, const int logOrderBy)
 {
 	std::vector<std::string> params;
 
@@ -972,14 +907,14 @@ std::vector<std::string> CGit::GetLogCmd(CString range, const CTGitPath* path, i
 		params.push_back("--boundary");
 	}
 
-	if(mask& CGit::LOG_INFO_ALL_BRANCH)
+	if(mask& TGitH::LOG_INFO_ALL_BRANCH)
 	{
 		params.push_back("--all");
 		if ((mask & LOG_INFO_ALWAYS_APPLY_RANGE) == 0)
 			range.Empty();
 	}
 
-	if (mask& CGit::LOG_INFO_BASIC_REFS)
+	if (mask& TGitH::LOG_INFO_BASIC_REFS)
 	{
 		params.push_back("--branches");
 		params.push_back("--tags");
@@ -990,43 +925,43 @@ std::vector<std::string> CGit::GetLogCmd(CString range, const CTGitPath* path, i
 			range.Empty();
 	}
 
-	if(mask & CGit::LOG_INFO_LOCAL_BRANCHES)
+	if(mask & TGitH::LOG_INFO_LOCAL_BRANCHES)
 	{
 		params.push_back("--branches");
 		if ((mask & LOG_INFO_ALWAYS_APPLY_RANGE) == 0)
 			range.Empty();
 	}
 
-	if(mask& CGit::LOG_INFO_DETECT_COPYRENAME)
+	if(mask& TGitH::LOG_INFO_DETECT_COPYRENAME)
 		params.push_back(std::format("-C{}%", ms_iSimilarityIndexThreshold));
 
-	if(mask& CGit::LOG_INFO_DETECT_RENAME )
+	if(mask& TGitH::LOG_INFO_DETECT_RENAME )
 		params.push_back(std::format("-M{}%", ms_iSimilarityIndexThreshold));
 
-	if(mask& CGit::LOG_INFO_FIRST_PARENT )
+	if(mask& TGitH::LOG_INFO_FIRST_PARENT )
 		params.push_back("--first-parent");
 
-	if(mask& CGit::LOG_INFO_NO_MERGE )
+	if(mask& TGitH::LOG_INFO_NO_MERGE )
 		params.push_back("--no-merges");
 
-	if (mask & CGit::LOG_INFO_FULL_HISTORY)
+	if (mask & TGitH::LOG_INFO_FULL_HISTORY)
 		params.push_back("--full-history");
 	else
 		params.push_back("--parents"); // cf. issue #3728
 
-	if(mask& CGit::LOG_INFO_FOLLOW)
+	if(mask& TGitH::LOG_INFO_FOLLOW)
 		params.push_back("--follow");
 
-	if(mask& CGit::LOG_INFO_SHOW_MERGEDFILE)
+	if(mask& TGitH::LOG_INFO_SHOW_MERGEDFILE)
 		params.push_back("-c");
 
-	if(mask& CGit::LOG_INFO_FULL_DIFF)
+	if(mask& TGitH::LOG_INFO_FULL_DIFF)
 		params.push_back("--full-diff");
 
-	if(mask& CGit::LOG_INFO_SIMPILFY_BY_DECORATION)
+	if(mask& TGitH::LOG_INFO_SIMPILFY_BY_DECORATION)
 		params.push_back("--simplify-by-decoration");
 
-	if (mask & CGit::LOG_INFO_SPARSE)
+	if (mask & TGitH::LOG_INFO_SPARSE)
 		params.push_back("--sparse");
 
 	if (Filter)
@@ -1034,10 +969,10 @@ std::vector<std::string> CGit::GetLogCmd(CString range, const CTGitPath* path, i
 		auto from = Filter->m_From;
 		if (Filter->m_NumberOfLogsScale >= CFilterData::SHOW_LAST_N_YEARS)
 		{
-			CTime now = CTime::GetCurrentTime();
-			CTime time = CTime(now.GetYear(), now.GetMonth(), now.GetDay(), 0, 0, 0);
-			__time64_t substract = 86400;
-			CString scale;
+			const auto zone = std::chrono::current_zone();
+			const auto today = std::chrono::floor<std::chrono::days>(zone->to_local(std::chrono::system_clock::now()));
+			const auto midnight = zone->to_sys(today, std::chrono::choose::earliest);
+			std::chrono::seconds substract = std::chrono::days{ 1 };
 			switch (Filter->m_NumberOfLogsScale)
 			{
 			case CFilterData::SHOW_LAST_N_YEARS:
@@ -1049,8 +984,10 @@ std::vector<std::string> CGit::GetLogCmd(CString range, const CTGitPath* path, i
 			case CFilterData::SHOW_LAST_N_WEEKS:
 				substract *= 7;
 				break;
+			default:
+				[[unlikely]]
 			}
-			from = static_cast<DWORD>(time.GetTime()) - (Filter->m_NumberOfLogs * substract);
+			from = midnight.time_since_epoch().count() - (Filter->m_NumberOfLogs * substract.count());
 		}
 		if (Filter->m_NumberOfLogsScale == CFilterData::SHOW_LAST_N_COMMITS)
 			params.push_back(std::format("-n{}", Filter->m_NumberOfLogs));
@@ -1061,7 +998,7 @@ std::vector<std::string> CGit::GetLogCmd(CString range, const CTGitPath* path, i
 	if( Filter && (Filter->m_To != -1))
 		params.push_back(std::format("--min-age={}", Filter->m_To));
 
-	if (logOrderBy == LOG_ORDER_TOPOORDER || (mask & CGit::LOG_ORDER_TOPOORDER))
+	if (logOrderBy == LOG_ORDER_TOPOORDER || (mask & TGitH::LOG_ORDER_TOPOORDER))
 		params.push_back("--topo-order");
 	else if (logOrderBy == LOG_ORDER_DATEORDER)
 		params.push_back("--date-order");
@@ -1101,7 +1038,7 @@ std::vector<std::string> CGit::GetLogCmd(CString range, const CTGitPath* path, i
 
 
 #define BUFSIZE 512
-void GetTempPath(CString &path)
+void TGitH::GetTempPath(CString &path)
 {
 	wchar_t lpPathBuffer[BUFSIZE] = { 0 };
 	const DWORD dwBufSize = BUFSIZE;
@@ -1110,7 +1047,7 @@ void GetTempPath(CString &path)
 		path.Empty();
 	path.Format(L"%s", lpPathBuffer);
 }
-CString GetTempFile()
+CString TGitH::GetTempFile()
 {
 	wchar_t lpPathBuffer[BUFSIZE] = { 0 };
 	const DWORD dwBufSize = BUFSIZE;
@@ -1130,49 +1067,54 @@ CString GetTempFile()
 	return CString(szTempName);
 }
 
-DWORD GetTortoiseGitTempPath(DWORD nBufferLength, LPWSTR lpBuffer)
+DWORD TGitH::GetTortoiseGitTempPath(const DWORD nBufferLength, const LPWSTR lpBuffer)
 {
+	constexpr auto subdirectory = L"TortoiseGit\\"sv;
+	constexpr auto extra = static_cast<DWORD>(subdirectory.size() + 1); // + the NUL: the 13 this used to spell out
+
 	const DWORD result = ::GetTempPath(nBufferLength, lpBuffer);
 	if (result == 0) return 0;
-	if (!lpBuffer || (result + 13 > nBufferLength))
+	if (!lpBuffer || (result + extra > nBufferLength))
 	{
 		if (lpBuffer)
 			lpBuffer[0] = '\0';
-		return result + 13;
+		return result + extra;
 	}
 
-	wcscat_s(lpBuffer, nBufferLength, L"TortoiseGit\\");
+	// GetTempPath returned the length without its NUL, and the check above left room for the rest
+	std::ranges::copy(subdirectory, lpBuffer + result);
+	lpBuffer[result + subdirectory.size()] = L'\0';
 	CreateDirectory(lpBuffer, nullptr);
 
-	return result + 13;
+	return result + extra;
 }
 
 int CGit::RunLogFile(const CString& cmd, const CString& filename, CString* stdErr)
 {
 	PROCESS_INFORMATION pi{};
-	CAutoGeneralHandle hReadErr{};
-	if (RunAsync(cmd, pi, nullptr, hReadErr.GetPointer(), &filename))
+	wil::CAutoGeneralHandle hReadErr{};
+	if (RunAsync(cmd, pi, nullptr, &hReadErr, &filename))
 		return TGIT_GIT_ERROR_CREATE_PROCESS;
 
-	CAutoGeneralHandle piThread(std::move(pi.hThread));
-	CAutoGeneralHandle piProcess(std::move(pi.hProcess));
+	wil::CAutoGeneralHandle piThread(pi.hThread);
+	wil::CAutoGeneralHandle piProcess(pi.hProcess);
 
 	BYTE_VECTOR stderrVector{};
 	CGitCall_ByteVector pcall(L"", nullptr, &stderrVector);
-	ASYNCREADSTDERRTHREADARGS threadArguments{ .fileHandle = hReadErr, .pcall = &pcall };
-	CAutoGeneralHandle thread = CreateThread(nullptr, 0, AsyncReadStdErrThread, &threadArguments, 0, nullptr);
+	ASYNCREADSTDERRTHREADARGS threadArguments{ .fileHandle = hReadErr.get(), .pcall = &pcall };
+	wil::CAutoGeneralHandle thread{ CreateThread(nullptr, 0, AsyncReadStdErrThread, &threadArguments, 0, nullptr) };
 
 	if (thread)
 	{
 		CAutoLocker lock(m_critSecThreadMap);
-		m_AsyncReadStdErrThreadMap[GetCurrentThreadId()] = thread;
+		m_AsyncReadStdErrThreadMap[GetCurrentThreadId()] = thread.get();
 	}
 
 	WaitForSingleObject(pi.hProcess,INFINITE);
 
 	if (thread)
 	{
-		WaitForSingleObject(thread, INFINITE);
+		WaitForSingleObject(thread.get(), INFINITE);
 
 		CAutoLocker lock(m_critSecThreadMap);
 		m_AsyncReadStdErrThreadMap.erase(GetCurrentThreadId());
@@ -1184,7 +1126,7 @@ int CGit::RunLogFile(const CString& cmd, const CString& filename, CString* stdEr
 	DWORD exitcode = 0;
 	if (!GetExitCodeProcess(pi.hProcess, &exitcode))
 	{
-		CString err { static_cast<LPCWSTR>(CFormatMessageWrapper()) };
+		CString err { CFormatMessageWrapper().c_str() };
 		CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": could not get exit code: %s\n", static_cast<LPCWSTR>(err.Trim()));
 		return TGIT_GIT_ERROR_GET_EXIT_CODE;
 	}
@@ -1194,12 +1136,15 @@ int CGit::RunLogFile(const CString& cmd, const CString& filename, CString* stdEr
 	return exitcode;
 }
 
-CAutoRepository CGit::GetGitRepository() const
+wil::unique_git_repository CGit::GetGitRepository() const
 {
-	return CAutoRepository(GetGitPathStringA(m_CurrentDir));
+	// Through CAutoRepository for its Open(), the chokepoint that latches the
+	// object format; the caller gets the plain owner back.
+	CAutoRepository repo(TGitPath::ToGitPathA(m_CurrentDir.GetString()).c_str());
+	return std::move(repo);
 }
 
-int CGit::GetHash(git_repository * repo, CGitHash &hash, std::wstring_view friendname, bool skipFastCheck /* = false */)
+int CGit::GetHash(git_repository * repo, CGitHash &hash, const std::wstring_view friendname, const bool skipFastCheck /* = false */)
 {
 	ATLASSERT(repo);
 
@@ -1226,7 +1171,7 @@ int CGit::GetHash(git_repository * repo, CGitHash &hash, std::wstring_view frien
 	}
 
 	CAutoObject gitObject;
-	if (git_revparse_single(gitObject.GetPointer(), repo, CUnicodeUtils::GetUTF8(friendname.data())))
+	if (git_revparse_single(gitObject.GetPointer(), repo, CUnicodeUtils::StdGetUTF8(friendname).c_str()))
 		return -1;
 
 	hash = git_object_id(gitObject);
@@ -1263,7 +1208,7 @@ int CGit::GetHash(CGitHash &hash, const std::wstring& friendname)
 		gitLastErr.Empty();
 		const int ret = Run({ L"git.exe", L"rev-parse", L"--verify", L"--end-of-options", std::wstring(branch) }, &gitLastErr, nullptr, CP_UTF8);
 
-		const auto strsv = std::wstring_view{gitLastErr.Trim(), gitLastErr.GetLength()};
+		const std::wstring_view strsv = tgit::wstr::StringView(gitLastErr.Trim());
 		bool isHash{};
 		hash = CGitHash::FromHexStr(strsv, &isHash);
 		if (ret == 0)
@@ -1280,7 +1225,7 @@ int CGit::GetHash(CGitHash &hash, const std::wstring& friendname)
 	}
 }
 
-int CGit::GetInitAddList(CTGitPathList& outputlist, bool getStagingStatus)
+int CGit::GetInitAddList(CTGitPathList& outputlist, const bool getStagingStatus)
 {
 	BYTE_VECTOR cmdout;
 
@@ -1326,21 +1271,21 @@ int CGit::GetSubmoduleHash(const CString& pathOfSubmodule, const CGitHash& revis
 	}
 
 	CAutoCommit commit;
-	if (git_commit_lookup(commit.GetPointer(), repository, revision))
+	if (git_commit_lookup(&commit, repository, revision))
 	{
 		err = GetLibGit2LastErr(L"Could not lookup commit.");
 		return -1;
 	}
 
 	CAutoTree tree;
-	if (git_commit_tree(tree.GetPointer(), commit))
+	if (git_commit_tree(&tree, commit))
 	{
 		err = GetLibGit2LastErr(L"Could not get tree of commit.");
 		return -1;
 	}
 
 	CAutoTreeEntry treeEntry;
-	if (git_tree_entry_bypath(treeEntry.GetPointer(), tree, CUnicodeUtils::GetUTF8(pathOfSubmodule)))
+	if (git_tree_entry_bypath(treeEntry.GetPointer(), tree, CUnicodeUtils::StdGetUTF8(tgit::wstr::StringView(pathOfSubmodule)).c_str()))
 	{
 		err = GetLibGit2LastErr(L"Could not lookup path.");
 		return -1;
@@ -1356,7 +1301,7 @@ int CGit::GetSubmoduleHash(const CString& pathOfSubmodule, const CGitHash& revis
 	return 0;
 }
 
-int CGit::GetCommitDiffList(const CString& rev1, const CString& rev2, CTGitPathList& outputlist, CString& error, bool ignoreSpaceAtEol, bool ignoreSpaceChange, bool ignoreAllSpace, bool ignoreBlankLines)
+int CGit::GetCommitDiffList(const CString& rev1, const CString& rev2, CTGitPathList& outputlist, CString& error, const bool ignoreSpaceAtEol, const bool ignoreSpaceChange, const bool ignoreAllSpace, const bool ignoreBlankLines)
 {
 	// One flag per element now, rather than one string of space-separated flags
 	// that only worked because it was interpolated into a command line.
@@ -1441,80 +1386,6 @@ int CGit::GetTagList(STRING_VECTOR &list)
 	}
 }
 
-CString CGit::GetGitLastErr(const CString& msg)
-{
-	if (this->m_IsUseLibGit2)
-		return GetLibGit2LastErr(msg);
-	else if (gitLastErr.IsEmpty())
-		return msg + L"\nUnknown git.exe error.";
-	else
-	{
-		CString lastError = gitLastErr;
-		gitLastErr.Empty();
-		return msg + L'\n' + lastError;
-	}
-}
-
-CString CGit::GetGitLastErr(const CString& msg, LIBGIT2_CMD cmd)
-{
-	if (UsingLibGit2(cmd))
-		return GetLibGit2LastErr(msg);
-	else if (gitLastErr.IsEmpty())
-		return msg + L"\nUnknown git.exe error.";
-	else
-	{
-		CString lastError = gitLastErr;
-		gitLastErr.Empty();
-		return msg + L'\n' + lastError;
-	}
-}
-
-CString TGit::GetLibGit2LastErr()
-{
-	const git_error *libgit2err = git_error_last();
-	if (libgit2err)
-	{
-		CString lastError = CUnicodeUtils::GetUnicode(libgit2err->message);
-		git_error_clear();
-		return L"libgit2 returned: " + lastError;
-	}
-	else
-		return L"An error occoured in libgit2, but no message is available.";
-}
-
-CString CGit::GetLibGit2LastErr(const CString& msg)
-{
-	if (!msg.IsEmpty())
-		return msg + L'\n' + GetLibGit2LastErr();
-	return GetLibGit2LastErr();
-}
-
-/**
- * Adopts the working copy that *contains* \a path: walks up looking for the
- * admin directory and latches the root it finds. Returns false when there is
- * none, in which case the current directory is left as whatever HasAdminDir
- * wrote (historically: emptied).
- *
- * Use SetCurrentDirExact() when the caller already knows the root. That is not
- * a stylistic split - it is why the ~30 direct assignments this replaced could
- * not simply be rewritten to call this one. They hand over a root they have
- * already established (a submodule path, a clone target, a CombinePath result)
- * and a re-discovery from there would be at best wasted work and at worst a
- * walk up into the *super*project.
- */
-bool CGit::SetCurrentDir(CString path, const bool submodule)
-{
-	bool b = GitAdminDir::HasAdminDir(path, submodule ? false : !!PathIsDirectory(path), &m_CurrentDirStorage);
-	if (!b && GitAdminDir::IsBareRepo({path, gsl::narrow<size_t>(path.GetLength())}))
-	{
-		m_CurrentDirStorage = path;
-		b = true;
-	}
-	NormalizeCurrentDir();
-	return b;
-}
-
-
 CString CGit::FixBranchName_Mod(CString& branchName)
 {
 	if (branchName == L"FETCH_HEAD")
@@ -1538,11 +1409,11 @@ bool CGit::IsBranchTagNameUnique(const CString& name)
 			return true; // TODO: optimize error reporting
 
 		CAutoReference tagRef;
-		if (git_reference_lookup(tagRef.GetPointer(), repo, CUnicodeUtils::GetUTF8(L"refs/tags/" + name)))
+		if (git_reference_lookup(tagRef.GetPointer(), repo, CUnicodeUtils::StdGetUTF8(std::format(L"refs/tags/{}", name)).c_str()))
 			return true;
 
 		CAutoReference branchRef;
-		if (git_reference_lookup(branchRef.GetPointer(), repo, CUnicodeUtils::GetUTF8(L"refs/heads/" + name)))
+		if (git_reference_lookup(branchRef.GetPointer(), repo, CUnicodeUtils::StdGetUTF8(std::format(L"refs/heads/{}", name)).c_str()))
 			return true;
 
 		return false;
@@ -1562,11 +1433,11 @@ bool CGit::IsBranchTagNameUnique(const CString& name)
 bool CGit::IsLocalBranch(const CString& shortName)
 {
 	STRING_VECTOR list;
-	GetBranchList(list, nullptr, CGit::BRANCH_LOCAL);
+	GetBranchList(list, nullptr, TGitH::BRANCH_LOCAL);
 	return std::find(list.cbegin(), list.cend(), tgit::wstr::StringView(shortName)) != list.cend();
 }
 
-bool CGit::BranchTagExists(const CString& name, bool isBranch /*= true*/)
+bool CGit::BranchTagExists(const CString& name, const bool isBranch /*= true*/)
 {
 	if (m_IsUseLibGit2)
 	{
@@ -1574,14 +1445,10 @@ bool CGit::BranchTagExists(const CString& name, bool isBranch /*= true*/)
 		if (!repo)
 			return false; // TODO: optimize error reporting
 
-		CString prefix;
-		if (isBranch)
-			prefix = L"refs/heads/";
-		else
-			prefix = L"refs/tags/";
+		const auto prefix = isBranch ? L"refs/heads/"sv : L"refs/tags/"sv;
 
 		CAutoReference ref;
-		if (git_reference_lookup(ref.GetPointer(), repo, CUnicodeUtils::GetUTF8(prefix + name)))
+		if (git_reference_lookup(ref.GetPointer(), repo, CUnicodeUtils::StdGetUTF8(std::format(L"{}{}", prefix, name)).c_str()))
 			return false;
 
 		return true;
@@ -1603,9 +1470,8 @@ bool CGit::BranchTagExists(const CString& name, bool isBranch /*= true*/)
 
 CString CGit::DerefFetchHead()
 {
-	CString dotGitPath;
-	GitAdminDir::GetWorktreeAdminDirPath(m_CurrentDir, dotGitPath);
-	std::ifstream fetchHeadFile((dotGitPath + L"FETCH_HEAD").GetString(), std::ios::in | std::ios::binary);
+	const std::wstring dotGitPath = GitAdminDir::GetWorktreeAdminDirPath(tgit::wstr::StringView(m_CurrentDir)).value_or(std::wstring{});
+	std::ifstream fetchHeadFile(dotGitPath + L"FETCH_HEAD", std::ios::in | std::ios::binary);
 	int forMergeLineCount = 0;
 	std::string line;
 	std::string hashToReturn;
@@ -1634,10 +1500,10 @@ CString CGit::DerefFetchHead()
 		}
 	}
 
-	return CUnicodeUtils::GetUnicode(hashToReturn);
+	return CUnicodeUtils::GetUnicode<CString>(hashToReturn);
 }
 
-int CGit::GetBranchList(STRING_VECTOR &list, int *current, BRANCH_TYPE type, bool skipCurrent /*false*/)
+int CGit::GetBranchList(STRING_VECTOR &list, int *current, const BRANCH_TYPE type, const bool skipCurrent /*false*/)
 {
 	const size_t prevCount = list.size();
 	int ret = 0;
@@ -1661,12 +1527,12 @@ int CGit::GetBranchList(STRING_VECTOR &list, int *current, BRANCH_TYPE type, boo
 				flags = GIT_BRANCH_REMOTE;
 
 			CAutoBranchIterator it;
-			if (git_branch_iterator_new(it.GetPointer(), repo, flags))
+			if (git_branch_iterator_new(&it, repo, flags))
 				return -1;
 
 			CAutoReference ref;
 			git_branch_t branchType;
-			while (git_branch_next(ref.GetPointer(), &branchType, it) == 0)
+			while (git_branch_next(&ref, &branchType, it) == 0)
 			{
 				const char * name = nullptr;
 				if (git_branch_name(&name, ref))
@@ -1699,7 +1565,7 @@ int CGit::GetBranchList(STRING_VECTOR &list, int *current, BRANCH_TYPE type, boo
 
 		ret = Run(cmd, [&](std::string_view lineA)
 		{
-			CStringUtils::TrimLeft(lineA);
+			StringUtils::TrimLeft(lineA);
 			if (lineA.empty())
 				return;
 			if (lineA.find(" -> ") != std::string_view::npos)
@@ -1754,7 +1620,7 @@ int CGit::GetBranchList(STRING_VECTOR &list, int *current, BRANCH_TYPE type, boo
 	return ret;
 }
 
-int CGit::GetRefsCommitIsOn(STRING_VECTOR& list, const CGitHash& hash, bool includeTags, bool includeBranches, BRANCH_TYPE type)
+int CGit::GetRefsCommitIsOn(STRING_VECTOR& list, const CGitHash& hash, const bool includeTags, const bool includeBranches, const BRANCH_TYPE type)
 {
 	if (!includeTags && !includeBranches || hash.IsEmpty())
 		return 0;
@@ -1765,7 +1631,7 @@ int CGit::GetRefsCommitIsOn(STRING_VECTOR& list, const CGitHash& hash, bool incl
 		return -1;
 
 	CAutoReferenceIterator it;
-	if (git_reference_iterator_new(it.GetPointer(), repo))
+	if (git_reference_iterator_new(&it, repo))
 		return -1;
 
 	auto checkDescendent = [&list, &hash, &repo](const git_oid* oid, const git_reference* ref) {
@@ -1782,7 +1648,7 @@ int CGit::GetRefsCommitIsOn(STRING_VECTOR& list, const CGitHash& hash, bool incl
 	};
 
 	CAutoReference ref;
-	while (git_reference_next(ref.GetPointer(), it) == 0)
+	while (git_reference_next(&ref, it) == 0)
 	{
 		if (git_reference_is_tag(ref))
 		{
@@ -1790,10 +1656,10 @@ int CGit::GetRefsCommitIsOn(STRING_VECTOR& list, const CGitHash& hash, bool incl
 				continue;
 
 			CAutoTag tag;
-			if (git_tag_lookup(tag.GetPointer(), repo, git_reference_target(ref)) == 0)
+			if (git_tag_lookup(&tag, repo, git_reference_target(ref)) == 0)
 			{
 				CAutoObject obj;
-				if (git_tag_peel(obj.GetPointer(), tag) < 0)
+				if (git_tag_peel(&obj, tag) < 0)
 					continue;
 				checkDescendent(git_object_id(obj), ref);
 				continue;
@@ -1815,7 +1681,7 @@ int CGit::GetRefsCommitIsOn(STRING_VECTOR& list, const CGitHash& hash, bool incl
 		if (git_reference_type(ref) == GIT_REFERENCE_SYMBOLIC)
 		{
 			CAutoReference peeledRef;
-			if (git_reference_resolve(peeledRef.GetPointer(), ref) < 0)
+			if (git_reference_resolve(&peeledRef, ref) < 0)
 				continue;
 
 			checkDescendent(git_reference_target(peeledRef), ref);
@@ -1860,7 +1726,7 @@ int CGit::GetRemoteList(STRING_VECTOR &list)
 	}, &gitLastErr);
 }
 
-int CGit::GetRemoteRefs(const CString& remote, REF_VECTOR& list, bool includeTags, bool includeBranches)
+int CGit::GetRemoteRefs(const CString& remote, REF_VECTOR& list, const bool includeTags, const bool includeBranches)
 {
 	if (!includeTags && !includeBranches)
 		return 0;
@@ -1876,13 +1742,13 @@ int CGit::GetRemoteRefs(const CString& remote, REF_VECTOR& list, bool includeTag
 		if (!repo)
 			return -1;
 
-		CStringA remoteA = CUnicodeUtils::GetUTF8(remote);
+		const std::string remoteA = CUnicodeUtils::StdGetUTF8(tgit::wstr::StringView(remote));
 		CAutoRemote gitremote;
 		// first try with a named remote (e.g. "origin")
-		if (git_remote_lookup(gitremote.GetPointer(), repo, remoteA) < 0)
+		if (git_remote_lookup(gitremote.GetPointer(), repo, remoteA.c_str()) < 0)
 		{
 			// retry with repository located at a specific url
-			if (git_remote_create_anonymous(gitremote.GetPointer(), repo, remoteA) < 0)
+			if (git_remote_create_anonymous(gitremote.GetPointer(), repo, remoteA.c_str()) < 0)
 				return -1;
 		}
 
@@ -1901,7 +1767,7 @@ int CGit::GetRemoteRefs(const CString& remote, REF_VECTOR& list, bool includeTag
 
 		for (size_t i = 0; i < size; i++)
 		{
-			CString ref = CUnicodeUtils::GetUnicode(heads[i]->name);
+			CString ref = CUnicodeUtils::GetUnicode<CString>(heads[i]->name);
 			CString shortname;
 			if (GetShortName(ref, shortname, L"refs/tags/"))
 			{
@@ -1916,9 +1782,9 @@ int CGit::GetRemoteRefs(const CString& remote, REF_VECTOR& list, bool includeTag
 					shortname = ref;
 			}
 			if (includeTags && includeBranches)
-				list.emplace_back(TGitRef{ std::wstring(ref), &heads[i]->oid });
+				list.emplace_back(TGitRef{ std::wstring(ref), CGitHash(&heads[i]->oid) });
 			else
-				list.emplace_back(TGitRef{ std::wstring(shortname), &heads[i]->oid });
+				list.emplace_back(TGitRef{ std::wstring(shortname), CGitHash(&heads[i]->oid) });
 		}
 		std::sort(list.begin() + prevCount, list.end(), g_bSortTagsReversed && includeTags && !includeBranches ? LogicalCompareRefReversedPredicate : LogicalCompareRefPredicate);
 		return 0;
@@ -1928,14 +1794,14 @@ int CGit::GetRemoteRefs(const CString& remote, REF_VECTOR& list, bool includeTag
 	// The command line is echoed into the error output, so it still has to be
 	// serialized here even though nothing else needs it flat.
 	gitLastErr = SerializeArgvToCString(argv) + L'\n';
-	CGit::s_limitGitExeOutput = true;
-	SCOPE_EXIT{ CGit::s_limitGitExeOutput = false; };
+	TGitH::s_limitGitExeOutput = true;
+	const auto resetLimit = gsl::finally([] { TGitH::s_limitGitExeOutput = false; });
 	if (Run(
 		argv, [&](const std::string_view origLineA) {
 			if (origLineA.size() <= GitFormatHolder::GitHashSize() * 2 + strlen("\t") || origLineA[GitFormatHolder::GitHashSize() * 2] != '\t') // OID, tab, refname
 				return;
 			CGitHash hash = CGitHash::FromHexStr(origLineA.substr(0, GitFormatHolder::GitHashSize() * 2));
-			CString ref = CUnicodeUtils::GetUnicode(origLineA.substr(GitFormatHolder::GitHashSize() * 2 + strlen("\t")));
+			CString ref = CUnicodeUtils::GetUnicode<CString>(origLineA.substr(GitFormatHolder::GitHashSize() * 2 + strlen("\t")));
 			CString shortname;
 			if (GetShortName(ref, shortname, L"refs/tags/"))
 			{
@@ -1951,7 +1817,7 @@ int CGit::GetRemoteRefs(const CString& remote, REF_VECTOR& list, bool includeTag
 			}
 			if (includeTags && includeBranches)
 				list.emplace_back(TGitRef{ std::wstring(ref), hash });
-			else if (includeTags && CStringUtils::EndsWith(ref, L"^{}"))
+			else if (includeTags && StringUtils::EndsWith(ref, L"^{}"))
 				list.emplace_back(TGitRef{ std::wstring(shortname + L"^{}"), hash });
 			else
 				list.emplace_back(TGitRef{ std::wstring(shortname), hash });
@@ -1962,7 +1828,7 @@ int CGit::GetRemoteRefs(const CString& remote, REF_VECTOR& list, bool includeTag
 	return 0;
 }
 
-int libgit2_addto_list_each_ref_fn(git_reference* rawref, void* payload)
+static int libgit2_addto_list_each_ref_fn(git_reference* rawref, void* payload)
 {
 	CAutoReference ref{ std::move(rawref) };
 	auto list = static_cast<STRING_VECTOR*>(payload);
@@ -1991,7 +1857,7 @@ int CGit::GetRefList(STRING_VECTOR &list)
 	const int ret = Run({ L"git.exe", L"show-ref", L"-d" }, [&](const std::string_view lineA)
 	{
 		const size_t start = lineA.find(' ');
-		ASSERT(start == 2 * GitFormatHolder::GitHashSize());
+		ATLASSERT(start == 2 * GitFormatHolder::GitHashSize());
 		if (start != 2 * GitFormatHolder::GitHashSize() || start >= lineA.size())
 			return;
 
@@ -2011,7 +1877,7 @@ struct map_each_ref_payload {
 	MAP_HASH_NAME* map = nullptr;
 };
 
-int libgit2_addto_map_each_ref_fn(git_reference* rawref, void* payload)
+static int libgit2_addto_map_each_ref_fn(git_reference* rawref, void* payload)
 {
 	CAutoReference ref{ std::move(rawref) };
 	auto payloadContent = static_cast<map_each_ref_payload*>(payload);
@@ -2019,19 +1885,19 @@ int libgit2_addto_map_each_ref_fn(git_reference* rawref, void* payload)
 	std::wstring str = CUnicodeUtils::StdGetUnicode(git_reference_name(ref));
 
 	CAutoObject gitObject;
-	if (git_revparse_single(gitObject.GetPointer(), payloadContent->repo, git_reference_name(ref)))
+	if (git_revparse_single(&gitObject, payloadContent->repo, git_reference_name(ref)))
 		return (git_reference_is_remote(ref) && git_reference_type(ref) == GIT_REFERENCE_SYMBOLIC) ? 0 : 1; // don't bail out for symbolic remote references ("git.exe show-ref -d" also doesn't complain), cf. issue #2926
 
 	if (git_object_type(gitObject) == GIT_OBJECT_TAG)
 	{
 		str += L"^{}"; // deref tag
 		CAutoObject derefedTag;
-		if (git_tag_target(derefedTag.GetPointer(), reinterpret_cast<git_tag*>(static_cast<git_object*>(gitObject))))
+		if (git_tag_target(&derefedTag, reinterpret_cast<git_tag*>(static_cast<git_object*>(gitObject))))
 			return 1;
 		gitObject.Swap(derefedTag);
 	}
 
-	(*payloadContent->map)[git_object_id(gitObject)].push_back(std::move(str));
+	(*payloadContent->map)[CGitHash(git_object_id(gitObject))].push_back(std::move(str));
 
 	return 0;
 }
@@ -2067,7 +1933,7 @@ int CGit::GetMapHashToFriendName(MAP_HASH_NAME &map)
 	const int ret = Run({ L"git.exe", L"show-ref", L"-d" }, [&](const std::string_view lineA)
 	{
 		const size_t start = lineA.find(' ');
-		ASSERT(start == 2 * GitFormatHolder::GitHashSize());
+		ATLASSERT(start == 2 * GitFormatHolder::GitHashSize());
 		if (start != 2 * GitFormatHolder::GitHashSize() || start >= lineA.size())
 			return;
 
@@ -2111,7 +1977,7 @@ int CGit::GuessRefForHash(CString& ref, const CGitHash& hash)
 int CGit::GetBranchDescriptions(MAP_STRING_STRING& map)
 {
 	CAutoConfig config(true);
-	if (git_config_add_file_ondisk(config, CGit::GetGitPathStringA(GetGitLocalConfig()), GIT_CONFIG_LEVEL_LOCAL, nullptr, FALSE) < 0)
+	if (git_config_add_file_ondisk(config, TGitPath::ToGitPathA(tgit::wstr::StringView(GetGitLocalConfig())).c_str(), GIT_CONFIG_LEVEL_LOCAL, nullptr, FALSE) < 0)
 		return -1;
 	return git_config_foreach_match(config, "^branch\\..*\\.description$", [](const git_config_entry* entry, void* data)
 	{
@@ -2126,75 +1992,108 @@ int CGit::GetBranchDescriptions(MAP_STRING_STRING& map)
 	}, &map);
 }
 
-static void SetLibGit2SearchPath(int level, const CString &value)
+static void SetLibGit2SearchPath(const int level, const CString &value)
 {
-	CStringA valueA = CUnicodeUtils::GetUTF8(value);
+	CStringA valueA = CUnicodeUtils::GetUTF8<CStringA>(value);
 	git_libgit2_opts(GIT_OPT_SET_SEARCH_PATH, level, static_cast<LPCSTR>(valueA));
 }
 
 static void SetLibGit2TemplatePath(const CString &value)
 {
-	CStringA valueA = CUnicodeUtils::GetUTF8(value);
+	CStringA valueA = CUnicodeUtils::GetUTF8<CStringA>(value);
 	git_libgit2_opts(GIT_OPT_SET_TEMPLATE_PATH, static_cast<LPCSTR>(valueA));
 }
 
 std::wstring CGit::GetConfiguredSshClient()
 {
-	auto sshclient = CRegString(L"Software\\TortoiseGit\\SSH");
-	if (sshclient.exists())
-		sshclient = CRegString(L"Software\\TortoiseGit\\SSH", L"", FALSE, HKEY_LOCAL_MACHINE);
+	std::wstring sshclient = wil::reg::get_value_string(L"SSH");
+	if (sshclient.empty())
+		sshclient = wil::reg::get_value_string(L"SSH", L"", HKEY_LOCAL_MACHINE);
 
 	// Installs from before TortoiseGitPlink was retired still point at it, and an upgrade does
 	// not rewrite an existing value. Left alone it would be exported verbatim and every network
 	// operation would fail to spawn. Only *our own* removed binary is cleared, and only when it
 	// is really gone: TortoiseSVN ships a working TortoisePlink.exe, and someone who deliberately
 	// pointed at that must keep it.
-	if (sshclient.exists() && !PathFileExists(sshclient.get().c_str()))
+	if (!sshclient.empty() && !PathFileExists(sshclient.c_str()))
 	{
-		std::wstring exe = PathUtils::GetFileNameFromPath(sshclient.get());
+		std::wstring exe = PathUtils::GetFileNameFromPath(sshclient);
 		tgit::wstr::MakeLower(exe);
 		if (exe == L"tortoisegitplink.exe" || exe == L"tortoiseplink.exe")
-			sshclient.removeKey();
+			sshclient.clear();
 	}
 
-	return sshclient.get();
+	return sshclient;
 }
 
-int CGit::FindAndSetGitExePath(BOOL bFallback)
+bool FindGitForWindows(CString& sMsysGitPath) // not static: an internal-linkage name cannot be exported (C2294)
 {
-	auto msysdir = CRegString(REG_MSYSGIT_PATH.data(), L"", FALSE);
-	auto str = msysdir.get();
+	// First non-empty InstallLocation wins: per-user install, then machine, then 32-bit machine.
+	const std::pair<HKEY, std::wstring_view> candidates[]{
+		{ HKEY_CURRENT_USER,  UNINSTALL_REG_SUBKEY },
+		{ HKEY_LOCAL_MACHINE, UNINSTALL_REG_SUBKEY },
+		{ HKEY_LOCAL_MACHINE, UNINSTALL_RGSK_WOW64 },
+	};
+	for (const auto& [root, key] : candidates)
+	{
+		sMsysGitPath = wil::reg::get_value_string(UNINSTALL_REG_VALUE, L"", root, key).c_str();
+		sMsysGitPath.TrimRight(L'\\');
+		if (!sMsysGitPath.IsEmpty())
+			break;
+	}
+
+	if (sMsysGitPath.IsEmpty())
+	{
+		tgit::DebugOutput::CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": Found no git.exe\n");
+		return false;
+	}
+	if (PathFileExists(sMsysGitPath + L"\\bin\\git.exe")) {
+		sMsysGitPath += L"\\bin";
+		return true;
+	} else if (PathFileExists(sMsysGitPath + L"\\cmd\\git.exe")) {
+		// only needed for older Git for Windows 2.x packages
+		sMsysGitPath += L"\\cmd";
+		return true;
+	} else {
+		tgit::DebugOutput::CTraceToOutputDebugString::Instance()(
+		_T(__FUNCTION__) L": Git for Windows installation found, but git.exe not exists in %s\n", sMsysGitPath);
+		sMsysGitPath.Empty();
+		return false;
+	}
+}
+
+int CGit::FindAndSetGitExePath(const BOOL bFallback)
+{
+	const std::wstring str = wil::reg::get_value_string(REG_MSYSGIT_PATH);
 	if (!str.empty() && PathFileExists((str + L"\\git.exe").c_str()))
 	{
-		CGit::ms_LastMsysGitDir = str.c_str();
+		TGitH::ms_LastMsysGitDir = str.c_str();
 		return TRUE;
 	}
 
-	CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": git.exe not exists: %s\n", static_cast<LPCWSTR>(CGit::ms_LastMsysGitDir));
+	CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": git.exe not exists: %s\n", static_cast<LPCWSTR>(TGitH::ms_LastMsysGitDir));
 	if (!bFallback)
 		return FALSE;
 
 	// first, search PATH if git/bin directory is already present
 	if (FindGitPath())
 	{
-		CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": FindGitPath() => %s\n", static_cast<LPCWSTR>(CGit::ms_LastMsysGitDir));
-		msysdir = CRegString(ms_LastMsysGitDir.GetBuffer());
-		msysdir.write();
+		CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": FindGitPath() => %s\n", static_cast<LPCWSTR>(TGitH::ms_LastMsysGitDir));
+		wil::reg::set_value_string(REG_MSYSGIT_PATH, tgit::wstr::StringView(TGitH::ms_LastMsysGitDir));
 		return TRUE;
 	}
 
-	if (CString tmp = str.c_str(); FindGitForWindows(tmp))
+	if (CString found = str.c_str(); FindGitForWindows(found))
 	{
-		msysdir = CRegString(tmp.GetBuffer());
-		CGit::ms_LastMsysGitDir = str.c_str();
-		msysdir.write();
+		TGitH::ms_LastMsysGitDir = found;
+		std::ignore = wil::reg::set_value_string(REG_MSYSGIT_PATH, tgit::wstr::StringView(found));
 		return TRUE;
 	}
 
 	return FALSE;
 }
 
-BOOL CGit::CheckMsysGitDir(BOOL bFallback)
+BOOL CGit::CheckMsysGitDir(const BOOL bFallback)
 {
 	if (m_bInitialized)
 		return TRUE;
@@ -2260,22 +2159,18 @@ BOOL CGit::CheckMsysGitDir(BOOL bFallback)
 	}
 
 	{
-		auto sAskPass = std::array<wchar_t, MAX_PATH>{};
-		GetModuleFileName(nullptr, sAskPass.data(), sAskPass.size());
-		if (const LPWSTR ptr = wcsrchr(sAskPass.data(), L'\\'))
+		// SshAskPass.exe, next to this executable
+		std::wstring sAskPass = PathUtils::GetModuleFileNameString(nullptr);
+		if (const size_t slash = sAskPass.rfind(L'\\'); slash != std::wstring::npos)
 		{
-			wcscpy_s(ptr + 1, sAskPass.size() - (ptr - sAskPass.data() + 1), L"SshAskPass.exe");
-			if (ms_bCygwinGit) {
-				for (auto& c: sAskPass) {
-					if (c == L'\\') {
-						c = L'/';
-					}
-				}
-			}
+			sAskPass.resize(slash + 1);
+			sAskPass += L"SshAskPass.exe";
+			if (ms_bCygwinGit)
+				std::ranges::replace(sAskPass, L'\\', L'/');
 			m_Environment.SetEnv(L"DISPLAY",L":9999");
-			m_Environment.SetEnv(L"SSH_ASKPASS",sAskPass.data());
-			m_Environment.SetEnv(L"GIT_ASKPASS",sAskPass.data());
-			m_Environment.SetEnv(L"GIT_ASK_YESNO", sAskPass.data());
+			m_Environment.SetEnv(L"SSH_ASKPASS", sAskPass.c_str());
+			m_Environment.SetEnv(L"GIT_ASKPASS", sAskPass.c_str());
+			m_Environment.SetEnv(L"GIT_ASK_YESNO", sAskPass.c_str());
 			m_Environment.SetEnv(L"SSH_ASKPASS_REQUIRE", L"force"); // improve compatibility with Win32-OpenSSH, see issue #3996
 		}
 	}
@@ -2284,7 +2179,7 @@ BOOL CGit::CheckMsysGitDir(BOOL bFallback)
 		return FALSE;
 
 	CString msysGitDir;
-	PathCanonicalize(CStrBuf(msysGitDir, MAX_PATH), CGit::ms_LastMsysGitDir + L"\\..\\");
+	PathCanonicalize(CStrBuf(msysGitDir, MAX_PATH), TGitH::ms_LastMsysGitDir + L"\\..\\");
 	static const CString prefixes[] = { L"mingw64\\etc", L"mingw32\\etc", L"etc" };
 	static const int prefixes_len[] = { 8, 8, 0 };
 	for (int i = 0; i < _countof(prefixes); ++i)
@@ -2299,14 +2194,14 @@ BOOL CGit::CheckMsysGitDir(BOOL bFallback)
 		}
 	}
 	if (ms_bMsys2Git) // in Msys2 git.exe is in usr\bin; this also need to be after the check for etc folder, as Msys2 also has mingw64\etc, but uses etc
-		PathCanonicalize(CStrBuf(msysGitDir, MAX_PATH), CGit::ms_LastMsysGitDir + L"\\..\\..");
-	CGit::ms_MsysGitRootDir = msysGitDir;
+		PathCanonicalize(CStrBuf(msysGitDir, MAX_PATH), TGitH::ms_LastMsysGitDir + L"\\..\\..");
+	TGitH::ms_MsysGitRootDir = msysGitDir;
 
-	if (Registry::CRegString(REG_SYSTEM_GITCONFIGPATH.data(), L"", FALSE).get() != tgit::wstr::StringView(g_Git.GetGitSystemConfig()))
-		Registry::CRegString(REG_SYSTEM_GITCONFIGPATH.data(), L"", FALSE) = g_Git.GetGitSystemConfig().GetBuffer();
+	if (const std::wstring_view systemConfig = tgit::wstr::StringView(g_Git.GetGitSystemConfig()); wil::reg::get_value_string(REG_SYSTEM_GITCONFIGPATH) != systemConfig)
+		wil::reg::set_value_string(REG_SYSTEM_GITCONFIGPATH, systemConfig);
 
-	CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": ms_LastMsysGitDir = %s\n", static_cast<LPCWSTR>(CGit::ms_LastMsysGitDir));
-	CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": ms_MsysGitRootDir = %s\n", static_cast<LPCWSTR>(CGit::ms_MsysGitRootDir));
+	CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": ms_LastMsysGitDir = %s\n", static_cast<LPCWSTR>(TGitH::ms_LastMsysGitDir));
+	CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": ms_MsysGitRootDir = %s\n", static_cast<LPCWSTR>(TGitH::ms_MsysGitRootDir));
 	CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": System config = %s\n", static_cast<LPCWSTR>(g_Git.GetGitSystemConfig()));
 	SetLibGit2SearchPath(GIT_CONFIG_LEVEL_PROGRAMDATA, L"");
 
@@ -2337,12 +2232,12 @@ BOOL CGit::CheckMsysGitDir(BOOL bFallback)
 	git_transport_register("git+ssh", git_transport_smart, &ssh_wintunnel_subtransport_definition);
 	git_libgit2_opts(GIT_OPT_SET_USER_AGENT, "TortoiseGit libgit2");
 	if (!(ms_bCygwinGit || ms_bMsys2Git))
-		SetLibGit2TemplatePath(CGit::ms_MsysGitRootDir + L"share\\git-core\\templates");
+		SetLibGit2TemplatePath(TGitH::ms_MsysGitRootDir + L"share\\git-core\\templates");
 	else
-		SetLibGit2TemplatePath(CGit::ms_MsysGitRootDir + L"usr\\share\\git-core\\templates");
+		SetLibGit2TemplatePath(TGitH::ms_MsysGitRootDir + L"usr\\share\\git-core\\templates");
 
-	m_Environment.AddToPath(std::wstring(CGit::ms_LastMsysGitDir));
-	m_Environment.AddToPath(CRegString(REG_MSYSGIT_EXTRA_PATH.data(), L"", FALSE).get());
+	m_Environment.AddToPath(std::wstring(TGitH::ms_LastMsysGitDir));
+	m_Environment.AddToPath(wil::reg::get_value_string(REG_MSYSGIT_EXTRA_PATH));
 
 #if !defined(TGITCACHE) && !defined(TORTOISESHELL)
 	// register filter only once
@@ -2351,7 +2246,7 @@ BOOL CGit::CheckMsysGitDir(BOOL bFallback)
 		CString sh;
 		for (const CString& binDirPrefix : { L"\\..\\usr\\bin", L"\\..\\bin", L"" })
 		{
-			CString possibleShExe = CGit::ms_LastMsysGitDir + binDirPrefix + L"\\sh.exe";
+			CString possibleShExe = TGitH::ms_LastMsysGitDir + binDirPrefix + L"\\sh.exe";
 			if (PathFileExists(possibleShExe))
 			{
 				CString temp;
@@ -2365,7 +2260,7 @@ BOOL CGit::CheckMsysGitDir(BOOL bFallback)
 
 		// Add %GIT_EXEC_PATH% to %PATH% when launching libgit2 filter executable
 		// It is possible that the filter points to a git subcommand, that is located at libexec\git-core
-		CString gitExecPath = CGit::ms_MsysGitRootDir;
+		CString gitExecPath = TGitH::ms_MsysGitRootDir;
 		gitExecPath.Append(L"libexec\\git-core");
 		m_Environment.AddToPath(std::wstring(gitExecPath));
 
@@ -2413,10 +2308,8 @@ CString CGit::GetHomeDirectory() const
 
 CString CGit::GetGitLocalConfig() const
 {
-	CString path;
-	GitAdminDir::GetAdminDirPath(m_CurrentDir, path);
-	path += L"config";
-	return path;
+	const auto adminDir = GitAdminDir::GetAdminDirPath(tgit::wstr::StringView(m_CurrentDir));
+	return (adminDir.value_or(GitAdminDir::AdminDir{}).path + L"config").c_str();
 }
 
 CString CGit::GetGitGlobalConfig() const
@@ -2424,7 +2317,7 @@ CString CGit::GetGitGlobalConfig() const
 	return g_Git.GetHomeDirectory() + L"\\.gitconfig";
 }
 
-CString CGit::GetGitGlobalXDGConfig(bool returnDirectory) const
+CString CGit::GetGitGlobalXDGConfig(const bool returnDirectory) const
 {
 	// Attention: also see GitWCRev/status.cpp!
 	if (CString xdgPath = m_Environment.GetEnv(L"XDG_CONFIG_HOME").c_str(); !xdgPath.IsEmpty())
@@ -2462,10 +2355,10 @@ CString CGit::GetGitSystemConfig() const
 
 CString CGit::GetNotesRef() const
 {
-	return CUnicodeUtils::GetUnicode(git_default_notes_ref());
+	return CUnicodeUtils::GetUnicode<CString>(git_default_notes_ref());
 }
 
-BOOL CGit::CheckCleanWorkTree(bool stagedOk /* false */)
+BOOL CGit::CheckCleanWorkTree(const bool stagedOk /* false */)
 {
 	CAutoRepository repo(GetGitRepository());
 	if (!repo)
@@ -2479,13 +2372,13 @@ BOOL CGit::CheckCleanWorkTree(bool stagedOk /* false */)
 	statusopt.flags = GIT_STATUS_OPT_UPDATE_INDEX | GIT_STATUS_OPT_EXCLUDE_SUBMODULES;
 
 	CAutoStatusList status;
-	if (git_status_list_new(status.GetPointer(), repo, &statusopt))
+	if (git_status_list_new(&status, repo, &statusopt))
 		return FALSE;
 
 	return (0 == git_status_list_entrycount(status));
 }
 
-BOOL CGit::IsResultingCommitBecomeEmpty(bool amend /* = false */)
+BOOL CGit::IsResultingCommitBecomeEmpty(const bool amend /* = false */)
 {
 	// "HEAD~1" is one revision, so the suffix is part of the element rather than
 	// something appended to the command line.
@@ -2497,7 +2390,7 @@ int CGit::HasWorkingTreeConflicts(git_repository* repo)
 	ATLASSERT(repo);
 
 	CAutoIndex index;
-	if (git_repository_index(index.GetPointer(), repo))
+	if (git_repository_index(&index, repo))
 		return -1;
 
 	return git_index_has_conflicts(index);
@@ -2537,28 +2430,18 @@ bool CGit::IsFastForward(const CString &from, const CString &to, CGitHash * comm
 	return fromHash == baseHash;
 }
 
-unsigned int CGit::Hash2int(const CGitHash &hash)
-{
-	int ret=0;
-	for (int i = 0; i < 4; ++i)
-	{
-		ret = ret << 8;
-		ret |= hash.ToRaw()[i];
-	}
-	return ret;
-}
 
 int CGit::RefreshGitIndex()
 {
 	// HACK: don't use internal update-index if we have a git-lfs enabled repository as the libgit version fails when executing the filter, issue #3220
-	if (g_Git.m_IsUseGitDLL && !CTGitPath(g_Git.m_CurrentDir.GetString()).HasLFS())
+	if (g_Git.m_IsUseGitDLL && !TGitPath::CTGitPath(g_Git.m_CurrentDir.GetString()).HasLFS())
 	{
-		CAutoLocker lock(g_Git.m_critGitDllSec);
+		[[maybe_unused]]CAutoLocker lock(g_Git.m_critGitDllSec);
 		try
 		{
 			g_Git.CheckAndInitDll();
 
-			SCOPE_EXIT{ git_exit_cleanup(); };
+			const auto cleanup = gsl::finally([] { git_exit_cleanup(); });
 			return git_update_index();
 		}catch(...)
 		{
@@ -2586,15 +2469,15 @@ int CGit::GetOneFile(const CString &Refname, const CTGitPath &path, const CStrin
 			return -1;
 
 		CAutoCommit commit;
-		if (git_commit_lookup(commit.GetPointer(), repo, hash))
+		if (git_commit_lookup(&commit, repo, hash))
 			return -1;
 
 		CAutoTree tree;
-		if (git_commit_tree(tree.GetPointer(), commit))
+		if (git_commit_tree(&tree, commit))
 			return -1;
 
 		CAutoTreeEntry entry;
-		if (auto ret = git_tree_entry_bypath(entry.GetPointer(), tree, CUnicodeUtils::StdGetUTF8(path.GetGitPathString().c_str()).c_str()); ret)
+		if (auto ret = git_tree_entry_bypath(&entry, tree, CUnicodeUtils::StdGetUTF8(path.GetGitPathString().c_str()).c_str()); ret)
 			return ret;
 
 		if (git_tree_entry_filemode(entry) == GIT_FILEMODE_COMMIT)
@@ -2604,10 +2487,10 @@ int CGit::GetOneFile(const CString &Refname, const CTGitPath &path, const CStrin
 		}
 
 		CAutoBlob blob;
-		if (git_tree_entry_to_object(reinterpret_cast<git_object**>(blob.GetPointer()), repo, entry))
+		if (git_tree_entry_to_object(reinterpret_cast<git_object**>(&blob), repo, entry))
 			return -1;
 
-		CAutoFILE file = _wfsopen(outputfile, L"wb", SH_DENYWR);
+		RIAA::CAutoFILE file = _wfsopen(outputfile, L"wb", SH_DENYWR);
 		if (file == nullptr)
 		{
 			git_error_set_str(GIT_ERROR_NONE, "Could not create file.");
@@ -2632,15 +2515,15 @@ int CGit::GetOneFile(const CString &Refname, const CTGitPath &path, const CStrin
 	{
 		g_Git.CheckAndInitDll();
 		CStringA ref, patha, outa;
-		ref = CUnicodeUtils::GetUTF8(Refname);
+		ref = CUnicodeUtils::GetUTF8<CStringA>(Refname);
 		patha = CUnicodeUtils::StdGetUTF8(path.GetGitPathString().c_str()).c_str();
-		outa = CUnicodeUtils::GetUTF8(outputfile);
+		outa = CUnicodeUtils::GetUTF8<CStringA>(outputfile);
 		::DeleteFile(outputfile);
 		return git_checkout_file(ref, patha, CStrBufA(outa));
 	}
 	catch (const char * msg)
 	{
-		gitLastErr = L"gitdll.dll reports: " + CUnicodeUtils::GetUnicode(msg);
+		gitLastErr = L"gitdll.dll reports: " + CUnicodeUtils::GetUnicode<CString>(msg);
 		return -1;
 	}
 	catch (...)
@@ -2744,56 +2627,56 @@ int CGit::GetShortHASHLength() const
 	return 8;
 }
 
-CString CGit::GetShortName(const CString& ref, REF_TYPE *out_type)
+CString TGitH::GetShortName(const CString& ref, REF_TYPE *out_type)
 {
 	CString str=ref;
 	CString shortname;
-	REF_TYPE type = CGit::UNKNOWN;
+	REF_TYPE type = UNKNOWN;
 
-	if (CGit::GetShortName(str, shortname, L"refs/heads/"))
-		type = CGit::LOCAL_BRANCH;
-	else if (CGit::GetShortName(str, shortname, L"refs/remotes/"))
-		type = CGit::REMOTE_BRANCH;
-	else if (CStringUtils::EndsWith(str, L"^{}") && CGit::GetShortName(str, shortname, L"refs/tags/"))
-		type = CGit::ANNOTATED_TAG;
-	else if (CGit::GetShortName(str, shortname, L"refs/tags/"))
-		type = CGit::TAG;
-	else if (CGit::GetShortName(str, shortname, L"refs/stash"))
+	if (GetShortName(str, shortname, L"refs/heads/"))
+		type = LOCAL_BRANCH;
+	else if (GetShortName(str, shortname, L"refs/remotes/"))
+		type = REMOTE_BRANCH;
+	else if (StringUtils::EndsWith(str, L"^{}") && GetShortName(str, shortname, L"refs/tags/"))
+		type = ANNOTATED_TAG;
+	else if (GetShortName(str, shortname, L"refs/tags/"))
+		type = TAG;
+	else if (GetShortName(str, shortname, L"refs/stash"))
 	{
-		type = CGit::STASH;
+		type = STASH;
 		shortname = L"stash";
 	}
-	else if (CGit::GetShortName(str, shortname, L"refs/bisect/"))
+	else if (GetShortName(str, shortname, L"refs/bisect/"))
 	{
 		CString bisectGood;
 		CString bisectBad;
 		g_Git.GetBisectTerms(&bisectGood, &bisectBad);
 		wchar_t c;
-		if (CStringUtils::StartsWith(shortname, bisectGood) && ((c = shortname.GetAt(bisectGood.GetLength())) == '-' || c == '\0'))
+		if (tgit::wstr::StartsWith(tgit::wstr::StringView(shortname), tgit::wstr::StringView(bisectGood)) && ((c = shortname.GetAt(bisectGood.GetLength())) == '-' || c == '\0'))
 		{
-			type = CGit::BISECT_GOOD;
+			type = BISECT_GOOD;
 			shortname = bisectGood;
 		}
 
-		if (CStringUtils::StartsWith(shortname, bisectBad) && ((c = shortname.GetAt(bisectBad.GetLength())) == '-' || c == '\0'))
+		if (tgit::wstr::StartsWith(tgit::wstr::StringView(shortname), tgit::wstr::StringView(bisectBad)) && ((c = shortname.GetAt(bisectBad.GetLength())) == '-' || c == '\0'))
 		{
-			type = CGit::BISECT_BAD;
+			type = BISECT_BAD;
 			shortname = bisectBad;
 		}
 
-		if (CStringUtils::StartsWith(shortname, L"skip") && ((c = shortname.GetAt(4)) == '-' || c == '\0'))
+		if (StringUtils::StartsWith(shortname, L"skip") && ((c = shortname.GetAt(4)) == '-' || c == '\0'))
 		{
-			type = CGit::BISECT_SKIP;
+			type = BISECT_SKIP;
 			shortname = L"skip";
 		}
 	}
-	else if (CGit::GetShortName(str, shortname, L"refs/notes/"))
-		type = CGit::NOTES;
-	else if (CGit::GetShortName(str, shortname, L"refs/"))
-		type = CGit::UNKNOWN;
+	else if (GetShortName(str, shortname, L"refs/notes/"))
+		type = NOTES;
+	else if (GetShortName(str, shortname, L"refs/"))
+		type = UNKNOWN;
 	else
 	{
-		type = CGit::UNKNOWN;
+		type = UNKNOWN;
 		shortname = ref;
 	}
 
@@ -2803,7 +2686,7 @@ CString CGit::GetShortName(const CString& ref, REF_TYPE *out_type)
 	return shortname;
 }
 
-bool CGit::UsingLibGit2(LIBGIT2_CMD cmd) const
+bool CGit::UsingLibGit2(const LIBGIT2_CMD cmd) const
 {
 	if ((1 << cmd) & LIBGIT2_ONLY_MASK)
 		return true;
@@ -2821,7 +2704,7 @@ void CGit::SetGit2CertificateCheckCertificate(void* callback)
 	g_Git2CheckCertificateCallback = reinterpret_cast<git_transport_certificate_check_cb>(callback);
 }
 
-static STRING_VECTOR GetUnifiedDiffCmd(const CTGitPath& path, const CString& rev1, const CString& rev2, bool bMerge, bool bCombine, int diffContext, bool bNoPrefix = false)
+static STRING_VECTOR GetUnifiedDiffCmd(const CTGitPath& path, const CString& rev1, const CString& rev2, const bool bMerge, const bool bCombine, int diffContext, const bool bNoPrefix = false)
 {
 	STRING_VECTOR argv{ L"git.exe" };
 	// rev2 is tested first, so a call with *both* revs set to the working copy
@@ -2895,7 +2778,7 @@ static int resolve_to_tree(git_repository *repo, const char *identifier, git_tre
 
 	/* try to resolve identifier */
 	CAutoObject obj;
-	if (git_revparse_single(obj.GetPointer(), repo, identifier))
+	if (git_revparse_single(&obj, repo, identifier))
 		return -1;
 
 	if (obj == nullptr)
@@ -2922,7 +2805,7 @@ static int resolve_to_commit(git_repository* repo, const char* identifier, git_c
 	ATLASSERT(repo && identifier && commit);
 
 	CAutoObject obj;
-	if (git_revparse_single(obj.GetPointer(), repo, identifier))
+	if (git_revparse_single(&obj, repo, identifier))
 		return -1;
 
 	if (obj == nullptr)
@@ -2933,10 +2816,10 @@ static int resolve_to_commit(git_repository* repo, const char* identifier, git_c
 
 /* the tail every diff below shares. It is not done once at the end because a
    merge diffed with -m emits one stat block and one patch series per parent. */
-static int EmitUnifiedDiff(git_diff* diff, const std::function<void(const git_buf*, void*)>& statCallback, git_diff_line_cb callback, void* data)
+static int EmitUnifiedDiff(git_diff* diff, const std::function<void(const git_buf*, void*)>& statCallback, const git_diff_line_cb callback, void* data)
 {
 	CAutoDiffStats stats;
-	if (git_diff_get_stats(stats.GetPointer(), diff))
+	if (git_diff_get_stats(&stats, diff))
 		return -1;
 	CAutoBuf statBuf;
 	if (git_diff_stats_to_buf(statBuf, stats, GIT_DIFF_STATS_FULL, 0))
@@ -2946,7 +2829,7 @@ static int EmitUnifiedDiff(git_diff* diff, const std::function<void(const git_bu
 	for (size_t i = 0; i < git_diff_num_deltas(diff); ++i)
 	{
 		CAutoPatch patch;
-		if (git_patch_from_diff(patch.GetPointer(), diff, i))
+		if (git_patch_from_diff(&patch, diff, i))
 			return -1;
 
 		if (git_patch_print(patch, callback, data))
@@ -2957,10 +2840,10 @@ static int EmitUnifiedDiff(git_diff* diff, const std::function<void(const git_bu
 }
 
 /* use libgit2 get unified diff */
-static int GetUnifiedDiffLibGit2(const CTGitPath& path, const CString& revOld, const CString& revNew, std::function<void(const git_buf*, void*)> statCallback, git_diff_line_cb callback, void* data, bool bMerge, int diffContext, bool bNoPrefix)
+static int GetUnifiedDiffLibGit2(const CTGitPath& path, const CString& revOld, const CString& revNew, std::function<void(const git_buf*, void*)> statCallback, const git_diff_line_cb callback, void* data, const bool bMerge, const int diffContext, const bool bNoPrefix)
 {
-	CStringA tree1 = CUnicodeUtils::GetUTF8(revNew);
-	CStringA tree2 = CUnicodeUtils::GetUTF8(revOld);
+	CStringA tree1 = CUnicodeUtils::GetUTF8<CStringA>(revNew);
+	CStringA tree2 = CUnicodeUtils::GetUTF8<CStringA>(revOld);
 
 	CAutoRepository repo(g_Git.GetGitRepository());
 	if (!repo)
@@ -3002,17 +2885,17 @@ static int GetUnifiedDiffLibGit2(const CTGitPath& path, const CString& revOld, c
 			opts.flags |= GIT_DIFF_REVERSE;
 
 		CAutoTree t1;
-		if (revNew != GitRev::GetWorkingCopyRef() && resolve_to_tree(repo, tree1, t1.GetPointer()))
+		if (revNew != GitRev::GetWorkingCopyRef() && resolve_to_tree(repo, tree1, &t1))
 			return -1;
 
-		if (revOld != GitRev::GetWorkingCopyRef() && resolve_to_tree(repo, tree2, t1.GetPointer()))
+		if (revOld != GitRev::GetWorkingCopyRef() && resolve_to_tree(repo, tree2, &t1))
 			return -1;
 
 		// One call rather than a hand-rolled tree_to_index + index_to_workdir + merge:
 		// it is the same three steps, but it loads the index once and hands the same
 		// one to both halves instead of letting each reload it.
 		CAutoDiff diff;
-		if (git_diff_tree_to_workdir_with_index(diff.GetPointer(), repo, t1, &opts))
+		if (git_diff_tree_to_workdir_with_index(&diff, repo, t1, &opts))
 			return -1;
 
 		return EmitUnifiedDiff(diff, statCallback, callback, data);
@@ -3028,7 +2911,7 @@ static int GetUnifiedDiffLibGit2(const CTGitPath& path, const CString& revOld, c
 	}
 
 	CAutoTree t1;
-	if (!tree1.IsEmpty() && resolve_to_tree(repo, tree1, t1.GetPointer()))
+	if (!tree1.IsEmpty() && resolve_to_tree(repo, tree1, &t1))
 		return -1;
 
 	// With no old rev, `-m` means "against each parent in turn" - which is the
@@ -3036,20 +2919,20 @@ static int GetUnifiedDiffLibGit2(const CTGitPath& path, const CString& revOld, c
 	// single tree1~1 diff below is the first parent only, so every other parent
 	// used to be dropped without a word.
 	CAutoCommit commit;
-	if (bMerge && tree2.IsEmpty() && !resolve_to_commit(repo, tree1, commit.GetPointer()) && git_commit_parentcount(commit) > 1)
+	if (bMerge && tree2.IsEmpty() && !resolve_to_commit(repo, tree1, &commit) && git_commit_parentcount(commit) > 1)
 	{
 		for (unsigned int i = 0; i < git_commit_parentcount(commit); ++i)
 		{
 			CAutoCommit parent;
-			if (git_commit_parent(parent.GetPointer(), commit, i))
+			if (git_commit_parent(&parent, commit, i))
 				return -1;
 
 			CAutoTree parentTree;
-			if (git_commit_tree(parentTree.GetPointer(), parent))
+			if (git_commit_tree(&parentTree, parent))
 				return -1;
 
 			CAutoDiff diff;
-			if (git_diff_tree_to_tree(diff.GetPointer(), repo, parentTree, t1, &opts))
+			if (git_diff_tree_to_tree(&diff, repo, parentTree, t1, &opts))
 				return -1;
 
 			// A parent the merge result is identical to contributes nothing at all,
@@ -3069,19 +2952,19 @@ static int GetUnifiedDiffLibGit2(const CTGitPath& path, const CString& revOld, c
 	if (tree2.IsEmpty())
 	{
 		/* don't check return value, there are not parent commit at first commit*/
-		resolve_to_tree(repo, tree1 + "~1", t2.GetPointer());
+		resolve_to_tree(repo, tree1 + "~1", &t2);
 	}
-	else if (resolve_to_tree(repo, tree2, t2.GetPointer()))
+	else if (resolve_to_tree(repo, tree2, &t2))
 		return -1;
 
 	CAutoDiff diff;
-	if (git_diff_tree_to_tree(diff.GetPointer(), repo, t2, t1, &opts))
+	if (git_diff_tree_to_tree(&diff, repo, t2, t1, &opts))
 		return -1;
 
 	return EmitUnifiedDiff(diff, statCallback, callback, data);
 }
 
-int CGit::GetUnifiedDiff(const CTGitPath& path, const CString& rev1, const CString& rev2, CString patchfile, bool bMerge, bool bCombine, int diffContext, bool bNoPrefix)
+int CGit::GetUnifiedDiff(const CTGitPath& path, const CString& rev1, const CString& rev2, CString patchfile, const bool bMerge, const bool bCombine, const int diffContext, const bool bNoPrefix)
 {
 	// The remaining git.exe path is not a fallback but a capability fork, of the
 	// same kind as the `--cc` in GitLogListAction: libgit2 has no combined-diff
@@ -3094,11 +2977,11 @@ int CGit::GetUnifiedDiff(const CTGitPath& path, const CString& rev1, const CStri
 		// libgit2's error slot. Put git.exe's message there rather than leaving the
 		// one path that still shells out reporting nothing.
 		if (ret)
-			git_error_set_str(GIT_ERROR_NONE, CUnicodeUtils::GetUTF8(gitLastErr));
+			git_error_set_str(GIT_ERROR_NONE, CUnicodeUtils::GetUTF8<CStringA>(gitLastErr));
 		return ret;
 	}
 
-	CAutoFILE file = _wfsopen(patchfile, L"wb", SH_DENYRW);
+	RIAA::CAutoFILE file = _wfsopen(patchfile, L"wb", SH_DENYRW);
 	if (!file)
 		return -1;
 	return GetUnifiedDiffLibGit2(path, rev1, rev2, UnifiedDiffStatToFile, UnifiedDiffToFile, file, bMerge, diffContext, bNoPrefix);
@@ -3108,7 +2991,7 @@ static void UnifiedDiffStatToStringA(const git_buf* text, void* payload)
 {
 	ATLASSERT(payload && text);
 	auto str = static_cast<CStringA*>(payload);
-	str->Append(text->ptr, SafeSizeToInt(text->size));
+	str->Append(text->ptr, CUnicodeUtils::SafeSizeToInt(text->size));
 	str->AppendChar('\n');
 }
 
@@ -3118,11 +3001,11 @@ static int UnifiedDiffToStringA(const git_diff_delta * /*delta*/, const git_diff
 	auto str = static_cast<CStringA*>(payload);
 	if (line->origin == GIT_DIFF_LINE_CONTEXT || line->origin == GIT_DIFF_LINE_ADDITION || line->origin == GIT_DIFF_LINE_DELETION)
 		str->Append(&line->origin, 1);
-	str->Append(line->content, SafeSizeToInt(line->content_len));
+	str->Append(line->content, CUnicodeUtils::SafeSizeToInt(line->content_len));
 	return 0;
 }
 
-int CGit::GetUnifiedDiff(const CTGitPath& path, const CString& rev1, const CString& rev2, CStringA& buffer, bool bMerge, bool bCombine, int diffContext)
+int CGit::GetUnifiedDiff(const CTGitPath& path, const CString& rev1, const CString& rev2, CStringA& buffer, const bool bMerge, const bool bCombine, const int diffContext)
 {
 	if (!bCombine) // see the note on the overload above
 		return GetUnifiedDiffLibGit2(path, rev1, rev2, UnifiedDiffStatToStringA, UnifiedDiffToStringA, &buffer, bMerge, diffContext, false);
@@ -3130,18 +3013,18 @@ int CGit::GetUnifiedDiff(const CTGitPath& path, const CString& rev1, const CStri
 	BYTE_VECTOR vector;
 	const int ret = Run(GetUnifiedDiffCmd(path, rev1, rev2, bMerge, bCombine, diffContext), &vector);
 	if (!vector.empty())
-		buffer.Append(vector.data(), SafeSizeToInt(vector.size()));
+		buffer.Append(vector.data(), CUnicodeUtils::SafeSizeToInt(vector.size()));
 	return ret;
 }
 
-int CGit::GitRevert(int parent, const CGitHash &hash)
+int CGit::GitRevert(const int parent, const CGitHash &hash)
 {
 	CAutoRepository repo(GetGitRepository());
 	if (!repo)
 		return -1;
 
 	CAutoCommit commit;
-	if (git_commit_lookup(commit.GetPointer(), repo, hash))
+	if (git_commit_lookup(&commit, repo, hash))
 		return -1;
 
 	git_revert_options revert_opts = GIT_REVERT_OPTIONS_INIT;
@@ -3156,13 +3039,13 @@ int CGit::DeleteRef(const CString& reference)
 		return -1;
 
 	CStringA refA;
-	if (CStringUtils::EndsWith(reference, L"^{}"))
-		refA = CUnicodeUtils::GetUTF8(reference.Left(reference.GetLength() - static_cast<int>(wcslen(L"^{}"))));
+	if (StringUtils::EndsWith(reference, L"^{}"))
+		refA = CUnicodeUtils::GetUTF8<CStringA>(reference.Left(reference.GetLength() - static_cast<int>(wcslen(L"^{}"))));
 	else
-		refA = CUnicodeUtils::GetUTF8(reference);
+		refA = CUnicodeUtils::GetUTF8<CStringA>(reference);
 
 	CAutoReference ref;
-	if (git_reference_lookup(ref.GetPointer(), repo, refA))
+	if (git_reference_lookup(&ref, repo, refA))
 		return -1;
 
 	int result = -1;
@@ -3188,9 +3071,9 @@ int CGit::DeleteRemoteRefs(const CString& sRemote, const STRING_VECTOR& list)
 	if (!repo)
 		return -1;
 
-	CStringA remoteA = CUnicodeUtils::GetUTF8(sRemote);
+	CStringA remoteA = CUnicodeUtils::GetUTF8<CStringA>(sRemote);
 	CAutoRemote remote;
-	if (git_remote_lookup(remote.GetPointer(), repo, remoteA) < 0)
+	if (git_remote_lookup(&remote, repo, remoteA) < 0)
 		return -1;
 
 	git_push_options pushOpts = GIT_PUSH_OPTIONS_INIT;
@@ -3214,12 +3097,12 @@ int CGit::DeleteRemoteRefs(const CString& sRemote, const STRING_VECTOR& list)
 	return 0;
 }
 
-bool CGit::LoadTextFile(const CString &filename, CString &msg)
+bool TGitH::LoadTextFile(const CString &filename, CString &msg)
 {
 	if (!PathFileExists(filename))
 		return false;
 
-	CAutoFILE pFile = _wfsopen(filename, L"rb", SH_DENYWR);
+	RIAA::CAutoFILE pFile = _wfsopen(filename, L"rb", SH_DENYWR);
 	if (!pFile)
 	{
 		::MessageBox(nullptr, L"Could not open " + filename, L"TortoiseGit", MB_ICONERROR);
@@ -3235,7 +3118,7 @@ bool CGit::LoadTextFile(const CString &filename, CString &msg)
 			break;
 		str += CStringA(s, read);
 	} while (true);
-	msg += CUnicodeUtils::GetUnicode(str);
+	msg += CUnicodeUtils::GetUnicode<CString>(str);
 	msg.Replace(L"\r\n", L"\n");
 	msg.TrimRight(L'\n');
 	msg += L'\n';
@@ -3370,7 +3253,7 @@ int CGit::GetWorkingTreeChanges(CTGitPathList& result, bool amend, const CTGitPa
 			else
 			{
 				// should we ever get here?
-				ASSERT(false);
+				ATLASSERT(false);
 				result.AddPath(conflictlist[j]);
 				duplicateMap.insert(std::pair<std::wstring, int>(result[i].GetGitPathString().c_str(), result.GetCount() - 1));
 			}
@@ -3422,13 +3305,12 @@ void CGit::GetBisectTerms(CString* good, CString* bad)
 	static CString lastBad;
 	static ULONGLONG lastRead = 0;
 
-	SCOPE_EXIT
-	{
+	const auto publish = gsl::finally([good, bad] {
 		if (bad)
 			*bad = lastBad;
 		if (good)
 			*good = lastGood;
-	};
+	});
 
 #ifndef GOOGLETEST_INCLUDE_GTEST_GTEST_H_
 	// add some caching here, because this method might be called multiple times in a short time from LogDlg and RevisionGraph
@@ -3440,13 +3322,13 @@ void CGit::GetBisectTerms(CString* good, CString* bad)
 	lastGood = L"good";
 	lastBad = L"bad";
 
-	CString adminDir;
-	if (!GitAdminDir::GetAdminDirPath(m_CurrentDir, adminDir))
+	const auto adminDir = GitAdminDir::GetAdminDirPath(tgit::wstr::StringView(m_CurrentDir));
+	if (!adminDir)
 		return;
 
-	CString termsFile = adminDir + L"BISECT_TERMS";
-	CAutoFILE fp;
-	_wfopen_s(fp.GetPointer(), termsFile, L"rb");
+	const std::wstring termsFile = adminDir->path + L"BISECT_TERMS";
+	// _wfsopen, like the other readers here; _wfopen_s would need a FILE** out of CAutoFILE.
+	RIAA::CAutoFILE fp = _wfsopen(termsFile.c_str(), L"rb", SH_DENYWR);
 	if (!fp)
 		return;
 	char badA[MAX_PATH] = { 0 };
@@ -3459,8 +3341,8 @@ void CGit::GetBisectTerms(CString* good, CString* bad)
 	len = strlen(goodA);
 	if (len > 0 && goodA[len - 1] == '\n')
 		goodA[len - 1] = '\0';
-	lastGood = CUnicodeUtils::GetUnicode(goodA);
-	lastBad = CUnicodeUtils::GetUnicode(badA);
+	lastGood = CUnicodeUtils::GetUnicode<CString>(goodA);
+	lastBad = CUnicodeUtils::GetUnicode<CString>(badA);
 	lastRead = GetTickCount64();
 }
 
@@ -3515,7 +3397,7 @@ int CGit::GetGitNotes(const CGitHash& hash, CString& notes)
 		return -1;
 
 	CAutoNote note;
-	const int ret = git_note_read(note.GetPointer(), repo, nullptr, hash);
+	const int ret = git_note_read(&note, repo, nullptr, hash);
 	if (ret == GIT_ENOTFOUND)
 	{
 		notes.Empty();
@@ -3523,7 +3405,7 @@ int CGit::GetGitNotes(const CGitHash& hash, CString& notes)
 	}
 	else if (ret)
 		return -1;
-	notes = CUnicodeUtils::GetUnicode(git_note_message(note));
+	notes = CUnicodeUtils::GetUnicode<CString>(git_note_message(note));
 	return 0;
 }
 
@@ -3534,11 +3416,11 @@ int CGit::SetGitNotes(const CGitHash& hash, const CString& notes)
 		return -1;
 
 	CAutoSignature signature;
-	if (git_signature_default(signature.GetPointer(), repo) < 0)
+	if (git_signature_default(&signature, repo) < 0)
 		return -1;
 
 	git_oid oid;
-	if (git_note_create(&oid, repo, nullptr, signature, signature, hash, CUnicodeUtils::GetUTF8(notes), 1) < 0)
+	if (git_note_create(&oid, repo, nullptr, signature, signature, hash, CUnicodeUtils::GetUTF8<CStringA>(notes), 1) < 0)
 		return -1;
 
 	return 0;
@@ -3552,37 +3434,37 @@ int CGit::GetTagInfo(const CString& tagName, CString& output, const std::functio
 		if (!repo)
 			return -1;
 		CAutoReference ref;
-		if (git_reference_lookup(ref.GetPointer(), repo, CUnicodeUtils::GetUTF8(tagName)) < 0)
+		if (git_reference_lookup(&ref, repo, CUnicodeUtils::GetUTF8<CStringA>(tagName)) < 0)
 		{
-			output = CGit::GetLibGit2LastErr();
+			output = TGitH::GetLibGit2LastErr();
 			return -1;
 		}
 		CAutoObject obj;
-		if (git_object_lookup(obj.GetPointer(), repo, git_reference_target(ref), GIT_OBJECT_TAG))
+		if (git_object_lookup(&obj, repo, git_reference_target(ref), GIT_OBJECT_TAG))
 		{
-			output = CGit::GetLibGit2LastErr();
+			output = TGitH::GetLibGit2LastErr();
 			return -1;
 		}
 		CAutoTag tag;
-		if (git_tag_lookup(tag.GetPointer(), repo, git_reference_target(ref)) < 0)
+		if (git_tag_lookup(&tag, repo, git_reference_target(ref)) < 0)
 		{
-			output = CGit::GetLibGit2LastErr();
+			output = TGitH::GetLibGit2LastErr();
 			return -1;
 		}
-		output = L"tag " + CUnicodeUtils::GetUnicode(git_tag_name(tag)) + L"\n";
+		output = L"tag " + CUnicodeUtils::GetUnicode<CString>(git_tag_name(tag)) + L"\n";
 		auto tagger = git_tag_tagger(tag);
 		if (tagger)
 		{
 			output += "tagger ";
 			if (tagger->name)
 			{
-				output += CUnicodeUtils::GetUnicode(tagger->name);
+				output += CUnicodeUtils::GetUnicode<CString>(tagger->name);
 				output += L' ';
 			}
 			if (tagger->email)
 			{
 				output += L'<';
-				output += CUnicodeUtils::GetUnicode(tagger->email);
+				output += CUnicodeUtils::GetUnicode<CString>(tagger->email);
 				output += L'>';
 				output += L' ';
 			}
@@ -3590,7 +3472,7 @@ int CGit::GetTagInfo(const CString& tagName, CString& output, const std::functio
 			output += L'\n';
 		}
 		output += L'\n';
-		output += CUnicodeUtils::GetUnicode(git_tag_message(tag));
+		output += CUnicodeUtils::GetUnicode<CString>(git_tag_message(tag));
 		output.TrimRight().AppendChar(L'\n');
 		return 0;
 	}
@@ -3599,12 +3481,12 @@ int CGit::GetTagInfo(const CString& tagName, CString& output, const std::functio
 	if (g_Git.Run({ L"git.exe", L"cat-file", L"tag", L"--", std::wstring(tagName) }, &output, CP_UTF8) != 0)
 		return -1;
 
-	if (CStringUtils::StartsWith(output, L"object "))
+	if (StringUtils::StartsWith(output, L"object "))
 	{
 		if (const int pos = output.Find(L"\n"); pos > 0)
 		{
 			output.Delete(0, pos + 1);
-			if (CStringUtils::StartsWith(output, L"type commit\n"))
+			if (StringUtils::StartsWith(output, L"type commit\n"))
 				output.Delete(0, static_cast<int>(wcslen(L"type commit\n")));
 		}
 	}
@@ -3645,37 +3527,38 @@ int CGit::GetSubmodulePointer(SubmoduleInfo& submoduleinfo) const
 
 	if (GitAdminDir::IsBareRepo(g_Git.m_CurrentDir.GetString()))
 		return -1;
-	CString superprojectRoot;
-	GitAdminDir::HasAdminDir(g_Git.m_CurrentDir, false, &superprojectRoot);
-	if (superprojectRoot.IsEmpty())
+	std::wstring superprojectRoot;
+	GitAdminDir::HasAdminDir(tgit::wstr::StringView(g_Git.m_CurrentDir), false, &superprojectRoot);
+	if (superprojectRoot.empty())
 		return -1;
 
-	CAutoRepository repo(superprojectRoot);
+	CAutoRepository repo(std::wstring_view{ superprojectRoot });
 	if (!repo)
 		return -1;
 	CAutoIndex index;
 	if (git_repository_index(index.GetPointer(), repo))
 		return -1;
 
+	const int rootLength = CUnicodeUtils::SafeSizeToInt(superprojectRoot.size());
 	CString submodulePath;
-	if (superprojectRoot[superprojectRoot.GetLength() - 1] == L'\\')
-		submodulePath = g_Git.m_CurrentDir.Right(g_Git.m_CurrentDir.GetLength() - superprojectRoot.GetLength());
+	if (superprojectRoot.back() == L'\\')
+		submodulePath = g_Git.m_CurrentDir.Right(g_Git.m_CurrentDir.GetLength() - rootLength);
 	else
-		submodulePath = g_Git.m_CurrentDir.Right(g_Git.m_CurrentDir.GetLength() - superprojectRoot.GetLength() - 1);
+		submodulePath = g_Git.m_CurrentDir.Right(g_Git.m_CurrentDir.GetLength() - rootLength - 1);
 	submodulePath.Replace(L'\\', L'/');
 
 	// if current submodule is in conflict state, return the relevant hashes
 	const git_index_entry* ancestor{};
 	const git_index_entry* our{};
 	const git_index_entry* their{};
-	if (!git_index_conflict_get(&ancestor, &our, &their, index, CUnicodeUtils::GetUTF8(submodulePath)))
+	if (!git_index_conflict_get(&ancestor, &our, &their, index, CUnicodeUtils::GetUTF8<CStringA>(submodulePath)))
 	{
 		if (our)
 			submoduleinfo.mergeconflictMineHash = our->id;
 		if (their)
 			submoduleinfo.mergeconflictTheirsHash = their->id;
 
-		CTGitPath superProject{superprojectRoot.GetString()};
+		CTGitPath superProject{superprojectRoot};
 		if (superProject.IsRebaseActive())
 		{
 			submoduleinfo.mineLabel = L"super-project-rebase-head";
@@ -3690,7 +3573,7 @@ int CGit::GetSubmodulePointer(SubmoduleInfo& submoduleinfo) const
 	}
 
 	// determine hash of submodule
-	const git_index_entry* entry = git_index_get_bypath(index, CUnicodeUtils::GetUTF8(submodulePath), 0);
+	const git_index_entry* entry = git_index_get_bypath(index, CUnicodeUtils::GetUTF8<CStringA>(submodulePath), 0);
 	if (!entry)
 		return -1;
 
@@ -3699,7 +3582,7 @@ int CGit::GetSubmodulePointer(SubmoduleInfo& submoduleinfo) const
 }
 
 // similar code in CTGitPath::ParserFromLsFile
-int CGit::ParseConflictHashesFromLsFile(const BYTE_VECTOR& out, CGitHash& baseHash, bool& baseIsFile, CGitHash& mineHash, bool& mineIsFile, CGitHash& remoteHash, bool& remoteIsFile)
+int TGitH::ParseConflictHashesFromLsFile(const BYTE_VECTOR& out, CGitHash& baseHash, bool& baseIsFile, CGitHash& mineHash, bool& mineIsFile, CGitHash& remoteHash, bool& remoteIsFile)
 {
 	size_t pos = 0;
 	const size_t end = out.size();
@@ -3711,7 +3594,7 @@ int CGit::ParseConflictHashesFromLsFile(const BYTE_VECTOR& out, CGitHash& baseHa
 
 		if (out[pos] != 'M')
 		{
-			ASSERT(false && "this should never happen as this method should only be called for output of git ls-files -u -t -z");
+			ATLASSERT(false && "this should never happen as this method should only be called for output of git ls-files -u -t -z");
 			return -1;
 		}
 
@@ -3764,25 +3647,4 @@ int CGit::ParseConflictHashesFromLsFile(const BYTE_VECTOR& out, CGitHash& baseHa
 	}
 
 	return 0;
-}
-
-CString CGit::QuoteParameter(CString value, bool relaxed /* false */)
-{
-	if (ms_bMsys2Git || ms_bCygwinGit)
-	{
-		if (!relaxed)
-			value.Replace(L'\\', L'/');
-		value.Replace(L"'", L"'\\''");
-		return L'\'' + value + L'\'';
-	}
-
-	if (relaxed)
-		return CStringUtils::EscapeWindowsCliArguments(value);
-
-	value.Replace(L'\\', L'/');
-
-	if (value.FindOneOf(L"\"?*") != -1)
-		throw illegal_git_parameter(L"The git.exe command could not be constructed. The following parameter contains a special character, such as a double quotation mark (\") or an asterisk (*), which is not supported by TortoiseGit (perhaps due to the default functionality being disabled):\n" + value);
-
-	return L'"' + value + L'"';
 }

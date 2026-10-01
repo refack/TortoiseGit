@@ -179,9 +179,9 @@ void CGitSwitchDlg::SetDefaultName()
 	CString version = m_VersionName;
 
 	int start = -1;
-	if (CStringUtils::StartsWith(version, L"origin/"))
+	if (StringUtils::StartsWith(version, L"origin/"))
 		start = version.Find(L'/', static_cast<int>(wcslen(L"origin/")) + 1);
-	else if (CStringUtils::StartsWith(version, L"remotes/"))
+	else if (StringUtils::StartsWith(version, L"remotes/"))
 		start = version.Find(L'/', static_cast<int>(wcslen(L"remotes/")) + 1);
 
 	if (start >= 0)
@@ -196,7 +196,7 @@ void CGitSwitchDlg::SetDefaultName()
 	}
 	else
 	{
-		if (CStringUtils::StartsWith(m_VersionName, L"refs/heads/"))
+		if (StringUtils::StartsWith(m_VersionName, L"refs/heads/"))
 			version = m_VersionName.Mid(static_cast<int>(wcslen(L"refs/heads/")));
 		else if (radio == IDC_RADIO_VERSION)
 			version = version.Left(g_Git.GetShortHASHLength());
@@ -242,7 +242,7 @@ void CGitSwitchDlg::OnEnChangeEditBranch()
 	GetDlgItem(IDC_EDIT_BRANCH)->GetWindowText(name);
 	name = L'/' + name;
 	CString remoteName = m_ChooseVersioinBranch.GetString();
-	if (CStringUtils::StartsWith(remoteName, L"remotes/") && remoteName.Right(name.GetLength()) != name)
+	if (StringUtils::StartsWith(remoteName, L"remotes/") && remoteName.Right(name.GetLength()) != name)
 		static_cast<CButton*>(GetDlgItem(IDC_CHECK_TRACK))->SetCheck(FALSE);
 }
 

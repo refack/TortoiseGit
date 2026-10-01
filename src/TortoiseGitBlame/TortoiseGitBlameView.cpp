@@ -761,7 +761,7 @@ void CTortoiseGitBlameView::CopyToClipboard()
 		{
 			auto grid = static_cast<CMFCPropertyGridCtrl*>(wnd);
 			if (grid->GetCurSel() && !grid->GetCurSel()->IsGroup())
-				CStringUtils::WriteAsciiStringToClipboard(grid->GetCurSel()->GetValue(), GetSafeHwnd());
+				StringUtils::WriteAsciiStringToClipboard(grid->GetCurSel()->GetValue(), GetSafeHwnd());
 		}
 		else
 			m_TextView.Call(SCI_COPY);

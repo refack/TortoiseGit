@@ -170,11 +170,11 @@ void CFindDlg::AddToList()
 	{
 		int nImage = -1;
 		CString ref = m_RefList[i].c_str();
-		if (CStringUtils::StartsWith(ref, L"refs/tags/"))
+		if (StringUtils::StartsWith(ref, L"refs/tags/"))
 			nImage = 0;
-		else if (CStringUtils::StartsWith(ref, L"refs/remotes/"))
+		else if (StringUtils::StartsWith(ref, L"refs/remotes/"))
 			nImage = 2;
-		else if (CStringUtils::StartsWith(ref, L"refs/heads/"))
+		else if (StringUtils::StartsWith(ref, L"refs/heads/"))
 			nImage = 1;
 
 		if(ref.Find(filter)>=0)

@@ -36,7 +36,7 @@ bool SubmoduleAddCommand::Execute()
 	dlg.m_strProject = g_Git.m_CurrentDir;
 	if( dlg.DoModal() == IDOK )
 	{
-		if (CStringUtils::StartsWith(dlg.m_strPath, g_Git.m_CurrentDir))
+		if (StringUtils::StartsWith(dlg.m_strPath, g_Git.m_CurrentDir))
 			dlg.m_strPath = dlg.m_strPath.Right(dlg.m_strPath.GetLength()-g_Git.m_CurrentDir.GetLength()-1);
 
 		STRING_VECTOR cmd{ L"git.exe", L"submodule", L"add" };

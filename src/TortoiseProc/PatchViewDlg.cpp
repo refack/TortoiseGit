@@ -540,7 +540,7 @@ bool CPatchViewDlg::HandleMenuItemClick(int cmd, CSciEdit*)
 	{
 		CString filename;
 		if (CCommonAppUtils::FileOpenSave(filename, nullptr, 0, IDS_PATCHFILEFILTER, false, GetSafeHwnd(), L"diff"))
-			CStringUtils::WriteStringToTextFile(filename, m_ctrlPatchView.GetText());
+			StringUtils::WriteStringToTextFile(filename, m_ctrlPatchView.GetText());
 		return true;
 	}
 	else if (cmd == m_nStageHunks)

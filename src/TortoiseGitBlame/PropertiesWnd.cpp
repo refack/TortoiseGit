@@ -326,7 +326,7 @@ void CPropertiesWnd::OnContextMenu(CWnd* /*pWnd*/, CPoint point)
 		case 0:
 			break;	// no command selected
 		case WM_COPY:
-			CStringUtils::WriteAsciiStringToClipboard(pProperty->GetValue(), GetSafeHwnd());
+			StringUtils::WriteAsciiStringToClipboard(pProperty->GetValue(), GetSafeHwnd());
 			break;
 		}
 	}

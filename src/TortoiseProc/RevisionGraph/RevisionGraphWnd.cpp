@@ -1114,7 +1114,7 @@ void CRevisionGraphWnd::DoCopyRefs() const
 			text.Append(L"\r\n");
 		text.Append(list[i].c_str());
 	}
-	CStringUtils::WriteAsciiStringToClipboard(text, m_hWnd);
+	StringUtils::WriteAsciiStringToClipboard(text, m_hWnd);
 }
 
 void CRevisionGraphWnd::OnContextMenu(CWnd* /*pWnd*/, CPoint point)

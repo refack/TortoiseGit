@@ -51,7 +51,7 @@ void InsertMenuItemToList(CListCtrl *list,CImageList *imagelist)
 
 			CString temp;
 			temp.LoadString(menuInfo[i].menuTextID);
-			CStringUtils::RemoveAccelerators(temp);
+			StringUtils::RemoveAccelerators(temp);
 
 			int nIndex = list->GetItemCount();
 			list->InsertItem(nIndex,temp,nImage);
@@ -233,7 +233,7 @@ BOOL CSetLookAndFeelPage::OnApply()
 
 	m_regTopmenu.getErrorString();
 	m_sNoContextPaths.Remove('\r');
-	if (!CStringUtils::EndsWith(m_sNoContextPaths, L'\n'))
+	if (!StringUtils::EndsWith(m_sNoContextPaths, L'\n'))
 		m_sNoContextPaths += L'\n';
 
 	Store(m_bHideMenus, m_regHideMenus);

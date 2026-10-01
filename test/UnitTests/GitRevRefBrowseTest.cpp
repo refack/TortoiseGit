@@ -96,12 +96,12 @@ static void GetGitRevRefMap()
 	EXPECT_STREQ(L"", rev.m_UpstreamRef);
 
 	refMap.clear();
-	EXPECT_EQ(0, GitRevRefBrowser::GetGitRevRefMap(refMap, 0, err, [](const CString& refName) { return CStringUtils::StartsWith(refName, L"refs/heads/"); }));
+	EXPECT_EQ(0, GitRevRefBrowser::GetGitRevRefMap(refMap, 0, err, [](const CString& refName) { return StringUtils::StartsWith(refName, L"refs/heads/"); }));
 	EXPECT_STREQ(L"", err);
 	EXPECT_EQ(7U, refMap.size());
 	EXPECT_TRUE(refMap.find(L"refs/heads/master") != refMap.end());
 	for (auto it = refMap.cbegin(); it != refMap.cend(); ++it)
-		EXPECT_TRUE(CStringUtils::StartsWith(it->first, L"refs/heads/"));
+		EXPECT_TRUE(StringUtils::StartsWith(it->first, L"refs/heads/"));
 
 	refMap.clear();
 	EXPECT_EQ(0, GitRevRefBrowser::GetGitRevRefMap(refMap, 1, err));

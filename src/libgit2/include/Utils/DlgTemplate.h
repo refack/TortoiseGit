@@ -206,22 +206,11 @@ protected:
 
 	void AppendString(LPCWSTR string)
 	{
-#ifndef _UNICODE
-		int length = MultiByteToWideChar(CP_ACP, 0, string, -1, nullptr, 0);
-#else
-		int length = static_cast<int>(wcslen(string)) + 1;
-#endif
-		auto wideString = static_cast<WCHAR*>(malloc(sizeof(WCHAR) * length));
-		if (wideString)
-		{
-#ifndef _UNICODE
-			MultiByteToWideChar(CP_ACP, 0, string, -1, wideString, length);
-#else
-			wcscpy_s(wideString, length, string);
-#endif
-			AppendData(wideString, length * sizeof(WCHAR));
-			free(wideString);
-		}
+		// A dialog template stores its strings as UTF-16 with the terminating NUL,
+		// which is exactly what \a string already is - no staging copy needed. (The
+		// ANSI branch this used to have passed an LPCWSTR to MultiByteToWideChar and
+		// could never have compiled; the project is Unicode-only.)
+		AppendData(string, static_cast<int>((wcslen(string) + 1) * sizeof(WCHAR)));
 	}
 
 	void AppendData(const void* data, int dataLength)

@@ -461,18 +461,18 @@ TEST(CTGitPath, LoadFromFileAndWriteToFile)
 	CString text;
 	CString fileNameWrite = tmpDir.GetTempDir() + L"\\output";
 
-	EXPECT_TRUE(CStringUtils::WriteStringToTextFile(fileNameRead, L"Path1\nc:\\path2 with spaces and stuff\n\\funnypath\\", false));
+	EXPECT_TRUE(StringUtils::WriteStringToTextFile(fileNameRead, L"Path1\nc:\\path2 with spaces and stuff\n\\funnypath\\", false));
 	EXPECT_TRUE(testList.LoadFromFile(CTGitPath(fileNameRead.GetString())));
 	EXPECT_EQ(3, testList.GetCount());
 	EXPECT_STREQ(L"Path1", testList[0].GetWinPathString().c_str());
 	EXPECT_STREQ(L"c:\\path2 with spaces and stuff", testList[1].GetWinPathString().c_str());
 	EXPECT_STREQ(L"\\funnypath", testList[2].GetWinPathString().c_str());
 	EXPECT_TRUE(testList.WriteToFile(fileNameWrite.GetString(), true));
-	EXPECT_TRUE(CStringUtils::ReadStringFromTextFile(fileNameWrite, text));
+	EXPECT_TRUE(StringUtils::ReadStringFromTextFile(fileNameWrite, text));
 	EXPECT_STREQ(L"Path1\r\nc:/path2 with spaces and stuff\r\n/funnypath\r\n", text);
 	EXPECT_STREQ(L"", testList.GetCommonRoot().GetWinPathString().c_str());
 
-	EXPECT_TRUE(CStringUtils::WriteStringToTextFile(fileNameRead, L"Path1\nc:\\path2 with spaces and stuff\n\n\\funnypath\\\n", false));
+	EXPECT_TRUE(StringUtils::WriteStringToTextFile(fileNameRead, L"Path1\nc:\\path2 with spaces and stuff\n\n\\funnypath\\\n", false));
 	EXPECT_TRUE(testList.LoadFromFile(CTGitPath(fileNameRead.GetString())));
 	EXPECT_EQ(3, testList.GetCount());
 	EXPECT_STREQ(L"Path1", testList[0].GetWinPathString().c_str());
@@ -480,14 +480,14 @@ TEST(CTGitPath, LoadFromFileAndWriteToFile)
 	EXPECT_STREQ(L"\\funnypath", testList[2].GetWinPathString().c_str());
 	EXPECT_TRUE(testList.WriteToFile(fileNameWrite.GetString(), true));
 	text.Empty();
-	EXPECT_TRUE(CStringUtils::ReadStringFromTextFile(fileNameWrite, text));
+	EXPECT_TRUE(StringUtils::ReadStringFromTextFile(fileNameWrite, text));
 	EXPECT_STREQ(L"Path1\r\nc:/path2 with spaces and stuff\r\n/funnypath\r\n", text);
 
-	EXPECT_TRUE(CStringUtils::WriteStringToTextFile(fileNameRead, L"c:\\path2 with spaces and stuff\nc:\\funnypath\\\n", false));
+	EXPECT_TRUE(StringUtils::WriteStringToTextFile(fileNameRead, L"c:\\path2 with spaces and stuff\nc:\\funnypath\\\n", false));
 	testList.LoadFromFile(CTGitPath(fileNameRead.GetString()));
 	EXPECT_STREQ(L"c:\\", testList.GetCommonRoot().GetWinPathString().c_str());
 
-	EXPECT_TRUE(CStringUtils::WriteStringToTextFile(fileNameRead, L"c:\\path2 with spaces and stuff\n\nc:\\funnypath\\\n", false));
+	EXPECT_TRUE(StringUtils::WriteStringToTextFile(fileNameRead, L"c:\\path2 with spaces and stuff\n\nc:\\funnypath\\\n", false));
 	testList.LoadFromFile(CTGitPath(fileNameRead.GetString()));
 	EXPECT_STREQ(L"c:\\", testList.GetCommonRoot().GetWinPathString().c_str());
 }
@@ -1652,7 +1652,7 @@ TEST(CTGitPath, FillBasedOnIndexFlags)
 	for (const CString& filename : filenames)
 	{
 		CString filenameWithPath = tmpDir.GetTempDir() + L'\\' + filename;
-		EXPECT_TRUE(CStringUtils::WriteStringToTextFile(filenameWithPath, L"something"));
+		EXPECT_TRUE(StringUtils::WriteStringToTextFile(filenameWithPath, L"something"));
 		EXPECT_TRUE(git_index_add_bypath(gitindex, CUnicodeUtils::GetUTF8(filename)) == 0);
 	}
 
@@ -1934,7 +1934,7 @@ TEST(CTGitPath, FillUnRev)
 	EXPECT_EQ(0, testList.GetCount());
 
 	CString fileOne = tmpDir.GetTempDir() + L"\\one";
-	EXPECT_TRUE(CStringUtils::WriteStringToTextFile(fileOne, L"something"));
+	EXPECT_TRUE(StringUtils::WriteStringToTextFile(fileOne, L"something"));
 
 	EXPECT_EQ(0, testList.FillUnRev(0));
 	EXPECT_EQ(1, testList.GetCount());
@@ -1954,7 +1954,7 @@ TEST(CTGitPath, FillUnRev)
 	EXPECT_EQ(0, testList.GetCount());
 
 	CString gitIgnore = tmpDir.GetTempDir() + L"\\.gitignore";
-	EXPECT_TRUE(CStringUtils::WriteStringToTextFile(gitIgnore, L""));
+	EXPECT_TRUE(StringUtils::WriteStringToTextFile(gitIgnore, L""));
 
 	EXPECT_EQ(0, testList.FillUnRev(0));
 	EXPECT_EQ(2, testList.GetCount());
@@ -1971,7 +1971,7 @@ TEST(CTGitPath, FillUnRev)
 	EXPECT_EQ(0, testList.FillUnRev(CTGitPath::LOGACTIONS_IGNORE, &selectList));
 	EXPECT_EQ(0, testList.GetCount());
 
-	EXPECT_TRUE(CStringUtils::WriteStringToTextFile(gitIgnore, L"/one"));
+	EXPECT_TRUE(StringUtils::WriteStringToTextFile(gitIgnore, L"/one"));
 
 	EXPECT_EQ(0, testList.FillUnRev(0));
 	EXPECT_EQ(1, testList.GetCount());
@@ -1998,7 +1998,7 @@ TEST(CTGitPath, FillUnRev)
 	EXPECT_EQ(0, testList.GetCount());
 
 	fileOne = tmpDir.GetTempDir() + L"\\subdir\\one";
-	EXPECT_TRUE(CStringUtils::WriteStringToTextFile(fileOne, L"something"));
+	EXPECT_TRUE(StringUtils::WriteStringToTextFile(fileOne, L"something"));
 
 	EXPECT_EQ(0, testList.FillUnRev(0));
 	EXPECT_EQ(2, testList.GetCount());
@@ -2016,7 +2016,7 @@ TEST(CTGitPath, FillUnRev)
 	EXPECT_EQ(0, testList.FillUnRev(CTGitPath::LOGACTIONS_IGNORE, &selectList));
 	EXPECT_EQ(0, testList.GetCount());
 
-	EXPECT_TRUE(CStringUtils::WriteStringToTextFile(gitIgnore, L"one"));
+	EXPECT_TRUE(StringUtils::WriteStringToTextFile(gitIgnore, L"one"));
 
 	EXPECT_EQ(0, testList.FillUnRev(0));
 	EXPECT_EQ(1, testList.GetCount());
@@ -2107,9 +2107,9 @@ TEST(CTGitPath, HashStashDir)
 	// "git commit" follows and requires user to be set
 	CString configFile = tmpDir.GetTempDir() + L"\\.git\\config";
 	CString text;
-	ASSERT_TRUE(CStringUtils::ReadStringFromTextFile(configFile, text));
+	ASSERT_TRUE(StringUtils::ReadStringFromTextFile(configFile, text));
 	text += L"[user]\n  name = User\n  email = user@example.com\n";
-	EXPECT_TRUE(CStringUtils::WriteStringToTextFile(configFile, text));
+	EXPECT_TRUE(StringUtils::WriteStringToTextFile(configFile, text));
 
 	g_Git.SetCurrentDirExact(tmpDir.GetTempDir());
 
@@ -2117,12 +2117,12 @@ TEST(CTGitPath, HashStashDir)
 	EXPECT_FALSE(path.HasStashDir());
 
 	CString file(tmpDir.GetTempDir() + L"\\file");
-	EXPECT_TRUE(CStringUtils::WriteStringToTextFile(file, L"don't care"));
+	EXPECT_TRUE(StringUtils::WriteStringToTextFile(file, L"don't care"));
 
 	CString output;
 	EXPECT_EQ(0, g_Git.Run(L"git add file", &output, CP_UTF8));
 	EXPECT_EQ(0, g_Git.Run(L"git commit -m \"test\"", &output, CP_UTF8));
-	EXPECT_TRUE(CStringUtils::WriteStringToTextFile(file, L"don't care even more"));
+	EXPECT_TRUE(StringUtils::WriteStringToTextFile(file, L"don't care even more"));
 	EXPECT_EQ(0, g_Git.Run(L"git stash", &output, CP_UTF8));
 	EXPECT_TRUE(path.HasStashDir());
 
@@ -2134,7 +2134,7 @@ TEST(CTGitPath, HashStashDir)
 	EXPECT_FALSE(path.HasStashDir());
 
 	file = tmpDir.GetTempDir() + L"\\.git\\packed-refs";
-	EXPECT_TRUE(CStringUtils::WriteStringToTextFile(file, L"# pack-refs with: peeled fully-peeled\nf3a76c72d89aebd63a0346dd92ecafecdc780822 refs/stashNotReal\n"));
+	EXPECT_TRUE(StringUtils::WriteStringToTextFile(file, L"# pack-refs with: peeled fully-peeled\nf3a76c72d89aebd63a0346dd92ecafecdc780822 refs/stashNotReal\n"));
 	EXPECT_FALSE(path.HasStashDir());
 }
 
@@ -2237,7 +2237,7 @@ TEST(CTGitPath, AreAllPathsFiles)
 	CAutoTempDir tmp;
 	SetCurrentDirectory(tmp.GetTempDir());
 
-	EXPECT_TRUE(CStringUtils::WriteStringToTextFile(tmp.GetTempDir() + L"\\file1", L"something"));
+	EXPECT_TRUE(StringUtils::WriteStringToTextFile(tmp.GetTempDir() + L"\\file1", L"something"));
 	list.AddPath(CTGitPath(L"file1"));
 	EXPECT_TRUE(list.AreAllPathsFiles());
 
@@ -2277,7 +2277,7 @@ TEST(CTGitPath, AreAllPathsDirectories)
 	list.AddPath(CTGitPath(L"dir"));
 	EXPECT_TRUE(list.AreAllPathsDirectories());
 
-	EXPECT_TRUE(CStringUtils::WriteStringToTextFile(tmp.GetTempDir() + L"\\file1", L"something"));
+	EXPECT_TRUE(StringUtils::WriteStringToTextFile(tmp.GetTempDir() + L"\\file1", L"something"));
 	list.AddPath(CTGitPath(L"file1"));
 	EXPECT_FALSE(list.AreAllPathsDirectories());
 }
@@ -2369,7 +2369,7 @@ TEST(CTGitPath, IsRegisteredSubmoduleOfParentProject)
 		EXPECT_FALSE(path.IsRegisteredSubmoduleOfParentProject(&topPath));
 		EXPECT_STREQ(tmp.GetTempDir(), topPath.c_str());
 	}
-	EXPECT_TRUE(CStringUtils::WriteStringToTextFile(tmp.GetTempDir() + L"\\.gitmodules", L"[submodule \"libgit2-ext\"]\n	path = ext/libgit2\n	url = https://github.com/libgit2/libgit2.git\n[submodule \"ext/spell\"]\n	path = ext/spell\n	url = https://github.com/LibreOffice/dictionaries"));
+	EXPECT_TRUE(StringUtils::WriteStringToTextFile(tmp.GetTempDir() + L"\\.gitmodules", L"[submodule \"libgit2-ext\"]\n	path = ext/libgit2\n	url = https://github.com/libgit2/libgit2.git\n[submodule \"ext/spell\"]\n	path = ext/spell\n	url = https://github.com/LibreOffice/dictionaries"));
 	{
 		std::wstring topPath;
 		CTGitPath path{ (tmp.GetTempDir() + L"\\ext\\libgit2").GetString() };

@@ -36,13 +36,13 @@ TEST(CLogFile, NoTruncate)
 {
 	CString tmpfile = GetTempFile();
 	ASSERT_STRNE(L"", tmpfile);
-	ASSERT_TRUE(CStringUtils::WriteStringToTextFile(tmpfile, L"1"));
+	ASSERT_TRUE(StringUtils::WriteStringToTextFile(tmpfile, L"1"));
 	SCOPE_EXIT{ ::DeleteFile(tmpfile); };
 	CLogFile logFile{ L"someRepo", 5 };
 	ASSERT_TRUE(logFile.Open(CTGitPath(tmpfile.GetString())));
 	EXPECT_TRUE(logFile.Close());
 	CString text;
-	ASSERT_TRUE(CStringUtils::ReadStringFromTextFile(tmpfile, text));
+	ASSERT_TRUE(StringUtils::ReadStringFromTextFile(tmpfile, text));
 	EXPECT_STREQ(text, L"1");
 }
 
@@ -50,13 +50,13 @@ TEST(CLogFile, TruncateToFive)
 {
 	CString tmpfile = GetTempFile();
 	ASSERT_STRNE(L"", tmpfile);
-	ASSERT_TRUE(CStringUtils::WriteStringToTextFile(tmpfile, L"1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n"));
+	ASSERT_TRUE(StringUtils::WriteStringToTextFile(tmpfile, L"1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n"));
 	SCOPE_EXIT{ ::DeleteFile(tmpfile); };
 	CLogFile logFile{ L"someRepo", 5 };
 	ASSERT_TRUE(logFile.Open(CTGitPath(tmpfile.GetString())));
 	EXPECT_TRUE(logFile.Close());
 	CString text;
-	ASSERT_TRUE(CStringUtils::ReadStringFromTextFile(tmpfile, text));
+	ASSERT_TRUE(StringUtils::ReadStringFromTextFile(tmpfile, text));
 	EXPECT_STREQ(text, L"6\n7\n8\n9\n10\n");
 }
 
@@ -64,13 +64,13 @@ TEST(CLogFile, TruncateToOne)
 {
 	CString tmpfile = GetTempFile();
 	ASSERT_STRNE(L"", tmpfile);
-	ASSERT_TRUE(CStringUtils::WriteStringToTextFile(tmpfile, L"1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n"));
+	ASSERT_TRUE(StringUtils::WriteStringToTextFile(tmpfile, L"1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n"));
 	SCOPE_EXIT{ ::DeleteFile(tmpfile); };
 	CLogFile logFile{ L"someRepo", 1 };
 	ASSERT_TRUE(logFile.Open(CTGitPath(tmpfile.GetString())));
 	EXPECT_TRUE(logFile.Close());
 	CString text;
-	ASSERT_TRUE(CStringUtils::ReadStringFromTextFile(tmpfile, text));
+	ASSERT_TRUE(StringUtils::ReadStringFromTextFile(tmpfile, text));
 	EXPECT_STREQ(text, L"10\n");
 }
 
@@ -78,13 +78,13 @@ TEST(CLogFile, TruncateToOneEmpty)
 {
 	CString tmpfile = GetTempFile();
 	ASSERT_STRNE(L"", tmpfile);
-	ASSERT_TRUE(CStringUtils::WriteStringToTextFile(tmpfile, L"1\n2\n3\n4\n5\n6\n7\n8\n9\n\n"));
+	ASSERT_TRUE(StringUtils::WriteStringToTextFile(tmpfile, L"1\n2\n3\n4\n5\n6\n7\n8\n9\n\n"));
 	SCOPE_EXIT{ ::DeleteFile(tmpfile); };
 	CLogFile logFile{ L"someRepo", 1 };
 	ASSERT_TRUE(logFile.Open(CTGitPath(tmpfile.GetString())));
 	EXPECT_TRUE(logFile.Close());
 	CString text;
-	ASSERT_TRUE(CStringUtils::ReadStringFromTextFile(tmpfile, text));
+	ASSERT_TRUE(StringUtils::ReadStringFromTextFile(tmpfile, text));
 	EXPECT_STREQ(text, L"\n");
 }
 
@@ -92,13 +92,13 @@ TEST(CLogFile, TruncateLarge)
 {
 	CString tmpfile = GetTempFile();
 	ASSERT_STRNE(L"", tmpfile);
-	ASSERT_TRUE(CStringUtils::WriteStringToTextFile(tmpfile, L"1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n"));
+	ASSERT_TRUE(StringUtils::WriteStringToTextFile(tmpfile, L"1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n"));
 	SCOPE_EXIT{ ::DeleteFile(tmpfile); };
 	CLogFile logFile{ L"someRepo", 5000 };
 	ASSERT_TRUE(logFile.Open(CTGitPath(tmpfile.GetString())));
 	EXPECT_TRUE(logFile.Close());
 	CString text;
-	ASSERT_TRUE(CStringUtils::ReadStringFromTextFile(tmpfile, text));
+	ASSERT_TRUE(StringUtils::ReadStringFromTextFile(tmpfile, text));
 	EXPECT_STREQ(text, L"1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n");
 }
 
@@ -106,7 +106,7 @@ TEST(CLogFile, LoggingDisabled)
 {
 	CString tmpfile = GetTempFile();
 	ASSERT_STRNE(L"", tmpfile);
-	ASSERT_TRUE(CStringUtils::WriteStringToTextFile(tmpfile, L"1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n"));
+	ASSERT_TRUE(StringUtils::WriteStringToTextFile(tmpfile, L"1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n"));
 	SCOPE_EXIT{ ::DeleteFile(tmpfile); };
 	CLogFile logFile{ L"someRepo", 0 };
 	ASSERT_FALSE(logFile.Open(CTGitPath(tmpfile.GetString())));
@@ -124,6 +124,6 @@ TEST(CLogFile, Append)
 	logFile.AddLine(L"3");
 	EXPECT_TRUE(logFile.Close());
 	CString text;
-	ASSERT_TRUE(CStringUtils::ReadStringFromTextFile(tmpfile, text));
+	ASSERT_TRUE(StringUtils::ReadStringFromTextFile(tmpfile, text));
 	EXPECT_STREQ(text, L"1\r\n2\r\n3\r\n");
 }

@@ -265,7 +265,7 @@ bool CCommonAppUtils::FileOpenSave(CString& path, int* filterindex, UINT title, 
 	{
 		CString temp;
 		temp.LoadString(title);
-		CStringUtils::RemoveAccelerators(temp);
+		StringUtils::RemoveAccelerators(temp);
 		pfd->SetTitle(temp);
 	}
 	CComPtr<IShellItem> psiDefaultFolder;
@@ -287,7 +287,7 @@ bool CCommonAppUtils::FileOpenSave(CString& path, int* filterindex, UINT title, 
 
 	// set the default folder
 	CComPtr<IShellItem> psiFolder;
-	if (CStringUtils::StartsWith(path, L"\\") || path.Mid(1, 2) == L":\\")
+	if (StringUtils::StartsWith(path, L"\\") || path.Mid(1, 2) == L":\\")
 	{
 		CString dir = path;
 		if (!PathIsDirectory(dir) || handleAsFile)

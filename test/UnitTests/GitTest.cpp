@@ -52,14 +52,14 @@ TEST(CGit, RunGit_BashPipe)
 	CString tmpfile = GetTempFile();
 	ASSERT_STRNE(L"", tmpfile);
 	tmpfile.Replace(L'\\', L'/');
-	ASSERT_TRUE(CStringUtils::WriteStringToTextFile(tmpfile, L"testing piping..."));
+	ASSERT_TRUE(StringUtils::WriteStringToTextFile(tmpfile, L"testing piping..."));
 	SCOPE_EXIT{ ::DeleteFile(tmpfile); };
 	CString pipefile = GetTempFile();
 	ASSERT_STRNE(L"", tmpfile);
 	pipefile.Replace(L'\\', L'/');
 	CString pipecmd;
 	pipecmd.Format(L"cat < %s", static_cast<LPCTSTR>(tmpfile));
-	ASSERT_TRUE(CStringUtils::WriteStringToTextFile(pipefile, pipecmd));
+	ASSERT_TRUE(StringUtils::WriteStringToTextFile(pipefile, pipecmd));
 	SCOPE_EXIT{ ::DeleteFile(pipefile); };
 	CString output;
 	CGit cgit;
@@ -79,7 +79,7 @@ TEST(CGit, RunGit_Error)
 
 	output.Empty();
 	EXPECT_EQ(128, cgit.Run(L"git.exe add file.txt", &output, CP_UTF8));
-	EXPECT_TRUE(CStringUtils::StartsWithI(output, L"fatal: not a git repository (or any"));
+	EXPECT_TRUE(StringUtils::StartsWithI(output, L"fatal: not a git repository (or any"));
 }
 
 TEST_P(CBasicGitWithTestRepoBareFixture, RunGit_AbsolutePath)
@@ -102,8 +102,8 @@ TEST(CGit, RunLogFile)
 	ASSERT_EQ(0, cgit.RunLogFile(L"git --version", tmpfile, &error));
 	EXPECT_STREQ(L"", error);
 	CString fileContents;
-	EXPECT_EQ(true, CStringUtils::ReadStringFromTextFile(tmpfile, fileContents));
-	EXPECT_TRUE(CStringUtils::StartsWith(fileContents, L"git version "));
+	EXPECT_EQ(true, StringUtils::ReadStringFromTextFile(tmpfile, fileContents));
+	EXPECT_TRUE(StringUtils::StartsWith(fileContents, L"git version "));
 }
 
 TEST(CGit, RunLogFile_Set)
@@ -115,7 +115,7 @@ TEST(CGit, RunLogFile_Set)
 	ASSERT_EQ(0, cgit.RunLogFile(L"cmd /c set", tmpfile, &error));
 	EXPECT_STREQ(L"", error);
 	CString fileContents;
-	EXPECT_EQ(true, CStringUtils::ReadStringFromTextFile(tmpfile, fileContents));
+	EXPECT_EQ(true, StringUtils::ReadStringFromTextFile(tmpfile, fileContents));
 	EXPECT_TRUE(fileContents.Find(L"windir")); // should be there on any MS OS ;)
 }
 
@@ -128,7 +128,7 @@ TEST(CGit, RunLogFile_Error)
 	cgit.SetCurrentDirExact(tempdir.GetTempDir());
 
 	EXPECT_EQ(128, cgit.RunLogFile(L"git.exe add file.txt", tmpfile, &error));
-	EXPECT_TRUE(CStringUtils::StartsWithI(error, L"fatal: not a git repository (or any"));
+	EXPECT_TRUE(StringUtils::StartsWithI(error, L"fatal: not a git repository (or any"));
 	__int64 size = -1;
 	EXPECT_EQ(0, CGit::GetFileModifyTime(tmpfile, nullptr, nullptr, &size));
 	EXPECT_EQ(0, size);
@@ -182,7 +182,7 @@ TEST(CGit, GetFileModifyTime)
 
 	CAutoTempDir tempdir;
 	CString testFile = tempdir.GetTempDir() + L"\\test.txt";
-	EXPECT_TRUE(CStringUtils::WriteStringToTextFile(testFile, L"this is testing fileöäü."));
+	EXPECT_TRUE(StringUtils::WriteStringToTextFile(testFile, L"this is testing fileöäü."));
 
 	time = -1;
 	EXPECT_EQ(0, CGit::GetFileModifyTime(testFile, &time));
@@ -197,7 +197,7 @@ TEST(CGit, GetFileModifyTime)
 	EXPECT_EQ(27, size);
 
 	Sleep(250);
-	EXPECT_TRUE(CStringUtils::WriteStringToTextFile(testFile, L"this is testing fileöü."));
+	EXPECT_TRUE(StringUtils::WriteStringToTextFile(testFile, L"this is testing fileöü."));
 	__int64 time3 = -1;
 	isDir = false;
 	size = -1;
@@ -217,17 +217,17 @@ TEST(CGit, LoadTextFile)
 	EXPECT_STREQ(L"something--", msg);
 
 	CString testFile = tempdir.GetTempDir() + L"\\test.txt";
-	EXPECT_TRUE(CStringUtils::WriteStringToTextFile(testFile, L"this is testing fileöäü."));
+	EXPECT_TRUE(StringUtils::WriteStringToTextFile(testFile, L"this is testing fileöäü."));
 	EXPECT_TRUE(CGit::LoadTextFile(testFile, msg));
 	EXPECT_STREQ(L"something--this is testing fileöäü.\n", msg);
 
 	msg.Empty();
-	EXPECT_TRUE(CStringUtils::WriteStringToTextFile(testFile, L"this is testing\nfileöäü."));
+	EXPECT_TRUE(StringUtils::WriteStringToTextFile(testFile, L"this is testing\nfileöäü."));
 	EXPECT_TRUE(CGit::LoadTextFile(testFile, msg));
 	EXPECT_STREQ(L"this is testing\nfileöäü.\n", msg);
 
 	msg.Empty();
-	EXPECT_TRUE(CStringUtils::WriteStringToTextFile(testFile, L"this is\r\ntesting\nfileöäü.\r\n\r\n"));
+	EXPECT_TRUE(StringUtils::WriteStringToTextFile(testFile, L"this is\r\ntesting\nfileöäü.\r\n\r\n"));
 	EXPECT_TRUE(CGit::LoadTextFile(testFile, msg));
 	EXPECT_STREQ(L"this is\ntesting\nfileöäü.\n", msg);
 }
@@ -385,7 +385,7 @@ TEST_P(CBasicGitWithEmptyRepositoryFixture, IsInitRepos_GetInitAddList)
 	EXPECT_EQ(0, m_Git.GetInitAddList(addedFiles));
 	EXPECT_TRUE(addedFiles.IsEmpty());
 
-	EXPECT_TRUE(CStringUtils::WriteStringToTextFile(testFile, L"this is testing file."));
+	EXPECT_TRUE(StringUtils::WriteStringToTextFile(testFile, L"this is testing file."));
 	EXPECT_EQ(0, m_Git.GetInitAddList(addedFiles));
 	EXPECT_TRUE(addedFiles.IsEmpty());
 	EXPECT_EQ(0, m_Git.Run(L"git.exe add test.txt", &output, CP_UTF8));
@@ -757,7 +757,7 @@ static void FETCHHEAD(CGit& m_Git, bool isBare)
 	EXPECT_NE(0, m_Git.GetHash(hash, L"FETCH_HEAD"));
 
 	CString testFile = repoDir + L"\\FETCH_HEAD";
-	EXPECT_TRUE(CStringUtils::WriteStringToTextFile(testFile, L"b9ef30183497cdad5c30b88d32dc1bed7951dfeb		branch 'master' of https://code.google.com/p/tortoisegit\n737878a4e2eabfa4fab580867c2b060c70999d31	not-for-merge	branch 'extend_hooks' of https://code.google.com/p/tortoisegit\n"));
+	EXPECT_TRUE(StringUtils::WriteStringToTextFile(testFile, L"b9ef30183497cdad5c30b88d32dc1bed7951dfeb		branch 'master' of https://code.google.com/p/tortoisegit\n737878a4e2eabfa4fab580867c2b060c70999d31	not-for-merge	branch 'extend_hooks' of https://code.google.com/p/tortoisegit\n"));
 
 	list.clear();
 	EXPECT_EQ(0, m_Git.GetBranchList(list, nullptr));
@@ -784,7 +784,7 @@ static void FETCHHEAD(CGit& m_Git, bool isBare)
 	EXPECT_EQ(0, m_Git.GetHash(hash, L"FETCH_HEAD"));
 	EXPECT_STREQ(L"b9ef30183497cdad5c30b88d32dc1bed7951dfeb", hash.ToString());
 
-	EXPECT_TRUE(CStringUtils::WriteStringToTextFile(testFile, L"737878a4e2eabfa4fab580867c2b060c70999d31	not-for-merge	branch 'extend_hooks' of https://code.google.com/p/tortoisegit\nb9ef30183497cdad5c30b88d32dc1bed7951dfeb		branch 'master' of https://code.google.com/p/tortoisegit\n"));
+	EXPECT_TRUE(StringUtils::WriteStringToTextFile(testFile, L"737878a4e2eabfa4fab580867c2b060c70999d31	not-for-merge	branch 'extend_hooks' of https://code.google.com/p/tortoisegit\nb9ef30183497cdad5c30b88d32dc1bed7951dfeb		branch 'master' of https://code.google.com/p/tortoisegit\n"));
 
 	list.clear();
 	EXPECT_EQ(0, m_Git.GetBranchList(list, nullptr));
@@ -1259,7 +1259,7 @@ TEST_P(CBasicGitWithEmptyRepositoryFixture, CheckCleanWorkTree)
 
 	CString output;
 	CString testFile = m_Dir.GetTempDir() + L"\\test.txt";
-	EXPECT_TRUE(CStringUtils::WriteStringToTextFile(testFile, L"this is testing file."));
+	EXPECT_TRUE(StringUtils::WriteStringToTextFile(testFile, L"this is testing file."));
 	EXPECT_EQ(0, m_Git.Run(L"git.exe add test.txt", &output, CP_UTF8));
 	output.Empty();
 	EXPECT_EQ(0, m_Git.Run(L"git.exe commit -m \"Add test.txt\"", &output, CP_UTF8));
@@ -1268,7 +1268,7 @@ TEST_P(CBasicGitWithEmptyRepositoryFixture, CheckCleanWorkTree)
 	EXPECT_TRUE(m_Git.CheckCleanWorkTree());
 	EXPECT_TRUE(m_Git.CheckCleanWorkTree(true));
 
-	EXPECT_TRUE(CStringUtils::WriteStringToTextFile(testFile, L"Overwriting this testing file."));
+	EXPECT_TRUE(StringUtils::WriteStringToTextFile(testFile, L"Overwriting this testing file."));
 	// repo with 1 modified versioned file
 	EXPECT_FALSE(m_Git.CheckCleanWorkTree());
 	EXPECT_FALSE(m_Git.CheckCleanWorkTree(true));
@@ -1282,7 +1282,7 @@ TEST_P(CBasicGitWithEmptyRepositoryFixture, CheckCleanWorkTree)
 
 	EXPECT_EQ(0, m_Git.Run(L"git.exe commit -m \"Modified test.txt\"", &output, CP_UTF8));
 	testFile = m_Dir.GetTempDir() + L"\\test2.txt";
-	EXPECT_TRUE(CStringUtils::WriteStringToTextFile(testFile, L"this is ANOTHER testing file."));
+	EXPECT_TRUE(StringUtils::WriteStringToTextFile(testFile, L"this is ANOTHER testing file."));
 	EXPECT_TRUE(m_Git.CheckCleanWorkTree());
 	EXPECT_TRUE(m_Git.CheckCleanWorkTree(true));
 
@@ -1477,7 +1477,7 @@ static void GetOneFile(CGit& m_Git)
 	ASSERT_STRNE(L"", tmpFile);
 	EXPECT_EQ(0, m_Git.GetOneFile(L"b9ef30183497cdad5c30b88d32dc1bed7951dfeb", CTGitPath(L"utf8-nobom.txt"), tmpFile));
 	CString fileContents;
-	EXPECT_EQ(true, CStringUtils::ReadStringFromTextFile(tmpFile, fileContents));
+	EXPECT_EQ(true, StringUtils::ReadStringFromTextFile(tmpFile, fileContents));
 	struct _stat32 stat_buf{};
 	EXPECT_EQ(0, _wstat32(tmpFile, &stat_buf));
 	EXPECT_EQ(139, stat_buf.st_size);
@@ -1492,7 +1492,7 @@ static void GetOneFile_utf8(CGit& m_Git)
 	ASSERT_STRNE(L"", tmpFile);
 	EXPECT_EQ(0, m_Git.GetOneFile(L"4c5c93d2a0b368bc4570d5ec02ab03b9c4334d44", CTGitPath(L"newfiles2 - Cöpy.txt"), tmpFile));
 	CString fileContents;
-	EXPECT_EQ(true, CStringUtils::ReadStringFromTextFile(tmpFile, fileContents));
+	EXPECT_EQ(true, StringUtils::ReadStringFromTextFile(tmpFile, fileContents));
 	struct _stat32 stat_buf {};
 	EXPECT_EQ(0, _wstat32(tmpFile, &stat_buf));
 	EXPECT_EQ(14, stat_buf.st_size);
@@ -1511,9 +1511,9 @@ TEST_P(CBasicGitWithTestRepoFixture, GetOneFile)
 		return;
 
 	CString cleanFilterFilename = m_Git.m_CurrentDir + L"\\clean_filter_openssl";
-	EXPECT_TRUE(CStringUtils::WriteStringToTextFile(cleanFilterFilename, L"#!/bin/bash\nopenssl version | grep -q \" 1\\\\.0\\\\.\"\nif [[ $? = 0 ]]; then\n\topenssl enc -base64 -aes-256-ecb -S FEEDDEADBEEF -k PASS_FIXED\n\techo 1.0>openssl10\nelse\n\topenssl enc -base64 -pbkdf2 -aes-256-ecb -nosalt -k PASS_FIXED\nfi\n"));
+	EXPECT_TRUE(StringUtils::WriteStringToTextFile(cleanFilterFilename, L"#!/bin/bash\nopenssl version | grep -q \" 1\\\\.0\\\\.\"\nif [[ $? = 0 ]]; then\n\topenssl enc -base64 -aes-256-ecb -S FEEDDEADBEEF -k PASS_FIXED\n\techo 1.0>openssl10\nelse\n\topenssl enc -base64 -pbkdf2 -aes-256-ecb -nosalt -k PASS_FIXED\nfi\n"));
 	CString smudgeFilterFilename = m_Git.m_CurrentDir + L"\\smudge_filter_openssl";
-	EXPECT_TRUE(CStringUtils::WriteStringToTextFile(smudgeFilterFilename, L"#!/bin/bash\nopenssl version | grep -q \" 1\\\\.0\\\\.\"\nif [[ $? = 0 ]]; then\n\topenssl enc -d -base64 -aes-256-ecb -k PASS_FIXED\nelse\n\topenssl enc -d -base64 -pbkdf2 -aes-256-ecb -nosalt -k PASS_FIXED\nfi\n"));
+	EXPECT_TRUE(StringUtils::WriteStringToTextFile(smudgeFilterFilename, L"#!/bin/bash\nopenssl version | grep -q \" 1\\\\.0\\\\.\"\nif [[ $? = 0 ]]; then\n\topenssl enc -d -base64 -aes-256-ecb -k PASS_FIXED\nelse\n\topenssl enc -d -base64 -pbkdf2 -aes-256-ecb -nosalt -k PASS_FIXED\nfi\n"));
 
 	CAutoRepository repo(m_Git.GetGitRepository());
 	ASSERT_TRUE(repo.IsValid());
@@ -1526,13 +1526,13 @@ TEST_P(CBasicGitWithTestRepoFixture, GetOneFile)
 	EXPECT_EQ(0, git_config_set_bool(config, "filter.openssl.required", 1));
 
 	CString attributesFile = m_Git.m_CurrentDir + L"\\.gitattributes";
-	EXPECT_TRUE(CStringUtils::WriteStringToTextFile(attributesFile, L"*.enc filter=openssl\n"));
+	EXPECT_TRUE(StringUtils::WriteStringToTextFile(attributesFile, L"*.enc filter=openssl\n"));
 
 	CString encryptedFileOne = m_Git.m_CurrentDir + L"\\1.enc";
-	EXPECT_TRUE(CStringUtils::WriteStringToTextFile(encryptedFileOne, L"This should be encrypted...\nAnd decrypted on the fly\n"));
+	EXPECT_TRUE(StringUtils::WriteStringToTextFile(encryptedFileOne, L"This should be encrypted...\nAnd decrypted on the fly\n"));
 
 	CString encryptedFileTwo = m_Git.m_CurrentDir + L"\\2.enc";
-	EXPECT_TRUE(CStringUtils::WriteStringToTextFile(encryptedFileTwo, L"This should also be encrypted...\nAnd also decrypted on the fly\n"));
+	EXPECT_TRUE(StringUtils::WriteStringToTextFile(encryptedFileTwo, L"This should also be encrypted...\nAnd also decrypted on the fly\n"));
 
 	CString output;
 	EXPECT_EQ(0, m_Git.Run(L"git.exe add 1.enc", &output, CP_UTF8));
@@ -1551,7 +1551,7 @@ TEST_P(CBasicGitWithTestRepoFixture, GetOneFile)
 	CString tmpFile = GetTempFile();
 	ASSERT_STRNE(L"", tmpFile);
 	EXPECT_EQ(0, m_Git.GetOneFile(L"HEAD", CTGitPath(L"1.enc"), tmpFile));
-	EXPECT_EQ(true, CStringUtils::ReadStringFromTextFile(tmpFile, fileContents));
+	EXPECT_EQ(true, StringUtils::ReadStringFromTextFile(tmpFile, fileContents));
 	EXPECT_STREQ(L"This should be encrypted...\nAnd decrypted on the fly\n", fileContents);
 	::DeleteFile(tmpFile);
 
@@ -1559,7 +1559,7 @@ TEST_P(CBasicGitWithTestRepoFixture, GetOneFile)
 	tmpFile = GetTempFile();
 	ASSERT_STRNE(L"", tmpFile);
 	EXPECT_EQ(0, m_Git.GetOneFile(L"HEAD", CTGitPath(L"2.enc"), tmpFile));
-	EXPECT_EQ(true, CStringUtils::ReadStringFromTextFile(tmpFile, fileContents));
+	EXPECT_EQ(true, StringUtils::ReadStringFromTextFile(tmpFile, fileContents));
 	EXPECT_STREQ(L"This should also be encrypted...\nAnd also decrypted on the fly\n", fileContents);
 	::DeleteFile(tmpFile);
 
@@ -1571,7 +1571,7 @@ TEST_P(CBasicGitWithTestRepoFixture, GetOneFile)
 	tmpFile = GetTempFile();
 	ASSERT_STRNE(L"", tmpFile);
 	EXPECT_EQ(0, m_Git.GetOneFile(L"HEAD", CTGitPath(L"1.enc"), tmpFile));
-	EXPECT_EQ(true, CStringUtils::ReadStringFromTextFile(tmpFile, fileContents));
+	EXPECT_EQ(true, StringUtils::ReadStringFromTextFile(tmpFile, fileContents));
 	fileContents.Replace(L"\r\n", L"\n");
 	if (openssl10)
 		EXPECT_STREQ(L"U2FsdGVkX1/+7d6tvu8AABwbE+Xy7U4l5boTKjIgUkYHONqmYHD+0e6k35MgtUGx\ns11nq1QuKeFCW5wFWNSj1WcHg2n4W59xfnB7RkSSIDQ=\n", fileContents);
@@ -1583,7 +1583,7 @@ TEST_P(CBasicGitWithTestRepoFixture, GetOneFile)
 	tmpFile = GetTempFile();
 	ASSERT_STRNE(L"", tmpFile);
 	EXPECT_EQ(0, m_Git.GetOneFile(L"HEAD", CTGitPath(L"2.enc"), tmpFile));
-	EXPECT_EQ(true, CStringUtils::ReadStringFromTextFile(tmpFile, fileContents));
+	EXPECT_EQ(true, StringUtils::ReadStringFromTextFile(tmpFile, fileContents));
 	fileContents.Replace(L"\r\n", L"\n");
 	if (openssl10)
 		EXPECT_STREQ(L"U2FsdGVkX1/+7d6tvu8AAIDDx8qi/l0qzkSMsS2YLt8tYK1oWzj8+o78fXH0/tlO\nCRVrKqTvh9eUFklY8QFYfZfj01zBkFat+4zrW+1rV4Q=\n", fileContents);
@@ -1711,7 +1711,7 @@ TEST_P(CBasicGitWithTestRepoFixture, Config)
 	EXPECT_STREQ(L"", m_Git.GetConfigValue(L"--some.bla"));
 
 	CString gitConfig = m_Git.m_CurrentDir + L"\\.git\\config";
-	EXPECT_TRUE(CStringUtils::WriteStringToTextFile(gitConfig, L"[booltest]\nistrue"));
+	EXPECT_TRUE(StringUtils::WriteStringToTextFile(gitConfig, L"[booltest]\nistrue"));
 	EXPECT_EQ(true, m_Git.GetConfigValueBool(L"booltest.istrue"));
 
 	// test includes from %HOME% specified as ~/
@@ -1720,7 +1720,7 @@ TEST_P(CBasicGitWithTestRepoFixture, Config)
 	EXPECT_STREQ(L"~/a-path-that-should-not-exist.gconfig", g_Git.GetConfigValue(L"include.path", L"not-found"));
 	CString testFile = g_Git.GetHomeDirectory() + L"\\a-path-that-should-not-exist.gconfig";
 	ASSERT_FALSE(PathFileExists(testFile)); // make sure we don't override a file by mistake ;)
-	EXPECT_TRUE(CStringUtils::WriteStringToTextFile(testFile, L"[test]\nfromincluded=yeah-this-is-included\n"));
+	EXPECT_TRUE(StringUtils::WriteStringToTextFile(testFile, L"[test]\nfromincluded=yeah-this-is-included\n"));
 	EXPECT_STREQ(L"yeah-this-is-included", g_Git.GetConfigValue(L"test.fromincluded", L"not-found"));
 	EXPECT_TRUE(::DeleteFile(testFile));
 }
@@ -1785,7 +1785,7 @@ TEST_P(CBasicGitWithTestRepoFixture, GetWorkingTreeChanges)
 
 	// untracked file
 	CString testFile = m_Git.m_CurrentDir + L"\\untracked-file.txt";
-	EXPECT_TRUE(CStringUtils::WriteStringToTextFile(testFile, L"*.enc filter=openssl\n"));
+	EXPECT_TRUE(StringUtils::WriteStringToTextFile(testFile, L"*.enc filter=openssl\n"));
 	EXPECT_EQ(0, m_Git.GetWorkingTreeChanges(list, false, nullptr));
 	EXPECT_TRUE(list.IsEmpty());
 	list.Clear();
@@ -1832,7 +1832,7 @@ TEST_P(CBasicGitWithTestRepoFixture, GetWorkingTreeChanges)
 
 	// untracked file in sub-directory
 	testFile = m_Git.m_CurrentDir + L"\\copy\\untracked-file.txt";
-	EXPECT_TRUE(CStringUtils::WriteStringToTextFile(testFile, L"*.enc filter=openssl\n"));
+	EXPECT_TRUE(StringUtils::WriteStringToTextFile(testFile, L"*.enc filter=openssl\n"));
 	EXPECT_EQ(0, m_Git.GetWorkingTreeChanges(list, false, nullptr));
 	EXPECT_TRUE(list.IsEmpty());
 	list.Clear();
@@ -1873,7 +1873,7 @@ TEST_P(CBasicGitWithTestRepoFixture, GetWorkingTreeChanges)
 
 	// modified file in sub-directory
 	testFile = m_Git.m_CurrentDir + L"\\copy\\utf8-nobom.txt";
-	EXPECT_TRUE(CStringUtils::WriteStringToTextFile(testFile, L"*.enc filter=openssl\n"));
+	EXPECT_TRUE(StringUtils::WriteStringToTextFile(testFile, L"*.enc filter=openssl\n"));
 	EXPECT_EQ(0, m_Git.GetWorkingTreeChanges(list, false, nullptr));
 	ASSERT_EQ(1, list.GetCount());
 	EXPECT_EQ(CTGitPath::LOGACTIONS_MODIFIED, list.GetAction());
@@ -1951,9 +1951,9 @@ TEST_P(CBasicGitWithTestRepoFixture, GetWorkingTreeChanges)
 	EXPECT_EQ(0, m_Git.Run(L"git.exe reset --hard master", &output, CP_UTF8));
 	EXPECT_STRNE(L"", output);
 	testFile = m_Git.m_CurrentDir + L"\\utf8-bom.txt";
-	EXPECT_TRUE(CStringUtils::WriteStringToTextFile(testFile, L"*.enc filter=openssl\n"));
+	EXPECT_TRUE(StringUtils::WriteStringToTextFile(testFile, L"*.enc filter=openssl\n"));
 	testFile = m_Git.m_CurrentDir + L"\\copy\\utf8-nobom.txt";
-	EXPECT_TRUE(CStringUtils::WriteStringToTextFile(testFile, L"*.enc filter=openssl\n"));
+	EXPECT_TRUE(StringUtils::WriteStringToTextFile(testFile, L"*.enc filter=openssl\n"));
 	EXPECT_EQ(0, m_Git.GetWorkingTreeChanges(list, false, nullptr));
 	ASSERT_EQ(2, list.GetCount());
 	EXPECT_EQ(CTGitPath::LOGACTIONS_MODIFIED, list.GetAction());
@@ -2045,7 +2045,7 @@ TEST_P(CBasicGitWithTestRepoFixture, GetWorkingTreeChanges)
 	EXPECT_EQ(0, m_Git.Run(L"git.exe reset --hard master", &output, CP_UTF8));
 	EXPECT_STRNE(L"", output);
 	testFile = m_Git.m_CurrentDir + L"\\utf8-nobom.txt";
-	EXPECT_TRUE(CStringUtils::WriteStringToTextFile(testFile, L"*.enc filter=openssl\n"));
+	EXPECT_TRUE(StringUtils::WriteStringToTextFile(testFile, L"*.enc filter=openssl\n"));
 	output.Empty();
 	EXPECT_EQ(0, m_Git.Run(L"git.exe add utf8-nobom.txt", &output, CP_UTF8));
 	EXPECT_STREQ(L"", output);
@@ -2147,7 +2147,7 @@ TEST_P(CBasicGitWithTestRepoFixture, GetWorkingTreeChanges)
 	EXPECT_EQ(0, m_Git.Run(L"git.exe reset --hard master", &output, CP_UTF8));
 	EXPECT_STRNE(L"", output);
 	testFile = m_Git.m_CurrentDir + L"\\copy\\utf8-nobom.txt";
-	EXPECT_TRUE(CStringUtils::WriteStringToTextFile(testFile, L"*.enc filter=openssl\n"));
+	EXPECT_TRUE(StringUtils::WriteStringToTextFile(testFile, L"*.enc filter=openssl\n"));
 	output.Empty();
 	EXPECT_EQ(0, m_Git.Run(L"git.exe add copy/utf8-nobom.txt", &output, CP_UTF8));
 	EXPECT_STREQ(L"", output);
@@ -2226,11 +2226,11 @@ TEST_P(CBasicGitWithTestRepoFixture, GetWorkingTreeChanges)
 	EXPECT_EQ(0, m_Git.Run(L"git.exe reset --hard master", &output, CP_UTF8));
 	EXPECT_STRNE(L"", output);
 	testFile = m_Git.m_CurrentDir + L"\\copy\\utf8-nobom.txt";
-	EXPECT_TRUE(CStringUtils::WriteStringToTextFile(testFile, L"*.enc filter=openssl\n"));
+	EXPECT_TRUE(StringUtils::WriteStringToTextFile(testFile, L"*.enc filter=openssl\n"));
 	output.Empty();
 	EXPECT_EQ(0, m_Git.Run(L"git.exe add copy/utf8-nobom.txt", &output, CP_UTF8));
 	EXPECT_STREQ(L"", output);
-	EXPECT_TRUE(CStringUtils::WriteStringToTextFile(testFile, L"now with different content after staging"));
+	EXPECT_TRUE(StringUtils::WriteStringToTextFile(testFile, L"now with different content after staging"));
 	EXPECT_EQ(0, m_Git.GetWorkingTreeChanges(list, false, nullptr));
 	ASSERT_EQ(1, list.GetCount());
 	EXPECT_EQ(CTGitPath::LOGACTIONS_MODIFIED, list.GetAction());
@@ -2557,7 +2557,7 @@ TEST_P(CBasicGitWithTestRepoFixture, GetWorkingTreeChanges)
 	EXPECT_EQ(0, m_Git.Run(L"git.exe rm --cached copy/ansi.txt", &output, CP_UTF8));
 	EXPECT_STRNE(L"", output);
 	testFile = m_Git.m_CurrentDir + L"\\copy\\ansi.txt";
-	EXPECT_TRUE(CStringUtils::WriteStringToTextFile(testFile, L"*.enc filter=openssl\n"));
+	EXPECT_TRUE(StringUtils::WriteStringToTextFile(testFile, L"*.enc filter=openssl\n"));
 	list.Clear();
 	EXPECT_EQ(0, m_Git.GetWorkingTreeChanges(list, false, nullptr));
 	ASSERT_EQ(1, list.GetCount());
@@ -2849,7 +2849,7 @@ TEST_P(CBasicGitWithTestRepoFixture, GetWorkingTreeChanges)
 	EXPECT_EQ(0, m_Git.Run(L"git.exe mv ansi.txt änsi2.txt", &output, CP_UTF8));
 	EXPECT_STREQ(L"", output);
 	testFile = m_Git.m_CurrentDir + L"\\änsi2.txt";
-	EXPECT_TRUE(CStringUtils::WriteStringToTextFile(testFile, L"lkjglkäöfdg\nfgdjsäkglsfdg\nöäöü45g\nfdgi & §$ % &hfdsgä\nä#äf34öööäß€9875oe\nöäSOMETHINGELSEmfdg\n€fgfdsg\n45\näü\n"));
+	EXPECT_TRUE(StringUtils::WriteStringToTextFile(testFile, L"lkjglkäöfdg\nfgdjsäkglsfdg\nöäöü45g\nfdgi & §$ % &hfdsgä\nä#äf34öööäß€9875oe\nöäSOMETHINGELSEmfdg\n€fgfdsg\n45\näü\n"));
 	list.Clear();
 	EXPECT_EQ(0, m_Git.GetWorkingTreeChanges(list, false, nullptr));
 	ASSERT_EQ(1, list.GetCount());
@@ -2949,7 +2949,7 @@ TEST_P(CBasicGitWithTestRepoFixture, GetWorkingTreeChanges)
 	EXPECT_EQ(0, m_Git.Run(L"git.exe mv ansi.txt änsi2.txt", &output, CP_UTF8));
 	EXPECT_STREQ(L"", output);
 	testFile = m_Git.m_CurrentDir + L"\\änsi2.txt";
-	EXPECT_TRUE(CStringUtils::WriteStringToTextFile(testFile, L"lkjglkäöfdg\nfgdjsäkglsfdg\nöäöü45g\nfdgi & §$ % &hfdsgä\nä#äf34öööäß€9875oe\nöäSOMETHINGELSEmfdg\n€fgfdsg\n45\näü\n"));
+	EXPECT_TRUE(StringUtils::WriteStringToTextFile(testFile, L"lkjglkäöfdg\nfgdjsäkglsfdg\nöäöü45g\nfdgi & §$ % &hfdsgä\nä#äf34öööäß€9875oe\nöäSOMETHINGELSEmfdg\n€fgfdsg\n45\näü\n"));
 	output.Empty();
 	EXPECT_EQ(0, m_Git.Run(L"git.exe add änsi2.txt", &output, CP_UTF8));
 	EXPECT_STREQ(L"", output);
@@ -3073,7 +3073,7 @@ TEST_P(CBasicGitWithTestRepoFixture, GetWorkingTreeChanges)
 	EXPECT_EQ(0, m_Git.Run(L"git.exe reset --hard master", &output, CP_UTF8));
 	EXPECT_STRNE(L"", output);
 	testFile = m_Git.m_CurrentDir + L"\\copy\\test-file.txt";
-	EXPECT_TRUE(CStringUtils::WriteStringToTextFile(testFile, L"*.enc filter=openssl\n"));
+	EXPECT_TRUE(StringUtils::WriteStringToTextFile(testFile, L"*.enc filter=openssl\n"));
 	output.Empty();
 	EXPECT_EQ(0, m_Git.Run(L"git.exe add copy/test-file.txt", &output, CP_UTF8));
 	EXPECT_STREQ(L"", output);
@@ -3161,11 +3161,11 @@ TEST_P(CBasicGitWithTestRepoFixture, GetWorkingTreeChanges)
 	EXPECT_EQ(0, m_Git.Run(L"git.exe reset --hard master", &output, CP_UTF8));
 	EXPECT_STRNE(L"", output);
 	testFile = m_Git.m_CurrentDir + L"\\copy\\test-file.txt";
-	EXPECT_TRUE(CStringUtils::WriteStringToTextFile(testFile, L"*.enc filter=openssl\n"));
+	EXPECT_TRUE(StringUtils::WriteStringToTextFile(testFile, L"*.enc filter=openssl\n"));
 	output.Empty();
 	EXPECT_EQ(0, m_Git.Run(L"git.exe add copy/test-file.txt", &output, CP_UTF8));
 	EXPECT_STREQ(L"", output);
-	EXPECT_TRUE(CStringUtils::WriteStringToTextFile(testFile, L"something else\n"));
+	EXPECT_TRUE(StringUtils::WriteStringToTextFile(testFile, L"something else\n"));
 	list.Clear();
 	EXPECT_EQ(0, m_Git.GetWorkingTreeChanges(list, false, nullptr));
 	ASSERT_EQ(1, list.GetCount());
@@ -3821,7 +3821,7 @@ TEST_P(CBasicGitWithEmptyRepositoryFixture, GetWorkingTreeChanges)
 	EXPECT_TRUE(list.IsEmpty());
 
 	CString testFile = m_Dir.GetTempDir() + L"\\test.txt";
-	EXPECT_TRUE(CStringUtils::WriteStringToTextFile(testFile, L"this is testing file."));
+	EXPECT_TRUE(StringUtils::WriteStringToTextFile(testFile, L"this is testing file."));
 	EXPECT_EQ(0, m_Git.GetWorkingTreeChanges(list, false, nullptr));
 	EXPECT_TRUE(list.IsEmpty());
 	CString output;
@@ -3880,7 +3880,7 @@ TEST_P(CBasicGitWithEmptyRepositoryFixture, GetWorkingTreeChanges)
 	list.Clear();
 	EXPECT_TRUE(::CreateDirectory(m_Dir.GetTempDir() + L"\\copy", nullptr));
 	testFile = m_Dir.GetTempDir() + L"\\copy\\test2.txt";
-	EXPECT_TRUE(CStringUtils::WriteStringToTextFile(testFile, L"this is another testing file."));
+	EXPECT_TRUE(StringUtils::WriteStringToTextFile(testFile, L"this is another testing file."));
 	EXPECT_EQ(0, m_Git.Run(L"git.exe add copy/test2.txt", &output, CP_UTF8));
 	EXPECT_STREQ(L"", output);
 	EXPECT_EQ(0, m_Git.GetWorkingTreeChanges(list, false, &filter));
@@ -3921,7 +3921,7 @@ TEST_P(CBasicGitWithEmptyRepositoryFixture, GetWorkingTreeChanges)
 	output.Empty();
 	list.Clear();
 	testFile = m_Dir.GetTempDir() + L"\\copy\\test2.txt";
-	EXPECT_TRUE(CStringUtils::WriteStringToTextFile(testFile, L"different content now"));
+	EXPECT_TRUE(StringUtils::WriteStringToTextFile(testFile, L"different content now"));
 	EXPECT_EQ(0, m_Git.GetWorkingTreeChanges(list, false, &filter));
 	ASSERT_EQ(2, list.GetCount());
 	// EXPECT_EQ(CTGitPath::LOGACTIONS_ADDED, list.GetAction()); // we do not care here for the list action, as its only used in GitLogListBase and there we re-calculate it in AsyncDiffThread
@@ -4211,7 +4211,7 @@ TEST_P(CBasicGitWithSubmoduleRepositoryFixture, GetWorkingTreeChanges_Submodules
 	output.Empty();
 	EXPECT_EQ(0, m_Git.Run(L"git.exe rm -rf something", &output, CP_UTF8));
 	EXPECT_STRNE(L"", output);
-	ASSERT_TRUE(CStringUtils::WriteStringToTextFile(submoduleDir, L"something"));
+	ASSERT_TRUE(StringUtils::WriteStringToTextFile(submoduleDir, L"something"));
 	output.Empty();
 	EXPECT_EQ(0, m_Git.Run(L"git.exe add something", &output, CP_UTF8));
 	EXPECT_STREQ(L"", output);
@@ -4403,7 +4403,7 @@ TEST_P(CBasicGitWithTestRepoFixture, GetRefsCommitIsOn)
 	CString adminDir;
 	ASSERT_TRUE(GitAdminDir::GetAdminDirPath(g_Git.m_CurrentDir, adminDir));
 	adminDir += L"refs\\remotes\\origin\\HEAD";
-	ASSERT_TRUE(CStringUtils::WriteStringToTextFile(adminDir, L"ref: refs/remotes/origin/master"));
+	ASSERT_TRUE(StringUtils::WriteStringToTextFile(adminDir, L"ref: refs/remotes/origin/master"));
 	list.clear();
 	EXPECT_EQ(0, m_Git.GetRefsCommitIsOn(list, CGitHash::FromHexStr(L"313a41bc88a527289c87d7531802ab484715974f"), false, true, CGit::BRANCH_ALL));
 	ASSERT_EQ(8U, list.size());
@@ -4417,7 +4417,7 @@ TEST_P(CBasicGitWithTestRepoFixture, GetUnifiedDiff)
 	CString tmpfile = m_Dir.GetTempDir() + L"\\output.txt";
 	EXPECT_EQ(0, m_Git.GetUnifiedDiff(CTGitPath(L""), L"b02add66f48814a73aa2f0876d6bbc8662d6a9a8", L"b9ef30183497cdad5c30b88d32dc1bed7951dfeb", tmpfile, false, false, -1, false));
 	CString fileContents;
-	EXPECT_EQ(true, CStringUtils::ReadStringFromTextFile(tmpfile, fileContents));
+	EXPECT_EQ(true, StringUtils::ReadStringFromTextFile(tmpfile, fileContents));
 	EXPECT_STREQ(L" utf8-nobom.txt | 4 ++--\n 1 file changed, 2 insertions(+), 2 deletions(-)\n\ndiff --git a/utf8-nobom.txt b/utf8-nobom.txt\nindex ffa0d50..c225b3f 100644\n--- a/utf8-nobom.txt\n+++ b/utf8-nobom.txt\n@@ -1,9 +1,9 @@\n-ä#äf34öööäß€9875oe\r\n+ä#äf34ööcöäß€9875oe\r\n fgdjkglsfdg\r\n öäöü45g\r\n fdgi&§$%&hfdsgä\r\n ä#äf34öööäß€9875oe\r\n-öäüpfgmfdg\r\n+öäcüpfgmfdg\r\n €fgfdsg\r\n 45\r\n äü\n\\ No newline at end of file\n", fileContents);
 }
 
@@ -4444,7 +4444,7 @@ static CString GetUnifiedDiffWith(CGit& git, bool useLibGit2, const CString& rev
 
 	CString contents;
 	EXPECT_EQ(0, git.GetUnifiedDiff(CTGitPath(L""), rev1, rev2, tmpfile, bMerge, false, diffContext, false));
-	EXPECT_TRUE(CStringUtils::ReadStringFromTextFile(tmpfile, contents));
+	EXPECT_TRUE(StringUtils::ReadStringFromTextFile(tmpfile, contents));
 	return contents;
 }
 
@@ -4477,7 +4477,7 @@ TEST_P(CBasicGitWithTestRepoFixture, GetUnifiedDiffLibGit2MatchesGitExe)
 	// no equivalent of and so produced the diff the wrong way round.
 	CString output;
 	ASSERT_EQ(0, m_Git.Run(L"git.exe reset --hard master", &output, CP_UTF8));
-	ASSERT_TRUE(CStringUtils::WriteStringToTextFile(m_Dir.GetTempDir() + L"\\utf8-nobom.txt", L"changed in the working copy\n"));
+	ASSERT_TRUE(StringUtils::WriteStringToTextFile(m_Dir.GetTempDir() + L"\\utf8-nobom.txt", L"changed in the working copy\n"));
 	EXPECT_STREQ(GetUnifiedDiffWith(m_Git, false, GitRev::GetWorkingCopyRef(), L"HEAD", false, -1, tmpfile),
 				 GetUnifiedDiffWith(m_Git, true, GitRev::GetWorkingCopyRef(), L"HEAD", false, -1, tmpfile));
 	EXPECT_STREQ(GetUnifiedDiffWith(m_Git, false, L"HEAD", GitRev::GetWorkingCopyRef(), false, -1, tmpfile),
@@ -4563,7 +4563,7 @@ TEST_P(CBasicGitWithTestRepoFixture, IsResultingCommitBecomeEmpty)
 
 	// create a file and stage it, thus, resulting commits won't be empty
 	CString testFile = m_Dir.GetTempDir() + L"\\test.txt";
-	EXPECT_TRUE(CStringUtils::WriteStringToTextFile(testFile, L"this is testing file."));
+	EXPECT_TRUE(StringUtils::WriteStringToTextFile(testFile, L"this is testing file."));
 	EXPECT_EQ(TRUE, m_Git.IsResultingCommitBecomeEmpty());
 	EXPECT_EQ(TRUE, m_Git.IsResultingCommitBecomeEmpty(true));
 	output.Empty();

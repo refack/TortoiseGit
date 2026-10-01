@@ -235,7 +235,7 @@ bool CACEdit::HandleKey(UINT nChar, bool m_bFromChild)
 
 				if(m_iMode & _MODE_FILESYSTEM_)
 				{
-					if (CStringUtils::EndsWith(m_EditText, L'\\'))
+					if (StringUtils::EndsWith(m_EditText, L'\\'))
 						m_EditText = m_EditText.Left(m_EditText.GetLength() - 1);
 				}
 
@@ -520,7 +520,7 @@ void CACEdit::ReadDirectory(CString m_Dir)
 
 	// Wenn mittem im Pfad,
 	// vorheriges Verzeichnis einlesen.
-	if (!CStringUtils::EndsWith(m_Dir, L'\\'))
+	if (!StringUtils::EndsWith(m_Dir, L'\\'))
 	{
 		_wsplitpath_s(m_Dir, m_szDrive, m_szDir, m_szFname, m_szExt);
 		m_Dir.Format(L"%s%s",m_szDrive, m_szDir);
@@ -531,7 +531,7 @@ void CACEdit::ReadDirectory(CString m_Dir)
 	m_Dir.SetAt(0,ch);
 
 	CString m_Name,m_File,m_Dir1 = m_Dir;
-	if (!CStringUtils::EndsWith(m_Dir, L'\\'))
+	if (!StringUtils::EndsWith(m_Dir, L'\\'))
 		m_Dir += L'\\';
 
 	if(m_LastDirectory.CompareNoCase(m_Dir) == 0 && m_Liste.m_SearchList.GetSize())
@@ -558,7 +558,7 @@ void CACEdit::ReadDirectory(CString m_Dir)
 			if(FoundFiles.IsDots())
 				continue;
 
-			if (!CStringUtils::EndsWith(m_File, L'\\'))
+			if (!StringUtils::EndsWith(m_File, L'\\'))
 				m_File += L'\\';
 		}
 
@@ -573,7 +573,7 @@ void CACEdit::ReadDirectory(CString m_Dir)
 		else
 		{
 			m_Name = m_Dir1;
-			if (!CStringUtils::EndsWith(m_Name, L'\\'))
+			if (!StringUtils::EndsWith(m_Name, L'\\'))
 				m_Name += L'\\';
 
 			m_Name += m_File;

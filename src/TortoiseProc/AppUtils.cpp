@@ -148,9 +148,9 @@ bool CAppUtils::StashSave(HWND hWnd, const CString& msg, bool showPull, bool pul
 bool CAppUtils::StashApply(HWND hWnd, CString ref, bool showChanges /* true */)
 {
 	CString cmd = L"git.exe stash apply ";
-	if (CStringUtils::StartsWith(ref, L"refs/"))
+	if (StringUtils::StartsWith(ref, L"refs/"))
 		ref = ref.Mid(static_cast<int>(wcslen(L"refs/")));
-	if (CStringUtils::StartsWith(ref, L"stash{"))
+	if (StringUtils::StartsWith(ref, L"stash{"))
 		ref = L"stash@" + ref.Mid(static_cast<int>(wcslen(L"stash")));
 	cmd += ref;
 
@@ -273,13 +273,13 @@ BOOL CAppUtils::StartExtMerge(bool bAlternative,
 
 	if (bAlternative && !com.IsEmpty())
 	{
-		if (CStringUtils::StartsWith(com, L"#"))
+		if (StringUtils::StartsWith(com, L"#"))
 			com.Delete(0);
 		else
 			com.Empty();
 	}
 
-	if (com.IsEmpty() || CStringUtils::StartsWith(com, L"#"))
+	if (com.IsEmpty() || StringUtils::StartsWith(com, L"#"))
 	{
 		{
 			/*
@@ -324,7 +324,7 @@ BOOL CAppUtils::StartExtMerge(bool bAlternative,
 	if ((com.Find(L"%merged") < 0) && (com.Find(L"%base") < 0) && (com.Find(L"%theirs") < 0) && (com.Find(L"%mine") < 0))
 		com += L" %base %theirs %mine %merged";
 
-	com = CStringUtils::ExpandPlaceholdersForCmd(com, {
+	com = StringUtils::ExpandPlaceholdersForCmd(com, {
 													  { L"base", basefile.GetWinPathString().c_str() },
 													  { L"theirs", theirfile.GetWinPathString().c_str() },
 													  { L"mine", yourfile.GetWinPathString().c_str() }, 
@@ -451,7 +451,7 @@ bool CAppUtils::StartExtDiff(
 
 	viewer = PickDiffTool(CTGitPath(file1.GetString()), CTGitPath(file2.GetString()));
 	// If registry entry for a diff program is commented out, fall back to git's tool.
-	const bool bCommentedOut = CStringUtils::StartsWith(viewer, L"#");
+	const bool bCommentedOut = StringUtils::StartsWith(viewer, L"#");
 	if (flags.bAlternativeTool)
 	{
 		// Invert external vs. internal diff tool selection.
@@ -483,7 +483,7 @@ bool CAppUtils::StartExtDiff(
 	if ((viewer.Find(L"%base") < 0) && (viewer.Find(L"%mine") < 0))
 		viewer += L" %base %mine";
 
-	viewer = CStringUtils::ExpandPlaceholdersForCmd(viewer, {
+	viewer = StringUtils::ExpandPlaceholdersForCmd(viewer, {
 															{ L"base", file1 },
 															{ L"mine", file2 },
 															{ L"bname", sName1.IsEmpty() ? file1 : sName1 },
@@ -513,7 +513,7 @@ BOOL CAppUtils::StartUnifiedDiffViewer(const CString& patchfile, const CString& 
 
 	bool bInternal = false;
 	// If registry entry for a diff program is commented out, fall back to git's tool.
-	const bool bCommentedOut = CStringUtils::StartsWith(viewer, L"#");
+	const bool bCommentedOut = StringUtils::StartsWith(viewer, L"#");
 	if (bAlternativeTool)
 	{
 		// Invert external vs. internal diff tool selection.
@@ -546,7 +546,7 @@ BOOL CAppUtils::StartUnifiedDiffViewer(const CString& patchfile, const CString& 
 	if (viewer.Find(L"%1") == -1)
 		viewer += L" %1";
 
-	viewer = CStringUtils::ExpandPlaceholdersForCmd(viewer, {
+	viewer = StringUtils::ExpandPlaceholdersForCmd(viewer, {
 															{ L"1", patchfile },
 															{ L"title", title },
 															},
@@ -597,7 +597,7 @@ bool CAppUtils::LaunchNotepad(const CString& filename, bool uac)
 		return false;
 
 	CString sCmd;
-	sCmd.Format(L"\"%s\\notepad.exe\" %s", static_cast<LPCWSTR>(pszPath), static_cast<LPCWSTR>(CStringUtils::EscapeWindowsCliArguments(filename)));
+	sCmd.Format(L"\"%s\\notepad.exe\" %s", static_cast<LPCWSTR>(pszPath), static_cast<LPCWSTR>(StringUtils::EscapeWindowsCliArguments(filename)));
 
 	return LaunchApplication(sCmd, CAppUtils::LaunchApplicationFlags().UAC(uac).UseSpecificErrorMessage(IDS_ERR_TEXTVIEWSTART));
 }
@@ -607,7 +607,7 @@ bool CAppUtils::IsAlternativeEditorConfigured(CString* editTool /* = nullptr */)
 	CString alternativeEditor = CRegString(L"Software\\TortoiseGit\\AlternativeEditor");
 	if (editTool)
 		*editTool = alternativeEditor;
-	return !alternativeEditor.IsEmpty() && !CStringUtils::StartsWith(alternativeEditor, L"#");
+	return !alternativeEditor.IsEmpty() && !StringUtils::StartsWith(alternativeEditor, L"#");
 }
 
 bool CAppUtils::LaunchAlternativeEditor(const CString& filename)
@@ -777,7 +777,7 @@ bool CAppUtils::FindWarningsErrors(const CString& text, std::vector<CHARRANGE>& 
 		if (idxEnd > text.GetLength())
 			return;
 
-		if (CStringUtils::StartsWith(static_cast<LPCWSTR>(text) + idxStart, needle))
+		if (StringUtils::StartsWith(static_cast<LPCWSTR>(text) + idxStart, needle))
 		{
 			const CHARRANGE range{ idxStart, idxEnd };
 			vRange.push_back(range);
@@ -911,9 +911,9 @@ bool CAppUtils::SetupDiffScripts(bool force, const CString& type)
 		std::set<CString> extensions;
 		extensions.insert(ext);
 		CString kind;
-		if (CStringUtils::EndsWithI(file, L"vbs"))
+		if (StringUtils::EndsWithI(file, L"vbs"))
 			kind = L" //E:vbscript";
-		if (CStringUtils::EndsWithI(file, L"js"))
+		if (StringUtils::EndsWithI(file, L"js"))
 			kind = L" //E:javascript";
 		// open the file, read the first line and find possible extensions
 		// this script can handle
@@ -924,8 +924,8 @@ bool CAppUtils::SetupDiffScripts(bool force, const CString& type)
 			if (f.ReadString(extline))
 			{
 				if ((extline.GetLength() > 15 ) &&
-					(CStringUtils::StartsWith(extline, L"// extensions: ") ||
-					CStringUtils::StartsWith(extline, L"' extensions: ")))
+					(StringUtils::StartsWith(extline, L"// extensions: ") ||
+					StringUtils::StartsWith(extline, L"' extensions: ")))
 				{
 					if (extline[0] == '/')
 						extline = extline.Mid(static_cast<int>(wcslen(L"// extensions: ")));
@@ -957,7 +957,7 @@ bool CAppUtils::SetupDiffScripts(bool force, const CString& type)
 		{
 			if (type.IsEmpty() || (type.Compare(L"Diff") == 0))
 			{
-				if (CStringUtils::StartsWithI(filename, L"diff-"))
+				if (StringUtils::StartsWithI(filename, L"diff-"))
 				{
 					CRegString diffreg = CRegString(L"Software\\TortoiseGit\\DiffTools\\" + extension);
 					CString diffregstring = diffreg;
@@ -967,7 +967,7 @@ bool CAppUtils::SetupDiffScripts(bool force, const CString& type)
 			}
 			if (type.IsEmpty() || (type.Compare(L"Merge") == 0))
 			{
-				if (CStringUtils::StartsWithI(filename, L"merge-"))
+				if (StringUtils::StartsWithI(filename, L"merge-"))
 				{
 					CRegString diffreg = CRegString(L"Software\\TortoiseGit\\MergeTools\\" + extension);
 					CString diffregstring = diffreg;
@@ -1165,7 +1165,7 @@ bool CAppUtils::Switch(HWND hWnd, const CString& initialRefName)
 
 		// if refs/heads/ is not stripped, checkout will detach HEAD
 		// checkout prefers branches on name clashes (with tags)
-		if (CStringUtils::StartsWith(dlg.m_VersionName, L"refs/heads/") && dlg.m_bBranchOverride != TRUE)
+		if (StringUtils::StartsWith(dlg.m_VersionName, L"refs/heads/") && dlg.m_bBranchOverride != TRUE)
 			dlg.m_VersionName = dlg.m_VersionName.Mid(static_cast<int>(wcslen(L"refs/heads/")));
 
 		return PerformSwitch(hWnd, dlg.m_VersionName, dlg.m_bForce == TRUE, branch, dlg.m_bBranchOverride == TRUE, dlg.m_bTrack, dlg.m_bMerge == TRUE);
@@ -1576,7 +1576,7 @@ void CAppUtils::GetConflictTitles(CString* baseText, CString& mineText, CGitHash
 		CString adminDir;
 		GitAdminDir::GetAdminDirPath(g_Git.m_CurrentDir, adminDir);
 		mineText = L"Branch being rebased onto";
-		if (!CStringUtils::ReadStringFromTextFile(adminDir + L"tgitrebase.active\\onto", mineText))
+		if (!StringUtils::ReadStringFromTextFile(adminDir + L"tgitrebase.active\\onto", mineText))
 		{
 			CGitHash hash;
 			if (guessBranch && !g_Git.GetHash(hash, L"rebase-apply/onto"))
@@ -1588,9 +1588,9 @@ void CAppUtils::GetConflictTitles(CString* baseText, CString& mineText, CGitHash
 				*mineHash = hash;
 		}
 		theirsText = L"Branch being rebased";
-		if (!CStringUtils::ReadStringFromTextFile(adminDir + L"tgitrebase.active\\head-name", theirsText))
+		if (!StringUtils::ReadStringFromTextFile(adminDir + L"tgitrebase.active\\head-name", theirsText))
 		{
-			if (CStringUtils::ReadStringFromTextFile(adminDir + L"rebase-apply/head-name", theirsText))
+			if (StringUtils::ReadStringFromTextFile(adminDir + L"rebase-apply/head-name", theirsText))
 				theirsText = CGit::StripRefName(theirsText);
 		}
 		return;
@@ -1896,7 +1896,7 @@ CString CAppUtils::GetClipboardLink(const CString &skipGitPrefix, int paramsCoun
 
 		for (const CString& prefix : { L"http://", L"https://", L"git://", L"ssh://", L"git@" })
 		{
-			if (CStringUtils::StartsWith(sClipboardText, prefix) && sClipboardText.GetLength() != prefix.GetLength())
+			if (StringUtils::StartsWith(sClipboardText, prefix) && sClipboardText.GetLength() != prefix.GetLength())
 				return sClipboardText;
 		}
 
@@ -1907,7 +1907,7 @@ CString CAppUtils::GetClipboardLink(const CString &skipGitPrefix, int paramsCoun
 					return sClipboardText;
 
 		// trim prefixes like "git clone "
-		if (!skipGitPrefix.IsEmpty() && CStringUtils::StartsWith(sClipboardText, skipGitPrefix))
+		if (!skipGitPrefix.IsEmpty() && StringUtils::StartsWith(sClipboardText, skipGitPrefix))
 		{
 			sClipboardText = sClipboardText.Mid(skipGitPrefix.GetLength()).Trim();
 			int spacePos = -1;
@@ -2025,7 +2025,7 @@ int CAppUtils::SaveCommitUnicodeFile(const CString& filename, CString &message)
 				line.Truncate(start - oldStart);
 				++start; // move forward so we don't find the same char again
 			}
-			if (stripComments && (!line.IsEmpty() && CStringUtils::StartsWith(line, commentCharValue)) || (start < 0 && line.IsEmpty()))
+			if (stripComments && (!line.IsEmpty() && StringUtils::StartsWith(line, commentCharValue)) || (start < 0 && line.IsEmpty()))
 				continue;
 			line.TrimRight(L" \r");
 			if (sanitize)
@@ -2982,7 +2982,7 @@ static bool DoMerge(HWND hWnd, bool noFF, bool ffOnly, bool squash, bool noCommi
 			return;
 		}
 
-		if (isBranch && !CStringUtils::StartsWith(version, L"remotes/")) // do not ask to remove remote branches
+		if (isBranch && !StringUtils::StartsWith(version, L"remotes/")) // do not ask to remove remote branches
 		{
 			postCmdList.emplace_back(IDI_DELETE, IDS_PROC_REMOVEBRANCH, [&]
 			{
@@ -3161,9 +3161,9 @@ CString CAppUtils::FormatWindowTitle(const CString& urlorpath2, const CString& d
 	{
 		const CTGitPath filePath{ g_Git.m_CurrentDir.GetString() };
 		const CString toStrip = filePath.GetContainingDirectory().GetWinPathString().c_str();
-		if (!CStringUtils::StartsWith(urlorpath2, g_Git.m_CurrentDir))
+		if (!StringUtils::StartsWith(urlorpath2, g_Git.m_CurrentDir))
 			break;
-		else if (toStrip.IsEmpty() || CStringUtils::EndsWith(toStrip, L'\\'))
+		else if (toStrip.IsEmpty() || StringUtils::EndsWith(toStrip, L'\\'))
 			urlorpath = urlorpath2.Right(urlorpath2.GetLength() - toStrip.GetLength());
 		else
 			urlorpath = urlorpath2.Right(urlorpath2.GetLength() - toStrip.GetLength() - 1);

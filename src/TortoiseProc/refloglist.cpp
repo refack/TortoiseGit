@@ -187,6 +187,6 @@ void CRefLogList::CopySelectionToClipBoard(int toCopy)
 
 			first = false;
 		}
-		CStringUtils::WriteAsciiStringToClipboard(sClipdata, GetSafeHwnd());
+		StringUtils::WriteAsciiStringToClipboard(sClipdata, GetSafeHwnd());
 	}
 }

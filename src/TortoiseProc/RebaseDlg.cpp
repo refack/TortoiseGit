@@ -1187,7 +1187,7 @@ void CRebaseDlg::RewriteNotes()
 		return;
 	}
 	tmpfile.Replace(L'\\', L'/');
-	if (!CStringUtils::WriteStringToTextFile(tmpfile, rewrites))
+	if (!StringUtils::WriteStringToTextFile(tmpfile, rewrites))
 		return;
 	SCOPE_EXIT{ ::DeleteFile(tmpfile); };
 	CString pipefile = GetTempFile();
@@ -1199,7 +1199,7 @@ void CRebaseDlg::RewriteNotes()
 	pipefile.Replace(L'\\', L'/');
 	CString pipecmd;
 	pipecmd.Format(L"git notes copy --for-rewrite=rebase < %s", static_cast<LPCWSTR>(tmpfile));
-	if (!CStringUtils::WriteStringToTextFile(pipefile, pipecmd))
+	if (!StringUtils::WriteStringToTextFile(pipefile, pipecmd))
 		return;
 	SCOPE_EXIT{ ::DeleteFile(pipefile); };
 	CString out;
@@ -1992,7 +1992,7 @@ static CString GetCommitTitle(const CGitHash& parentHash)
 			commitTitle.Truncate(20);
 			commitTitle += L"...";
 		}
-		str.AppendFormat(L"\n%s (%s)", static_cast<LPCWSTR>(CStringUtils::EscapeAccellerators(commitTitle)), static_cast<LPCWSTR>(parentHash.ToString(g_Git.GetShortHASHLength())));
+		str.AppendFormat(L"\n%s (%s)", static_cast<LPCWSTR>(StringUtils::EscapeAccellerators(commitTitle)), static_cast<LPCWSTR>(parentHash.ToString(g_Git.GetShortHASHLength())));
 	}
 	else
 		str.AppendFormat(L"\n(%s)", static_cast<LPCWSTR>(parentHash.ToString(g_Git.GetShortHASHLength())));
@@ -2441,8 +2441,8 @@ void CRebaseDlg::ListConflictFile(bool noStoreScrollPosition)
 		{
 			CString dir(adminDir + L"tgitrebase.active");
 			::CreateDirectory(dir, nullptr);
-			CStringUtils::WriteStringToTextFile(dir + L"\\head-name", m_BranchCtrl.GetString());
-			CStringUtils::WriteStringToTextFile(dir + L"\\onto", m_Onto.IsEmpty() ? m_UpstreamCtrl.GetString() : m_Onto);
+			StringUtils::WriteStringToTextFile(dir + L"\\head-name", m_BranchCtrl.GetString());
+			StringUtils::WriteStringToTextFile(dir + L"\\onto", m_Onto.IsEmpty() ? m_UpstreamCtrl.GetString() : m_Onto);
 		}
 	}
 

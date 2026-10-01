@@ -3932,7 +3932,7 @@ bool CGitStatusListCtrl::CopySelectedEntriesToClipboard(DWORD dwCols, int cmd)
 		ADDNEWLINETOCLIPBOARDSTRING();
 	}
 
-	return CStringUtils::WriteAsciiStringToClipboard(sClipboard);
+	return StringUtils::WriteAsciiStringToClipboard(sClipboard);
 }
 
 bool CGitStatusListCtrl::HasChangelistInSelection()
@@ -4559,7 +4559,7 @@ bool CGitStatusListCtrl::GetParentCommitInfo(const CGitHash& hash, const int par
 			commitTitle.Truncate(20);
 			commitTitle += L"...";
 		}
-		title.Format(L"\"%s\" (%s)", static_cast<LPCWSTR>(CStringUtils::EscapeAccellerators(commitTitle)), static_cast<LPCWSTR>(parentHash.ToString(g_Git.GetShortHASHLength())));
+		title.Format(L"\"%s\" (%s)", static_cast<LPCWSTR>(StringUtils::EscapeAccellerators(commitTitle)), static_cast<LPCWSTR>(parentHash.ToString(g_Git.GetShortHASHLength())));
 	}
 	else
 		title.Format(L"(%s)", static_cast<LPCWSTR>(parentHash.ToString(g_Git.GetShortHASHLength())));
@@ -4710,7 +4710,7 @@ void CGitStatusListCtrl::DeleteSelectedFiles()
 	const int len = filelist.GetLength();
 	auto buf = std::make_unique<wchar_t[]>(len + 1);
 	wcscpy_s(buf.get(), len + 1, filelist);
-	CStringUtils::PipesToNulls(buf.get(), len);
+	StringUtils::PipesToNulls(buf.get(), len);
 	SHFILEOPSTRUCT fileop;
 	fileop.hwnd = this->m_hWnd;
 	fileop.wFunc = FO_DELETE;
@@ -4963,7 +4963,7 @@ void CGitStatusListCtrl::LoadChangelists()
 			if (strLine.IsEmpty())
 				continue;
 
-			if (CStringUtils::StartsWith(strLine, L"<") && CStringUtils::EndsWith(strLine, L">"))
+			if (StringUtils::StartsWith(strLine, L"<") && StringUtils::EndsWith(strLine, L">"))
 			{ //this is changelist name
 				changelistName = strLine.Mid(1, strLine.GetLength() - 2);
 				m_changelists.insert_or_assign(changelistName, 0);

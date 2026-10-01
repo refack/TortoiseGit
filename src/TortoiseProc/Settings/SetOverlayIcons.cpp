@@ -86,7 +86,7 @@ BOOL CSetOverlayIcons::OnInitDialog()
 		// no custom icon set, use the default
 		sModifiedIcon = m_sIconPath + L"\\XPStyle\\ModifiedIcon.ico";
 	}
-	if (!CStringUtils::StartsWithI(sModifiedIcon, m_sIconPath))
+	if (!StringUtils::StartsWithI(sModifiedIcon, m_sIconPath))
 	{
 		// an icon set outside our own installation? We don't support that,
 		// so fall back to the default!

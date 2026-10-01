@@ -12,6 +12,11 @@ target_sources(UnitTests
         AutoTempDir.cpp
         AutoTempDir.h
         CmdLineParserTest.cpp
+        # Drafts, not yet built: TDD assertions for the 2026-09-28 conjectures.
+        ConjectureGitTest.cpp
+        ConjectureShellDataTest.cpp
+        ConjectureStringTest.cpp
+        ConjectureTGitPathTest.cpp
         FileTextLinesTest.cpp
         GitAdminDirTest.cpp
         GitByteArrayTest.cpp

@@ -1,14 +1,15 @@
 ﻿module;
 #include <atlstr.h>
 #include <gitdll.h>
-#include <Git.h>
 #include "sanity.h"
 
 export module GitMailmap;
+import std;
+import gsl;
+import git_h;
 import Registry;
 import wstr;
 using tgit::wstr::StringView;
-// import RIAA;
 
 export namespace GitMailmap
 {
@@ -38,7 +39,7 @@ CGitMailmap::CGitMailmap()
 {
 	if (ShouldLoadMailmap()) {
 		try {
-			[[maybe_unused]]CAutoLocker lock(g_Git.m_critGitDllSec);
+			[[maybe_unused]]TGitH::CAutoLocker lock(g_Git.m_critGitDllSec);
 			g_Git.CheckAndInitDll();
 		} catch (const char* msg) {
 			MessageBox(nullptr, L"Could not initialize libgit. Disabling Mailmap support.\nlibgit reports:\n" + CUnicodeUtils::GetUnicode<CString>(msg), L"TortoiseGit", MB_ICONERROR);

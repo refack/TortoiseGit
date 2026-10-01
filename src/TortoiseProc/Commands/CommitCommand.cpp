@@ -32,7 +32,7 @@ CString CommitCommand::LoadLogMessage()
 	if (parser.HasKey(L"logmsgfile"))
 	{
 		CString logmsgfile = parser.GetVal(L"logmsgfile");
-		CStringUtils::ReadStringFromTextFile(logmsgfile, msg);
+		StringUtils::ReadStringFromTextFile(logmsgfile, msg);
 	}
 	return msg;
 }

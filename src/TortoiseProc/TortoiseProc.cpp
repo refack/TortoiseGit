@@ -177,23 +177,23 @@ BOOL CTortoiseProcApp::InitInstance()
 	if (parser.HasKey(L"urlhandler"))
 	{
 		CString url = parser.GetVal(L"urlhandler");
-		if (CStringUtils::StartsWith(url, L"tgit://clone/"))
+		if (StringUtils::StartsWith(url, L"tgit://clone/"))
 			url = url.Mid(static_cast<int>(wcslen(L"tgit://clone/")));
-		else if (CStringUtils::StartsWith(url, L"github-windows://openRepo/"))
+		else if (StringUtils::StartsWith(url, L"github-windows://openRepo/"))
 		{
 			url = url.Mid(static_cast<int>(wcslen(L"github-windows://openRepo/")));
 			if (const int questioMark = url.Find('?'); questioMark > 0)
 				url = url.Left(questioMark);
 		}
-		else if (CStringUtils::StartsWith(url, L"x-github-client://openRepo/"))
+		else if (StringUtils::StartsWith(url, L"x-github-client://openRepo/"))
 		{
 			url = url.Mid(static_cast<int>(wcslen(L"x-github-client://openRepo/")));
 			if (const int questioMark = url.Find('?'); questioMark > 0)
 				url = url.Left(questioMark);
 		}
-		else if (CStringUtils::StartsWith(url, L"smartgit://cloneRepo/"))
+		else if (StringUtils::StartsWith(url, L"smartgit://cloneRepo/"))
 			url = url.Mid(static_cast<int>(wcslen(L"smartgit://cloneRepo/")));
-		else if (!CStringUtils::StartsWith(url, L"git://"))
+		else if (!StringUtils::StartsWith(url, L"git://"))
 		{
 			CMessageBox::Show(GetExplorerHWND(), IDS_ERR_INVALIDPATH, IDS_APPNAME, MB_ICONERROR);
 			return FALSE;
@@ -536,7 +536,7 @@ void CTortoiseProcApp::CheckUpgrade() const
 		// smoothly migrate broken msysgit path settings
 		CString oldmsysGitSetting = CRegString(REG_MSYSGIT_PATH);
 		oldmsysGitSetting.TrimRight(L'\\');
-		if (oldmsysGitSetting.GetLength() > 4 && CStringUtils::EndsWith(oldmsysGitSetting, L"\\cmd"))
+		if (oldmsysGitSetting.GetLength() > 4 && StringUtils::EndsWith(oldmsysGitSetting, L"\\cmd"))
 		{
 			CString newPath = oldmsysGitSetting.Left(oldmsysGitSetting.GetLength() - 3) + L"bin";
 			if (PathFileExists(newPath + L"\\git.exe"))
@@ -605,7 +605,7 @@ void CTortoiseProcApp::DoInitializeJumpList(const CString& appid) const
 		return;
 
 	CString sTemp = CString(MAKEINTRESOURCE(IDS_MENUSETTINGS));
-	CStringUtils::RemoveAccelerators(sTemp);
+	StringUtils::RemoveAccelerators(sTemp);
 
 	ATL::CComPtr<IShellLink> psl;
 	hr = CreateShellLink(L"/command:settings", static_cast<LPCWSTR>(sTemp), 18, &psl);
@@ -613,7 +613,7 @@ void CTortoiseProcApp::DoInitializeJumpList(const CString& appid) const
 		poc->AddObject(psl);
 	}
 	sTemp = CString(MAKEINTRESOURCE(IDS_MENUHELP));
-	CStringUtils::RemoveAccelerators(sTemp);
+	StringUtils::RemoveAccelerators(sTemp);
 	psl.Release(); // Need to release the object before calling operator&()
 	hr = CreateShellLink(L"/command:help", static_cast<LPCWSTR>(sTemp), 17, &psl);
 	if (SUCCEEDED(hr)) {

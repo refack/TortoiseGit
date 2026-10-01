@@ -86,8 +86,8 @@ bool DropCopyAddCommand::Execute()
 				auto toBuf = std::make_unique<wchar_t[]>(toPath.GetLength() + 1);
 				wcscpy_s(fromBuf.get(), fromPath.GetLength() + 1, fromPath);
 				wcscpy_s(toBuf.get(), toPath.GetLength() + 1, toPath);
-				CStringUtils::PipesToNulls(fromBuf.get(), fromPath.GetLength());
-				CStringUtils::PipesToNulls(toBuf.get(), toPath.GetLength());
+				StringUtils::PipesToNulls(fromBuf.get(), fromPath.GetLength());
+				StringUtils::PipesToNulls(toBuf.get(), toPath.GetLength());
 
 				SHFILEOPSTRUCT fileop = {0};
 				fileop.wFunc = FO_COPY;
@@ -105,12 +105,12 @@ bool DropCopyAddCommand::Execute()
 						CString filepath = file->GetFilePath();
 						if (!lastRepo.IsEmpty())
 						{
-							if (CStringUtils::StartsWith(filepath, lastRepo))
+							if (StringUtils::StartsWith(filepath, lastRepo))
 								continue;
 							else
 								lastRepo.Empty();
 						}
-						isRepo = CStringUtils::EndsWith(filepath, L"\\.git");
+						isRepo = StringUtils::EndsWith(filepath, L"\\.git");
 						if (isRepo)
 						{
 							lastRepo = filepath.Left(filepath.GetLength() - static_cast<int>(wcslen(L".git")));

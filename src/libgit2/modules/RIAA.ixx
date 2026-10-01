@@ -182,7 +182,7 @@ struct CCloseFILE
 {
 	static bool Close(T handle)
 	{
-		return !!fclose(handle);
+		return !!std::fclose(handle);
 	}
 };
 

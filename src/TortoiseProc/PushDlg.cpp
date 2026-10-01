@@ -242,14 +242,14 @@ void CPushDlg::Refresh()
 		m_BranchSource.SetList(list);
 	else
 		MessageBox(g_Git.GetGitLastErr(L"Could not get list of local branches."), L"TortoiseGit", MB_ICONERROR);
-	if (CStringUtils::StartsWith(m_BranchSourceName, L"refs/heads/"))
+	if (StringUtils::StartsWith(m_BranchSourceName, L"refs/heads/"))
 	{
 		m_BranchSourceName = m_BranchSourceName.Mid(static_cast<int>(wcslen(L"refs/heads/")));
 		m_BranchSource.SetCurSel(m_BranchSource.FindStringExact(-1, m_BranchSourceName));
 	}
-	else if (CStringUtils::StartsWith(m_BranchSourceName, L"refs/remotes/") || CStringUtils::StartsWith(m_BranchSourceName, L"remotes/"))
+	else if (StringUtils::StartsWith(m_BranchSourceName, L"refs/remotes/") || StringUtils::StartsWith(m_BranchSourceName, L"remotes/"))
 	{
-		if (CStringUtils::StartsWith(m_BranchSourceName, L"refs/"))
+		if (StringUtils::StartsWith(m_BranchSourceName, L"refs/"))
 			m_BranchSourceName = m_BranchSourceName.Mid(static_cast<int>(wcslen(L"refs/")));
 		m_BranchSource.SetCurSel(m_BranchSource.FindStringExact(-1, m_BranchSourceName));
 	}

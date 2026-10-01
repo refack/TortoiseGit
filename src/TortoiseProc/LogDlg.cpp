@@ -968,7 +968,7 @@ void CLogDlg::FillLogMessageCtrl(bool bShow /* = true*/)
 			const int count = files.GetCount();
 			if (!m_bWholeProject && !matchpath.IsEmpty() && m_iHidePaths)
 			{
-				if (m_path.IsDirectory() && !CStringUtils::EndsWith(matchpath, L'/'))
+				if (m_path.IsDirectory() && !StringUtils::EndsWith(matchpath, L'/'))
 					matchpath.AppendChar(L'/');
 				const int matchPathLen = matchpath.GetLength();
 				bool somethingHidden = false;
@@ -1348,7 +1348,7 @@ void CLogDlg::CopyChangedSelectionToClipBoard()
 	}
 #endif
 	sPaths.Trim();
-	CStringUtils::WriteAsciiStringToClipboard(sPaths, GetSafeHwnd());
+	StringUtils::WriteAsciiStringToClipboard(sPaths, GetSafeHwnd());
 }
 
 void CLogDlg::OnContextMenu(CWnd* pWnd, CPoint point)
@@ -1563,7 +1563,7 @@ void CLogDlg::OnContextMenu(CWnd* pWnd, CPoint point)
 				const int oldLine = pEdit->GetFirstVisibleLine();
 					pEdit->SetSel(0, -1);
 					// manually copy text, to detach it from process (cf. issue #3909)
-					CStringUtils::WriteAsciiStringToClipboard(pEdit->GetSelText(), m_hWnd);
+					StringUtils::WriteAsciiStringToClipboard(pEdit->GetSelText(), m_hWnd);
 					pEdit->SetSel(start, end);
 					const int newLine = pEdit->GetFirstVisibleLine();
 					pEdit->LineScroll(oldLine - newLine);
@@ -1572,7 +1572,7 @@ void CLogDlg::OnContextMenu(CWnd* pWnd, CPoint point)
 				}
 				break;
 			case WM_COPY:
-				CStringUtils::WriteAsciiStringToClipboard(pEdit->GetSelText(), m_hWnd); // manually copy text, to detach it from process (cf. issue #3909)
+				StringUtils::WriteAsciiStringToClipboard(pEdit->GetSelText(), m_hWnd); // manually copy text, to detach it from process (cf. issue #3909)
 				break;
 			case CGitLogList::ID_EDITNOTE:
 				CAppUtils::EditNote(GetSafeHwnd(), pRev, &m_LogList.m_ProjectProperties);
@@ -1821,7 +1821,7 @@ BOOL CLogDlg::PreTranslateMessage(MSG* pMsg)
 	{
 		// manually copy text, to detach it from process (cf. issue #3909)
 		auto pEdit = reinterpret_cast<CRichEditCtrl*>(GetDlgItem(IDC_MSGVIEW));
-		CStringUtils::WriteAsciiStringToClipboard(pEdit->GetSelText(), m_hWnd);
+		StringUtils::WriteAsciiStringToClipboard(pEdit->GetSelText(), m_hWnd);
 		return TRUE;
 	}
 	if (m_hAccel && !bSkipAccelerator)
@@ -2343,56 +2343,56 @@ void CLogDlg::SetFilterCueText()
 
 	if (m_SelectedFilters & LOGFILTER_MESSAGES)
 	{
-		if (!CStringUtils::EndsWith(temp, L' '))
+		if (!StringUtils::EndsWith(temp, L' '))
 			temp += L", ";
 		temp += CString(MAKEINTRESOURCE(IDS_LOG_FILTER_MESSAGES));
 	}
 
 	if (m_SelectedFilters & LOGFILTER_PATHS)
 	{
-		if (!CStringUtils::EndsWith(temp, L' '))
+		if (!StringUtils::EndsWith(temp, L' '))
 			temp += L", ";
 		temp += CString(MAKEINTRESOURCE(IDS_LOG_FILTER_PATHS));
 	}
 
 	if (m_SelectedFilters & LOGFILTER_AUTHORS)
 	{
-		if (!CStringUtils::EndsWith(temp, L' '))
+		if (!StringUtils::EndsWith(temp, L' '))
 			temp += L", ";
 		temp += CString(MAKEINTRESOURCE(IDS_LOG_FILTER_AUTHORS));
 	}
 
 	if (m_SelectedFilters & LOGFILTER_EMAILS)
 	{
-		if (!CStringUtils::EndsWith(temp, L' '))
+		if (!StringUtils::EndsWith(temp, L' '))
 			temp += L", ";
 		temp += CString(MAKEINTRESOURCE(IDS_LOG_FILTER_EMAILS));
 	}
 
 	if (m_SelectedFilters & LOGFILTER_REVS)
 	{
-		if (!CStringUtils::EndsWith(temp, L' '))
+		if (!StringUtils::EndsWith(temp, L' '))
 			temp += L", ";
 		temp += CString(MAKEINTRESOURCE(IDS_LOG_FILTER_REVS));
 	}
 
 	if (m_SelectedFilters & LOGFILTER_REFNAME)
 	{
-		if (!CStringUtils::EndsWith(temp, L' '))
+		if (!StringUtils::EndsWith(temp, L' '))
 			temp += L", ";
 		temp += CString(MAKEINTRESOURCE(IDS_LOG_FILTER_REFNAME));
 	}
 
 	if (m_SelectedFilters & LOGFILTER_NOTES)
 	{
-		if (!CStringUtils::EndsWith(temp, L' '))
+		if (!StringUtils::EndsWith(temp, L' '))
 			temp += L", ";
 		temp += CString(MAKEINTRESOURCE(IDS_NOTES));
 	}
 
 	if (m_LogList.m_bShowBugtraqColumn && m_SelectedFilters & LOGFILTER_BUGID)
 	{
-		if (!CStringUtils::EndsWith(temp, L' '))
+		if (!StringUtils::EndsWith(temp, L' '))
 			temp += L", ";
 		temp += CString(MAKEINTRESOURCE(IDS_LOG_FILTER_BUGIDS));
 	}
@@ -3086,7 +3086,7 @@ void CLogDlg::OnEditCopy()
 CString CLogDlg::GetAbsoluteUrlFromRelativeUrl(const CString& url)
 {
 	// is the URL a relative one?
-	if (CStringUtils::StartsWith(url, L"^/"))
+	if (StringUtils::StartsWith(url, L"^/"))
 	{
 		// URL is relative to the repository root
 		CString url1 = m_sRepositoryRoot + url.Mid(1);

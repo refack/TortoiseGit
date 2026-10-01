@@ -33,6 +33,8 @@ add_library(TGitLibgit2 SHARED)
 
 target_sources(TGitLibgit2
     PRIVATE
+        Git/Git.cpp
+        Git/GitStatus.cpp
         patches/filter-filter.c
         patches/ssh-wintunnel.c
         patches/system-call.c
@@ -119,6 +121,8 @@ target_sources(TGitLibgit2
     FILES
         modules/shims/gsl.ixx
         modules/shims/wil.ixx
+        modules/shims/libgit2.ixx
+        modules/Git.ixx
         modules/BugTraqAssociations.ixx
         modules/DarkModeHelper.ixx
         modules/DebugOutput.ixx

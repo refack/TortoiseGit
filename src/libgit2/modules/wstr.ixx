@@ -51,12 +51,20 @@ struct CodeMap
 };
 
 
+/// std::basic_string and std::basic_string_view, by shape.
+///
+/// This used to be `requires { is_convertible_v<...> || ... }`, and a requirement
+/// in that position only checks that the expression *compiles*, not that it is
+/// true - so the only real test was "has a value_type", which std::vector<int>
+/// and std::optional pass too. traits_type is what the string types have and
+/// containers do not; it also keeps this disjoint from IsStupidString (CStringT
+/// has neither data() nor traits_type), which the getters below depend on.
 template <typename TStr>
-concept IsRealString = requires {
-	std::is_convertible_v<TStr, std::string> ||
-	std::is_convertible_v<TStr, std::wstring> ||
-	std::is_convertible_v<TStr, std::string_view> ||
-	std::is_convertible_v<TStr, std::wstring_view>;
+concept IsRealString = requires(const TStr& s) {
+	typename TStr::value_type;
+	typename TStr::traits_type;
+	{ s.data() } -> std::convertible_to<const typename TStr::value_type*>;
+	{ s.size() } -> std::convertible_to<size_t>;
 };
 
 
@@ -79,6 +87,10 @@ concept IsTCompString = IsRealString<TStr> || IsStupidString<TStr>;
 
 template <typename TStr, typename TChar>
 concept StupidStringOf = IsStupidString<TStr> && std::same_as<typename TStr::XCHAR, TChar>;
+
+
+template <typename TStr, typename TChar>
+concept TCompStringOf = IsTCompString<TStr> && (std::same_as<typename TStr::XCHAR, TChar> || std::same_as<typename TStr::value_type, TChar>);
 
 
 /// CString::Find contract: byte offset, or -1 when absent.
@@ -257,6 +269,20 @@ inline std::wstring Tokenize(const std::wstring_view s, const std::wstring_view 
 	return std::wstring(s.substr(start, end - start));
 }
 
+/// Copies \a source into the fixed-size buffer \a dest - a Win32 struct's
+/// `wchar_t sz[MAX_PATH]`, say - truncating to fit and always NUL-terminating.
+/// StringCchCopy's contract, without strsafe: returns false when it truncated.
+/// \a source is a view, so it stops at its size, not at an embedded NUL.
+inline bool CopyTruncating(const std::span<wchar_t> dest, const std::wstring_view source) noexcept
+{
+	if (dest.empty())
+		return source.empty();
+	const size_t count = (std::min)(source.size(), dest.size() - 1);
+	std::ranges::copy(source.substr(0, count), dest.begin());
+	dest[count] = L'\0';
+	return count == source.size();
+}
+
 /// The GetBuffer/ReleaseBuffer pair, for the Win32 calls that fill a caller's
 /// buffer. std::wstring guarantees contiguous storage, so this needs no copy;
 /// what it does need is the resize back down, which ReleaseBuffer did.
@@ -271,24 +297,34 @@ inline void ReleaseBuffer(std::wstring& s, const int newLength = -1)
 
 
 
-/// Non-owning view of a CString, for calling the std::wstring core from a call
-/// site that has not migrated yet.
-///
-/// O(1): CString knows its length, so this does not walk the string the way
-/// std::wstring_view(cstring) would.
+/// How to read either kind of string: its characters and its length, one
+/// overload per concept. Functions, because functions can be overloaded on
+/// constraints and class templates cannot - two `StringView` templates differing
+/// only in their constraint are a redeclaration, not an overload set.
 template <IsStupidString TStr>
-struct StringView : std::basic_string_view<typename TStr::XCHAR>
-{
-	// ReSharper disable once CppNonExplicitConvertingConstructor
-	StringView(const TStr& s) noexcept : std::basic_string_view<typename TStr::XCHAR>{s.GetString(), gsl::narrow<size_t>(s.GetLength())}
-	{}
-	// // ReSharper disable once CppNonExplicitConvertingConstructor
-	// StringView(const TStr::PXCHAR s) noexcept
-	// {
-	//
-	// 	return std::basic_string_view{ s.GetString(), gsl::narrow<size_t>(s.GetLength()) };
-	// }
+constexpr const typename TStr::XCHAR* StringData(const TStr& s) noexcept { return s.GetString(); }
+template <IsStupidString TStr>
+constexpr size_t StringSize(const TStr& s) noexcept { return static_cast<size_t>(s.GetLength()); } // never negative
 
+template <IsRealString TStr>
+constexpr const typename TStr::value_type* StringData(const TStr& s) noexcept { return s.data(); }
+template <IsRealString TStr>
+constexpr size_t StringSize(const TStr& s) noexcept { return s.size(); }
+
+/// The character type of either kind: XCHAR for a CString, value_type for the std ones.
+template <IsTCompString TStr>
+using StringChar = std::remove_cvref_t<decltype(*StringData(std::declval<const TStr&>()))>;
+
+/// Non-owning view of either kind of string - a CString, for calling the
+/// std::wstring core from a call site that has not migrated yet, or a std one.
+///
+/// O(1) for a CString: it knows its length, so this does not walk the string
+/// the way std::wstring_view(cstring) would.
+template <IsTCompString TStr>
+struct StringView : std::basic_string_view<StringChar<TStr>>
+{
+	explicit StringView(const TStr& s) noexcept : std::basic_string_view<StringChar<TStr>>{ StringData(s), StringSize(s) }
+	{}
 };
 
 
@@ -320,7 +356,7 @@ struct std::formatter<TStr, typename TStr::XCHAR> : std::formatter<std::basic_st
 	template <typename FormatContext>
 	auto format(const TStr& value, FormatContext& ctx) const
 	{
-		return std::formatter<std::basic_string_view<typename TStr::XCHAR>, typename TStr::XCHAR>::format(StringView(value), ctx);
+		return std::formatter<std::basic_string_view<typename TStr::XCHAR>, typename TStr::XCHAR>::format(tgit::wstr::StringView(value), ctx);
 	}
 };
 
@@ -612,6 +648,10 @@ TOut ToStupidString(const std::basic_string_view<typename TOut::XCHAR> s)
 }
 
 
+auto GetMulti(const std::wstring_view string, const int acp)
+{
+	return StdGetMulti(string, acp);
+}
 template <StupidStringOf<char> TOut>
 TOut GetMulti(const std::wstring_view string, const int acp)
 {
@@ -625,19 +665,12 @@ TOut GetMulti(const TIn &string, const int acp)
 }
 
 
-template <StupidStringOf<char> TOut>
-TOut GetUTF8(const std::wstring_view string)
-{
-	return GetMulti<TOut>(string, CP_UTF8);
-}
-// ---
-template <StupidStringOf<char> TOut, StupidStringOf<wchar_t> TIn>
-TOut GetUTF8(const TIn &string)
+template <TCompStringOf<char> TOut, TCompStringOf<wchar_t> TIn>
+TOut GetUTF8(const TIn& string)
 {
 	const auto string_view = StringView{ string };
 	return GetMulti<TOut>(string_view, CP_UTF8);
 }
-
 
 template <StupidStringOf<wchar_t> TOut>
 TOut GetUnicode(const std::string_view string, const int acp = CP_UTF8)
@@ -700,7 +733,7 @@ struct STRINGRESOURCEIMAGE
 };
 #pragma warning(pop)	// C4200
 
-int LoadStringEx(HINSTANCE hInstance, const UINT uID, LPWSTR lpBuffer, const int nBufferMax, const WORD wLanguage)
+int LoadStringEx(const HINSTANCE hInstance, const UINT uID, const LPWSTR lpBuffer, const int nBufferMax, const WORD wLanguage)
 {
 	if (!lpBuffer)
 		return 0;
@@ -728,19 +761,18 @@ int LoadStringEx(HINSTANCE hInstance, const UINT uID, LPWSTR lpBuffer, const int
 
 	while ((iIndex > 0) && (pImage < pImageEnd))
 	{
-		pImage = reinterpret_cast<const STRINGRESOURCEIMAGE*>(bImage + (sizeof(STRINGRESOURCEIMAGE) + (pImage->nLength * sizeof(WCHAR))));
+		// Each entry is a length followed by that many WCHARs; step over the
+		// current one. (The module port stepped from bImage, the start of the
+		// block, which is only right for the first entry.)
+		pImage = reinterpret_cast<const STRINGRESOURCEIMAGE*>(reinterpret_cast<const BYTE*>(pImage) + (sizeof(STRINGRESOURCEIMAGE) + (pImage->nLength * sizeof(WCHAR))));
 		iIndex--;
 	}
 	if (pImage >= pImageEnd)
 		return 0;
-	if (pImage->nLength == 0)
+	if (pImage->nLength == 0 || nBufferMax <= 0)
 		return 0;
-	int ret = pImage->nLength;
-	if (ret >= nBufferMax)
-		ret = nBufferMax - 1;
-	wcsncpy_s(lpBuffer, nBufferMax, pImage->achString, ret);
-	lpBuffer[ret] = L'\0';
-	return ret;
+	CopyTruncating(std::span(lpBuffer, static_cast<size_t>(nBufferMax)), std::wstring_view(pImage->achString, pImage->nLength));
+	return (std::min)(static_cast<int>(pImage->nLength), nBufferMax - 1);
 }
 
 }

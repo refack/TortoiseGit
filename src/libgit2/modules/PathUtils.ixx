@@ -143,6 +143,10 @@ void ConvertToBackslash(std::wstring& path)
 {
 	tgit::wstr::Replace(path, L"/"sv, L"\\"sv);
 }
+void ConvertToSlash(std::wstring& path)
+{
+	tgit::wstr::Replace(path, L"\\"sv, L"/"sv);
+}
 
 bool MakeSureDirectoryPathExists(const LPCWSTR path)
 {

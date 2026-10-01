@@ -1,19 +1,62 @@
 ﻿module;
-#include "Git.h"
+#include <stddef.h> // offsetof: a macro, so import std does not provide it
+#include <atlstr.h>
 #include <Shldisp.h>
 #include <shlobj_core.h>
+#include <sanity.h>
 
 
 export module GitDataObject;
-
+import std;
+import git_h;
+import wil;
 import wstr;
 import TGitPath;
 import TempFile;
+import GitHash;
+
+using TGitPath::CTGitPath;
+using TGitPath::CTGitPathList;
+using TGitHash::CGitHash;
+
 
 
 namespace GitDataObject
 {
 constexpr auto GITDATAOBJECT_NUMFORMATS = 9;
+
+/// Lays out one of Win32's variable-length structs - a header whose last member
+/// is a one-element array standing in for N (FILEGROUPDESCRIPTOR::fgd,
+/// FILE_ATTRIBUTES_ARRAY::rgdwFileAttributes) - as bytes: the header up to
+/// \a arrayOffset, then \a elements, zero-padded to at least sizeof(Header) as
+/// the one-element declaration promises.
+///
+/// This is what replaces the SizeTMult/SizeTAdd chains that sized these by hand:
+/// the elements already exist, so as_bytes() cannot overflow, and the header is
+/// a handful of bytes on top of something no larger than PTRDIFF_MAX.
+template <typename Header, typename Element>
+std::vector<std::byte> FlexibleStruct(const Header& header, const std::size_t arrayOffset, const std::span<const Element> elements)
+{
+	const auto headerBytes = std::as_bytes(std::span(&header, 1)).first(arrayOffset);
+	const auto elementBytes = std::as_bytes(elements);
+	std::vector<std::byte> bytes(headerBytes.begin(), headerBytes.end());
+	bytes.insert(bytes.end(), elementBytes.begin(), elementBytes.end());
+	if (bytes.size() < sizeof(Header))
+		bytes.resize(sizeof(Header));
+	return bytes;
+}
+
+/// Puts \a block into \a medium as its HGLOBAL, which hands ownership to the
+/// caller of GetData. E_OUTOFMEMORY when the allocation had failed.
+HRESULT GiveToMedium(STGMEDIUM* const medium, wil::unique_hglobal block)
+{
+	if (!block)
+		return E_OUTOFMEMORY;
+	medium->tymed = TYMED_HGLOBAL;
+	medium->hGlobal = block.release();
+	medium->pUnkForRelease = nullptr;
+	return S_OK;
+}
 
 /**
  * \ingroup Git
@@ -121,7 +164,7 @@ GitDataObject::GitDataObject(const CTGitPathList& gitpaths, const CGitHash& rev,
 	, m_revision(rev)
 	, m_iStripLength(stripLength)
 {
-	assert((m_revision.IsEmpty() && m_iStripLength == -1) || (!m_revision.IsEmpty() && m_iStripLength >= -1)); // m_iStripLength only possible if rev is set
+	Expects((m_revision.IsEmpty() && m_iStripLength == -1) || (!m_revision.IsEmpty() && m_iStripLength >= -1)); // m_iStripLength only possible if rev is set
 	for (int i = 0; i < m_gitPaths.GetCount(); ++i)
 	{
 		if ((m_gitPaths[i].m_Action == 0 || (m_gitPaths[i].m_Action & ~(CTGitPath::LOGACTIONS_MISSING | CTGitPath::LOGACTIONS_DELETED))) && !m_gitPaths[i].IsDirectory())
@@ -247,46 +290,33 @@ STDMETHODIMP GitDataObject::GetData(FORMATETC* pformatetcIn, STGMEDIUM* pmedium)
 			m_allPaths.push_back(m_gitPaths[i]);
 		}
 
-		size_t dataSize;
-		if (HRESULT ret = SizeTMult(std::max(size_t(1), m_allPaths.size()) - 1, sizeof(FILEDESCRIPTOR), &dataSize); ret != S_OK)
-			return ret;
-		if (HRESULT ret = SizeTAdd(sizeof(FILEGROUPDESCRIPTOR), dataSize, &dataSize); ret != S_OK)
-			return ret;
-		HGLOBAL data = GlobalAlloc(GMEM_MOVEABLE | GMEM_SHARE | GMEM_ZEROINIT, dataSize);
-
-		auto files = static_cast<FILEGROUPDESCRIPTOR*>(GlobalLock(data));
-		files->cItems = static_cast<UINT>(m_allPaths.size());
-		int index = 0;
-		for (auto it = m_allPaths.cbegin(); it != m_allPaths.cend(); ++it)
+		std::vector<FILEDESCRIPTOR> descriptors;
+		descriptors.reserve(m_allPaths.size());
+		for (const auto& path : m_allPaths)
 		{
-			const std::wstring temp(m_iStripLength > 0 ? tgit::wstr::Mid(it->GetWinPathString(), m_iStripLength + 1) : (m_iStripLength == 0 ? it->GetWinPathString() : it->GetUIFileOrDirectoryName()));
-			if (temp.size() < static_cast<size_t>(MAX_PATH))
-				wcscpy_s(files->fgd[index].cFileName, temp.c_str());
-			else
+			const std::wstring name(m_iStripLength > 0 ? tgit::wstr::Mid(path.GetWinPathString(), m_iStripLength + 1) : (m_iStripLength == 0 ? path.GetWinPathString() : path.GetUIFileOrDirectoryName()));
+			FILEDESCRIPTOR& descriptor = descriptors.emplace_back(); // value-initialized, as GMEM_ZEROINIT was
+			if (!tgit::wstr::CopyTruncating(descriptor.cFileName, name))
 			{
-				files->cItems--;
+				// a name that does not fit is left out rather than truncated
+				descriptors.pop_back();
 				continue;
 			}
-			files->fgd[index].dwFlags = FD_ATTRIBUTES | FD_PROGRESSUI | FD_FILESIZE | FD_LINKUI;
-			files->fgd[index].dwFileAttributes = FILE_ATTRIBUTE_NORMAL;
+			descriptor.dwFlags = FD_ATTRIBUTES | FD_PROGRESSUI | FD_FILESIZE | FD_LINKUI;
+			descriptor.dwFileAttributes = FILE_ATTRIBUTE_NORMAL;
 
-			// Always set the file size to 0 even if we 'know' the file size (infodata.size64).
+			// Always leave the file size at 0 even if we 'know' the file size (infodata.size64).
 			// Because for text files, the file size is too low due to the EOLs getting converted
 			// to CRLF (from LF as stored in the repository). And a too low file size set here
 			// prevents the shell from reading the full file later - it only reads the stream up
 			// to the number of bytes specified here. Which means we would end up with a truncated
 			// text file (binary files are still ok though).
-			files->fgd[index].nFileSizeLow = 0;
-			files->fgd[index].nFileSizeHigh = 0;
-
-			++index;
 		}
 
-		GlobalUnlock(data);
-
-		pmedium->hGlobal = data;
-		pmedium->tymed = TYMED_HGLOBAL;
-		return S_OK;
+		FILEGROUPDESCRIPTOR header{};
+		header.cItems = static_cast<UINT>(descriptors.size());
+		const auto bytes = FlexibleStruct(header, offsetof(FILEGROUPDESCRIPTOR, fgd), std::span<const FILEDESCRIPTOR>(descriptors));
+		return GiveToMedium(pmedium, wil::make_moveable_hglobal(bytes));
 	}
 	// handling CF_PREFERREDDROPEFFECT is necessary to tell the shell that it should *not* ask for the
 	// CF_FILEDESCRIPTOR until the drop actually occurs. If we don't handle CF_PREFERREDDROPEFFECT, the shell
@@ -294,163 +324,66 @@ STDMETHODIMP GitDataObject::GetData(FORMATETC* pformatetcIn, STGMEDIUM* pmedium)
 	// a potential drop target.
 	else if ((pformatetcIn->tymed & TYMED_HGLOBAL) && (pformatetcIn->cfFormat == CF_PREFERREDDROPEFFECT))
 	{
-		HGLOBAL data = GlobalAlloc(GMEM_MOVEABLE | GMEM_SHARE | GMEM_ZEROINIT, sizeof(DWORD));
-		if (!data)
-			return E_OUTOFMEMORY;
-		auto effect = static_cast<DWORD*>(GlobalLock(data));
-		if (!effect)
-		{
-			GlobalFree(data);
-			return E_OUTOFMEMORY;
-		}
-		(*effect) = DROPEFFECT_COPY;
-		GlobalUnlock(data);
-		pmedium->hGlobal = data;
-		pmedium->tymed = TYMED_HGLOBAL;
-		return S_OK;
+		const DWORD effect = DROPEFFECT_COPY;
+		return GiveToMedium(pmedium, wil::make_moveable_hglobal(std::as_bytes(std::span(&effect, 1))));
 	}
 	else if ((pformatetcIn->tymed & TYMED_HGLOBAL) && (pformatetcIn->dwAspect == DVASPECT_CONTENT) && (pformatetcIn->cfFormat == CF_TEXT))
 	{
 		// caller wants text
 		// create the string from the path list
-		CString text;
-		if (!m_gitPaths.IsEmpty())
+		// create a single string where the paths are separated by newlines
+		std::wstring text;
+		for (const auto& path : m_gitPaths)
 		{
-			// create a single string where the URLs are separated by newlines
-			for (int i = 0; i < m_gitPaths.GetCount(); ++i)
-			{
-				text += m_gitPaths[i].GetWinPathString().c_str();
-				text += L"\r\n";
-			}
+			text += path.GetWinPathString();
+			text += L"\r\n";
 		}
-		CStringA texta = CUnicodeUtils::GetUTF8<CStringA>(tgit::wstr::StringView{text});
-		pmedium->tymed = TYMED_HGLOBAL;
-		pmedium->hGlobal = GlobalAlloc(GHND, (texta.GetLength() + 1) * sizeof(char));
-		if (pmedium->hGlobal)
-		{
-			auto pMem = static_cast<char*>(GlobalLock(pmedium->hGlobal));
-			strcpy_s(pMem, texta.GetLength() + 1, static_cast<LPCSTR>(texta));
-			GlobalUnlock(pmedium->hGlobal);
-		}
-		pmedium->pUnkForRelease = nullptr;
-		return S_OK;
+		return GiveToMedium(pmedium, wil::make_moveable_hglobal(CUnicodeUtils::StdGetUTF8(text)));
 	}
 	else if ((pformatetcIn->tymed & TYMED_HGLOBAL) && (pformatetcIn->dwAspect == DVASPECT_CONTENT) && ((pformatetcIn->cfFormat == CF_UNICODETEXT) || (pformatetcIn->cfFormat == CF_INETURL) || (pformatetcIn->cfFormat == CF_SHELLURL)))
 	{
 		// caller wants Unicode text
 		// create the string from the path list
-		CString text;
-		if (!m_gitPaths.IsEmpty())
+		// create a single string where the paths (or, for the URL formats, the absolute paths) are separated by newlines
+		std::wstring text;
+		for (const auto& path : m_gitPaths)
 		{
-			// create a single string where the URLs are separated by newlines
-			for (int i = 0; i < m_gitPaths.GetCount(); ++i)
-			{
-				if (pformatetcIn->cfFormat == CF_UNICODETEXT)
-					text += m_gitPaths[i].GetWinPathString().c_str();
-				else
-					text += g_Git.CombinePath(m_gitPaths[i]);
-				text += L"\r\n";
-			}
+			if (pformatetcIn->cfFormat == CF_UNICODETEXT)
+				text += path.GetWinPathString();
+			else
+				text += g_Git.CombinePath(path).GetString();
+			text += L"\r\n";
 		}
-		pmedium->tymed = TYMED_HGLOBAL;
-		size_t bufferSize;
-		if (HRESULT ret = SizeTMult(static_cast<size_t>(text.GetLength()) + 1, sizeof(wchar_t), &bufferSize); ret != S_OK)
-			return ret;
-		pmedium->hGlobal = GlobalAlloc(GHND, bufferSize);
-		if (pmedium->hGlobal)
-		{
-			auto pMem = static_cast<wchar_t*>(GlobalLock(pmedium->hGlobal));
-			wcscpy_s(pMem, static_cast<size_t>(text.GetLength()) + 1, static_cast<LPCWSTR>(text));
-			GlobalUnlock(pmedium->hGlobal);
-		}
-		pmedium->pUnkForRelease = nullptr;
-		return S_OK;
+		return GiveToMedium(pmedium, wil::make_moveable_hglobal(text));
 	}
 	else if ((pformatetcIn->tymed & TYMED_HGLOBAL) && (pformatetcIn->dwAspect == DVASPECT_CONTENT) && (pformatetcIn->cfFormat == CF_HDROP))
 	{
-		size_t nBufferSize = 0;
-		for (int i = 0; i < m_gitPaths.GetCount(); ++i)
+		// DROPFILES, then the file names, each NUL-terminated, then one more NUL
+		std::wstring names;
+		for (const auto& path : m_gitPaths)
 		{
-			if (m_gitPaths[i].m_Action & (CTGitPath::LOGACTIONS_MISSING | CTGitPath::LOGACTIONS_DELETED) || m_gitPaths[i].IsDirectory())
+			if (path.m_Action & (CTGitPath::LOGACTIONS_MISSING | CTGitPath::LOGACTIONS_DELETED) || path.IsDirectory())
 				continue;
-
-			if (HRESULT ret = SizeTAdd(g_Git.CombinePath(m_gitPaths[i]).GetLength(), nBufferSize, &nBufferSize); ret != S_OK)
-				return ret;
-			if (HRESULT ret = SizeTAdd(1, nBufferSize, &nBufferSize); ret != S_OK) // '\0' separator
-				return ret;
+			names += g_Git.CombinePath(path).GetString();
+			names += L'\0';
 		}
+		names += L'\0';
 
-		if (HRESULT ret = SizeTAdd(1, nBufferSize, &nBufferSize); ret != S_OK)
-			return ret;
-		if (HRESULT ret = SizeTMult(nBufferSize, sizeof(wchar_t), &nBufferSize); ret != S_OK)
-			return ret;
-		if (HRESULT ret = SizeTAdd(sizeof(DROPFILES), nBufferSize, &nBufferSize); ret != S_OK)
-			return ret;
-		auto pBuffer = std::make_unique<char[]>(nBufferSize);
-
-		auto df = reinterpret_cast<DROPFILES*>(pBuffer.get());
-		df->pFiles = sizeof(DROPFILES);
-		df->fWide = 1;
-
-		auto pFilenames = reinterpret_cast<wchar_t*>(pBuffer.get() + sizeof(DROPFILES));
-		wchar_t* pCurrentFilename = pFilenames;
-
-		for (int i = 0; i < m_gitPaths.GetCount(); ++i)
-		{
-			if (m_gitPaths[i].m_Action & (CTGitPath::LOGACTIONS_MISSING | CTGitPath::LOGACTIONS_DELETED) || m_gitPaths[i].IsDirectory())
-				continue;
-			CString str = g_Git.CombinePath(m_gitPaths[i]);
-			wcscpy_s(pCurrentFilename, static_cast<size_t>(str.GetLength()) + 1, static_cast<LPCWSTR>(str));
-			pCurrentFilename += str.GetLength();
-			*pCurrentFilename = '\0'; // separator between file names
-			pCurrentFilename++;
-		}
-		*pCurrentFilename = '\0'; // terminate array
-
-		pmedium->tymed = TYMED_HGLOBAL;
-		pmedium->hGlobal = GlobalAlloc(GMEM_ZEROINIT | GMEM_MOVEABLE | GMEM_DDESHARE, nBufferSize);
-		if (pmedium->hGlobal)
-		{
-			LPVOID pMem = ::GlobalLock(pmedium->hGlobal);
-			if (pMem)
-				memcpy(pMem, pBuffer.get(), nBufferSize);
-			GlobalUnlock(pmedium->hGlobal);
-		}
-		pmedium->pUnkForRelease = nullptr;
-		return S_OK;
+		DROPFILES header{}; // pt and fNC used to be left uninitialized
+		header.pFiles = sizeof(DROPFILES);
+		header.fWide = TRUE;
+		const auto bytes = FlexibleStruct(header, sizeof(DROPFILES), std::span<const wchar_t>(names));
+		return GiveToMedium(pmedium, wil::make_moveable_hglobal(bytes));
 	}
 	else if ((pformatetcIn->tymed & TYMED_HGLOBAL) && (pformatetcIn->dwAspect == DVASPECT_CONTENT) && (pformatetcIn->cfFormat == CF_FILE_ATTRIBUTES_ARRAY))
 	{
-		size_t nBufferSize;
-		if (HRESULT ret = SizeTMult(m_gitPaths.GetCount(), sizeof(DWORD), &nBufferSize); ret != S_OK)
-			return ret;
-		if (HRESULT ret = SizeTAdd(nBufferSize, sizeof(FILE_ATTRIBUTES_ARRAY), &nBufferSize); ret != S_OK)
-			return ret;
-		auto pBuffer = std::make_unique<char[]>(nBufferSize);
-
-		auto cf = reinterpret_cast<FILE_ATTRIBUTES_ARRAY*>(pBuffer.get());
-		cf->cItems = m_gitPaths.GetCount();
-		cf->dwProductFileAttributes = DWORD_MAX;
-		cf->dwSumFileAttributes = 0;
-		for (int i = 0; i < m_gitPaths.GetCount(); ++i)
-		{
-			DWORD fileattribs = FILE_ATTRIBUTE_NORMAL;
-			cf->rgdwFileAttributes[i] = fileattribs;
-			cf->dwProductFileAttributes &= fileattribs;
-			cf->dwSumFileAttributes |= fileattribs;
-		}
-
-		pmedium->tymed = TYMED_HGLOBAL;
-		pmedium->hGlobal = GlobalAlloc(GMEM_ZEROINIT | GMEM_MOVEABLE | GMEM_DDESHARE, nBufferSize);
-		if (pmedium->hGlobal)
-		{
-			LPVOID pMem = ::GlobalLock(pmedium->hGlobal);
-			if (pMem)
-				memcpy(pMem, pBuffer.get(), nBufferSize);
-			GlobalUnlock(pmedium->hGlobal);
-		}
-		pmedium->pUnkForRelease = nullptr;
-		return S_OK;
+		const std::vector<DWORD> attributes(static_cast<size_t>(m_gitPaths.GetCount()), FILE_ATTRIBUTE_NORMAL);
+		FILE_ATTRIBUTES_ARRAY header{};
+		header.cItems = static_cast<UINT>(attributes.size());
+		header.dwProductFileAttributes = attributes.empty() ? std::numeric_limits<DWORD>::max() : FILE_ATTRIBUTE_NORMAL; // AND over all items, starting from all-ones
+		header.dwSumFileAttributes = attributes.empty() ? 0 : FILE_ATTRIBUTE_NORMAL;             // OR over all items
+		const auto bytes = FlexibleStruct(header, offsetof(FILE_ATTRIBUTES_ARRAY, rgdwFileAttributes), std::span<const DWORD>(attributes));
+		return GiveToMedium(pmedium, wil::make_moveable_hglobal(bytes));
 	}
 
 	for (size_t i = 0; i < m_vecFormatEtc.size(); ++i)
@@ -711,19 +644,21 @@ HRESULT GitDataObject::SetDropDescription(DROPIMAGETYPE image, LPCWSTR format, L
 	fetc.lindex = -1;
 	fetc.tymed = TYMED_HGLOBAL;
 
-	STGMEDIUM medium = { 0 };
-	medium.hGlobal = GlobalAlloc(GHND, sizeof(DROPDESCRIPTION));
-	if (medium.hGlobal == 0)
-		return E_OUTOFMEMORY;
+	DROPDESCRIPTION description{};
+	description.type = image;
+	tgit::wstr::CopyTruncating(description.szInsert, insert);
+	tgit::wstr::CopyTruncating(description.szMessage, format);
 
-	auto pDropDescription = static_cast<DROPDESCRIPTION*>(GlobalLock(medium.hGlobal));
-	if (!pDropDescription)
-		return E_FAIL;
-	StringCchCopy(pDropDescription->szInsert, _countof(pDropDescription->szInsert), insert);
-	StringCchCopy(pDropDescription->szMessage, _countof(pDropDescription->szMessage), format);
-	pDropDescription->type = image;
-	GlobalUnlock(medium.hGlobal);
-	return SetData(&fetc, &medium, TRUE);
+	auto block = wil::make_moveable_hglobal(std::as_bytes(std::span(&description, 1)));
+	if (!block)
+		return E_OUTOFMEMORY;
+	STGMEDIUM medium = {};
+	medium.tymed = TYMED_HGLOBAL;
+	medium.hGlobal = block.get();
+	const HRESULT hr = SetData(&fetc, &medium, TRUE);
+	if (SUCCEEDED(hr))
+		block.release(); // the data object owns it now; on failure we still do
+	return hr;
 }
 
 void CGitEnumFormatEtc::Init(bool localonly, bool containsExistingFiles)

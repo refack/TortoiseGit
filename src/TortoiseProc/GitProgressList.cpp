@@ -910,7 +910,7 @@ void CGitProgressList::OnContextMenu(CWnd* pWnd, CPoint point)
 		}
 		sLines.TrimRight();
 		if (!sLines.IsEmpty())
-			CStringUtils::WriteAsciiStringToClipboard(sLines, GetSafeHwnd());
+			StringUtils::WriteAsciiStringToClipboard(sLines, GetSafeHwnd());
 	});
 	popup.AppendMenuIcon(actions.size(), IDS_LOG_POPUP_COPYTOCLIPBOARD, IDI_COPYCLIP);
 
@@ -1054,7 +1054,7 @@ BOOL CGitProgressList::PreTranslateMessage(MSG* pMsg)
 							CString sMime = GetItemText(nItem, 2);
 							sClipdata.AppendFormat(L"%s: %s  %s\r\n", static_cast<LPCWSTR>(sAction), static_cast<LPCWSTR>(sPath), static_cast<LPCWSTR>(sMime));
 						}
-						CStringUtils::WriteAsciiStringToClipboard(sClipdata);
+						StringUtils::WriteAsciiStringToClipboard(sClipdata);
 					}
 				}
 			}

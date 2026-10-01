@@ -22,6 +22,7 @@
 
 #include "Utils/PathWatcher.h"
 
+import std;
 import DebugOutput;
 
 CPathWatcher::CPathWatcher()
@@ -188,7 +189,6 @@ void CPathWatcher::WorkerThread()
 	CDirWatchInfo* pdi = nullptr;
 	LPOVERLAPPED lpOverlapped = nullptr;
 	const int bufferSize = MAX_PATH * 4;
-	wchar_t buf[bufferSize] = { 0 };
 	while (m_bRunning)
 	{
 		if (!watchedPaths.IsEmpty())
@@ -287,21 +287,22 @@ void CPathWatcher::WorkerThread()
 							do
 							{
 								nOffset = pNotify->NextEntryOffset;
-								SecureZeroMemory(buf, bufferSize * sizeof(wchar_t));
-								wcsncpy_s(buf, bufferSize, pdi->m_dirPath, bufferSize - 1);
-								errno_t err = wcsncat_s(buf + pdi->m_dirPath.GetLength(), bufferSize - pdi->m_dirPath.GetLength(), pNotify->FileName, std::min(bufferSize - pdi->m_dirPath.GetLength(), static_cast<int>(pNotify->FileNameLength / sizeof(wchar_t))));
-								if (err == STRUNCATE)
-								{
-									pNotify = reinterpret_cast<PFILE_NOTIFY_INFORMATION>(reinterpret_cast<LPBYTE>(pNotify) + nOffset);
-									continue;
-								}
-								buf[std::min(static_cast<decltype((pNotify->FileNameLength / sizeof(wchar_t)))>(bufferSize) - 1, pdi->m_dirPath.GetLength() + (pNotify->FileNameLength / sizeof(WCHAR)))] = L'\0';
+								// The watched directory plus the notification's name, which is
+								// FileNameLength *bytes* long and not NUL-terminated. A path longer
+								// than the fixed buffer this used to be built in is skipped, which is
+								// what the old STRUNCATE test meant to do - but wcsncat_s only returns
+								// STRUNCATE for a _TRUNCATE count, so it went to the invalid-parameter
+								// handler instead.
+								std::wstring changedPath(pdi->m_dirPath.GetString(), static_cast<size_t>(pdi->m_dirPath.GetLength()));
+								changedPath.append(pNotify->FileName, pNotify->FileNameLength / sizeof(wchar_t));
 								pNotify = reinterpret_cast<PFILE_NOTIFY_INFORMATION>(reinterpret_cast<LPBYTE>(pNotify) + nOffset);
-								CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": change notification: %s\n", buf);
+								if (changedPath.size() >= static_cast<size_t>(bufferSize))
+									continue;
+								CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": change notification: %s\n", changedPath.c_str());
 								{
 									AutoLocker lock(m_critSec);
 									if (m_changedPaths.GetCount() < MAX_CHANGED_PATHS)
-										m_changedPaths.AddPath(CTGitPath(buf));
+										m_changedPaths.AddPath(CTGitPath(changedPath));
 									else
 										m_bLimitReached = true;
 								}

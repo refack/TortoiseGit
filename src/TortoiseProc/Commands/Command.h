@@ -57,7 +57,7 @@ public:
 							{
 								orgCmdLinePath = path;
 								CString WinPath = path.GetWinPathString().c_str();
-								if (CStringUtils::StartsWith(WinPath, g_Git.m_CurrentDir))
+								if (StringUtils::StartsWith(WinPath, g_Git.m_CurrentDir))
 								{
 									if (g_Git.m_CurrentDir[g_Git.m_CurrentDir.GetLength() - 1] == L'\\')
 										cmdLinePath.SetFromWin( WinPath.Right(WinPath.GetLength()-g_Git.m_CurrentDir.GetLength()));
@@ -69,7 +69,7 @@ public:
 								{
 									WinPath = plist[i].GetWinPathString().c_str();
 									CTGitPath p;
-									if (CStringUtils::StartsWith(WinPath, g_Git.m_CurrentDir))
+									if (StringUtils::StartsWith(WinPath, g_Git.m_CurrentDir))
 									{
 										if (g_Git.m_CurrentDir[g_Git.m_CurrentDir.GetLength() - 1] == L'\\')
 											p.SetFromWin( WinPath.Right(WinPath.GetLength()-g_Git.m_CurrentDir.GetLength()));

@@ -302,7 +302,7 @@ CStatusCacheEntry CCachedDirectory::GetStatusFromGit(const CTGitPath &path, cons
 		CGitStatusCache::Instance().AddFolderForCrawling(m_directoryPath);
 		return CStatusCacheEntry();
 	}
-	if (!path.IsDirectory() && CStringUtils::EndsWith(path.GetWinPathString().c_str(), L".gitignore"))
+	if (!path.IsDirectory() && StringUtils::EndsWith(path.GetWinPathString().c_str(), L".gitignore"))
 	{
 		// A change in .gitignore can affect the status of any file in this directory.
 		CGitStatusCache::Instance().AddFolderForCrawling(m_directoryPath);

@@ -274,9 +274,9 @@ int GetStatus(const wchar_t* path, GitWCRev_t& GitStat)
 		if (git_reference_lookup(symbolicHead.GetPointer(), repo, "HEAD"))
 			return ERR_GIT_ERR;
 		auto branchName = git_reference_symbolic_target(symbolicHead);
-		if (CStringUtils::StartsWith(branchName, "refs/heads/"))
+		if (StringUtils::StartsWith(branchName, "refs/heads/"))
 			branchName += strlen("refs/heads/");
-		else if (CStringUtils::StartsWith(branchName, "refs/"))
+		else if (StringUtils::StartsWith(branchName, "refs/"))
 			branchName += strlen("refs/");
 		GitStat.CurrentBranch = branchName;
 

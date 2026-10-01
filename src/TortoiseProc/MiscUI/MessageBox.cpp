@@ -1148,7 +1148,7 @@ BOOL CMessageBox::PreTranslateMessage(MSG* pMsg)
 			{
 				if (GetAsyncKeyState(VK_CONTROL)&0x8000)
 				{
-					CStringUtils::WriteAsciiStringToClipboard(m_sMessage, GetSafeHwnd());
+					StringUtils::WriteAsciiStringToClipboard(m_sMessage, GetSafeHwnd());
 					return TRUE;
 				}
 			}

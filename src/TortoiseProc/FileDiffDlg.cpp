@@ -544,7 +544,7 @@ static CString GetCommitTitle(const GitRev& rev)
 		commitTitle.Truncate(20);
 		commitTitle += L"...";
 	}
-	str.AppendFormat(L"%s (%s)", static_cast<LPCWSTR>(rev.m_CommitHash.ToString(g_Git.GetShortHASHLength())), static_cast<LPCWSTR>(CStringUtils::EscapeAccellerators(commitTitle)));
+	str.AppendFormat(L"%s (%s)", static_cast<LPCWSTR>(rev.m_CommitHash.ToString(g_Git.GetShortHASHLength())), static_cast<LPCWSTR>(StringUtils::EscapeAccellerators(commitTitle)));
 	return str;
 }
 
@@ -1241,7 +1241,7 @@ void CFileDiffDlg::CopySelectionToClipboard(BOOL isFull)
 			sTextForClipboard += L"\r\n";
 		}
 	}
-	CStringUtils::WriteAsciiStringToClipboard(sTextForClipboard);
+	StringUtils::WriteAsciiStringToClipboard(sTextForClipboard);
 }
 
 
@@ -1251,7 +1251,7 @@ LRESULT CFileDiffDlg::OnRefLoad(WPARAM /*wParam*/, LPARAM /*lParam*/)
 	{
 		CString str=m_Reflist[i].c_str();
 
-		if (CStringUtils::StartsWith(str, L"remotes/"))
+		if (StringUtils::StartsWith(str, L"remotes/"))
 			str = str.Mid(static_cast<int>(wcslen(L"remotes/")));
 
 		m_ctrRev1Edit.AddSearchString(str);

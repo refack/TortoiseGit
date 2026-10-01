@@ -240,6 +240,7 @@ public:
 
 	public:
 		using CSimpleFileFind::GetCreateTime;
+		using CSimpleFileFind::GetCreateTimeTicks;
 		using CSimpleFileFind::GetFileName;
 		using CSimpleFileFind::GetFilePath;
 		using CSimpleFileFind::GetLastWriteTime;
@@ -296,7 +297,7 @@ CSimpleFileFind::CSimpleFileFind(const CString& sPath, LPCWSTR pPattern)
 		if (ch != '\\' && (ch != ':' || len != 2))
 			m_sPathPrefix += L'\\';
 	}
-	if (len >= 248 && (CStringUtils::StartsWith(m_sPathPrefix, L"\\\\?\\")))
+	if (len >= 248 && (StringUtils::StartsWith(m_sPathPrefix, L"\\\\?\\")))
 		m_hFindFile = ::FindFirstFileEx(static_cast<LPCWSTR>(L"\\\\?\\" + m_sPathPrefix + pPattern), FindExInfoBasic, &m_findFileData, FindExSearchNameMatch, nullptr, FIND_FIRST_EX_LARGE_FETCH);
 	else
 		m_hFindFile = ::FindFirstFileEx(static_cast<LPCWSTR>(m_sPathPrefix + pPattern), FindExInfoBasic, &m_findFileData, FindExSearchNameMatch, nullptr, FIND_FIRST_EX_LARGE_FETCH);

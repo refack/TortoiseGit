@@ -21,7 +21,9 @@
 #include "EOL.h"
 #include <deque>
 #include <regex>
-#include <functional>
+#include <optional>
+#include <string>
+#include <string_view>
 
 // A template class to make an array which looks like a CStringArray or CDWORDArray but
 // is in fact based on a STL vector, which is much faster at large sizes
@@ -188,60 +190,20 @@ private:
 
 
 
-class CBuffer
-{
-public:
-	CBuffer() = default;
-	CBuffer(const CBuffer& Src) { Copy(Src); }
-	CBuffer(const CBuffer* const Src) { Copy(*Src); }
-	~CBuffer() {Free(); }
-
-	CBuffer& operator=(const CBuffer& Src) { Copy(Src); return *this; }
-	operator bool () const { return !IsEmpty(); }
-	operator void*() const { return static_cast<void*>(m_pBuffer); }
-	operator LPSTR() const { return reinterpret_cast<LPSTR>(m_pBuffer); }
-
-	void Clear() { m_nUsed=0; }
-	void ExpandToAtLeast(int nNewSize);
-	int GetLength() const { return m_nUsed; }
-	bool IsEmpty() const {  return GetLength()==0; }
-	void SetLength(int nUsed);
-	void Swap(CBuffer& Src) noexcept;
-
-private:
-	void Copy(const CBuffer & Src);
-	void Free() { delete [] m_pBuffer; }
-
-	BYTE* m_pBuffer = nullptr;
-	int m_nUsed = 0;
-	int m_nAllocated = 0;
-};
-
+/// Turns a file's bytes into text. Stateless: the result is returned, not kept.
 class CDecodeFilter
 {
 public:
 	CDecodeFilter() = default;
 	CDecodeFilter(const CDecodeFilter&) = delete;
 	CDecodeFilter& operator=(const CDecodeFilter& Src) = delete;
-	virtual ~CDecodeFilter()
-	{
-		m_deleter(m_pBuffer);
-	}
+	virtual ~CDecodeFilter() = default;
 
-	virtual bool Decode(std::unique_ptr<BYTE[]> s, int len) = 0;
-	std::wstring_view GetStringView() const
-	{
-		if (m_iBufferLength == 0)
-			return {};
-		return std::wstring_view(m_pBuffer, m_iBufferLength);
-	}
-
-protected:
-	wchar_t* m_pBuffer = nullptr;
-	int m_iBufferLength = 0;
-	std::function<void(void*)> m_deleter = [](void* ptr) { delete[] static_cast<wchar_t*>(ptr); };
+	/// The text, or nullopt when the bytes do not decode.
+	virtual std::optional<std::wstring> Decode(std::string_view bytes) const = 0;
 };
 
+/// Turns text into a file's bytes and writes them.
 class CEncodeFilter
 {
 public:
@@ -249,18 +211,17 @@ public:
 		: m_pFile(p_File)
 	{
 	}
-	virtual ~CEncodeFilter()
-	{
-	}
+	virtual ~CEncodeFilter() = default;
 
-	virtual const CBuffer& Encode(const CString& data) = 0;
-	const CBuffer & GetBuffer() const {return m_oBuffer; }
-	void Write(const CString& s) { Write(Encode(s)); } ///< encode into buffer and write
-	void Write() { Write(m_oBuffer); } ///< write preencoded internal buffer
-	void Write(const CBuffer & buffer) { if (buffer.GetLength()) m_pFile->Write(static_cast<void*>(buffer), buffer.GetLength()); } ///< write preencoded buffer
+	/// The encoded bytes, in a buffer reused from call to call - Save encodes
+	/// every line, so this keeps one allocation instead of one per line. Valid
+	/// until the next Encode; copy it to keep it.
+	virtual const std::string& Encode(std::wstring_view text) = 0;
+	void Write(std::wstring_view text) { WriteBytes(Encode(text)); } ///< encode and write
+	void WriteBytes(const std::string& bytes) { if (!bytes.empty()) m_pFile->Write(bytes.data(), static_cast<UINT>(bytes.size())); } ///< write already-encoded bytes
 
 protected:
-	CBuffer m_oBuffer;
+	std::string m_encoded;
 
 private:
 	CStdioFile * m_pFile;
@@ -275,8 +236,8 @@ public:
 		, m_nCodePage(CP_ACP)
 	{
 	}
-	bool Decode(std::unique_ptr<BYTE[]> data, int len) override;
-	const CBuffer& Encode(const CString& data) override;
+	std::optional<std::wstring> Decode(std::string_view bytes) const override;
+	const std::string& Encode(std::wstring_view text) override;
 
 protected:
 	/**
@@ -304,8 +265,8 @@ public:
 		: CEncodeFilter(pFile)
 	{}
 
-	bool Decode(std::unique_ptr<BYTE[]> data, int len) override;
-	const CBuffer& Encode(const CString& s) override;
+	std::optional<std::wstring> Decode(std::string_view bytes) const override;
+	const std::string& Encode(std::wstring_view text) override;
 };
 
 
@@ -314,8 +275,8 @@ class CUtf16beFilter : public CUtf16leFilter
 public:
 	CUtf16beFilter(CStdioFile *pFile) : CUtf16leFilter(pFile){}
 
-	bool Decode(std::unique_ptr<BYTE[]> data, int len) override;
-	const CBuffer& Encode(const CString& s) override;
+	std::optional<std::wstring> Decode(std::string_view bytes) const override;
+	const std::string& Encode(std::wstring_view text) override;
 };
 
 
@@ -326,8 +287,8 @@ public:
 		: CEncodeFilter(pFile)
 	{}
 
-	bool Decode(std::unique_ptr<BYTE[]> data, int len) override;
-	const CBuffer& Encode(const CString& s) override;
+	std::optional<std::wstring> Decode(std::string_view bytes) const override;
+	const std::string& Encode(std::wstring_view text) override;
 };
 
 
@@ -336,6 +297,6 @@ class CUtf32beFilter : public CUtf32leFilter
 public:
 	CUtf32beFilter(CStdioFile *pFile) : CUtf32leFilter(pFile){}
 
-	bool Decode(std::unique_ptr<BYTE[]> data, int len) override;
-	const CBuffer& Encode(const CString& s) override;
+	std::optional<std::wstring> Decode(std::string_view bytes) const override;
+	const std::string& Encode(std::wstring_view text) override;
 };

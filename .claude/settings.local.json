@@ -13,9 +13,13 @@
       "PowerShell(dumpbin *)",
       "PowerShell(msbuild *)",
       "PowerShell(E:\\\\3party\\\\TortoiseGit\\\\bin\\\\Debug64\\\\bin\\\\Tests.exe *)",
-      "PowerShell(Get-Process *)"
+      "PowerShell(Get-Process *)",
+      "mcp__jetbrains__execute_tool"
     ]
   },
+  "enabledMcpjsonServers": [
+    "jetbrains"
+  ],
   "outputStyle": "Explanatory",
   "spinnerTipsEnabled": false,
   "prefersReducedMotion": true

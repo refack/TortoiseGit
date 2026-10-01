@@ -2,15 +2,18 @@
 #include <sys/stat.h>
 #include <gitdll.h>
 #include <git2.h>
+#include <git2/sys/repository.h> // git_repository_set_config
 #include <atlstr.h>
 
-#include "Git.h"
 #include "GitStatus.h"
 #include "Utils/ReaderWriterLock.h"
 
 export module GitIndex;
 import std;
 import gsl;
+
+import invarients;
+import git_h;
 import GitAdminDir;
 import SmartLibgit2;
 import wstr;
@@ -20,12 +23,10 @@ import PathUtils;
 import DebugOutput;
 import RIAA;
 import TGitPath;
-import TGitHash;
+import GitHash;
 
-using SmartLibgit2::CAutoRepository;
-using SmartLibgit2::CAutoConfig;
 using namespace Registry;
-using namespace PathUtils::PathUtils;
+using namespace PathUtils;
 
 #ifndef S_IFLNK
 #define S_IFLNK 0120000
@@ -36,7 +37,10 @@ using namespace PathUtils::PathUtils;
 #define S_ISLNK(m) (((m) & _S_IFMT) == _S_IFLNK)
 #endif
 
-namespace GitIndex {
+// Exported: `export using namespace GitIndex;` at the end exports the using-
+// directive, not the entities, so importers (GitStatus.cpp) could not name any
+// of these. The out-of-line definitions below reopen the namespace unexported.
+export namespace GitIndex {
 struct CGitIndex
 {
 	/* m_Size and m_ModifyTime are only uint32_t in libgit2, cf. https://github.com/libgit2/libgit2/blob/8535fdb9cbad8fcd15ee4022ed29c4138547e22d/include/git2/index.h#L48-L51 and https://tortoisegit.org/issue/4108 */
@@ -128,7 +132,7 @@ public:
 		std::vector<CString> toRemove;
 		for (auto it = this->cbegin(); it != this->cend(); ++it)
 		{
-			if (StringUtils::CStringUtils::StartsWith((*it).first, thePath))
+			if (StringUtils::StartsWith((*it).first, thePath))
 				toRemove.push_back((*it).first);
 		}
 		for (auto it = toRemove.cbegin(); it != toRemove.cend(); ++it)
@@ -320,7 +324,7 @@ inline void DoSortFilenametSortVector(T& vector, bool ignoreCase)
 		std::sort(vector.begin(), vector.end(), [](const auto& e1, const auto& e2) { return e1.m_FileName.Compare(e2.m_FileName) < 0; });
 }
 
-static const size_t NPOS = static_cast<size_t>(-1); // bad/missing length/position
+inline constexpr size_t NPOS = static_cast<size_t>(-1); // bad/missing length/position
 static_assert(MAXSIZE_T == NPOS, "NPOS must equal MAXSIZE_T");
 static_assert(-1 == static_cast<int>(NPOS), "NPOS must equal -1");
 
@@ -440,13 +444,11 @@ public:
 		auto lookup = find(thePath);
 		if (lookup == cend())
 		{
-			CString adminDir;
-			bool isWorktree = false;
-			if (GitAdminDir::GetAdminDirPath(path, adminDir, &isWorktree) && PathIsDirectory(adminDir))
+			if (const auto found = GitAdminDir::GetAdminDirPath(path.GetString()); found && PathIsDirectory(found->path.c_str()))
 			{
-				(*this)[thePath] = adminDir;
-				if (!isWorktree) // GitAdminDir::GetAdminDirPath returns the commongit dir ("parent/.git") and this would override the lookup path for the main repo
-					m_reverseLookup[BuildPathWithPathDelimiter(NormalizePath(std::wstring(adminDir))).c_str()] = path;
+				(*this)[thePath] = found->path.c_str();
+				if (!found->isWorktree) // GitAdminDir::GetAdminDirPath returns the commongit dir ("parent/.git") and this would override the lookup path for the main repo
+					m_reverseLookup[BuildPathWithPathDelimiter(NormalizePath(found->path)).c_str()] = path;
 				return (*this)[thePath];
 			}
 			ATLASSERT(false);
@@ -470,11 +472,10 @@ public:
 		auto lookup = m_WorktreeAdminDirLookup.find(thePath);
 		if (lookup == m_WorktreeAdminDirLookup.cend())
 		{
-			CString wtadmindir;
-			if (GitAdminDir::GetWorktreeAdminDirPath(path, wtadmindir) && PathIsDirectory(wtadmindir))
+			if (const auto wtadmindir = GitAdminDir::GetWorktreeAdminDirPath(path.GetString()); wtadmindir && PathIsDirectory(wtadmindir->c_str()))
 			{
-				m_WorktreeAdminDirLookup[thePath] = wtadmindir;
-				m_reverseLookup[BuildPathWithPathDelimiter(NormalizePath(std::wstring(wtadmindir))).c_str()] = path;
+				m_WorktreeAdminDirLookup[thePath] = wtadmindir->c_str();
+				m_reverseLookup[BuildPathWithPathDelimiter(NormalizePath(*wtadmindir)).c_str()] = path;
 				return m_WorktreeAdminDirLookup[thePath];
 			}
 			ATLASSERT(false);
@@ -507,7 +508,9 @@ public:
 
 
 CGitAdminDirMap g_AdminDirMap;
+} // export namespace GitIndex
 
+namespace GitIndex {
 // this file is compiled into projects with and without GIT_EXPERIMENTAL_SHA256; only SHA1 repos are supported so far
 static int tgit_odb_hash(git_oid* out, const void* data, size_t len, git_object_t type)
 {
@@ -571,20 +574,22 @@ int CGitIndexList::ReadIndex(const CString& dgitdir)
 	CString projectConfig = g_AdminDirMap.GetAdminDir(dgitdir) + L"config";
 	CString globalConfig = g_Git.GetGitGlobalConfig();
 	CString globalXDGConfig = g_Git.GetGitGlobalXDGConfig();
-	CString systemConfig(CRegStdString<CString>(REG_SYSTEM_GITCONFIGPATH, L"", false));
+	Registry::CRegStdString systemConfigValue(std::wstring(REG_SYSTEM_GITCONFIGPATH), L"", false);
+	const std::wstring& systemConfigW = systemConfigValue; // operator const T& is non-const, hence the named object
+	CString systemConfig(systemConfigW.c_str());
 
 	CAutoConfig temp { true };
-	git_config_add_file_ondisk(temp, CGit::GetGitPathStringA(projectConfig), GIT_CONFIG_LEVEL_LOCAL, repository, FALSE);
-	git_config_add_file_ondisk(temp, CGit::GetGitPathStringA(globalConfig), GIT_CONFIG_LEVEL_GLOBAL, repository, FALSE);
-	git_config_add_file_ondisk(temp, CGit::GetGitPathStringA(globalXDGConfig), GIT_CONFIG_LEVEL_XDG, repository, FALSE);
+	git_config_add_file_ondisk(temp, TGitPath::ToGitPathA(projectConfig.GetString()).c_str(), GIT_CONFIG_LEVEL_LOCAL, repository, FALSE);
+	git_config_add_file_ondisk(temp, TGitPath::ToGitPathA(globalConfig.GetString()).c_str(), GIT_CONFIG_LEVEL_GLOBAL, repository, FALSE);
+	git_config_add_file_ondisk(temp, TGitPath::ToGitPathA(globalXDGConfig.GetString()).c_str(), GIT_CONFIG_LEVEL_XDG, repository, FALSE);
 	if (!systemConfig.IsEmpty())
-		git_config_add_file_ondisk(temp, CGit::GetGitPathStringA(systemConfig), GIT_CONFIG_LEVEL_SYSTEM, repository, FALSE);
+		git_config_add_file_ondisk(temp, TGitPath::ToGitPathA(systemConfig.GetString()).c_str(), GIT_CONFIG_LEVEL_SYSTEM, repository, FALSE);
 
 	git_config_snapshot(config.GetPointer(), temp);
 	temp.Free();
 	git_repository_set_config(repository, config);
 
-	CGit::GetFileModifyTime(g_AdminDirMap.GetWorktreeAdminDir(dgitdir) + L"index", &m_LastModifyTime, nullptr, &m_LastFileSize);
+	TGitH::GetFileModifyTime(g_AdminDirMap.GetWorktreeAdminDir(dgitdir) + L"index", &m_LastModifyTime, nullptr, &m_LastFileSize);
 
 	CAutoIndex index;
 	// load index in order to enumerate files
@@ -677,7 +682,7 @@ int CGitIndexList::ReadIncomingOutgoing(git_repository* repository)
 		if (git_reference_lookup(head.GetPointer(), repository, "HEAD") < 0)
 			return -1;
 
-		m_branch = CGit::StripRefName(CUnicodeUtils::GetUnicode<CString>(git_reference_symbolic_target(head)));
+		m_branch = TGitH::StripRefName(CUnicodeUtils::GetUnicode<CString>(git_reference_symbolic_target(head)));
 		return 0;
 	}
 
@@ -740,7 +745,7 @@ int CGitIndexList::GetFileStatus(CAutoRepository& repository, const CString& git
 		status.status = git_wc_status_modified;
 	else if (!isSymlink && static_cast<uint32_t>(filesize) != entry.m_Size)
 		status.status = git_wc_status_modified;
-	else if (static_cast<int32_t>(CGit::filetime_to_time_t(time)) == entry.m_ModifyTime && entry.m_ModifyTimeNanos == (time % 10000000) * 100)
+	else if (static_cast<int32_t>(TGitH::filetime_to_time_t(time)) == entry.m_ModifyTime && entry.m_ModifyTimeNanos == (time % 10000000) * 100)
 		status.status = git_wc_status_normal;
 	else if (config && filesize < m_iMaxCheckSize)
 	{
@@ -756,7 +761,7 @@ int CGitIndexList::GetFileStatus(CAutoRepository& repository, const CString& git
 
 			if (repository.Open(repodir))
 			{
-				CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": Could not open git repository in %s for checking file: %s\n", static_cast<LPCWSTR>(gitdir), static_cast<LPCWSTR>(CGit::GetLibGit2LastErr()));
+				CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": Could not open git repository in %s for checking file: %s\n", static_cast<LPCWSTR>(gitdir), static_cast<LPCWSTR>(TGitH::GetLibGit2LastErr()));
 				return -1;
 			}
 			git_repository_set_config(repository, config);
@@ -769,7 +774,7 @@ int CGitIndexList::GetFileStatus(CAutoRepository& repository, const CString& git
 			std::string linkDestination;
 			if (!PathUtils::ReadLink(CombinePath(gitdir, entry.m_FileName), &linkDestination) && !tgit_odb_hash(&actual, linkDestination.c_str(), gsl::narrow<int>(linkDestination.size()), GIT_OBJECT_BLOB) && !git_oid_cmp(&actual, entry.m_IndexHash))
 			{
-				entry.m_ModifyTime = static_cast<int32_t>(CGit::filetime_to_time_t(time));
+				entry.m_ModifyTime = static_cast<int32_t>(TGitH::filetime_to_time_t(time));
 				entry.m_ModifyTimeNanos = (time % 10000000) * 100;
 				status.status = git_wc_status_normal;
 			}
@@ -778,7 +783,7 @@ int CGitIndexList::GetFileStatus(CAutoRepository& repository, const CString& git
 		}
 		else if (!git_repository_hashfile(&actual, repository, fileA, GIT_OBJECT_BLOB, nullptr) && !git_oid_cmp(&actual, entry.m_IndexHash))
 		{
-			entry.m_ModifyTime = static_cast<int32_t>(CGit::filetime_to_time_t(time));
+			entry.m_ModifyTime = static_cast<int32_t>(TGitH::filetime_to_time_t(time));
 			entry.m_ModifyTimeNanos = (time % 10000000) * 100;
 			status.status = git_wc_status_normal;
 		}
@@ -806,9 +811,9 @@ int CGitIndexList::GetFileStatus(const CString& gitdir, const CString& path, git
 
 	int result;
 	if (path.IsEmpty())
-		result = CGit::GetFileModifyTime(gitdir, &time, &isDir);
+		result = TGitH::GetFileModifyTime(gitdir, &time, &isDir);
 	else
-		result = CGit::GetFileModifyTime(CombinePath(gitdir, path), &time, &isDir, &filesize, &isSymlink);
+		result = TGitH::GetFileModifyTime(CombinePath(gitdir, path), &time, &isDir, &filesize, &isSymlink);
 
 	if (result)
 		filesize = -1;
@@ -854,7 +859,7 @@ int CGitHeadFileList::GetPackRef(const CString &gitdir)
 	CString PackRef = g_AdminDirMap.GetAdminDirConcat(gitdir, L"packed-refs");
 
 	__int64 mtime = 0, packsize = -1;
-	if (CGit::GetFileModifyTime(PackRef, &mtime, nullptr, &packsize))
+	if (TGitH::GetFileModifyTime(PackRef, &mtime, nullptr, &packsize))
 	{
 		//packed refs is not existed
 		this->m_PackRefFile.Empty();
@@ -963,7 +968,7 @@ int CGitHeadFileList::ReadHeadHash(const CString& gitdir)
 	m_HeadFile = m_Gitdir;
 	m_HeadFile += L"HEAD";
 
-	if (CGit::GetFileModifyTime(m_HeadFile, &m_LastModifyTimeHead, nullptr, &m_LastFileSizeHead))
+	if (TGitH::GetFileModifyTime(m_HeadFile, &m_LastModifyTimeHead, nullptr, &m_LastFileSizeHead))
 		return -1;
 
 	CAutoFile hfile = CreateFile(m_HeadFile,
@@ -978,7 +983,7 @@ int CGitHeadFileList::ReadHeadHash(const CString& gitdir)
 		return -1;
 
 	DWORD size = 0;
-	unsigned char buffer[GIT_HASH_MAX_HEXSIZE];
+	unsigned char buffer[2 * GIT_OID_MAX_SIZE]; // GitHash.ixx's GIT_HASH_MAX_HEXSIZE: a macro, so it does not cross the import
 	// hex length of an object id in the active format; DWORD so it matches what ReadFile reports
 	const DWORD hexSize = static_cast<DWORD>(2 * HashSize());
 	ReadFile(hfile, buffer, static_cast<DWORD>(strlen("ref:")), &size, nullptr);
@@ -1008,7 +1013,7 @@ int CGitHeadFileList::ReadHeadHash(const CString& gitdir)
 		m_HeadRefFile.Replace(L'/', L'\\');
 
 		__int64 time;
-		if (CGit::GetFileModifyTime(m_HeadRefFile, &time, nullptr))
+		if (TGitH::GetFileModifyTime(m_HeadRefFile, &time, nullptr))
 		{
 			if (GetPackRef(gitdir))
 				return -1;
@@ -1075,7 +1080,7 @@ bool CGitHeadFileList::CheckHeadUpdate() const
 
 	__int64 mtime = 0, size = -1;
 
-	if (CGit::GetFileModifyTime(m_HeadFile, &mtime, nullptr, &size))
+	if (TGitH::GetFileModifyTime(m_HeadFile, &mtime, nullptr, &size))
 		return true;
 
 	if (mtime != m_LastModifyTimeHead || size != m_LastFileSizeHead)
@@ -1084,7 +1089,7 @@ bool CGitHeadFileList::CheckHeadUpdate() const
 	if (!this->m_HeadRefFile.IsEmpty())
 	{
 		// we need to check for the HEAD ref file here, because the original ref might have come from packedrefs and now is a ref-file
-		if (CGit::GetFileModifyTime(m_HeadRefFile, &mtime))
+		if (TGitH::GetFileModifyTime(m_HeadRefFile, &mtime))
 		{
 			if (!m_bRefFromPackRefFile)
 				return true;
@@ -1096,7 +1101,7 @@ bool CGitHeadFileList::CheckHeadUpdate() const
 	if (m_bRefFromPackRefFile && !m_PackRefFile.IsEmpty())
 	{
 		size = -1;
-		if (CGit::GetFileModifyTime(m_PackRefFile, &mtime, nullptr, &size))
+		if (TGitH::GetFileModifyTime(m_PackRefFile, &mtime, nullptr, &size))
 			return true;
 
 		if (mtime != m_LastModifyTimePackRef || size != m_LastFileSizePackRef)
@@ -1180,7 +1185,7 @@ int CGitHeadFileList::ReadTree(bool ignoreCase)
 	if (!ret)
 	{
 		clear();
-		CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": Could not open git repository in %s and read HEAD commit %s: %s\n", m_Gitdir, m_Head.ToString().c_str(), CGit::GetLibGit2LastErr());
+		CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": Could not open git repository in %s and read HEAD commit %s: %s\n", m_Gitdir, m_Head.ToString().c_str(), TGitH::GetLibGit2LastErr());
 		m_LastModifyTimeHead = 0;
 		m_LastFileSizeHead = -1;
 		return -1;
@@ -1215,7 +1220,7 @@ int CGitIgnoreItem::FetchIgnoreList(const CString& projectroot, const CString& f
 		}
 	}
 
-	if (CGit::GetFileModifyTime(file, &m_LastModifyTime, nullptr, &m_LastFileSize))
+	if (TGitH::GetFileModifyTime(file, &m_LastModifyTime, nullptr, &m_LastFileSize))
 		return -1;
 
 	CAutoFile hfile = CreateFile(file,
@@ -1301,7 +1306,7 @@ bool CGitIgnoreList::CheckFileChanged(const CString &path)
 {
 	__int64 time = 0, size = -1;
 
-	const int ret = CGit::GetFileModifyTime(path, &time, nullptr, &size);
+	const int ret = TGitH::GetFileModifyTime(path, &time, nullptr, &size);
 
 	bool cacheExist;
 	{
@@ -1338,7 +1343,7 @@ bool CGitIgnoreList::CheckFileChanged(const CString &path)
 
 int CGitIgnoreList::FetchIgnoreFile(const CString &gitdir, const CString &gitignore, bool isGlobal)
 {
-	if (CGit::GitPathFileExists(gitignore)) // if .gitignore is removed, we need also to remove it from our cache
+	if (GitAdminDir::GitPathFileExists(gitignore.GetString())) // if .gitignore is removed, we need also to remove it from our cache
 	{
 		CAutoWriteLock lock(m_SharedMutex);
 		m_Map[gitignore].FetchIgnoreList(gitdir, gitignore, isGlobal, &m_IgnoreCase[g_AdminDirMap.GetAdminDir(gitdir)]);
@@ -1424,7 +1429,9 @@ bool CGitIgnoreList::CheckAndUpdateGitSystemConfigPath(bool force)
 	if (GetTickCount64() - m_dGitSystemConfigPathLastChecked > 30000UL || force)
 	{
 		m_dGitSystemConfigPathLastChecked = GetTickCount64();
-		CString gitSystemConfigPath{CRegString<CString>(REG_SYSTEM_GITCONFIGPATH, L"", FALSE)};
+		Registry::CRegStdString gitSystemConfigValue(std::wstring(REG_SYSTEM_GITCONFIGPATH), L"", false);
+		const std::wstring& gitSystemConfigW = gitSystemConfigValue;
+		CString gitSystemConfigPath{ gitSystemConfigW.c_str() };
 		if (gitSystemConfigPath != m_sGitSystemConfigPath)
 		{
 			m_sGitSystemConfigPath = gitSystemConfigPath;
@@ -1461,30 +1468,30 @@ bool CGitIgnoreList::CheckAndUpdateCoreExcludefile(const CString &adminDir)
 
 	CAutoConfig config(true);
 	CAutoRepository repo(adminDir);
-	git_config_add_file_ondisk(config, CGit::GetGitPathStringA(projectConfig), GIT_CONFIG_LEVEL_LOCAL, repo, FALSE);
-	git_config_add_file_ondisk(config, CGit::GetGitPathStringA(globalConfig), GIT_CONFIG_LEVEL_GLOBAL, repo, FALSE);
-	git_config_add_file_ondisk(config, CGit::GetGitPathStringA(globalXDGConfig), GIT_CONFIG_LEVEL_XDG, repo, FALSE);
+	git_config_add_file_ondisk(config, TGitPath::ToGitPathA(projectConfig.GetString()).c_str(), GIT_CONFIG_LEVEL_LOCAL, repo, FALSE);
+	git_config_add_file_ondisk(config, TGitPath::ToGitPathA(globalConfig.GetString()).c_str(), GIT_CONFIG_LEVEL_GLOBAL, repo, FALSE);
+	git_config_add_file_ondisk(config, TGitPath::ToGitPathA(globalXDGConfig.GetString()).c_str(), GIT_CONFIG_LEVEL_XDG, repo, FALSE);
 	if (!m_sGitSystemConfigPath.IsEmpty())
-		git_config_add_file_ondisk(config, CGit::GetGitPathStringA(m_sGitSystemConfigPath), GIT_CONFIG_LEVEL_SYSTEM, repo, FALSE);
+		git_config_add_file_ondisk(config, TGitPath::ToGitPathA(m_sGitSystemConfigPath.GetString()).c_str(), GIT_CONFIG_LEVEL_SYSTEM, repo, FALSE);
 
 	config.GetString(L"core.excludesfile", excludesFile);
 	if (excludesFile.IsEmpty())
 		excludesFile = GetWindowsHome() + L"\\.config\\git\\ignore";
-	else if (CStringUtils::StartsWith(excludesFile, L"~/"))
+	else if (tgit::wstr::StartsWith(tgit::wstr::StringView{ excludesFile }, L"~/"))
 		excludesFile = GetWindowsHome() + excludesFile.Mid(static_cast<int>(wcslen(L"~")));
 
 	CAutoWriteLock lockMap(m_SharedMutex);
 	m_IgnoreCase[adminDir] = 1;
 	config.GetBOOL(L"core.ignorecase", m_IgnoreCase[adminDir]);
-	CGit::GetFileModifyTime(projectConfig, &m_Map[projectConfig].m_LastModifyTime, nullptr, &m_Map[projectConfig].m_LastFileSize);
-	CGit::GetFileModifyTime(globalXDGConfig, &m_Map[globalXDGConfig].m_LastModifyTime, nullptr, &m_Map[globalXDGConfig].m_LastFileSize);
+	TGitH::GetFileModifyTime(projectConfig, &m_Map[projectConfig].m_LastModifyTime, nullptr, &m_Map[projectConfig].m_LastFileSize);
+	TGitH::GetFileModifyTime(globalXDGConfig, &m_Map[globalXDGConfig].m_LastModifyTime, nullptr, &m_Map[globalXDGConfig].m_LastFileSize);
 	if (m_Map[globalXDGConfig].m_LastModifyTime == 0)
 		m_Map.erase(globalXDGConfig);
-	CGit::GetFileModifyTime(globalConfig, &m_Map[globalConfig].m_LastModifyTime, nullptr, &m_Map[globalConfig].m_LastFileSize);
+	TGitH::GetFileModifyTime(globalConfig, &m_Map[globalConfig].m_LastModifyTime, nullptr, &m_Map[globalConfig].m_LastFileSize);
 	if (m_Map[globalConfig].m_LastModifyTime == 0)
 		m_Map.erase(globalConfig);
 	if (!m_sGitSystemConfigPath.IsEmpty())
-		CGit::GetFileModifyTime(m_sGitSystemConfigPath, &m_Map[m_sGitSystemConfigPath].m_LastModifyTime, nullptr, &m_Map[m_sGitSystemConfigPath].m_LastFileSize);
+		TGitH::GetFileModifyTime(m_sGitSystemConfigPath, &m_Map[m_sGitSystemConfigPath].m_LastModifyTime, nullptr, &m_Map[m_sGitSystemConfigPath].m_LastFileSize);
 	if (m_Map[m_sGitSystemConfigPath].m_LastModifyTime == 0 || m_sGitSystemConfigPath.IsEmpty())
 		m_Map.erase(m_sGitSystemConfigPath);
 	m_CoreExcludesfiles[adminDir] = excludesFile;

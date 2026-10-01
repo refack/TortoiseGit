@@ -1,23 +1,33 @@
-﻿module;
-#include "Utils/ClipboardHelper.h"
+module;
 #include <afx.h>
 #include <atlstr.h>
 
-export module StringUtils;
 
+export module StringUtils;
 import std;
 import gsl;
+import wil;
 import wstr;
 import RIAA;
 
-export namespace StringUtils {
 
+// Functions std:: already does. Each names its std:: spelling; they stay only
+// until their call sites move to it.
+export namespace StringUtils
+{
 using std::string_view;
 
 
+// std: std::views::split (+ std::from_chars for numeric containers)
 // append = true as the default: a default value should never lose data!
-template <typename Container, typename CHARTYPE, typename TRAIT>
-void stringtok(Container& container, const std::basic_string<CHARTYPE, TRAIT>& in, bool trim, const CHARTYPE* const delimiters, bool append = true)
+template <typename Container, tgit::wstr::IsRealString StrT, typename CHARTYPE = StrT::value_type>
+void stringtok(
+	Container& container,
+	const StrT& in,
+	const bool trim,
+	const CHARTYPE* const delimiters,
+	const bool append = true
+)
 {
 	const auto len = in.length();
 	decltype(in.length()) i = 0;
@@ -30,7 +40,7 @@ void stringtok(Container& container, const std::basic_string<CHARTYPE, TRAIT>& i
 		{
 			// eat leading whitespace
 			i = in.find_first_not_of(delimiters, i);
-			if (i == std::basic_string<CHARTYPE, TRAIT>::npos)
+			if (i == StrT::npos)
 				return; // nothing left but white space
 		}
 
@@ -38,9 +48,9 @@ void stringtok(Container& container, const std::basic_string<CHARTYPE, TRAIT>& i
 		const auto j = in.find_first_of(delimiters, i);
 
 		// push token
-		if (j == std::basic_string<CHARTYPE, TRAIT>::npos)
+		if (j == StrT::npos)
 		{
-			if constexpr (std::is_same_v<typename Container::value_type, std::basic_string<CHARTYPE, TRAIT>>)
+			if constexpr (std::is_same_v<typename Container::value_type, StrT>)
 				container.push_back(in.substr(i));
 			else if constexpr (std::is_same_v<CHARTYPE, wchar_t>)
 				container.push_back(static_cast<Container::value_type>(_wtoi64(in.substr(i).c_str())));
@@ -52,7 +62,7 @@ void stringtok(Container& container, const std::basic_string<CHARTYPE, TRAIT>& i
 		}
 		else
 		{
-			if constexpr (std::is_same_v<typename Container::value_type, std::basic_string<CHARTYPE, TRAIT>>)
+			if constexpr (std::is_same_v<typename Container::value_type, StrT>)
 				container.push_back(in.substr(i, j - i));
 			else if constexpr (std::is_same_v<CHARTYPE, wchar_t>)
 				container.push_back(static_cast<Container::value_type>(_wtoi64(in.substr(i, j - i).c_str())));
@@ -67,257 +77,9 @@ void stringtok(Container& container, const std::basic_string<CHARTYPE, TRAIT>& i
 	}
 }
 
-/**
- * \ingroup Utils
- * string helper functions
- */
-class CStringUtils
-{
-public:
-	CStringUtils() = delete;
 
-	/**
-	 * Removes all '&' chars from a string.
-	 */
-	static void RemoveAccelerators(CString& text);
-
-	/**
-	 * Returns the accellerator used in the string or \0
-	 */
-	static wchar_t GetAccellerator(const CString& text);
-
-	/**
-	 * Escapes all '&' chars from a string with another '&'.
-	 */
-	static CString EscapeAccellerators(CString& text);
-
-	static CString EnsureCRLF(const CString& text);
-	/**
-	 * Writes an ASCII CString to the clipboard in CF_TEXT format
-	 */
-	static bool WriteAsciiStringToClipboard(const CStringA& sClipdata, LCID lcid, HWND hOwningWnd = nullptr);
-	/**
-	 * Writes a String to the clipboard in both CF_UNICODETEXT and CF_TEXT format
-	 */
-	static bool WriteAsciiStringToClipboard(const CStringW& sClipdata, HWND hOwningWnd = nullptr);
-
-	/**
-	* Writes an ASCII CString to the clipboard in TGIT_UNIFIEDDIFF format, which is basically the patch file
-	* as a ASCII string.
-	*/
-	static bool WriteDiffToClipboard(const CStringA& sClipdata, HWND hOwningWnd = nullptr);
-
-	/**
-	 * Reads the string \text from the file \path in utf8 encoding.
-	 */
-	static bool ReadStringFromTextFile(const CString& path, CString& text);
-
-	static BOOL WildCardMatch(const CString& wildcard, const CString& string);
-	static CString LinesWrap(const CString& longstring, int limit = 80, bool bCompactPaths = false);
-	static CString WordWrap(const CString& longstring, int limit, bool bCompactPaths, bool bForceWrap, int tabSize);
-	static std::vector<CString> WordWrap(const CString& longstring, int limit, int tabSize);
-	/**
-	 * Unescapes Git quoted filenames
-	 * This is not a full implementation of the unescaper as we skip some conversions that will result in invalid filenames.
-	 */
-	static CString UnescapeGitQuotePath(std::wstring_view s);
-	static CString UnescapeGitQuotePathA(std::string_view s);
-	/**
-	 * Find and return the number n of starting characters equal between
-	 * \ref lhs and \ref rhs. (max n: lhs.Left(n) == rhs.Left(n))
-	 */
-	static int GetMatchingLength (const CString& lhs, const CString& rhs);
-
-	/**
-	 * Optimizing wrapper around CompareNoCase.
-	 */
-	static int FastCompareNoCase (const CStringW& lhs, const CStringW& rhs);
-
-	static void ParseEmailAddress(CString mailaddress, CString& parsedAddress, CString* parsedName = nullptr);
-
-	static bool IsPlainReadableASCII(const CString& text);
-
-	static CString EscapeWindowsCliArguments(const CString& argument);
-
-	static bool StartsWith(const wchar_t* heystack, const CString& needle);
-	static bool StartsWithI(const wchar_t* heystack, const CString& needle);
-	static bool WriteStringToTextFile(LPCWSTR path, LPCWSTR text, bool bUTF8 = true);
-	static bool EndsWith(const CString& heystack, const wchar_t* needle);
-	static bool EndsWith(const CString& heystack, wchar_t needle);
-	static bool EndsWithI(const CString& heystack, const wchar_t* needle);
-	static bool StartsWith(const wchar_t* heystack, const wchar_t* needle);
-	static bool StartsWith(const char* heystack, const char* needle);
-
-	/**
-	 * Quotes one argv element the way CommandLineToArgvW / the MSVC runtime read
-	 * it back. Always adds the surrounding quotes; see \ref NeedsWindowsCliQuoting
-	 * for the "only when it matters" test the argv serializer applies first.
-	 *
-	 * Flavor-neutral on purpose: this is the building block CGit::SerializeArgv
-	 * needs, and CGit is on the list of sources the ATL side compiles too.
-	 */
-	[[nodiscard]] static std::wstring EscapeWindowsCliArgument(std::wstring_view argument);
-
-	/**
-	 * True when \a argument would not survive the round trip unquoted. An empty
-	 * element must be quoted (otherwise it vanishes); whitespace and quotes are
-	 * the only other characters CommandLineToArgvW treats as structure.
-	 *
-	 * A lone backslash needs nothing: backslashes are only special immediately
-	 * before a quote, and there is no quote here to be before.
-	 */
-	[[nodiscard]] static bool NeedsWindowsCliQuoting(std::wstring_view argument);
-
-	/**
-	 * Quotes one argv element for a POSIX shell, which is what the msys2/cygwin
-	 * path needs: CGit writes the whole command line into a temp file and hands
-	 * it to bash.exe, so there the "command line" is shell *source*.
-	 */
-	[[nodiscard]] static std::wstring EscapePosixShellArgument(std::wstring_view argument);
-
-	/**
-	 * True unless \a argument is made entirely of characters no shell touches.
-	 * Deliberately a whitelist: a blacklist of bash metacharacters is a list you
-	 * are always one shell feature behind on.
-	 */
-	[[nodiscard]] static bool NeedsPosixShellQuoting(std::wstring_view argument);
-
-	/**
-	 * Writes the string \text to the file \path, either in utf16 or utf8 encoding,
-	 * depending on the \c bUTF8 param.
-	 */
-	static bool WriteStringToTextFile(const std::wstring& path, std::wstring_view text, bool bUTF8 = true);
-
-	/**
-	 * Replace all pipe (|) character in the string with a nullptr character. Used
-	 * for passing into Win32 functions that require such representation
-	 */
-	static void PipesToNulls(wchar_t* buffer, size_t length);
-	static void PipesToNulls(wchar_t* buffer);
-
-	static void TrimRight(std::string_view& view);
-	static void TrimRight(std::wstring_view& view);
-	static void TrimLeft(std::string_view& view);
-
-	static std::string_view TrimRight(const std::string_view sv, const std::string_view chars);
-
-	/**
-	 * Expands placeholders to corresponding values provided in the map replacements.
-	 * This method makes sure that values cannot contain other placeholders that may be replaced later on.
-	 */
-	[[nodiscard]] static CString ExpandPlaceholdersForCmd(const CString& input, const std::map<CString, CString>& replacements, CString (*escaper)(CString));
-};
-
-
-int strwildcmp(const char *wild, const char *string)
-{
-	const char* cp = nullptr;
-	const char* mp = nullptr;
-	while ((*string) && (*wild != '*'))
-	{
-		if ((*wild != *string) && (*wild != '?'))
-			return 0;
-		++wild;
-		++string;
-	}
-	while (*string)
-	{
-		if (*wild == '*')
-		{
-			if (!*++wild)
-				return 1;
-			mp = wild;
-			cp = string+1;
-		}
-		else if ((*wild == *string) || (*wild == '?'))
-		{
-			++wild;
-			++string;
-		}
-		else
-		{
-			wild = mp;
-			string = cp++;
-		}
-	}
-
-	while (*wild == '*')
-		++wild;
-	return !*wild;
-}
-
-int wcswildcmp(const wchar_t *wild, const wchar_t *string)
-{
-	const wchar_t* cp = nullptr;
-	const wchar_t* mp = nullptr;
-	while ((*string) && (*wild != '*'))
-	{
-		if ((*wild != *string) && (*wild != '?'))
-			return 0;
-		++wild;
-		++string;
-	}
-	while (*string)
-	{
-		if (*wild == '*')
-		{
-			if (!*++wild)
-				return 1;
-			mp = wild;
-			cp = string+1;
-		}
-		else if ((*wild == *string) || (*wild == '?'))
-		{
-			++wild;
-			++string;
-		}
-		else
-		{
-			wild = mp;
-			string = cp++;
-		}
-	}
-
-	while (*wild == '*')
-		++wild;
-	return !*wild;
-}
-
-void CStringUtils::RemoveAccelerators(CString& text)
-{
-	int pos = 0;
-	while ((pos=text.Find('&',pos))>=0)
-	{
-		if (text.GetLength() > (pos-1))
-		{
-			if (text.GetAt(pos+1)!=' ')
-				text.Delete(pos);
-		}
-		++pos;
-	}
-}
-
-CString CStringUtils::EscapeAccellerators(CString& text)
-{
-	text.Replace(L"&", L"&&");
-	return text;
-}
-
-wchar_t CStringUtils::GetAccellerator(const CString& text)
-{
-	int pos = 0;
-	while ((pos = text.Find(L'&', pos)) >= 0 && pos + 1 < text.GetLength())
-	{
-		if (text.GetAt(pos + 1) == '&')
-			++pos;
-		else if (text.GetAt(pos + 1) != ' ')
-			return towupper(text.GetAt(pos + 1));
-		++pos;
-	}
-	return L'\0';
-}
-
-CString CStringUtils::EnsureCRLF(const CString& text)
+// std: std::regex_replace(text, std::wregex(L"\r\n|\r|\n"), L"\r\n")
+CString EnsureCRLF(const CString& text)
 {
 	CString result;
 	const int length = text.GetLength();
@@ -332,107 +94,159 @@ CString CStringUtils::EnsureCRLF(const CString& text)
 	}
 	return result;
 }
-bool CStringUtils::WriteAsciiStringToClipboard(const CStringA& sClipdata, const LCID lcid, const HWND hOwningWnd)
+
+
+/**
+ * Find and return the number n of starting characters equal between
+ * \ref lhs and \ref rhs. (max n: lhs.Left(n) == rhs.Left(n))
+ */
+// std: std::ranges::mismatch(lhs, rhs).in1 - lhs.begin()
+int GetMatchingLength (const CString& lhs, const CString& rhs)
 {
-	CClipboardHelper clipboardHelper;
-	if (!clipboardHelper.Open(hOwningWnd))
-		return false;
+	const int lhsLength = lhs.GetLength();
+	const int rhsLength = rhs.GetLength();
+	const int maxResult = std::min(lhsLength, rhsLength);
 
-	EmptyClipboard();
-	HGLOBAL hClipboardData = CClipboardHelper::GlobalAlloc(sClipdata.GetLength() + 1);
-	if (!hClipboardData)
-		return false;
+	const LPCWSTR pLhs = lhs;
+	const LPCWSTR pRhs = rhs;
 
-	auto pchData = static_cast<char*>(GlobalLock(hClipboardData));
-	if (!pchData)
-		return false;
+	for (int i = 0; i < maxResult; ++i)
+		if (pLhs[i] != pRhs[i])
+			return i;
 
-	strcpy_s(pchData, sClipdata.GetLength() + 1, static_cast<LPCSTR>(sClipdata));
-	GlobalUnlock(hClipboardData);
-	if (!SetClipboardData(CF_TEXT, hClipboardData))
-		return false;
+	return maxResult;
+}
 
-	HANDLE hlocmem = CClipboardHelper::GlobalAlloc(sizeof(LCID));
-	if (!hlocmem)
-		return false;
 
-	if (const auto plcid = static_cast<PLCID>(GlobalLock(hlocmem)))
+// std: std::ranges::all_of(text, [](wchar_t c) { return c >= 32 && c < 127; })
+bool IsPlainReadableASCII(const CString& text)
+{
+	for (int i = 0; i < text.GetLength(); ++i)
 	{
-		*plcid = lcid;
-		SetClipboardData(CF_LOCALE, plcid);
+		if (text[i] < 32 || text[i] >= 127)
+			return false;
 	}
-	GlobalUnlock(hlocmem);
-
 	return true;
 }
 
-bool CStringUtils::WriteAsciiStringToClipboard(const CStringW& sClipdata, const HWND hOwningWnd)
+
+// std: basic_string_view::starts_with / ends_with
+bool StartsWith(const wchar_t* heystack, const CString& needle)
 {
-	CClipboardHelper clipboardHelper;
-	if (!clipboardHelper.Open(hOwningWnd))
-		return false;
-
-	EmptyClipboard();
-	HGLOBAL hClipboardData = CClipboardHelper::GlobalAlloc((sClipdata.GetLength() + 1) * sizeof(WCHAR));
-	if (!hClipboardData)
-		return false;
-
-	auto pchData = static_cast<WCHAR*>(GlobalLock(hClipboardData));
-	if (!pchData)
-		return false;
-
-	wcscpy_s(pchData, sClipdata.GetLength() + 1, static_cast<LPCWSTR>(sClipdata));
-	GlobalUnlock(hClipboardData);
-	if (!SetClipboardData(CF_UNICODETEXT, hClipboardData))
-		return false;
-
-	// no need to also set CF_TEXT : the OS does this
-	// automatically.
-	return true;
+	return wcsncmp(heystack, needle, needle.GetLength()) == 0;
 }
 
-bool CStringUtils::WriteDiffToClipboard(const CStringA& sClipdata, const HWND hOwningWnd)
+bool StartsWith(const wchar_t* heystack, const wchar_t* needle)
 {
-	UINT cFormat = RegisterClipboardFormat(L"TGIT_UNIFIEDDIFF");
-	if (cFormat == 0)
-		return false;
-	CClipboardHelper clipboardHelper;
-	if (!clipboardHelper.Open(hOwningWnd))
-		return false;
-
-	EmptyClipboard();
-	HGLOBAL hClipboardData = CClipboardHelper::GlobalAlloc(sClipdata.GetLength() + 1);
-	if (!hClipboardData)
-		return false;
-
-	auto pchData = static_cast<char*>(GlobalLock(hClipboardData));
-	if (!pchData)
-		return false;
-
-	strcpy_s(pchData, sClipdata.GetLength() + 1, static_cast<LPCSTR>(sClipdata));
-	GlobalUnlock(hClipboardData);
-	if (!SetClipboardData(cFormat,hClipboardData))
-		return false;
-	if (!SetClipboardData(CF_TEXT, hClipboardData))
-		return false;
-
-	CString sClipdataW = CUnicodeUtils::GetUnicode<CString>(sClipdata);
-	auto hClipboardDataW = CClipboardHelper::GlobalAlloc((sClipdataW.GetLength() + 1) * sizeof(wchar_t));
-	if (!hClipboardDataW)
-		return false;
-
-	auto pchDataW = static_cast<wchar_t*>(GlobalLock(hClipboardDataW));
-	if (!pchDataW)
-		return false;
-
-	wcscpy_s(pchDataW, sClipdataW.GetLength() + 1, static_cast<LPCWSTR>(sClipdataW));
-	GlobalUnlock(hClipboardDataW);
-	if (!SetClipboardData(CF_UNICODETEXT, hClipboardDataW))
-		return false;
-
-	return true;
+	return wcsncmp(heystack, needle, wcslen(needle)) == 0;
 }
-bool CStringUtils::ReadStringFromTextFile(const CString& path, CString& text)
+
+bool StartsWith(const char* heystack, const char* needle)
+{
+	return strncmp(heystack, needle, strlen(needle)) == 0;
+}
+
+bool EndsWith(const CString& heystack, const wchar_t* needle)
+{
+	const auto lenNeedle = wcslen(needle);
+	const auto lenHeystack = static_cast<size_t>(heystack.GetLength());
+	if (lenNeedle > lenHeystack)
+		return false;
+	return wcsncmp(static_cast<LPCWSTR>(heystack) + (lenHeystack - lenNeedle), needle, lenNeedle) == 0;
+}
+
+bool EndsWith(const CString& heystack, const wchar_t needle)
+{
+	const auto lenHeystack = heystack.GetLength();
+	if (!lenHeystack)
+		return false;
+	return *(static_cast<LPCWSTR>(heystack) + (lenHeystack - 1)) == needle;
+}
+
+// std::wstring / std::wstring_view variants. Constrained rather than taking a
+// plain std::wstring_view haystack: that would make EndsWith(L"literal", ...)
+// ambiguous against the CString overloads (one user-defined conversion each).
+template <tgit::wstr::IsRealString TStr>
+	requires std::same_as<typename TStr::value_type, wchar_t>
+bool EndsWith(const TStr& heystack, const std::wstring_view needle) noexcept
+{
+	return std::wstring_view(heystack).ends_with(needle);
+}
+
+template <tgit::wstr::IsRealString TStr>
+	requires std::same_as<typename TStr::value_type, wchar_t>
+bool EndsWith(const TStr& heystack, const wchar_t needle) noexcept
+{
+	return std::wstring_view(heystack).ends_with(needle);
+}
+
+
+// std: std::replace(buffer, buffer + length, L'|', L'\0')
+void PipeToNull(wchar_t* ptr)
+{
+	if (*ptr == '|')
+		*ptr = '\0';
+}
+
+
+/**
+ * Replace all pipe (|) character in the string with a nullptr character. Used
+ * for passing into Win32 functions that require such representation
+ */
+void PipesToNulls(wchar_t* buffer, const size_t length)
+{
+	wchar_t* ptr = buffer + length;
+	while (ptr != buffer)
+	{
+		PipeToNull(ptr);
+		ptr--;
+	}
+}
+
+/// Up to the terminating NUL. This was a default argument `length = 0` on the
+/// overload above, which made every one-argument call a no-op: that loop starts
+/// at buffer + 0 and stops at buffer. TortoiseSVN had the two as overloads.
+void PipesToNulls(wchar_t* buffer)
+{
+	std::replace(buffer, buffer + wcslen(buffer), L'|', L'\0');
+}
+
+
+// std: view.substr(view.find_first_not_of(...)) / view.substr(0, view.find_last_not_of(...) + 1)
+void TrimLeft(std::string_view& view)
+{
+	while (!view.empty() && std::isspace(static_cast<unsigned char>(view.front())))
+		view.remove_prefix(1);
+}
+
+void TrimRight(std::string_view& view)
+{
+	while (!view.empty() && std::isspace(static_cast<unsigned char>(view.back())))
+		view.remove_suffix(1);
+}
+
+void TrimRight(std::wstring_view& view)
+{
+	while (!view.empty() && std::iswspace(view.back()))
+		view.remove_suffix(1);
+}
+
+std::string_view TrimRight(const std::string_view sv, const std::string_view chars)
+{
+	const auto pos = sv.find_last_not_of(chars);
+
+	if (pos == std::string_view::npos)
+		return {};
+
+	return sv.substr(0, pos + 1);
+}
+
+
+/**
+ * Reads the string \text from the file \path in utf8 encoding.
+ */
+// std: std::ifstream(path, std::ios::binary) + CUnicodeUtils
+bool ReadStringFromTextFile(const CString& path, CString& text)
 {
 	if (!PathFileExists(path))
 		return false;
@@ -458,44 +272,217 @@ bool CStringUtils::ReadStringFromTextFile(const CString& path, CString& text)
 	}
 	return true;
 }
-BOOL CStringUtils::WildCardMatch(const CString& wildcard, const CString& string)
-{
-	return wcswildcmp(wildcard, string);
-}
 
-CString CStringUtils::LinesWrap(const CString& longstring, const int limit /* = 80 */, const bool bCompactPaths /* = true */)
-{
-	CString retString;
-	if ((longstring.GetLength() < limit) || (limit == 0))
-		return longstring;  // no wrapping needed.
-	// now start breaking the string into lines
 
-	int linepos = 0;
-	int lineposold = 0;
-	CString temp;
-	while ((linepos = longstring.Find('\n', linepos)) >= 0)
+/**
+ * Writes the string \text to the file \path, either in utf16 or utf8 encoding,
+ * depending on the \c bUTF8 param.
+ */
+// std: std::ofstream(path, std::ios::binary) + CUnicodeUtils, modulo FILE_SHARE_DELETE
+bool WriteStringToTextFile(const std::wstring_view path, const std::wstring_view text, const bool bUTF8 = true)
+{
+	DWORD dwWritten = 0;
+	const RIAA::CAutoFile hFile = CreateFile(path.data(), GENERIC_WRITE, FILE_SHARE_DELETE, nullptr, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
+	if (!hFile)
+		return false;
+
+	if (bUTF8)
 	{
-		temp = longstring.Mid(lineposold, linepos-lineposold);
-		if ((linepos+1)<longstring.GetLength())
-			++linepos;
-		else
-			break;
-		lineposold = linepos;
-		if (!retString.IsEmpty())
-			retString += L'\n';
-		retString += WordWrap(temp, limit, bCompactPaths, false, 4);
+		const std::string buf = CUnicodeUtils::StdGetUTF8(text);
+		if (!WriteFile(hFile, buf.c_str(), static_cast<DWORD>(buf.length()), &dwWritten, nullptr))
+		{
+			return false;
+		}
 	}
-	temp = longstring.Mid(lineposold);
-	if (!temp.IsEmpty())
-		retString += L'\n';
-	retString += WordWrap(temp, limit, bCompactPaths, false, 4);
-	retString.Trim();
-	return retString;
+	else
+	{
+		if (!WriteFile(hFile, text.data(), static_cast<DWORD>(text.length() * sizeof(wchar_t)), &dwWritten, nullptr))
+		{
+			return false;
+		}
+	}
+	return true;
+}
+bool WriteStringToTextFile(const LPCWSTR path, const LPCWSTR text, const bool bUTF8 = true)
+{
+	return WriteStringToTextFile(std::wstring_view{path}, std::wstring_view{text}, bUTF8);
 }
 
-CString CStringUtils::WordWrap(const CString& longstring, int limit, const bool bCompactPaths, const bool bForceWrap, const int tabSize)
+}
+
+// Functionality Splitter
+
+// The extras: what std:: has no spelling for - Win32 UI and clipboard,
+// case-insensitive compare, git's quoting and From: conventions, and
+// command-line quoting.
+export namespace StringUtils
 {
-	int nLength = longstring.GetLength();
+
+
+// int strwildcmp(const char *wild, const char *string)
+// {
+// 	const char* cp = nullptr;
+// 	const char* mp = nullptr;
+// 	while ((*string) && (*wild != '*'))
+// 	{
+// 		if ((*wild != *string) && (*wild != '?'))
+// 			return 0;
+// 		++wild;
+// 		++string;
+// 	}
+// 	while (*string)
+// 	{
+// 		if (*wild == '*')
+// 		{
+// 			if (!*++wild)
+// 				return 1;
+// 			mp = wild;
+// 			cp = string+1;
+// 		}
+// 		else if ((*wild == *string) || (*wild == '?'))
+// 		{
+// 			++wild;
+// 			++string;
+// 		}
+// 		else
+// 		{
+// 			wild = mp;
+// 			string = cp++;
+// 		}
+// 	}
+//
+// 	while (*wild == '*')
+// 		++wild;
+// 	return !*wild;
+// }
+//
+
+/**
+ * Removes all '&' chars from a string.
+ */
+void RemoveAccelerators(CString& text)
+{
+	int pos = 0;
+	while ((pos=text.Find('&',pos))>=0)
+	{
+		if (text.GetLength() > (pos-1))
+		{
+			if (text.GetAt(pos+1)!=' ')
+				text.Delete(pos);
+		}
+		++pos;
+	}
+}
+
+/**
+ * Escapes all '&' chars from a string with another '&'.
+ */
+CString EscapeAccellerators(CString& text)
+{
+	text.Replace(L"&", L"&&");
+	return text;
+}
+
+/**
+ * Returns the accellerator used in the string or \0
+ */
+wchar_t GetAccellerator(const CString& text)
+{
+	int pos = 0;
+	while ((pos = text.Find(L'&', pos)) >= 0 && pos + 1 < text.GetLength())
+	{
+		if (text.GetAt(pos + 1) == '&')
+			++pos;
+		else if (text.GetAt(pos + 1) != ' ')
+			return towupper(text.GetAt(pos + 1));
+		++pos;
+	}
+	return L'\0';
+}
+
+
+/**
+ * Writes an ASCII CString to the clipboard in CF_TEXT format
+ */
+bool WriteAsciiStringToClipboard(const CStringA& sClipdata, const LCID lcid, const HWND hOwningWnd)
+{
+	// Not an if-init-statement: the clipboard has to stay open until we return.
+	const auto clipboard = wil::open_clipboard_retrying(hOwningWnd);
+	if (!clipboard)
+		return false;
+
+	EmptyClipboard();
+	auto text = wil::make_moveable_hglobal(std::string{ tgit::wstr::StringView{ sClipdata } });
+	if (!text || !SetClipboardData(CF_TEXT, text.get()))
+		return false;
+	text.release(); // the clipboard owns it now
+
+	// SetClipboardData takes the handle; this used to pass the GlobalLock'ed
+	// pointer, which is a different value for a GMEM_MOVEABLE block.
+	if (auto locale = wil::make_moveable_hglobal(std::as_bytes(std::span(&lcid, 1))); locale && SetClipboardData(CF_LOCALE, locale.get()))
+		locale.release();
+
+	return true;
+}
+
+
+/**
+ * Writes a String to the clipboard in both CF_UNICODETEXT and CF_TEXT format
+ */
+bool WriteAsciiStringToClipboard(const CStringW& sClipdata, const HWND hOwningWnd)
+{
+	const auto clipboard = wil::open_clipboard_retrying(hOwningWnd);
+	if (!clipboard)
+		return false;
+
+	EmptyClipboard();
+	auto text = wil::make_moveable_hglobal(std::wstring{ tgit::wstr::StringView{ sClipdata } });
+	if (!text || !SetClipboardData(CF_UNICODETEXT, text.get()))
+		return false;
+	text.release(); // the clipboard owns it now
+
+	// no need to also set CF_TEXT : the OS does this
+	// automatically.
+	return true;
+}
+
+
+/**
+* Writes an ASCII CString to the clipboard in TGIT_UNIFIEDDIFF format, which is basically the patch file
+* as a ASCII string.
+*/
+bool WriteDiffToClipboard(const CStringA& sClipdata, const HWND hOwningWnd)
+{
+	const UINT cFormat = RegisterClipboardFormat(L"TGIT_UNIFIEDDIFF");
+	if (cFormat == 0)
+		return false;
+	const auto clipboard = wil::open_clipboard_retrying(hOwningWnd);
+	if (!clipboard)
+		return false;
+
+	EmptyClipboard();
+	auto diff = wil::make_moveable_hglobal(std::string{ tgit::wstr::StringView{ sClipdata } });
+	if (!diff || !SetClipboardData(cFormat, diff.get()))
+		return false;
+	// The same block is also offered as CF_TEXT, so the clipboard owns it from
+	// the first successful SetClipboardData on.
+	const HGLOBAL diffOwnedByClipboard = diff.release();
+	if (!SetClipboardData(CF_TEXT, diffOwnedByClipboard))
+		return false;
+
+	const std::wstring sClipdataW = CUnicodeUtils::StdGetUnicode(std::string_view(sClipdata.GetString(), sClipdata.GetLength()));
+	auto textW = wil::make_moveable_hglobal(sClipdataW);
+	if (!textW || !SetClipboardData(CF_UNICODETEXT, textW.get()))
+		return false;
+	textW.release();
+
+	return true;
+}
+
+
+CString WordWrap(const CString& longstring, int limit, const bool bCompactPaths, const bool bForceWrap, const int tabSize)
+{
+	const int nLength = longstring.GetLength();
 	CString retString;
 
 	if (limit < 0)
@@ -522,7 +509,7 @@ CString CStringUtils::WordWrap(const CString& longstring, int limit, const bool 
 			if (bCompactPaths)
 			{
 				CString longline = longstring.Mid(nLineStart, nLineEnd-nLineStart).Left(MAX_PATH-1);
-				if ((bCompactPaths)&&(longline.GetLength() < MAX_PATH))
+				if (longline.GetLength() < MAX_PATH)
 				{
 					if (((!PathIsFileSpec(longline))&&longline.Find(':')<3)||(PathIsURL(longline)))
 					{
@@ -550,7 +537,7 @@ CString CStringUtils::WordWrap(const CString& longstring, int limit, const bool 
 	if (bCompactPaths)
 	{
 		CString longline = longstring.Mid(nLineStart).Left(MAX_PATH-1);
-		if ((bCompactPaths)&&(longline.GetLength() < MAX_PATH))
+		if (longline.GetLength() < MAX_PATH)
 		{
 			if (((!PathIsFileSpec(longline))&&longline.Find(':')<3)||(PathIsURL(longline)))
 			{
@@ -567,9 +554,9 @@ CString CStringUtils::WordWrap(const CString& longstring, int limit, const bool 
 	return retString;
 }
 
-std::vector<CString> CStringUtils::WordWrap(const CString& longstring, int limit, const int tabSize)
+std::vector<CString> WordWrap(const CString& longstring, int limit, const int tabSize)
 {
-	int nLength = longstring.GetLength();
+	const int nLength = longstring.GetLength();
 	std::vector<CString> retVec;
 
 	if (limit < 0)
@@ -600,33 +587,52 @@ std::vector<CString> CStringUtils::WordWrap(const CString& longstring, int limit
 		}
 	}
 
-	auto sMid = longstring.Mid(nLineStart);
+	const auto sMid = longstring.Mid(nLineStart);
 	retVec.push_back(sMid);
 
 	return retVec;
 }
 
-int CStringUtils::GetMatchingLength (const CString& lhs, const CString& rhs)
+
+CString LinesWrap(const CString& longstring, const int limit /* = 80 */, const bool bCompactPaths /* = true */)
 {
-	const int lhsLength = lhs.GetLength();
-	const int rhsLength = rhs.GetLength();
-	const int maxResult = std::min(lhsLength, rhsLength);
+	CString retString;
+	if ((longstring.GetLength() < limit) || (limit == 0))
+		return longstring;  // no wrapping needed.
+	// now start breaking the string into lines
 
-	LPCWSTR pLhs = lhs;
-	LPCWSTR pRhs = rhs;
-
-	for (int i = 0; i < maxResult; ++i)
-		if (pLhs[i] != pRhs[i])
-			return i;
-
-	return maxResult;
+	int linepos = 0;
+	int lineposold = 0;
+	CString temp;
+	while ((linepos = longstring.Find('\n', linepos)) >= 0)
+	{
+		temp = longstring.Mid(lineposold, linepos-lineposold);
+		if ((linepos+1)<longstring.GetLength())
+			++linepos;
+		else
+			break;
+		lineposold = linepos;
+		if (!retString.IsEmpty())
+			retString += L'\n';
+		retString += WordWrap(temp, limit, bCompactPaths, false, 4);
+	}
+	temp = longstring.Mid(lineposold);
+	if (!temp.IsEmpty())
+		retString += L'\n';
+	retString += WordWrap(temp, limit, bCompactPaths, false, 4);
+	retString.Trim();
+	return retString;
 }
 
-int CStringUtils::FastCompareNoCase (const CStringW& lhs, const CStringW& rhs)
+
+/**
+ * Optimizing wrapper around CompareNoCase.
+ */
+int FastCompareNoCase (const CStringW& lhs, const CStringW& rhs)
 {
 	// attempt latin-only comparison
 
-	INT_PTR count = std::min(lhs.GetLength(), rhs.GetLength()+1);
+	const INT_PTR count = std::min(lhs.GetLength(), rhs.GetLength()+1);
 	const wchar_t* left = lhs;
 	const wchar_t* right = rhs;
 	for (const wchar_t* last = left + count+1; left < last; ++left, ++right)
@@ -634,8 +640,7 @@ int CStringUtils::FastCompareNoCase (const CStringW& lhs, const CStringW& rhs)
 		int leftChar = *left;
 		int rightChar = *right;
 
-		int diff = leftChar - rightChar;
-		if (diff != 0)
+		if (int diff = leftChar - rightChar; diff != 0)
 		{
 			// case-sensitive comparison found a difference
 
@@ -668,31 +673,37 @@ int CStringUtils::FastCompareNoCase (const CStringW& lhs, const CStringW& rhs)
 	return 0;
 }
 
-bool CStringUtils::IsPlainReadableASCII(const CString& text)
+
+// Case-insensitive prefix/suffix tests: std:: has no locale-free spelling.
+bool StartsWithI(const wchar_t* heystack, const CString& needle)
 {
-	for (int i = 0; i < text.GetLength(); ++i)
-	{
-		if (text[i] < 32 || text[i] >= 127)
-			return false;
-	}
-	return true;
+	return _wcsnicmp(heystack, needle, needle.GetLength()) == 0;
 }
 
-auto cleanup_space(const std::wstring_view string) {
-	return std::regex_replace(std::wstring{ string }, std::wregex(L"\\s+"), L" ");
-}
-
-void cleanup_space(CString& string)
+bool EndsWithI(const CString& heystack, const wchar_t* needle)
 {
-	string = cleanup_space(std::wstring_view{ string }).c_str();
+	const auto lenNeedle = wcslen(needle);
+	const auto lenHeystack = static_cast<size_t>(heystack.GetLength());
+	if (lenNeedle > lenHeystack)
+		return false;
+	return _wcsnicmp(static_cast<LPCWSTR>(heystack) + (lenHeystack - lenNeedle), needle, lenNeedle) == 0;
 }
 
-CString CStringUtils::UnescapeGitQuotePath(const std::wstring_view s)
+// Constrained for the same reason as the EndsWith templates above.
+template <tgit::wstr::IsRealString TStr>
+	requires std::same_as<typename TStr::value_type, wchar_t>
+bool EndsWithI(const TStr& heystack, const std::wstring_view needle) noexcept
 {
-	return UnescapeGitQuotePathA(CUnicodeUtils::StdGetUTF8(s));
+	const std::wstring_view h(heystack);
+	return h.size() >= needle.size() && _wcsnicmp(h.data() + (h.size() - needle.size()), needle.data(), needle.size()) == 0;
 }
 
-CString CStringUtils::UnescapeGitQuotePathA(const std::string_view s)
+
+/**
+ * Unescapes Git quoted filenames
+ * This is not a full implementation of the unescaper as we skip some conversions that will result in invalid filenames.
+ */
+CString UnescapeGitQuotePathA(const std::string_view s)
 {
 	const int i_size = gsl::narrow<int>(s.size());
 	CStringA t;
@@ -731,263 +742,95 @@ CString CStringUtils::UnescapeGitQuotePathA(const std::string_view s)
 	}
 	return CUnicodeUtils::GetUnicode<CString>(t);
 }
-
-void get_sane_name(CString* out, const CString* name, const CString& email)
+CString UnescapeGitQuotePath(const std::wstring_view s)
 {
-	const CString* src = name;
-	if (name->GetLength() < 3 || 60 < name->GetLength() || wcschr(*name, L'@') || wcschr(*name, L'<') || wcschr(*name, L'>'))
-		src = &email;
-	else if (name == out)
-		return;
-	*out = *src;
+	return UnescapeGitQuotePathA(CUnicodeUtils::StdGetUTF8(s));
 }
 
-void parse_bogus_from(const CString& mailaddress, CString& parsedAddress, CString* parsedName)
+
+struct EmailAddress
 {
-	/* John Doe <johndoe> */
+	std::wstring address;
+	std::wstring name;
+};
 
-	const int bra = mailaddress.Find(L'<');
-	if (bra < 0)
-		return;
-	const int ket = mailaddress.Find(L'>');
-	if (ket < 0)
-		return;
-
-	parsedAddress = mailaddress.Mid(bra + 1, ket - bra - 1);
-
-	if (parsedName)
-	{
-		*parsedName = mailaddress.Left(bra).Trim();
-		get_sane_name(parsedName, parsedName, parsedAddress);
-	}
-}
-
-void CStringUtils::ParseEmailAddress(CString mailaddress, CString& parsedAddress, CString* parsedName)
+/**
+ * Splits a From:-style string into address and display name, best effort.
+ *
+ * Handles what git's mailinfo.c handle_from() does, which this used to be a
+ * line-by-line port of:
+ *   John Doe <john.doe@xz>                   "John Doe" <john.doe@xz>
+ *   john.doe@xz (John Doe)                   <john.doe@xz> "John Doe"
+ *   John (zzz) Doe <john.doe@xz> (Comment)   John Doe <johndoe>   (no '@')
+ * A leading quoted name is taken verbatim, with \" unescaped. Any other name
+ * falls back to the address when it does not look like a name - under 3 or
+ * over 60 characters, or containing @, < or > - which is git's get_sane_name().
+ * Not an RFC 5322 parser: no groups, no encoded words, no nested comments.
+ */
+EmailAddress ParseEmailAddress(const std::wstring_view input)
 {
-	if (parsedName)
-		parsedName->Empty();
+	static const std::wregex quotedName(LR"re(^\s*"((?:[^"\\]|\\.)*)"([\s\S]*)$)re");
+	static const std::wregex escapedQuote(LR"(\\")");
+	static const std::wregex atToken(LR"(<?([^\s<]*@[^\s>]*)>?)");
+	static const std::wregex bracketed(LR"(^([\s\S]*?)<([^>]*)>)");
+	static const std::wregex whitespaceRun(LR"(\s+)");
 
-	mailaddress = mailaddress.Trim();
-	if (mailaddress.IsEmpty())
-	{
-		parsedAddress.Empty();
-		return;
-	}
+	const auto trim = [](std::wstring s) {
+		tgit::wstr::Trim(s);
+		return s;
+	};
+	const auto saneName = [](std::wstring name, const std::wstring& address) -> std::wstring {
+		if (name.size() >= 3 && name.size() <= 60 && name.find_first_of(L"@<>") == std::wstring::npos)
+			return name;
+		return address;
+	};
 
-	if (mailaddress.Left(1) == L'"')
+	EmailAddress result;
+	std::wstring rest = trim(std::wstring(input));
+	if (rest.empty())
+		return result;
+
+	std::wstring quoted;
+	if (std::wsmatch m; std::regex_match(rest, m, quotedName))
 	{
-		mailaddress = mailaddress.TrimLeft();
-		bool escaped = false;
-		bool opened = true;
-		for (int i = 1; i < mailaddress.GetLength(); ++i)
-		{
-			if (mailaddress[i] == L'"')
-			{
-				if (!escaped)
-				{
-					opened = !opened;
-					if (!opened)
-					{
-						if (parsedName)
-							*parsedName = mailaddress.Mid(1, i - 1);
-						mailaddress = mailaddress.Mid(i);
-						break;
-					}
-				}
-				else
-				{
-					escaped = false;
-					mailaddress.Delete(i - 1);
-					--i;
-				}
-			}
-			else if (mailaddress[i] == L'\\')
-				escaped = !escaped;
-		}
+		quoted = std::regex_replace(m[1].str(), escapedQuote, L"\"");
+		rest = m[2].str();
 	}
 
-	const auto buf = mailaddress.GetBuffer();
-	auto at = wcschr(buf, L'@');
-	if (!at)
+	if (std::wsmatch m; std::regex_search(rest, m, atToken))
 	{
-		parse_bogus_from(mailaddress, parsedAddress, parsedName);
-		return;
+		result.address = m[1].str();
+		rest = m.prefix().str() + L' ' + m.suffix().str();
 	}
-
-	/* Pick up the string around '@', possibly delimited with <>
-	 * pair; that is the email part.
-	 */
-	while (at > buf)
+	else if (std::regex_search(rest, m, bracketed))
 	{
-		auto c = at[-1];
-		if (_istspace(c))
-			break;
-		if (c == L'<')
-		{
-			at[-1] = L' ';
-			break;
-		}
-		at--;
-	}
-
-	mailaddress.ReleaseBuffer();
-	const size_t el = wcscspn(at, L" \n\t\r\v\f>");
-	parsedAddress = mailaddress.Mid(static_cast<int>(at - buf), static_cast<int>(el));
-	mailaddress.Delete(static_cast<int>(at - buf), static_cast<int>(el + (at[el] ? 1 : 0)));
-
-	/* The remainder is name.  It could be
-	 *
-	 * - "John Doe <john.doe@xz>"			(a), or
-	 * - "john.doe@xz (John Doe)"			(b), or
-	 * - "John (zzz) Doe <john.doe@xz> (Comment)"	(c)
-	 *
-	 * but we have removed the email part, so
-	 *
-	 * - remove extra spaces which could stay after email (case 'c'), and
-	 * - trim from both ends, possibly removing the () pair at the end
-	 *   (cases 'b' and 'c').
-	 */
-	cleanup_space(mailaddress);
-	mailaddress.Trim();
-	if (!mailaddress.IsEmpty() && ((mailaddress[0] == L'(' && mailaddress[mailaddress.GetLength() - 1] == L')') || (mailaddress[0] == L'"' && mailaddress[mailaddress.GetLength() - 1] == L'"')))
-		mailaddress = mailaddress.Mid(1, mailaddress.GetLength() - 2);
-
-	if (parsedName && parsedName->IsEmpty())
-		get_sane_name(parsedName, &mailaddress, parsedAddress);
-}
-
-bool CStringUtils::StartsWith(const wchar_t* heystack, const CString& needle)
-{
-	return wcsncmp(heystack, needle, needle.GetLength()) == 0;
-}
-
-bool CStringUtils::EndsWith(const CString& heystack, const wchar_t* needle)
-{
-	const auto lenNeedle = wcslen(needle);
-	const auto lenHeystack = static_cast<size_t>(heystack.GetLength());
-	if (lenNeedle > lenHeystack)
-		return false;
-	return wcsncmp(static_cast<LPCWSTR>(heystack) + (lenHeystack - lenNeedle), needle, lenNeedle) == 0;
-}
-
-bool CStringUtils::EndsWith(const CString& heystack, const wchar_t needle)
-{
-	const auto lenHeystack = heystack.GetLength();
-	if (!lenHeystack)
-		return false;
-	return *(static_cast<LPCWSTR>(heystack) + (lenHeystack - 1)) == needle;
-}
-
-bool CStringUtils::EndsWithI(const CString& heystack, const wchar_t* needle)
-{
-	const auto lenNeedle = wcslen(needle);
-	const auto lenHeystack = static_cast<size_t>(heystack.GetLength());
-	if (lenNeedle > lenHeystack)
-		return false;
-	return _wcsnicmp(static_cast<LPCWSTR>(heystack) + (lenHeystack - lenNeedle), needle, lenNeedle) == 0;
-}
-
-bool CStringUtils::StartsWithI(const wchar_t* heystack, const CString& needle)
-{
-	return _wcsnicmp(heystack, needle, needle.GetLength()) == 0;
-}
-
-bool CStringUtils::WriteStringToTextFile(const LPCWSTR path, const LPCWSTR text, const bool bUTF8 /* = true */)
-{
-	return WriteStringToTextFile(static_cast<const std::wstring&>(path), std::wstring_view(text), bUTF8);
-}
-
-
-bool CStringUtils::StartsWith(const wchar_t* heystack, const wchar_t* needle)
-{
-	return wcsncmp(heystack, needle, wcslen(needle)) == 0;
-}
-
-bool CStringUtils::StartsWith(const char* heystack, const char* needle)
-{
-	return strncmp(heystack, needle, strlen(needle)) == 0;
-}
-
-bool CStringUtils::WriteStringToTextFile(const std::wstring& path, const std::wstring_view text, const bool bUTF8 /* = true */)
-{
-	DWORD dwWritten = 0;
-	RIAA::CAutoFile hFile = CreateFile(path.c_str(), GENERIC_WRITE, FILE_SHARE_DELETE, nullptr, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
-	if (!hFile)
-		return false;
-
-	if (bUTF8)
-	{
-		std::string buf = CUnicodeUtils::StdGetUTF8(text);
-		if (!WriteFile(hFile, buf.c_str(), static_cast<DWORD>(buf.length()), &dwWritten, nullptr))
-		{
-			return false;
-		}
+		// "John Doe <johndoe>": an address without an '@'
+		result.address = m[2].str();
+		rest = m[1].str();
 	}
 	else
+		return { .address = {}, .name = quoted };
+
+	if (!quoted.empty())
 	{
-		if (!WriteFile(hFile, text.data(), static_cast<DWORD>(text.length() * sizeof(wchar_t)), &dwWritten, nullptr))
-		{
-			return false;
-		}
+		result.name = std::move(quoted);
+		return result;
 	}
-	return true;
+
+	// what is left is the name, possibly wrapped in () or "" (cases "john.doe@xz (John Doe)" and "<john.doe@xz> \"John Doe\"")
+	rest = trim(std::regex_replace(rest, whitespaceRun, L" "));
+	if (rest.size() >= 2 && ((rest.front() == L'(' && rest.back() == L')') || (rest.front() == L'"' && rest.back() == L'"')))
+		rest = rest.substr(1, rest.size() - 2);
+	result.name = saneName(std::move(rest), result.address);
+	return result;
 }
 
-void PipeToNull(wchar_t* ptr)
-{
-	if (*ptr == '|')
-		*ptr = '\0';
-}
 
-void CStringUtils::PipesToNulls(wchar_t* buffer, const size_t length)
-{
-	wchar_t* ptr = buffer + length;
-	while (ptr != buffer)
-	{
-		PipeToNull(ptr);
-		ptr--;
-	}
-}
-
-void CStringUtils::PipesToNulls(wchar_t* buffer)
-{
-	wchar_t* ptr = buffer;
-	while (*ptr)
-	{
-		PipeToNull(ptr);
-		++ptr;
-	}
-}
-
-void CStringUtils::TrimLeft(std::string_view& view)
-{
-	while (!view.empty() && std::isspace(static_cast<unsigned char>(view.front())))
-		view.remove_prefix(1);
-}
-
-void CStringUtils::TrimRight(std::string_view& view)
-{
-	while (!view.empty() && std::isspace(static_cast<unsigned char>(view.back())))
-		view.remove_suffix(1);
-}
-
-void CStringUtils::TrimRight(std::wstring_view& view)
-{
-	while (!view.empty() && std::iswspace(static_cast<wchar_t>(view.back())))
-		view.remove_suffix(1);
-}
-
-std::string_view CStringUtils::TrimRight(const std::string_view sv, const std::string_view chars)
-{
-	const auto pos = sv.find_last_not_of(chars);
-
-	if (pos == std::string_view::npos)
-		return {};
-
-	return sv.substr(0, pos + 1);
-}
-
-CString CStringUtils::ExpandPlaceholdersForCmd(const CString& input, const std::map<CString, CString>& values, CString (*escaper)(CString))
+/**
+ * Expands placeholders to corresponding values provided in the map replacements.
+ * This method makes sure that values cannot contain other placeholders that may be replaced later on.
+ */
+CString ExpandPlaceholdersForCmd(const CString& input, const std::map<CString, CString>& values, CString (*escaper)(CString))
 {
 	CString result;
 	const int len = input.GetLength();
@@ -1032,9 +875,18 @@ CString CStringUtils::ExpandPlaceholdersForCmd(const CString& input, const std::
 	return result;
 }
 
+
+/**
+ * Quotes one argv element the way CommandLineToArgvW / the MSVC runtime read
+ * it back. Always adds the surrounding quotes; see \ref NeedsWindowsCliQuoting
+ * for the "only when it matters" test the argv serializer applies first.
+ *
+ * Flavor-neutral on purpose: this is the building block CGit::SerializeArgv
+ * needs, and CGit is on the list of sources the ATL side compiles too.
+ */
 // algorithm based on https://learn.microsoft.com/en-gb/archive/blogs/twistylittlepassagesallalike/everyone-quotes-command-line-arguments-the-wrong-way
 // also cf. https://learn.microsoft.com/en-us/cpp/cpp/main-function-command-line-args
-std::wstring CStringUtils::EscapeWindowsCliArgument(const std::wstring_view argument)
+std::wstring EscapeWindowsCliArgument(const std::wstring_view argument)
 {
 	std::wstring result;
 	result.reserve(argument.size() + 2);
@@ -1072,13 +924,28 @@ std::wstring CStringUtils::EscapeWindowsCliArgument(const std::wstring_view argu
 	return result;
 }
 
-bool CStringUtils::NeedsWindowsCliQuoting(const std::wstring_view argument)
+
+/**
+ * True when \a argument would not survive the round trip unquoted. An empty
+ * element must be quoted (otherwise it vanishes); whitespace and quotes are
+ * the only other characters CommandLineToArgvW treats as structure.
+ *
+ * A lone backslash needs nothing: backslashes are only special immediately
+ * before a quote, and there is no quote here to be before.
+ */
+bool NeedsWindowsCliQuoting(const std::wstring_view argument)
 {
 	// An empty element has to be quoted, or it disappears from the round trip.
 	return argument.empty() || argument.find_first_of(L" \t\n\v\"") != std::wstring_view::npos;
 }
 
-std::wstring CStringUtils::EscapePosixShellArgument(const std::wstring_view argument)
+
+/**
+ * Quotes one argv element for a POSIX shell, which is what the msys2/cygwin
+ * path needs: CGit writes the whole command line into a temp file and hands
+ * it to bash.exe, so there the "command line" is shell *source*.
+ */
+std::wstring EscapePosixShellArgument(const std::wstring_view argument)
 {
 	// Single quotes suppress every expansion bash performs, and the only thing
 	// that cannot appear between them is a single quote - so close, escape it
@@ -1098,7 +965,13 @@ std::wstring CStringUtils::EscapePosixShellArgument(const std::wstring_view argu
 	return result;
 }
 
-bool CStringUtils::NeedsPosixShellQuoting(const std::wstring_view argument)
+
+/**
+ * True unless \a argument is made entirely of characters no shell touches.
+ * Deliberately a whitelist: a blacklist of bash metacharacters is a list you
+ * are always one shell feature behind on.
+ */
+bool NeedsPosixShellQuoting(const std::wstring_view argument)
 {
 	if (argument.empty())
 		return true;
@@ -1111,7 +984,7 @@ bool CStringUtils::NeedsPosixShellQuoting(const std::wstring_view argument)
 }
 
 
-CString CStringUtils::EscapeWindowsCliArguments(const CString& argument)
+CString EscapeWindowsCliArguments(const CString& argument)
 {
 	const std::wstring escaped = EscapeWindowsCliArgument(std::wstring_view(argument, argument.GetLength()));
 	return CString(escaped.data(), static_cast<int>(escaped.size()));

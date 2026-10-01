@@ -18,7 +18,7 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 #pragma once
-#include "scope_exit_noexcept.h"
+import tgittypes;
 
 /**
  * A helper class for invoking CreateProcess(). The lpProcessInformation

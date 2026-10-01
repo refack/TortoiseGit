@@ -25,237 +25,237 @@
 TEST(CStringUtils, WordWrap)
 {
 	CString longline = L"this is a test of how a string can be splitted into several lines";
-	CString splittedline = CStringUtils::WordWrap(longline, 10, true, false, 4);
+	CString splittedline = StringUtils::WordWrap(longline, 10, true, false, 4);
 	EXPECT_STREQ(L"this is a\n test of\n how a\n string\n can be\n splitted\n into\n several\n lines", splittedline);
 	longline = L"c:\\this_is_a_very_long\\path_on_windows and of course some other words added to make the line longer";
-	splittedline = CStringUtils::WordWrap(longline, 10, true, false, 4);
+	splittedline = StringUtils::WordWrap(longline, 10, true, false, 4);
 	EXPECT_STREQ(L"...\\pat...\n and of\n course\n some\n other\n words\n added to\n make the\n line\n longer", splittedline);
 	longline = L"Forced failure in https://myserver.com/a_long_url_to_split PROPFIND error";
-	splittedline = CStringUtils::WordWrap(longline, 20, true, false, 4);
+	splittedline = StringUtils::WordWrap(longline, 20, true, false, 4);
 	EXPECT_STREQ(L"Forced failure in\n https://myserver.com/a_long_url_to_split\n PROPFIND error", splittedline);
 	longline = L"Forced\nfailure in https://myserver.com/a_long_url_to_split PROPFIND\nerror";
-	splittedline = CStringUtils::WordWrap(longline, 40, true, false, 4);
+	splittedline = StringUtils::WordWrap(longline, 40, true, false, 4);
 	EXPECT_STREQ(L"Forced\nfailure in\n https://myserver.com/a_long_url_to_split\n PROPFIND\nerror", splittedline);
 	longline = L"Failed to add file\nc:\\export\\spare\\Devl-JBoss\\development\\head\\src\\something\\CoreApplication\\somethingelse\\src\\com\\yetsomthingelse\\shipper\\DAO\\ShipmentInfoDAO1.java\nc:\\export\\spare\\Devl-JBoss\\development\\head\\src\\something\\CoreApplication\\somethingelse\\src\\com\\yetsomthingelse\\shipper\\DAO\\ShipmentInfoDAO2.java";
-	splittedline = CStringUtils::WordWrap(longline, 80, true, false, 4);
+	splittedline = StringUtils::WordWrap(longline, 80, true, false, 4);
 	EXPECT_STREQ(L"Failed to add\n file\nc:\\export\\spare\\Devl-JBoss\\development\\head\\src\\something\\CoreApplication\\somethingelse\\src\\com\\yetsomthingelse\\shipper\\DAO\\ShipmentInfoDAO1.java\nc:\\export\\spare\\Devl-JBoss\\development\\head\\src\\something\\CoreApplication\\somethingelse\\src\\com\\yetsomthing\n", splittedline);
 }
 
 TEST(CStringUtils, LinesWrap)
 {
 	CString longline = L"this is a test of how a string can be splitted into several lines";
-	CString splittedline = CStringUtils::LinesWrap(longline, 10, true);
+	CString splittedline = StringUtils::LinesWrap(longline, 10, true);
 	EXPECT_STREQ(L"this is a\n test of\n how a\n string\n can be\n splitted\n into\n several\n lines", splittedline);
 	longline = L"c:\\this_is_a_very_long\\path_on_windows and of course some other words added to make the line longer";
-	splittedline = CStringUtils::LinesWrap(longline, 10);
+	splittedline = StringUtils::LinesWrap(longline, 10);
 	EXPECT_STREQ(L"c:\\this_is_a_very_long\\path_on_windows\n and of\n course\n some\n other\n words\n added to\n make the\n line\n longer", splittedline);
 	longline = L"Forced failure in https://myserver.com/a_long_url_to_split PROPFIND error";
-	splittedline = CStringUtils::LinesWrap(longline, 20, true);
+	splittedline = StringUtils::LinesWrap(longline, 20, true);
 	EXPECT_STREQ(L"Forced failure in\n https://myserver.com/a_long_url_to_split\n PROPFIND error", splittedline);
 	longline = L"Forced\nfailure in https://myserver.com/a_long_url_to_split PROPFIND\nerror";
-	splittedline = CStringUtils::LinesWrap(longline, 40);
+	splittedline = StringUtils::LinesWrap(longline, 40);
 	EXPECT_STREQ(L"Forced\nfailure in\n https://myserver.com/a_long_url_to_split\n PROPFIND\nerror", splittedline);
 	longline = L"Failed to add file\nc:\\export\\spare\\Devl-JBoss\\development\\head\\src\\something\\CoreApplication\\somethingelse\\src\\com\\yetsomthingelse\\shipper\\DAO\\ShipmentInfoDAO1.java\nc:\\export\\spare\\Devl-JBoss\\development\\head\\src\\something\\CoreApplication\\somethingelse\\src\\com\\yetsomthingelse\\shipper\\DAO\\ShipmentInfoDAO2.java";
-	splittedline = CStringUtils::LinesWrap(longline);
+	splittedline = StringUtils::LinesWrap(longline);
 	EXPECT_STREQ(L"Failed to add file\nc:\\export\\spare\\Devl-JBoss\\development\\head\\src\\something\\CoreApplication\\somethingelse\\src\\com\\yetsomthingelse\\shipper\\DAO\\ShipmentInfoDAO1.java\n\nc:\\export\\spare\\Devl-JBoss\\development\\head\\src\\something\\CoreApplication\\somethingelse\\src\\com\\yetsomthingelse\\shipper\\DAO\\ShipmentInfoDAO2.java", splittedline);
 	longline = L"The commit comment is not properly formatted.\nFormat:\n  Field 1 : Field 2 : Field 3\nWhere:\nField 1 - Team Name|Triage|Merge|Goal\nField 2 - V1 Backlog Item ID|Triage Number|SVNBranch|Goal Name\nField 3 - Description of change\nExamples:\n\nTeam Gamma : B-12345 : Changed some code\n  Triage : 123 : Fixed production release bug\n  Merge : sprint0812 : Merged sprint0812 into prod\n  Goal : Implement Pre-Commit Hook : Commit message hook impl";
-	splittedline = CStringUtils::LinesWrap(longline, 80);
+	splittedline = StringUtils::LinesWrap(longline, 80);
 	EXPECT_STREQ(L"The commit comment is not properly formatted.\nFormat:\n  Field 1 : Field 2 : Field 3\nWhere:\nField 1 - Team Name|Triage|Merge|Goal\nField 2 - V1 Backlog Item ID|Triage Number|SVNBranch|Goal Name\nField 3 - Description of change\nExamples:\n\nTeam Gamma : B-12345 : Changed some code\n  Triage : 123 : Fixed production release bug\n  Merge : sprint0812 : Merged sprint0812 into prod\n  Goal : Implement Pre-Commit Hook : Commit message hook impl", splittedline);
 }
 
 TEST(CStringUtils, RemoveAccelerators)
 {
 	CString empty;
-	CStringUtils::RemoveAccelerators(empty);
+	StringUtils::RemoveAccelerators(empty);
 	EXPECT_STREQ(L"", empty);
 
 	CString text1 = L"&Accellerator";
-	CStringUtils::RemoveAccelerators(text1);
+	StringUtils::RemoveAccelerators(text1);
 	EXPECT_STREQ(L"Accellerator", text1);
 
 	CString text1a = L"Ac&cellerator";
-	CStringUtils::RemoveAccelerators(text1a);
+	StringUtils::RemoveAccelerators(text1a);
 	EXPECT_STREQ(L"Accellerator", text1a);
 
 	CString text2 = L"Accellerator&";
-	CStringUtils::RemoveAccelerators(text2);
+	StringUtils::RemoveAccelerators(text2);
 	EXPECT_STREQ(L"Accellerator", text2);
 
 	CString text3 = L"Some & text";
-	CStringUtils::RemoveAccelerators(text3);
+	StringUtils::RemoveAccelerators(text3);
 	EXPECT_STREQ(L"Some & text", text3);
 
 	CString text4 = L"&&Accellerator";
-	CStringUtils::RemoveAccelerators(text4);
+	StringUtils::RemoveAccelerators(text4);
 	EXPECT_STREQ(L"&Accellerator", text4);
 
 	CString text5 = L"Acce&&&llerator";
-	CStringUtils::RemoveAccelerators(text5);
+	StringUtils::RemoveAccelerators(text5);
 	EXPECT_STREQ(L"Acce&llerator", text5);
 
 	CString text6 = L"Some & te&xt";
-	CStringUtils::RemoveAccelerators(text6);
+	StringUtils::RemoveAccelerators(text6);
 	EXPECT_STREQ(L"Some & text", text6);
 }
 
 TEST(CStringUtils, GetAccellerator)
 {
-	EXPECT_EQ(L'\0', CStringUtils::GetAccellerator(L""));
-	EXPECT_EQ(L'\0', CStringUtils::GetAccellerator(L"&"));
-	EXPECT_EQ(L'\0', CStringUtils::GetAccellerator(L"NoAccellerator"));
-	EXPECT_EQ(L'A', CStringUtils::GetAccellerator(L"&Accellerator"));
-	EXPECT_EQ(L'C', CStringUtils::GetAccellerator(L"Ac&cellerator"));
-	EXPECT_EQ(L'\0', CStringUtils::GetAccellerator(L"Accellerator&"));
-	EXPECT_EQ(L'\0', CStringUtils::GetAccellerator(L"Accellerator&&"));
-	EXPECT_EQ(L'\0', CStringUtils::GetAccellerator(L"Some & text"));
-	EXPECT_EQ(L'\0', CStringUtils::GetAccellerator(L"&&Accellerator"));
-	EXPECT_EQ(L'L', CStringUtils::GetAccellerator(L"Acce&&&llerator"));
-	EXPECT_EQ(L'X', CStringUtils::GetAccellerator(L"Some & te&xt"));
+	EXPECT_EQ(L'\0', StringUtils::GetAccellerator(L""));
+	EXPECT_EQ(L'\0', StringUtils::GetAccellerator(L"&"));
+	EXPECT_EQ(L'\0', StringUtils::GetAccellerator(L"NoAccellerator"));
+	EXPECT_EQ(L'A', StringUtils::GetAccellerator(L"&Accellerator"));
+	EXPECT_EQ(L'C', StringUtils::GetAccellerator(L"Ac&cellerator"));
+	EXPECT_EQ(L'\0', StringUtils::GetAccellerator(L"Accellerator&"));
+	EXPECT_EQ(L'\0', StringUtils::GetAccellerator(L"Accellerator&&"));
+	EXPECT_EQ(L'\0', StringUtils::GetAccellerator(L"Some & text"));
+	EXPECT_EQ(L'\0', StringUtils::GetAccellerator(L"&&Accellerator"));
+	EXPECT_EQ(L'L', StringUtils::GetAccellerator(L"Acce&&&llerator"));
+	EXPECT_EQ(L'X', StringUtils::GetAccellerator(L"Some & te&xt"));
 }
 TEST(CStringUtils, ParseEmailAddress)
 {
 	CString mail, name;
-	CStringUtils::ParseEmailAddress(L"", mail, &name);
+	StringUtils::ParseEmailAddress(L"", mail, &name);
 	EXPECT_STREQ(L"", mail);
 	EXPECT_STREQ(L"", name);
 
-	CStringUtils::ParseEmailAddress(L" ", mail, &name);
+	StringUtils::ParseEmailAddress(L" ", mail, &name);
 	EXPECT_STREQ(L"", mail);
 	EXPECT_STREQ(L"", name);
 
 	mail.Empty();
-	CStringUtils::ParseEmailAddress(L"test@example.com ", mail);
+	StringUtils::ParseEmailAddress(L"test@example.com ", mail);
 	EXPECT_STREQ(L"test@example.com", mail);
 
 	mail.Empty();
-	CStringUtils::ParseEmailAddress(L" test@example.com", mail);
+	StringUtils::ParseEmailAddress(L" test@example.com", mail);
 	EXPECT_STREQ(L"test@example.com", mail);
 
 	mail.Empty();
-	CStringUtils::ParseEmailAddress(L"test@example.com", mail);
+	StringUtils::ParseEmailAddress(L"test@example.com", mail);
 	EXPECT_STREQ(L"test@example.com", mail);
 
 	mail.Empty();
-	CStringUtils::ParseEmailAddress(L"John Doe <johndoe>", mail);
+	StringUtils::ParseEmailAddress(L"John Doe <johndoe>", mail);
 	EXPECT_STREQ(L"johndoe", mail);
 
 	mail.Empty();
 	name.Empty();
-	CStringUtils::ParseEmailAddress(L"test@example.com", mail, &name);
+	StringUtils::ParseEmailAddress(L"test@example.com", mail, &name);
 	EXPECT_STREQ(L"test@example.com", mail);
 	EXPECT_STREQ(L"test@example.com", name);
 
 	mail.Empty();
 	name.Empty();
-	CStringUtils::ParseEmailAddress(L"<test@example.com>", mail, &name);
+	StringUtils::ParseEmailAddress(L"<test@example.com>", mail, &name);
 	EXPECT_STREQ(L"test@example.com", mail);
 	EXPECT_STREQ(L"test@example.com", name);
 
 	mail.Empty();
 	name.Empty();
-	CStringUtils::ParseEmailAddress(L"John Doe <test@example.com>", mail, &name);
+	StringUtils::ParseEmailAddress(L"John Doe <test@example.com>", mail, &name);
 	EXPECT_STREQ(L"test@example.com", mail);
 	EXPECT_STREQ(L"John Doe", name);
 
 	mail.Empty();
 	name.Empty();
-	CStringUtils::ParseEmailAddress(L"\"John Doe\" <test@example.com>", mail, &name);
+	StringUtils::ParseEmailAddress(L"\"John Doe\" <test@example.com>", mail, &name);
 	EXPECT_STREQ(L"test@example.com", mail);
 	EXPECT_STREQ(L"John Doe", name);
 
 	mail.Empty();
 	name.Empty();
-	CStringUtils::ParseEmailAddress(L"<test@example.com", mail, &name);
+	StringUtils::ParseEmailAddress(L"<test@example.com", mail, &name);
 	EXPECT_STREQ(L"test@example.com", mail);
 	EXPECT_STREQ(L"test@example.com", name);
 
 	mail.Empty();
 	name.Empty();
-	CStringUtils::ParseEmailAddress(L"test@example.com>", mail, &name);
+	StringUtils::ParseEmailAddress(L"test@example.com>", mail, &name);
 	EXPECT_STREQ(L"test@example.com", mail);
 	EXPECT_STREQ(L"test@example.com", name);
 
 	mail.Empty();
 	name.Empty();
-	CStringUtils::ParseEmailAddress(L"John Doe <johndoe>", mail, &name);
+	StringUtils::ParseEmailAddress(L"John Doe <johndoe>", mail, &name);
 	EXPECT_STREQ(L"johndoe", mail);
 	EXPECT_STREQ(L"John Doe", name);
 
 	mail.Empty();
 	name.Empty();
-	CStringUtils::ParseEmailAddress(L"john.doe@example.com (John Doe)", mail, &name);
+	StringUtils::ParseEmailAddress(L"john.doe@example.com (John Doe)", mail, &name);
 	EXPECT_STREQ(L"john.doe@example.com", mail);
 	EXPECT_STREQ(L"John Doe", name);
 
 	mail.Empty();
 	name.Empty();
-	CStringUtils::ParseEmailAddress(L"John (zzz) Doe <john.doe@example.com> (Comment)", mail, &name);
+	StringUtils::ParseEmailAddress(L"John (zzz) Doe <john.doe@example.com> (Comment)", mail, &name);
 	EXPECT_STREQ(L"john.doe@example.com", mail);
 	EXPECT_STREQ(L"John (zzz) Doe (Comment)", name);
 
 	mail.Empty();
 	name.Empty();
-	CStringUtils::ParseEmailAddress(L"\"john.doe@example.com >> John Doe\" <john.doe@example.com>", mail, &name);
+	StringUtils::ParseEmailAddress(L"\"john.doe@example.com >> John Doe\" <john.doe@example.com>", mail, &name);
 	EXPECT_STREQ(L"john.doe@example.com", mail);
 	EXPECT_STREQ(L"john.doe@example.com >> John Doe", name);
 
 	mail.Empty();
 	name.Empty();
-	CStringUtils::ParseEmailAddress(L"\"John<something> Doe\" <john.doe@example.com>", mail, &name);
+	StringUtils::ParseEmailAddress(L"\"John<something> Doe\" <john.doe@example.com>", mail, &name);
 	EXPECT_STREQ(L"john.doe@example.com", mail);
 	EXPECT_STREQ(L"John<something> Doe", name);
 
 	mail.Empty();
 	name.Empty();
-	CStringUtils::ParseEmailAddress(L"\"John<something@example.com> Doe\" <john.doe@example.com>", mail, &name);
+	StringUtils::ParseEmailAddress(L"\"John<something@example.com> Doe\" <john.doe@example.com>", mail, &name);
 	EXPECT_STREQ(L"john.doe@example.com", mail);
 	EXPECT_STREQ(L"John<something@example.com> Doe", name);
 
 	mail.Empty();
 	name.Empty();
-	CStringUtils::ParseEmailAddress(L"\"something@example.com\" <john.doe@example.com>", mail, &name);
+	StringUtils::ParseEmailAddress(L"\"something@example.com\" <john.doe@example.com>", mail, &name);
 	EXPECT_STREQ(L"john.doe@example.com", mail);
 	EXPECT_STREQ(L"something@example.com", name);
 
 	mail.Empty();
 	name.Empty();
-	CStringUtils::ParseEmailAddress(L"\"John D\\\"o\\\"e\" <john.doe@example.com>", mail, &name);
+	StringUtils::ParseEmailAddress(L"\"John D\\\"o\\\"e\" <john.doe@example.com>", mail, &name);
 	EXPECT_STREQ(L"john.doe@example.com", mail);
 	EXPECT_STREQ(L"John D\"o\"e", name);
 
 	mail.Empty();
 	name.Empty();
-	CStringUtils::ParseEmailAddress(L"<test@example.com> \"John Doe\"", mail, &name);
+	StringUtils::ParseEmailAddress(L"<test@example.com> \"John Doe\"", mail, &name);
 	EXPECT_STREQ(L"test@example.com", mail);
 	EXPECT_STREQ(L"John Doe", name);
 }
 
 TEST(CStringUtils, IsPlainReadableASCII)
 {
-	EXPECT_TRUE(CStringUtils::IsPlainReadableASCII(L""));
-	EXPECT_TRUE(CStringUtils::IsPlainReadableASCII(L" 1234,#+*.:-&!\\<>|\"$%&/()=567890abcdefSBDUDB[](!}~"));
-	EXPECT_FALSE(CStringUtils::IsPlainReadableASCII(L"\n"));
-	EXPECT_FALSE(CStringUtils::IsPlainReadableASCII(L"\u2302"));
-	EXPECT_FALSE(CStringUtils::IsPlainReadableASCII(L"é"));
-	EXPECT_FALSE(CStringUtils::IsPlainReadableASCII(L"\u2550"));
-	EXPECT_FALSE(CStringUtils::IsPlainReadableASCII(L"ä"));
-	EXPECT_FALSE(CStringUtils::IsPlainReadableASCII(L"€"));
-	EXPECT_FALSE(CStringUtils::IsPlainReadableASCII(L"\u570B"));
-	EXPECT_FALSE(CStringUtils::IsPlainReadableASCII(L"\u7ACB"));
+	EXPECT_TRUE(StringUtils::IsPlainReadableASCII(L""));
+	EXPECT_TRUE(StringUtils::IsPlainReadableASCII(L" 1234,#+*.:-&!\\<>|\"$%&/()=567890abcdefSBDUDB[](!}~"));
+	EXPECT_FALSE(StringUtils::IsPlainReadableASCII(L"\n"));
+	EXPECT_FALSE(StringUtils::IsPlainReadableASCII(L"\u2302"));
+	EXPECT_FALSE(StringUtils::IsPlainReadableASCII(L"é"));
+	EXPECT_FALSE(StringUtils::IsPlainReadableASCII(L"\u2550"));
+	EXPECT_FALSE(StringUtils::IsPlainReadableASCII(L"ä"));
+	EXPECT_FALSE(StringUtils::IsPlainReadableASCII(L"€"));
+	EXPECT_FALSE(StringUtils::IsPlainReadableASCII(L"\u570B"));
+	EXPECT_FALSE(StringUtils::IsPlainReadableASCII(L"\u7ACB"));
 }
 
 TEST(CStringUtils, StartsWith)
 {
-	EXPECT_TRUE(CStringUtils::StartsWith(L"", L""));
-	EXPECT_FALSE(CStringUtils::StartsWith(L"", L"sometest"));
+	EXPECT_TRUE(StringUtils::StartsWith(L"", L""));
+	EXPECT_FALSE(StringUtils::StartsWith(L"", L"sometest"));
 
 	CString heystack = L"sometest";
-	EXPECT_TRUE(CStringUtils::StartsWith(heystack, L"sometest"));
-	EXPECT_TRUE(CStringUtils::StartsWith(heystack, L""));
-	EXPECT_TRUE(CStringUtils::StartsWith(heystack, L"sometes"));
-	EXPECT_FALSE(CStringUtils::StartsWith(heystack, L"sometEs"));
-	EXPECT_FALSE(CStringUtils::StartsWith(heystack, L"someteste"));
-	EXPECT_FALSE(CStringUtils::StartsWith(heystack, L"sometess"));
+	EXPECT_TRUE(StringUtils::StartsWith(heystack, L"sometest"));
+	EXPECT_TRUE(StringUtils::StartsWith(heystack, L""));
+	EXPECT_TRUE(StringUtils::StartsWith(heystack, L"sometes"));
+	EXPECT_FALSE(StringUtils::StartsWith(heystack, L"sometEs"));
+	EXPECT_FALSE(StringUtils::StartsWith(heystack, L"someteste"));
+	EXPECT_FALSE(StringUtils::StartsWith(heystack, L"sometess"));
 
 	CString empty;
 	CString sometest = L"sometest";
@@ -263,172 +263,172 @@ TEST(CStringUtils, StartsWith)
 	CString sometEs = L"sometEs";
 	CString someteste = L"someteste";
 	CString sometess = L"sometess";
-	EXPECT_TRUE(CStringUtils::StartsWith(heystack, sometest));
-	EXPECT_TRUE(CStringUtils::StartsWith(heystack, empty));
-	EXPECT_TRUE(CStringUtils::StartsWith(heystack, sometes));
-	EXPECT_FALSE(CStringUtils::StartsWith(heystack, sometEs));
-	EXPECT_FALSE(CStringUtils::StartsWith(heystack, someteste));
-	EXPECT_FALSE(CStringUtils::StartsWith(heystack, sometess));
-	EXPECT_FALSE(CStringUtils::StartsWith(empty, sometess));
+	EXPECT_TRUE(StringUtils::StartsWith(heystack, sometest));
+	EXPECT_TRUE(StringUtils::StartsWith(heystack, empty));
+	EXPECT_TRUE(StringUtils::StartsWith(heystack, sometes));
+	EXPECT_FALSE(StringUtils::StartsWith(heystack, sometEs));
+	EXPECT_FALSE(StringUtils::StartsWith(heystack, someteste));
+	EXPECT_FALSE(StringUtils::StartsWith(heystack, sometess));
+	EXPECT_FALSE(StringUtils::StartsWith(empty, sometess));
 }
 
 TEST(CStringUtils, StartsWithI)
 {
-	EXPECT_TRUE(CStringUtils::StartsWithI(L"", L""));
-	EXPECT_FALSE(CStringUtils::StartsWithI(L"", L"sometest"));
+	EXPECT_TRUE(StringUtils::StartsWithI(L"", L""));
+	EXPECT_FALSE(StringUtils::StartsWithI(L"", L"sometest"));
 
 	CString heystack = L"someTest";
-	EXPECT_TRUE(CStringUtils::StartsWithI(heystack, L"sometest"));
-	EXPECT_TRUE(CStringUtils::StartsWithI(heystack, L"someTest"));
-	EXPECT_TRUE(CStringUtils::StartsWithI(heystack, L"sOmetest"));
-	EXPECT_TRUE(CStringUtils::StartsWithI(heystack, L""));
-	EXPECT_TRUE(CStringUtils::StartsWithI(heystack, L"sometEs"));
-	EXPECT_FALSE(CStringUtils::StartsWithI(heystack, L"sometesTe"));
-	EXPECT_FALSE(CStringUtils::StartsWithI(heystack, L"someteSs"));
+	EXPECT_TRUE(StringUtils::StartsWithI(heystack, L"sometest"));
+	EXPECT_TRUE(StringUtils::StartsWithI(heystack, L"someTest"));
+	EXPECT_TRUE(StringUtils::StartsWithI(heystack, L"sOmetest"));
+	EXPECT_TRUE(StringUtils::StartsWithI(heystack, L""));
+	EXPECT_TRUE(StringUtils::StartsWithI(heystack, L"sometEs"));
+	EXPECT_FALSE(StringUtils::StartsWithI(heystack, L"sometesTe"));
+	EXPECT_FALSE(StringUtils::StartsWithI(heystack, L"someteSs"));
 
 	CString empty;
 	CString sometest = L"someteSt";
 	CString sometes = L"soMetes";
 	CString someteste = L"sOmeteste";
 	CString sometess = L"sometesS";
-	EXPECT_TRUE(CStringUtils::StartsWithI(heystack, sometest));
-	EXPECT_TRUE(CStringUtils::StartsWithI(heystack, empty));
-	EXPECT_TRUE(CStringUtils::StartsWithI(heystack, sometes));
-	EXPECT_FALSE(CStringUtils::StartsWithI(heystack, someteste));
-	EXPECT_FALSE(CStringUtils::StartsWithI(heystack, sometess));
-	EXPECT_FALSE(CStringUtils::StartsWithI(empty, sometess));
+	EXPECT_TRUE(StringUtils::StartsWithI(heystack, sometest));
+	EXPECT_TRUE(StringUtils::StartsWithI(heystack, empty));
+	EXPECT_TRUE(StringUtils::StartsWithI(heystack, sometes));
+	EXPECT_FALSE(StringUtils::StartsWithI(heystack, someteste));
+	EXPECT_FALSE(StringUtils::StartsWithI(heystack, sometess));
+	EXPECT_FALSE(StringUtils::StartsWithI(empty, sometess));
 }
 
 TEST(CStringUtils, StartsWithA)
 {
-	EXPECT_TRUE(CStringUtils::StartsWith("", ""));
-	EXPECT_FALSE(CStringUtils::StartsWith("", "sometest"));
+	EXPECT_TRUE(StringUtils::StartsWith("", ""));
+	EXPECT_FALSE(StringUtils::StartsWith("", "sometest"));
 
 	CStringA heystack = "sometest";
-	EXPECT_TRUE(CStringUtils::StartsWith(heystack, "sometest"));
-	EXPECT_TRUE(CStringUtils::StartsWith(heystack, ""));
-	EXPECT_TRUE(CStringUtils::StartsWith(heystack, "sometes"));
-	EXPECT_FALSE(CStringUtils::StartsWith(heystack, "someTe"));
-	EXPECT_FALSE(CStringUtils::StartsWith(heystack, "someteste"));
-	EXPECT_FALSE(CStringUtils::StartsWith(heystack, "sometess"));
+	EXPECT_TRUE(StringUtils::StartsWith(heystack, "sometest"));
+	EXPECT_TRUE(StringUtils::StartsWith(heystack, ""));
+	EXPECT_TRUE(StringUtils::StartsWith(heystack, "sometes"));
+	EXPECT_FALSE(StringUtils::StartsWith(heystack, "someTe"));
+	EXPECT_FALSE(StringUtils::StartsWith(heystack, "someteste"));
+	EXPECT_FALSE(StringUtils::StartsWith(heystack, "sometess"));
 }
 
 TEST(CStringUtils, EndsWith)
 {
-	EXPECT_TRUE(CStringUtils::EndsWith(L"", L""));
-	EXPECT_FALSE(CStringUtils::EndsWith(L"", L"sometest"));
+	EXPECT_TRUE(StringUtils::EndsWith(L"", L""));
+	EXPECT_FALSE(StringUtils::EndsWith(L"", L"sometest"));
 
 	CString heystack = L"sometest";
-	EXPECT_TRUE(CStringUtils::EndsWith(heystack, L"sometest"));
-	EXPECT_TRUE(CStringUtils::EndsWith(heystack, L"test"));
-	EXPECT_TRUE(CStringUtils::EndsWith(heystack, L"st"));
-	EXPECT_TRUE(CStringUtils::EndsWith(heystack, L"t"));
-	EXPECT_TRUE(CStringUtils::EndsWith(heystack, L""));
-	EXPECT_FALSE(CStringUtils::EndsWith(heystack, L"teSt"));
-	EXPECT_FALSE(CStringUtils::EndsWith(heystack, L"esometest"));
-	EXPECT_FALSE(CStringUtils::EndsWith(heystack, L"someteste"));
-	EXPECT_FALSE(CStringUtils::EndsWith(heystack, L"text"));
-	EXPECT_FALSE(CStringUtils::EndsWith(heystack, L"xt"));
+	EXPECT_TRUE(StringUtils::EndsWith(heystack, L"sometest"));
+	EXPECT_TRUE(StringUtils::EndsWith(heystack, L"test"));
+	EXPECT_TRUE(StringUtils::EndsWith(heystack, L"st"));
+	EXPECT_TRUE(StringUtils::EndsWith(heystack, L"t"));
+	EXPECT_TRUE(StringUtils::EndsWith(heystack, L""));
+	EXPECT_FALSE(StringUtils::EndsWith(heystack, L"teSt"));
+	EXPECT_FALSE(StringUtils::EndsWith(heystack, L"esometest"));
+	EXPECT_FALSE(StringUtils::EndsWith(heystack, L"someteste"));
+	EXPECT_FALSE(StringUtils::EndsWith(heystack, L"text"));
+	EXPECT_FALSE(StringUtils::EndsWith(heystack, L"xt"));
 
-	EXPECT_TRUE(CStringUtils::EndsWith(heystack, L't'));
-	EXPECT_FALSE(CStringUtils::EndsWith(heystack, L'T'));
-	EXPECT_FALSE(CStringUtils::EndsWith(heystack, L'x'));
+	EXPECT_TRUE(StringUtils::EndsWith(heystack, L't'));
+	EXPECT_FALSE(StringUtils::EndsWith(heystack, L'T'));
+	EXPECT_FALSE(StringUtils::EndsWith(heystack, L'x'));
 }
 
 TEST(CStringUtils, EndsWithI)
 {
-	EXPECT_TRUE(CStringUtils::EndsWithI(L"", L""));
-	EXPECT_FALSE(CStringUtils::EndsWithI(L"", L"sometest"));
+	EXPECT_TRUE(StringUtils::EndsWithI(L"", L""));
+	EXPECT_FALSE(StringUtils::EndsWithI(L"", L"sometest"));
 
 	CString heystack = L"sometest";
-	EXPECT_TRUE(CStringUtils::EndsWithI(heystack, L"someteSt"));
-	EXPECT_TRUE(CStringUtils::EndsWithI(heystack, L"tEst"));
-	EXPECT_TRUE(CStringUtils::EndsWithI(heystack, L"sT"));
-	EXPECT_TRUE(CStringUtils::EndsWithI(heystack, L"T"));
-	EXPECT_TRUE(CStringUtils::EndsWithI(heystack, L""));
-	EXPECT_FALSE(CStringUtils::EndsWithI(heystack, L"esometEst"));
-	EXPECT_FALSE(CStringUtils::EndsWithI(heystack, L"someteSte"));
-	EXPECT_FALSE(CStringUtils::EndsWithI(heystack, L"text"));
-	EXPECT_FALSE(CStringUtils::EndsWithI(heystack, L"xt"));
+	EXPECT_TRUE(StringUtils::EndsWithI(heystack, L"someteSt"));
+	EXPECT_TRUE(StringUtils::EndsWithI(heystack, L"tEst"));
+	EXPECT_TRUE(StringUtils::EndsWithI(heystack, L"sT"));
+	EXPECT_TRUE(StringUtils::EndsWithI(heystack, L"T"));
+	EXPECT_TRUE(StringUtils::EndsWithI(heystack, L""));
+	EXPECT_FALSE(StringUtils::EndsWithI(heystack, L"esometEst"));
+	EXPECT_FALSE(StringUtils::EndsWithI(heystack, L"someteSte"));
+	EXPECT_FALSE(StringUtils::EndsWithI(heystack, L"text"));
+	EXPECT_FALSE(StringUtils::EndsWithI(heystack, L"xt"));
 }
 
 TEST(CStringUtils, UnescapeGitQuotePath)
 {
-	EXPECT_STREQ(L"", CStringUtils::UnescapeGitQuotePath(L""));
+	EXPECT_STREQ(L"", StringUtils::UnescapeGitQuotePath(L""));
 
-	EXPECT_STREQ(L"ascii.txt", CStringUtils::UnescapeGitQuotePath(L"ascii.txt"));
-	EXPECT_STREQ(L"ümlauts.txt", CStringUtils::UnescapeGitQuotePath(L"\\303\\274mlauts.txt")); 
-	EXPECT_STREQ(L"umläütß", CStringUtils::UnescapeGitQuotePath(L"uml\\303\\244\\303\\274t\\303\\237"));
+	EXPECT_STREQ(L"ascii.txt", StringUtils::UnescapeGitQuotePath(L"ascii.txt"));
+	EXPECT_STREQ(L"ümlauts.txt", StringUtils::UnescapeGitQuotePath(L"\\303\\274mlauts.txt")); 
+	EXPECT_STREQ(L"umläütß", StringUtils::UnescapeGitQuotePath(L"uml\\303\\244\\303\\274t\\303\\237"));
 
 	// taken from Git tests:
-	EXPECT_STREQ(L"\u6FF1\u91CE/file", CStringUtils::UnescapeGitQuotePath(L"\\346\\277\\261\\351\\207\\216/file"));
-	EXPECT_STREQ(L"\u6FF1\u91CE\u7D14", CStringUtils::UnescapeGitQuotePath(L"\\346\\277\\261\\351\\207\\216\\347\\264\\224"));
+	EXPECT_STREQ(L"\u6FF1\u91CE/file", StringUtils::UnescapeGitQuotePath(L"\\346\\277\\261\\351\\207\\216/file"));
+	EXPECT_STREQ(L"\u6FF1\u91CE\u7D14", StringUtils::UnescapeGitQuotePath(L"\\346\\277\\261\\351\\207\\216\\347\\264\\224"));
 }
 
 TEST(CStringUtils, EnsureCRLF)
 {
-	EXPECT_STREQ(L"", CStringUtils::EnsureCRLF(L""));
-	EXPECT_STREQ(L"\r\n", CStringUtils::EnsureCRLF(L"\n"));
-	EXPECT_STREQ(L"\r\n", CStringUtils::EnsureCRLF(L"\r\n"));
-	EXPECT_STREQ(L"\r\n", CStringUtils::EnsureCRLF(L"\r"));
-	EXPECT_STREQ(L"Some\r\nthing", CStringUtils::EnsureCRLF(L"Some\nthing"));
-	EXPECT_STREQ(L"Some\r\nthing", CStringUtils::EnsureCRLF(L"Some\rthing"));
-	EXPECT_STREQ(L"Some\r\nthing\r\n", CStringUtils::EnsureCRLF(L"Some\nthing\n"));
-	EXPECT_STREQ(L"Some\\nthing", CStringUtils::EnsureCRLF(L"Some\\nthing"));
-	EXPECT_STREQ(L"Some\r\n\r\nthing\r\n", CStringUtils::EnsureCRLF(L"Some\n\nthing\n"));
-	EXPECT_STREQ(L"Some\r\n\r\nthing\r\n", CStringUtils::EnsureCRLF(L"Some\r\r\nthing\r"));
-	EXPECT_STREQ(L"Some\r\nthing\r\n", CStringUtils::EnsureCRLF(L"Some\r\nthing\n"));
-	EXPECT_STREQ(L"Some\r\nthing\r\n", CStringUtils::EnsureCRLF(L"Some\r\nthing\r"));
-	EXPECT_STREQ(L"\r\nSome\r\n\r\nthing\r\n", CStringUtils::EnsureCRLF(L"\nSome\r\n\nthing\n"));
-	EXPECT_STREQ(L"\r\nSome\r\n\r\n\r\nthing\r\n", CStringUtils::EnsureCRLF(L"\nSome\r\r\n\nthing\n"));
-	EXPECT_STREQ(L"\r\nSome\r\n\r\n\r\nthing\r\n", CStringUtils::EnsureCRLF(L"\nSome\r\r\n\rthing\n"));
-	EXPECT_STREQ(L"\r\nSome\r\n\r\nthing\r\n", CStringUtils::EnsureCRLF(L"\nSome\r\n\r\nthing\n"));
-	EXPECT_STREQ(L"\r\nSome\r\n\r\nthing\r\n", CStringUtils::EnsureCRLF(L"\nSome\r\n\rthing\r"));
-	EXPECT_STREQ(L"\r\nSome\r\n\r\n\r\nthing\r\n", CStringUtils::EnsureCRLF(L"\nSome\n\r\rthing\n"));
+	EXPECT_STREQ(L"", StringUtils::EnsureCRLF(L""));
+	EXPECT_STREQ(L"\r\n", StringUtils::EnsureCRLF(L"\n"));
+	EXPECT_STREQ(L"\r\n", StringUtils::EnsureCRLF(L"\r\n"));
+	EXPECT_STREQ(L"\r\n", StringUtils::EnsureCRLF(L"\r"));
+	EXPECT_STREQ(L"Some\r\nthing", StringUtils::EnsureCRLF(L"Some\nthing"));
+	EXPECT_STREQ(L"Some\r\nthing", StringUtils::EnsureCRLF(L"Some\rthing"));
+	EXPECT_STREQ(L"Some\r\nthing\r\n", StringUtils::EnsureCRLF(L"Some\nthing\n"));
+	EXPECT_STREQ(L"Some\\nthing", StringUtils::EnsureCRLF(L"Some\\nthing"));
+	EXPECT_STREQ(L"Some\r\n\r\nthing\r\n", StringUtils::EnsureCRLF(L"Some\n\nthing\n"));
+	EXPECT_STREQ(L"Some\r\n\r\nthing\r\n", StringUtils::EnsureCRLF(L"Some\r\r\nthing\r"));
+	EXPECT_STREQ(L"Some\r\nthing\r\n", StringUtils::EnsureCRLF(L"Some\r\nthing\n"));
+	EXPECT_STREQ(L"Some\r\nthing\r\n", StringUtils::EnsureCRLF(L"Some\r\nthing\r"));
+	EXPECT_STREQ(L"\r\nSome\r\n\r\nthing\r\n", StringUtils::EnsureCRLF(L"\nSome\r\n\nthing\n"));
+	EXPECT_STREQ(L"\r\nSome\r\n\r\n\r\nthing\r\n", StringUtils::EnsureCRLF(L"\nSome\r\r\n\nthing\n"));
+	EXPECT_STREQ(L"\r\nSome\r\n\r\n\r\nthing\r\n", StringUtils::EnsureCRLF(L"\nSome\r\r\n\rthing\n"));
+	EXPECT_STREQ(L"\r\nSome\r\n\r\nthing\r\n", StringUtils::EnsureCRLF(L"\nSome\r\n\r\nthing\n"));
+	EXPECT_STREQ(L"\r\nSome\r\n\r\nthing\r\n", StringUtils::EnsureCRLF(L"\nSome\r\n\rthing\r"));
+	EXPECT_STREQ(L"\r\nSome\r\n\r\n\r\nthing\r\n", StringUtils::EnsureCRLF(L"\nSome\n\r\rthing\n"));
 }
 
 TEST(CStringUtils, TrimRightA)
 {
 	std::string_view sv1{};
-	CStringUtils::TrimRight(sv1);
+	StringUtils::TrimRight(sv1);
 	EXPECT_EQ(0u, sv1.size());
 
 	std::string_view sv2{"Hallo "};
-	CStringUtils::TrimRight(sv2);
+	StringUtils::TrimRight(sv2);
 	EXPECT_EQ(5u, sv2.size());
 	EXPECT_TRUE(sv2 == "Hallo");
 
 	std::string_view sv3{ " Hallo " };
-	CStringUtils::TrimRight(sv3);
+	StringUtils::TrimRight(sv3);
 	EXPECT_EQ(6u, sv3.size());
 	EXPECT_TRUE(sv3 == " Hallo");
 
 	std::string_view sv4{ "Hallo \r\n " };
-	CStringUtils::TrimRight(sv4);
+	StringUtils::TrimRight(sv4);
 	EXPECT_EQ(5u, sv4.size());
 	EXPECT_TRUE(sv4 == "Hallo");
 
 	std::string_view sv5{"   \n "};
-	CStringUtils::TrimRight(sv5);
+	StringUtils::TrimRight(sv5);
 	EXPECT_EQ(0u, sv5.size());
 }
 
 TEST(CStringUtils, TrimRightA_Custom)
 {
 	std::string_view sv1{};
-	sv1 = CStringUtils::TrimRight(sv1, "\r\n");
+	sv1 = StringUtils::TrimRight(sv1, "\r\n");
 	EXPECT_EQ(0u, sv1.size());
 
 	std::string_view sv2{ "Hallo " };
-	sv2 = CStringUtils::TrimRight(sv2, "\r\n");
+	sv2 = StringUtils::TrimRight(sv2, "\r\n");
 	EXPECT_EQ(6u, sv2.size());
 	EXPECT_TRUE(sv2 == "Hallo ");
-	sv2 = CStringUtils::TrimRight(sv2, " \r\n");
+	sv2 = StringUtils::TrimRight(sv2, " \r\n");
 	EXPECT_EQ(5u, sv2.size());
 	EXPECT_TRUE(sv2 == "Hallo");
 
 	std::string_view sv4{ "\nHallo\r\n" };
-	sv4 = CStringUtils::TrimRight(sv4, "\r\n");
+	sv4 = StringUtils::TrimRight(sv4, "\r\n");
 	EXPECT_EQ(6u, sv4.size());
 	EXPECT_TRUE(sv4 == "\nHallo");
 }
@@ -436,101 +436,101 @@ TEST(CStringUtils, TrimRightA_Custom)
 TEST(CStringUtils, TrimRightW)
 {
 	std::wstring_view sv1{};
-	CStringUtils::TrimRight(sv1);
+	StringUtils::TrimRight(sv1);
 	EXPECT_EQ(0u, sv1.size());
 
 	std::wstring_view sv2{ L"Hallo " };
-	CStringUtils::TrimRight(sv2);
+	StringUtils::TrimRight(sv2);
 	EXPECT_EQ(5u, sv2.size());
 	EXPECT_TRUE(sv2 == L"Hallo");
 
 	std::wstring_view sv3{ L" Hallo " };
-	CStringUtils::TrimRight(sv3);
+	StringUtils::TrimRight(sv3);
 	EXPECT_EQ(6u, sv3.size());
 	EXPECT_TRUE(sv3 == L" Hallo");
 
 	std::wstring_view sv4{ L"Hallo \r\n " };
-	CStringUtils::TrimRight(sv4);
+	StringUtils::TrimRight(sv4);
 	EXPECT_EQ(5u, sv4.size());
 	EXPECT_TRUE(sv4 == L"Hallo");
 
 	std::wstring_view sv5{ L"   \n " };
-	CStringUtils::TrimRight(sv5);
+	StringUtils::TrimRight(sv5);
 	EXPECT_EQ(0u, sv5.size());
 }
 
 TEST(CStringUtils, TrimLeftA)
 {
 	std::string_view sv1{};
-	CStringUtils::TrimLeft(sv1);
+	StringUtils::TrimLeft(sv1);
 	EXPECT_EQ(0u, sv1.size());
 
 	std::string_view sv2{ " Hallo" };
-	CStringUtils::TrimLeft(sv2);
+	StringUtils::TrimLeft(sv2);
 	EXPECT_EQ(5u, sv2.size());
 	EXPECT_TRUE(sv2 == "Hallo");
 
 	std::string_view sv3{ " Hallo " };
-	CStringUtils::TrimLeft(sv3);
+	StringUtils::TrimLeft(sv3);
 	EXPECT_EQ(6u, sv3.size());
 	EXPECT_TRUE(sv3 == "Hallo ");
 
 	std::string_view sv4{ " \t Hallo" };
-	CStringUtils::TrimLeft(sv4);
+	StringUtils::TrimLeft(sv4);
 	EXPECT_EQ(5u, sv4.size());
 	EXPECT_TRUE(sv4 == "Hallo");
 
 	std::string_view sv5{ "   \n " };
-	CStringUtils::TrimLeft(sv5);
+	StringUtils::TrimLeft(sv5);
 	EXPECT_EQ(0u, sv5.size());
 }
 
 TEST(CStringUtils, ExpandPlaceholdersForCmd)
 {
-	EXPECT_STREQ(L"", CStringUtils::ExpandPlaceholdersForCmd(L"", {
+	EXPECT_STREQ(L"", StringUtils::ExpandPlaceholdersForCmd(L"", {
 																	{ L"1", L"sth" },
 																	{ L"2", L"sth" },
 																	{ L"3", L"sth" },
 																	{ L"4", L"sth" },
 		}, [](CString s) { return CCmdLineParser::EscapeValue(s); }));
-	EXPECT_STREQ(L"%5", CStringUtils::ExpandPlaceholdersForCmd(L"%5", {
+	EXPECT_STREQ(L"%5", StringUtils::ExpandPlaceholdersForCmd(L"%5", {
 																	{ L"1", L"sth" },
 																	{ L"2", L"sth" },
 																	{ L"3", L"sth" },
 																	{ L"4", L"sth" },
 		}, [](CString s) { return CCmdLineParser::EscapeValue(s); }));
-	EXPECT_STREQ(L"\"arg1\"", CStringUtils::ExpandPlaceholdersForCmd(L"%1", {
+	EXPECT_STREQ(L"\"arg1\"", StringUtils::ExpandPlaceholdersForCmd(L"%1", {
 																	{ L"1", L"arg1" },
 																	{ L"2", L"Arg2" },
 																	{ L"3", L"aRg3" },
 																	{ L"4", L"arG4" },
 		}, [](CString s) { return CCmdLineParser::EscapeValue(s); }));
-	EXPECT_STREQ(L"\"arg1\"", CStringUtils::ExpandPlaceholdersForCmd(L"\"%1\"", {
+	EXPECT_STREQ(L"\"arg1\"", StringUtils::ExpandPlaceholdersForCmd(L"\"%1\"", {
 																	{ L"1", L"arg1" },
 																	{ L"2", L"Arg2" },
 																	{ L"3", L"aRg3" },
 																	{ L"4", L"arG4" },
 		}, [](CString s) { return CCmdLineParser::EscapeValue(s); }));
-	EXPECT_STREQ(L"/to:\"arg1\" /from:\"Arg2\"", CStringUtils::ExpandPlaceholdersForCmd(L"/to:%1 /from:%2", {
+	EXPECT_STREQ(L"/to:\"arg1\" /from:\"Arg2\"", StringUtils::ExpandPlaceholdersForCmd(L"/to:%1 /from:%2", {
 																	{ L"1", L"arg1" },
 																	{ L"2", L"Arg2" },
 																	{ L"3", L"aRg3" },
 																	{ L"4", L"arG4" },
 		}, [](CString s) { return CCmdLineParser::EscapeValue(s); }));
-	EXPECT_STREQ(L"/to:\"arg1\" /from:\"Arg2\"", CStringUtils::ExpandPlaceholdersForCmd(L"/to:\"%1\" /from:%2", {
+	EXPECT_STREQ(L"/to:\"arg1\" /from:\"Arg2\"", StringUtils::ExpandPlaceholdersForCmd(L"/to:\"%1\" /from:%2", {
 																	{ L"1", L"arg1" },
 																	{ L"2", L"Arg2" },
 																	{ L"3", L"aRg3" },
 																	{ L"4", L"arG4" },
 		}, [](CString s) { return CCmdLineParser::EscapeValue(s); }));
-	EXPECT_STREQ(L"/to:\"ar%2g1\" /from:\"Ar\"\"g2\"", CStringUtils::ExpandPlaceholdersForCmd(L"/to:\"%1\" /from:%2", {
+	EXPECT_STREQ(L"/to:\"ar%2g1\" /from:\"Ar\"\"g2\"", StringUtils::ExpandPlaceholdersForCmd(L"/to:\"%1\" /from:%2", {
 																	{ L"1", L"ar%2g1" },
 																	{ L"2", L"Ar\"g2" },
 																	{ L"3", L"aRg3" },
 																	{ L"4", L"arG4" },
 		}, [](CString s) { return CCmdLineParser::EscapeValue(s); }));
 
-	EXPECT_STREQ(L"/to:\"Arg2\" /from:\"aRRRRRRg\" /empty:\"\" /random:\"aRRRRRRg\" bla", CStringUtils::ExpandPlaceholdersForCmd(L"/to:\"%to\" /from:%from /empty:%empty /random:%from bla", {
+	EXPECT_STREQ(L"/to:\"Arg2\" /from:\"aRRRRRRg\" /empty:\"\" /random:\"aRRRRRRg\" bla", StringUtils::ExpandPlaceholdersForCmd(L"/to:\"%to\" /from:%from /empty:%empty /random:%from bla", {
 																	{ L"to", L"Arg2" },
 																	{ L"from", L"aRRRRRRg" },
 																	{ L"empty", L""},
@@ -540,14 +540,14 @@ TEST(CStringUtils, ExpandPlaceholdersForCmd)
 
 TEST(CStringUtils, EscapeWindowsCliArguments)
 {
-	EXPECT_STREQ(L"\"\"", CStringUtils::EscapeWindowsCliArguments(L""));
-	EXPECT_STREQ(L"\" \"", CStringUtils::EscapeWindowsCliArguments(L" "));
-	EXPECT_STREQ(L"\"hello\"", CStringUtils::EscapeWindowsCliArguments(L"hello"));
-	EXPECT_STREQ(L"\"some\\path with\\spaces\"", CStringUtils::EscapeWindowsCliArguments(L"some\\path with\\spaces"));
-	EXPECT_STREQ(L"\"\\\\\"", CStringUtils::EscapeWindowsCliArguments(L"\\"));
-	EXPECT_STREQ(L"\"D:\\path\"", CStringUtils::EscapeWindowsCliArguments(L"D:\\path"));
-	EXPECT_STREQ(L"\"D:\\path\\\\\"", CStringUtils::EscapeWindowsCliArguments(L"D:\\path\\"));
-	EXPECT_STREQ(L"\"argument\\\"2\"", CStringUtils::EscapeWindowsCliArguments(L"argument\"2"));
-	EXPECT_STREQ(L"\"\\\\\\\"\"", CStringUtils::EscapeWindowsCliArguments(L"\\\""));
-	EXPECT_STREQ(L"\"\\\\\\\\\\\"\"", CStringUtils::EscapeWindowsCliArguments(L"\\\\\""));
+	EXPECT_STREQ(L"\"\"", StringUtils::EscapeWindowsCliArguments(L""));
+	EXPECT_STREQ(L"\" \"", StringUtils::EscapeWindowsCliArguments(L" "));
+	EXPECT_STREQ(L"\"hello\"", StringUtils::EscapeWindowsCliArguments(L"hello"));
+	EXPECT_STREQ(L"\"some\\path with\\spaces\"", StringUtils::EscapeWindowsCliArguments(L"some\\path with\\spaces"));
+	EXPECT_STREQ(L"\"\\\\\"", StringUtils::EscapeWindowsCliArguments(L"\\"));
+	EXPECT_STREQ(L"\"D:\\path\"", StringUtils::EscapeWindowsCliArguments(L"D:\\path"));
+	EXPECT_STREQ(L"\"D:\\path\\\\\"", StringUtils::EscapeWindowsCliArguments(L"D:\\path\\"));
+	EXPECT_STREQ(L"\"argument\\\"2\"", StringUtils::EscapeWindowsCliArguments(L"argument\"2"));
+	EXPECT_STREQ(L"\"\\\\\\\"\"", StringUtils::EscapeWindowsCliArguments(L"\\\""));
+	EXPECT_STREQ(L"\"\\\\\\\\\\\"\"", StringUtils::EscapeWindowsCliArguments(L"\\\\\""));
 }

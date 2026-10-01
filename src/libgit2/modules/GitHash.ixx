@@ -3,7 +3,7 @@
 #define GIT_HASH_MAX_HEXSIZE (2 * GIT_OID_MAX_SIZE)
 
 
-export module TGitHash;
+export module GitHash;
 import std;
 import invarients;
 import wstr;
@@ -13,11 +13,8 @@ using namespace tgit::invarients;
 static_assert(GIT_OID_MAX_SIZE <= sizeof(git_oid::id), "git_oid raw storage must be able to hold the largest id");
 
 
-export namespace GitHash
+export namespace TGitHash
 {
-class CGitHash;
-
-template<> struct std::hash<CGitHash>;
 
 class CGitHash
 {
@@ -38,6 +35,8 @@ class CGitHash
 	}
 
 public:
+	explicit operator bool() = delete;
+
 	CGitHash() noexcept
 	{
 		StampOidType();
@@ -50,12 +49,12 @@ public:
 	{
 		git_oid_cpy(&m_oid, &oid);
 	}
-	CGitHash& operator = (const git_oid* oid)
+	CGitHash& operator=(const git_oid* oid)
 	{
 		git_oid_cpy(&m_oid, oid);
 		return *this;
 	}
-	CGitHash& operator = (const git_oid& oid)
+	CGitHash& operator=(const git_oid& oid)
 	{
 		git_oid_cpy(&m_oid, &oid);
 		return *this;
@@ -156,14 +155,12 @@ public:
 		return str;
 	}
 
-	std::wstring ToString(int len) const
+	std::wstring ToString(const int len) const
 	{
 		std::wstring str { ToString() };
 		str.resize(len);
 		return str;
 	}
-
-	operator bool() = delete;
 
 	operator const git_oid*() const
 	{
@@ -206,13 +203,14 @@ public:
 };
 
 
-using GIT_REV_LIST = std::vector<GitHash::CGitHash>;
-
-
 }
+export using namespace TGitHash;
+export using TGitHash::CGitHash;
+export using GIT_REV_LIST = std::vector<CGitHash>;
+
 
 export template <>
-struct std::hash<GitHash::CGitHash>
+struct std::hash<TGitHash::CGitHash>
 {
 	/*
 	 * Converts a cryptographic hash (such as SHA-1) into a hash value. Since cryptographic
@@ -220,7 +218,7 @@ struct std::hash<GitHash::CGitHash>
 	 * The resulting value depends on platform endianness, so it should not be stored
 	 * or transmitted across systems.
 	 */
-	std::size_t operator()(const GitHash::CGitHash& k) const noexcept
+	std::size_t operator()(const TGitHash::CGitHash& k) const noexcept
 	{
 		static_assert(sizeof(size_t) <= GIT_OID_SHA1_SIZE);
 		size_t hash;
@@ -229,6 +227,3 @@ struct std::hash<GitHash::CGitHash>
 		return hash;
 	}
 };
-
-
-export using namespace GitHash;

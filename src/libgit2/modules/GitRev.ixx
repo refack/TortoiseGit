@@ -5,15 +5,17 @@
 
 export module GitRev;
 import std;
+import wstr;
+import git_h;
 import GitMailmap;
 import FormatMessageWrapper;
 import SmartLibgit2;
-import TGitHash;
+import GitHash;
 import invarients;
 import tgittypes;
 
-using GitHash::CGitHash;
-using namespace SmartLibgit2;
+using CGitHash = TGitHash::CGitHash;
+using namespace TGitH;
 
 
 #define LOG_REV_AUTHOR_NAME L'0'
@@ -98,8 +100,8 @@ public:
 	 */
 	static LPCWSTR GetWorkingCopyRef() { return tgit::invarients::ZeroRevSV().data(); }
 
-	GitHash::CGitHash m_CommitHash;
-	GitHash::GIT_REV_LIST m_ParentHash;
+	CGitHash m_CommitHash;
+	GIT_REV_LIST m_ParentHash;
 
 	virtual void Clear();
 	int ParentsCount() const { return static_cast<int>(m_ParentHash.size()); }
@@ -155,15 +157,15 @@ public:
 	{
 		err.Empty();
 		tgit::types::MAP_STRING_STRING descriptions;
-		g_Git.GetBranchDescriptions(descriptions);
+		TGitH::g_Git.GetBranchDescriptions(descriptions);
 
 		CGitMailmap mailmap;
-		if (g_Git.UsingLibGit2(TGitH:: GIT_CMD_FOREACHREF) && mergefilter <= 0) // libgit2 implementation is significantly slower because of "git_graph_descendant_of", hence, only use it when merge status is not a filter
+		if (g_Git.UsingLibGit2(TGitH::CGit::GIT_CMD_FOREACHREF) && mergefilter <= 0) // libgit2 implementation is significantly slower because of "git_graph_descendant_of", hence, only use it when merge status is not a filter
 		{
 			CAutoRepository repo = g_Git.GetGitRepository();
 			if (!repo)
 			{
-				err = g_Git.GetLibGit2LastErr();
+				err = TGitH::GetLibGit2LastErr();
 				return -1;
 			}
 
@@ -174,7 +176,7 @@ public:
 					mergefilter = 0;
 				else if (ret < 0)
 				{
-					err = g_Git.GetLibGit2LastErr();
+					err = TGitH::GetLibGit2LastErr();
 					return -1;
 				}
 			}
@@ -182,7 +184,7 @@ public:
 			CAutoReferenceIterator iter;
 			if (git_reference_iterator_new(iter.GetPointer(), repo) < 0)
 			{
-				err = g_Git.GetLibGit2LastErr();
+				err = TGitH::GetLibGit2LastErr();
 				return -1;
 			}
 
@@ -190,7 +192,7 @@ public:
 			int error;
 			while (!(error = git_reference_next(ref.GetPointer(), iter)))
 			{
-				StringType refName = CUnicodeUtils::GetUnicode(git_reference_name(ref));
+				StringType refName = CUnicodeUtils::GetUnicode<StringType>(git_reference_name(ref));
 				if (filterCallback && !filterCallback(refName))
 					continue;
 
@@ -199,7 +201,7 @@ public:
 					CAutoReference target;
 					if (git_reference_resolve(target.GetPointer(), ref))
 					{
-						err = g_Git.GetLibGit2LastErr();
+						err = TGitH::GetLibGit2LastErr();
 						return -1;
 					}
 					ref.Swap(target);
@@ -218,7 +220,7 @@ public:
 					const int ret = git_graph_descendant_of(repo, git_reference_target(head), oid);
 					if (ret < 0)
 					{
-						err = g_Git.GetLibGit2LastErr();
+						err = TGitH::GetLibGit2LastErr();
 						return -1;
 					}
 					if (mergefilter == 1 && ret == 0 && git_oid_cmp(oid, git_reference_target(head)) != 0)
@@ -228,20 +230,20 @@ public:
 				}
 
 				GitRevRefBrowser entry;
-				entry.m_CommitHash = git_reference_target(ref);
+				entry.m_CommitHash = CGitHash(git_reference_target(ref)); // the git_oid* constructor is explicit
 				if (git_reference_is_tag(ref) && tag)
 				{
 					entry.m_objectType = GIT_OBJECT_TAG;
 					const char* msg = git_tag_message(tag);
 					if (const char* body = strchr(msg, '\n'); !body)
-						entry.m_Subject = CUnicodeUtils::GetUnicode(msg);
+						entry.m_Subject = CUnicodeUtils::GetUnicode<StringType>(msg);
 					else
-						entry.m_Subject = CUnicodeUtils::GetUnicode(std::string_view(msg, body - msg));
+						entry.m_Subject = CUnicodeUtils::GetUnicode<StringType>(std::string_view(msg, body - msg));
 					auto tagger = git_tag_tagger(tag);
 					if (tagger)
 					{
-						entry.m_CommitterName = CUnicodeUtils::GetUnicode(tagger->name);
-						entry.m_CommitterEmail = CUnicodeUtils::GetUnicode(tagger->email);
+						entry.m_CommitterName = CUnicodeUtils::GetUnicode<StringType>(tagger->name);
+						entry.m_CommitterEmail = CUnicodeUtils::GetUnicode<StringType>(tagger->email);
 						entry.m_CommitterDate = tagger->when.time;
 						if (mailmap)
 							entry.m_CommitterEmail = mailmap.TranslateAuthor(entry.m_CommitterEmail, entry.m_AuthorEmail);
@@ -258,7 +260,7 @@ public:
 				CAutoObject object;
 				if (git_object_lookup(object.GetPointer(), repo, git_reference_target(ref), GIT_OBJECT_ANY) < 0)
 				{
-					err = g_Git.GetLibGit2LastErr();
+					err = TGitH::GetLibGit2LastErr();
 					return -1;
 				}
 
@@ -272,12 +274,12 @@ public:
 				CAutoCommit commit{ std::move(object) };
 				auto author = git_commit_author(commit);
 				auto committer = git_commit_committer(commit);
-				entry.m_Subject = CUnicodeUtils::GetUnicode(git_commit_summary(commit));
-				entry.m_AuthorName = CUnicodeUtils::GetUnicode(author->name);
-				entry.m_AuthorEmail = CUnicodeUtils::GetUnicode(author->email);
+				entry.m_Subject = CUnicodeUtils::GetUnicode<StringType>(git_commit_summary(commit));
+				entry.m_AuthorName = CUnicodeUtils::GetUnicode<StringType>(author->name);
+				entry.m_AuthorEmail = CUnicodeUtils::GetUnicode<StringType>(author->email);
 				entry.m_AuthorDate = author->when.time;
-				entry.m_CommitterName = CUnicodeUtils::GetUnicode(committer->name);
-				entry.m_CommitterEmail = CUnicodeUtils::GetUnicode(committer->email);
+				entry.m_CommitterName = CUnicodeUtils::GetUnicode<StringType>(committer->name);
+				entry.m_CommitterEmail = CUnicodeUtils::GetUnicode<StringType>(committer->email);
 				entry.m_CommitterDate = committer->when.time;
 				if (mailmap)
 				{
@@ -291,10 +293,10 @@ public:
 
 					CAutoBuf buf;
 					if (const auto ret = git_branch_upstream_name(buf, repo, git_reference_name(ref)); ret == 0)
-						entry.m_UpstreamRef = buf.ToString();
+						entry.m_UpstreamRef = CUnicodeUtils::StdGetUnicode(std::string_view(buf)).c_str();
 					else if (ret != GIT_ENOTFOUND)
 					{
-						err = g_Git.GetLibGit2LastErr();
+						err = TGitH::GetLibGit2LastErr();
 						return -1;
 					}
 				}
@@ -303,7 +305,7 @@ public:
 			}
 			if (error != GIT_ITEROVER)
 			{
-				err = g_Git.GetLibGit2LastErr();
+				err = TGitH::GetLibGit2LastErr();
 				return -1;
 			}
 
@@ -380,8 +382,8 @@ public:
 				if (valuePos < 0)
 					continue;
 				email = ref.m_AuthorName.Mid(ref.m_AuthorName.Find(L" <") + static_cast<int>(wcslen(L" <")));
-				email.Truncate(max(0, email.Find(L'>')));
-				ref.m_AuthorName.Truncate(max(0, ref.m_AuthorName.Find(L" <")));
+				email.Truncate((std::max)(0, email.Find(L'>')));
+				ref.m_AuthorName.Truncate((std::max)(0, ref.m_AuthorName.Find(L" <")));
 				date = singleRef.Tokenize(L"\04", valuePos).Trim();
 				ref.m_AuthorDate = _wtoll(date);
 				if (ref.m_CommitterName.IsEmpty())
@@ -397,7 +399,7 @@ public:
 				ref.m_CommitterName = mailmap.TranslateAuthor(ref.m_CommitterName, committerEmail);
 			}
 
-			if (CStringUtils::StartsWith(refName, L"refs/heads/"))
+			if (tgit::wstr::StartsWith(tgit::wstr::StringView{ refName }, L"refs/heads/"))
 				ref.m_Description = descriptions[std::wstring(refName.Mid(static_cast<int>(wcslen(L"refs/heads/"))))].c_str();
 
 			map.emplace(refName, ref);
@@ -406,3 +408,318 @@ public:
 		return 0;
 	}
 };
+
+void GitRev::Clear()
+{
+	this->m_ParentHash.clear();
+	m_AuthorName.Empty();
+	m_AuthorEmail.Empty();
+	m_AuthorDate = 0;
+	m_CommitterName.Empty();
+	m_CommitterEmail.Empty();
+	m_CommitterDate = 0;
+	m_Body.Empty();
+	m_Subject.Empty();
+	m_CommitHash.Empty();
+	m_objectType = GIT_OBJECT_INVALID;
+	m_sErr.Empty();
+}
+
+int GitRev::ParserParentFromCommit(const GIT_COMMIT* commit)
+{
+	ATLASSERT(commit);
+	this->m_ParentHash.clear();
+	GIT_COMMIT_LIST list;
+	GIT_HASH   parent;
+
+	git_get_commit_first_parent(commit,&list);
+	while(git_get_commit_next_parent(&list,parent)==0)
+		m_ParentHash.emplace_back(CGitHash::FromRaw(parent));
+	return 0;
+}
+
+int GitRev::ParserFromCommit(const GIT_COMMIT *commit)
+{
+	ATLASSERT(commit);
+	int encode =CP_UTF8;
+	if(commit->m_Encode != 0 && commit->m_EncodeSize != 0)
+		encode = CUnicodeUtils::GetCPCode(CUnicodeUtils::GetUnicodeLength<StringType>(commit->m_Encode, commit->m_EncodeSize));
+
+	this->m_CommitHash = CGitHash::FromRaw(commit->m_hash);
+
+	this->m_AuthorDate = commit->m_Author.Date;
+	this->m_AuthorEmail = CUnicodeUtils::GetUnicodeLength<StringType>(commit->m_Author.Email, commit->m_Author.EmailSize, encode);
+	this->m_AuthorName = CUnicodeUtils::GetUnicodeLength<StringType>(commit->m_Author.Name, commit->m_Author.NameSize, encode);
+
+	this->m_Body = CUnicodeUtils::GetUnicodeLength<StringType>(commit->m_Body, commit->m_BodySize, encode);
+
+	this->m_CommitterDate = commit->m_Committer.Date;
+	this->m_CommitterEmail = CUnicodeUtils::GetUnicodeLength<StringType>(commit->m_Committer.Email, commit->m_Committer.EmailSize, encode);
+	this->m_CommitterName = CUnicodeUtils::GetUnicodeLength<StringType>(commit->m_Committer.Name, commit->m_Committer.NameSize, encode);
+
+	this->m_Subject = CUnicodeUtils::GetUnicodeLength<StringType>(commit->m_Subject, commit->m_SubjectSize, encode);
+
+	return 0;
+}
+
+int GitRev::ParserParentFromCommit(const git_commit* commit)
+{
+	ATLASSERT(commit);
+	m_ParentHash.clear();
+	const unsigned int parentCount = git_commit_parentcount(commit);
+	for (unsigned int i = 0; i < parentCount; ++i)
+		m_ParentHash.emplace_back(git_commit_parent_id(commit, i));
+
+	return 0;
+}
+
+int GitRev::ParserFromCommit(const git_commit* commit)
+{
+	ATLASSERT(commit);
+	Clear();
+	m_objectType = GIT_OBJECT_COMMIT;
+
+	int encode = CP_UTF8;
+
+	const char* encodingstr = git_commit_message_encoding(commit);
+	if (encodingstr)
+		encode = CUnicodeUtils::GetCPCode(CUnicodeUtils::GetUnicode<StringType>(encodingstr));
+
+	m_CommitHash = git_commit_id(commit);
+
+	const git_signature* author = git_commit_author(commit);
+	m_AuthorDate = author->when.time;
+	m_AuthorEmail = CUnicodeUtils::GetUnicode<StringType>(author->email, encode);
+	m_AuthorName = CUnicodeUtils::GetUnicode<StringType>(author->name, encode);
+
+	const git_signature* committer = git_commit_committer(commit);
+	m_CommitterDate = committer->when.time;
+	m_CommitterEmail = CUnicodeUtils::GetUnicode<StringType>(committer->email, encode);
+	m_CommitterName = CUnicodeUtils::GetUnicode<StringType>(committer->name, encode);
+
+	const char* msg = git_commit_message_raw(commit);
+	const char* body = strchr(msg, '\n');
+	if (!body)
+		m_Subject = CUnicodeUtils::GetUnicode<StringType>(msg, encode);
+	else
+	{
+		m_Subject = CUnicodeUtils::GetUnicode<StringType>(std::string_view(msg, body - msg), encode);
+		m_Body = CUnicodeUtils::GetUnicode<StringType>(body + 1, encode);
+	}
+
+	return 0;
+}
+
+int GitRev::GetCommitFromHash(git_repository* repo, const CGitHash& hash)
+{
+	ATLASSERT(repo);
+	CAutoCommit commit;
+	if (git_commit_lookup(commit.GetPointer(), repo, hash) < 0)
+	{
+		m_sErr = TGitH::GetLibGit2LastErr();
+		return -1;
+	}
+
+	return ParserFromCommit(commit);
+}
+
+int GitRev::GetCommit(git_repository* repo, const CString& refname)
+{
+	ATLASSERT(repo);
+	if (refname.GetLength() >= 8 && wcsncmp(refname, GitRev::GetWorkingCopyRef(), refname.GetLength()) == 0)
+	{
+		Clear();
+		m_Subject = L"Working Tree";
+		return 0;
+	}
+
+	CGitHash hash;
+	if (CGit::GetHash(repo, hash, std::wstring(tgit::wstr::StringView{ refname }) + L"^{}")) // add ^{} in order to dereference signed tags
+	{
+		m_sErr = TGitH::GetLibGit2LastErr();
+		return -1;
+	}
+
+	return GetCommitFromHash(repo, hash);
+}
+
+#if DEBUG
+void GitRev::DbgPrint()
+{
+	ATLTRACE(L"Commit %s\r\n", this->m_CommitHash.ToString().c_str());
+	for (unsigned int i = 0; i < this->m_ParentHash.size(); ++i)
+	{
+		ATLTRACE(L"Parent %i %s\r\n", i, m_ParentHash[i].ToString().c_str());
+	}
+	ATLTRACE(L"\r\n\r\n");
+}
+#endif
+
+int GitRev::GetParentFromHash(const CGitHash& hash)
+{
+	CAutoLocker lock(g_Git.m_critGitDllSec);
+
+	GIT_COMMIT commit;
+	try
+	{
+		g_Git.CheckAndInitDll();
+
+		if (git_get_commit_from_hash(&commit, hash.ToRaw()))
+		{
+			m_sErr = (L"git_get_commit_from_hash failed for " + hash.ToString()).c_str();
+			return -1;
+		}
+	}
+	catch (const char* msg)
+	{
+		m_sErr = std::format(L"Could not get parents of commit \"{}\".\nlibgit reports:\n{}", hash.ToString(), CUnicodeUtils::StdGetUnicode(msg)).c_str();
+		return -1;
+	}
+
+	this->ParserParentFromCommit(&commit);
+	git_free_commit(&commit);
+
+	this->m_CommitHash=hash;
+
+	return 0;
+}
+
+int GitRev::GetCommitFromHash(const CGitHash& hash)
+{
+	CAutoLocker lock(g_Git.m_critGitDllSec);
+
+	g_Git.CheckAndInitDll();
+
+	return GetCommitFromHash_withoutLock(hash);
+}
+
+int GitRev::GetCommitFromHash_withoutLock(const CGitHash& hash)
+{
+	GIT_COMMIT commit;
+	try
+	{
+		if (git_get_commit_from_hash(&commit, hash.ToRaw()))
+		{
+			m_sErr = (L"git_get_commit_from_hash failed for " + hash.ToString()).c_str();
+			return -1;
+		}
+	}
+	catch (const char * msg)
+	{
+		m_sErr = std::format(L"Could not get commit \"{}\".\nlibgit reports:\n{}", hash.ToString(), CUnicodeUtils::StdGetUnicode(msg)).c_str();
+		return -1;
+	}
+
+	m_objectType = GIT_OBJECT_COMMIT;
+	this->ParserFromCommit(&commit);
+	git_free_commit(&commit);
+
+	m_sErr.Empty();
+
+	return 0;
+}
+
+int GitRev::GetCommit(const CString& refname, bool allowTree /* false */)
+{
+	if (g_Git.UsingLibGit2(CGit::GIT_CMD_GET_COMMIT))
+	{
+		CAutoRepository repo(g_Git.GetGitRepository());
+		if (!repo)
+		{
+			m_sErr = TGitH::GetLibGit2LastErr();
+			return -1;
+		}
+		if (int ret = GetCommit(repo, refname); ret == 0 || ret < 0 && !allowTree)
+			return ret;
+
+		CGitHash hash;
+		if (g_Git.GetHash(repo, hash, tgit::wstr::StringView{ refname }))
+		{
+			m_sErr = TGitH::GetLibGit2LastErr();
+			return -1;
+		}
+		CAutoTree tree;
+		if (git_tree_lookup(tree.GetPointer(), repo, hash) < 0)
+		{
+			m_sErr = TGitH::GetLibGit2LastErr();
+			return -1;
+		}
+
+		Clear();
+		m_CommitHash = hash;
+		m_objectType = GIT_OBJECT_TREE;
+
+		return 0;
+	}
+
+	CAutoLocker lock(g_Git.m_critGitDllSec);
+
+	try
+	{
+		g_Git.CheckAndInitDll();
+	}
+	catch (const char* msg)
+	{
+		m_sErr = L"Could not initiate libgit.\nlibgit reports:\n" + CUnicodeUtils::GetUnicode<StringType>(msg);
+		return -1;
+	}
+
+	if(refname.GetLength() >= 8)
+		if (refname.GetLength() >= 8 && wcsncmp(refname, GitRev::GetWorkingCopyRef(), refname.GetLength()) == 0)
+		{
+			this->m_CommitHash.Empty();
+			this->m_Subject = L"Working Tree";
+			m_sErr.Empty();
+			return 0;
+		}
+	CStringA rev = CUnicodeUtils::GetUTF8<CStringA>(g_Git.FixBranchName(refname + L"^{}")); // add ^{} in order to dereference signed tags
+	GIT_HASH sha;
+
+	try
+	{
+		if (git_get_sha1(rev.GetBuffer(), sha))
+		{
+			m_sErr = L"Could not get SHA-1 of ref \"" + g_Git.FixBranchName(refname);
+			return -1;
+		}
+	}
+	catch (const char* msg)
+	{
+		m_sErr = L"Could not get SHA-1 of ref \"" + g_Git.FixBranchName(refname) + L"\".\nlibgit reports:\n" + CUnicodeUtils::GetUnicode<StringType>(msg);
+		return -1;
+	}
+
+	CGitHash hash = CGitHash::FromRaw(sha);
+	if (int ret = GetCommitFromHash_withoutLock(hash); ret == 0 || ret < 0 && !allowTree)
+		return ret;
+
+	CStringA revTree = CUnicodeUtils::GetUTF8<CStringA>(g_Git.FixBranchName(refname + L"^{tree}"));
+	try
+	{
+		if (git_get_sha1(revTree, sha))
+		{
+			m_sErr = L"Ref \"" + g_Git.FixBranchName(refname) + L"\" is neither a commit nor a tree.";
+			return -1;
+		}
+	}
+	catch (const char* msg)
+	{
+		m_sErr = L"Could not parse ref.\nlibgit reports:\n" + CUnicodeUtils::GetUnicode<StringType>(msg);
+		return -1;
+	}
+
+	Clear();
+	m_CommitHash = hash;
+	m_objectType = GIT_OBJECT_TREE;
+
+	return 0;
+}
+
+void GitRev::ApplyMailmap(const CGitMailmap& mailmap)
+{
+	if (!mailmap)
+		return;
+	mailmap.Translate(m_AuthorName, m_AuthorEmail);
+	mailmap.Translate(m_CommitterName, m_CommitterEmail);
+}
+

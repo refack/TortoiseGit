@@ -483,7 +483,7 @@ GitRevLoglist* CTortoiseGitBlameData::GetRevForHash(CGitHashMap& HashToRev, cons
 CString CTortoiseGitBlameData::UnquoteFilename(const std::string_view s)
 {
 	if (s[0] == '"')
-		return CStringUtils::UnescapeGitQuotePathA(s.substr(1));
+		return StringUtils::UnescapeGitQuotePathA(s.substr(1));
 	else
 		return CUnicodeUtils::GetUnicode(s);
 }

@@ -126,9 +126,9 @@ protected:
 		CopyRecursively(repoDir, path + prefix);
 		CString configFile = path + prefix + L"\\config";
 		CString text;
-		ASSERT_TRUE(CStringUtils::ReadStringFromTextFile(configFile, text));
+		ASSERT_TRUE(StringUtils::ReadStringFromTextFile(configFile, text));
 		text += L"\n[core]\n  autocrlf = false\n[user]\n  name = User\n  email = user@example.com\n";
-		EXPECT_TRUE(CStringUtils::WriteStringToTextFile(configFile, text));
+		EXPECT_TRUE(StringUtils::WriteStringToTextFile(configFile, text));
 	}
 
 	virtual void SetUp() override
@@ -168,9 +168,9 @@ protected:
 		DeleteFile(m_Dir.GetTempDir() + L"\\index");
 		CString configFile = m_Dir.GetTempDir() + L"\\config";
 		CString text;
-		ASSERT_TRUE(CStringUtils::ReadStringFromTextFile(configFile, text));
+		ASSERT_TRUE(StringUtils::ReadStringFromTextFile(configFile, text));
 		EXPECT_EQ(1, text.Replace(L"bare = false", L"bare = true"));
-		EXPECT_TRUE(CStringUtils::WriteStringToTextFile(configFile, text));
+		EXPECT_TRUE(StringUtils::WriteStringToTextFile(configFile, text));
 	}
 };
 

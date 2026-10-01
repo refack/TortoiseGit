@@ -84,7 +84,7 @@ BOOL CPatch::ParsePatchFile(CFileTextLines &PatchLines)
 			case 0:
 			{
 				// diff
-				if (CStringUtils::StartsWith(sLine, L"diff "))
+				if (StringUtils::StartsWith(sLine, L"diff "))
 				{
 					if (chunks)
 					{
@@ -104,7 +104,7 @@ BOOL CPatch::ParsePatchFile(CFileTextLines &PatchLines)
 			case 1:
 			{
 				//index
-				if (CStringUtils::StartsWith(sLine, L"index"))
+				if (StringUtils::StartsWith(sLine, L"index"))
 				{
 					int dotstart = sLine.Find(L"..");
 					if(dotstart>=0 && chunks)
@@ -116,7 +116,7 @@ BOOL CPatch::ParsePatchFile(CFileTextLines &PatchLines)
 				}
 
 				//---
-				if (CStringUtils::StartsWith(sLine, L"--- "))
+				if (StringUtils::StartsWith(sLine, L"--- "))
 				{
 					if (state == 0)
 					{
@@ -150,12 +150,12 @@ BOOL CPatch::ParsePatchFile(CFileTextLines &PatchLines)
 
 					if (chunks->sFilePath.Find('\t')>=0)
 						chunks->sFilePath = chunks->sFilePath.Left(chunks->sFilePath.Find('\t'));
-					if (CStringUtils::StartsWith(chunks->sFilePath, L"\"") && CStringUtils::EndsWith(chunks->sFilePath, L'"'))
+					if (StringUtils::StartsWith(chunks->sFilePath, L"\"") && StringUtils::EndsWith(chunks->sFilePath, L'"'))
 						chunks->sFilePath=chunks->sFilePath.Mid(1, chunks->sFilePath.GetLength() - 2);
-					if (CStringUtils::StartsWith(chunks->sFilePath, L"a/"))
+					if (StringUtils::StartsWith(chunks->sFilePath, L"a/"))
 						chunks->sFilePath=chunks->sFilePath.Mid(2);
 
-					if (CStringUtils::StartsWith(chunks->sFilePath, L"b/"))
+					if (StringUtils::StartsWith(chunks->sFilePath, L"b/"))
 						chunks->sFilePath=chunks->sFilePath.Mid(2);
 
 
@@ -168,7 +168,7 @@ BOOL CPatch::ParsePatchFile(CFileTextLines &PatchLines)
 				}
 				if (state == 0)
 				{
-					if (CStringUtils::StartsWith(sLine, L"@@"))
+					if (StringUtils::StartsWith(sLine, L"@@"))
 					{
 						if (chunks)
 						{
@@ -185,7 +185,7 @@ BOOL CPatch::ParsePatchFile(CFileTextLines &PatchLines)
 			case 3:
 			{
 				// +++
-				if (!CStringUtils::StartsWith(sLine, L"+++"))
+				if (!StringUtils::StartsWith(sLine, L"+++"))
 				{
 					// no starting "+++" found
 					m_sErrorMessage.Format(IDS_ERR_PATCH_NOADDFILELINE, nIndex);
@@ -206,12 +206,12 @@ BOOL CPatch::ParsePatchFile(CFileTextLines &PatchLines)
 					chunks->sFilePath2 = sLine.Left(bracket-1).Trim();
 				if (chunks->sFilePath2.Find('\t')>=0)
 					chunks->sFilePath2 = chunks->sFilePath2.Left(chunks->sFilePath2.Find('\t'));
-				if (CStringUtils::StartsWith(chunks->sFilePath2, L"\"") && chunks->sFilePath2.ReverseFind(L'"') == chunks->sFilePath2.GetLength() - 1)
+				if (StringUtils::StartsWith(chunks->sFilePath2, L"\"") && chunks->sFilePath2.ReverseFind(L'"') == chunks->sFilePath2.GetLength() - 1)
 					chunks->sFilePath2=chunks->sFilePath2.Mid(1, chunks->sFilePath2.GetLength() - 2);
-				if (CStringUtils::StartsWith(chunks->sFilePath2, L"a/"))
+				if (StringUtils::StartsWith(chunks->sFilePath2, L"a/"))
 					chunks->sFilePath2=chunks->sFilePath2.Mid(2);
 
-				if (CStringUtils::StartsWith(chunks->sFilePath2, L"b/"))
+				if (StringUtils::StartsWith(chunks->sFilePath2, L"b/"))
 					chunks->sFilePath2=chunks->sFilePath2.Mid(2);
 
 				chunks->sFilePath2.Replace(L'/', L'\\');
@@ -227,7 +227,7 @@ BOOL CPatch::ParsePatchFile(CFileTextLines &PatchLines)
 			case 4:
 			{
 				//start of a new chunk
-				if (!CStringUtils::StartsWith(sLine, L"@@"))
+				if (!StringUtils::StartsWith(sLine, L"@@"))
 				{
 					//chunk doesn't start with "@@"
 					//so there's garbage in between two file diffs

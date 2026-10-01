@@ -371,7 +371,7 @@ void CGitTagCompareList::OnContextMenuList(CWnd * /*pWnd*/, CPoint point)
 		return;
 
 	CString tag = GetItemText(selIndex, colTag);
-	if (CStringUtils::EndsWith(tag, L"^{}"))
+	if (StringUtils::EndsWith(tag, L"^{}"))
 		tag.Truncate(tag.GetLength() - static_cast<int>(wcslen(L"^{}")));
 	CString myHash = GetItemText(selIndex, colMyHash);
 	CString theirHash = GetItemText(selIndex, colTheirHash);

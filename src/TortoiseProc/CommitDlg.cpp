@@ -174,7 +174,7 @@ static int GetCommitTemplate(CString &msg)
 			}
 		}
 	}
-	else if (CStringUtils::StartsWith(tplFilename, L"~/"))
+	else if (StringUtils::StartsWith(tplFilename, L"~/"))
 		tplFilename = g_Git.GetHomeDirectory() + tplFilename.Mid(static_cast<int>(wcslen(L"~")));
 
 	tplFilename.Replace(L'/', L'\\');
@@ -500,7 +500,7 @@ void CCommitDlg::PrepareOkButton()
 		CString label;
 		label.LoadString(labelId);
 		m_ctrlOkButton.AddEntry(label);
-		wchar_t accellerator = CStringUtils::GetAccellerator(label);
+		wchar_t accellerator = StringUtils::GetAccellerator(label);
 		if (accellerator == L'\0')
 			continue;
 		++m_accellerators[accellerator].cnt;
@@ -713,7 +713,7 @@ void CCommitDlg::OnOK()
 		{
 			CString cmdout;
 			g_Git.Run({ L"git.exe", L"diff", L"--", entry->GetGitPathString() }, &cmdout, CP_UTF8);
-			dirty = CStringUtils::EndsWith(cmdout, L"-dirty\n");
+			dirty = StringUtils::EndsWith(cmdout, L"-dirty\n");
 		}
 
 		if (dirty)

@@ -172,25 +172,25 @@ protected:
 				refName = fullRefName;
 		}
 
-		if (CStringUtils::StartsWith(refName, L"refs/"))
+		if (StringUtils::StartsWith(refName, L"refs/"))
 			refName = refName.Mid(static_cast<int>(wcslen(L"refs/")));
-		if (CStringUtils::StartsWith(refName, L"heads/"))
+		if (StringUtils::StartsWith(refName, L"heads/"))
 		{
 			refName = refName.Mid(static_cast<int>(wcslen(L"heads/")));
 			SetDefaultChoose(IDC_RADIO_BRANCH);
 			m_ChooseVersioinBranch.SetCurSel(
 				m_ChooseVersioinBranch.FindStringExact(-1, refName));
 		}
-		else if (CStringUtils::StartsWith(refName, L"remotes/"))
+		else if (StringUtils::StartsWith(refName, L"remotes/"))
 		{
 			SetDefaultChoose(IDC_RADIO_BRANCH);
 			m_ChooseVersioinBranch.SetCurSel(
 				m_ChooseVersioinBranch.FindStringExact(-1, refName));
 		}
-		else if (CStringUtils::StartsWith(refName, L"tags/"))
+		else if (StringUtils::StartsWith(refName, L"tags/"))
 		{
 			refName = refName.Mid(static_cast<int>(wcslen(L"refs/")));
-			if (CStringUtils::EndsWith(refName, L"^{}"))
+			if (StringUtils::EndsWith(refName, L"^{}"))
 				refName.Truncate(refName.GetLength() - static_cast<int>(wcslen(L"^{}")));
 			SetDefaultChoose(IDC_RADIO_TAGS);
 			m_ChooseVersioinTags.SetCurSel(

@@ -18,7 +18,7 @@
 //
 
 #pragma once
-#include <intsafe.h>
+#include <windows.h> // wincrypt.h below needs the base Win32 types; this used to come in via intsafe.h
 #include <string>
 
 enum class HashType
@@ -30,7 +30,7 @@ enum class HashType
 
 
 
-#include "Utils/scope_exit_noexcept.h"
+import tgittypes;
 
 #include <wincrypt.h>
 #include <vector>

@@ -1080,7 +1080,7 @@ bool CMainWindow::loadOrSaveFile(bool doLoad, const std::wstring& filename /* = 
 	ofn.nMaxFile = sizeof(szFile)/sizeof(wchar_t);
 	wchar_t filter[1024] = { 0 };
 	LoadString(::hResource, IDS_PATCHFILEFILTER, filter, _countof(filter));
-	CStringUtils::PipesToNulls(filter);
+	StringUtils::PipesToNulls(filter);
 	ofn.lpstrFilter = filter;
 	ofn.nFilterIndex = 1;
 	ofn.lpstrFileTitle = nullptr;

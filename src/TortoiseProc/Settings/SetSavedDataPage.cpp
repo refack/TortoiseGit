@@ -89,7 +89,7 @@ BOOL CSetSavedDataPage::OnInitDialog()
 	for (POSITION pos = loghistlist.GetHeadPosition(); pos; )
 	{
 		CString sHistName = loghistlist.GetNext(pos);
-		if (CStringUtils::StartsWithI(sHistName, L"commit") || CStringUtils::StartsWithI(sHistName, L"merge"))
+		if (StringUtils::StartsWithI(sHistName, L"commit") || StringUtils::StartsWithI(sHistName, L"merge"))
 		{
 			nLogHistWC++;
 			CRegistryKey regloghistwc(L"Software\\TortoiseGit\\History\\"+sHistName);
@@ -217,7 +217,7 @@ void CSetSavedDataPage::OnBnClickedLoghistclear()
 	for (POSITION pos = histlist.GetHeadPosition(); pos; )
 	{
 		CString sHist = histlist.GetNext(pos);
-		if (CStringUtils::StartsWithI(sHist, L"commit"))
+		if (StringUtils::StartsWithI(sHist, L"commit"))
 		{
 			CRegistryKey regkey(L"Software\\TortoiseGit\\History\\"+sHist);
 			regkey.removeKey();
@@ -339,7 +339,7 @@ void CSetSavedDataPage::DeleteViaShell(LPCWSTR path, UINT progressText)
 	int len = p.GetLength();
 	auto buf = std::make_unique<wchar_t[]>(len + 1);
 	wcscpy_s(buf.get(), len + 1, p);
-	CStringUtils::PipesToNulls(buf.get(), len);
+	StringUtils::PipesToNulls(buf.get(), len);
 
 	CString progText(MAKEINTRESOURCE(progressText));
 	SHFILEOPSTRUCT fileop;

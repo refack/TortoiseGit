@@ -300,7 +300,7 @@ void CHooks::AddErrorParam(CString& sCmd, const CString& error)
 {
 	CTGitPath tempPath;
 	tempPath = CTempFiles::Instance().GetTempFilePath(true);
-	CStringUtils::WriteStringToTextFile(tempPath.GetWinPath(), error);
+	StringUtils::WriteStringToTextFile(tempPath.GetWinPath(), error);
 	AddParam(sCmd, tempPath.GetWinPathString().c_str());
 }
 
@@ -308,7 +308,7 @@ CTGitPath CHooks::AddMessageFileParam(CString& sCmd, const CString& message)
 {
 	CTGitPath tempPath;
 	tempPath = CTempFiles::Instance().GetTempFilePath(true);
-	CStringUtils::WriteStringToTextFile(tempPath.GetWinPath(), message);
+	StringUtils::WriteStringToTextFile(tempPath.GetWinPath(), message);
 	AddParam(sCmd, tempPath.GetWinPathString().c_str());
 	return tempPath;
 }
@@ -331,7 +331,7 @@ bool CHooks::StartCommit(HWND hWnd, const CString& workingTree, const CTGitPathL
 	exitcode = RunScript(sCmd, workingTree, error, it->second.bWait, it->second.bShow);
 	if (!exitcode && !temppath.IsEmpty())
 	{
-		CStringUtils::ReadStringFromTextFile(temppath.GetWinPathString().c_str(), message);
+		StringUtils::ReadStringFromTextFile(temppath.GetWinPathString().c_str(), message);
 	}
 	return true;
 }
@@ -353,7 +353,7 @@ bool CHooks::PreCommit(HWND hWnd, const CString& workingTree, const CTGitPathLis
 	AddCWDParam(sCmd, workingTree);
 	exitcode = RunScript(sCmd, workingTree, error, it->second.bWait, it->second.bShow);
 	if (!exitcode && !temppath.IsEmpty())
-		CStringUtils::ReadStringFromTextFile(temppath.GetWinPathString().c_str(), message);
+		StringUtils::ReadStringFromTextFile(temppath.GetWinPathString().c_str(), message);
 	return true;
 }
 

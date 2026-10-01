@@ -163,7 +163,7 @@ void CRenameDlg::OnBnClickedButtonBrowseRef()
 		m_sBaseDir.Replace(L"/", L"\\");
 		if (!PathRelativePathTo(CStrBuf(relPath, MAX_PATH), m_sBaseDir, FILE_ATTRIBUTE_DIRECTORY, path, FILE_ATTRIBUTE_DIRECTORY))
 			return;
-		if (CStringUtils::StartsWith(relPath, L".\\"))
+		if (StringUtils::StartsWith(relPath, L".\\"))
 			relPath = relPath.Mid(static_cast<int>(wcslen(L".\\")));
 		m_name = relPath;
 		UpdateData(FALSE);
