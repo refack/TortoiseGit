@@ -6,6 +6,15 @@ import GitHash;
 
 export namespace tgit::types
 {
+
+enum CacheType
+{
+	none,
+	exe,
+	dll,
+	dllFull, // same as dll except it uses commandline git tool with all status modes supported
+};
+
 enum: std::uint8_t
 {
 	TGIT_GIT_SUCCESS=0,
@@ -171,6 +180,29 @@ struct scope_exit_helper
 	scope_exit_t<D> operator<< (D&& f) {
 		return scope_exit_t<D>(std::forward<D>(f));
 	}
+};
+
+
+enum git_wc_status_kind
+{
+	git_wc_status_none,
+	git_wc_status_unversioned,
+	git_wc_status_ignored,
+	git_wc_status_normal,
+	git_wc_status_deleted,
+	git_wc_status_modified,
+	git_wc_status_added,
+	git_wc_status_conflicted,
+	git_wc_status_unknown, // should be last, see TGitCache/CacheInterface.h
+};
+
+
+struct git_wc_status2_t
+{
+	git_wc_status_kind status = git_wc_status_none;
+
+	bool assumeValid = false;
+	bool skipWorktree = false;
 };
 
 

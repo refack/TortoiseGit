@@ -2,7 +2,7 @@
 #include <windows.h>
 #include "Utils/ReparseData.h"
 #include "Utils/WideString.h"
-#include "sanity.h"
+// #include "sanity.h"
 
 
 export module PathUtils;
@@ -266,7 +266,42 @@ void DropPathPrefixes(std::wstring& path);
  * Reads a symlink's target, as UTF-8 bytes with forward slashes - the form git stores
  * a symlink blob in, which is why the out-parameter is a byte string and not a wide one.
  */
-int ReadLink(LPCWSTR filename, std::string* pTargetA = {});
+int ReadLink(const LPCWSTR filename, std::string* pTargetA = {})
+{
+	const CAutoFile handle = CreateFileW(filename, GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_DELETE, nullptr, OPEN_EXISTING, FILE_FLAG_OPEN_REPARSE_POINT | FILE_FLAG_BACKUP_SEMANTICS, nullptr);
+	if (!handle)
+		return -1;
+
+	DWORD ioctl_ret;
+	BYTE buf[MAXIMUM_REPARSE_DATA_BUFFER_SIZE] = {};
+	const auto reparse_buf = reinterpret_cast<TGIT_REPARSE_DATA_BUFFER*>(&buf);
+	if (!DeviceIoControl(handle, FSCTL_GET_REPARSE_POINT, nullptr, 0, reparse_buf, sizeof(buf), &ioctl_ret, nullptr))
+		return -1;
+
+	if (reparse_buf->ReparseTag != IO_REPARSE_TAG_SYMLINK)
+		return -1;
+
+	const wchar_t* target = reparse_buf->ReparseBuffer.SymbolicLink.PathBuffer + (reparse_buf->ReparseBuffer.SymbolicLink.SubstituteNameOffset / sizeof(WCHAR));
+	const int target_len = reparse_buf->ReparseBuffer.SymbolicLink.SubstituteNameLength / sizeof(WCHAR);
+	if (!target_len)
+		return -1;
+
+	// not a symlink
+	if (wcsncmp(target, L"\\??\\Volume{", 11) == 0)
+		return -1;
+
+	if (pTargetA != nullptr)
+	{
+		std::wstring targetW(target, target_len);
+		// The path may need to have a prefix removed
+		DropPathPrefixes(targetW);
+		tgit::wstr::Replace(targetW, L"\\"sv, L"/"sv);
+		*pTargetA = CUnicodeUtils::StdGetUTF8(targetW);
+	}
+
+	return 0;
+}
+
 
 /**
  * Ensures that the path ends with a folder separator.
@@ -465,41 +500,6 @@ void DropPathPrefixes(std::wstring& path)
 	}
 }
 
-int ReadLink(const LPCWSTR filename, std::string* pTargetA)
-{
-	const CAutoFile handle = CreateFileW(filename, GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_DELETE, nullptr, OPEN_EXISTING, FILE_FLAG_OPEN_REPARSE_POINT | FILE_FLAG_BACKUP_SEMANTICS, nullptr);
-	if (!handle)
-		return -1;
-
-	DWORD ioctl_ret;
-	BYTE buf[MAXIMUM_REPARSE_DATA_BUFFER_SIZE] = {};
-	const auto reparse_buf = reinterpret_cast<TGIT_REPARSE_DATA_BUFFER*>(&buf);
-	if (!DeviceIoControl(handle, FSCTL_GET_REPARSE_POINT, nullptr, 0, reparse_buf, sizeof(buf), &ioctl_ret, nullptr))
-		return -1;
-
-	if (reparse_buf->ReparseTag != IO_REPARSE_TAG_SYMLINK)
-		return -1;
-
-	const wchar_t* target = reparse_buf->ReparseBuffer.SymbolicLink.PathBuffer + (reparse_buf->ReparseBuffer.SymbolicLink.SubstituteNameOffset / sizeof(WCHAR));
-	const int target_len = reparse_buf->ReparseBuffer.SymbolicLink.SubstituteNameLength / sizeof(WCHAR);
-	if (!target_len)
-		return -1;
-
-	// not a symlink
-	if (wcsncmp(target, L"\\??\\Volume{", 11) == 0)
-		return -1;
-
-	if (pTargetA)
-	{
-		std::wstring targetW(target, target_len);
-		// The path may need to have a prefix removed
-		DropPathPrefixes(targetW);
-		tgit::wstr::Replace(targetW, L"\\"sv, L"/"sv);
-		*pTargetA = CUnicodeUtils::StdGetUTF8(targetW);
-	}
-
-	return 0;
-}
 
 std::wstring GetCopyrightForSelf()
 {
@@ -649,6 +649,18 @@ std::wstring GetCWD()
 bool IsSamePath(const std::wstring& path1, const std::wstring& path2)
 {
 	return ArePathStringsEqualWithCase(NormalizePath(GetLongPathname(path1)), NormalizePath(GetLongPathname(path2)));
+}
+
+
+
+auto query_file(auto path)
+{
+	return wil::open_file(
+		path,
+		FILE_READ_ATTRIBUTES,
+		FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+		FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OPEN_REPARSE_POINT
+	);
 }
 
 

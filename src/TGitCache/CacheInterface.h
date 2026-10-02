@@ -19,11 +19,16 @@
 //
 
 #pragma once
-#include <GitStatus.h>
+#include <minwindef.h>
+
+import std; // NOLINT(*-implementation-in-namespace)
+import TGitStatus;
+import tgittypes;
+
+using std::operator""sv;
 
 // The name of the named-pipe for the cache
-
-#define TGIT_CACHE_PIPE_NAME L"\\\\.\\pipe\\TGitCache"
+inline constexpr auto TGIT_CACHE_PIPE_NAME = L"\\\\.\\pipe\\TGitCache"sv;
 #define TGIT_CACHE_COMMANDPIPE_NAME L"\\\\.\\pipe\\TGitCacheCommand"
 #define TGIT_CACHE_WINDOW_NAME L"TGitCacheWindow"
 #define TGIT_CACHE_MUTEX_NAME L"TGitCacheMutex"
@@ -74,7 +79,7 @@ struct TGITCacheResponse
 	bool m_bAssumeValid;
 	bool m_bSkipWorktree;
 };
-static_assert(static_cast<UINT8>(git_wc_status_unknown) == git_wc_status_unknown, "type git_wc_status_kind fits into UINT8");
+static_assert(static_cast<UINT8>(tgit::types::git_wc_status_unknown) == git_wc_status_unknown, "type git_wc_status_kind fits into UINT8");
 static_assert(sizeof(TGITCacheResponse) == 3 && offsetof(TGITCacheResponse, m_status) == 0 && offsetof(TGITCacheResponse, m_bAssumeValid) == 1 && offsetof(TGITCacheResponse, m_bSkipWorktree) == 2, "Cross platform compatibility");
 
 /**

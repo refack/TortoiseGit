@@ -328,6 +328,12 @@ struct StringView : std::basic_string_view<StringChar<TStr>>
 };
 
 
+auto to_path(auto sPath)
+{
+	return std::filesystem::path(StringView{sPath});
+}
+
+
 // end export
 }
 

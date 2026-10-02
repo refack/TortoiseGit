@@ -19,12 +19,40 @@
 //
 #include "stdafx.h"
 #include "TortoiseProc.h"
-#include "TGitPath.h"
 #include "RenameDlg.h"
 #include "AppUtils.h"
-#include "ControlsBridge.h"
-#include "Git.h"
 #include "MessageBox.h"
+
+import TGitPath;
+import git_h;
+
+namespace CControlsBridge
+{
+	static void AlignHorizontally(CWnd* parent, const int labelId, const int controlId)
+	{
+		CString labelText;
+		parent->GetDlgItemText(labelId, labelText);
+
+		CDC * pParentDC = parent->GetDC();
+		CDC dc;
+		dc.CreateCompatibleDC(pParentDC);
+		parent->ReleaseDC(pParentDC);
+		dc.SelectObject(parent->GetDlgItem(labelId)->GetFont());
+		const CSize textSize = dc.GetTextExtent(labelText);
+
+		CRect labelRect;
+		parent->GetDlgItem(labelId )->GetWindowRect(labelRect);
+		parent->ScreenToClient(labelRect);
+		labelRect.right = labelRect.left + textSize.cx + 2;
+		parent->GetDlgItem(labelId)->MoveWindow(labelRect);
+
+		CRect controlRect;
+		parent->GetDlgItem(controlId)->GetWindowRect(controlRect);
+		parent->ScreenToClient(controlRect);
+		controlRect.left = labelRect.right;
+		parent->GetDlgItem(controlId)->MoveWindow(controlRect);
+	}
+};
 
 IMPLEMENT_DYNAMIC(CRenameDlg, CHorizontalResizableStandAloneDialog)
 CRenameDlg::CRenameDlg(CWnd* pParent /*=nullptr*/)

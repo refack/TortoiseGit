@@ -29,6 +29,51 @@ using tgit::wstr::StringView;
 class CLogCache;
 class IAsyncDiffCB;
 
+class GitRevLoglistSharedFiles
+{
+public:
+	GitRevLoglistSharedFiles(PSRWLOCK lock, const TGitPath::CTGitPathList& files)
+		: m_lock(lock)
+		, m_files(files)
+	{
+		AcquireSRWLockShared(m_lock);
+	}
+
+	~GitRevLoglistSharedFiles() { ReleaseSRWLockShared(m_lock); }
+
+	inline int GetCount() const { return m_files.GetCount(); }
+	inline const CTGitPath& operator[](INT_PTR index) const { return m_files[index]; }
+
+	const CTGitPathList& m_files;
+
+private:
+	PSRWLOCK m_lock;
+};
+
+
+
+class GitRevLoglistSharedFilesWriter
+{
+public:
+	GitRevLoglistSharedFilesWriter(PSRWLOCK lock, CTGitPathList& files, CTGitPathList& unrevfiles)
+		: m_lock(lock)
+		, m_files(files)
+		, m_UnRevFiles(unrevfiles)
+	{
+		AcquireSRWLockExclusive(m_lock);
+	}
+
+	~GitRevLoglistSharedFilesWriter() { ReleaseSRWLockExclusive(m_lock); }
+
+	CTGitPathList& m_files;
+	CTGitPathList& m_UnRevFiles;
+
+private:
+	PSRWLOCK m_lock;
+};
+
+
+
 export struct GitRevLoglist : GitRev
 {
 	using CString = GitRev::StringType;
@@ -37,49 +82,9 @@ export struct GitRevLoglist : GitRev
 
 	friend class CLogCache;
 
-	GitRevLoglist();
-	~GitRevLoglist();
+	GitRevLoglist()  : GitRev(), m_lock(SRWLOCK_INIT) { }
+	// ~GitRevLoglist() override;
 
-	class GitRevLoglistSharedFiles
-	{
-	public:
-		GitRevLoglistSharedFiles(PSRWLOCK lock, const TGitPath::CTGitPathList& files)
-			: m_lock(lock)
-			, m_files(files)
-		{
-			AcquireSRWLockShared(m_lock);
-		}
-
-		~GitRevLoglistSharedFiles() { ReleaseSRWLockShared(m_lock); }
-
-		inline int GetCount() const { return m_files.GetCount(); }
-		inline const CTGitPath& operator[](INT_PTR index) const { return m_files[index]; }
-
-		const CTGitPathList& m_files;
-
-	private:
-		PSRWLOCK m_lock;
-	};
-
-	class GitRevLoglistSharedFilesWriter
-	{
-	public:
-		GitRevLoglistSharedFilesWriter(PSRWLOCK lock, CTGitPathList& files, CTGitPathList& unrevfiles)
-			: m_lock(lock)
-			, m_files(files)
-			, m_UnRevFiles(unrevfiles)
-		{
-			AcquireSRWLockExclusive(m_lock);
-		}
-
-		~GitRevLoglistSharedFilesWriter() { ReleaseSRWLockExclusive(m_lock); }
-
-		CTGitPathList& m_files;
-		CTGitPathList& m_UnRevFiles;
-
-	private:
-		PSRWLOCK m_lock;
-	};
 
 protected:
 	int				m_RebaseAction = 0;
@@ -107,6 +112,36 @@ public:
 
 	CALL_UPDATE_DIFF_ASYNC* m_CallDiffAsync = nullptr;
 
+
+	volatile LONG m_IsSimpleListReady = FALSE;
+	tgit::types::STRING_VECTOR m_SimpleFileList;  /* use for find and filter, no rename detection and line num stat info */
+
+
+	CString& GetAuthorName() { return m_AuthorName; }
+
+	CString& GetAuthorEmail() { return m_AuthorEmail; }
+
+	CTime& GetAuthorDate() { return m_AuthorDate; }
+
+	CString& GetCommitterName() { return m_CommitterName; }
+
+	CString& GetCommitterEmail() { return m_CommitterEmail; }
+
+	CTime& GetCommitterDate() { return m_CommitterDate; }
+
+	int& GetRebaseAction() { return m_RebaseAction;	}
+
+	GitRevLoglistSharedFilesWriter GetFilesWriter() 	{		return GitRevLoglistSharedFilesWriter(&m_lock, m_Files, m_UnRevFiles);	}
+
+	CString& GetSubject() { return m_Subject; }
+
+	CString& GetBody() { return m_Body; }
+
+	BOOL IsBoundary() const { return m_Mark == L'-'; }
+
+	CTGitPathList& GetUnRevFiles()	{		return m_UnRevFiles;	}
+
+
 	int CheckAndDiff()
 	{
 		if (!m_IsDiffFiles && !m_CommitHash.IsEmpty())
@@ -121,6 +156,7 @@ public:
 		return 1;
 	}
 
+
 	unsigned int& GetAction(IAsyncDiffCB* data)
 	{
 		if (!m_IsDiffFiles && m_CallDiffAsync)
@@ -130,10 +166,6 @@ public:
 		return m_Action;
 	}
 
-	int& GetRebaseAction()
-	{
-		return m_RebaseAction;
-	}
 
 	GitRevLoglistSharedFiles GetFiles(IAsyncDiffCB* data)
 	{
@@ -145,15 +177,6 @@ public:
 		return GitRevLoglistSharedFiles(&m_lock, m_Files);
 	}
 
-	GitRevLoglistSharedFilesWriter GetFilesWriter()
-	{
-		return GitRevLoglistSharedFilesWriter(&m_lock, m_Files, m_UnRevFiles);
-	}
-
-	CTGitPathList& GetUnRevFiles()
-	{
-		return m_UnRevFiles;
-	}
 
 	void Parse(GIT_COMMIT* commit, const GitMailmap::CGitMailmap* mailmap)
 	{
@@ -164,45 +187,6 @@ public:
 			ApplyMailmap(*mailmap);
 	}
 
-	CString& GetAuthorName()
-	{
-		return m_AuthorName;
-	}
-
-	CString& GetAuthorEmail()
-	{
-		return m_AuthorEmail;
-	}
-
-	CTime& GetAuthorDate()
-	{
-		return m_AuthorDate;
-	}
-
-	CString& GetCommitterName()
-	{
-		return m_CommitterName;
-	}
-
-	CString& GetCommitterEmail()
-	{
-		return m_CommitterEmail;
-	}
-
-	CTime& GetCommitterDate()
-	{
-		return m_CommitterDate;
-	}
-
-	CString& GetSubject()
-	{
-		return m_Subject;
-	}
-
-	CString& GetBody()
-	{
-		return m_Body;
-	}
 
 	CString GetSubjectBody(bool crlf = false) const
 	{
@@ -223,174 +207,23 @@ public:
 		return ret;
 	}
 
-	BOOL IsBoundary() const { return m_Mark == L'-'; }
 
-	void Clear() override;
-
-	int SafeFetchFullInfo(CGit* git);
-
-	int SafeGetSimpleList(CGit* git);
-	volatile LONG m_IsSimpleListReady = FALSE;
-	tgit::types::STRING_VECTOR m_SimpleFileList;  /* use for find and filter, no rename detection and line num stat info */
-
-	static int GetRefLog(const CString& ref_, std::vector<GitRevLoglist>& refloglist, CString& error);
-};
-
-std::atomic<std::shared_ptr<GitMailmap::CGitMailmap>> GitRevLoglist::s_Mailmap = nullptr;
-
-GitRevLoglist::GitRevLoglist() : GitRev(), m_lock(SRWLOCK_INIT) { }
-
-GitRevLoglist::~GitRevLoglist()
-{
-}
-
-void GitRevLoglist::Clear()
-{
-	GitRev::Clear();
-	m_Action = 0;
-	m_Files.Clear();
-	m_UnRevFiles.Clear();
-	m_Ref.Empty();
-	m_RefAction.Empty();
-	m_Mark = 0;
-	m_IsDiffFiles = FALSE;
-	m_CallDiffAsync = nullptr;
-	m_IsSimpleListReady = FALSE;
-}
-
-
-int GitRevLoglist::SafeGetSimpleList(CGit* git)
-{
-	Expects(git);
-	m_SimpleFileList.clear();
-	if (git->UsingLibGit2(CGit::GIT_CMD_LOGLISTDIFF))
+	void Clear() override
 	{
-		CAutoRepository repo(git->GetGitRepository());
-		if (!repo)
-			return -1;
-		CAutoCommit commit;
-		if (git_commit_lookup(commit.GetPointer(), repo, m_CommitHash) < 0)
-			return -1;
-
-		CAutoTree commitTree;
-		if (git_commit_tree(commitTree.GetPointer(), commit) < 0)
-			return -1;
-
-		bool isRoot = git_commit_parentcount(commit) == 0;
-		for (unsigned int parentId = 0; isRoot || parentId < git_commit_parentcount(commit); ++parentId)
-		{
-			CAutoTree parentTree;
-			if (!isRoot)
-			{
-				CAutoCommit parentCommit;
-				if (git_commit_parent(parentCommit.GetPointer(), commit, parentId) < 0)
-					return -1;
-
-				if (git_commit_tree(parentTree.GetPointer(), parentCommit) < 0)
-					return -1;
-			}
-			isRoot = false;
-
-			CAutoDiff diff;
-			if (git_diff_tree_to_tree(diff.GetPointer(), repo, parentTree, commitTree, nullptr) < 0)
-				return -1;
-
-			size_t deltas = git_diff_num_deltas(diff);
-			for (size_t i = 0; i < deltas; ++i)
-			{
-				const git_diff_delta* delta = git_diff_get_delta(diff, i);
-				m_SimpleFileList.push_back(CUnicodeUtils::StdGetUnicode(delta->new_file.path));
-			}
-		}
-
-		std::sort(m_SimpleFileList.begin(), m_SimpleFileList.end());
-		m_SimpleFileList.erase(std::unique(m_SimpleFileList.begin(), m_SimpleFileList.end()), m_SimpleFileList.end());
-
-		InterlockedExchange(&m_IsSimpleListReady, TRUE);
-		return 0;
-	}
-	GIT_COMMIT commit = {};
-	GIT_COMMIT_LIST list;
-	GIT_HASH parent;
-
-	[[maybe_unused]]CAutoLocker lock(g_Git.m_critGitDllSec);
-	git->CheckAndInitDll();
-
-	try
-	{
-		if (!git->GetGitSimpleListDiff())
-			return -1;
-
-		if (git_get_commit_from_hash(&commit, m_CommitHash.ToRaw()))
-			return -1;
-	}
-	catch (const char*)
-	{
-		return -1;
+		GitRev::Clear();
+		m_Action = 0;
+		m_Files.Clear();
+		m_UnRevFiles.Clear();
+		m_Ref.Empty();
+		m_RefAction.Empty();
+		m_Mark = 0;
+		m_IsDiffFiles = FALSE;
+		m_CallDiffAsync = nullptr;
+		m_IsSimpleListReady = FALSE;
 	}
 
-	git_get_commit_first_parent(&commit, &list);
-	bool isRoot = git_commit_is_root(&commit) == 0;
-	while (git_get_commit_next_parent(&list, parent) == 0 || isRoot)
-	{
-		GIT_FILE file = {};
-		int count = 0;
-		try
-		{
-			if (isRoot)
-				git_root_diff(git->GetGitSimpleListDiff(), commit.m_hash, &file, &count, 0);
-			else
-				git_do_diff(git->GetGitSimpleListDiff(), parent, commit.m_hash, &file, &count, 0);
-		}
-		catch (const char*)
-		{
-			return -1;
-		}
 
-		isRoot = false;
-
-		for (int j = 0; j < count; ++j)
-		{
-			char* newname;
-			char* oldname;
-			char status;
-			int isBin, inc, dec, isDir;
-
-			try
-			{
-				git_get_diff_file(git->GetGitSimpleListDiff(), file, j, &newname, &oldname, &isDir, &status, &isBin, &inc, &dec);
-			}
-			catch (const char*)
-			{
-				return -1;
-			}
-
-			m_SimpleFileList.push_back(CUnicodeUtils::StdGetUnicode(newname));
-		}
-
-		git_diff_flush(git->GetGitSimpleListDiff());
-	}
-
-	std::ranges::sort(m_SimpleFileList.begin(), m_SimpleFileList.end());
-
-
-	auto [first, last] = std::ranges::unique(m_SimpleFileList.begin(), m_SimpleFileList.end());
-	m_SimpleFileList.erase(first, last);
-
-	auto leftovers_range = std::ranges::unique(m_SimpleFileList.begin(), m_SimpleFileList.end());
-	m_SimpleFileList.erase(leftovers_range.begin(), leftovers_range.end());
-
-	auto leftovers = std::ranges::unique(m_SimpleFileList);
-	std::erase(m_SimpleFileList, leftovers);
-
-
-	InterlockedExchange(&m_IsSimpleListReady, TRUE);
-	git_free_commit(&commit);
-
-	return 0;
-}
-
-int GitRevLoglist::SafeFetchFullInfo(CGit* git)
+	int SafeFetchFullInfo(CGit* git)
 {
 	Expects(git);
 	AcquireSRWLockExclusive(&m_lock);
@@ -627,6 +460,149 @@ int GitRevLoglist::SafeFetchFullInfo(CGit* git)
 	return 0;
 }
 
+
+	int SafeGetSimpleList(CGit* git)
+{
+	Expects(git);
+	m_SimpleFileList.clear();
+	if (git->UsingLibGit2(CGit::GIT_CMD_LOGLISTDIFF))
+	{
+		CAutoRepository repo(git->GetGitRepository());
+		if (!repo)
+			return -1;
+		CAutoCommit commit;
+		if (git_commit_lookup(commit.GetPointer(), repo, m_CommitHash) < 0)
+			return -1;
+
+		CAutoTree commitTree;
+		if (git_commit_tree(commitTree.GetPointer(), commit) < 0)
+			return -1;
+
+		bool isRoot = git_commit_parentcount(commit) == 0;
+		for (unsigned int parentId = 0; isRoot || parentId < git_commit_parentcount(commit); ++parentId)
+		{
+			CAutoTree parentTree;
+			if (!isRoot)
+			{
+				CAutoCommit parentCommit;
+				if (git_commit_parent(parentCommit.GetPointer(), commit, parentId) < 0)
+					return -1;
+
+				if (git_commit_tree(parentTree.GetPointer(), parentCommit) < 0)
+					return -1;
+			}
+			isRoot = false;
+
+			CAutoDiff diff;
+			if (git_diff_tree_to_tree(diff.GetPointer(), repo, parentTree, commitTree, nullptr) < 0)
+				return -1;
+
+			size_t deltas = git_diff_num_deltas(diff);
+			for (size_t i = 0; i < deltas; ++i)
+			{
+				const git_diff_delta* delta = git_diff_get_delta(diff, i);
+				m_SimpleFileList.push_back(CUnicodeUtils::StdGetUnicode(delta->new_file.path));
+			}
+		}
+
+		std::sort(m_SimpleFileList.begin(), m_SimpleFileList.end());
+		m_SimpleFileList.erase(std::unique(m_SimpleFileList.begin(), m_SimpleFileList.end()), m_SimpleFileList.end());
+
+		InterlockedExchange(&m_IsSimpleListReady, TRUE);
+		return 0;
+	}
+	GIT_COMMIT commit = {};
+	GIT_COMMIT_LIST list;
+	GIT_HASH parent;
+
+	[[maybe_unused]]CAutoLocker lock(g_Git.m_critGitDllSec);
+	git->CheckAndInitDll();
+
+	try
+	{
+		if (!git->GetGitSimpleListDiff())
+			return -1;
+
+		if (git_get_commit_from_hash(&commit, m_CommitHash.ToRaw()))
+			return -1;
+	}
+	catch (const char*)
+	{
+		return -1;
+	}
+
+	git_get_commit_first_parent(&commit, &list);
+	bool isRoot = git_commit_is_root(&commit) == 0;
+	while (git_get_commit_next_parent(&list, parent) == 0 || isRoot)
+	{
+		GIT_FILE file = {};
+		int count = 0;
+		try
+		{
+			if (isRoot)
+				git_root_diff(git->GetGitSimpleListDiff(), commit.m_hash, &file, &count, 0);
+			else
+				git_do_diff(git->GetGitSimpleListDiff(), parent, commit.m_hash, &file, &count, 0);
+		}
+		catch (const char*)
+		{
+			return -1;
+		}
+
+		isRoot = false;
+
+		for (int j = 0; j < count; ++j)
+		{
+			char* newname;
+			char* oldname;
+			char status;
+			int isBin, inc, dec, isDir;
+
+			try
+			{
+				git_get_diff_file(git->GetGitSimpleListDiff(), file, j, &newname, &oldname, &isDir, &status, &isBin, &inc, &dec);
+			}
+			catch (const char*)
+			{
+				return -1;
+			}
+
+			m_SimpleFileList.push_back(CUnicodeUtils::StdGetUnicode(newname));
+		}
+
+		git_diff_flush(git->GetGitSimpleListDiff());
+	}
+
+	std::ranges::sort(m_SimpleFileList.begin(), m_SimpleFileList.end());
+
+
+	auto [first, last] = std::ranges::unique(m_SimpleFileList.begin(), m_SimpleFileList.end());
+	m_SimpleFileList.erase(first, last);
+
+	auto leftovers_range = std::ranges::unique(m_SimpleFileList.begin(), m_SimpleFileList.end());
+	m_SimpleFileList.erase(leftovers_range.begin(), leftovers_range.end());
+
+	auto leftovers = std::ranges::unique(m_SimpleFileList);
+	std::erase(m_SimpleFileList, leftovers);
+
+
+	InterlockedExchange(&m_IsSimpleListReady, TRUE);
+	git_free_commit(&commit);
+
+	return 0;
+}
+
+
+	// Just for the namespace
+	static int GetRefLog(const CString& ref_, std::vector<GitRevLoglist>& refloglist, CString& error);
+
+};
+
+std::atomic<std::shared_ptr<GitMailmap::CGitMailmap>> GitRevLoglist::s_Mailmap = nullptr;
+
+
+
+
 int GitRevLoglist::GetRefLog(const CString& ref_, std::vector<GitRevLoglist>& refloglist, CString& error)
 {
 	const auto ref = StringView{ref_};
@@ -751,9 +727,8 @@ int GitRevLoglist::GetRefLog(const CString& ref_, std::vector<GitRevLoglist>& re
 			continue;
 
 		CString str = one.Left(refPos);
-		GitRevLoglist rev = {
-		.m_CommitHash = CGitHash::FromHexStr(str),
-		};
+		GitRevLoglist rev{};
+		rev.m_CommitHash = CGitHash::FromHexStr(str);
 		rev.m_Ref.Format(L"%s@{%d}", ref_, i++);
 		const int prefixPos = one.Find(prefix, refPos + 1);
 		if (prefixPos != refPos + 1)

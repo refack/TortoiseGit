@@ -61,7 +61,9 @@ using wil::unique_struct;
 using wil::unique_close_clipboard_call;
 using wil::open_clipboard;
 using wil::unique_hglobal;
-
+using wil::make_range;
+using wil::open_file;
+using wil::GetFileInfo;
 
 
 // Registry Wrapper

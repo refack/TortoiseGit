@@ -38,10 +38,6 @@ target_sources(TGitLibgit2
         patches/filter-filter.c
         patches/ssh-wintunnel.c
         patches/system-call.c
-        Utils/accHelper.cpp
-        Utils/CmdLineParser.cpp
-        Utils/Debug.cpp
-        Utils/DragDropImpl.cpp
         Utils/FileTextLines.cpp
         Utils/PathWatcher.cpp
         Utils/ReaderWriterLock.cpp
@@ -152,4 +148,7 @@ target_sources(TGitLibgit2
         modules/wstr.ixx
         modules/lanes.ixx
         modules/LangDll.ixx
+        modules/GitStatus.ixx
+        modules/CmdLineParser.ixx
+        modules/DragDropImpl.ixx
 )

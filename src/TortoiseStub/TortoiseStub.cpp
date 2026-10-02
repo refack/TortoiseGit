@@ -21,7 +21,6 @@
 #include <ATLComMem.h>
 #include <SDKDDKVer.h>
 #include <Windows.h>
-#include "Debug.h"
 
 const HINSTANCE NIL = reinterpret_cast<HINSTANCE>((static_cast<char*>(0)-1));
 
