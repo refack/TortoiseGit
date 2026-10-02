@@ -30,3 +30,4 @@ Checks: >
   portability-simd-intrinsics
   readability-*
   cppcoreguidelines-*
+  -*-implementation-in-namespace

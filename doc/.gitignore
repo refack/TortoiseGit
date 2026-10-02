@@ -1,0 +1,9 @@
+Aspell/aspell.bat
+Aspell/Temp.pws
+IDD_Errors.txt
+images/8bit.tmp
+output
+scripts/__pycache__
+source/en/version.xml
+source/en/TortoiseGit/git_doc/git-doc.xml
+xsl/db_*.xsl

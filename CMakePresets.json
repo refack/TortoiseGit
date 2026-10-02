@@ -1,0 +1,17 @@
+{
+  "version": 6,
+  "configurePresets": [
+    {
+      "name": "default",
+      "displayName": "Debug - msvc - ninja",
+      "generator": "Ninja",
+      "binaryDir": "build/debug",
+      "cacheVariables": {
+        "CMAKE_TOOLCHAIN_FILE": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
+        "CMAKE_TRACE_EXPAND": "ON",
+        "CMAKE_TRACE_REDIRECT": "trace.log",
+        "CMAKE_BUILD_TYPE": "Debug"
+      }
+    }
+  ]
+}
