@@ -550,7 +550,7 @@ public:
 	BYTE_VECTOR* m_pvector;
 	BYTE_VECTOR* m_pvectorErr;
 
-	boolean wasLimited() const override
+	bool wasLimited() const override
 	{
 		if (!m_pvector)
 			return false;
@@ -984,8 +984,9 @@ std::vector<std::string> CGit::GetLogCmd(CString range, const CTGitPath* path, c
 			case CFilterData::SHOW_LAST_N_WEEKS:
 				substract *= 7;
 				break;
+
 			default:
-				[[unlikely]]
+				break;
 			}
 			from = midnight.time_since_epoch().count() - (Filter->m_NumberOfLogs * substract.count());
 		}
@@ -1096,8 +1097,8 @@ int CGit::RunLogFile(const CString& cmd, const CString& filename, CString* stdEr
 	if (RunAsync(cmd, pi, nullptr, &hReadErr, &filename))
 		return TGIT_GIT_ERROR_CREATE_PROCESS;
 
-	wil::CAutoGeneralHandle piThread(pi.hThread);
-	wil::CAutoGeneralHandle piProcess(pi.hProcess);
+	[[maybe_unused]]wil::CAutoGeneralHandle piThread(pi.hThread);
+	[[maybe_unused]]wil::CAutoGeneralHandle piProcess(pi.hProcess);
 
 	BYTE_VECTOR stderrVector{};
 	CGitCall_ByteVector pcall(L"", nullptr, &stderrVector);
@@ -1106,7 +1107,7 @@ int CGit::RunLogFile(const CString& cmd, const CString& filename, CString* stdEr
 
 	if (thread)
 	{
-		CAutoLocker lock(m_critSecThreadMap);
+		[[maybe_unused]]CAutoLocker lock(m_critSecThreadMap);
 		m_AsyncReadStdErrThreadMap[GetCurrentThreadId()] = thread.get();
 	}
 
@@ -1116,7 +1117,7 @@ int CGit::RunLogFile(const CString& cmd, const CString& filename, CString* stdEr
 	{
 		WaitForSingleObject(thread.get(), INFINITE);
 
-		CAutoLocker lock(m_critSecThreadMap);
+		[[maybe_unused]]CAutoLocker lock(m_critSecThreadMap);
 		m_AsyncReadStdErrThreadMap.erase(GetCurrentThreadId());
 	}
 
@@ -1468,7 +1469,8 @@ bool CGit::BranchTagExists(const CString& name, const bool isBranch /*= true*/)
 	return false;
 }
 
-CString CGit::DerefFetchHead()
+
+CString CGit::DerefFetchHead() const
 {
 	const std::wstring dotGitPath = GitAdminDir::GetWorktreeAdminDirPath(tgit::wstr::StringView(m_CurrentDir)).value_or(std::wstring{});
 	std::ifstream fetchHeadFile(dotGitPath + L"FETCH_HEAD", std::ios::in | std::ios::binary);
@@ -1478,15 +1480,18 @@ CString CGit::DerefFetchHead()
 	while(getline(fetchHeadFile, line))
 	{
 		//Tokenize this line
-		std::string::size_type prevPos = 0;
 		std::string::size_type pos = line.find('\t');
 		if(pos == std::string::npos)	continue; //invalid line
 
 		std::string hash = line.substr(0, pos);
-		++pos; prevPos = pos; pos = line.find('\t', pos); if(pos == std::string::npos) continue;
+		++pos;
+		std::string::size_type prevPos = pos;
+		pos = line.find('\t', pos);
+		if(pos == std::string::npos) continue;
 
 		bool forMerge = pos == prevPos;
-		++pos; prevPos = pos; pos = line.size(); if(pos == std::string::npos) continue;
+		pos = line.size();
+		if(pos == std::string::npos) continue;
 
 		//std::string remoteBranch = line.substr(prevPos, pos - prevPos);
 
@@ -1496,12 +1501,13 @@ CString CGit::DerefFetchHead()
 			hashToReturn = hash;
 			++forMergeLineCount;
 			if(forMergeLineCount > 1)
-				return L""; //More then 1 branch to merge found. Octopus merge needed. Cannot pick single ref from FETCH_HEAD
+				return {}; //More then 1 branch to merge found. Octopus merge needed. Cannot pick single ref from FETCH_HEAD
 		}
 	}
 
 	return CUnicodeUtils::GetUnicode<CString>(hashToReturn);
 }
+
 
 int CGit::GetBranchList(STRING_VECTOR &list, int *current, const BRANCH_TYPE type, const bool skipCurrent /*false*/)
 {
@@ -1611,7 +1617,7 @@ int CGit::GetBranchList(STRING_VECTOR &list, int *current, const BRANCH_TYPE typ
 		{
 			if (list[i] == cur)
 			{
-				*current = i;
+				*current = gsl::narrow_cast<int>(i);
 				break;
 			}
 		}
@@ -1620,7 +1626,8 @@ int CGit::GetBranchList(STRING_VECTOR &list, int *current, const BRANCH_TYPE typ
 	return ret;
 }
 
-int CGit::GetRefsCommitIsOn(STRING_VECTOR& list, const CGitHash& hash, const bool includeTags, const bool includeBranches, const BRANCH_TYPE type)
+
+int CGit::GetRefsCommitIsOn(STRING_VECTOR& list, const CGitHash& hash, const bool includeTags, const bool includeBranches, const BRANCH_TYPE type) const
 {
 	if (!includeTags && !includeBranches || hash.IsEmpty())
 		return 0;
@@ -1767,7 +1774,7 @@ int CGit::GetRemoteRefs(const CString& remote, REF_VECTOR& list, const bool incl
 
 		for (size_t i = 0; i < size; i++)
 		{
-			CString ref = CUnicodeUtils::GetUnicode<CString>(heads[i]->name);
+			auto ref = CUnicodeUtils::GetUnicode<CString>(heads[i]->name);
 			CString shortname;
 			if (GetShortName(ref, shortname, L"refs/tags/"))
 			{
@@ -1794,14 +1801,15 @@ int CGit::GetRemoteRefs(const CString& remote, REF_VECTOR& list, const bool incl
 	// The command line is echoed into the error output, so it still has to be
 	// serialized here even though nothing else needs it flat.
 	gitLastErr = SerializeArgvToCString(argv) + L'\n';
+
+	[[maybe_unused]]const auto _ = gsl::finally([] { TGitH::s_limitGitExeOutput = false; });
 	TGitH::s_limitGitExeOutput = true;
-	const auto resetLimit = gsl::finally([] { TGitH::s_limitGitExeOutput = false; });
 	if (Run(
 		argv, [&](const std::string_view origLineA) {
 			if (origLineA.size() <= GitFormatHolder::GitHashSize() * 2 + strlen("\t") || origLineA[GitFormatHolder::GitHashSize() * 2] != '\t') // OID, tab, refname
 				return;
 			CGitHash hash = CGitHash::FromHexStr(origLineA.substr(0, GitFormatHolder::GitHashSize() * 2));
-			CString ref = CUnicodeUtils::GetUnicode<CString>(origLineA.substr(GitFormatHolder::GitHashSize() * 2 + strlen("\t")));
+			auto ref = CUnicodeUtils::GetUnicode<CString>(origLineA.substr(GitFormatHolder::GitHashSize() * 2 + strlen("\t")));
 			CString shortname;
 			if (GetShortName(ref, shortname, L"refs/tags/"))
 			{
@@ -1828,14 +1836,6 @@ int CGit::GetRemoteRefs(const CString& remote, REF_VECTOR& list, const bool incl
 	return 0;
 }
 
-static int libgit2_addto_list_each_ref_fn(git_reference* rawref, void* payload)
-{
-	CAutoReference ref{ std::move(rawref) };
-	auto list = static_cast<STRING_VECTOR*>(payload);
-	list->push_back(CUnicodeUtils::StdGetUnicode(git_reference_name(ref)));
-	return 0;
-}
-
 int CGit::GetRefList(STRING_VECTOR &list)
 {
 	const size_t prevCount = list.size();
@@ -1845,7 +1845,20 @@ int CGit::GetRefList(STRING_VECTOR &list)
 		if (!repo)
 			return -1;
 
-		if (git_reference_foreach(repo, libgit2_addto_list_each_ref_fn, &list))
+		auto callback = [](git_reference* rawref, void* payload) -> int
+		{
+			// the callback owns the reference
+			const auto ref = wil::unique_git_reference(rawref);
+			auto list = static_cast<STRING_VECTOR*>(payload);
+
+			auto multibyte = git_reference_name(ref.get());
+			list->push_back(CUnicodeUtils::StdGetUnicode(multibyte));
+
+			return GIT_OK;
+		};
+
+
+		if (git_reference_foreach(repo, callback, &list))
 			return -1;
 
 		std::sort(list.begin() + prevCount, list.end(), LogicalComparePredicate);
@@ -1901,7 +1914,8 @@ static int libgit2_addto_map_each_ref_fn(git_reference* rawref, void* payload)
 
 	return 0;
 }
-int CGit::GetMapHashToFriendName(git_repository* repo, MAP_HASH_NAME &map)
+
+inline int GetMapHashToFriendName(git_repository* repo, MAP_HASH_NAME &map)
 {
 	ATLASSERT(repo);
 
@@ -1926,7 +1940,7 @@ int CGit::GetMapHashToFriendName(MAP_HASH_NAME &map)
 		if (!repo)
 			return -1;
 
-		return GetMapHashToFriendName(repo, map);
+		return ::GetMapHashToFriendName(repo, map);
 	}
 
 	gitLastErr.Empty();
@@ -1974,7 +1988,7 @@ int CGit::GuessRefForHash(CString& ref, const CGitHash& hash)
 	return 1;
 }
 
-int CGit::GetBranchDescriptions(MAP_STRING_STRING& map)
+int CGit::GetBranchDescriptions(MAP_STRING_STRING& map) const
 {
 	CAutoConfig config(true);
 	if (git_config_add_file_ondisk(config, TGitPath::ToGitPathA(tgit::wstr::StringView(GetGitLocalConfig())).c_str(), GIT_CONFIG_LEVEL_LOCAL, nullptr, FALSE) < 0)

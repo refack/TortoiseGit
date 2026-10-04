@@ -4,7 +4,6 @@ module;
 #include <atlbase.h>
 #include <GdiPlus.h>
 #include "Utils/LoadIconEx.h"
-#include "Utils/CmdLineParser.h"
 
 
 export module TaskbarUUID;
@@ -13,7 +12,7 @@ import std;
 import gsl;
 import Registry;
 import RIAA;
-
+import CmdLineParser;
 
 #pragma comment(lib, "gdiplus.lib")
 constexpr auto APPID = L"TGIT.TGIT.1";

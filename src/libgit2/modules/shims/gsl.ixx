@@ -9,6 +9,7 @@ export namespace gsl
 	using ::gsl::owner;
 	using ::gsl::span;
 	using ::gsl::narrow;
+	using ::gsl::narrow_cast;
 	using ::gsl::copy;
 	using ::gsl::finally;
 	using ::gsl::final_action;

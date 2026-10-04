@@ -301,6 +301,10 @@ int ReadLink(const LPCWSTR filename, std::string* pTargetA = {})
 
 	return 0;
 }
+int ReadLink(const std::filesystem::path filename, std::string* pTargetA = {})
+{
+	return ReadLink(filename.c_str(), pTargetA);
+}
 
 
 /**

@@ -34,7 +34,6 @@ add_library(TGitLibgit2 SHARED)
 target_sources(TGitLibgit2
     PRIVATE
         Git/Git.cpp
-        Git/GitStatus.cpp
         patches/filter-filter.c
         patches/ssh-wintunnel.c
         patches/system-call.c

@@ -1,14 +1,12 @@
 ﻿module;
 #include <sys/stat.h>
+#include <atlstr.h>
 #include <gitdll.h>
 #include <git2.h>
 #include <git2/sys/repository.h> // git_repository_set_config
-#include <atlstr.h>
-#include "sanity.h"
-
 #include "Utils/ReaderWriterLock.h"
-
 #include <tgit-libgit/dir.h>
+#include "sanity.h"
 
 export module GitIndex;
 import std;
@@ -24,7 +22,6 @@ import Registry;
 import SmartLibgit2;
 import StringUtils;
 import TGitPath;
-import TGitStatus;
 import git_h;
 import invarients;
 import tgittypes;
@@ -34,7 +31,9 @@ using namespace Registry;
 using namespace PathUtils;
 using namespace SmartLibgit2;
 using namespace tgit::DebugOutput;
-using tgit::types::git_wc_status2_t;
+using namespace tgit;
+using types::git_wc_status2_t;
+
 
 #ifndef S_IFLNK
 #define S_IFLNK 0120000
@@ -44,6 +43,7 @@ using tgit::types::git_wc_status2_t;
 #ifndef S_ISLNK
 #define S_ISLNK(m) (((m) & _S_IFMT) == _S_IFLNK)
 #endif
+
 
 // Exported: `export using namespace GitIndex;` at the end exports the using-
 // directive, not the entities, so importers (GitStatus.cpp) could not name any
@@ -56,13 +56,13 @@ struct CGitIndex
 {
 	/* m_Size and m_ModifyTime are only uint32_t in libgit2, cf. https://github.com/libgit2/libgit2/blob/8535fdb9cbad8fcd15ee4022ed29c4138547e22d/include/git2/index.h#L48-L51 and https://tortoisegit.org/issue/4108 */
 	CString    m_FileName;
-	mutable int32_t	m_ModifyTime;
-	mutable uint32_t	m_ModifyTimeNanos;
-	uint16_t	m_Flags;
-	uint16_t	m_FlagsExtended;
+	mutable int32_t	m_ModifyTime{};
+	mutable uint32_t	m_ModifyTimeNanos{};
+	uint16_t	m_Flags{};
+	uint16_t	m_FlagsExtended{};
 	CGitHash	m_IndexHash;
-	uint32_t	m_Size;
-	uint32_t	m_Mode;
+	uint32_t	m_Size{};
+	uint32_t	m_Mode{};
 
 	auto Print() const
 	{
@@ -83,7 +83,7 @@ struct CGitTreeItem
 {
 	CString	m_FileName;
 	CGitHash	m_Hash;
-	int			m_Flags;
+	int			m_Flags{};
 };
 
 
@@ -95,13 +95,20 @@ public:
 	size_t		m_incoming = static_cast<size_t>(-1);
 	size_t		m_outgoing = static_cast<size_t>(-1);
 	size_t		m_stashCount = 0;
-	bool IsIgnoreCase() const { return m_iIndexCaps & GIT_INDEX_CAPABILITY_IGNORE_CASE; }
+	[[nodiscard]] bool IsIgnoreCase() const { return m_iIndexCaps & GIT_INDEX_CAPABILITY_IGNORE_CASE; }
 
-	CGitIndexList();
-	~CGitIndexList();
+	CGitIndexList()
+	{
+#ifndef TGIT_TESTS_ONLY
+		m_iMaxCheckSize = static_cast<__int64>(CRegDWORD(L"Software\\TortoiseGit\\TGitCacheCheckContentMaxSize", 10 * 1024)) * 1024; // stored in KiB
+		m_bCalculateIncomingOutgoing = (CRegStdDWORD(L"Software\\TortoiseGit\\ModifyExplorerTitle", TRUE) != FALSE);
+#endif
+	}
 
-	bool HasIndexChangedOnDisk(const CString& gitdir) const;
-	int ReadIndex(const CString& dotgitdir);
+	~CGitIndexList() = default;
+
+	[[nodiscard]] bool HasIndexChangedOnDisk(const CString& gitdir) const;
+	int ReadIndex(const CString& dgitdir);
 	int ReadIncomingOutgoing(git_repository* repo);
 	int GetFileStatus(const CString& gitdir, const CString& path, git_wc_status2_t& status, CGitHash* pHash = nullptr) const;
 	int GetFileStatus(CAutoRepository& repository, const CString& gitdir, const CGitIndex& entry, git_wc_status2_t& status, __int64 time, __int64 filesize, bool isSymlink) const;
@@ -114,9 +121,12 @@ public:
 	using std::vector<CGitIndex>::size;
 	using std::vector<CGitIndex>::operator[];
 
+
 #ifdef GOOGLETEST_INCLUDE_GTEST_GTEST_H_
 	FRIEND_TEST(GitIndexCBasicGitWithTestRepoFixture, GetFileStatus);
 #endif
+
+
 private:
 	__time64_t m_LastModifyTime = 0;
 	__int64 m_LastFileSize = -1;
@@ -557,9 +567,9 @@ CGitAdminDirMap g_AdminDirMap;
 
 
 
-namespace GitIndex {
+export namespace GitIndex {
 // this file is compiled into projects with and without GIT_EXPERIMENTAL_SHA256; only SHA1 repos are supported so far
-static int tgit_odb_hash(git_oid* out, const void* data, size_t len, git_object_t type)
+inline int tgit_odb_hash(git_oid* out, const void* data, size_t len, git_object_t type)
 {
 #ifdef GIT_EXPERIMENTAL_SHA256
 	return git_odb_hash(out, data, len, type, GIT_OID_SHA1);
@@ -569,17 +579,6 @@ static int tgit_odb_hash(git_oid* out, const void* data, size_t len, git_object_
 }
 
 
-CGitIndexList::CGitIndexList()
-{
-#ifndef TGIT_TESTS_ONLY
-	m_iMaxCheckSize = static_cast<__int64>(CRegDWORD(L"Software\\TortoiseGit\\TGitCacheCheckContentMaxSize", 10 * 1024)) * 1024; // stored in KiB
-	m_bCalculateIncomingOutgoing = (CRegStdDWORD(L"Software\\TortoiseGit\\ModifyExplorerTitle", TRUE) != FALSE);
-#endif
-}
-
-CGitIndexList::~CGitIndexList()
-{
-}
 
 bool CGitIndexList::HasIndexChangedOnDisk(const CString& gitdir) const
 {
@@ -808,11 +807,12 @@ int CGitIndexList::GetFileStatus(CAutoRepository& repository, const CString& git
 		}
 
 		git_oid actual;
-		CStringA fileA = CUnicodeUtils::GetUTF8<CStringA, CString>(entry.m_FileName);
+		const CStringA fileA = CUnicodeUtils::GetUTF8<CStringA, CString>(entry.m_FileName);
 		if (isSymlink && S_ISLNK(entry.m_Mode))
 		{
 			std::string linkDestination;
-			if (!PathUtils::ReadLink(GitStatus::CombinePath(gitdir, entry.m_FileName), &linkDestination) && !tgit_odb_hash(&actual, linkDestination.c_str(), gsl::narrow<int>(linkDestination.size()), GIT_OBJECT_BLOB) && !git_oid_cmp(&actual, entry.m_IndexHash))
+			auto filename = wstr::to_path(gitdir) / wstr::to_path(entry.m_FileName);
+			if (!PathUtils::ReadLink(filename, &linkDestination) && !tgit_odb_hash(&actual, linkDestination.c_str(), gsl::narrow<int>(linkDestination.size()), GIT_OBJECT_BLOB) && !git_oid_cmp(&actual, entry.m_IndexHash))
 			{
 				entry.m_ModifyTime = static_cast<int32_t>(TGitH::filetime_to_time_t(time));
 				entry.m_ModifyTimeNanos = (time % 10000000) * 100;
@@ -854,7 +854,7 @@ int CGitIndexList::GetFileStatus(const CString& gitdir, const CString& path, git
 	if (path.IsEmpty())
 		result = TGitH::GetFileModifyTime(gitdir, &time, &isDir);
 	else
-		result = TGitH::GetFileModifyTime(GitStatus::CombinePath(gitdir, path), &time, &isDir, &filesize, &isSymlink);
+		result = TGitH::GetFileModifyTime(wstr::to_path(gitdir) / wstr::to_path(path), &time, &isDir, &filesize, &isSymlink);
 
 	if (result)
 		filesize = -1;
@@ -1575,7 +1575,7 @@ int CGitIgnoreList::CheckFileAgainstIgnoreList(const CString &ignorefile, const 
 }
 int CGitIgnoreList::CheckIgnore(const CString &path, const CString &projectroot, bool isDir, const CString& adminDir)
 {
-	CString temp = GitStatus::CombinePath(projectroot, path);
+	CString temp = (wstr::to_path(projectroot) / wstr::to_path(path)).c_str();
 	temp.Replace(L'/', L'\\');
 
 	CStringA patha = CUnicodeUtils::GetUTF8<CStringA>(path);
@@ -1651,6 +1651,13 @@ SHARED_TREE_PTR CGitHeadFileMap::CheckHeadAndUpdate(const CString& gitdir, bool 
 
 	return newPtr;
 }
+
+struct CGitRepoLists
+{
+	SHARED_INDEX_PTR pIndex;
+	SHARED_TREE_PTR pTree;
+};
+
 
 }
 

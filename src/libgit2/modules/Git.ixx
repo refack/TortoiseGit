@@ -25,6 +25,7 @@ using std::operator""s;
 using std::operator""sv;
 using TGString = std::wstring;
 using TGStringView = std::wstring_view;
+using std::filesystem::path;
 namespace fs = std::filesystem;
 
 using namespace wil;
@@ -200,7 +201,7 @@ CString GetLibGit2LastErr(const CString& msg = {})
 
 	if (const git_error* libgit2err = git_error_last())
 	{
-		const CString lastError = CUnicodeUtils::GetUnicode<CString>(libgit2err->message);
+		const auto lastError = CUnicodeUtils::GetUnicode<CString>(libgit2err->message);
 		tgit::libgit2::git_error_clear();
 		return L"libgit2 returned: " + lastError;
 	}
@@ -239,7 +240,7 @@ struct ArgvData
 		return result;
 	}
 
-	int argc() const noexcept { return static_cast<int>(m_strings.size()); }
+	[[nodiscard]] int argc() const noexcept { return static_cast<int>(m_strings.size()); }
 	const char** argv() noexcept { return m_argv.data(); }
 
 	explicit operator bool() const noexcept { return !m_strings.empty(); }
@@ -286,7 +287,7 @@ public:
 		: m_error(error)
 	{}
 
-	const CString& cause() const { return m_error; }
+	[[nodiscard]] const CString& cause() const { return m_error; }
 };
 
 
@@ -300,7 +301,7 @@ public:
 	explicit CGitCall(const STRING_VECTOR& argv); // Out of line because it needs CGit::SerializeArgv, and CGit is declared below.
 	virtual ~CGitCall() = default;
 
-	const CString& GetCmd() const { return m_Cmd; }
+	[[nodiscard]] const CString& GetCmd() const { return m_Cmd; }
 
 	// These functions are called when command output data is available.
 	// When this function returns 'true' further output is ignored.
@@ -308,7 +309,7 @@ public:
 	virtual bool OnOutputErrData(std::string_view data) = 0;
 	virtual void OnEnd() {}
 	void setLimit(const bool enableLimit) { m_maxLength = enableLimit ? GIT_EXE_BUFFER_LIMIT : std::numeric_limits<size_t>::max(); }
-	virtual boolean wasLimited() const = 0;
+	[[nodiscard]] virtual bool wasLimited() const = 0;
 
 private:
 	CString m_Cmd;
@@ -323,7 +324,14 @@ template <typename GitReceiverFunc>
 	requires std::is_convertible_v<GitReceiverFunc, std::function<void(std::string_view)>>
 class CGitCallCb : public CGitCall
 {
+	size_t m_received = 0;
+	GitReceiverFunc m_recv;
+	BYTE_VECTOR m_buffer{};
+	BYTE_VECTOR* m_pvectorErr{};
+
 public:
+	using CallbackType = GitReceiverFunc;
+
 	CGitCallCb(const CString& cmd, const GitReceiverFunc recv, BYTE_VECTOR* p_VectorErr = nullptr)
 		: CGitCall(cmd)
 		, m_recv(recv)
@@ -372,16 +380,11 @@ public:
 		m_buffer.clear(); // Just for sure
 	}
 
-	boolean wasLimited() const override
+	[[nodiscard]] bool wasLimited() const override
 	{
 		return m_received >= m_maxLength;
 	}
 
-private:
-	size_t m_received = 0;
-	GitReceiverFunc m_recv;
-	BYTE_VECTOR m_buffer;
-	BYTE_VECTOR* m_pvectorErr;
 };
 
 
@@ -596,19 +599,19 @@ public:
 		LAST_VALUE,
 	};
 	static_assert(LIBGIT2_CMD::LAST_VALUE < sizeof(DWORD) * 8, "too many flags for storing them in a DWORD bitfield");
-	bool UsingLibGit2(LIBGIT2_CMD cmd) const;
+	[[nodiscard]] bool UsingLibGit2(LIBGIT2_CMD cmd) const;
 	/**
 	 * callback type should be git_cred_acquire_cb
 	 */
 	static void SetGit2CredentialCallback(void* callback);
 	static void SetGit2CertificateCheckCertificate(void* callback);
 
-	CString GetHomeDirectory() const;
-	CString GetGitLocalConfig() const;
-	CString GetGitGlobalConfig() const;
-	CString GetGitGlobalXDGConfig(bool returnDirectory = false) const;
-	CString GetGitSystemConfig() const;
-	unique_git_repository GetGitRepository() const;
+	[[nodiscard]] CString GetHomeDirectory() const;
+	[[nodiscard]] CString GetGitLocalConfig() const;
+	[[nodiscard]] CString GetGitGlobalConfig() const;
+	[[nodiscard]] CString GetGitGlobalXDGConfig(bool returnDirectory = false) const;
+	[[nodiscard]] CString GetGitSystemConfig() const;
+	[[nodiscard]] unique_git_repository GetGitRepository() const;
 
 	/**
 	 * The configured SSH client, HKCU then HKLM, empty when none is set and the OpenSSH
@@ -616,7 +619,7 @@ public:
 	 * so upgrades do not keep exporting a binary that no longer exists.
 	 */
 	static std::wstring GetConfiguredSshClient();
- 	CString GetNotesRef() const;
+ 	[[nodiscard]] CString GetNotesRef() const;
 	static bool IsBranchNameValid(const CString& branchname);
 	bool IsLocalBranch(const CString& shortName);
 	bool IsBranchTagNameUnique(const CString& name);
@@ -862,9 +865,9 @@ public:
 	 * for ever latching the object format here (see the open risk in CLAUDE.md -
 	 * today the latch self-corrects on the next CheckAndInitDll()).
 	 */
-	void SetCurrentDirExact(CString path)
+	void SetCurrentDirExact(const CString& path)
 	{
-		m_CurrentDirStorage = std::move(path);
+		m_CurrentDirStorage = path;
 		NormalizeCurrentDir();
 	}
 
@@ -874,7 +877,7 @@ public:
 	 * reference because the value can no longer be repointed by an assignment
 	 * somewhere else in the expression.
 	 */
-	const CString& GetCurrentDir() const { return m_CurrentDir; }
+	[[nodiscard]] const CString& GetCurrentDir() const { return m_CurrentDir; }
 
 private:
 	// Only the two setters above may name this. Everything else - some 400 read
@@ -913,15 +916,14 @@ public:
 	int GetRemoteList(STRING_VECTOR& list);
 	int GetBranchList(STRING_VECTOR& list, int* current, BRANCH_TYPE type = BRANCH_LOCAL, bool skipCurrent = false);
 	int GetTagList(STRING_VECTOR& list);
-	int GetRefsCommitIsOn(STRING_VECTOR& list, const CGitHash& hash, bool includeTags, bool includeBranches, BRANCH_TYPE type = BRANCH_LOCAL);
+	int GetRefsCommitIsOn(STRING_VECTOR& list, const CGitHash& hash, bool includeTags, bool includeBranches, BRANCH_TYPE type = BRANCH_LOCAL) const;
 	int GetRemoteRefs(const CString& remote, REF_VECTOR& list, bool includeTags, bool includeBranches);
 	int DeleteRemoteRefs(const CString& remote, const STRING_VECTOR& list);
-	int GetBranchDescriptions(MAP_STRING_STRING& map);
+	int GetBranchDescriptions(MAP_STRING_STRING& map) const;
 	int GuessRefForHash(CString& ref, const CGitHash& hash);
 	int GetMapHashToFriendName(MAP_HASH_NAME& map);
-	static int GetMapHashToFriendName(git_repository* repo, MAP_HASH_NAME& map);
 
-	CString DerefFetchHead();
+	[[nodiscard]] CString DerefFetchHead() const;
 
 	// FixBranchName():
 	// When branchName == FETCH_HEAD, dereference it.
@@ -960,7 +962,7 @@ public:
 		CString mineLabel;
 		CString theirsLabel;
 
-		bool AnyMatches(const CGitHash& hash) const
+		[[nodiscard]] bool AnyMatches(const CGitHash& hash) const
 		{
 			return !superProjectHash.IsEmpty() && superProjectHash == hash || !mergeconflictMineHash.IsEmpty() && mergeconflictMineHash == hash || !mergeconflictTheirsHash.IsEmpty() && mergeconflictTheirsHash == hash;
 		}
@@ -986,7 +988,7 @@ public:
 	int GetCommitDiffList(const CString& rev1, const CString& rev2, CTGitPathList& outpathlist, CString& error, bool ignoreSpaceAtEol = false, bool ignoreSpaceChange = false, bool ignoreAllSpace = false, bool ignoreBlankLines = false);
 	int GetInitAddList(CTGitPathList& outpathlist, bool getStagingStatus = false);
 	int GetWorkingTreeChanges(CTGitPathList& result, bool amend = false, const CTGitPathList* filterlist = nullptr, bool includedStaged = false, bool getStagingStatus = false);
-	int GetShortHASHLength() const;
+	[[nodiscard]] int GetShortHASHLength() const;
 
 	int GetGitNotes(const CGitHash& hash, CString& notes);
 	int SetGitNotes(const CGitHash& hash, const CString& notes);
@@ -1000,7 +1002,7 @@ public:
 
 	int GetGitVersion(CString* versiondebug, CString* errStr);
 
-	CString CombinePath(const CString& path) const
+	[[nodiscard]] CString CombinePath(const CString& path) const
 	{
 		if (path.IsEmpty())
 			return m_CurrentDir;
@@ -1028,7 +1030,7 @@ public:
 		return CombinePath(CString(path.data(), SafeSizeToInt(path.size())));
 	}
 
-	CString CombinePath(const CTGitPath& path) const
+	[[nodiscard]] CString CombinePath(const CTGitPath& path) const
 	{
 		return CombinePath(path.GetWinPathString().c_str());
 	}
@@ -1179,7 +1181,10 @@ int GetFileModifyTime(LPCWSTR filename, std::int64_t* time, bool* isDir = nullpt
 	}
 	return -1;
 }
-
+int GetFileModifyTime(const path& filename, std::int64_t* time, bool* isDir = nullptr, std::int64_t* size = nullptr, bool* isSymlink = nullptr)
+{
+	return GetFileModifyTime(filename.c_str(), time, isDir, size, isSymlink);
+}
 
 TGString GetShortName(const TGStringView ref, TGStringView prefix)
 {

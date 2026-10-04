@@ -1,10 +1,10 @@
 module;
-#include <gsl/narrow>
 #include <windows.h>
 
 export module wstr;
 
 import std;
+import gsl;
 
 
 // Helpers for carrying src\Git and src\Utils from CString to std::wstring.
@@ -328,7 +328,8 @@ struct StringView : std::basic_string_view<StringChar<TStr>>
 };
 
 
-auto to_path(auto sPath)
+template <IsTCompString TStr>
+std::filesystem::path to_path(TStr sPath)
 {
 	return std::filesystem::path(StringView{sPath});
 }

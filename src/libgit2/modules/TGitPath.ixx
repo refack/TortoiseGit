@@ -31,6 +31,8 @@ import DebugOutput;
 #pragma comment(lib, "Shell32.lib")
 
 using std::operator""sv;
+namespace fs = std::filesystem;
+
 using tgit::types::BYTE_VECTOR;
 using tgit::types::STRING_VECTOR;
 using tgit::wstr::StringView;
@@ -1124,8 +1126,47 @@ public:
 	 * is done in the same directory. For folders, it checks if the folder itself
 	 * contains an admin directory.
 	 */
-	bool HasAdminDir(std::wstring* projectTopDir = nullptr, bool force = false) const;
-	void SetHasAdminDir(bool hasAdminDir, std::wstring_view projectTopDir) const;
+	bool HasAdminDir(std::wstring* projectTopDir = {}, const bool force = false) const
+	{
+		if (m_bHasAdminDirKnown && !force)
+		{
+			if (projectTopDir)
+				*projectTopDir = m_sProjectRoot;
+			return m_bHasAdminDir;
+		}
+
+		EnsureBackslashPathSet();
+		bool isAdminDir = false;
+		m_sProjectRoot.clear();
+		m_bHasAdminDir = GitAdminDir::HasAdminDir(m_sBackslashPath, IsDirectory(), &m_sProjectRoot, &isAdminDir);
+		m_bHasAdminDirKnown = true;
+		if ((m_bHasAdminDir || isAdminDir) && !m_bIsAdminDirKnown)
+		{
+			m_bIsAdminDir = isAdminDir;
+			m_bIsAdminDirKnown = true;
+		}
+		if (projectTopDir)
+			*projectTopDir = m_sProjectRoot;
+		return m_bHasAdminDir;
+	}
+	fs::path TryAdminDir(const fs::path& projectTopDir = {}, const bool force = false) const
+	{
+		std::wstring outParam = projectTopDir;
+		if (!HasAdminDir(&outParam, force))
+			return {};
+		return outParam;
+
+	}
+	void SetHasAdminDir(const bool hasAdminDir, const std::wstring_view projectTopDir) const
+	{
+		m_bHasAdminDir = hasAdminDir;
+		if (hasAdminDir)
+			m_sProjectRoot = projectTopDir;
+		else
+			m_sProjectRoot.clear();
+		m_bHasAdminDirKnown = true;
+	}
+
 	bool HasSubmodules() const;
 	bool HasGitSVNDir() const;
 	bool IsBisectActive() const;
@@ -1240,7 +1281,18 @@ public:
 	explicit CTGitPathList(const CTGitPath& firstEntry) { AddPath(firstEntry); }
 	unsigned int m_Action = 0;
 
-	void AddPath(const CTGitPath& newPath);
+	void AddPath(const CTGitPath& newPath)
+	{
+		m_paths.push_back(newPath);
+		m_commonBaseDirectory.Reset();
+	}
+
+	void Clear()
+	{
+		m_Action = 0;
+		m_paths.clear();
+		m_commonBaseDirectory.Reset();
+	}
 	bool LoadFromFile(const CTGitPath& filename);
 	[[nodiscard]] bool WriteToFile(std::wstring_view sFilename, bool bUTF8 = false) const;
 	[[nodiscard]] bool WriteToPathSpecFile(std::wstring_view sFilename) const;
@@ -1273,25 +1325,108 @@ public:
 
 	[[nodiscard]] int GetCount() const { return static_cast<int>(m_paths.size()); }
 	[[nodiscard]] bool IsEmpty() const { return m_paths.empty(); }
-	void Clear();
-	const CTGitPath& operator[](std::int64_t index) const;
-	[[nodiscard]] bool AreAllPathsFiles() const;
-	[[nodiscard]] bool AreAllPathsDirectories() const;
-	[[nodiscard]] bool AreAllPathsFilesInOneDirectory() const;
-	[[nodiscard]] bool IsAnyAncestorOf(const CTGitPath& possibleDescendant) const;
+	const CTGitPath& operator[](const std::int64_t index) const
+	{
+		_ASSERTE(index >= 0 && static_cast<size_t>(index) < m_paths.size());
+		return m_paths[static_cast<size_t>(index)];
+	}
+	[[nodiscard]] bool AreAllPathsFiles() const{
+		// Look through the vector for any directories - if we find them, return false
+		return std::ranges::none_of(m_paths, &CTGitPath::IsDirectory);
+	}
+	[[nodiscard]] bool AreAllPathsDirectories() const{
+		// Look through the vector for directories - if we find none, return false
+		return std::ranges::all_of(m_paths, &CTGitPath::IsDirectory);
+	}
+	[[nodiscard]] bool AreAllPathsFilesInOneDirectory() const
+	{
+		// Check if all the paths are files and in the same directory
+		m_commonBaseDirectory.Reset();
+		for (const auto& path : m_paths)
+		{
+			if (path.IsDirectory())
+				return false;
+			const CTGitPath baseDirectory = path.GetDirectory();
+			if (m_commonBaseDirectory.IsEmpty())
+				m_commonBaseDirectory = baseDirectory;
+			else if (!m_commonBaseDirectory.IsEquivalentTo(baseDirectory))
+			{
+				// Different path
+				m_commonBaseDirectory.Reset();
+				return false;
+			}
+		}
+		return true;
+	}
+	[[nodiscard]] bool IsAnyAncestorOf(const CTGitPath& possibleDescendant) const{
+		return std::ranges::any_of(m_paths, [&possibleDescendant](const CTGitPath& path) { return path.IsAncestorOf(possibleDescendant); });
+	}
 
 	/**
 	 * returns the directory which all items have in common.
 	 * if not all paths are in the same directory, then
 	 * an empty path is returned
 	 */
-	[[nodiscard]] CTGitPath GetCommonDirectory() const;
+	[[nodiscard]] CTGitPath GetCommonDirectory() const{
+		if (m_commonBaseDirectory.IsEmpty())
+		{
+			for (const auto& path : m_paths)
+			{
+				const CTGitPath baseDirectory = path.GetDirectory();
+				if (m_commonBaseDirectory.IsEmpty())
+					m_commonBaseDirectory = baseDirectory;
+				else if (!m_commonBaseDirectory.IsEquivalentTo(baseDirectory))
+				{
+					// Different path
+					m_commonBaseDirectory.Reset();
+					break;
+				}
+			}
+		}
+		// since we only checked strings, not paths,
+		// we have to make sure now that we really return a *path* here
+		if (std::ranges::any_of(m_paths, [this](const CTGitPath& path) { return !m_commonBaseDirectory.IsAncestorOf(path); }))
+			m_commonBaseDirectory = m_commonBaseDirectory.GetContainingDirectory();
+		return m_commonBaseDirectory;
+	}
 	/**
 	 * returns the root path of all paths in the list.
 	 * only returns an empty path if not all paths are on
 	 * the same drive/root.
 	 */
-	[[nodiscard]] CTGitPath GetCommonRoot() const;
+	[[nodiscard]] CTGitPath GetCommonRoot() const
+	{
+		if (IsEmpty())
+			return {};
+
+		if (GetCount() == 1)
+			return m_paths[0];
+
+		// first entry is common root for itself
+		// (add trailing '\\' to detect partial matches of the last path element)
+		std::wstring root = m_paths[0].GetWinPathString() + L'\\';
+		int rootLength = static_cast<int>(root.size());
+
+		// determine common path string prefix
+		for (auto it = m_paths.cbegin() + 1; it != m_paths.cend(); ++it)
+		{
+			const std::wstring path = it->GetWinPathString() + L'\\';
+
+			const int newLength = detail::GetMatchingLength(root, path);
+			if (newLength != rootLength)
+			{
+				root.resize((std::min)(static_cast<size_t>(newLength), root.size()));
+				rootLength = newLength;
+			}
+		}
+
+		// remove the last (partial) path element
+		if (rootLength > 0)
+			root.resize(std::max(0ull, root.rfind(L"\\")));
+
+		// done
+		return CTGitPath{root};
+	}
 	void SortByPathname(const bool bReverse = false)
 	{
 		if (bReverse) {
@@ -1736,11 +1871,11 @@ bool CTGitPath::PredLeftSameWCPathAsRight(const CTGitPath& left, const CTGitPath
 		do
 		{
 			l = l.GetContainingDirectory();
-		} while (l.HasAdminDir());
+		} while (!l.HasAdminDir());
 		do
 		{
 			r = r.GetContainingDirectory();
-		} while (r.HasAdminDir());
+		} while (!r.HasAdminDir());
 		return l.GetContainingDirectory().IsEquivalentTo(r.GetContainingDirectory());
 	}
 	return left.GetDirectory().IsEquivalentTo(right.GetDirectory());
@@ -1937,39 +2072,7 @@ bool CTGitPath::Delete(const bool bTrash, const bool bShowErrorUI) const
 //////////////////////////////////////////////////////////////////////////
 // CTGitPath: the working tree it belongs to
 
-bool CTGitPath::HasAdminDir(std::wstring* projectTopDir /* = nullptr */, const bool force /* = false */) const
-{
-	if (m_bHasAdminDirKnown && !force)
-	{
-		if (projectTopDir)
-			*projectTopDir = m_sProjectRoot;
-		return m_bHasAdminDir;
-	}
 
-	EnsureBackslashPathSet();
-	bool isAdminDir = false;
-	m_sProjectRoot.clear();
-	m_bHasAdminDir = GitAdminDir::HasAdminDir(m_sBackslashPath, IsDirectory(), &m_sProjectRoot, &isAdminDir);
-	m_bHasAdminDirKnown = true;
-	if ((m_bHasAdminDir || isAdminDir) && !m_bIsAdminDirKnown)
-	{
-		m_bIsAdminDir = isAdminDir;
-		m_bIsAdminDirKnown = true;
-	}
-	if (projectTopDir)
-		*projectTopDir = m_sProjectRoot;
-	return m_bHasAdminDir;
-}
-
-void CTGitPath::SetHasAdminDir(const bool hasAdminDir, const std::wstring_view projectTopDir) const
-{
-	m_bHasAdminDir = hasAdminDir;
-	if (hasAdminDir)
-		m_sProjectRoot = projectTopDir;
-	else
-		m_sProjectRoot.clear();
-	m_bHasAdminDirKnown = true;
-}
 
 GitAdminDir::AdminDir CTGitPath::AdminDirOrEmpty() const
 {
@@ -2108,7 +2211,7 @@ bool CTGitPath::IsRegisteredSubmoduleOfParentProject(std::wstring* parentProject
 	std::ranges::replace(relativePath, L'\\', L'/');
 	tgit::wstr::Trim(relativePath, L"/");
 	std::string submodulePath = CUnicodeUtils::StdGetUTF8(relativePath);
-	const git_config_foreach_cb matches = [](const git_config_entry* entry, void* data) -> int {
+	git_config_foreach_cb matches = [](const git_config_entry* entry, void* data) -> int {
 		return *static_cast<const std::string*>(data) == entry->value ? GIT_EUSER : 0;
 	};
 	return git_config_foreach_match(config.get(), "submodule\\..*\\.path", matches, &submodulePath) == GIT_EUSER;
@@ -2132,121 +2235,6 @@ bool CTGitPath::IsAdminDir() const
 
 //////////////////////////////////////////////////////////////////////////
 // CTGitPathList: the container
-
-void CTGitPathList::AddPath(const CTGitPath& newPath)
-{
-	m_paths.push_back(newPath);
-	m_commonBaseDirectory.Reset();
-}
-
-void CTGitPathList::Clear()
-{
-	m_Action = 0;
-	m_paths.clear();
-	m_commonBaseDirectory.Reset();
-}
-
-const CTGitPath& CTGitPathList::operator[](const std::int64_t index) const
-{
-	_ASSERTE(index >= 0 && static_cast<size_t>(index) < m_paths.size());
-	return m_paths[static_cast<size_t>(index)];
-}
-
-bool CTGitPathList::AreAllPathsFiles() const
-{
-	// Look through the vector for any directories - if we find them, return false
-	return std::ranges::none_of(m_paths, &CTGitPath::IsDirectory);
-}
-
-bool CTGitPathList::AreAllPathsDirectories() const
-{
-	// Look through the vector for directories - if we find none, return false
-	return std::ranges::all_of(m_paths, &CTGitPath::IsDirectory);
-}
-
-bool CTGitPathList::IsAnyAncestorOf(const CTGitPath& possibleDescendant) const
-{
-	return std::ranges::any_of(m_paths, [&possibleDescendant](const CTGitPath& path) { return path.IsAncestorOf(possibleDescendant); });
-}
-
-bool CTGitPathList::AreAllPathsFilesInOneDirectory() const
-{
-	// Check if all the paths are files and in the same directory
-	m_commonBaseDirectory.Reset();
-	for (const auto& path : m_paths)
-	{
-		if (path.IsDirectory())
-			return false;
-		const CTGitPath baseDirectory = path.GetDirectory();
-		if (m_commonBaseDirectory.IsEmpty())
-			m_commonBaseDirectory = baseDirectory;
-		else if (!m_commonBaseDirectory.IsEquivalentTo(baseDirectory))
-		{
-			// Different path
-			m_commonBaseDirectory.Reset();
-			return false;
-		}
-	}
-	return true;
-}
-
-CTGitPath CTGitPathList::GetCommonDirectory() const
-{
-	if (m_commonBaseDirectory.IsEmpty())
-	{
-		for (const auto& path : m_paths)
-		{
-			const CTGitPath baseDirectory = path.GetDirectory();
-			if (m_commonBaseDirectory.IsEmpty())
-				m_commonBaseDirectory = baseDirectory;
-			else if (!m_commonBaseDirectory.IsEquivalentTo(baseDirectory))
-			{
-				// Different path
-				m_commonBaseDirectory.Reset();
-				break;
-			}
-		}
-	}
-	// since we only checked strings, not paths,
-	// we have to make sure now that we really return a *path* here
-	if (std::ranges::any_of(m_paths, [this](const CTGitPath& path) { return !m_commonBaseDirectory.IsAncestorOf(path); }))
-		m_commonBaseDirectory = m_commonBaseDirectory.GetContainingDirectory();
-	return m_commonBaseDirectory;
-}
-
-CTGitPath CTGitPathList::GetCommonRoot() const
-{
-	if (IsEmpty())
-		return CTGitPath();
-
-	if (GetCount() == 1)
-		return m_paths[0];
-
-	// first entry is common root for itself
-	// (add trailing '\\' to detect partial matches of the last path element)
-	std::wstring root = m_paths[0].GetWinPathString() + L'\\';
-	int rootLength = static_cast<int>(root.size());
-
-	// determine common path string prefix
-	for (auto it = m_paths.cbegin() + 1; it != m_paths.cend(); ++it)
-	{
-		const std::wstring path = it->GetWinPathString() + L'\\';
-
-		const int newLength = detail::GetMatchingLength(root, path);
-		if (newLength != rootLength)
-		{
-			root.resize((std::min)(static_cast<size_t>(newLength), root.size()));
-			rootLength = newLength;
-		}
-	}
-
-	// remove the last (partial) path element
-	if (rootLength > 0)
-		root.resize(static_cast<size_t>((std::max)(0, tgit::wstr::ReverseFind(root, L'\\'))));
-
-	// done
-	return CTGitPath(root);
-}
 
 
 void CTGitPathList::DeleteAllFiles(const bool bTrash, const bool bFilesOnly, const bool bShowErrorUI)

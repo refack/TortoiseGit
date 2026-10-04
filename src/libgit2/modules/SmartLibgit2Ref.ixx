@@ -114,7 +114,7 @@ struct CAutoGitRef : Owner
 	pointer* GetPointer() noexcept { return this->put(); } // frees first, as it always did
 	pointer Detach() noexcept { return this->release(); }
 	void Free() noexcept { this->reset(); }
-	bool IsValid() const noexcept { return this->is_valid(); }
+	[[nodiscard]] bool IsValid() const noexcept { return this->is_valid(); }
 	void Swap(CAutoGitRef& other) noexcept { this->swap(other); }
 };
 

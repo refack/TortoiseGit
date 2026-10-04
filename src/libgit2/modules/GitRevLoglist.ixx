@@ -1,7 +1,7 @@
 ﻿module;
+#include <synchapi.h>
 #include <gitdll.h>
 #include <git2.h>
-#include <synchapi.h>
 #include <sanity.h>
 
 
@@ -575,16 +575,9 @@ public:
 
 	std::ranges::sort(m_SimpleFileList.begin(), m_SimpleFileList.end());
 
-
-	auto [first, last] = std::ranges::unique(m_SimpleFileList.begin(), m_SimpleFileList.end());
-	m_SimpleFileList.erase(first, last);
-
-	auto leftovers_range = std::ranges::unique(m_SimpleFileList.begin(), m_SimpleFileList.end());
-	m_SimpleFileList.erase(leftovers_range.begin(), leftovers_range.end());
-
-	auto leftovers = std::ranges::unique(m_SimpleFileList);
-	std::erase(m_SimpleFileList, leftovers);
-
+	// auto leftovers = std::ranges::unique(m_SimpleFileList);
+	// std::erase(m_SimpleFileList, leftovers);
+	m_SimpleFileList.erase(std::unique(m_SimpleFileList.begin(), m_SimpleFileList.end()), m_SimpleFileList.end());
 
 	InterlockedExchange(&m_IsSimpleListReady, TRUE);
 	git_free_commit(&commit);
