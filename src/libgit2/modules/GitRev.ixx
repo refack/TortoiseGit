@@ -9,13 +9,14 @@ import wstr;
 import git_h;
 import GitMailmap;
 import FormatMessageWrapper;
-import SmartLibgit2;
+import wil_git2;
 import GitHash;
 import invarients;
 import tgittypes;
 
 using CGitHash = TGitHash::CGitHash;
 using namespace TGitH;
+using tgit::zstr::StringView;
 
 
 #define LOG_REV_AUTHOR_NAME L'0'
@@ -399,7 +400,7 @@ public:
 				ref.m_CommitterName = mailmap.TranslateAuthor(ref.m_CommitterName, committerEmail);
 			}
 
-			if (tgit::wstr::StartsWith(tgit::wstr::StringView{ refName }, L"refs/heads/"))
+			if (tgit::wstr::StartsWith(StringView{ refName }, L"refs/heads/"))
 				ref.m_Description = descriptions[std::wstring(refName.Mid(static_cast<int>(wcslen(L"refs/heads/"))))].c_str();
 
 			map.emplace(refName, ref);
@@ -534,7 +535,7 @@ int GitRev::GetCommit(git_repository* repo, const CString& refname)
 	}
 
 	CGitHash hash;
-	if (CGit::GetHash(repo, hash, std::wstring(tgit::wstr::StringView{ refname }) + L"^{}")) // add ^{} in order to dereference signed tags
+	if (CGit::GetHash(repo, hash, std::wstring(StringView{ refname }) + L"^{}")) // add ^{} in order to dereference signed tags
 	{
 		m_sErr = TGitH::GetLibGit2LastErr();
 		return -1;
@@ -633,7 +634,7 @@ int GitRev::GetCommit(const CString& refname, bool allowTree /* false */)
 			return ret;
 
 		CGitHash hash;
-		if (g_Git.GetHash(repo, hash, tgit::wstr::StringView{ refname }))
+		if (g_Git.GetHash(repo, hash, StringView{ refname }))
 		{
 			m_sErr = TGitH::GetLibGit2LastErr();
 			return -1;

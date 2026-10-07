@@ -45,7 +45,7 @@ using std::min;
 import DebugOutput;
 #include <Utils/scope_exit_noexcept.h>
 import RIAA;
-import SmartLibgit2;
+import wil_git2;
 
 #ifdef _UNICODE
 #ifdef _M_X64

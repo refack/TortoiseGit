@@ -59,7 +59,7 @@ bool CPersonalDictionary::Load()
 	for (std::string line; std::getline(File, line);)
 	{
 		auto sWord = CUnicodeUtils::StdGetUnicode(line);
-		CUnicodeUtils::Trim(sWord);
+		tgit::wstr::Trim(sWord);
 		if (sWord.empty() || sWord.length() >= PDICT_MAX_WORD_LENGTH)
 			continue;
 		dict.insert(std::move(sWord));

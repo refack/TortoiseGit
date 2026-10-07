@@ -38,7 +38,7 @@ using std::min;
 
 #include <gitdll.h>
 #include <git2.h>
-import SmartLibgit2;
+import wil_git2;
 
 #include <Utils/scope_exit_noexcept.h>
 #include <Utils/SysInfo.h>

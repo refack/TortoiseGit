@@ -17,7 +17,6 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 module;
-
 #include <atlstr.h>
 #include <gitdll.h>
 
@@ -25,35 +24,41 @@ module;
 #include <git2/sys/filter.h>
 #include <git2/sys/transport.h>
 #include <git2.h>
+#include <git2/buffer.h>
 
 #include "libgit2/filter-filter.h"
 #include "libgit2/ssh-wintunnel.h"
 
 
+
 // A module implementation unit: everything defined below - CGit's members and
 // the free functions in TGitH - is attached to module git_h by its declaration
 // in Git.ixx, and an ordinary translation unit cannot define those.
-module git_h;
+export module git_h2;
 
 import std;
 import gsl;
-
 import wil;
+
 import wstr;
 import StringUtils;
 import DebugOutput;
 import Registry;
 import PathUtils;
-import TGitPath;
-import GitHash;
-import GitAdminDir;
-import tgittypes;
-import GitRev;
 import RIAA;
 import FormatMessageWrapper;
 
+import tgittypes;
+import invarients;
+import wil_git2;
+import git_h;
+import TGitPath;
+import GitHash;
+import GitRev;
+
 using std::operator ""sv;
 using namespace tgit::types;
+using namespace tgit::invarients;
 
 using tgit::DebugOutput::CTraceToOutputDebugString;
 using TGitPath::CTGitPath;
@@ -125,7 +130,7 @@ BOOL FindGitPath()
 		// check for (broken) scoop shim, cf. issue #4033
 		if (CString contents; LoadTextFile(TGitH::ms_LastMsysGitDir + L"\\git.shim", contents))
 		{
-			tgit::DebugOutput::CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": found git.shim\n");
+			tgit::DebugOutput::CTraceToOutputDebugString::Instance()(__FUNCTION__ L": found git.shim\n");
 			int start = 0 ;
 			while (start >= 0)
 			{
@@ -306,19 +311,19 @@ int CGit::RunAsync(CString cmd, PROCESS_INFORMATION& piOut, HANDLE* hReadOut, HA
 	if (!CreatePipe(&hReadIn, &hWriteIn, &sa, 0))
 	{
 		CString err { CFormatMessageWrapper().c_str() };
-		CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": could not open stdin pipe: %s\n", static_cast<LPCWSTR>(err.Trim()));
+		CTraceToOutputDebugString::Instance()(__FUNCTION__ L": could not open stdin pipe: %s\n", static_cast<LPCWSTR>(err.Trim()));
 		return TGIT_GIT_ERROR_OPEN_PIP;
 	}
 	if (!CreatePipe(&hRead, &hWrite, &sa, 0))
 	{
 		CString err { CFormatMessageWrapper().c_str() };
-		CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": could not open stdout pipe: %s\n", static_cast<LPCWSTR>(err.Trim()));
+		CTraceToOutputDebugString::Instance()(__FUNCTION__ L": could not open stdout pipe: %s\n", static_cast<LPCWSTR>(err.Trim()));
 		return TGIT_GIT_ERROR_OPEN_PIP;
 	}
 	if (hErrReadOut && !CreatePipe(&hReadErr, &hWriteErr, &sa, 0))
 	{
 		CString err { CFormatMessageWrapper().c_str() };
-		CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": could not open stderr pipe: %s\n", static_cast<LPCWSTR>(err.Trim()));
+		CTraceToOutputDebugString::Instance()(__FUNCTION__ L": could not open stderr pipe: %s\n", static_cast<LPCWSTR>(err.Trim()));
 		return TGIT_GIT_ERROR_OPEN_PIP;
 	}
 
@@ -350,7 +355,7 @@ int CGit::RunAsync(CString cmd, PROCESS_INFORMATION& piOut, HANDLE* hReadOut, HA
 	bool startsWithGit = StringUtils::StartsWith(cmd, L"git");
 	if ((ms_bMsys2Git || ms_bCygwinGit) && startsWithGit)
 	{
-		CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": executing via bash: %s\n", static_cast<LPCWSTR>(cmd));
+		CTraceToOutputDebugString::Instance()(__FUNCTION__ L": executing via bash: %s\n", static_cast<LPCWSTR>(cmd));
 		CString tmpFile = GetTempFile();
 		if (ms_bMsys2Git)
 			cmd = L"/usr/bin/" + cmd;
@@ -369,7 +374,7 @@ int CGit::RunAsync(CString cmd, PROCESS_INFORMATION& piOut, HANDLE* hReadOut, HA
 			cmd = L'"' + TGitH::ms_LastMsysGitDir + L'\\' + cmd + L'"';
 	}
 
-	CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": executing %s\n", static_cast<LPCWSTR>(cmd));
+	CTraceToOutputDebugString::Instance()(__FUNCTION__ L": executing %s\n", static_cast<LPCWSTR>(cmd));
 	// lpCurrentDirectory is LPCWSTR, so the GetBuffer() this used to call was
 	// pointless as well as unbalanced - only lpCommandLine is written to.
 	auto pEnv = const_cast<wchar_t*>(m_Environment.get_cp());
@@ -377,7 +382,7 @@ int CGit::RunAsync(CString cmd, PROCESS_INFORMATION& piOut, HANDLE* hReadOut, HA
 	if (!CreateProcess(nullptr, cmd.GetBuffer(), nullptr, nullptr, TRUE, dwFlags, pEnv, m_CurrentDir, &si, &pi))
 	{
 		CString err { CFormatMessageWrapper().c_str() };
-		CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": error while executing command: %s\n", static_cast<LPCWSTR>(err.Trim()));
+		CTraceToOutputDebugString::Instance()(__FUNCTION__ L": error while executing command: %s\n", static_cast<LPCWSTR>(err.Trim()));
 		return TGIT_GIT_ERROR_CREATE_PROCESS;
 	}
 
@@ -506,11 +511,11 @@ int CGit::Run(CGitCall& pcall)
 	if(!GetExitCodeProcess(pi.hProcess,&exitcode))
 	{
 		CString err { CFormatMessageWrapper().c_str() };
-		CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": could not get exit code: %s\n", static_cast<LPCWSTR>(err.Trim()));
+		CTraceToOutputDebugString::Instance()(__FUNCTION__ L": could not get exit code: %s\n", static_cast<LPCWSTR>(err.Trim()));
 		return TGIT_GIT_ERROR_GET_EXIT_CODE;
 	}
 	else
-		CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": process exited: %d\n", exitcode);
+		CTraceToOutputDebugString::Instance()(__FUNCTION__ L": process exited: %d\n", exitcode);
 
 	if (pcall.wasLimited())
 		return -1;
@@ -1128,11 +1133,11 @@ int CGit::RunLogFile(const CString& cmd, const CString& filename, CString* stdEr
 	if (!GetExitCodeProcess(pi.hProcess, &exitcode))
 	{
 		CString err { CFormatMessageWrapper().c_str() };
-		CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": could not get exit code: %s\n", static_cast<LPCWSTR>(err.Trim()));
+		CTraceToOutputDebugString::Instance()(__FUNCTION__ L": could not get exit code: %s\n", static_cast<LPCWSTR>(err.Trim()));
 		return TGIT_GIT_ERROR_GET_EXIT_CODE;
 	}
 	else
-		CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": process exited: %d\n", exitcode);
+		CTraceToOutputDebugString::Instance()(__FUNCTION__ L": process exited: %d\n", exitcode);
 
 	return exitcode;
 }
@@ -1209,7 +1214,7 @@ int CGit::GetHash(CGitHash &hash, const std::wstring& friendname)
 		gitLastErr.Empty();
 		const int ret = Run({ L"git.exe", L"rev-parse", L"--verify", L"--end-of-options", std::wstring(branch) }, &gitLastErr, nullptr, CP_UTF8);
 
-		const std::wstring_view strsv = tgit::wstr::StringView(gitLastErr.Trim());
+		const std::wstring_view strsv = StringView(gitLastErr.Trim());
 		bool isHash{};
 		hash = CGitHash::FromHexStr(strsv, &isHash);
 		if (ret == 0)
@@ -1286,7 +1291,7 @@ int CGit::GetSubmoduleHash(const CString& pathOfSubmodule, const CGitHash& revis
 	}
 
 	CAutoTreeEntry treeEntry;
-	if (git_tree_entry_bypath(treeEntry.GetPointer(), tree, CUnicodeUtils::StdGetUTF8(tgit::wstr::StringView(pathOfSubmodule)).c_str()))
+	if (git_tree_entry_bypath(treeEntry.GetPointer(), tree, CUnicodeUtils::StdGetUTF8(StringView(pathOfSubmodule)).c_str()))
 	{
 		err = GetLibGit2LastErr(L"Could not lookup path.");
 		return -1;
@@ -1435,7 +1440,7 @@ bool CGit::IsLocalBranch(const CString& shortName)
 {
 	STRING_VECTOR list;
 	GetBranchList(list, nullptr, TGitH::BRANCH_LOCAL);
-	return std::find(list.cbegin(), list.cend(), tgit::wstr::StringView(shortName)) != list.cend();
+	return std::find(list.cbegin(), list.cend(), StringView(shortName)) != list.cend();
 }
 
 bool CGit::BranchTagExists(const CString& name, const bool isBranch /*= true*/)
@@ -1472,7 +1477,7 @@ bool CGit::BranchTagExists(const CString& name, const bool isBranch /*= true*/)
 
 CString CGit::DerefFetchHead() const
 {
-	const std::wstring dotGitPath = GitAdminDir::GetWorktreeAdminDirPath(tgit::wstr::StringView(m_CurrentDir)).value_or(std::wstring{});
+	const std::wstring dotGitPath = GitAdminDir::GetWorktreeAdminDirPath(StringView(m_CurrentDir)).value_or(std::wstring{});
 	std::ifstream fetchHeadFile(dotGitPath + L"FETCH_HEAD", std::ios::in | std::ios::binary);
 	int forMergeLineCount = 0;
 	std::string line;
@@ -1749,7 +1754,7 @@ int CGit::GetRemoteRefs(const CString& remote, REF_VECTOR& list, const bool incl
 		if (!repo)
 			return -1;
 
-		const std::string remoteA = CUnicodeUtils::StdGetUTF8(tgit::wstr::StringView(remote));
+		const std::string remoteA = CUnicodeUtils::StdGetUTF8(StringView(remote));
 		CAutoRemote gitremote;
 		// first try with a named remote (e.g. "origin")
 		if (git_remote_lookup(gitremote.GetPointer(), repo, remoteA.c_str()) < 0)
@@ -1991,7 +1996,7 @@ int CGit::GuessRefForHash(CString& ref, const CGitHash& hash)
 int CGit::GetBranchDescriptions(MAP_STRING_STRING& map) const
 {
 	CAutoConfig config(true);
-	if (git_config_add_file_ondisk(config, TGitPath::ToGitPathA(tgit::wstr::StringView(GetGitLocalConfig())).c_str(), GIT_CONFIG_LEVEL_LOCAL, nullptr, FALSE) < 0)
+	if (git_config_add_file_ondisk(config, TGitPath::ToGitPathA(StringView(GetGitLocalConfig())).c_str(), GIT_CONFIG_LEVEL_LOCAL, nullptr, FALSE) < 0)
 		return -1;
 	return git_config_foreach_match(config, "^branch\\..*\\.description$", [](const git_config_entry* entry, void* data)
 	{
@@ -2058,7 +2063,7 @@ bool FindGitForWindows(CString& sMsysGitPath) // not static: an internal-linkage
 
 	if (sMsysGitPath.IsEmpty())
 	{
-		tgit::DebugOutput::CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": Found no git.exe\n");
+		tgit::DebugOutput::CTraceToOutputDebugString::Instance()(__FUNCTION__ L": Found no git.exe\n");
 		return false;
 	}
 	if (PathFileExists(sMsysGitPath + L"\\bin\\git.exe")) {
@@ -2070,7 +2075,7 @@ bool FindGitForWindows(CString& sMsysGitPath) // not static: an internal-linkage
 		return true;
 	} else {
 		tgit::DebugOutput::CTraceToOutputDebugString::Instance()(
-		_T(__FUNCTION__) L": Git for Windows installation found, but git.exe not exists in %s\n", sMsysGitPath);
+		__FUNCTION__ L": Git for Windows installation found, but git.exe not exists in %s\n", sMsysGitPath);
 		sMsysGitPath.Empty();
 		return false;
 	}
@@ -2085,22 +2090,22 @@ int CGit::FindAndSetGitExePath(const BOOL bFallback)
 		return TRUE;
 	}
 
-	CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": git.exe not exists: %s\n", static_cast<LPCWSTR>(TGitH::ms_LastMsysGitDir));
+	CTraceToOutputDebugString::Instance()(__FUNCTION__ L": git.exe not exists: %s\n", static_cast<LPCWSTR>(TGitH::ms_LastMsysGitDir));
 	if (!bFallback)
 		return FALSE;
 
 	// first, search PATH if git/bin directory is already present
 	if (FindGitPath())
 	{
-		CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": FindGitPath() => %s\n", static_cast<LPCWSTR>(TGitH::ms_LastMsysGitDir));
-		wil::reg::set_value_string(REG_MSYSGIT_PATH, tgit::wstr::StringView(TGitH::ms_LastMsysGitDir));
+		CTraceToOutputDebugString::Instance()(__FUNCTION__ L": FindGitPath() => %s\n", static_cast<LPCWSTR>(TGitH::ms_LastMsysGitDir));
+		wil::reg::set_value_string(REG_MSYSGIT_PATH, StringView(TGitH::ms_LastMsysGitDir));
 		return TRUE;
 	}
 
 	if (CString found = str.c_str(); FindGitForWindows(found))
 	{
 		TGitH::ms_LastMsysGitDir = found;
-		std::ignore = wil::reg::set_value_string(REG_MSYSGIT_PATH, tgit::wstr::StringView(found));
+		std::ignore = wil::reg::set_value_string(REG_MSYSGIT_PATH, StringView(found));
 		return TRUE;
 	}
 
@@ -2112,7 +2117,7 @@ BOOL CGit::CheckMsysGitDir(const BOOL bFallback)
 	if (m_bInitialized)
 		return TRUE;
 
-	CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": CheckMsysGitDir(%d)\n", bFallback);
+	CTraceToOutputDebugString::Instance()(__FUNCTION__ L": CheckMsysGitDir(%d)\n", bFallback);
 	this->m_Environment.clear();
 	m_Environment.CopyProcessEnvironment();
 
@@ -2149,7 +2154,7 @@ BOOL CGit::CheckMsysGitDir(const BOOL bFallback)
 	size_t homesize;
 	_wgetenv_s(&homesize, nullptr, 0, L"HOME");
 	if (!homesize)
-		m_Environment.SetEnv(L"HOME", tgit::wstr::StringView(GetHomeDirectory()));
+		m_Environment.SetEnv(L"HOME", StringView(GetHomeDirectory()));
 
 	//setup ssh client
 	auto sshclient = GetConfiguredSshClient();
@@ -2211,18 +2216,18 @@ BOOL CGit::CheckMsysGitDir(const BOOL bFallback)
 		PathCanonicalize(CStrBuf(msysGitDir, MAX_PATH), TGitH::ms_LastMsysGitDir + L"\\..\\..");
 	TGitH::ms_MsysGitRootDir = msysGitDir;
 
-	if (const std::wstring_view systemConfig = tgit::wstr::StringView(g_Git.GetGitSystemConfig()); wil::reg::get_value_string(REG_SYSTEM_GITCONFIGPATH) != systemConfig)
+	if (const std::wstring_view systemConfig = StringView(g_Git.GetGitSystemConfig()); wil::reg::get_value_string(REG_SYSTEM_GITCONFIGPATH) != systemConfig)
 		wil::reg::set_value_string(REG_SYSTEM_GITCONFIGPATH, systemConfig);
 
-	CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": ms_LastMsysGitDir = %s\n", static_cast<LPCWSTR>(TGitH::ms_LastMsysGitDir));
-	CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": ms_MsysGitRootDir = %s\n", static_cast<LPCWSTR>(TGitH::ms_MsysGitRootDir));
-	CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": System config = %s\n", static_cast<LPCWSTR>(g_Git.GetGitSystemConfig()));
+	CTraceToOutputDebugString::Instance()(__FUNCTION__ L": ms_LastMsysGitDir = %s\n", static_cast<LPCWSTR>(TGitH::ms_LastMsysGitDir));
+	CTraceToOutputDebugString::Instance()(__FUNCTION__ L": ms_MsysGitRootDir = %s\n", static_cast<LPCWSTR>(TGitH::ms_MsysGitRootDir));
+	CTraceToOutputDebugString::Instance()(__FUNCTION__ L": System config = %s\n", static_cast<LPCWSTR>(g_Git.GetGitSystemConfig()));
 	SetLibGit2SearchPath(GIT_CONFIG_LEVEL_PROGRAMDATA, L"");
 
 	if (ms_bCygwinGit)
-		CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": CygwinHack: true\n");
+		CTraceToOutputDebugString::Instance()(__FUNCTION__ L": CygwinHack: true\n");
 	if (ms_bMsys2Git)
-		CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": Msys2Hack: true\n");
+		CTraceToOutputDebugString::Instance()(__FUNCTION__ L": Msys2Hack: true\n");
 
 	ms_LastMsysGitVersion = CRegDWORD(L"Software\\TortoiseGit\\git_cached_version");
 
@@ -2322,7 +2327,7 @@ CString CGit::GetHomeDirectory() const
 
 CString CGit::GetGitLocalConfig() const
 {
-	const auto adminDir = GitAdminDir::GetAdminDirPath(tgit::wstr::StringView(m_CurrentDir));
+	const auto adminDir = GitAdminDir::GetAdminDirPath(StringView(m_CurrentDir));
 	return (adminDir.value_or(GitAdminDir::AdminDir{}).path + L"config").c_str();
 }
 
@@ -2619,12 +2624,12 @@ void CEnvironment::UnsetEnv(const std::wstring_view name)
 
 void CEnvironment::AddToPath(std::wstring value)
 {
-	tgit::wstr::TrimRight(value, L"\\");
+	TrimRight(value, L"\\");
 	if (value.empty())
 		return;
 
 	std::wstring path = GetEnv(L"PATH");
-	tgit::wstr::TrimRight(path, L";");
+	TrimRight(path, L";");
 	path += L';';
 
 	// do not double add paths to %PATH%
@@ -2666,13 +2671,13 @@ CString TGitH::GetShortName(const CString& ref, REF_TYPE *out_type)
 		CString bisectBad;
 		g_Git.GetBisectTerms(&bisectGood, &bisectBad);
 		wchar_t c;
-		if (tgit::wstr::StartsWith(tgit::wstr::StringView(shortname), tgit::wstr::StringView(bisectGood)) && ((c = shortname.GetAt(bisectGood.GetLength())) == '-' || c == '\0'))
+		if (tgit::wstr::StartsWith(StringView(shortname), StringView(bisectGood)) && ((c = shortname.GetAt(bisectGood.GetLength())) == '-' || c == '\0'))
 		{
 			type = BISECT_GOOD;
 			shortname = bisectGood;
 		}
 
-		if (tgit::wstr::StartsWith(tgit::wstr::StringView(shortname), tgit::wstr::StringView(bisectBad)) && ((c = shortname.GetAt(bisectBad.GetLength())) == '-' || c == '\0'))
+		if (tgit::wstr::StartsWith(StringView(shortname), StringView(bisectBad)) && ((c = shortname.GetAt(bisectBad.GetLength())) == '-' || c == '\0'))
 		{
 			type = BISECT_BAD;
 			shortname = bisectBad;
@@ -3336,7 +3341,7 @@ void CGit::GetBisectTerms(CString* good, CString* bad)
 	lastGood = L"good";
 	lastBad = L"bad";
 
-	const auto adminDir = GitAdminDir::GetAdminDirPath(tgit::wstr::StringView(m_CurrentDir));
+	const auto adminDir = GitAdminDir::GetAdminDirPath(StringView(m_CurrentDir));
 	if (!adminDir)
 		return;
 
@@ -3542,7 +3547,7 @@ int CGit::GetSubmodulePointer(SubmoduleInfo& submoduleinfo) const
 	if (GitAdminDir::IsBareRepo(g_Git.m_CurrentDir.GetString()))
 		return -1;
 	std::wstring superprojectRoot;
-	GitAdminDir::HasAdminDir(tgit::wstr::StringView(g_Git.m_CurrentDir), false, &superprojectRoot);
+	GitAdminDir::HasAdminDir(StringView(g_Git.m_CurrentDir), false, &superprojectRoot);
 	if (superprojectRoot.empty())
 		return -1;
 

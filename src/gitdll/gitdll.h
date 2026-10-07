@@ -19,7 +19,6 @@
 
 
 #pragma once
-
 // The following ifdef block is the standard way of creating macros which make exporting
 // from a DLL simpler. All files within this DLL are compiled with the GITDLL_EXPORTS
 // symbol defined on the command line. this symbol should not be defined on any project
@@ -202,3 +201,13 @@ GITDLL_API int git_lookup_mailmap(GIT_MAILMAP mailmap, const char** email1, cons
 GITDLL_API void git_free_mailmap(GIT_MAILMAP mailmap);
 
 GITDLL_API int git_mkdir(const char* path);
+
+// leaking this enum to save much headache
+#ifndef DIR_H
+enum pattern_match_result {
+	UNDECIDED = -1,
+	NOT_MATCHED = 0,
+	MATCHED = 1,
+	MATCHED_RECURSIVE = 2,
+};
+#endif

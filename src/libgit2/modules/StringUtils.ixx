@@ -10,17 +10,47 @@ import wil;
 import wstr;
 import RIAA;
 
+using namespace tgit::zstr;
+using wil::RWND;
+
+
+// The traits classification of every string shape a call site hands the
+// converters. Here because this module sees CStringT (atlstr.h) as well as
+// the std types; the concepts themselves live in wstr.
+//
+// View traits (GetUnicode / GetUTF8, O(1) on our side): everything that
+// knows its own length. Raw pointers are deliberately left out - a pointer
+// knows no length, so reaching one means walking the string, and that is a
+// conversion, not a cast.
+static_assert(HasViewTraitsOf<std::string, char>,         "std::string");
+static_assert(HasViewTraitsOf<std::wstring, wchar_t>,     "std::wstring");
+static_assert(HasViewTraitsOf<std::string_view, char>,    "std::string_view");
+static_assert(HasViewTraitsOf<std::wstring_view, wchar_t>, "std::wstring_view");
+static_assert(!HasViewTraitsOf<const char*, char>,        "const char* has no O(1) length");
+static_assert(!HasViewTraitsOf<const wchar_t*, wchar_t>,  "const wchar_t* has no O(1) length");
+static_assert(HasViewTraitsOf<CStringA, char>,            "CStringA");
+static_assert(HasViewTraitsOf<CStringW, wchar_t>,         "CStringW");
+
+// String traits (Convert2Unicode / Convert2Multibyte): the owners, raw
+// pointers included. The views are the ones left out - they own nothing.
+static_assert(HasStringTraitsOf<std::string, char>,          "std::string");
+static_assert(HasStringTraitsOf<std::wstring, wchar_t>,      "std::wstring");
+static_assert(!HasStringTraitsOf<std::string_view, char>,    "std::string_view owns nothing");
+static_assert(!HasStringTraitsOf<std::wstring_view, wchar_t>, "std::wstring_view owns nothing");
+static_assert(HasStringTraitsOf<const char*, char>,          "const char*");
+static_assert(HasStringTraitsOf<const wchar_t*, wchar_t>,    "const wchar_t*");
+static_assert(HasStringTraitsOf<CStringA, char>,             "CStringA");
+static_assert(HasStringTraitsOf<CStringW, wchar_t>,          "CStringW");
+
 
 // Functions std:: already does. Each names its std:: spelling; they stay only
 // until their call sites move to it.
 export namespace StringUtils
 {
-using std::string_view;
-
 
 // std: std::views::split (+ std::from_chars for numeric containers)
 // append = true as the default: a default value should never lose data!
-template <typename Container, tgit::wstr::IsRealString StrT, typename CHARTYPE = StrT::value_type>
+template <typename Container, IsRealString StrT, typename CHARTYPE = StrT::value_type>
 void stringtok(
 	Container& container,
 	const StrT& in,
@@ -79,20 +109,10 @@ void stringtok(
 
 
 // std: std::regex_replace(text, std::wregex(L"\r\n|\r|\n"), L"\r\n")
-CString EnsureCRLF(const CString& text)
+template <IsTCompString TStr>
+CString EnsureCRLF(const StringTraits<TStr>& text)
 {
-	CString result;
-	const int length = text.GetLength();
-	for (int i = 0; i < length; ++i)
-	{
-		if (text[i] == L'\r' && (i == length - 1 || text[i + 1] != L'\n'))
-			result += L"\r\n";
-		else if (text[i] == L'\n' && (i == 0 || text[i - 1] != L'\r'))
-			result += L"\r\n";
-		else
-			result += text[i];
-	}
-	return result;
+	return std::regex_replace(text, std::wregex(L"\r\n|\r|\n"), L"\r\n");
 }
 
 
@@ -166,14 +186,14 @@ bool EndsWith(const CString& heystack, const wchar_t needle)
 // std::wstring / std::wstring_view variants. Constrained rather than taking a
 // plain std::wstring_view haystack: that would make EndsWith(L"literal", ...)
 // ambiguous against the CString overloads (one user-defined conversion each).
-template <tgit::wstr::IsRealString TStr>
+template <IsRealString TStr>
 	requires std::same_as<typename TStr::value_type, wchar_t>
 bool EndsWith(const TStr& heystack, const std::wstring_view needle) noexcept
 {
 	return std::wstring_view(heystack).ends_with(needle);
 }
 
-template <tgit::wstr::IsRealString TStr>
+template <IsRealString TStr>
 	requires std::same_as<typename TStr::value_type, wchar_t>
 bool EndsWith(const TStr& heystack, const wchar_t needle) noexcept
 {
@@ -219,27 +239,81 @@ void TrimLeft(std::string_view& view)
 		view.remove_prefix(1);
 }
 
-void TrimRight(std::string_view& view)
+
+// void TrimRight(std::string_view& view)
+// {
+// 	while (!view.empty() && std::isspace(static_cast<unsigned char>(view.back())))
+// 		view.remove_suffix(1);
+// }
+//
+//
+// template <tgit::zstr::TStrOfWide TStr>
+// void TrimRightT(const StringView<TStr> view, const std::optional<StringView<TStr>> subj = std::nullopt)
+// {
+// 	using char_type = TStr::value_type;
+// 	const auto pred = subj.has_value() ?
+// 					[&subj](const char_type c) { return subj.value().find(c); } :
+// 					[](const char_type c) { return is_space(c); };
+// 	const auto object = std::views::reverse(view);
+// 	const auto it = std::ranges::find_if_not(object, pred);
+// 	const auto ret = view.substr(0, it);
+// 	return ret;
+// }
+//
+//
+// template <tgit::zstr::TStrOfChar TStr>
+// void TrimRight(TStr& obj, const std::optional<StringView<TStr>> sbj = std::nullopt)
+// {
+//
+// 	while (!obj.empty())
+// 	{
+// 		auto chr = gsl::narrow<unsigned char>(obj.back());
+// 		const bool is_it_still = sbj.has_value() ? (sbj->find(chr) != sbj->npos) : std::isspace(chr);
+// 		if (is_it_still)
+// 			obj.remove_suffix(1);
+// 		else
+// 			break;
+// 	}
+// }
+
+
+template <tgit::zstr::IsTCompString TStr>
+TStr& TrimRight(StringTraits<TStr>& obj, const std::optional<std::string_view> sbj = std::nullopt)
 {
-	while (!view.empty() && std::isspace(static_cast<unsigned char>(view.back())))
-		view.remove_suffix(1);
+	std::string_view v = StringView<TStr>(obj);
+	while (!v.empty())
+	{
+		const char chr = v.back();
+		const bool is_it_still = sbj ? sbj->find(chr) != sbj->npos
+									 : is_space(chr);
+		if (!is_it_still) break;
+		v.remove_suffix(1);
+	}
+
+	obj.resize(v.size());
+	return obj;   // CStringT::TrimRight returns *this; keeps chaining call sites compiling
 }
-
-void TrimRight(std::wstring_view& view)
-{
-	while (!view.empty() && std::iswspace(view.back()))
-		view.remove_suffix(1);
-}
-
-std::string_view TrimRight(const std::string_view sv, const std::string_view chars)
-{
-	const auto pos = sv.find_last_not_of(chars);
-
-	if (pos == std::string_view::npos)
-		return {};
-
-	return sv.substr(0, pos + 1);
-}
+//
+//
+//
+// template <tgit::zstr::TStrOfWide TStr>
+// void TrimRight(StringTraits<TStr>& obj, const std::optional<std::string_view> sbj = std::nullopt)
+// {
+// 	std::wstring& ref = obj;
+// 	while (!ref.empty() && std::iswspace(ref.back()))
+// 		ref.remove_suffix(1);
+// }
+//
+//
+// std::string_view TrimRight(const std::string_view sv, const std::string_view chars)
+// {
+// 	const auto pos = sv.find_last_not_of(chars);
+//
+// 	if (pos == std::string_view::npos)
+// 		return {};
+//
+// 	return sv.substr(0, pos + 1);
+// }
 
 
 /**
@@ -254,14 +328,12 @@ bool ReadStringFromTextFile(const CString& path, CString& text)
 	{
 		CStdioFile file;
 		// w/o typeBinary for some files \r gets dropped
-		if (!file.Open(path, CFile::typeBinary | CFile::modeRead | CFile::shareDenyWrite) || file.GetLength() >= INT_MAX)
+		if (!file.Open(path, CFile::typeUnicode | CFile::modeRead | CFile::shareDenyWrite) || file.GetLength() >= INT_MAX)
 			return false;
 
-		CStringA filecontent;
 		const UINT filelength = static_cast<UINT>(file.GetLength());
-		const int bytesread = static_cast<int>(file.Read(filecontent.GetBuffer(filelength), filelength));
-		filecontent.ReleaseBuffer(bytesread);
-		text = CUnicodeUtils::GetUnicode<CString>(filecontent);
+		const int bytesread = static_cast<int>(file.Read(text.GetBuffer(filelength), filelength));
+		text.ReleaseBuffer(bytesread);
 		file.Close();
 	}
 	catch (CFileException* pE)
@@ -404,7 +476,7 @@ wchar_t GetAccellerator(const CString& text)
 /**
  * Writes an ASCII CString to the clipboard in CF_TEXT format
  */
-bool WriteAsciiStringToClipboard(const CStringA& sClipdata, const LCID lcid, const HWND hOwningWnd)
+bool WriteAsciiStringToClipboard(const CStringA& sClipdata, const LCID lcid, RWND* const hOwningWnd)
 {
 	// Not an if-init-statement: the clipboard has to stay open until we return.
 	const auto clipboard = wil::open_clipboard_retrying(hOwningWnd);
@@ -412,7 +484,7 @@ bool WriteAsciiStringToClipboard(const CStringA& sClipdata, const LCID lcid, con
 		return false;
 
 	EmptyClipboard();
-	auto text = wil::make_moveable_hglobal(std::string{ tgit::wstr::StringView{ sClipdata } });
+	auto text = wil::make_moveable_hglobal(StringView{ sClipdata });
 	if (!text || !SetClipboardData(CF_TEXT, text.get()))
 		return false;
 	text.release(); // the clipboard owns it now
@@ -429,14 +501,14 @@ bool WriteAsciiStringToClipboard(const CStringA& sClipdata, const LCID lcid, con
 /**
  * Writes a String to the clipboard in both CF_UNICODETEXT and CF_TEXT format
  */
-bool WriteAsciiStringToClipboard(const CStringW& sClipdata, const HWND hOwningWnd)
+bool WriteAsciiStringToClipboard(const CStringW& sClipdata, RWND* const hOwningWnd)
 {
 	const auto clipboard = wil::open_clipboard_retrying(hOwningWnd);
 	if (!clipboard)
 		return false;
 
 	EmptyClipboard();
-	auto text = wil::make_moveable_hglobal(std::wstring{ tgit::wstr::StringView{ sClipdata } });
+	auto text = wil::make_moveable_hglobal(StringView{ sClipdata });
 	if (!text || !SetClipboardData(CF_UNICODETEXT, text.get()))
 		return false;
 	text.release(); // the clipboard owns it now
@@ -451,7 +523,7 @@ bool WriteAsciiStringToClipboard(const CStringW& sClipdata, const HWND hOwningWn
 * Writes an ASCII CString to the clipboard in TGIT_UNIFIEDDIFF format, which is basically the patch file
 * as a ASCII string.
 */
-bool WriteDiffToClipboard(const CStringA& sClipdata, const HWND hOwningWnd)
+bool WriteDiffToClipboard(const CStringA& sClipdata, RWND* const hOwningWnd)
 {
 	const UINT cFormat = RegisterClipboardFormat(L"TGIT_UNIFIEDDIFF");
 	if (cFormat == 0)
@@ -461,7 +533,7 @@ bool WriteDiffToClipboard(const CStringA& sClipdata, const HWND hOwningWnd)
 		return false;
 
 	EmptyClipboard();
-	auto diff = wil::make_moveable_hglobal(std::string{ tgit::wstr::StringView{ sClipdata } });
+	auto diff = wil::make_moveable_hglobal(StringView{ sClipdata });
 	if (!diff || !SetClipboardData(cFormat, diff.get()))
 		return false;
 	// The same block is also offered as CF_TEXT, so the clipboard owns it from
@@ -470,7 +542,7 @@ bool WriteDiffToClipboard(const CStringA& sClipdata, const HWND hOwningWnd)
 	if (!SetClipboardData(CF_TEXT, diffOwnedByClipboard))
 		return false;
 
-	const std::wstring sClipdataW = CUnicodeUtils::StdGetUnicode(std::string_view(sClipdata.GetString(), sClipdata.GetLength()));
+	const auto sClipdataW = CUnicodeUtils::GetUnicode<std::wstring>(sClipdata);
 	auto textW = wil::make_moveable_hglobal(sClipdataW);
 	if (!textW || !SetClipboardData(CF_UNICODETEXT, textW.get()))
 		return false;
@@ -690,7 +762,7 @@ bool EndsWithI(const CString& heystack, const wchar_t* needle)
 }
 
 // Constrained for the same reason as the EndsWith templates above.
-template <tgit::wstr::IsRealString TStr>
+template <IsRealString TStr>
 	requires std::same_as<typename TStr::value_type, wchar_t>
 bool EndsWithI(const TStr& heystack, const std::wstring_view needle) noexcept
 {
@@ -699,53 +771,53 @@ bool EndsWithI(const TStr& heystack, const std::wstring_view needle) noexcept
 }
 
 
-/**
- * Unescapes Git quoted filenames
- * This is not a full implementation of the unescaper as we skip some conversions that will result in invalid filenames.
- */
-CString UnescapeGitQuotePathA(const std::string_view s)
-{
-	const int i_size = gsl::narrow<int>(s.size());
-	CStringA t;
-	t.Preallocate(i_size);
-	bool isEscaped = false;
-	for (int i = 0; i < i_size; ++i)
-	{
-		char c = s[i];
-		if (isEscaped)
-		{
-			if (c >= '0' && c <= '3')
-			{
-				if (i + 2 < i_size)
-				{
-					c = (((c - '0') & 03) << 6) | (((s[i + 1] - '0') & 07) << 3) | ((s[i + 2] - '0') & 07);
-					i += 2;
-					t += c;
-				}
-			}
-			else
-			{
-				// we're on purpose not supporting all possible abbreviations such as \n, \r, \t in this as these filenames are invalid on Windows anaway
-				t += c;
-			}
-			isEscaped = false;
-		}
-		else
-		{
-			if (c == '\\')
-				isEscaped = true;
-			else if (c == '"')
-				break;
-			else
-				t += c;
-		}
-	}
-	return CUnicodeUtils::GetUnicode<CString>(t);
-}
-CString UnescapeGitQuotePath(const std::wstring_view s)
-{
-	return UnescapeGitQuotePathA(CUnicodeUtils::StdGetUTF8(s));
-}
+// /**
+//  * Unescapes Git quoted filenames
+//  * This is not a full implementation of the unescaper as we skip some conversions that will result in invalid filenames.
+//  */
+// CStringA UnescapeGitQuotePathA(const std::string_view s)
+// {
+// 	const int i_size = gsl::narrow<int>(s.size());
+// 	CStringA t;
+// 	t.Preallocate(i_size);
+// 	bool isEscaped = false;
+// 	for (int i = 0; i < i_size; ++i)
+// 	{
+// 		char c = s[i];
+// 		if (isEscaped)
+// 		{
+// 			if (c >= '0' && c <= '3')
+// 			{
+// 				if (i + 2 < i_size)
+// 				{
+// 					c = (((c - '0') & 03) << 6) | (((s[i + 1] - '0') & 07) << 3) | ((s[i + 2] - '0') & 07);
+// 					i += 2;
+// 					t += c;
+// 				}
+// 			}
+// 			else
+// 			{
+// 				// we're on purpose not supporting all possible abbreviations such as \n, \r, \t in this as these filenames are invalid on Windows anaway
+// 				t += c;
+// 			}
+// 			isEscaped = false;
+// 		}
+// 		else
+// 		{
+// 			if (c == '\\')
+// 				isEscaped = true;
+// 			else if (c == '"')
+// 				break;
+// 			else
+// 				t += c;
+// 		}
+// 	}
+// 	return CUnicodeUtils::GetUnicode(t);
+// }
+// CString UnescapeGitQuotePath(const std::wstring_view s)
+// {
+// 	return UnescapeGitQuotePathA(CUnicodeUtils::StdGetUTF8(s));
+// }
 
 
 struct EmailAddress
@@ -975,7 +1047,7 @@ bool NeedsPosixShellQuoting(const std::wstring_view argument)
 {
 	if (argument.empty())
 		return true;
-	for (const wchar_t c : argument)
+	for (const wchar_t c : argument) // NOLINT(*-use-anyofallof)
 	{
 		if (!((c >= L'a' && c <= L'z') || (c >= L'A' && c <= L'Z') || (c >= L'0' && c <= L'9') || c == L'_' || c == L'-' || c == L'.' || c == L'/' || c == L'=' || c == L':' || c == L',' || c == L'+'))
 			return true;
@@ -987,7 +1059,7 @@ bool NeedsPosixShellQuoting(const std::wstring_view argument)
 CString EscapeWindowsCliArguments(const CString& argument)
 {
 	const std::wstring escaped = EscapeWindowsCliArgument(std::wstring_view(argument, argument.GetLength()));
-	return CString(escaped.data(), static_cast<int>(escaped.size()));
+	return {escaped.data(), static_cast<int>(escaped.size())};
 }
 
 }

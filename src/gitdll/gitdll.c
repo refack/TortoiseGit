@@ -708,7 +708,7 @@ int git_for_each_reflog_ent(const char *ref, each_reflog_ent_fn fn, void *cb_dat
 	return refs_for_each_reflog_ent(get_main_ref_store(the_repository) , ref, fn, cb_data);
 }
 
-static int update_some(const struct object_id* sha1, const struct strbuf* base, const char* pathname, const unsigned mode, void* context)
+static int update_some(const struct object_id* sha1, struct strbuf* base, const char* pathname, const unsigned mode, void* context)
 {
 	struct cache_entry* ce = (struct cache_entry*)context;
 

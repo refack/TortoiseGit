@@ -1,11 +1,14 @@
 ﻿module;
 #include <git2.h>
 
-export module SmartLibgit2;
+export module wil_git2;
 import std;
 import wil;
 import wstr;
 import invarients;
+
+using tgit::zstr::IsStupidString;
+using tgit::zstr::StringView;
 
 // Owners for libgit2 handles. Every one is wil's, so there is no class here to
 // get wrong - the hand-rolled CSmartLibgit2Ref re-exposed its conversion
@@ -151,8 +154,8 @@ struct CAutoRepository : CAutoGitRef<wil::unique_git_repository>
 	CAutoRepository(wil::unique_git_repository&& owner) noexcept : CAutoGitRef(owner.release()) {}
 	explicit CAutoRepository(const char* gitDirUtf8) { Open(gitDirUtf8); }
 	explicit CAutoRepository(const std::wstring_view gitDir) { Open(gitDir); }
-	template <tgit::wstr::IsStupidString TStr>
-	explicit CAutoRepository(const TStr& gitDir) { Open(tgit::wstr::StringView{ gitDir }); }
+	template <IsStupidString TStr>
+	explicit CAutoRepository(const TStr& gitDir) { Open(StringView{ gitDir }); }
 
 	int Open(const char* gitDirUtf8)
 	{
@@ -163,8 +166,8 @@ struct CAutoRepository : CAutoGitRef<wil::unique_git_repository>
 	}
 	int Open(const std::wstring_view gitDir) { return Open(CUnicodeUtils::StdGetUTF8(gitDir).c_str()); }
 	int Open(const std::string_view gitDirUtf8) { return Open(std::string(gitDirUtf8).c_str()); }
-	template <tgit::wstr::IsStupidString TStr>
-	int Open(const TStr& gitDir) { return Open(tgit::wstr::StringView{ gitDir }); }
+	template <IsStupidString TStr>
+	int Open(const TStr& gitDir) { return Open(StringView{ gitDir }); }
 };
 
 struct CAutoCommit : CAutoGitRef<wil::unique_git_commit>
@@ -245,8 +248,9 @@ struct CAutoStrArray : wil::unique_git_strarray
 	git_strarray* operator->() noexcept { return this; }
 	void AppendTo(std::vector<std::wstring>& list) const
 	{
-		for (size_t i = 0; i < count; ++i)
-			list.push_back(CUnicodeUtils::StdGetUnicode(strings[i]));
+		for (size_t i = 0; i < count; ++i) {
+			list.push_back(CUnicodeUtils::Convert2Unicode<std::wstring>(strings[i]));
+		}
 	}
 };
 }

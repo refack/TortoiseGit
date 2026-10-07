@@ -1,16 +1,26 @@
 {
-  "version": 6,
+  "version": 10,
   "configurePresets": [
     {
       "name": "default",
       "displayName": "Debug - msvc - ninja",
       "generator": "Ninja",
       "binaryDir": "build/debug",
+      "toolchainFile": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
+      "$comment": "\"warnings\": {\"experimental\": false}",
+      "debug": {
+        "tryCompile": true
+      },
+      "trace": {
+        "mode": "expand",
+        "redirect": "trace.log"
+      },
       "cacheVariables": {
-        "CMAKE_TOOLCHAIN_FILE": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
-        "CMAKE_TRACE_EXPAND": "ON",
-        "CMAKE_TRACE_REDIRECT": "trace.log",
-        "CMAKE_BUILD_TYPE": "Debug"
+        "CMAKE_BUILD_TYPE": "Debug",
+        "VCPKG_MANIFEST_INSTALL": "OFF"
+      },
+      "environment": {
+        "PROPAGATE_TOP_LEVEL_INCLUDES_TO_TRY_COMPILE": "ON"
       }
     }
   ]

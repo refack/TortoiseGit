@@ -1,10 +1,201 @@
 module;
 #include <windows.h>
 
-export module wstr;
 
+export module wstr;
 import std;
 import gsl;
+import wil;
+
+
+export namespace tgit::zstr
+{
+
+/// std::basic_string and std::basic_string_view, by shape.
+template <typename TStr>
+concept IsRealString = requires(const TStr& s, std::size_t l) {
+	typename TStr::value_type;
+	typename TStr::const_pointer;
+//	typename TStr::traits_type;
+	{ s.data() } -> std::convertible_to<typename TStr::const_pointer>;
+	{ s.size() } -> std::convertible_to<size_t>;
+};
+
+// The shape of CStringT<XCHAR, StrTraits> and nothing ATL-specific: this module
+template <typename TStr>
+concept IsStupidString = requires(const TStr& s, std::size_t l) {
+	typename TStr::XCHAR;
+	typename TStr::PCXSTR;
+//	typename TStr::StrTraits;
+	{ s.GetString() } -> std::convertible_to<typename TStr::PCXSTR>;
+	{ s.GetLength() } -> std::convertible_to<int>;
+};
+
+
+template <typename TStr>
+concept IsTCompString = IsRealString<TStr> || IsStupidString<TStr>;
+
+/// Per-kind access, selected by shape. The primary is left undefined, so a type
+/// that is neither kind fails as "incomplete type", and leaving it unconstrained
+/// avoids leaning on subsumption.
+template <typename TStr>
+struct StringViewTraits;
+
+// size_type is the length type the kind's (data, length) constructor takes -
+// int for CStringT, size_type for the std ones - and size<TOut>(s) is s's
+// length in TOut's size_type, so TOut(data(s), size<TOut>(s)) is exact for
+// either output kind. Narrowing, so a std string too long for a CString
+// throws rather than wrapping.
+template <IsRealString TStr>
+struct StringViewTraits<TStr> {
+	using char_type     = TStr::value_type;
+	using const_pointer = TStr::const_pointer;
+	using size_type     = TStr::size_type;
+	static constexpr const_pointer data(const TStr& s) noexcept { return s.data(); }
+	static constexpr size_t        size(const TStr& s) noexcept { return s.size(); }
+	static constexpr int          rsize(const TStr& s) noexcept { return gsl::narrow_cast<int>(s.size()); }
+
+	template <IsTCompString TOut>
+	static constexpr auto          size(const TStr& s) { return gsl::narrow<typename StringViewTraits<TOut>::size_type>(size(s)); }
+};
+
+template <IsStupidString TStr>
+struct StringViewTraits<TStr> {
+	using char_type     = TStr::XCHAR;
+	using const_pointer = TStr::PCXSTR;
+	using size_type     = int;
+	static constexpr const_pointer data(const TStr& s) noexcept { return s.GetString(); }
+	static constexpr size_t        size(const TStr& s) noexcept { return gsl::narrow_cast<size_t>(s.GetLength()); }
+	static constexpr int          rsize(const TStr& s) noexcept { return s.GetLength(); }
+
+	template <IsTCompString TOut>
+	static constexpr auto          size(const TStr& s) { return gsl::narrow<typename StringViewTraits<TOut>::size_type>(size(s)); }
+};
+
+
+
+template <typename TStr>
+struct StringTraits;
+
+// overwrite(s, cap, fill) is resize_and_overwrite for either kind: fill(buf,
+// cap) writes at most cap characters straight into s's own storage and returns
+// how many it wrote, which becomes the length. GetBuffer / ReleaseBuffer is
+// CStringT's spelling of the same thing - neither zero-fills, neither copies.
+// fill must not throw: resize_and_overwrite makes that a precondition, so a
+// failure is reported by writing nothing and checked once the call returns.
+template <IsRealString TStr> requires (!std::ranges::enable_borrowed_range<TStr>)
+struct StringTraits<TStr> : StringViewTraits<TStr> {
+	static constexpr void        resize(TStr& s, size_t l) { s.resize(l); }
+
+	template <typename TFill>
+	static constexpr void        overwrite(TStr& s, const size_t cap, TFill fill)
+	{
+		s.resize_and_overwrite(cap, [&fill](typename TStr::value_type* buf, const size_t n) { return fill(buf, n); });
+	}
+};
+
+template <IsStupidString TStr>
+struct StringTraits<TStr> : StringViewTraits<TStr> {
+	static constexpr void        resize(TStr& s, size_t l) { s.Truncate(gsl::narrow_cast<int>(l)); }
+
+	template <typename TFill>
+	static void                  overwrite(TStr& s, const size_t cap, TFill fill)
+	{
+		s.ReleaseBuffer(gsl::narrow<int>(fill(s.GetBuffer(gsl::narrow<int>(cap)), cap)));
+	}
+};
+
+
+/// A NUL-terminated char / wchar_t pointer.
+template <typename TStr>
+concept IsRawString = std::is_pointer_v<TStr>
+	&& (std::same_as<std::remove_cv_t<std::remove_pointer_t<TStr>>, char>
+	 || std::same_as<std::remove_cv_t<std::remove_pointer_t<TStr>>, wchar_t>);
+
+// A raw pointer has StringTraits but no StringViewTraits. Every view accessor
+// is an O(1) read of a length the string already knows; a pointer knows none,
+// so size() walks it - O(n), which is why it lives here with the owners and
+// not with the views. No resize / overwrite: nothing can grow a pointer.
+//
+// A null pointer is the empty string, as CString(nullptr) is. std::wstring(nullptr)
+// is UB, and treating "absent" as "crash" is the trap CLAUDE.md lists as failure
+// mode 5 (CCmdLineParser::GetVal handing nullptr to a std::wstring).
+template <IsRawString TStr>
+struct StringTraits<TStr> {
+	using char_type     = std::remove_cv_t<std::remove_pointer_t<TStr>>;
+	using const_pointer = const char_type*;
+	static constexpr const_pointer data(const TStr s) noexcept { return s; }
+	static constexpr size_t        size(const TStr s) noexcept { return s ? std::char_traits<char_type>::length(s) : 0; }
+};
+
+
+// "Has a view of TChar for free" versus "can be read as TChar at all". A
+// shape with no specialization leaves the traits incomplete, which the
+// requires-expression reports as unsatisfied rather than as a hard error.
+template <typename T, typename TChar>
+concept HasViewTraitsOf = requires(const T& s) {
+	{ StringViewTraits<T>::data(s) } -> std::convertible_to<const TChar*>;
+	{ StringViewTraits<T>::size(s) } -> std::same_as<size_t>;
+} && std::same_as<typename StringViewTraits<T>::char_type, TChar>;
+
+template <typename T, typename TChar>
+concept HasStringTraitsOf = requires(const T& s) {
+	{ StringTraits<T>::data(s) } -> std::convertible_to<const TChar*>;
+	{ StringTraits<T>::size(s) } -> std::same_as<size_t>;
+} && std::same_as<typename StringTraits<T>::char_type, TChar>;
+
+/// The traits key for an owned input as a template deduces it from `const TIn&`:
+/// a literal deduces as char[N], and the const has to go in before the decay
+/// or it would come out as char* rather than const char*.
+template <typename TIn>
+using TOwnedKey = std::decay_t<const TIn>;
+
+
+template <typename TStr>
+using TCharType = StringViewTraits<TStr>::char_type;
+
+template <typename TStr>
+using TViewType = std::basic_string_view<typename StringViewTraits<TStr>::char_type>;
+
+
+template <typename TStr>
+concept TStrOfChar = IsTCompString<TStr> && std::same_as<typename StringViewTraits<TStr>::char_type, char>;
+
+template <typename TStr>
+concept TStrOfWide = IsTCompString<TStr> && std::same_as<typename StringViewTraits<TStr>::char_type, wchar_t>;
+
+
+/// Non-owning view of either kind of string - a CString, for calling the
+/// std::wstring core from a call site that has not migrated yet, or a std one.
+///
+/// O(1) for a CString: it knows its length, so this does not walk the string
+/// the way std::wstring_view(cstring) would.
+template <IsTCompString TStr>
+struct StringView : std::basic_string_view<typename StringViewTraits<TStr>::char_type>
+{
+	using cnv_view_t = StringViewTraits<TStr>;
+	using std_view_t = std::basic_string_view<typename cnv_view_t::char_type>;
+
+	constexpr auto                 as_std() {
+		return std::basic_string<typename cnv_view_t::char_type>{this->data(), this->size()};
+	}
+	constexpr static cnv_view_t    as_traits(const TStr& s)  noexcept { return cnv_view_t{cnv_view_t::data(s), cnv_view_t::size(s)}; }
+	constexpr static std_view_t    as_view(const TStr& s)    noexcept { return {cnv_view_t::data(s), cnv_view_t::size(s)}; }
+	constexpr explicit             StringView(const TStr& s) noexcept : std_view_t{as_view(s)} {}
+	constexpr explicit             StringView(const cnv_view_t::const_pointer s) noexcept : std_view_t{s} {}
+};
+
+
+/// Default predicate: dispatches on character type.
+struct is_space_t {
+	bool operator()(char c)    const noexcept { return std::isspace(static_cast<unsigned char>(c)) != 0; } // negative char is UB
+	bool operator()(wchar_t c) const noexcept { return std::iswspace(c) != 0; }
+};
+inline constexpr is_space_t is_space{};
+
+
+}
+using namespace tgit::zstr;
 
 
 // Helpers for carrying src\Git and src\Utils from CString to std::wstring.
@@ -50,47 +241,6 @@ struct CodeMap
 	const wchar_t* m_CodeName;
 };
 
-
-/// std::basic_string and std::basic_string_view, by shape.
-///
-/// This used to be `requires { is_convertible_v<...> || ... }`, and a requirement
-/// in that position only checks that the expression *compiles*, not that it is
-/// true - so the only real test was "has a value_type", which std::vector<int>
-/// and std::optional pass too. traits_type is what the string types have and
-/// containers do not; it also keeps this disjoint from IsStupidString (CStringT
-/// has neither data() nor traits_type), which the getters below depend on.
-template <typename TStr>
-concept IsRealString = requires(const TStr& s) {
-	typename TStr::value_type;
-	typename TStr::traits_type;
-	{ s.data() } -> std::convertible_to<const typename TStr::value_type*>;
-	{ s.size() } -> std::convertible_to<size_t>;
-};
-
-
-// The shape of CStringT<XCHAR, StrTraits> and nothing ATL-specific: this module
-// never names CString, CStringA or CStringW, so it can be compiled once and
-// imported by the MFC-flavored and the ATL-flavored halves alike. A narrow and
-// a wide CString are told apart by XCHAR, which is what StupidStringOf is for.
-template <typename TStr>
-concept IsStupidString = requires(const TStr& s) {
-	typename TStr::XCHAR;
-	typename TStr::StrTraits;
-	{ s.GetString() } -> std::convertible_to<const typename TStr::XCHAR*>;
-	{ s.GetLength() } -> std::convertible_to<int>;
-	TStr(s.GetString(), s.GetLength());
-};
-
-template <typename TStr>
-concept IsTCompString = IsRealString<TStr> || IsStupidString<TStr>;
-
-
-template <typename TStr, typename TChar>
-concept StupidStringOf = IsStupidString<TStr> && std::same_as<typename TStr::XCHAR, TChar>;
-
-
-template <typename TStr, typename TChar>
-concept TCompStringOf = IsTCompString<TStr> && (std::same_as<typename TStr::XCHAR, TChar> || std::same_as<typename TStr::value_type, TChar>);
 
 
 /// CString::Find contract: byte offset, or -1 when absent.
@@ -295,48 +445,17 @@ inline void ReleaseBuffer(std::wstring& s, const int newLength = -1)
 }
 
 
-
-
-/// How to read either kind of string: its characters and its length, one
-/// overload per concept. Functions, because functions can be overloaded on
-/// constraints and class templates cannot - two `StringView` templates differing
-/// only in their constraint are a redeclaration, not an overload set.
-template <IsStupidString TStr>
-constexpr const typename TStr::XCHAR* StringData(const TStr& s) noexcept { return s.GetString(); }
-template <IsStupidString TStr>
-constexpr size_t StringSize(const TStr& s) noexcept { return static_cast<size_t>(s.GetLength()); } // never negative
-
-template <IsRealString TStr>
-constexpr const typename TStr::value_type* StringData(const TStr& s) noexcept { return s.data(); }
-template <IsRealString TStr>
-constexpr size_t StringSize(const TStr& s) noexcept { return s.size(); }
-
-/// The character type of either kind: XCHAR for a CString, value_type for the std ones.
-template <IsTCompString TStr>
-using StringChar = std::remove_cvref_t<decltype(*StringData(std::declval<const TStr&>()))>;
-
-/// Non-owning view of either kind of string - a CString, for calling the
-/// std::wstring core from a call site that has not migrated yet, or a std one.
-///
-/// O(1) for a CString: it knows its length, so this does not walk the string
-/// the way std::wstring_view(cstring) would.
-template <IsTCompString TStr>
-struct StringView : std::basic_string_view<StringChar<TStr>>
+template <TStrOfWide TStr>
+std::filesystem::path to_path(const TStr& sPath)
 {
-	explicit StringView(const TStr& s) noexcept : std::basic_string_view<StringChar<TStr>>{ StringData(s), StringSize(s) }
-	{}
-};
-
-
-template <IsTCompString TStr>
-std::filesystem::path to_path(TStr sPath)
-{
-	return std::filesystem::path(StringView{sPath});
+	return std::filesystem::path{StringView{sPath}.as_std()};
 }
 
 
 // end export
 }
+
+using namespace tgit::wstr;
 
 
 // Lets std::format take a CString wherever it already takes a std::wstring.
@@ -357,21 +476,22 @@ std::filesystem::path to_path(TStr sPath)
 // format context ever needs it. Not `export`ed: a specialization of a std
 // template is reached through the primary, and export on a partial
 // specialization is ill-formed (C7760).
-template <tgit::wstr::IsStupidString TStr>
-struct std::formatter<TStr, typename TStr::XCHAR> : std::formatter<std::basic_string_view<typename TStr::XCHAR>, typename TStr::XCHAR>
+template <IsStupidString TStr>
+struct std::formatter<TStr, TCharType<TStr>> : std::formatter<TViewType<TStr>>
 {
+	using view_type = std::formatter<TViewType<TStr>>;
+	using value_type = TCharType<TStr>;
+
 	template <typename FormatContext>
 	auto format(const TStr& value, FormatContext& ctx) const
 	{
-		return std::formatter<std::basic_string_view<typename TStr::XCHAR>, typename TStr::XCHAR>::format(tgit::wstr::StringView(value), ctx);
+		return view_type::format(value_type{value}, ctx);
 	}
 };
 
 
 export namespace CUnicodeUtils
 {
-using namespace tgit::wstr;
-
 // Safely convert from size_t to int.
 // Throws a std::overflow_error exception if the conversion is impossible.
 inline int SafeSizeToInt(const size_t sizeValue)
@@ -392,9 +512,16 @@ int SafeIntMult(const int val1, const int val2)
 	return gsl::narrow<int>(bufferSize);
 }
 
-// The std::wstring core. Declared here because the adapters below are
-// templates, and a non-dependent call inside a template is looked up where
-// the template is *defined*, not where it is instantiated.
+// The conversion core, one body each way. TOut is whichever string the caller
+// wants back - std::string / std::wstring by default, a CStringT on request -
+// and the API writes straight into its storage, so a call constructs exactly
+// one string. (The CString adapters used to convert into a std::wstring and
+// then copy that into the CString: two allocations and two writes per call.
+// Copy elision cannot remove that copy, because it never crosses types.)
+// Defined here, ahead of the adapters, because a non-dependent call inside a
+// template is looked up where the template is *defined*, not where it is
+// instantiated.
+//
 // defaultChar is the byte substituted for anything the target code page cannot
 // represent; null means "whatever the system picks", normally '?'. It is
 // dropped for CP_UTF8 and CP_UTF7, which reject both lpDefaultChar and
@@ -402,44 +529,33 @@ int SafeIntMult(const int val1, const int val2)
 // substitute for anyway, since they can encode every input. The paired
 // lpUsedDefaultChar flag is deliberately not offered: no call site has ever
 // read it.
-std::string StdGetMulti(const std::wstring_view wide, const int acp = CP_UTF8, const char* const defaultChar = nullptr)
+template <TStrOfChar TOut = std::string>
+TOut GetMulti(const std::wstring_view wide, const int acp = CP_UTF8, const char* const defaultChar = nullptr)
 {
+	TOut out;
 	if (wide.empty())
-		return {};
+		return out;
 
 	const auto len = gsl::narrow<int>(wide.length());
 	const char* const subst = acp == CP_UTF8 || acp == CP_UTF7 ? nullptr : defaultChar;
 	// Both calls must agree on the substitution character, or the measured size
 	// is not the size the second call writes.
 	const int need = WideCharToMultiByte(acp, 0, wide.data(), len, nullptr, 0, subst, nullptr);
-
-	std::string out;
-	out.resize_and_overwrite(need, [&](char* buf, const size_t cap) {
-		const int ret = WideCharToMultiByte(acp, 0, wide.data(), len, buf, gsl::narrow<int>(cap), subst, nullptr);
-		if (ret == 0)
-			throw std::exception("WideCharToMultiByte failed");
-		return static_cast<size_t>(ret);
-	});
+	if (need > 0)
+		StringTraits<TOut>::overwrite(out, gsl::narrow<size_t>(need), [&](char* buf, const size_t cap) {
+			return gsl::narrow<size_t>(WideCharToMultiByte(acp, 0, wide.data(), len, buf, gsl::narrow<int>(cap), subst, nullptr));
+		});
+	// Non-empty input never converts to nothing, so empty here is a failure of
+	// either call.
+	if (StringViewTraits<TOut>::size(out) == 0)
+		throw std::exception("WideCharToMultiByte failed");
 	return out;
 }
 
 
-std::wstring StdGetUnicode(const std::string_view multibyte, const int acp = CP_UTF8)
+std::string StdGetMulti(const std::wstring_view wide, const int acp = CP_UTF8, const char* const defaultChar = nullptr)
 {
-	if (multibyte.empty())
-		return {};
-
-	const auto s_len = gsl::narrow<int>(multibyte.length());
-	const int need = MultiByteToWideChar(acp, 0, multibyte.data(), s_len, nullptr, 0);
-
-	std::wstring out;
-	out.resize_and_overwrite(need, [&](wchar_t* buf, const size_t cap) {
-		const int ret = MultiByteToWideChar(acp, 0, multibyte.data(), s_len, buf, gsl::narrow<int>(cap));
-		if (ret == 0)
-			throw std::exception("MultiByteToWideChar failed");
-		return static_cast<size_t>(ret);
-	});
-	return out;
+	return GetMulti(wide, acp, defaultChar);
 }
 
 
@@ -641,71 +757,84 @@ std::string StdGetUTF8(const std::wstring_view wide)
 // <CString> is also the tell that a call site has not migrated yet, the
 // same job tgit::wstr::StringView does on the way in.
 //
-// Inputs are taken as std views; a CString reaches those through the
-// IsStupidString overloads, which cost an O(1) View rather than the O(n)
-// wcslen a std::wstring_view(LPCWSTR) would. A const char* lands on the
-// std::string_view overload directly - as before, a nullptr there is
-// undefined, exactly as it was through std::string_view(string).
-
-/// The (data, length) constructor is the one thing every CStringT has.
-template <IsStupidString TOut>
-TOut ToStupidString(const std::basic_string_view<typename TOut::XCHAR> s)
+// Inputs are taken as std views by the cores above; a CString reaches those
+// through the IsStupidString overloads below, which cost an O(1) View rather
+// than the O(n) wcslen a std::wstring_view(LPCWSTR) would. A const char* or a
+// std::string lands on the std::string_view core directly - as before, a
+// nullptr there is undefined, exactly as it was through
+// std::string_view(string).
+//
+// The forwarders are constrained to IsStupidString on purpose: a CStringT
+// cannot reach a std view implicitly (that would be two user-defined
+// conversions), so without them it has no overload at all, and a StringView -
+// which is a real string - must keep binding to the core rather than
+// re-entering a forwarder forever.
+template <TStrOfChar TOut, TStrOfWide TIn> requires IsStupidString<TIn>
+TOut GetMulti(const TIn& string, const int acp = CP_UTF8, const char* const defaultChar = nullptr)
 {
-	return TOut(s.data(), SafeSizeToInt(s.size()));
+	return GetMulti<TOut>(StringView{ string }, acp, defaultChar);
 }
 
 
-auto GetMulti(const std::wstring_view string, const int acp)
-{
-	return StdGetMulti(string, acp);
-}
-template <StupidStringOf<char> TOut>
-TOut GetMulti(const std::wstring_view string, const int acp)
-{
-	return ToStupidString<TOut>(StdGetMulti(string, acp));
-}
-// ---
-template <StupidStringOf<char> TOut, StupidStringOf<wchar_t> TIn>
-TOut GetMulti(const TIn &string, const int acp)
-{
-	return GetMulti<TOut>(StringView{ string }, acp);
-}
-
-
-template <TCompStringOf<char> TOut, TCompStringOf<wchar_t> TIn>
+template <TStrOfChar TOut, TStrOfWide TIn>
 TOut GetUTF8(const TIn& string)
 {
 	const auto string_view = StringView{ string };
 	return GetMulti<TOut>(string_view, CP_UTF8);
 }
 
-template <StupidStringOf<wchar_t> TOut>
-TOut GetUnicode(const std::string_view string, const int acp = CP_UTF8)
+
+template <TStrOfWide TOut, TStrOfChar TIn>
+TOut GetUnicode(const TIn& inStr)
 {
-	return ToStupidString<TOut>(StdGetUnicode(string, acp));
-}
-// ---
-template <StupidStringOf<wchar_t> TOut, StupidStringOf<char> TIn>
-TOut GetUnicode(const TIn& string, const int acp = CP_UTF8)
-{
-	return GetUnicode<TOut>(StringView{string}, acp);
-}
-// ---
-template <StupidStringOf<wchar_t> TOut>
-TOut GetUnicode(const char* string, const int acp = CP_UTF8)
-{
-	const std::string_view bsv{ string };
-	return GetUnicode<TOut>(bsv, acp);
-}
-// ---
-template <StupidStringOf<wchar_t> TOut>
-TOut GetUnicodeLength(const char* string, const int len, const int acp = CP_UTF8)
-{
-	return GetUnicode<TOut>(std::string_view(string, gsl::narrow<size_t>(len)), acp);
+	const auto fromUtf8 = wil::winrt::to_hstring(std::string_view{ StringView{ inStr } });
+	const std::wstring_view wide = fromUtf8;
+	return TOut(wide.data(), StringViewTraits<std::wstring_view>::size<TOut>(wide));
 }
 
 
-template <StupidStringOf<wchar_t> TIn>
+// Convert2*: the verbs for owned inputs - anything with StringTraits,
+// including a NUL-terminated pointer, which has no view of its own. The one
+// O(n) step on our side is finding a pointer's length; after that it is the
+// fast path, where MultiByteToWideChar / WideCharToMultiByte are the oracle
+// and everything around them is O(1). A std string or CString lands here too,
+// for a call site that would rather not care which kind it holds.
+template <TStrOfWide TOut, typename TIn> requires HasStringTraitsOf<TOwnedKey<TIn>, char>
+TOut Convert2Unicode(const TIn& inStr)
+{
+	using traits = StringTraits<TOwnedKey<TIn>>;
+	return GetUnicode<TOut>(std::string_view{ traits::data(inStr), traits::size(inStr) });
+}
+
+template <TStrOfChar TOut, typename TIn> requires HasStringTraitsOf<TOwnedKey<TIn>, wchar_t>
+TOut Convert2Multibyte(const TIn& inStr)
+{
+	using traits = StringTraits<TOwnedKey<TIn>>;
+	return GetUTF8<TOut>(std::wstring_view{ traits::data(inStr), traits::size(inStr) });
+}
+
+
+template <TStrOfWide TOut = std::wstring>
+TOut StdGetUnicode(const std::string_view multibyte, const int acp)
+{
+	TOut out;
+	if (multibyte.empty())
+		return out;
+
+	const auto s_len = gsl::narrow<int>(multibyte.length());
+	const int need = MultiByteToWideChar(acp, 0, multibyte.data(), s_len, nullptr, 0);
+	if (need > 0)
+		StringTraits<TOut>::overwrite(out, gsl::narrow<size_t>(need), [&](wchar_t* buf, const size_t cap) {
+			return gsl::narrow<size_t>(MultiByteToWideChar(acp, 0, multibyte.data(), s_len, buf, gsl::narrow<int>(cap)));
+		});
+	if (StringViewTraits<TOut>::size(out) == 0)
+		throw std::exception("MultiByteToWideChar failed");
+	return out;
+}
+
+
+
+template <TStrOfWide TIn>
 int GetCPCode(const TIn& codename) { return StdGetCPCode(StringView{codename}); }
 
 
@@ -731,55 +860,5 @@ std::wstring MultibyteToWide(const std::string_view multibyte)
 	return StdGetUnicode(multibyte, CP_ACP);
 }
 
-#pragma warning(push)
-#pragma warning(disable: 4200)
-struct STRINGRESOURCEIMAGE
-{
-	WORD nLength;
-	WCHAR achString[];
-};
-#pragma warning(pop)	// C4200
-
-int LoadStringEx(const HINSTANCE hInstance, const UINT uID, const LPWSTR lpBuffer, const int nBufferMax, const WORD wLanguage)
-{
-	if (!lpBuffer)
-		return 0;
-	lpBuffer[0] = L'\0';
-	const auto resId = MAKEINTRESOURCE((uID >> 4) + 1);
-	HRSRC hResource =  FindResourceEx(hInstance, RT_STRING, resId, wLanguage);
-	if (!hResource)
-	{
-		//try the default language before giving up!
-		hResource = FindResource(hInstance, resId, RT_STRING);
-		if (!hResource)
-			return 0;
-	}
-	const HGLOBAL hGlobal = LoadResource(hInstance, hResource);
-	if (!hGlobal)
-		return 0;
-	auto pImage = static_cast<const STRINGRESOURCEIMAGE*>(LockResource(hGlobal));
-	if(!pImage)
-		return 0;
-
-	const auto bImage = reinterpret_cast<const BYTE*>(pImage);
-	const ULONG nResourceSize = SizeofResource(hInstance, hResource);
-	const auto* pImageEnd = reinterpret_cast<const STRINGRESOURCEIMAGE*>(bImage + nResourceSize);
-	UINT iIndex = uID & 0x000f;
-
-	while ((iIndex > 0) && (pImage < pImageEnd))
-	{
-		// Each entry is a length followed by that many WCHARs; step over the
-		// current one. (The module port stepped from bImage, the start of the
-		// block, which is only right for the first entry.)
-		pImage = reinterpret_cast<const STRINGRESOURCEIMAGE*>(reinterpret_cast<const BYTE*>(pImage) + (sizeof(STRINGRESOURCEIMAGE) + (pImage->nLength * sizeof(WCHAR))));
-		iIndex--;
-	}
-	if (pImage >= pImageEnd)
-		return 0;
-	if (pImage->nLength == 0 || nBufferMax <= 0)
-		return 0;
-	CopyTruncating(std::span(lpBuffer, static_cast<size_t>(nBufferMax)), std::wstring_view(pImage->achString, pImage->nLength));
-	return (std::min)(static_cast<int>(pImage->nLength), nBufferMax - 1);
-}
 
 }

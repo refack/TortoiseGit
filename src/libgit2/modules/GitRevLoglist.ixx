@@ -15,7 +15,7 @@ import GitRev;
 import TGitPath;
 import GitMailmap;
 import tgittypes;
-import SmartLibgit2;
+import wil_git2;
 import DebugOutput;
 import GitHash;
 
@@ -24,7 +24,7 @@ namespace fs = std::filesystem;
 using TGitPath::CTGitPath;
 using TGitPath::CTGitPathList;
 using namespace SmartLibgit2;
-using tgit::wstr::StringView;
+using tgit::zstr::StringView;
 
 class CLogCache;
 class IAsyncDiffCB;

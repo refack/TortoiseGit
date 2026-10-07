@@ -7,13 +7,13 @@ set(CMAKE_EXPERIMENTAL_CXX_IMPORT_STD "f35a9ac6-8463-4d38-8eec-5d6008153e7d")
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
-set(CMAKE_EXPORT_SARIF ON)
 
+#set(CMAKE_EXPORT_SARIF ON)
+file(MAKE_DIRECTORY "${CMAKE_BINARY_DIR}/SARIF")
 add_compile_options(
-#    "/analyze"
-#    "/analyze:log:format:sarif"
-#    "/analyze:log" "my_target_analysis.sarif"
-    "/experimental:log" "E:/3party/TortoiseGit/build/debug/SARIF/"
+        "/external:anglebrackets" "/external:W0"
+        "/analyze-"
+        "/experimental:log" "${CMAKE_BINARY_DIR}/SARIF/"
 )
 
 # The triplet is a project decision, not a per-machine one: static libraries

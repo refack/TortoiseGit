@@ -257,7 +257,7 @@ STDMETHODIMP GitDataObject::GetData(FORMATETC* pformatetcIn, STGMEDIUM* pmedium)
 		}
 		else
 		{
-			filepath = CTempFiles::Instance().GetTempFilePath(true).GetWinPathString().c_str();
+			filepath = TempFiles::GetTempFilePath(true).GetWinPathString().c_str();
 			if (pformatetcIn->lindex >= 0 && pformatetcIn->lindex < static_cast<LONG>(m_allPaths.size()))
 			{
 				if (g_Git.GetOneFile(m_revision.ToString().data(), m_allPaths[pformatetcIn->lindex], filepath))

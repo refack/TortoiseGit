@@ -14,7 +14,7 @@ import DebugOutput;
 import TGitPath;
 import StringUtils;
 import Registry;
-import SmartLibgit2;
+import wil_git2;
 
 using std::operator""sv;
 using std::operator""s;
@@ -23,4 +23,4 @@ using std::wstring_view;
 using std::wstring;
 namespace fs = std::filesystem;
 
-using tgit::wstr::StringView;
+using tgit::zstr::StringView;

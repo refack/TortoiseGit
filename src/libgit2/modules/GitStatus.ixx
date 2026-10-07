@@ -18,7 +18,7 @@ import GitHash;
 import StringUtils;
 import GitIndex;
 import DebugOutput;
-import SmartLibgit2;
+import wil_git2;
 
 namespace fs = std::filesystem;
 
@@ -32,9 +32,9 @@ using namespace GitIndex;
 export namespace GitStatus
 {
 
-static CGitIndexFileMap g_IndexFileMap;
-static CGitHeadFileMap g_HeadFileMap;
-static CGitIgnoreList  g_IgnoreList;
+CGitIndexFileMap g_IndexFileMap;
+CGitHeadFileMap g_HeadFileMap;
+CGitIgnoreList  g_IgnoreList;
 
 
 struct CGitFileName
@@ -51,7 +51,7 @@ constexpr auto MAX_STATUS_STRING_LENGTH = 256;
 using FILL_STATUS_CALLBACK = BOOL(const CString& path, const git_wc_status2_t* status, bool isDir, __int64 lastwritetime, void* baton);
 
 // checks whether indexPath is a direct submodule and not one in a subfolder
-static bool IsDirectSubmodule(const CString& indexPath, int prefix)
+bool IsDirectSubmodule(const CString& indexPath, int prefix)
 {
 	if (!StringUtils::EndsWith(indexPath, L'/'))
 		return false;
@@ -69,7 +69,7 @@ static bool IsDirectSubmodule(const CString& indexPath, int prefix)
 }
 
 
-static int GetFileStatus_int(const CString& gitdir, CGitRepoLists& repolists, const CString& path, git_wc_status2_t& status, BOOL IsFull, BOOL IsIgnore, BOOL update)
+int GetFileStatus_int(const CString& gitdir, CGitRepoLists& repolists, const CString& path, git_wc_status2_t& status, BOOL IsFull, BOOL IsIgnore, BOOL update)
 {
 	Expects(repolists.pIndex);
 	Expects(!status.assumeValid && !status.skipWorktree);
@@ -195,7 +195,7 @@ class GitStatus
 			return 12;
 
 		default:
-			[[unlikely]]
+			break;
 		}
 		return 0;
 	}
@@ -495,7 +495,7 @@ public:
 	}
 
 
-	static void GitStatus::AdjustFolderStatus(git_wc_status_kind& status)
+	static void AdjustFolderStatus(git_wc_status_kind& status)
 	{
 		using namespace tgit::types;
 

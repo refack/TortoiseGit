@@ -1,7 +1,7 @@
 ﻿module;
 #include <windows.h>
-#include "Utils/ReparseData.h"
-#include "Utils/WideString.h"
+#include <strsafe.h>
+
 // #include "sanity.h"
 
 
@@ -9,11 +9,12 @@ export module PathUtils;
 import std;
 import gsl;
 import wil;
+import wstr;
 import RIAA;
 namespace fs = std::filesystem;
 using std::operator""sv;
 
-#pragma comment(lib, "Version.lib")
+// #pragma comment(lib, "Version.lib")
 
 export namespace PathUtils
 {
@@ -266,46 +267,17 @@ void DropPathPrefixes(std::wstring& path);
  * Reads a symlink's target, as UTF-8 bytes with forward slashes - the form git stores
  * a symlink blob in, which is why the out-parameter is a byte string and not a wide one.
  */
-int ReadLink(const LPCWSTR filename, std::string* pTargetA = {})
+std::optional<std::string> ReadLink(const std::filesystem::path& p)
 {
-	const CAutoFile handle = CreateFileW(filename, GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_DELETE, nullptr, OPEN_EXISTING, FILE_FLAG_OPEN_REPARSE_POINT | FILE_FLAG_BACKUP_SEMANTICS, nullptr);
-	if (!handle)
-		return -1;
-
-	DWORD ioctl_ret;
-	BYTE buf[MAXIMUM_REPARSE_DATA_BUFFER_SIZE] = {};
-	const auto reparse_buf = reinterpret_cast<TGIT_REPARSE_DATA_BUFFER*>(&buf);
-	if (!DeviceIoControl(handle, FSCTL_GET_REPARSE_POINT, nullptr, 0, reparse_buf, sizeof(buf), &ioctl_ret, nullptr))
-		return -1;
-
-	if (reparse_buf->ReparseTag != IO_REPARSE_TAG_SYMLINK)
-		return -1;
-
-	const wchar_t* target = reparse_buf->ReparseBuffer.SymbolicLink.PathBuffer + (reparse_buf->ReparseBuffer.SymbolicLink.SubstituteNameOffset / sizeof(WCHAR));
-	const int target_len = reparse_buf->ReparseBuffer.SymbolicLink.SubstituteNameLength / sizeof(WCHAR);
-	if (!target_len)
-		return -1;
-
-	// not a symlink
-	if (wcsncmp(target, L"\\??\\Volume{", 11) == 0)
-		return -1;
-
-	if (pTargetA != nullptr)
-	{
-		std::wstring targetW(target, target_len);
-		// The path may need to have a prefix removed
-		DropPathPrefixes(targetW);
-		tgit::wstr::Replace(targetW, L"\\"sv, L"/"sv);
-		*pTargetA = CUnicodeUtils::StdGetUTF8(targetW);
-	}
-
-	return 0;
+	std::error_code ec;
+	if (!std::filesystem::is_symlink(std::filesystem::symlink_status(p, ec)))
+		return std::nullopt;                       // junctions are file_type::junction on MSVC, so they fail here too
+	const auto target = std::filesystem::read_symlink(p, ec);
+	if (ec || target.empty())
+		return std::nullopt;
+	const auto u8 = target.generic_u8string();     // '\' -> '/', UTF-8: exactly git's symlink-blob form
+	return std::string{ reinterpret_cast<const char*>(u8.data()), u8.size() };
 }
-int ReadLink(const std::filesystem::path filename, std::string* pTargetA = {})
-{
-	return ReadLink(filename.c_str(), pTargetA);
-}
-
 
 /**
  * Ensures that the path ends with a folder separator.
@@ -378,20 +350,13 @@ std::wstring GetCopyrightForSelf();
  */
 bool Touch(const std::wstring& path)
 {
-	const CAutoFile hFile = CreateFile(path.data(), GENERIC_WRITE, FILE_SHARE_DELETE, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
-	if (!hFile)
+	if (!fs::exists(path))
+		// Create an empty file if it doesn't exist
 		return false;
-
-	FILETIME ft;
-	SYSTEMTIME st;
-	GetSystemTime(&st); // Gets the current system time
-	SystemTimeToFileTime(&st, &ft); // Converts the current system time to file time format
-	return SetFileTime(hFile, // Sets last-write time of the file
-					   nullptr, // to the converted current system time
-					   nullptr,
-					   &ft) != FALSE;
+	// Update the last write time to the current system time
+	fs::last_write_time(path, fs::file_time_type::clock::now());
+	return true;
 }
-
 std::wstring GetFileNameFromPath(const std::wstring_view sPath)
 {
 	// This used to normalize every slash to a backslash and then take everything
@@ -418,7 +383,8 @@ bool FileCopy(std::wstring srcPath, std::wstring destPath, const bool force)
 	tgit::wstr::Replace(destPath, L"/"sv, L"\\"sv);
 	const std::wstring destFolder = tgit::wstr::Left(destPath, tgit::wstr::ReverseFind(destPath, L'\\'));
 	std::ignore = MakeSureDirectoryPathExists(destFolder.c_str());
-	return (CopyFile(srcPath.c_str(), destPath.c_str(), !force));
+	const bool ret = fs::copy_file(srcPath, destPath, force ? fs::copy_options::overwrite_existing : fs::copy_options::skip_existing);
+	return ret;
 }
 
 std::wstring ParsePathInString(const std::wstring_view Str)
@@ -569,8 +535,7 @@ std::wstring ExpandFileName(const std::wstring& path)
 	if (path.empty())
 		return path;
 
-	const std::wstring expanded = FillFromWinApi(GetFullPathName(path.c_str(), 0, nullptr, nullptr),
-												 [&path](wchar_t* buf, const DWORD cap) { return GetFullPathName(path.c_str(), cap, buf, nullptr); });
+	const std::wstring expanded = fs::absolute(path);
 	const auto ret = expanded.empty() ? path : expanded;
 	return ret;
 }
@@ -657,10 +622,10 @@ bool IsSamePath(const std::wstring& path1, const std::wstring& path2)
 
 
 
-auto query_file(auto path)
+auto query_file(const fs::path& path)
 {
 	return wil::open_file(
-		path,
+		path.c_str(),
 		FILE_READ_ATTRIBUTES,
 		FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
 		FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OPEN_REPARSE_POINT

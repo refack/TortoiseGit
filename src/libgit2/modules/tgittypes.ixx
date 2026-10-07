@@ -25,7 +25,7 @@ enum: std::uint8_t
 
 struct CGitByteArray : std::vector<char>
 {
-	size_t find(const char data, const size_t start = 0) const
+	[[nodiscard]] size_t find(const char data, const size_t start = 0) const
 	{
 		const size_t end = size();
 		for (size_t i = start; i < end; ++i)
@@ -33,7 +33,7 @@ struct CGitByteArray : std::vector<char>
 				return i;
 		return npos;
 	}
-	size_t RevertFind(const char data, size_t start = npos) const
+	[[nodiscard]] size_t RevertFind(const char data, size_t start = npos) const
 	{
 		if (start == npos)
 		{
@@ -47,7 +47,7 @@ struct CGitByteArray : std::vector<char>
 				return i;
 		return npos;
 	}
-	size_t findNextString(const size_t start = 0) const
+	[[nodiscard]] size_t findNextString(const size_t start = 0) const
 	{
 		size_t pos = start;
 		const size_t end = size();
@@ -99,7 +99,8 @@ struct CGitByteArray : std::vector<char>
 		if (empty())
 			return {};
 		const auto max_items = std::ranges::find(*this, '\0') - this->begin();
-		return CUnicodeUtils::StdGetUnicode(std::string_view{data(), gsl::narrow<size_t>(max_items)});
+		const auto char_view = std::string_view{data(), gsl::narrow<size_t>(max_items)};
+		return CUnicodeUtils::GetUnicode<std::wstring>(char_view);
 	}
 
 	static constexpr size_t npos = static_cast<size_t>(-1); // bad/missing length/position

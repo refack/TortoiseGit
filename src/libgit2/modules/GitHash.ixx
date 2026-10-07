@@ -8,6 +8,9 @@ import std;
 import invarients;
 import wstr;
 using namespace tgit::invarients;
+using tgit::zstr::IsTCompString;
+using tgit::zstr::StringViewTraits;
+
 
 /* also see gitdll.c */
 static_assert(GIT_OID_MAX_SIZE <= sizeof(git_oid::id), "git_oid raw storage must be able to hold the largest id");
@@ -67,28 +70,14 @@ public:
 	}
 #endif
 
-	template <typename Str_Type>
-		requires tgit::wstr::IsRealString<Str_Type> || tgit::wstr::IsStupidString<Str_Type>
-	static CGitHash FromHexStr(const Str_Type& str, bool* isHash = nullptr)
+	template <IsTCompString Str>
+	static CGitHash FromHexStr(const Str& str, bool* isHash = nullptr)
 	{
-		static constexpr bool IsStupidString = tgit::wstr::IsStupidString<Str_Type>;
-		if constexpr (IsStupidString)
+		if (!GitFormatHolder::HasEnoughSpace(str))
 		{
-			if (str.GetLength() != 2 * GitFormatHolder::GitHashSize())
-			{
-				if (isHash)
-					*isHash = false;
-				return CGitHash();
-			}
-		}
-		else
-		{
-			if (str.size() != 2 * GitFormatHolder::GitHashSize())
-			{
-				if (isHash)
-					*isHash = false;
-				return CGitHash();
-			}
+			if (isHash)
+				*isHash = false;
+			return {};
 		}
 
 		CGitHash hash;
@@ -111,7 +100,7 @@ public:
 				{
 					if (isHash)
 						*isHash = false;
-					return CGitHash();
+					return {};
 				}
 			}
 			hash.m_oid.id[i] = a;
@@ -140,13 +129,13 @@ public:
 		std::memset(m_oid.id, 0, sizeof(m_oid.id));
 		StampOidType();
 	}
-	bool IsEmpty() const
+	[[nodiscard]] bool IsEmpty() const
 	{
 		static constexpr std::byte empty[GIT_OID_MAX_SIZE]{};
 		return std::memcmp(m_oid.id, empty, GitFormatHolder::GitHashSize()) == 0;
 	}
 
-	std::wstring ToString() const
+	[[nodiscard]] std::wstring ToString() const
 	{
 		std::wstring str;
 		str.reserve(GitFormatHolder::GitHashSize() * 2);
@@ -155,7 +144,7 @@ public:
 		return str;
 	}
 
-	std::wstring ToString(const int len) const
+	[[nodiscard]] std::wstring ToString(const int len) const
 	{
 		std::wstring str { ToString() };
 		str.resize(len);
@@ -167,7 +156,7 @@ public:
 		return &m_oid;
 	}
 
-	const unsigned char* ToRaw() const
+	[[nodiscard]] const unsigned char* ToRaw() const
 	{
 		return m_oid.id;
 	}
@@ -194,7 +183,7 @@ public:
 
 	bool MatchesPrefix(const CGitHash& hash, const auto& hashString, size_t prefixLen) const
 	{
-		if (std::memcmp(m_oid.id, hash.m_oid.id, prefixLen >> 1))
+		if (std::memcmp(m_oid.id, hash.m_oid.id, prefixLen >> 1) != 0)
 			return false;
 		return prefixLen == 2 * GitFormatHolder::GitHashSize() || wcsncmp(ToString(), hashString, prefixLen) == 0;
 	}

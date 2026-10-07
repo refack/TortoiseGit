@@ -19,7 +19,6 @@
 #pragma once
 
 // FSCTL_GET_REPARSE_POINT and friends; the struct below is only useful together with them
-#include <winioctl.h>
 
 /*
  * Layout of the buffer FSCTL_GET_REPARSE_POINT fills in, as documented at

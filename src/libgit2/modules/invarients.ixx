@@ -5,6 +5,7 @@ module;
 export module invarients;
 
 import std;
+import wstr;
 using std::operator""sv;
 
 
@@ -143,6 +144,9 @@ namespace GitFormatHolder
 	constexpr size_t GitHashSize() noexcept { return HashSize(); }
 	constexpr git_oid_t GitActiveOidType() noexcept { return ActiveOidType(); }
 	constexpr const wchar_t* GitObjectFormatName() noexcept { return ObjectFormatName().data(); }
+
+	template <zstr::IsTCompString Str>
+	constexpr size_t HasEnoughSpace(const Str& sv) noexcept { return zstr::StringView<Str>{sv}.size() == 2 * GitFormatHolder::GitHashSize(); }
 }
 
 

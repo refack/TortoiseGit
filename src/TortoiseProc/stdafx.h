@@ -87,7 +87,7 @@ import GitAdminDir;
 #include <Utils/ProfilingInfo.h>
 #include <Utils/scope_exit_noexcept.h>
 #include <Utils/SmartHandle.h>
-import SmartLibgit2;
+import wil_git2;
 #include <Utils/StringUtils.h>
 #include <Utils/UnicodeUtils.h>
 #include <Utils/WideString.h>

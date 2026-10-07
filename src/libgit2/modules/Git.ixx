@@ -11,8 +11,7 @@ import gsl;
 import wil;
 import libgit2;
 import invarients;
-import SmartLibgit2;
-import GitAdminDir;
+import wil_git2;
 import PathUtils;
 import StringUtils;
 import wstr;
@@ -32,6 +31,7 @@ using namespace wil;
 using namespace TGitPath;
 using namespace tgit::types;
 using CGitHash = TGitHash::CGitHash;
+using tgit::zstr::StringView;
 
 // ReSharper disable once CppEnforceCVQualifiersPlacement
 using ArgvP = char const*;
@@ -147,7 +147,7 @@ enum REF_TYPE
 
 constexpr size_t CalculateDiffSimilarityIndexThreshold() noexcept
 {
-	const size_t index = wil::reg::get_value_typed<DWORD>(DiffSimilarityIndexThreshold);
+	const size_t index = wil::reg::get_value_dword(DiffSimilarityIndexThreshold);
 	return (index <= 100) ? index : 50;
 }
 
@@ -201,7 +201,7 @@ CString GetLibGit2LastErr(const CString& msg = {})
 
 	if (const git_error* libgit2err = git_error_last())
 	{
-		const auto lastError = CUnicodeUtils::GetUnicode<CString>(libgit2err->message);
+		const auto lastError = CUnicodeUtils::GetUnicode<CString>(std::string_view{libgit2err->message});
 		tgit::libgit2::git_error_clear();
 		return L"libgit2 returned: " + lastError;
 	}
@@ -823,9 +823,9 @@ public:
 	bool SetCurrentDir(const CString& path, const bool submodule = false)
 	{
 		std::wstring topDir;
-		bool b = GitAdminDir::HasAdminDir(tgit::wstr::StringView(path), submodule ? false : !!PathIsDirectory(path), &topDir);
+		bool b = GitAdminDir::HasAdminDir(tgit::zstr::StringView(path), submodule ? false : !!PathIsDirectory(path), &topDir);
 		m_CurrentDirStorage = topDir.c_str();
-		if (!b && GitAdminDir::IsBareRepo(tgit::wstr::StringView(path)))
+		if (!b && GitAdminDir::IsBareRepo(tgit::zstr::StringView(path)))
 		{
 			m_CurrentDirStorage = path;
 			b = true;
@@ -841,6 +841,7 @@ public:
 	*/
 	CString GetGitLastErr(const CString& msg, const std::optional<LIBGIT2_CMD> cmd = std::nullopt)
 	{
+		// ReSharper disable once CppTooWideScope
 		const bool using_lib_git2 = cmd.has_value() ? UsingLibGit2(cmd.value()) : this->m_IsUseLibGit2;
 		if (using_lib_git2)
 			return TGitH::GetLibGit2LastErr(msg);
@@ -1063,7 +1064,7 @@ public:
 	}
 
 	// Same reason, and the same constraint, as the CombinePath overload above.
-	template <tgit::wstr::IsRealString T>
+	template <tgit::zstr::IsRealString T>
 		requires std::same_as<std::remove_cvref_t<T>, std::wstring>
 	[[nodiscard]] static CString QuoteParameter(const T& value, bool relaxed = false)
 	{
@@ -1099,7 +1100,7 @@ public:
 	{
 		return wil::ArgvToCommandLine(argv);
 	}
-	[[nodiscard]] static CString SerializeArgvToCString(const STRING_VECTOR& argv)
+	[[nodiscard]] static auto SerializeArgvToCString(const STRING_VECTOR& argv)
 	{
 		const std::wstring cmd = SerializeArgv(argv);
 		return CString(cmd.data(), gsl::narrow<int>(cmd.size()));
@@ -1175,7 +1176,7 @@ int GetFileModifyTime(LPCWSTR filename, std::int64_t* time, bool* isDir = nullpt
 			*isDir = !!(fdata.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY);
 
 		if (isSymlink)
-			*isSymlink = (fdata.dwFileAttributes & FILE_ATTRIBUTE_REPARSE_POINT) && !PathUtils::ReadLink(filename);
+			*isSymlink = (fdata.dwFileAttributes & FILE_ATTRIBUTE_REPARSE_POINT) && (std::filesystem::is_symlink(std::filesystem::symlink_status(filename)));
 
 		return 0;
 	}
@@ -1202,7 +1203,7 @@ TGString GetShortName(const TGStringView ref, TGStringView prefix)
 
 BOOL GetShortName(const CString& ref, CString& shortname, const CString& prefix)
 {
-	if (const auto str = GetShortName(tgit::wstr::StringView{ ref }, tgit::wstr::StringView{ prefix }); !str.empty())
+	if (const auto str = GetShortName(tgit::zstr::StringView{ ref }, tgit::zstr::StringView{ prefix }); !str.empty())
 	{
 		shortname = str.c_str();
 		return TRUE;
@@ -1218,6 +1219,7 @@ bool LoadTextFile(const CString& filename, CString& msg);
 
 
 CGit g_Git;
+
 
 
 } // namespace TGitH

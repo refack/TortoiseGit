@@ -4,9 +4,13 @@ module;
 
 export module BugTraqProvider;
 import std;
+import gsl;
+
 import TGitPath;
 
+
 export namespace BugTraqProvider {
+
 
 struct CBugTraqProvider
 {
@@ -14,8 +18,8 @@ struct CBugTraqProvider
 	CString name;
 };
 
-/* TODO: It's less of an association and more of a "token" or "memento".
- */
+
+// TODO: It's less of an association and more of a "token" or "memento".
 class CBugTraqAssociation
 {
 	CTGitPath m_path{};
@@ -25,8 +29,10 @@ class CBugTraqAssociation
 
 public:
 	CBugTraqAssociation() = default;
-	CBugTraqAssociation(LPCWSTR szWorkingCopy, const CLSID& provider_clsid, LPCWSTR szProviderName, LPCWSTR szParameters, bool enabled)
-		: m_path(szWorkingCopy), m_parameters(szParameters), m_enabled(enabled)
+	CBugTraqAssociation(const LPCWSTR& szWorkingCopy, const CLSID& provider_clsid, const LPCWSTR& szProviderName, const LPCWSTR& szParameters, const bool enabled)
+		: m_path(std::wstring_view{szWorkingCopy})
+		, m_parameters(szParameters)
+		, m_enabled(enabled)
 	{
 		m_provider.clsid = provider_clsid;
 		m_provider.name = szProviderName;
@@ -44,17 +50,31 @@ public:
 class CBugTraqAssociations
 {
 	using inner_t = std::vector<CBugTraqAssociation*>;
-	inner_t m_inner;
+
+	inner_t m_inner{};
 
 public:
-	CBugTraqAssociations();
-	~CBugTraqAssociations();
+	CBugTraqAssociations() = default;
+	~CBugTraqAssociations()
+	{
+		for (auto it = m_inner.begin(); it != m_inner.end(); ++it)
+			delete *it;
+		delete pProjectProvider;
+	}
 
 	void Load(LPCWSTR uuid = nullptr, LPCWSTR params = nullptr);
 	void Save() const;
 
 	void Add(const CBugTraqAssociation &assoc);
-	void Remove(CBugTraqAssociation* assoc);
+	void Remove(const CBugTraqAssociation* assoc)
+	{
+		if (auto it = std::ranges::find(m_inner, assoc); it != m_inner.end())
+		{
+			delete *it;
+			m_inner.erase(it);
+		}
+	}
+
 
 	bool FindProvider(const CString &path, CBugTraqAssociation *assoc);
 
@@ -91,17 +111,6 @@ DEFINE_GUID(CATID_BugTraqProvider,
 
 #define BUGTRAQ_ASSOCIATIONS_REGPATH L"Software\\TortoiseGit\\BugTraq Associations"
 
-CBugTraqAssociations::CBugTraqAssociations()
-{
-}
-
-CBugTraqAssociations::~CBugTraqAssociations()
-{
-	for (inner_t::iterator it = m_inner.begin(); it != m_inner.end(); ++it)
-		delete *it;
-	if (pProjectProvider)
-		delete pProjectProvider;
-}
 
 void CBugTraqAssociations::Load(LPCWSTR uuid /* = nullptr */, LPCWSTR params /* = nullptr */)
 {
@@ -117,7 +126,7 @@ void CBugTraqAssociations::Load(LPCWSTR uuid /* = nullptr */, LPCWSTR params /* 
 
 	for (DWORD dwIndex = 0; /* nothing */; ++dwIndex)
 	{
-		wchar_t szSubKey[MAX_PATH] = { 0 };
+		wchar_t szSubKey[MAX_PATH] = {};
 		DWORD cchSubKey = MAX_PATH;
 		LSTATUS status = RegEnumKeyEx(hk, dwIndex, szSubKey, &cchSubKey, nullptr, nullptr, nullptr, nullptr);
 		if (status != ERROR_SUCCESS)
@@ -126,11 +135,11 @@ void CBugTraqAssociations::Load(LPCWSTR uuid /* = nullptr */, LPCWSTR params /* 
 		HKEY hk2;
 		if (RegOpenKeyEx(hk, szSubKey, 0, KEY_READ, &hk2) == ERROR_SUCCESS)
 		{
-			wchar_t szWorkingCopy[MAX_PATH] = { 0 };
+			wchar_t szWorkingCopy[MAX_PATH] = {};
 			DWORD cbWorkingCopy = sizeof(szWorkingCopy);
 			RegQueryValueEx(hk2, L"WorkingCopy", nullptr, nullptr, reinterpret_cast<LPBYTE>(szWorkingCopy), &cbWorkingCopy);
 
-			wchar_t szClsid[MAX_PATH] = { 0 };
+			wchar_t szClsid[MAX_PATH] = {};
 			DWORD cbClsid = sizeof(szClsid);
 			RegQueryValueEx(hk2, L"Provider", nullptr, nullptr, reinterpret_cast<LPBYTE>(szClsid), &cbClsid);
 
@@ -211,10 +220,10 @@ bool CBugTraqAssociations::FindProviderForPath(const CTGitPath &path, CBugTraqAs
 /* static */
 CString CBugTraqAssociations::LookupProviderName(const CLSID &provider_clsid)
 {
-	OLECHAR szClsid[40] = { 0 };
+	OLECHAR szClsid[40] = {};
 	StringFromGUID2(provider_clsid, szClsid, ARRAYSIZE(szClsid));
 
-	wchar_t szSubKey[MAX_PATH] = { 0 };
+	wchar_t szSubKey[MAX_PATH] = {};
 	swprintf_s(szSubKey, L"CLSID\\%ls", szClsid);
 
 	CString provider_name = CString(szClsid);
@@ -222,7 +231,7 @@ CString CBugTraqAssociations::LookupProviderName(const CLSID &provider_clsid)
 	HKEY hk;
 	if (RegOpenKeyEx(HKEY_CLASSES_ROOT, szSubKey, 0, KEY_READ, &hk) == ERROR_SUCCESS)
 	{
-		wchar_t szClassName[MAX_PATH] = { 0 };
+		wchar_t szClassName[MAX_PATH] = {};
 		DWORD cbClassName = sizeof(szClassName);
 
 		if (RegQueryValueEx(hk, nullptr, nullptr, nullptr, reinterpret_cast<LPBYTE>(szClassName), &cbClassName) == ERROR_SUCCESS)
@@ -250,9 +259,9 @@ void CBugTraqAssociations::Save() const
 		return;
 
 	DWORD dwIndex = 0;
-	for (const_iterator it = begin(); it != end(); ++it)
+	for (auto it = begin(); it != end(); ++it)
 	{
-		wchar_t szSubKey[MAX_PATH] = { 0 };
+		wchar_t szSubKey[MAX_PATH] = {};
 		swprintf_s(szSubKey, L"%lu", dwIndex);
 
 		HKEY hk2;
@@ -273,22 +282,13 @@ void CBugTraqAssociations::Save() const
 	RegCloseKey(hk);
 }
 
-void CBugTraqAssociations::Remove(CBugTraqAssociation* assoc)
-{
-	inner_t::iterator it = std::find(m_inner.begin(), m_inner.end(), assoc);
-	if (it != m_inner.end())
-	{
-		delete *it;
-		m_inner.erase(it);
-	}
-}
 
 CString CBugTraqAssociation::GetProviderClassAsString() const
 {
-	OLECHAR szTemp[40] = { 0 };
-	StringFromGUID2(m_provider.clsid, szTemp, ARRAYSIZE(szTemp));
+	auto szTemp = std::array<OLECHAR,40>{};
+	StringFromGUID2(m_provider.clsid, szTemp.data(), gsl::narrow<int>(szTemp.size()));
 
-	return CString(szTemp);
+	return szTemp.data();
 }
 
 /* static */

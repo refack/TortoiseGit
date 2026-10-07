@@ -578,7 +578,7 @@ BOOL CFileTextLines::Save( const CString& sFilePath
 			StripWhiteSpace(sLineT, dwIgnoreWhitespaces, bBlame);
 			if (bIgnoreCase)
 				sLineT = sLineT.MakeLower();
-			pFilter->Write(tgit::wstr::StringView{ sLineT });
+			pFilter->Write(tgit::zstr::StringView{ sLineT });
 			EOL eEol = GetLineEnding(i);
 			pFilter->WriteBytes(oEncodedEol[static_cast<int>(eEol)]);
 		}

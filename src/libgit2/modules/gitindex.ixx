@@ -1,25 +1,36 @@
 ﻿module;
 #include <sys/stat.h>
-#include <atlstr.h>
 #include <gitdll.h>
 #include <git2.h>
 #include <git2/sys/repository.h> // git_repository_set_config
-#include "Utils/ReaderWriterLock.h"
-#include <tgit-libgit/dir.h>
+
+#include <atlstr.h>
+
 #include "sanity.h"
+
+#ifndef S_IFLNK
+#define S_IFLNK 0120000
+#undef _S_IFLNK
+#define _S_IFLNK S_IFLNK
+#endif
+#ifndef S_ISLNK
+#define S_ISLNK(m) (((m) & _S_IFMT) == _S_IFLNK)
+#endif
+
+
 
 export module GitIndex;
 import std;
 import gsl;
 import wil;
 
+import ReaderWriterLock;
 import DebugOutput;
-import GitAdminDir;
 import GitHash;
 import PathUtils;
 import RIAA;
 import Registry;
-import SmartLibgit2;
+import wil_git2;
 import StringUtils;
 import TGitPath;
 import git_h;
@@ -33,16 +44,7 @@ using namespace SmartLibgit2;
 using namespace tgit::DebugOutput;
 using namespace tgit;
 using types::git_wc_status2_t;
-
-
-#ifndef S_IFLNK
-#define S_IFLNK 0120000
-#undef _S_IFLNK
-#define _S_IFLNK S_IFLNK
-#endif
-#ifndef S_ISLNK
-#define S_ISLNK(m) (((m) & _S_IFMT) == _S_IFLNK)
-#endif
+using tgit::zstr::StringView;
 
 
 // Exported: `export using namespace GitIndex;` at the end exports the using-
@@ -113,7 +115,7 @@ public:
 	int GetFileStatus(const CString& gitdir, const CString& path, git_wc_status2_t& status, CGitHash* pHash = nullptr) const;
 	int GetFileStatus(CAutoRepository& repository, const CString& gitdir, const CGitIndex& entry, git_wc_status2_t& status, __int64 time, __int64 filesize, bool isSymlink) const;
 
-	using std::vector<CGitIndex>::begin;
+	using vector<CGitIndex>::begin;
 	using std::vector<CGitIndex>::end;
 	using std::vector<CGitIndex>::cbegin;
 	using std::vector<CGitIndex>::cend;
@@ -252,7 +254,7 @@ public:
 
 	int ReadTree(bool ignoreCase);
 	int ReadHeadHash(const CString& gitdir);
-	bool CheckHeadUpdate() const;
+	[[nodiscard]] bool CheckHeadUpdate() const;
 
 	using std::vector<CGitTreeItem>::begin;
 	using std::vector<CGitTreeItem>::end;
@@ -292,8 +294,8 @@ public:
 
 	__time64_t	m_LastModifyTime = 0;
 	__int64		m_LastFileSize = -1;
-	CStringA m_BaseDir;
-	std::unique_ptr<char[]> m_buffer;
+	CStringA m_BaseDir{};
+	std::unique_ptr<char[]> m_buffer{};
 	EXCLUDE_LIST m_pExcludeList = nullptr;
 	int* m_iIgnoreCase = nullptr;
 
@@ -329,9 +331,9 @@ private:
 	int CheckFileAgainstIgnoreList(const CString &ignorefile, const CStringA &patha, const char * base, int &type);
 
 	// core.excludesfile stuff
-	std::map<CString, CString> m_CoreExcludesfiles;
-	std::map<CString, int> m_IgnoreCase;
-	CString m_sGitSystemConfigPath;
+	std::map<CString, CString> m_CoreExcludesfiles{};
+	std::map<CString, int> m_IgnoreCase{};
+	CString m_sGitSystemConfigPath{};
 	ULONGLONG m_dGitSystemConfigPathLastChecked = 0LL;
 	CReaderWriterLock	m_coreExcludefilesSharedMutex;
 	// checks if the msysgit path has changed and return true/false
@@ -350,7 +352,7 @@ public:
 
 	CGitIgnoreList(){ CheckAndUpdateGitSystemConfigPath(true); }
 
-	std::map<CString, CGitIgnoreItem> m_Map;
+	std::map<CString, CGitIgnoreItem> m_Map{};
 
 	bool CheckAndUpdateIgnoreFiles(const CString& gitdir, const CString& path, bool isDir, std::set<CString>* lastChecked = nullptr);
 	bool IsIgnore(CString path, const CString& root, bool isDir, const CString& adminDir);
@@ -507,7 +509,7 @@ public:
 				return (*this)[thePath];
 			}
 			ATLASSERT(false);
-			return (BuildPathWithPathDelimiter(tgit::wstr::StringView(path)) + L".git\\").c_str(); // in case of an error stick to old behavior
+			return (BuildPathWithPathDelimiter(StringView(path).as_std()) + L".git\\").c_str(); // in case of an error stick to old behavior
 		}
 
 		return lookup->second;
@@ -534,7 +536,7 @@ public:
 				return m_WorktreeAdminDirLookup[thePath];
 			}
 			ATLASSERT(false);
-			return (BuildPathWithPathDelimiter(tgit::wstr::StringView(path)) + L".git\\").c_str(); // we should never get here
+			return (BuildPathWithPathDelimiter(StringView(path)) + L".git\\").c_str(); // we should never get here
 		}
 		return lookup->second;
 	}
@@ -807,12 +809,17 @@ int CGitIndexList::GetFileStatus(CAutoRepository& repository, const CString& git
 		}
 
 		git_oid actual;
-		const CStringA fileA = CUnicodeUtils::GetUTF8<CStringA, CString>(entry.m_FileName);
+		const auto fileA = CUnicodeUtils::GetUTF8<CStringA>(entry.m_FileName);
 		if (isSymlink && S_ISLNK(entry.m_Mode))
 		{
-			std::string linkDestination;
-			auto filename = wstr::to_path(gitdir) / wstr::to_path(entry.m_FileName);
-			if (!PathUtils::ReadLink(filename, &linkDestination) && !tgit_odb_hash(&actual, linkDestination.c_str(), gsl::narrow<int>(linkDestination.size()), GIT_OBJECT_BLOB) && !git_oid_cmp(&actual, entry.m_IndexHash))
+			auto filename = wstr::to_path(StringView(gitdir).as_std()) / wstr::to_path(StringView(entry.m_FileName).as_std());
+			const auto dest = PathUtils::ReadLink(filename);
+			if (
+				dest &&
+				!tgit_odb_hash(&actual, dest->data(), gsl::narrow<int>(dest->size()), GIT_OBJECT_BLOB) &&
+				!git_oid_cmp(&actual, entry.m_IndexHash)
+			)
+
 			{
 				entry.m_ModifyTime = static_cast<int32_t>(TGitH::filetime_to_time_t(time));
 				entry.m_ModifyTimeNanos = (time % 10000000) * 100;
@@ -862,7 +869,7 @@ int CGitIndexList::GetFileStatus(const CString& gitdir, const CString& path, git
 	if (!isDir || (isSymlink && (m_iIndexCaps & GIT_INDEX_CAPABILITY_NO_SYMLINKS) != GIT_INDEX_CAPABILITY_NO_SYMLINKS))
 		return GetFileStatus(gitdir, path, status, time, filesize, isSymlink, pHash);
 
-	if (tgit::wstr::EndsWith(tgit::wstr::StringView{path}, L"/"))
+	if (tgit::wstr::EndsWith(StringView{path}, L"/"))
 	{
 		size_t index = SearchInSortVector(*this, path, -1, IsIgnoreCase());
 		if (index == NPOS)
@@ -989,7 +996,7 @@ int CGitHeadFileList::GetPackRef(const CString &gitdir)
 		{
 			CGitHash refHash = CGitHash::FromHexStr(hash);
 			if (!refHash.IsEmpty())
-				m_PackRefMap[CUnicodeUtils::GetUnicode<CString>(ref)] = refHash;
+				m_PackRefMap[CUnicodeUtils::GetUnicode<CString>(StringView{ref})] = refHash;
 		}
 		hash.Empty();
 		ref.Empty();
@@ -1103,7 +1110,7 @@ int CGitHeadFileList::ReadHeadHash(const CString& gitdir)
 		if (size != hexSize)
 			return -1;
 
-		m_Head = CGitHash::FromHexStr(std::string_view(reinterpret_cast<const char*>(buffer), size));
+		m_Head = CGitHash::FromHexStr(std::basic_string_view(buffer, size));
 
 		m_LastModifyTimeRef = time;
 
@@ -1116,7 +1123,7 @@ int CGitHeadFileList::ReadHeadHash(const CString& gitdir)
 
 	m_HeadRefFile.Empty();
 
-	m_Head = CGitHash::FromHexStr(std::string_view(reinterpret_cast<const char*>(buffer), hexSize));
+	m_Head = CGitHash::FromHexStr(std::basic_string_view{buffer, hexSize});
 
 	return 0;
 }
@@ -1436,7 +1443,7 @@ bool CGitIgnoreList::CheckAndUpdateIgnoreFiles(const CString& gitdir, const CStr
 		}
 
 		temp.Truncate(temp.GetLength() - static_cast<int>(wcslen(L"\\.gitignore")));
-		if (PathUtils::ArePathStringsEqual(tgit::wstr::StringView(temp), tgit::wstr::StringView(gitdir)))
+		if (PathUtils::ArePathStringsEqual(StringView(temp), StringView(gitdir)))
 		{
 			CString adminDir = g_AdminDirMap.GetAdminDir(temp);
 			CString wcglobalgitignore = adminDir + L"info\\exclude";
@@ -1523,7 +1530,7 @@ bool CGitIgnoreList::CheckAndUpdateCoreExcludefile(const CString &adminDir)
 	config.GetString(L"core.excludesfile", excludesFile);
 	if (excludesFile.IsEmpty())
 		excludesFile = GetWindowsHome() + L"\\.config\\git\\ignore";
-	else if (tgit::wstr::StartsWith(tgit::wstr::StringView{ excludesFile }, L"~/"))
+	else if (tgit::wstr::StartsWith(StringView{ excludesFile }, L"~/"))
 		excludesFile = GetWindowsHome() + excludesFile.Mid(static_cast<int>(wcslen(L"~")));
 
 	[[maybe_unused]]CAutoWriteLock lockMap(m_SharedMutex);
@@ -1614,7 +1621,7 @@ int CGitIgnoreList::CheckIgnore(const CString &path, const CString &projectroot,
 
 		temp.Truncate(temp.GetLength() - static_cast<int>(wcslen(L"\\.gitignore")));
 
-		if (PathUtils::ArePathStringsEqual(tgit::wstr::StringView(temp), tgit::wstr::StringView(projectroot)))
+		if (PathUtils::ArePathStringsEqual(StringView(temp), StringView(projectroot)))
 		{
 			CString wcglobalgitignore = adminDir;
 			wcglobalgitignore += L"info\\exclude";

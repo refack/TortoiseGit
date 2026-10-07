@@ -19,7 +19,6 @@
 //
 
 #include "Utils/Theme.h"
-import DarkModeHelper;
 #include "Utils/DPIAware.h"
 #include <Uxtheme.h>
 #include <vssym32.h>
@@ -32,10 +31,13 @@ import DarkModeHelper;
 
 import std;
 import gsl;
+
 import invarients;
 import PathUtils;
 import StringUtils;
 import RIAA;
+import DarkModeHelper;
+
 using namespace RIAA;
 
 // The module exports both a namespace and a class named DarkModeHelper, plus a

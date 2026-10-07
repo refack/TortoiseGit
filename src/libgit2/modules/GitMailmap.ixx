@@ -9,7 +9,7 @@ import gsl;
 import git_h;
 import Registry;
 import wstr;
-using tgit::wstr::StringView;
+using tgit::zstr::StringView;
 
 export namespace GitMailmap
 {
