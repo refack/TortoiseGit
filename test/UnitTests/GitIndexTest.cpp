@@ -97,7 +97,7 @@ INSTANTIATE_TEST_SUITE_P(GitIndex, CBasicGitWithMultiLinkedTestWithSubmoduleRepo
 TEST_P(GitIndexCBasicGitFixture, EmptyDir)
 {
 	CGitIndexList indexList;
-	EXPECT_EQ(-1, indexList.ReadIndex(m_Dir.GetTempDir()));
+	EXPECT_EQ(-1, indexList.ReadIndex(std::wstring(m_Dir.GetTempDir())));
 	EXPECT_EQ(0U, indexList.size());
 	EXPECT_FALSE(indexList.m_bHasConflicts);
 }
@@ -105,25 +105,25 @@ TEST_P(GitIndexCBasicGitFixture, EmptyDir)
 
 static void ReadAndCheckIndex(CGitIndexList& indexList, const CString& gitdir, unsigned int offset = 0)
 {
-	EXPECT_EQ(0, indexList.ReadIndex(gitdir));
+	EXPECT_EQ(0, indexList.ReadIndex(std::wstring(gitdir)));
 	ASSERT_EQ(14 + offset, indexList.size());
 
-	EXPECT_STREQ(L"ansi.txt", indexList[offset].m_FileName);
+	EXPECT_STREQ(L"ansi.txt", indexList[offset].m_FileName.c_str());
 	EXPECT_EQ(static_cast<uint32_t>(102), indexList[offset].m_Size);
 	EXPECT_EQ(8, indexList[offset].m_Flags);
 	EXPECT_EQ(0, indexList[offset].m_FlagsExtended);
 	EXPECT_STREQ(L"961bdffbfce1bc617fb594091c3229f1cc674d76", indexList[offset].m_IndexHash.ToString());
-	EXPECT_STREQ(L"copy/ansi.txt", indexList[1 + offset].m_FileName);
+	EXPECT_STREQ(L"copy/ansi.txt", indexList[1 + offset].m_FileName.c_str());
 	EXPECT_EQ(static_cast<uint32_t>(103), indexList[1 + offset].m_Size);
 	EXPECT_EQ(13, indexList[1 + offset].m_Flags);
 	EXPECT_EQ(0, indexList[1 + offset].m_FlagsExtended);
 	EXPECT_STREQ(L"4c44667203f943dc5dbdf3cb526cb7ec24f60c09", indexList[1 + offset].m_IndexHash.ToString());
-	EXPECT_STREQ(L"copy/utf16-le-nobom.txt", indexList[5 + offset].m_FileName);
+	EXPECT_STREQ(L"copy/utf16-le-nobom.txt", indexList[5 + offset].m_FileName.c_str());
 	EXPECT_EQ(static_cast<uint32_t>(218), indexList[5 + offset].m_Size);
 	EXPECT_EQ(23, indexList[5 + offset].m_Flags);
 	EXPECT_EQ(0, indexList[5 + offset].m_FlagsExtended);
 	EXPECT_STREQ(L"fbea9ccd85c33fcdb542d8c73f910ea0e70c3ddc", indexList[5 + offset].m_IndexHash.ToString());
-	EXPECT_STREQ(L"utf8-nobom.txt", indexList[13 + offset].m_FileName);
+	EXPECT_STREQ(L"utf8-nobom.txt", indexList[13 + offset].m_FileName.c_str());
 	EXPECT_EQ(static_cast<uint32_t>(139), indexList[13 + offset].m_Size);
 	EXPECT_EQ(14, indexList[13 + offset].m_Flags);
 	EXPECT_EQ(0, indexList[13 + offset].m_FlagsExtended);
@@ -148,7 +148,7 @@ TEST_P(GitIndexCBasicGitWithTestRepoFixture, ReadIndex)
 		CGitIndexList indexList;
 		ReadAndCheckIndex(indexList, m_Dir.GetTempDir(), 1);
 
-		EXPECT_STREQ(L"1.txt", indexList[0].m_FileName);
+		EXPECT_STREQ(L"1.txt", indexList[0].m_FileName.c_str());
 		EXPECT_EQ(static_cast<uint32_t>(21), indexList[0].m_Size);
 		EXPECT_EQ(5, indexList[0].m_Flags);
 		EXPECT_EQ(0, indexList[0].m_FlagsExtended);
@@ -171,7 +171,7 @@ TEST_P(GitIndexCBasicGitWithTestRepoFixture, ReadIndex)
 		CGitIndexList indexList;
 		ReadAndCheckIndex(indexList, m_Dir.GetTempDir(), 1);
 
-		EXPECT_STREQ(L"1.txt", indexList[0].m_FileName);
+		EXPECT_STREQ(L"1.txt", indexList[0].m_FileName.c_str());
 		EXPECT_EQ(static_cast<uint32_t>(0), indexList[0].m_Size);
 		EXPECT_EQ(16389, indexList[0].m_Flags);
 		EXPECT_EQ(GIT_INDEX_ENTRY_INTENT_TO_ADD, indexList[0].m_FlagsExtended);
@@ -185,17 +185,17 @@ TEST_P(GitIndexCBasicGitWithTestRepoFixture, GetFileStatus)
 	ReadAndCheckIndex(indexList, m_Dir.GetTempDir());
 
 	git_wc_status2_t status = { git_wc_status_none, false, false };
-	EXPECT_EQ(0, indexList.GetFileStatus(m_Dir.GetTempDir(), L"does-not-exist.txt", status, 10, 20, false));
+	EXPECT_EQ(0, indexList.GetFileStatus(std::wstring(m_Dir.GetTempDir()), L"does-not-exist.txt", status, 10, 20, false));
 	EXPECT_EQ(git_wc_status_unversioned, status.status);
 
 	__int64 time = -1;
 	__int64 filesize = -1;
 	status = { git_wc_status_none, false, false };
 	EXPECT_EQ(-1, CGit::GetFileModifyTime(CombinePath(m_Dir.GetTempDir(), L"ansi.txt"), &time, nullptr, &filesize));
-	EXPECT_EQ(0, indexList.GetFileStatus(m_Dir.GetTempDir(), L"ansi.txt", status, time, filesize, false));
+	EXPECT_EQ(0, indexList.GetFileStatus(std::wstring(m_Dir.GetTempDir()), L"ansi.txt", status, time, filesize, false));
 	EXPECT_EQ(git_wc_status_deleted, status.status);
 	filesize = 42; // some arbitrary size, i.e., file exists but is changed
-	EXPECT_EQ(0, indexList.GetFileStatus(m_Dir.GetTempDir(), L"ansi.txt", status, time, filesize, false));
+	EXPECT_EQ(0, indexList.GetFileStatus(std::wstring(m_Dir.GetTempDir()), L"ansi.txt", status, time, filesize, false));
 	EXPECT_EQ(git_wc_status_modified, status.status);
 
 	CString output;
@@ -203,7 +203,7 @@ TEST_P(GitIndexCBasicGitWithTestRepoFixture, GetFileStatus)
 
 	EXPECT_EQ(0, CGit::GetFileModifyTime(CombinePath(m_Dir.GetTempDir(), L"ansi.txt"), &time, nullptr, &filesize));
 	status = { git_wc_status_none, false, false };
-	EXPECT_EQ(0, indexList.GetFileStatus(m_Dir.GetTempDir(), L"ansi.txt", status, time, filesize, false));
+	EXPECT_EQ(0, indexList.GetFileStatus(std::wstring(m_Dir.GetTempDir()), L"ansi.txt", status, time, filesize, false));
 	EXPECT_EQ(git_wc_status_normal, status.status);
 	EXPECT_FALSE(status.assumeValid);
 	EXPECT_FALSE(status.skipWorktree);
@@ -211,7 +211,7 @@ TEST_P(GitIndexCBasicGitWithTestRepoFixture, GetFileStatus)
 	EXPECT_TRUE(StringUtils::WriteStringToTextFile(CombinePath(m_Dir.GetTempDir(), L"ansi.txt"), L"this is testing file."));
 	EXPECT_EQ(0, CGit::GetFileModifyTime(CombinePath(m_Dir.GetTempDir(), L"ansi.txt"), &time, nullptr, &filesize));
 	status = { git_wc_status_none, false, false };
-	EXPECT_EQ(0, indexList.GetFileStatus(m_Dir.GetTempDir(), L"ansi.txt", status, time, filesize, false));
+	EXPECT_EQ(0, indexList.GetFileStatus(std::wstring(m_Dir.GetTempDir()), L"ansi.txt", status, time, filesize, false));
 	EXPECT_EQ(git_wc_status_modified, status.status);
 	EXPECT_FALSE(status.assumeValid);
 	EXPECT_FALSE(status.skipWorktree);
@@ -224,22 +224,22 @@ TEST_P(GitIndexCBasicGitWithTestRepoFixture, GetFileStatus)
 
 	CGitIndexList indexList2;
 	EXPECT_EQ(0, m_Git.Run(L"git.exe update-index --skip-worktree -- ansi.txt", &output, CP_UTF8));
-	EXPECT_EQ(0, indexList2.ReadIndex(m_Dir.GetTempDir()));
+	EXPECT_EQ(0, indexList2.ReadIndex(std::wstring(m_Dir.GetTempDir())));
 	EXPECT_FALSE(indexList2.m_bHasConflicts);
 	status = { git_wc_status_none, false, false };
-	EXPECT_EQ(0, indexList2.GetFileStatus(m_Dir.GetTempDir(), L"ansi.txt", status, time, filesize, false));
+	EXPECT_EQ(0, indexList2.GetFileStatus(std::wstring(m_Dir.GetTempDir()), L"ansi.txt", status, time, filesize, false));
 	EXPECT_EQ(git_wc_status_normal, status.status);
 	EXPECT_FALSE(status.assumeValid);
 	EXPECT_TRUE(status.skipWorktree);
 
 	EXPECT_EQ(0, CGit::GetFileModifyTime(CombinePath(m_Dir.GetTempDir(), L"just-added.txt"), &time, nullptr, &filesize));
 	status = { git_wc_status_none, false, false };
-	EXPECT_EQ(0, indexList2.GetFileStatus(m_Dir.GetTempDir(), L"just-added.txt", status, time, filesize, false));
+	EXPECT_EQ(0, indexList2.GetFileStatus(std::wstring(m_Dir.GetTempDir()), L"just-added.txt", status, time, filesize, false));
 	EXPECT_EQ(git_wc_status_normal, status.status);
 
 	EXPECT_EQ(0, CGit::GetFileModifyTime(CombinePath(m_Dir.GetTempDir(), L"noted-as-added.txt"), &time, nullptr, &filesize));
 	status = { git_wc_status_none, false, false };
-	EXPECT_EQ(0, indexList2.GetFileStatus(m_Dir.GetTempDir(), L"noted-as-added.txt", status, time, filesize, false));
+	EXPECT_EQ(0, indexList2.GetFileStatus(std::wstring(m_Dir.GetTempDir()), L"noted-as-added.txt", status, time, filesize, false));
 	EXPECT_EQ(git_wc_status_added, status.status);
 	EXPECT_FALSE(status.assumeValid);
 	EXPECT_FALSE(status.skipWorktree);
@@ -250,7 +250,7 @@ TEST_P(GitIndexCBasicGitWithTestRepoFixture, GetFileStatus)
 	EXPECT_TRUE(StringUtils::WriteStringToTextFile(CombinePath(m_Dir.GetTempDir(), L"just-added.txt"), L"this IS testing file."));
 	EXPECT_EQ(0, CGit::GetFileModifyTime(CombinePath(m_Dir.GetTempDir(), L"just-added.txt"), &time, nullptr, &filesize));
 	status = { git_wc_status_none, false, false };
-	EXPECT_EQ(0, indexList2.GetFileStatus(m_Dir.GetTempDir(), L"just-added.txt", status, time, filesize, false));
+	EXPECT_EQ(0, indexList2.GetFileStatus(std::wstring(m_Dir.GetTempDir()), L"just-added.txt", status, time, filesize, false));
 	EXPECT_EQ(git_wc_status_modified, status.status);
 
 	output.Empty();
@@ -262,13 +262,13 @@ TEST_P(GitIndexCBasicGitWithTestRepoFixture, GetFileStatus)
 	EXPECT_STRNE(L"", output);
 
 	CGitIndexList indexList3;
-	EXPECT_EQ(0, indexList3.ReadIndex(m_Dir.GetTempDir()));
+	EXPECT_EQ(0, indexList3.ReadIndex(std::wstring(m_Dir.GetTempDir())));
 	EXPECT_EQ(9U, indexList3.size());
 	EXPECT_TRUE(indexList3.m_bHasConflicts);
 
 	EXPECT_EQ(0, CGit::GetFileModifyTime(CombinePath(m_Dir.GetTempDir(), L"ansi.txt"), &time, nullptr, &filesize));
 	status = { git_wc_status_none, false, false };
-	EXPECT_EQ(0, indexList3.GetFileStatus(m_Dir.GetTempDir(), L"ansi.txt", status, time, filesize, false));
+	EXPECT_EQ(0, indexList3.GetFileStatus(std::wstring(m_Dir.GetTempDir()), L"ansi.txt", status, time, filesize, false));
 	EXPECT_EQ(git_wc_status_conflicted, status.status);
 }
 
@@ -512,35 +512,38 @@ TEST(GitIndex, CGitIgnoreItem)
 	EXPECT_EQ(-1, ignoreItem.IsPathIgnored("not-ignored", type));
 	EXPECT_EQ(-1, ignoreItem.IsPathIgnored("subdir/not-ignored", type));
 
-	EXPECT_EQ(-1, ignoreItem.FetchIgnoreList(tempDir.GetTempDir(), L"does-not-exist", false, &ignoreCase));
-	EXPECT_EQ(-1, ignoreItem.FetchIgnoreList(tempDir.GetTempDir(), L"does-not-exist", true, &ignoreCase));
+	// CGitIgnoreItem speaks std::wstring; CAutoTempDir still hands out a CString
+	const std::wstring tempRoot(tempDir.GetTempDir());
 
-	CString ignoreFile = tempDir.GetTempDir() + L"\\.gitignore";
+	EXPECT_EQ(-1, ignoreItem.FetchIgnoreList(tempRoot, L"does-not-exist", false, &ignoreCase));
+	EXPECT_EQ(-1, ignoreItem.FetchIgnoreList(tempRoot, L"does-not-exist", true, &ignoreCase));
+
+	std::wstring ignoreFile = tempRoot + L"\\.gitignore";
 
 	EXPECT_TRUE(StringUtils::WriteStringToTextFile(ignoreFile, L""));
-	EXPECT_EQ(0, ignoreItem.FetchIgnoreList(tempDir.GetTempDir(), ignoreFile, false, &ignoreCase));
-	EXPECT_STREQ("", ignoreItem.m_BaseDir);
-	EXPECT_EQ(0, ignoreItem.FetchIgnoreList(tempDir.GetTempDir(), ignoreFile, true, &ignoreCase));
-	EXPECT_STREQ("", ignoreItem.m_BaseDir);
+	EXPECT_EQ(0, ignoreItem.FetchIgnoreList(tempRoot, ignoreFile, false, &ignoreCase));
+	EXPECT_STREQ("", ignoreItem.m_BaseDir.c_str());
+	EXPECT_EQ(0, ignoreItem.FetchIgnoreList(tempRoot, ignoreFile, true, &ignoreCase));
+	EXPECT_STREQ("", ignoreItem.m_BaseDir.c_str());
 
 	EXPECT_TRUE(StringUtils::WriteStringToTextFile(ignoreFile, L"#"));
-	EXPECT_EQ(0, ignoreItem.FetchIgnoreList(tempDir.GetTempDir(), ignoreFile, false, &ignoreCase));
-	EXPECT_EQ(0, ignoreItem.FetchIgnoreList(tempDir.GetTempDir(), ignoreFile, true, &ignoreCase));
+	EXPECT_EQ(0, ignoreItem.FetchIgnoreList(tempRoot, ignoreFile, false, &ignoreCase));
+	EXPECT_EQ(0, ignoreItem.FetchIgnoreList(tempRoot, ignoreFile, true, &ignoreCase));
 
 	EXPECT_TRUE(StringUtils::WriteStringToTextFile(ignoreFile, L"# comment"));
-	EXPECT_EQ(0, ignoreItem.FetchIgnoreList(tempDir.GetTempDir(), ignoreFile, false, &ignoreCase));
-	EXPECT_EQ(0, ignoreItem.FetchIgnoreList(tempDir.GetTempDir(), ignoreFile, true, &ignoreCase));
+	EXPECT_EQ(0, ignoreItem.FetchIgnoreList(tempRoot, ignoreFile, false, &ignoreCase));
+	EXPECT_EQ(0, ignoreItem.FetchIgnoreList(tempRoot, ignoreFile, true, &ignoreCase));
 
 	EXPECT_TRUE(StringUtils::WriteStringToTextFile(ignoreFile, L"\n"));
-	EXPECT_EQ(0, ignoreItem.FetchIgnoreList(tempDir.GetTempDir(), ignoreFile, false, &ignoreCase));
-	EXPECT_EQ(0, ignoreItem.FetchIgnoreList(tempDir.GetTempDir(), ignoreFile, true, &ignoreCase));
+	EXPECT_EQ(0, ignoreItem.FetchIgnoreList(tempRoot, ignoreFile, false, &ignoreCase));
+	EXPECT_EQ(0, ignoreItem.FetchIgnoreList(tempRoot, ignoreFile, true, &ignoreCase));
 
 	EXPECT_TRUE(StringUtils::WriteStringToTextFile(ignoreFile, L"\n#"));
-	EXPECT_EQ(0, ignoreItem.FetchIgnoreList(tempDir.GetTempDir(), ignoreFile, false, &ignoreCase));
-	EXPECT_EQ(0, ignoreItem.FetchIgnoreList(tempDir.GetTempDir(), ignoreFile, true, &ignoreCase));
+	EXPECT_EQ(0, ignoreItem.FetchIgnoreList(tempRoot, ignoreFile, false, &ignoreCase));
+	EXPECT_EQ(0, ignoreItem.FetchIgnoreList(tempRoot, ignoreFile, true, &ignoreCase));
 
 	EXPECT_TRUE(StringUtils::WriteStringToTextFile(ignoreFile, L"*.tmp\n"));
-	EXPECT_EQ(0, ignoreItem.FetchIgnoreList(tempDir.GetTempDir(), ignoreFile, false, &ignoreCase));
+	EXPECT_EQ(0, ignoreItem.FetchIgnoreList(tempRoot, ignoreFile, false, &ignoreCase));
 	type = DT_DIR;
 	EXPECT_EQ(-1, ignoreItem.IsPathIgnored("not-ignored", type));
 	EXPECT_EQ(1, ignoreItem.IsPathIgnored("text.tmp", type));
@@ -567,7 +570,7 @@ TEST(GitIndex, CGitIgnoreItem)
 	EXPECT_EQ(-1, ignoreItem.IsPathIgnored("1.tmp.1", type));
 	EXPECT_EQ(1, ignoreItem.IsPathIgnored("text.tMp", type));
 	ignoreCase = 0;
-	EXPECT_EQ(0, ignoreItem.FetchIgnoreList(tempDir.GetTempDir(), ignoreFile, true, &ignoreCase));
+	EXPECT_EQ(0, ignoreItem.FetchIgnoreList(tempRoot, ignoreFile, true, &ignoreCase));
 	type = DT_DIR;
 	EXPECT_EQ(-1, ignoreItem.IsPathIgnored("not-ignored", type));
 	EXPECT_EQ(1, ignoreItem.IsPathIgnored("text.tmp", type));
@@ -582,7 +585,7 @@ TEST(GitIndex, CGitIgnoreItem)
 	EXPECT_EQ(-1, ignoreItem.IsPathIgnored("text.tMp", type));
 
 	EXPECT_TRUE(StringUtils::WriteStringToTextFile(ignoreFile, L"*.tMp\n"));
-	EXPECT_EQ(0, ignoreItem.FetchIgnoreList(tempDir.GetTempDir(), ignoreFile, false, &ignoreCase));
+	EXPECT_EQ(0, ignoreItem.FetchIgnoreList(tempRoot, ignoreFile, false, &ignoreCase));
 	type = DT_DIR;
 	EXPECT_EQ(-1, ignoreItem.IsPathIgnored("not-ignored", type));
 	EXPECT_EQ(1, ignoreItem.IsPathIgnored("text.tMp", type));
@@ -609,7 +612,7 @@ TEST(GitIndex, CGitIgnoreItem)
 	EXPECT_EQ(-1, ignoreItem.IsPathIgnored("1.tMp.1", type));
 	EXPECT_EQ(1, ignoreItem.IsPathIgnored("text.tmp", type));
 	ignoreCase = 0;
-	EXPECT_EQ(0, ignoreItem.FetchIgnoreList(tempDir.GetTempDir(), ignoreFile, true, &ignoreCase));
+	EXPECT_EQ(0, ignoreItem.FetchIgnoreList(tempRoot, ignoreFile, true, &ignoreCase));
 	type = DT_DIR;
 	EXPECT_EQ(-1, ignoreItem.IsPathIgnored("not-ignored", type));
 	EXPECT_EQ(1, ignoreItem.IsPathIgnored("text.tMp", type));
@@ -624,7 +627,7 @@ TEST(GitIndex, CGitIgnoreItem)
 	EXPECT_EQ(-1, ignoreItem.IsPathIgnored("text.tmp", type));
 
 	EXPECT_TRUE(StringUtils::WriteStringToTextFile(ignoreFile, L"some-file\n"));
-	EXPECT_EQ(0, ignoreItem.FetchIgnoreList(tempDir.GetTempDir(), ignoreFile, false, &ignoreCase));
+	EXPECT_EQ(0, ignoreItem.FetchIgnoreList(tempRoot, ignoreFile, false, &ignoreCase));
 	type = DT_DIR;
 	EXPECT_EQ(-1, ignoreItem.IsPathIgnored("not-ignored", type));
 	EXPECT_EQ(-1, ignoreItem.IsPathIgnored("subdir/not-ignored", type));
@@ -655,7 +658,7 @@ TEST(GitIndex, CGitIgnoreItem)
 	EXPECT_EQ(1, ignoreItem.IsPathIgnored("subDir/some-file", type));
 	EXPECT_EQ(1, ignoreItem.IsPathIgnored("subdir/some-File", type));
 	ignoreCase = 0;
-	EXPECT_EQ(0, ignoreItem.FetchIgnoreList(tempDir.GetTempDir(), ignoreFile, true, &ignoreCase));
+	EXPECT_EQ(0, ignoreItem.FetchIgnoreList(tempRoot, ignoreFile, true, &ignoreCase));
 	type = DT_DIR;
 	EXPECT_EQ(-1, ignoreItem.IsPathIgnored("not-ignored", type));
 	EXPECT_EQ(-1, ignoreItem.IsPathIgnored("subdir/not-ignored", type));
@@ -688,7 +691,7 @@ TEST(GitIndex, CGitIgnoreItem)
 
 	EXPECT_TRUE(StringUtils::WriteStringToTextFile(ignoreFile, L"some-File\n"));
 	ignoreCase = 0;
-	EXPECT_EQ(0, ignoreItem.FetchIgnoreList(tempDir.GetTempDir(), ignoreFile, false, &ignoreCase));
+	EXPECT_EQ(0, ignoreItem.FetchIgnoreList(tempRoot, ignoreFile, false, &ignoreCase));
 	type = DT_DIR;
 	EXPECT_EQ(-1, ignoreItem.IsPathIgnored("not-ignored", type));
 	EXPECT_EQ(-1, ignoreItem.IsPathIgnored("subdir/not-ignored", type));
@@ -721,14 +724,14 @@ TEST(GitIndex, CGitIgnoreItem)
 
 	ignoreCase = 1;
 	EXPECT_TRUE(StringUtils::WriteStringToTextFile(ignoreFile, L"\n\nsome-file\n"));
-	EXPECT_EQ(0, ignoreItem.FetchIgnoreList(tempDir.GetTempDir(), ignoreFile, false, &ignoreCase));
+	EXPECT_EQ(0, ignoreItem.FetchIgnoreList(tempRoot, ignoreFile, false, &ignoreCase));
 	type = DT_DIR;
 	EXPECT_EQ(1, ignoreItem.IsPathIgnored("some-file", type));
 	EXPECT_EQ(1, ignoreItem.IsPathIgnored("subdir/some-file", type));
 	type = DT_REG;
 	EXPECT_EQ(1, ignoreItem.IsPathIgnored("some-file", type));
 	EXPECT_EQ(1, ignoreItem.IsPathIgnored("subdir/some-file", type));
-	EXPECT_EQ(0, ignoreItem.FetchIgnoreList(tempDir.GetTempDir(), ignoreFile, true, &ignoreCase));
+	EXPECT_EQ(0, ignoreItem.FetchIgnoreList(tempRoot, ignoreFile, true, &ignoreCase));
 	type = DT_DIR;
 	EXPECT_EQ(1, ignoreItem.IsPathIgnored("some-file", type));
 	EXPECT_EQ(1, ignoreItem.IsPathIgnored("subdir/some-file", type));
@@ -737,14 +740,14 @@ TEST(GitIndex, CGitIgnoreItem)
 	EXPECT_EQ(1, ignoreItem.IsPathIgnored("subdir/some-file", type));
 
 	EXPECT_TRUE(StringUtils::WriteStringToTextFile(ignoreFile, L"/some-file"));
-	EXPECT_EQ(0, ignoreItem.FetchIgnoreList(tempDir.GetTempDir(), ignoreFile, false, &ignoreCase));
+	EXPECT_EQ(0, ignoreItem.FetchIgnoreList(tempRoot, ignoreFile, false, &ignoreCase));
 	type = DT_DIR;
 	EXPECT_EQ(1, ignoreItem.IsPathIgnored("some-file", type));
 	EXPECT_EQ(-1, ignoreItem.IsPathIgnored("subdir/some-file", type));
 	type = DT_REG;
 	EXPECT_EQ(1, ignoreItem.IsPathIgnored("some-file", type));
 	EXPECT_EQ(-1, ignoreItem.IsPathIgnored("subdir/some-file", type));
-	EXPECT_EQ(0, ignoreItem.FetchIgnoreList(tempDir.GetTempDir(), ignoreFile, true, &ignoreCase));
+	EXPECT_EQ(0, ignoreItem.FetchIgnoreList(tempRoot, ignoreFile, true, &ignoreCase));
 	type = DT_DIR;
 	EXPECT_EQ(1, ignoreItem.IsPathIgnored("some-file", type));
 	EXPECT_EQ(-1, ignoreItem.IsPathIgnored("subdir/some-file", type));
@@ -753,7 +756,7 @@ TEST(GitIndex, CGitIgnoreItem)
 	EXPECT_EQ(-1, ignoreItem.IsPathIgnored("subdir/some-file", type));
 
 	EXPECT_TRUE(StringUtils::WriteStringToTextFile(ignoreFile, L"some-dir/"));
-	EXPECT_EQ(0, ignoreItem.FetchIgnoreList(tempDir.GetTempDir(), ignoreFile, false, &ignoreCase));
+	EXPECT_EQ(0, ignoreItem.FetchIgnoreList(tempRoot, ignoreFile, false, &ignoreCase));
 	type = DT_DIR;
 	EXPECT_EQ(1, ignoreItem.IsPathIgnored("some-dir", type));
 	EXPECT_EQ(-1, ignoreItem.IsPathIgnored("some-dir/some-file", type));
@@ -761,7 +764,7 @@ TEST(GitIndex, CGitIgnoreItem)
 	EXPECT_EQ(-1, ignoreItem.IsPathIgnored("some-file", type));
 	EXPECT_EQ(-1, ignoreItem.IsPathIgnored("some-dir", type));
 	EXPECT_EQ(-1, ignoreItem.IsPathIgnored("some-dir/some-file", type));
-	EXPECT_EQ(0, ignoreItem.FetchIgnoreList(tempDir.GetTempDir(), ignoreFile, true, &ignoreCase));
+	EXPECT_EQ(0, ignoreItem.FetchIgnoreList(tempRoot, ignoreFile, true, &ignoreCase));
 	type = DT_DIR;
 	EXPECT_EQ(1, ignoreItem.IsPathIgnored("some-dir", type));
 	EXPECT_EQ(-1, ignoreItem.IsPathIgnored("some-dir/some-file", type));
@@ -771,7 +774,7 @@ TEST(GitIndex, CGitIgnoreItem)
 	EXPECT_EQ(-1, ignoreItem.IsPathIgnored("some-dir/some-file", type));
 
 	EXPECT_TRUE(StringUtils::WriteStringToTextFile(ignoreFile, L"some-*\n!some-file"));
-	EXPECT_EQ(0, ignoreItem.FetchIgnoreList(tempDir.GetTempDir(), ignoreFile, false, &ignoreCase));
+	EXPECT_EQ(0, ignoreItem.FetchIgnoreList(tempRoot, ignoreFile, false, &ignoreCase));
 	type = DT_DIR;
 	EXPECT_EQ(1, ignoreItem.IsPathIgnored("some-dir", type));
 	EXPECT_EQ(0, ignoreItem.IsPathIgnored("some-file", type));
@@ -780,7 +783,7 @@ TEST(GitIndex, CGitIgnoreItem)
 	EXPECT_EQ(1, ignoreItem.IsPathIgnored("some-dir", type));
 	EXPECT_EQ(0, ignoreItem.IsPathIgnored("some-file", type));
 	EXPECT_EQ(-1, ignoreItem.IsPathIgnored("something", type));
-	EXPECT_EQ(0, ignoreItem.FetchIgnoreList(tempDir.GetTempDir(), ignoreFile, true, &ignoreCase));
+	EXPECT_EQ(0, ignoreItem.FetchIgnoreList(tempRoot, ignoreFile, true, &ignoreCase));
 	type = DT_DIR;
 	EXPECT_EQ(1, ignoreItem.IsPathIgnored("some-dir", type));
 	EXPECT_EQ(0, ignoreItem.IsPathIgnored("some-file", type));
@@ -791,7 +794,7 @@ TEST(GitIndex, CGitIgnoreItem)
 	EXPECT_EQ(-1, ignoreItem.IsPathIgnored("something", type));
 
 	EXPECT_TRUE(StringUtils::WriteStringToTextFile(ignoreFile, L"some-file\nanother/dir/*"));
-	EXPECT_EQ(0, ignoreItem.FetchIgnoreList(tempDir.GetTempDir(), ignoreFile, false, &ignoreCase));
+	EXPECT_EQ(0, ignoreItem.FetchIgnoreList(tempRoot, ignoreFile, false, &ignoreCase));
 	type = DT_DIR;
 	EXPECT_EQ(-1, ignoreItem.IsPathIgnored("some-dir", type));
 	EXPECT_EQ(1, ignoreItem.IsPathIgnored("some-file", type));
@@ -804,7 +807,7 @@ TEST(GitIndex, CGitIgnoreItem)
 	EXPECT_EQ(-1, ignoreItem.IsPathIgnored("another", type));
 	EXPECT_EQ(-1, ignoreItem.IsPathIgnored("another/dir", type));
 	EXPECT_EQ(1, ignoreItem.IsPathIgnored("another/dir/some", type));
-	EXPECT_EQ(0, ignoreItem.FetchIgnoreList(tempDir.GetTempDir(), ignoreFile, true, &ignoreCase));
+	EXPECT_EQ(0, ignoreItem.FetchIgnoreList(tempRoot, ignoreFile, true, &ignoreCase));
 	type = DT_DIR;
 	EXPECT_EQ(-1, ignoreItem.IsPathIgnored("some-dir", type));
 	EXPECT_EQ(1, ignoreItem.IsPathIgnored("some-file", type));
@@ -819,10 +822,10 @@ TEST(GitIndex, CGitIgnoreItem)
 	EXPECT_EQ(1, ignoreItem.IsPathIgnored("another/dir/some", type));
 
 	EXPECT_TRUE(::CreateDirectory(tempDir.GetTempDir() + L"\\subdir", nullptr));
-	ignoreFile = tempDir.GetTempDir() + L"\\subdir\\.gitignore";
+	ignoreFile = tempRoot + L"\\subdir\\.gitignore";
 	EXPECT_TRUE(StringUtils::WriteStringToTextFile(ignoreFile, L"/something"));
-	EXPECT_EQ(0, ignoreItem.FetchIgnoreList(tempDir.GetTempDir(), ignoreFile, false, &ignoreCase));
-	EXPECT_STREQ("subdir/", ignoreItem.m_BaseDir);
+	EXPECT_EQ(0, ignoreItem.FetchIgnoreList(tempRoot, ignoreFile, false, &ignoreCase));
+	EXPECT_STREQ("subdir/", ignoreItem.m_BaseDir.c_str());
 	type = DT_DIR;
 	EXPECT_EQ(-1, ignoreItem.IsPathIgnored("something", type));
 	EXPECT_EQ(-1, ignoreItem.IsPathIgnored("something/more", type));
@@ -837,8 +840,8 @@ TEST(GitIndex, CGitIgnoreItem)
 	EXPECT_EQ(1, ignoreItem.IsPathIgnored("subdir/something", type));
 	EXPECT_EQ(-1, ignoreItem.IsPathIgnored("subdir/something/more", type));
 	EXPECT_EQ(-1, ignoreItem.IsPathIgnored("subdir/some-dir/something", type));
-	EXPECT_EQ(0, ignoreItem.FetchIgnoreList(tempDir.GetTempDir(), ignoreFile, true, &ignoreCase));
-	EXPECT_STREQ("", ignoreItem.m_BaseDir);
+	EXPECT_EQ(0, ignoreItem.FetchIgnoreList(tempRoot, ignoreFile, true, &ignoreCase));
+	EXPECT_STREQ("", ignoreItem.m_BaseDir.c_str());
 	type = DT_DIR;
 	EXPECT_EQ(1, ignoreItem.IsPathIgnored("something", type));
 	EXPECT_EQ(-1, ignoreItem.IsPathIgnored("something/more", type));
@@ -855,8 +858,8 @@ TEST(GitIndex, CGitIgnoreItem)
 	EXPECT_EQ(-1, ignoreItem.IsPathIgnored("subdir/some-dir/something", type));
 
 	EXPECT_TRUE(StringUtils::WriteStringToTextFile(ignoreFile, L"something"));
-	EXPECT_EQ(0, ignoreItem.FetchIgnoreList(tempDir.GetTempDir(), ignoreFile, false, &ignoreCase));
-	EXPECT_STREQ("subdir/", ignoreItem.m_BaseDir);
+	EXPECT_EQ(0, ignoreItem.FetchIgnoreList(tempRoot, ignoreFile, false, &ignoreCase));
+	EXPECT_STREQ("subdir/", ignoreItem.m_BaseDir.c_str());
 	type = DT_DIR;
 	EXPECT_EQ(1, ignoreItem.IsPathIgnored("something", type));
 	EXPECT_EQ(-1, ignoreItem.IsPathIgnored("something/more", type));
@@ -871,8 +874,8 @@ TEST(GitIndex, CGitIgnoreItem)
 	EXPECT_EQ(1, ignoreItem.IsPathIgnored("subdir/something", type));
 	EXPECT_EQ(-1, ignoreItem.IsPathIgnored("subdir/something/more", type));
 	EXPECT_EQ(1, ignoreItem.IsPathIgnored("subdir/some-dir/something", type));
-	EXPECT_EQ(0, ignoreItem.FetchIgnoreList(tempDir.GetTempDir(), ignoreFile, true, &ignoreCase));
-	EXPECT_STREQ("", ignoreItem.m_BaseDir);
+	EXPECT_EQ(0, ignoreItem.FetchIgnoreList(tempRoot, ignoreFile, true, &ignoreCase));
+	EXPECT_STREQ("", ignoreItem.m_BaseDir.c_str());
 	type = DT_DIR;
 	EXPECT_EQ(1, ignoreItem.IsPathIgnored("something", type));
 	EXPECT_EQ(-1, ignoreItem.IsPathIgnored("something/more", type));
@@ -894,55 +897,55 @@ TEST_P(CBasicGitWithMultiLinkedTestWithSubmoduleRepoFixture, AdminDirMap) // Sub
 	std::wstring adminDir;
 	std::wstring workDir;
 
-	// CGitAdminDirMap still speaks CString; CPathUtils speaks std::wstring. Rather
-	// than convert on each of the twenty lines below, name the two roots once.
+	// CGitAdminDirMap and CPathUtils speak std::wstring; the fixture's paths are
+	// still CStrings, so name the two roots once.
 	const std::wstring mainRoot = CPathUtils::BuildPathWithPathDelimiter(tgit::wstr::StringView(m_MainWorkTreePath));
 	const std::wstring linkedRoot(m_LinkedWorkTreePath);
 
 	// Test if the main work tree admin directory can be found
-	adminDir = g_AdminDirMap.GetAdminDir(m_MainWorkTreePath).GetString();
+	adminDir = g_AdminDirMap.GetAdminDir(std::wstring(m_MainWorkTreePath));
 	EXPECT_TRUE(CPathUtils::IsSamePath(mainRoot + L".git", adminDir));
 
 	// Test test main work tree reverse lookup
-	workDir = g_AdminDirMap.GetWorkingCopy((mainRoot + L".git").c_str()).GetString();
+	workDir = g_AdminDirMap.GetWorkingCopy(mainRoot + L".git");
 	EXPECT_TRUE(CPathUtils::IsSamePath(std::wstring(m_MainWorkTreePath), workDir));
 
 	if (CGit::ms_bCygwinGit || CGit::ms_bMsys2Git)
 		return;
 
 	// Test if the linked repository admin directory can be found (**WITHOUT** trailing path delimiter)
-	adminDir = g_AdminDirMap.GetAdminDir(m_LinkedWorkTreePath).GetString();
+	adminDir = g_AdminDirMap.GetAdminDir(linkedRoot);
 	EXPECT_TRUE(CPathUtils::IsSamePath(mainRoot + L".git", adminDir));
 
 	// Test if the linked worktree admin directory can be found (**WITH** trailing path delimiter)
-	adminDir = g_AdminDirMap.GetWorktreeAdminDir(CPathUtils::BuildPathWithPathDelimiter(linkedRoot).c_str()).GetString();
+	adminDir = g_AdminDirMap.GetWorktreeAdminDir(CPathUtils::BuildPathWithPathDelimiter(linkedRoot));
 	EXPECT_TRUE(CPathUtils::IsSamePath(mainRoot + L".git\\worktrees\\LinkedWorkTree", adminDir));
 
 	// Test if the linked worktree admin directory can be found (**WITHOUT** trailing path delimiter)
-	adminDir = g_AdminDirMap.GetWorktreeAdminDir(m_LinkedWorkTreePath).GetString();
+	adminDir = g_AdminDirMap.GetWorktreeAdminDir(linkedRoot);
 	EXPECT_TRUE(CPathUtils::IsSamePath(mainRoot + L".git\\worktrees\\LinkedWorkTree", adminDir));
 
 	// Test reverse lookup on linked worktree admin directory (**WITH** trailing path delimiter)
-	workDir = g_AdminDirMap.GetWorkingCopy((mainRoot + L".git\\worktrees\\LinkedWorkTree\\").c_str()).GetString();
+	workDir = g_AdminDirMap.GetWorkingCopy(mainRoot + L".git\\worktrees\\LinkedWorkTree\\");
 	EXPECT_TRUE(CPathUtils::IsSamePath(linkedRoot, workDir));
 
 	// Test reverse lookup on linked worktree admin directory (**WITHOUT** trailing path delimiter)
-	workDir = g_AdminDirMap.GetWorkingCopy((mainRoot + L".git\\worktrees\\LinkedWorkTree").c_str()).GetString();
+	workDir = g_AdminDirMap.GetWorkingCopy(mainRoot + L".git\\worktrees\\LinkedWorkTree");
 	EXPECT_TRUE(CPathUtils::IsSamePath(linkedRoot, workDir));
 
 	// Test if the sub-module admin directory can be found (**WITH** trailing path delimiter)
-	adminDir = g_AdminDirMap.GetAdminDir((mainRoot + L"sub1\\").c_str()).GetString();
+	adminDir = g_AdminDirMap.GetAdminDir(mainRoot + L"sub1\\");
 	EXPECT_TRUE(CPathUtils::IsSamePath(mainRoot + L".git\\modules\\sub1", adminDir));
 
 	// Test if the sub-module admin directory can be found (**WITHOUT** trailing path delimiter)
-	adminDir = g_AdminDirMap.GetAdminDir((mainRoot + L"sub1").c_str()).GetString();
+	adminDir = g_AdminDirMap.GetAdminDir(mainRoot + L"sub1");
 	EXPECT_TRUE(CPathUtils::IsSamePath(mainRoot + L".git\\modules\\sub1", adminDir));
 
 	// Test if reverse lookup on submodule works (**WITH** trailing path delimiter)
-	workDir = g_AdminDirMap.GetWorkingCopy((mainRoot + L".git\\modules\\sub1\\").c_str()).GetString();
+	workDir = g_AdminDirMap.GetWorkingCopy(mainRoot + L".git\\modules\\sub1\\");
 	EXPECT_TRUE(CPathUtils::IsSamePath(mainRoot + L"sub1", workDir));
 
 	// Test if reverse lookup on submodule works (**WITHOUT** trailing path delimiter)
-	workDir = g_AdminDirMap.GetWorkingCopy((mainRoot + L".git\\modules\\sub1").c_str()).GetString();
+	workDir = g_AdminDirMap.GetWorkingCopy(mainRoot + L".git\\modules\\sub1");
 	EXPECT_TRUE(CPathUtils::IsSamePath(mainRoot + L"sub1", workDir));
 }

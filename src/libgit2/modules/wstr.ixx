@@ -83,7 +83,9 @@ struct StringTraits;
 // CStringT's spelling of the same thing - neither zero-fills, neither copies.
 // fill must not throw: resize_and_overwrite makes that a precondition, so a
 // failure is reported by writing nothing and checked once the call returns.
+
 template <IsRealString TStr> requires (!std::ranges::enable_borrowed_range<TStr>)
+// template <IsRealString TStr>
 struct StringTraits<TStr> : StringViewTraits<TStr> {
 	static constexpr void        resize(TStr& s, size_t l) { s.resize(l); }
 
@@ -176,9 +178,11 @@ struct StringView : std::basic_string_view<typename StringViewTraits<TStr>::char
 	using cnv_view_t = StringViewTraits<TStr>;
 	using std_view_t = std::basic_string_view<typename cnv_view_t::char_type>;
 
-	constexpr auto                 as_std() {
-		return std::basic_string<typename cnv_view_t::char_type>{this->data(), this->size()};
+	constexpr auto                 copy_as_std() {
+		return std::basic_string<typename cnv_view_t::char_type>{this->data(), this->data() + this->size()};
 	}
+	constexpr auto    as_view()    noexcept { return std_view_t{this->data(), this->size()}; }
+
 	constexpr static cnv_view_t    as_traits(const TStr& s)  noexcept { return cnv_view_t{cnv_view_t::data(s), cnv_view_t::size(s)}; }
 	constexpr static std_view_t    as_view(const TStr& s)    noexcept { return {cnv_view_t::data(s), cnv_view_t::size(s)}; }
 	constexpr explicit             StringView(const TStr& s) noexcept : std_view_t{as_view(s)} {}
@@ -448,7 +452,7 @@ inline void ReleaseBuffer(std::wstring& s, const int newLength = -1)
 template <TStrOfWide TStr>
 std::filesystem::path to_path(const TStr& sPath)
 {
-	return std::filesystem::path{StringView{sPath}.as_std()};
+	return std::filesystem::path{StringView{sPath}.as_view()};
 }
 
 
@@ -831,11 +835,6 @@ TOut StdGetUnicode(const std::string_view multibyte, const int acp)
 		throw std::exception("MultiByteToWideChar failed");
 	return out;
 }
-
-
-
-template <TStrOfWide TIn>
-int GetCPCode(const TIn& codename) { return StdGetCPCode(StringView{codename}); }
 
 
 

@@ -325,8 +325,8 @@ void CPathWatcher::WorkerThread()
 						AutoLocker _(m_critSec);
 						watchedPaths.RemovePath(watchedPaths[i]);
 						i--;
-						if (i < 0)
-							i = 0;
+						// if (i < 0)
+						// 	i = 0;
 						break;
 					}
 
@@ -338,8 +338,8 @@ void CPathWatcher::WorkerThread()
 						ClearInfoMap();
 						watchedPaths.RemovePath(watchedPaths[i]);
 						i--;
-						if (i < 0)
-							i = 0;
+						// if (i < 0)
+						// 	i = 0;
 						break;
 					}
 					if (!ReadDirectoryChangesW(pDirInfo->m_hDir,
@@ -355,8 +355,8 @@ void CPathWatcher::WorkerThread()
 						ClearInfoMap();
 						watchedPaths.RemovePath(watchedPaths[i]);
 						i--;
-						if (i < 0)
-							i = 0;
+						// if (i < 0)
+						// 	i = 0;
 						break;
 					}
 					AutoLocker _(m_critSec);

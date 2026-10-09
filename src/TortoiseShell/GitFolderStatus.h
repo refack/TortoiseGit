@@ -39,7 +39,7 @@ struct FileStatusCacheEntry
  * \ingroup TortoiseShell
  * This class represents a caching mechanism for the
  * git statuses. Once a status for a versioned
- * file is requested (GetFileStatus()) first its checked
+ * file is requested (GetFileStatus_NoRepo()) first its checked
  * if that status is already in the cache. If it is not
  * then the git statuses for ALL files in the same
  * directory is fetched and cached. This is because git

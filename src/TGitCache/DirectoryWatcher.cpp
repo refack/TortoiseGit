@@ -466,7 +466,7 @@ void CDirectoryWatcher::WorkerThread()
 									if ((pnotify->Action == FILE_ACTION_ADDED || pnotify->Action == FILE_ACTION_RENAMED_NEW_NAME) && (wcsstr(pFound, L"index.lock") || wcsstr(pFound, L"HEAD.lock")))
 									{
 										// Lock got added, block path from crawling.
-										CTGitPath path(g_AdminDirMap.GetWorkingCopy(CTGitPath(buf).GetContainingDirectory().GetWinPathString().c_str()).GetString());
+										CTGitPath path(g_AdminDirMap.GetWorkingCopy(CTGitPath(buf).GetContainingDirectory().GetWinPathString()).c_str());
 										CGitStatusCache::Instance().BlockPath(path);
 									}
 									else if (
@@ -479,7 +479,7 @@ void CDirectoryWatcher::WorkerThread()
 										// because we don't know what we missed during the lock.
 										// We don't unblock directly because during rebase the lock file gets created and deleted rapidly
 										// and we don't want to trigger unnecessary crawls then.
-										CTGitPath path(g_AdminDirMap.GetWorkingCopy(CTGitPath(buf).GetContainingDirectory().GetWinPathString().c_str()).GetString());
+										CTGitPath path(g_AdminDirMap.GetWorkingCopy(CTGitPath(buf).GetContainingDirectory().GetWinPathString()).c_str());
 										CGitStatusCache::Instance().BlockPath(path, BLOCK_PATH_WAIT_AFTER_UNLOCK);
 										m_FolderCrawler->WakeUp();
 									}

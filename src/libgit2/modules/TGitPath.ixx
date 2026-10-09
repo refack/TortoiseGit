@@ -393,7 +393,7 @@ namespace detail {
 				return 0;
 			}
 
-			std::wstring valueW = CUnicodeUtils::StdGetUnicode(value);
+			auto valueW = CUnicodeUtils::GetUnicode<std::wstring>(value);
 			if (valueW.starts_with(L"~/"))
 				valueW = AskHost(data.host.homeDirectory) + valueW.substr(1);
 			std::ranges::replace(valueW, L'/', L'\\');
@@ -501,7 +501,7 @@ std::wstring ReadGitLink(const std::wstring_view topDir, const std::wstring_view
 		return {};
 	gitPathA.remove_prefix(GITDIR_PREFIX.size());
 	gitPathA = gitPathA.substr(0, gitPathA.find_last_not_of("\r\n") + 1);
-	std::wstring gitPath = CUnicodeUtils::StdGetUnicode(gitPathA);
+	auto gitPath = CUnicodeUtils::GetUnicode<std::wstring>(gitPathA);
 	if (gitPath.empty())
 		return gitPath;
 
@@ -595,7 +595,7 @@ std::optional<AdminDir> GetAdminDirPath(const std::wstring_view projectTopDir) {
 	constexpr int size = 65536;
 	const auto buffer = std::make_unique<char[]>(size);
 	const auto length = std::fread(buffer.get(), sizeof(char), size, pFile);
-	auto commonDir = CUnicodeUtils::StdGetUnicode(std::string_view{ buffer.get(), length });
+	auto commonDir = CUnicodeUtils::GetUnicode<std::wstring>(std::string_view{ buffer.get(), length });
 	tgit::wstr::Trim(commonDir, L"\r\n"sv);
 	PathUtils::ConvertToBackslash(commonDir);
 	if (::PathIsRelative(commonDir.c_str()))
@@ -931,7 +931,7 @@ public:
 		_ASSERTE(pPath);
 		if (!pPath)
 			return;
-		m_sFwdslashPath = CUnicodeUtils::StdGetUnicode(pPath);
+		m_sFwdslashPath = CUnicodeUtils::Convert2Unicode<std::wstring>(pPath);
 		detail::SanitizeRootPath(m_sFwdslashPath, L'/');
 	}
 
@@ -2461,7 +2461,8 @@ int CTGitPathList::ParserFromLsFileSimple(const BYTE_VECTOR& out, const unsigned
 		if (endOfLine == BYTE_VECTOR::npos || endOfLine == pos || endOfLine - pos >= INT_MAX)
 			return -1;
 
-		std::wstring pathstring = CUnicodeUtils::StdGetUnicode(std::string_view(&out[pos], endOfLine - pos));
+		std::string_view multibyte(&out[pos], endOfLine - pos);
+		auto pathstring = CUnicodeUtils::GetUnicode<std::wstring>(multibyte);
 		// SetFromGit resets the path
 		if (pathstring.ends_with(L'/')) {
 			pathstring.pop_back();
@@ -2517,7 +2518,7 @@ int CTGitPathList::ParserFromLsFile(const BYTE_VECTOR& out) {
 		if (fileNameEnd == BYTE_VECTOR::npos || fileNameEnd == pos || pos - lineStart != "H 100644 "sv.size() + 2 *
 			tgit::invarients::HashSize() + " 0\t"sv.size())
 			return -1;
-		const std::wstring pathstring = CUnicodeUtils::StdGetUnicode(std::string_view(&out[pos], fileNameEnd - pos));
+		const std::wstring pathstring = CUnicodeUtils::GetUnicode<std::wstring>(std::string_view(&out[pos], fileNameEnd - pos));
 		const bool isDir = (strtol(&out[modestart], nullptr, 8) & GIT_FILEMODE_TREE) == GIT_FILEMODE_TREE;
 		// SetFromGit resets the path
 		path.SetFromGit(pathstring, isDir);
@@ -2586,13 +2587,13 @@ int CTGitPathList::ParserFromLog(const BYTE_VECTOR& log) {
 				if (filenameEnd == BYTE_VECTOR::npos || pos == filenameEnd || filenameEnd - pos >= INT_MAX)
 					return -1;
 				// old filename before rename
-				oldPathname = CUnicodeUtils::StdGetUnicode(std::string_view(&log[pos], filenameEnd - pos));
+				oldPathname = CUnicodeUtils::GetUnicode<std::wstring>(std::string_view(&log[pos], filenameEnd - pos));
 				pos = filenameEnd + 1;
 			}
 			const size_t filenameEnd = log.find('\0', pos);
 			if (filenameEnd == BYTE_VECTOR::npos || pos == filenameEnd || filenameEnd - pos >= INT_MAX)
 				return -1;
-			const std::wstring pathname = CUnicodeUtils::StdGetUnicode(std::string_view(&log[pos], filenameEnd - pos));
+			const auto pathname = CUnicodeUtils::GetUnicode<std::wstring>(std::string_view(&log[pos], filenameEnd - pos));
 			pos = filenameEnd + 1;
 
 			if (const auto existing = duplicateMap.find(pathname); existing != duplicateMap.end()) {
@@ -2638,14 +2639,14 @@ int CTGitPathList::ParserFromLog(const BYTE_VECTOR& log) {
 			if (tabstart == BYTE_VECTOR::npos || tabstart - pos >= INT_MAX)
 				return -1;
 
-			const std::wstring statAdd = CUnicodeUtils::StdGetUnicode(std::string_view(&log[pos], tabstart - pos));
+			const auto statAdd = CUnicodeUtils::GetUnicode<std::wstring>(std::string_view(&log[pos], tabstart - pos));
 			pos = tabstart + 1;
 
 			tabstart = log.find('\t', pos); // find end of second number (removed lines)
 			if (tabstart == BYTE_VECTOR::npos || tabstart - pos >= INT_MAX)
 				return -1;
 
-			const std::wstring statDel = CUnicodeUtils::StdGetUnicode(std::string_view(&log[pos], tabstart - pos));
+			const auto statDel = CUnicodeUtils::GetUnicode<std::wstring>(std::string_view(&log[pos], tabstart - pos));
 			pos = tabstart + 1;
 
 			if (pos >= logend)
@@ -2658,13 +2659,13 @@ int CTGitPathList::ParserFromLog(const BYTE_VECTOR& log) {
 				const size_t endPathname = log.find('\0', pos);
 				if (endPathname == BYTE_VECTOR::npos || pos == endPathname || endPathname - pos >= INT_MAX)
 					return -1;
-				oldPathname = CUnicodeUtils::StdGetUnicode(std::string_view(&log[pos], endPathname - pos));
+				oldPathname = CUnicodeUtils::GetUnicode<std::wstring>(std::string_view(&log[pos], endPathname - pos));
 				pos = endPathname + 1;
 			}
 			const size_t endPathname = log.find('\0', pos);
 			if (endPathname == BYTE_VECTOR::npos || pos == endPathname || endPathname - pos >= INT_MAX)
 				return -1;
-			const std::wstring pathname = CUnicodeUtils::StdGetUnicode(std::string_view(&log[pos], endPathname - pos));
+			const auto pathname = CUnicodeUtils::GetUnicode<std::wstring>(std::string_view(&log[pos], endPathname - pos));
 			pos = endPathname + 1;
 
 			// SetFromGit resets the path. numstat does not say, so "not a directory".
@@ -2700,14 +2701,14 @@ int CTGitPathList::ParserFromLFSLocks(const unsigned int action, const std::wstr
 			if (r["id"].get<std::string>().empty())
 				continue;
 			CTGitPath gitPath;
-			gitPath.SetFromGit(CUnicodeUtils::StdGetUnicode(r["path"].get<std::string>()));
+			gitPath.SetFromGit(CUnicodeUtils::GetUnicode<std::wstring>(r["path"].get<std::string>()));
 			gitPath.m_Action = action;
-			gitPath.m_LFSLockOwner = CUnicodeUtils::StdGetUnicode(r["owner"]["name"].get<std::string>());
+			gitPath.m_LFSLockOwner = CUnicodeUtils::GetUnicode<std::wstring>(r["owner"]["name"].get<std::string>());
 			AddPath(gitPath);
 		}
 	} catch (json::parse_error& ex) {
 		if (err)
-			err->append(CUnicodeUtils::StdGetUnicode(ex.what()));
+			err->append(CUnicodeUtils::GetUnicode<std::wstring>(ex.what()));
 		return -1;
 	}
 	return 0;
@@ -2752,11 +2753,11 @@ int CTGitPathList::FillLFSLocks(const GitRunner& git, const unsigned int action,
 	BYTE_VECTOR out, errb;
 	if (git({ L"git.exe", L"lfs", L"locks", L"--json" }, &out, &errb) != 0) {
 		if (err)
-			err->append(CUnicodeUtils::StdGetUnicode(std::string_view(errb.data(), errb.size())));
+			err->append(CUnicodeUtils::GetUnicode<std::wstring>(std::string_view(errb.data(), errb.size())));
 		return -1;
 	}
 
-	return ParserFromLFSLocks(action, CUnicodeUtils::StdGetUnicode(std::string_view(out.data(), out.size())), err);
+	return ParserFromLFSLocks(action, CUnicodeUtils::GetUnicode<std::wstring>(out)), err);
 }
 #endif
 
@@ -2782,7 +2783,7 @@ int CTGitPathList::FillBasedOnIndexFlags(git_repository* const repository, const
 			if (!e || !((e->flags & flag) || (e->flags_extended & flagextended)) || !e->path)
 				continue;
 
-			const std::wstring one = CUnicodeUtils::StdGetUnicode(e->path);
+			const std::wstring one = CUnicodeUtils::Convert2Unicode<std::wstring>(e->path);
 
 			if (filterlist) {
 				const CTGitPath& filter = (*filterlist)[j];

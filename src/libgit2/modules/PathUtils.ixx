@@ -1,7 +1,6 @@
 ﻿module;
 #include <windows.h>
 #include <strsafe.h>
-
 // #include "sanity.h"
 
 
@@ -630,6 +629,87 @@ auto query_file(const fs::path& path)
 		FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
 		FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OPEN_REPARSE_POINT
 	);
+}
+
+
+// lstat, as git means it, flattened: a symlink or junction describes itself, not its target.
+struct PathAttributes
+{
+	fs::file_type type = fs::file_type::none;   // of the entry itself, links not followed (MSVC adds file_type::junction)
+	std::int64_t lastWriteTime = 0;             // FILETIME ticks, 100ns since 1601
+	std::int64_t size = 0;                      // logical size (EndOfFile); 0 for a directory
+	bool isDirectory = false;                   // FILE_ATTRIBUTE_DIRECTORY: also set on a directory symlink or junction
+	bool isLink = false;                        // FILE_ATTRIBUTE_REPARSE_POINT: symlink, junction, ...
+
+	[[nodiscard]] bool exists() const noexcept { return fs::exists(fs::file_status(type)); }    // not none, not not_found
+};
+
+
+
+using expected_os = std::expected<PathAttributes, std::error_code>;
+// std::filesystem has no lstat for times and sizes on Windows - its getters follow
+// links - so a regular file or directory is read from the entry (MSVC caches it from
+// the GetFileAttributesExW or FindNextFileW that produced the entry) and only a
+// reparse point opens a handle to ask the link itself.
+expected_os get_path_attributes(const fs::directory_entry& entry)
+{
+	// MSVC's file_clock is FILETIME - 100ns ticks since 1601 - so count() is the raw value callers store
+	static_assert(std::same_as<fs::file_time_type::period, wil::file_ticks::period>);
+
+	const auto type = entry.symlink_status().type();      // link itself, no following
+	if (type == fs::file_type::not_found || type == fs::file_type::none) {
+		return PathAttributes{ .type = type };
+	} else if (type == fs::file_type::regular || type == fs::file_type::directory) {
+		std::error_code ec;
+		const auto mtime = entry.last_write_time(ec);
+		if (ec)
+			return std::unexpected(ec);
+		const auto size = type == fs::file_type::regular ? entry.file_size(ec) : std::uintmax_t{ 0 };
+		if (ec)
+			return std::unexpected(ec);
+
+		return PathAttributes{
+			.type = type,
+			.lastWriteTime = mtime.time_since_epoch().count(),
+			.size = static_cast<std::int64_t>(size),
+			.isDirectory = type == fs::file_type::directory,
+		};
+	// symlink, junction or other reparse point: ask the link, not its target
+	} else try {
+		const auto h = query_file(entry.path());
+		const auto basic = wil::GetFileInfo<FileBasicInfo>(h.get());          // times + attributes
+		const auto standard = wil::GetFileInfo<FileStandardInfo>(h.get());    // size
+
+		return PathAttributes{
+			.type = type,
+			.lastWriteTime = basic.LastWriteTime.QuadPart,
+			.size = standard.EndOfFile.QuadPart,
+			.isDirectory = !!(basic.FileAttributes & FILE_ATTRIBUTE_DIRECTORY),
+			.isLink = !!(basic.FileAttributes & FILE_ATTRIBUTE_REPARSE_POINT),
+		};
+	} catch (const wil::ResultException& ex) {
+		switch (const HRESULT hr = ex.GetErrorCode())
+		{
+		case __HRESULT_FROM_WIN32(ERROR_FILE_NOT_FOUND):
+		case __HRESULT_FROM_WIN32(ERROR_PATH_NOT_FOUND):
+			return PathAttributes{ .type = fs::file_type::not_found };   // vanished between symlink_status and open
+		case E_ACCESSDENIED:
+		case __HRESULT_FROM_WIN32(ERROR_SHARING_VIOLATION):
+			return std::unexpected(std::error_code(HRESULT_CODE(hr), std::system_category()));
+		default:
+			throw;   // above my pay grade
+		}
+	}
+}
+
+
+expected_os get_path_attributes(const fs::path& path)
+{
+	std::error_code ec;
+	const fs::directory_entry entry(path, ec);
+	if (ec)
+		return {};
+	return get_path_attributes(entry);
 }
 
 

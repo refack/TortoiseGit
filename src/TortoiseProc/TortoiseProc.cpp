@@ -28,8 +28,6 @@
 #include "StringUtils.h"
 #include "UnicodeUtils.h"
 #include "MessageBox.h"
-import GitAdminDir;
-#include "Git.h"
 #include "SmartHandle.h"
 #include "Commands\Command.h"
 #include <version.h>
@@ -45,6 +43,8 @@ import GitAdminDir;
 #include "VersioncheckParser.h"
 #include "TempFile.h"
 #include "Hash.h"
+
+import git_h;
 
 #define STRUCT_IOVEC_DEFINED
 

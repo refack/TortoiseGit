@@ -10,8 +10,6 @@ target_sources(TGitCache
     PRIVATE
         CachedDirectory.cpp
         CachedDirectory.h
-        CacheInterface.cpp
-        CacheInterface.h
         DirectoryWatcher.cpp
         DirectoryWatcher.h
         FolderCrawler.cpp

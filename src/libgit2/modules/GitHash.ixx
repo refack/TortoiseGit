@@ -32,9 +32,7 @@ class CGitHash
 	 */
 	void StampOidType() noexcept
 	{
-#ifdef GIT_EXPERIMENTAL_SHA256
-		m_oid.type = static_cast<unsigned char>(GitFormatHolder::GitActiveOidType());
-#endif
+		m_oid.type = GitFormatHolder::GitActiveOidType();
 	}
 
 public:

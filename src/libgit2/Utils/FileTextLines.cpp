@@ -32,7 +32,7 @@ import RIAA;
 #include <Shlwapi.h>
 
 import std;
-import FormatMessageWrapper;
+import wil;
 import Registry;
 import wstr;
 
@@ -40,9 +40,9 @@ CFileTextLines::UnicodeType CFileTextLines::CheckUnicodeType(LPCVOID pBuffer, in
 {
 	if (cb < 2)
 		return CFileTextLines::UnicodeType::ASCII;
-	auto const pVal32 = static_cast<const UINT32*>(pBuffer);
-	auto const pVal16 = static_cast<const UINT16*>(pBuffer);
-	auto const pVal8 = static_cast<const UINT8*>(pBuffer);
+	auto pVal32 = static_cast<const UINT32*>(pBuffer);
+	auto pVal16 = static_cast<const UINT16*>(pBuffer);
+	auto pVal8 = static_cast<const UINT8*>(pBuffer);
 	// scan the whole buffer for a 0x00000000 sequence
 	// if found, we assume a binary file
 	int nDwords = cb/4;
@@ -595,7 +595,7 @@ BOOL CFileTextLines::Save( const CString& sFilePath
 
 void CFileTextLines::SetErrorString()
 {
-	m_sErrorString = CFormatMessageWrapper().c_str();
+	m_sErrorString = wil::CFormatMessageWrapper().c_str();
 }
 
 void CFileTextLines::CopySettings(CFileTextLines * pFileToCopySettingsTo) const

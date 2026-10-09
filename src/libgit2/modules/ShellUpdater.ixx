@@ -1,5 +1,4 @@
 module;
-#include <TGitCache/CacheInterface.h>
 #include <shlobj_core.h>
 
 export module CShellUpdater;
@@ -9,8 +8,9 @@ import wstr;
 import RIAA;
 import TGitPath;
 import DebugOutput;
+import TGitCache.CacheInterface;
 
-using tgit::wstr::StringView;
+using tgit::zstr::StringView;
 
 /**
  * \ingroup Utils

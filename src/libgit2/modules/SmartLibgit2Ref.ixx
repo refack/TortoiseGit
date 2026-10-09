@@ -227,7 +227,7 @@ struct CAutoConfig : CAutoGitRef<wil::unique_git_config>
 			value = L"";
 			return ret;
 		}
-		value = CUnicodeUtils::StdGetUnicode(std::string_view(buf.ptr, buf.size)).c_str();
+		value = CUnicodeUtils::GetUnicode<std::wstring>(std::string_view(buf.ptr, buf.size)).c_str();
 		return 0;
 	}
 };

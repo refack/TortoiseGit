@@ -14,6 +14,13 @@ ContinuationIndentWidth: 0
 ConstructorInitializerIndentWidth: 4
 AccessModifierOffset: -4
 
+# if we can't fit them all, then chop
+BinPackArguments: false
+BinPackParameters: false
+# By default don't allow putting parameters onto the next line
+# myFunction(foo, bar, baz);
+AllowAllParametersOfDeclarationOnNextLine: false
+
 # Align parameters on the open bracket
 # someLongFunction(argument1,
 #                  argument2);
@@ -46,10 +53,6 @@ AlignOperands: false
 # int b = 2; // Comment b
 AlignTrailingComments: false
 
-# By default don't allow putting parameters onto the next line
-# myFunction(foo, bar, baz);
-AllowAllParametersOfDeclarationOnNextLine: false
-
 # Don't allow short braced statements to be on a single line
 # if (a)           not       if (a) return;
 #   return;
@@ -66,11 +69,6 @@ AllowShortLambdasOnASingleLine: All
 # int foo();
 AlwaysBreakTemplateDeclarations: Yes
 
-# Pack as many parameters or arguments onto the same line as possible
-# int myFunction(int aaaaaaaaaaaa, int bbbbbbbb,
-#                int cccc);
-BinPackArguments: true
-BinPackParameters: true
 
 # Attach braces to surrounding context except break before braces on function
 # definitions.

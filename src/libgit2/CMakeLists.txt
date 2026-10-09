@@ -114,12 +114,10 @@ target_sources(TGitLibgit2
         modules/shims/wil.ixx
         modules/shims/libgit2.ixx
         modules/Git.ixx
-        modules/Git2.ixx
         modules/BugTraqAssociations.ixx
         modules/DarkModeHelper.ixx
         modules/DebugOutput.ixx
         modules/DirFileEnum.ixx
-        modules/FormatMessageWrapper.ixx
         modules/GitDataObject.ixx
         modules/GitHash.ixx
         modules/GitMailmap.ixx
@@ -149,4 +147,5 @@ target_sources(TGitLibgit2
         modules/DragDropImpl.ixx
         modules/utils/ReaderWriterLock.ixx
         modules/utils/PathWatcher.ixx
+        modules/CacheInterface.ixx
 )

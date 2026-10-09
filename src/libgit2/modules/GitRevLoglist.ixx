@@ -89,19 +89,19 @@ export struct GitRevLoglist : GitRev
 protected:
 	int				m_RebaseAction = 0;
 	unsigned int	m_Action = 0;
-	CTGitPathList	m_Files;
-	CTGitPathList	m_UnRevFiles;
+	CTGitPathList	m_Files{};
+	CTGitPathList	m_UnRevFiles{};
 
 	SRWLOCK m_lock;
 
 public:
-	CString m_Notes;
+	CString m_Notes{};
 
 	wchar_t m_Mark = '\0';
 	bool m_RolledUp = false; // Parent commits up to the next merge, fork or ref are not shown
 	bool m_RolledUpIsForced = false; // for CGitLogList::ContextMenuAction()/ID_TOGGLE_ROLLUP
-	CString m_Ref; // for Refloglist
-	CString m_RefAction; // for Refloglist
+	CString m_Ref{}; // for Refloglist
+	CString m_RefAction{}; // for Refloglist
 
 	// Show version tree Graphic
 	std::vector<Lanes::LaneType> m_Lanes;
@@ -114,7 +114,7 @@ public:
 
 
 	volatile LONG m_IsSimpleListReady = FALSE;
-	tgit::types::STRING_VECTOR m_SimpleFileList;  /* use for find and filter, no rename detection and line num stat info */
+	tgit::types::STRING_VECTOR m_SimpleFileList{};  /* use for find and filter, no rename detection and line num stat info */
 
 
 	CString& GetAuthorName() { return m_AuthorName; }
@@ -137,7 +137,7 @@ public:
 
 	CString& GetBody() { return m_Body; }
 
-	BOOL IsBoundary() const { return m_Mark == L'-'; }
+	[[nodiscard]] BOOL IsBoundary() const { return m_Mark == L'-'; }
 
 	CTGitPathList& GetUnRevFiles()	{		return m_UnRevFiles;	}
 
@@ -188,7 +188,7 @@ public:
 	}
 
 
-	CString GetSubjectBody(bool crlf = false) const
+	[[nodiscard]] CString GetSubjectBody(bool crlf = false) const
 	{
 		CString ret(m_Subject);
 		if (!crlf)
@@ -331,8 +331,8 @@ public:
 					path.SetFromGit(delta->new_file.path, isDir != FALSE);
 				else
 				{
-					const std::wstring newname = CUnicodeUtils::StdGetUnicode(delta->new_file.path);
-					std::wstring oldname = CUnicodeUtils::StdGetUnicode(delta->old_file.path);
+					const auto newname = CUnicodeUtils::Convert2Unicode<std::wstring>(delta->new_file.path);
+					const auto oldname = CUnicodeUtils::Convert2Unicode<std::wstring>(delta->old_file.path);
 					path.SetFromGit(newname, oldname, isDir);
 				}
 				oldAction = m_Action;
@@ -377,9 +377,9 @@ public:
 			return -1;
 		}
 	}
-	catch (std::exception e)
+	catch (std::exception& e)
 	{
-		m_sErr = std::format(L"Could not get commit \"{}\".\nlibgit reports:\n{}", m_CommitHash.ToString(), CUnicodeUtils::StdGetUnicode(e.what())).data();
+		m_sErr = std::format(L"Could not get commit \"{}\".\nlibgit reports:\n{}", m_CommitHash.ToString(), CUnicodeUtils::Convert2Unicode<std::wstring>(e.what())).data();
 		tgit::DebugOutput::CTraceToOutputDebugString::Instance()(__FUNCTION__ L": " + m_sErr + L'\n');
 		return -1;
 	}
@@ -390,7 +390,7 @@ public:
 
 	while (git_get_commit_next_parent(&list, parent) == 0 || isRoot)
 	{
-		GIT_FILE file = 0;
+		GIT_FILE file = {};
 		int count = 0;
 
 		try
@@ -408,7 +408,7 @@ public:
 		}
 		catch (const char* msg)
 		{
-			m_sErr.Format(L"Could do diff for \"%ls\".\nlibgit reports:\n%s", m_CommitHash.ToString().data(), CUnicodeUtils::GetUnicode<CString>(msg));
+			m_sErr.Format(L"Could do diff for \"%ls\".\nlibgit reports:\n%s", m_CommitHash.ToString().data(), CUnicodeUtils::Convert2Unicode<CString>(msg));
 			tgit::DebugOutput::CTraceToOutputDebugString::Instance()(__FUNCTION__ L": " + m_sErr + L'\n');
 			git_free_commit(&commit);
 			return -1;
@@ -425,13 +425,13 @@ public:
 			int isBin, inc, dec, isDir;
 			git_get_diff_file(git->GetGitDiff(), file, j, &newname, &oldname, &isDir, &status, &isBin, &inc, &dec);
 
-			auto strnewname = CUnicodeUtils::StdGetUnicode(newname);
+			auto strnewname = CUnicodeUtils::Convert2Unicode<std::wstring>(newname);
 			// SetFromGit resets the path
 			if (strcmp(newname, oldname) == 0)
 				path.SetFromGit(strnewname, !!isDir);
 			else
 			{
-				auto stroldname = CUnicodeUtils::StdGetUnicode(oldname);
+				auto stroldname = CUnicodeUtils::Convert2Unicode<std::wstring>(oldname);
 				path.SetFromGit(strnewname, stroldname, !!isDir);
 			}
 			path.ParseAndUpdateStatus(status);
@@ -501,7 +501,7 @@ public:
 			for (size_t i = 0; i < deltas; ++i)
 			{
 				const git_diff_delta* delta = git_diff_get_delta(diff, i);
-				m_SimpleFileList.push_back(CUnicodeUtils::StdGetUnicode(delta->new_file.path));
+				m_SimpleFileList.push_back(CUnicodeUtils::Convert2Unicode<std::wstring>(delta->new_file.path));
 			}
 		}
 
@@ -567,7 +567,7 @@ public:
 				return -1;
 			}
 
-			m_SimpleFileList.push_back(CUnicodeUtils::StdGetUnicode(newname));
+			m_SimpleFileList.push_back(CUnicodeUtils::Convert2Unicode<std::wstring>(newname));
 		}
 
 		git_diff_flush(git->GetGitSimpleListDiff());
@@ -628,7 +628,7 @@ int GitRevLoglist::GetRefLog(const CString& ref_, std::vector<GitRevLoglist>& re
 			rev.GetCommitterDate() = CTime(git_reflog_entry_committer(entry)->when.time);
 			if (git_reflog_entry_message(entry) != nullptr)
 			{
-				CString one = CUnicodeUtils::GetUnicode<CString>(git_reflog_entry_message(entry));
+				CString one = CUnicodeUtils::Convert2Unicode<CString>(git_reflog_entry_message(entry));
 				int message = one.Find(L": ");
 				if (message > 0)
 				{
@@ -663,7 +663,7 @@ int GitRevLoglist::GetRefLog(const CString& ref_, std::vector<GitRevLoglist>& re
 			rev.m_CommitHash = CGitHash::FromRaw(new_oid->hash);
 			rev.GetCommitterDate() = CTime(time);
 
-			CString one = CUnicodeUtils::GetUnicode<CString>(msg);
+			CString one = CUnicodeUtils::Convert2Unicode<CString>(msg);
 			int message = one.Find(L": ");
 			if (message > 0)
 			{

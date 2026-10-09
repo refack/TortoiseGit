@@ -156,11 +156,6 @@ bool StartsWith(const wchar_t* heystack, const CString& needle)
 	return wcsncmp(heystack, needle, needle.GetLength()) == 0;
 }
 
-bool StartsWith(const wchar_t* heystack, const wchar_t* needle)
-{
-	return wcsncmp(heystack, needle, wcslen(needle)) == 0;
-}
-
 bool StartsWith(const char* heystack, const char* needle)
 {
 	return strncmp(heystack, needle, strlen(needle)) == 0;
@@ -278,19 +273,20 @@ void TrimLeft(std::string_view& view)
 
 
 template <tgit::zstr::IsTCompString TStr>
-TStr& TrimRight(StringTraits<TStr>& obj, const std::optional<std::string_view> sbj = std::nullopt)
+TStr& TrimRight(TStr& obj, const std::optional<std::basic_string_view<typename StringViewTraits<TStr>::char_type>> sbj = std::nullopt)
 {
-	std::string_view v = StringView<TStr>(obj);
+	auto v = StringView<TStr>(obj).as_view();
 	while (!v.empty())
 	{
-		const char chr = v.back();
+		const auto chr = v.back();
 		const bool is_it_still = sbj ? sbj->find(chr) != sbj->npos
 									 : is_space(chr);
 		if (!is_it_still) break;
 		v.remove_suffix(1);
 	}
+	// if constexpr (std::is_convertible_v<TStr, std::basic_string_view<typename StringViewTraits<TStr>::char_type>>)
 
-	obj.resize(v.size());
+	StringTraits<TStr>::resize(obj, v.size());
 	return obj;   // CStringT::TrimRight returns *this; keeps chaining call sites compiling
 }
 //

@@ -7,7 +7,7 @@
 export module Registry;
 import std;
 import gsl;
-import FormatMessageWrapper;
+import wil;
 
 #ifndef QWORD
 using QWORD = std::uint64_t;
@@ -72,7 +72,7 @@ public:
 	 */
 	virtual S getErrorString()
 	{
-		return CFormatMessageWrapper{m_lastError}.c_str();
+		return wil::CFormatMessageWrapper{m_lastError}.c_str();
 	}
 
 	/// get failure info for last operation

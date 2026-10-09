@@ -91,7 +91,7 @@ struct MenubarDrawmenuitem
 	MenubarMenuitem umi;
 };
 
-struct MenubarMeasuremenuitem
+struct [[maybe_unused]] MenubarMeasuremenuitem
 {
 	MEASUREITEMSTRUCT mis;
 	MenubarMenu um;

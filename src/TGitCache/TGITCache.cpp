@@ -466,12 +466,12 @@ DWORD WINAPI ExplorerMonitorThread(LPVOID lpvParam)
 			if (gitDir.IsEmpty())
 				continue;
 
-			auto sharedIndex = g_IndexFileMap.SafeGet(gitDir);
+			auto sharedIndex = g_IndexFileMap.SafeGet(std::wstring(gitDir)); // GitIndex speaks std::wstring
 			if (!sharedIndex)
 				continue;
 
 			auto textLen = GetWindowTextLength(hwndWba);
-			textLen += sharedIndex->m_branch.GetLength() + 40;
+			textLen += static_cast<int>(sharedIndex->m_branch.size()) + 40;
 			if (titleTextBufLength < textLen)
 			{
 				titleTextBufLength = textLen;
@@ -482,15 +482,15 @@ DWORD WINAPI ExplorerMonitorThread(LPVOID lpvParam)
 			if (auto foundPos = sWindowText.find(L" ["); foundPos != std::wstring::npos)
 				sWindowText = sWindowText.substr(0, foundPos);
 
-			if (!sharedIndex->m_branch.IsEmpty())
+			if (!sharedIndex->m_branch.empty())
 			{
 				sWindowText += L" [ ";
 				sWindowText += sharedIndex->m_branch;
-				if (sharedIndex->m_outgoing != static_cast<size_t>(-1))
+				if (sharedIndex->m_outgoing && sharedIndex->m_incoming) // set together, or not at all
 				{
 					// upstream branch available
 					CString inOut;
-					inOut.Format(L" \u2193%lld \u2191%lld", sharedIndex->m_incoming, sharedIndex->m_outgoing);
+					inOut.Format(L" \u2193%lld \u2191%lld", *sharedIndex->m_incoming, *sharedIndex->m_outgoing);
 					sWindowText += inOut;
 				}
 				else
