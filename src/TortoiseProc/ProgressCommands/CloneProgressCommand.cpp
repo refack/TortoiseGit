@@ -20,11 +20,11 @@
 #include "TortoiseProc.h"
 #include "CloneProgressCommand.h"
 #include "AppUtils.h"
-#include <TGitCache/CacheInterface.h>
+import TGitCache.CacheInterface;
 
 bool CloneProgressCommand::Run(CGitProgressList* list, CString& sWindowTitle, int& /*m_itemCountTotal*/, int& /*m_itemCount*/)
 {
-	if (!g_Git.UsingLibGit2(CGit::GIT_CMD_CLONE))
+	if (!g_Git.UsingLibGit2(TGitH::GIT_CMD_CLONE))
 	{
 		// should never run to here
 		ASSERT(FALSE);
@@ -55,7 +55,7 @@ bool CloneProgressCommand::Run(CGitProgressList* list, CString& sWindowTitle, in
 
 	CSmartAnimation animate(list->m_pAnimate);
 	cloneOpts.bare = m_bBare;
-	CStringA envTemplateDir = CUnicodeUtils::GetUTF8(g_Git.m_Environment.GetEnv(L"GIT_TEMPLATE_DIR").c_str());
+	CStringA envTemplateDir = CUnicodeUtils::Convert2Multibyte<CStringA>(g_Git.m_Environment.GetEnv(L"GIT_TEMPLATE_DIR").c_str());
 	if (!envTemplateDir.IsEmpty())
 		cloneOpts.repository_cb_payload = const_cast<char*>(static_cast<LPCSTR>(envTemplateDir));
 	cloneOpts.repository_cb = [](git_repository** out, const char* path, int bare, void* payload) -> int
@@ -85,17 +85,17 @@ bool CloneProgressCommand::Run(CGitProgressList* list, CString& sWindowTitle, in
 		return 0;
 	};
 	remote_cb_payload remote_cb_payloadData;
-	remote_cb_payloadData.remoteName = m_remote.IsEmpty() ? CStringA("origin") : CUnicodeUtils::GetUTF8(m_remote);
+	remote_cb_payloadData.remoteName = m_remote.IsEmpty() ? CStringA("origin") : CUnicodeUtils::GetUTF8<CStringA>(m_remote);
 	cloneOpts.remote_cb_payload = &remote_cb_payloadData;
 
-	CStringA checkout_branch = CUnicodeUtils::GetUTF8(m_RefSpec);
+	CStringA checkout_branch = CUnicodeUtils::GetUTF8<CStringA>(m_RefSpec);
 	if (!checkout_branch.IsEmpty())
 		cloneOpts.checkout_branch = checkout_branch;
 	cloneOpts.checkout_opts = checkout_opts;
 
 	CBlockCacheForPath block(m_targetPathList[0].GetWinPathString().c_str());
 	CAutoRepository cloned_repo;
-	if (git_clone(cloned_repo.GetPointer(), CUnicodeUtils::GetUTF8(m_url.GetGitPathString().c_str()), CUnicodeUtils::GetUTF8(m_targetPathList[0].GetWinPathString().c_str()), &cloneOpts) < 0)
+	if (git_clone(cloned_repo.GetPointer(), CUnicodeUtils::Convert2Multibyte<CStringA>(m_url.GetGitPathString().c_str()), CUnicodeUtils::Convert2Multibyte<CStringA>(m_targetPathList[0].GetWinPathString().c_str()), &cloneOpts) < 0)
 	{
 		list->ReportGitError();
 		return false;

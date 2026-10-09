@@ -19,13 +19,13 @@
 #include "stdafx.h"
 #include "TortoiseProc.h"
 #include "ResetProgressCommand.h"
-#include <TGitCache/CacheInterface.h>
+import TGitCache.CacheInterface;
 
 using Git_WC_Notify_Action = CGitProgressList::WC_File_NotificationData::Git_WC_Notify_Action;
 
 bool ResetProgressCommand::Run(CGitProgressList* list, CString& sWindowTitle, int& /*m_itemCountTotal*/, int& /*m_itemCount*/)
 {
-	if (!g_Git.UsingLibGit2(CGit::GIT_CMD_RESET))
+	if (!g_Git.UsingLibGit2(TGitH::GIT_CMD_RESET))
 	{
 		// should never run to here
 		ASSERT(0);
@@ -50,7 +50,7 @@ bool ResetProgressCommand::Run(CGitProgressList* list, CString& sWindowTitle, in
 
 	CBlockCacheForPath block(g_Git.m_CurrentDir);
 	CAutoObject target;
-	if (git_revparse_single(target.GetPointer(), repo, CUnicodeUtils::GetUTF8(m_revision)))
+	if (git_revparse_single(target.GetPointer(), repo, CUnicodeUtils::GetUTF8<CStringA>(m_revision)))
 		goto error;
 	checkout_options.progress_payload = &cbpayload;
 	checkout_options.progress_cb = [](const char*, size_t completed_steps, size_t total_steps, void* payload)
@@ -62,7 +62,7 @@ bool ResetProgressCommand::Run(CGitProgressList* list, CString& sWindowTitle, in
 	checkout_options.notify_cb = [](git_checkout_notify_t, const char* pPath, const git_diff_file*, const git_diff_file*, const git_diff_file*, void* payload) -> int
 	{
 		auto list = static_cast<CGitProgressList*>(payload);
-		CString path(CUnicodeUtils::GetUnicode(pPath));
+		CString path(CUnicodeUtils::Convert2Unicode<CString>(pPath));
 		if (DWORD(CRegDWORD(L"Software\\TortoiseGit\\RevertWithRecycleBin", TRUE)))
 		{
 			if (!CTGitPath(g_Git.CombinePath(path).GetString()).Delete(true, true))

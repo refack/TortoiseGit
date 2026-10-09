@@ -1,4 +1,5 @@
 ﻿module;
+#include <tgit_cstring.h>	// first: decides which CString this compile speaks
 #include <windows.h>
 #include <Shlwapi.h>
 #include "sanity.h"
@@ -8,6 +9,7 @@ export module Registry;
 import std;
 import gsl;
 import wil;
+import wstr;
 
 #ifndef QWORD
 using QWORD = std::uint64_t;
@@ -179,6 +181,33 @@ public: //methods
 		const size_type pos = key.find_last_of(L'\\');
 		m_path = key.substr(0, pos);
 		m_key = key.substr(pos + 1);
+	}
+};
+
+/**
+ * \ingroup Utils
+ * Base class for CString registry classes - CRegString & co.
+ *
+ * Restored: only the std::wstring base survived the module conversion, and
+ * TortoiseProc uses CRegString in 123 places, assigning it to and from CString.
+ * Which CString this is follows the compile (tgit_cstring.h): MFC's in
+ * TGitLibgit2Mfc, ATL's in TGitLibgit2.
+ */
+class CRegCStringBase : public CRegBaseCommon<CString>
+{
+protected:
+	[[nodiscard]] LPCWSTR GetPlainString(const CString& s) const override { return s; }
+	[[nodiscard]] DWORD GetLength(const CString& s) const override { return static_cast<DWORD>(s.GetLength()); }
+
+public:
+	CRegCStringBase() {}
+
+	CRegCStringBase(const CString& key, const bool force, const HKEY base, const REGSAM sam)
+		: CRegBaseCommon(key, force, base, sam)
+	{
+		const int pos = key.ReverseFind(L'\\');
+		m_path = key.Left(pos);
+		m_key = key.Mid(pos + 1);
 	}
 };
 
@@ -764,6 +793,10 @@ public: //methods
 	 * \param sam
 	 */
 	CRegistryKey(const reg_string_t& key, HKEY base = HKEY_CURRENT_USER, REGSAM sam = 0);
+	/// A CString key - the settings pages'. Constrained, so a literal binds the one above.
+	template <tgit::zstr::IsStupidString TStr>
+	explicit CRegistryKey(const TStr& key, HKEY base = HKEY_CURRENT_USER, REGSAM sam = 0)
+		: CRegistryKey(reg_string_t(tgit::zstr::StringView{ key }), base, sam) {}
 	~CRegistryKey();
 
 	/**
@@ -891,17 +924,19 @@ T& CKeyList<T>::GetAt(int index) const
  * Instantiate templates for common (data type, string type) combinations.
  */
 
-using CRegDWORD = CRegDWORDCommon<CRegBase>;
-// using CRegQWORD = CRegQWORDCommon<CRegBase>;
-// using CRegString = CRegStringCommon<CRegBase>;
+// CString-keyed, as upstream's were; the std::wstring-keyed family is CRegStd*.
+// Every module use passes a literal key, which converts either way.
+using CRegDWORD = CRegDWORDCommon<CRegCStringBase>;
+using CRegQWORD = CRegQWORDCommon<CRegCStringBase>;
+using CRegString = CRegStringCommon<CRegCStringBase>;
 
 using CRegStdDWORD = CRegDWORDCommon<CRegBase>;
 using CRegStdQWORD = CRegQWORDCommon<CRegBase>;
 using CRegStdString = CRegStringCommon<CRegBase>;
 
-// using CRegDWORDList = CKeyList<CRegDWORD>;
-// using CRegQWORDList = CKeyList<CRegQWORD>;
-// using CRegStringList = CKeyList<CRegString>;
+using CRegDWORDList = CKeyList<CRegDWORD>;
+using CRegQWORDList = CKeyList<CRegQWORD>;
+using CRegStringList = CKeyList<CRegString>;
 
 using CRegStdDWORDList = CKeyList<CRegStdDWORD>;
 using CRegStdQWORDList = CKeyList<CRegStdQWORD>;

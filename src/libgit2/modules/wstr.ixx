@@ -1,5 +1,7 @@
-module;
+﻿module;
+#include <tgit_cstring.h>	// first: decides which CString this compile speaks
 #include <windows.h>
+#include <atlstr.h>		// CStringW / CStringA, for the std::formatter specializations
 
 
 export module wstr;
@@ -338,13 +340,30 @@ inline std::wstring Mid(const std::wstring_view s, const int from, const int cou
 	return Mid(s, static_cast<std::wstring_view::size_type>(std::max(from, 0)), static_cast<std::wstring_view::size_type>(count));
 }
 
-auto Replace(auto& s, const auto from, std::wstring_view to) noexcept
+/// CString::Replace contract: every non-overlapping occurrence, left to right;
+/// returns how many were replaced, and an empty \a from replaces nothing.
+/// (The generic version this replaces overwrote to.size() characters rather
+/// than from.size(), and never terminated for an empty \a to.)
+inline int Replace(std::wstring& s, const std::wstring_view from, const std::wstring_view to)
 {
-	size_t pos = 0;
-	while ((pos = s.find(from, pos)) != std::string::npos) {
-		s.replace(pos, to.size(), to);
-		pos += to.size();
-	}
+	if (from.empty())
+		return 0;
+	int count = 0;
+	for (size_t pos = 0; (pos = s.find(from, pos)) != std::wstring::npos; pos += to.size(), ++count)
+		s.replace(pos, from.size(), to);
+	return count;
+}
+
+inline int Replace(std::wstring& s, const wchar_t from, const wchar_t to) noexcept
+{
+	int count = 0;
+	for (auto& c : s)
+		if (c == from)
+		{
+			c = to;
+			++count;
+		}
+	return count;
 }
 
 inline void TrimLeft(std::wstring& s, const std::wstring_view chars = kDefaultTrimChars)
@@ -377,9 +396,13 @@ inline void MakeUpper(std::wstring& s)
 /// CString::CompareNoCase contract: <0, 0 or >0.
 inline int CompareNoCase(const std::wstring_view lhs, const std::wstring_view rhs) noexcept
 {
-	for (const auto [l, r] : std::views::zip(lhs, rhs))   // (wchar_t, wchar_t) pairs over the common prefix
-		if (std::towlower(l) != std::towlower(r))
-			return std::towlower(l) < std::towlower(r) ? -1 : 1;
+	// An index loop over the common prefix, not std::views::zip: instantiated in a TU
+	// that also has <ranges> textually (TortoiseProc's stdafx.h), MSVC merges the
+	// imported and the textual zip and rejects them as differing in noexcept (C2382).
+	const size_t common = (std::min)(lhs.size(), rhs.size());
+	for (size_t i = 0; i < common; ++i)
+		if (std::towlower(lhs[i]) != std::towlower(rhs[i]))
+			return std::towlower(lhs[i]) < std::towlower(rhs[i]) ? -1 : 1;
 	if (lhs.size() == rhs.size())
 		return 0;
 	return lhs.size() < rhs.size() ? -1 : 1;
@@ -473,23 +496,30 @@ using namespace tgit::wstr;
 // argument is formatted independently, so there is no operator+ to resolve and
 // no mixed-type expression to reason about.
 //
-// Constrained on the CString shape rather than on CString, deliberately:
-// CString is CStringT<wchar_t, StrTraitMFC_DLL<...>> in an MFC project and
-// CStringT<wchar_t, StrTraitATL<...>> in an ATL one, so naming either would
-// only cover half the tree. This covers both, and CStringA too if a narrow
-// format context ever needs it. Not `export`ed: a specialization of a std
-// template is reached through the primary, and export on a partial
-// specialization is ill-formed (C7760).
-template <IsStupidString TStr>
-struct std::formatter<TStr, TCharType<TStr>> : std::formatter<TViewType<TStr>>
+// Explicit specializations for the ATL CStrings, not the partial one constrained
+// on IsStupidString this used to be. That one was never usable outside this
+// module: MSVC did not find it from an importer (std::formattable<CString,
+// wchar_t> was false in StringUtils, which imports wstr), and its body built a
+// TCharType - one wchar_t - from the whole string, so it had never been
+// instantiated anywhere either. Naming the concrete types costs the MFC
+// flavor, which is deliberate: this library is ATL-flavor (CLAUDE.md Phase B),
+// and an MFC consumer crosses into it with std::wstring. Not `export`ed: a
+// specialization of a std template is reached through the primary.
+template <>
+struct std::formatter<CStringW, wchar_t> : std::formatter<std::wstring_view, wchar_t>
 {
-	using view_type = std::formatter<TViewType<TStr>>;
-	using value_type = TCharType<TStr>;
-
-	template <typename FormatContext>
-	auto format(const TStr& value, FormatContext& ctx) const
+	auto format(const CStringW& value, auto& ctx) const
 	{
-		return view_type::format(value_type{value}, ctx);
+		return std::formatter<std::wstring_view, wchar_t>::format(std::wstring_view(value.GetString(), value.GetLength()), ctx);
+	}
+};
+
+template <>
+struct std::formatter<CStringA, char> : std::formatter<std::string_view, char>
+{
+	auto format(const CStringA& value, auto& ctx) const
+	{
+		return std::formatter<std::string_view, char>::format(std::string_view(value.GetString(), value.GetLength()), ctx);
 	}
 };
 

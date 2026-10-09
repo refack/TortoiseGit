@@ -20,7 +20,7 @@
 #include "stdafx.h"
 #include <Resources/LoglistCommonResource.h>
 #include "LoglistUtils.h"
-#include "registry.h"
+import Registry;
 
 CLoglistUtils::CLoglistUtils()
 {

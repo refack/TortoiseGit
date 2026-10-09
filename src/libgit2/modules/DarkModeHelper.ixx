@@ -47,7 +47,7 @@ LONG DetourTransaction(const std::function<LONG()>& callback)
 }
 
 
-export namespace DarkModeHelper
+export namespace TGitDarkMode
 {
 
 
@@ -385,4 +385,7 @@ HTHEME WINAPI DarkModeHelper::DetouredOpenNcThemeData(HWND hwnd, LPCWSTR classLi
 
 }
 
-export using namespace DarkModeHelper;
+// The namespace is not called DarkModeHelper: with this using-directive, a
+// namespace and a class of the same name made every DarkModeHelper::Instance()
+// ambiguous at global scope (C2872) in every importer.
+export using namespace TGitDarkMode;

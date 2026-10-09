@@ -21,13 +21,13 @@
 #include "stdafx.h"
 #include "CloneCommand.h"
 #include "GitProgressDlg.h"
-#include "StringUtils.h"
+import StringUtils;
 #include "CloneDlg.h"
 #include "ProgressDlg.h"
 #include "AppUtils.h"
-#include "UnicodeUtils.h"
+import wstr;
 #include "ProgressCommands/CloneProgressCommand.h"
-#include "CmdLineParser.h"
+import CmdLineParser;
 
 static CString GetExistingDirectoryForClone(CString path)
 {
@@ -56,7 +56,7 @@ bool CloneCommand::Execute()
 	{
 		if (orgCmdLinePath.IsEmpty())
 		{
-			cloneDirectory.SetFromWin(CPathUtils::GetCWD(), true);
+			cloneDirectory.SetFromWin(PathUtils::GetCWD(), true);
 		}
 		else
 			cloneDirectory = orgCmdLinePath;
@@ -185,7 +185,7 @@ bool CloneCommand::Execute()
 		}
 		else
 		{
-			if (g_Git.UsingLibGit2(CGit::GIT_CMD_CLONE))
+			if (g_Git.UsingLibGit2(TGitH::GIT_CMD_CLONE))
 			{
 				while (true)
 				{

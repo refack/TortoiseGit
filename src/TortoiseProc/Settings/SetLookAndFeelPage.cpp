@@ -21,11 +21,11 @@
 #include "stdafx.h"
 #include "TortoiseProc.h"
 #include "AppUtils.h"
-#include "StringUtils.h"
+import StringUtils;
 #include "SetLookAndFeelPage.h"
-#include "MenuInfo.h"
-#include "ShellCache.h"
-#include "PathUtils.h"
+#include "TortoiseShell/MenuInfo.h"
+#include "TortoiseShell/ShellCache.h"
+import PathUtils;
 #include "Commands/RegisterWin11ContextMenu.h"
 
 void InsertMenuItemToList(CListCtrl *list,CImageList *imagelist)

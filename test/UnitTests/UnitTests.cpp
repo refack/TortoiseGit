@@ -22,6 +22,16 @@
 
 int _tmain(int argc, _TCHAR* argv[])
 {
+	// Unattended: a Debug assertion is reported on stderr, not in a modal dialog
+	// that hangs the run. The text still lands in the output, where an
+	// "Assertion failed!" is signal (CLAUDE.md, "Validation gates").
+	for (const int type : { _CRT_ASSERT, _CRT_ERROR })
+	{
+		_CrtSetReportMode(type, _CRTDBG_MODE_FILE | _CRTDBG_MODE_DEBUG);
+		_CrtSetReportFile(type, _CRTDBG_FILE_STDERR);
+	}
+	SetErrorMode(SEM_FAILCRITICALERRORS | SEM_NOGPFAULTERRORBOX);
+
 	git_libgit2_init();
 	// Since Google Mock depends on Google Test, InitGoogleMock() is
 	// also responsible for initializing Google Test. Therefor there's

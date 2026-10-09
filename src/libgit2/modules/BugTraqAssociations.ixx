@@ -1,4 +1,5 @@
-module;
+﻿module;
+#include <tgit_cstring.h>	// first: decides which CString this compile speaks
 #include <atlstr.h>
 #include <initguid.h>
 

@@ -1,4 +1,5 @@
 ﻿module;
+#include <tgit_cstring.h>	// first: decides which CString this compile speaks
 #include <git2/oid.h>
 #define GIT_HASH_MAX_HEXSIZE (2 * GIT_OID_MAX_SIZE)
 
@@ -61,12 +62,11 @@ public:
 		return *this;
 	}
 
-#ifdef TGIT_TESTS_ONLY
+	// was TGIT_TESTS_ONLY; a module cannot vary its API by importer
 	static CGitHash FromHexStr(const wchar_t* str, bool* isHash = nullptr)
 	{
 		return FromHexStr(std::wstring_view(str), isHash);
 	}
-#endif
 
 	template <IsTCompString Str>
 	static CGitHash FromHexStr(const Str& str, bool* isHash = nullptr)
@@ -183,7 +183,18 @@ public:
 	{
 		if (std::memcmp(m_oid.id, hash.m_oid.id, prefixLen >> 1) != 0)
 			return false;
-		return prefixLen == 2 * GitFormatHolder::GitHashSize() || wcsncmp(ToString(), hashString, prefixLen) == 0;
+		if (prefixLen == 2 * GitFormatHolder::GitHashSize())
+			return true;
+		// ToString() is a std::wstring now, so no wcsncmp; and hashString may be a
+		// CString, a std string or a raw pointer. A shorter hashString mismatches,
+		// as wcsncmp's NUL did.
+		const std::wstring_view prefix = [&]() -> std::wstring_view {
+			if constexpr (std::is_convertible_v<decltype(hashString), const wchar_t*>)
+				return static_cast<const wchar_t*>(hashString);
+			else
+				return hashString;
+		}();
+		return std::wstring_view(ToString()).substr(0, prefixLen) == prefix.substr(0, prefixLen);
 	}
 
 	friend struct std::hash<CGitHash>;

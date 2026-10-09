@@ -21,7 +21,7 @@
 //
 
 #include "stdafx.h"
-#include "Git.h"
+import git_h;
 #include "TortoiseProc.h"
 #include "MergeDlg.h"
 #include "AppUtils.h"

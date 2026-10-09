@@ -1,4 +1,5 @@
 ﻿module;
+#include <tgit_cstring.h>	// first: decides which CString this compile speaks
 #include <atlstr.h>
 #include <gitdll.h>
 #include "sanity.h"

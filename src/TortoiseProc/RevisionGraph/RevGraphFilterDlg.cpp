@@ -20,10 +20,10 @@
 #include "stdafx.h"
 #include "TortoiseProc.h"
 #include "RevGraphFilterDlg.h"
-#include "gittype.h"
-#include "Git.h"
+import tgittypes;
+import git_h;
 #include "BrowseRefsDlg.h"
-#include "StringUtils.h"
+import StringUtils;
 
 IMPLEMENT_DYNAMIC(CRevGraphFilterDlg, CStandAloneDialog)
 

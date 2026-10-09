@@ -18,7 +18,7 @@
 //
 
 #include "stdafx.h"
-#include "Git.h"
+import git_h;
 #include "AppUtils.h"
 #include "TortoiseProc.h"
 #include "DeleteRemoteTagDlg.h"
@@ -95,7 +95,7 @@ void CDeleteRemoteTagDlg::Refresh()
 	if (g_Git.GetRemoteRefs(m_sRemote, tags, true, false))
 	{
 		sysProgressDlg.Stop();
-		MessageBox(g_Git.GetGitLastErr(L"Could not retrieve remote tags.", CGit::GIT_CMD_FETCH), L"TortoiseGit", MB_ICONERROR);
+		MessageBox(g_Git.GetGitLastErr(L"Could not retrieve remote tags.", TGitH::GIT_CMD_FETCH), L"TortoiseGit", MB_ICONERROR);
 	}
 	sysProgressDlg.Stop();
 	BringWindowToTop();
@@ -159,7 +159,7 @@ void CDeleteRemoteTagDlg::OnBnClickedOk()
 	sysProgressDlg.SetShowProgressBar(false);
 	sysProgressDlg.ShowModal(this, true);
 	if (g_Git.DeleteRemoteRefs(m_sRemote, list))
-		CMessageBox::Show(GetSafeHwnd(), g_Git.GetGitLastErr(L"Could not delete remote ref.", CGit::GIT_CMD_PUSH), L"TortoiseGit", MB_OK | MB_ICONERROR);
+		CMessageBox::Show(GetSafeHwnd(), g_Git.GetGitLastErr(L"Could not delete remote ref.", TGitH::GIT_CMD_PUSH), L"TortoiseGit", MB_OK | MB_ICONERROR);
 	sysProgressDlg.Stop();
 	BringWindowToTop();
 	Refresh();

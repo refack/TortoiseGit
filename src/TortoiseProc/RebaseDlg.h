@@ -18,7 +18,7 @@
 //
 
 #pragma once
-#include <Utils/MiscUI/StandAloneDlg.h>
+#include "StandAloneDlg.h"
 #include "GitStatusListCtrl.h"
 #include "SciEdit.h"
 #include "SplitterControl.h"

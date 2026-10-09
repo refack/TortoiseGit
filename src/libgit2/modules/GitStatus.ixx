@@ -1,4 +1,5 @@
 ﻿module;
+#include <tgit_cstring.h>	// first: decides which CString this compile speaks
 #include <windows.h>
 #include <atlstr.h>
 // wil::GetFileInfo<> (instantiated below) reaches wil's error-reporting helpers, which call

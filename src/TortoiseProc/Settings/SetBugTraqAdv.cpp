@@ -18,9 +18,10 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 #include "stdafx.h"
+#include <TortoiseProc/resource.h>	// restored: these IDs used to arrive through headers that are imports now
 #include "SetBugTraqAdv.h"
 #include "BrowseFolder.h"
-#include "BugTraqAssociations.h"
+import BugTraqProvider;
 #include <IBugTraqProvider/IBugTraqProvider_h.h>
 
 IMPLEMENT_DYNAMIC(CSetBugTraqAdv, CResizableStandAloneDialog)
@@ -128,7 +129,7 @@ void CSetBugTraqAdv::OnOK()
 
 	if (m_sPath.IsEmpty() || !PathIsDirectory(m_sPath) || PathIsRelative(m_sPath))
 	{
-		ShowEditBalloon(IDC_BUGTRAQPATH, static_cast<LPCWSTR>(CFormatMessageWrapper(ERROR_PATH_NOT_FOUND)), CString(MAKEINTRESOURCE(IDS_ERR_ERROR)), TTI_ERROR);
+		ShowEditBalloon(IDC_BUGTRAQPATH, (CFormatMessageWrapper(ERROR_PATH_NOT_FOUND)).c_str(), CString(MAKEINTRESOURCE(IDS_ERR_ERROR)), TTI_ERROR);
 		return;
 	}
 

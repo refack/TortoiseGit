@@ -21,7 +21,7 @@
 #include "TortoiseProc.h"
 #include "LFSSetLockedProgressCommand.h"
 #include "AppUtils.h"
-#include "TempFile.h"
+import TempFile;
 
 using Git_WC_Notify_Action = CGitProgressList::WC_File_NotificationData::Git_WC_Notify_Action;
 
@@ -56,7 +56,7 @@ bool LFSSetLockedProgressCommand::Run(CGitProgressList* list, CString& sWindowTi
 		{
 			postCmdList.emplace_back(IDI_LFSUNLOCK, IDS_PROGS_LFS_FORCEUNLOCK, [this]()
 			{
-				CString tempfilename = CTempFiles::Instance().GetTempFilePath(false).GetWinPathString().c_str();
+				CString tempfilename = TempFiles::GetTempFilePath(false).GetWinPathString().c_str();
 				VERIFY(m_targetPathList.WriteToFile(tempfilename.GetString()));
 				CString sCmd;
 				sCmd.Format(L"/command:lfsunlock /force /pathfile:\"%s\" /deletepathfile", static_cast<LPCWSTR>(tempfilename));

@@ -19,7 +19,7 @@
 //
 #pragma once
 
-#include <Utils/MiscUI/StandAloneDlg.h>
+#include "StandAloneDlg.h"
 #include "SciEdit.h"
 #include "resource.h"
 /**

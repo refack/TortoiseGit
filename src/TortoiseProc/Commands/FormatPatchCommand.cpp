@@ -20,8 +20,8 @@
 #include "stdafx.h"
 #include "FormatPatchCommand.h"
 #include "FormatPatchDlg.h"
-#include "Git.h"
-#include "ShellUpdater.h"
+import git_h;
+import CShellUpdater;
 #include "ProgressDlg.h"
 #include "AppUtils.h"
 

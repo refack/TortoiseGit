@@ -1,4 +1,5 @@
 ﻿module;
+#include <tgit_cstring.h>	// first: decides which CString this compile speaks
 #include <stddef.h> // offsetof: a macro, so import std does not provide it
 #include <atlstr.h>
 #include <Shldisp.h>
@@ -21,7 +22,7 @@ using TGitHash::CGitHash;
 
 
 
-namespace GitDataObject
+export namespace TGitDataObject
 {
 constexpr auto GITDATAOBJECT_NUMFORMATS = 9;
 
@@ -857,4 +858,7 @@ STDMETHODIMP CGitEnumFormatEtc::Clone(IEnumFORMATETC** ppCloneEnumFormatEtc)
 
 }
 
-export using namespace GitDataObject;
+// Exported, and not named GitDataObject: as with DarkModeHelper, a namespace and
+// a class of the same name made the bare name ambiguous - and unexported, the
+// using-directive exported nothing at all.
+export using namespace TGitDataObject;

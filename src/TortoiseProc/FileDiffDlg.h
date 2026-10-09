@@ -20,9 +20,9 @@
 
 #pragma once
 #include "afxcmn.h"
-#include <Utils/MiscUI/StandAloneDlg.h>
-#include "GitRev.h"
-#include "TGitPath.h"
+#include "StandAloneDlg.h"
+import GitRev;
+import TGitPath;
 #include "HintCtrl.h"
 #include "Colors.h"
 #include "FilterEdit.h"

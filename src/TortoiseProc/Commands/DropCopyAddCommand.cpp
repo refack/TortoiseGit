@@ -19,11 +19,11 @@
 //
 #include "stdafx.h"
 #include "DropCopyAddCommand.h"
-#include "FormatMessageWrapper.h"
+import wil;
 #include "GitProgressDlg.h"
 #include "MessageBox.h"
-#include "StringUtils.h"
-#include "DirFileEnum.h"
+import StringUtils;
+import DirFileEnum;
 #include "ProgressCommands/AddProgressCommand.h"
 
 bool DropCopyAddCommand::Execute()
@@ -161,6 +161,6 @@ void DropCopyAddCommand::ShowErrorMessage()
 {
 	CFormatMessageWrapper errorDetails;
 	CString strMessage;
-	strMessage.Format(IDS_ERR_COPYFILES, static_cast<LPCWSTR>(errorDetails));
+	strMessage.Format(IDS_ERR_COPYFILES, (errorDetails).c_str());
 	MessageBox(GetExplorerHWND(), strMessage, L"TortoiseGit", MB_OK | MB_ICONINFORMATION);
 }

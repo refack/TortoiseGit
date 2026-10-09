@@ -24,69 +24,69 @@ import PathUtils;
 TEST(CPathUtils, GetFileNameFromPath)
 {
 	std::wstring test(L"d:\\test\\filename.ext");
-	EXPECT_STREQ(L"filename.ext", CPathUtils::GetFileNameFromPath(test).c_str());
+	EXPECT_STREQ(L"filename.ext", PathUtils::GetFileNameFromPath(test).c_str());
 	test = L"filename.ext";
-	EXPECT_STREQ(L"filename.ext", CPathUtils::GetFileNameFromPath(test).c_str());
+	EXPECT_STREQ(L"filename.ext", PathUtils::GetFileNameFromPath(test).c_str());
 	test = L"d:/test/filename";
-	EXPECT_STREQ(L"filename", CPathUtils::GetFileNameFromPath(test).c_str());
+	EXPECT_STREQ(L"filename", PathUtils::GetFileNameFromPath(test).c_str());
 	test = L"d:\\test\\filename";
-	EXPECT_STREQ(L"filename", CPathUtils::GetFileNameFromPath(test).c_str());
+	EXPECT_STREQ(L"filename", PathUtils::GetFileNameFromPath(test).c_str());
 	test = L"filename";
-	EXPECT_STREQ(L"filename", CPathUtils::GetFileNameFromPath(test).c_str());
+	EXPECT_STREQ(L"filename", PathUtils::GetFileNameFromPath(test).c_str());
 	test.clear();
-	EXPECT_STREQ(L"", CPathUtils::GetFileNameFromPath(test).c_str());
+	EXPECT_STREQ(L"", PathUtils::GetFileNameFromPath(test).c_str());
 
 	// Mixed separators, which nothing above covers and which is exactly what
 	// distinguishes the two implementations: this used to normalize every slash
 	// to a backslash and then take everything after the last one, and now looks
 	// for the last of either. Both answer "filename" - assert that they do.
-	EXPECT_STREQ(L"filename", CPathUtils::GetFileNameFromPath(L"d:\\test/filename").c_str());
-	EXPECT_STREQ(L"filename", CPathUtils::GetFileNameFromPath(L"d:/test\\filename").c_str());
-	EXPECT_STREQ(L"", CPathUtils::GetFileNameFromPath(L"d:\\test\\").c_str());
+	EXPECT_STREQ(L"filename", PathUtils::GetFileNameFromPath(L"d:\\test/filename").c_str());
+	EXPECT_STREQ(L"filename", PathUtils::GetFileNameFromPath(L"d:/test\\filename").c_str());
+	EXPECT_STREQ(L"", PathUtils::GetFileNameFromPath(L"d:\\test\\").c_str());
 }
 
 TEST(CPathUtils, ExtTest)
 {
 	std::wstring test(L"d:\\test\\filename.ext");
-	EXPECT_STREQ(L".ext", CPathUtils::GetFileExtFromPath(test).c_str());
+	EXPECT_STREQ(L".ext", PathUtils::GetFileExtFromPath(test).c_str());
 	test = L"filename.ext";
-	EXPECT_STREQ(L".ext", CPathUtils::GetFileExtFromPath(test).c_str());
+	EXPECT_STREQ(L".ext", PathUtils::GetFileExtFromPath(test).c_str());
 	test = L"d:\\test\\filename";
-	EXPECT_STREQ(L"", CPathUtils::GetFileExtFromPath(test).c_str());
+	EXPECT_STREQ(L"", PathUtils::GetFileExtFromPath(test).c_str());
 	test = L"filename";
-	EXPECT_STREQ(L"", CPathUtils::GetFileExtFromPath(test).c_str());
+	EXPECT_STREQ(L"", PathUtils::GetFileExtFromPath(test).c_str());
 	test.clear();
-	EXPECT_STREQ(L"", CPathUtils::GetFileExtFromPath(test).c_str());
+	EXPECT_STREQ(L"", PathUtils::GetFileExtFromPath(test).c_str());
 
 	// A dot in a directory name is not an extension of the file below it.
-	EXPECT_STREQ(L"", CPathUtils::GetFileExtFromPath(L"d:\\te.st\\filename").c_str());
+	EXPECT_STREQ(L"", PathUtils::GetFileExtFromPath(L"d:\\te.st\\filename").c_str());
 }
 
 TEST(CPathUtils, ParseTests)
 {
 	std::wstring test(L"test 'd:\\testpath with spaces' test");
-	EXPECT_STREQ(L"d:\\testpath with spaces", CPathUtils::ParsePathInString(test).c_str());
+	EXPECT_STREQ(L"d:\\testpath with spaces", PathUtils::ParsePathInString(test).c_str());
 	test = L"d:\\testpath with spaces";
-	EXPECT_STREQ(L"d:\\testpath with spaces", CPathUtils::ParsePathInString(test).c_str());
+	EXPECT_STREQ(L"d:\\testpath with spaces", PathUtils::ParsePathInString(test).c_str());
 }
 
 TEST(CPathUtils, ArePathStringsEqual)
 {
 	// Two empty paths are equal, and must not reach the length-taking overload
 	// with the null data() a default-constructed view has.
-	EXPECT_TRUE(CPathUtils::ArePathStringsEqual(std::wstring_view(), std::wstring_view()));
-	EXPECT_TRUE(CPathUtils::ArePathStringsEqualWithCase(std::wstring_view(), std::wstring_view()));
+	EXPECT_TRUE(PathUtils::ArePathStringsEqual(std::wstring_view(), std::wstring_view()));
+	EXPECT_TRUE(PathUtils::ArePathStringsEqualWithCase(std::wstring_view(), std::wstring_view()));
 
-	EXPECT_TRUE(CPathUtils::ArePathStringsEqual(L"C:\\My\\Path", L"c:\\my\\path"));
-	EXPECT_FALSE(CPathUtils::ArePathStringsEqualWithCase(L"C:\\My\\Path", L"c:\\my\\path"));
-	EXPECT_TRUE(CPathUtils::ArePathStringsEqualWithCase(L"C:\\My\\Path", L"C:\\My\\Path"));
+	EXPECT_TRUE(PathUtils::ArePathStringsEqual(L"C:\\My\\Path", L"c:\\my\\path"));
+	EXPECT_FALSE(PathUtils::ArePathStringsEqualWithCase(L"C:\\My\\Path", L"c:\\my\\path"));
+	EXPECT_TRUE(PathUtils::ArePathStringsEqualWithCase(L"C:\\My\\Path", L"C:\\My\\Path"));
 
 	// Differing lengths are rejected before any comparison; a prefix is not a match.
-	EXPECT_FALSE(CPathUtils::ArePathStringsEqual(L"C:\\my", L"C:\\my\\path"));
+	EXPECT_FALSE(PathUtils::ArePathStringsEqual(L"C:\\my", L"C:\\my\\path"));
 
 	// ...unless the caller asks for exactly that, which is what the length-taking
 	// overload is for (CTGitPath::IsAncestorOf).
-	EXPECT_TRUE(CPathUtils::ArePathStringsEqual(L"C:\\MY\\path", L"c:\\my", 5));
+	EXPECT_TRUE(PathUtils::ArePathStringsEqual(L"C:\\MY\\path", L"c:\\my", 5));
 }
 
 TEST(CPathUtils, MakeSureDirectoryPathExists)
@@ -96,12 +96,12 @@ TEST(CPathUtils, MakeSureDirectoryPathExists)
 	EXPECT_FALSE(PathFileExists(tmpDir.GetTempDir() + L"\\sub"));
 	EXPECT_FALSE(PathIsDirectory(tmpDir.GetTempDir() + L"\\sub"));
 
-	EXPECT_TRUE(CPathUtils::MakeSureDirectoryPathExists(tmpDir.GetTempDir() + L"\\sub\\sub\\dir"));
+	EXPECT_TRUE(PathUtils::MakeSureDirectoryPathExists(tmpDir.GetTempDir() + L"\\sub\\sub\\dir"));
 	EXPECT_TRUE(PathIsDirectory(tmpDir.GetTempDir() + L"\\sub"));
 	EXPECT_TRUE(PathIsDirectory(tmpDir.GetTempDir() + L"\\sub\\sub"));
 	EXPECT_TRUE(PathIsDirectory(tmpDir.GetTempDir() + L"\\sub\\sub\\dir"));
 
-	EXPECT_TRUE(CPathUtils::MakeSureDirectoryPathExists(tmpDir.GetTempDir() + L"\\sub/asub/adir"));
+	EXPECT_TRUE(PathUtils::MakeSureDirectoryPathExists(tmpDir.GetTempDir() + L"\\sub/asub/adir"));
 	EXPECT_TRUE(PathIsDirectory(tmpDir.GetTempDir() + L"\\sub"));
 	EXPECT_TRUE(PathIsDirectory(tmpDir.GetTempDir() + L"\\sub\\asub"));
 	EXPECT_TRUE(PathIsDirectory(tmpDir.GetTempDir() + L"\\sub\\asub\\adir"));
@@ -110,120 +110,120 @@ TEST(CPathUtils, MakeSureDirectoryPathExists)
 TEST(CPathUtils, EnsureTrailingPathDelimiter)
 {
 	std::wstring tPath;
-	CPathUtils::EnsureTrailingPathDelimiter(tPath);
+	PathUtils::EnsureTrailingPathDelimiter(tPath);
 	EXPECT_STREQ(tPath.c_str(), L"");
 
 	tPath = L"C:";
-	CPathUtils::EnsureTrailingPathDelimiter(tPath);
+	PathUtils::EnsureTrailingPathDelimiter(tPath);
 	EXPECT_STREQ(tPath.c_str(), L"C:\\");
 
 	tPath = L"C:\\";
-	CPathUtils::EnsureTrailingPathDelimiter(tPath);
+	PathUtils::EnsureTrailingPathDelimiter(tPath);
 	EXPECT_STREQ(tPath.c_str(), L"C:\\");
 
 	tPath = L"C:\\my\\path";
-	CPathUtils::EnsureTrailingPathDelimiter(tPath);
+	PathUtils::EnsureTrailingPathDelimiter(tPath);
 	EXPECT_STREQ(tPath.c_str(), L"C:\\my\\path\\");
 
 	tPath = L"C:\\my\\path\\";
-	CPathUtils::EnsureTrailingPathDelimiter(tPath);
+	PathUtils::EnsureTrailingPathDelimiter(tPath);
 	EXPECT_STREQ(tPath.c_str(), L"C:\\my\\path\\");
 }
 
 TEST(CPathUtils, BuildPathWithPathDelimiter)
 {
-	EXPECT_STREQ(CPathUtils::BuildPathWithPathDelimiter(L"").c_str(), L"");
-	EXPECT_STREQ(CPathUtils::BuildPathWithPathDelimiter(L"C:").c_str(), L"C:\\");
-	EXPECT_STREQ(CPathUtils::BuildPathWithPathDelimiter(L"C:\\").c_str(), L"C:\\");
-	EXPECT_STREQ(CPathUtils::BuildPathWithPathDelimiter(L"C:\\my\\path").c_str(), L"C:\\my\\path\\");
-	EXPECT_STREQ(CPathUtils::BuildPathWithPathDelimiter(L"C:\\my\\path\\").c_str(), L"C:\\my\\path\\");
+	EXPECT_STREQ(PathUtils::BuildPathWithPathDelimiter(L"").c_str(), L"");
+	EXPECT_STREQ(PathUtils::BuildPathWithPathDelimiter(L"C:").c_str(), L"C:\\");
+	EXPECT_STREQ(PathUtils::BuildPathWithPathDelimiter(L"C:\\").c_str(), L"C:\\");
+	EXPECT_STREQ(PathUtils::BuildPathWithPathDelimiter(L"C:\\my\\path").c_str(), L"C:\\my\\path\\");
+	EXPECT_STREQ(PathUtils::BuildPathWithPathDelimiter(L"C:\\my\\path\\").c_str(), L"C:\\my\\path\\");
 }
 
 TEST(CPathUtils, TrimTrailingPathDelimiter)
 {
 	std::wstring tPath;
-	CPathUtils::TrimTrailingPathDelimiter(tPath);
+	PathUtils::TrimTrailingPathDelimiter(tPath);
 	EXPECT_STREQ(tPath.c_str(), L"");
 
 	tPath = L"C:";
-	CPathUtils::TrimTrailingPathDelimiter(tPath);
+	PathUtils::TrimTrailingPathDelimiter(tPath);
 	EXPECT_STREQ(tPath.c_str(), L"C:");
 
 	tPath = L"C:\\";
-	CPathUtils::TrimTrailingPathDelimiter(tPath);
+	PathUtils::TrimTrailingPathDelimiter(tPath);
 	EXPECT_STREQ(tPath.c_str(), L"C:");
 
 	tPath = L"C:\\my\\path";
-	CPathUtils::TrimTrailingPathDelimiter(tPath);
+	PathUtils::TrimTrailingPathDelimiter(tPath);
 	EXPECT_STREQ(tPath.c_str(), L"C:\\my\\path");
 
 	tPath = L"C:\\my\\path\\";
-	CPathUtils::TrimTrailingPathDelimiter(tPath);
+	PathUtils::TrimTrailingPathDelimiter(tPath);
 	EXPECT_STREQ(tPath.c_str(), L"C:\\my\\path");
 
 	tPath = L"C:\\my\\path\\\\";
-	CPathUtils::TrimTrailingPathDelimiter(tPath);
+	PathUtils::TrimTrailingPathDelimiter(tPath);
 	EXPECT_STREQ(tPath.c_str(), L"C:\\my\\path");
 
 	// All-delimiters trims to nothing rather than leaving one behind.
 	tPath = L"\\\\";
-	CPathUtils::TrimTrailingPathDelimiter(tPath);
+	PathUtils::TrimTrailingPathDelimiter(tPath);
 	EXPECT_STREQ(tPath.c_str(), L"");
 }
 
 TEST(CPathUtils, ExpandFileName)
 {
-	EXPECT_STREQ(CPathUtils::ExpandFileName(L"C:\\my\\path\\da\\da\\da").c_str(), L"C:\\my\\path\\da\\da\\da");
-	EXPECT_STREQ(CPathUtils::ExpandFileName(L"C:\\my\\path\\da\\da\\da\\").c_str(), L"C:\\my\\path\\da\\da\\da\\");
+	EXPECT_STREQ(PathUtils::ExpandFileName(L"C:\\my\\path\\da\\da\\da").c_str(), L"C:\\my\\path\\da\\da\\da");
+	EXPECT_STREQ(PathUtils::ExpandFileName(L"C:\\my\\path\\da\\da\\da\\").c_str(), L"C:\\my\\path\\da\\da\\da\\");
 
-	EXPECT_STREQ(CPathUtils::ExpandFileName(L"C:\\my\\path\\\\da\\da\\da").c_str(), L"C:\\my\\path\\da\\da\\da");
-	EXPECT_STREQ(CPathUtils::ExpandFileName(L"C:\\my\\path\\.\\da\\da\\da").c_str(), L"C:\\my\\path\\da\\da\\da");
-	EXPECT_STREQ(CPathUtils::ExpandFileName(L"C:\\my\\path\\.\\da\\da\\da\\").c_str(), L"C:\\my\\path\\da\\da\\da\\");
+	EXPECT_STREQ(PathUtils::ExpandFileName(L"C:\\my\\path\\\\da\\da\\da").c_str(), L"C:\\my\\path\\da\\da\\da");
+	EXPECT_STREQ(PathUtils::ExpandFileName(L"C:\\my\\path\\.\\da\\da\\da").c_str(), L"C:\\my\\path\\da\\da\\da");
+	EXPECT_STREQ(PathUtils::ExpandFileName(L"C:\\my\\path\\.\\da\\da\\da\\").c_str(), L"C:\\my\\path\\da\\da\\da\\");
 
-	EXPECT_STREQ(CPathUtils::ExpandFileName(L"C:\\my\\path\\..\\da\\da\\da").c_str(), L"C:\\my\\da\\da\\da");
-	EXPECT_STREQ(CPathUtils::ExpandFileName(L"C:\\my\\path\\..\\da\\da\\da\\").c_str(), L"C:\\my\\da\\da\\da\\");
+	EXPECT_STREQ(PathUtils::ExpandFileName(L"C:\\my\\path\\..\\da\\da\\da").c_str(), L"C:\\my\\da\\da\\da");
+	EXPECT_STREQ(PathUtils::ExpandFileName(L"C:\\my\\path\\..\\da\\da\\da\\").c_str(), L"C:\\my\\da\\da\\da\\");
 
 	// "\\.\\C:\\"
-	EXPECT_STREQ(CPathUtils::ExpandFileName(L"\\\\.\\C:\\my\\path\\da\\da\\da").c_str(), L"\\\\.\\C:\\my\\path\\da\\da\\da");
-	EXPECT_STREQ(CPathUtils::ExpandFileName(L"\\\\.\\C:\\my\\path\\da\\da\\da\\").c_str(), L"\\\\.\\C:\\my\\path\\da\\da\\da\\");
+	EXPECT_STREQ(PathUtils::ExpandFileName(L"\\\\.\\C:\\my\\path\\da\\da\\da").c_str(), L"\\\\.\\C:\\my\\path\\da\\da\\da");
+	EXPECT_STREQ(PathUtils::ExpandFileName(L"\\\\.\\C:\\my\\path\\da\\da\\da\\").c_str(), L"\\\\.\\C:\\my\\path\\da\\da\\da\\");
 
-	EXPECT_STREQ(CPathUtils::ExpandFileName(L"\\\\.\\C:\\my\\path\\\\da\\da\\da").c_str(), L"\\\\.\\C:\\my\\path\\da\\da\\da");
-	EXPECT_STREQ(CPathUtils::ExpandFileName(L"\\\\.\\C:\\my\\path\\.\\da\\da\\da").c_str(), L"\\\\.\\C:\\my\\path\\da\\da\\da");
-	EXPECT_STREQ(CPathUtils::ExpandFileName(L"\\\\.\\C:\\my\\path\\.\\da\\da\\da\\").c_str(), L"\\\\.\\C:\\my\\path\\da\\da\\da\\");
+	EXPECT_STREQ(PathUtils::ExpandFileName(L"\\\\.\\C:\\my\\path\\\\da\\da\\da").c_str(), L"\\\\.\\C:\\my\\path\\da\\da\\da");
+	EXPECT_STREQ(PathUtils::ExpandFileName(L"\\\\.\\C:\\my\\path\\.\\da\\da\\da").c_str(), L"\\\\.\\C:\\my\\path\\da\\da\\da");
+	EXPECT_STREQ(PathUtils::ExpandFileName(L"\\\\.\\C:\\my\\path\\.\\da\\da\\da\\").c_str(), L"\\\\.\\C:\\my\\path\\da\\da\\da\\");
 
-	EXPECT_STREQ(CPathUtils::ExpandFileName(L"\\\\.\\C:\\my\\path\\..\\da\\da\\da").c_str(), L"\\\\.\\C:\\my\\da\\da\\da");
-	EXPECT_STREQ(CPathUtils::ExpandFileName(L"\\\\.\\C:\\my\\path\\..\\da\\da\\da\\").c_str(), L"\\\\.\\C:\\my\\da\\da\\da\\");
+	EXPECT_STREQ(PathUtils::ExpandFileName(L"\\\\.\\C:\\my\\path\\..\\da\\da\\da").c_str(), L"\\\\.\\C:\\my\\da\\da\\da");
+	EXPECT_STREQ(PathUtils::ExpandFileName(L"\\\\.\\C:\\my\\path\\..\\da\\da\\da\\").c_str(), L"\\\\.\\C:\\my\\da\\da\\da\\");
 
 	// UNC paths
-	EXPECT_STREQ(CPathUtils::ExpandFileName(L"\\\\DACOMPUTER\\my\\path\\.\\da\\da\\da").c_str(), L"\\\\DACOMPUTER\\my\\path\\da\\da\\da");
-	EXPECT_STREQ(CPathUtils::ExpandFileName(L"\\\\DACOMPUTER\\my\\path\\.\\da\\da\\da\\").c_str(), L"\\\\DACOMPUTER\\my\\path\\da\\da\\da\\");
+	EXPECT_STREQ(PathUtils::ExpandFileName(L"\\\\DACOMPUTER\\my\\path\\.\\da\\da\\da").c_str(), L"\\\\DACOMPUTER\\my\\path\\da\\da\\da");
+	EXPECT_STREQ(PathUtils::ExpandFileName(L"\\\\DACOMPUTER\\my\\path\\.\\da\\da\\da\\").c_str(), L"\\\\DACOMPUTER\\my\\path\\da\\da\\da\\");
 
-	EXPECT_STREQ(CPathUtils::ExpandFileName(L"\\\\DACOMPUTER\\my\\path\\..\\da\\da\\da").c_str(), L"\\\\DACOMPUTER\\my\\da\\da\\da");
-	EXPECT_STREQ(CPathUtils::ExpandFileName(L"\\\\DACOMPUTER\\my\\path\\..\\da\\da\\da\\").c_str(), L"\\\\DACOMPUTER\\my\\da\\da\\da\\");
+	EXPECT_STREQ(PathUtils::ExpandFileName(L"\\\\DACOMPUTER\\my\\path\\..\\da\\da\\da").c_str(), L"\\\\DACOMPUTER\\my\\da\\da\\da");
+	EXPECT_STREQ(PathUtils::ExpandFileName(L"\\\\DACOMPUTER\\my\\path\\..\\da\\da\\da\\").c_str(), L"\\\\DACOMPUTER\\my\\da\\da\\da\\");
 }
 
 TEST(CPathUtils, IsSamePath)
 {
-	EXPECT_TRUE(CPathUtils::IsSamePath(L"", L""));
+	EXPECT_TRUE(PathUtils::IsSamePath(L"", L""));
 
-	EXPECT_TRUE(CPathUtils::IsSamePath(L"C:\\my\\path\\da\\da\\da", L"C:\\my\\path\\da\\da\\da"));
-	EXPECT_TRUE(CPathUtils::IsSamePath(L"C:\\my\\path\\da\\da\\da", L"c:\\my\\pAth\\DA\\da\\da"));
-	EXPECT_TRUE(CPathUtils::IsSamePath(L"C:\\my\\path\\da\\da\\da", L"C:\\my\\path\\da\\da\\da\\"));
-	EXPECT_TRUE(CPathUtils::IsSamePath(L"C:\\my\\path\\da\\da\\da", L"C:\\my\\path\\da\\da\\da\\."));
-	EXPECT_TRUE(CPathUtils::IsSamePath(L"C:\\my\\path\\da\\da\\da", L"C:\\my\\path\\da\\da\\da\\.\\"));
-	EXPECT_TRUE(CPathUtils::IsSamePath(L"C:\\my\\path\\da\\da\\da", L"C:\\my\\path\\.\\.\\da\\da\\da"));
-	EXPECT_TRUE(CPathUtils::IsSamePath(L"C:\\my\\path\\da\\da\\da", L"C:\\my\\path\\..\\path\\da\\da\\da"));
-	EXPECT_TRUE(CPathUtils::IsSamePath(L"C:\\my\\path\\da\\da\\da", L"C:\\my\\path\\..\\path\\da\\da\\da\\bla\\.."));
+	EXPECT_TRUE(PathUtils::IsSamePath(L"C:\\my\\path\\da\\da\\da", L"C:\\my\\path\\da\\da\\da"));
+	EXPECT_TRUE(PathUtils::IsSamePath(L"C:\\my\\path\\da\\da\\da", L"c:\\my\\pAth\\DA\\da\\da"));
+	EXPECT_TRUE(PathUtils::IsSamePath(L"C:\\my\\path\\da\\da\\da", L"C:\\my\\path\\da\\da\\da\\"));
+	EXPECT_TRUE(PathUtils::IsSamePath(L"C:\\my\\path\\da\\da\\da", L"C:\\my\\path\\da\\da\\da\\."));
+	EXPECT_TRUE(PathUtils::IsSamePath(L"C:\\my\\path\\da\\da\\da", L"C:\\my\\path\\da\\da\\da\\.\\"));
+	EXPECT_TRUE(PathUtils::IsSamePath(L"C:\\my\\path\\da\\da\\da", L"C:\\my\\path\\.\\.\\da\\da\\da"));
+	EXPECT_TRUE(PathUtils::IsSamePath(L"C:\\my\\path\\da\\da\\da", L"C:\\my\\path\\..\\path\\da\\da\\da"));
+	EXPECT_TRUE(PathUtils::IsSamePath(L"C:\\my\\path\\da\\da\\da", L"C:\\my\\path\\..\\path\\da\\da\\da\\bla\\.."));
 
-	EXPECT_FALSE(CPathUtils::IsSamePath(L"C:\\my\\path\\da\\da\\da", L"C:\\this\\is\\a\\new\\path"));
-	EXPECT_FALSE(CPathUtils::IsSamePath(L"C:\\my\\path\\da\\da\\da", L"C:\\my\\path\\da\\da\\da\\.."));
-	EXPECT_FALSE(CPathUtils::IsSamePath(L"C:\\my\\path\\da\\da\\da", L"C:\\my\\path\\da\\da\\da\\..\\"));
-	EXPECT_FALSE(CPathUtils::IsSamePath(L"C:\\my\\path\\da\\da\\da", L"C:\\my\\path\\..\\path\\da\\da\\da\\.\\da"));
+	EXPECT_FALSE(PathUtils::IsSamePath(L"C:\\my\\path\\da\\da\\da", L"C:\\this\\is\\a\\new\\path"));
+	EXPECT_FALSE(PathUtils::IsSamePath(L"C:\\my\\path\\da\\da\\da", L"C:\\my\\path\\da\\da\\da\\.."));
+	EXPECT_FALSE(PathUtils::IsSamePath(L"C:\\my\\path\\da\\da\\da", L"C:\\my\\path\\da\\da\\da\\..\\"));
+	EXPECT_FALSE(PathUtils::IsSamePath(L"C:\\my\\path\\da\\da\\da", L"C:\\my\\path\\..\\path\\da\\da\\da\\.\\da"));
 }
 
 TEST(CPathUtils, GetCopyrightForSelf)
 {
-	const std::wstring copyright = CPathUtils::GetCopyrightForSelf();
+	const std::wstring copyright = PathUtils::GetCopyrightForSelf();
 	EXPECT_TRUE(tgit::wstr::StartsWith(copyright, L"Copyright (C) 20"));
 }
 
@@ -234,49 +234,55 @@ TEST(CPathUtils, ConvertToSlash)
 	// rest of the test. std::wstring's storage is contiguous and always
 	// null-terminated, so there is nothing to release.
 	std::wstring path = L"";
-	CPathUtils::ConvertToSlash(path.data());
+	PathUtils::ConvertToSlash(path);
 	EXPECT_STREQ(path.c_str(), L"");
 
 	path = L"\\";
-	CPathUtils::ConvertToSlash(path.data());
+	PathUtils::ConvertToSlash(path);
 	EXPECT_STREQ(path.c_str(), L"/");
 
 	path = L"test";
-	CPathUtils::ConvertToSlash(path.data());
+	PathUtils::ConvertToSlash(path);
 	EXPECT_STREQ(path.c_str(), L"test");
 
 	path = L"test\\def";
-	CPathUtils::ConvertToSlash(path.data());
+	PathUtils::ConvertToSlash(path);
 	EXPECT_STREQ(path.c_str(), L"test/def");
 
 	path = L"test/def";
-	CPathUtils::ConvertToSlash(path.data());
+	PathUtils::ConvertToSlash(path);
 	EXPECT_STREQ(path.c_str(), L"test/def");
 
 	path = L"te\\st/def";
-	CPathUtils::ConvertToSlash(path.data());
+	PathUtils::ConvertToSlash(path);
 	EXPECT_STREQ(path.c_str(), L"te/st/def");
 }
 
 TEST(CPathUtils, ConvertToBackslash)
 {
-	wchar_t out[MAX_PATH] = { 0 };
+	std::wstring out;
 
-	CPathUtils::ConvertToBackslash(out, L"", _countof(out));
-	EXPECT_STREQ(out, L"");
+	out = L"";
+	PathUtils::ConvertToBackslash(out);
+	EXPECT_STREQ(out.c_str(), L"");
 
-	CPathUtils::ConvertToBackslash(out, L"/", _countof(out));
-	EXPECT_STREQ(out, L"\\");
+	out = L"/";
+	PathUtils::ConvertToBackslash(out);
+	EXPECT_STREQ(out.c_str(), L"\\");
 
-	CPathUtils::ConvertToBackslash(out, L"test", _countof(out));
-	EXPECT_STREQ(out, L"test");
+	out = L"test";
+	PathUtils::ConvertToBackslash(out);
+	EXPECT_STREQ(out.c_str(), L"test");
 
-	CPathUtils::ConvertToBackslash(out, L"test/def", _countof(out));
-	EXPECT_STREQ(out, L"test\\def");
+	out = L"test/def";
+	PathUtils::ConvertToBackslash(out);
+	EXPECT_STREQ(out.c_str(), L"test\\def");
 
-	CPathUtils::ConvertToBackslash(out, L"test\\def", _countof(out));
-	EXPECT_STREQ(out, L"test\\def");
+	out = L"test\\def";
+	PathUtils::ConvertToBackslash(out);
+	EXPECT_STREQ(out.c_str(), L"test\\def");
 
-	CPathUtils::ConvertToBackslash(out, L"te\\st/def", _countof(out));
-	EXPECT_STREQ(out, L"te\\st\\def");
+	out = L"te\\st/def";
+	PathUtils::ConvertToBackslash(out);
+	EXPECT_STREQ(out.c_str(), L"te\\st\\def");
 }

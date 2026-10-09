@@ -19,9 +19,9 @@
 //
 #pragma once
 
-#include <Utils/MiscUI/StandAloneDlg.h>
-#include <Utils/TreePropSheet/TreePropSheet.h>
-#include <Git/TGitPath.h>
+#include "StandAloneDlg.h"
+#include "TreePropSheet/TreePropSheet.h"
+import TGitPath;
 #include "SettingsPropPage.h"
 #include "SettingGitRemote.h"
 

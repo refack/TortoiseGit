@@ -17,12 +17,13 @@
 // along with this program; if not, write to the Free Software Foundation,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
+#include "../stdafx.h"
 
 
-#include "Utils/FilterEdit.h"
+#include "MiscUI/FilterEdit.h"
 #include <Utils/LoadIconEx.h>
 #include <Utils/Theme.h>
-#include <Utils/ClipboardHelper.h>
+import wil;
 
 const UINT CFilterEdit::WM_FILTEREDIT_INFOCLICKED = ::RegisterWindowMessage(L"TGITWM_FILTEREDIT_INFOCLICKED");
 const UINT CFilterEdit::WM_FILTEREDIT_CANCELCLICKED = ::RegisterWindowMessage(L"TGITWM_FILTEREDIT_CANCELCLICKED");
@@ -412,8 +413,8 @@ void CFilterEdit::OnEnSetfocus()
 
 LRESULT CFilterEdit::OnPaste(WPARAM, LPARAM)
 {
-	CClipboardHelper clipboardHelper;
-	if (clipboardHelper.Open(nullptr))
+	const auto clipboard = wil::open_clipboard_retrying(nullptr);	// was CClipboardHelper: retries while busy, closes on scope exit
+	if (clipboard)
 	{
 		CString toInsert;
 		HGLOBAL hglb = GetClipboardData(CF_TEXT);

@@ -22,8 +22,8 @@
 #include "SetHooksAdv.h"
 #include "BrowseFolder.h"
 #include "AppUtils.h"
-#include "Git.h"
-import GitAdminDir;
+import git_h;
+import TGitPath;	// GitAdminDir lives in the TGitPath module
 
 IMPLEMENT_DYNAMIC(CSetHooksAdv, CResizableStandAloneDialog)
 
@@ -106,7 +106,7 @@ BOOL CSetHooksAdv::OnInitDialog()
 	UpdateData(FALSE);
 	OnBnClickedLocalcheck();
 
-	DialogEnableWindow(IDC_LOCALCHECK, GitAdminDir::HasAdminDir(g_Git.m_CurrentDir));
+	DialogEnableWindow(IDC_LOCALCHECK, GitAdminDir::HasAdminDir(tgit::zstr::StringView(g_Git.m_CurrentDir)));
 
 	AddAnchor(IDC_ENABLE, TOP_LEFT);
 	AddAnchor(IDC_HOOKTYPELABEL, TOP_LEFT, TOP_RIGHT);
@@ -156,7 +156,7 @@ void CSetHooksAdv::OnOK()
 		}
 		if (key.path.GetWinPathString() != L"*" && (!PathIsDirectory(key.path.GetWinPathString().c_str()) || PathIsRelative(key.path.GetWinPathString().c_str())))
 		{
-			ShowEditBalloon(IDC_HOOKPATH, static_cast<LPCWSTR>(CFormatMessageWrapper(ERROR_PATH_NOT_FOUND)), CString(MAKEINTRESOURCE(IDS_ERR_ERROR)), TTI_ERROR);
+			ShowEditBalloon(IDC_HOOKPATH, (CFormatMessageWrapper(ERROR_PATH_NOT_FOUND)).c_str(), CString(MAKEINTRESOURCE(IDS_ERR_ERROR)), TTI_ERROR);
 			return;
 		}
 	}

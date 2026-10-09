@@ -22,7 +22,7 @@
 #include "stdafx.h"
 #include "resource.h"
 #include "RefLogDlg.h"
-#include "Git.h"
+import git_h;
 #include "AppUtils.h"
 #include "MessageBox.h"
 
@@ -211,7 +211,7 @@ void CRefLogDlg::Refresh()
 	bool found = false;
 	for (int i = 0; i < static_cast<int>(list.size()); ++i)
 	{
-		if (list[i] == tgit::wstr::View(m_CurrentBranch))
+		if (list[i] == tgit::zstr::StringView(m_CurrentBranch))
 		{
 			m_ChooseRef.SetCurSel(i);
 			found = true;

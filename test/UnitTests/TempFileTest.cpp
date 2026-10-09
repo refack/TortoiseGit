@@ -18,13 +18,15 @@
 //
 
 #include "stdafx.h"
-#include "TempFile.h"
+import TempFile;
+import TGitPath;
+import GitHash;
 
 TEST(CTempFiles, UniqueName)
 {
-	auto path1 = CTempFiles::Instance().GetTempFilePath(false, CTGitPath(L"something.cpp"));
+	auto path1 = TempFiles::GetTempFilePath(false, CTGitPath(L"something.cpp"));
 	EXPECT_TRUE(path1.Exists());
-	auto path2 = CTempFiles::Instance().GetTempFilePath(false, CTGitPath(L"something.cpp"));
+	auto path2 = TempFiles::GetTempFilePath(false, CTGitPath(L"something.cpp"));
 	EXPECT_TRUE(path2.Exists());
 
 	EXPECT_STRNE(path1.GetWinPathString().c_str(), path2.GetWinPathString().c_str());
@@ -35,7 +37,7 @@ TEST(CTempFiles, UniqueName)
 
 TEST(CTempFiles, LongName)
 {
-	auto path = CTempFiles::Instance().GetTempFilePath(false, CTGitPath(L"something012345789012345789012345789012345789012345789012345789012345789012345789012345789012345789-100-012345789012345789012345789012345789012345789012345789012345789012345789012345789012345789-200-012345789012345789012345789012345789012345789012345789-256.extension"));
+	auto path = TempFiles::GetTempFilePath(false, CTGitPath(L"something012345789012345789012345789012345789012345789012345789012345789012345789012345789012345789-100-012345789012345789012345789012345789012345789012345789012345789012345789012345789012345789-200-012345789012345789012345789012345789012345789012345789-256.extension"));
 	ASSERT_LT(path.GetWinPathString().size(), static_cast<size_t>(MAX_PATH));
 	EXPECT_TRUE(path.Exists());
 
@@ -44,15 +46,15 @@ TEST(CTempFiles, LongName)
 
 TEST(CTempFiles, ValidName)
 {
-	auto path1 = CTempFiles::Instance().GetTempFilePath(false, CTGitPath(L"invalid?file|name.txt"), CGitHash::FromHexStr(L"012345678901234567890abcdef123456789abfd"));
+	auto path1 = TempFiles::GetTempFilePath(false, CTGitPath(L"invalid?file|name.txt"), CGitHash::FromHexStr(L"012345678901234567890abcdef123456789abfd"));
 	EXPECT_TRUE(path1.Exists());
 	std::ignore = path1.Delete(false, false);
 
-	auto path2 = CTempFiles::Instance().GetTempFilePath(false, CTGitPath(L">"));
+	auto path2 = TempFiles::GetTempFilePath(false, CTGitPath(L">"));
 	EXPECT_TRUE(path2.Exists());
 	std::ignore = path2.Delete(false, false);
 
-	auto path3 = CTempFiles::Instance().GetTempFilePath(false, CTGitPath(L".gitattribute"));
+	auto path3 = TempFiles::GetTempFilePath(false, CTGitPath(L".gitattribute"));
 	EXPECT_TRUE(path3.Exists());
 	std::ignore = path3.Delete(false, false);
 }

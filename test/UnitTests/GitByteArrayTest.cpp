@@ -18,7 +18,7 @@
 //
 
 #include "stdafx.h"
-#include "gittype.h"
+import tgittypes;
 
 TEST(CGitByteArray, Empty)
 {

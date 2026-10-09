@@ -18,16 +18,16 @@
 //
 
 #pragma once
-#include "Utils/MiscUI/HintCtrl.h"
+#include "Utils/HintCtrl.h"
 #include "ResizableColumnsListCtrl.h"
-#include "Git/Git.h"
+import git_h;
 #include "ProjectProperties.h"
-#include "Git/TGitPath.h"
-#include "Utils/registry.h"
+import TGitPath;
+import Registry;
 #include "Colors.h"
 #include "LogDlgHelper.h"
-#include "Git/GitRevLoglist.h"
-#include "lanes.h"
+import GitRevLoglist;
+import lanes;
 #include "GitLogCache.h"
 #include "FindDlg.h"
 #include <unordered_set>
@@ -426,7 +426,7 @@ protected:
 	std::expected<bool, CString> BeginFetchLog();
 	HWND GetParentHWND();
 public:
-	int FillGitLog(const CTGitPath* path, const CString* range = nullptr, int infomask = CGit::LOG_INFO_STAT | CGit::LOG_INFO_FILESTATE | CGit::LOG_INFO_SHOW_MERGEDFILE);
+	int FillGitLog(const CTGitPath* path, const CString* range = nullptr, int infomask = TGitH::LOG_INFO_STAT | TGitH::LOG_INFO_FILESTATE | TGitH::LOG_INFO_SHOW_MERGEDFILE);
 	int  FillGitLog(std::unordered_set<CGitHash>& hashes);
 protected:
 	CString MessageDisplayStr(GitRev* pLogEntry);
@@ -506,7 +506,7 @@ protected:
 
 		FetchRemoteList();
 
-		g_Git.GetSubmodulePointer(m_submoduleInfo);
+		TGitH::GetSubmodulePointer(m_submoduleInfo);
 	}
 	void StartAsyncDiffThread();
 	void StartLoadingThread();
@@ -566,7 +566,7 @@ protected:
 		bool singleRemote = false;
 		bool hasTracking = false;
 		bool sameName = false;
-		CGit::REF_TYPE refType = CGit::REF_TYPE::UNKNOWN;
+		TGitH::REF_TYPE refType = TGitH::REF_TYPE::UNKNOWN;
 	};
 
 	DECLARE_MESSAGE_MAP()
@@ -600,12 +600,12 @@ protected:
 	 * pLogEntry  IN: the entry of commit
 	 * pt         IN: the mouse position in client coordinate
 	 * type       IN: give the specific reference type, then check if it is the same reference type.
-	 *            OUT: give CGit::REF_TYPE::UNKNOWN for getting the real type it is.
+	 *            OUT: give TGitH::REF_TYPE::UNKNOWN for getting the real type it is.
 	 * pShortname OUT: the short name of that reference label
 	 * pIndex     OUT: the index value of label of that entry
 	 */
-	bool IsMouseOnRefLabel(const GitRevLoglist* pLogEntry, const POINT& pt, CGit::REF_TYPE& type, const MAP_HASH_NAME& hashMap, CString* pShortname = nullptr, size_t* pIndex = nullptr);
-	bool IsMouseOnRefLabelFromPopupMenu(const GitRevLoglist* pLogEntry, const CPoint& pt, CGit::REF_TYPE& type, const MAP_HASH_NAME& hashMap, CString* pShortname = nullptr, size_t* pIndex = nullptr);
+	bool IsMouseOnRefLabel(const GitRevLoglist* pLogEntry, const POINT& pt, TGitH::REF_TYPE& type, const MAP_HASH_NAME& hashMap, CString* pShortname = nullptr, size_t* pIndex = nullptr);
+	bool IsMouseOnRefLabelFromPopupMenu(const GitRevLoglist* pLogEntry, const CPoint& pt, TGitH::REF_TYPE& type, const MAP_HASH_NAME& hashMap, CString* pShortname = nullptr, size_t* pIndex = nullptr);
 
 	void FillBackGround(HDC hdc, DWORD_PTR Index, CRect &rect);
 	void DrawTagBranchMessage(NMLVCUSTOMDRAW* pLVCD, const CRect& rect, INT_PTR index, const std::vector<REFLABEL>& refList);

@@ -1,4 +1,4 @@
-// TortoiseGit - a Windows shell extension for easy version control
+﻿// TortoiseGit - a Windows shell extension for easy version control
 
 // Copyright (C) 2003-2008 - TortoiseSVN
 // Copyright (C) 2008-2026 - TortoiseGit
@@ -20,22 +20,22 @@
 
 #include "stdafx.h"
 #include "TortoiseProc.h"
-#include "Git.h"
+import git_h;
 #include "LoglistCommonResource.h"
 #include <version.h>
 #include "MessageBox.h"
 #include "CheckForUpdatesDlg.h"
-#include "registry.h"
+import Registry;
 #include "AppUtils.h"
-#include "TempFile.h"
-#include "SmartHandle.h"
-#include "PathUtils.h"
-#include "DirFileEnum.h"
+import TempFile;
+import RIAA;
+import PathUtils;
+import DirFileEnum;
 #include "UpdateCrypto.h"
 #include <MsiDefs.h>
 #include <MsiQuery.h>
 #include "DPIAware.h"
-#include "LangDll.h"
+import LandDll;
 
 #pragma comment(lib, "msi.lib")
 
@@ -84,7 +84,7 @@ BOOL CCheckForUpdatesDlg::OnInitDialog()
 	CResizableStandAloneDialog::OnInitDialog();
 	CAppUtils::MarkWindowAsUnpinnable(m_hWnd);
 
-	if (CString hotfix = (CPathUtils::GetAppDirectory() + L"hotfix.ini").c_str(); PathFileExists(hotfix))
+	if (CString hotfix = (PathUtils::GetAppDirectory() + L"hotfix.ini").c_str(); PathFileExists(hotfix))
 	{
 		CString err;
 		CVersioncheckParser parser;
@@ -183,7 +183,7 @@ UINT CCheckForUpdatesDlg::CheckThread()
 	m_bThreadRunning = TRUE;
 
 	CString temp;
-	CString tempfile = CTempFiles::Instance().GetTempFilePath(true).GetWinPathString().c_str();
+	CString tempfile = TempFiles::GetTempFilePath(true).GetWinPathString().c_str();
 
 	bool official = false;
 
@@ -226,7 +226,7 @@ UINT CCheckForUpdatesDlg::CheckThread()
 	DWORD ret = m_updateDownloader->DownloadFile(sCheckURL, tempfile, false);
 	if (!ret && official)
 	{
-		CString signatureTempfile = CTempFiles::Instance().GetTempFilePath(true).GetWinPathString().c_str();
+		CString signatureTempfile = TempFiles::GetTempFilePath(true).GetWinPathString().c_str();
 		ret = m_updateDownloader->DownloadFile(sCheckURL + SIGNATURE_FILE_ENDING, signatureTempfile, false);
 		if (ret || VerifyIntegrity(tempfile, signatureTempfile, m_updateDownloader))
 		{
@@ -404,7 +404,7 @@ void CCheckForUpdatesDlg::FillChangelog(CVersioncheckParser& versioncheck, bool 
 	CString sChangelogURL;
 	sChangelogURL.FormatMessage(versioncheck.GetTortoiseGitChangelogURL(), m_myVersion.major, m_myVersion.minor, m_myVersion.micro, static_cast<LPCWSTR>(m_updateDownloader->m_sWindowsPlatform), static_cast<LPCWSTR>(m_updateDownloader->m_sWindowsVersion), static_cast<LPCWSTR>(m_updateDownloader->m_sWindowsServicePack));
 
-	CString tempchangelogfile = CTempFiles::Instance().GetTempFilePath(true).GetWinPathString().c_str();
+	CString tempchangelogfile = TempFiles::GetTempFilePath(true).GetWinPathString().c_str();
 	if (DWORD err = m_updateDownloader->DownloadFile(sChangelogURL, tempchangelogfile, false); err != ERROR_SUCCESS)
 	{
 		CString msg = L"Could not load changelog.\r\nError: " + GetWinINetError(err) + L" (on " + sChangelogURL + L")";
@@ -413,7 +413,7 @@ void CCheckForUpdatesDlg::FillChangelog(CVersioncheckParser& versioncheck, bool 
 	}
 	if (official)
 	{
-		CString signatureTempfile = CTempFiles::Instance().GetTempFilePath(true).GetWinPathString().c_str();
+		CString signatureTempfile = TempFiles::GetTempFilePath(true).GetWinPathString().c_str();
 		if (DWORD err = m_updateDownloader->DownloadFile(sChangelogURL + SIGNATURE_FILE_ENDING, signatureTempfile, false); err != ERROR_SUCCESS || VerifyIntegrity(tempchangelogfile, signatureTempfile, m_updateDownloader))
 		{
 			CString error = L"Could not verify digital signature.";
@@ -434,7 +434,7 @@ void CCheckForUpdatesDlg::FillChangelog(CVersioncheckParser& versioncheck, bool 
 		std::string_view sv = std::string_view(buf.get(), read);
 		if (sv.length() >= 3 && sv[0] == 0xEF && sv[1] == 0xBB && sv[2] == 0xBF) // skip BOM?
 			sv.remove_prefix(3);
-		temp = CUnicodeUtils::GetUnicode(sv);
+		temp = CUnicodeUtils::GetUnicode<CString>(sv);
 	}
 	else
 		temp = L"Could not open downloaded changelog file.";
@@ -547,12 +547,12 @@ bool CCheckForUpdatesDlg::VerifyUpdateFile(const CString& filename, const CStrin
 	DWORD ret = 0;
 	if ((ret = MsiGetSummaryInformation(NULL, filename, 0, &hSummary)) != 0)
 	{
-		CString sFileVer = CPathUtils::GetVersionFromFile(filename).c_str();
+		CString sFileVer = PathUtils::GetVersionFromFile(filename).c_str();
 		sFileVer.Trim();
 		if (sFileVer.IsEmpty())
 		{
 			m_sErrors.AppendFormat(L"%s: Invalid filetype found (neither executable nor MSI).\r\n", static_cast<LPCWSTR>(reportingFilename));
-			CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": MsiGetSummaryInformation reported: %s\n", static_cast<LPCWSTR>(CFormatMessageWrapper(ret)));
+			CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": MsiGetSummaryInformation reported: %s\n", (CFormatMessageWrapper(ret)).c_str());
 			return false;
 		}
 		else if (sFileVer == versionnumber)
@@ -569,7 +569,7 @@ bool CCheckForUpdatesDlg::VerifyUpdateFile(const CString& filename, const CStrin
 	int intValue;
 	if (MsiSummaryInfoGetProperty(hSummary, PID_SUBJECT, &uiDataType, &intValue, nullptr, CStrBuf(buffer, cchValue + 1), &cchValue))
 	{
-		m_sErrors.AppendFormat(L"%s: Error obtaining version of MSI file (%s).\r\n", static_cast<LPCWSTR>(reportingFilename), static_cast<LPCWSTR>(CFormatMessageWrapper(ret)));
+		m_sErrors.AppendFormat(L"%s: Error obtaining version of MSI file (%s).\r\n", static_cast<LPCWSTR>(reportingFilename), (CFormatMessageWrapper(ret)).c_str());
 		return false;
 	}
 
@@ -615,8 +615,8 @@ bool CCheckForUpdatesDlg::Download(const CString& filename, const CString& versi
 		m_pTaskbarList->SetProgressValue(m_hWnd, 0, 1);
 	}
 
-	CString tempfile = CTempFiles::Instance().GetTempFilePath(true).GetWinPathString().c_str();
-	CString signatureTempfile = CTempFiles::Instance().GetTempFilePath(true).GetWinPathString().c_str();
+	CString tempfile = TempFiles::GetTempFilePath(true).GetWinPathString().c_str();
+	CString signatureTempfile = TempFiles::GetTempFilePath(true).GetWinPathString().c_str();
 	DWORD ret = m_updateDownloader->DownloadFile(url, tempfile, true);
 	if (!ret)
 	{
@@ -786,7 +786,7 @@ LRESULT CCheckForUpdatesDlg::OnTaskbarBtnCreated(WPARAM /*wParam*/, LPARAM /*lPa
 
 CString CCheckForUpdatesDlg::GetWinINetError(DWORD err)
 {
-	CString readableError { static_cast<LPCWSTR>(CFormatMessageWrapper(err)) };
+	CString readableError { (CFormatMessageWrapper(err)).c_str() };
 	if (readableError.IsEmpty())
 	{
 		for (const CString& module : { L"wininet.dll", L"urlmon.dll" })

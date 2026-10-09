@@ -18,7 +18,7 @@
 //
 
 #pragma once
-#include <Utils/MiscUI/StandAloneDlg.h>
+#include "StandAloneDlg.h"
 
 // CSVNIgnoreTypeDlg dialog
 

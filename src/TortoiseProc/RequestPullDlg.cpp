@@ -22,11 +22,11 @@
 #include "stdafx.h"
 #include "TortoiseProc.h"
 #include "RequestPullDlg.h"
-#include "Git.h"
+import git_h;
 #include "LogDlg.h"
 #include "MessageBox.h"
 #include "AppUtils.h"
-#include "StringUtils.h"
+import StringUtils;
 
 IMPLEMENT_DYNAMIC(CRequestPullDlg, CHorizontalResizableStandAloneDialog)
 
@@ -72,7 +72,7 @@ BOOL CRequestPullDlg::OnInitDialog()
 	CAppUtils::SetWindowTitle(*this, g_Git.m_CurrentDir);
 
 	STRING_VECTOR list;
-	g_Git.GetBranchList(list, nullptr, CGit::BRANCH_ALL);
+	g_Git.GetBranchList(list, nullptr, TGitH::BRANCH_ALL);
 	m_cStartRevision.SetMaxHistoryItems(0x7FFFFFFF);
 	m_cStartRevision.SetList(list);
 
@@ -151,6 +151,6 @@ void CRequestPullDlg::OnBnClickedButtonLocalBranch()
 	// only one revision must be selected however
 	dlg.SingleSelection(true);
 	if (dlg.DoModal() == IDOK && !dlg.GetSelectedHash().empty())
-		m_cStartRevision.SetWindowText(dlg.GetSelectedHash().at(0).ToString());
+		m_cStartRevision.SetWindowText((dlg.GetSelectedHash().at(0).ToString()).c_str());
 	BringWindowToTop(); /* cf. issue #3493 */
 }

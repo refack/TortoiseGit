@@ -18,7 +18,7 @@
 //
 #pragma once
 #include "FirstStartWizardBasePage.h"
-#include <Utils/MiscUI/HyperLink.h>
+#include "HyperLink.h"
 
 /**
  * First page in the first start wizard

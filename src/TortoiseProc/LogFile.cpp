@@ -19,7 +19,7 @@
 //
 #include "stdafx.h"
 #include "LogFile.h"
-#include "PathUtils.h"
+import PathUtils;
 
 CLogFile::CLogFile(const CString& repo, DWORD maxLines)
 	: m_maxLines(maxLines)
@@ -34,7 +34,7 @@ CLogFile::~CLogFile()
 
 bool CLogFile::Open()
 {
-	CTGitPath logfile = CTGitPath(CPathUtils::GetLocalAppDataDirectory() + L"logfile.txt");
+	CTGitPath logfile = CTGitPath(PathUtils::GetLocalAppDataDirectory() + L"logfile.txt");
 	return Open(logfile);
 }
 
@@ -45,7 +45,7 @@ bool CLogFile::Open(const CTGitPath& logfile)
 	assert(m_newLines.empty());
 	m_logFile = logfile;
 	if (!logfile.Exists())
-		CPathUtils::MakeSureDirectoryPathExists(logfile.GetContainingDirectory().GetWinPath());
+		PathUtils::MakeSureDirectoryPathExists(logfile.GetContainingDirectory().GetWinPath());
 
 	return true;
 }

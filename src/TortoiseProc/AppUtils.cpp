@@ -20,22 +20,22 @@
 
 #include "stdafx.h"
 #include "TortoiseProc.h"
-#include "PathUtils.h"
+import PathUtils;
 #include "AppUtils.h"
 #include "MessageBox.h"
-#include "registry.h"
-#include "TGitPath.h"
-#include "Git.h"
-#include "UnicodeUtils.h"
+import Registry;
+import TGitPath;
+import git_h;
+import wstr;
 #include "URLFinder.h"
 #include "git2/sys/errors.h"
-#include "CmdLineParser.h"
+import CmdLineParser;
 #ifndef TGIT_TESTS_ONLY
 #include "ExportDlg.h"
 #include "ProgressDlg.h"
-import GitAdminDir;
+import TGitPath;	// GitAdminDir lives in the TGitPath module
 #include "BrowseFolder.h"
-#include "DirFileEnum.h"
+import DirFileEnum;
 #include "CreateBranchTagDlg.h"
 #include "CreateWorktreeDlg.h"
 #include "GitSwitchDlg.h"
@@ -56,21 +56,21 @@ import GitAdminDir;
 #include "PropKey.h"
 #include "StashSave.h"
 #include "IgnoreDlg.h"
-#include "FormatMessageWrapper.h"
-#include "SmartHandle.h"
+import wil;
+import RIAA;
 #include "BisectStartDlg.h"
 #include "SysProgressDlg.h"
 #include "UserPassword.h"
-#include "Globals.h"
+#include "TortoiseShell/Globals.h"
 #include "ProgressCommands/ResetProgressCommand.h"
 #include "ProgressCommands/FetchProgressCommand.h"
 #include "CertificateValidationHelper.h"
 #include "CheckCertificateDlg.h"
 #include "SubmoduleResolveConflictDlg.h"
 #include "GitDiff.h"
-#include <TGitCache/CacheInterface.h>
+import TGitCache.CacheInterface;
 #include "IconExtractor.h"
-#include "ClipboardHelper.h"
+import wil;
 #endif
 
 #ifndef TGIT_TESTS_ONLY
@@ -528,7 +528,7 @@ BOOL CAppUtils::StartUnifiedDiffViewer(const CString& patchfile, const CString& 
 	if (viewer.IsEmpty())
 	{
 		// use TortoiseGitUDiff
-		viewer = CPathUtils::GetAppDirectory().c_str();
+		viewer = PathUtils::GetAppDirectory().c_str();
 		viewer += L"TortoiseGitUDiff.exe";
 		// enquote the path to TortoiseGitUDiff
 		viewer = L'"' + viewer + L'"';
@@ -640,7 +640,7 @@ bool CAppUtils::LaunchRemoteSetting()
 */
 bool CAppUtils::LaunchTortoiseBlame(const CString& sBlameFile, const CString& Rev, const CString& sParams)
 {
-	CString viewer = (L'"' + CPathUtils::GetAppDirectory()).c_str();
+	CString viewer = (L'"' + PathUtils::GetAppDirectory()).c_str();
 	viewer += L"TortoiseGitBlame.exe";
 	viewer += L"\" /path:";
 	viewer += CCmdLineParser::EscapeValue(sBlameFile);
@@ -857,7 +857,7 @@ bool CAppUtils::StartShowUnifiedDiff(HWND hWnd, const CTGitPath& url1, const CSt
 	}
 	if (g_Git.GetUnifiedDiff(url1, rev1, rev2, tempfile, bMerge, bCombine, diffContext, bNoPrefix))
 	{
-		MessageBox(hWnd, g_Git.GetGitLastErr(L"Could not get unified diff.", CGit::GIT_CMD_DIFF), L"TortoiseGit", MB_OK);
+		MessageBox(hWnd, g_Git.GetGitLastErr(L"Could not get unified diff.", TGitH::GIT_CMD_DIFF), L"TortoiseGit", MB_OK);
 		return false;
 	}
 	SetFileAttributes(tempfile, FILE_ATTRIBUTE_READONLY);
@@ -866,7 +866,7 @@ bool CAppUtils::StartShowUnifiedDiff(HWND hWnd, const CTGitPath& url1, const CSt
 #if 0
 	CString sCmd;
 	sCmd.Format(L"%s /command:showcompare /unified",
-		(CPathUtils::GetAppDirectory() + L"TortoiseGitProc.exe").c_str());
+		(PathUtils::GetAppDirectory() + L"TortoiseGitProc.exe").c_str());
 	sCmd += L" /url1:\"" + url1.GetGitPathString().c_str() + L'"';
 	if (rev1.IsValid())
 		sCmd += L" /revision1:" + rev1.ToString();
@@ -899,7 +899,7 @@ bool CAppUtils::StartShowUnifiedDiff(HWND hWnd, const CTGitPath& url1, const CSt
 
 bool CAppUtils::SetupDiffScripts(bool force, const CString& type)
 {
-	CString scriptsdir = CPathUtils::GetAppParentDirectory().c_str();
+	CString scriptsdir = PathUtils::GetAppParentDirectory().c_str();
 	scriptsdir += L"Diff-Scripts";
 	CSimpleFileFind files(scriptsdir);
 	while (files.FindNextFileNoDirectories())
@@ -1290,7 +1290,7 @@ public:
 		if (strA.IsEmpty())
 			return FALSE;
 
-		rString = CUnicodeUtils::GetUnicode(strA);
+		rString = CUnicodeUtils::GetUnicode<CString>(strA);
 		return TRUE;
 	}
 
@@ -1389,7 +1389,7 @@ bool CAppUtils::IgnoreFile(HWND hWnd, const CTGitPathList& path,bool IsMask)
 				bool found = false;
 				for (size_t j = 0; j < file.m_Items.size(); ++j)
 				{
-					if (file.m_Items[j] == tgit::wstr::View(ignorePattern))
+					if (file.m_Items[j] == tgit::zstr::StringView(ignorePattern))
 					{
 						found = true;
 						break;
@@ -1398,7 +1398,7 @@ bool CAppUtils::IgnoreFile(HWND hWnd, const CTGitPathList& path,bool IsMask)
 				if (!found)
 				{
 					file.m_Items.push_back(std::wstring(ignorePattern));
-					CStringA ignorePatternA = CUnicodeUtils::GetUTF8(ignorePattern);
+					CStringA ignorePatternA = CUnicodeUtils::GetUTF8<CStringA>(ignorePattern);
 					ignorePatternA += file.m_eol.c_str();
 					file.Write(ignorePatternA, ignorePatternA.GetLength());
 				}
@@ -1508,7 +1508,7 @@ static bool Reset(HWND hWnd, const CString& resetTo, int resetType)
 	};
 
 	INT_PTR ret;
-	if (g_Git.UsingLibGit2(CGit::GIT_CMD_RESET))
+	if (g_Git.UsingLibGit2(TGitH::GIT_CMD_RESET))
 	{
 		CGitProgressDlg gitdlg(GetParentCWnd(hWnd));
 		ResetProgressCommand resetProgressCommand;
@@ -1582,7 +1582,7 @@ void CAppUtils::GetConflictTitles(CString* baseText, CString& mineText, CGitHash
 			if (guessBranch && !g_Git.GetHash(hash, L"rebase-apply/onto"))
 			{
 				if (g_Git.GuessRefForHash(mineText, hash) == 0)
-					mineText.AppendFormat(L", %s", static_cast<LPCWSTR>(hash.ToString(g_Git.GetShortHASHLength())));
+					mineText.AppendFormat(L", %s", (hash.ToString(g_Git.GetShortHASHLength())).c_str());
 			}
 			if (mineHash)
 				*mineHash = hash;
@@ -1591,7 +1591,7 @@ void CAppUtils::GetConflictTitles(CString* baseText, CString& mineText, CGitHash
 		if (!StringUtils::ReadStringFromTextFile(adminDir + L"tgitrebase.active\\head-name", theirsText))
 		{
 			if (StringUtils::ReadStringFromTextFile(adminDir + L"rebase-apply/head-name", theirsText))
-				theirsText = CGit::StripRefName(theirsText);
+				theirsText = TGitH::StripRefName(theirsText);
 		}
 		return;
 	}
@@ -1610,11 +1610,11 @@ void CAppUtils::GetConflictTitles(CString* baseText, CString& mineText, CGitHash
 		{
 			CString guessedRef;
 			if (!guessBranch || !infotext.guessRef)
-				guessedRef = hash.ToString(g_Git.GetShortHASHLength());
+				guessedRef = (hash.ToString(g_Git.GetShortHASHLength())).c_str();
 			else
 			{
 				if (g_Git.GuessRefForHash(guessedRef, hash) == 0)
-					guessedRef.AppendFormat(L", %s", static_cast<LPCWSTR>(hash.ToString(g_Git.GetShortHASHLength())));
+					guessedRef.AppendFormat(L", %s", (hash.ToString(g_Git.GetShortHASHLength())).c_str());
 			}
 			theirsText.FormatMessage(infotext.theirstext, infotext.headref, static_cast<LPCWSTR>(guessedRef));
 			if (theirsHash)
@@ -1641,7 +1641,7 @@ bool CAppUtils::ConflictEdit(HWND hWnd, CTGitPath& path, bool bAlternativeTool /
 
 	CGitHash baseHash, localHash, remoteHash;
 	bool baseIsFile = true, localIsFile = true, remoteIsFile = true;
-	if (CGit::ParseConflictHashesFromLsFile(vector, baseHash, baseIsFile, localHash, localIsFile, remoteHash, remoteIsFile))
+	if (TGitH::ParseConflictHashesFromLsFile(vector, baseHash, baseIsFile, localHash, localIsFile, remoteHash, remoteIsFile))
 		return FALSE;
 
 	if (!baseIsFile || !localIsFile || !remoteIsFile)
@@ -1863,8 +1863,8 @@ bool CAppUtils::ConflictEdit(HWND hWnd, CTGitPath& path, bool bAlternativeTool /
 
 CString CAppUtils::GetClipboardLink(const CString &skipGitPrefix, int paramsCount)
 {
-	CClipboardHelper clipboardHelper;
-	if (!clipboardHelper.Open(nullptr))
+	const auto clipboard = wil::open_clipboard_retrying(nullptr);	// was CClipboardHelper: retries while busy, closes on scope exit
+	if (!clipboard)
 		return CString();
 
 	CString sClipboardText;
@@ -1958,9 +1958,9 @@ int CAppUtils::GetLogOutputEncode(CGit *pGit)
 	CString output;
 	output = pGit->GetConfigValue(L"i18n.logOutputEncoding");
 	if(output.IsEmpty())
-		return CUnicodeUtils::GetCPCode(pGit->GetConfigValue(L"i18n.commitencoding"));
+		return CUnicodeUtils::StdGetCPCode(tgit::zstr::StringView(pGit->GetConfigValue(L"i18n.commitencoding")));
 	else
-		return CUnicodeUtils::GetCPCode(output);
+		return CUnicodeUtils::StdGetCPCode(tgit::zstr::StringView(output));
 }
 
 bool CAppUtils::MessageContainsConflictHints(HWND hWnd, const CString& message)
@@ -1997,7 +1997,7 @@ int CAppUtils::SaveCommitUnicodeFile(const CString& filename, CString &message)
 	try
 	{
 		CFile file(filename, CFile::modeReadWrite | CFile::modeCreate);
-		const int cp = CUnicodeUtils::GetCPCode(g_Git.GetConfigValue(L"i18n.commitencoding"));
+		const int cp = CUnicodeUtils::StdGetCPCode(tgit::zstr::StringView(g_Git.GetConfigValue(L"i18n.commitencoding")));
 
 		const bool stripComments = (CRegDWORD(L"Software\\TortoiseGit\\StripCommentedLines", FALSE) == TRUE);
 		CString commentCharValue;
@@ -2106,7 +2106,7 @@ bool DoPull(HWND hWnd, const CString& url, BOOL bFetchTags, bool bNoFF, bool bFF
 		{
 			int hasConflicts = g_Git.HasWorkingTreeConflicts();
 			if (hasConflicts < 0)
-				CMessageBox::Show(hWnd, g_Git.GetGitLastErr(L"Checking for conflicts failed.", CGit::GIT_CMD_CHECKCONFLICTS), L"TortoiseGit", MB_ICONEXCLAMATION);
+				CMessageBox::Show(hWnd, g_Git.GetGitLastErr(L"Checking for conflicts failed.", TGitH::GIT_CMD_CHECKCONFLICTS), L"TortoiseGit", MB_ICONEXCLAMATION);
 			else if (hasConflicts)
 			{
 				CMessageBox::ShowCheck(hWnd, IDS_NEED_TO_RESOLVE_CONFLICTS_HINT, IDS_APPNAME, MB_ICONINFORMATION, L"MergeConflictsNeedsCommit", IDS_MSGBOX_DONOTSHOWAGAIN);
@@ -2128,7 +2128,7 @@ bool DoPull(HWND hWnd, const CString& url, BOOL bFetchTags, bool bNoFF, bool bFF
 
 			STRING_VECTOR remotes;
 			g_Git.GetRemoteList(remotes);
-			if (std::find(remotes.begin(), remotes.end(), tgit::wstr::View(url)) != remotes.end())
+			if (std::find(remotes.begin(), remotes.end(), tgit::zstr::StringView(url)) != remotes.end())
 			{
 				CString currentBranch;
 				if (g_Git.GetCurrentBranchFromFile(g_Git.m_CurrentDir, currentBranch))
@@ -2170,13 +2170,13 @@ bool DoPull(HWND hWnd, const CString& url, BOOL bFetchTags, bool bNoFF, bool bFF
 			postCmdList.emplace_back(IDI_DIFF, IDS_PROC_PULL_DIFFS, [&]
 			{
 				CString sCmd;
-				sCmd.Format(L"/command:showcompare /path:\"%s\" /revision1:%s /revision2:%s", static_cast<LPCWSTR>(g_Git.m_CurrentDir), static_cast<LPCWSTR>(hashOld.ToString()), static_cast<LPCWSTR>(hashNew.ToString()));
+				sCmd.Format(L"/command:showcompare /path:\"%s\" /revision1:%s /revision2:%s", static_cast<LPCWSTR>(g_Git.m_CurrentDir), (hashOld.ToString()).c_str(), (hashNew.ToString()).c_str());
 				CAppUtils::RunTortoiseGitProc(sCmd);
 			});
 			postCmdList.emplace_back(IDI_LOG, IDS_PROC_PULL_LOG, [&]
 			{
 				CString sCmd;
-				sCmd.Format(L"/command:log /path:\"%s\" /range:%s", static_cast<LPCWSTR>(g_Git.m_CurrentDir), static_cast<LPCWSTR>(hashOld.ToString() + L".." + hashNew.ToString()));
+				sCmd.Format(L"/command:log /path:\"%s\" /range:%s", static_cast<LPCWSTR>(g_Git.m_CurrentDir), (hashOld.ToString() + L".." + hashNew.ToString()).c_str());
 				CAppUtils::RunTortoiseGitProc(sCmd);
 			});
 		}
@@ -2380,7 +2380,7 @@ static bool DoFetch(HWND hWnd, const CString& url, const bool fetchAllRemotes, c
 
 	progress.m_GitCmd = cmd;
 
-	if (g_Git.UsingLibGit2(CGit::GIT_CMD_FETCH))
+	if (g_Git.UsingLibGit2(TGitH::GIT_CMD_FETCH))
 	{
 		CGitProgressDlg gitdlg(GetParentCWnd(hWnd));
 		FetchProgressCommand fetchProgressCommand;
@@ -2938,7 +2938,7 @@ static bool DoMerge(HWND hWnd, bool noFF, bool ffOnly, bool squash, bool noCommi
 		{
 			int hasConflicts = g_Git.HasWorkingTreeConflicts();
 			if (hasConflicts < 0)
-				CMessageBox::Show(hWnd, g_Git.GetGitLastErr(L"Checking for conflicts failed.", CGit::GIT_CMD_CHECKCONFLICTS), L"TortoiseGit", MB_ICONEXCLAMATION);
+				CMessageBox::Show(hWnd, g_Git.GetGitLastErr(L"Checking for conflicts failed.", TGitH::GIT_CMD_CHECKCONFLICTS), L"TortoiseGit", MB_ICONEXCLAMATION);
 			else if (hasConflicts)
 			{
 				// there are conflict files
@@ -3045,7 +3045,7 @@ void CAppUtils::EditNote(HWND hWnd, GitRevLoglist* rev, ProjectProperties* proje
 		return;
 
 	if (g_Git.GetGitNotes(rev->m_CommitHash, rev->m_Notes))
-		MessageBox(hWnd, g_Git.GetLibGit2LastErr(L"Could not load notes for commit " + rev->m_CommitHash.ToString() + L'.'), L"TortoiseGit", MB_OK | MB_ICONERROR);
+		MessageBox(hWnd, TGitH::GetLibGit2LastErr(CString((L"Could not load notes for commit " + rev->m_CommitHash.ToString() + L'.').c_str())), L"TortoiseGit", MB_OK | MB_ICONERROR);
 
 	CInputDlg dlg(GetParentCWnd(hWnd));
 	dlg.m_sHintText = CString(MAKEINTRESOURCE(IDS_PROGS_TITLE_EDITNOTES));
@@ -3059,12 +3059,12 @@ void CAppUtils::EditNote(HWND hWnd, GitRevLoglist* rev, ProjectProperties* proje
 		{
 			CString err;
 			err.LoadString(IDS_PROC_FAILEDSAVINGNOTES);
-			MessageBox(hWnd, g_Git.GetLibGit2LastErr(err), L"TortoiseGit", MB_OK | MB_ICONERROR);
+			MessageBox(hWnd, TGitH::GetLibGit2LastErr(err), L"TortoiseGit", MB_OK | MB_ICONERROR);
 			return;
 		}
 
 		if (g_Git.GetGitNotes(rev->m_CommitHash, rev->m_Notes))
-			MessageBox(hWnd, g_Git.GetLibGit2LastErr(L"Could not load notes for commit " + rev->m_CommitHash.ToString() + L'.'), L"TortoiseGit", MB_OK | MB_ICONERROR);
+			MessageBox(hWnd, TGitH::GetLibGit2LastErr(CString((L"Could not load notes for commit " + rev->m_CommitHash.ToString() + L'.').c_str())), L"TortoiseGit", MB_OK | MB_ICONERROR);
 	}
 }
 
@@ -3076,8 +3076,8 @@ bool CAppUtils::IsGitVersionNewerOrEqual(HWND hWnd, unsigned __int8 major, unsig
 
 int CAppUtils::GetMsysgitVersion(HWND hWnd)
 {
-	if (g_Git.ms_LastMsysGitVersion)
-		return g_Git.ms_LastMsysGitVersion;
+	if (TGitH::ms_LastMsysGitVersion)
+		return TGitH::ms_LastMsysGitVersion;
 
 	CString cmd;
 	CString versiondebug;
@@ -3086,14 +3086,14 @@ int CAppUtils::GetMsysgitVersion(HWND hWnd)
 	CRegDWORD regTime		= CRegDWORD(L"Software\\TortoiseGit\\git_file_time");
 	CRegDWORD regVersion	= CRegDWORD(L"Software\\TortoiseGit\\git_cached_version");
 
-	CString gitpath = CGit::ms_LastMsysGitDir + L"\\git.exe";
+	CString gitpath = TGitH::ms_LastMsysGitDir + L"\\git.exe";
 
 	__int64 time=0;
-	if (!CGit::GetFileModifyTime(gitpath, &time))
+	if (!TGitH::GetFileModifyTime(gitpath, &time))
 	{
-		if (static_cast<DWORD>(CGit::filetime_to_time_t(time)) == regTime)
+		if (static_cast<DWORD>(TGitH::filetime_to_time_t(time)) == regTime)
 		{
-			g_Git.ms_LastMsysGitVersion = regVersion;
+			TGitH::ms_LastMsysGitVersion = regVersion;
 			return regVersion;
 		}
 	}
@@ -3114,9 +3114,9 @@ int CAppUtils::GetMsysgitVersion(HWND hWnd)
 		}
 	}
 
-	regTime = static_cast<DWORD>(CGit::filetime_to_time_t(time));
+	regTime = static_cast<DWORD>(TGitH::filetime_to_time_t(time));
 	regVersion = ver;
-	g_Git.ms_LastMsysGitVersion = ver;
+	TGitH::ms_LastMsysGitVersion = ver;
 
 	// reinitialize everything (especially libgit2 config search paths), only needed because APPDATA is a Git config dir since 2.46
 	g_Git.m_bInitialized = false;
@@ -3318,12 +3318,12 @@ bool CAppUtils::BisectOperation(HWND hWnd, const CString& op, const CString& ref
 int CAppUtils::Git2GetUserPassword(git_credential **out, const char *url, const char *username_from_url, unsigned int /*allowed_types*/, void * /*payload*/)
 {
 	CUserPassword dlg;
-	dlg.m_URL = CUnicodeUtils::GetUnicode(url);
+	dlg.m_URL = CUnicodeUtils::Convert2Unicode<CString>(url);
 	if (username_from_url)
-		dlg.m_UserName = CUnicodeUtils::GetUnicode(username_from_url);
+		dlg.m_UserName = CUnicodeUtils::Convert2Unicode<CString>(username_from_url);
 
 	if (dlg.DoModal() == IDOK)
-		return git_credential_userpass_plaintext_new(out, CUnicodeUtils::GetUTF8(dlg.m_UserName), dlg.m_passwordA);
+		return git_credential_userpass_plaintext_new(out, CUnicodeUtils::GetUTF8<CStringA>(dlg.m_UserName), dlg.m_passwordA);
 
 	git_error_set_str(GIT_ERROR_NONE, "User cancelled.");
 	return GIT_EUSER;
@@ -3341,7 +3341,7 @@ int CAppUtils::Git2CertificateCheck(git_cert* base_cert, int /*valid*/, const ch
 		PCCERT_CONTEXT pServerCert = CertCreateCertificateContext(X509_ASN_ENCODING | PKCS_7_ASN_ENCODING, reinterpret_cast<BYTE*>(cert->data), static_cast<DWORD>(cert->len));
 		SCOPE_EXIT { CertFreeCertificateContext(pServerCert); };
 
-		DWORD verificationError = VerifyServerCertificate(pServerCert, CUnicodeUtils::GetUnicode(host).GetBuffer(), 0);
+		DWORD verificationError = VerifyServerCertificate(pServerCert, CUnicodeUtils::Convert2Unicode<CString>(host).GetBuffer(), 0);
 		if (!verificationError)
 		{
 			last_accepted_cert.set(cert);
@@ -3358,8 +3358,8 @@ int CAppUtils::Git2CertificateCheck(git_cert* base_cert, int /*valid*/, const ch
 		dlg.cert = cert;
 		dlg.m_sCertificateCN = servernameInCert;
 		dlg.m_sCertificateIssuer = issuer;
-		dlg.m_sHostname = CUnicodeUtils::GetUnicode(host);
-		dlg.m_sError = static_cast<LPCWSTR>(CFormatMessageWrapper(verificationError));
+		dlg.m_sHostname = CUnicodeUtils::Convert2Unicode<CString>(host);
+		dlg.m_sError = (CFormatMessageWrapper(verificationError)).c_str();
 		if (dlg.DoModal() == IDOK)
 		{
 			last_accepted_cert.set(cert);
@@ -3405,7 +3405,7 @@ bool CAppUtils::IsTGitRebaseActive(HWND hWnd)
 bool CAppUtils::DeleteRef(CWnd* parent, const CString& ref)
 {
 	CString shortname;
-	if (CGit::GetShortName(ref, shortname, L"refs/remotes/"))
+	if (TGitH::GetShortName(ref, shortname, L"refs/remotes/"))
 	{
 		CString msg;
 		msg.Format(IDS_PROC_DELETEREMOTEBRANCH, static_cast<LPCWSTR>(ref));
@@ -3423,7 +3423,7 @@ bool CAppUtils::DeleteRef(CWnd* parent, const CString& ref)
 			STRING_VECTOR list;
 			list.push_back(std::format(L"refs/heads/{}", shortname));
 			if (g_Git.DeleteRemoteRefs(remoteName, list))
-				CMessageBox::Show(parent->GetSafeOwner()->GetSafeHwnd(), g_Git.GetGitLastErr(L"Could not delete remote ref.", CGit::GIT_CMD_PUSH), L"TortoiseGit", MB_OK | MB_ICONERROR);
+				CMessageBox::Show(parent->GetSafeOwner()->GetSafeHwnd(), g_Git.GetGitLastErr(L"Could not delete remote ref.", TGitH::GIT_CMD_PUSH), L"TortoiseGit", MB_OK | MB_ICONERROR);
 			sysProgressDlg.Stop();
 			return true;
 		}
@@ -3431,14 +3431,14 @@ bool CAppUtils::DeleteRef(CWnd* parent, const CString& ref)
 		{
 			if (g_Git.DeleteRef(ref))
 			{
-				CMessageBox::Show(parent->GetSafeOwner()->GetSafeHwnd(), g_Git.GetGitLastErr(L"Could not delete reference.", CGit::GIT_CMD_DELETETAGBRANCH), L"TortoiseGit", MB_OK | MB_ICONERROR);
+				CMessageBox::Show(parent->GetSafeOwner()->GetSafeHwnd(), g_Git.GetGitLastErr(L"Could not delete reference.", TGitH::GIT_CMD_DELETETAGBRANCH), L"TortoiseGit", MB_OK | MB_ICONERROR);
 				return false;
 			}
 			return true;
 		}
 		return false;
 	}
-	else if (CGit::GetShortName(ref, shortname, L"refs/stash"))
+	else if (TGitH::GetShortName(ref, shortname, L"refs/stash"))
 	{
 		CString err;
 		std::vector<GitRevLoglist> stashList;
@@ -3466,7 +3466,7 @@ bool CAppUtils::DeleteRef(CWnd* parent, const CString& ref)
 	CString msg;
 	msg.Format(IDS_PROC_DELETEBRANCHTAG, static_cast<LPCWSTR>(ref));
 	// Check if branch is fully merged in HEAD
-	if (CGit::GetShortName(ref, shortname, L"refs/heads/") && !g_Git.IsFastForward(ref, L"HEAD"))
+	if (TGitH::GetShortName(ref, shortname, L"refs/heads/") && !g_Git.IsFastForward(ref, L"HEAD"))
 	{
 		msg += L"\n\n";
 		msg += CString(MAKEINTRESOURCE(IDS_PROC_BROWSEREFS_WARNINGUNMERGED));
@@ -3475,7 +3475,7 @@ bool CAppUtils::DeleteRef(CWnd* parent, const CString& ref)
 	{
 		if (g_Git.DeleteRef(ref))
 		{
-			CMessageBox::Show(parent->GetSafeOwner()->GetSafeHwnd(), g_Git.GetGitLastErr(L"Could not delete reference.", CGit::GIT_CMD_DELETETAGBRANCH), L"TortoiseGit", MB_OK | MB_ICONERROR);
+			CMessageBox::Show(parent->GetSafeOwner()->GetSafeHwnd(), g_Git.GetGitLastErr(L"Could not delete reference.", TGitH::GIT_CMD_DELETETAGBRANCH), L"TortoiseGit", MB_OK | MB_ICONERROR);
 			return false;
 		}
 		return true;

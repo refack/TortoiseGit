@@ -21,8 +21,8 @@
 #include "RemoveCommand.h"
 
 #include "MessageBox.h"
-#include "Git.h"
-#include "ShellUpdater.h"
+import git_h;
+import CShellUpdater;
 
 bool RemoveCommand::Execute()
 {

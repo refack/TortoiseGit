@@ -20,7 +20,7 @@
 #include "stdafx.h"
 #include "RebaseCommand.h"
 #include "RebaseDlg.h"
-#include "Git.h"
+import git_h;
 #include "AppUtils.h"
 
 bool RebaseCommand::Execute()

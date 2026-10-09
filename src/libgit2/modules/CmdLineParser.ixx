@@ -1,5 +1,9 @@
-﻿export module CmdLineParser;
+﻿module;
+#include <tgit_cstring.h>	// first: decides which CString this compile speaks
+
+export module CmdLineParser;
 import std;
+import wstr;
 
 using std::map;
 
@@ -127,9 +131,15 @@ namespace TCmdLineParser
         __int64 GetLongLongVal(const wchar_t* sKey) const;
 
         [[nodiscard]] static std::wstring EscapeValue(std::wstring_view input);
-#if defined(CSTRING_AVAILABLE) || defined(_MFC_VER)
-        [[nodiscard]] static CString EscapeValue(CString input);
-#endif
+        // CString is available in every compile now (tgit_cstring.h), so this is not
+        // behind CSTRING_AVAILABLE any more. Constrained, not a plain CString parameter:
+        // EscapeValue(L"...") would otherwise be ambiguous with the wstring_view one.
+        template <tgit::zstr::IsStupidString TStr>
+        [[nodiscard]] static TStr EscapeValue(TStr input)
+        {
+            input.Replace(L"\"", L"\"\"");
+            return L'"' + input + L'"';
+        }
 
     private:
         bool Parse(const wchar_t* sCmdLine);
@@ -335,7 +345,10 @@ namespace TCmdLineParser
         const auto it = findKey(sKey);
         if (it == m_valueMap.cend())
             return 0;
-        return std::stol(it->second.c_str());
+        // wcstol, not std::stol: the contract (_wtol's) is "leading digits, else 0".
+        // std::stol throws on an empty or non-numeric value, so a bare /line: on the
+        // command line terminated the process.
+        return std::wcstol(it->second.c_str(), nullptr, 10);
     }
 
     __int64 CCmdLineParser::GetLongLongVal(const wchar_t* sKey) const
@@ -343,7 +356,7 @@ namespace TCmdLineParser
         const auto it = findKey(sKey);
         if (it == m_valueMap.cend())
             return 0;
-        return std::stoll(it->second.c_str());
+        return std::wcstoll(it->second.c_str(), nullptr, 10);   // as GetLongVal: no throw
     }
 
     CCmdLineParser::ITERPOS CCmdLineParser::begin() const
@@ -388,13 +401,6 @@ namespace TCmdLineParser
 
         return result;
     }
-#if defined(CSTRING_AVAILABLE) || defined(_MFC_VER)
-    CString CCmdLineParser::EscapeValue(CString input)
-    {
-        input.Replace(L"\"", L"\"\"");
-        return L'"' + input + L'"';
-    }
-#endif
 }
 
 export using TCmdLineParser::CCmdLineParser;

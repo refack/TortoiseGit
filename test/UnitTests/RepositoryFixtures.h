@@ -18,8 +18,8 @@
 //
 
 #pragma once
-#include <Git/Git.h>
-#include <Utils/DirFileEnum.h>
+import git_h;
+import DirFileEnum;
 import PathUtils;
 import StringUtils;
 
@@ -33,9 +33,18 @@ enum config
 
 static bool GetResourcesDir(CString& resourcesDir)
 {
-	resourcesDir = (CPathUtils::GetAppDirectory() + L"\\resources").c_str();
+	resourcesDir = (PathUtils::GetAppDirectory() + L"\\resources").c_str();
 	if (!PathIsDirectory(resourcesDir))
-		resourcesDir = (CPathUtils::GetAppDirectory() + L"\\..\\..\\..\\test\\UnitTests\\resources").c_str();
+		resourcesDir = (PathUtils::GetAppDirectory() + L"\\..\\..\\..\\test\\UnitTests\\resources").c_str();
+#ifdef TGIT_TEST_RESOURCES_DIR
+	// The CMake build says where the sources are, so its binary directory can be
+	// anywhere; the relative probe above only fits the vcxproj's bin\Debug64\bin.
+	if (!PathIsDirectory(resourcesDir))
+	{
+		resourcesDir = TGIT_TEST_RESOURCES_DIR;
+		resourcesDir.Replace(L'/', L'\\');
+	}
+#endif
 	return PathIsDirectory(resourcesDir) != FALSE;
 }
 
@@ -90,13 +99,13 @@ protected:
 		// libgit relies on CWD being set to working tree
 		SetCurrentDirectory(m_Git.m_CurrentDir);
 
-		if (CGit::ms_LastMsysGitVersion == 0)
-			CGit::ms_LastMsysGitVersion = std::max(0, m_Git.GetGitVersion(nullptr, nullptr));
+		if (TGitH::ms_LastMsysGitVersion == 0)
+			TGitH::ms_LastMsysGitVersion = std::max(0, m_Git.GetGitVersion(nullptr, nullptr));
 	}
 
 	virtual void TearDown() override
 	{
-		SetCurrentDirectory(CPathUtils::GetAppDirectory().c_str());
+		SetCurrentDirectory(PathUtils::GetAppDirectory().c_str());
 	}
 
 public:

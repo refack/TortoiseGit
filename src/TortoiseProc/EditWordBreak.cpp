@@ -16,8 +16,9 @@
 // along with this program; if not, write to the Free Software Foundation,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
+#include "stdafx.h"
 
-#include "Utils/EditWordBreak.h"
+#include "EditWordBreak.h"
 
 bool IsSchemeEnd(LPCWSTR edit_text, int current_pos, int length)
 {

@@ -18,8 +18,8 @@
 //
 #include "stdafx.h"
 #include "LogOrdering.h"
-#include "Git.h"
-#include "registry.h"
+import git_h;
+import Registry;
 
 IMPLEMENT_DYNAMIC(CLogOrdering, CStandAloneDialog)
 CLogOrdering::CLogOrdering(CWnd* pParent /*=nullptr*/)
@@ -45,15 +45,15 @@ BOOL CLogOrdering::OnInitDialog()
 	CStandAloneDialog::OnInitDialog();
 
 	int ind = m_cLogOrdering.AddString(CString(MAKEINTRESOURCE(IDS_LOG_CHRONOLOGICALREVERSEDORDER)));
-	m_cLogOrdering.SetItemData(ind, CGit::LOG_ORDER_CHRONOLOGIALREVERSED);
+	m_cLogOrdering.SetItemData(ind, TGitH::LOG_ORDER_CHRONOLOGIALREVERSED);
 	ind = m_cLogOrdering.AddString(L"--topo-order " + CString(MAKEINTRESOURCE(IDS_TORTOISEGITDEFAULT)));
-	m_cLogOrdering.SetItemData(ind, CGit::LOG_ORDER_TOPOORDER);
+	m_cLogOrdering.SetItemData(ind, TGitH::LOG_ORDER_TOPOORDER);
 	ind = m_cLogOrdering.AddString(L"--date-order");
-	m_cLogOrdering.SetItemData(ind, CGit::LOG_ORDER_DATEORDER);
+	m_cLogOrdering.SetItemData(ind, TGitH::LOG_ORDER_DATEORDER);
 	ind = m_cLogOrdering.AddString(L"--author-date-order");
-	m_cLogOrdering.SetItemData(ind, CGit::LOG_ORDER_AUTHORDATEORDER);
+	m_cLogOrdering.SetItemData(ind, TGitH::LOG_ORDER_AUTHORDATEORDER);
 
-	DWORD curOrder = CRegDWORD(L"Software\\TortoiseGit\\LogOrderBy", CGit::LOG_ORDER_TOPOORDER);
+	DWORD curOrder = CRegDWORD(L"Software\\TortoiseGit\\LogOrderBy", TGitH::LOG_ORDER_TOPOORDER);
 	for (int i = 0; i < m_cLogOrdering.GetCount(); ++i)
 		if (m_cLogOrdering.GetItemData(i) == curOrder)
 			m_cLogOrdering.SetCurSel(i);

@@ -22,7 +22,7 @@
 #include "StashSave.h"
 #include "AppUtils.h"
 #include "MessageBox.h"
-#include "Git.h"
+import git_h;
 
 IMPLEMENT_DYNAMIC(CStashSaveDlg, CHorizontalResizableStandAloneDialog)
 

@@ -1,4 +1,5 @@
 ﻿module;
+#include <tgit_cstring.h>	// first: decides which CString this compile speaks
 #include <gitdll.h>
 #include <git2.h>
 #include <atltime.h>
@@ -10,13 +11,15 @@ import gsl;
 import wstr;
 import git_h;
 import GitMailmap;
-import FormatMessageWrapper;
 import wil_git2;
 import GitHash;
 import invarients;
 import tgittypes;
 
-using CGitHash = TGitHash::CGitHash;
+// a using-declaration, not an alias: MSVC mangles CGitHash reached through a module-local
+// alias as CGitHash[!GitHash] ($$_B) rather than CGitHash[GitHash] ($$_A), so every call
+// into git_h taking a CGitHash came out unresolved at link time
+using TGitHash::CGitHash;
 using namespace TGitH;
 using namespace SmartLibgit2;
 using tgit::zstr::StringView;
@@ -38,7 +41,7 @@ using tgit::zstr::StringView;
 
 export struct GitRev
 {
-	using StringType = ATL::CString;
+	using StringType = CString;
 	using TimeType = ATL::CTime;
 
 protected:
@@ -54,10 +57,11 @@ protected:
 
 	StringType m_sErr;
 
+public:
+	// public for the unit tests, which build revisions by hand
 	CGitHash m_CommitHash;
 	GIT_REV_LIST m_ParentHash;
 
-public:
 	GitRev() = default;
 	virtual ~GitRev() = default;
 
@@ -80,7 +84,13 @@ public:
 	 * Not constexpr: its width follows the repository's object format, so it is only
 	 * known once that has been latched (see GitObjectFormat.h).
 	 */
-	constexpr LPCWSTR GetWorkingCopyRef = tgit::invarients::ZeroRevSV().data();
+	[[nodiscard]] static LPCWSTR GetWorkingCopyRef() noexcept { return tgit::invarients::ZeroRevSV().data(); }    // a literal: NUL-terminated
+
+	/// refname is the working-copy sentinel, or an abbreviation of it at least 8 characters long
+	[[nodiscard]] static bool IsWorkingCopyRef(const CString& refname) noexcept
+	{
+		return refname.GetLength() >= 8 && tgit::invarients::ZeroRevSV().starts_with(StringView{ refname });
+	}
 
 
 protected:
@@ -91,6 +101,10 @@ protected:
 	int ParserParentFromCommit(const git_commit* commit);
 	int GetCommitFromHash(git_repository* repo, const CGitHash& hash);
 	int GetCommit(git_repository* repo, const StringType& refname);
+	/// a std::wstring ref (CGitHash::ToString()). Constrained, so a literal still
+	/// binds the StringType overloads and stays unambiguous.
+	template <typename T> requires std::same_as<std::remove_cvref_t<T>, std::wstring>
+	int GetCommit(const T& refname) { return GetCommit(StringType(refname.c_str(), static_cast<int>(refname.size()))); }
 
 public:
 	int GetParentFromHash(const CGitHash& hash);
@@ -387,6 +401,8 @@ public:
 		return 0;
 	}
 };
+// TortoiseProc spells it unqualified, as the header-era typedef was
+export using MAP_REF_GITREVREFBROWSER = GitRevRefBrowser::MAP_REF_GITREVREFBROWSER;
 
 void GitRev::Clear()
 {
@@ -517,7 +533,7 @@ int GitRev::GetCommitFromHash(git_repository* repo, const CGitHash& hash)
 int GitRev::GetCommit(git_repository* repo, const CString& refname)
 {
 	ATLASSERT(repo);
-	if (refname.GetLength() >= 8 && wcsncmp(refname, GitRev::GetWorkingCopyRef(), refname.GetLength()) == 0)
+	if (IsWorkingCopyRef(refname))
 	{
 		Clear();
 		m_Subject = L"Working Tree";
@@ -646,14 +662,13 @@ int GitRev::GetCommit(const CString& refname, bool allowTree /* false */)
 		return -1;
 	}
 
-	if(refname.GetLength() >= 8)
-		if (refname.GetLength() >= 8 && wcsncmp(refname, GitRev::GetWorkingCopyRef(), refname.GetLength()) == 0)
-		{
-			this->m_CommitHash.Empty();
-			this->m_Subject = L"Working Tree";
-			m_sErr.Empty();
-			return 0;
-		}
+	if (IsWorkingCopyRef(refname))
+	{
+		this->m_CommitHash.Empty();
+		this->m_Subject = L"Working Tree";
+		m_sErr.Empty();
+		return 0;
+	}
 	CStringA rev = CUnicodeUtils::GetUTF8<CStringA>(g_Git.FixBranchName(refname + L"^{}")); // add ^{} in order to dereference signed tags
 	GIT_HASH sha;
 

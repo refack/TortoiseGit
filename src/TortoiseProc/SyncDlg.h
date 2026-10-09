@@ -18,10 +18,10 @@
 //
 
 #pragma once
-#include <Utils/MiscUI/StandAloneDlg.h>
+#include "StandAloneDlg.h"
 #include "HistoryCombo.h"
 #include "MenuButton.h"
-#include <Utils/registry.h>
+import Registry;
 #include "BranchCombox.h"
 #include "GitLoglist.h"
 #include "GitProgressList.h"
@@ -184,7 +184,7 @@ protected:
 							const CGitHash& rev1, const CGitHash& rev2)
 	{
 		CString error;
-		if (g_Git.GetCommitDiffList(rev1.ToString(), rev2.ToString(), *pGitList, error))
+		if (g_Git.GetCommitDiffList(CString((rev1.ToString()).c_str()), CString((rev2.ToString()).c_str()), *pGitList, error))
 			MessageBox(error, L"TortoiseGit", 0);
 		pCtrlList->m_Rev1 = rev1;
 		pCtrlList->m_Rev2 = rev2;

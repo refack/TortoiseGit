@@ -16,9 +16,10 @@
 // along with this program; if not, write to the Free Software Foundation,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
+#include "../stdafx.h"
 
 #include <afxwin.h>
-#include "Utils/WaitCursorEx.h"
+#include "MiscUI/WaitCursorEx.h"
 
 
 CWaitCursorEx::CWaitCursorEx(bool start_visible) :

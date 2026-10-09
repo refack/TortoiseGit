@@ -19,7 +19,7 @@
 #include <stdafx.h>
 #include "StagingOperations.h"
 #include <regex>
-#include "Git.h"
+import git_h;
 
 bool StagingOperations::IsWithinFileHeader(int line) const
 {

@@ -20,9 +20,9 @@
 #include "afxwin.h"
 #include "LogDlg.h"
 #include "BrowseRefsDlg.h"
-#include <Utils/MiscUI/MessageBox.h>
-#include <Utils/registry.h>
-#include "StringUtils.h"
+#include "MiscUI/MessageBox.h"
+import Registry;
+import StringUtils;
 
 static UINT WM_GUIUPDATES = RegisterWindowMessage(L"TORTOISEGIT_CHOOSEVERSION_GUIUPDATES");
 
@@ -110,7 +110,7 @@ protected:
 		dlg.SingleSelection(true);
 		if (dlg.DoModal() == IDOK && !dlg.GetSelectedHash().empty())
 		{
-			m_ChooseVersioinVersion.SetWindowText(dlg.GetSelectedHash().at(0).ToString());
+			m_ChooseVersioinVersion.SetWindowText((dlg.GetSelectedHash().at(0).ToString()).c_str());
 			OnVersionChanged();
 		}
 		m_pWin->BringWindowToTop(); /* cf. issue #3493 */
@@ -208,7 +208,7 @@ protected:
 	{
 		auto refData = std::make_shared<GUI_UPDATE_DATA>();
 		auto& data = *refData;
-		g_Git.GetBranchList(data.branches, &data.current_branch_idx, CRegDWORD(L"Software\\TortoiseGit\\BranchesIncludeFetchHead", TRUE) ? CGit::BRANCH_ALL_F : CGit::BRANCH_ALL, m_bSkipCurrentBranch);
+		g_Git.GetBranchList(data.branches, &data.current_branch_idx, CRegDWORD(L"Software\\TortoiseGit\\BranchesIncludeFetchHead", TRUE) ? TGitH::BRANCH_ALL_F : TGitH::BRANCH_ALL, m_bSkipCurrentBranch);
 
 		if (m_bExitLoadingThread)
 			return 0;

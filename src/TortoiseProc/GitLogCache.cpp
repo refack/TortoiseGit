@@ -17,15 +17,15 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 #include "stdafx.h"
-import GitAdminDir;
+import TGitPath;	// GitAdminDir lives in the TGitPath module
 #include "GitLogCache.h"
-#include "registry.h"
+import Registry;
 #include <intsafe.h>
 #include <format>
 
 int static Compare(const void *p1, const void*p2)
 {
-	return memcmp(p1, p2, GIT_HASH_SIZE);
+	return memcmp(p1, p2, static_cast<int>(tgit::invarients::GitFormatHolder::GitHashSize()));
 }
 
 CLogCache::CLogCache()

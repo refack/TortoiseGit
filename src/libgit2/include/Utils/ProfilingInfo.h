@@ -1,6 +1,6 @@
 ﻿#pragma once
 
-#include "ReaderWriterLock.h"
+import ReaderWriterLock;
 #include <string>
 #include <vector>
 

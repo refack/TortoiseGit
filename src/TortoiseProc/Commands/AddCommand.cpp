@@ -22,7 +22,7 @@
 #include "AddDlg.h"
 #include "GitProgressDlg.h"
 #include "ProgressCommands/AddProgressCommand.h"
-#include "ShellUpdater.h"
+import CShellUpdater;
 
 bool AddCommand::Execute()
 {

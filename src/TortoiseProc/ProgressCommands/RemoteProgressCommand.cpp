@@ -17,6 +17,7 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 #include "stdafx.h"
+#include <TortoiseProc/resource.h>	// restored: these IDs used to arrive through headers that are imports now
 #include "resource.h"
 #include "RemoteProgressCommand.h"
 #include <TortoiseShell/resource.h>
@@ -98,11 +99,11 @@ int RemoteProgressCommand::RemoteUpdatetipsCallback(const char* refname, const g
 RemoteProgressCommand::RefUpdateNotificationData::RefUpdateNotificationData(const char* refname, const git_oid* oldOid, const git_oid* newOid, const CString& change)
 	: NotificationData()
 {
-	CString str = CUnicodeUtils::GetUnicode(refname);
+	CString str = CUnicodeUtils::Convert2Unicode<CString>(refname);
 	m_NewHash = newOid;
 	m_OldHash = oldOid;
 	sActionColumnText.LoadString(IDS_GITACTION_UPDATE_REF);
-	sPathColumnText.Format(L"%s\t %s -> %s (%s)", static_cast<LPCWSTR>(str), static_cast<LPCWSTR>(m_OldHash.ToString(g_Git.GetShortHASHLength())), static_cast<LPCWSTR>(m_NewHash.ToString(g_Git.GetShortHASHLength())), static_cast<LPCWSTR>(change));
+	sPathColumnText.Format(L"%s\t %s -> %s (%s)", static_cast<LPCWSTR>(str), (m_OldHash.ToString(g_Git.GetShortHASHLength())).c_str(), (m_NewHash.ToString(g_Git.GetShortHASHLength())).c_str(), static_cast<LPCWSTR>(change));
 }
 
 void RemoteProgressCommand::RefUpdateNotificationData::GetContextMenu(CIconMenu& popup, CGitProgressList::ContextMenuActionList& actions)

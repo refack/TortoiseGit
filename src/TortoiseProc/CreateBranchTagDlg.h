@@ -18,7 +18,7 @@
 //
 #pragma once
 
-#include <Utils/MiscUI/StandAloneDlg.h>
+#include "StandAloneDlg.h"
 #include "ChooseVersion.h"
 
 // CCreateBranchTagDlg dialog

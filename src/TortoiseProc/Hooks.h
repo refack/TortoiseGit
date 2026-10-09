@@ -19,7 +19,7 @@
 //
 
 #pragma once
-#include "TGitPath.h"
+import TGitPath;
 #include "ProjectProperties.h"
 
 /**

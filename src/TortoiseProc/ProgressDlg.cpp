@@ -22,18 +22,18 @@
 #include "stdafx.h"
 #include "TortoiseProc.h"
 #include "ProgressDlg.h"
-#include "UnicodeUtils.h"
+import wstr;
 #include "IconMenu.h"
 #include "LoglistCommonResource.h"
 #include <Tlhelp32.h>
 #include "AppUtils.h"
-#include "SmartHandle.h"
-#include <TGitCache/CacheInterface.h>
+import RIAA;
+import TGitCache.CacheInterface;
 #include "LoglistUtils.h"
 #include "MessageBox.h"
 #include "LogFile.h"
-#include "CmdLineParser.h"
-#include "StringUtils.h"
+import CmdLineParser;
+import StringUtils;
 
 #define REFRESHTIMER 100
 
@@ -185,7 +185,7 @@ redo:
 			goto redo;
 		}
 		else
-			CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": Message %d-%d could not be sent (error %d; %s)\n", wParam, lParam, GetLastError(), static_cast<LPCWSTR>(CFormatMessageWrapper()));
+			CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": Message %d-%d could not be sent (error %d; %s)\n", wParam, lParam, GetLastError(), (CFormatMessageWrapper()).c_str());
 	}
 }
 
@@ -268,7 +268,7 @@ UINT CProgressDlg::RunCmdList(CWnd* pWnd, ARGV_VECTOR& cmdlist, STRING_VECTOR& d
 		DWORD status = 0;
 		if (!GetExitCodeProcess(pi.hProcess, &status) || *bAbort)
 		{
-			CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": process %s finished, status code could not be fetched, (error %d; %s), aborted: %d\n", static_cast<LPCWSTR>(command), GetLastError(), static_cast<LPCWSTR>(CFormatMessageWrapper()), *bAbort);
+			CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": process %s finished, status code could not be fetched, (error %d; %s), aborted: %d\n", static_cast<LPCWSTR>(command), GetLastError(), (CFormatMessageWrapper()).c_str(), *bAbort);
 
 			EnsurePostMessage(pWnd, MSG_PROGRESSDLG_UPDATE_UI, MSG_PROGRESSDLG_FAILED, status);
 			return TGIT_GIT_ERROR_GET_EXIT_CODE;
@@ -547,7 +547,7 @@ void CProgressDlg::UpdateCmdOutput(CGitCliOutputParser& cliOutputParser, CRichEd
 	else
 		log.SetSel(currentLength, currentLength);
 
-	CString str = CUnicodeUtils::GetUnicode(out.text);
+	CString str = CUnicodeUtils::GetUnicode<CString>(out.text);
 	if (currentLength == 0 && g_Git.m_LogEncode != CP_UTF8 && !out.text.empty() && out.text[0] == '[')
 	{
 		size_t start = 0;
@@ -564,7 +564,7 @@ void CProgressDlg::UpdateCmdOutput(CGitCliOutputParser& cliOutputParser, CRichEd
 		}
 
 		std::string_view buff = out.text;
-		str = CUnicodeUtils::GetUnicode(buff.substr(0, start), g_Git.m_LogEncode);
+		str = CUnicodeUtils::GetUnicode<CString>(buff.substr(0, start), g_Git.m_LogEncode);
 		buff.remove_prefix(start);
 		CGit::StringAppend(str, buff);
 	}
@@ -698,7 +698,7 @@ void CProgressDlg::OnCancel()
 	if (m_pThread)
 	{
 		if (::WaitForSingleObject(m_pThread->m_hThread, 5000) == WAIT_TIMEOUT)
-			g_Git.KillRelatedThreads(m_pThread);
+			g_Git.KillRelatedThreads(m_pThread->m_nThreadID, m_pThread->m_hThread);
 	}
 
 	WriteLog();

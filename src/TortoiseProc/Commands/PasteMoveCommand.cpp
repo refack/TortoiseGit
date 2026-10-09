@@ -21,9 +21,9 @@
 
 #include "SysProgressDlg.h"
 #include "MessageBox.h"
-#include "Git.h"
+import git_h;
 #include "RenameDlg.h"
-#include "ShellUpdater.h"
+import CShellUpdater;
 
 bool PasteMoveCommand::Execute()
 {

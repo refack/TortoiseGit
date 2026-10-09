@@ -18,8 +18,9 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 #pragma once
+#include <TortoiseProc/resource.h>	// restored: macros do not cross an import
 
-#include <Utils/MiscUI/StandAloneDlg.h>
+#include "StandAloneDlg.h"
 #include "GitProgressList.h"
 #include "MenuButton.h"
 

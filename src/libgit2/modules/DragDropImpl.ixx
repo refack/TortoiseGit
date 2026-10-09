@@ -1060,3 +1060,6 @@ HRESULT CIDropTarget::SetDropDescription(DROPIMAGETYPE image, LPCWSTR format, LP
 
 
 }
+
+// as the sibling modules do: FileDropEdit and GitStatusListCtrl derive from CIDropTarget unqualified
+export using namespace DragDrop;

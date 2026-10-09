@@ -18,7 +18,8 @@
 //
 
 #include "stdafx.h"
-#include "CmdLineParser.h"
+import CmdLineParser;
+import wstr;
 
 TEST(CCmdLineParser, Null)
 {
@@ -701,12 +702,12 @@ static void CheckEscapeValue(const CString& escaped, LPCWSTR expected)
 
 TEST(CCmdLineParser, EscapeValue)
 {
-	EXPECT_STREQ(L"\"\"", CCmdLineParser::EscapeValue(""));
+	EXPECT_STREQ(L"\"\"", CCmdLineParser::EscapeValue(L""));
 
 	LPCWSTR args[] = { L"", L" ", L"\"", L"\"\"", L"\" \"", L"\"\"\\", L"ascii", L"something\\", L"C:\\Test", L"some\\\"thing", L"something\\\"", L"some\"thing", L"some\"\"thing", L"something\"\\\""};
 	for (auto arg : args)
 	{
-		CheckEscapeValue(CCmdLineParser::EscapeValue(CString(arg)), arg);
+		CheckEscapeValue(CCmdLineParser::EscapeValue(tgit::zstr::StringView(CString(arg))).c_str(), arg);
 		CheckEscapeValue(CCmdLineParser::EscapeValue(std::wstring_view(arg)).c_str(), arg);
 	}
 }

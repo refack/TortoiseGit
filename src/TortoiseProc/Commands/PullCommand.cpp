@@ -20,7 +20,7 @@
 #include "stdafx.h"
 #include "PullCommand.h"
 #include "AppUtils.h"
-import GitAdminDir;
+import TGitPath;	// GitAdminDir lives in the TGitPath module
 
 bool PullCommand::Execute()
 {

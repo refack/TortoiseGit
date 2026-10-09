@@ -22,8 +22,8 @@
 
 #include "MessageBox.h"
 #include "RenameDlg.h"
-#include "Git.h"
-#include "ShellUpdater.h"
+import git_h;
+import CShellUpdater;
 
 bool RenameCommand::Execute()
 {
@@ -44,7 +44,7 @@ bool RenameCommand::Execute()
 			newName = input;
 
 		if (newName.CompareNoCase(cmdLinePath.GetGitPathString().c_str()) != 0 && PathFileExists(g_Git.CombinePath(newName)))
-			return CString(static_cast<LPCWSTR>(CFormatMessageWrapper(ERROR_FILE_EXISTS)));
+			return CString((CFormatMessageWrapper(ERROR_FILE_EXISTS)).c_str());
 
 		return{};
 	});

@@ -44,7 +44,7 @@ using namespace RIAA;
 // using-directive for the namespace, so an unqualified `DarkModeHelper::` finds
 // both and is ambiguous (C2872). `::DarkModeHelper` finds the namespace directly,
 // and qualified lookup does not follow using-directives when it has a direct hit.
-using DarkMode = ::DarkModeHelper::DarkModeHelper;
+using DarkMode = ::TGitDarkMode::DarkModeHelper;
 
 #define WM_MENUBAR_DRAWMENU 0x0091 // lParam is MENUBAR_MENU
 #define WM_MENUBAR_DRAWMENUITEM 0x0092 // lParam is MENUBAR_DRAWMENUITEM

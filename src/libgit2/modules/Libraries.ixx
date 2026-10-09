@@ -1,4 +1,5 @@
-module;
+﻿module;
+#include <tgit_cstring.h>	// first: decides which CString this compile speaks
 #include <windows.h>
 #include "resource.h"
 
@@ -20,7 +21,8 @@ import PathUtils;
 // declares and defines stuff which is not available in the Vista SDK or
 // which isn't available in the Win7 SDK but not unless NTDDI_VERSION is
 // set to NTDDI_WIN7
-namespace Libraries {
+// export: "export using namespace" of an unexported namespace exports nothing
+export namespace Libraries {
 
 #ifdef _WIN64
 // {DC9E616B-7611-461c-9D37-730FDD4CE278}

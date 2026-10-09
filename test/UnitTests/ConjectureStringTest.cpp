@@ -1,4 +1,4 @@
-// TortoiseGit - a Windows shell extension for easy version control
+﻿// TortoiseGit - a Windows shell extension for easy version control
 
 // Copyright (C) 2026 - TortoiseGit
 
@@ -97,12 +97,12 @@ TEST(ConjectureString, RealAndStupidStringsAreDisjoint)
 TEST(ConjectureString, StringViewServesBothKinds)
 {
 	const CStringW cstring(L"a\0b", 3);
-	EXPECT_EQ(3u, tgit::wstr::StringView{ cstring }.size());
-	EXPECT_EQ(L"a\0b"sv, std::wstring_view{ tgit::wstr::StringView{ cstring } });
+	EXPECT_EQ(3u, tgit::zstr::StringView{ cstring }.size());
+	EXPECT_EQ(L"a\0b"sv, std::wstring_view{ tgit::zstr::StringView{ cstring } });
 	const std::wstring stdString = L"cd";
-	EXPECT_EQ(L"cd"sv, std::wstring_view{ tgit::wstr::StringView{ stdString } });
+	EXPECT_EQ(L"cd"sv, std::wstring_view{ tgit::zstr::StringView{ stdString } });
 	const CStringA narrow("ef");
-	EXPECT_EQ("ef"sv, std::string_view{ tgit::wstr::StringView{ narrow } });
+	EXPECT_EQ("ef"sv, std::string_view{ tgit::zstr::StringView{ narrow } });
 }
 
 // Conjecture: CopyTruncating keeps StringCchCopy's contract - truncate, always

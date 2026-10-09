@@ -21,7 +21,7 @@
 #pragma once
 
 #include "HintCtrl.h"
-#include "GitHash.h"
+import GitHash;
 
 class CGitRefCompareList : public CHintCtrl<CListCtrl>
 {
@@ -43,7 +43,7 @@ class CGitRefCompareList : public CHintCtrl<CListCtrl>
 	struct RefEntry
 	{
 		CString fullName;
-		CGit::REF_TYPE refType = CGit::REF_TYPE::UNKNOWN;
+		TGitH::REF_TYPE refType = TGitH::REF_TYPE::UNKNOWN;
 		CString shortName;
 		CString change;
 		ChangeType changeType = ChangeType::Unknown;

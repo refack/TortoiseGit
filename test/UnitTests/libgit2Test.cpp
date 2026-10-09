@@ -18,9 +18,10 @@
 //
 
 #include "stdafx.h"
-#include "StringUtils.h"
-#include "git2/sys/repository.h"
-#include "Git.h"
+#include <git2/sys/repository.h>
+import StringUtils;
+import git_h;
+import GitHash;
 
 TEST(libgit2, Config)
 {
@@ -28,7 +29,7 @@ TEST(libgit2, Config)
 	CString testFile = tempdir.GetTempDir() + L"\\config";
 	EXPECT_TRUE(StringUtils::WriteStringToTextFile(testFile, L"[core]\nemail=dummy@example.com\ntrue=true\nfalse=false\n"));
 	CAutoConfig config(true);
-	EXPECT_EQ(0, git_config_add_file_ondisk(config, CUnicodeUtils::GetUTF8(testFile), GIT_CONFIG_LEVEL_LOCAL, nullptr, 1));
+	EXPECT_EQ(0, git_config_add_file_ondisk(config, CUnicodeUtils::GetUTF8<CStringA>(testFile), GIT_CONFIG_LEVEL_LOCAL, nullptr, 1));
 	bool ret = false;
 	EXPECT_EQ(0, config.GetBool(L"core.true", ret));
 	EXPECT_EQ(true, ret);
@@ -46,7 +47,7 @@ TEST(libgit2, ConfigSnaphot)
 	CAutoTempDir tmpDir;
 
 	CAutoRepository repo;
-	ASSERT_TRUE(git_repository_init(repo.GetPointer(), CUnicodeUtils::GetUTF8(tmpDir.GetTempDir()), false) == 0);
+	ASSERT_TRUE(git_repository_init(repo.GetPointer(), CUnicodeUtils::GetUTF8<CStringA>(tmpDir.GetTempDir()), false) == 0);
 	// The includeIf sections below match on the branch name, and libgit2 honours the
 	// host's init.defaultBranch just as git.exe does. Pin HEAD so the test describes
 	// the config machinery rather than the machine it runs on.
@@ -89,7 +90,7 @@ TEST(libgit2, ConfigSnaphotRepoHashFile)
 	CAutoTempDir tmpDir;
 
 	CAutoRepository repo;
-	ASSERT_TRUE(git_repository_init(repo.GetPointer(), CUnicodeUtils::GetUTF8(tmpDir.GetTempDir()), false) == 0);
+	ASSERT_TRUE(git_repository_init(repo.GetPointer(), CUnicodeUtils::GetUTF8<CStringA>(tmpDir.GetTempDir()), false) == 0);
 	CString configFile = tmpDir.GetTempDir() + L"\\.git\\config";
 	CString text;
 	ASSERT_TRUE(StringUtils::ReadStringFromTextFile(configFile, text));

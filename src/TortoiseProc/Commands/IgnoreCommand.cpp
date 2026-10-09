@@ -22,7 +22,7 @@
 
 #include "MessageBox.h"
 #include "AppUtils.h"
-#include "ShellUpdater.h"
+import CShellUpdater;
 
 bool IgnoreCommand::Execute()
 {

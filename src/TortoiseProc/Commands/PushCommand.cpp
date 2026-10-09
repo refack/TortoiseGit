@@ -20,7 +20,7 @@
 #include "stdafx.h"
 #include "PushCommand.h"
 #include "AppUtils.h"
-import GitAdminDir;
+import TGitPath;	// GitAdminDir lives in the TGitPath module
 
 bool PushCommand::Execute()
 {

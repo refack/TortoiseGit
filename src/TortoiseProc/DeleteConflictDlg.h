@@ -18,8 +18,8 @@
 //
 #pragma once
 
-#include <Utils/MiscUI/StandAloneDlg.h>
-#include "TGitPath.h"
+#include "StandAloneDlg.h"
+import TGitPath;
 // CDeleteConflictDlg dialog
 
 class CDeleteConflictDlg : public CStandAloneDialog

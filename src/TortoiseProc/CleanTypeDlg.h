@@ -19,9 +19,9 @@
 #pragma once
 
 
-#include <Utils/MiscUI/StandAloneDlg.h>
-#include <Utils/registry.h>
-#include "TGitPath.h"
+#include "StandAloneDlg.h"
+import Registry;
+import TGitPath;
 
 // CCleanTypeDlg dialog
 

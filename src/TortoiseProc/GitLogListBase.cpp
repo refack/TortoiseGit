@@ -23,8 +23,8 @@
 #include "IconMenu.h"
 #include "MessageBox.h"
 #include "LoglistUtils.h"
-#include "StringUtils.h"
-#include "UnicodeUtils.h"
+import StringUtils;
+import wstr;
 #include "resource.h"
 #include "LoglistCommonResource.h"
 #include <TortoiseShell/Resource.h>
@@ -156,7 +156,9 @@ int CGitLogListBase::AsyncDiffThread()
 				for (int j = 0; j < files.GetCount(); ++j)
 					action |= files[j].m_Action;
 
-				if (std::wstring err = pRev->GetUnRevFiles().FillUnRev(CTGitPath::LOGACTIONS_UNVER))
+				// FillUnRev takes the git runner it used to reach for itself, and reports into err
+				std::wstring err;
+				if (pRev->GetUnRevFiles().FillUnRev([](const auto& argv, auto* out, auto* errOut) { return g_Git.Run(argv, out, errOut); }, CTGitPath::LOGACTIONS_UNVER, nullptr, &err))
 				{
 					::MessageBox(nullptr, std::format(L"Failed to get UnRev file list\n{}", err).c_str(), L"TortoiseGit", MB_OK | MB_ICONERROR);
 					InterlockedExchange(&m_AsyncThreadRunning, FALSE);
@@ -312,7 +314,7 @@ void CGitLogListBase::InsertGitColumn()
 	m_boldItalicsFont.CreateFontIndirect(&lf);
 
 	// only load properties if we have a repository
-	if (GitAdminDir::IsWorkingTreeOrBareRepo(g_Git.m_CurrentDir))
+	if (GitAdminDir::IsWorkingTreeOrBareRepo(tgit::zstr::StringView(g_Git.m_CurrentDir)))
 		UpdateProjectProperties();
 
 	const auto iconItemBorder = CDPIAware::Instance().ScaleX(GetSafeHwnd(), ICONITEMBORDER);
@@ -530,7 +532,7 @@ void CGitLogListBase::DrawTagBranch(HDC hdc, CDC& W_Dc, HTHEME hTheme, const CRe
 		COLORREF colRef = refList[i].color;
 		const bool singleRemote = refList[i].singleRemote;
 		const bool hasTracking = refList[i].hasTracking;
-		CGit::REF_TYPE refType = refList[i].refType;
+		TGitH::REF_TYPE refType = refList[i].refType;
 
 		//When row selected, ajust label color
 		if (!IsAppThemed())
@@ -583,7 +585,7 @@ void CGitLogListBase::DrawTagBranch(HDC hdc, CDC& W_Dc, HTHEME hTheme, const CRe
 				W_Dc.Draw3dRect(rectEdge, m_Colors.Lighten(colRef, 50), m_Colors.Darken(colRef, 50));
 			}
 
-			if (refType == CGit::REF_TYPE::ANNOTATED_TAG)
+			if (refType == TGitH::REF_TYPE::ANNOTATED_TAG)
 			{
 				rt.right += 8;
 				POINT trianglept[3] = { { rt.right - 8, rt.top }, { rt.right, (rt.top + rt.bottom) / 2 }, { rt.right - 8, rt.bottom } };
@@ -995,7 +997,7 @@ void CGitLogListBase::DrawGraph(HDC hdc,CRect &rect,INT_PTR index)
 //	p->translate(QPoint(opt.rect.left(), opt.rect.top()));
 
 	if (data->m_Lanes.empty())
-		m_logEntries.setLane(data->m_CommitHash, m_ShowMask & CGit::LOG_INFO_FIRST_PARENT);
+		m_logEntries.setLane(data->m_CommitHash, m_ShowMask & TGitH::LOG_INFO_FIRST_PARENT);
 
 	std::vector<Lanes::LaneType>& lanes = data->m_Lanes;
 	const size_t laneNum = lanes.size();
@@ -1192,12 +1194,12 @@ void CGitLogListBase::OnNMCustomdrawLoglist(NMHDR *pNMHDR, LRESULT *pResult)
 						refLabel.singleRemote = false;
 						refLabel.hasTracking = false;
 						refLabel.sameName = false;
-						refLabel.name = CGit::GetShortName(refListIt->c_str(), &refLabel.refType);
+						refLabel.name = TGitH::GetShortName(refListIt->c_str(), &refLabel.refType);
 						refLabel.fullName = refListIt->c_str();
 
 						switch (refLabel.refType)
 						{
-						case CGit::REF_TYPE::LOCAL_BRANCH:
+						case TGitH::REF_TYPE::LOCAL_BRANCH:
 						{
 							if (!(m_ShowRefMask & LOGLIST_SHOWLOCALBRANCHES))
 								continue;
@@ -1219,7 +1221,7 @@ void CGitLogListBase::OnNMCustomdrawLoglist(NMHDR *pNMHDR, LRESULT *pResult)
 									bool found = false;
 									for (auto it2 = refListIt + 1; it2 != refListItEnd; ++it2)
 									{
-										if (*it2 == tgit::wstr::View(defaultUpstream))
+										if (*it2 == tgit::zstr::StringView(defaultUpstream))
 										{
 											found = true;
 											break;
@@ -1230,7 +1232,7 @@ void CGitLogListBase::OnNMCustomdrawLoglist(NMHDR *pNMHDR, LRESULT *pResult)
 									{
 										const bool sameName = pullBranch == refLabel.name;
 										refsToShow.push_back(refLabel);
-										CGit::GetShortName(defaultUpstream, refLabel.name, L"refs/remotes/");
+										TGitH::GetShortName(defaultUpstream, refLabel.name, L"refs/remotes/");
 										refLabel.color = CTheme::Instance().GetThemeColor(m_Colors.GetColor(CColors::RemoteBranch), true);
 										if (m_bSymbolizeRefNames)
 										{
@@ -1256,7 +1258,7 @@ void CGitLogListBase::OnNMCustomdrawLoglist(NMHDR *pNMHDR, LRESULT *pResult)
 							}
 							break;
 						}
-						case CGit::REF_TYPE::REMOTE_BRANCH:
+						case TGitH::REF_TYPE::REMOTE_BRANCH:
 						{
 							if (!(m_ShowRefMask & LOGLIST_SHOWREMOTEBRANCHES))
 								continue;
@@ -1283,31 +1285,31 @@ void CGitLogListBase::OnNMCustomdrawLoglist(NMHDR *pNMHDR, LRESULT *pResult)
 							}
 							break;
 						}
-						case CGit::REF_TYPE::ANNOTATED_TAG:
+						case TGitH::REF_TYPE::ANNOTATED_TAG:
 							[[fallthrough]];
-						case CGit::REF_TYPE::TAG:
+						case TGitH::REF_TYPE::TAG:
 							if (!(m_ShowRefMask & LOGLIST_SHOWTAGS))
 								continue;
 							refLabel.color = CTheme::Instance().GetThemeColor(m_Colors.GetColor(CColors::Tag), true);
 							break;
 
-						case CGit::REF_TYPE::STASH:
+						case TGitH::REF_TYPE::STASH:
 							if (!(m_ShowRefMask & LOGLIST_SHOWSTASH))
 								continue;
 							refLabel.color = CTheme::Instance().GetThemeColor(m_Colors.GetColor(CColors::Stash), true);
 							break;
 
-						case CGit::REF_TYPE::BISECT_GOOD:
+						case TGitH::REF_TYPE::BISECT_GOOD:
 							[[fallthrough]];
-						case CGit::REF_TYPE::BISECT_BAD:
+						case TGitH::REF_TYPE::BISECT_BAD:
 							[[fallthrough]];
-						case CGit::REF_TYPE::BISECT_SKIP:
+						case TGitH::REF_TYPE::BISECT_SKIP:
 							if (!(m_ShowRefMask & LOGLIST_SHOWBISECT))
 								continue;
-							refLabel.color = CTheme::Instance().GetThemeColor((refLabel.refType == CGit::REF_TYPE::BISECT_GOOD) ? m_Colors.GetColor(CColors::BisectGood) : ((refLabel.refType == CGit::REF_TYPE::BISECT_SKIP) ? m_Colors.GetColor(CColors::BisectSkip) : m_Colors.GetColor(CColors::BisectBad)), true);
+							refLabel.color = CTheme::Instance().GetThemeColor((refLabel.refType == TGitH::REF_TYPE::BISECT_GOOD) ? m_Colors.GetColor(CColors::BisectGood) : ((refLabel.refType == TGitH::REF_TYPE::BISECT_SKIP) ? m_Colors.GetColor(CColors::BisectSkip) : m_Colors.GetColor(CColors::BisectBad)), true);
 							break;
 
-						case CGit::REF_TYPE::NOTES:
+						case TGitH::REF_TYPE::NOTES:
 							if (!(m_ShowRefMask & LOGLIST_SHOWOTHERREFS))
 								continue;
 							refLabel.color = CTheme::Instance().GetThemeColor(m_Colors.GetColor(CColors::NoteNode), true);
@@ -1547,7 +1549,7 @@ void CGitLogListBase::OnLvnGetdispinfoLoglist(NMHDR *pNMHDR, LRESULT *pResult)
 	case LOGLIST_ACTION: //action -- no text in the column
 		break;
 	case LOGLIST_HASH:
-		lstrcpyn(pItem->pszText, pLogEntry->m_CommitHash.ToString(), pItem->cchTextMax - 1);
+		lstrcpyn(pItem->pszText, (pLogEntry->m_CommitHash.ToString()).c_str(), pItem->cchTextMax - 1);
 		break;
 	case LOGLIST_ID:
 		if (this->m_IsIDReplaceAction)
@@ -1717,10 +1719,10 @@ void CGitLogListBase::OnContextMenu(CWnd* pWnd, CPoint point)
 					commitTitle.Truncate(20);
 					commitTitle += L"...";
 				}
-				str.AppendFormat(L": \"%s\" (%s)", static_cast<LPCWSTR>(StringUtils::EscapeAccellerators(commitTitle)), static_cast<LPCWSTR>(parentHash[i].ToString(g_Git.GetShortHASHLength())));
+				str.AppendFormat(L": \"%s\" (%s)", static_cast<LPCWSTR>(StringUtils::EscapeAccellerators(commitTitle)), (parentHash[i].ToString(g_Git.GetShortHASHLength())).c_str());
 			}
 			else
-				str.AppendFormat(L" (%s)", static_cast<LPCWSTR>(parentHash[i].ToString(g_Git.GetShortHASHLength())));
+				str.AppendFormat(L" (%s)", (parentHash[i].ToString(g_Git.GetShortHASHLength())).c_str());
 			parentInfo.push_back(std::wstring(str));
 		}
 
@@ -1969,7 +1971,7 @@ void CGitLogListBase::OnContextMenu(CWnd* pWnd, CPoint point)
 					popup.AppendMenuIcon(ID_MERGEREV, str, IDI_MERGE);
 
 					size_t index = static_cast<size_t>(-1);
-					CGit::REF_TYPE type = CGit::REF_TYPE::UNKNOWN;
+					TGitH::REF_TYPE type = TGitH::REF_TYPE::UNKNOWN;
 					if (IsMouseOnRefLabelFromPopupMenu(pSelLogEntry, point, type, hashMap, nullptr, &index))
 						popup.SetMenuItemData(ID_MERGEREV, reinterpret_cast<LONG_PTR>(&hashMap.find(pSelLogEntry->m_CommitHash)->second[index]));
 				}
@@ -1988,12 +1990,12 @@ void CGitLogListBase::OnContextMenu(CWnd* pWnd, CPoint point)
 					std::vector<const std::wstring*> branchs;
 					auto addCheck = [&](const std::wstring& ref)
 					{
-						if (!ref.starts_with(L"refs/heads/") || ref == tgit::wstr::View(currentBranch))
+						if (!ref.starts_with(L"refs/heads/") || ref == tgit::zstr::StringView(currentBranch))
 							return;
 						branchs.push_back(&ref);
 					};
 					size_t index = static_cast<size_t>(-1);
-					CGit::REF_TYPE type = CGit::REF_TYPE::UNKNOWN;
+					TGitH::REF_TYPE type = TGitH::REF_TYPE::UNKNOWN;
 					if (IsMouseOnRefLabelFromPopupMenu(pSelLogEntry, point, type, hashMap, nullptr, &index))
 						addCheck(hashMap.find(pSelLogEntry->m_CommitHash)->second[index]);
 					else
@@ -2016,7 +2018,7 @@ void CGitLogListBase::OnContextMenu(CWnd* pWnd, CPoint point)
 						subbranchmenu.CreatePopupMenu();
 						for (size_t i = 0 ; i < branchs.size(); ++i)
 						{
-							if (*branchs[i] != tgit::wstr::View(currentBranch))
+							if (*branchs[i] != tgit::zstr::StringView(currentBranch))
 							{
 								subbranchmenu.AppendMenuIcon(ID_SWITCHBRANCH + (i << 16), tgit::wstr::Mid(*branchs[i], static_cast<int>(wcslen(L"refs/heads/"))).c_str());
 								subbranchmenu.SetMenuItemData(ID_SWITCHBRANCH+(i<<16), reinterpret_cast<LONG_PTR>(branchs[i]));
@@ -2031,7 +2033,7 @@ void CGitLogListBase::OnContextMenu(CWnd* pWnd, CPoint point)
 				{
 					popup.AppendMenuIcon(ID_SWITCHTOREV, IDS_SWITCH_TO_THIS, IDI_SWITCH);
 					size_t index = static_cast<size_t>(-1);
-					CGit::REF_TYPE type = CGit::REF_TYPE::UNKNOWN;
+					TGitH::REF_TYPE type = TGitH::REF_TYPE::UNKNOWN;
 					if (IsMouseOnRefLabelFromPopupMenu(pSelLogEntry, point, type, hashMap, nullptr, &index))
 						popup.SetMenuItemData(ID_SWITCHTOREV, reinterpret_cast<LONG_PTR>(&hashMap.find(pSelLogEntry->m_CommitHash)->second[index]));
 				}
@@ -2041,7 +2043,7 @@ void CGitLogListBase::OnContextMenu(CWnd* pWnd, CPoint point)
 					popup.AppendMenuIcon(ID_CREATE_BRANCH, IDS_CREATE_BRANCH_AT_THIS, IDI_COPY);
 
 					size_t index = static_cast<size_t>(-1);
-					CGit::REF_TYPE type = CGit::REF_TYPE::REMOTE_BRANCH;
+					TGitH::REF_TYPE type = TGitH::REF_TYPE::REMOTE_BRANCH;
 					if (IsMouseOnRefLabelFromPopupMenu(pSelLogEntry, point, type, hashMap, nullptr, &index))
 						popup.SetMenuItemData(ID_CREATE_BRANCH, reinterpret_cast<LONG_PTR>(&hashMap.find(pSelLogEntry->m_CommitHash)->second[index]));
 				}
@@ -2112,9 +2114,9 @@ void CGitLogListBase::OnContextMenu(CWnd* pWnd, CPoint point)
 
 				if (!pSelLogEntry->m_CommitHash.IsEmpty())
 				{
-					CString firstSelHash = pSelLogEntry->m_CommitHash.ToString(g_Git.GetShortHASHLength());
+					CString firstSelHash = (pSelLogEntry->m_CommitHash.ToString(g_Git.GetShortHASHLength())).c_str();
 					GitRevLoglist* pLastEntry = m_arShownList.SafeGetAt(LastSelect);
-					CString lastSelHash = pLastEntry->m_CommitHash.ToString(g_Git.GetShortHASHLength());
+					CString lastSelHash = (pLastEntry->m_CommitHash.ToString(g_Git.GetShortHASHLength())).c_str();
 					CString menu;
 					menu.Format(IDS_SHOWLOG_OF, static_cast<LPCWSTR>(lastSelHash + L".." + firstSelHash));
 					popup.AppendMenuIcon(ID_LOG_VIEWRANGE, menu, IDI_LOG);
@@ -2216,9 +2218,9 @@ void CGitLogListBase::OnContextMenu(CWnd* pWnd, CPoint point)
 
 					CString branch;
 					size_t index = static_cast<size_t>(-1);
-					CGit::REF_TYPE type = CGit::REF_TYPE::UNKNOWN;
+					TGitH::REF_TYPE type = TGitH::REF_TYPE::UNKNOWN;
 					if (IsMouseOnRefLabelFromPopupMenu(pSelLogEntry, point, type, hashMap, &branch, &index))
-						if (type == CGit::REF_TYPE::LOCAL_BRANCH || type == CGit::REF_TYPE::ANNOTATED_TAG || type == CGit::REF_TYPE::TAG)
+						if (type == TGitH::REF_TYPE::LOCAL_BRANCH || type == TGitH::REF_TYPE::ANNOTATED_TAG || type == TGitH::REF_TYPE::TAG)
 							str.Insert(str.Find(L'.'), L" \"" + branch + L'"');
 
 					popup.AppendMenuIcon(ID_PUSH, str, IDI_PUSH);
@@ -2246,12 +2248,12 @@ void CGitLogListBase::OnContextMenu(CWnd* pWnd, CPoint point)
 					std::vector<const std::wstring*> branchs;
 					auto addCheck = [&](const std::wstring& ref)
 					{
-						if (ref == tgit::wstr::View(currentBranch))
+						if (ref == tgit::zstr::StringView(currentBranch))
 							return;
 						branchs.push_back(&ref);
 					};
 					size_t index = static_cast<size_t>(-1);
-					CGit::REF_TYPE type = CGit::REF_TYPE::UNKNOWN;
+					TGitH::REF_TYPE type = TGitH::REF_TYPE::UNKNOWN;
 					if (IsMouseOnRefLabelFromPopupMenu(pSelLogEntry, point, type, hashMap, nullptr, &index))
 						addCheck(refList->second[index]);
 					else
@@ -2312,7 +2314,7 @@ void CGitLogListBase::OnContextMenu(CWnd* pWnd, CPoint point)
 			{
 				clipSubMenu.AppendMenuIcon(ID_COPYCLIPBOARDBRANCHTAG, IDS_LOG_POPUP_CLIPBOARD_TAGBRANCHES, IDI_COPYCLIP);
 				size_t index = static_cast<size_t>(-1);
-				CGit::REF_TYPE type = CGit::REF_TYPE::UNKNOWN;
+				TGitH::REF_TYPE type = TGitH::REF_TYPE::UNKNOWN;
 				if (IsMouseOnRefLabelFromPopupMenu(pSelLogEntry, point, type, hashMap, nullptr, &index))
 					clipSubMenu.SetMenuItemData(ID_COPYCLIPBOARDBRANCHTAG, reinterpret_cast<LONG_PTR>(&hashMap.find(pSelLogEntry->m_CommitHash)->second[index]));
 			}
@@ -2436,7 +2438,7 @@ void CGitLogListBase::CopySelectionToClipBoard(int toCopy)
 				}
 
 				sLogCopyText.Format(L"%s: %s\r\n%s: %s <%s>\r\n%s: %s\r\n%s:\r\n%s\r\n%s%s\r\n",
-					static_cast<LPCWSTR>(sRev), static_cast<LPCWSTR>(pLogEntry->m_CommitHash.ToString()),
+					static_cast<LPCWSTR>(sRev), (pLogEntry->m_CommitHash.ToString()).c_str(),
 					static_cast<LPCWSTR>(sAuthor), static_cast<LPCWSTR>(pLogEntry->GetAuthorName()), static_cast<LPCWSTR>(pLogEntry->GetAuthorEmail()),
 					static_cast<LPCWSTR>(sDate),
 					static_cast<LPCWSTR>(CLoglistUtils::FormatDateAndTime(pLogEntry->GetAuthorDate(), m_DateFormat, true, m_bRelativeTimes)),
@@ -2648,9 +2650,9 @@ std::expected<bool, CString> CGitLogListBase::BeginFetchLog()
 	else
 		path=&this->m_Path;
 
-	int mask = CGit::LOG_INFO_ONLY_HASH;
+	int mask = TGitH::LOG_INFO_ONLY_HASH;
 	if (m_bIncludeBoundaryCommits)
-		mask |= CGit::LOG_INFO_BOUNDARY;
+		mask |= TGitH::LOG_INFO_BOUNDARY;
 //	if(this->m_bAllBranch)
 	mask |= m_ShowMask ;
 
@@ -2670,12 +2672,12 @@ std::expected<bool, CString> CGitLogListBase::BeginFetchLog()
 
 	// follow does not work for directories
 	if (!path || path->IsDirectory())
-		mask &= ~CGit::LOG_INFO_FOLLOW;
+		mask &= ~TGitH::LOG_INFO_FOLLOW;
 	// follow does not work with all branches 8at least in TGit)
-	if (mask & CGit::LOG_INFO_FOLLOW)
-		mask &= ~(CGit::LOG_INFO_ALL_BRANCH | CGit::LOG_INFO_BASIC_REFS | CGit::LOG_INFO_LOCAL_BRANCHES);
+	if (mask & TGitH::LOG_INFO_FOLLOW)
+		mask &= ~(TGitH::LOG_INFO_ALL_BRANCH | TGitH::LOG_INFO_BASIC_REFS | TGitH::LOG_INFO_LOCAL_BRANCHES);
 
-	std::vector<std::string> cmd = g_Git.GetLogCmd(range, path, mask, &m_Filter, CRegDWORD(L"Software\\TortoiseGit\\LogOrderBy", CGit::LOG_ORDER_TOPOORDER));
+	std::vector<std::string> cmd = g_Git.GetLogCmd(range, path, mask, &m_Filter, CRegDWORD(L"Software\\TortoiseGit\\LogOrderBy", TGitH::LOG_ORDER_TOPOORDER));
 
 	PostMessage(LVM_SETITEMCOUNT, m_logEntries.size(), LVSICF_NOINVALIDATEALL);
 
@@ -2686,11 +2688,11 @@ std::expected<bool, CString> CGitLogListBase::BeginFetchLog()
 	}
 	catch (const char* msg)
 	{
-		return std::unexpected(L"Could not initialize libgit.\nlibgit reports:\n" + CUnicodeUtils::GetUnicode(msg));
+		return std::unexpected(L"Could not initialize libgit.\nlibgit reports:\n" + CUnicodeUtils::Convert2Unicode<CString>(msg));
 	}
 
 	// if not all branches, all basic refs, all local refs etc. are selected, check whether the selected branch is unborn
-	if (!(mask & CGit::LOG_INFO_ALL_BRANCH) && !(mask & CGit::LOG_INFO_BASIC_REFS) && !(mask & CGit::LOG_INFO_LOCAL_BRANCHES))
+	if (!(mask & TGitH::LOG_INFO_ALL_BRANCH) && !(mask & TGitH::LOG_INFO_BASIC_REFS) && !(mask & TGitH::LOG_INFO_LOCAL_BRANCHES))
 	{
 		if (const int ret = g_Git.IsUnbornBranch(range); ret < 0)
 			return std::unexpected(g_Git.GetGitLastErr(L"Could not check whether the current branch is unborn."));
@@ -2710,7 +2712,7 @@ std::expected<bool, CString> CGitLogListBase::BeginFetchLog()
 	{
 		git_close_log(m_DllGitLog, 0);
 		m_DllGitLog = nullptr;
-		return std::unexpected(L"Could not open log.\nlibgit reports:\n" + CUnicodeUtils::GetUnicode(msg));
+		return std::unexpected(L"Could not open log.\nlibgit reports:\n" + CUnicodeUtils::Convert2Unicode<CString>(msg));
 	}
 
 	return true;
@@ -2882,7 +2884,7 @@ UINT CGitLogListBase::LogThread()
 		}
 		catch (const char* msg)
 		{
-			::MessageBox(nullptr, L"Could not get first commit.\nlibgit reports:\n" + CUnicodeUtils::GetUnicode(msg), L"TortoiseGit", MB_ICONERROR);
+			::MessageBox(nullptr, L"Could not get first commit.\nlibgit reports:\n" + CUnicodeUtils::Convert2Unicode<CString>(msg), L"TortoiseGit", MB_ICONERROR);
 			ret = -1;
 		}
 		g_Git.m_critGitDllSec.Unlock();
@@ -2910,12 +2912,12 @@ UINT CGitLogListBase::LogThread()
 			g_Git.m_critGitDllSec.Lock();
 			try
 			{
-				[&] { ret = git_get_log_nextcommit(this->m_DllGitLog, &commit, m_ShowMask & CGit::LOG_INFO_FOLLOW); } ();
+				[&] { ret = git_get_log_nextcommit(this->m_DllGitLog, &commit, m_ShowMask & TGitH::LOG_INFO_FOLLOW); } ();
 			}
 			catch (const char* msg)
 			{
 				g_Git.m_critGitDllSec.Unlock();
-				::MessageBox(nullptr, L"Could not get next commit.\nlibgit reports:\n" + CUnicodeUtils::GetUnicode(msg), L"TortoiseGit", MB_ICONERROR);
+				::MessageBox(nullptr, L"Could not get next commit.\nlibgit reports:\n" + CUnicodeUtils::Convert2Unicode<CString>(msg), L"TortoiseGit", MB_ICONERROR);
 				break;
 			}
 
@@ -2955,13 +2957,13 @@ UINT CGitLogListBase::LogThread()
 			catch (const char* msg)
 			{
 				g_Git.m_critGitDllSec.Unlock();
-				::MessageBox(nullptr, L"Could not get commit notes.\nlibgit reports:\n" + CUnicodeUtils::GetUnicode(msg), L"TortoiseGit", MB_ICONERROR);
+				::MessageBox(nullptr, L"Could not get commit notes.\nlibgit reports:\n" + CUnicodeUtils::Convert2Unicode<CString>(msg), L"TortoiseGit", MB_ICONERROR);
 				break;
 			}
 
 			if(note)
 			{
-				pRev->m_Notes = CUnicodeUtils::GetUnicode(note);
+				pRev->m_Notes = CUnicodeUtils::Convert2Unicode<CString>(note);
 				free(note);
 				note = nullptr;
 			}
@@ -3028,7 +3030,7 @@ UINT CGitLogListBase::LogThread()
 			if (visible && !filter(pRev, this, hashMap))
 				visible = false;
 			this->m_critSec.Lock();
-			m_logEntries.append(hash, visible, m_ShowMask & CGit::LOG_INFO_FIRST_PARENT);
+			m_logEntries.append(hash, visible, m_ShowMask & TGitH::LOG_INFO_FIRST_PARENT);
 			if (visible)
 				m_arShownList.push_back(pRev); // push_back is ok here, because we use the very same lock, otherwise use SafeAdd
 			this->m_critSec.Unlock();
@@ -3120,7 +3122,7 @@ void CGitLogListBase::Refresh(BOOL IsCleanFilter)
 
 	ResetWcRev();
 
-	ShowGraphColumn((m_ShowMask & CGit::LOG_INFO_FOLLOW) ? false : true);
+	ShowGraphColumn((m_ShowMask & TGitH::LOG_INFO_FOLLOW) ? false : true);
 
 	//Update branch and Tag info
 	ReloadHashMap();
@@ -3609,7 +3611,7 @@ BOOL CGitLogListBase::OnToolTipText(UINT /*id*/, NMHDR* pNMHDR, LRESULT* pResult
 		if (lvhitTestInfo.iSubItem == LOGLIST_MESSAGE)
 		{
 			CString branch;
-			CGit::REF_TYPE type = CGit::REF_TYPE::LOCAL_BRANCH;
+			TGitH::REF_TYPE type = TGitH::REF_TYPE::LOCAL_BRANCH;
 			auto hashMap{ m_HashMap.load() };
 			if (IsMouseOnRefLabel(m_arShownList.SafeGetAt(nItem), lvhitTestInfo.pt, type, *hashMap.get(), &branch))
 			{
@@ -3748,14 +3750,14 @@ CString CGitLogListBase::GetToolTipText(int nItem, int nSubItem)
 	return CString();
 }
 
-bool CGitLogListBase::IsMouseOnRefLabelFromPopupMenu(const GitRevLoglist* pLogEntry, const CPoint& point, CGit::REF_TYPE& type, const MAP_HASH_NAME& hashMap, CString* pShortname /*nullptr*/, size_t* pIndex /*nullptr*/)
+bool CGitLogListBase::IsMouseOnRefLabelFromPopupMenu(const GitRevLoglist* pLogEntry, const CPoint& point, TGitH::REF_TYPE& type, const MAP_HASH_NAME& hashMap, CString* pShortname /*nullptr*/, size_t* pIndex /*nullptr*/)
 {
 	POINT pt = point;
 	ScreenToClient(&pt);
 	return IsMouseOnRefLabel(pLogEntry, pt, type, hashMap, pShortname, pIndex);
 }
 
-bool CGitLogListBase::IsMouseOnRefLabel(const GitRevLoglist* pLogEntry, const POINT& pt, CGit::REF_TYPE& type, const MAP_HASH_NAME& hashMap, CString* pShortname /*nullptr*/, size_t* pIndex /*nullptr*/)
+bool CGitLogListBase::IsMouseOnRefLabel(const GitRevLoglist* pLogEntry, const POINT& pt, TGitH::REF_TYPE& type, const MAP_HASH_NAME& hashMap, CString* pShortname /*nullptr*/, size_t* pIndex /*nullptr*/)
 {
 	if (!pLogEntry)
 		return false;
@@ -3770,12 +3772,12 @@ bool CGitLogListBase::IsMouseOnRefLabel(const GitRevLoglist* pLogEntry, const PO
 		if (labelpos == m_RefLabelPosMap.cend() || !labelpos->second.PtInRect(pt))
 			continue;
 
-		CGit::REF_TYPE foundType;
+		TGitH::REF_TYPE foundType;
 		if (pShortname)
-			*pShortname = CGit::GetShortName(refList->second[i].c_str(), &foundType);
+			*pShortname = TGitH::GetShortName(refList->second[i].c_str(), &foundType);
 		else
-			CGit::GetShortName(refList->second[i].c_str(), &foundType);
-		if (foundType != type && type != CGit::REF_TYPE::UNKNOWN)
+			TGitH::GetShortName(refList->second[i].c_str(), &foundType);
+		if (foundType != type && type != TGitH::REF_TYPE::UNKNOWN)
 			return false;
 
 		type = foundType;

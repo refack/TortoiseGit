@@ -22,7 +22,7 @@
 
 #include "HorizontalResizableStandAloneDialog.h"
 #include "HistoryCombo.h"
-#include <Utils/registry.h>
+import Registry;
 
 class CRequestPullDlg : public CHorizontalResizableStandAloneDialog
 {

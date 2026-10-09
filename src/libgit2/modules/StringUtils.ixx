@@ -1,5 +1,5 @@
-module;
-#include <afx.h>
+﻿module;
+#include <tgit_cstring.h>	// first: decides which CString this compile speaks
 #include <atlstr.h>
 
 
@@ -108,11 +108,19 @@ void stringtok(
 }
 
 
-// std: std::regex_replace(text, std::wregex(L"\r\n|\r|\n"), L"\r\n")
-template <IsTCompString TStr>
-CString EnsureCRLF(const StringTraits<TStr>& text)
+// Every line ending - \r\n, a lone \r, a lone \n - becomes \r\n.
+// (It took `const StringTraits<TStr>&`, where TStr cannot be deduced, so no call
+// could reach it.)
+CString EnsureCRLF(const std::wstring_view text)
 {
-	return std::regex_replace(text, std::wregex(L"\r\n|\r|\n"), L"\r\n");
+	static const std::wregex lineEnd(L"\r\n|\r|\n");
+	const std::wstring out = std::regex_replace(std::wstring(text), lineEnd, L"\r\n");
+	return CString(out.data(), gsl::narrow<int>(out.size()));
+}
+template <IsStupidString TStr>
+CString EnsureCRLF(const TStr& text)
+{
+	return EnsureCRLF(std::wstring_view(StringView{ text }));
 }
 
 
@@ -284,9 +292,10 @@ TStr& TrimRight(TStr& obj, const std::optional<std::basic_string_view<typename S
 		if (!is_it_still) break;
 		v.remove_suffix(1);
 	}
-	// if constexpr (std::is_convertible_v<TStr, std::basic_string_view<typename StringViewTraits<TStr>::char_type>>)
-
-	StringTraits<TStr>::resize(obj, v.size());
+	if constexpr (requires { StringTraits<TStr>::resize(obj, v.size()); })
+		StringTraits<TStr>::resize(obj, v.size());   // an owning string: shrink it
+	else
+		obj = obj.substr(0, v.size());               // a view: narrow it, there is nothing to resize
 	return obj;   // CStringT::TrimRight returns *this; keeps chaining call sites compiling
 }
 //
@@ -315,29 +324,26 @@ TStr& TrimRight(TStr& obj, const std::optional<std::basic_string_view<typename S
 /**
  * Reads the string \text from the file \path in utf8 encoding.
  */
-// std: std::ifstream(path, std::ios::binary) + CUnicodeUtils
+// Win32 rather than CStdioFile: this module is ATL-flavor, and MFC here made its
+// CString the StrTraitMFC_DLL type while every other module's is StrTraitATL.
+// Bytes are read raw (binary - text mode drops some \r) and decoded as UTF-8.
 bool ReadStringFromTextFile(const CString& path, CString& text)
 {
-	if (!PathFileExists(path))
+	const RIAA::CAutoFile hFile = CreateFile(path, GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
+	if (!hFile)
 		return false;
-	try
-	{
-		CStdioFile file;
-		// w/o typeBinary for some files \r gets dropped
-		if (!file.Open(path, CFile::typeUnicode | CFile::modeRead | CFile::shareDenyWrite) || file.GetLength() >= INT_MAX)
-			return false;
 
-		const UINT filelength = static_cast<UINT>(file.GetLength());
-		const int bytesread = static_cast<int>(file.Read(text.GetBuffer(filelength), filelength));
-		text.ReleaseBuffer(bytesread);
-		file.Close();
-	}
-	catch (CFileException* pE)
-	{
-		text.Empty();
-		pE->Delete();
+	LARGE_INTEGER size{};
+	if (!GetFileSizeEx(hFile, &size) || size.QuadPart >= INT_MAX)
 		return false;
-	}
+
+	std::string buf(static_cast<size_t>(size.QuadPart), '\0');
+	DWORD bytesread = 0;
+	if (!ReadFile(hFile, buf.data(), static_cast<DWORD>(buf.size()), &bytesread, nullptr))
+		return false;
+	buf.resize(bytesread);
+
+	text = CUnicodeUtils::GetUnicode<CString>(std::string_view{ buf });
 	return true;
 }
 
@@ -472,7 +478,7 @@ wchar_t GetAccellerator(const CString& text)
 /**
  * Writes an ASCII CString to the clipboard in CF_TEXT format
  */
-bool WriteAsciiStringToClipboard(const CStringA& sClipdata, const LCID lcid, RWND* const hOwningWnd)
+bool WriteAsciiStringToClipboard(const CStringA& sClipdata, const LCID lcid, RWND* const hOwningWnd = nullptr)
 {
 	// Not an if-init-statement: the clipboard has to stay open until we return.
 	const auto clipboard = wil::open_clipboard_retrying(hOwningWnd);
@@ -497,7 +503,7 @@ bool WriteAsciiStringToClipboard(const CStringA& sClipdata, const LCID lcid, RWN
 /**
  * Writes a String to the clipboard in both CF_UNICODETEXT and CF_TEXT format
  */
-bool WriteAsciiStringToClipboard(const CStringW& sClipdata, RWND* const hOwningWnd)
+bool WriteAsciiStringToClipboard(const CStringW& sClipdata, RWND* const hOwningWnd = nullptr)	// the default was lost; five callers relied on it
 {
 	const auto clipboard = wil::open_clipboard_retrying(hOwningWnd);
 	if (!clipboard)
@@ -662,7 +668,7 @@ std::vector<CString> WordWrap(const CString& longstring, int limit, const int ta
 }
 
 
-CString LinesWrap(const CString& longstring, const int limit /* = 80 */, const bool bCompactPaths /* = true */)
+CString LinesWrap(const CString& longstring, const int limit = 80, const bool bCompactPaths = true)
 {
 	CString retString;
 	if ((longstring.GetLength() < limit) || (limit == 0))
@@ -767,53 +773,57 @@ bool EndsWithI(const TStr& heystack, const std::wstring_view needle) noexcept
 }
 
 
-// /**
-//  * Unescapes Git quoted filenames
-//  * This is not a full implementation of the unescaper as we skip some conversions that will result in invalid filenames.
-//  */
-// CStringA UnescapeGitQuotePathA(const std::string_view s)
-// {
-// 	const int i_size = gsl::narrow<int>(s.size());
-// 	CStringA t;
-// 	t.Preallocate(i_size);
-// 	bool isEscaped = false;
-// 	for (int i = 0; i < i_size; ++i)
-// 	{
-// 		char c = s[i];
-// 		if (isEscaped)
-// 		{
-// 			if (c >= '0' && c <= '3')
-// 			{
-// 				if (i + 2 < i_size)
-// 				{
-// 					c = (((c - '0') & 03) << 6) | (((s[i + 1] - '0') & 07) << 3) | ((s[i + 2] - '0') & 07);
-// 					i += 2;
-// 					t += c;
-// 				}
-// 			}
-// 			else
-// 			{
-// 				// we're on purpose not supporting all possible abbreviations such as \n, \r, \t in this as these filenames are invalid on Windows anaway
-// 				t += c;
-// 			}
-// 			isEscaped = false;
-// 		}
-// 		else
-// 		{
-// 			if (c == '\\')
-// 				isEscaped = true;
-// 			else if (c == '"')
-// 				break;
-// 			else
-// 				t += c;
-// 		}
-// 	}
-// 	return CUnicodeUtils::GetUnicode(t);
-// }
-// CString UnescapeGitQuotePath(const std::wstring_view s)
-// {
-// 	return UnescapeGitQuotePathA(CUnicodeUtils::StdGetUTF8(s));
-// }
+/**
+ * Unescapes Git quoted filenames
+ * This is not a full implementation of the unescaper as we skip some conversions that will result in invalid filenames.
+ *
+ * Restored: it had been commented out, but TortoiseGitBlame and CleanupCommand
+ * call it. It returns the *wide* string, as upstream's did - the CStringA return
+ * type the commented copy declared contradicted its own GetUnicode return.
+ */
+CString UnescapeGitQuotePathA(const std::string_view s)
+{
+	const int i_size = gsl::narrow<int>(s.size());
+	CStringA t;
+	t.Preallocate(i_size);
+	bool isEscaped = false;
+	for (int i = 0; i < i_size; ++i)
+	{
+		char c = s[i];
+		if (isEscaped)
+		{
+			if (c >= '0' && c <= '3')
+			{
+				if (i + 2 < i_size)
+				{
+					c = static_cast<char>((((c - '0') & 03) << 6) | (((s[i + 1] - '0') & 07) << 3) | ((s[i + 2] - '0') & 07));
+					i += 2;
+					t += c;
+				}
+			}
+			else
+			{
+				// we're on purpose not supporting all possible abbreviations such as \n, \r, \t in this as these filenames are invalid on Windows anaway
+				t += c;
+			}
+			isEscaped = false;
+		}
+		else
+		{
+			if (c == '\\')
+				isEscaped = true;
+			else if (c == '"')
+				break;
+			else
+				t += c;
+		}
+	}
+	return CUnicodeUtils::GetUnicode<CString>(t);
+}
+CString UnescapeGitQuotePath(const std::wstring_view s)
+{
+	return UnescapeGitQuotePathA(CUnicodeUtils::StdGetUTF8(s));
+}
 
 
 struct EmailAddress

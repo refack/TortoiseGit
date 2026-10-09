@@ -24,10 +24,10 @@
 #include "MessageBox.h"
 #include "PatchViewDlg.h"
 #include "CommonAppUtils.h"
-#include "StringUtils.h"
+import StringUtils;
 #include "DPIAware.h"
 #include "StagingOperations.h"
-#include "Git.h"
+import git_h;
 #include "EnableStagingTypes.h"
 
 #pragma comment(lib, "Dwmapi.lib")
@@ -336,7 +336,7 @@ void CPatchViewDlg::DoSearch(bool reverse)
 		m_ctrlPatchView.Call(SCI_SETTARGETRANGE, lastcursor, 0);
 	}
 
-	auto searchText = CUnicodeUtils::GetUTF8(m_FindBar.GetFindText());
+	auto searchText = CUnicodeUtils::GetUTF8<CStringA>(m_FindBar.GetFindText());
 	m_ctrlPatchView.Call(SCI_SETSEARCHFLAGS, m_FindBar.IsMatchCase() ? SCFIND_MATCHCASE : SCFIND_NONE);
 	if (auto pos = m_ctrlPatchView.Call(SCI_SEARCHINTARGET, searchText.GetLength(), reinterpret_cast<LPARAM>(static_cast<LPCSTR>(searchText))); pos >= 0)
 	{

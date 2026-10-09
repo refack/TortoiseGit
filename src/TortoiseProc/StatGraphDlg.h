@@ -19,10 +19,10 @@
 //
 
 #pragma once
-#include <Utils/MiscUI/StandAloneDlg.h>
+#include "StandAloneDlg.h"
 #include "MyGraph.h"
-#include "TGitPath.h"
-#include "GitRevLoglist.h"
+import TGitPath;
+import GitRevLoglist;
 
 /**
  * \ingroup TortoiseProc

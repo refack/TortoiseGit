@@ -22,7 +22,7 @@
 #include "HorizontalResizableStandAloneDialog.h"
 #include "HistoryCombo.h"
 #include "HyperLink.h"
-#include <Utils/registry.h>
+import Registry;
 // CPullFetchDlg dialog
 
 class CPullFetchDlg : public CHorizontalResizableStandAloneDialog

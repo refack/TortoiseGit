@@ -18,7 +18,7 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 #pragma once
-#include <Utils/MiscUI/MessageBox.h>
+#include "MiscUI/MessageBox.h"
 #include "Tooltip.h"
 #include "CommonDialogFunctions.h"
 #include "Theme.h"

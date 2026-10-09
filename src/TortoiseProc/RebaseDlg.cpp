@@ -26,13 +26,13 @@
 #include "AppUtils.h"
 #include "LoglistUtils.h"
 #include "MessageBox.h"
-#include "UnicodeUtils.h"
+import wstr;
 #include "BrowseRefsDlg.h"
-#include "SmartHandle.h"
-#include <TGitCache/CacheInterface.h>
+import RIAA;
+import TGitCache.CacheInterface;
 #include "MassiveGitTask.h"
 #include "CommitDlg.h"
-#include "StringUtils.h"
+import StringUtils;
 #include "Hooks.h"
 #include "LogDlg.h"
 #include "ThemeMFCVisualManager.h"
@@ -476,14 +476,14 @@ void CRebaseDlg::LoadBranchInfo()
 	STRING_VECTOR list;
 	list.clear();
 	int current = -1;
-	g_Git.GetBranchList(list,&current,CGit::BRANCH_ALL);
+	g_Git.GetBranchList(list,&current,TGitH::BRANCH_ALL);
 	m_BranchCtrl.SetList(list);
 	if (current >= 0)
 		m_BranchCtrl.SetCurSel(current);
 	else
 		m_BranchCtrl.AddString(g_Git.GetCurrentBranch(true));
 	list.clear();
-	g_Git.GetBranchList(list, nullptr, CGit::BRANCH_ALL_F);
+	g_Git.GetBranchList(list, nullptr, TGitH::BRANCH_ALL_F);
 	g_Git.GetTagList(list);
 	m_UpstreamCtrl.SetList(list);
 
@@ -601,7 +601,7 @@ void CRebaseDlg::FetchLogList()
 	CString refTo   = g_Git.FixBranchName(m_BranchCtrl.GetString());
 	CString range;
 	range.Format(L"%s..%s", static_cast<LPCWSTR>(refFrom), static_cast<LPCWSTR>(refTo));
-	this->m_CommitList.FillGitLog(nullptr, &range, (m_bPreserveMerges ? 0 : CGit::LOG_INFO_NO_MERGE) | CGit::LOG_ORDER_TOPOORDER);
+	this->m_CommitList.FillGitLog(nullptr, &range, (m_bPreserveMerges ? 0 : TGitH::LOG_INFO_NO_MERGE) | TGitH::LOG_ORDER_TOPOORDER);
 
 	if( m_CommitList.GetItemCount() == 0 )
 		m_CommitList.ShowText(CString(MAKEINTRESOURCE(IDS_PROC_NOTHINGTOREBASE)));
@@ -655,7 +655,7 @@ void CRebaseDlg::FetchLogList()
 		// were there to keep it one after the command line was parsed back.
 		g_Git.Run({ L"git", L"rev-list", std::format(L"{}...{}", refFrom, refTo), L"--left-right", L"--cherry-pick" }, [&](const std::string_view line)
 		{
-			if (line.size() < 1 + 2 * GIT_HASH_SIZE)
+			if (line.size() < 1 + 2 * static_cast<int>(tgit::invarients::GitFormatHolder::GitHashSize()))
 				return;
 			if (line[0] != '>')
 				return;
@@ -715,7 +715,7 @@ void CRebaseDlg::FetchLogList()
 			refFrom = g_Git.FixBranchName(m_Onto);
 		g_Git.Run({ L"git.exe", L"cherry", L"--", std::wstring(refFrom), std::wstring(refTo) }, [&](const std::string_view line)
 		{
-			if (line.size() < 2 + 2 * GIT_HASH_SIZE)
+			if (line.size() < 2 + 2 * static_cast<int>(tgit::invarients::GitFormatHolder::GitHashSize()))
 				return;
 			if (line[0] != '-')
 				return; // Don't skip (only skip commits starting with a '-')
@@ -770,7 +770,7 @@ void CRebaseDlg::AddBranchToolTips(CHistoryCombo& pBranch)
 	CString tooltip;
 	tooltip.Format(L"%s: %s\n%s: %s <%s>\n%s: %s\n%s:\n%s\n%s",
 					static_cast<LPCWSTR>(CString(MAKEINTRESOURCE(IDS_LOG_REVISION))),
-					static_cast<LPCWSTR>(rev.m_CommitHash.ToString()),
+					(rev.m_CommitHash.ToString()).c_str(),
 					static_cast<LPCWSTR>(CString(MAKEINTRESOURCE(IDS_LOG_AUTHOR))),
 					static_cast<LPCWSTR>(rev.GetAuthorName()),
 					static_cast<LPCWSTR>(rev.GetAuthorEmail()),
@@ -1056,7 +1056,7 @@ int CRebaseDlg::StartRebase()
 		}
 
 		if (g_Git.m_IsUseLibGit2)
-			WriteReflog(m_OrigHEADHash, "rebase: start (" + CUnicodeUtils::GetUTF8(m_OrigHEADBranch) + " on " + CUnicodeUtils::GetUTF8(m_OrigUpstreamHash.ToString()) + ")");
+			WriteReflog(m_OrigHEADHash, "rebase: start (" + CUnicodeUtils::GetUTF8<CStringA>(m_OrigHEADBranch) + " on " + CUnicodeUtils::GetUTF8<CStringA>(m_OrigUpstreamHash.ToString()) + ")");
 		const STRING_VECTOR argv{ L"git.exe", L"checkout", L"-f", std::wstring(m_OrigUpstreamHash.ToString()), L"--" };
 		this->AddLogString(CGit::SerializeArgvToCString(argv));
 		if (RunGitCmdRetryOrAbort(argv))
@@ -1084,7 +1084,7 @@ int CRebaseDlg::VerifyNoConflict()
 	const int hasConflicts = g_Git.HasWorkingTreeConflicts();
 	if (hasConflicts < 0)
 	{
-		AddLogString(g_Git.GetGitLastErr(L"Checking for conflicts failed.", CGit::GIT_CMD_CHECKCONFLICTS));
+		AddLogString(g_Git.GetGitLastErr(L"Checking for conflicts failed.", TGitH::GIT_CMD_CHECKCONFLICTS));
 		return -1;
 	}
 	if (hasConflicts)
@@ -1950,7 +1950,7 @@ void CRebaseDlg::UpdateCurrentStatus()
 void CRebaseDlg::AddLogString(const CString& str)
 {
 	this->m_wndOutputRebase.SendMessage(SCI_SETREADONLY, FALSE);
-	CStringA sTextA = m_wndOutputRebase.StringForControl(str);//CUnicodeUtils::GetUTF8(str);
+	CStringA sTextA = m_wndOutputRebase.StringForControl(str);//CUnicodeUtils::GetUTF8<CStringA>(str);
 	this->m_wndOutputRebase.SendMessage(SCI_DOCUMENTEND);
 	this->m_wndOutputRebase.SendMessage(SCI_REPLACESEL, 0, reinterpret_cast<LPARAM>(static_cast<LPCSTR>(sTextA)));
 	this->m_wndOutputRebase.SendMessage(SCI_REPLACESEL, 0, reinterpret_cast<LPARAM>("\n"));
@@ -1992,10 +1992,10 @@ static CString GetCommitTitle(const CGitHash& parentHash)
 			commitTitle.Truncate(20);
 			commitTitle += L"...";
 		}
-		str.AppendFormat(L"\n%s (%s)", static_cast<LPCWSTR>(StringUtils::EscapeAccellerators(commitTitle)), static_cast<LPCWSTR>(parentHash.ToString(g_Git.GetShortHASHLength())));
+		str.AppendFormat(L"\n%s (%s)", static_cast<LPCWSTR>(StringUtils::EscapeAccellerators(commitTitle)), (parentHash.ToString(g_Git.GetShortHASHLength())).c_str());
 	}
 	else
-		str.AppendFormat(L"\n(%s)", static_cast<LPCWSTR>(parentHash.ToString(g_Git.GetShortHASHLength())));
+		str.AppendFormat(L"\n(%s)", (parentHash.ToString(g_Git.GetShortHASHLength())).c_str());
 	return str;
 }
 
@@ -2054,7 +2054,7 @@ int CRebaseDlg::DoRebase()
 	}
 
 	CString log;
-	log.Format(L"%s %d: %s", static_cast<LPCWSTR>(CGitLogListBase::GetRebaseActionName(mode)), GetCurrentCommitID(), static_cast<LPCWSTR>(pRev->m_CommitHash.ToString()));
+	log.Format(L"%s %d: %s", static_cast<LPCWSTR>(CGitLogListBase::GetRebaseActionName(mode)), GetCurrentCommitID(), (pRev->m_CommitHash.ToString()).c_str());
 	AddLogString(log);
 	AddLogString(pRev->GetSubject());
 	if (pRev->GetSubject().IsEmpty())
@@ -2084,7 +2084,7 @@ int CRebaseDlg::DoRebase()
 	if (m_IsCherryPick && pRev->m_ParentHash.size() > 1)
 	{
 		CString msg;
-		msg.FormatMessage(IDS_CHERRYPICK_MERGECOMMIT, static_cast<LPCWSTR>(pRev->m_CommitHash.ToString()), static_cast<LPCWSTR>(pRev->GetSubject()));
+		msg.FormatMessage(IDS_CHERRYPICK_MERGECOMMIT, (pRev->m_CommitHash.ToString()).c_str(), static_cast<LPCWSTR>(pRev->GetSubject()));
 		CString parent1;
 		parent1.Format(IDS_PARENT, 1);
 		parent1 += GetCommitTitle(pRev->m_ParentHash.at(0));
@@ -2207,7 +2207,7 @@ int CRebaseDlg::DoRebase()
 								return -1;
 							}
 							else if (hasConflicts < 0)
-								AddLogString(g_Git.GetGitLastErr(L"Checking for conflicts failed.", CGit::GIT_CMD_CHECKCONFLICTS));
+								AddLogString(g_Git.GetGitLastErr(L"Checking for conflicts failed.", TGitH::GIT_CMD_CHECKCONFLICTS));
 							AddLogString(L"An unrecoverable error occurred.");
 							m_RebaseStage = RebaseStage::Error;
 							return -1;
@@ -2248,7 +2248,7 @@ int CRebaseDlg::DoRebase()
 			const int hasConflicts = g_Git.HasWorkingTreeConflicts();
 			if (hasConflicts < 0)
 			{
-				AddLogString(g_Git.GetGitLastErr(L"Checking for conflicts failed.", CGit::GIT_CMD_CHECKCONFLICTS));
+				AddLogString(g_Git.GetGitLastErr(L"Checking for conflicts failed.", TGitH::GIT_CMD_CHECKCONFLICTS));
 				return -1;
 			}
 			if (!hasConflicts)
@@ -2516,7 +2516,7 @@ LRESULT CRebaseDlg::OnRebaseUpdateUI(WPARAM,LPARAM)
 			GitAdminDir::GetWorktreeAdminDirPath(g_Git.m_CurrentDir, dotGitPath);
 			// vanilla git also re-uses MERGE_MSG on conflict (listing all conflicted files)
 			// and it's also needed for cherry-pick in order to get cherry-picked-from included on conflicts
-			CGit::LoadTextFile(dotGitPath + L"MERGE_MSG", logMessage);
+			TGitH::LoadTextFile(dotGitPath + L"MERGE_MSG", logMessage);
 		}
 		if (logMessage.IsEmpty())
 			logMessage = curRev->GetSubject() + L'\n' + curRev->GetBody();

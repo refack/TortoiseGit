@@ -1,4 +1,4 @@
-// TortoiseGit - a Windows shell extension for easy version control
+﻿// TortoiseGit - a Windows shell extension for easy version control
 
 // Copyright (C) 2003-2012, 2015 - TortoiseSVN
 // Copyright (C) 2012-2023, 2025-2026 - TortoiseGit
@@ -22,14 +22,14 @@
 #include "TortoiseProc.h"
 #include "RevisionGraphWnd.h"
 #include "MessageBox.h"
-#include "Git.h"
+import git_h;
 #include "AppUtils.h"
-#include "PathUtils.h"
-#include "StringUtils.h"
+import PathUtils;
+import StringUtils;
 #include "RevisionGraphDlg.h"
-#include "FormatMessageWrapper.h"
-#include "GitRevLoglist.h"
-#include "CmdLineParser.h"
+import wil;
+import GitRevLoglist;
+import CmdLineParser;
 
 #pragma warning(push)
 #pragma warning(disable: 4100) // unreferenced formal parameter
@@ -810,7 +810,7 @@ CString CRevisionGraphWnd::TooltipText(ogdf::node index)
 
 void CRevisionGraphWnd::SaveGraphAs(CString sSavePath)
 {
-	const std::wstring extension = CPathUtils::GetFileExtFromPath(tgit::wstr::View(sSavePath));
+	const std::wstring extension = PathUtils::GetFileExtFromPath(tgit::zstr::StringView(sSavePath));
 	if (tgit::wstr::CompareNoCase(extension, L".wmf") == 0)
 	{
 		// save the graph as an enhanced metafile
@@ -874,7 +874,7 @@ void CRevisionGraphWnd::SaveGraphAs(CString sSavePath)
 			{
 				CFormatMessageWrapper errorDetails;
 				if( errorDetails )
-					MessageBox(errorDetails, L"Error", MB_OK | MB_ICONINFORMATION);
+					MessageBox((errorDetails).c_str(), L"Error", MB_OK | MB_ICONINFORMATION);
 
 				return;
 			}
@@ -934,7 +934,7 @@ void CRevisionGraphWnd::SaveGraphAs(CString sSavePath)
 						bitmap.Save(tfile, &encoderClsid, nullptr);
 					}
 					else
-						sErrormessage.Format(IDS_REVGRAPH_ERR_NOENCODER, CPathUtils::GetFileExtFromPath(tgit::wstr::View(sSavePath)).c_str());
+						sErrormessage.Format(IDS_REVGRAPH_ERR_NOENCODER, PathUtils::GetFileExtFromPath(tgit::zstr::StringView(sSavePath)).c_str());
 				}
 				else
 					sErrormessage.LoadString(IDS_REVGRAPH_ERR_NOBITMAP);
@@ -1070,13 +1070,13 @@ void CRevisionGraphWnd::DoShowLog() const
 	if(m_SelectedEntry2)
 		sCmd.Format(L"/command:log /path:%s /startrev:%s /endrev:%s",
 			static_cast<LPCWSTR>(CCmdLineParser::EscapeValue(m_sPath)),
-			static_cast<LPCWSTR>(this->m_logEntries[m_SelectedEntry1->index()].ToString()),
-			static_cast<LPCWSTR>(this->m_logEntries[m_SelectedEntry2->index()].ToString()));
+			(this->m_logEntries[m_SelectedEntry1->index()].ToString()).c_str(),
+			(this->m_logEntries[m_SelectedEntry2->index()].ToString()).c_str());
 	else
 		sCmd.Format(L"/command:log /path:%s /endrev:%s /rev:%s",
 			static_cast<LPCWSTR>(CCmdLineParser::EscapeValue(m_sPath)),
-			static_cast<LPCWSTR>(this->m_logEntries[m_SelectedEntry1->index()].ToString()),
-			static_cast<LPCWSTR>(this->m_logEntries[m_SelectedEntry1->index()].ToString()));
+			(this->m_logEntries[m_SelectedEntry1->index()].ToString()).c_str(),
+			(this->m_logEntries[m_SelectedEntry1->index()].ToString()).c_str());
 
 	CAppUtils::RunTortoiseGitProc(sCmd);
 }
@@ -1107,7 +1107,7 @@ void CRevisionGraphWnd::DoCopyRefs() const
 	STRING_VECTOR list = GetFriendRefNames(m_SelectedEntry1);
 	CString text;
 	if (list.empty())
-		text = m_logEntries[m_SelectedEntry1->index()].ToString();
+		text = (m_logEntries[m_SelectedEntry1->index()].ToString()).c_str();
 	for (size_t i = 0; i < list.size(); ++i)
 	{
 		if (i > 0)
@@ -1146,7 +1146,7 @@ void CRevisionGraphWnd::OnContextMenu(CWnd* /*pWnd*/, CPoint point)
 		AppendMenu(popup, IDS_LOG_BROWSEREPO, ID_BROWSEREPO);
 
 		CString currentBranch = g_Git.GetCurrentBranch();
-		CGit::REF_TYPE refType = CGit::LOCAL_BRANCH;
+		TGitH::REF_TYPE refType = TGitH::LOCAL_BRANCH;
 		branchNames = GetFriendRefNames(m_SelectedEntry1, &currentBranch, &refType);
 		if (branchNames.size() == 1)
 		{
@@ -1164,7 +1164,7 @@ void CRevisionGraphWnd::OnContextMenu(CWnd* /*pWnd*/, CPoint point)
 		}
 		else
 		{
-			for (auto arefType : { CGit::REMOTE_BRANCH, CGit::TAG, CGit::ANNOTATED_TAG })
+			for (auto arefType : { TGitH::REMOTE_BRANCH, TGitH::TAG, TGitH::ANNOTATED_TAG })
 			{
 				remoteBranchNames = GetFriendRefNames(m_SelectedEntry1, &currentBranch, &arefType);
 				if (remoteBranchNames.size() >= 1)
@@ -1309,7 +1309,7 @@ void CRevisionGraphWnd::OnContextMenu(CWnd* /*pWnd*/, CPoint point)
 		break;
 	case ID_COMPAREWT:
 		if (m_SelectedEntry1)
-			CompareRevs(CGitHash().ToString());
+			CompareRevs(CString((CGitHash().ToString()).c_str()));
 		break;
 	}
 }

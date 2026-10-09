@@ -156,14 +156,27 @@ namespace reg {
 	}
 
 
-	auto get_value_string(
+	/// CRegString's contract: the value, else the default, else empty - never UB.
+	/// It used to be std::wstring{ get_value_typed<LPCWCHAR>(...) }: a missing value
+	/// with no default is a nullptr there, and std::wstring(nullptr) is undefined
+	/// (CLAUDE.md failure mode 5) - it crashed g_Git's constructor, via
+	/// GetConfiguredSshClient(), on any machine without an "SSH" value. Read owned,
+	/// so no pointer into a buffer that has gone out of scope is ever involved.
+	std::wstring get_value_string(
 		const std::wstring_view key,
 		const std::optional<const wchar_t* const> o_def = std::nullopt,
 		const std::optional<RKEY* const> o_root = std::nullopt,
 		// ReSharper disable once CppPassValueParameterByConstReference
 		const std::optional<std::wstring_view> o_sub = std::nullopt
 	) {
-		return std::wstring{ get_value_typed<LPCWCHAR>(key, o_def, o_root, o_sub) };
+		const auto root = o_root.value_or(hkey::CurrentUser);
+		// views need not be NUL-terminated; the API takes C strings
+		const std::wstring sub(o_sub.value_or(SOFTWARE_TGIT_KEY));
+		const std::wstring name(key);
+		if (auto value = wil::reg::try_get_value_string(root, sub.c_str(), name.c_str()))
+			return std::move(*value);
+		const wchar_t* const def = o_def.value_or(nullptr);
+		return def ? std::wstring(def) : std::wstring();
 	}
 
 

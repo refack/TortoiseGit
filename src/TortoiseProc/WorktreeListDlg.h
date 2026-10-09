@@ -18,10 +18,10 @@
 //
 
 #pragma once
-#include "Utils/MiscUI/StandAloneDlg.h"
-#include "gittype.h"
-#include "GitHash.h"
-#include "Utils/MiscUI/GestureEnabledControl.h"
+#include "StandAloneDlg.h"
+import tgittypes;
+import GitHash;
+#include "Utils/GestureEnabledControl.h"
 #include "ResizableColumnsListCtrl.h"
 
 class WorktreeDetails

@@ -20,10 +20,10 @@
 #include "stdafx.h"
 #include "TortoiseProc.h"
 #include "Settings.h"
-#include "Git.h"
+import git_h;
 #include "MessageBox.h"
-#include <TGitCache/CacheInterface.h>
-import GitAdminDir;
+import TGitCache.CacheInterface;
+import TGitPath;	// GitAdminDir lives in the TGitPath module
 #include "AppUtils.h"
 #include "Theme.h"
 import DarkModeHelper;
@@ -113,7 +113,7 @@ void CSettings::AddPropPages()
 
 	m_pGitConfig = AddPropPage(new CSettingGitConfig(), L"gitconfig");
 	CString repo = g_Git.m_CurrentDir;
-	bool hasLocalRepo = GitAdminDir::IsWorkingTreeOrBareRepo(repo);
+	bool hasLocalRepo = GitAdminDir::IsWorkingTreeOrBareRepo(tgit::zstr::StringView(repo));
 	if (hasLocalRepo)
 	{
 		m_pGitRemote = new CSettingGitRemote();
@@ -178,7 +178,7 @@ BOOL CSettings::OnInitDialog()
 	BOOL bResult = __super::OnInitDialog();
 	CAppUtils::MarkWindowAsUnpinnable(m_hWnd);
 
-	if (GitAdminDir::IsWorkingTreeOrBareRepo(g_Git.m_CurrentDir))
+	if (GitAdminDir::IsWorkingTreeOrBareRepo(tgit::zstr::StringView(g_Git.m_CurrentDir)))
 		CAppUtils::SetWindowTitle(*this, g_Git.m_CurrentDir);
 	else
 	{
@@ -208,7 +208,7 @@ BOOL CSettings::OnInitDialog()
 			}
 		}
 	}
-	if (!foundDefaultPage && GitAdminDir::IsWorkingTreeOrBareRepo(g_Git.m_CurrentDir))
+	if (!foundDefaultPage && GitAdminDir::IsWorkingTreeOrBareRepo(tgit::zstr::StringView(g_Git.m_CurrentDir)))
 		SetActivePage(m_pGitConfig);
 
 	return bResult;

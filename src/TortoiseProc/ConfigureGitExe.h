@@ -18,11 +18,11 @@
 //
 
 #pragma once
-#include "StringUtils.h"
-#include "Git.h"
-#include <Utils/MiscUI/MessageBox.h>
+import StringUtils;
+import git_h;
+#include "MiscUI/MessageBox.h"
 #include "AppUtils.h"
-#include <TGitCache/CacheInterface.h>
+import TGitCache.CacheInterface;
 
 #define GIT_FOR_WINDOWS_URL L"https://gitforwindows.org/"
 
@@ -191,7 +191,7 @@ protected:
 					callHelp(IDD_SETTINGSMAIN);
 				return false;
 			}
-			else if (!(CGit::ms_bCygwinGit || CGit::ms_bMsys2Git) && out.Find(L"msysgit") == -1 && out.Find(L"windows") == -1)
+			else if (!(TGitH::ms_bCygwinGit || TGitH::ms_bMsys2Git) && out.Find(L"msysgit") == -1 && out.Find(L"windows") == -1)
 			{
 				bool wasAlreadyWarned = !needWorkarounds || *needWorkarounds;
 				if (CMessageBox::Show(hwnd, IDS_ERR_GITNEEDHACKS, IDS_APPNAME, 1, IDI_INFORMATION, IDS_MSGBOX_OK, IDS_MSGBOX_HELP) == 2)
@@ -201,7 +201,7 @@ protected:
 				if (!wasAlreadyWarned)
 					return false;
 			}
-			else if ((CGit::ms_bCygwinGit || CGit::ms_bMsys2Git) && out.Find(L"msysgit") > 0 && out.Find(L"windows") > 0)
+			else if ((TGitH::ms_bCygwinGit || TGitH::ms_bMsys2Git) && out.Find(L"msysgit") > 0 && out.Find(L"windows") > 0)
 			{
 				if (CMessageBox::Show(hwnd, IDS_ERR_GITUNNEEDEDHACKS, IDS_APPNAME, 1, IDI_INFORMATION, IDS_MSGBOX_OK, IDS_MSGBOX_HELP) == 2)
 					callHelp(IDD_SETTINGSMAIN);
@@ -223,7 +223,7 @@ protected:
 		}
 
 		// force recalculation of Git version
-		CGit::ms_LastMsysGitVersion = 0;
+		TGitH::ms_LastMsysGitVersion = 0;
 		CRegDWORD(L"Software\\TortoiseGit\\git_file_time").removeValue();
 		if (!CheckGitVersion(hwnd))
 			return false;

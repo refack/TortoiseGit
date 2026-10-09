@@ -1,4 +1,4 @@
-// TortoiseGit - a Windows shell extension for easy version control
+﻿// TortoiseGit - a Windows shell extension for easy version control
 
 // Copyright (C) 2023-2025 - TortoiseGit
 // Copyright (C) 2025 - TortoiseSVN
@@ -45,7 +45,7 @@ bool RegisterWin11ContextMenuCommand::Execute()
 		if (!ooBECompleteOk)
 		{
 			CString error;
-			error.Format(L"Checking whether OOBE is complete failed: %s", static_cast<LPCWSTR>(CFormatMessageWrapper()));
+			error.Format(L"Checking whether OOBE is complete failed: %s", (CFormatMessageWrapper()).c_str());
 			::MessageBox(GetExplorerHWND(), error, L"TortoiseGit", MB_ICONERROR);
 			return false;
 		}
@@ -102,7 +102,7 @@ std::wstring RegisterWin11ContextMenuCommand::ReRegisterPackage()
 			}
 
 			// now register the package
-			auto appDir = CPathUtils::GetAppParentDirectory();
+			auto appDir = PathUtils::GetAppParentDirectory();
 			Uri externalUri(appDir.c_str());
 			auto packagePath = appDir + L"bin\\package.msix";
 			Uri packageUri(packagePath.c_str());
@@ -128,7 +128,7 @@ std::wstring RegisterWin11ContextMenuCommand::ReRegisterPackage()
 		}
 		catch (const std::exception& ex)
 		{
-			return CUnicodeUtils::StdGetUnicode(ex.what());
+			return CUnicodeUtils::StdGetUnicode(ex.what(), CP_UTF8);
 		}
 		return {};
 	});

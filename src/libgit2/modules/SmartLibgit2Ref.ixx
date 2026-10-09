@@ -1,4 +1,5 @@
 ﻿module;
+#include <tgit_cstring.h>	// first: decides which CString this compile speaks
 #include <git2.h>
 
 export module wil_git2;
@@ -216,6 +217,10 @@ struct CAutoConfig : CAutoGitRef<wil::unique_git_config>
 
 	/// \a value is emptied on failure. TOut is anything that assigns from a
 	/// const wchar_t* - a CString or a std::wstring.
+	/// A CString key - the MFC UI's. Constrained, so a literal binds the view one.
+	template <tgit::zstr::IsStupidString TKey, typename TOut>
+	int GetString(const TKey& key, TOut& value) const { return GetString(std::wstring_view(tgit::zstr::StringView{ key }), value); }
+
 	template <typename TOut>
 	int GetString(const std::wstring_view key, TOut& value) const
 	{

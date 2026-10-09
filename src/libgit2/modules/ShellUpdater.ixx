@@ -1,4 +1,5 @@
 module;
+#include <corecrt_wstdio.h>
 #include <shlobj_core.h>
 
 export module CShellUpdater;
@@ -116,7 +117,7 @@ void CShellUpdater::UpdateShell()
 	// if we use the external cache, we tell the cache directly that something
 	// has changed, without the detour via the shell.
 	const RIAA::CAutoFile hPipe = CreateFile(
-		GetCacheCommandPipeName().c_str(), // pipe name
+		GetCacheCommandPipeName(), // pipe name
 		GENERIC_READ | // read and write access
 			GENERIC_WRITE,
 		0, // no sharing
@@ -144,7 +145,7 @@ void CShellUpdater::UpdateShell()
 	for (int nPath = 0; nPath < m_pathsForUpdating.GetCount(); ++nPath) {
 		path.SetFromWin(StringView{g_Git.CombinePath(m_pathsForUpdating[nPath])});
 		tgit::DebugOutput::CTraceToOutputDebugString::Instance()(
-			_T(__FUNCTION__) L": Cache Item Update for %s (%I64u)\n",
+			__FUNCTION__ L": Cache Item Update for %s (%I64u)\n",
 			path.GetWinPathString().c_str(),
 			GetTickCount64()
 		);
@@ -171,7 +172,7 @@ void CShellUpdater::UpdateShell()
 
 	// now tell the cache we don't need it's command thread anymore
 	DWORD cbWritten;
-	TGITCacheCommand cmd;
+	TGITCacheCommand cmd{};
 	cmd.command = TGITCACHECOMMAND_END;
 	WriteFile(
 		hPipe, // handle to pipe

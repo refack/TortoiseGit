@@ -18,12 +18,12 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 #pragma once
-#include "TGitPath.h"
-#include "GitStatus.h"
+import TGitPath;
+import TGitStatus;
 #include "Colors.h"
 #include "ResizableColumnsListCtrl.h"
-#include "Utils/DragDropImpl.h"
-#include "Utils/ReaderWriterLock.h"
+import DragDrop;
+import ReaderWriterLock;
 
 #define GIT_WC_ENTRY_WORKING_SIZE_UNKNOWN (-1)
 

@@ -20,11 +20,11 @@
 #include "stdafx.h"
 #include "TortoiseProc.h"
 #include "SubmoduleUpdateDlg.h"
-#include "TGitPath.h"
+import TGitPath;
 #include "AppUtils.h"
-#include "UnicodeUtils.h"
-#include "StringUtils.h"
-#include "Git.h"
+import wstr;
+import StringUtils;
+import git_h;
 
 IMPLEMENT_DYNAMIC(CSubmoduleUpdateDlg, CResizableStandAloneDialog)
 
@@ -77,7 +77,7 @@ static int SubmoduleCallback(git_submodule *sm, const char * /*name*/, void *pay
 {
 	auto list = *static_cast<STRING_VECTOR**>(payload);
 	auto prefixList = *(static_cast<STRING_VECTOR**>(payload) + 1);
-	CString path = CUnicodeUtils::GetUnicode(git_submodule_path(sm));
+	CString path = CUnicodeUtils::Convert2Unicode<CString>(git_submodule_path(sm));
 	if (prefixList->empty())
 		list->push_back(std::wstring(path));
 	else
@@ -104,14 +104,14 @@ static void GetSubmodulePathList(STRING_VECTOR &list, STRING_VECTOR &prefixList)
 	CAutoRepository repo(g_Git.GetGitRepository());
 	if (!repo)
 	{
-		MessageBox(nullptr, CGit::GetLibGit2LastErr(L"Could not open repository."), L"TortoiseGit", MB_ICONERROR);
+		MessageBox(nullptr, TGitH::GetLibGit2LastErr(L"Could not open repository."), L"TortoiseGit", MB_ICONERROR);
 		return;
 	}
 
 	const STRING_VECTOR* listParams[] = { &list, &prefixList };
 	if (git_submodule_foreach(repo, SubmoduleCallback, &listParams))
 	{
-		MessageBox(nullptr, CGit::GetLibGit2LastErr(L"Could not get submodule list."), L"TortoiseGit", MB_ICONERROR);
+		MessageBox(nullptr, TGitH::GetLibGit2LastErr(L"Could not get submodule list."), L"TortoiseGit", MB_ICONERROR);
 		return;
 	}
 

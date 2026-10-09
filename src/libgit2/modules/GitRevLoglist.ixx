@@ -1,4 +1,5 @@
 ﻿module;
+#include <tgit_cstring.h>	// first: decides which CString this compile speaks
 #include <synchapi.h>
 #include <gitdll.h>
 #include <git2.h>
@@ -26,8 +27,13 @@ using TGitPath::CTGitPathList;
 using namespace SmartLibgit2;
 using tgit::zstr::StringView;
 
-class CLogCache;
-class IAsyncDiffCB;
+// Application classes this module only refers to: TortoiseProc defines them, in
+// the global module. A plain forward declaration here would attach them to this
+// module - a different type (GitLogListBase.h's IAsyncDiffCB* would not convert).
+// extern "C++" attaches the declarations to the global module, so they name the
+// application's classes.
+extern "C++" class CLogCache;
+extern "C++" class IAsyncDiffCB;
 
 class GitRevLoglistSharedFiles
 {
@@ -229,7 +235,7 @@ public:
 	AcquireSRWLockExclusive(&m_lock);
 	SCOPE_EXIT { ReleaseSRWLockExclusive(&m_lock); };
 	m_Files.Clear();
-	if (git->UsingLibGit2(CGit::GIT_CMD_LOGLISTDIFF))
+	if (git->UsingLibGit2(GIT_CMD_LOGLISTDIFF))
 	{
 		CAutoRepository repo(git->GetGitRepository());
 		if (!repo)
@@ -465,7 +471,7 @@ public:
 {
 	Expects(git);
 	m_SimpleFileList.clear();
-	if (git->UsingLibGit2(CGit::GIT_CMD_LOGLISTDIFF))
+	if (git->UsingLibGit2(GIT_CMD_LOGLISTDIFF))
 	{
 		CAutoRepository repo(git->GetGitRepository());
 		if (!repo)

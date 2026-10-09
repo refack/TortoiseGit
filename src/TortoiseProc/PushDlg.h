@@ -22,7 +22,7 @@
 #include "HorizontalResizableStandAloneDialog.h"
 #include "HistoryCombo.h"
 #include "MenuButton.h"
-#include <Utils/registry.h>
+import Registry;
 
 // CPushDlg dialog
 class CPushDlg : public CHorizontalResizableStandAloneDialog

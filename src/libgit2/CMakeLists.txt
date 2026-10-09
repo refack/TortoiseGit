@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 4.3)
+﻿cmake_minimum_required(VERSION 4.3)
 
 # before project() — the gate is read when the CXX toolchain is discovered
 set(CMAKE_EXPERIMENTAL_CXX_IMPORT_STD "f35a9ac6-8463-4d38-8eec-5d6008153e7d")
@@ -27,125 +27,153 @@ set(VCPKG_TARGET_TRIPLET "x64-windows-static-md" CACHE STRING "" FORCE)
 
 project(TGitLibgit2 LANGUAGES C CXX)
 
-find_package(MFC REQUIRED)
+find_package(libgit2 CONFIG REQUIRED)
 
-add_library(TGitLibgit2 SHARED)
 
-target_sources(TGitLibgit2
-    PRIVATE
-        patches/filter-filter.c
-        patches/ssh-wintunnel.c
-        patches/system-call.c
-        Utils/FileTextLines.cpp
-#        Utils/resource.rc
-        Utils/SysImageList.cpp
-        Utils/Theme.cpp
-)
 
-set_target_properties(TGitLibgit2 PROPERTIES
-    CMAKE_MFC_FLAG 2
-)
+# The core library, once per CString flavor (include/tgit_cstring.h says why):
+#   TGitLibgit2     ATL - UnitTests, and later TortoiseShell / TGitCache
+#   TGitLibgit2Mfc  MFC - TortoiseProc
+# Both STATIC: the TGitCore.lib of CLAUDE.md's Phase B. As a DLL it exported none
+# of our symbols - only libgit2's C API, which a static git2.lib marks dllexport -
+# so nothing could link against the module code. gitdll stays the one DLL, and
+# that boundary is what keeps libgit.lib off this library's consumers.
+function(tgit_core_library name flavor)
+    add_library(${name} STATIC)
 
-target_compile_features(TGitLibgit2
-    PRIVATE
-        cxx_std_23
-        c_std_23
-)
+    target_sources(${name}
+        PRIVATE
+            patches/filter-filter.c
+            patches/ssh-wintunnel.c
+            patches/system-call.c
+            Utils/Theme.cpp
+            modules/lanes.cpp   # the lanes module's implementation unit
+    )
+    if(flavor STREQUAL "MFC")
+        # MFC-only sources: CStdioFile, CImageList. They used to be compiled into
+        # the ATL library too, an MFC object inside an ATL-flavor library.
+        target_sources(${name}
+            PRIVATE
+                Utils/FileTextLines.cpp
+                Utils/SysImageList.cpp
+        )
+        target_compile_definitions(${name} PUBLIC TGIT_MFC)
+    endif()
 
-target_include_directories(TGitLibgit2
-    PRIVATE
-        "${CMAKE_CURRENT_SOURCE_DIR}/include"
-        "${CMAKE_SOURCE_DIR}/src/gitdll"
-        "${CMAKE_CURRENT_SOURCE_DIR}"
-        "${CMAKE_SOURCE_DIR}/src"
-        "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/include"
-)
+    target_compile_features(${name}
+        PRIVATE
+            cxx_std_23
+            c_std_23
+    )
 
-target_compile_definitions(TGitLibgit2
-    PRIVATE
-        _WIN64
-        WIN64
-        UNICODE
-        _UNICODE
-        GIT_DEPRECATE_HARD
-        ENABLE_INTSAFE_SIGNED_FUNCTIONS
-        _WIN32_WINNT=0x0A00
-        _WINDOWS
-        WINDOWS
-        NOMINMAX
-        _AFXDLL
-        "$<$<CONFIG:Debug>:DEBUG>"
-        "$<$<CONFIG:Release>:NDEBUG>"
-        "$<$<STREQUAL:${CMAKE_CXX_COMPILER_ARCHITECTURE_ID},x64>:_AMD64_>"
-        "$<$<STREQUAL:${CMAKE_CXX_COMPILER_ARCHITECTURE_ID},ARM64>:_ARM64_>"
-)
+    target_include_directories(${name}
+        PRIVATE
+            "${CMAKE_CURRENT_SOURCE_DIR}/include"
+            "${CMAKE_SOURCE_DIR}/src/gitdll"
+            "${CMAKE_CURRENT_SOURCE_DIR}"
+            "${CMAKE_SOURCE_DIR}/src"
+            "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/include"
+    )
 
-target_link_directories(TGitLibgit2
-    PRIVATE
-        "$<$<CONFIG:Debug>:${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/debug/lib>"
-        "$<$<CONFIG:Release>:${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/lib>"
-)
+    target_compile_definitions(${name}
+        PRIVATE
+            _WIN64
+            WIN64
+            UNICODE
+            _UNICODE
+            GIT_DEPRECATE_HARD
+            ENABLE_INTSAFE_SIGNED_FUNCTIONS
+            _WIN32_WINNT=0x0A00
+            _WINDOWS
+            WINDOWS
+            NOMINMAX
+            _AFXDLL
+            # Compiled in for every consumer. With headers, TGitPath.cpp was built per
+            # project and only TortoiseProc defined this - so CTGitPath's layout
+            # differed between binaries. A module is compiled once: one answer.
+            TGIT_LFS
+            "$<$<CONFIG:Debug>:_DEBUG>"   # as gitdll and UnitTests spell it; -MDd implies it, C5050 compares spellings
+            "$<$<CONFIG:Debug>:DEBUG>"
+            "$<$<CONFIG:Release>:NDEBUG>"
+            "$<$<STREQUAL:${CMAKE_CXX_COMPILER_ARCHITECTURE_ID},x64>:_AMD64_>"
+            "$<$<STREQUAL:${CMAKE_CXX_COMPILER_ARCHITECTURE_ID},ARM64>:_ARM64_>"
+    )
 
-target_link_libraries(TGitLibgit2
-    PUBLIC
-        gitdll
-    PRIVATE
-        winhttp
-        rpcrt4
-        gdi32
-        crypt32
-)
+    target_link_directories(${name}
+        PRIVATE
+            "$<$<CONFIG:Debug>:${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/debug/lib>"
+            "$<$<CONFIG:Release>:${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/lib>"
+    )
 
-target_compile_options(TGitLibgit2
-    PRIVATE
-        /W3
-        /external:W0
-        /external:anglebrackets
-)
+    target_link_libraries(${name}
+        PUBLIC
+            gitdll
+        PRIVATE
+            # static, and it carries its private symbols (git__calloc, git_str_*) the
+            # patches/*.c link against - which a libgit2 DLL would not export
+            libgit2::libgit2package
+            detours     # DarkModeHelper hooks OpenNcThemeData
+            version     # PathUtils::GetVersionFromFile
+            winhttp
+            rpcrt4
+            gdi32
+            crypt32
+    )
 
-set_target_properties(TGitLibgit2 PROPERTIES CXX_MODULE_STD ON)
+    target_compile_options(${name}
+        PRIVATE
+            /W3
+            /external:W0
+            /external:anglebrackets
+    )
 
-target_sources(TGitLibgit2
-    PUBLIC
-        FILE_SET CXX_MODULES
-        BASE_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/modules"
-    FILES
-        modules/shims/gsl.ixx
-        modules/shims/wil.ixx
-        modules/shims/libgit2.ixx
-        modules/Git.ixx
-        modules/BugTraqAssociations.ixx
-        modules/DarkModeHelper.ixx
-        modules/DebugOutput.ixx
-        modules/DirFileEnum.ixx
-        modules/GitDataObject.ixx
-        modules/GitHash.ixx
-        modules/GitMailmap.ixx
-        modules/GitRev.ixx
-        modules/GitRevLogList.ixx
-        modules/Graphviz.ixx
-        modules/Libraries.ixx
-        modules/PathUtils.ixx
-        modules/PersonalDictionary.ixx
-        modules/RIAA.ixx
-        modules/Registry.ixx
-        modules/ShellUpdater.ixx
-        modules/SmartLibgit2Ref.ixx
-        modules/StringUtils.ixx
-        modules/TGitPath.ixx
-        modules/TaskbarUUID.ixx
-        modules/TempFile.ixx
-        modules/gitindex.ixx
-        modules/tgittypes.ixx
-        modules/invarients.ixx
-        modules/wstr.ixx
-        modules/lanes.ixx
-        modules/LangDll.ixx
-        modules/GitStatus.ixx
-        modules/CmdLineParser.ixx
-        modules/DragDropImpl.ixx
-        modules/DragDropImpl.ixx
-        modules/utils/ReaderWriterLock.ixx
-        modules/utils/PathWatcher.ixx
-        modules/CacheInterface.ixx
-)
+    set_target_properties(${name} PROPERTIES CXX_MODULE_STD ON)
+
+    target_sources(${name}
+        PUBLIC
+            FILE_SET CXX_MODULES
+            BASE_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/modules"
+        FILES
+            modules/shims/gsl.ixx
+            modules/shims/wil.ixx
+            modules/shims/libgit2.ixx
+            modules/shims/json.ixx
+            modules/Git.ixx
+            modules/BugTraqAssociations.ixx
+            modules/DarkModeHelper.ixx
+            modules/DebugOutput.ixx
+            modules/DirFileEnum.ixx
+            modules/GitDataObject.ixx
+            modules/GitHash.ixx
+            modules/GitMailmap.ixx
+            modules/GitRev.ixx
+            modules/GitRevLogList.ixx
+            modules/Graphviz.ixx
+            modules/Libraries.ixx
+            modules/PathUtils.ixx
+            modules/PersonalDictionary.ixx
+            modules/RIAA.ixx
+            modules/Registry.ixx
+            modules/ShellUpdater.ixx
+            modules/SmartLibgit2Ref.ixx
+            modules/StringUtils.ixx
+            modules/TGitPath.ixx
+            modules/TaskbarUUID.ixx
+            modules/TempFile.ixx
+            modules/gitindex.ixx
+            modules/tgittypes.ixx
+            modules/invarients.ixx
+            modules/wstr.ixx
+            modules/lanes.ixx
+            modules/LangDll.ixx
+            modules/GitStatus.ixx
+            modules/CmdLineParser.ixx
+            modules/DragDropImpl.ixx
+            modules/utils/ReaderWriterLock.ixx
+            modules/utils/PathWatcher.ixx
+            modules/CacheInterface.ixx
+    )
+endfunction()
+
+tgit_core_library(TGitLibgit2 ATL)
+tgit_core_library(TGitLibgit2Mfc MFC)

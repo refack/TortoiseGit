@@ -17,13 +17,14 @@
 // along with this program; if not, write to the Free Software Foundation,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
+#include "stdafx.h"
 
-#include "Utils/Hooks.h"
-#include <Utils/registry.h>
-#include "Utils/StringUtils.h"
-#include "Utils/TempFile.h"
-#include "Utils/SmartHandle.h"
-#include "Git.h"
+#include "Hooks.h"
+import Registry;
+import StringUtils;
+import TempFile;
+import RIAA;
+import git_h;
 #include "resource.h"
 #include <afxtaskdialog.h>
 #include <WinCrypt.h>
@@ -43,7 +44,7 @@ static CString CalcSHA256(const CString& text)
 		return L"";
 	SCOPE_EXIT{ CryptDestroyHash(hHash); };
 
-	CStringA textA = CUnicodeUtils::GetUTF8(text);
+	CStringA textA = CUnicodeUtils::GetUTF8<CStringA>(text);
 	if (!CryptHashData(hHash, reinterpret_cast<const BYTE*>(static_cast<LPCSTR>(textA)), textA.GetLength(), 0))
 		return L"";
 
@@ -127,7 +128,7 @@ bool CHooks::Save()
 	// delete all existing local hooks
 	for (const auto& hook : { PROJECTPROPNAME_STARTCOMMITHOOK, PROJECTPROPNAME_PRECOMMITHOOK, PROJECTPROPNAME_POSTCOMMITHOOK, PROJECTPROPNAME_PREPUSHHOOK, PROJECTPROPNAME_POSTPUSHHOOK, PROJECTPROPNAME_PREREBASEHOOK })
 	{
-		CStringA hookA = CUnicodeUtils::GetUTF8(hook);
+		CStringA hookA = CUnicodeUtils::Convert2Multibyte<CStringA>(hook);
 		for (const auto& val : { "cmdline", "wait", "show" })
 		{
 			git_config_delete_entry(gitconfig, hookA + val);
@@ -144,25 +145,25 @@ bool CHooks::Save()
 		switch (hook.first.htype)
 		{
 		case HookType::start_commit_hook:
-			sHookPropName = CUnicodeUtils::GetUTF8(PROJECTPROPNAME_STARTCOMMITHOOK);
+			sHookPropName = CUnicodeUtils::Convert2Multibyte<CStringA>(PROJECTPROPNAME_STARTCOMMITHOOK);
 			break;
 		case HookType::pre_commit_hook:
-			sHookPropName = CUnicodeUtils::GetUTF8(PROJECTPROPNAME_PRECOMMITHOOK);
+			sHookPropName = CUnicodeUtils::Convert2Multibyte<CStringA>(PROJECTPROPNAME_PRECOMMITHOOK);
 			break;
 		case HookType::post_commit_hook:
-			sHookPropName = CUnicodeUtils::GetUTF8(PROJECTPROPNAME_POSTCOMMITHOOK);
+			sHookPropName = CUnicodeUtils::Convert2Multibyte<CStringA>(PROJECTPROPNAME_POSTCOMMITHOOK);
 			break;
 		case HookType::pre_push_hook:
-			sHookPropName = CUnicodeUtils::GetUTF8(PROJECTPROPNAME_PREPUSHHOOK);
+			sHookPropName = CUnicodeUtils::Convert2Multibyte<CStringA>(PROJECTPROPNAME_PREPUSHHOOK);
 			break;
 		case HookType::post_push_hook:
-			sHookPropName = CUnicodeUtils::GetUTF8(PROJECTPROPNAME_POSTPUSHHOOK);
+			sHookPropName = CUnicodeUtils::Convert2Multibyte<CStringA>(PROJECTPROPNAME_POSTPUSHHOOK);
 			break;
 		case HookType::pre_rebase_hook:
-			sHookPropName = CUnicodeUtils::GetUTF8(PROJECTPROPNAME_PREREBASEHOOK);
+			sHookPropName = CUnicodeUtils::Convert2Multibyte<CStringA>(PROJECTPROPNAME_PREREBASEHOOK);
 			break;
 		}
-		git_config_set_string(gitconfig, sHookPropName + "cmdline", CUnicodeUtils::GetUTF8(hook.second.commandline));
+		git_config_set_string(gitconfig, sHookPropName + "cmdline", CUnicodeUtils::GetUTF8<CStringA>(hook.second.commandline));
 		git_config_set_bool(gitconfig, sHookPropName + "wait", hook.second.bWait);
 		git_config_set_bool(gitconfig, sHookPropName + "show", hook.second.bShow);
 
@@ -286,7 +287,7 @@ void CHooks::AddParam(CString& sCmd, const CString& param)
 
 void CHooks::AddPathParam(CString& sCmd, const CTGitPathList& pathList)
 {
-	CTGitPath temppath = CTempFiles::Instance().GetTempFilePath(true);
+	CTGitPath temppath = TempFiles::GetTempFilePath(true);
 	pathList.WriteToFile(temppath.GetWinPathString().c_str(), true);
 	AddParam(sCmd, temppath.GetWinPathString().c_str());
 }
@@ -299,7 +300,7 @@ void CHooks::AddCWDParam(CString& sCmd, const CString& workingTree)
 void CHooks::AddErrorParam(CString& sCmd, const CString& error)
 {
 	CTGitPath tempPath;
-	tempPath = CTempFiles::Instance().GetTempFilePath(true);
+	tempPath = TempFiles::GetTempFilePath(true);
 	StringUtils::WriteStringToTextFile(tempPath.GetWinPath(), error);
 	AddParam(sCmd, tempPath.GetWinPathString().c_str());
 }
@@ -307,7 +308,7 @@ void CHooks::AddErrorParam(CString& sCmd, const CString& error)
 CTGitPath CHooks::AddMessageFileParam(CString& sCmd, const CString& message)
 {
 	CTGitPath tempPath;
-	tempPath = CTempFiles::Instance().GetTempFilePath(true);
+	tempPath = TempFiles::GetTempFilePath(true);
 	StringUtils::WriteStringToTextFile(tempPath.GetWinPath(), message);
 	AddParam(sCmd, tempPath.GetWinPathString().c_str());
 	return tempPath;
@@ -602,7 +603,7 @@ DWORD CHooks::RunScript(CString cmd, LPCWSTR currentDir, CString& error, bool bW
 
 	if (!hErr)
 	{
-		error = static_cast<LPCWSTR>(CFormatMessageWrapper());
+		error = (CFormatMessageWrapper()).c_str();
 		return DWORD(-1);
 	}
 
@@ -610,7 +611,7 @@ DWORD CHooks::RunScript(CString cmd, LPCWSTR currentDir, CString& error, bool bW
 
 	if (!hRedir)
 	{
-		error = static_cast<LPCWSTR>(CFormatMessageWrapper());
+		error = (CFormatMessageWrapper()).c_str();
 		return DWORD(-1);
 	}
 
@@ -619,7 +620,7 @@ DWORD CHooks::RunScript(CString cmd, LPCWSTR currentDir, CString& error, bool bW
 
 	if (!hOut)
 	{
-		error = static_cast<LPCWSTR>(CFormatMessageWrapper());
+		error = (CFormatMessageWrapper()).c_str();
 		return DWORD(-1);
 	}
 
@@ -636,7 +637,7 @@ DWORD CHooks::RunScript(CString cmd, LPCWSTR currentDir, CString& error, bool bW
 	if (!CreateProcess(nullptr, cmd.GetBuffer(), nullptr, nullptr, TRUE, CREATE_UNICODE_ENVIRONMENT, nullptr, currentDir, &si, &pi))
 	{
 		const DWORD err = GetLastError();  // preserve the CreateProcess error
-		error = static_cast<LPCWSTR>(CFormatMessageWrapper(err));
+		error = (CFormatMessageWrapper(err)).c_str();
 		SetLastError(err);
 		cmd.ReleaseBuffer();
 		return DWORD(-1);

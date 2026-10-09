@@ -19,7 +19,7 @@
 //
 #include "stdafx.h"
 #include "LogCommand.h"
-#include "StringUtils.h"
+import StringUtils;
 #include "LogDlg.h"
 
 bool LogCommand::Execute()
@@ -94,7 +94,7 @@ bool LogCommand::Execute()
 	{
 		CString sText;
 		if (!dlg.GetSelectedHash().empty())
-			sText = dlg.GetSelectedHash().at(0).ToString();
+			sText = (dlg.GetSelectedHash().at(0).ToString()).c_str();
 		StringUtils::WriteStringToTextFile(parser.GetVal(L"outfile"), static_cast<LPCWSTR>(sText), true);
 	}
 	return true;

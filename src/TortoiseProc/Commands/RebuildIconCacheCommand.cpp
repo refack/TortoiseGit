@@ -1,4 +1,4 @@
-// TortoiseGit - a Windows shell extension for easy version control
+﻿// TortoiseGit - a Windows shell extension for easy version control
 
 // Copyright (C) 2007 - TortoiseSVN
 
@@ -19,7 +19,7 @@
 #include "stdafx.h"
 #include "RebuildIconCacheCommand.h"
 
-#include "ShellUpdater.h"
+import CShellUpdater;
 #include "MessageBox.h"
 
 bool RebuildIconCacheCommand::Execute()

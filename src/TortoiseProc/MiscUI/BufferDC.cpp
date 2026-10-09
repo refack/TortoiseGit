@@ -1,5 +1,6 @@
-﻿
-#include "Utils/BufferDC.h"
+﻿#include "../stdafx.h"
+
+#include "MiscUI/BufferDC.h"
 
 IMPLEMENT_DYNAMIC(CBufferDC, CPaintDC)
 

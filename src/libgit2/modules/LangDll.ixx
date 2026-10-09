@@ -1,13 +1,12 @@
 ﻿module;
+#include <tgit_cstring.h>	// first: decides which CString this compile speaks
 #include <windows.h>
 #include <SimpleIni.h>
 #include <version.h>
-#ifdef TORTOISEGITPROC
-#include "Utils/DirFileEnum.h"
-#endif
 
 export module LandDll;
 import std;
+import DirFileEnum;	// GetInstalledLanguages; it was TORTOISEGITPROC-only, a per-consumer macro a module never sees
 import RIAA;
 import Registry;
 import PathUtils;
@@ -35,9 +34,7 @@ public:
 	static constexpr DWORD s_defaultLang = 1033;
 	static constexpr std::wstring_view s_languagesfolder = L"Languages\\";
 
-#if defined(TORTOISEGITPROC)
 	static std::vector<std::pair<CString, DWORD>> GetInstalledLanguages(bool includeNative = false, bool checkVersion = true);
-#endif
 
 	static std::wstring GetCompatibleDLLVersion(const std::wstring& appPath);
 
@@ -100,7 +97,6 @@ HINSTANCE CLangDll::Init(LPCWSTR appname, HMODULE hModule, DWORD langID)
 	m_langId = langID;
 	return m_hInstance;
 }
-#ifdef TORTOISEGITPROC
 std::vector<std::pair<CString, DWORD>> CLangDll::GetInstalledLanguages(bool includeNative /* false */, bool checkVersion /* true */)
 {
 	std::vector<std::pair<CString, DWORD>> langs;
@@ -144,7 +140,6 @@ std::vector<std::pair<CString, DWORD>> CLangDll::GetInstalledLanguages(bool incl
 	}
 	return langs;
 }
-#endif
 
 std::wstring CLangDll::GetCompatibleDLLVersion(const std::wstring& appPath)
 {
@@ -163,3 +158,6 @@ std::wstring CLangDll::GetCompatibleDLLVersion(const std::wstring& appPath)
 }
 
 } // namespace LangDll
+
+// as the sibling modules do: TortoiseProc names CLangDll unqualified
+export using namespace LangDll;

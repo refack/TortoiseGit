@@ -1,4 +1,4 @@
-// TortoiseGit - a Windows shell extension for easy version control
+﻿// TortoiseGit - a Windows shell extension for easy version control
 
 // Copyright (C) 2009-2014, 2016-2017, 2023 - TortoiseGit
 
@@ -23,9 +23,9 @@
 #include "TortoiseProc.h"
 #include "SettingsBugtraqConfig.h"
 #include "ProjectProperties.h"
-#include "Git.h"
+import git_h;
 #include "BugtraqRegexTestDlg.h"
-#include "BugTraqAssociations.h"
+import BugTraqProvider;
 
 // CSettingsBugtraqConfig dialog
 

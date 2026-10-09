@@ -23,6 +23,18 @@
 #include "SetProgsAdvDlg.h"
 #include "AppUtils.h"
 
+// CRegistryKey reports into std::vector<std::wstring> now; this page keeps its
+// CStringList handling, so the result is copied across here.
+template <bool (CRegistryKey::*Get)(std::vector<std::wstring>&)>
+static bool GetIntoList(CRegistryKey& key, CStringList& list)
+{
+	std::vector<std::wstring> items;
+	if (!(key.*Get)(items))
+		return false;
+	for (const auto& item : items)
+		list.AddTail(CString(item.c_str(), static_cast<int>(item.size())));
+	return true;
+}
 IMPLEMENT_DYNAMIC(CSetProgsAdvDlg, CResizableStandAloneDialog)
 CSetProgsAdvDlg::CSetProgsAdvDlg(const CString& type, CWnd* pParent /*=nullptr*/)
 	: CResizableStandAloneDialog(CSetProgsAdvDlg::IDD, pParent)
@@ -42,7 +54,7 @@ void CSetProgsAdvDlg::LoadData()
 		m_Tools.clear();
 
 		CStringList values;
-		if (m_regToolKey.getValues(values))
+		if (GetIntoList<&CRegistryKey::getValues>(m_regToolKey, values))
 		{
 			for (POSITION pos = values.GetHeadPosition(); pos; )
 			{
@@ -61,7 +73,7 @@ int CSetProgsAdvDlg::SaveData()
 	{
 		// Remove all registry values which are no longer in the list
 		CStringList values;
-		if (m_regToolKey.getValues(values))
+		if (GetIntoList<&CRegistryKey::getValues>(m_regToolKey, values))
 		{
 			for (POSITION pos = values.GetHeadPosition(); pos; )
 			{

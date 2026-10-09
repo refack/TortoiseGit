@@ -19,7 +19,7 @@
 
 #include "stdafx.h"
 #include "RepositoryFixtures.h"
-#include "GitRev.h"
+import GitRev;
 
 class GitRevCBasicGitWithTestRepoFixture : public CBasicGitWithTestRepoFixture
 {

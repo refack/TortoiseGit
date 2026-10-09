@@ -21,9 +21,9 @@
 #include "stdafx.h"
 #include "TortoiseProc.h"
 #include "GitProgressDlg.h"
-#include "SmartHandle.h"
-#include "StringUtils.h"
-#include "CmdLineParser.h"
+import RIAA;
+import StringUtils;
+import CmdLineParser;
 
 IMPLEMENT_DYNAMIC(CGitProgressDlg, CResizableStandAloneDialog)
 CGitProgressDlg::CGitProgressDlg(CWnd* pParent /*=nullptr*/)

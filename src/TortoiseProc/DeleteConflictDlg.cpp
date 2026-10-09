@@ -23,8 +23,8 @@
 #include "resource.h"
 #include "DeleteConflictDlg.h"
 #include "AppUtils.h"
-#include "Git.h"
-#include "CmdLineParser.h"
+import git_h;
+import CmdLineParser;
 
 // CDeleteConflictDlg dialog
 
@@ -109,12 +109,12 @@ BOOL CDeleteConflictDlg::OnInitDialog()
 
 void CDeleteConflictDlg::OnBnClickedLog()
 {
-	ShowLog(m_LocalHash.ToString());
+	ShowLog(CString((m_LocalHash.ToString()).c_str()));
 }
 
 void CDeleteConflictDlg::OnBnClickedLog2()
 {
-	ShowLog(m_RemoteHash.ToString());
+	ShowLog(CString((m_RemoteHash.ToString()).c_str()));
 }
 
 void CDeleteConflictDlg::OnBnClickedDelete()

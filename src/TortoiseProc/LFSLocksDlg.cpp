@@ -21,7 +21,7 @@
 #include "TortoiseProc.h"
 #include "MessageBox.h"
 #include "LFSLocksDlg.h"
-#include "Git.h"
+import git_h;
 #include "AppUtils.h"
 #include "GitProgressDlg.h"
 #include "ProgressCommands/LFSSetLockedProgressCommand.h"

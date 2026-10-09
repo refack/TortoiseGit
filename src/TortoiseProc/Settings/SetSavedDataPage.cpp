@@ -1,4 +1,4 @@
-// TortoiseGit - a Windows shell extension for easy version control
+﻿// TortoiseGit - a Windows shell extension for easy version control
 
 // Copyright (C) 2012-2021, 2023, 2025-2026 - TortoiseGit
 // Copyright (C) 2003-2008,2014 - TortoiseSVN
@@ -19,16 +19,28 @@
 //
 #include "stdafx.h"
 #include "TortoiseProc.h"
-#include "registry.h"
-#include "PathUtils.h"
+import Registry;
+import PathUtils;
 #include "AppUtils.h"
-#include "DirFileEnum.h"
+import DirFileEnum;
 #include "SetSavedDataPage.h"
 #include "MessageBox.h"
-#include "StringUtils.h"
-#include "Git.h"
+import StringUtils;
+import git_h;
 #include "WindowsCredentialsStore.h"
 
+// CRegistryKey reports into std::vector<std::wstring> now; this page keeps its
+// CStringList handling, so the result is copied across here.
+template <bool (CRegistryKey::*Get)(std::vector<std::wstring>&)>
+static bool GetIntoList(CRegistryKey& key, CStringList& list)
+{
+	std::vector<std::wstring> items;
+	if (!(key.*Get)(items))
+		return false;
+	for (const auto& item : items)
+		list.AddTail(CString(item.c_str(), static_cast<int>(item.size())));
+	return true;
+}
 IMPLEMENT_DYNAMIC(CSetSavedDataPage, ISettingsPropPage)
 
 CSetSavedDataPage::CSetSavedDataPage()
@@ -60,12 +72,12 @@ static void RecursivelyCount(const CString& base, const CString& key, std::set<C
 {
 	CRegistryKey regurlhistlist(L"Software\\TortoiseGit\\History\\" + base + key);
 	CStringList values;
-	regurlhistlist.getValues(values);
+	GetIntoList<&CRegistryKey::getValues>(regurlhistlist, values);
 	historyNums += values.GetCount();
 	if (!key.IsEmpty() && !values.IsEmpty())
 		wcs.insert(key);
 	CStringList subkeys;
-	regurlhistlist.getSubKeys(subkeys);
+	GetIntoList<&CRegistryKey::getSubKeys>(regurlhistlist, subkeys);
 	for (POSITION subkeypos = subkeys.GetHeadPosition(); subkeypos;)
 	{
 		CString repo = key + L'\\' + subkeys.GetNext(subkeypos);
@@ -85,7 +97,7 @@ BOOL CSetSavedDataPage::OnInitDialog()
 	int nLogHistRepo = 0;
 	CRegistryKey regloghist(L"Software\\TortoiseGit\\History");
 	CStringList loghistlist;
-	regloghist.getSubKeys(loghistlist);
+	GetIntoList<&CRegistryKey::getSubKeys>(regloghist, loghistlist);
 	for (POSITION pos = loghistlist.GetHeadPosition(); pos; )
 	{
 		CString sHistName = loghistlist.GetNext(pos);
@@ -94,7 +106,7 @@ BOOL CSetSavedDataPage::OnInitDialog()
 			nLogHistWC++;
 			CRegistryKey regloghistwc(L"Software\\TortoiseGit\\History\\"+sHistName);
 			CStringList loghistlistwc;
-			regloghistwc.getValues(loghistlistwc);
+			GetIntoList<&CRegistryKey::getValues>(regloghistwc, loghistlistwc);
 			nLogHistMsg += loghistlistwc.GetCount();
 		}
 	}
@@ -110,7 +122,7 @@ BOOL CSetSavedDataPage::OnInitDialog()
 	INT_PTR nResizableDialogs = 0;
 	CRegistryKey regResizable(L"Software\\TortoiseGit\\TortoiseProc\\ResizableState");
 	CStringList resizablelist;
-	regResizable.getValues(resizablelist);
+	GetIntoList<&CRegistryKey::getValues>(regResizable, resizablelist);
 	nResizableDialogs += resizablelist.GetCount();
 
 	// find out how many auth data we've stored
@@ -140,13 +152,13 @@ BOOL CSetSavedDataPage::OnInitDialog()
 	CWindowsCredentialsStore::ListCredentials(L"git:*", credStore);
 	nSimple += static_cast<int>(credStore.GetCount());
 
-	CDirFileEnum logenum((CPathUtils::GetAppDataDirectory() + L"logcache").c_str());
+	CDirFileEnum logenum((PathUtils::GetAppDataDirectory() + L"logcache").c_str());
 	/* while (logenum.NextFile(sFile, &bIsDir))
 		nLogHistRepo++;*/
 	// the "Repositories.dat" is not a cache file
 	nLogHistRepo--;
 
-	BOOL bActionLog = PathFileExists((CPathUtils::GetLocalAppDataDirectory() + L"logfile.txt").c_str());
+	BOOL bActionLog = PathFileExists((PathUtils::GetLocalAppDataDirectory() + L"logfile.txt").c_str());
 
 	m_btnLogHistClear.EnableWindow(nLogHistMsg || nLogHistWC);
 	m_btnUrlHistClear.EnableWindow(nUrlHistItems || nUrlHistWC);
@@ -213,7 +225,7 @@ void CSetSavedDataPage::OnBnClickedLoghistclear()
 {
 	CRegistryKey reg(L"Software\\TortoiseGit\\History");
 	CStringList histlist;
-	reg.getSubKeys(histlist);
+	GetIntoList<&CRegistryKey::getSubKeys>(reg, histlist);
 	for (POSITION pos = histlist.GetHeadPosition(); pos; )
 	{
 		CString sHist = histlist.GetNext(pos);
@@ -261,7 +273,7 @@ void CSetSavedDataPage::OnBnClickedAuthhistclear()
 
 void CSetSavedDataPage::OnBnClickedRepologclear()
 {
-	DeleteViaShell((CPathUtils::GetAppDataDirectory() + L"logcache").c_str(), IDS_SETTINGS_DELCACHE);
+	DeleteViaShell((PathUtils::GetAppDataDirectory() + L"logcache").c_str(), IDS_SETTINGS_DELCACHE);
 
 	m_btnRepoLogClear.EnableWindow(FALSE);
 	m_tooltips.DelTool(GetDlgItem(IDC_REPOLOG));
@@ -270,13 +282,13 @@ void CSetSavedDataPage::OnBnClickedRepologclear()
 
 void CSetSavedDataPage::OnBnClickedActionlogshow()
 {
-	CString logfile = (CPathUtils::GetLocalAppDataDirectory() + L"logfile.txt").c_str();
+	CString logfile = (PathUtils::GetLocalAppDataDirectory() + L"logfile.txt").c_str();
 	CAppUtils::StartTextViewer(logfile);
 }
 
 void CSetSavedDataPage::OnBnClickedActionlogclear()
 {
-	CString logfile = (CPathUtils::GetLocalAppDataDirectory() + L"logfile.txt").c_str();
+	CString logfile = (PathUtils::GetLocalAppDataDirectory() + L"logfile.txt").c_str();
 	DeleteFile(logfile);
 	m_btnActionLogClear.EnableWindow(FALSE);
 	m_btnActionLogShow.EnableWindow(FALSE);

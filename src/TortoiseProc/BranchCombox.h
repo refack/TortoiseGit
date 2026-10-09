@@ -22,7 +22,7 @@
 #include "HistoryCombo.h"
 #include "LoglistUtils.h"
 #include "Tooltip.h"
-#include "GitRev.h"
+import GitRev;
 #include <Resources/LoglistCommonResource.h>
 
 class CBranchCombox
@@ -148,7 +148,7 @@ protected:
 		CString tooltip;
 		tooltip.Format(L"%s: %s\n%s: %s <%s>\n%s: %s\n%s:\n%s\n%s",
 						static_cast<LPCWSTR>(CString(MAKEINTRESOURCE(IDS_LOG_REVISION))),
-						static_cast<LPCWSTR>(rev.m_CommitHash.ToString()),
+						(rev.m_CommitHash.ToString()).c_str(),
 						static_cast<LPCWSTR>(CString(MAKEINTRESOURCE(IDS_LOG_AUTHOR))),
 						static_cast<LPCWSTR>(rev.GetAuthorName()),
 						static_cast<LPCWSTR>(rev.GetAuthorEmail()),
@@ -176,14 +176,14 @@ protected:
 		list.clear();
 		int current=0;
 
-		g_Git.GetBranchList(list,&current,CGit::BRANCH_LOCAL_F);
+		g_Git.GetBranchList(list,&current,TGitH::BRANCH_LOCAL_F);
 
 		m_ctrlLocalBranch.SetList(list);
 
 		if(this->m_RegKeyRemoteBranch.IsEmpty())
 		{
 			list.clear();
-			g_Git.GetBranchList(list, nullptr, CGit::BRANCH_REMOTE);
+			g_Git.GetBranchList(list, nullptr, TGitH::BRANCH_REMOTE);
 
 			m_ctrlRemoteBranch.SetList(list);
 		}

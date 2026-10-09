@@ -20,9 +20,9 @@
 
 #include "stdafx.h"
 #include "TortoiseProc.h"
-#include "DirFileEnum.h"
+import DirFileEnum;
 #include "SetOverlayIcons.h"
-#include "StringUtils.h"
+import StringUtils;
 #include "LoadIconEx.h"
 
 IMPLEMENT_DYNAMIC(CSetOverlayIcons, ISettingsPropPage)

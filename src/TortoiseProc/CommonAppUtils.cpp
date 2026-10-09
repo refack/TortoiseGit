@@ -17,23 +17,24 @@
 // along with this program; if not, write to the Free Software Foundation,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
+#include "stdafx.h"
 #include <afxwin.h>
 #include <format>
-#include <raii-win32-formatmessage.h>
+import wil;
 #include <shlobj_core.h>
 
-#include <Utils/CommonAppUtils.h>
-#include <Utils/PathUtils.h>
-#include <Utils/StringUtils.h>
-#include <Utils/registry.h>
+#include "CommonAppUtils.h"
+import PathUtils;
+import StringUtils;
+import Registry;
 #include <Utils/SelectFileFilter.h>
 #include <Utils/DPIAware.h>
 #include <Utils/LoadIconEx.h>
-#include "Utils/IconBitmapUtils.h"
+#include "MiscUI/IconBitmapUtils.h"
 #include <Utils/CreateProcessHelper.h>
 
-#include "Utils/ACEdit.h"
-#include "Utils/SmartHandle.h"
+#include "ACEdit.h"
+import RIAA;
 
 extern CString g_sGroupingUUID;
 
@@ -67,7 +68,7 @@ bool CCommonAppUtils::LaunchApplication(const CString& sCommandLine, const Launc
 				if (flags.uiIDErrMessageFormat != 0)
 				{
 					CString temp;
-					temp.Format(flags.uiIDErrMessageFormat, static_cast<LPCWSTR>(CFormatMessageWrapper()));
+					temp.Format(flags.uiIDErrMessageFormat, (CFormatMessageWrapper()).c_str());
 					MessageBox(nullptr, temp, L"TortoiseGit", MB_OK | MB_ICONINFORMATION);
 				}
 				return false;
@@ -93,7 +94,7 @@ bool CCommonAppUtils::LaunchApplication(const CString& sCommandLine, const Launc
 			if (flags.uiIDErrMessageFormat != 0)
 			{
 				CString temp;
-				temp.Format(flags.uiIDErrMessageFormat, static_cast<LPCWSTR>(CFormatMessageWrapper()));
+				temp.Format(flags.uiIDErrMessageFormat, (CFormatMessageWrapper()).c_str());
 				MessageBox(nullptr, temp, L"TortoiseGit", MB_OK | MB_ICONINFORMATION);
 			}
 			return false;
@@ -140,7 +141,7 @@ bool CCommonAppUtils::LaunchApplication(const CString& sCommandLine, const Launc
 		if (flags.uiIDErrMessageFormat)
 		{
 			CString temp;
-			temp.Format(flags.uiIDErrMessageFormat, static_cast<LPCWSTR>(CFormatMessageWrapper()));
+			temp.Format(flags.uiIDErrMessageFormat, (CFormatMessageWrapper()).c_str());
 			MessageBox(nullptr, temp, L"TortoiseGit", MB_OK | MB_ICONINFORMATION);
 		}
 		return false;
@@ -180,7 +181,7 @@ bool CCommonAppUtils::LaunchApplication(const CString& sCommandLine, const Launc
 
 bool CCommonAppUtils::RunTortoiseGitProc(const CString& sCommandLine, bool uac, bool includeGroupingUUID)
 {
-	const std::wstring pathToExecutable = CPathUtils::GetAppDirectory() + L"TortoiseGitProc.exe";
+	const std::wstring pathToExecutable = PathUtils::GetAppDirectory() + L"TortoiseGitProc.exe";
 	CString sCmd = std::format(L"\"{}\" {}", pathToExecutable, sCommandLine).c_str();
 	if (AfxGetMainWnd()->GetSafeHwnd() && (sCommandLine.Find(L"/hwnd:") < 0))
 		sCmd.AppendFormat(L" /hwnd:%p", static_cast<void*>(AfxGetMainWnd()->GetSafeHwnd()));
@@ -257,7 +258,7 @@ bool CCommonAppUtils::FileOpenSave(CString& path, int* filterindex, UINT title, 
 		if (!SUCCEEDED(pfd->SetOptions(dwOptions | FOS_OVERWRITEPROMPT | FOS_FORCEFILESYSTEM | FOS_PATHMUSTEXIST)))
 			return false;
 	}
-	if ((!PathIsDirectory(path) || handleAsFile) && !SUCCEEDED(pfd->SetFileName(CPathUtils::GetFileNameFromPath(tgit::wstr::View(path)).c_str())))
+	if ((!PathIsDirectory(path) || handleAsFile) && !SUCCEEDED(pfd->SetFileName(PathUtils::GetFileNameFromPath(tgit::zstr::StringView(path)).c_str())))
 		return false;
 
 	// Set a title
@@ -277,7 +278,7 @@ bool CCommonAppUtils::FileOpenSave(CString& path, int* filterindex, UINT title, 
 		if (filterId == 1602 || filterId == 2501) // IDS_GITEXEFILEFILTER || IDS_PROGRAMSFILEFILTER
 		{
 			pfd->SetClientGuid({ 0x323ca4b0, 0x62df, 0x4a08, { 0xa5, 0x5, 0x58, 0xde, 0xa2, 0xb9, 0x2d, 0xcd } });
-			if (SUCCEEDED(SHCreateItemFromParsingName(CPathUtils::GetProgramsDirectory().c_str(), nullptr, IID_PPV_ARGS(&psiDefaultFolder))))
+			if (SUCCEEDED(SHCreateItemFromParsingName(PathUtils::GetProgramsDirectory().c_str(), nullptr, IID_PPV_ARGS(&psiDefaultFolder))))
 				pfd->SetDefaultFolder(psiDefaultFolder);
 		}
 	}
@@ -441,7 +442,7 @@ bool CCommonAppUtils::StartHtmlHelp(DWORD_PTR id, CString page /* = L"index.html
 	// std::format rather than a concatenation chain: this mixes std::wstring,
 	// CString and a literal, and getting one of those conversions wrong is the
 	// silent kind of wrong (see WideString.h's formatter).
-	if (CString appHelp = std::format(L"{}{}_en\\", CPathUtils::GetAppDirectory(), appName).c_str(); PathFileExists(appHelp))
+	if (CString appHelp = std::format(L"{}{}_en\\", PathUtils::GetAppDirectory(), appName).c_str(); PathFileExists(appHelp))
 	{
 		// We have to find the default browser, ourselves, because ShellExecute cannot handle anchors on local HTML files
 		DWORD dwszBuffPathLen = MAX_PATH;

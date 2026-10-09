@@ -19,14 +19,14 @@
 
 #include "stdafx.h"
 #include "TortoiseProc.h"
-#include "Git.h"
+import git_h;
 #include "AppUtils.h"
 #include "SubmoduleResolveConflictDlg.h"
 #include "SubmoduleDiffDlg.h"
 #include "MessageBox.h"
 #include "GitProgressDlg.h"
 #include "ProgressCommands/ResolveProgressCommand.h"
-#include "CmdLineParser.h"
+import CmdLineParser;
 
 IMPLEMENT_DYNAMIC(CSubmoduleResolveConflictDlg, CHorizontalResizableStandAloneDialog)
 CSubmoduleResolveConflictDlg::CSubmoduleResolveConflictDlg(CWnd* pParent /*=nullptr*/)
@@ -51,9 +51,9 @@ void CSubmoduleResolveConflictDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Text(pDX, IDC_BASESUBJECT, m_sBaseSubject);
 	DDX_Text(pDX, IDC_MINESUBJECT, m_sMineSubject);
 	DDX_Text(pDX, IDC_THEIRSSUBJECT, m_sTheirsSubject);
-	GetDlgItem(IDC_BASEHASH)->SetWindowText(m_sBaseHash.ToString());
-	GetDlgItem(IDC_MINEHASH)->SetWindowText(m_sMineHash.ToString());
-	GetDlgItem(IDC_THEIRSHASH)->SetWindowText(m_sTheirsHash.ToString());
+	GetDlgItem(IDC_BASEHASH)->SetWindowText((m_sBaseHash.ToString()).c_str());
+	GetDlgItem(IDC_MINEHASH)->SetWindowText((m_sMineHash.ToString()).c_str());
+	GetDlgItem(IDC_THEIRSHASH)->SetWindowText((m_sTheirsHash.ToString()).c_str());
 }
 
 BEGIN_MESSAGE_MAP(CSubmoduleResolveConflictDlg, CHorizontalResizableStandAloneDialog)
@@ -207,17 +207,17 @@ void CSubmoduleResolveConflictDlg::ShowLog(const CString& hash)
 
 void CSubmoduleResolveConflictDlg::OnBnClickedLog()
 {
-	ShowLog(m_sBaseHash.ToString());
+	ShowLog(CString((m_sBaseHash.ToString()).c_str()));
 }
 
 void CSubmoduleResolveConflictDlg::OnBnClickedLog2()
 {
-	ShowLog(m_sMineHash.ToString());
+	ShowLog(CString((m_sMineHash.ToString()).c_str()));
 }
 
 void CSubmoduleResolveConflictDlg::OnBnClickedLog3()
 {
-	ShowLog(m_sTheirsHash.ToString());
+	ShowLog(CString((m_sTheirsHash.ToString()).c_str()));
 }
 
 void CSubmoduleResolveConflictDlg::Resolve(const CString& path, bool useMine)

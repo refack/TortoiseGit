@@ -1,4 +1,5 @@
 ﻿module;
+#include <tgit_cstring.h>	// first: decides which CString this compile speaks
 #define READ_DIR_CHANGE_BUFFER_SIZE 4096
 #define MAX_CHANGED_PATHS  4000
 #include <atlstr.h>
@@ -50,7 +51,7 @@ struct CDirWatchInfo
  * The folders are watched recursively. To prevent having too many folders watched,
  * children of already watched folders are automatically removed from watching.
  */
-class CPathWatcher
+export class CPathWatcher
 {
 	CComAutoCriticalSection	m_critSec;
 	CAutoGeneralHandle		m_hThread;

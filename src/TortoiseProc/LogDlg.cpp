@@ -23,13 +23,13 @@
 #include "LogDlg.h"
 #include "MessageBox.h"
 #include "AppUtils.h"
-#include "StringUtils.h"
-#include "UnicodeUtils.h"
+import StringUtils;
+import wstr;
 #include "IconMenu.h"
 #include "BrowseRefsDlg.h"
-#include "SmartHandle.h"
+import RIAA;
 #include "LogOrdering.h"
-#include "ClipboardHelper.h"
+import wil;
 #include "DPIAware.h"
 #include "LogDlgFileFilter.h"
 
@@ -343,18 +343,18 @@ BOOL CLogDlg::OnInitDialog()
 	AddMainAnchors();
 	SetFilterCueText();
 
-	m_LogList.m_ShowMask &= ~CGit::LOG_INFO_LOCAL_BRANCHES;
+	m_LogList.m_ShowMask &= ~TGitH::LOG_INFO_LOCAL_BRANCHES;
 	if (m_AllBranchType == AllBranchType::AllBranches)
-		m_LogList.m_ShowMask|=CGit::LOG_INFO_ALL_BRANCH;
+		m_LogList.m_ShowMask|=TGitH::LOG_INFO_ALL_BRANCH;
 	else if (m_AllBranchType == AllBranchType::AllLocalBranches)
-		m_LogList.m_ShowMask |= CGit::LOG_INFO_LOCAL_BRANCHES;
+		m_LogList.m_ShowMask |= TGitH::LOG_INFO_LOCAL_BRANCHES;
 	else if (m_AllBranchType == AllBranchType::AllBasicRefs)
-		m_LogList.m_ShowMask |= CGit::LOG_INFO_BASIC_REFS;
+		m_LogList.m_ShowMask |= TGitH::LOG_INFO_BASIC_REFS;
 	else
-		m_LogList.m_ShowMask&=~CGit::LOG_INFO_ALL_BRANCH;
+		m_LogList.m_ShowMask&=~TGitH::LOG_INFO_ALL_BRANCH;
 
 	if (m_bFullHistory)
-		m_LogList.m_ShowMask |= CGit::LOG_INFO_FULL_HISTORY;
+		m_LogList.m_ShowMask |= TGitH::LOG_INFO_FULL_HISTORY;
 
 	HandleShowLabels(m_bShowTags, LOGLIST_SHOWTAGS);
 	HandleShowLabels(m_bShowLocalBranches, LOGLIST_SHOWLOCALBRANCHES);
@@ -649,16 +649,16 @@ void CLogDlg::EnableOKButton()
 
 bool LookLikeGitHash(const CString& msg, int &pos)
 {
-	static int shortHashLength = std::min(GIT_HASH_SIZE * 2, std::max(3, static_cast<int>(CRegDWORD(L"Software\\TortoiseGit\\ShortHashLengthForHyperLinkInLogMessage", g_Git.GetShortHASHLength()))));
+	static int shortHashLength = std::min(static_cast<int>(tgit::invarients::GitFormatHolder::GitHashSize()) * 2, std::max(3, static_cast<int>(CRegDWORD(L"Software\\TortoiseGit\\ShortHashLengthForHyperLinkInLogMessage", g_Git.GetShortHASHLength()))));
 	int c = 0;
 	for (; pos < msg.GetLength(); ++pos)
 	{
 		if (msg[pos] >= '0' && msg[pos] <= '9' || msg[pos] >= 'a' && msg[pos] <= 'f')
 			c++;
 		else
-			return c >= shortHashLength && c <= GIT_HASH_SIZE * 2 && msg[pos] != '@';
+			return c >= shortHashLength && c <= static_cast<int>(tgit::invarients::GitFormatHolder::GitHashSize()) * 2 && msg[pos] != '@';
 	}
-	return c >= shortHashLength && c <= GIT_HASH_SIZE * 2;
+	return c >= shortHashLength && c <= static_cast<int>(tgit::invarients::GitFormatHolder::GitHashSize()) * 2;
 }
 
 std::vector<CHARRANGE> FindGitHashPositions(const CString& msg, int offset)
@@ -1098,9 +1098,9 @@ void CLogDlg::FillPatchView(bool onlySetTimer)
 		const int diffContext = g_Git.GetConfigValueInt32(L"diff.context", -1);
 		CStringA outA;
 		CString rev1 = pLogEntry->m_CommitHash.IsEmpty() ? CString(L"HEAD") : (pLogEntry->m_CommitHash.ToString() + L"~1");
-		CString rev2 = pLogEntry->m_CommitHash.ToString();
+		CString rev2 = (pLogEntry->m_CommitHash.ToString()).c_str();
 		g_Git.GetUnifiedDiff(CTGitPath(), rev1, rev2, outA, false, false, diffContext);
-		out = CUnicodeUtils::GetUnicode(outA);
+		out = CUnicodeUtils::GetUnicode<CString>(outA);
 	}
 	else
 	{
@@ -1232,7 +1232,7 @@ void CLogDlg::GoBackForward(bool select, bool bForward)
 		if (i == static_cast<int>(m_LogList.m_arShownList.size()))
 		{
 			CString msg;
-			msg.Format(IDS_LOG_NOT_VISIBLE, static_cast<LPCWSTR>(gotoHash.ToString()));
+			msg.Format(IDS_LOG_NOT_VISIBLE, (gotoHash.ToString()).c_str());
 			MessageBox(msg, L"TortoiseGit", MB_OK | MB_ICONINFORMATION);
 			return;
 		}
@@ -1404,7 +1404,7 @@ void CLogDlg::OnContextMenu(CWnd* pWnd, CPoint point)
 			return;
 		}
 
-		m_LogList.m_ShowMask &= ~(CGit::LOG_INFO_ALL_BRANCH | CGit::LOG_INFO_BASIC_REFS | CGit::LOG_INFO_LOCAL_BRANCHES);
+		m_LogList.m_ShowMask &= ~(TGitH::LOG_INFO_ALL_BRANCH | TGitH::LOG_INFO_BASIC_REFS | TGitH::LOG_INFO_LOCAL_BRANCHES);
 		m_bAllBranch = BST_UNCHECKED;
 		m_AllBranchType = AllBranchType::None;
 		if (cmd == 2)
@@ -1413,25 +1413,25 @@ void CLogDlg::OnContextMenu(CWnd* pWnd, CPoint point)
 		}
 		else if (cmd == 3)
 		{
-			SetRange(fetchHead.ToString());
+			SetRange(CString((fetchHead.ToString()).c_str()));
 		}
 		else if (cmd == 4)
 		{
 			m_bAllBranch = BST_CHECKED;
 			m_AllBranchType = AllBranchType::AllBranches;
-			m_LogList.m_ShowMask |= CGit::LOG_INFO_ALL_BRANCH;
+			m_LogList.m_ShowMask |= TGitH::LOG_INFO_ALL_BRANCH;
 		}
 		else if (cmd == 5)
 		{
 			m_bAllBranch = BST_INDETERMINATE;
 			m_AllBranchType = AllBranchType::AllBasicRefs;
-			m_LogList.m_ShowMask |= CGit::LOG_INFO_BASIC_REFS;
+			m_LogList.m_ShowMask |= TGitH::LOG_INFO_BASIC_REFS;
 		}
 		else if (cmd == 6)
 		{
 			m_bAllBranch = BST_INDETERMINATE;
 			m_AllBranchType = AllBranchType::AllLocalBranches;
-			m_LogList.m_ShowMask |= CGit::LOG_INFO_LOCAL_BRANCHES;
+			m_LogList.m_ShowMask |= TGitH::LOG_INFO_LOCAL_BRANCHES;
 		}
 		else if (cmd >= offset)
 		{
@@ -1702,8 +1702,8 @@ void CLogDlg::OnPasteGitHash()
 	if (!IsClipboardFormatAvailable(CF_TEXT))
 		return;
 
-	CClipboardHelper clipboardHelper;
-	if (!clipboardHelper.Open(GetSafeHwnd()))
+	const auto clipboard = wil::open_clipboard_retrying(GetSafeHwnd());	// was CClipboardHelper: retries while busy, closes on scope exit
+	if (!clipboard)
 		return;
 
 	HGLOBAL hClipboardData = GetClipboardData(CF_TEXT);
@@ -1725,7 +1725,7 @@ void CLogDlg::OnPasteGitHash()
 void CLogDlg::JumpToGitHash(CString hash)
 {
 	const int prefixLen = hash.GetLength();
-	while (hash.GetLength() < 2 * GIT_HASH_SIZE)
+	while (hash.GetLength() < 2 * static_cast<int>(tgit::invarients::GitFormatHolder::GitHashSize()))
 		hash += L'0';
 	CGitHash prefixHash = CGitHash::FromHexStr(hash);
 	// start searching downwards, because it's unlikely that a hash is a forward reference
@@ -2631,7 +2631,7 @@ void CLogDlg::OnBnClickedJumpUp()
 				found = any_of((*refList).second, [](const auto& ref) { return ref.starts_with(L"refs/tags/"); });
 
 			if (found && jumpType == JumpType_TagFF)
-				found = g_Git.IsFastForward(hashValue.ToString(), data->m_CommitHash.ToString());
+				found = g_Git.IsFastForward(CString((hashValue.ToString()).c_str()), CString((data->m_CommitHash.ToString()).c_str()));
 		}
 		else if (jumpType == JumpType_Branch || jumpType == JumpType_BranchFF)
 		{
@@ -2639,7 +2639,7 @@ void CLogDlg::OnBnClickedJumpUp()
 				found = any_of((*refList).second, [](const auto& ref) { return ref.starts_with(L"refs/heads/") || ref.starts_with(L"refs/remotes/"); });
 
 			if (found && jumpType == JumpType_BranchFF)
-				found = g_Git.IsFastForward(hashValue.ToString(), data->m_CommitHash.ToString());
+				found = g_Git.IsFastForward(CString((hashValue.ToString()).c_str()), CString((data->m_CommitHash.ToString()).c_str()));
 		}
 
 		if (found)
@@ -2733,7 +2733,7 @@ void CLogDlg::OnBnClickedJumpDown()
 				found = any_of((*refList).second, [](const auto& ref) { return ref.starts_with(L"refs/tags/"); });
 
 			if (found && jumpType == JumpType_TagFF)
-				found = g_Git.IsFastForward(data->m_CommitHash.ToString(), hashValue.ToString());
+				found = g_Git.IsFastForward(CString((data->m_CommitHash.ToString()).c_str()), CString((hashValue.ToString()).c_str()));
 		}
 		else if (jumpType == JumpType_Branch || jumpType == JumpType_BranchFF)
 		{
@@ -2741,7 +2741,7 @@ void CLogDlg::OnBnClickedJumpDown()
 				found = any_of((*refList).second, [](const auto& ref) { return ref.starts_with(L"refs/heads/") || ref.starts_with(L"refs/remotes/"); });
 
 			if (found && jumpType == JumpType_BranchFF)
-				found = g_Git.IsFastForward(data->m_CommitHash.ToString(), hashValue.ToString());
+				found = g_Git.IsFastForward(CString((data->m_CommitHash.ToString()).c_str()), CString((hashValue.ToString()).c_str()));
 		}
 
 		if (found)
@@ -2917,7 +2917,7 @@ void CLogDlg::UpdateLogInfoLabel()
 	CString sTemp;
 	sTemp.FormatMessage(IDS_PROC_LOG_STATS,
 		count - start,
-		static_cast<LPCWSTR>(rev2.ToString(g_Git.GetShortHASHLength())), static_cast<LPCWSTR>(rev1.ToString(g_Git.GetShortHASHLength())), selectedrevs, selectedfiles);
+		(rev2.ToString(g_Git.GetShortHASHLength())).c_str(), (rev1.ToString(g_Git.GetShortHASHLength())).c_str(), selectedrevs, selectedfiles);
 
 	if(selectedrevs == 1)
 	{
@@ -3175,7 +3175,7 @@ void CLogDlg::OnBnClickedAllBranch()
 {
 	// m_bAllBranch is not auto-toggled by MFC, we have to handle it manually (in order to prevent the indeterminate state)
 
-	m_LogList.m_ShowMask &=~ (CGit::LOG_INFO_LOCAL_BRANCHES | CGit::LOG_INFO_BASIC_REFS | CGit::LOG_INFO_ALL_BRANCH);
+	m_LogList.m_ShowMask &=~ (TGitH::LOG_INFO_LOCAL_BRANCHES | TGitH::LOG_INFO_BASIC_REFS | TGitH::LOG_INFO_ALL_BRANCH);
 
 	if (m_bAllBranch)
 	{
@@ -3187,7 +3187,7 @@ void CLogDlg::OnBnClickedAllBranch()
 	{
 		m_bAllBranch = BST_CHECKED;
 		m_AllBranchType = AllBranchType::AllBranches;
-		m_LogList.m_ShowMask|=CGit::LOG_INFO_ALL_BRANCH;
+		m_LogList.m_ShowMask|=TGitH::LOG_INFO_ALL_BRANCH;
 		m_ChangedFileListCtrl.m_sDisplayedBranch.Empty();
 	}
 
@@ -3205,18 +3205,18 @@ void CLogDlg::OnBnClickedFollowRenames()
 {
 	if(m_bFollowRenames)
 	{
-		m_LogList.m_ShowMask |= CGit::LOG_INFO_FOLLOW;
-		m_LogList.m_ShowMask &=~ CGit::LOG_INFO_LOCAL_BRANCHES;
-		m_LogList.m_ShowMask &= ~CGit::LOG_INFO_BASIC_REFS;
+		m_LogList.m_ShowMask |= TGitH::LOG_INFO_FOLLOW;
+		m_LogList.m_ShowMask &=~ TGitH::LOG_INFO_LOCAL_BRANCHES;
+		m_LogList.m_ShowMask &= ~TGitH::LOG_INFO_BASIC_REFS;
 		if (m_bAllBranch)
 		{
 			m_bAllBranch = FALSE;
 			m_AllBranchType = AllBranchType::None;
-			m_LogList.m_ShowMask &=~ CGit::LOG_INFO_ALL_BRANCH;
+			m_LogList.m_ShowMask &=~ TGitH::LOG_INFO_ALL_BRANCH;
 		}
 	}
 	else
-		m_LogList.m_ShowMask &= ~CGit::LOG_INFO_FOLLOW;
+		m_LogList.m_ShowMask &= ~TGitH::LOG_INFO_FOLLOW;
 
 	DialogEnableWindow(IDC_LOG_ALLBRANCH, !m_bFollowRenames);
 	DialogEnableWindow(IDC_WHOLE_PROJECT, !m_bFollowRenames && !m_path.IsEmpty());
@@ -3272,7 +3272,7 @@ void CLogDlg::OnBnClickedBrowseRef()
 
 	SetRange(newRef);
 
-	m_LogList.m_ShowMask &= ~(CGit::LOG_INFO_ALL_BRANCH | CGit::LOG_INFO_BASIC_REFS | CGit::LOG_INFO_LOCAL_BRANCHES);
+	m_LogList.m_ShowMask &= ~(TGitH::LOG_INFO_ALL_BRANCH | TGitH::LOG_INFO_BASIC_REFS | TGitH::LOG_INFO_LOCAL_BRANCHES);
 	m_bAllBranch = BST_UNCHECKED;
 	m_AllBranchType = AllBranchType::None;
 	UpdateData(FALSE);
@@ -3286,19 +3286,19 @@ void CLogDlg::ShowStartRef()
 	//Show ref name on top
 	if(!::IsWindow(m_hWnd))
 		return;
-	if (m_LogList.m_ShowMask & (CGit::LOG_INFO_ALL_BRANCH | CGit::LOG_INFO_BASIC_REFS | CGit::LOG_INFO_LOCAL_BRANCHES))
+	if (m_LogList.m_ShowMask & (TGitH::LOG_INFO_ALL_BRANCH | TGitH::LOG_INFO_BASIC_REFS | TGitH::LOG_INFO_LOCAL_BRANCHES))
 	{
-		switch (m_LogList.m_ShowMask & (CGit::LOG_INFO_ALL_BRANCH | CGit::LOG_INFO_BASIC_REFS | CGit::LOG_INFO_LOCAL_BRANCHES))
+		switch (m_LogList.m_ShowMask & (TGitH::LOG_INFO_ALL_BRANCH | TGitH::LOG_INFO_BASIC_REFS | TGitH::LOG_INFO_LOCAL_BRANCHES))
 		{
-		case CGit::LOG_INFO_ALL_BRANCH:
+		case TGitH::LOG_INFO_ALL_BRANCH:
 			m_staticRef.SetWindowText(CString(MAKEINTRESOURCE(IDS_PROC_LOG_ALLBRANCHES)));
 			break;
 
-		case CGit::LOG_INFO_BASIC_REFS:
+		case TGitH::LOG_INFO_BASIC_REFS:
 			m_staticRef.SetWindowText(CString(MAKEINTRESOURCE(IDS_PROC_LOG_BASIC_REFS)));
 			break;
 
-		case CGit::LOG_INFO_LOCAL_BRANCHES:
+		case TGitH::LOG_INFO_LOCAL_BRANCHES:
 			m_staticRef.SetWindowText(CString(MAKEINTRESOURCE(IDS_PROC_LOG_LOCAL_BRANCHES)));
 			break;
 		}
@@ -3319,7 +3319,7 @@ void CLogDlg::ShowStartRef()
 	}
 
 
-	showStartRef = g_Git.StripRefName(showStartRef);
+	showStartRef = TGitH::StripRefName(showStartRef);
 
 	m_staticRef.SetWindowText(showStartRef);
 	CWnd *pWnd = GetDlgItem(IDC_STATIC_REF);
@@ -3383,9 +3383,9 @@ void CLogDlg::OnBnClickedWalkBehaviour()
 		case WALKBEHAVIOUR_FULLHISTORY:
 			m_bFullHistory = !m_bFullHistory;
 			if (m_bFullHistory)
-				m_LogList.m_ShowMask |= CGit::LOG_INFO_FULL_HISTORY;
+				m_LogList.m_ShowMask |= TGitH::LOG_INFO_FULL_HISTORY;
 			else
-				m_LogList.m_ShowMask &= ~CGit::LOG_INFO_FULL_HISTORY;
+				m_LogList.m_ShowMask &= ~TGitH::LOG_INFO_FULL_HISTORY;
 			OnRefresh();
 			break;
 		case WALKBEHAVIOUR_FOLLOWRENAMES:
@@ -3519,14 +3519,14 @@ void CLogDlg::OnBnClickedView()
 void CLogDlg::OnBnClickedFirstParent()
 {
 	if(this->m_bFirstParent)
-		m_LogList.m_ShowMask|=CGit::LOG_INFO_FIRST_PARENT;
+		m_LogList.m_ShowMask|=TGitH::LOG_INFO_FIRST_PARENT;
 	else
-		m_LogList.m_ShowMask&=~CGit::LOG_INFO_FIRST_PARENT;
+		m_LogList.m_ShowMask&=~TGitH::LOG_INFO_FIRST_PARENT;
 
 	if (m_bNoMerges)
-		m_LogList.m_ShowMask |= CGit::LOG_INFO_NO_MERGE;
+		m_LogList.m_ShowMask |= TGitH::LOG_INFO_NO_MERGE;
 	else
-		m_LogList.m_ShowMask &= ~CGit::LOG_INFO_NO_MERGE;
+		m_LogList.m_ShowMask &= ~TGitH::LOG_INFO_NO_MERGE;
 
 	OnRefresh();
 

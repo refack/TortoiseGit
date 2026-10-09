@@ -21,27 +21,27 @@
 #include "stdafx.h"
 #include "TortoiseProc.h"
 #include "SysImageList.h"
-#include "CmdLineParser.h"
+import CmdLineParser;
 #include "Hooks.h"
 #include "AppUtils.h"
-#include "PathUtils.h"
-#include "StringUtils.h"
-#include "UnicodeUtils.h"
+import PathUtils;
+import StringUtils;
+import wstr;
 #include "MessageBox.h"
-#include "SmartHandle.h"
+import RIAA;
 #include "Commands\Command.h"
 #include <version.h>
 #include "JumpListHelpers.h"
 #include "ConfigureGitExe.h"
-#include "Libraries.h"
-#include "TaskbarUUID.h"
+import Libraries;
+import TaskbarUUID;
 #include "ProjectProperties.h"
 #include "HistoryCombo.h"
 #include <random>
 #include "WindowsCredentialsStore.h"
 #include "AnimationManager.h"
 #include "VersioncheckParser.h"
-#include "TempFile.h"
+import TempFile;
 #include "Hash.h"
 
 import git_h;
@@ -157,7 +157,7 @@ BOOL CTortoiseProcApp::InitInstance()
 #if PREVIEW
 	CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": Preview: %s\n", _T(PREVIEW_INFO));
 #else
-	if (CString hotfix = (CPathUtils::GetAppDirectory() + L"hotfix.ini").c_str(); PathFileExists(hotfix))
+	if (CString hotfix = (PathUtils::GetAppDirectory() + L"hotfix.ini").c_str(); PathFileExists(hotfix))
 	{
 		CString err;
 		CVersioncheckParser versionparser;
@@ -229,13 +229,13 @@ BOOL CTortoiseProcApp::InitInstance()
 		}
 		return FALSE;
 	}
-	CGit::ms_LastMsysGitVersion = 0; // HACK to re-check Git version in next method call to CheckGitVersion, only needed becasue APPDATA is a Git config dir since 2.46
+	TGitH::ms_LastMsysGitVersion = 0; // HACK to re-check Git version in next method call to CheckGitVersion, only needed becasue APPDATA is a Git config dir since 2.46
 	if (!CConfigureGitExe::CheckGitVersion(hWndExplorer))
 		return FALSE;
 
 	{
 		CString versionString;
-		versionString.Format(L"%X", CGit::ms_LastMsysGitVersion);
+		versionString.Format(L"%X", TGitH::ms_LastMsysGitVersion);
 		CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": msysGitVersion: %s\n", static_cast<LPCWSTR>(versionString));
 	}
 
@@ -251,7 +251,7 @@ BOOL CTortoiseProcApp::InitInstance()
 		g_sGroupingUUID = parser.GetVal(L"groupuuid");
 	if (parser.HasKey(L"pathfile"))
 	{
-		CString sPathfileArgument = CPathUtils::GetLongPathname(parser.GetValStr(L"pathfile")).c_str();
+		CString sPathfileArgument = PathUtils::GetLongPathname(parser.GetValStr(L"pathfile")).c_str();
 
 		cmdLinePath.SetFromUnknown(sPathfileArgument.GetString());
 		if (pathList.LoadFromFile(cmdLinePath)==false)
@@ -314,7 +314,7 @@ BOOL CTortoiseProcApp::InitInstance()
 				CString wcroot;
 				if (GitAdminDir::HasAdminDir(g_Git.m_CurrentDir, true, &wcroot))
 				{
-					CStringA wcRootA{ CUnicodeUtils::GetUTF8(wcroot.MakeLower()) };
+					CStringA wcRootA{ CUnicodeUtils::GetUTF8<CStringA>(wcroot.MakeLower()) };
 					g_sGroupingUUID = GetHashText(wcRootA.GetBuffer(), wcRootA.GetLength(), HashType::HashSha1).c_str();
 
 					ProjectProperties pp;
@@ -338,14 +338,14 @@ BOOL CTortoiseProcApp::InitInstance()
 		try
 		{
 			// requires CWD to be set
-			CGit::m_LogEncode = CAppUtils::GetLogOutputEncode();
+			TGitH::m_LogEncode = CAppUtils::GetLogOutputEncode();
 
 			// make sure all config files are read in order to check that none contains an error
 			g_Git.GetConfigValue(L"doesnot.exist");
 		}
 		catch (const char* msg)
 		{
-			err = CUnicodeUtils::GetUnicode(msg);
+			err = CUnicodeUtils::Convert2Unicode<CString>(msg);
 		}
 
 		if (!err.IsEmpty())
@@ -534,14 +534,14 @@ void CTortoiseProcApp::CheckUpgrade() const
 			CRegStdDWORD(L"Software\\TortoiseGit\\LogOrderBy") = 0;
 
 		// smoothly migrate broken msysgit path settings
-		CString oldmsysGitSetting = CRegString(REG_MSYSGIT_PATH);
+		CString oldmsysGitSetting = CRegString(TGitRegPath(REG_MSYSGIT_PATH));
 		oldmsysGitSetting.TrimRight(L'\\');
 		if (oldmsysGitSetting.GetLength() > 4 && StringUtils::EndsWith(oldmsysGitSetting, L"\\cmd"))
 		{
 			CString newPath = oldmsysGitSetting.Left(oldmsysGitSetting.GetLength() - 3) + L"bin";
 			if (PathFileExists(newPath + L"\\git.exe"))
 			{
-				CRegString(REG_MSYSGIT_PATH) = newPath;
+				CRegString(TGitRegPath(REG_MSYSGIT_PATH)) = newPath;
 				g_Git.m_bInitialized = FALSE;
 				g_Git.CheckMsysGitDir();
 			}

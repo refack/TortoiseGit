@@ -1,4 +1,4 @@
-// TortoiseGit - a Windows shell extension for easy version control
+﻿// TortoiseGit - a Windows shell extension for easy version control
 
 // Copyright (C) 2008 - TortoiseSVN
 
@@ -17,9 +17,10 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 #pragma once
+#include <TortoiseProc/resource.h>	// restored: macros do not cross an import
 #include "resource.h"
 #include "SettingsPropPage.h"
-#include "BugTraqAssociations.h"
+import BugTraqProvider;
 
 /**
  * \ingroup TortoiseProc

@@ -18,7 +18,7 @@
 //
 #pragma once
 #include "SettingsPropPage.h"
-#include <Utils/registry.h>
+import Registry;
 #include <TortoiseUDiff/UDiffColors.h>
 
 /**

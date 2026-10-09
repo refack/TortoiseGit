@@ -41,7 +41,7 @@ bool PrevDiffCommand::Execute()
 	CLogDataVector revs;
 	CLogCache cache;
 	revs.m_pLogCache = &cache;
-	revs.ParserFromLog(&cmdLinePath, 2, CGit::LOG_INFO_ONLY_HASH);
+	revs.ParserFromLog(&cmdLinePath, 2, TGitH::LOG_INFO_ONLY_HASH);
 
 	if (revs.size() != 2)
 	{
@@ -49,5 +49,5 @@ bool PrevDiffCommand::Execute()
 		return false;
 	}
 
-	return !!CGitDiff::Diff(GetExplorerHWND(), &cmdLinePath, &cmdLinePath, GitRev::GetWorkingCopyRef(), revs.GetGitRevAt(1).m_CommitHash.ToString(), false, bUnified, 0, bAlternativeTool);
+	return !!CGitDiff::Diff(GetExplorerHWND(), &cmdLinePath, &cmdLinePath, GitRev::GetWorkingCopyRef(), CString((revs.GetGitRevAt(1).m_CommitHash.ToString()).c_str()), false, bUnified, 0, bAlternativeTool);
 }

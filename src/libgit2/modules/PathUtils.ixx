@@ -1,4 +1,5 @@
 ﻿module;
+#include <tgit_cstring.h>	// first: decides which CString this compile speaks
 #include <windows.h>
 #include <strsafe.h>
 // #include "sanity.h"
@@ -152,7 +153,12 @@ bool MakeSureDirectoryPathExists(const LPCWSTR path)
 {
 	auto internalpathbuf = std::wstring{ path };
 	ConvertToBackslash(internalpathbuf);
-	return std::filesystem::create_directory(internalpathbuf);
+	// The whole chain, and "does it exist now" - the name's contract. It was
+	// create_directory: one level only, the throwing overload (a missing parent
+	// aborted the process), and false for a directory that already existed.
+	std::error_code ec;
+	std::filesystem::create_directories(internalpathbuf, ec);
+	return std::filesystem::is_directory(internalpathbuf, ec);
 }
 
 /**

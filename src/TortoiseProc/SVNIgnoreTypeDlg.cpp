@@ -21,7 +21,7 @@
 #include "TortoiseProc.h"
 #include "SVNIgnoreTypeDlg.h"
 #include "AppUtils.h"
-#include "Git.h"
+import git_h;
 
 // CSVNIgnoreTypeDlg dialog
 

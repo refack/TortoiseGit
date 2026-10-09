@@ -20,9 +20,9 @@
 #include "TortoiseProc.h"
 #include "FirstStartWizard.h"
 #include "FirstStartWizardAuthentication.h"
-#include "Git.h"
+import git_h;
 #include "Settings/SettingGitCredential.h"
-#include "PathUtils.h"
+import PathUtils;
 #include "Theme.h"
 
 #define WM_SETPAGEFOCUS WM_APP+2
@@ -90,7 +90,7 @@ BOOL CFirstStartWizardAuthentication::OnWizardFinish()
 {
 	UpdateData();
 
-	CString sshclient = CGit::GetConfiguredSshClient();
+	CString sshclient = (CGit::GetConfiguredSshClient()).c_str();
 	if (m_ctrlSSHClient.GetCurSel() == 0 && !IsTool(L"ssh", sshclient))
 		CRegString(L"Software\\TortoiseGit\\SSH") = L"ssh.exe";
 
@@ -102,22 +102,22 @@ BOOL CFirstStartWizardAuthentication::OnWizardFinish()
 			err = git_config_add_file_ondisk(config, CGit::GetGitPathStringA(g_Git.GetGitGlobalConfig()), GIT_CONFIG_LEVEL_GLOBAL, nullptr, FALSE);
 		if (err)
 		{
-			MessageBox(g_Git.GetLibGit2LastErr(), L"TortoiseGit", MB_ICONEXCLAMATION);
+			MessageBox(TGitH::GetLibGit2LastErr(), L"TortoiseGit", MB_ICONEXCLAMATION);
 			return FALSE;
 		}
 
-		if (m_ctrlSimpleCredential.GetCurSel() == 0 && m_availableHelpers.at(0) == tgit::wstr::View(CString(MAKEINTRESOURCE(IDS_NONE))))
+		if (m_ctrlSimpleCredential.GetCurSel() == 0 && m_availableHelpers.at(0) == tgit::zstr::StringView(CString(MAKEINTRESOURCE(IDS_NONE))))
 		{
 			int ret = git_config_delete_entry(config, "credential.helper");
 			if (ret != 0 && ret != GIT_ENOTFOUND)
 			{
-				MessageBox(g_Git.GetLibGit2LastErr(), L"TortoiseGit", MB_ICONEXCLAMATION);
+				MessageBox(TGitH::GetLibGit2LastErr(), L"TortoiseGit", MB_ICONEXCLAMATION);
 				return FALSE;
 			}
 		}
 		else if (git_config_set_string(config, "credential.helper", CUnicodeUtils::StdGetUTF8(m_availableHelpers.at(m_ctrlSimpleCredential.GetCurSel())).c_str()))
 		{
-			MessageBox(g_Git.GetLibGit2LastErr(), L"TortoiseGit", MB_ICONEXCLAMATION);
+			MessageBox(TGitH::GetLibGit2LastErr(), L"TortoiseGit", MB_ICONEXCLAMATION);
 			return FALSE;
 		}
 	}
@@ -143,14 +143,14 @@ BOOL CFirstStartWizardAuthentication::OnInitDialog()
 
 	CAutoConfig config(true);
 	if (git_config_add_file_ondisk(config, CGit::GetGitPathStringA(g_Git.GetGitGlobalConfig()), GIT_CONFIG_LEVEL_GLOBAL, nullptr, FALSE))
-		MessageBox(g_Git.GetLibGit2LastErr(), L"TortoiseGit", MB_ICONEXCLAMATION);
+		MessageBox(TGitH::GetLibGit2LastErr(), L"TortoiseGit", MB_ICONEXCLAMATION);
 	else
 	{
 		if (git_config_add_file_ondisk(config, CGit::GetGitPathStringA(g_Git.GetGitGlobalXDGConfig()), GIT_CONFIG_LEVEL_XDG, nullptr, FALSE))
-			MessageBox(g_Git.GetLibGit2LastErr(), L"TortoiseGit", MB_ICONEXCLAMATION);
+			MessageBox(TGitH::GetLibGit2LastErr(), L"TortoiseGit", MB_ICONEXCLAMATION);
 	}
 	if (git_config_add_file_ondisk(config, CGit::GetGitPathStringA(g_Git.GetGitSystemConfig()), GIT_CONFIG_LEVEL_SYSTEM, nullptr, FALSE))
-		MessageBox(g_Git.GetLibGit2LastErr(), L"TortoiseGit", MB_ICONEXCLAMATION);
+		MessageBox(TGitH::GetLibGit2LastErr(), L"TortoiseGit", MB_ICONEXCLAMATION);
 
 	STRING_VECTOR defaultList;
 	git_config_foreach_match(config, "credential\\.helper", CSettingGitCredential::GetCredentialDefaultUrlCallback, &defaultList);
@@ -184,7 +184,7 @@ BOOL CFirstStartWizardAuthentication::OnInitDialog()
 
 	AdjustControlSize(IDC_DONTSAVE);
 
-	CString sshclient = CGit::GetConfiguredSshClient();
+	CString sshclient = (CGit::GetConfiguredSshClient()).c_str();
 
 	int idx = m_ctrlSSHClient.AddString(L"OpenSSH");
 	if (sshclient.IsEmpty() || IsTool(L"ssh", sshclient))

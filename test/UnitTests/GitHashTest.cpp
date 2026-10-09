@@ -18,14 +18,15 @@
 //
 
 #include "stdafx.h"
-#include "GitHash.h"
+import GitHash;
+import invarients;
 
 TEST(CGitHash, Initial)
 {
 	CGitHash empty;
 	EXPECT_TRUE(empty.IsEmpty());
-	EXPECT_STREQ(L"0000000000000000000000000000000000000000", GIT_REV_ZERO);
-	EXPECT_STREQ(GIT_REV_ZERO, empty.ToString());
+	EXPECT_STREQ(L"0000000000000000000000000000000000000000", tgit::invarients::ZeroRevSV().data());
+	EXPECT_STREQ(tgit::invarients::ZeroRevSV().data(), empty.ToString());
 	EXPECT_TRUE(empty == empty);
 	EXPECT_FALSE(empty != empty);
 
@@ -45,7 +46,7 @@ TEST(CGitHash, Initial)
 	EXPECT_FALSE(hash2 == empty);
 	EXPECT_TRUE(hash2 != empty);
 	hash2.Empty();
-	EXPECT_STREQ(GIT_REV_ZERO, hash2.ToString());
+	EXPECT_STREQ(tgit::invarients::ZeroRevSV().data(), hash2.ToString());
 	EXPECT_TRUE(hash2 == empty);
 	EXPECT_FALSE(hash2 != empty);
 	EXPECT_TRUE(hash2.IsEmpty());
@@ -112,7 +113,7 @@ TEST(CGitHash, Initial)
 	EXPECT_FALSE(hash17.IsEmpty());
 
 	ok = false;
-	CGitHash hash18 = CGitHash::FromHexStr(GIT_REV_ZERO, &ok);
+	CGitHash hash18 = CGitHash::FromHexStr(tgit::invarients::ZeroRevSV().data(), &ok);
 	EXPECT_TRUE(ok);
 	EXPECT_TRUE(hash18.IsEmpty());
 }
@@ -168,8 +169,8 @@ TEST(CGitHash, MatchesPrefix)
 TEST(CGitHash, stdhash)
 {
 	// we don't actually care for the exact numbers, these are just checked here to make sure we get what we intended on x86 and x86_64
-	EXPECT_EQ(std::hash<CGitHash>()(CGitHash::FromHexStr(GIT_REV_ZERO)), size_t(0));
-	EXPECT_EQ(std::hash<CGitHash>()(CGitHash::FromHexStr(L"ffffffffffffffff000000000000000000000000")), SIZE_T_MAX);
+	EXPECT_EQ(std::hash<CGitHash>()(CGitHash::FromHexStr(tgit::invarients::ZeroRevSV().data())), size_t(0));
+	EXPECT_EQ(std::hash<CGitHash>()(CGitHash::FromHexStr(L"ffffffffffffffff000000000000000000000000")), SIZE_MAX);
 
 	EXPECT_EQ(std::hash<CGitHash>()(CGitHash::FromHexStr(L"1000000000000000000000000000000000000000")), size_t(16));
 	EXPECT_EQ(std::hash<CGitHash>()(CGitHash::FromHexStr(L"0100000000000000000000000000000000000000")), size_t(1));

@@ -1,4 +1,4 @@
-// TortoiseGit - a Windows shell extension for easy version control
+﻿// TortoiseGit - a Windows shell extension for easy version control
 
 // Copyright (C) 2007-2008 - TortoiseSVN
 // Copyright (C) 2008-2019, 2023, 2025 - TortoiseGit
@@ -21,11 +21,11 @@
 #include "stdafx.h"
 #include "DiffCommand.h"
 #include "MessageBox.h"
-#include "PathUtils.h"
+import PathUtils;
 #include "AppUtils.h"
 #include "ChangedDlg.h"
 #include "GitDiff.h"
-#include "UnicodeUtils.h"
+import wstr;
 
 bool DiffCommand::Execute()
 {
@@ -33,7 +33,7 @@ bool DiffCommand::Execute()
 	// GetValStr, not std::wstring(GetVal(..)): /path2 is optional, GetVal returns
 	// nullptr when it is absent, and constructing a std::wstring from that is
 	// undefined behaviour rather than the empty string CString used to give.
-	CString path2 = CPathUtils::GetLongPathname(parser.GetValStr(L"path2")).c_str();
+	CString path2 = PathUtils::GetLongPathname(parser.GetValStr(L"path2")).c_str();
 	bool bAlternativeTool = !!parser.HasKey(L"alternative");
 //	bool bBlame = !!parser.HasKey(L"blame");
 	if (path2.IsEmpty())
@@ -69,7 +69,7 @@ bool DiffCommand::Execute()
 				unsigned int status_flags = 0;
 				CAutoRepository repo(g_Git.GetGitRepository());
 				if (repo)
-					git_status_file(&status_flags, repo, CUnicodeUtils::GetUTF8(cmdLinePath.GetWinPathString().c_str()));
+					git_status_file(&status_flags, repo, CUnicodeUtils::Convert2Multibyte<CStringA>(cmdLinePath.GetWinPathString().c_str()));
 				if (status_flags == GIT_STATUS_INDEX_NEW)
 				{
 					if (!g_Git.IsInitRepos())
@@ -78,7 +78,7 @@ bool DiffCommand::Execute()
 						// %% was a literal percent in the format string; in std::format
 						// the percent is ordinary and the placeholder is {}.
 						BYTE_VECTOR cmdout;
-						g_Git.Run({ L"git.exe", L"diff-index", L"--raw", L"HEAD", std::format(L"-M{}%", CGit::ms_iSimilarityIndexThreshold), std::format(L"-C{}%", CGit::ms_iSimilarityIndexThreshold), L"-z", L"--" }, &cmdout);
+						g_Git.Run({ L"git.exe", L"diff-index", L"--raw", L"HEAD", std::format(L"-M{}%", TGitH::ms_iSimilarityIndexThreshold), std::format(L"-C{}%", TGitH::ms_iSimilarityIndexThreshold), L"-z", L"--" }, &cmdout);
 						CTGitPathList changedFiles;
 						changedFiles.ParserFromLog(cmdout);
 						for (int i = 0; i < changedFiles.GetCount(); ++i)

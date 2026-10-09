@@ -16,12 +16,13 @@
 *	$History:$
 *
 *********************************************************************/
+#include "../stdafx.h"
 
 
 
-#include "Utils/TreePropSheet.h"
-#include "Utils/PropPageFrameDefault.h"
-#include "Utils/MiscUI/HighColorTab.hpp"
+#include "TreePropSheet/TreePropSheet.h"
+#include "TreePropSheet/PropPageFrameDefault.h"
+#include "MiscUI/HighColorTab.hpp"
 #include "Utils/DPIAware.h"
 
 #ifdef _DEBUG

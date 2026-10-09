@@ -18,8 +18,8 @@
 //
 #pragma once
 
-#include "Utils/SmartHandle.h"
-#include "Utils/JumpListHelpers.h"
+import RIAA;
+#include "JumpListHelpers.h"
 #include "propvarutil.h"
 #include "propsys.h"
 #include <propkey.h>

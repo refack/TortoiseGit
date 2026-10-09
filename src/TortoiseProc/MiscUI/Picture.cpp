@@ -16,12 +16,13 @@
 // You should have received a copy of the GNU General Public License
 // along with this program; if not, write to the Free Software Foundation,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+#include "../stdafx.h"
 
 
 #include <olectl.h>
 #include <Shlwapi.h>
 #include <algorithm>
-#include "Utils/Picture.h"
+#include "MiscUI/Picture.h"
 #include <Wincodec.h>
 #include <d2d1.h>
 #include <d2d1_3.h>

@@ -1,4 +1,4 @@
-// TortoiseGit - a Windows shell extension for easy version control
+﻿// TortoiseGit - a Windows shell extension for easy version control
 
 // Copyright (C) 2009, 2011-2016, 2018-2019, 2021, 2023, 2026 - TortoiseGit
 
@@ -18,33 +18,33 @@
 //
 #include "stdafx.h"
 #include "CatCommand.h"
-#include "UnicodeUtils.h"
-#include "PathUtils.h"
-#include "Git.h"
+import wstr;
+import PathUtils;
+import git_h;
 #include "MessageBox.h"
-#include "SmartHandle.h"
-#include "StringUtils.h"
+import RIAA;
+import StringUtils;
 
 bool CatCommand::Execute()
 {
-	CString savepath = CPathUtils::GetLongPathname(parser.GetValStr(L"savepath")).c_str();
+	CString savepath = PathUtils::GetLongPathname(parser.GetValStr(L"savepath")).c_str();
 	CString revision = parser.GetVal(L"revision");
 
-	if (g_Git.UsingLibGit2(CGit::GIT_CMD_GETONEFILE))
+	if (g_Git.UsingLibGit2(TGitH::GIT_CMD_GETONEFILE))
 	{
 		CAutoRepository repo(g_Git.GetGitRepository());
 		if (!repo)
 		{
 			::DeleteFile(savepath);
-			MessageBox(GetExplorerHWND(), g_Git.GetLibGit2LastErr(L"Could not open repository."), L"TortoiseGit", MB_ICONERROR);
+			MessageBox(GetExplorerHWND(), TGitH::GetLibGit2LastErr(L"Could not open repository."), L"TortoiseGit", MB_ICONERROR);
 			return false;
 		}
 
 		CAutoObject obj;
-		if (git_revparse_single(obj.GetPointer(), repo, CUnicodeUtils::GetUTF8(revision)))
+		if (git_revparse_single(obj.GetPointer(), repo, CUnicodeUtils::GetUTF8<CStringA>(revision)))
 		{
 			::DeleteFile(savepath);
-			MessageBox(GetExplorerHWND(), g_Git.GetLibGit2LastErr(L"Could not parse revision."), L"TortoiseGit", MB_ICONERROR);
+			MessageBox(GetExplorerHWND(), TGitH::GetLibGit2LastErr(L"Could not parse revision."), L"TortoiseGit", MB_ICONERROR);
 			return false;
 		}
 
@@ -61,16 +61,16 @@ bool CatCommand::Execute()
 			CAutoBuf buf;
 			git_blob_filter_options opts = GIT_BLOB_FILTER_OPTIONS_INIT;
 			opts.flags &= ~static_cast<uint32_t>(GIT_BLOB_FILTER_CHECK_FOR_BINARY);
-			if (git_blob_filter(buf, reinterpret_cast<git_blob*>(static_cast<git_object*>(obj)), CUnicodeUtils::GetUTF8(cmdLinePath.GetGitPathString().c_str()), &opts))
+			if (git_blob_filter(buf, reinterpret_cast<git_blob*>(static_cast<git_object*>(obj)), CUnicodeUtils::Convert2Multibyte<CStringA>(cmdLinePath.GetGitPathString().c_str()), &opts))
 			{
 				::DeleteFile(savepath);
-				MessageBox(GetExplorerHWND(), g_Git.GetLibGit2LastErr(L"Could not get filtered content."), L"TortoiseGit", MB_ICONERROR);
+				MessageBox(GetExplorerHWND(), TGitH::GetLibGit2LastErr(L"Could not get filtered content."), L"TortoiseGit", MB_ICONERROR);
 				return false;
 			}
 			if (fwrite(buf->ptr, sizeof(char), buf->size, file) != buf->size)
 			{
 				::DeleteFile(savepath);
-				CString err { static_cast<LPCWSTR>(CFormatMessageWrapper()) };
+				CString err { (CFormatMessageWrapper()).c_str() };
 				CMessageBox::Show(GetExplorerHWND(), L"Could not write to file: " + err, L"TortoiseGit", MB_ICONERROR);
 				return false;
 			}
@@ -79,7 +79,7 @@ bool CatCommand::Execute()
 
 		if (g_Git.GetOneFile(revision, cmdLinePath, savepath))
 		{
-			MessageBox(GetExplorerHWND(), g_Git.GetGitLastErr(L"Could get file.", CGit::GIT_CMD_GETONEFILE), L"TortoiseGit", MB_ICONERROR);
+			MessageBox(GetExplorerHWND(), g_Git.GetGitLastErr(L"Could get file.", TGitH::GIT_CMD_GETONEFILE), L"TortoiseGit", MB_ICONERROR);
 			return false;
 		}
 		return true;

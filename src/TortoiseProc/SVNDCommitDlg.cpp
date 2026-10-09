@@ -21,7 +21,7 @@
 #include "TortoiseProc.h"
 #include "SVNDCommitDlg.h"
 #include "AppUtils.h"
-#include "Git.h"
+import git_h;
 
 IMPLEMENT_DYNAMIC(CSVNDCommitDlg, CStandAloneDialog)
 

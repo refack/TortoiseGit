@@ -19,10 +19,10 @@
 //
 
 #pragma once
-#include <Utils/MiscUI/StandAloneDlg.h>
-#include <Utils/MiscUI/Watereffect.h>
-#include <Utils/MiscUI/Dib.h>
-#include <Utils/MiscUI/HyperLink.h>
+#include "StandAloneDlg.h"
+#include "MiscUI/WaterEffect.h"
+#include "DIB.h"
+#include "HyperLink.h"
 
 #define ID_EFFECTTIMER 1111
 #define ID_DROPTIMER 1112

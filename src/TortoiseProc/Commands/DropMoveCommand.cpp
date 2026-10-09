@@ -22,9 +22,9 @@
 
 #include "SysProgressDlg.h"
 #include "MessageBox.h"
-#include "Git.h"
+import git_h;
 #include "RenameDlg.h"
-#include "ShellUpdater.h"
+import CShellUpdater;
 
 bool DropMoveCommand::Execute()
 {
@@ -59,7 +59,7 @@ bool DropMoveCommand::Execute()
 		renDlg.SetInputValidator([&](const int /*nID*/, const CString& input) -> CString
 		{
 			if (PathFileExists(g_Git.CombinePath(droppath + L'\\' + input)))
-				return CString(static_cast<LPCWSTR>(CFormatMessageWrapper(ERROR_FILE_EXISTS)));
+				return CString((CFormatMessageWrapper(ERROR_FILE_EXISTS)).c_str());
 
 			return{};
 		});
@@ -94,7 +94,7 @@ bool DropMoveCommand::Execute()
 			dlg.SetInputValidator([&](const int /*nID*/, const CString& input) -> CString
 			{
 				if (PathFileExists(g_Git.CombinePath(droppath + L'\\' + input)))
-					return CString(static_cast<LPCWSTR>(CFormatMessageWrapper(ERROR_FILE_EXISTS)));
+					return CString((CFormatMessageWrapper(ERROR_FILE_EXISTS)).c_str());
 
 				return{};
 			});

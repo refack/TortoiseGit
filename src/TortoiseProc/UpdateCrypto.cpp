@@ -27,8 +27,8 @@
 #include <atlenc.h>
 #define NEED_SIGNING_KEY
 #include <version.h>
-#include "TempFile.h"
-#include "SmartHandle.h"
+import TempFile;
+import RIAA;
 
 constexpr auto packet_type(uint8_t c) { return (c & 0x3c) >> 2; } /* 0x3C = 00111100 */
 constexpr auto packet_header_len(uint8_t c) { return (c & 0x03) + 1; } /* number of bytes in a packet header */
@@ -942,7 +942,7 @@ static public_key_t *download_key(const uint8_t *p_longid, const uint8_t *p_sign
 	CString url;
 	url.Format(L"http://download.tortoisegit.org/keys/%.2X%.2X%.2X%.2X%.2X%.2X%.2X%.2X.asc", p_longid[0], p_longid[1], p_longid[2], p_longid[3], p_longid[4], p_longid[5], p_longid[6], p_longid[7]);
 
-	CString tempfile = CTempFiles::Instance().GetTempFilePath(true).GetWinPathString().c_str();
+	CString tempfile = TempFiles::GetTempFilePath(true).GetWinPathString().c_str();
 	if (updateDownloader->DownloadFile(url, tempfile, false))
 		return nullptr;
 

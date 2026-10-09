@@ -21,7 +21,7 @@
 
 #include "stdafx.h"
 #include "TortoiseProc.h"
-#include "Git.h"
+import git_h;
 #include "CloneDlg.h"
 #include "BrowseFolder.h"
 #include "MessageBox.h"
@@ -264,7 +264,7 @@ void CCloneDlg::OnBnClickedCloneBrowseUrl()
 			return;
 		}
 		if (CAppUtils::ExploreTo(GetSafeHwnd(), str) && reinterpret_cast<INT_PTR>(ShellExecute(nullptr, L"open", str, nullptr, nullptr, SW_SHOW)) <= 32)
-			MessageBox(CFormatMessageWrapper(), L"TortoiseGit", MB_ICONERROR);
+			MessageBox((CFormatMessageWrapper()).c_str(), L"TortoiseGit", MB_ICONERROR);
 		return;
 	}
 

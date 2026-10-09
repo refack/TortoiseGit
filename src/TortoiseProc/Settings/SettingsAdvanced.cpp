@@ -21,7 +21,7 @@
 #include "stdafx.h"
 #include "TortoiseProc.h"
 #include "SettingsAdvanced.h"
-#include "Git.h"
+import git_h;
 
 IMPLEMENT_DYNAMIC(CSettingsAdvanced, ISettingsPropPage)
 

@@ -7,10 +7,11 @@
 
 // ACEdit.cpp: Implementierungsdatei
 //
+#include "stdafx.h"
 
 
-#include "Utils/ACEdit.h"
-#include "Utils/StringUtils.h"
+#include "ACEdit.h"
+import StringUtils;
 
 #ifdef _DEBUG
 #define new DEBUG_NEW

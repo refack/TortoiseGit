@@ -21,7 +21,7 @@
 #include "SubmoduleCommand.h"
 
 #include "AppUtils.h"
-#include "Git.h"
+import git_h;
 #include "MassiveGitTask.h"
 #include "MessageBox.h"
 #include "ProgressDlg.h"
@@ -70,7 +70,7 @@ bool SubmoduleUpdateCommand::Execute()
 			bkpath = bkpath.Left(start);
 	}
 
-	CString super = GitAdminDir::GetSuperProjectRoot(bkpath);
+	CString super = (GitAdminDir::GetSuperProjectRoot(tgit::zstr::StringView(bkpath))).c_str();
 	if (super.IsEmpty())
 	{
 		CMessageBox::Show(GetExplorerHWND(), IDS_ERR_NOTFOUND_SUPER_PRJECT, IDS_APPNAME, MB_OK | MB_ICONERROR);
@@ -169,7 +169,7 @@ bool SubmoduleSyncCommand::Execute()
 			bkpath=bkpath.Left(start);
 	}
 
-	CString super = GitAdminDir::GetSuperProjectRoot(bkpath);
+	CString super = (GitAdminDir::GetSuperProjectRoot(tgit::zstr::StringView(bkpath))).c_str();
 	if(super.IsEmpty())
 	{
 		CMessageBox::Show(GetExplorerHWND(), IDS_ERR_NOTFOUND_SUPER_PRJECT, IDS_APPNAME, MB_OK | MB_ICONERROR);

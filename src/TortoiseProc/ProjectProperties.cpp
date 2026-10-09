@@ -20,8 +20,8 @@
 #include "stdafx.h"
 #include "ProjectProperties.h"
 #include "CommonAppUtils.h"
-#include "Git.h"
-#include "TempFile.h"
+import git_h;
+import TempFile;
 #include <WinInet.h>
 #include "git2/sys/errors.h"
 
@@ -49,7 +49,7 @@ int ProjectProperties::ReadProps()
 		git_config_add_file_ondisk(gitconfig, CGit::GetGitPathStringA(g_Git.CombinePath(L".tgitconfig")), GIT_CONFIG_LEVEL_LOCAL, nullptr, FALSE); // this needs to have the second highest priority
 	else
 	{
-		CString tmpFile = CTempFiles::Instance().GetTempFilePath(true).GetWinPathString().c_str();
+		CString tmpFile = TempFiles::GetTempFilePath(true).GetWinPathString().c_str();
 		CTGitPath path(L".tgitconfig");
 		if (g_Git.GetOneFile(L"HEAD", path, tmpFile) == 0)
 			git_config_add_file_ondisk(gitconfig, CGit::GetGitPathStringA(tmpFile), GIT_CONFIG_LEVEL_LOCAL, nullptr, FALSE); // this needs to have the second highest priority
@@ -232,13 +232,13 @@ void ProjectProperties::FetchHookString(CAutoConfig& gitconfig, const CString& s
 		return;
 	sHook += sVal + L'\n';
 	bool boolval = false;
-	gitconfig.GetBool(sBase + L"wait", boolval);
+	gitconfig.GetBool(tgit::zstr::StringView(sBase + L"wait"), boolval);
 	if (boolval)
 		sHook += L"true\n";
 	else
 		sHook += L"false\n";
 	boolval = false;
-	gitconfig.GetBool(sBase + L"show", boolval);
+	gitconfig.GetBool(tgit::zstr::StringView(sBase + L"show"), boolval);
 	if (boolval)
 		sHook += L"show";
 	else

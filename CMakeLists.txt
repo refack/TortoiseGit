@@ -8,14 +8,15 @@ set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-#set(CMAKE_EXPORT_SARIF ON)
+# we use this abstration breaking hack to hide from CLion
+string(APPEND CMAKE_CXX_COMPILE_OBJECT " /experimental:log <OBJECT>")
+
+set(CMAKE_EXPORT_SARIF ON)
 file(MAKE_DIRECTORY "${CMAKE_BINARY_DIR}/SARIF")
 add_compile_options(
         "/external:anglebrackets" "/external:W0"
         "/analyze-"
-        "/experimental:log" "${CMAKE_BINARY_DIR}/SARIF/"
 )
-
 # The triplet is a project decision, not a per-machine one: static libraries
 # over the dynamic CRT, which is what UseOfMfc=Dynamic and every target's
 # MSVC_RUNTIME_LIBRARY MultiThreadedDLL already assume. It has to be set before
@@ -37,21 +38,20 @@ set(VCPKG_TARGET_TRIPLET "x64-windows-static-md" CACHE STRING "" FORCE)
 
 project(TortoiseGit)
 
-
 add_subdirectory(src/gitdll)
-#add_subdirectory(src/AsyncFramework)
-#add_subdirectory(src/IBugTraqProvider)
+add_subdirectory(src/AsyncFramework)
+add_subdirectory(src/IBugTraqProvider)
 add_subdirectory(src/libgit2)
-#add_subdirectory(src/GitWCRev)
-#add_subdirectory(src/GitWCRevCOM)
-#add_subdirectory(src/ResizableLib)
-#add_subdirectory(src/SshAskPass)
-#add_subdirectory(src/TGitCache)
+add_subdirectory(src/GitWCRev)
+add_subdirectory(src/GitWCRevCOM)
+add_subdirectory(src/ResizableLib)
+add_subdirectory(src/SshAskPass)
+add_subdirectory(src/TGitCache)
 #add_subdirectory(src/TortoiseGitBlame)
-#add_subdirectory(src/TortoiseProc)
+add_subdirectory(src/TortoiseProc)
 #add_subdirectory(src/TortoiseShell)
-#add_subdirectory(src/TortoiseStub)
+add_subdirectory(src/TortoiseStub)
 #add_subdirectory(src/TortoiseUDiff)
-#add_subdirectory(test/Cache)
-#add_subdirectory(test/ShellBench)
-#add_subdirectory(test/UnitTests)
+add_subdirectory(test/Cache)
+add_subdirectory(test/ShellBench)
+add_subdirectory(test/UnitTests)

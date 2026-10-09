@@ -18,7 +18,7 @@
 //
 #pragma once
 #include "FilterHelper.h"
-#include "TGitPath.h"
+import TGitPath;
 
 class CLogDlgFileFilter : public CFilterHelper {
 public:

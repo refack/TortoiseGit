@@ -1,4 +1,4 @@
-// TortoiseGit - a Windows shell extension for easy version control
+﻿// TortoiseGit - a Windows shell extension for easy version control
 
 // Copyright (C) 2008-2019, 2021, 2023-2026 - TortoiseGit
 
@@ -19,9 +19,9 @@
 
 #include "stdafx.h"
 #include "CreateRepositoryCommand.h"
-#include "ShellUpdater.h"
+import CShellUpdater;
 #include "MessageBox.h"
-#include "UnicodeUtils.h"
+import wstr;
 #include "CreateRepoDlg.h"
 #include "AppUtils.h"
 
@@ -35,7 +35,7 @@ static bool CheckSpecialFolder(const CString& folder)
 	for (int i = 0; i < _countof(code); i++)
 	{
 		CComHeapPtr<WCHAR> pszPath;
-		if (SUCCEEDED(SHGetKnownFolderPath(code[i], 0, nullptr, &pszPath)) && CPathUtils::IsSamePath(std::wstring(folder), std::wstring(static_cast<LPCWSTR>(pszPath))))
+		if (SUCCEEDED(SHGetKnownFolderPath(code[i], 0, nullptr, &pszPath)) && PathUtils::IsSamePath(std::wstring(folder), std::wstring(static_cast<LPCWSTR>(pszPath))))
 			return true;
 	}
 
@@ -69,13 +69,13 @@ bool CreateRepositoryCommand::Execute()
 		git_repository_init_options options = GIT_REPOSITORY_INIT_OPTIONS_INIT;
 		options.flags = GIT_REPOSITORY_INIT_MKPATH | GIT_REPOSITORY_INIT_EXTERNAL_TEMPLATE;
 		options.flags |= dlg.m_bBare ? GIT_REPOSITORY_INIT_BARE : 0;
-		CStringA envTemplateDir = CUnicodeUtils::GetUTF8(g_Git.m_Environment.GetEnv(L"GIT_TEMPLATE_DIR").c_str());
+		CStringA envTemplateDir = CUnicodeUtils::Convert2Multibyte<CStringA>(g_Git.m_Environment.GetEnv(L"GIT_TEMPLATE_DIR").c_str());
 		if (!envTemplateDir.IsEmpty())
 			options.template_path = envTemplateDir;
 		CAutoRepository repo;
-		if (git_repository_init_ext(repo.GetPointer(), CUnicodeUtils::GetUTF8(folder), &options))
+		if (git_repository_init_ext(repo.GetPointer(), CUnicodeUtils::GetUTF8<CStringA>(folder), &options))
 		{
-			CMessageBox::Show(GetExplorerHWND(), CGit::GetLibGit2LastErr(L"Could not initialize a new repository."), L"TortoiseGit", MB_OK | MB_ICONERROR);
+			CMessageBox::Show(GetExplorerHWND(), TGitH::GetLibGit2LastErr(L"Could not initialize a new repository."), L"TortoiseGit", MB_OK | MB_ICONERROR);
 			return false;
 		}
 

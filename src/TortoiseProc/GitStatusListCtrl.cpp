@@ -17,39 +17,41 @@
 // along with this program; if not, write to the Free Software Foundation,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
+#include "stdafx.h"
+#include <TortoiseProc/resource.h>	// restored: these IDs used to arrive through headers that are imports now
 
 
 #include <Resources/LoglistCommonResource.h>
 #include <TortoiseShell/resource.h>
 #include "GitStatusListCtrl.h"
-#include "Utils/MessageBox.h"
+#include "MiscUI/MessageBox.h"
 #include "Utils/MyMemDC.h"
-#include <Utils/UnicodeUtils.h>
+import wstr;
 #include "AppUtils.h"
-#include "Utils/PathUtils.h"
-#include "Utils/TempFile.h"
-#include "Utils/StringUtils.h"
+import PathUtils;
+import TempFile;
+import StringUtils;
 #include "LoglistUtils.h"
-#include "Git.h"
-#include "GitRev.h"
+import git_h;
+import GitRev;
 #include "GitDiff.h"
 #include "GitProgressDlg.h"
 #include "Utils/SysImageList.h"
-#include "TGitPath.h"
-#include "Utils/registry.h"
-import GitAdminDir;
-#include "GitDataObject.h"
+import TGitPath;
+import Registry;
+import TGitPath;	// GitAdminDir lives in the TGitPath module
+import GitDataObject;
 #include "ProgressCommands/AddProgressCommand.h"
 #include "ProgressCommands/LFSSetLockedProgressCommand.h"
 #include "ProgressCommands/RevertProgressCommand.h"
 #include "ProgressCommands/ResolveProgressCommand.h"
-#include "Utils/IconMenu.h"
-#include "raii-win32-formatmessage.h"
+#include "MiscUI/IconMenu.h"
+import wil;
 #include "Utils/BrowseFolder.h"
 #include "CreateChangelistDlg.h"
 #include "Utils/Theme.h"
 #include <fstream>
-#include "Utils/CmdLineParser.h"
+import CmdLineParser;
 
 const UINT CGitStatusListCtrl::GITSLNM_ITEMCOUNTCHANGED
 					= ::RegisterWindowMessage(L"GITSLNM_ITEMCOUNTCHANGED");
@@ -1051,7 +1053,7 @@ CString CGitStatusListCtrl::GetCellText(int listIndex, int column)
 		{
 			__int64 filetime = entry->GetLastWriteTime();
 			if (filetime)
-				return CLoglistUtils::FormatDateAndTime(CTime(CGit::filetime_to_time_t(filetime)), DATE_SHORTDATE, true, relativeTimes);
+				return CLoglistUtils::FormatDateAndTime(CTime(TGitH::filetime_to_time_t(filetime)), DATE_SHORTDATE, true, relativeTimes);
 		}
 		return empty;
 
@@ -1889,7 +1891,7 @@ void CGitStatusListCtrl::OnContextMenuList(CWnd * pWnd, CPoint point)
 							diffWith = m_sMarkForDiffVersion;
 						else
 						{
-							PathCompactPathEx(CStrBuf(diffWith, 2 * GIT_HASH_SIZE), m_sMarkForDiffFilename, 2 * GIT_HASH_SIZE, 0);
+							PathCompactPathEx(CStrBuf(diffWith, 2 * static_cast<int>(tgit::invarients::GitFormatHolder::GitHashSize())), m_sMarkForDiffFilename, 2 * static_cast<int>(tgit::invarients::GitFormatHolder::GitHashSize()), 0);
 							if (m_sMarkForDiffVersion != GitRev::GetWorkingCopyRef() || PathIsRelative(m_sMarkForDiffFilename))
 								diffWith += L':' + m_sMarkForDiffVersion.Left(g_Git.GetShortHASHLength());
 						}
@@ -2140,7 +2142,7 @@ void CGitStatusListCtrl::OnContextMenuList(CWnd * pWnd, CPoint point)
 
 			case IDGITLC_PREPAREDIFF:
 				m_sMarkForDiffFilename = filepath->GetGitPathString().c_str();
-				m_sMarkForDiffVersion = m_CurrentVersion.ToString();
+				m_sMarkForDiffVersion = (m_CurrentVersion.ToString()).c_str();
 				break;
 
 			case IDGITLC_PREPAREDIFF_COMPARE:
@@ -2148,7 +2150,7 @@ void CGitStatusListCtrl::OnContextMenuList(CWnd * pWnd, CPoint point)
 					if (auto reg = CRegString(L"Software\\TortoiseGit\\DiffLater", L""); m_sMarkForDiffFilename == reg)
 						reg.removeValue();
 					CTGitPath savedFile(m_sMarkForDiffFilename.GetString());
-					CGitDiff::Diff(GetParentHWND(), filepath, &savedFile, m_CurrentVersion.ToString(), m_sMarkForDiffVersion, false, false, 0, bShift);
+					CGitDiff::Diff(GetParentHWND(), filepath, &savedFile, CString((m_CurrentVersion.ToString()).c_str()), m_sMarkForDiffVersion, false, false, 0, bShift);
 				}
 				break;
 
@@ -2163,7 +2165,7 @@ void CGitStatusListCtrl::OnContextMenuList(CWnd * pWnd, CPoint point)
 							continue;
 						if (m_restorepaths.find(entry2->GetWinPathString().c_str()) != m_restorepaths.end())
 							continue;
-						CTGitPath tempFile = CTempFiles::Instance().GetTempFilePath(false);
+						CTGitPath tempFile = TempFiles::GetTempFilePath(false);
 						// delete the temp file: the temp file has the FILE_ATTRIBUTE_TEMPORARY flag set
 						// and copying the real file over it would leave that temp flag.
 						DeleteFile(tempFile.GetWinPath());
@@ -2192,7 +2194,7 @@ void CGitStatusListCtrl::OnContextMenuList(CWnd * pWnd, CPoint point)
 							continue;
 						if (CopyFile(m_restorepaths[entry2->GetWinPathString().c_str()], g_Git.CombinePath(entry2), FALSE))
 						{
-							CPathUtils::Touch(entry2->GetWinPathString().c_str());
+							PathUtils::Touch(entry2->GetWinPathString().c_str());
 							m_restorepaths.erase(entry2->GetWinPathString().c_str());
 							SetItemState(index, 0, LVIS_OVERLAYMASK);
 						}
@@ -2260,7 +2262,7 @@ void CGitStatusListCtrl::OnContextMenuList(CWnd * pWnd, CPoint point)
 						if (m_CurrentVersion.IsEmpty())
 							sCmd.Format(L"/command:diff /path:%s /startrev:%s /path2:%s /endrev:%s /hwnd:%p", CCmdLineParser::EscapeValue(firstfilepath->GetWinPathString()).c_str(), firstfilepath->Exists() ? GitRev::GetWorkingCopyRef() : L"HEAD", CCmdLineParser::EscapeValue(secondfilepath->GetWinPathString()).c_str(), secondfilepath->Exists() ? GitRev::GetWorkingCopyRef() : L"HEAD", reinterpret_cast<void*>(m_hWnd));
 						else
-							sCmd.Format(L"/command:diff /path:%s /startrev:%s /path2:%s /endrev:%s /hwnd:%p", CCmdLineParser::EscapeValue(firstfilepath->GetWinPathString()).c_str(), firstfilepath->m_Action & CTGitPath::LOGACTIONS_DELETED ? static_cast<LPCWSTR>(m_CurrentVersion.ToString() + L"~1") : static_cast<LPCWSTR>(m_CurrentVersion.ToString()), CCmdLineParser::EscapeValue(secondfilepath->GetWinPathString()).c_str(), secondfilepath->m_Action & CTGitPath::LOGACTIONS_DELETED ? static_cast<LPCWSTR>(m_CurrentVersion.ToString() + L"~1") : static_cast<LPCWSTR>(m_CurrentVersion.ToString()), reinterpret_cast<void*>(m_hWnd));
+							sCmd.Format(L"/command:diff /path:%s /startrev:%s /path2:%s /endrev:%s /hwnd:%p", CCmdLineParser::EscapeValue(firstfilepath->GetWinPathString()).c_str(), firstfilepath->m_Action & CTGitPath::LOGACTIONS_DELETED ? (m_CurrentVersion.ToString() + L"~1").c_str() : (m_CurrentVersion.ToString()).c_str(), CCmdLineParser::EscapeValue(secondfilepath->GetWinPathString()).c_str(), secondfilepath->m_Action & CTGitPath::LOGACTIONS_DELETED ? (m_CurrentVersion.ToString() + L"~1").c_str() : (m_CurrentVersion.ToString()).c_str(), reinterpret_cast<void*>(m_hWnd));
 						if (bShift)
 							sCmd += L" /alternative";
 						CAppUtils::RunTortoiseGitProc(sCmd);
@@ -2293,7 +2295,7 @@ void CGitStatusListCtrl::OnContextMenuList(CWnd * pWnd, CPoint point)
 								fromwhere = L"~1";
 							if (g_Git.GetUnifiedDiff(*selectedFilepath, L"HEAD" + fromwhere, GitRev::GetWorkingCopyRef(), tempfile, false, false, diffContext, false))
 							{
-								::MessageBox(m_hWnd, g_Git.GetGitLastErr(L"Could not get unified diff.", CGit::GIT_CMD_DIFF), L"TortoiseGit", MB_OK);
+								::MessageBox(m_hWnd, g_Git.GetGitLastErr(L"Could not get unified diff.", TGitH::GIT_CMD_DIFF), L"TortoiseGit", MB_OK);
 								break;
 							}
 						}
@@ -2305,13 +2307,13 @@ void CGitStatusListCtrl::OnContextMenuList(CWnd * pWnd, CPoint point)
 								{
 									if (g_Git.GetUnifiedDiff(*selectedFilepath, GitRev::GetWorkingCopyRef(), m_CurrentVersion.ToString(), tempfile, false, false, diffContext, false))
 									{
-										::MessageBox(m_hWnd, g_Git.GetGitLastErr(L"Could not get unified diff.", CGit::GIT_CMD_DIFF), L"TortoiseGit", MB_OK);
+										::MessageBox(m_hWnd, g_Git.GetGitLastErr(L"Could not get unified diff.", TGitH::GIT_CMD_DIFF), L"TortoiseGit", MB_OK);
 										break;
 									}
 								}
 								else if (g_Git.GetUnifiedDiff(*selectedFilepath, prevHash.ToString(), m_CurrentVersion.ToString(), tempfile, false, false, diffContext, false))
 								{
-									::MessageBox(m_hWnd, g_Git.GetGitLastErr(L"Could not get unified diff.", CGit::GIT_CMD_DIFF), L"TortoiseGit", MB_OK);
+									::MessageBox(m_hWnd, g_Git.GetGitLastErr(L"Could not get unified diff.", TGitH::GIT_CMD_DIFF), L"TortoiseGit", MB_OK);
 									break;
 								}
 							}
@@ -2319,11 +2321,11 @@ void CGitStatusListCtrl::OnContextMenuList(CWnd * pWnd, CPoint point)
 							{
 								CString str;
 								if (!(selectedFilepath->m_ParentNo & MERGE_MASK))
-									str.Format(L"%s^%d", static_cast<LPCWSTR>(m_CurrentVersion.ToString()), (selectedFilepath->m_ParentNo & PARENT_MASK) + 1);
+									str.Format(L"%s^%d", (m_CurrentVersion.ToString()).c_str(), (selectedFilepath->m_ParentNo & PARENT_MASK) + 1);
 
 								if (g_Git.GetUnifiedDiff(*selectedFilepath, str, m_CurrentVersion.ToString(), tempfile, !!(selectedFilepath->m_ParentNo & MERGE_MASK), false, diffContext, false))
 								{
-									::MessageBox(m_hWnd, g_Git.GetGitLastErr(L"Could not get unified diff.", CGit::GIT_CMD_DIFF), L"TortoiseGit", MB_OK);
+									::MessageBox(m_hWnd, g_Git.GetGitLastErr(L"Could not get unified diff.", TGitH::GIT_CMD_DIFF), L"TortoiseGit", MB_OK);
 									break;
 								}
 							}
@@ -2336,7 +2338,7 @@ void CGitStatusListCtrl::OnContextMenuList(CWnd * pWnd, CPoint point)
 					if (m_CurrentVersion.IsEmpty())
 						CAppUtils::StartUnifiedDiffViewer(fullTempFile, CString(L"HEAD") + (m_amend ? L"~1" : L""), FALSE, bShift);
 					else
-						CAppUtils::StartUnifiedDiffViewer(fullTempFile, m_CurrentVersion.ToString(), FALSE, bShift);
+						CAppUtils::StartUnifiedDiffViewer(fullTempFile, CString((m_CurrentVersion.ToString()).c_str()), FALSE, bShift);
 				}
 				break;
 
@@ -2348,7 +2350,7 @@ void CGitStatusListCtrl::OnContextMenuList(CWnd * pWnd, CPoint point)
 					while (pos)
 					{
 						auto entry = GetListEntry(GetNextSelectedItem(pos));
-						CAppUtils::StartShowUnifiedDiff(m_hWnd, *entry, m_Rev2.ToString(), *entry, m_Rev1.ToString(), bShift);
+						CAppUtils::StartShowUnifiedDiff(m_hWnd, *entry, CString((m_Rev2.ToString()).c_str()), *entry, CString((m_Rev1.ToString()).c_str()), bShift);
 					}
 				}
 				break;
@@ -2388,7 +2390,7 @@ void CGitStatusListCtrl::OnContextMenuList(CWnd * pWnd, CPoint point)
 
 			case IDGITLC_BLAME:
 				{
-					CAppUtils::LaunchTortoiseBlame(g_Git.CombinePath(filepath), m_CurrentVersion.ToString());
+					CAppUtils::LaunchTortoiseBlame(g_Git.CombinePath(filepath), CString((m_CurrentVersion.ToString()).c_str()));
 				}
 				break;
 
@@ -2534,7 +2536,7 @@ void CGitStatusListCtrl::OnContextMenuList(CWnd * pWnd, CPoint point)
 				{
 					CTGitPathList targetList;
 					FillListOfSelectedItemPaths(targetList);
-					CTGitPath tempFile = CTempFiles::Instance().GetTempFilePath(false);
+					CTGitPath tempFile = TempFiles::GetTempFilePath(false);
 					VERIFY(targetList.WriteToFile(tempFile.GetWinPathString().c_str()));
 					CString commandline = L"/command:commit /pathfile:\"";
 					commandline += tempFile.GetWinPathString().c_str();
@@ -2683,9 +2685,9 @@ void CGitStatusListCtrl::OnContextMenuList(CWnd * pWnd, CPoint point)
 				{
 					CTSVNPathList targetList;
 					FillListOfSelectedItemPaths(targetList);
-					CTSVNPath tempFile = CTempFiles::Instance().GetTempFilePath(false);
+					CTSVNPath tempFile = TempFiles::GetTempFilePath(false);
 					VERIFY(targetList.WriteToFile(tempFile.GetWinPathString().c_str()));
-					CString commandline = CPathUtils::GetAppDirectory();
+					CString commandline = PathUtils::GetAppDirectory();
 					commandline += L"TortoiseGitProc.exe /command:commit /pathfile:\"";
 					commandline += tempFile.GetWinPathString().c_str();
 					commandline += L'"';
@@ -2856,14 +2858,14 @@ void CGitStatusListCtrl::SetGitIndexFlagsForSelectedFiles(UINT message, BOOL ass
 	CAutoRepository repository(g_Git.GetGitRepository());
 	if (!repository)
 	{
-		MessageBox(g_Git.GetLibGit2LastErr(), L"TortoiseGit", MB_ICONERROR);
+		MessageBox(TGitH::GetLibGit2LastErr(), L"TortoiseGit", MB_ICONERROR);
 		return;
 	}
 
 	CAutoIndex gitindex;
 	if (git_repository_index(gitindex.GetPointer(), repository))
 	{
-		MessageBox(g_Git.GetLibGit2LastErr(), L"TortoiseGit", MB_ICONERROR);
+		MessageBox(TGitH::GetLibGit2LastErr(), L"TortoiseGit", MB_ICONERROR);
 		return;
 	}
 
@@ -2876,7 +2878,7 @@ void CGitStatusListCtrl::SetGitIndexFlagsForSelectedFiles(UINT message, BOOL ass
 			continue;
 
 		size_t idx;
-		if (!git_index_find(&idx, gitindex, CUnicodeUtils::GetUTF8(path->GetGitPathString().c_str())))
+		if (!git_index_find(&idx, gitindex, CUnicodeUtils::Convert2Multibyte<CStringA>(path->GetGitPathString().c_str())))
 		{
 			git_index_entry *e = const_cast<git_index_entry *>(git_index_get_byindex(gitindex, idx)); // HACK
 			if (assumevalid == BST_UNCHECKED)
@@ -2890,12 +2892,12 @@ void CGitStatusListCtrl::SetGitIndexFlagsForSelectedFiles(UINT message, BOOL ass
 			git_index_add(gitindex, e);
 		}
 		else
-			MessageBox(g_Git.GetLibGit2LastErr(), L"TortoiseGit", MB_ICONERROR);
+			MessageBox(TGitH::GetLibGit2LastErr(), L"TortoiseGit", MB_ICONERROR);
 	}
 
 	if (git_index_write(gitindex))
 	{
-		MessageBox(g_Git.GetLibGit2LastErr(), L"TortoiseGit", MB_ICONERROR);
+		MessageBox(TGitH::GetLibGit2LastErr(), L"TortoiseGit", MB_ICONERROR);
 		return;
 	}
 
@@ -2972,11 +2974,11 @@ void CGitStatusListCtrl::StartDiffTwo(int fileindex)
 	CTGitPath file1 = *ptr;
 
 	if (file1.m_Action & CTGitPath::LOGACTIONS_ADDED)
-		CGitDiff::DiffNull(GetParentHWND(), &file1, m_Rev1.ToString(), true, 0, !!(GetAsyncKeyState(VK_SHIFT) & 0x8000));
+		CGitDiff::DiffNull(GetParentHWND(), &file1, CString((m_Rev1.ToString()).c_str()), true, 0, !!(GetAsyncKeyState(VK_SHIFT) & 0x8000));
 	else if (file1.m_Action & CTGitPath::LOGACTIONS_DELETED)
-		CGitDiff::DiffNull(GetParentHWND(), &file1, m_Rev2.ToString(), false, 0, !!(GetAsyncKeyState(VK_SHIFT) & 0x8000));
+		CGitDiff::DiffNull(GetParentHWND(), &file1, CString((m_Rev2.ToString()).c_str()), false, 0, !!(GetAsyncKeyState(VK_SHIFT) & 0x8000));
 	else
-		CGitDiff::Diff(GetParentHWND(), &file1, &file1, m_Rev1.ToString(), m_Rev2.ToString(), false, false, 0, !!(GetAsyncKeyState(VK_SHIFT) & 0x8000));
+		CGitDiff::Diff(GetParentHWND(), &file1, &file1, CString((m_Rev1.ToString()).c_str()), CString((m_Rev2.ToString()).c_str()), false, false, 0, !!(GetAsyncKeyState(VK_SHIFT) & 0x8000));
 }
 
 void CGitStatusListCtrl::StartDiffWC(int fileindex, bool parent)
@@ -2998,13 +3000,13 @@ void CGitStatusListCtrl::StartDiffWC(int fileindex, bool parent)
 		CString title;
 		if (!GetParentCommitInfo(m_CurrentVersion, file1.m_ParentNo & PARENT_MASK, parentHash, title))
 		{
-			MessageBox(g_Git.GetGitLastErr(L"Could not get parent hash for \"" + m_CurrentVersion.ToString() + L"\"."), L"TortoiseGit", MB_ICONERROR);
+			MessageBox(g_Git.GetGitLastErr(CString((L"Could not get parent hash for \"" + m_CurrentVersion.ToString() + L"\".").c_str())), L"TortoiseGit", MB_ICONERROR);
 			return;
 		}
-		version = parentHash.ToString();
+		version = (parentHash.ToString()).c_str();
 	}
 	else
-		version = m_CurrentVersion.ToString();
+		version = (m_CurrentVersion.ToString()).c_str();
 
 	CGitDiff::Diff(GetParentHWND(), &file1, &file1, GitRev::GetWorkingCopyRef(), version, false, false, 0, !!(GetAsyncKeyState(VK_SHIFT) & 0x8000));
 }
@@ -3047,16 +3049,16 @@ void CGitStatusListCtrl::StartDiff(int fileindex)
 	else
 	{
 		CGitHash hash;
-		CString fromwhere = m_CurrentVersion.ToString() + L"~1";
+		CString fromwhere = (m_CurrentVersion.ToString() + L"~1").c_str();
 		if(m_amend)
-			fromwhere = m_CurrentVersion.ToString() + L"~2";
+			fromwhere = (m_CurrentVersion.ToString() + L"~2").c_str();
 		bool revfail = !!g_Git.GetHash(hash, fromwhere);
 		if (revfail || (file1.m_Action & file1.LOGACTIONS_ADDED))
-			CGitDiff::DiffNull(GetParentHWND(), &file1, m_CurrentVersion.ToString(), true, 0, !!(GetAsyncKeyState(VK_SHIFT) & 0x8000));
+			CGitDiff::DiffNull(GetParentHWND(), &file1, CString((m_CurrentVersion.ToString()).c_str()), true, 0, !!(GetAsyncKeyState(VK_SHIFT) & 0x8000));
 		else if (file1.m_Action & file1.LOGACTIONS_DELETED)
 		{
 			if (file1.m_ParentNo > 0)
-				fromwhere.Format(L"%s^%d", static_cast<LPCWSTR>(m_CurrentVersion.ToString()), file1.m_ParentNo + 1);
+				fromwhere.Format(L"%s^%d", (m_CurrentVersion.ToString()).c_str(), file1.m_ParentNo + 1);
 
 			CGitDiff::DiffNull(GetParentHWND(), &file1, fromwhere, false, 0, !!(GetAsyncKeyState(VK_SHIFT) & 0x8000));
 		}
@@ -3103,13 +3105,13 @@ void CGitStatusListCtrl::StartDiff(int fileindex)
 					}
 				}
 
-				if (g_Git.GetOneFile(m_CurrentVersion.ToString(), file1, merge.GetWinPathString().c_str()))
+				if (g_Git.GetOneFile(CString((m_CurrentVersion.ToString()).c_str()), file1, merge.GetWinPathString().c_str()))
 					CMessageBox::Show(GetParentHWND(), IDS_STATUSLIST_FAILEDGETMERGEFILE, IDS_APPNAME, MB_OK | MB_ICONERROR);
 
 				if(parent1>=0)
 				{
 					CString str;
-					str.Format(L"%s^%d", static_cast<LPCWSTR>(m_CurrentVersion.ToString()), parent1 + 1);
+					str.Format(L"%s^%d", (m_CurrentVersion.ToString()).c_str(), parent1 + 1);
 
 					if (g_Git.GetOneFile(str, file1, mine.GetWinPathString().c_str()))
 						CMessageBox::Show(GetParentHWND(), IDS_STATUSLIST_FAILEDGETMERGEFILE, IDS_APPNAME, MB_OK | MB_ICONERROR);
@@ -3118,7 +3120,7 @@ void CGitStatusListCtrl::StartDiff(int fileindex)
 				if(parent2>=0)
 				{
 					CString str;
-					str.Format(L"%s^%d", static_cast<LPCWSTR>(m_CurrentVersion.ToString()), parent2 + 1);
+					str.Format(L"%s^%d", (m_CurrentVersion.ToString()).c_str(), parent2 + 1);
 
 					if (g_Git.GetOneFile(str, file1, theirs.GetWinPathString().c_str()))
 						CMessageBox::Show(GetParentHWND(), IDS_STATUSLIST_FAILEDGETMERGEFILE, IDS_APPNAME, MB_OK | MB_ICONERROR);
@@ -3129,7 +3131,7 @@ void CGitStatusListCtrl::StartDiff(int fileindex)
 					CString output;
 					if (!g_Git.Run({ L"git.exe", L"merge-base", L"--", std::format(L"{}^{}", m_CurrentVersion.ToString(), parent1 + 1), std::format(L"{}^{}", m_CurrentVersion.ToString(), parent2 + 1) }, &output, nullptr, CP_UTF8))
 					{
-						if (g_Git.GetOneFile(output.Left(2 * GIT_HASH_SIZE), file1, base.GetWinPathString().c_str()))
+						if (g_Git.GetOneFile(output.Left(2 * static_cast<int>(tgit::invarients::GitFormatHolder::GitHashSize())), file1, base.GetWinPathString().c_str()))
 							CMessageBox::Show(GetParentHWND(), IDS_STATUSLIST_FAILEDGETBASEFILE, IDS_APPNAME, MB_OK | MB_ICONERROR);
 					}
 				}
@@ -3995,7 +3997,7 @@ bool CGitStatusListCtrl::PrepareGroups(bool bForce /* = false */)
 
 			CAutoRepository repository(g_Git.GetGitRepository());
 			if (!repository)
-				MessageBox(CGit::GetLibGit2LastErr(L"Could not open repository."), L"TortoiseGit", MB_OK | MB_ICONERROR);
+				MessageBox(TGitH::GetLibGit2LastErr(L"Could not open repository."), L"TortoiseGit", MB_OK | MB_ICONERROR);
 			for (groupindex = 0; groupindex <= max; ++groupindex)
 			{
 				CString str;
@@ -4003,7 +4005,7 @@ bool CGitStatusListCtrl::PrepareGroups(bool bForce /* = false */)
 				if (repository)
 				{
 					CString rev;
-					rev.Format(L"%s^%d", static_cast<LPCWSTR>(m_CurrentVersion.ToString()), groupindex + 1);
+					rev.Format(L"%s^%d", (m_CurrentVersion.ToString()).c_str(), groupindex + 1);
 					CGitHash hash;
 					if (!CGit::GetHash(repository, hash, rev))
 						str += L": " + hash.ToString(g_Git.GetShortHASHLength());
@@ -4489,23 +4491,23 @@ void CGitStatusListCtrl::FilesExport()
 		if ((fd->m_Action & CTGitPath::LOGACTIONS_DELETED) || fd->IsDirectory())
 			continue;
 
-		CPathUtils::MakeSureDirectoryPathExists(exportDir + L'\\' + fd->GetContainingDirectory().GetWinPathString().c_str());
+		PathUtils::MakeSureDirectoryPathExists(exportDir + L'\\' + fd->GetContainingDirectory().GetWinPathString().c_str());
 		CString filename = exportDir + L'\\' + fd->GetWinPathString().c_str();
 		if (m_CurrentVersion.IsEmpty())
 		{
 			if (!CopyFile(g_Git.CombinePath(fd), filename, false))
 			{
-				MessageBox(CFormatMessageWrapper(), L"TortoiseGit", MB_OK | MB_ICONERROR);
+				MessageBox((CFormatMessageWrapper()).c_str(), L"TortoiseGit", MB_OK | MB_ICONERROR);
 				return;
 			}
 		}
 		else
 		{
-			if (g_Git.GetOneFile(m_CurrentVersion.ToString(), *fd, filename))
+			if (g_Git.GetOneFile(CString((m_CurrentVersion.ToString()).c_str()), *fd, filename))
 			{
 				CString out;
-				out.FormatMessage(IDS_STATUSLIST_CHECKOUTFILEFAILED, static_cast<LPCWSTR>(fd->GetGitPathString().c_str()), static_cast<LPCWSTR>(m_CurrentVersion.ToString()), static_cast<LPCWSTR>(filename));
-				if (CMessageBox::Show(GetParentHWND(), g_Git.GetGitLastErr(out, CGit::GIT_CMD_GETONEFILE), IDS_APPNAME, 2, IDI_WARNING, IDS_IGNOREBUTTON, IDS_ABORTBUTTON) == 2)
+				out.FormatMessage(IDS_STATUSLIST_CHECKOUTFILEFAILED, static_cast<LPCWSTR>(fd->GetGitPathString().c_str()), (m_CurrentVersion.ToString()).c_str(), static_cast<LPCWSTR>(filename));
+				if (CMessageBox::Show(GetParentHWND(), g_Git.GetGitLastErr(out, TGitH::GIT_CMD_GETONEFILE), IDS_APPNAME, 2, IDI_WARNING, IDS_IGNOREBUTTON, IDS_ABORTBUTTON) == 2)
 					return;
 			}
 		}
@@ -4516,24 +4518,24 @@ void CGitStatusListCtrl::FileSaveAs(const CTGitPath* path)
 {
 	CAutoReadLock locker(m_guard);
 	CString filename;
-	filename.Format(L"%s\\%s-%s%s", static_cast<LPCWSTR>(g_Git.CombinePath(path->GetContainingDirectory())), static_cast<LPCWSTR>(path->GetBaseFilename().c_str()), static_cast<LPCWSTR>(m_CurrentVersion.ToString(g_Git.GetShortHASHLength())), static_cast<LPCWSTR>(path->GetFileExtension().c_str()));
+	filename.Format(L"%s\\%s-%s%s", static_cast<LPCWSTR>(g_Git.CombinePath(path->GetContainingDirectory())), static_cast<LPCWSTR>(path->GetBaseFilename().c_str()), (m_CurrentVersion.ToString(g_Git.GetShortHASHLength())).c_str(), static_cast<LPCWSTR>(path->GetFileExtension().c_str()));
 	if (!CAppUtils::FileOpenSave(filename, nullptr, 0, 0, false, GetSafeHwnd()))
 		return;
 	if (m_CurrentVersion.IsEmpty())
 	{
 		if (!CopyFile(g_Git.CombinePath(path), filename, false))
 		{
-			MessageBox(CFormatMessageWrapper(), L"TortoiseGit", MB_OK | MB_ICONERROR);
+			MessageBox((CFormatMessageWrapper()).c_str(), L"TortoiseGit", MB_OK | MB_ICONERROR);
 			return;
 		}
 	}
 	else
 	{
-		if (g_Git.GetOneFile(m_CurrentVersion.ToString(), *path, filename))
+		if (g_Git.GetOneFile(CString((m_CurrentVersion.ToString()).c_str()), *path, filename))
 		{
 			CString out;
-			out.FormatMessage(IDS_STATUSLIST_CHECKOUTFILEFAILED, static_cast<LPCWSTR>(path->GetGitPathString().c_str()), static_cast<LPCWSTR>(m_CurrentVersion.ToString()), static_cast<LPCWSTR>(filename));
-			CMessageBox::Show(GetParentHWND(), g_Git.GetGitLastErr(out, CGit::GIT_CMD_GETONEFILE), L"TortoiseGit", MB_OK);
+			out.FormatMessage(IDS_STATUSLIST_CHECKOUTFILEFAILED, static_cast<LPCWSTR>(path->GetGitPathString().c_str()), (m_CurrentVersion.ToString()).c_str(), static_cast<LPCWSTR>(filename));
+			CMessageBox::Show(GetParentHWND(), g_Git.GetGitLastErr(out, TGitH::GIT_CMD_GETONEFILE), L"TortoiseGit", MB_OK);
 			return;
 		}
 	}
@@ -4545,7 +4547,7 @@ bool CGitStatusListCtrl::GetParentCommitInfo(const CGitHash& hash, const int par
 		return false;
 
 	CString revStr;
-	revStr.Format(L"%s^%d", static_cast<LPCWSTR>(hash.ToString()), parentNo + 1);
+	revStr.Format(L"%s^%d", (hash.ToString()).c_str(), parentNo + 1);
 
 	if (g_Git.GetHash(parentHash, revStr) != 0)
 		return false;
@@ -4559,10 +4561,10 @@ bool CGitStatusListCtrl::GetParentCommitInfo(const CGitHash& hash, const int par
 			commitTitle.Truncate(20);
 			commitTitle += L"...";
 		}
-		title.Format(L"\"%s\" (%s)", static_cast<LPCWSTR>(StringUtils::EscapeAccellerators(commitTitle)), static_cast<LPCWSTR>(parentHash.ToString(g_Git.GetShortHASHLength())));
+		title.Format(L"\"%s\" (%s)", static_cast<LPCWSTR>(StringUtils::EscapeAccellerators(commitTitle)), (parentHash.ToString(g_Git.GetShortHASHLength())).c_str());
 	}
 	else
-		title.Format(L"(%s)", static_cast<LPCWSTR>(parentHash.ToString(g_Git.GetShortHASHLength())));
+		title.Format(L"(%s)", (parentHash.ToString(g_Git.GetShortHASHLength())).c_str());
 
 	return true;
 }
@@ -4588,14 +4590,14 @@ int CGitStatusListCtrl::RevertSelectedItemToVersion(bool parent)
 			CString title;
 			if (!GetParentCommitInfo(m_CurrentVersion, fentry->m_ParentNo & PARENT_MASK, parentHash, title))
 			{
-				MessageBox(g_Git.GetGitLastErr(L"Could not get parent hash for \"" + m_CurrentVersion.ToString() + L"\"."), L"TortoiseGit", MB_ICONERROR);
+				MessageBox(g_Git.GetGitLastErr(CString((L"Could not get parent hash for \"" + m_CurrentVersion.ToString() + L"\".").c_str())), L"TortoiseGit", MB_ICONERROR);
 				continue;
 			}
 
-			version = parentHash.ToString();
+			version = (parentHash.ToString()).c_str();
 		}
 		else
-			version = m_CurrentVersion.ToString();
+			version = (m_CurrentVersion.ToString()).c_str();
 
 		CString filename = fentry->GetGitPathString().c_str();
 		if (!fentry->GetGitOldPathString().empty())
@@ -4640,12 +4642,12 @@ void CGitStatusListCtrl::OpenFile(const CTGitPath* filepath, int mode)
 		file = g_Git.CombinePath(filepath);
 	else
 	{
-		file = CTempFiles::Instance().GetTempFilePath(false, *filepath, m_CurrentVersion).GetWinPathString().c_str();
+		file = TempFiles::GetTempFilePath(false, *filepath, m_CurrentVersion).GetWinPathString().c_str();
 		CString cmd,out;
-		if(g_Git.GetOneFile(m_CurrentVersion.ToString(), *filepath, file))
+		if(g_Git.GetOneFile(CString((m_CurrentVersion.ToString()).c_str()), *filepath, file))
 		{
-			out.FormatMessage(IDS_STATUSLIST_CHECKOUTFILEFAILED, static_cast<LPCWSTR>(filepath->GetGitPathString().c_str()), static_cast<LPCWSTR>(m_CurrentVersion.ToString()), static_cast<LPCWSTR>(file));
-			CMessageBox::Show(GetParentHWND(), g_Git.GetGitLastErr(out, CGit::GIT_CMD_GETONEFILE), L"TortoiseGit", MB_OK);
+			out.FormatMessage(IDS_STATUSLIST_CHECKOUTFILEFAILED, static_cast<LPCWSTR>(filepath->GetGitPathString().c_str()), (m_CurrentVersion.ToString()).c_str(), static_cast<LPCWSTR>(file));
+			CMessageBox::Show(GetParentHWND(), g_Git.GetGitLastErr(out, TGitH::GIT_CMD_GETONEFILE), L"TortoiseGit", MB_OK);
 			return;
 		}
 		SetFileAttributes(file, FILE_ATTRIBUTE_READONLY);
@@ -4676,13 +4678,13 @@ void CGitStatusListCtrl::DeleteSelectedFiles()
 	CAutoRepository repo = g_Git.GetGitRepository();
 	if (!repo)
 	{
-		MessageBox(g_Git.GetLibGit2LastErr(L"Could not open repository."), L"TortoiseGit", MB_OK);
+		MessageBox(TGitH::GetLibGit2LastErr(L"Could not open repository."), L"TortoiseGit", MB_OK);
 		return;
 	}
 	CAutoIndex gitIndex;
 	if (git_repository_index(gitIndex.GetPointer(), repo))
 	{
-		g_Git.GetLibGit2LastErr(L"Could not open index.");
+		TGitH::GetLibGit2LastErr(L"Could not open index.");
 		return;
 	}
 	int needWriteIndex = 0;
@@ -4723,7 +4725,7 @@ void CGitStatusListCtrl::DeleteSelectedFiles()
 	if ((result == 0 || len == 1) && (!fileop.fAnyOperationsAborted))
 	{
 		if (needWriteIndex && git_index_write(gitIndex))
-			MessageBox(g_Git.GetLibGit2LastErr(L"Could not write index."), L"TortoiseGit", MB_OK);
+			MessageBox(TGitH::GetLibGit2LastErr(L"Could not write index."), L"TortoiseGit", MB_OK);
 
 		if (needWriteIndex)
 		{

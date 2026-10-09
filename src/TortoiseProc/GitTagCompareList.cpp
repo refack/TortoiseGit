@@ -20,18 +20,18 @@
 //
 #include "stdafx.h"
 #include "resource.h"
-#include "Git.h"
+import git_h;
 #include "GitTagCompareList.h"
 #include "GitRefCompareList.h"
-#include "registry.h"
-#include "UnicodeUtils.h"
+import Registry;
+import wstr;
 #include "IconMenu.h"
 #include "AppUtils.h"
 #include <TortoiseShell/resource.h>
 #include "LoglistCommonResource.h"
 #include "SysProgressDlg.h"
 #include "ProgressDlg.h"
-#include "CmdLineParser.h"
+import CmdLineParser;
 
 IMPLEMENT_DYNAMIC(CGitTagCompareList, CHintCtrl<CListCtrl>)
 
@@ -115,21 +115,21 @@ int CGitTagCompareList::Fill(const CString& remote, CString& err)
 	REF_VECTOR remoteTags;
 	if (g_Git.GetRemoteRefs(remote, remoteTags, true, false))
 	{
-		err = g_Git.GetGitLastErr(L"Could not retrieve remote tags.", CGit::GIT_CMD_FETCH);
+		err = g_Git.GetGitLastErr(L"Could not retrieve remote tags.", TGitH::GIT_CMD_FETCH);
 		return -1;
 	}
 
 	CAutoRepository repo(g_Git.GetGitRepository());
 	if (!repo)
 	{
-		err = CGit::GetLibGit2LastErr(L"Could not open repository.");
+		err = TGitH::GetLibGit2LastErr(L"Could not open repository.");
 		return -1;
 	}
 
 	MAP_HASH_NAME hashMap;
 	if (CGit::GetMapHashToFriendName(repo, hashMap))
 	{
-		err = CGit::GetLibGit2LastErr(L"Could not get all refs.");
+		err = TGitH::GetLibGit2LastErr(L"Could not get all refs.");
 		return -1;
 	}
 
@@ -298,10 +298,10 @@ void CGitTagCompareList::Show()
 		InsertItem(index, entry.name);
 		SetItemText(index, colDiff, entry.diffstate);
 		if (!entry.myHash.IsEmpty())
-			SetItemText(index, colMyHash, entry.myHash.ToString(g_Git.GetShortHASHLength()));
+			SetItemText(index, colMyHash, (entry.myHash.ToString(g_Git.GetShortHASHLength())).c_str());
 		SetItemText(index, colMyMessage, entry.myMessage);
 		if (!entry.theirHash.IsEmpty())
-			SetItemText(index, colTheirHash, entry.theirHash.ToString(g_Git.GetShortHASHLength()));
+			SetItemText(index, colTheirHash, (entry.theirHash.ToString(g_Git.GetShortHASHLength())).c_str());
 		SetItemText(index, colTheirMessage, entry.theirMessage);
 		++index;
 	}
@@ -463,7 +463,7 @@ void CGitTagCompareList::OnContextMenuList(CWnd * /*pWnd*/, CPoint point)
 			list.push_back(std::format(L"refs/tags/{}", tag));
 			if (g_Git.DeleteRemoteRefs(m_remote, list))
 			{
-				MessageBox(g_Git.GetGitLastErr(L"Could not delete remote tag.", CGit::GIT_CMD_PUSH), L"TortoiseGit", MB_OK | MB_ICONERROR);
+				MessageBox(g_Git.GetGitLastErr(L"Could not delete remote tag.", TGitH::GIT_CMD_PUSH), L"TortoiseGit", MB_OK | MB_ICONERROR);
 				sysProgressDlg.Stop();
 				BringWindowToTop();
 				return;

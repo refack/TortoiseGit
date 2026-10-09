@@ -18,12 +18,22 @@
 //
 
 #include "stdafx.h"
+#include <gitdll.h>
 #include "RepositoryFixtures.h"
-#include "gitindex.h"
-#include "gitdll.h"
+import GitIndex;
 import PathUtils;
+import TGitStatus;
+using GitStatus::CGitFileName;
 
-extern CGitAdminDirMap g_AdminDirMap; // not optimal yet
+// The free CombinePath the old GitStatus.h had, which the modules folded into a
+// lambda local to GitStatus::EnumDirStatus.
+static CString CombinePath(const CString& part1, const CString& part2)
+{
+	CString path = part1 + L'\\' + part2;
+	path.TrimRight(L'\\');
+	return path;
+}
+
 
 class GitIndexCBasicGitFixture : public CBasicGitFixture
 {
@@ -62,7 +72,7 @@ protected:
 		EXPECT_EQ(0, m_Git.Run(L"git.exe checkout -f master", &output, nullptr, CP_UTF8));
 		EXPECT_STRNE(L"", output);
 
-		if (CGit::ms_bCygwinGit || CGit::ms_bMsys2Git)
+		if (TGitH::ms_bCygwinGit || TGitH::ms_bMsys2Git)
 			return;
 
 		// ====Source of the Sub-Module====
@@ -185,33 +195,33 @@ TEST_P(GitIndexCBasicGitWithTestRepoFixture, GetFileStatus)
 	ReadAndCheckIndex(indexList, m_Dir.GetTempDir());
 
 	git_wc_status2_t status = { git_wc_status_none, false, false };
-	EXPECT_EQ(0, indexList.GetFileStatus(std::wstring(m_Dir.GetTempDir()), L"does-not-exist.txt", status, 10, 20, false));
+	EXPECT_EQ(0, indexList.GetFileStatus_NoRepo(std::wstring(m_Dir.GetTempDir()), L"does-not-exist.txt", status, 10, 20, false));
 	EXPECT_EQ(git_wc_status_unversioned, status.status);
 
 	__int64 time = -1;
 	__int64 filesize = -1;
 	status = { git_wc_status_none, false, false };
-	EXPECT_EQ(-1, CGit::GetFileModifyTime(CombinePath(m_Dir.GetTempDir(), L"ansi.txt"), &time, nullptr, &filesize));
-	EXPECT_EQ(0, indexList.GetFileStatus(std::wstring(m_Dir.GetTempDir()), L"ansi.txt", status, time, filesize, false));
+	EXPECT_EQ(-1, TGitH::GetFileModifyTime(CombinePath(m_Dir.GetTempDir(), L"ansi.txt"), &time, nullptr, &filesize));
+	EXPECT_EQ(0, indexList.GetFileStatus_NoRepo(std::wstring(m_Dir.GetTempDir()), L"ansi.txt", status, time, filesize, false));
 	EXPECT_EQ(git_wc_status_deleted, status.status);
 	filesize = 42; // some arbitrary size, i.e., file exists but is changed
-	EXPECT_EQ(0, indexList.GetFileStatus(std::wstring(m_Dir.GetTempDir()), L"ansi.txt", status, time, filesize, false));
+	EXPECT_EQ(0, indexList.GetFileStatus_NoRepo(std::wstring(m_Dir.GetTempDir()), L"ansi.txt", status, time, filesize, false));
 	EXPECT_EQ(git_wc_status_modified, status.status);
 
 	CString output;
 	EXPECT_EQ(0, m_Git.Run(L"git.exe reset --hard", &output, CP_UTF8));
 
-	EXPECT_EQ(0, CGit::GetFileModifyTime(CombinePath(m_Dir.GetTempDir(), L"ansi.txt"), &time, nullptr, &filesize));
+	EXPECT_EQ(0, TGitH::GetFileModifyTime(CombinePath(m_Dir.GetTempDir(), L"ansi.txt"), &time, nullptr, &filesize));
 	status = { git_wc_status_none, false, false };
-	EXPECT_EQ(0, indexList.GetFileStatus(std::wstring(m_Dir.GetTempDir()), L"ansi.txt", status, time, filesize, false));
+	EXPECT_EQ(0, indexList.GetFileStatus_NoRepo(std::wstring(m_Dir.GetTempDir()), L"ansi.txt", status, time, filesize, false));
 	EXPECT_EQ(git_wc_status_normal, status.status);
 	EXPECT_FALSE(status.assumeValid);
 	EXPECT_FALSE(status.skipWorktree);
 
 	EXPECT_TRUE(StringUtils::WriteStringToTextFile(CombinePath(m_Dir.GetTempDir(), L"ansi.txt"), L"this is testing file."));
-	EXPECT_EQ(0, CGit::GetFileModifyTime(CombinePath(m_Dir.GetTempDir(), L"ansi.txt"), &time, nullptr, &filesize));
+	EXPECT_EQ(0, TGitH::GetFileModifyTime(CombinePath(m_Dir.GetTempDir(), L"ansi.txt"), &time, nullptr, &filesize));
 	status = { git_wc_status_none, false, false };
-	EXPECT_EQ(0, indexList.GetFileStatus(std::wstring(m_Dir.GetTempDir()), L"ansi.txt", status, time, filesize, false));
+	EXPECT_EQ(0, indexList.GetFileStatus_NoRepo(std::wstring(m_Dir.GetTempDir()), L"ansi.txt", status, time, filesize, false));
 	EXPECT_EQ(git_wc_status_modified, status.status);
 	EXPECT_FALSE(status.assumeValid);
 	EXPECT_FALSE(status.skipWorktree);
@@ -227,19 +237,19 @@ TEST_P(GitIndexCBasicGitWithTestRepoFixture, GetFileStatus)
 	EXPECT_EQ(0, indexList2.ReadIndex(std::wstring(m_Dir.GetTempDir())));
 	EXPECT_FALSE(indexList2.m_bHasConflicts);
 	status = { git_wc_status_none, false, false };
-	EXPECT_EQ(0, indexList2.GetFileStatus(std::wstring(m_Dir.GetTempDir()), L"ansi.txt", status, time, filesize, false));
+	EXPECT_EQ(0, indexList2.GetFileStatus_NoRepo(std::wstring(m_Dir.GetTempDir()), L"ansi.txt", status, time, filesize, false));
 	EXPECT_EQ(git_wc_status_normal, status.status);
 	EXPECT_FALSE(status.assumeValid);
 	EXPECT_TRUE(status.skipWorktree);
 
-	EXPECT_EQ(0, CGit::GetFileModifyTime(CombinePath(m_Dir.GetTempDir(), L"just-added.txt"), &time, nullptr, &filesize));
+	EXPECT_EQ(0, TGitH::GetFileModifyTime(CombinePath(m_Dir.GetTempDir(), L"just-added.txt"), &time, nullptr, &filesize));
 	status = { git_wc_status_none, false, false };
-	EXPECT_EQ(0, indexList2.GetFileStatus(std::wstring(m_Dir.GetTempDir()), L"just-added.txt", status, time, filesize, false));
+	EXPECT_EQ(0, indexList2.GetFileStatus_NoRepo(std::wstring(m_Dir.GetTempDir()), L"just-added.txt", status, time, filesize, false));
 	EXPECT_EQ(git_wc_status_normal, status.status);
 
-	EXPECT_EQ(0, CGit::GetFileModifyTime(CombinePath(m_Dir.GetTempDir(), L"noted-as-added.txt"), &time, nullptr, &filesize));
+	EXPECT_EQ(0, TGitH::GetFileModifyTime(CombinePath(m_Dir.GetTempDir(), L"noted-as-added.txt"), &time, nullptr, &filesize));
 	status = { git_wc_status_none, false, false };
-	EXPECT_EQ(0, indexList2.GetFileStatus(std::wstring(m_Dir.GetTempDir()), L"noted-as-added.txt", status, time, filesize, false));
+	EXPECT_EQ(0, indexList2.GetFileStatus_NoRepo(std::wstring(m_Dir.GetTempDir()), L"noted-as-added.txt", status, time, filesize, false));
 	EXPECT_EQ(git_wc_status_added, status.status);
 	EXPECT_FALSE(status.assumeValid);
 	EXPECT_FALSE(status.skipWorktree);
@@ -248,9 +258,9 @@ TEST_P(GitIndexCBasicGitWithTestRepoFixture, GetFileStatus)
 
 	Sleep(1000);
 	EXPECT_TRUE(StringUtils::WriteStringToTextFile(CombinePath(m_Dir.GetTempDir(), L"just-added.txt"), L"this IS testing file."));
-	EXPECT_EQ(0, CGit::GetFileModifyTime(CombinePath(m_Dir.GetTempDir(), L"just-added.txt"), &time, nullptr, &filesize));
+	EXPECT_EQ(0, TGitH::GetFileModifyTime(CombinePath(m_Dir.GetTempDir(), L"just-added.txt"), &time, nullptr, &filesize));
 	status = { git_wc_status_none, false, false };
-	EXPECT_EQ(0, indexList2.GetFileStatus(std::wstring(m_Dir.GetTempDir()), L"just-added.txt", status, time, filesize, false));
+	EXPECT_EQ(0, indexList2.GetFileStatus_NoRepo(std::wstring(m_Dir.GetTempDir()), L"just-added.txt", status, time, filesize, false));
 	EXPECT_EQ(git_wc_status_modified, status.status);
 
 	output.Empty();
@@ -266,9 +276,9 @@ TEST_P(GitIndexCBasicGitWithTestRepoFixture, GetFileStatus)
 	EXPECT_EQ(9U, indexList3.size());
 	EXPECT_TRUE(indexList3.m_bHasConflicts);
 
-	EXPECT_EQ(0, CGit::GetFileModifyTime(CombinePath(m_Dir.GetTempDir(), L"ansi.txt"), &time, nullptr, &filesize));
+	EXPECT_EQ(0, TGitH::GetFileModifyTime(CombinePath(m_Dir.GetTempDir(), L"ansi.txt"), &time, nullptr, &filesize));
 	status = { git_wc_status_none, false, false };
-	EXPECT_EQ(0, indexList3.GetFileStatus(std::wstring(m_Dir.GetTempDir()), L"ansi.txt", status, time, filesize, false));
+	EXPECT_EQ(0, indexList3.GetFileStatus_NoRepo(std::wstring(m_Dir.GetTempDir()), L"ansi.txt", status, time, filesize, false));
 	EXPECT_EQ(git_wc_status_conflicted, status.status);
 }
 
@@ -899,53 +909,53 @@ TEST_P(CBasicGitWithMultiLinkedTestWithSubmoduleRepoFixture, AdminDirMap) // Sub
 
 	// CGitAdminDirMap and CPathUtils speak std::wstring; the fixture's paths are
 	// still CStrings, so name the two roots once.
-	const std::wstring mainRoot = CPathUtils::BuildPathWithPathDelimiter(tgit::wstr::StringView(m_MainWorkTreePath));
+	const std::wstring mainRoot = PathUtils::BuildPathWithPathDelimiter(tgit::zstr::StringView(m_MainWorkTreePath));
 	const std::wstring linkedRoot(m_LinkedWorkTreePath);
 
 	// Test if the main work tree admin directory can be found
 	adminDir = g_AdminDirMap.GetAdminDir(std::wstring(m_MainWorkTreePath));
-	EXPECT_TRUE(CPathUtils::IsSamePath(mainRoot + L".git", adminDir));
+	EXPECT_TRUE(PathUtils::IsSamePath(mainRoot + L".git", adminDir));
 
 	// Test test main work tree reverse lookup
 	workDir = g_AdminDirMap.GetWorkingCopy(mainRoot + L".git");
-	EXPECT_TRUE(CPathUtils::IsSamePath(std::wstring(m_MainWorkTreePath), workDir));
+	EXPECT_TRUE(PathUtils::IsSamePath(std::wstring(m_MainWorkTreePath), workDir));
 
-	if (CGit::ms_bCygwinGit || CGit::ms_bMsys2Git)
+	if (TGitH::ms_bCygwinGit || TGitH::ms_bMsys2Git)
 		return;
 
 	// Test if the linked repository admin directory can be found (**WITHOUT** trailing path delimiter)
 	adminDir = g_AdminDirMap.GetAdminDir(linkedRoot);
-	EXPECT_TRUE(CPathUtils::IsSamePath(mainRoot + L".git", adminDir));
+	EXPECT_TRUE(PathUtils::IsSamePath(mainRoot + L".git", adminDir));
 
 	// Test if the linked worktree admin directory can be found (**WITH** trailing path delimiter)
-	adminDir = g_AdminDirMap.GetWorktreeAdminDir(CPathUtils::BuildPathWithPathDelimiter(linkedRoot));
-	EXPECT_TRUE(CPathUtils::IsSamePath(mainRoot + L".git\\worktrees\\LinkedWorkTree", adminDir));
+	adminDir = g_AdminDirMap.GetWorktreeAdminDir(PathUtils::BuildPathWithPathDelimiter(linkedRoot));
+	EXPECT_TRUE(PathUtils::IsSamePath(mainRoot + L".git\\worktrees\\LinkedWorkTree", adminDir));
 
 	// Test if the linked worktree admin directory can be found (**WITHOUT** trailing path delimiter)
 	adminDir = g_AdminDirMap.GetWorktreeAdminDir(linkedRoot);
-	EXPECT_TRUE(CPathUtils::IsSamePath(mainRoot + L".git\\worktrees\\LinkedWorkTree", adminDir));
+	EXPECT_TRUE(PathUtils::IsSamePath(mainRoot + L".git\\worktrees\\LinkedWorkTree", adminDir));
 
 	// Test reverse lookup on linked worktree admin directory (**WITH** trailing path delimiter)
 	workDir = g_AdminDirMap.GetWorkingCopy(mainRoot + L".git\\worktrees\\LinkedWorkTree\\");
-	EXPECT_TRUE(CPathUtils::IsSamePath(linkedRoot, workDir));
+	EXPECT_TRUE(PathUtils::IsSamePath(linkedRoot, workDir));
 
 	// Test reverse lookup on linked worktree admin directory (**WITHOUT** trailing path delimiter)
 	workDir = g_AdminDirMap.GetWorkingCopy(mainRoot + L".git\\worktrees\\LinkedWorkTree");
-	EXPECT_TRUE(CPathUtils::IsSamePath(linkedRoot, workDir));
+	EXPECT_TRUE(PathUtils::IsSamePath(linkedRoot, workDir));
 
 	// Test if the sub-module admin directory can be found (**WITH** trailing path delimiter)
 	adminDir = g_AdminDirMap.GetAdminDir(mainRoot + L"sub1\\");
-	EXPECT_TRUE(CPathUtils::IsSamePath(mainRoot + L".git\\modules\\sub1", adminDir));
+	EXPECT_TRUE(PathUtils::IsSamePath(mainRoot + L".git\\modules\\sub1", adminDir));
 
 	// Test if the sub-module admin directory can be found (**WITHOUT** trailing path delimiter)
 	adminDir = g_AdminDirMap.GetAdminDir(mainRoot + L"sub1");
-	EXPECT_TRUE(CPathUtils::IsSamePath(mainRoot + L".git\\modules\\sub1", adminDir));
+	EXPECT_TRUE(PathUtils::IsSamePath(mainRoot + L".git\\modules\\sub1", adminDir));
 
 	// Test if reverse lookup on submodule works (**WITH** trailing path delimiter)
 	workDir = g_AdminDirMap.GetWorkingCopy(mainRoot + L".git\\modules\\sub1\\");
-	EXPECT_TRUE(CPathUtils::IsSamePath(mainRoot + L"sub1", workDir));
+	EXPECT_TRUE(PathUtils::IsSamePath(mainRoot + L"sub1", workDir));
 
 	// Test if reverse lookup on submodule works (**WITHOUT** trailing path delimiter)
 	workDir = g_AdminDirMap.GetWorkingCopy(mainRoot + L".git\\modules\\sub1");
-	EXPECT_TRUE(CPathUtils::IsSamePath(mainRoot + L"sub1", workDir));
+	EXPECT_TRUE(PathUtils::IsSamePath(mainRoot + L"sub1", workDir));
 }

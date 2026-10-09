@@ -19,10 +19,10 @@
 //
 #pragma once
 
-#include <Utils/MiscUI/StandAloneDlg.h>
-#include <Utils/registry.h>
+#include "StandAloneDlg.h"
+import Registry;
 #include "MenuButton.h"
-#include "TGitPath.h"
+import TGitPath;
 #include "GitStatusListCtrl.h"
 
 /**

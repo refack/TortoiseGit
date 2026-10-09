@@ -1,6 +1,5 @@
 module;
 #include <winnls.h>
-#define PDICT_MAX_WORD_LENGTH 50
 
 
 export module PersonalDictionary;
@@ -8,6 +7,9 @@ import std;
 import wstr;
 import PathUtils;
 using namespace PathUtils;
+
+// A constant rather than the #define it was: a macro never crosses an import.
+export constexpr std::size_t PDICT_MAX_WORD_LENGTH = 50;
 
 
 /**

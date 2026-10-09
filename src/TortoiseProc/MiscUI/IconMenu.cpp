@@ -17,11 +17,12 @@
 // along with this program; if not, write to the Free Software Foundation,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
+#include "../stdafx.h"
 
-#include "Utils/IconMenu.h"
-#include "Utils/registry.h"
+#include "MiscUI/IconMenu.h"
+import Registry;
 #include "Utils/LoadIconEx.h"
-#include "Utils/IconBitmapUtils.h"
+#include "MiscUI/IconBitmapUtils.h"
 
 CIconMenu::CIconMenu() : CMenu()
 {

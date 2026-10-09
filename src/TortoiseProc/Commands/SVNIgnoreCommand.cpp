@@ -1,4 +1,4 @@
-// TortoiseGit - a Windows shell extension for easy version control
+﻿// TortoiseGit - a Windows shell extension for easy version control
 
 // Copyright (C) 2007-2008, 2012, 2014-2016, 2018 - TortoiseGit
 
@@ -20,7 +20,7 @@
 #include "SVNIgnoreCommand.h"
 
 #include "ProgressDlg.h"
-#include "Git.h"
+import git_h;
 #include "SVNIgnoreTypeDlg.h"
 
 bool SVNIgnoreCommand::Execute()

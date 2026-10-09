@@ -17,8 +17,9 @@
 // along with this program; if not, write to the Free Software Foundation,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
+#include "../stdafx.h"
 
-#include "Utils/SciEdit.h"
+#include "MiscUI/SciEdit.h"
 
 #include <string>
 
@@ -30,12 +31,12 @@ import DarkModeHelper;
 #include <Resources/LoglistCommonResource.h>
 #include <TortoiseUDiff/UDiffColors.h>
 #include <Utils/LoadIconEx.h>
-#include <Utils/PathUtils.h>
-#include <Utils/registry.h>
+import PathUtils;
+import Registry;
 #include <Utils/ScintillaRegistration.h>
-#include <Utils/SmartHandle.h>
+import RIAA;
 #include <Utils/Theme.h>
-#include <Utils/UnicodeUtils.h>
+import wstr;
 #include <Utils/URLFinder.h>
 
 
@@ -298,8 +299,8 @@ void CSciEdit::Init(LONG lLanguage)
 void CSciEdit::Init(const ProjectProperties& props)
 {
 	Init(props.lProjectLanguage);
-	m_sCommand = CUnicodeUtils::GetUTF8(props.GetCheckRe());
-	m_sBugID = CUnicodeUtils::GetUTF8(props.GetBugIDRe());
+	m_sCommand = CUnicodeUtils::GetUTF8<CStringA>(props.GetCheckRe());
+	m_sBugID = CUnicodeUtils::GetUTF8<CStringA>(props.GetBugIDRe());
 	m_sUrl = props.sUrl;
 
 	Call(SCI_SETMOUSEDWELLTIME, 333);
@@ -451,7 +452,7 @@ CString CSciEdit::GetWordUnderCursor(bool bSelectWord, bool allchars)
 
 void CSciEdit::SetFont(CString sFontName, int iFontSizeInPoints)
 {
-	Call(SCI_STYLESETFONT, STYLE_DEFAULT, reinterpret_cast<LPARAM>(CUnicodeUtils::GetUTF8(sFontName).GetBuffer()));
+	Call(SCI_STYLESETFONT, STYLE_DEFAULT, reinterpret_cast<LPARAM>(CUnicodeUtils::GetUTF8<CStringA>(sFontName).GetBuffer()));
 	Call(SCI_STYLESETSIZE, STYLE_DEFAULT, iFontSizeInPoints);
 	Call(SCI_STYLECLEARALL);
 
@@ -518,7 +519,7 @@ BOOL CSciEdit::IsMisspelled(const CString& sWord)
 	if (_istdigit(sWord.GetAt(0)))
 		return FALSE;
 	// words in the personal dictionary are correct too
-	if (m_personalDict.FindWord(sWord))
+	if (m_personalDict.FindWord(tgit::zstr::StringView(sWord)))
 		return FALSE;
 
 	// Check spell checking cache first.
@@ -1037,7 +1038,7 @@ void CSciEdit::OnContextMenu(CWnd* /*pWnd*/, CPoint point)
 		// also allow the user to add the word to the custom dictionary so
 		// it won't show up as misspelled anymore
 		if (!bIsReadOnly && (sWord.GetLength() < PDICT_MAX_WORD_LENGTH) && (m_autolist.find(sWord) == m_autolist.end() && IsMisspelled(sWord)) &&
-			(!_istdigit(sWord.GetAt(0))) && (!m_personalDict.FindWord(sWord)))
+			(!_istdigit(sWord.GetAt(0))) && (!m_personalDict.FindWord(tgit::zstr::StringView(sWord))))
 		{
 			sMenuItemText.Format(IDS_SCIEDIT_ADDWORD, static_cast<LPCWSTR>(sWord));
 			popup.AppendMenu(uEnabledMenu, SCI_ADDWORD, sMenuItemText);
@@ -1100,7 +1101,7 @@ void CSciEdit::OnContextMenu(CWnd* /*pWnd*/, CPoint point)
 			Call(cmd);
 			break;
 		case SCI_ADDWORD:
-			m_personalDict.AddWord(sWord);
+			m_personalDict.AddWord(tgit::zstr::StringView(sWord));
 			CheckSpelling(static_cast<Sci_Position>(Call(SCI_POSITIONFROMLINE, static_cast<int>(Call(SCI_GETFIRSTVISIBLELINE)))), static_cast<Sci_Position>(Call(SCI_POSITIONFROMLINE, static_cast<int>(Call(SCI_GETFIRSTVISIBLELINE)) + static_cast<int>(Call(SCI_LINESONSCREEN)))));
 			break;
 		case SCI_LINESSPLIT:
@@ -1234,7 +1235,7 @@ bool CSciEdit::FindStyleChars(const char* line, char styler, Sci_Position& start
 	}
 
 	bool bFoundMarker = false;
-	CString sULine = CUnicodeUtils::GetUnicode(line);
+	CString sULine = CUnicodeUtils::Convert2Unicode<CString>(line);
 	// find a starting marker
 	while (line[i] != 0)
 	{
@@ -1644,13 +1645,13 @@ int CSciEdit::LoadFromFile(const CString& filename, UINT errorMsgId)
 	CAutoFile hfile = CreateFile(filename, GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_DELETE, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
 	if (!hfile)
 	{
-		MessageBox(CFormatMessageWrapper(), L"TortoiseGit", MB_ICONEXCLAMATION);
+		MessageBox((CFormatMessageWrapper()).c_str(), L"TortoiseGit", MB_ICONEXCLAMATION);
 		return -1;
 	}
 
 	if (LARGE_INTEGER fileSize; !::GetFileSizeEx(hfile, &fileSize))
 	{
-		MessageBox(static_cast<LPCWSTR>(CFormatMessageWrapper()), L"TortoiseGit", MB_ICONEXCLAMATION);
+		MessageBox((CFormatMessageWrapper()).c_str(), L"TortoiseGit", MB_ICONEXCLAMATION);
 		return false;
 	}
 	else if (fileSize.QuadPart >= 250 * 1024 * 1024) // styling gets really slow and Scintilla requires special initialization for large files
@@ -1665,7 +1666,7 @@ int CSciEdit::LoadFromFile(const CString& filename, UINT errorMsgId)
 	DWORD size = 0;
 	if (!ReadFile(hfile, data, sizeof(data), &size, nullptr))
 	{
-		MessageBox(CFormatMessageWrapper(), L"TortoiseGit", MB_ICONEXCLAMATION);
+		MessageBox((CFormatMessageWrapper()).c_str(), L"TortoiseGit", MB_ICONEXCLAMATION);
 		return -1;
 	}
 
@@ -1687,9 +1688,9 @@ int CSciEdit::LoadFromFile(const CString& filename, UINT errorMsgId)
 		if (auto sciStatus = static_cast<int>(Call(SCI_GETSTATUS)); sciStatus > SC_STATUS_OK && sciStatus < SC_STATUS_WARN_START)
 		{
 			if (sciStatus == SC_STATUS_BADALLOC)
-				MessageBox(static_cast<LPCWSTR>(CFormatMessageWrapper(static_cast<DWORD>(E_OUTOFMEMORY))), L"TortoiseGit", MB_ICONEXCLAMATION);
+				MessageBox((CFormatMessageWrapper(static_cast<DWORD>(E_OUTOFMEMORY))).c_str(), L"TortoiseGit", MB_ICONEXCLAMATION);
 			else
-				MessageBox(static_cast<LPCWSTR>(CFormatMessageWrapper(static_cast<DWORD>(E_FAIL))), L"TortoiseGit", MB_ICONEXCLAMATION);
+				MessageBox((CFormatMessageWrapper(static_cast<DWORD>(E_FAIL))).c_str(), L"TortoiseGit", MB_ICONEXCLAMATION);
 			
 			Call(SCI_CLEARALL);
 			Call(SCI_CANCEL);
@@ -1699,7 +1700,7 @@ int CSciEdit::LoadFromFile(const CString& filename, UINT errorMsgId)
 		{
 			Call(SCI_CLEARALL);
 			Call(SCI_CANCEL);
-			MessageBox(CFormatMessageWrapper(), L"TortoiseGit", MB_ICONEXCLAMATION);
+			MessageBox((CFormatMessageWrapper()).c_str(), L"TortoiseGit", MB_ICONEXCLAMATION);
 			return -1;
 		}
 	}

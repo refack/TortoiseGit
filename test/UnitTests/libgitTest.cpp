@@ -18,9 +18,9 @@
 //
 
 #include "stdafx.h"
-#include "Git.h"
-#include "StringUtils.h"
-#include "gitdll.h"
+#include <gitdll.h>
+import git_h;
+import StringUtils;
 
 TEST(libgit, BrokenConfig)
 {
@@ -142,10 +142,10 @@ TEST(libgit, MkDir)
 	CString subdir = tempdir.GetTempDir() + L"\\abc";
 
 	EXPECT_FALSE(PathFileExists(subdir));
-	EXPECT_EQ(0, git_mkdir(CUnicodeUtils::GetUTF8(subdir)));
+	EXPECT_EQ(0, git_mkdir(CUnicodeUtils::GetUTF8<CStringA>(subdir)));
 	EXPECT_TRUE(PathFileExists(subdir));
 	EXPECT_TRUE(PathIsDirectory(subdir));
-	EXPECT_EQ(-1, git_mkdir(CUnicodeUtils::GetUTF8(subdir)));
+	EXPECT_EQ(-1, git_mkdir(CUnicodeUtils::GetUTF8<CStringA>(subdir)));
 }
 
 TEST(libgit, RefreshIndex)
@@ -164,10 +164,10 @@ TEST(libgit, RefreshIndex)
 	git_repository_init_options options = GIT_REPOSITORY_INIT_OPTIONS_INIT;
 	options.flags = GIT_REPOSITORY_INIT_MKPATH | GIT_REPOSITORY_INIT_EXTERNAL_TEMPLATE;
 	CAutoRepository repo;
-	ASSERT_EQ(0, git_repository_init_ext(repo.GetPointer(), CUnicodeUtils::GetUTF8(tempdir.GetTempDir()), &options));
+	ASSERT_EQ(0, git_repository_init_ext(repo.GetPointer(), CUnicodeUtils::GetUTF8<CStringA>(tempdir.GetTempDir()), &options));
 	CAutoConfig config(repo);
 	ASSERT_TRUE(config.IsValid());
-	CStringA path = CUnicodeUtils::GetUTF8(g_Git.m_CurrentDir);
+	CStringA path = CUnicodeUtils::GetUTF8<CStringA>(g_Git.m_CurrentDir);
 	path.Replace('\\', '/');
 	EXPECT_EQ(0, git_config_set_string(config, "core.autocrlf", "false")); // newer Git complains for adding 1.enc with a safecrlf warning, especially an issue on AppVeyor where AutoCrLf=input is set
 	EXPECT_EQ(0, git_config_set_string(config, "filter.openssl.clean", path + "/clean_filter_openssl"));
@@ -221,7 +221,7 @@ TEST(libgit, RefreshIndex)
 
 	output.Empty();
 	EXPECT_EQ(0, g_Git.Run(L"git.exe add 1.enc", &output, CP_UTF8));
-	if (!g_Git.ms_bCygwinGit) // on AppVeyor with the VS2017 image we get a warning: "WARNING: can't open config file: /usr/local/ssl/openssl.cnf"
+	if (!TGitH::ms_bCygwinGit) // on AppVeyor with the VS2017 image we get a warning: "WARNING: can't open config file: /usr/local/ssl/openssl.cnf"
 		EXPECT_STREQ(L"", output);
 
 	WIN32_FILE_ATTRIBUTE_DATA fdata;
@@ -281,7 +281,7 @@ TEST(libgit, IncludeIf)
 	git_repository_init_options options = GIT_REPOSITORY_INIT_OPTIONS_INIT;
 	options.flags = GIT_REPOSITORY_INIT_EXTERNAL_TEMPLATE;
 	CAutoRepository repo;
-	ASSERT_EQ(0, git_repository_init_ext(repo.GetPointer(), CUnicodeUtils::GetUTF8(repoDir), &options));
+	ASSERT_EQ(0, git_repository_init_ext(repo.GetPointer(), CUnicodeUtils::GetUTF8<CStringA>(repoDir), &options));
 
 	EXPECT_TRUE(StringUtils::WriteStringToTextFile(repoDir + L"\\.git\\config", L"[core]\n	repositoryformatversion = 0\n	filemode = false\n	bare = false\n	logallrefupdates = true\n	symlinks = false\n	ignorecase = true\n	hideDotFiles = dotGitOnly\n[something]\n	thevalue = jap\n[includeIf \"gitdir:RepoWithAInPath/**\"]\n	path = configA\n[includeIf \"gitdir:RepoWithBInPath/**\"]\n	path = configB\n"));
 	EXPECT_TRUE(StringUtils::WriteStringToTextFile(repoDir + L"\\.git\\configA", L"[somethinga]\n	thevalue = jop\n"));

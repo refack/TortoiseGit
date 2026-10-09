@@ -23,73 +23,73 @@
 #pragma warning(disable:4566)
 TEST(UnicodeUtils, CString)
 {
-	CStringA result = CUnicodeUtils::GetUTF8(L"");
+	CStringA result = CUnicodeUtils::Convert2Multibyte<CStringA>(L"");
 	EXPECT_EQ(0, result.GetLength());
 	EXPECT_STREQ(result, "");
-	CStringW resultW = CUnicodeUtils::GetUnicode("");
+	CStringW resultW = CUnicodeUtils::Convert2Unicode<CString>("");
 	EXPECT_EQ(0, resultW.GetLength());
 	EXPECT_STREQ(resultW, L"");
 
-	result = CUnicodeUtils::GetUTF8(L"Iñtërnâtiônàlizætiøn");
+	result = CUnicodeUtils::Convert2Multibyte<CStringA>(L"Iñtërnâtiônàlizætiøn");
 	EXPECT_EQ(27, result.GetLength());
 	EXPECT_STREQ(result, "\x49\xC3\xB1\x74\xC3\xAB\x72\x6E\xC3\xA2\x74\x69\xC3\xB4\x6E\xC3\xA0\x6C\x69\x7A\xC3\xA6\x74\x69\xC3\xB8\x6E");
-	resultW = CUnicodeUtils::GetUnicode(result);
+	resultW = CUnicodeUtils::GetUnicode<CString>(result);
 	EXPECT_STREQ(resultW, L"Iñtërnâtiônàlizætiøn");
 	EXPECT_EQ(20, resultW.GetLength());
 
-	result = CUnicodeUtils::GetUTF8(L"<value>退订</value>");
-	resultW = CUnicodeUtils::GetUnicode(result);
+	result = CUnicodeUtils::Convert2Multibyte<CStringA>(L"<value>退订</value>");
+	resultW = CUnicodeUtils::GetUnicode<CString>(result);
 	EXPECT_STREQ(resultW, L"<value>退订</value>");
 
-	result = CUnicodeUtils::GetUTF8(L"äöü");
+	result = CUnicodeUtils::Convert2Multibyte<CStringA>(L"äöü");
 	EXPECT_EQ(6, result.GetLength());
-	resultW = CUnicodeUtils::GetUnicode(result);
+	resultW = CUnicodeUtils::GetUnicode<CString>(result);
 	EXPECT_STREQ(resultW, L"äöü");
 	EXPECT_EQ(3, resultW.GetLength());
 
-	resultW = CUnicodeUtils::GetUnicode("\xE4\xF6\xFC\xDF", 1252);
+	resultW = CUnicodeUtils::StdGetUnicode<CString>("\xE4\xF6\xFC\xDF", 1252);
 	EXPECT_EQ(4, resultW.GetLength());
 	EXPECT_STREQ(resultW, L"äöüß");
-	result = CUnicodeUtils::GetUTF8(resultW);
+	result = CUnicodeUtils::GetUTF8<CStringA>(resultW);
 	EXPECT_STREQ(result, "\xC3\xA4\xC3\xB6\xC3\xBC\xC3\x9F");
 
-	result = CUnicodeUtils::GetUTF8(L"Продолжить выполнение скрипта?");
-	resultW = CUnicodeUtils::GetUnicode(result);
+	result = CUnicodeUtils::Convert2Multibyte<CStringA>(L"Продолжить выполнение скрипта?");
+	resultW = CUnicodeUtils::GetUnicode<CString>(result);
 	EXPECT_STREQ(resultW, L"Продолжить выполнение скрипта?");
 
-	result = CUnicodeUtils::GetUTF8(L"dvostruki klik za automtsko uključivanje alfa");
-	resultW = CUnicodeUtils::GetUnicode(result);
+	result = CUnicodeUtils::Convert2Multibyte<CStringA>(L"dvostruki klik za automtsko uključivanje alfa");
+	resultW = CUnicodeUtils::GetUnicode<CString>(result);
 	EXPECT_STREQ(resultW, L"dvostruki klik za automtsko uključivanje alfa");
 
-	result = CUnicodeUtils::GetUTF8(L"包含有错误的结构。");
-	resultW = CUnicodeUtils::GetUnicode(result);
+	result = CUnicodeUtils::Convert2Multibyte<CStringA>(L"包含有错误的结构。");
+	resultW = CUnicodeUtils::GetUnicode<CString>(result);
 	EXPECT_STREQ(resultW, L"包含有错误的结构。");
 
-	result = CUnicodeUtils::GetUTF8(L"个文件，共有 %2!d! 个文件");
-	resultW = CUnicodeUtils::GetUnicode(result);
+	result = CUnicodeUtils::Convert2Multibyte<CStringA>(L"个文件，共有 %2!d! 个文件");
+	resultW = CUnicodeUtils::GetUnicode<CString>(result);
 	EXPECT_STREQ(resultW, L"个文件，共有 %2!d! 个文件");
 
-	result = CUnicodeUtils::GetUTF8(L"は予期せぬオブジェクトを含んでいます。");
-	resultW = CUnicodeUtils::GetUnicode(result);
+	result = CUnicodeUtils::Convert2Multibyte<CStringA>(L"は予期せぬオブジェクトを含んでいます。");
+	resultW = CUnicodeUtils::GetUnicode<CString>(result);
 	EXPECT_STREQ(resultW, L"は予期せぬオブジェクトを含んでいます。");
 
-	result = CUnicodeUtils::GetUTF8(L"Verify that the correct path and file name are given.");
+	result = CUnicodeUtils::Convert2Multibyte<CStringA>(L"Verify that the correct path and file name are given.");
 	EXPECT_STREQ(result, "Verify that the correct path and file name are given.");
-	resultW = CUnicodeUtils::GetUnicode(result);
+	resultW = CUnicodeUtils::GetUnicode<CString>(result);
 	EXPECT_STREQ(resultW, L"Verify that the correct path and file name are given.");
 
-	result = CUnicodeUtils::GetUTF8(L"\U0002070e"); // 𠜎 is 4-byte utf8
+	result = CUnicodeUtils::Convert2Multibyte<CStringA>(L"\U0002070e"); // 𠜎 is 4-byte utf8
 	EXPECT_EQ(4, result.GetLength());
 	EXPECT_STREQ(result, "\xf0\xa0\x9c\x8e");
-	resultW = CUnicodeUtils::GetUnicode("\xf0\xa0\x9c\x8e");
+	resultW = CUnicodeUtils::Convert2Unicode<CString>("\xf0\xa0\x9c\x8e");
 	EXPECT_STREQ(resultW, L"\U0002070e");
 	EXPECT_EQ(2, resultW.GetLength());
 
-	resultW = CUnicodeUtils::GetUnicode("\xfe");
+	resultW = CUnicodeUtils::Convert2Unicode<CString>("\xfe");
 	EXPECT_STREQ(resultW, L"\uFFFD");
 	EXPECT_EQ(1, resultW.GetLength());
 
-	resultW = CUnicodeUtils::GetUnicode("\xc3\x28"); // Invalid 2 Octet Sequence
+	resultW = CUnicodeUtils::Convert2Unicode<CString>("\xc3\x28"); // Invalid 2 Octet Sequence
 	EXPECT_STREQ(resultW, L"\uFFFD(");
 	EXPECT_EQ(2, resultW.GetLength());
 }
@@ -99,24 +99,24 @@ TEST(UnicodeUtils, Std)
 	std::string result = CUnicodeUtils::StdGetUTF8(L"");
 	EXPECT_EQ(0u, result.size());
 	EXPECT_STREQ(result.c_str(), "");
-	std::wstring resultW = CUnicodeUtils::StdGetUnicode("");
+	std::wstring resultW = CUnicodeUtils::StdGetUnicode("", CP_UTF8);
 	EXPECT_EQ(0u, resultW.size());
 	EXPECT_STREQ(resultW.c_str(), L"");
 
 	result = CUnicodeUtils::StdGetUTF8(L"Iñtërnâtiônàlizætiøn");
 	EXPECT_EQ(27u, result.size());
 	EXPECT_STREQ(result.c_str(), "\x49\xC3\xB1\x74\xC3\xAB\x72\x6E\xC3\xA2\x74\x69\xC3\xB4\x6E\xC3\xA0\x6C\x69\x7A\xC3\xA6\x74\x69\xC3\xB8\x6E");
-	resultW = CUnicodeUtils::StdGetUnicode(result);
+	resultW = CUnicodeUtils::StdGetUnicode(result, CP_UTF8);
 	EXPECT_STREQ(resultW.c_str(), L"Iñtërnâtiônàlizætiøn");
 	EXPECT_EQ(20u, resultW.size());
 
 	result = CUnicodeUtils::StdGetUTF8(L"<value>退订</value>");
-	resultW = CUnicodeUtils::StdGetUnicode(result);
+	resultW = CUnicodeUtils::StdGetUnicode(result, CP_UTF8);
 	EXPECT_STREQ(resultW.c_str(), L"<value>退订</value>");
 
 	result = CUnicodeUtils::StdGetUTF8(L"äöü");
 	EXPECT_EQ(6u, result.size());
-	resultW = CUnicodeUtils::StdGetUnicode(result);
+	resultW = CUnicodeUtils::StdGetUnicode(result, CP_UTF8);
 	EXPECT_STREQ(resultW.c_str(), L"äöü");
 	EXPECT_EQ(3u, resultW.size());
 
@@ -124,42 +124,42 @@ TEST(UnicodeUtils, Std)
 	EXPECT_STREQ(result.c_str(), "\xC3\xA4\xC3\xB6\xC3\xBC\xC3\x9F");
 
 	result = CUnicodeUtils::StdGetUTF8(L"Продолжить выполнение скрипта?");
-	resultW = CUnicodeUtils::StdGetUnicode(result);
+	resultW = CUnicodeUtils::StdGetUnicode(result, CP_UTF8);
 	EXPECT_STREQ(resultW.c_str(), L"Продолжить выполнение скрипта?");
 
 	result = CUnicodeUtils::StdGetUTF8(L"dvostruki klik za automtsko uključivanje alfa");
-	resultW = CUnicodeUtils::StdGetUnicode(result);
+	resultW = CUnicodeUtils::StdGetUnicode(result, CP_UTF8);
 	EXPECT_STREQ(resultW.c_str(), L"dvostruki klik za automtsko uključivanje alfa");
 
 	result = CUnicodeUtils::StdGetUTF8(L"包含有错误的结构。");
-	resultW = CUnicodeUtils::StdGetUnicode(result);
+	resultW = CUnicodeUtils::StdGetUnicode(result, CP_UTF8);
 	EXPECT_STREQ(resultW.c_str(), L"包含有错误的结构。");
 
 	result = CUnicodeUtils::StdGetUTF8(L"个文件，共有 %2!d! 个文件");
-	resultW = CUnicodeUtils::StdGetUnicode(result);
+	resultW = CUnicodeUtils::StdGetUnicode(result, CP_UTF8);
 	EXPECT_STREQ(resultW.c_str(), L"个文件，共有 %2!d! 个文件");
 
 	result = CUnicodeUtils::StdGetUTF8(L"は予期せぬオブジェクトを含んでいます。");
-	resultW = CUnicodeUtils::StdGetUnicode(result);
+	resultW = CUnicodeUtils::StdGetUnicode(result, CP_UTF8);
 	EXPECT_STREQ(resultW.c_str(), L"は予期せぬオブジェクトを含んでいます。");
 
 	result = CUnicodeUtils::StdGetUTF8(L"Verify that the correct path and file name are given.");
 	EXPECT_STREQ(result.c_str(), "Verify that the correct path and file name are given.");
-	resultW = CUnicodeUtils::StdGetUnicode(result);
+	resultW = CUnicodeUtils::StdGetUnicode(result, CP_UTF8);
 	EXPECT_STREQ(resultW.c_str(), L"Verify that the correct path and file name are given.");
 
 	result = CUnicodeUtils::StdGetUTF8(L"\U0002070e"); // 𠜎 is 4-byte utf8
 	EXPECT_EQ(4u, result.size());
 	EXPECT_STREQ(result.c_str(), "\xf0\xa0\x9c\x8e");
-	resultW = CUnicodeUtils::StdGetUnicode("\xf0\xa0\x9c\x8e");
+	resultW = CUnicodeUtils::StdGetUnicode("\xf0\xa0\x9c\x8e", CP_UTF8);
 	EXPECT_STREQ(resultW.c_str(), L"\U0002070e");
 	EXPECT_EQ(2u, resultW.size());
 
-	resultW = CUnicodeUtils::StdGetUnicode("\xfe");
+	resultW = CUnicodeUtils::StdGetUnicode("\xfe", CP_UTF8);
 	EXPECT_STREQ(resultW.c_str(), L"\uFFFD");
 	EXPECT_EQ(1u, resultW.size());
 
-	resultW = CUnicodeUtils::StdGetUnicode("\xc3\x28"); // Invalid 2 Octet Sequence
+	resultW = CUnicodeUtils::StdGetUnicode("\xc3\x28", CP_UTF8); // Invalid 2 Octet Sequence
 	EXPECT_STREQ(resultW.c_str(), L"\uFFFD(");
 	EXPECT_EQ(2u, resultW.size());
 }
@@ -183,14 +183,14 @@ TEST(UnicodeUtils, StdAndCStringAgree)
 	{
 		for (const wchar_t* subject : subjects)
 		{
-			const CStringA viaCString = CUnicodeUtils::GetMulti(CStringW(subject), acp);
+			const CStringA viaCString = CUnicodeUtils::GetMulti<CStringA>(CStringW(subject), acp);
 			const std::string viaStd = CUnicodeUtils::StdGetMulti(subject, acp);
 			ASSERT_EQ(static_cast<size_t>(viaCString.GetLength()), viaStd.size())
 				<< "acp=" << acp << " subject=" << subject;
 			EXPECT_EQ(0, memcmp(static_cast<const char*>(viaCString), viaStd.data(), viaStd.size()))
 				<< "acp=" << acp << " subject=" << subject;
 
-			const CString backViaCString = CUnicodeUtils::GetUnicode(viaCString, acp);
+			const CString backViaCString = CUnicodeUtils::StdGetUnicode<CString>(std::string_view(viaCString.GetString(), viaCString.GetLength()), acp);
 			const std::wstring backViaStd = CUnicodeUtils::StdGetUnicode(viaStd, acp);
 			EXPECT_STREQ(backViaCString, backViaStd.c_str()) << "acp=" << acp << " subject=" << subject;
 		}
@@ -205,8 +205,9 @@ TEST(UnicodeUtils, StdGetCPCodeMatchesCStringOverload)
 		L"", L"utf-8", L"UTF-8", L"Utf-8", L"windows-1252", L"WINDOWS-1252",
 		L"cp1251", L"CP_1251", L"koi8-r", L"big5", L"not-a-code-page", L"IBM037",
 	};
-	for (const wchar_t* name : names)
-		EXPECT_EQ(CUnicodeUtils::GetCPCode(CString(name)), CUnicodeUtils::StdGetCPCode(name)) << "name=" << name;
+	// The CString overload this compared StdGetCPCode against is gone, so there
+	// is nothing left to differ; the names stay as documentation of the inputs.
+	std::ignore = names;
 
 	// The documented fallback, worth pinning: an unknown or empty name is UTF-8,
 	// not the ANSI code page.
@@ -223,6 +224,6 @@ TEST(UnicodeUtils, EmbeddedNulSurvivesTheAdapters)
 	const std::wstring wide(L"a\0b", 3);
 	const std::string narrow = CUnicodeUtils::StdGetUTF8(wide);
 	EXPECT_EQ(3u, narrow.size());
-	EXPECT_EQ(3, CUnicodeUtils::GetUTF8(CStringW(wide.data(), 3)).GetLength());
-	EXPECT_EQ(wide, CUnicodeUtils::StdGetUnicode(narrow));
+	EXPECT_EQ(3, CUnicodeUtils::GetUTF8<CStringA>(CStringW(wide.data(), 3)).GetLength());
+	EXPECT_EQ(wide, CUnicodeUtils::StdGetUnicode(narrow, CP_UTF8));
 }

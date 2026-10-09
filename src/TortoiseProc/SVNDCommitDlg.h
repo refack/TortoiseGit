@@ -22,7 +22,7 @@
 
 #pragma once
 
-#include <Utils/MiscUI/StandAloneDlg.h>
+#include "StandAloneDlg.h"
 
 class CSVNDCommitDlg : public CStandAloneDialog
 {

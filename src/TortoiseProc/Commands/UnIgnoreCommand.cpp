@@ -21,7 +21,7 @@
 #include "UnIgnoreCommand.h"
 
 #include "MessageBox.h"
-#include "PathUtils.h"
+import PathUtils;
 #include "SVNProperties.h"
 
 bool UnIgnoreCommand::Execute()
@@ -30,7 +30,7 @@ bool UnIgnoreCommand::Execute()
 	BOOL err = FALSE;
 	for (int nPath = 0; nPath < pathList.GetCount(); ++nPath)
 	{
-		CString name = CPathUtils::PathPatternEscape(pathList[nPath].GetFileOrDirectoryName().c_str());
+		CString name = PathUtils::PathPatternEscape(pathList[nPath].GetFileOrDirectoryName().c_str());
 		if (parser.HasKey(L"onlymask"))
 			name = L'*' + pathList[nPath].GetFileExtension().c_str();
 		filelist += name + L'\n';
@@ -55,7 +55,7 @@ bool UnIgnoreCommand::Execute()
 		// Delete all occurrences of 'name'
 		// "\n" is temporarily prepended to make the algorithm easier
 		value = "\n" + value;
-		value.Replace("\n" + CUnicodeUtils::GetUTF8(name) + "\n", "\n");
+		value.Replace("\n" + CUnicodeUtils::GetUTF8<CStringA>(name) + "\n", "\n");
 		value = value.Mid(1);
 
 		CStringA sTrimmedvalue = value;

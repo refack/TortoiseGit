@@ -22,7 +22,7 @@
 #include "ProjectProperties.h"
 #include "SetDialogs3.h"
 #include "AppUtils.h"
-#include "LangDll.h"
+import LandDll;
 
 static std::vector<DWORD> g_langs;
 

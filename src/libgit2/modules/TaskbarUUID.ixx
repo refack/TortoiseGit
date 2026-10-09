@@ -1,4 +1,5 @@
-module;
+﻿module;
+#include <tgit_cstring.h>	// first: decides which CString this compile speaks
 #include <windows.h>
 #include <Shobjidl.h>
 #include <atlbase.h>
@@ -18,7 +19,8 @@ import CmdLineParser;
 constexpr auto APPID = L"TGIT.TGIT.1";
 
 
-namespace TaskbarUUID {
+// export: "export using namespace" of an unexported namespace exports nothing
+export namespace TaskbarUUID {
 /**
  * Sets the Task ID (Win7) for the process according to settings
  * in the registry:
@@ -110,10 +112,14 @@ std::wstring GetTaskIDPerUUID(LPCWSTR uuid /*= nullptr */)
 	return id;
 }
 
-#ifdef __AFXWIN_H__
-extern CString g_sGroupingUUID;
-extern CString g_sGroupingIcon;
-extern bool g_bGroupingRemoveIcon;
+// The MFC applications (TortoiseProc, the unit tests) define these. "#ifdef __AFXWIN_H__"
+// keyed off the includer, which a module never sees, so it is the MFC flavor of
+// this library now; and extern "C++" attaches the declarations to the global
+// module, so they name the applications' variables and not new ones of this module's.
+#ifdef TGIT_MFC
+extern "C++" CString g_sGroupingUUID;
+extern "C++" CString g_sGroupingIcon;
+extern "C++" bool g_bGroupingRemoveIcon;
 #endif
 
 void SetUUIDOverlayIcon( HWND hWnd )
@@ -124,15 +130,16 @@ void SetUUIDOverlayIcon( HWND hWnd )
 	if (!CRegStdDWORD(L"Software\\TortoiseGit\\GroupTaskbarIconsPerRepoOverlay", TRUE))
 		return;
 
-#ifdef __AFXWIN_H__
-	std::wstring sicon = g_sGroupingIcon;
+#ifdef TGIT_MFC
+	std::wstring sicon(g_sGroupingIcon);	// direct-init: copy-init from a CString needs two conversions
 	bool bRemoveicon = g_bGroupingRemoveIcon;
-	std::wstring uuid = g_sGroupingUUID;
+	std::wstring uuid(g_sGroupingUUID);
 #else
 	std::wstring sicon{};
 	bool bRemoveicon = false;
 	CCmdLineParser parser(GetCommandLine());
-	std::wstring uuid = parser.HasVal(L"groupuuid") ? parser.GetVal(L"groupuuid") : nullptr;
+	// not `: nullptr` - std::wstring(nullptr) is UB (CLAUDE.md failure mode 5)
+	std::wstring uuid = parser.HasVal(L"groupuuid") ? std::wstring(parser.GetVal(L"groupuuid")) : std::wstring();
 #endif
 	if (uuid.empty())
 		return;

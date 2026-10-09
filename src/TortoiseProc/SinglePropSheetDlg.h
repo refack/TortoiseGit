@@ -20,7 +20,7 @@
 #pragma once
 
 #include "Settings/SettingsPropPage.h"
-#include <Utils/TreePropSheet/TreePropSheet.h>
+#include "TreePropSheet/TreePropSheet.h"
 
 class CSinglePropSheetDlg : public TreePropSheet::CTreePropSheet
 {

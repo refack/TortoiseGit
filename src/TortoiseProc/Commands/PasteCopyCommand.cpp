@@ -23,8 +23,8 @@
 #include "SysProgressDlg.h"
 #include "MessageBox.h"
 #include "RenameDlg.h"
-#include "Git.h"
-#include "ShellUpdater.h"
+import git_h;
+import CShellUpdater;
 
 bool PasteCopyCommand::Execute()
 {

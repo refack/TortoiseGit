@@ -19,7 +19,7 @@
 #include "stdafx.h"
 #include "TortoiseProc.h"
 #include "AddProgressCommand.h"
-#include "ShellUpdater.h"
+import CShellUpdater;
 #include "MassiveGitTask.h"
 #include "AppUtils.h"
 
@@ -60,7 +60,7 @@ bool AddProgressCommand::Run(CGitProgressList* list, CString& sWindowTitle, int&
 
 	for (m_itemCount = 0; m_itemCount < m_itemCountTotal; ++m_itemCount)
 	{
-		CStringA filePathA = CUnicodeUtils::GetUTF8(m_targetPathList[m_itemCount].GetGitPathString().c_str()).TrimRight(L'/');
+		CStringA filePathA = CUnicodeUtils::Convert2Multibyte<CStringA>(m_targetPathList[m_itemCount].GetGitPathString().c_str()).TrimRight(L'/');
 		if (git_index_add_bypath(index, filePathA))
 		{
 			list->ReportGitError();
@@ -129,19 +129,19 @@ bool AddProgressCommand::SetFileMode(uint32_t mode)
 	CAutoRepository repo(g_Git.GetGitRepository());
 	if (!repo)
 	{
-		MessageBox(nullptr, g_Git.GetLibGit2LastErr(L"Could not open repository."), L"TortoiseGit", MB_ICONERROR);
+		MessageBox(nullptr, TGitH::GetLibGit2LastErr(L"Could not open repository."), L"TortoiseGit", MB_ICONERROR);
 		return false;
 	}
 
 	CAutoIndex index;
 	if (git_repository_index(index.GetPointer(), repo))
 	{
-		MessageBox(nullptr, g_Git.GetLibGit2LastErr(L"Could not get index."), L"TortoiseGit", MB_ICONERROR);
+		MessageBox(nullptr, TGitH::GetLibGit2LastErr(L"Could not get index."), L"TortoiseGit", MB_ICONERROR);
 		return false;
 	}
 	if (git_index_read(index, true))
 	{
-		MessageBox(nullptr, g_Git.GetLibGit2LastErr(L"Could not read index."), L"TortoiseGit", MB_ICONERROR);
+		MessageBox(nullptr, TGitH::GetLibGit2LastErr(L"Could not read index."), L"TortoiseGit", MB_ICONERROR);
 		return false;
 	}
 
@@ -149,24 +149,24 @@ bool AddProgressCommand::SetFileMode(uint32_t mode)
 	{
 		if (m_targetPathList[i].IsDirectory())
 			continue;
-		CStringA filePathA = CUnicodeUtils::GetUTF8(m_targetPathList[i].GetGitPathString().c_str()).TrimRight(L'/');
+		CStringA filePathA = CUnicodeUtils::Convert2Multibyte<CStringA>(m_targetPathList[i].GetGitPathString().c_str()).TrimRight(L'/');
 		auto entry = const_cast<git_index_entry*>(git_index_get_bypath(index, filePathA, 0));
 		if (!entry)
 		{
-			MessageBox(nullptr, g_Git.GetLibGit2LastErr(L"Could not update file mode."), L"TortoiseGit", MB_ICONERROR);
+			MessageBox(nullptr, TGitH::GetLibGit2LastErr(L"Could not update file mode."), L"TortoiseGit", MB_ICONERROR);
 			return false;
 		}
 		entry->mode = mode;
 		if (git_index_add(index, entry))
 		{
-			MessageBox(nullptr, g_Git.GetLibGit2LastErr(L"Could not update index."), L"TortoiseGit", MB_ICONERROR);
+			MessageBox(nullptr, TGitH::GetLibGit2LastErr(L"Could not update index."), L"TortoiseGit", MB_ICONERROR);
 			return false;
 		}
 	}
 
 	if (git_index_write(index))
 	{
-		MessageBox(nullptr, g_Git.GetLibGit2LastErr(L"Could not write index."), L"TortoiseGit", MB_ICONERROR);
+		MessageBox(nullptr, TGitH::GetLibGit2LastErr(L"Could not write index."), L"TortoiseGit", MB_ICONERROR);
 		return false;
 	}
 

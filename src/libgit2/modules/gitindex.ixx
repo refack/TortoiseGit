@@ -1,4 +1,5 @@
 ﻿module;
+#include <tgit_cstring.h>	// first: decides which CString this compile speaks
 #include <sys/stat.h>
 #include <gitdll.h>
 #include <git2.h>
@@ -168,10 +169,10 @@ public:
 
 	CGitIndexList()
 	{
-#ifndef TGIT_TESTS_ONLY
+		// The registry defaults equal the member defaults, which is what the unit
+		// tests (once compiled with TGIT_TESTS_ONLY to skip this) rely on.
 		m_iMaxCheckSize = static_cast<std::int64_t>(CRegDWORD(L"Software\\TortoiseGit\\TGitCacheCheckContentMaxSize", 10 * 1024)) * 1024; // stored in KiB
 		m_bCalculateIncomingOutgoing = (CRegStdDWORD(L"Software\\TortoiseGit\\ModifyExplorerTitle", TRUE) != FALSE);
-#endif
 	}
 
 	~CGitIndexList() = default;
@@ -182,10 +183,8 @@ public:
 	int GetFileStatus(const std::wstring& gitdir, const std::wstring& path, git_wc_status2_t& status, CGitHash* pHash = nullptr) const;
 	int GetFileStatus(CAutoRepository& repository, const std::wstring& gitdir, const CGitIndex& entry, git_wc_status2_t& status, std::int64_t time, std::int64_t filesize, bool isSymlink) const;
 
-#ifdef GOOGLETEST_INCLUDE_GTEST_GTEST_H_
-	FRIEND_TEST(GitIndexCBasicGitWithTestRepoFixture, GetFileStatus);
-#endif
-
+	// public for the unit tests (it was a FRIEND_TEST, which cannot reach into a module)
+	int GetFileStatus_NoRepo(const std::wstring& gitdir, const std::wstring& path, git_wc_status2_t& status, std::int64_t time, std::int64_t filesize, bool isSymlink, CGitHash* pHash = nullptr) const;
 
 private:
 	std::int64_t m_LastModifyTime = 0;
@@ -195,7 +194,6 @@ private:
 	std::int64_t m_iMaxCheckSize = 10 * 1024 * 1024;
 	bool	m_bCalculateIncomingOutgoing = true;
 	CAutoConfig config;
-	int GetFileStatus_NoRepo(const std::wstring& gitdir, const std::wstring& path, git_wc_status2_t& status, std::int64_t time, std::int64_t filesize, bool isSymlink, CGitHash* pHash = nullptr) const;
 };
 
 
@@ -381,9 +379,8 @@ public:
 		return git_check_excluded_1(patha.c_str(), gsl::narrow<int>(patha.size()), base, &type, m_pExcludeList.get(), m_iIgnoreCase ? *m_iIgnoreCase : 1);
 	}
 
-#ifdef GOOGLETEST_INCLUDE_GTEST_GTEST_H_
+	/// As above, with base derived from patha. The unit tests' entry point.
 	int IsPathIgnored(const std::string& patha, int& type);
-#endif
 };
 
 
@@ -697,16 +694,14 @@ public:
 		return lookup->second;
 	}
 
-#ifdef GOOGLETEST_INCLUDE_GTEST_GTEST_H_
-	/// Forgets the working tree -> admin dir lookups between tests. As the
-	/// map base's clear() it replaces did, it leaves the reverse and worktree
-	/// lookups alone.
+	/// Forgets the working tree -> admin dir lookups (the unit tests do, between
+	/// tests). As the map base's clear() it replaces did, it leaves the reverse
+	/// and worktree lookups alone. A cache flush, so harmless as public API.
 	void clear()
 	{
 		std::scoped_lock lock(m_mutex);
 		m_adminDirs.clear();
 	}
-#endif
 
 private:
 	std::mutex								m_mutex;
@@ -740,16 +735,12 @@ bool CGitIndexList::HasIndexChangedOnDisk(const std::wstring& gitdir) const
 
 	const std::wstring indexFile = g_AdminDirMap.GetWorktreeAdminDirConcat(gitdir, L"index");
 	// no need to refresh if there is no index right now and the current index is empty, but otherwise lastFileSize or lastmodifiedTime differ
-	auto time = std::chrono::duration<std::int64_t, std::ratio<1, 10000000>>{fs::last_write_time(indexFile).time_since_epoch()};
-	auto attr = get_path_attributes(indexFile);
+	const auto attr = get_path_attributes(indexFile);
 	return !attr || !attr->exists() || m_LastModifyTime != attr->lastWriteTime || m_LastFileSize != attr->size;
 }
 
 int CGitIndexList::ReadIndex(const std::wstring& dgitdir)
 {
-#ifdef GOOGLETEST_INCLUDE_GTEST_GTEST_H_
-	m_entries.clear(); // HACK to make tests work, until we use CGitIndexList
-#endif
 	ATLASSERT(m_entries.empty());
 
 	std::wstring repodir = dgitdir;
@@ -1396,7 +1387,6 @@ int CGitIgnoreItem::FetchIgnoreList(const std::wstring& projectroot, const std::
 	return 0;
 }
 
-#ifdef GOOGLETEST_INCLUDE_GTEST_GTEST_H_
 int CGitIgnoreItem::IsPathIgnored(const std::string& patha, int& type)
 {
 	// base points INTO patha, just past its last '/'
@@ -1405,7 +1395,6 @@ int CGitIgnoreItem::IsPathIgnored(const std::string& patha, int& type)
 
 	return IsPathIgnored(patha, base, type);
 }
-#endif
 
 
 bool CGitIgnoreList::CheckFileChanged(const std::wstring& path)

@@ -29,7 +29,7 @@
 // what I believed CString does; this encodes what it does.
 
 #include "stdafx.h"
-#include "WideString.h"
+import wstr;
 
 namespace
 {

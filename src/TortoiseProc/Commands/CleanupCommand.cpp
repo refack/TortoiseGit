@@ -21,9 +21,9 @@
 #include "CleanupCommand.h"
 #include "MessageBox.h"
 #include "ProgressDlg.h"
-#include "ShellUpdater.h"
+import CShellUpdater;
 #include "CleanTypeDlg.h"
-#include <Utils/UnicodeUtils.h>
+import wstr;
 #include "SysProgressDlg.h"
 
 struct SubmodulePayload
@@ -44,7 +44,7 @@ static bool GetSubmodulePathList(SubmodulePayload &payload);
 static int SubmoduleCallback(git_submodule *sm, const char * /*name*/, void *payload)
 {
 	auto spayload = reinterpret_cast<SubmodulePayload*>(payload);
-	CString path = CUnicodeUtils::GetUnicode(git_submodule_path(sm));
+	CString path = CUnicodeUtils::Convert2Unicode<CString>(git_submodule_path(sm));
 	CString fullPath(spayload->basePath);
 	fullPath += L'\\';
 	fullPath += path;
@@ -87,7 +87,7 @@ static bool GetSubmodulePathList(SubmodulePayload &payload)
 
 	if (git_submodule_foreach(repo, SubmoduleCallback, &payload))
 	{
-		MessageBox(GetExplorerHWND(), CGit::GetLibGit2LastErr(L"Could not get submodule list."), L"TortoiseGit", MB_ICONERROR);
+		MessageBox(GetExplorerHWND(), TGitH::GetLibGit2LastErr(L"Could not get submodule list."), L"TortoiseGit", MB_ICONERROR);
 		return false;
 	}
 
@@ -113,7 +113,7 @@ static bool GetFilesToCleanUp(CTGitPathList& delList, const STRING_VECTOR& baseC
 			if (quotepath && line[0] == '"')
 				delList.AddPath(CTGitPath(pGit->CombinePath(StringUtils::UnescapeGitQuotePathA(line.substr(1))).GetString()));
 			else
-				delList.AddPath(CTGitPath(pGit->CombinePath(CUnicodeUtils::GetUnicode(line)).GetString()));
+				delList.AddPath(CTGitPath(pGit->CombinePath(CUnicodeUtils::GetUnicode<CString>(line)).GetString()));
 		}, &cmdouterr))
 	{
 		if (cmdouterr.IsEmpty())

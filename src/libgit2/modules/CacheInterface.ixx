@@ -1,4 +1,5 @@
 ﻿module;
+#include <tgit_cstring.h>	// first: decides which CString this compile speaks
 #include <minwindef.h>
 #include <atlstr.h>
 
@@ -24,21 +25,21 @@ constexpr auto TGIT_CACHE_COMMANDPIPE_NAME = L"\\\\.\\pipe\\TGitCacheCommand";
 constexpr auto TGIT_CACHE_WINDOW_NAME = L"TGitCacheWindow";
 constexpr auto TGIT_CACHE_MUTEX_NAME = L"TGitCacheMutex";
 
-#define		TGITCACHECOMMAND_END		0		///< ends the thread handling the pipe communication
-#define		TGITCACHECOMMAND_CRAWL		1		///< start crawling the specified path for changes
-#define		TGITCACHECOMMAND_REFRESHALL	2		///< Refreshes the whole cache, usually necessary after the "treat unversioned files as modified" option changed.
-#define		TGITCACHECOMMAND_RELEASE	3		///< Releases all open handles for the specified path and all paths below
-#define		TGITCACHECOMMAND_BLOCK		4		///< Blocks a path from getting crawled for a specific amount of time or until the TGITCACHECOMMAND_UNBLOCK command is sent for that path
-#define		TGITCACHECOMMAND_UNBLOCK		5		///< Removes a path from the list of paths blocked from getting crawled
+constexpr auto TGITCACHECOMMAND_END = 0;		///< ends the thread handling the pipe communication
+constexpr auto TGITCACHECOMMAND_CRAWL = 1;		///< start crawling the specified path for changes
+constexpr auto TGITCACHECOMMAND_REFRESHALL = 2;	///< Refreshes the whole cache, usually necessary after the "treat unversioned files as modified" option changed.
+constexpr auto TGITCACHECOMMAND_RELEASE = 3;	///< Releases all open handles for the specified path and all paths below
+constexpr auto TGITCACHECOMMAND_BLOCK = 4;		///< Blocks a path from getting crawled for a specific amount of time or until the TGITCACHECOMMAND_UNBLOCK command is sent for that path
+constexpr auto TGITCACHECOMMAND_UNBLOCK = 5;	///< Removes a path from the list of paths blocked from getting crawled
 
 /// Set this flag if you already know whether or not the item is a folder
-#define TGITCACHE_FLAGS_FOLDERISKNOWN		0x01
+constexpr auto TGITCACHE_FLAGS_FOLDERISKNOWN = 0x01;
 /// Set this flag if the item is a folder
-#define TGITCACHE_FLAGS_ISFOLDER			0x02
+constexpr auto TGITCACHE_FLAGS_ISFOLDER = 0x02;
 /// Set this flag if you want recursive folder status (safely ignored for file paths)
-#define TGITCACHE_FLAGS_RECUSIVE_STATUS		0x04
+constexpr auto TGITCACHE_FLAGS_RECUSIVE_STATUS = 0x04;
 /// all of the above flags or-gated:
-#define TGITCACHE_FLAGS_MASK 0x0f
+constexpr auto TGITCACHE_FLAGS_MASK = 0x0f;
 
 
 
@@ -119,7 +120,7 @@ CString GetCacheMutexName()
 	return TGIT_CACHE_MUTEX_NAME + GetCacheID();
 }
 
-bool SendCacheCommand(const BYTE command, const WCHAR* path /* = nullptr */)
+bool SendCacheCommand(const BYTE command, const WCHAR* path = nullptr)	// the default was only a comment
 {
 	CAutoFile hPipe;
 	const CString pipeName = GetCacheCommandPipeName();

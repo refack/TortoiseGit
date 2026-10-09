@@ -18,9 +18,9 @@
 //
 #include "stdafx.h"
 #include "TortoiseProc.h"
-#include "Git.h"
+import git_h;
 #include "CommitIsOnRefsDlg.h"
-#include "StringUtils.h"
+import StringUtils;
 #include "BrowseRefsDlg.h"
 #include "RefLogDlg.h"
 #include "LogDlg.h"
@@ -28,7 +28,7 @@
 #include "AppUtils.h"
 #include "FileDiffDlg.h"
 #include "MessageBox.h"
-#include "CmdLineParser.h"
+import CmdLineParser;
 
 // CCommitIsOnRefsDlg dialog
 
@@ -198,7 +198,7 @@ LRESULT CCommitIsOnRefsDlg::OnClickedCancelFilter(WPARAM /*wParam*/, LPARAM /*lP
 void CCommitIsOnRefsDlg::OnBnClickedShowLog()
 {
 	CString cmd;
-	cmd.Format(L"/command:log /endrev:%s /rev:%s", static_cast<LPCWSTR>(m_gitrev.m_CommitHash.ToString()), static_cast<LPCWSTR>(m_gitrev.m_CommitHash.ToString()));
+	cmd.Format(L"/command:log /endrev:%s /rev:%s", (m_gitrev.m_CommitHash.ToString()).c_str(), (m_gitrev.m_CommitHash.ToString()).c_str());
 	CAppUtils::RunTortoiseGitProc(cmd);
 }
 
@@ -230,7 +230,7 @@ void CCommitIsOnRefsDlg::OnBnClickedSelRevBtn()
 		dlg.SetSelect(true);
 		if (dlg.DoModal() == IDOK && !dlg.GetSelectedHash().empty())
 		{
-			m_cRevEdit.SetWindowText(dlg.GetSelectedHash().at(0).ToString());
+			m_cRevEdit.SetWindowText((dlg.GetSelectedHash().at(0).ToString()).c_str());
 			BringWindowToTop(); /* cf. issue #3493 */
 		}
 		else
@@ -244,7 +244,7 @@ void CCommitIsOnRefsDlg::OnBnClickedSelRevBtn()
 	{
 		CRefLogDlg dlg;
 		if (dlg.DoModal() == IDOK)
-			m_cRevEdit.SetWindowText(dlg.m_SelectedHash.ToString());
+			m_cRevEdit.SetWindowText((dlg.m_SelectedHash.ToString()).c_str());
 		else
 			return;
 	}
@@ -398,10 +398,10 @@ CString CCommitIsOnRefsDlg::GetTwoSelectedRefs(const STRING_VECTOR& selectedRefs
 {
 	ASSERT(selectedRefs.size() == 2);
 
-	if (selectedRefs.at(0) == tgit::wstr::View(lastSelected))
-		return g_Git.StripRefName(selectedRefs.at(1).c_str()) + separator + g_Git.StripRefName(lastSelected);
+	if (selectedRefs.at(0) == tgit::zstr::StringView(lastSelected))
+		return TGitH::StripRefName(selectedRefs.at(1).c_str()) + separator + TGitH::StripRefName(lastSelected);
 	else
-		return g_Git.StripRefName(selectedRefs.at(0).c_str()) + separator + g_Git.StripRefName(lastSelected);
+		return TGitH::StripRefName(selectedRefs.at(0).c_str()) + separator + TGitH::StripRefName(lastSelected);
 }
 
 void CCommitIsOnRefsDlg::StartGetRefsThread()
@@ -458,7 +458,7 @@ UINT CCommitIsOnRefsDlg::GetRefsThread()
 	}
 	m_gitrev.ApplyMailmap();
 
-	if (g_Git.GetRefsCommitIsOn(m_RefList, m_gitrev.m_CommitHash, true, true, CGit::BRANCH_ALL))
+	if (g_Git.GetRefsCommitIsOn(m_RefList, m_gitrev.m_CommitHash, true, true, TGitH::BRANCH_ALL))
 	{
 		MessageBox(g_Git.GetGitLastErr(L"Could not get all refs."), L"TortoiseGit", MB_ICONERROR);
 		return 0;

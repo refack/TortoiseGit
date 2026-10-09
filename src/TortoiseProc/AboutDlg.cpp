@@ -1,4 +1,4 @@
-// TortoiseGit - a Windows shell extension for easy version control
+﻿// TortoiseGit - a Windows shell extension for easy version control
 
 // Copyright (C) 2003-2008 - TortoiseSVN
 // Copyright (C) 2009-2021, 2023-2026 - TortoiseGit
@@ -21,12 +21,12 @@
 #include "stdafx.h"
 #include "TortoiseProc.h"
 #include "AboutDlg.h"
-#include "PathUtils.h"
+import PathUtils;
 #define NEED_SIGNING_KEY
 #include <version.h>
 #include "VersioncheckParser.h"
 #include "AppUtils.h"
-#include "Git.h"
+import git_h;
 #include "DPIAware.h"
 
 //IMPLEMENT_DYNAMIC(CAboutDlg, CStandAloneDialog)
@@ -84,14 +84,14 @@ BOOL CAboutDlg::OnInitDialog()
 		out = L"git not found (" + err + L')';
 	out.Trim();
 
-	if (!CGit::ms_LastMsysGitDir.IsEmpty())
+	if (!TGitH::ms_LastMsysGitDir.IsEmpty())
 	{
-		out += L" (" + CGit::ms_LastMsysGitDir;
-		out += L"; " + CGit::ms_MsysGitRootDir;
+		out += L" (" + TGitH::ms_LastMsysGitDir;
+		out += L"; " + TGitH::ms_MsysGitRootDir;
 		out += L"; " + g_Git.GetGitSystemConfig();
-		if (CGit::ms_bMsys2Git)
+		if (TGitH::ms_bMsys2Git)
 			out += L"; with msys2 hack";
-		else if (CGit::ms_bCygwinGit)
+		else if (TGitH::ms_bCygwinGit)
 			out += L"; with cygwin hack";
 		out += L')';
 	}
@@ -101,7 +101,7 @@ BOOL CAboutDlg::OnInitDialog()
 #if PREVIEW
 	additionalVersionInformation = _T(PREVIEW_INFO);
 #else
-	if (CString hotfix = (CPathUtils::GetAppDirectory() + L"hotfix.ini").c_str(); PathFileExists(hotfix))
+	if (CString hotfix = (PathUtils::GetAppDirectory() + L"hotfix.ini").c_str(); PathFileExists(hotfix))
 	{
 		CVersioncheckParser parser;
 		if (parser.Load(hotfix, err))
@@ -112,7 +112,7 @@ BOOL CAboutDlg::OnInitDialog()
 		}
 	}
 #endif
-	std::wstring appDirectory = CPathUtils::GetAppDirectory();
+	std::wstring appDirectory = PathUtils::GetAppDirectory();
 	tgit::wstr::TrimRight(appDirectory, L"\\");
 	if (!additionalVersionInformation.IsEmpty())
 		tortoisegitprocpath = std::format(L"({}; {})", additionalVersionInformation, appDirectory).c_str();

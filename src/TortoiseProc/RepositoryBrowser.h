@@ -19,10 +19,10 @@
 
 #pragma once
 #include <map>
-#include <Utils/MiscUI/StandAloneDlg.h>
-#include "GitHash.h"
+#include "StandAloneDlg.h"
+import GitHash;
 #include "GestureEnabledControl.h"
-#include "TGitPath.h"
+import TGitPath;
 #include "ResizableColumnsListCtrl.h"
 
 #define REPOBROWSER_CTRL_MIN_WIDTH	20

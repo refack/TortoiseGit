@@ -22,7 +22,7 @@
 #include "stdafx.h"
 #include "TortoiseProc.h"
 #include "SettingGitConfig.h"
-import GitAdminDir;
+import TGitPath;	// GitAdminDir lives in the TGitPath module
 #include "AppUtils.h"
 
 // CSettingGitConfig dialog

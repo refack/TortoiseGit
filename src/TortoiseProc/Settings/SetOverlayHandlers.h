@@ -19,7 +19,7 @@
 #pragma once
 
 #include "SettingsPropPage.h"
-#include <Utils/registry.h>
+import Registry;
 
 /**
  * \ingroup TortoiseProc

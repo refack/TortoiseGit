@@ -20,7 +20,7 @@
 //
 
 #include "stdafx.h"
-#include "Git.h"
+import git_h;
 #include "TortoiseProc.h"
 #include "CreateWorktreeDlg.h"
 #include "AppUtils.h"

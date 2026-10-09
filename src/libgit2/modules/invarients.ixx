@@ -86,7 +86,7 @@ constexpr size_t HashSize() noexcept
 /* Display name of the active object format, for UI labels. */
 constexpr auto ObjectFormatName() noexcept
 {
-	return Is256() ? L"SHA1"sv : L"SHA256"sv;
+	return Is256() ? L"SHA256"sv : L"SHA1"sv;
 }
 
 /*
@@ -116,7 +116,7 @@ constexpr auto ZeroRevSV() noexcept
 {
 	static constexpr auto zeroSha1 = L"0000000000000000000000000000000000000000"sv;
 	static constexpr auto zeroSha256 = L"0000000000000000000000000000000000000000000000000000000000000000"sv;
-	return Is256() ? zeroSha1 : zeroSha256;
+	return Is256() ? zeroSha256 : zeroSha1;
 }
 
 /*

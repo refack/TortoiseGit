@@ -25,7 +25,7 @@
 #include "AppUtils.h"
 #include "IconMenu.h"
 #include "RefLogDlg.h"
-#include "CmdLineParser.h"
+import CmdLineParser;
 
 IMPLEMENT_DYNAMIC(CChangedDlg, CResizableStandAloneDialog)
 CChangedDlg::CChangedDlg(CWnd* pParent /*=nullptr*/)

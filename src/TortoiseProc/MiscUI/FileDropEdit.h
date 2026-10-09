@@ -19,8 +19,8 @@
 //
 #pragma once
 
-#include "DragDropImpl.h"
-#include "UnicodeUtils.h"
+import DragDrop;
+import wstr;
 #include <memory>
 
 /**
@@ -46,7 +46,7 @@ public:
 					buff[cbRead] = '\0';
 					LRESULT nLen = ::SendMessage(m_hTargetWnd, WM_GETTEXTLENGTH, 0, 0);
 					::SendMessage(m_hTargetWnd, EM_SETSEL, nLen, -1);
-					std::wstring str = CUnicodeUtils::StdGetUnicode(buff.get());
+					std::wstring str = CUnicodeUtils::StdGetUnicode(buff.get(), CP_UTF8);
 					::SendMessage(m_hTargetWnd, EM_REPLACESEL, TRUE, reinterpret_cast<LPARAM>(str.c_str()));
 				}
 				else
@@ -56,7 +56,7 @@ public:
 						buff[cbRead] = '\0';
 						LRESULT nLen = ::SendMessage(m_hTargetWnd, WM_GETTEXTLENGTH, 0, 0);
 						::SendMessage(m_hTargetWnd, EM_SETSEL, nLen, -1);
-						std::wstring str = CUnicodeUtils::StdGetUnicode(buff.get());
+						std::wstring str = CUnicodeUtils::StdGetUnicode(buff.get(), CP_UTF8);
 						::SendMessage(m_hTargetWnd, EM_REPLACESEL, TRUE, reinterpret_cast<LPARAM>(str.c_str()));
 						cbRead=0;
 						hr = medium.pstm->Read(buff.get(), BUF_SIZE, &cbRead);
@@ -100,7 +100,7 @@ public:
 			{
 				LRESULT nLen = ::SendMessage(m_hTargetWnd, WM_GETTEXTLENGTH, 0, 0);
 				::SendMessage(m_hTargetWnd, EM_SETSEL, nLen, -1);
-				std::wstring str = CUnicodeUtils::StdGetUnicode(pStr);
+				std::wstring str = CUnicodeUtils::StdGetUnicode(pStr, CP_UTF8);
 				::SendMessage(m_hTargetWnd, EM_REPLACESEL, TRUE, reinterpret_cast<LPARAM>(str.c_str()));
 			}
 			GlobalUnlock(medium.hGlobal);

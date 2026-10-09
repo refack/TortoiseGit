@@ -19,8 +19,18 @@
 //
 
 #include "stdafx.h"
-#include "StringUtils.h"
-#include "CmdLineParser.h"
+import StringUtils;
+import CmdLineParser;
+
+// The out-parameter shape the assertions below were written against; the function
+// itself now returns { address, name }. An adapter, so the assertions stay as they were.
+static void ParseEmailAddressInto(const std::wstring_view in, CString& mail, CString* name = nullptr)
+{
+	const auto parsed = StringUtils::ParseEmailAddress(in);
+	mail = parsed.address.c_str();
+	if (name)
+		*name = parsed.name.c_str();
+}
 
 TEST(CStringUtils, WordWrap)
 {
@@ -115,117 +125,117 @@ TEST(CStringUtils, GetAccellerator)
 TEST(CStringUtils, ParseEmailAddress)
 {
 	CString mail, name;
-	StringUtils::ParseEmailAddress(L"", mail, &name);
+	ParseEmailAddressInto(L"", mail, &name);
 	EXPECT_STREQ(L"", mail);
 	EXPECT_STREQ(L"", name);
 
-	StringUtils::ParseEmailAddress(L" ", mail, &name);
+	ParseEmailAddressInto(L" ", mail, &name);
 	EXPECT_STREQ(L"", mail);
 	EXPECT_STREQ(L"", name);
 
 	mail.Empty();
-	StringUtils::ParseEmailAddress(L"test@example.com ", mail);
+	ParseEmailAddressInto(L"test@example.com ", mail);
 	EXPECT_STREQ(L"test@example.com", mail);
 
 	mail.Empty();
-	StringUtils::ParseEmailAddress(L" test@example.com", mail);
+	ParseEmailAddressInto(L" test@example.com", mail);
 	EXPECT_STREQ(L"test@example.com", mail);
 
 	mail.Empty();
-	StringUtils::ParseEmailAddress(L"test@example.com", mail);
+	ParseEmailAddressInto(L"test@example.com", mail);
 	EXPECT_STREQ(L"test@example.com", mail);
 
 	mail.Empty();
-	StringUtils::ParseEmailAddress(L"John Doe <johndoe>", mail);
+	ParseEmailAddressInto(L"John Doe <johndoe>", mail);
 	EXPECT_STREQ(L"johndoe", mail);
 
 	mail.Empty();
 	name.Empty();
-	StringUtils::ParseEmailAddress(L"test@example.com", mail, &name);
+	ParseEmailAddressInto(L"test@example.com", mail, &name);
 	EXPECT_STREQ(L"test@example.com", mail);
 	EXPECT_STREQ(L"test@example.com", name);
 
 	mail.Empty();
 	name.Empty();
-	StringUtils::ParseEmailAddress(L"<test@example.com>", mail, &name);
+	ParseEmailAddressInto(L"<test@example.com>", mail, &name);
 	EXPECT_STREQ(L"test@example.com", mail);
 	EXPECT_STREQ(L"test@example.com", name);
 
 	mail.Empty();
 	name.Empty();
-	StringUtils::ParseEmailAddress(L"John Doe <test@example.com>", mail, &name);
+	ParseEmailAddressInto(L"John Doe <test@example.com>", mail, &name);
 	EXPECT_STREQ(L"test@example.com", mail);
 	EXPECT_STREQ(L"John Doe", name);
 
 	mail.Empty();
 	name.Empty();
-	StringUtils::ParseEmailAddress(L"\"John Doe\" <test@example.com>", mail, &name);
+	ParseEmailAddressInto(L"\"John Doe\" <test@example.com>", mail, &name);
 	EXPECT_STREQ(L"test@example.com", mail);
 	EXPECT_STREQ(L"John Doe", name);
 
 	mail.Empty();
 	name.Empty();
-	StringUtils::ParseEmailAddress(L"<test@example.com", mail, &name);
+	ParseEmailAddressInto(L"<test@example.com", mail, &name);
 	EXPECT_STREQ(L"test@example.com", mail);
 	EXPECT_STREQ(L"test@example.com", name);
 
 	mail.Empty();
 	name.Empty();
-	StringUtils::ParseEmailAddress(L"test@example.com>", mail, &name);
+	ParseEmailAddressInto(L"test@example.com>", mail, &name);
 	EXPECT_STREQ(L"test@example.com", mail);
 	EXPECT_STREQ(L"test@example.com", name);
 
 	mail.Empty();
 	name.Empty();
-	StringUtils::ParseEmailAddress(L"John Doe <johndoe>", mail, &name);
+	ParseEmailAddressInto(L"John Doe <johndoe>", mail, &name);
 	EXPECT_STREQ(L"johndoe", mail);
 	EXPECT_STREQ(L"John Doe", name);
 
 	mail.Empty();
 	name.Empty();
-	StringUtils::ParseEmailAddress(L"john.doe@example.com (John Doe)", mail, &name);
+	ParseEmailAddressInto(L"john.doe@example.com (John Doe)", mail, &name);
 	EXPECT_STREQ(L"john.doe@example.com", mail);
 	EXPECT_STREQ(L"John Doe", name);
 
 	mail.Empty();
 	name.Empty();
-	StringUtils::ParseEmailAddress(L"John (zzz) Doe <john.doe@example.com> (Comment)", mail, &name);
+	ParseEmailAddressInto(L"John (zzz) Doe <john.doe@example.com> (Comment)", mail, &name);
 	EXPECT_STREQ(L"john.doe@example.com", mail);
 	EXPECT_STREQ(L"John (zzz) Doe (Comment)", name);
 
 	mail.Empty();
 	name.Empty();
-	StringUtils::ParseEmailAddress(L"\"john.doe@example.com >> John Doe\" <john.doe@example.com>", mail, &name);
+	ParseEmailAddressInto(L"\"john.doe@example.com >> John Doe\" <john.doe@example.com>", mail, &name);
 	EXPECT_STREQ(L"john.doe@example.com", mail);
 	EXPECT_STREQ(L"john.doe@example.com >> John Doe", name);
 
 	mail.Empty();
 	name.Empty();
-	StringUtils::ParseEmailAddress(L"\"John<something> Doe\" <john.doe@example.com>", mail, &name);
+	ParseEmailAddressInto(L"\"John<something> Doe\" <john.doe@example.com>", mail, &name);
 	EXPECT_STREQ(L"john.doe@example.com", mail);
 	EXPECT_STREQ(L"John<something> Doe", name);
 
 	mail.Empty();
 	name.Empty();
-	StringUtils::ParseEmailAddress(L"\"John<something@example.com> Doe\" <john.doe@example.com>", mail, &name);
+	ParseEmailAddressInto(L"\"John<something@example.com> Doe\" <john.doe@example.com>", mail, &name);
 	EXPECT_STREQ(L"john.doe@example.com", mail);
 	EXPECT_STREQ(L"John<something@example.com> Doe", name);
 
 	mail.Empty();
 	name.Empty();
-	StringUtils::ParseEmailAddress(L"\"something@example.com\" <john.doe@example.com>", mail, &name);
+	ParseEmailAddressInto(L"\"something@example.com\" <john.doe@example.com>", mail, &name);
 	EXPECT_STREQ(L"john.doe@example.com", mail);
 	EXPECT_STREQ(L"something@example.com", name);
 
 	mail.Empty();
 	name.Empty();
-	StringUtils::ParseEmailAddress(L"\"John D\\\"o\\\"e\" <john.doe@example.com>", mail, &name);
+	ParseEmailAddressInto(L"\"John D\\\"o\\\"e\" <john.doe@example.com>", mail, &name);
 	EXPECT_STREQ(L"john.doe@example.com", mail);
 	EXPECT_STREQ(L"John D\"o\"e", name);
 
 	mail.Empty();
 	name.Empty();
-	StringUtils::ParseEmailAddress(L"<test@example.com> \"John Doe\"", mail, &name);
+	ParseEmailAddressInto(L"<test@example.com> \"John Doe\"", mail, &name);
 	EXPECT_STREQ(L"test@example.com", mail);
 	EXPECT_STREQ(L"John Doe", name);
 }
@@ -492,50 +502,50 @@ TEST(CStringUtils, ExpandPlaceholdersForCmd)
 																	{ L"2", L"sth" },
 																	{ L"3", L"sth" },
 																	{ L"4", L"sth" },
-		}, [](CString s) { return CCmdLineParser::EscapeValue(s); }));
+		}, [](CString s) -> CString { const std::wstring e = CCmdLineParser::EscapeValue(tgit::zstr::StringView(s)); return CString(e.data(), static_cast<int>(e.size())); }));
 	EXPECT_STREQ(L"%5", StringUtils::ExpandPlaceholdersForCmd(L"%5", {
 																	{ L"1", L"sth" },
 																	{ L"2", L"sth" },
 																	{ L"3", L"sth" },
 																	{ L"4", L"sth" },
-		}, [](CString s) { return CCmdLineParser::EscapeValue(s); }));
+		}, [](CString s) -> CString { const std::wstring e = CCmdLineParser::EscapeValue(tgit::zstr::StringView(s)); return CString(e.data(), static_cast<int>(e.size())); }));
 	EXPECT_STREQ(L"\"arg1\"", StringUtils::ExpandPlaceholdersForCmd(L"%1", {
 																	{ L"1", L"arg1" },
 																	{ L"2", L"Arg2" },
 																	{ L"3", L"aRg3" },
 																	{ L"4", L"arG4" },
-		}, [](CString s) { return CCmdLineParser::EscapeValue(s); }));
+		}, [](CString s) -> CString { const std::wstring e = CCmdLineParser::EscapeValue(tgit::zstr::StringView(s)); return CString(e.data(), static_cast<int>(e.size())); }));
 	EXPECT_STREQ(L"\"arg1\"", StringUtils::ExpandPlaceholdersForCmd(L"\"%1\"", {
 																	{ L"1", L"arg1" },
 																	{ L"2", L"Arg2" },
 																	{ L"3", L"aRg3" },
 																	{ L"4", L"arG4" },
-		}, [](CString s) { return CCmdLineParser::EscapeValue(s); }));
+		}, [](CString s) -> CString { const std::wstring e = CCmdLineParser::EscapeValue(tgit::zstr::StringView(s)); return CString(e.data(), static_cast<int>(e.size())); }));
 	EXPECT_STREQ(L"/to:\"arg1\" /from:\"Arg2\"", StringUtils::ExpandPlaceholdersForCmd(L"/to:%1 /from:%2", {
 																	{ L"1", L"arg1" },
 																	{ L"2", L"Arg2" },
 																	{ L"3", L"aRg3" },
 																	{ L"4", L"arG4" },
-		}, [](CString s) { return CCmdLineParser::EscapeValue(s); }));
+		}, [](CString s) -> CString { const std::wstring e = CCmdLineParser::EscapeValue(tgit::zstr::StringView(s)); return CString(e.data(), static_cast<int>(e.size())); }));
 	EXPECT_STREQ(L"/to:\"arg1\" /from:\"Arg2\"", StringUtils::ExpandPlaceholdersForCmd(L"/to:\"%1\" /from:%2", {
 																	{ L"1", L"arg1" },
 																	{ L"2", L"Arg2" },
 																	{ L"3", L"aRg3" },
 																	{ L"4", L"arG4" },
-		}, [](CString s) { return CCmdLineParser::EscapeValue(s); }));
+		}, [](CString s) -> CString { const std::wstring e = CCmdLineParser::EscapeValue(tgit::zstr::StringView(s)); return CString(e.data(), static_cast<int>(e.size())); }));
 	EXPECT_STREQ(L"/to:\"ar%2g1\" /from:\"Ar\"\"g2\"", StringUtils::ExpandPlaceholdersForCmd(L"/to:\"%1\" /from:%2", {
 																	{ L"1", L"ar%2g1" },
 																	{ L"2", L"Ar\"g2" },
 																	{ L"3", L"aRg3" },
 																	{ L"4", L"arG4" },
-		}, [](CString s) { return CCmdLineParser::EscapeValue(s); }));
+		}, [](CString s) -> CString { const std::wstring e = CCmdLineParser::EscapeValue(tgit::zstr::StringView(s)); return CString(e.data(), static_cast<int>(e.size())); }));
 
 	EXPECT_STREQ(L"/to:\"Arg2\" /from:\"aRRRRRRg\" /empty:\"\" /random:\"aRRRRRRg\" bla", StringUtils::ExpandPlaceholdersForCmd(L"/to:\"%to\" /from:%from /empty:%empty /random:%from bla", {
 																	{ L"to", L"Arg2" },
 																	{ L"from", L"aRRRRRRg" },
 																	{ L"empty", L""},
 																	{ L"something", L"arG4" },
-		}, [](CString s) { return CCmdLineParser::EscapeValue(s); }));
+		}, [](CString s) -> CString { const std::wstring e = CCmdLineParser::EscapeValue(tgit::zstr::StringView(s)); return CString(e.data(), static_cast<int>(e.size())); }));
 }
 
 TEST(CStringUtils, EscapeWindowsCliArguments)

@@ -22,7 +22,7 @@
 #include "LoglistUtils.h"
 #include "AppUtils.h"
 #include "DPIAware.h"
-#include "CmdLineParser.h"
+import CmdLineParser;
 
 IMPLEMENT_DYNAMIC(CRefLogList, CGitLogList)
 
@@ -88,7 +88,7 @@ void CRefLogList::OnLvnGetdispinfoLoglist(NMHDR *pNMHDR, LRESULT *pResult)
 	case REFLOG_HASH:
 		if (pLogEntry)
 		{
-			lstrcpyn(pItem->pszText,pLogEntry->m_CommitHash.ToString(), pItem->cchTextMax - 1);
+			lstrcpyn(pItem->pszText,(pLogEntry->m_CommitHash.ToString()).c_str(), pItem->cchTextMax - 1);
 		}
 		break;
 	case REFLOG_REF:
@@ -128,7 +128,7 @@ void CRefLogList::OnNMDblclkLoglist(NMHDR* /*pNMHDR*/, LRESULT* pResult)
 		return;
 
 	CString cmdline;
-	cmdline.Format(L"/command:log /path:%s /endrev:%s /rev:%s", static_cast<LPCWSTR>(CCmdLineParser::EscapeValue(g_Git.CombinePath(m_Path))), static_cast<LPCWSTR>(pSelLogEntry->m_CommitHash.ToString()), static_cast<LPCWSTR>(pSelLogEntry->m_CommitHash.ToString()));
+	cmdline.Format(L"/command:log /path:%s /endrev:%s /rev:%s", static_cast<LPCWSTR>(CCmdLineParser::EscapeValue(g_Git.CombinePath(m_Path))), (pSelLogEntry->m_CommitHash.ToString()).c_str(), (pSelLogEntry->m_CommitHash.ToString()).c_str());
 	CAppUtils::RunTortoiseGitProc(cmdline);
 }
 
@@ -163,7 +163,7 @@ void CRefLogList::CopySelectionToClipBoard(int toCopy)
 			if (toCopy == ID_COPYCLIPBOARDFULL)
 			{
 				sClipdata.AppendFormat(L"%s: %s\r\n%s: %s\r\n%s: %s%s%s\r\n",
-									static_cast<LPCWSTR>(sRev), static_cast<LPCWSTR>(pLogEntry->m_CommitHash.ToString()),
+									static_cast<LPCWSTR>(sRev), (pLogEntry->m_CommitHash.ToString()).c_str(),
 									static_cast<LPCWSTR>(sDate), static_cast<LPCWSTR>(CLoglistUtils::FormatDateAndTime(pLogEntry->GetCommitterDate(), m_DateFormat, true, m_bRelativeTimes)),
 									static_cast<LPCWSTR>(sMessage), static_cast<LPCWSTR>(pLogEntry->m_RefAction), pLogEntry->m_RefAction.IsEmpty() ? L"" : L": ", static_cast<LPCWSTR>(pLogEntry->GetSubjectBody(true)));
 			}

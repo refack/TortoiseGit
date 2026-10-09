@@ -20,16 +20,16 @@
 //
 #include "stdafx.h"
 #include "resource.h"
-#include "Git.h"
+import git_h;
 #include "GitRefCompareList.h"
-#include "registry.h"
-#include "UnicodeUtils.h"
+import Registry;
+import wstr;
 #include "IconMenu.h"
 #include "AppUtils.h"
 #include <TortoiseShell/resource.h>
 #include "LoglistCommonResource.h"
 #include "DPIAware.h"
-#include "CmdLineParser.h"
+import CmdLineParser;
 
 IMPLEMENT_DYNAMIC(CGitRefCompareList, CHintCtrl<CListCtrl>)
 
@@ -86,11 +86,11 @@ int CGitRefCompareList::AddEntry(git_repository* repo, const CString& ref, const
 {
 	RefEntry entry;
 	entry.fullName = ref;
-	entry.shortName = CGit::GetShortName(ref, &entry.refType);
+	entry.shortName = TGitH::GetShortName(ref, &entry.refType);
 	if (oldHash)
-		entry.oldHash = oldHash->ToString(g_Git.GetShortHASHLength());
+		entry.oldHash = (oldHash->ToString(g_Git.GetShortHASHLength())).c_str();
 	if (newHash)
-		entry.newHash = newHash->ToString(g_Git.GetShortHASHLength());
+		entry.newHash = (newHash->ToString(g_Git.GetShortHASHLength())).c_str();
 
 	CAutoCommit oldCommit;
 	if (oldHash)
@@ -174,19 +174,19 @@ inline static bool StringComparePredicate(bool sortLogical, const CString& e1, c
 	return e1.Compare(e2) < 0;
 }
 
-static CString RefTypeString(CGit::REF_TYPE reftype)
+static CString RefTypeString(TGitH::REF_TYPE reftype)
 {
 	CString type;
 	switch (reftype)
 	{
-	case CGit::REF_TYPE::LOCAL_BRANCH:
+	case TGitH::REF_TYPE::LOCAL_BRANCH:
 		type.LoadString(IDS_PROC_BRANCH);
 		break;
-	case CGit::REF_TYPE::REMOTE_BRANCH:
+	case TGitH::REF_TYPE::REMOTE_BRANCH:
 		type.LoadString(IDS_PROC_REMOTEBRANCH);
 		break;
-	case CGit::REF_TYPE::ANNOTATED_TAG:
-	case CGit::REF_TYPE::TAG:
+	case TGitH::REF_TYPE::ANNOTATED_TAG:
+	case TGitH::REF_TYPE::TAG:
 		type.LoadString(IDS_PROC_TAG);
 		break;
 	}
@@ -244,11 +244,11 @@ void CGitRefCompareList::Show()
 			continue;
 
 		int nImage = -1;
-		if (entry.refType == CGit::REF_TYPE::LOCAL_BRANCH)
+		if (entry.refType == TGitH::REF_TYPE::LOCAL_BRANCH)
 			nImage = 1;
-		else if (entry.refType == CGit::REF_TYPE::REMOTE_BRANCH)
+		else if (entry.refType == TGitH::REF_TYPE::REMOTE_BRANCH)
 			nImage = 2;
-		else if (entry.refType == CGit::REF_TYPE::ANNOTATED_TAG || entry.refType == CGit::REF_TYPE::TAG)
+		else if (entry.refType == TGitH::REF_TYPE::ANNOTATED_TAG || entry.refType == TGitH::REF_TYPE::TAG)
 			nImage = 0;
 		InsertItem(index, entry.shortName, nImage);
 		SetItemText(index, colRefType, RefTypeString(entry.refType));
@@ -416,9 +416,9 @@ CString CGitRefCompareList::GetCommitMessage(git_commit *commit)
 	int encode = CP_UTF8;
 	const char *encodingString = git_commit_message_encoding(commit);
 	if (encodingString != nullptr)
-		encode = CUnicodeUtils::GetCPCode(CUnicodeUtils::GetUnicode(encodingString));
+		encode = CUnicodeUtils::StdGetCPCode(tgit::zstr::StringView(CUnicodeUtils::Convert2Unicode<CString>(encodingString)));
 
-	CString message = CUnicodeUtils::GetUnicode(git_commit_message(commit), encode);
+	CString message = CUnicodeUtils::StdGetUnicode<CString>(git_commit_message(commit), encode);
 	int start = 0;
 	message = message.Tokenize(L"\n", start);
 	return message;

@@ -83,11 +83,9 @@ protected:
 
 
 
-#ifdef _DEBUG
-#define new DEBUG_NEW
-#undef THIS_FILE
-static char THIS_FILE[] = __FILE__;
-#endif
+// (No "#define new DEBUG_NEW" here: in a header it redefined 
+ew for every includer,
+// and broke SimpleIni's "new (std::nothrow)" in AboutDlg. It belongs in a .cpp.)
 
 #define TOOLTIP_ID 1
 

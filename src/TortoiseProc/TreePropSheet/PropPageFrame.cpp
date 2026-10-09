@@ -16,9 +16,10 @@
 *	$History:$
 *
 *********************************************************************/
+#include "../stdafx.h"
 
 
-#include "Utils/PropPageFrame.h"
+#include "TreePropSheet/PropPageFrame.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW

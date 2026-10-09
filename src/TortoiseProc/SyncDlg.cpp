@@ -27,7 +27,7 @@
 #include "ProgressDlg.h"
 #include "MessageBox.h"
 #include "Hooks.h"
-#include "SmartHandle.h"
+import RIAA;
 #include "ProgressCommands/FetchProgressCommand.h"
 #include "SysProgressDlg.h"
 #include "ThemeMFCVisualManager.h"
@@ -121,7 +121,7 @@ bool CSyncDlg::AskSetTrackedBranch()
 			key.Format(L"branch.%s.remote", static_cast<LPCWSTR>(m_strLocalBranch));
 			g_Git.SetConfigValue(key, m_strURL);
 			key.Format(L"branch.%s.merge", static_cast<LPCWSTR>(m_strLocalBranch));
-			g_Git.SetConfigValue(key, L"refs/heads/" + g_Git.StripRefName(remoteBranch));
+			g_Git.SetConfigValue(key, L"refs/heads/" + TGitH::StripRefName(remoteBranch));
 		}
 	}
 	return true;
@@ -252,7 +252,7 @@ void CSyncDlg::OnBnClickedButtonPull()
 		if (hasConflicts < 0)
 		{
 			this->m_ctrlCmdOut.SetSel(-1, -1);
-			this->m_ctrlCmdOut.ReplaceSel(g_Git.GetGitLastErr(L"Checking for conflicts failed.", CGit::GIT_CMD_CHECKCONFLICTS));
+			this->m_ctrlCmdOut.ReplaceSel(g_Git.GetGitLastErr(L"Checking for conflicts failed.", TGitH::GIT_CMD_CHECKCONFLICTS));
 
 			this->ShowTab(IDC_CMD_LOG);
 			return;
@@ -281,7 +281,7 @@ void CSyncDlg::OnBnClickedButtonPull()
 	{
 		CAutoRepository repo(g_Git.GetGitRepository());
 		if (!repo)
-			MessageBox(CGit::GetLibGit2LastErr(L"Could not open repository."), L"TortoiseGit", MB_OK | MB_ICONERROR);
+			MessageBox(TGitH::GetLibGit2LastErr(L"Could not open repository."), L"TortoiseGit", MB_OK | MB_ICONERROR);
 
 		// Check config branch.<name>.rebase and pull.reabse
 		do
@@ -297,7 +297,7 @@ void CSyncDlg::OnBnClickedButtonPull()
 				break;
 
 			// branch.<name>.rebase overrides pull.rebase
-			if (config.GetBOOL(L"branch." + g_Git.GetCurrentBranch() + L".rebase", m_iPullRebase) == GIT_ENOTFOUND)
+			if (config.GetBOOL(tgit::zstr::StringView(L"branch." + g_Git.GetCurrentBranch() + L".rebase"), m_iPullRebase) == GIT_ENOTFOUND)
 			{
 				if (config.GetBOOL(L"pull.rebase", m_iPullRebase) == GIT_ENOTFOUND)
 					break;
@@ -398,7 +398,7 @@ void CSyncDlg::OnBnClickedButtonPull()
 		else
 			m_CurrentCmd = GIT_COMMAND_FETCHANDREBASE;
 
-		if (g_Git.UsingLibGit2(CGit::GIT_CMD_FETCH))
+		if (g_Git.UsingLibGit2(TGitH::GIT_CMD_FETCH))
 		{
 			CString refspec;
 			if (!remotebranch.IsEmpty())
@@ -473,8 +473,8 @@ void CSyncDlg::ShowInCommits(const CString& friendname)
 		AddDiffFileList(&m_InChangeFileList, &m_arInChangeList, newHash, m_oldHash);
 
 		CString range;
-		range.Format(L"%s..%s", static_cast<LPCWSTR>(m_oldHash.ToString()), static_cast<LPCWSTR>(newHash.ToString()));
-		m_InLogList.FillGitLog(nullptr, &range, CGit::LOG_INFO_STAT | CGit::LOG_INFO_FILESTATE | CGit::LOG_INFO_SHOW_MERGEDFILE);
+		range.Format(L"%s..%s", (m_oldHash.ToString()).c_str(), (newHash.ToString()).c_str());
+		m_InLogList.FillGitLog(nullptr, &range, TGitH::LOG_INFO_STAT | TGitH::LOG_INFO_FILESTATE | TGitH::LOG_INFO_SHOW_MERGEDFILE);
 		ShowTab(IDC_IN_LOGLIST);
 	}
 }
@@ -491,7 +491,7 @@ void CSyncDlg::PullComplete()
 		if (hasConflicts < 0)
 		{
 			this->m_ctrlCmdOut.SetSel(-1,-1);
-			this->m_ctrlCmdOut.ReplaceSel(g_Git.GetGitLastErr(L"Checking for conflicts failed.", CGit::GIT_CMD_CHECKCONFLICTS));
+			this->m_ctrlCmdOut.ReplaceSel(g_Git.GetGitLastErr(L"Checking for conflicts failed.", TGitH::GIT_CMD_CHECKCONFLICTS));
 
 			this->ShowTab(IDC_CMD_LOG);
 			return;
@@ -520,7 +520,7 @@ void CSyncDlg::FetchComplete()
 	EnableControlButton(true);
 	SwitchToInput();
 
-	if (g_Git.UsingLibGit2(CGit::GIT_CMD_FETCH))
+	if (g_Git.UsingLibGit2(TGitH::GIT_CMD_FETCH))
 		ShowTab(IDC_CMD_GIT_PROG);
 	else
 		ShowTab(IDC_REFLIST);
@@ -537,7 +537,7 @@ void CSyncDlg::FetchComplete()
 	m_ctrlURL.GetWindowText(remote);
 	if (!remote.IsEmpty())
 	{
-		if (std::find(m_remotelist.cbegin(), m_remotelist.cend(), tgit::wstr::View(remote)) == m_remotelist.cend())
+		if (std::find(m_remotelist.cbegin(), m_remotelist.cend(), tgit::zstr::StringView(remote)) == m_remotelist.cend())
 			remote.Empty();
 	}
 	m_ctrlRemoteBranch.GetWindowText(remotebranch);
@@ -617,7 +617,7 @@ void CSyncDlg::StashComplete()
 		if (hasConflicts < 0)
 		{
 			m_ctrlCmdOut.SetSel(-1, -1);
-			m_ctrlCmdOut.ReplaceSel(g_Git.GetGitLastErr(L"Checking for conflicts failed.", CGit::GIT_CMD_CHECKCONFLICTS));
+			m_ctrlCmdOut.ReplaceSel(g_Git.GetGitLastErr(L"Checking for conflicts failed.", TGitH::GIT_CMD_CHECKCONFLICTS));
 
 			ShowTab(IDC_CMD_LOG);
 			return;
@@ -1079,7 +1079,7 @@ void CSyncDlg::Refresh()
 		for (size_t i = 0; i < m_remotelist.size(); ++i)
 		{
 			m_ctrlURL.AddString(m_remotelist[i].c_str());
-			if (m_remotelist[i] == tgit::wstr::View(url))
+			if (m_remotelist[i] == tgit::zstr::StringView(url))
 				found = true;
 		}
 	}
@@ -1210,7 +1210,7 @@ void CSyncDlg::FetchOutList(bool force)
 				CString range;
 				range.Format(L"%s..%s", static_cast<LPCWSTR>(g_Git.FixBranchName(remotebranch)), static_cast<LPCWSTR>(g_Git.FixBranchName(localbranch)));
 				//fast forward
-				m_OutLogList.FillGitLog(nullptr, &range, CGit::LOG_INFO_STAT | CGit::LOG_INFO_FILESTATE | CGit::LOG_INFO_SHOW_MERGEDFILE);
+				m_OutLogList.FillGitLog(nullptr, &range, TGitH::LOG_INFO_STAT | TGitH::LOG_INFO_FILESTATE | TGitH::LOG_INFO_SHOW_MERGEDFILE);
 				CString str;
 				str.FormatMessage(IDS_PROC_SYNC_COMMITSAHEAD, m_OutLogList.GetItemCount(), static_cast<LPCWSTR>(remotebranch));
 				this->m_ctrlStatus.SetWindowText(str);
@@ -1362,13 +1362,13 @@ void CSyncDlg::FillNewRefMap()
 	CAutoRepository repo(g_Git.GetGitRepository());
 	if (!repo)
 	{
-		CMessageBox::Show(m_hWnd, CGit::GetLibGit2LastErr(L"Could not open repository."), L"TortoiseGit", MB_OK | MB_ICONERROR);
+		CMessageBox::Show(m_hWnd, TGitH::GetLibGit2LastErr(L"Could not open repository."), L"TortoiseGit", MB_OK | MB_ICONERROR);
 		return;
 	}
 
 	if (CGit::GetMapHashToFriendName(repo, m_newHashMap))
 	{
-		MessageBox(CGit::GetLibGit2LastErr(L"Could not get all refs."), L"TortoiseGit", MB_ICONERROR);
+		MessageBox(TGitH::GetLibGit2LastErr(L"Could not get all refs."), L"TortoiseGit", MB_ICONERROR);
 		return;
 	}
 
@@ -1506,7 +1506,7 @@ void CSyncDlg::OnCancel()
 	if (m_pThread)
 	{
 		if (::WaitForSingleObject(m_pThread->m_hThread, 5000) == WAIT_TIMEOUT)
-			g_Git.KillRelatedThreads(m_pThread);
+			g_Git.KillRelatedThreads(m_pThread->m_nThreadID, m_pThread->m_hThread);
 	}
 	m_tooltips.Pop();
 	CResizableStandAloneDialog::OnCancel();

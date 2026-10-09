@@ -7,9 +7,10 @@
 
 // ACWnd.cpp: Implementierungsdatei
 //
+#include "stdafx.h"
 
-#include "Utils/ACListWnd.h"
-#include "Utils/StringUtils.h"
+#include "ACListWnd.h"
+import StringUtils;
 #include "Utils/DPIAware.h"
 #include "Utils/Theme.h"
 

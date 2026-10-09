@@ -21,7 +21,7 @@
 #pragma once
 #include <scintilla/scintilla.h>
 #include "ProjectProperties.h"
-#include <Utils/PersonalDictionary.h>
+import PersonalDictionary;
 #include <Utils/LruCache.h>
 #include <spellcheck.h>
 

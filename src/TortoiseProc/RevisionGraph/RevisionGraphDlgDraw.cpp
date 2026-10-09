@@ -21,10 +21,10 @@
 #include "stdafx.h"
 #include "TortoiseProc.h"
 #include "MyMemDC.h"
-#include "Git.h"
-#include "UnicodeUtils.h"
+import git_h;
+import wstr;
 #include "RevisionGraphWnd.h"
-#include "registry.h"
+import Registry;
 #include "DPIAware.h"
 #include "Theme.h"
 #include "AppUtils.h"
@@ -341,8 +341,8 @@ void CRevisionGraphWnd::DrawConnections(GraphicsDevice& graphics, const CRect& /
 			graphics.pSVG->Polyline(points.GetData(), static_cast<int>(points.GetCount()), Color(0, 0, 0), static_cast<int>(penwidth));
 		else if (graphics.pGraphviz)
 		{
-			CString hash1 = L'g' + m_logEntries[e->target()->index()].ToString(g_Git.GetShortHASHLength());
-			CString hash2 = L'g' + m_logEntries[e->source()->index()].ToString(g_Git.GetShortHASHLength());
+			CString hash1 = (L'g' + m_logEntries[e->target()->index()].ToString(g_Git.GetShortHASHLength())).c_str();
+			CString hash2 = (L'g' + m_logEntries[e->source()->index()].ToString(g_Git.GetShortHASHLength())).c_str();
 			graphics.pGraphviz->DrawEdge(hash1, hash2);
 		}
 
@@ -498,8 +498,8 @@ void CRevisionGraphWnd::DrawNode(GraphicsDevice& graphics, AllColorsAndBrushes& 
 	else if (graphics.pSVG)
 		graphics.pSVG->Text(static_cast<int>(noderect.X + this->GetLeftRightMargin() * m_fZoomFactor),
 							static_cast<int>(noderect.Y + this->GetTopBottomMargin() * m_fZoomFactor + height * line + m_nFontSize),
-							CUnicodeUtils::GetUTF8(fontname), m_nFontSize,
-							false, false, static_cast<ARGB>(Color::Black), CUnicodeUtils::GetUTF8(shortname));
+							CUnicodeUtils::GetUTF8<CStringA>(fontname), m_nFontSize,
+							false, false, static_cast<ARGB>(Color::Black), CUnicodeUtils::GetUTF8<CStringA>(shortname));
 	else if (graphics.pGraphviz)
 	{
 		if (lines == 1)
@@ -543,7 +543,7 @@ void CRevisionGraphWnd::DrawTexts (GraphicsDevice& graphics, const CRect& /*logR
 
 		if (lines >= 1 && graphics.pGraphviz)
 		{
-			CString id = L'g' + hash.ToString(g_Git.GetShortHASHLength());
+			CString id = (L'g' + hash.ToString(g_Git.GetShortHASHLength())).c_str();
 			graphics.pGraphviz->BeginDrawTableNode(id, fontname, m_nFontSize, static_cast<int>(noderect.Height));
 		}
 
@@ -560,7 +560,7 @@ void CRevisionGraphWnd::DrawTexts (GraphicsDevice& graphics, const CRect& /*logR
 
 		if (!hasRefs)
 		{
-			CString shortHash = hash.ToString(g_Git.GetShortHASHLength());
+			CString shortHash = (hash.ToString(g_Git.GetShortHASHLength())).c_str();
 			DrawNode(graphics, colorsAndBrushes, &colorsAndBrushes.Commits, font, fontname, height, noderect, shortHash, line, lines);
 		}
 		else
@@ -569,36 +569,36 @@ void CRevisionGraphWnd::DrawTexts (GraphicsDevice& graphics, const CRect& /*logR
 			{
 				auto colors = &colorsAndBrushes.Other;
 
-				CGit::REF_TYPE refType;
-				CString shortname = CGit::GetShortName(ref.c_str(), &refType);
+				TGitH::REF_TYPE refType;
+				CString shortname = TGitH::GetShortName(ref.c_str(), &refType);
 				switch (refType)
 				{
-				case CGit::REF_TYPE::LOCAL_BRANCH:
+				case TGitH::REF_TYPE::LOCAL_BRANCH:
 					if (shortname == m_CurrentBranch)
 						colors = &colorsAndBrushes.CurrentBranch;
 					else
 						colors = &colorsAndBrushes.LocalBranch;
 					break;
-				case CGit::REF_TYPE::REMOTE_BRANCH:
+				case TGitH::REF_TYPE::REMOTE_BRANCH:
 					colors = &colorsAndBrushes.RemoteBranch;
 					break;
-				case CGit::REF_TYPE::ANNOTATED_TAG:
-				case CGit::REF_TYPE::TAG:
+				case TGitH::REF_TYPE::ANNOTATED_TAG:
+				case TGitH::REF_TYPE::TAG:
 					colors = &colorsAndBrushes.Tag;
 					break;
-				case CGit::REF_TYPE::STASH:
+				case TGitH::REF_TYPE::STASH:
 					colors = &colorsAndBrushes.Stash;
 					break;
-				case CGit::REF_TYPE::BISECT_GOOD:
+				case TGitH::REF_TYPE::BISECT_GOOD:
 					colors = &colorsAndBrushes.BisectGood;
 					break;
-				case CGit::REF_TYPE::BISECT_BAD:
+				case TGitH::REF_TYPE::BISECT_BAD:
 					colors = &colorsAndBrushes.BisectBad;
 					break;
-				case CGit::REF_TYPE::BISECT_SKIP:
+				case TGitH::REF_TYPE::BISECT_SKIP:
 					colors = &colorsAndBrushes.BisectSkip;
 					break;
-				case CGit::REF_TYPE::NOTES:
+				case TGitH::REF_TYPE::NOTES:
 					colors = &colorsAndBrushes.Notes;
 					break;
 				}
@@ -725,7 +725,7 @@ void CRevisionGraphWnd::SetNodeRect(GraphicsDevice& graphics, Gdiplus::Font& fon
 	{
 		lines = static_cast<int>((*it).second.size());
 		if (graphics.graphics)
-			std::for_each((*it).second.cbegin(), (*it).second.cend(), [&](const auto& refName) { MeasureTextLength(graphics, font, CGit::GetShortName(refName.c_str(), nullptr), xmax, ymax); });
+			std::for_each((*it).second.cbegin(), (*it).second.cend(), [&](const auto& refName) { MeasureTextLength(graphics, font, TGitH::GetShortName(refName.c_str(), nullptr), xmax, ymax); });
 	}
 	const auto fnMeasureSuperRepoText = [&](const CGitHash& superRepoHash, const CString& label) {
 		if (rev != superRepoHash)

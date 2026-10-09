@@ -1,8 +1,9 @@
 ﻿// MyGraph.cpp
+#include "../stdafx.h"
 
 
-#include "Utils/MyGraph.h"
-#include "Utils/BufferDC.h"
+#include "MiscUI/MyGraph.h"
+#include "MiscUI/BufferDC.h"
 #include "Utils/Theme.h"
 
 #include <cmath>

@@ -22,7 +22,7 @@
 #include "SysProgressDlg.h"
 #include "ProgressDlg.h"
 #include "MessageBox.h"
-#include "Git.h"
+import git_h;
 #include "RebaseDlg.h"
 #include "AppUtils.h"
 

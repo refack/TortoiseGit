@@ -1,4 +1,4 @@
-// TortoiseGit - a Windows shell extension for easy version control
+﻿// TortoiseGit - a Windows shell extension for easy version control
 
 // Copyright (C) 2022-2026 - TortoiseGit
 
@@ -25,9 +25,9 @@
 #include "ProgressDlg.h"
 #include "AppUtils.h"
 #include "IconMenu.h"
-#include "UnicodeUtils.h"
+import wstr;
 #include "SysImageList.h"
-#include "PathUtils.h"
+import PathUtils;
 #include "MessageBox.h"
 
 // CWorktreeListDlg dialog
@@ -127,14 +127,14 @@ int CWorktreeListDlg::GetWorktreeNames(STRING_VECTOR& list, CString& error)
 	CAutoRepository repo(g_Git.GetGitRepository());
 	if (!repo)
 	{
-		error = g_Git.GetLibGit2LastErr();
+		error = TGitH::GetLibGit2LastErr();
 		return -1;
 	}
 
 	CAutoStrArray worktrees;
 	if (git_worktree_list(worktrees, repo) < 0)
 	{
-		error = g_Git.GetLibGit2LastErr();
+		error = TGitH::GetLibGit2LastErr();
 		return -1;
 	}
 
@@ -152,7 +152,7 @@ int CWorktreeListDlg::FillListCtrlWithWorktreeList(CString& error)
 	CAutoRepository repo(g_Git.GetGitRepository());
 	if (!repo)
 	{
-		error = g_Git.GetLibGit2LastErr();
+		error = TGitH::GetLibGit2LastErr();
 		return -1;
 	}
 
@@ -169,17 +169,17 @@ int CWorktreeListDlg::FillListCtrlWithWorktreeList(CString& error)
 		CAutoReference nonWorktreeHead;
 		if (git_repository_head(nonWorktreeHead.GetPointer(), baseRepo) < 0)
 		{
-			error = g_Git.GetLibGit2LastErr();
+			error = TGitH::GetLibGit2LastErr();
 			return -1;
 		}
 		CString workDirPath;
 		if (git_repository_is_bare(baseRepo))
-			workDirPath = CUnicodeUtils::GetUnicode(git_repository_commondir(baseRepo));
+			workDirPath = CUnicodeUtils::Convert2Unicode<CString>(git_repository_commondir(baseRepo));
 		else
-			workDirPath = CUnicodeUtils::GetUnicode(git_repository_workdir(baseRepo));
+			workDirPath = CUnicodeUtils::Convert2Unicode<CString>(git_repository_workdir(baseRepo));
 		workDirPath.Replace(L'/', L'\\');
 		workDirPath.TrimRight(L'\\');
-		WorktreeDetails worktreeDetails(L"", workDirPath, git_reference_target(nonWorktreeHead), CUnicodeUtils::GetUnicode(git_reference_shorthand(nonWorktreeHead)));
+		WorktreeDetails worktreeDetails(L"", workDirPath, git_reference_target(nonWorktreeHead), CUnicodeUtils::Convert2Unicode<CString>(git_reference_shorthand(nonWorktreeHead)));
 		worktreeDetails.m_isBaseRepo = TRUE;
 		m_Worktrees.push_back(worktreeDetails);
 	}
@@ -189,17 +189,17 @@ int CWorktreeListDlg::FillListCtrlWithWorktreeList(CString& error)
 		CAutoWorktree worktree;
 		if (git_worktree_lookup(worktree.GetPointer(), repo, CUnicodeUtils::StdGetUTF8(list[i]).c_str()) < 0)
 		{
-			error = g_Git.GetLibGit2LastErr();
+			error = TGitH::GetLibGit2LastErr();
 			return -1;
 		}
-		CString worktreePath = CUnicodeUtils::GetUnicode(git_worktree_path(worktree));
+		CString worktreePath = CUnicodeUtils::Convert2Unicode<CString>(git_worktree_path(worktree));
 		worktreePath.Replace(L'/', L'\\');
 
 		CAutoBuf reason;
 		unsigned int locked = git_worktree_is_locked(reason, worktree);
 		if (locked < 0)
 		{
-			error = g_Git.GetLibGit2LastErr();
+			error = TGitH::GetLibGit2LastErr();
 			return -1;
 		}
 
@@ -208,7 +208,7 @@ int CWorktreeListDlg::FillListCtrlWithWorktreeList(CString& error)
 		prune_opts.flags = GIT_WORKTREE_PRUNE_LOCKED;
 		if (int pruneable = git_worktree_is_prunable(worktree, &prune_opts); pruneable < 0)
 		{
-			error = g_Git.GetLibGit2LastErr();
+			error = TGitH::GetLibGit2LastErr();
 			return -1;
 		}
 		// Can't get information about HEAD and so on because worktree checkout doesn't exist
@@ -226,11 +226,11 @@ int CWorktreeListDlg::FillListCtrlWithWorktreeList(CString& error)
 		CAutoReference head;
 		if (git_repository_head_for_worktree(head.GetPointer(), repo, CUnicodeUtils::StdGetUTF8(list[i]).c_str()) < 0)
 		{
-			error = g_Git.GetLibGit2LastErr();
+			error = TGitH::GetLibGit2LastErr();
 			return -1;
 		}
 
-		CString branch = CUnicodeUtils::GetUnicode(git_reference_shorthand(head));
+		CString branch = CUnicodeUtils::Convert2Unicode<CString>(git_reference_shorthand(head));
 		if (branch == L"HEAD")
 		{
 			// `git worktree list` command says "detached HEAD", so we should say the same
@@ -251,7 +251,7 @@ int CWorktreeListDlg::FillListCtrlWithWorktreeList(CString& error)
 		if (zfb.m_Hash.IsEmpty())
 			m_WorktreeList.SetItemText(indexItem, eCol_Hash, L"");
 		else
-			m_WorktreeList.SetItemText(indexItem, eCol_Hash, zfb.m_Hash.ToString());
+			m_WorktreeList.SetItemText(indexItem, eCol_Hash, (zfb.m_Hash.ToString()).c_str());
 		m_WorktreeList.SetItemText(indexItem, eCol_Branch, zfb.m_Branch);
 
 		if (zfb.m_isBaseRepo)
@@ -383,9 +383,9 @@ void CWorktreeListDlg::ShowContextMenu(CPoint point, std::vector<int>& indexes)
 					continue;
 
 				CAutoWorktree worktree;
-				if (git_worktree_lookup(worktree.GetPointer(), g_Git.GetGitRepository(), CUnicodeUtils::GetUTF8(leaf.m_WorktreeName)) < 0 || git_worktree_lock(worktree, nullptr) < 0)
+				if (git_worktree_lookup(worktree.GetPointer(), g_Git.GetGitRepository(), CUnicodeUtils::GetUTF8<CStringA>(leaf.m_WorktreeName)) < 0 || git_worktree_lock(worktree, nullptr) < 0)
 				{
-					if (CMessageBox::Show(GetSafeHwnd(), g_Git.GetLibGit2LastErr(L"Failed to lock worktree \"" + leaf.m_WorktreeName + L"\"."), IDS_APPNAME, 1, IDI_ERROR, IDS_MSGBOX_CONTINUE, IDS_MSGBOX_ABORT) == 2)
+					if (CMessageBox::Show(GetSafeHwnd(), TGitH::GetLibGit2LastErr(L"Failed to lock worktree \"" + leaf.m_WorktreeName + L"\"."), IDS_APPNAME, 1, IDI_ERROR, IDS_MSGBOX_CONTINUE, IDS_MSGBOX_ABORT) == 2)
 						break;
 				}
 				else
@@ -407,9 +407,9 @@ void CWorktreeListDlg::ShowContextMenu(CPoint point, std::vector<int>& indexes)
 					continue;
 
 				CAutoWorktree worktree;
-				if (git_worktree_lookup(worktree.GetPointer(), g_Git.GetGitRepository(), CUnicodeUtils::GetUTF8(leaf.m_WorktreeName)) < 0 || git_worktree_unlock(worktree) < 0)
+				if (git_worktree_lookup(worktree.GetPointer(), g_Git.GetGitRepository(), CUnicodeUtils::GetUTF8<CStringA>(leaf.m_WorktreeName)) < 0 || git_worktree_unlock(worktree) < 0)
 				{
-					if (CMessageBox::Show(GetSafeHwnd(), g_Git.GetLibGit2LastErr(L"Failed to unlock worktree \"" + leaf.m_WorktreeName + L"\"."), IDS_APPNAME, 1, IDI_ERROR, IDS_MSGBOX_CONTINUE, IDS_MSGBOX_ABORT) == 2)
+					if (CMessageBox::Show(GetSafeHwnd(), TGitH::GetLibGit2LastErr(L"Failed to unlock worktree \"" + leaf.m_WorktreeName + L"\"."), IDS_APPNAME, 1, IDI_ERROR, IDS_MSGBOX_CONTINUE, IDS_MSGBOX_ABORT) == 2)
 						break;
 				}
 				else

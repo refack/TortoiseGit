@@ -20,7 +20,7 @@
 #include "stdafx.h"
 #include "InaccessibleCommand.h"
 #include "MessageBox.h"
-#include "PathUtils.h"
+import PathUtils;
 
 bool InaccessibleCommand ::Execute()
 {
@@ -33,11 +33,11 @@ bool InaccessibleCommand ::Execute()
 	}
 	catch (const char* msg)
 	{
-		errorParts = L"libgit reported: " + CUnicodeUtils::GetUnicode(msg) + L"\n";
+		errorParts = L"libgit reported: " + CUnicodeUtils::Convert2Unicode<CString>(msg) + L"\n";
 	}
 	const std::wstring dotGitPath = std::format(L"{}\\.git", orgCmdLinePath.GetWinPathString());
 	if (!(PathFileExists(dotGitPath.c_str()) && !PathIsDirectory(dotGitPath.c_str())) && !g_Git.GetGitRepository())
-		errorParts += L"----------------------------\n" + g_Git.GetLibGit2LastErr();
+		errorParts += L"----------------------------\n" + TGitH::GetLibGit2LastErr();
 	if (errorParts.IsEmpty())
 		errorParts = L"no errors were reported";
 	errorParts.TrimRight();
@@ -60,14 +60,14 @@ bool InaccessibleCommand ::Execute()
 				err = git_config_add_file_ondisk(config, CGit::GetGitPathStringA(g_Git.GetGitGlobalConfig()), GIT_CONFIG_LEVEL_GLOBAL, nullptr, FALSE);
 			if (err)
 			{
-				::MessageBox(GetExplorerHWND(), g_Git.GetLibGit2LastErr(), L"TortoiseGit", MB_ICONEXCLAMATION);
+				::MessageBox(GetExplorerHWND(), TGitH::GetLibGit2LastErr(), L"TortoiseGit", MB_ICONEXCLAMATION);
 				return false;
 			}
 			CString path = orgCmdLinePath.GetGitPathString().c_str();
 			path.TrimRight(L"/");
-			if (git_config_set_multivar(config, "safe.directory", "$^", CUnicodeUtils::GetUTF8(path)) < 0)
+			if (git_config_set_multivar(config, "safe.directory", "$^", CUnicodeUtils::GetUTF8<CStringA>(path)) < 0)
 			{
-				MessageBox(GetExplorerHWND(), g_Git.GetLibGit2LastErr(), L"TortoiseGit", MB_ICONEXCLAMATION);
+				MessageBox(GetExplorerHWND(), TGitH::GetLibGit2LastErr(), L"TortoiseGit", MB_ICONEXCLAMATION);
 				return false;
 			}
 		}

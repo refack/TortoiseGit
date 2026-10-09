@@ -20,16 +20,16 @@
 #include "stdafx.h"
 #include "TortoiseProc.h"
 #include "GitProgressList.h"
-#include "Git.h"
-#include "registry.h"
+import git_h;
+import Registry;
 #include "AppUtils.h"
-#include "StringUtils.h"
+import StringUtils;
 #include "LogFile.h"
 #include "LoglistUtils.h"
 #include "Theme.h"
-#include "TempFile.h"
+import TempFile;
 #include "git2/sys/errors.h"
-#include "CmdLineParser.h"
+import CmdLineParser;
 
 BOOL	CGitProgressList::m_bAscending = FALSE;
 int		CGitProgressList::m_nSortedColumn = -1;
@@ -355,7 +355,7 @@ bool CGitProgressList::SetBackgroundImage(UINT nID)
 
 void CGitProgressList::ReportGitError()
 {
-	ReportError(CGit::GetLibGit2LastErr());
+	ReportError(TGitH::GetLibGit2LastErr());
 }
 
 void CGitProgressList::ReportUserCanceled()
@@ -595,7 +595,7 @@ void CGitProgressList::OnLvnGetdispinfoSvnprogress(NMHDR *pNMHDR, LRESULT *pResu
 						{
 							CFont * pFont = pDC->SelectObject(GetFont());
 							PathCompactPath(pDC->GetSafeHdc(), m_columnbuf, cWidth);
-							CPathUtils::ConvertToSlash(m_columnbuf);
+							PathUtils::ConvertToSlash(m_columnbuf);
 							pDC->SelectObject(pFont);
 							ReleaseDC(pDC);
 						}
@@ -1009,7 +1009,7 @@ void CGitProgressList::OnClose()
 {
 	if (m_bCancelled)
 	{
-		g_Git.KillRelatedThreads(m_pThread);
+		g_Git.KillRelatedThreads(m_pThread->m_nThreadID, m_pThread->m_hThread);
 		InterlockedExchange(&m_bThreadRunning, FALSE);
 	}
 	else
@@ -1177,7 +1177,7 @@ void CGitProgressList::WC_File_NotificationData::GetContextMenu(CIconMenu& popup
 			CTGitPathList pathList(path);
 
 			actions.push_back([&] {
-				CString tempfilename = CTempFiles::Instance().GetTempFilePath(false).GetWinPathString().c_str();
+				CString tempfilename = TempFiles::GetTempFilePath(false).GetWinPathString().c_str();
 				VERIFY(pathList.WriteToFile(tempfilename.GetString()));
 				CString sCmd;
 				sCmd.Format(L"/command:lfslock /pathfile:\"%s\" /deletepathfile", static_cast<LPCWSTR>(tempfilename));
@@ -1186,7 +1186,7 @@ void CGitProgressList::WC_File_NotificationData::GetContextMenu(CIconMenu& popup
 			popup.AppendMenuIcon(actions.size(), IDS_PROGRS_TITLE_LFS_LOCK, IDI_LFSLOCK);
 
 			actions.push_back([&] {
-				CString tempfilename = CTempFiles::Instance().GetTempFilePath(false).GetWinPathString().c_str();
+				CString tempfilename = TempFiles::GetTempFilePath(false).GetWinPathString().c_str();
 				VERIFY(pathList.WriteToFile(tempfilename.GetString()));
 				CString sCmd;
 				sCmd.Format(L"/command:lfsunlock /pathfile:\"%s\" /deletepathfile", static_cast<LPCWSTR>(tempfilename));

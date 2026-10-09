@@ -22,10 +22,10 @@
 #include "stdafx.h"
 #include "TortoiseProc.h"
 #include "SettingGitCredential.h"
-import GitAdminDir;
+import TGitPath;	// GitAdminDir lives in the TGitPath module
 #include "MessageBox.h"
 #include "AppUtils.h"
-#include "Git.h"
+import git_h;
 
 namespace SimpleCredentialType
 {
@@ -125,7 +125,7 @@ BOOL CSettingGitCredential::OnInitDialog()
 
 	AdjustControlSize(IDC_CHECK_USEHTTPPATH);
 
-	bool hasLocal = GitAdminDir::HasAdminDir(g_Git.m_CurrentDir);
+	bool hasLocal = GitAdminDir::HasAdminDir(tgit::zstr::StringView(g_Git.m_CurrentDir));
 
 	m_ctrlUrlList.ResetContent();
 
@@ -333,7 +333,7 @@ void CSettingGitCredential::FillSimpleList(bool anySystem, bool systemWincred, b
 {
 	ATLASSERT(SimpleCredentialType::Advanced == -1);
 
-	bool hasLocal = GitAdminDir::HasAdminDir(g_Git.m_CurrentDir);
+	bool hasLocal = GitAdminDir::HasAdminDir(tgit::zstr::StringView(g_Git.m_CurrentDir));
 	bool isAdmin = CAppUtils::IsAdminLogin();
 
 	AddSimpleCredential(SimpleCredentialType::Advanced, CString(MAKEINTRESOURCE(IDS_ADVANCED)));
@@ -510,14 +510,14 @@ CString CSettingGitCredential::Load(const CString& key)
 	else if (sel == ConfigType::System)
 		git_config_add_file_ondisk(config, CGit::GetGitPathStringA(g_Git.GetGitSystemConfig()), GIT_CONFIG_LEVEL_SYSTEM, repo, FALSE);
 
-	CStringA cmdA = CUnicodeUtils::GetUTF8(cmd);
+	CStringA cmdA = CUnicodeUtils::GetUTF8<CStringA>(cmd);
 	CStringA valueA;
 	git_config_entry* entry;
 	if (!git_config_get_entry(&entry, config, cmdA))
 		valueA = CStringA(entry->value);
 	git_config_entry_free(entry);
 
-	return CUnicodeUtils::GetUnicode(valueA);
+	return CUnicodeUtils::GetUnicode<CString>(valueA);
 }
 
 void CSettingGitCredential::Save(const CString& key, const CString& value)
@@ -593,7 +593,7 @@ int CSettingGitCredential::DeleteOtherKeys(int type)
 	{
 		int pos = 0;
 		CString prefix = tgit::wstr::Tokenize(list[i], L"\n", pos).c_str();
-		if ((prefix == L"S" || prefix == L"P") && list[i] != tgit::wstr::View(match) && !CAppUtils::IsAdminLogin())
+		if ((prefix == L"S" || prefix == L"P") && list[i] != tgit::zstr::StringView(match) && !CAppUtils::IsAdminLogin())
 		{
 			if (MessageBox(L"Cannot modify a system config without proper rights.\nDiscard changes?", L"TortoiseGit", MB_ICONERROR | MB_YESNO) == IDYES)
 				return 0;
@@ -608,7 +608,7 @@ int CSettingGitCredential::DeleteOtherKeys(int type)
 	SCOPE_EXIT { g_Git.m_IsUseGitDLL = old; };
 	for (size_t i = 0; i < list.size(); ++i)
 	{
-		if (list[i] == tgit::wstr::View(match))
+		if (list[i] == tgit::zstr::StringView(match))
 			continue;
 
 		int pos = 0;
@@ -847,7 +847,7 @@ void CSettingGitCredential::OnBnClickedButtonRemove()
 			}
 
 			STRING_VECTOR list;
-			CStringA urlA = CUnicodeUtils::GetUTF8(url);
+			CStringA urlA = CUnicodeUtils::GetUTF8<CStringA>(url);
 			CStringA pattern = urlA.IsEmpty() ? CStringA("^credential\\.[^.]+$") : ("credential\\." + RegexEscape(urlA) + "\\..*");
 			git_config_foreach_match(config, pattern, GetCredentialEntryCallback, &list);
 			for (size_t i = 0; i < list.size(); ++i)

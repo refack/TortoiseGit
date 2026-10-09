@@ -16,11 +16,12 @@
 *	$History:$
 *
 *********************************************************************/
+#include "../stdafx.h"
 
 
-#include "Utils/PropPageFrameDefault.h"
+#include "TreePropSheet/PropPageFrameDefault.h"
 #include "Utils/ExtTextOutFL.h"
-#include "Utils/SmartHandle.h"
+import RIAA;
 
 namespace TreePropSheet
 {

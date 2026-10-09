@@ -23,11 +23,24 @@
 #include <Resources/LoglistCommonResource.h>
 
 #include "AutoTempDir.h"
-#include "Git.h"
-#include "PreserveChdir.h"
-#include "StringUtils.h"
-#include "WideString.h"
+import git_h;
+import StringUtils;
+import wstr;
 import TGitPath;
+
+// FillUnRev takes the git runner it used to reach for itself (g_Git).
+static auto GitRunnerFor(CGit& git)
+{
+	return [&git](const auto& argv, auto* out, auto* err) { return git.Run(argv, out, err); };
+}
+
+// Restores the working directory. Was TortoiseShell's PreserveChdir, which no
+// test-side target compiles; it is fixture plumbing here, not a subject.
+struct PreserveChdir
+{
+	std::filesystem::path saved = std::filesystem::current_path();
+	~PreserveChdir() { std::error_code ec; std::filesystem::current_path(saved, ec); }
+};
 
 TEST(CTGitPath, GetDirectoryTest)
 {
@@ -462,7 +475,7 @@ TEST(CTGitPath, LoadFromFileAndWriteToFile)
 	CString fileNameWrite = tmpDir.GetTempDir() + L"\\output";
 
 	EXPECT_TRUE(StringUtils::WriteStringToTextFile(fileNameRead, L"Path1\nc:\\path2 with spaces and stuff\n\\funnypath\\", false));
-	EXPECT_TRUE(testList.LoadFromFile(CTGitPath(fileNameRead.GetString())));
+	EXPECT_TRUE(testList.LoadFromFile(CTGitPath(fileNameRead)));
 	EXPECT_EQ(3, testList.GetCount());
 	EXPECT_STREQ(L"Path1", testList[0].GetWinPathString().c_str());
 	EXPECT_STREQ(L"c:\\path2 with spaces and stuff", testList[1].GetWinPathString().c_str());
@@ -473,7 +486,7 @@ TEST(CTGitPath, LoadFromFileAndWriteToFile)
 	EXPECT_STREQ(L"", testList.GetCommonRoot().GetWinPathString().c_str());
 
 	EXPECT_TRUE(StringUtils::WriteStringToTextFile(fileNameRead, L"Path1\nc:\\path2 with spaces and stuff\n\n\\funnypath\\\n", false));
-	EXPECT_TRUE(testList.LoadFromFile(CTGitPath(fileNameRead.GetString())));
+	EXPECT_TRUE(testList.LoadFromFile(CTGitPath(fileNameRead)));
 	EXPECT_EQ(3, testList.GetCount());
 	EXPECT_STREQ(L"Path1", testList[0].GetWinPathString().c_str());
 	EXPECT_STREQ(L"c:\\path2 with spaces and stuff", testList[1].GetWinPathString().c_str());
@@ -484,11 +497,11 @@ TEST(CTGitPath, LoadFromFileAndWriteToFile)
 	EXPECT_STREQ(L"Path1\r\nc:/path2 with spaces and stuff\r\n/funnypath\r\n", text);
 
 	EXPECT_TRUE(StringUtils::WriteStringToTextFile(fileNameRead, L"c:\\path2 with spaces and stuff\nc:\\funnypath\\\n", false));
-	testList.LoadFromFile(CTGitPath(fileNameRead.GetString()));
+	testList.LoadFromFile(CTGitPath(fileNameRead));
 	EXPECT_STREQ(L"c:\\", testList.GetCommonRoot().GetWinPathString().c_str());
 
 	EXPECT_TRUE(StringUtils::WriteStringToTextFile(fileNameRead, L"c:\\path2 with spaces and stuff\n\nc:\\funnypath\\\n", false));
-	testList.LoadFromFile(CTGitPath(fileNameRead.GetString()));
+	testList.LoadFromFile(CTGitPath(fileNameRead));
 	EXPECT_STREQ(L"c:\\", testList.GetCommonRoot().GetWinPathString().c_str());
 }
 
@@ -1619,8 +1632,8 @@ TEST(CTGitPath, ParserFromLog_Invalid)
 
 static void setFlagOnFileInIndex(CAutoIndex& gitindex, const CString& filename, bool assumevalid, bool skipworktree)
 {
-	size_t idx = SIZE_T_MAX;
-	EXPECT_TRUE(git_index_find(&idx, gitindex, CUnicodeUtils::GetUTF8(filename)) == 0);
+	size_t idx = SIZE_MAX;
+	EXPECT_TRUE(git_index_find(&idx, gitindex, CUnicodeUtils::GetUTF8<CStringA>(filename)) == 0);
 	git_index_entry *e = const_cast<git_index_entry *>(git_index_get_byindex(gitindex, idx));
 	ASSERT_TRUE(e);
 	if (assumevalid == BST_UNCHECKED)
@@ -1640,7 +1653,7 @@ TEST(CTGitPath, FillBasedOnIndexFlags)
 
 	CString output;
 	CAutoRepository repo;
-	EXPECT_TRUE(git_repository_init(repo.GetPointer(), CUnicodeUtils::GetUTF8(tmpDir.GetTempDir()), 0) == 0);
+	EXPECT_TRUE(git_repository_init(repo.GetPointer(), CUnicodeUtils::GetUTF8<CStringA>(tmpDir.GetTempDir()), 0) == 0);
 
 	ASSERT_TRUE(CreateDirectory(tmpDir.GetTempDir() + L"\\a", nullptr));
 	ASSERT_TRUE(CreateDirectory(tmpDir.GetTempDir() + L"\\b", nullptr));
@@ -1653,7 +1666,7 @@ TEST(CTGitPath, FillBasedOnIndexFlags)
 	{
 		CString filenameWithPath = tmpDir.GetTempDir() + L'\\' + filename;
 		EXPECT_TRUE(StringUtils::WriteStringToTextFile(filenameWithPath, L"something"));
-		EXPECT_TRUE(git_index_add_bypath(gitindex, CUnicodeUtils::GetUTF8(filename)) == 0);
+		EXPECT_TRUE(git_index_add_bypath(gitindex, CUnicodeUtils::GetUTF8<CStringA>(filename)) == 0);
 	}
 
 	setFlagOnFileInIndex(gitindex, L"assume-unchanged", true, false);
@@ -1670,25 +1683,25 @@ TEST(CTGitPath, FillBasedOnIndexFlags)
 	g_Git.SetCurrentDirExact(tmpDir.GetTempDir());
 
 	CTGitPathList testList;
-	EXPECT_TRUE(testList.FillBasedOnIndexFlags(0, 0) == 0);
+	EXPECT_TRUE(testList.FillBasedOnIndexFlags(g_Git.GetGitRepository().get(), 0, 0) == 0);
 	EXPECT_EQ(0, testList.GetCount());
 
 	testList.Clear();
-	EXPECT_TRUE(testList.FillBasedOnIndexFlags(GIT_INDEX_ENTRY_VALID, 0) == 0);
+	EXPECT_TRUE(testList.FillBasedOnIndexFlags(g_Git.GetGitRepository().get(), GIT_INDEX_ENTRY_VALID, 0) == 0);
 	EXPECT_EQ(3, testList.GetCount());
 	EXPECT_STREQ(L"a/assume-unchanged", testList[0].GetGitPathString().c_str());
 	EXPECT_STREQ(L"assume-unchanged", testList[1].GetGitPathString().c_str());
 	EXPECT_STREQ(L"b/assume-unchanged", testList[2].GetGitPathString().c_str());
 
 	testList.Clear();
-	EXPECT_TRUE(testList.FillBasedOnIndexFlags(0, GIT_INDEX_ENTRY_SKIP_WORKTREE) == 0);
+	EXPECT_TRUE(testList.FillBasedOnIndexFlags(g_Git.GetGitRepository().get(), 0, GIT_INDEX_ENTRY_SKIP_WORKTREE) == 0);
 	EXPECT_EQ(3, testList.GetCount());
 	EXPECT_STREQ(L"a/skip-worktree", testList[0].GetGitPathString().c_str());
 	EXPECT_STREQ(L"b/skip-worktree", testList[1].GetGitPathString().c_str());
 	EXPECT_STREQ(L"skip-worktree", testList[2].GetGitPathString().c_str());
 
 	testList.Clear();
-	EXPECT_TRUE(testList.FillBasedOnIndexFlags(GIT_INDEX_ENTRY_VALID, GIT_INDEX_ENTRY_SKIP_WORKTREE) == 0);
+	EXPECT_TRUE(testList.FillBasedOnIndexFlags(g_Git.GetGitRepository().get(), GIT_INDEX_ENTRY_VALID, GIT_INDEX_ENTRY_SKIP_WORKTREE) == 0);
 	EXPECT_EQ(6, testList.GetCount());
 	EXPECT_STREQ(L"a/assume-unchanged", testList[0].GetGitPathString().c_str());
 	EXPECT_STREQ(L"a/skip-worktree", testList[1].GetGitPathString().c_str());
@@ -1702,7 +1715,7 @@ TEST(CTGitPath, FillBasedOnIndexFlags)
 	selectList.AddPath(CTGitPath(L"assume-unchanged"));
 	selectList.AddPath(CTGitPath(L"skip-worktree"));
 	selectList.AddPath(CTGitPath(L"a/skip-worktree"));
-	EXPECT_TRUE(testList.FillBasedOnIndexFlags(GIT_INDEX_ENTRY_VALID, GIT_INDEX_ENTRY_SKIP_WORKTREE, &selectList) == 0);
+	EXPECT_TRUE(testList.FillBasedOnIndexFlags(g_Git.GetGitRepository().get(), GIT_INDEX_ENTRY_VALID, GIT_INDEX_ENTRY_SKIP_WORKTREE, &selectList) == 0);
 	EXPECT_EQ(3, testList.GetCount());
 	EXPECT_STREQ(L"a/skip-worktree", testList[0].GetGitPathString().c_str());
 	EXPECT_STREQ(L"assume-unchanged", testList[1].GetGitPathString().c_str());
@@ -1710,14 +1723,14 @@ TEST(CTGitPath, FillBasedOnIndexFlags)
 
 	selectList.Clear();
 	selectList.AddPath(CTGitPath(L"a"));
-	EXPECT_TRUE(testList.FillBasedOnIndexFlags(GIT_INDEX_ENTRY_VALID, GIT_INDEX_ENTRY_SKIP_WORKTREE, &selectList) == 0);
+	EXPECT_TRUE(testList.FillBasedOnIndexFlags(g_Git.GetGitRepository().get(), GIT_INDEX_ENTRY_VALID, GIT_INDEX_ENTRY_SKIP_WORKTREE, &selectList) == 0);
 	EXPECT_EQ(2, testList.GetCount());
 	EXPECT_STREQ(L"a/assume-unchanged", testList[0].GetGitPathString().c_str());
 	EXPECT_STREQ(L"a/skip-worktree", testList[1].GetGitPathString().c_str());
 
 	selectList.Clear();
 	selectList.AddPath(CTGitPath(L"a"));
-	EXPECT_TRUE(testList.FillBasedOnIndexFlags(GIT_INDEX_ENTRY_VALID, 0, &selectList) == 0);
+	EXPECT_TRUE(testList.FillBasedOnIndexFlags(g_Git.GetGitRepository().get(), GIT_INDEX_ENTRY_VALID, 0, &selectList) == 0);
 	EXPECT_EQ(1, testList.GetCount());
 	EXPECT_STREQ(L"a/assume-unchanged", testList[0].GetGitPathString().c_str());
 }
@@ -1922,111 +1935,111 @@ TEST(CTGitPath, FillUnRev)
 	CAutoTempDir tmpDir;
 
 	CAutoRepository repo;
-	ASSERT_TRUE(git_repository_init(repo.GetPointer(), CUnicodeUtils::GetUTF8(tmpDir.GetTempDir()), false) == 0);
+	ASSERT_TRUE(git_repository_init(repo.GetPointer(), CUnicodeUtils::GetUTF8<CStringA>(tmpDir.GetTempDir()), false) == 0);
 
 	g_Git.SetCurrentDirExact(tmpDir.GetTempDir());
 
 	CTGitPathList testList;
-	EXPECT_EQ(0, testList.FillUnRev(0));
+	EXPECT_EQ(0, testList.FillUnRev(GitRunnerFor(g_Git), 0));
 	EXPECT_EQ(0, testList.GetCount());
 
-	EXPECT_EQ(0, testList.FillUnRev(CTGitPath::LOGACTIONS_IGNORE));
+	EXPECT_EQ(0, testList.FillUnRev(GitRunnerFor(g_Git), CTGitPath::LOGACTIONS_IGNORE));
 	EXPECT_EQ(0, testList.GetCount());
 
 	CString fileOne = tmpDir.GetTempDir() + L"\\one";
 	EXPECT_TRUE(StringUtils::WriteStringToTextFile(fileOne, L"something"));
 
-	EXPECT_EQ(0, testList.FillUnRev(0));
+	EXPECT_EQ(0, testList.FillUnRev(GitRunnerFor(g_Git), 0));
 	EXPECT_EQ(1, testList.GetCount());
 	EXPECT_STREQ(L"one", testList[0].GetGitPathString().c_str());
 
-	EXPECT_EQ(0, testList.FillUnRev(CTGitPath::LOGACTIONS_IGNORE));
+	EXPECT_EQ(0, testList.FillUnRev(GitRunnerFor(g_Git), CTGitPath::LOGACTIONS_IGNORE));
 	EXPECT_EQ(0, testList.GetCount());
 
 	CTGitPathList selectList;
 	selectList.AddPath(CTGitPath(L"one"));
 
-	EXPECT_EQ(0, testList.FillUnRev(0, &selectList));
+	EXPECT_EQ(0, testList.FillUnRev(GitRunnerFor(g_Git), 0, &selectList));
 	EXPECT_EQ(1, testList.GetCount());
 	EXPECT_STREQ(L"one", testList[0].GetGitPathString().c_str());
 
-	EXPECT_EQ(0, testList.FillUnRev(CTGitPath::LOGACTIONS_IGNORE, &selectList));
+	EXPECT_EQ(0, testList.FillUnRev(GitRunnerFor(g_Git), CTGitPath::LOGACTIONS_IGNORE, &selectList));
 	EXPECT_EQ(0, testList.GetCount());
 
 	CString gitIgnore = tmpDir.GetTempDir() + L"\\.gitignore";
 	EXPECT_TRUE(StringUtils::WriteStringToTextFile(gitIgnore, L""));
 
-	EXPECT_EQ(0, testList.FillUnRev(0));
+	EXPECT_EQ(0, testList.FillUnRev(GitRunnerFor(g_Git), 0));
 	EXPECT_EQ(2, testList.GetCount());
 	EXPECT_STREQ(L".gitignore", testList[0].GetGitPathString().c_str());
 	EXPECT_STREQ(L"one", testList[1].GetGitPathString().c_str());
 
-	EXPECT_EQ(0, testList.FillUnRev(CTGitPath::LOGACTIONS_IGNORE));
+	EXPECT_EQ(0, testList.FillUnRev(GitRunnerFor(g_Git), CTGitPath::LOGACTIONS_IGNORE));
 	EXPECT_EQ(0, testList.GetCount());
 
-	EXPECT_EQ(0, testList.FillUnRev(0, &selectList));
+	EXPECT_EQ(0, testList.FillUnRev(GitRunnerFor(g_Git), 0, &selectList));
 	EXPECT_EQ(1, testList.GetCount());
 	EXPECT_STREQ(L"one", testList[0].GetGitPathString().c_str());
 
-	EXPECT_EQ(0, testList.FillUnRev(CTGitPath::LOGACTIONS_IGNORE, &selectList));
+	EXPECT_EQ(0, testList.FillUnRev(GitRunnerFor(g_Git), CTGitPath::LOGACTIONS_IGNORE, &selectList));
 	EXPECT_EQ(0, testList.GetCount());
 
 	EXPECT_TRUE(StringUtils::WriteStringToTextFile(gitIgnore, L"/one"));
 
-	EXPECT_EQ(0, testList.FillUnRev(0));
+	EXPECT_EQ(0, testList.FillUnRev(GitRunnerFor(g_Git), 0));
 	EXPECT_EQ(1, testList.GetCount());
 	EXPECT_STREQ(L".gitignore", testList[0].GetGitPathString().c_str());
 
-	EXPECT_EQ(0, testList.FillUnRev(CTGitPath::LOGACTIONS_IGNORE));
+	EXPECT_EQ(0, testList.FillUnRev(GitRunnerFor(g_Git), CTGitPath::LOGACTIONS_IGNORE));
 	EXPECT_EQ(1, testList.GetCount());
 	EXPECT_STREQ(L"one", testList[0].GetGitPathString().c_str());
 
-	EXPECT_EQ(0, testList.FillUnRev(0, &selectList));
+	EXPECT_EQ(0, testList.FillUnRev(GitRunnerFor(g_Git), 0, &selectList));
 	EXPECT_EQ(0, testList.GetCount());
 
-	EXPECT_EQ(0, testList.FillUnRev(CTGitPath::LOGACTIONS_IGNORE, &selectList));
+	EXPECT_EQ(0, testList.FillUnRev(GitRunnerFor(g_Git), CTGitPath::LOGACTIONS_IGNORE, &selectList));
 	EXPECT_EQ(1, testList.GetCount());
 	EXPECT_STREQ(L"one", testList[0].GetGitPathString().c_str());
 
 	EXPECT_TRUE(CreateDirectory(tmpDir.GetTempDir() + L"\\subdir", nullptr));
 	selectList.Clear();
 	selectList.AddPath(CTGitPath(L"subdir"));
-	EXPECT_EQ(0, testList.FillUnRev(0, &selectList));
+	EXPECT_EQ(0, testList.FillUnRev(GitRunnerFor(g_Git), 0, &selectList));
 	EXPECT_EQ(0, testList.GetCount());
 
-	EXPECT_EQ(0, testList.FillUnRev(CTGitPath::LOGACTIONS_IGNORE, &selectList));
+	EXPECT_EQ(0, testList.FillUnRev(GitRunnerFor(g_Git), CTGitPath::LOGACTIONS_IGNORE, &selectList));
 	EXPECT_EQ(0, testList.GetCount());
 
 	fileOne = tmpDir.GetTempDir() + L"\\subdir\\one";
 	EXPECT_TRUE(StringUtils::WriteStringToTextFile(fileOne, L"something"));
 
-	EXPECT_EQ(0, testList.FillUnRev(0));
+	EXPECT_EQ(0, testList.FillUnRev(GitRunnerFor(g_Git), 0));
 	EXPECT_EQ(2, testList.GetCount());
 	EXPECT_STREQ(L".gitignore", testList[0].GetGitPathString().c_str());
 	EXPECT_STREQ(L"subdir/one", testList[1].GetGitPathString().c_str());
 
-	EXPECT_EQ(0, testList.FillUnRev(CTGitPath::LOGACTIONS_IGNORE));
+	EXPECT_EQ(0, testList.FillUnRev(GitRunnerFor(g_Git), CTGitPath::LOGACTIONS_IGNORE));
 	EXPECT_EQ(1, testList.GetCount());
 	EXPECT_STREQ(L"one", testList[0].GetGitPathString().c_str());
 
-	EXPECT_EQ(0, testList.FillUnRev(0, &selectList));
+	EXPECT_EQ(0, testList.FillUnRev(GitRunnerFor(g_Git), 0, &selectList));
 	EXPECT_EQ(1, testList.GetCount());
 	EXPECT_STREQ(L"subdir/one", testList[0].GetGitPathString().c_str());
 
-	EXPECT_EQ(0, testList.FillUnRev(CTGitPath::LOGACTIONS_IGNORE, &selectList));
+	EXPECT_EQ(0, testList.FillUnRev(GitRunnerFor(g_Git), CTGitPath::LOGACTIONS_IGNORE, &selectList));
 	EXPECT_EQ(0, testList.GetCount());
 
 	EXPECT_TRUE(StringUtils::WriteStringToTextFile(gitIgnore, L"one"));
 
-	EXPECT_EQ(0, testList.FillUnRev(0));
+	EXPECT_EQ(0, testList.FillUnRev(GitRunnerFor(g_Git), 0));
 	EXPECT_EQ(1, testList.GetCount());
 	EXPECT_STREQ(L".gitignore", testList[0].GetGitPathString().c_str());
 
-	EXPECT_EQ(0, testList.FillUnRev(CTGitPath::LOGACTIONS_IGNORE));
+	EXPECT_EQ(0, testList.FillUnRev(GitRunnerFor(g_Git), CTGitPath::LOGACTIONS_IGNORE));
 	EXPECT_STREQ(L"one", testList[0].GetGitPathString().c_str());
 	EXPECT_STREQ(L"subdir/one", testList[1].GetGitPathString().c_str());
 
-	EXPECT_EQ(0, testList.FillUnRev(CTGitPath::LOGACTIONS_IGNORE, &selectList));
+	EXPECT_EQ(0, testList.FillUnRev(GitRunnerFor(g_Git), CTGitPath::LOGACTIONS_IGNORE, &selectList));
 	EXPECT_EQ(1, testList.GetCount());
 	EXPECT_STREQ(L"subdir/one", testList[0].GetGitPathString().c_str());
 }
@@ -2037,57 +2050,57 @@ TEST(CTGitPath, GetAbbreviatedRename)
 	std::wstring newName, oldName;
 
 	// just a failsafe
-	test.SetFromGit(newName, &oldName);
+	test.SetFromGit(tgit::zstr::StringView(newName), tgit::zstr::StringView(oldName));
 	EXPECT_STREQ(L"", test.GetAbbreviatedRename().c_str());
 
 	oldName = L"B";
 	newName = L"A";
-	test.SetFromGit(newName, &oldName);
+	test.SetFromGit(tgit::zstr::StringView(newName), tgit::zstr::StringView(oldName));
 	EXPECT_STREQ(L"B => A", test.GetAbbreviatedRename().c_str());
 
 	oldName = L"C/B/A";
 	newName = L"A/B/C";
-	test.SetFromGit(newName, &oldName);
+	test.SetFromGit(tgit::zstr::StringView(newName), tgit::zstr::StringView(oldName));
 	EXPECT_STREQ(L"C/B/A => A/B/C", test.GetAbbreviatedRename().c_str());
 
 	oldName = L"B/C";
 	newName = L"A/C";
-	test.SetFromGit(newName, &oldName);
+	test.SetFromGit(tgit::zstr::StringView(newName), tgit::zstr::StringView(oldName));
 	EXPECT_STREQ(L"{B => A}/C", test.GetAbbreviatedRename().c_str());
 
 	oldName = L"C/B";
 	newName = L"C/A";
-	test.SetFromGit(newName, &oldName);
+	test.SetFromGit(tgit::zstr::StringView(newName), tgit::zstr::StringView(oldName));
 	EXPECT_STREQ(L"C/{B => A}", test.GetAbbreviatedRename().c_str());
 
 	oldName = L"C/D/E";
 	newName = L"C/B/A";
-	test.SetFromGit(newName, &oldName);
+	test.SetFromGit(tgit::zstr::StringView(newName), tgit::zstr::StringView(oldName));
 	EXPECT_STREQ(L"C/{D/E => B/A}", test.GetAbbreviatedRename().c_str());
 
 	oldName = L"C/D/A";
 	newName = L"D/A";
-	test.SetFromGit(newName, &oldName);
+	test.SetFromGit(tgit::zstr::StringView(newName), tgit::zstr::StringView(oldName));
 	EXPECT_STREQ(L"{C/D => D}/A", test.GetAbbreviatedRename().c_str());
 
 	oldName = L"A1/B/C/F";
 	newName = L"A2/B/C/F";
-	test.SetFromGit(newName, &oldName);
+	test.SetFromGit(tgit::zstr::StringView(newName), tgit::zstr::StringView(oldName));
 	EXPECT_STREQ(L"{A1 => A2}/B/C/F", test.GetAbbreviatedRename().c_str());
 
 	oldName = L"C/D/E";
 	newName = L"D/E";
-	test.SetFromGit(newName, &oldName);
+	test.SetFromGit(tgit::zstr::StringView(newName), tgit::zstr::StringView(oldName));
 	EXPECT_STREQ(L"{C/D => D}/E", test.GetAbbreviatedRename().c_str());
 
 	oldName = L"D/E";
 	newName = L"D/F/E";
-	test.SetFromGit(newName, &oldName);
+	test.SetFromGit(tgit::zstr::StringView(newName), tgit::zstr::StringView(oldName));
 	EXPECT_STREQ(L"D/{ => F}/E", test.GetAbbreviatedRename().c_str());
 
 	oldName = L"D/F/E";
 	newName = L"D/F/F/E";
-	test.SetFromGit(newName, &oldName);
+	test.SetFromGit(tgit::zstr::StringView(newName), tgit::zstr::StringView(oldName));
 	EXPECT_STREQ(L"D/F/{ => F}/E", test.GetAbbreviatedRename().c_str());
 }
 
@@ -2095,15 +2108,15 @@ TEST(CTGitPath, HashStashDir)
 {
 	CAutoTempDir tmpDir;
 
-	CTGitPath path(tmpDir.GetTempDir().GetString());
+	CTGitPath path(tmpDir.GetTempDir());
 	// no repository -> no stash
 	EXPECT_FALSE(path.HasStashDir());
 
 	path.Reset();
-	path.SetFromWin(tmpDir.GetTempDir());
+	path.SetFromWin(tgit::zstr::StringView(tmpDir.GetTempDir()));
 
 	CAutoRepository repo;
-	ASSERT_TRUE(git_repository_init(repo.GetPointer(), CUnicodeUtils::GetUTF8(tmpDir.GetTempDir()), false) == 0);
+	ASSERT_TRUE(git_repository_init(repo.GetPointer(), CUnicodeUtils::GetUTF8<CStringA>(tmpDir.GetTempDir()), false) == 0);
 	// "git commit" follows and requires user to be set
 	CString configFile = tmpDir.GetTempDir() + L"\\.git\\config";
 	CString text;
@@ -2191,7 +2204,7 @@ TEST(CTGitPath, SetDirectory_DiskAccess)
 	EXPECT_FALSE(pathDir2.IsDirectory());
 
 	MockCTGitPath path2;
-	path2.SetFromGit(L"bla", nullptr, nullptr);
+	path2.SetFromGit(L"bla");
 	EXPECT_CALL(path2, UpdateAttributes()).Times(1);
 	EXPECT_FALSE(path2.IsDirectory());
 	EXPECT_FALSE(path2.IsDirectory());
@@ -2200,7 +2213,7 @@ TEST(CTGitPath, SetDirectory_DiskAccess)
 
 	int isDir = FALSE;
 	MockCTGitPath path3;
-	path3.SetFromGit(L"bla", nullptr, &isDir);
+	path3.SetFromGit(L"bla", isDir != FALSE);
 	EXPECT_CALL(path3, UpdateAttributes()).Times(0);
 	EXPECT_FALSE(path3.IsDirectory());
 	EXPECT_FALSE(path3.IsDirectory());
@@ -2209,7 +2222,7 @@ TEST(CTGitPath, SetDirectory_DiskAccess)
 
 	isDir = TRUE;
 	MockCTGitPath pathDir3;
-	pathDir3.SetFromGit(L"bla", nullptr, &isDir);
+	pathDir3.SetFromGit(L"bla", isDir != FALSE);
 	EXPECT_CALL(pathDir3, UpdateAttributes()).Times(0);
 	EXPECT_TRUE(pathDir3.IsDirectory());
 	EXPECT_TRUE(pathDir3.IsDirectory());
@@ -2358,45 +2371,45 @@ TEST(CTGitPath, IsRegisteredSubmoduleOfParentProject)
 {
 	CAutoTempDir tmp;
 	CAutoRepository repo;
-	EXPECT_EQ(0, git_repository_init(repo.GetPointer(), CUnicodeUtils::GetUTF8(tmp.GetTempDir()), false));
+	EXPECT_EQ(0, git_repository_init(repo.GetPointer(), CUnicodeUtils::GetUTF8<CStringA>(tmp.GetTempDir()), false));
 	EXPECT_TRUE(CreateDirectory(tmp.GetTempDir() + L"\\ext", nullptr));
 	EXPECT_TRUE(CreateDirectory(tmp.GetTempDir() + L"\\ext\\libgit2", nullptr));
 	EXPECT_TRUE(CreateDirectory(tmp.GetTempDir() + L"\\ext\\spell", nullptr));
 	EXPECT_TRUE(CreateDirectory(tmp.GetTempDir() + L"\\ext\\something", nullptr));
 	{
 		std::wstring topPath;
-		CTGitPath path{ (tmp.GetTempDir() + L"\\ext\\libgit2").GetString() };
+		CTGitPath path{ (tmp.GetTempDir() + L"\\ext\\libgit2") };
 		EXPECT_FALSE(path.IsRegisteredSubmoduleOfParentProject(&topPath));
 		EXPECT_STREQ(tmp.GetTempDir(), topPath.c_str());
 	}
 	EXPECT_TRUE(StringUtils::WriteStringToTextFile(tmp.GetTempDir() + L"\\.gitmodules", L"[submodule \"libgit2-ext\"]\n	path = ext/libgit2\n	url = https://github.com/libgit2/libgit2.git\n[submodule \"ext/spell\"]\n	path = ext/spell\n	url = https://github.com/LibreOffice/dictionaries"));
 	{
 		std::wstring topPath;
-		CTGitPath path{ (tmp.GetTempDir() + L"\\ext\\libgit2").GetString() };
+		CTGitPath path{ (tmp.GetTempDir() + L"\\ext\\libgit2") };
 		EXPECT_TRUE(path.IsRegisteredSubmoduleOfParentProject(&topPath));
 		EXPECT_STREQ(tmp.GetTempDir(), topPath.c_str());
 	}
 	{
 		std::wstring topPath;
-		CTGitPath path{ (tmp.GetTempDir() + L"\\ext\\spell").GetString() };
+		CTGitPath path{ (tmp.GetTempDir() + L"\\ext\\spell") };
 		EXPECT_TRUE(path.IsRegisteredSubmoduleOfParentProject(&topPath));
 		EXPECT_STREQ(tmp.GetTempDir(), topPath.c_str());
 	}
 	{
 		std::wstring topPath;
-		CTGitPath path{ (tmp.GetTempDir() + L"\\ext\\spELL").GetString() };
+		CTGitPath path{ (tmp.GetTempDir() + L"\\ext\\spELL") };
 		EXPECT_FALSE(path.IsRegisteredSubmoduleOfParentProject(&topPath));
 		EXPECT_STREQ(tmp.GetTempDir(), topPath.c_str());
 	}
 	{
 		std::wstring topPath;
-		CTGitPath path{ (tmp.GetTempDir() + L"\\ext\\something").GetString() };
+		CTGitPath path{ (tmp.GetTempDir() + L"\\ext\\something") };
 		EXPECT_FALSE(path.IsRegisteredSubmoduleOfParentProject(&topPath));
 		EXPECT_STREQ(tmp.GetTempDir(), topPath.c_str());
 	}
 	{
 		std::wstring topPath;
-		CTGitPath path{ (tmp.GetTempDir() + L"\\ext").GetString() };
+		CTGitPath path{ (tmp.GetTempDir() + L"\\ext") };
 		EXPECT_FALSE(path.IsRegisteredSubmoduleOfParentProject(&topPath));
 		EXPECT_STREQ(tmp.GetTempDir(), topPath.c_str());
 	}

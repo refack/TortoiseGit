@@ -1,4 +1,4 @@
-// TortoiseGit - a Windows shell extension for easy version control
+﻿// TortoiseGit - a Windows shell extension for easy version control
 
 // Copyright (C) 2013 - TortoiseGit
 // Copyright (C) 2007 - TortoiseSVN
@@ -139,8 +139,4 @@ private:
 };
 
 
-
-size_t CRegHistory::Load(LPCWSTR lpszSection, LPCWSTR lpszKeyPrefix)
-
-bool CRegHistory::Save() const
-
+

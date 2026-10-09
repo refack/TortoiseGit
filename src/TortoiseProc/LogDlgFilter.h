@@ -18,7 +18,7 @@
 //
 #pragma once
 #include "FilterHelper.h"
-#include "GitRevLoglist.h"
+import GitRevLoglist;
 
 class CGitLogListBase;
 

@@ -22,7 +22,7 @@
 #include "stdafx.h"
 #include "TortoiseProc.h"
 #include "CleanTypeDlg.h"
-#include "Git.h"
+import git_h;
 #include "AppUtils.h"
 
 // CCleanTypeDlg dialog

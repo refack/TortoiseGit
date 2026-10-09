@@ -18,9 +18,6 @@
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
         "VCPKG_MANIFEST_INSTALL": "OFF"
-      },
-      "environment": {
-        "PROPAGATE_TOP_LEVEL_INCLUDES_TO_TRY_COMPILE": "ON"
       }
     }
   ]

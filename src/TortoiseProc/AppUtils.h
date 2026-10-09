@@ -18,10 +18,11 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 #pragma once
-#include <Git/GitRevLoglist.h>
-#include <Utils/CommonAppUtils.h>
+import GitRevLoglist;
+#include "CommonAppUtils.h"
 
-class CTGitPath;
+// no "class CTGitPath;": in a header it declares a global-module class, a different
+// type from the TGitPath module's. stdafx.h imports the real one.
 struct git_credential;
 struct git_indexer_progress;
 class CIgnoreFile;

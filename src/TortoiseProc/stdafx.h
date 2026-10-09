@@ -3,7 +3,9 @@
 // but are changed infrequently
 
 #pragma once
-import invarients;
+// Every textual include first, every import last: a textual std header after an
+// `import std;` redefines what the import brought (C2011/C2995), and the module
+// imports below all import std.
 #include <SDKDDKVer.h>
 
 #define _ATL_CSTRING_EXPLICIT_CONSTRUCTORS	// some CString constructors will be explicit
@@ -53,7 +55,44 @@ using std::min;
 #include <string_view>
 #include <type_traits>
 #include <vector>
+// The rest of the std headers project headers include, so that a later textual
+// include finds them guarded rather than re-declaring them after `import std;`.
+#include <array>
+#include <atomic>
+#include <bitset>
+#include <charconv>
+#include <chrono>
+#include <condition_variable>
+#include <deque>
+#include <expected>
+#include <filesystem>
+#include <fstream>
+#include <future>
+#include <iomanip>
+#include <list>
+#include <memory>
+#include <mutex>
+#include <new>			// std::nothrow (SimpleIni.h)
+#include <numeric>
+#include <optional>
+#include <ostream>
+#include <iostream>
+#include <istream>
+#include <queue>
+#include <random>
+#include <ranges>
+#include <regex>
+#include <shared_mutex>
+#include <span>
+#include <stack>
+#include <thread>
+#include <tuple>
+#include <unordered_map>
+#include <unordered_set>
+#include <utility>
+#include <variant>
 
+#include <comdef.h>	// _COM_SMARTPTR_TYPEDEF (AnimationManager.h); the old PCH supplied it
 #include <vfw.h>
 #include <shlobj.h>
 #include <Shlwapi.h>
@@ -77,19 +116,67 @@ using std::min;
 #	define APP_X64_STRING ""
 #endif
 
-#include <Git/Git.h>
-#include <Git/TGitPath.h>
-import GitAdminDir;
-#include <Git/gittype.h>
-
-#include <Utils/DebugOutput.h>
-#include <Utils/PathUtils.h>
-#include <Utils/ProfilingInfo.h>
-#include <Utils/scope_exit_noexcept.h>
-#include <Utils/SmartHandle.h>
-import wil_git2;
-#include <Utils/StringUtils.h>
-#include <Utils/UnicodeUtils.h>
-#include <Utils/WideString.h>
-
+#include <winrt/base.h>	// before the imports too: the wil shim's fragment includes it, and
+						// RegisterWin11ContextMenu's later winrt/*.h would redefine it (C2766)
 #include <gitdll.h>
+#include <Utils/ProfilingInfo.h>
+#include <sanity.h>		// SCOPE_EXIT, was Utils/scope_exit_noexcept.h
+
+// What were src\Git and src\Utils headers, now the TGitLibgit2Mfc modules.
+import std;
+import invarients;
+import wstr;			// UnicodeUtils.h, WideString.h
+import DebugOutput;
+import RIAA;			// SmartHandle.h
+import Registry;
+import PathUtils;
+import StringUtils;
+import tgittypes;		// gittype.h
+import TGitPath;		// TGitPath.h, and GitAdminDir
+import git_h;			// Git.h
+import wil;
+import wil_git2;		// SmartLibgit2Ref.h
+// Git.h used to drag these in transitively; an import does not re-export what it imports.
+import GitHash;
+import GitRev;
+import CmdLineParser;
+import LandDll;
+import TempFile;
+import CShellUpdater;
+import DarkModeHelper;
+
+// Names that were global in the header era and live in a namespace now.
+using wil::CFormatMessageWrapper;
+using CUnicodeUtils::SafeSizeToInt;
+
+// MFC CString meets the modules' std::wstring. This is the MFC UI, which keeps
+// CString (CLAUDE.md, "Making src\ cohesive"), so concatenating across the
+// boundary is spelled once here rather than as .c_str() at every site.
+// Concatenation only, deliberately: an implicit conversion either way would
+// re-bind existing overloads without any line changing (failure mode 3).
+inline CString& operator+=(CString& lhs, const std::wstring& rhs)
+{
+	lhs.Append(rhs.c_str(), static_cast<int>(rhs.size()));
+	return lhs;
+}
+inline CString operator+(const CString& lhs, const std::wstring& rhs)
+{
+	CString result(lhs);
+	result += rhs;
+	return result;
+}
+/// The full key path of a TortoiseGit setting, for CRegString. REG_MSYSGIT_PATH &
+/// co. are value names under Software\TortoiseGit now (the wil helpers' default
+/// subkey); in the header era they were full paths, and passing one of the new ones
+/// straight to CRegString would compile and silently read HKCU\MSysGit.
+inline CString TGitRegPath(const std::wstring_view valueName)
+{
+	return L"Software\\TortoiseGit\\" + CString(valueName.data(), static_cast<int>(valueName.size()));
+}
+
+inline CString operator+(const std::wstring& lhs, const CString& rhs)
+{
+	CString result(lhs.c_str(), static_cast<int>(lhs.size()));
+	result += rhs;
+	return result;
+}

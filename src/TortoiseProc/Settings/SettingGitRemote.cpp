@@ -22,12 +22,12 @@
 #include "stdafx.h"
 #include "TortoiseProc.h"
 #include "SettingGitRemote.h"
-import GitAdminDir;
+import TGitPath;	// GitAdminDir lives in the TGitPath module
 #include "MessageBox.h"
 #include "AppUtils.h"
-#include "Git.h"
+import git_h;
 #include "HistoryCombo.h"
-#include "CmdLineParser.h"
+import CmdLineParser;
 
 // CSettingGitRemote dialog
 
@@ -205,7 +205,7 @@ static int CheckRemoteCollideWithRefspec(const git_config_entry *entry, void * p
 
 bool CSettingGitRemote::IsRemoteCollideWithRefspec(const CString& remote) const
 {
-	CheckRefspecStruct crs = { CUnicodeUtils::GetUTF8(remote), false };
+	CheckRefspecStruct crs = { CUnicodeUtils::GetUTF8<CStringA>(remote), false };
 	CAutoConfig config(true);
 	git_config_add_file_ondisk(config, CGit::GetGitPathStringA(g_Git.GetGitLocalConfig()), GIT_CONFIG_LEVEL_LOCAL, g_Git.GetGitRepository(), FALSE);
 	for (const auto pattern : { "remote\\..*\\.fetch", "svn-remote\\..*\\.fetch", "svn-remote\\..*\\.branches", "svn-remote\\..*\\.tags" })

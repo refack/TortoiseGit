@@ -18,7 +18,7 @@
 //
 #pragma once
 
-#include "StringUtils.h"
+import StringUtils;
 
 class CSelectFileFilter {
 public:

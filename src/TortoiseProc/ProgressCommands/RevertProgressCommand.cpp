@@ -19,11 +19,11 @@
 #include "stdafx.h"
 #include "TortoiseProc.h"
 #include "RevertProgressCommand.h"
-#include "ShellUpdater.h"
-#include <TGitCache/CacheInterface.h>
+import CShellUpdater;
+import TGitCache.CacheInterface;
 #include "MassiveGitTask.h"
-#include "GitRev.h"
-#include "CmdLineParser.h"
+import GitRev;
+import CmdLineParser;
 
 using Git_WC_Notify_Action = CGitProgressList::WC_File_NotificationData::Git_WC_Notify_Action;
 

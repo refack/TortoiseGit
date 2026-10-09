@@ -4,7 +4,11 @@ project(gitdll LANGUAGES C CXX)
 find_package(ZLIB REQUIRED)
 find_package(MFC REQUIRED)
 
-add_library(gitdll STATIC)
+# SHARED, never STATIC: the DLL boundary is what keeps libgit.lib (real git) off
+# every consumer's link line - a consumer that also links git2.lib would get two
+# implementations of odb/refs/packfiles and first-match collisions. A static
+# library would hand its PRIVATE libgit on to whoever links it.
+add_library(gitdll SHARED)
 
 target_sources(gitdll
     PRIVATE

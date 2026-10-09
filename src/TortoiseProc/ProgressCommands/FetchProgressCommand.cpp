@@ -23,7 +23,7 @@
 
 bool FetchProgressCommand::Run(CGitProgressList* list, CString& sWindowTitle, int& /*m_itemCountTotal*/, int& /*m_itemCount*/)
 {
-	if (!g_Git.UsingLibGit2(CGit::GIT_CMD_FETCH))
+	if (!g_Git.UsingLibGit2(TGitH::GIT_CMD_FETCH))
 	{
 		// should never run to here
 		ASSERT(0);
@@ -34,7 +34,7 @@ bool FetchProgressCommand::Run(CGitProgressList* list, CString& sWindowTitle, in
 	list->SetBackgroundImage(IDI_UPDATE_BKG);
 	list->ReportCmd(CString(MAKEINTRESOURCE(IDS_PROGRS_TITLE_FETCH)) + L' ' + m_url.GetGitPathString().c_str() + L' ' + m_RefSpec);
 
-	CStringA url = CUnicodeUtils::GetUTF8(m_url.GetGitPathString().c_str());
+	CStringA url = CUnicodeUtils::Convert2Multibyte<CStringA>(m_url.GetGitPathString().c_str());
 
 	CSmartAnimation animate(list->m_pAnimate);
 
@@ -71,7 +71,7 @@ bool FetchProgressCommand::Run(CGitProgressList* list, CString& sWindowTitle, in
 	CGitProgressList::Payload cbpayload = { list, repo };
 	callbacks.payload = &cbpayload;
 
-	if (!m_RefSpec.IsEmpty() && git_remote_add_fetch(repo, git_remote_name(remote), CUnicodeUtils::GetUTF8(m_RefSpec)))
+	if (!m_RefSpec.IsEmpty() && git_remote_add_fetch(repo, git_remote_name(remote), CUnicodeUtils::GetUTF8<CStringA>(m_RefSpec)))
 		goto error;
 
 	if (git_remote_fetch(remote, nullptr, &fetchopts, nullptr) < 0)

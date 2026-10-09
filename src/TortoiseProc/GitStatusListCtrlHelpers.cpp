@@ -20,9 +20,9 @@
 
 #include "stdafx.h"
 #include "GitStatusListCtrl.h"
-#include "TGitPath.h"
+import TGitPath;
 #include "ColumnManager.h"
-#include "WideString.h"
+import wstr;
 
 // sorter utility class
 CSorter::CSorter ( ColumnManager* columnManager

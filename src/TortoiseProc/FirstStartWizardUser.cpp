@@ -20,7 +20,7 @@
 #include "TortoiseProc.h"
 #include "FirstStartWizard.h"
 #include "FirstStartWizardUser.h"
-#include "Git.h"
+import git_h;
 #include "Theme.h"
 
 IMPLEMENT_DYNAMIC(CFirstStartWizardUser, CFirstStartWizardBasePage)
@@ -74,17 +74,17 @@ LRESULT CFirstStartWizardUser::OnWizardNext()
 			err = git_config_add_file_ondisk(config, CGit::GetGitPathStringA(g_Git.GetGitGlobalConfig()), GIT_CONFIG_LEVEL_GLOBAL, nullptr, FALSE);
 		if (err)
 		{
-			MessageBox(g_Git.GetLibGit2LastErr(), L"TortoiseGit", MB_ICONEXCLAMATION);
+			MessageBox(TGitH::GetLibGit2LastErr(), L"TortoiseGit", MB_ICONEXCLAMATION);
 			return -1;
 		}
-		if (git_config_set_string(config, "user.name", CUnicodeUtils::GetUTF8(m_sUsername.Trim())))
+		if (git_config_set_string(config, "user.name", CUnicodeUtils::GetUTF8<CStringA>(m_sUsername.Trim())))
 		{
-			MessageBox(g_Git.GetLibGit2LastErr(), L"TortoiseGit", MB_ICONEXCLAMATION);
+			MessageBox(TGitH::GetLibGit2LastErr(), L"TortoiseGit", MB_ICONEXCLAMATION);
 			return -1;
 		}
-		if (git_config_set_string(config, "user.email", CUnicodeUtils::GetUTF8(m_sUseremail.Trim())))
+		if (git_config_set_string(config, "user.email", CUnicodeUtils::GetUTF8<CStringA>(m_sUseremail.Trim())))
 		{
-			MessageBox(g_Git.GetLibGit2LastErr(), L"TortoiseGit", MB_ICONEXCLAMATION);
+			MessageBox(TGitH::GetLibGit2LastErr(), L"TortoiseGit", MB_ICONEXCLAMATION);
 			return -1;
 		}
 	}
@@ -100,14 +100,14 @@ BOOL CFirstStartWizardUser::OnInitDialog()
 
 	CAutoConfig config(true);
 	if (git_config_add_file_ondisk(config, CGit::GetGitPathStringA(g_Git.GetGitGlobalConfig()), GIT_CONFIG_LEVEL_GLOBAL, nullptr, FALSE))
-		MessageBox(g_Git.GetLibGit2LastErr(), L"TortoiseGit", MB_ICONEXCLAMATION);
+		MessageBox(TGitH::GetLibGit2LastErr(), L"TortoiseGit", MB_ICONEXCLAMATION);
 	else
 	{
 		if (git_config_add_file_ondisk(config, CGit::GetGitPathStringA(g_Git.GetGitGlobalXDGConfig()), GIT_CONFIG_LEVEL_XDG, nullptr, FALSE))
-			MessageBox(g_Git.GetLibGit2LastErr(), L"TortoiseGit", MB_ICONEXCLAMATION);
+			MessageBox(TGitH::GetLibGit2LastErr(), L"TortoiseGit", MB_ICONEXCLAMATION);
 	}
 	if (git_config_add_file_ondisk(config, CGit::GetGitPathStringA(g_Git.GetGitSystemConfig()), GIT_CONFIG_LEVEL_SYSTEM, nullptr, FALSE))
-		MessageBox(g_Git.GetLibGit2LastErr(), L"TortoiseGit", MB_ICONEXCLAMATION);
+		MessageBox(TGitH::GetLibGit2LastErr(), L"TortoiseGit", MB_ICONEXCLAMATION);
 
 	config.GetString(L"user.name", m_sUsername);
 	config.GetString(L"user.email", m_sUseremail);

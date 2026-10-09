@@ -17,13 +17,14 @@
 // along with this program; if not, write to the Free Software Foundation,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
+#include "../stdafx.h"
 
 
 #include "Utils/HistoryCombo.h"
-#include "Utils/registry.h"
+import Registry;
 #include "Utils/DPIAware.h"
 #include "Utils/Theme.h"
-#include "Utils/ClipboardHelper.h"
+import wil;
 
 #ifdef HISTORYCOMBO_WITH_SYSIMAGELIST
 #include "Utils/SysImageList.h"
@@ -754,8 +755,8 @@ int CHistoryCombo::FindStringExactCaseSensitive(int nIndexStart, LPCWSTR lpszFin
 
 LRESULT CHistoryCombo::OnPaste(WPARAM, LPARAM)
 {
-	CClipboardHelper clipboardHelper;
-	if (!clipboardHelper.Open(nullptr))
+	const auto clipboard = wil::open_clipboard_retrying(nullptr);	// was CClipboardHelper: retries while busy, closes on scope exit
+	if (!clipboard)
 		return 0;
 
 	CString toInsert;

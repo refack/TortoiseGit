@@ -20,7 +20,7 @@
 #pragma once
 
 #include "SettingsPropPage.h"
-#include <Utils/registry.h>
+import Registry;
 #include <TortoiseShell/Globals.h>
 
 #include "resource.h"

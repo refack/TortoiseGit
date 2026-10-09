@@ -20,12 +20,12 @@
 #include "GravatarPictureBox.h"
 #include "Picture.h"
 #include "MessageBox.h"
-#include "UnicodeUtils.h"
-#include "Git.h"
+import wstr;
+import git_h;
 #include "LoglistCommonResource.h"
 #include "resource.h"
 #include <WinCrypt.h>
-#include "SmartHandle.h"
+import RIAA;
 
 using CAutoLocker = CComCritSecLock<CComCriticalSection>;
 
@@ -40,7 +40,7 @@ static CString CalcHash(HCRYPTPROV hProv, const CString& text)
 		return L"";
 	SCOPE_EXIT { CryptDestroyHash(hHash); };
 
-	CStringA textA = CUnicodeUtils::GetUTF8(text);
+	CStringA textA = CUnicodeUtils::GetUTF8<CStringA>(text);
 	if (!CryptHashData(hHash, reinterpret_cast<const BYTE*>(static_cast<LPCSTR>(textA)), textA.GetLength(), 0))
 		return L"";
 

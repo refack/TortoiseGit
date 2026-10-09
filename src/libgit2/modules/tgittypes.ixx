@@ -65,12 +65,11 @@ struct CGitByteArray : std::vector<char>
 		return pos;
 	}
 
-#ifdef GOOGLETEST_INCLUDE_GTEST_GTEST_H_
+	// was gtest-only; a module cannot vary its API by importer
 	void append(const char* data, size_t dataSize)
 	{
-		append(std::span<const char>(data, dataSize));
+		append(std::string_view(data, dataSize));
 	}
-#endif
 	void append(const std::string_view v) {
 		insert(this->end(), v.begin(), v.end());
 	}

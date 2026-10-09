@@ -22,7 +22,7 @@
 #include "stdafx.h"
 #include "TortoiseProc.h"
 #include "ResetDlg.h"
-#include "Git.h"
+import git_h;
 #include "FileDiffDlg.h"
 #include "AppUtils.h"
 

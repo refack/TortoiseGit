@@ -19,7 +19,7 @@
 //
 #include "stdafx.h"
 #include "TortoiseProc.h"
-#include "Git.h"
+import git_h;
 #include "SetHooks.h"
 #include "SetHooksAdv.h"
 #include "Hooks.h"

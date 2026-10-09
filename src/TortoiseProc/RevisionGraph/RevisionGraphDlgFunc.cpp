@@ -22,11 +22,11 @@
 #include "TortoiseProc.h"
 #include <gdiplus.h>
 #include "RevisionGraphWnd.h"
-#include "Git.h"
+import git_h;
 #include "DPIAware.h"
 #include <regex>
 #include "AppUtils.h"
-#include "CmdLineParser.h"
+import CmdLineParser;
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -191,7 +191,7 @@ bool CRevisionGraphWnd::FetchRevisionData
 	this->m_LogCache.ClearAllParent();
 	this->m_logEntries.ClearAll();
 	CString range;
-	DWORD infomask = CGit::LOG_INFO_SIMPILFY_BY_DECORATION | (m_bShowBranchingsMerges ? CGit::LOG_INFO_SPARSE : 0);
+	DWORD infomask = TGitH::LOG_INFO_SIMPILFY_BY_DECORATION | (m_bShowBranchingsMerges ? TGitH::LOG_INFO_SPARSE : 0);
 
 	if (!m_FromRev.IsEmpty())
 	{
@@ -226,11 +226,11 @@ bool CRevisionGraphWnd::FetchRevisionData
 	else
 	{
 		if (m_bLocalBranches)
-			infomask |= CGit::LOG_INFO_ALWAYS_APPLY_RANGE | CGit::LOG_INFO_LOCAL_BRANCHES;
+			infomask |= TGitH::LOG_INFO_ALWAYS_APPLY_RANGE | TGitH::LOG_INFO_LOCAL_BRANCHES;
 		else if (m_bCurrentBranch)
 			range += L" HEAD";
 		else // all branch
-			infomask |= CGit::LOG_INFO_ALWAYS_APPLY_RANGE | CGit::LOG_INFO_ALL_BRANCH;
+			infomask |= TGitH::LOG_INFO_ALWAYS_APPLY_RANGE | TGitH::LOG_INFO_ALL_BRANCH;
 	}
 	range.Trim();
 
@@ -239,7 +239,7 @@ bool CRevisionGraphWnd::FetchRevisionData
 	ReloadHashMap();
 	this->m_Graph.clear();
 
-	g_Git.GetSubmodulePointer(m_submoduleInfo);
+	TGitH::GetSubmodulePointer(m_submoduleInfo);
 
 	// build child graph
 	if (!m_bShowAllTags || m_bShowBranchingsMerges)
@@ -269,9 +269,9 @@ bool CRevisionGraphWnd::FetchRevisionData
 				bool haveNonTagNames = false;
 				for (auto name : foundNames->second)
 				{
-					CGit::REF_TYPE refType;
-					CGit::GetShortName(name.c_str(), &refType);
-					if (refType != CGit::REF_TYPE::ANNOTATED_TAG && refType != CGit::REF_TYPE::TAG)
+					TGitH::REF_TYPE refType;
+					TGitH::GetShortName(name.c_str(), &refType);
+					if (refType != TGitH::REF_TYPE::ANNOTATED_TAG && refType != TGitH::REF_TYPE::TAG)
 					{
 						haveNonTagNames = true;
 						break;
@@ -409,7 +409,7 @@ CString	CRevisionGraphWnd::GetFriendRefName(ogdf::node v) const
 		return refsIt->second[0].c_str();
 }
 
-STRING_VECTOR CRevisionGraphWnd::GetFriendRefNames(ogdf::node v, const CString* exclude, CGit::REF_TYPE* onlyRefType) const
+STRING_VECTOR CRevisionGraphWnd::GetFriendRefNames(ogdf::node v, const CString* exclude, TGitH::REF_TYPE* onlyRefType) const
 {
 	if (!v)
 		return STRING_VECTOR();
@@ -421,8 +421,8 @@ STRING_VECTOR CRevisionGraphWnd::GetFriendRefNames(ogdf::node v, const CString* 
 		STRING_VECTOR list;
 		for (const auto& ref: refsIt->second)
 		{
-			CGit::REF_TYPE refType;
-			CString shortName = CGit::GetShortName(ref.c_str(), &refType);
+			TGitH::REF_TYPE refType;
+			CString shortName = TGitH::GetShortName(ref.c_str(), &refType);
 			if (exclude && *exclude == shortName)
 				continue;
 			if (!onlyRefType)

@@ -1,4 +1,4 @@
-// TortoiseGit - a Windows shell extension for easy version control
+﻿// TortoiseGit - a Windows shell extension for easy version control
 
 // Copyright (C) 2008-2021, 2023-2025 - TortoiseGit
 // Copyright (C) 2003-2011, 2014-2016, 2018 - TortoiseSVN
@@ -20,12 +20,12 @@
 
 #include "stdafx.h"
 #include "TortoiseProc.h"
-#include "Git.h"
+import git_h;
 #include "StatGraphDlg.h"
 #include "AppUtils.h"
-#include "PathUtils.h"
-#include "registry.h"
-#include "FormatMessageWrapper.h"
+import PathUtils;
+import Registry;
+import wil;
 #include "SysProgressDlg.h"
 #include <cmath>
 #include <utility>
@@ -633,7 +633,7 @@ int CStatGraphDlg::GatherData(BOOL fetchdiff, BOOL keepFetchedData)
 
 		if (progress.IsVisible() && (GetTickCount64() - starttime > 100UL))
 		{
-			progress.FormatNonPathLine(2, L"%s: %s", static_cast<LPCWSTR>(pLogEntry->m_CommitHash.ToString(g_Git.GetShortHASHLength())), static_cast<LPCWSTR>(pLogEntry->GetSubject()));
+			progress.FormatNonPathLine(2, L"%s: %s", (pLogEntry->m_CommitHash.ToString(g_Git.GetShortHASHLength())).c_str(), static_cast<LPCWSTR>(pLogEntry->GetSubject()));
 			progress.SetProgress64(i, m_ShowList.size());
 			starttime = GetTickCount64();
 		}
@@ -1468,7 +1468,7 @@ void CStatGraphDlg::OnFileSavestatgraphas()
 
 void CStatGraphDlg::SaveGraph(CString sFilename)
 {
-	const std::wstring extension = CPathUtils::GetFileExtFromPath(tgit::wstr::View(sFilename));
+	const std::wstring extension = PathUtils::GetFileExtFromPath(tgit::zstr::StringView(sFilename));
 	if (tgit::wstr::CompareNoCase(extension, L".wmf") == 0)
 	{
 		// save the graph as an enhanced meta file
@@ -1539,7 +1539,7 @@ void CStatGraphDlg::SaveGraph(CString sFilename)
 							bitmap.Save(tfile, &encoderClsid, nullptr);
 						}
 						else
-							sErrormessage.Format(IDS_REVGRAPH_ERR_NOENCODER, CPathUtils::GetFileExtFromPath(tgit::wstr::View(sFilename)).c_str());
+							sErrormessage.Format(IDS_REVGRAPH_ERR_NOENCODER, PathUtils::GetFileExtFromPath(tgit::zstr::StringView(sFilename)).c_str());
 					}
 					else
 						sErrormessage.LoadString(IDS_REVGRAPH_ERR_NOBITMAP);
@@ -1630,7 +1630,7 @@ void CStatGraphDlg::ShowErrorMessage()
 {
 	CFormatMessageWrapper errorDetails;
 	if (errorDetails)
-		MessageBox(errorDetails, L"Error", MB_OK | MB_ICONINFORMATION);
+		MessageBox((errorDetails).c_str(), L"Error", MB_OK | MB_ICONINFORMATION);
 }
 
 void CStatGraphDlg::ShowSelectStat(Metrics SelectedMetric, bool reloadSkiper /* = false */)

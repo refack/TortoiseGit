@@ -22,11 +22,11 @@
 #include "TortoiseProc.h"
 #include "SetMainPage.h"
 #include "AppUtils.h"
-#include "Git.h"
+import git_h;
 #include "MessageBox.h"
-#include "Libraries.h"
-#include <TGitCache/CacheInterface.h>
-#include "LangDll.h"
+import Libraries;
+import TGitCache.CacheInterface;
+import LandDll;
 
 IMPLEMENT_DYNAMIC(CSetMainPage, ISettingsPropPage)
 CSetMainPage::CSetMainPage()
@@ -37,8 +37,8 @@ CSetMainPage::CSetMainPage()
 {
 	m_regLanguage = CRegDWORD(L"Software\\TortoiseGit\\LanguageID", CLangDll::s_defaultLang);
 
-	m_regMsysGitPath = CRegString(REG_MSYSGIT_PATH);
-	m_regMsysGitExtranPath =CRegString(REG_MSYSGIT_EXTRA_PATH);
+	m_regMsysGitPath = CRegString(TGitRegPath(REG_MSYSGIT_PATH));
+	m_regMsysGitExtranPath =CRegString(TGitRegPath(REG_MSYSGIT_EXTRA_PATH));
 
 	m_sMsysGitPath = m_regMsysGitPath;
 	m_sMsysGitExtranPath = m_regMsysGitExtranPath;
@@ -153,7 +153,7 @@ BOOL CSetMainPage::OnApply()
 	if (!CheckGitExe(GetSafeHwnd(), m_sMsysGitPath, m_sMsysGitExtranPath, IDC_MSYSGIT_VER, [&](UINT helpid) { if (!CAppUtils::StartHtmlHelp(0x20000 + helpid)) { AfxMessageBox(AFX_IDP_FAILED_TO_LAUNCH_HELP); } }))
 		return 0;
 
-	if (gitChanged || g_Git.ms_LastMsysGitVersion != static_cast<int>(m_dwMsysGitVersion))
+	if (gitChanged || TGitH::ms_LastMsysGitVersion != static_cast<int>(m_dwMsysGitVersion))
 	{
 		if (HWND hWnd = ::FindWindow(TGIT_CACHE_WINDOW_NAME, TGIT_CACHE_WINDOW_NAME); hWnd)
 			::PostMessage(hWnd, WM_CLOSE, reinterpret_cast<WPARAM>(nullptr), reinterpret_cast<LPARAM>(nullptr));

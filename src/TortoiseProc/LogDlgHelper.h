@@ -18,9 +18,9 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 #pragma once
-#include "lanes.h"
-#include "GitHash.h"
-#include "Git.h"
+import lanes;
+import GitHash;
+import git_h;
 #include "GitLogCache.h"
 #include <unordered_map>
 #include <unordered_set>
@@ -48,14 +48,14 @@ public:
 		m_pLogCache=pLogCache;
 		m_FirstFreeLane=0;
 		// Default to value set in Registry
-		m_logOrderBy = CRegDWORD(L"Software\\TortoiseGit\\LogOrderBy", CGit::LOG_ORDER_TOPOORDER);
+		m_logOrderBy = CRegDWORD(L"Software\\TortoiseGit\\LogOrderBy", TGitH::LOG_ORDER_TOPOORDER);
 	}
 	CLogDataVector()
 	{
 		m_pLogCache = nullptr;
 		m_FirstFreeLane=0;
 		// Default to value set in Registry
-		m_logOrderBy = CRegDWORD(L"Software\\TortoiseGit\\LogOrderBy", CGit::LOG_ORDER_TOPOORDER);
+		m_logOrderBy = CRegDWORD(L"Software\\TortoiseGit\\LogOrderBy", TGitH::LOG_ORDER_TOPOORDER);
 	}
 	void SetLogCache(CLogCache *pLogCache)
 	{
@@ -67,7 +67,7 @@ public:
 		return 	m_pLogCache->m_HashMap[(*this)[i]];
 	}
 	void ClearAll();
-	int ParserFromLog(const CTGitPath* path = nullptr, DWORD count = 0, DWORD infomask = CGit::LOG_INFO_STAT | CGit::LOG_INFO_FILESTATE | CGit::LOG_INFO_SHOW_MERGEDFILE, const CString* range = nullptr);
+	int ParserFromLog(const CTGitPath* path = nullptr, DWORD count = 0, DWORD infomask = TGitH::LOG_INFO_STAT | TGitH::LOG_INFO_FILESTATE | TGitH::LOG_INFO_SHOW_MERGEDFILE, const CString* range = nullptr);
 	int  Fill(const std::unordered_set<CGitHash>& hashes);
 
 	Lanes m_Lns;

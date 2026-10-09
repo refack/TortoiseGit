@@ -18,10 +18,10 @@
 //
 
 #include "stdafx.h"
-#include "Git.h"
-#include "GitRev.h"
-#include "StringUtils.h"
 #include "RepositoryFixtures.h"
+import git_h;
+import GitRev;
+import StringUtils;
 
 // For performance reason, turn LIBGIT off by default,
 INSTANTIATE_TEST_SUITE_P(CGit, CBasicGitWithEmptyRepositoryFixture, testing::Values(GIT_CLI, /*LIBGIT,*/ LIBGIT2, LIBGIT2_ALL));
@@ -130,7 +130,7 @@ TEST(CGit, RunLogFile_Error)
 	EXPECT_EQ(128, cgit.RunLogFile(L"git.exe add file.txt", tmpfile, &error));
 	EXPECT_TRUE(StringUtils::StartsWithI(error, L"fatal: not a git repository (or any"));
 	__int64 size = -1;
-	EXPECT_EQ(0, CGit::GetFileModifyTime(tmpfile, nullptr, nullptr, &size));
+	EXPECT_EQ(0, TGitH::GetFileModifyTime(tmpfile, nullptr, nullptr, &size));
 	EXPECT_EQ(0, size);
 }
 
@@ -166,18 +166,18 @@ TEST(CGit, GetFileModifyTime)
 	__int64 time = -1;
 	bool isDir = false;
 	__int64 size = -1;
-	EXPECT_EQ(-1, CGit::GetFileModifyTime(L"does-not-exist.txt", &time, &isDir, &size));
+	EXPECT_EQ(-1, TGitH::GetFileModifyTime(L"does-not-exist.txt", &time, &isDir, &size));
 
 	time = -1;
 	isDir = false;
 	size = -1;
-	EXPECT_EQ(0, CGit::GetFileModifyTime(L"c:\\Windows", &time, &isDir, &size));
+	EXPECT_EQ(0, TGitH::GetFileModifyTime(L"c:\\Windows", &time, &isDir, &size));
 	EXPECT_TRUE(isDir);
 
 	time = -1;
 	isDir = false;
 	size = -1;
-	EXPECT_EQ(0, CGit::GetFileModifyTime(L"c:\\Windows\\", &time, &isDir, &size));
+	EXPECT_EQ(0, TGitH::GetFileModifyTime(L"c:\\Windows\\", &time, &isDir, &size));
 	EXPECT_TRUE(isDir);
 
 	CAutoTempDir tempdir;
@@ -185,13 +185,13 @@ TEST(CGit, GetFileModifyTime)
 	EXPECT_TRUE(StringUtils::WriteStringToTextFile(testFile, L"this is testing fileöäü."));
 
 	time = -1;
-	EXPECT_EQ(0, CGit::GetFileModifyTime(testFile, &time));
+	EXPECT_EQ(0, TGitH::GetFileModifyTime(testFile, &time));
 	EXPECT_NE(-1, time);
 
 	__int64 time2 = -1;
 	isDir = false;
 	size = -1;
-	EXPECT_EQ(0, CGit::GetFileModifyTime(testFile, &time2, &isDir, &size));
+	EXPECT_EQ(0, TGitH::GetFileModifyTime(testFile, &time2, &isDir, &size));
 	EXPECT_EQ(time, time2);
 	EXPECT_FALSE(isDir);
 	EXPECT_EQ(27, size);
@@ -201,7 +201,7 @@ TEST(CGit, GetFileModifyTime)
 	__int64 time3 = -1;
 	isDir = false;
 	size = -1;
-	EXPECT_EQ(0, CGit::GetFileModifyTime(testFile, &time3, &isDir, &size));
+	EXPECT_EQ(0, TGitH::GetFileModifyTime(testFile, &time3, &isDir, &size));
 	EXPECT_NE(-1, time3);
 	EXPECT_FALSE(isDir);
 	EXPECT_EQ(25, size);
@@ -213,22 +213,22 @@ TEST(CGit, LoadTextFile)
 	CAutoTempDir tempdir;
 
 	CString msg = L"something--";
-	EXPECT_FALSE(CGit::LoadTextFile(L"does-not-exist.txt", msg));
+	EXPECT_FALSE(TGitH::LoadTextFile(L"does-not-exist.txt", msg));
 	EXPECT_STREQ(L"something--", msg);
 
 	CString testFile = tempdir.GetTempDir() + L"\\test.txt";
 	EXPECT_TRUE(StringUtils::WriteStringToTextFile(testFile, L"this is testing fileöäü."));
-	EXPECT_TRUE(CGit::LoadTextFile(testFile, msg));
+	EXPECT_TRUE(TGitH::LoadTextFile(testFile, msg));
 	EXPECT_STREQ(L"something--this is testing fileöäü.\n", msg);
 
 	msg.Empty();
 	EXPECT_TRUE(StringUtils::WriteStringToTextFile(testFile, L"this is testing\nfileöäü."));
-	EXPECT_TRUE(CGit::LoadTextFile(testFile, msg));
+	EXPECT_TRUE(TGitH::LoadTextFile(testFile, msg));
 	EXPECT_STREQ(L"this is testing\nfileöäü.\n", msg);
 
 	msg.Empty();
 	EXPECT_TRUE(StringUtils::WriteStringToTextFile(testFile, L"this is\r\ntesting\nfileöäü.\r\n\r\n"));
-	EXPECT_TRUE(CGit::LoadTextFile(testFile, msg));
+	EXPECT_TRUE(TGitH::LoadTextFile(testFile, msg));
 	EXPECT_STREQ(L"this is\ntesting\nfileöäü.\n", msg);
 }
 
@@ -248,13 +248,13 @@ TEST(CGit, IsBranchNameValid)
 
 TEST(CGit, StripRefName)
 {
-	EXPECT_STREQ(L"abc", CGit::StripRefName(L"abc"));
-	EXPECT_STREQ(L"bcd", CGit::StripRefName(L"refs/bcd"));
-	EXPECT_STREQ(L"cde", CGit::StripRefName(L"refs/heads/cde"));
+	EXPECT_STREQ(L"abc", TGitH::StripRefName(L"abc"));
+	EXPECT_STREQ(L"bcd", TGitH::StripRefName(L"refs/bcd"));
+	EXPECT_STREQ(L"cde", TGitH::StripRefName(L"refs/heads/cde"));
 
-	EXPECT_STREQ(L"notes/commits", CGit::StripRefName(L"refs/notes/commits"));
-	EXPECT_STREQ(L"remotes/origin/abc", CGit::StripRefName(L"refs/remotes/origin/abc"));
-	EXPECT_STREQ(L"tags/abc", CGit::StripRefName(L"refs/tags/abc"));
+	EXPECT_STREQ(L"notes/commits", TGitH::StripRefName(L"refs/notes/commits"));
+	EXPECT_STREQ(L"remotes/origin/abc", TGitH::StripRefName(L"refs/remotes/origin/abc"));
+	EXPECT_STREQ(L"tags/abc", TGitH::StripRefName(L"refs/tags/abc"));
 }
 
 TEST(CGit, CombinePath)
@@ -269,77 +269,77 @@ TEST(CGit, CombinePath)
 
 TEST(CGit, GetShortName)
 {
-	CGit::REF_TYPE type = CGit::UNKNOWN;
-	EXPECT_STREQ(L"master", CGit::GetShortName(L"refs/heads/master", &type));
-	EXPECT_EQ(CGit::LOCAL_BRANCH, type);
+	TGitH::REF_TYPE type = TGitH::UNKNOWN;
+	EXPECT_STREQ(L"master", TGitH::GetShortName(L"refs/heads/master", &type));
+	EXPECT_EQ(TGitH::LOCAL_BRANCH, type);
 
-	type = CGit::UNKNOWN;
-	EXPECT_STREQ(L"somedir/mastr", CGit::GetShortName(L"refs/heads/somedir/mastr", &type));
-	EXPECT_EQ(CGit::LOCAL_BRANCH, type);
+	type = TGitH::UNKNOWN;
+	EXPECT_STREQ(L"somedir/mastr", TGitH::GetShortName(L"refs/heads/somedir/mastr", &type));
+	EXPECT_EQ(TGitH::LOCAL_BRANCH, type);
 
-	type = CGit::BISECT_BAD; // do not use UNKNOWN here to make sure it gets set
-	EXPECT_STREQ(L"svn/something", CGit::GetShortName(L"refs/svn/something", &type));
-	EXPECT_EQ(CGit::UNKNOWN, type);
+	type = TGitH::BISECT_BAD; // do not use UNKNOWN here to make sure it gets set
+	EXPECT_STREQ(L"svn/something", TGitH::GetShortName(L"refs/svn/something", &type));
+	EXPECT_EQ(TGitH::UNKNOWN, type);
 
-	type = CGit::UNKNOWN;
-	EXPECT_STREQ(L"origin/master", CGit::GetShortName(L"refs/remotes/origin/master", &type));
-	EXPECT_EQ(CGit::REMOTE_BRANCH, type);
+	type = TGitH::UNKNOWN;
+	EXPECT_STREQ(L"origin/master", TGitH::GetShortName(L"refs/remotes/origin/master", &type));
+	EXPECT_EQ(TGitH::REMOTE_BRANCH, type);
 
-	type = CGit::UNKNOWN;
-	EXPECT_STREQ(L"origin/sub/master", CGit::GetShortName(L"refs/remotes/origin/sub/master", &type));
-	EXPECT_EQ(CGit::REMOTE_BRANCH, type);
+	type = TGitH::UNKNOWN;
+	EXPECT_STREQ(L"origin/sub/master", TGitH::GetShortName(L"refs/remotes/origin/sub/master", &type));
+	EXPECT_EQ(TGitH::REMOTE_BRANCH, type);
 
-	type = CGit::UNKNOWN;
-	EXPECT_STREQ(L"release1", CGit::GetShortName(L"refs/tags/release1", &type));
-	EXPECT_EQ(CGit::TAG, type);
+	type = TGitH::UNKNOWN;
+	EXPECT_STREQ(L"release1", TGitH::GetShortName(L"refs/tags/release1", &type));
+	EXPECT_EQ(TGitH::TAG, type);
 
-	type = CGit::UNKNOWN;
-	EXPECT_STREQ(L"releases/v1", CGit::GetShortName(L"refs/tags/releases/v1", &type));
-	EXPECT_EQ(CGit::TAG, type);
+	type = TGitH::UNKNOWN;
+	EXPECT_STREQ(L"releases/v1", TGitH::GetShortName(L"refs/tags/releases/v1", &type));
+	EXPECT_EQ(TGitH::TAG, type);
 
-	type = CGit::UNKNOWN;
-	EXPECT_STREQ(L"release2", CGit::GetShortName(L"refs/tags/release2^{}", &type));
-	EXPECT_EQ(CGit::ANNOTATED_TAG, type);
+	type = TGitH::UNKNOWN;
+	EXPECT_STREQ(L"release2", TGitH::GetShortName(L"refs/tags/release2^{}", &type));
+	EXPECT_EQ(TGitH::ANNOTATED_TAG, type);
 
-	type = CGit::UNKNOWN;
-	EXPECT_STREQ(L"releases/v2", CGit::GetShortName(L"refs/tags/releases/v2^{}", &type));
-	EXPECT_EQ(CGit::ANNOTATED_TAG, type);
+	type = TGitH::UNKNOWN;
+	EXPECT_STREQ(L"releases/v2", TGitH::GetShortName(L"refs/tags/releases/v2^{}", &type));
+	EXPECT_EQ(TGitH::ANNOTATED_TAG, type);
 
-	type = CGit::UNKNOWN;
-	EXPECT_STREQ(L"stash", CGit::GetShortName(L"refs/stash", &type));
-	EXPECT_EQ(CGit::STASH, type);
+	type = TGitH::UNKNOWN;
+	EXPECT_STREQ(L"stash", TGitH::GetShortName(L"refs/stash", &type));
+	EXPECT_EQ(TGitH::STASH, type);
 
-	type = CGit::BISECT_BAD; // do not use UNKNOWN here to make sure it gets set
-	EXPECT_STREQ(L"something", CGit::GetShortName(L"refs/something", &type));
-	EXPECT_EQ(CGit::UNKNOWN, type);
+	type = TGitH::BISECT_BAD; // do not use UNKNOWN here to make sure it gets set
+	EXPECT_STREQ(L"something", TGitH::GetShortName(L"refs/something", &type));
+	EXPECT_EQ(TGitH::UNKNOWN, type);
 
-	type = CGit::BISECT_BAD; // do not use UNKNOWN here to make sure it gets set
-	EXPECT_STREQ(L"sth", CGit::GetShortName(L"sth", &type));
-	EXPECT_EQ(CGit::UNKNOWN, type);
+	type = TGitH::BISECT_BAD; // do not use UNKNOWN here to make sure it gets set
+	EXPECT_STREQ(L"sth", TGitH::GetShortName(L"sth", &type));
+	EXPECT_EQ(TGitH::UNKNOWN, type);
 
-	type = CGit::UNKNOWN;
-	EXPECT_STREQ(L"good", CGit::GetShortName(L"refs/bisect/good", &type));
-	EXPECT_EQ(CGit::BISECT_GOOD, type);
+	type = TGitH::UNKNOWN;
+	EXPECT_STREQ(L"good", TGitH::GetShortName(L"refs/bisect/good", &type));
+	EXPECT_EQ(TGitH::BISECT_GOOD, type);
 
-	type = CGit::UNKNOWN;
-	EXPECT_STREQ(L"good", CGit::GetShortName(L"refs/bisect/good-5809ac97a1115a8380b1d6bb304b62cd0b0fa9bb", &type));
-	EXPECT_EQ(CGit::BISECT_GOOD, type);
+	type = TGitH::UNKNOWN;
+	EXPECT_STREQ(L"good", TGitH::GetShortName(L"refs/bisect/good-5809ac97a1115a8380b1d6bb304b62cd0b0fa9bb", &type));
+	EXPECT_EQ(TGitH::BISECT_GOOD, type);
 
-	type = CGit::UNKNOWN;
-	EXPECT_STREQ(L"bad", CGit::GetShortName(L"refs/bisect/bad", &type));
-	EXPECT_EQ(CGit::BISECT_BAD, type);
+	type = TGitH::UNKNOWN;
+	EXPECT_STREQ(L"bad", TGitH::GetShortName(L"refs/bisect/bad", &type));
+	EXPECT_EQ(TGitH::BISECT_BAD, type);
 
-	type = CGit::UNKNOWN;
-	EXPECT_STREQ(L"bad", CGit::GetShortName(L"refs/bisect/bad-5809ac97a1115a8380b1d6bb304b62cd0b0fd9bb", &type));
-	EXPECT_EQ(CGit::BISECT_BAD, type);
+	type = TGitH::UNKNOWN;
+	EXPECT_STREQ(L"bad", TGitH::GetShortName(L"refs/bisect/bad-5809ac97a1115a8380b1d6bb304b62cd0b0fd9bb", &type));
+	EXPECT_EQ(TGitH::BISECT_BAD, type);
 
-	type = CGit::UNKNOWN;
-	EXPECT_STREQ(L"ab", CGit::GetShortName(L"refs/notes/ab", &type));
-	EXPECT_EQ(CGit::NOTES, type);
+	type = TGitH::UNKNOWN;
+	EXPECT_STREQ(L"ab", TGitH::GetShortName(L"refs/notes/ab", &type));
+	EXPECT_EQ(TGitH::NOTES, type);
 
-	type = CGit::UNKNOWN;
-	EXPECT_STREQ(L"a/b", CGit::GetShortName(L"refs/notes/a/b", &type));
-	EXPECT_EQ(CGit::NOTES, type);
+	type = TGitH::UNKNOWN;
+	EXPECT_STREQ(L"a/b", TGitH::GetShortName(L"refs/notes/a/b", &type));
+	EXPECT_EQ(TGitH::NOTES, type);
 }
 
 TEST(CGit, GetRepository)
@@ -741,7 +741,7 @@ static void FETCHHEAD(CGit& m_Git, bool isBare)
 	EXPECT_EQ(0, m_Git.GetBranchList(list, nullptr));
 	EXPECT_EQ(7U, list.size());
 	list.clear();
-	EXPECT_EQ(0, m_Git.GetBranchList(list, nullptr, CGit::BRANCH_LOCAL_F));
+	EXPECT_EQ(0, m_Git.GetBranchList(list, nullptr, TGitH::BRANCH_LOCAL_F));
 	EXPECT_EQ(7U, list.size());
 
 	EXPECT_STREQ(L"HEAD", m_Git.FixBranchName(L"HEAD"));
@@ -763,7 +763,7 @@ static void FETCHHEAD(CGit& m_Git, bool isBare)
 	EXPECT_EQ(0, m_Git.GetBranchList(list, nullptr));
 	EXPECT_EQ(7U, list.size());
 	list.clear();
-	EXPECT_EQ(0, m_Git.GetBranchList(list, nullptr, CGit::BRANCH_LOCAL_F));
+	EXPECT_EQ(0, m_Git.GetBranchList(list, nullptr, TGitH::BRANCH_LOCAL_F));
 	EXPECT_EQ(8U, list.size());
 
 	EXPECT_STREQ(L"master", m_Git.FixBranchName(L"master"));
@@ -790,7 +790,7 @@ static void FETCHHEAD(CGit& m_Git, bool isBare)
 	EXPECT_EQ(0, m_Git.GetBranchList(list, nullptr));
 	EXPECT_EQ(7U, list.size());
 	list.clear();
-	EXPECT_EQ(0, m_Git.GetBranchList(list, nullptr, CGit::BRANCH_LOCAL_F));
+	EXPECT_EQ(0, m_Git.GetBranchList(list, nullptr, TGitH::BRANCH_LOCAL_F));
 	EXPECT_EQ(8U, list.size());
 
 	EXPECT_STREQ(L"b9ef30183497cdad5c30b88d32dc1bed7951dfeb", m_Git.FixBranchName(L"FETCH_HEAD"));
@@ -895,7 +895,7 @@ TEST_P(CBasicGitWithEmptyRepositoryFixture, GetEmptyBranchesTagsRefs)
 	EXPECT_TRUE(branches.empty());
 	EXPECT_EQ(-2, current); // not touched
 
-	EXPECT_EQ(0, m_Git.GetBranchList(branches, &current, CGit::BRANCH_ALL));
+	EXPECT_EQ(0, m_Git.GetBranchList(branches, &current, TGitH::BRANCH_ALL));
 	EXPECT_TRUE(branches.empty());
 	EXPECT_EQ(-2, current); // not touched
 
@@ -933,7 +933,7 @@ static void GetBranchesTagsRefs(CGit& m_Git, config testConfig)
 
 	branches.clear();
 	current = -2;
-	EXPECT_EQ(0, m_Git.GetBranchList(branches, &current, CGit::BRANCH_ALL));
+	EXPECT_EQ(0, m_Git.GetBranchList(branches, &current, TGitH::BRANCH_ALL));
 	ASSERT_EQ(8U, branches.size());
 	EXPECT_EQ(1, current);
 	EXPECT_STREQ(L"forconflict", branches[0].c_str());
@@ -947,7 +947,7 @@ static void GetBranchesTagsRefs(CGit& m_Git, config testConfig)
 
 	branches.clear();
 	current = -2;
-	EXPECT_EQ(0, m_Git.GetBranchList(branches, &current, CGit::BRANCH_ALL, true));
+	EXPECT_EQ(0, m_Git.GetBranchList(branches, &current, TGitH::BRANCH_ALL, true));
 	ASSERT_EQ(7U, branches.size());
 	EXPECT_EQ(-2, current); // not touched
 	EXPECT_STREQ(L"forconflict", branches[0].c_str());
@@ -959,7 +959,7 @@ static void GetBranchesTagsRefs(CGit& m_Git, config testConfig)
 	EXPECT_STREQ(L"remotes/origin/master", branches[6].c_str());
 
 	branches.clear();
-	EXPECT_EQ(0, m_Git.GetBranchList(branches, nullptr, CGit::BRANCH_ALL, true));
+	EXPECT_EQ(0, m_Git.GetBranchList(branches, nullptr, TGitH::BRANCH_ALL, true));
 	ASSERT_EQ(7U, branches.size());
 	EXPECT_STREQ(L"forconflict", branches[0].c_str());
 	EXPECT_STREQ(L"master2", branches[1].c_str());
@@ -971,7 +971,7 @@ static void GetBranchesTagsRefs(CGit& m_Git, config testConfig)
 
 	branches.clear();
 	current = -2;
-	EXPECT_EQ(0, m_Git.GetBranchList(branches, &current, CGit::BRANCH_REMOTE));
+	EXPECT_EQ(0, m_Git.GetBranchList(branches, &current, TGitH::BRANCH_REMOTE));
 	ASSERT_EQ(1U, branches.size());
 	EXPECT_EQ(-2, current); // not touched
 	EXPECT_STREQ(L"remotes/origin/master", branches[0].c_str());
@@ -1038,7 +1038,7 @@ static void GetBranchesTagsRefs(CGit& m_Git, config testConfig)
 
 	EXPECT_EQ(-1, m_Git.DeleteRef(L"refs/tags/gibbednet"));
 	branches.clear();
-	EXPECT_EQ(0, m_Git.GetBranchList(branches, nullptr, CGit::BRANCH_ALL));
+	EXPECT_EQ(0, m_Git.GetBranchList(branches, nullptr, TGitH::BRANCH_ALL));
 	EXPECT_EQ(8U, branches.size());
 	tags.clear();
 	EXPECT_EQ(0, m_Git.GetTagList(tags));
@@ -1049,7 +1049,7 @@ static void GetBranchesTagsRefs(CGit& m_Git, config testConfig)
 
 	EXPECT_EQ(-1, m_Git.DeleteRef(L"refs/heads/gibbednet"));
 	branches.clear();
-	EXPECT_EQ(0, m_Git.GetBranchList(branches, nullptr, CGit::BRANCH_ALL));
+	EXPECT_EQ(0, m_Git.GetBranchList(branches, nullptr, TGitH::BRANCH_ALL));
 	EXPECT_EQ(8U, branches.size());
 	tags.clear();
 	EXPECT_EQ(0, m_Git.GetTagList(tags));
@@ -1060,7 +1060,7 @@ static void GetBranchesTagsRefs(CGit& m_Git, config testConfig)
 
 	EXPECT_EQ(-1, m_Git.DeleteRef(L"refs/remotes/origin/gibbednet"));
 	branches.clear();
-	EXPECT_EQ(0, m_Git.GetBranchList(branches, nullptr, CGit::BRANCH_ALL));
+	EXPECT_EQ(0, m_Git.GetBranchList(branches, nullptr, TGitH::BRANCH_ALL));
 	EXPECT_EQ(8U, branches.size());
 	tags.clear();
 	EXPECT_EQ(0, m_Git.GetTagList(tags));
@@ -1071,7 +1071,7 @@ static void GetBranchesTagsRefs(CGit& m_Git, config testConfig)
 
 	EXPECT_EQ(0, m_Git.DeleteRef(L"refs/tags/normal-tag"));
 	branches.clear();
-	EXPECT_EQ(0, m_Git.GetBranchList(branches, nullptr, CGit::BRANCH_ALL));
+	EXPECT_EQ(0, m_Git.GetBranchList(branches, nullptr, TGitH::BRANCH_ALL));
 	EXPECT_EQ(8U, branches.size());
 	tags.clear();
 	EXPECT_EQ(0, m_Git.GetTagList(tags));
@@ -1082,7 +1082,7 @@ static void GetBranchesTagsRefs(CGit& m_Git, config testConfig)
 
 	EXPECT_EQ(0, m_Git.DeleteRef(L"refs/tags/all-files-signed^{}"));
 	branches.clear();
-	EXPECT_EQ(0, m_Git.GetBranchList(branches, nullptr, CGit::BRANCH_ALL));
+	EXPECT_EQ(0, m_Git.GetBranchList(branches, nullptr, TGitH::BRANCH_ALL));
 	EXPECT_EQ(8U, branches.size());
 	tags.clear();
 	EXPECT_EQ(0, m_Git.GetTagList(tags));
@@ -1093,7 +1093,7 @@ static void GetBranchesTagsRefs(CGit& m_Git, config testConfig)
 
 	EXPECT_EQ(0, m_Git.DeleteRef(L"refs/heads/subdir/branch"));
 	branches.clear();
-	EXPECT_EQ(0, m_Git.GetBranchList(branches, nullptr, CGit::BRANCH_ALL));
+	EXPECT_EQ(0, m_Git.GetBranchList(branches, nullptr, TGitH::BRANCH_ALL));
 	EXPECT_EQ(7U, branches.size());
 	tags.clear();
 	EXPECT_EQ(0, m_Git.GetTagList(tags));
@@ -1104,7 +1104,7 @@ static void GetBranchesTagsRefs(CGit& m_Git, config testConfig)
 
 	EXPECT_EQ(0, m_Git.DeleteRef(L"refs/remotes/origin/master"));
 	branches.clear();
-	EXPECT_EQ(0, m_Git.GetBranchList(branches, nullptr, CGit::BRANCH_ALL));
+	EXPECT_EQ(0, m_Git.GetBranchList(branches, nullptr, TGitH::BRANCH_ALL));
 	EXPECT_EQ(6U, branches.size());
 	tags.clear();
 	EXPECT_EQ(0, m_Git.GetTagList(tags));
@@ -1186,7 +1186,7 @@ TEST_P(CBasicGitWithTestRepoFixture, GetBranchList_detachedhead)
 
 	branches.clear();
 	current = -2;
-	EXPECT_EQ(0, m_Git.GetBranchList(branches, &current, CGit::BRANCH_LOCAL, true));
+	EXPECT_EQ(0, m_Git.GetBranchList(branches, &current, TGitH::BRANCH_LOCAL, true));
 	ASSERT_EQ(7U, branches.size());
 	EXPECT_EQ(-2, current);
 	EXPECT_STREQ(L"forconflict", branches[0].c_str());
@@ -1198,7 +1198,7 @@ TEST_P(CBasicGitWithTestRepoFixture, GetBranchList_detachedhead)
 	EXPECT_STREQ(L"tree-ref", branches[6].c_str());
 
 	// cygwin and msys git fail here
-	if (CGit::ms_bCygwinGit || CGit::ms_bMsys2Git)
+	if (TGitH::ms_bCygwinGit || TGitH::ms_bMsys2Git)
 		return;
 
 	output.Empty();
@@ -1230,7 +1230,7 @@ TEST_P(CBasicGitWithEmptyBareRepositoryFixture, GetEmptyBranchesTagsRefs)
 	EXPECT_TRUE(branches.empty());
 	EXPECT_EQ(-2, current); // not touched
 
-	EXPECT_EQ(0, m_Git.GetBranchList(branches, &current, CGit::BRANCH_ALL));
+	EXPECT_EQ(0, m_Git.GetBranchList(branches, &current, TGitH::BRANCH_ALL));
 	EXPECT_TRUE(branches.empty());
 	EXPECT_EQ(-2, current); // not touched
 
@@ -1254,7 +1254,7 @@ TEST_P(CBasicGitWithEmptyBareRepositoryFixture, GetEmptyBranchesTagsRefs)
 TEST_P(CBasicGitWithEmptyRepositoryFixture, CheckCleanWorkTree)
 {
 	// this test is known to fail with cygwin and also not enabled by default
-	if (GetParam() == LIBGIT2_ALL && CGit::ms_bCygwinGit)
+	if (GetParam() == LIBGIT2_ALL && TGitH::ms_bCygwinGit)
 		return;
 
 	CString output;
@@ -1379,7 +1379,7 @@ TEST(CGit, CEnvironment)
 
 	env.clear();
 	CString path = L"c:\\windows;c:\\windows\\system32";
-	env.SetEnv(L"PATH", tgit::wstr::StringView(path));
+	env.SetEnv(L"PATH", tgit::zstr::StringView(path));
 	env.AddToPath(L"");
 	EXPECT_STREQ(path, env.GetEnv(L"PATH").c_str());
 	env.AddToPath(L"c:\\windows");
@@ -1401,7 +1401,7 @@ TEST(CGit, CEnvironment)
 	env.AddToPath(L"c:\\test");
 	EXPECT_STREQ(path, env.GetEnv(L"PATH").c_str());
 	path = L"c:\\windows;c:\\windows\\system32;";
-	env.SetEnv(L"PATH", tgit::wstr::StringView(path));
+	env.SetEnv(L"PATH", tgit::zstr::StringView(path));
 	env.AddToPath(L"");
 	EXPECT_STREQ(path, env.GetEnv(L"PATH").c_str());
 	env.AddToPath(L"c:\\test");
@@ -1519,7 +1519,7 @@ TEST_P(CBasicGitWithTestRepoFixture, GetOneFile)
 	ASSERT_TRUE(repo.IsValid());
 	CAutoConfig config(repo);
 	ASSERT_TRUE(config.IsValid());
-	CStringA path = CUnicodeUtils::GetUTF8(m_Git.m_CurrentDir);
+	CStringA path = CUnicodeUtils::GetUTF8<CStringA>(m_Git.m_CurrentDir);
 	path.Replace('\\', '/');
 	EXPECT_EQ(0, git_config_set_string(config, "filter.openssl.clean", path + "/clean_filter_openssl"));
 	EXPECT_EQ(0, git_config_set_string(config, "filter.openssl.smudge", path + "/smudge_filter_openssl"));
@@ -1536,7 +1536,7 @@ TEST_P(CBasicGitWithTestRepoFixture, GetOneFile)
 
 	CString output;
 	EXPECT_EQ(0, m_Git.Run(L"git.exe add 1.enc", &output, CP_UTF8));
-	if (!g_Git.ms_bCygwinGit) // on AppVeyor with the VS2017 image we get a warning: "WARNING: can't open config file: /usr/local/ssl/openssl.cnf"
+	if (!TGitH::ms_bCygwinGit) // on AppVeyor with the VS2017 image we get a warning: "WARNING: can't open config file: /usr/local/ssl/openssl.cnf"
 		EXPECT_STREQ(L"", output);
 
 	CAutoIndex index;
@@ -4087,7 +4087,7 @@ TEST_P(CBasicGitWithSubmoduleRepositoryFixture, GetWorkingTreeChanges_Submodules
 	EXPECT_EQ(0, m_Git.GetWorkingTreeChanges(list, false, nullptr));
 	ASSERT_EQ(1, list.GetCount());
 	EXPECT_STREQ(L"something", list[0].GetGitPathString().c_str());
-	if (m_Git.ms_LastMsysGitVersion < ConvertVersionToInt(2, 34, 0)) {
+	if (TGitH::ms_LastMsysGitVersion < ConvertVersionToInt(2, 34, 0)) {
 		EXPECT_EQ(CTGitPath::LOGACTIONS_UNMERGED | CTGitPath::LOGACTIONS_MISSING, list[0].m_Action);
 		EXPECT_FALSE(list[0].IsDirectory()); // neither file nor directory is in filesystem
 	}
@@ -4103,7 +4103,7 @@ TEST_P(CBasicGitWithSubmoduleRepositoryFixture, GetWorkingTreeChanges_Submodules
 	ASSERT_EQ(1, list.GetCount());
 	EXPECT_STREQ(L"something", list[0].GetGitPathString().c_str());
 	EXPECT_EQ(CTGitPath::StagingStatus::TotallyUnstaged, list[0].m_stagingStatus);
-	if (m_Git.ms_LastMsysGitVersion < ConvertVersionToInt(2, 34, 0)) {
+	if (TGitH::ms_LastMsysGitVersion < ConvertVersionToInt(2, 34, 0)) {
 		EXPECT_EQ(CTGitPath::LOGACTIONS_UNMERGED | CTGitPath::LOGACTIONS_MISSING, list[0].m_Action);
 		EXPECT_FALSE(list[0].IsDirectory()); // neither file nor directory is in filesystem
 	}
@@ -4125,18 +4125,18 @@ TEST_P(CBasicGitWithSubmoduleRepositoryFixture, GetWorkingTreeChanges_Submodules
 	EXPECT_EQ(1, m_Git.Run(L"git.exe merge file", &output, CP_UTF8));
 	EXPECT_STRNE(L"", output);
 	EXPECT_EQ(0, m_Git.GetWorkingTreeChanges(list, false, nullptr));
-	if (m_Git.ms_LastMsysGitVersion < ConvertVersionToInt(2, 34, 0))
+	if (TGitH::ms_LastMsysGitVersion < ConvertVersionToInt(2, 34, 0))
 		ASSERT_EQ(1, list.GetCount());
 	else
 		ASSERT_EQ(2, list.GetCount());
 	EXPECT_STREQ(L"something", list[0].GetGitPathString().c_str());
-	if (m_Git.ms_LastMsysGitVersion < ConvertVersionToInt(2, 34, 0) && (m_Git.ms_bCygwinGit || m_Git.ms_bMsys2Git))
+	if (TGitH::ms_LastMsysGitVersion < ConvertVersionToInt(2, 34, 0) && (TGitH::ms_bCygwinGit || TGitH::ms_bMsys2Git))
 	{
 		EXPECT_TRUE(output.Find(L"error: failed to create path") > 0);
 		EXPECT_EQ(CTGitPath::LOGACTIONS_UNMERGED, list[0].m_Action);
 		EXPECT_TRUE(list[0].IsDirectory()); // folder is in filesystem
 	}
-	else if (m_Git.ms_LastMsysGitVersion < ConvertVersionToInt(2, 34, 0))
+	else if (TGitH::ms_LastMsysGitVersion < ConvertVersionToInt(2, 34, 0))
 	{
 		EXPECT_EQ(CTGitPath::LOGACTIONS_UNMERGED | CTGitPath::LOGACTIONS_MODIFIED, list[0].m_Action);
 		EXPECT_FALSE(list[0].IsDirectory()); // file is in filesystem
@@ -4165,7 +4165,7 @@ TEST_P(CBasicGitWithSubmoduleRepositoryFixture, GetWorkingTreeChanges_Submodules
 	EXPECT_EQ(1, m_Git.Run(L"git.exe merge branch1", &output, CP_UTF8));
 	EXPECT_STRNE(L"", output);
 	EXPECT_EQ(0, m_Git.GetWorkingTreeChanges(list, false, nullptr));
-	if (m_Git.ms_LastMsysGitVersion < ConvertVersionToInt(2, 34, 0))
+	if (TGitH::ms_LastMsysGitVersion < ConvertVersionToInt(2, 34, 0))
 		ASSERT_EQ(1, list.GetCount());
 	else
 		ASSERT_EQ(2, list.GetCount());
@@ -4173,7 +4173,7 @@ TEST_P(CBasicGitWithSubmoduleRepositoryFixture, GetWorkingTreeChanges_Submodules
 	EXPECT_EQ(CTGitPath::LOGACTIONS_UNMERGED | CTGitPath::LOGACTIONS_MODIFIED, list[0].m_Action);
 	EXPECT_STREQ(L"1", list[0].m_StatAdd.c_str());
 	EXPECT_STREQ(L"1", list[0].m_StatDel.c_str());
-	if (m_Git.ms_LastMsysGitVersion < ConvertVersionToInt(2, 34, 0))
+	if (TGitH::ms_LastMsysGitVersion < ConvertVersionToInt(2, 34, 0))
 		EXPECT_FALSE(list[0].IsDirectory()); // file is in filesystem
 	else
 	{
@@ -4277,7 +4277,7 @@ TEST_P(CBasicGitWithTestRepoFixture, GetWorkingTreeChanges_RefreshGitIndex)
 	// START: this is the undesired behavior
 	// this test is just there so we notice when this change somehow
 	EXPECT_EQ(0, m_Git.GetWorkingTreeChanges(list, false, nullptr));
-	if (m_Git.ms_bCygwinGit || m_Git.ms_bMsys2Git)
+	if (TGitH::ms_bCygwinGit || TGitH::ms_bMsys2Git)
 		EXPECT_EQ(0, list.GetCount());
 	else
 		EXPECT_EQ(1, list.GetCount());
@@ -4291,7 +4291,7 @@ TEST_P(CBasicGitWithTestRepoFixture, GetWorkingTreeChanges_RefreshGitIndex)
 
 TEST_P(CBasicGitWithTestRepoFixture, GetBisectTerms)
 {
-	if (m_Git.ms_bCygwinGit)
+	if (TGitH::ms_bCygwinGit)
 		return;
 
 	CString good, bad;
@@ -4343,11 +4343,11 @@ TEST_P(CBasicGitWithTestRepoFixture, GetRefsCommitIsOn)
 	EXPECT_STREQ(L"refs/heads/master", list[0].c_str());
 
 	list.clear();
-	EXPECT_EQ(0, m_Git.GetRefsCommitIsOn(list, CGitHash::FromHexStr(L"1fc3c9688e27596d8717b54f2939dc951568f6cb"), true, true, CGit::BRANCH_REMOTE));
+	EXPECT_EQ(0, m_Git.GetRefsCommitIsOn(list, CGitHash::FromHexStr(L"1fc3c9688e27596d8717b54f2939dc951568f6cb"), true, true, TGitH::BRANCH_REMOTE));
 	EXPECT_TRUE(list.empty());
 
 	list.clear();
-	EXPECT_EQ(0, m_Git.GetRefsCommitIsOn(list, CGitHash::FromHexStr(L"1fc3c9688e27596d8717b54f2939dc951568f6cb"), false, true, CGit::BRANCH_ALL));
+	EXPECT_EQ(0, m_Git.GetRefsCommitIsOn(list, CGitHash::FromHexStr(L"1fc3c9688e27596d8717b54f2939dc951568f6cb"), false, true, TGitH::BRANCH_ALL));
 	ASSERT_EQ(1U, list.size());
 	EXPECT_STREQ(L"refs/heads/master", list[0].c_str());
 
@@ -4379,12 +4379,12 @@ TEST_P(CBasicGitWithTestRepoFixture, GetRefsCommitIsOn)
 	EXPECT_STREQ(L"refs/heads/subdir/branch", list[5].c_str());
 
 	list.clear();
-	EXPECT_EQ(0, m_Git.GetRefsCommitIsOn(list, CGitHash::FromHexStr(L"313a41bc88a527289c87d7531802ab484715974f"), false, true, CGit::BRANCH_REMOTE));
+	EXPECT_EQ(0, m_Git.GetRefsCommitIsOn(list, CGitHash::FromHexStr(L"313a41bc88a527289c87d7531802ab484715974f"), false, true, TGitH::BRANCH_REMOTE));
 	ASSERT_EQ(1U, list.size());
 	EXPECT_STREQ(L"refs/remotes/origin/master", list[0].c_str());
 
 	list.clear();
-	EXPECT_EQ(0, m_Git.GetRefsCommitIsOn(list, CGitHash::FromHexStr(L"313a41bc88a527289c87d7531802ab484715974f"), false, true, CGit::BRANCH_LOCAL));
+	EXPECT_EQ(0, m_Git.GetRefsCommitIsOn(list, CGitHash::FromHexStr(L"313a41bc88a527289c87d7531802ab484715974f"), false, true, TGitH::BRANCH_LOCAL));
 	ASSERT_EQ(6U, list.size());
 	EXPECT_STREQ(L"refs/heads/forconflict", list[0].c_str());
 	EXPECT_STREQ(L"refs/heads/master", list[1].c_str());
@@ -4394,18 +4394,19 @@ TEST_P(CBasicGitWithTestRepoFixture, GetRefsCommitIsOn)
 	EXPECT_STREQ(L"refs/heads/subdir/branch", list[5].c_str());
 
 	list.clear();
-	EXPECT_EQ(0, m_Git.GetRefsCommitIsOn(list, CGitHash::FromHexStr(L"313a41bc88a527289c87d7531802ab484715974f"), false, true, CGit::BRANCH_ALL));
+	EXPECT_EQ(0, m_Git.GetRefsCommitIsOn(list, CGitHash::FromHexStr(L"313a41bc88a527289c87d7531802ab484715974f"), false, true, TGitH::BRANCH_ALL));
 	ASSERT_EQ(7U, list.size());
 	EXPECT_STREQ(L"refs/heads/forconflict", list[0].c_str());
 	EXPECT_STREQ(L"refs/remotes/origin/master", list[6].c_str());
 
 	// test for symbolic refs
-	CString adminDir;
-	ASSERT_TRUE(GitAdminDir::GetAdminDirPath(g_Git.m_CurrentDir, adminDir));
+	const auto admin = GitAdminDir::GetAdminDirPath(tgit::zstr::StringView(g_Git.m_CurrentDir));
+	ASSERT_TRUE(admin);
+	CString adminDir = admin->path.c_str();
 	adminDir += L"refs\\remotes\\origin\\HEAD";
 	ASSERT_TRUE(StringUtils::WriteStringToTextFile(adminDir, L"ref: refs/remotes/origin/master"));
 	list.clear();
-	EXPECT_EQ(0, m_Git.GetRefsCommitIsOn(list, CGitHash::FromHexStr(L"313a41bc88a527289c87d7531802ab484715974f"), false, true, CGit::BRANCH_ALL));
+	EXPECT_EQ(0, m_Git.GetRefsCommitIsOn(list, CGitHash::FromHexStr(L"313a41bc88a527289c87d7531802ab484715974f"), false, true, TGitH::BRANCH_ALL));
 	ASSERT_EQ(8U, list.size());
 	EXPECT_STREQ(L"refs/heads/forconflict", list[0].c_str());
 	EXPECT_STREQ(L"refs/remotes/origin/HEAD", list[6].c_str());
@@ -4436,7 +4437,7 @@ static CString GetUnifiedDiffWith(CGit& git, bool useLibGit2, const CString& rev
 		g_Git.m_IsUseLibGit2_mask = oldMask;
 	};
 	git.m_IsUseLibGit2 = useLibGit2;
-	git.m_IsUseLibGit2_mask = useLibGit2 ? (1 << CGit::GIT_CMD_DIFF) : 0;
+	git.m_IsUseLibGit2_mask = useLibGit2 ? (1 << TGitH::GIT_CMD_DIFF) : 0;
 	// the libgit2 path opens the repository through g_Git, not through the CGit it
 	// was called on, so both have to agree
 	g_Git.m_IsUseLibGit2 = git.m_IsUseLibGit2;
@@ -4579,7 +4580,7 @@ TEST(CGit, ParseConflictHashesFromLsFile_Empty)
 	CGitByteArray byteArray;
 	bool baseIsFile = true, localIsFile = true, remoteIsFile = true;
 	CGitHash baseHash, localHash, remoteHash;
-	EXPECT_NE(0, CGit::ParseConflictHashesFromLsFile(byteArray, baseHash, baseIsFile, localHash, localIsFile, remoteHash, remoteIsFile));
+	EXPECT_NE(0, TGitH::ParseConflictHashesFromLsFile(byteArray, baseHash, baseIsFile, localHash, localIsFile, remoteHash, remoteIsFile));
 }
 
 TEST(CGit, ParseConflictHashesFromLsFile_SimpleConflict)
@@ -4589,7 +4590,7 @@ TEST(CGit, ParseConflictHashesFromLsFile_SimpleConflict)
 	byteArray.append(git_ls_file_u_t_z_output, sizeof(git_ls_file_u_t_z_output));
 	bool baseIsFile = true, localIsFile = true, remoteIsFile = true;
 	CGitHash baseHash, localHash, remoteHash;
-	EXPECT_EQ(0, CGit::ParseConflictHashesFromLsFile(byteArray, baseHash, baseIsFile, localHash, localIsFile, remoteHash, remoteIsFile));
+	EXPECT_EQ(0, TGitH::ParseConflictHashesFromLsFile(byteArray, baseHash, baseIsFile, localHash, localIsFile, remoteHash, remoteIsFile));
 	EXPECT_STREQ(L"1f9f46da1ee155aa765d6e379d9d19853358cb07", baseHash.ToString());
 	EXPECT_TRUE(baseIsFile);
 	EXPECT_STREQ(L"3aa011e7d3609ab9af90c4b10f616312d2be422f", localHash.ToString());
@@ -4605,7 +4606,7 @@ TEST(CGit, ParseConflictHashesFromLsFile_SubmoduleConflict_Simple)
 	byteArray.append(git_ls_files_u_t_z_output, sizeof(git_ls_files_u_t_z_output));
 	bool baseIsFile = true, localIsFile = true, remoteIsFile = true;
 	CGitHash baseHash, localHash, remoteHash;
-	EXPECT_EQ(0, CGit::ParseConflictHashesFromLsFile(byteArray, baseHash, baseIsFile, localHash, localIsFile, remoteHash, remoteIsFile));
+	EXPECT_EQ(0, TGitH::ParseConflictHashesFromLsFile(byteArray, baseHash, baseIsFile, localHash, localIsFile, remoteHash, remoteIsFile));
 	EXPECT_STREQ(L"46a2b8e855d5f6d8b60b81500a9f6779c7f63e63", baseHash.ToString());
 	EXPECT_FALSE(baseIsFile);
 	EXPECT_STREQ(L"533da4ea00703f4ad6d5518e1ce81d20261c40c0", localHash.ToString());
@@ -4622,7 +4623,7 @@ TEST(CGit, ParseConflictHashesFromLsFile_SubmoduleConflict_DeletedModified)
 	byteArray.append(git_ls_files_u_t_z_output, sizeof(git_ls_files_u_t_z_output));
 	bool baseIsFile = true, localIsFile = true, remoteIsFile = true;
 	CGitHash baseHash, localHash, remoteHash;
-	EXPECT_EQ(0, CGit::ParseConflictHashesFromLsFile(byteArray, baseHash, baseIsFile, localHash, localIsFile, remoteHash, remoteIsFile));
+	EXPECT_EQ(0, TGitH::ParseConflictHashesFromLsFile(byteArray, baseHash, baseIsFile, localHash, localIsFile, remoteHash, remoteIsFile));
 	EXPECT_STREQ(L"46a2b8e855d5f6d8b60b81500a9f6779c7f63e63", baseHash.ToString());
 	EXPECT_FALSE(baseIsFile);
 	EXPECT_STREQ(L"0000000000000000000000000000000000000000", localHash.ToString());
@@ -4639,7 +4640,7 @@ TEST(CGit, ParseConflictHashesFromLsFile_SubmoduleConflict_ToNormalDir)
 	byteArray.append(git_ls_files_u_t_z_output, sizeof(git_ls_files_u_t_z_output));
 	bool baseIsFile = true, localIsFile = true, remoteIsFile = true;
 	CGitHash baseHash, localHash, remoteHash;
-	EXPECT_EQ(0, CGit::ParseConflictHashesFromLsFile(byteArray, baseHash, baseIsFile, localHash, localIsFile, remoteHash, remoteIsFile));
+	EXPECT_EQ(0, TGitH::ParseConflictHashesFromLsFile(byteArray, baseHash, baseIsFile, localHash, localIsFile, remoteHash, remoteIsFile));
 	EXPECT_STREQ(L"0000000000000000000000000000000000000000", baseHash.ToString());
 	EXPECT_TRUE(baseIsFile);
 	EXPECT_STREQ(L"533da4ea00703f4ad6d5518e1ce81d20261c40c0", localHash.ToString());
@@ -4656,7 +4657,7 @@ TEST(CGit, ParseConflictHashesFromLsFile_SubmoduleConflict_FileSubmodule)
 	byteArray.append(git_ls_file_u_t_z_output, sizeof(git_ls_file_u_t_z_output));
 	bool baseIsFile = true, localIsFile = true, remoteIsFile = true;
 	CGitHash baseHash, localHash, remoteHash;
-	EXPECT_EQ(0, CGit::ParseConflictHashesFromLsFile(byteArray, baseHash, baseIsFile, localHash, localIsFile, remoteHash, remoteIsFile));
+	EXPECT_EQ(0, TGitH::ParseConflictHashesFromLsFile(byteArray, baseHash, baseIsFile, localHash, localIsFile, remoteHash, remoteIsFile));
 	EXPECT_STREQ(L"0000000000000000000000000000000000000000", baseHash.ToString());
 	EXPECT_TRUE(baseIsFile);
 	EXPECT_STREQ(L"533da4ea00703f4ad6d5518e1ce81d20261c40c0", localHash.ToString());
@@ -4673,7 +4674,7 @@ TEST(CGit, ParseConflictHashesFromLsFile_DeletedFileConflict)
 	byteArray.append(git_ls_file_u_t_z_output, sizeof(git_ls_file_u_t_z_output));
 	bool baseIsFile = true, localIsFile = true, remoteIsFile = true;
 	CGitHash baseHash, localHash, remoteHash;
-	EXPECT_EQ(0, CGit::ParseConflictHashesFromLsFile(byteArray, baseHash, baseIsFile, localHash, localIsFile, remoteHash, remoteIsFile));
+	EXPECT_EQ(0, TGitH::ParseConflictHashesFromLsFile(byteArray, baseHash, baseIsFile, localHash, localIsFile, remoteHash, remoteIsFile));
 	EXPECT_STREQ(L"24091f0add7afc47ac7cdc80ae4d3866b2ef588c", baseHash.ToString());
 	EXPECT_TRUE(baseIsFile);
 	EXPECT_STREQ(L"0000000000000000000000000000000000000000", localHash.ToString());
@@ -4693,7 +4694,7 @@ TEST(CGit, ParseConflictHashesFromLsFile_Invalid)
 		byteArray.append(git_ls_file_u_t_z_output, i);
 		bool baseIsFile = true, localIsFile = true, remoteIsFile = true;
 		CGitHash baseHash, localHash, remoteHash;
-		EXPECT_EQ(-1, CGit::ParseConflictHashesFromLsFile(byteArray, baseHash, baseIsFile, localHash, localIsFile, remoteHash, remoteIsFile));
+		EXPECT_EQ(-1, TGitH::ParseConflictHashesFromLsFile(byteArray, baseHash, baseIsFile, localHash, localIsFile, remoteHash, remoteIsFile));
 	}
 }
 
@@ -4742,10 +4743,10 @@ TEST_P(CBasicGitWithSubmoduleRepositoryFixture, GetSubmoduleHash)
 
 TEST(CGit, QuoteParameter)
 {
-	const auto oldCygwinGit = CGit::ms_bCygwinGit;
-	const auto oldMsys2Git = CGit::ms_bMsys2Git;
-	SCOPE_EXIT{ CGit::ms_bCygwinGit = oldCygwinGit; CGit::ms_bMsys2Git = oldMsys2Git; };
-	CGit::ms_bCygwinGit = CGit::ms_bMsys2Git = false;
+	const auto oldCygwinGit = TGitH::ms_bCygwinGit;
+	const auto oldMsys2Git = TGitH::ms_bMsys2Git;
+	SCOPE_EXIT{ TGitH::ms_bCygwinGit = oldCygwinGit; TGitH::ms_bMsys2Git = oldMsys2Git; };
+	TGitH::ms_bCygwinGit = TGitH::ms_bMsys2Git = false;
 
 	EXPECT_STREQ(L"\"\"", CGit::QuoteParameter(L""));
 	EXPECT_STREQ(L"\"/\"", CGit::QuoteParameter(L"/"));
@@ -4824,32 +4825,32 @@ static void QuoteParameter_Msys2Cygwin()
 
 TEST(CGit, QuoteParameter_Msys2)
 {
-	const auto oldCygwinGit = CGit::ms_bCygwinGit;
-	const auto oldMsys2Git = CGit::ms_bMsys2Git;
-	SCOPE_EXIT{ CGit::ms_bCygwinGit = oldCygwinGit; CGit::ms_bMsys2Git = oldMsys2Git; };
-	CGit::ms_bCygwinGit = CGit::ms_bMsys2Git = false;
-	CGit::ms_bMsys2Git = true;
+	const auto oldCygwinGit = TGitH::ms_bCygwinGit;
+	const auto oldMsys2Git = TGitH::ms_bMsys2Git;
+	SCOPE_EXIT{ TGitH::ms_bCygwinGit = oldCygwinGit; TGitH::ms_bMsys2Git = oldMsys2Git; };
+	TGitH::ms_bCygwinGit = TGitH::ms_bMsys2Git = false;
+	TGitH::ms_bMsys2Git = true;
 
 	QuoteParameter_Msys2Cygwin();
 }
 
 TEST(CGit, QuoteParameter_Cygwin)
 {
-	const auto oldCygwinGit = CGit::ms_bCygwinGit;
-	const auto oldMsys2Git = CGit::ms_bMsys2Git;
-	SCOPE_EXIT{ CGit::ms_bCygwinGit = oldCygwinGit; CGit::ms_bMsys2Git = oldMsys2Git; };
-	CGit::ms_bCygwinGit = CGit::ms_bMsys2Git = false;
-	CGit::ms_bCygwinGit = true;
+	const auto oldCygwinGit = TGitH::ms_bCygwinGit;
+	const auto oldMsys2Git = TGitH::ms_bMsys2Git;
+	SCOPE_EXIT{ TGitH::ms_bCygwinGit = oldCygwinGit; TGitH::ms_bMsys2Git = oldMsys2Git; };
+	TGitH::ms_bCygwinGit = TGitH::ms_bMsys2Git = false;
+	TGitH::ms_bCygwinGit = true;
 
 	QuoteParameter_Msys2Cygwin();
 }
 
 TEST(CGit, SerializeArgv)
 {
-	const auto oldCygwinGit = CGit::ms_bCygwinGit;
-	const auto oldMsys2Git = CGit::ms_bMsys2Git;
-	SCOPE_EXIT{ CGit::ms_bCygwinGit = oldCygwinGit; CGit::ms_bMsys2Git = oldMsys2Git; };
-	CGit::ms_bCygwinGit = CGit::ms_bMsys2Git = false;
+	const auto oldCygwinGit = TGitH::ms_bCygwinGit;
+	const auto oldMsys2Git = TGitH::ms_bMsys2Git;
+	SCOPE_EXIT{ TGitH::ms_bCygwinGit = oldCygwinGit; TGitH::ms_bMsys2Git = oldMsys2Git; };
+	TGitH::ms_bCygwinGit = TGitH::ms_bMsys2Git = false;
 
 	EXPECT_STREQ(L"", CGit::SerializeArgv({}).c_str());
 	EXPECT_STREQ(L"git.exe log --pretty=raw", CGit::SerializeArgv({ L"git.exe", L"log", L"--pretty=raw" }).c_str());
@@ -4888,10 +4889,10 @@ static std::vector<std::wstring> ParseWindowsCommandLine(const std::wstring& cmd
 // this pins the property the spelling exists for.
 TEST(CGit, SerializeArgvRoundTrip)
 {
-	const auto oldCygwinGit = CGit::ms_bCygwinGit;
-	const auto oldMsys2Git = CGit::ms_bMsys2Git;
-	SCOPE_EXIT{ CGit::ms_bCygwinGit = oldCygwinGit; CGit::ms_bMsys2Git = oldMsys2Git; };
-	CGit::ms_bCygwinGit = CGit::ms_bMsys2Git = false;
+	const auto oldCygwinGit = TGitH::ms_bCygwinGit;
+	const auto oldMsys2Git = TGitH::ms_bMsys2Git;
+	SCOPE_EXIT{ TGitH::ms_bCygwinGit = oldCygwinGit; TGitH::ms_bMsys2Git = oldMsys2Git; };
+	TGitH::ms_bCygwinGit = TGitH::ms_bMsys2Git = false;
 
 	const STRING_VECTOR argv = {
 		L"git.exe", // CommandLineToArgvW parses argv[0] by different rules, so it is excluded from the comparison below
@@ -4940,22 +4941,22 @@ static void SerializeArgv_Msys2Cygwin()
 
 TEST(CGit, SerializeArgv_Msys2)
 {
-	const auto oldCygwinGit = CGit::ms_bCygwinGit;
-	const auto oldMsys2Git = CGit::ms_bMsys2Git;
-	SCOPE_EXIT{ CGit::ms_bCygwinGit = oldCygwinGit; CGit::ms_bMsys2Git = oldMsys2Git; };
-	CGit::ms_bCygwinGit = false;
-	CGit::ms_bMsys2Git = true;
+	const auto oldCygwinGit = TGitH::ms_bCygwinGit;
+	const auto oldMsys2Git = TGitH::ms_bMsys2Git;
+	SCOPE_EXIT{ TGitH::ms_bCygwinGit = oldCygwinGit; TGitH::ms_bMsys2Git = oldMsys2Git; };
+	TGitH::ms_bCygwinGit = false;
+	TGitH::ms_bMsys2Git = true;
 
 	SerializeArgv_Msys2Cygwin();
 }
 
 TEST(CGit, SerializeArgv_Cygwin)
 {
-	const auto oldCygwinGit = CGit::ms_bCygwinGit;
-	const auto oldMsys2Git = CGit::ms_bMsys2Git;
-	SCOPE_EXIT{ CGit::ms_bCygwinGit = oldCygwinGit; CGit::ms_bMsys2Git = oldMsys2Git; };
-	CGit::ms_bMsys2Git = false;
-	CGit::ms_bCygwinGit = true;
+	const auto oldCygwinGit = TGitH::ms_bCygwinGit;
+	const auto oldMsys2Git = TGitH::ms_bMsys2Git;
+	SCOPE_EXIT{ TGitH::ms_bCygwinGit = oldCygwinGit; TGitH::ms_bMsys2Git = oldMsys2Git; };
+	TGitH::ms_bMsys2Git = false;
+	TGitH::ms_bCygwinGit = true;
 
 	SerializeArgv_Msys2Cygwin();
 }

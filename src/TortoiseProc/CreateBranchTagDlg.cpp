@@ -19,7 +19,7 @@
 //
 
 #include "stdafx.h"
-#include "Git.h"
+import git_h;
 #include "TortoiseProc.h"
 #include "CreateBranchTagDlg.h"
 #include "AppUtils.h"

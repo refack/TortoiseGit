@@ -21,7 +21,7 @@
 #include "TortoiseProc.h"
 #include "CheckCertificateDlg.h"
 #include "AppUtils.h"
-#include "TempFile.h"
+import TempFile;
 #include <WinCrypt.h>
 
 IMPLEMENT_DYNAMIC(CCheckCertificateDlg, CStandAloneDialog)
@@ -120,7 +120,7 @@ BOOL CCheckCertificateDlg::OnInitDialog()
 
 void CCheckCertificateDlg::OnBnClickedOpencert()
 {
-	CTGitPath tempFile = CTempFiles::Instance().GetTempFilePath(true, CTGitPath(L"certificate.der"));
+	CTGitPath tempFile = TempFiles::GetTempFilePath(true, CTGitPath(L"certificate.der"));
 
 	try
 	{

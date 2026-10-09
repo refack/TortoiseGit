@@ -87,6 +87,20 @@ string(REPLACE
     _autogen_text "${_autogen_text}")
 file(WRITE "${CURRENT_PACKAGES_DIR}/include/ogdf/basic/internal/config_autogen.h" "${_autogen_text}")
 
+# The exported OGDF target still lists include/ogdf-$<IF:$<CONFIG:Debug>,debug,release>
+# as an interface include directory, and both are removed below - so a CMake
+# consumer of the target fails at generate time with "includes non-existent path".
+# The merged config_autogen.h now resolves from plain include/, which the target
+# lists as well, so drop the per-config entry. (The vcxproj build never read the
+# CMake config, which is why this did not surface before.)
+set(_targets "${CURRENT_PACKAGES_DIR}/share/ogdf/OgdfTargets.cmake")
+file(READ "${_targets}" _targets_text)
+string(REGEX REPLACE "[^\";]*/include/ogdf-[^;\"]*;" "" _targets_text "${_targets_text}")
+if(_targets_text MATCHES "/include/ogdf-")
+    message(FATAL_ERROR "OgdfTargets.cmake still names a per-config include directory; upstream changed its export.")
+endif()
+file(WRITE "${_targets}" "${_targets_text}")
+
 file(REMOVE_RECURSE
     "${CURRENT_PACKAGES_DIR}/include/ogdf-release"
     "${CURRENT_PACKAGES_DIR}/include/ogdf-debug"

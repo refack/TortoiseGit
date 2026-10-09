@@ -19,8 +19,8 @@
 #include "stdafx.h"
 #include "TortoiseProc.h"
 #include "ResolveProgressCommand.h"
-#include "ShellUpdater.h"
-#include <TGitCache/CacheInterface.h>
+import CShellUpdater;
+import TGitCache.CacheInterface;
 #include "AppUtils.h"
 #include "MassiveGitTask.h"
 #include "MessageBox.h"
@@ -220,7 +220,7 @@ bool ResolveProgressCommand::Run(CGitProgressList* list, CString& sWindowTitle, 
 				CString origPath = g_Git.m_CurrentDir;
 				g_Git.SetCurrentDirExact(fullPath.GetWinPathString().c_str());
 				SetCurrentDirectory(g_Git.m_CurrentDir);
-				if (!CAppUtils::GitReset(list->GetSafeHwnd(), destinationHash.ToString()))
+				if (!CAppUtils::GitReset(list->GetSafeHwnd(), CString((destinationHash.ToString()).c_str())))
 				{
 					g_Git.SetCurrentDirExact(origPath);
 					SetCurrentDirectory(g_Git.m_CurrentDir);

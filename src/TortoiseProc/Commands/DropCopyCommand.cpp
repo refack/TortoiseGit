@@ -22,8 +22,8 @@
 #include "SysProgressDlg.h"
 #include "MessageBox.h"
 #include "RenameDlg.h"
-#include "Git.h"
-#include "ShellUpdater.h"
+import git_h;
+import CShellUpdater;
 
 bool DropCopyCommand::Execute()
 {
@@ -44,7 +44,7 @@ bool DropCopyCommand::Execute()
 		renDlg.SetInputValidator([&](const int /*nID*/, const CString& input) -> CString
 		{
 			if (PathFileExists(sDroppath + L'\\' + input))
-				return CString(static_cast<LPCWSTR>(CFormatMessageWrapper(ERROR_FILE_EXISTS)));
+				return CString((CFormatMessageWrapper(ERROR_FILE_EXISTS)).c_str());
 
 			return{};
 		});
@@ -81,7 +81,7 @@ bool DropCopyCommand::Execute()
 				CTGitPath newPath(sDroppath.GetString());
 				newPath.AppendPathString(input.GetString());
 				if (newPath.Exists())
-					return CString(static_cast<LPCWSTR>(CFormatMessageWrapper(ERROR_FILE_EXISTS)));
+					return CString((CFormatMessageWrapper(ERROR_FILE_EXISTS)).c_str());
 
 				return{};
 			});
@@ -128,7 +128,7 @@ bool DropCopyCommand::Execute()
 			str += L"\" to \"";
 			str += fullDropPath.GetWinPathString().c_str();
 			str += L"\" failed:\n";
-			str += static_cast<LPCWSTR>(CFormatMessageWrapper());
+			str += (CFormatMessageWrapper()).c_str();
 
 			MessageBox(GetExplorerHWND(), str, L"TortoiseGit", MB_OK | MB_ICONERROR);
 		}

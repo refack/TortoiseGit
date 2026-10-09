@@ -35,11 +35,11 @@
 #include "InputDlg.h"
 #include "SysProgressDlg.h"
 #include "LoglistUtils.h"
-#include "GitRevRefBrowser.h"
-#include "StringUtils.h"
+import GitRev;
+import StringUtils;
 #include "BrowseRefsDlgFilter.h"
 #include "DPIAware.h"
-#include "CmdLineParser.h"
+import CmdLineParser;
 
 static int SplitRemoteBranchName(CString ref, CString &remote, CString &branch)
 {
@@ -433,7 +433,7 @@ void CBrowseRefsDlg::Refresh(CString selectRef)
 {
 	remotes.clear();
 	if (g_Git.GetRemoteList(remotes))
-		MessageBox(CGit::GetLibGit2LastErr(L"Could not get a list of remotes."), L"TortoiseGit", MB_ICONERROR);
+		MessageBox(TGitH::GetLibGit2LastErr(L"Could not get a list of remotes."), L"TortoiseGit", MB_ICONERROR);
 
 	if(!selectRef.IsEmpty())
 	{
@@ -475,7 +475,7 @@ void CBrowseRefsDlg::Refresh(CString selectRef)
 
 
 	STRING_VECTOR remoteBranches;
-	if (g_Git.GetBranchList(remoteBranches, nullptr, CGit::BRANCH_REMOTE))
+	if (g_Git.GetBranchList(remoteBranches, nullptr, TGitH::BRANCH_REMOTE))
 		MessageBox(L"Loading remote tracking branches failed.", L"TortoiseGit", MB_OK | MB_ICONERROR);
 	std::sort(remoteBranches.begin(), remoteBranches.end());
 
@@ -485,11 +485,11 @@ void CBrowseRefsDlg::Refresh(CString selectRef)
 		CShadowTree& treeLeaf = GetTreeNode(iterRefMap->first, nullptr, true);
 		GitRevRefBrowser ref = iterRefMap->second;
 
-		treeLeaf.m_csRefHash = ref.m_CommitHash.ToString();
-		CGit::GetShortName(ref.m_UpstreamRef, ref.m_UpstreamRef, L"refs/");
+		treeLeaf.m_csRefHash = (ref.m_CommitHash.ToString()).c_str();
+		TGitH::GetShortName(ref.m_UpstreamRef, ref.m_UpstreamRef, L"refs/");
 		treeLeaf.m_csUpstream = ref.m_UpstreamRef;
-		CGit::GetShortName(treeLeaf.m_csUpstream, treeLeaf.m_csUpstream, L"remotes/");
-		if (!ref.m_UpstreamRef.IsEmpty() && !std::binary_search(remoteBranches.cbegin(), remoteBranches.cend(), tgit::wstr::View(ref.m_UpstreamRef)))
+		TGitH::GetShortName(treeLeaf.m_csUpstream, treeLeaf.m_csUpstream, L"remotes/");
+		if (!ref.m_UpstreamRef.IsEmpty() && !std::binary_search(remoteBranches.cbegin(), remoteBranches.cend(), tgit::zstr::StringView(ref.m_UpstreamRef)))
 			treeLeaf.m_csUpstream = L"(gone: " + treeLeaf.m_csUpstream + L")";
 		treeLeaf.m_csSubject = ref.GetSubject();
 		treeLeaf.m_csAuthor = ref.GetAuthorName();
@@ -761,7 +761,7 @@ bool CBrowseRefsDlg::DoDeleteRefs(const VectorPShadowTree& leafs)
 			std::transform(remotebranchlist.second.cbegin(), remotebranchlist.second.cend(), std::back_inserter(list), [](auto& branch) { return L"refs/heads/" + branch; });
 			if (g_Git.DeleteRemoteRefs(remoteName, list))
 			{
-				MessageBox(g_Git.GetGitLastErr(L"Could not delete remote refs.", CGit::GIT_CMD_PUSH), L"TortoiseGit", MB_OK | MB_ICONERROR);
+				MessageBox(g_Git.GetGitLastErr(L"Could not delete remote refs.", TGitH::GIT_CMD_PUSH), L"TortoiseGit", MB_OK | MB_ICONERROR);
 				sysProgressDlg.Stop();
 				BringWindowToTop();
 				return false;
@@ -808,7 +808,7 @@ bool CBrowseRefsDlg::DoDeleteRef(const CString& completeRefName)
 		list.push_back(std::format(L"refs/heads/{}", remoteBranchToDelete));
 		if (g_Git.DeleteRemoteRefs(remoteName, list))
 		{
-			MessageBox(g_Git.GetGitLastErr(L"Could not delete remote ref.", CGit::GIT_CMD_PUSH), L"TortoiseGit", MB_OK | MB_ICONERROR);
+			MessageBox(g_Git.GetGitLastErr(L"Could not delete remote ref.", TGitH::GIT_CMD_PUSH), L"TortoiseGit", MB_OK | MB_ICONERROR);
 			sysProgressDlg.Stop();
 			BringWindowToTop();
 			return false;
@@ -820,7 +820,7 @@ bool CBrowseRefsDlg::DoDeleteRef(const CString& completeRefName)
 	{
 		if (g_Git.DeleteRef(completeRefName))
 		{
-			MessageBox(g_Git.GetGitLastErr(L"Could not delete reference.", CGit::GIT_CMD_DELETETAGBRANCH), L"TortoiseGit", MB_OK | MB_ICONERROR);
+			MessageBox(g_Git.GetGitLastErr(L"Could not delete reference.", TGitH::GIT_CMD_DELETETAGBRANCH), L"TortoiseGit", MB_OK | MB_ICONERROR);
 			return false;
 		}
 	}
@@ -828,7 +828,7 @@ bool CBrowseRefsDlg::DoDeleteRef(const CString& completeRefName)
 	{
 		if (g_Git.DeleteRef(completeRefName))
 		{
-			MessageBox(g_Git.GetGitLastErr(L"Could not delete reference.", CGit::GIT_CMD_DELETETAGBRANCH), L"TortoiseGit", MB_OK | MB_ICONERROR);
+			MessageBox(g_Git.GetGitLastErr(L"Could not delete reference.", TGitH::GIT_CMD_DELETETAGBRANCH), L"TortoiseGit", MB_OK | MB_ICONERROR);
 			return false;
 		}
 	}
@@ -885,9 +885,9 @@ CString CBrowseRefsDlg::GetTwoSelectedRefs(const VectorPShadowTree& selectedLeaf
 	ASSERT(selectedLeafs.size() == 2);
 
 	if (selectedLeafs.at(0)->GetRefName() == lastSelected)
-		return g_Git.StripRefName(selectedLeafs.at(1)->GetRefName()) + separator + g_Git.StripRefName(lastSelected);
+		return TGitH::StripRefName(selectedLeafs.at(1)->GetRefName()) + separator + TGitH::StripRefName(lastSelected);
 	else
-		return g_Git.StripRefName(selectedLeafs.at(0)->GetRefName()) + separator + g_Git.StripRefName(lastSelected);
+		return TGitH::StripRefName(selectedLeafs.at(0)->GetRefName()) + separator + TGitH::StripRefName(lastSelected);
 }
 
 int findVectorPosition(const STRING_VECTOR& vector, const CString& entry)
@@ -895,7 +895,7 @@ int findVectorPosition(const STRING_VECTOR& vector, const CString& entry)
 	int i = 0;
 	for (auto it = vector.cbegin(); it != vector.cend(); ++it, ++i)
 	{
-		if (*it == tgit::wstr::View(entry))
+		if (*it == tgit::zstr::StringView(entry))
 			return i;
 	}
 	return -1;
@@ -1332,7 +1332,7 @@ void CBrowseRefsDlg::ShowContextMenu(CPoint point, HTREEITEM hTreePos, VectorPSh
 			{
 				if (!first)
 					sClipdata += L"\r\n";
-				sClipdata += CGit::StripRefName(leaf->GetRefName());
+				sClipdata += TGitH::StripRefName(leaf->GetRefName());
 				first = false;
 			}
 			StringUtils::WriteAsciiStringToClipboard(sClipdata, GetSafeHwnd());
@@ -1510,27 +1510,27 @@ bool CBrowseRefsDlg::PickRefForCombo(CHistoryCombo& refComboBox, int pickRef_Kin
 
 	if (useShortName)
 	{
-		CGit::REF_TYPE refType;
-		CString shortName = CGit::GetShortName(resultRef, &refType);
+		TGitH::REF_TYPE refType;
+		CString shortName = TGitH::GetShortName(resultRef, &refType);
 		switch (refType)
 		{
-		case CGit::REF_TYPE::LOCAL_BRANCH:
+		case TGitH::REF_TYPE::LOCAL_BRANCH:
 			if (useShortName & gPickRef_Head)
 				resultRef = shortName;
 			break;
-		case CGit::REF_TYPE::ANNOTATED_TAG:
-		case CGit::REF_TYPE::TAG:
+		case TGitH::REF_TYPE::ANNOTATED_TAG:
+		case TGitH::REF_TYPE::TAG:
 			if (useShortName & gPickRef_Tag)
 				resultRef = shortName;
 			break;
-		case CGit::REMOTE_BRANCH:
+		case TGitH::REMOTE_BRANCH:
 			if (useShortName & gPickRef_Remote)
 				resultRef = shortName;
 			break;
 		}
 	}
 
-	CGit::StripRefName(resultRef);
+	TGitH::StripRefName(resultRef);
 
 	refComboBox.AddString(resultRef);
 

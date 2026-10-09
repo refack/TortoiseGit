@@ -7,8 +7,12 @@
 	Copyright: See COPYING file that comes with this distribution
 
 */
-#include "stdafx.h"
-#include "lanes.h"
+// The lanes module's implementation unit. It was TortoiseProc's lanes.cpp, defining
+// Lanes' members from outside the module that declares Lanes - which, for a
+// module-attached class, is a different entity.
+module lanes;
+import std;
+import GitHash;
 
 void Lanes::init(const CGitHash& expectedSha) {
 	clear();
@@ -275,7 +279,7 @@ int Lanes::add(LaneType type, const CGitHash& next, int pos, bool& wasEmptyCross
 		int posCrossEmpty = findType(LaneType::CROSS_EMPTY, pos);
 		// Use first "empty" position.
 		if (posEmpty != -1 && posCrossEmpty != -1)
-			pos = min(posEmpty, posCrossEmpty);
+			pos = (std::min)(posEmpty, posCrossEmpty);
 		else if (posEmpty != -1)
 			pos = posEmpty;
 		else if (posCrossEmpty != -1)

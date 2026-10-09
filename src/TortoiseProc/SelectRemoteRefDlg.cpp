@@ -18,7 +18,7 @@
 //
 
 #include "stdafx.h"
-#include "Git.h"
+import git_h;
 #include "AppUtils.h"
 #include "TortoiseProc.h"
 #include "SelectRemoteRefDlg.h"
@@ -87,7 +87,7 @@ void CSelectRemoteRefDlg::Refresh()
 	if (g_Git.GetRemoteRefs(m_sRemote, refs, false, true))
 	{
 		sysProgressDlg.Stop();
-		MessageBox(g_Git.GetGitLastErr(L"Could not retrieve remote refs.", CGit::GIT_CMD_FETCH), L"TortoiseGit", MB_ICONERROR);
+		MessageBox(g_Git.GetGitLastErr(L"Could not retrieve remote refs.", TGitH::GIT_CMD_FETCH), L"TortoiseGit", MB_ICONERROR);
 	}
 	sysProgressDlg.Stop();
 	BringWindowToTop();

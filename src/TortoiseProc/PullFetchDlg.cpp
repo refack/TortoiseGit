@@ -23,7 +23,7 @@
 #include "stdafx.h"
 #include "TortoiseProc.h"
 #include "PullFetchDlg.h"
-#include "Git.h"
+import git_h;
 #include "AppUtils.h"
 #include "SelectRemoteRefDlg.h"
 #include "MessageBox.h"
@@ -130,7 +130,7 @@ BOOL CPullFetchDlg::OnInitDialog()
 
 	CAutoRepository repo(g_Git.GetGitRepository());
 	if (!repo)
-		MessageBox(CGit::GetLibGit2LastErr(L"Could not open repository."), L"TortoiseGit", MB_OK | MB_ICONERROR);
+		MessageBox(TGitH::GetLibGit2LastErr(L"Could not open repository."), L"TortoiseGit", MB_OK | MB_ICONERROR);
 
 	// Check config branch.<name>.rebase and pull.reabse
 	do
@@ -149,7 +149,7 @@ BOOL CPullFetchDlg::OnInitDialog()
 
 		BOOL rebase = FALSE;
 		// branch.<name>.rebase overrides pull.rebase
-		if (config.GetBOOL(L"branch." + g_Git.GetCurrentBranch() + L".rebase", rebase) == GIT_ENOTFOUND)
+		if (config.GetBOOL(tgit::zstr::StringView(L"branch." + g_Git.GetCurrentBranch() + L".rebase"), rebase) == GIT_ENOTFOUND)
 		{
 			if (config.GetBOOL(L"pull.rebase", rebase) == GIT_ENOTFOUND)
 				break;
@@ -273,14 +273,14 @@ void CPullFetchDlg::Refresh()
 		const CString parentRepoDir(parentRepoRoot.c_str());
 		if (CAutoRepository parentRepo(parentRepoDir); parentRepo)
 		{
-			auto subModulePath = CUnicodeUtils::GetUTF8(g_Git.m_CurrentDir.Mid(parentRepoDir.GetLength() + 1));
+			auto subModulePath = CUnicodeUtils::GetUTF8<CStringA>(g_Git.m_CurrentDir.Mid(parentRepoDir.GetLength() + 1));
 			subModulePath.Replace('\\', '/');
 
 			if (CAutoSubmodule subModule; !git_submodule_lookup(subModule.GetPointer(), parentRepo, subModulePath))
 			{
 				auto branch = git_submodule_branch(subModule);
 				if (branch)
-					defaultRemoteTrackingBranch = CUnicodeUtils::GetUnicode(branch);
+					defaultRemoteTrackingBranch = CUnicodeUtils::Convert2Unicode<CString>(branch);
 			}
 		}
 	}
@@ -312,7 +312,7 @@ void CPullFetchDlg::Refresh()
 		for (unsigned int i = 0; i < list.size(); ++i)
 		{
 			m_Remote.AddString(list[i].c_str());
-			if (!m_bAllRemotes && list[i] == tgit::wstr::View(pullRemote))
+			if (!m_bAllRemotes && list[i] == tgit::zstr::StringView(pullRemote))
 				sel = i + (!m_IsPull && list.size() > 1 ? 1 : 0);
 		}
 	}

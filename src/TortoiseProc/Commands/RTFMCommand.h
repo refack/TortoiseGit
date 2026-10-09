@@ -21,7 +21,7 @@
 #include "Command.h"
 #include <ShlObj.h>
 #include "AppUtils.h"
-#include <Utils/MiscUI/MessageBox.h>
+#include "MiscUI/MessageBox.h"
 
 /**
  * \ingroup TortoiseProc

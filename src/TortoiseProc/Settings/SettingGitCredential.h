@@ -18,8 +18,8 @@
 //
 #pragma once
 #include "SettingsPropPage.h"
-#include <Utils/registry.h>
-#include "Git.h"
+import Registry;
+import git_h;
 
 // CSettingGitCredential dialog
 class CSettingGitCredential : public ISettingsPropPage
@@ -50,7 +50,7 @@ public:
 
 	static int GetCredentialUrlCallback(const git_config_entry *entry, void *payload)
 	{
-		CString name = CUnicodeUtils::GetUnicode(entry->name);
+		CString name = CUnicodeUtils::Convert2Unicode<CString>(entry->name);
 		int pos1 = name.Find(L'.');
 		int pos2 = name.ReverseFind(L'.');
 		CString url = name.Mid(pos1 + 1, pos2 - pos1 - 1);
@@ -62,17 +62,17 @@ public:
 
 	static int GetCredentialEntryCallback(const git_config_entry *entry, void *payload)
 	{
-		CString name = CUnicodeUtils::GetUnicode(entry->name);
+		CString name = CUnicodeUtils::Convert2Unicode<CString>(entry->name);
 		static_cast<STRING_VECTOR*>(payload)->push_back(std::wstring(name));
 		return 0;
 	}
 
 	static int GetCredentialAnyEntryCallback(const git_config_entry *entry, void *payload)
 	{
-		CString name = CUnicodeUtils::GetUnicode(entry->name);
+		CString name = CUnicodeUtils::Convert2Unicode<CString>(entry->name);
 		CString value;
 		if (entry->value)
-			value = CUnicodeUtils::GetUnicode(entry->value);
+			value = CUnicodeUtils::Convert2Unicode<CString>(entry->value);
 		CString text;
 		text.Format(L"%s\n%s\n%s", static_cast<LPCWSTR>(ConfigLevelToKey(entry->level)), static_cast<LPCWSTR>(name), static_cast<LPCWSTR>(value));
 		static_cast<STRING_VECTOR*>(payload)->push_back(std::wstring(text));
@@ -90,7 +90,7 @@ public:
 
 	static bool WincredExists()
 	{
-		CString path = CGit::ms_MsysGitRootDir;
+		CString path = TGitH::ms_MsysGitRootDir;
 		path.Append(L"libexec\\git-core\\git-credential-wincred.exe");
 		return !!PathFileExists(path);
 	}
@@ -102,7 +102,7 @@ public:
 
 	static bool GCMExists()
 	{
-		CString path = CGit::ms_MsysGitRootDir;
+		CString path = TGitH::ms_MsysGitRootDir;
 		path.Append(L"libexec\\git-core\\git-credential-manager.exe");
 		if (!PathFileExists(path))
 			return false;
@@ -113,7 +113,7 @@ public:
 
 	static bool GCMCoreExists()
 	{
-		CString path = CGit::ms_MsysGitRootDir;
+		CString path = TGitH::ms_MsysGitRootDir;
 		path.Append(L"libexec\\git-core\\git-credential-manager-core.exe");
 		return !!PathFileExists(path);
 	}

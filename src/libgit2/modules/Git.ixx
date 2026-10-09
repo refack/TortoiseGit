@@ -1,4 +1,5 @@
 ﻿module;
+#include <tgit_cstring.h>	// first: decides which CString this compile speaks
 #include <strsafe.h>
 #include <atlstr.h>
 #include <atlbase.h>
@@ -61,11 +62,6 @@ using ArgvP = char const*;
 #define HERE std::to_array(FILE_LINE)
 
 
-consteval std::byte ConvertVersionToInt(const std::byte major, const std::byte minor, const std::byte patchlevel, const std::byte build = {})
-{
-	return (major << 24) | (minor << 16) | (patchlevel << 8) | build;
-}
-
 constexpr auto scope_flag(const CONFIG_TYPE t)
 {
 	switch (t)
@@ -86,6 +82,14 @@ constexpr auto scope_flag(const CONFIG_TYPE t)
 
 export namespace TGitH
 {
+/// git's version as one comparable int, 8 bits per field. It returned std::byte,
+/// where `major << 24` shifts every bit out - so each version compared by its
+/// build number alone. Exported: the unit tests gate on it.
+consteval int ConvertVersionToInt(const int major, const int minor, const int patchlevel, const int build = 0)
+{
+	return (major << 24) | (minor << 16) | (patchlevel << 8) | build;
+}
+
 
 using BITS32 = std::uint32_t;
 using CAutoLocker = CComCritSecLock<CComCriticalSection>;
@@ -876,8 +880,18 @@ public:
 	void AddToPath(std::wstring value);
 	void clear();
 	[[nodiscard]] bool empty() const { return m_vars.empty(); }
-	[[nodiscard]] auto get_cp() const { return m_block.data(); }
-	[[nodiscard]] auto get_cpp() { return reinterpret_cast<wchar_t**>(m_block.data()); }
+
+	/// The block itself, for CreateProcess and git_init: nullptr when empty, which
+	/// CreateProcess reads as "inherit" (see above).
+	operator LPWSTR() const noexcept { return m_baseptr; }
+	/// The stable address the ssh subtransport, the filter driver and gitdll's
+	/// wget_msysgit_etc retain and dereference later (see above).
+	operator const LPWSTR*() const noexcept { return &m_baseptr; }
+	[[nodiscard]] LPWSTR get_cp() const noexcept { return m_baseptr; }
+	/// get_cpp() used to be reinterpret_cast<wchar_t**>(m_block.data()) - the
+	/// block itself posing as a pointer-to-pointer, so every consumer's *pEnv read
+	/// the first characters of "NAME=value" as an address. It is &m_baseptr.
+	[[nodiscard]] LPWSTR* get_cpp() noexcept { return &m_baseptr; }
 
 private:
 	void Serialize();
@@ -885,6 +899,8 @@ private:
 	MAP_ENVIRONMENT m_vars{};
 	/// The serialized "name=value\0...\0\0" block, rebuilt on every mutation.
 	std::vector<wchar_t> m_block{};
+	/// Repointed at m_block by every Serialize(); its *address* is what is handed out.
+	LPWSTR m_baseptr = nullptr;
 };
 
 void CEnvironment::Serialize()
@@ -892,6 +908,7 @@ void CEnvironment::Serialize()
 	m_block.clear();
 	if (m_vars.empty())
 	{
+		m_baseptr = nullptr; // an empty environment is nullptr, not an empty block
 		return;
 	}
 
@@ -903,12 +920,13 @@ void CEnvironment::Serialize()
 		m_block.push_back(L'\0');
 	}
 	m_block.push_back(L'\0'); // the block's own terminator, after the last entry's
+	m_baseptr = m_block.data();
 }
 
 void CEnvironment::clear()
 {
 	m_vars.clear();
-	m_vars.clear();
+	Serialize(); // it cleared m_vars twice and never this, so the block kept the old environment
 }
 
 void CEnvironment::CopyProcessEnvironment()
@@ -984,9 +1002,10 @@ protected:
 	GIT_DIFF m_GitDiff = nullptr;
 	GIT_DIFF m_GitSimpleListDiff = nullptr;
 
-#ifdef GOOGLETEST_INCLUDE_GTEST_GTEST_H_
+// Public for the unit tests, which force a lazy re-init between fixtures. It used
+// to be public only where gtest was included first; a module is compiled once, so
+// access can no longer depend on the importer.
 public:
-#endif
 	bool m_IsGitDllInited = false;
 	// Directory g_gitObjectFormat was latched from. The latched format only describes
 	// the repository at m_CurrentDir, so the two have to move together; keeping the
@@ -1203,9 +1222,16 @@ private:
 	};
 
 public:
-#ifdef _MFC_VER
-	void KillRelatedThreads(CWinThread* thread);
-#endif
+	/// Takes the two things it reads from a CWinThread rather than the CWinThread:
+	/// the core library has no business including MFC's UI (afxwin.h), and this way
+	/// it exists in both flavors. Callers pass m_pThread->m_nThreadID, ->m_hThread.
+	void KillRelatedThreads(DWORD threadId, HANDLE threadHandle);
+	/// A path in git's spelling (forward slashes) as UTF-8, for libgit2 calls. Restored:
+	/// it was a CGit static with 77 callers in TortoiseProc.
+	[[nodiscard]] static CStringA GetGitPathStringA(const CString& path)
+	{
+		return CUnicodeUtils::GetUTF8<CStringA>(CTGitPath(path).GetGitPathString());
+	}
 	int RunAsync(CString cmd, PROCESS_INFORMATION& pi, HANDLE* hRead, HANDLE* hErrReadOut, const CString* StdioFile = nullptr);
 	int RunAsync(const STRING_VECTOR& argv, PROCESS_INFORMATION& pi, HANDLE* hRead, HANDLE* hErrReadOut, const CString* StdioFile = nullptr) { return RunAsync(SerializeArgvToCString(argv), pi, hRead, hErrReadOut, StdioFile); }
 	int RunLogFile(const CString& cmd, const CString& filename, CString* stdErr);
@@ -1245,43 +1271,68 @@ public:
 	bool GetConfigValueBool(const CString& name, bool def = false);
 	int GetConfigValueInt32(const CString& name, int def = 0);
 
-	template <auto FuncName = __FUNCSIG__>
-	int SetConfigValue(const auto& key, const auto& value, const CONFIG_TYPE type = CONFIG_LOCAL)
+	// One body for set and unset, reporting its *caller* - the two things the
+	// template <auto FuncName = __FUNCSIG__> draft was after. The caller comes from
+	// std::source_location as a defaulted function argument, which is evaluated at
+	// the call site; a string literal cannot be a template argument, so the
+	// __FUNCSIG__ default made every call fail to deduce. (The draft also passed
+	// nullptr as the value to gitdll for set as well as unset, and wide keys to
+	// git_set_config's const char*.)
+	int SetConfigValue(const CString& key, const CString& value, const CONFIG_TYPE type = CONFIG_LOCAL, const std::source_location where = std::source_location::current())
 	{
-		auto out = CString{};
-		auto ex = std::exception{};
-		try
-		{
-			if (m_IsUseGitDLL)
-			{
-				[[maybe_unused]] CAutoLocker lock(m_critGitDllSec);
-
-				// TODO: globalize this
-				CheckAndInitDll();
-				const auto ret = git_set_config(key.data(), nullptr, type);
-				if (ret == EXIT_SUCCESS)
-					return ret;
-			}
-			else
-			{
-				auto argv = value.empty() ?
-							std::array{ "git.exe", "config", scope_flag(type), "--unset", "--end-of-options", key.data() } :
-							std::array{ "git.exe", "config", scope_flag(type), "--end-of-options", key.data(), value.data() };
-				const auto ret = Run(argv, &out, nullptr, CP_UTF8);
-				// TODO: trace `argv` and `out`
-				if (ret == EXIT_SUCCESS)
-					return ret;
-			}
-		}
-		catch (const std::exception& _ex)
-		{
-			ex = _ex;
-		}
-		return LogError<FuncName>(out, ex);
+		return WriteConfigValue(key, &value, type, where);
 	}
-	constexpr auto UnsetConfigValue(const auto& key, const auto& _, const CONFIG_TYPE type = CONFIG_LOCAL)
+	int UnsetConfigValue(const CString& key, const CONFIG_TYPE type = CONFIG_LOCAL, const std::source_location where = std::source_location::current())
 	{
-		return SetConfigValue<__FUNCSIG__>(key, nullptr, type);
+		return WriteConfigValue(key, nullptr, type, where);
+	}
+	/// The shared body: a null \a value unsets the key. 0 on success, -1 on failure.
+	int WriteConfigValue(const CString& key, const CString* value, const CONFIG_TYPE type, const std::source_location& where)
+	{
+		if (m_IsUseGitDLL)
+		{
+			[[maybe_unused]] CAutoLocker lock(m_critGitDllSec);
+			try
+			{
+				CheckAndInitDll();
+			}
+			catch (...)
+			{
+			}
+			const auto keya = CUnicodeUtils::GetUTF8<CStringA>(key);
+			const auto valuea = value ? CUnicodeUtils::GetUTF8<CStringA>(*value) : CStringA();
+			try
+			{
+				return git_set_config(keya, value ? static_cast<const char*>(valuea) : nullptr, type);
+			}
+			catch (const char* msg)
+			{
+				CTraceToOutputDebugString::Instance()(L"%S: could not %s config %s: %S\n", where.function_name(), value ? L"set" : L"unset", static_cast<LPCWSTR>(key), msg);
+				return -1;
+			}
+		}
+
+		STRING_VECTOR argv{ L"git.exe", L"config" };
+		// CONFIG_LOCAL (and XDG) pass no scope flag, as before: an empty argv element
+		// would reach git as a real empty argument.
+		if (type == CONFIG_GLOBAL)
+			argv.emplace_back(L"--global");
+		else if (type == CONFIG_SYSTEM)
+			argv.emplace_back(L"--system");
+		if (!value)
+			argv.emplace_back(L"--unset");
+		argv.emplace_back(L"--end-of-options");
+		argv.emplace_back(std::wstring(key));
+		if (value)
+			argv.emplace_back(std::wstring(*value));
+
+		CString out;
+		if (Run(argv, &out, nullptr, CP_UTF8))
+		{
+			CTraceToOutputDebugString::Instance()(L"%S: git config failed for %s: %s\n", where.function_name(), static_cast<LPCWSTR>(key), static_cast<LPCWSTR>(out));
+			return -1;
+		}
+		return 0;
 	}
 
 	CString GetUserName();
@@ -1430,7 +1481,13 @@ public:
 
 	static std::vector<std::string> GetLogCmd(CString range, const TGitPath::CTGitPath* path, int InfoMask, const CFilterData* filter, int logOrderBy);
 	int GetHash(CGitHash& hash, const std::wstring& friendname);
+	/// A CString - the MFC UI's. Constrained, so a literal still binds the std one.
+	template <tgit::zstr::IsStupidString TStr>
+	int GetHash(CGitHash& hash, const TStr& friendname) { return GetHash(hash, std::wstring(tgit::zstr::StringView{ friendname })); }
 	static int GetHash(git_repository* repo, CGitHash& hash, std::wstring_view friendname, bool skipFastCheck = false);
+	/// A CString ref - the MFC UI's. Constrained, so a literal binds the view one.
+	template <tgit::zstr::IsStupidString TStr>
+	static int GetHash(git_repository* repo, CGitHash& hash, const TStr& friendname, bool skipFastCheck = false) { return GetHash(repo, hash, std::wstring_view(tgit::zstr::StringView{ friendname }), skipFastCheck); }
 
 	int GetSubmoduleHash(const CString& pathOfSubmodule, const CGitHash& revision, CGitHash& submoduleRevision, CString& err);
 
@@ -1529,11 +1586,12 @@ public:
 		return CombinePath(path.GetWinPathString().c_str());
 	}
 
-	// CString CombinePath(const CTGitPath *path) const
-	// {
-	// 	Expects(path != nullptr);
-	// 	return CombinePath(path->GetWinPathString().c_str());
-	// }
+	// restored: TortoiseProc passes CTGitPath pointers (the selected-item lists)
+	[[nodiscard]] CString CombinePath(const CTGitPath* path) const
+	{
+		ATLASSERT(path != nullptr);	// not Expects: a gsl macro, and macros do not cross an import
+		return CombinePath(*path);
+	}
 
 	[[nodiscard]] static CString QuoteParameter(CString value, bool relaxed = false)
 	{
@@ -2206,6 +2264,12 @@ int FindAndSetGitExePath(const BOOL bFallback)
 
 }
 
+// Public API that the module conversion left inside details: CGit::GetShortName
+// was a static with callers in TortoiseProc and the unit tests.
+using details::GetShortName;
+using details::FindGitForWindows;
+using details::GetMapHashToFriendName;
+
 
 
 CGit::CGit()
@@ -2223,11 +2287,7 @@ CGit::CGit()
 	m_IsUseLibGit2 = wil::reg::get_value_typed<bool>(L"UseLibgit2"sv, true);
 	m_IsUseLibGit2_mask = wil::reg::get_value_typed<BITS32>(L"UseLibgit2_mask"sv, DEFAULT_USE_LIBGIT2_MASK);
 
-#ifdef GOOGLETEST_INCLUDE_GTEST_GTEST_H_
-		g_bSortLogical = true;
-		g_bSortLocalBranchesFirst = true;
-		g_bSortTagsReversed = false;
-#else
+		// the unit tests pin these three in their fixture, after construction
 		g_bSortLogical = !Registry::CRegDWORD(L"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\Explorer\\NoStrCmpLogical", 0, false, HKEY_CURRENT_USER);
 		if (g_bSortLogical)
 			g_bSortLogical = !Registry::CRegDWORD(L"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\Explorer\\NoStrCmpLogical", 0, false, HKEY_LOCAL_MACHINE);
@@ -2237,7 +2297,6 @@ CGit::CGit()
 		g_bSortTagsReversed = !!Registry::CRegDWORD(L"Software\\TortoiseGit\\SortTagsReversed", 0, false, HKEY_LOCAL_MACHINE);
 		if (!g_bSortTagsReversed)
 			g_bSortTagsReversed = !!Registry::CRegDWORD(L"Software\\TortoiseGit\\SortTagsReversed", 0, false, HKEY_CURRENT_USER);
-#endif
 
 
 	CheckMsysGitDir();
@@ -2420,19 +2479,17 @@ DWORD WINAPI CGit::AsyncReadStdErrThread(const LPVOID lpParam)
 	return 0;
 }
 
-#ifdef _MFC_VER
-void CGit::KillRelatedThreads(CWinThread* thread)
+void CGit::KillRelatedThreads(const DWORD threadId, const HANDLE threadHandle)
 {
 	CAutoLocker lock(m_critSecThreadMap);
-	auto it = m_AsyncReadStdErrThreadMap.find(thread->m_nThreadID);
+	auto it = m_AsyncReadStdErrThreadMap.find(threadId);
 	if (it != m_AsyncReadStdErrThreadMap.cend())
 	{
 		TerminateThread(it->second, static_cast<DWORD>(-1));
 		m_AsyncReadStdErrThreadMap.erase(it);
 	}
-	TerminateThread(thread->m_hThread, static_cast<DWORD>(-1));
+	TerminateThread(threadHandle, static_cast<DWORD>(-1));
 }
-#endif
 
 
 int CGit::Run(CGitCall& pcall)
@@ -4544,6 +4601,7 @@ void CGit::GetBisectTerms(CString* good, CString* bad)
 {
 	static CString lastGood;
 	static CString lastBad;
+	static CString lastDir;
 	static ULONGLONG lastRead = 0;
 
 	const auto publish = gsl::finally([good, bad] {
@@ -4553,12 +4611,15 @@ void CGit::GetBisectTerms(CString* good, CString* bad)
 			*good = lastGood;
 	});
 
-#ifndef GOOGLETEST_INCLUDE_GTEST_GTEST_H_
 	// add some caching here, because this method might be called multiple times in a short time from LogDlg and RevisionGraph
-	// as we only read a small file the performance effects should be negligible
-	if (lastRead + 5000 > GetTickCount64())
+	// as we only read a small file the performance effects should be negligible.
+	// Keyed on the directory as well as the time: the terms belong to one repository,
+	// and a time-only key answered for the previous one when the directory changed
+	// within the window - which the unit tests, switching repositories per test, did.
+	if (lastDir == m_CurrentDir && lastRead + 5000 > GetTickCount64())
 		return;
-#endif
+	lastDir = m_CurrentDir;
+	lastRead = 0;	// only a successful read below is worth caching
 
 	lastGood = L"good";
 	lastBad = L"bad";

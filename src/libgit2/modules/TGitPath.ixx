@@ -1,4 +1,5 @@
 ﻿module;
+#include <tgit_cstring.h>	// first: decides which CString this compile speaks
 #include <windows.h>
 #include <shellapi.h>
 #include <Shlwapi.h>
@@ -11,14 +12,12 @@
 #include <corecrt_wstdio.h>
 #include <Resources/LoglistCommonResource.h>
 #include <TortoiseShell/Globals.h>
-#ifdef TGIT_LFS
-#include <nlohmann/json.hpp>
-#endif
 
 
 export module TGitPath;
 import std;
 import gsl;
+import nlohmann_json;	// LFS locks; a shim, cf. shims/json.ixx
 import wstr;
 import tgittypes;
 import invarients;
@@ -481,6 +480,12 @@ bool IsBareRepo(const std::wstring_view path, bool* invalidFormat = nullptr) {
 	return true;
 }
 
+/// A CString - the MFC UI's. Constrained, so a literal still binds the view one.
+template <tgit::zstr::IsStupidString TStr>
+bool IsBareRepo(const TStr& path, bool* invalidFormat = nullptr) {
+	return IsBareRepo(std::wstring_view(tgit::zstr::StringView{ path }), invalidFormat);
+}
+
 
 /**
  * Resolves a .git *file* (a worktree or submodule link, "gitdir: <path>") to the
@@ -603,6 +608,25 @@ std::optional<AdminDir> GetAdminDirPath(const std::wstring_view projectTopDir) {
 	return AdminDir{ .path = PathUtils::BuildPathWithPathDelimiter(commonDir), .isWorktree = true };
 }
 
+/// The out-parameter forms TortoiseProc's call sites were written against:
+/// `if (!GetAdminDirPath(dir, adminDir))`. Constrained to CString, so every other
+/// caller - and a literal - still binds the view-and-optional forms above.
+template <tgit::zstr::IsStupidString TStr>
+bool GetAdminDirPath(const TStr& projectTopDir, TStr& adminDir) {
+	const auto dir = GetAdminDirPath(std::wstring_view(tgit::zstr::StringView{ projectTopDir }));
+	if (!dir)
+		return false;
+	adminDir = dir->path.c_str();
+	return true;
+}
+template <tgit::zstr::IsStupidString TStr>
+bool GetWorktreeAdminDirPath(const TStr& projectTopDir, TStr& adminDir) {
+	const auto dir = GetWorktreeAdminDirPath(std::wstring_view(tgit::zstr::StringView{ projectTopDir }));
+	if (!dir)
+		return false;
+	adminDir = dir->c_str();
+	return true;
+}
 
 /**
  * Whether \a path is inside a working tree, walking up from it (from its parent,
@@ -689,6 +713,16 @@ bool HasAdminDir(const std::wstring_view path, const std::same_as<bool> auto isD
 /// As above, asking the filesystem whether \a path is a directory.
 bool HasAdminDir(const std::wstring_view path, std::wstring* projectTopDir = nullptr) {
 	return HasAdminDir(path, TGitPath::detail::IsDirectoryPath(std::wstring(path)), projectTopDir);
+}
+
+/// The CString out-parameter form TortoiseProc's settings pages use.
+template <tgit::zstr::IsStupidString TStr>
+bool HasAdminDir(const std::wstring_view path, TStr* projectTopDir) {
+	std::wstring top;
+	const bool has = HasAdminDir(path, projectTopDir ? &top : nullptr);
+	if (projectTopDir)
+		*projectTopDir = top.c_str();
+	return has;
 }
 
 
@@ -819,12 +853,10 @@ class CTGitPath {
 public:
 	CTGitPath() = default;
 
-#ifdef TGIT_UNIT_TESTS
-	// The test build mocks UpdateAttributes. This used to key off gmock's include
-	// guard, which a module can never see - it is compiled once, not per
-	// includer - so the test build has to say so when it compiles this module.
-	virtual ~CTGitPath() = default;
-#endif
+	// No virtual destructor although UpdateAttributes() is virtual (for the unit
+	// tests' mock): declaring one would suppress the implicit move operations and
+	// turn every move of a path into a copy. Nothing deletes a CTGitPath through a
+	// base pointer - the mocks are stack objects.
 
 	template <tgit::zstr::IsTCompString StrT>
 	CTGitPath(const StrT& sUnknownPath = {}, const std::optional<bool> bIsDirectory = std::nullopt) {
@@ -834,6 +866,21 @@ public:
 			m_bIsDirectory = bIsDirectory.value();
 		}
 	}
+
+	/// A wide array - a literal, or a buffer a Win32 call filled. Unlike a pointer
+	/// it carries a bound, so this is a bounded scan rather than a walk; wcsnlen
+	/// rather than N - 1, so a MAX_PATH buffer does not bring its trailing NULs.
+	/// explicit: an implicit one gave every literal a second user-defined route,
+	/// and made CGit::CombinePath(L"...") ambiguous between CString and CTGitPath.
+	template <std::size_t N>
+	explicit CTGitPath(const wchar_t (&sUnknownPath)[N], const std::optional<bool> bIsDirectory = std::nullopt)
+		: CTGitPath(std::wstring_view(sUnknownPath, wcsnlen(sUnknownPath, N)), bIsDirectory) {}
+
+	/// A NUL-terminated pointer - GetString(), an LPCWSTR parameter. explicit, so
+	/// no implicit route competes with CString overloads; and a nullptr is the
+	/// empty path, where std::wstring_view(nullptr) is UB (CLAUDE.md failure mode 5).
+	explicit CTGitPath(const wchar_t* const sUnknownPath, const std::optional<bool> bIsDirectory = std::nullopt)
+		: CTGitPath(sUnknownPath ? std::wstring_view(sUnknownPath) : std::wstring_view(), bIsDirectory) {}
 
 
 	auto operator>(const CTGitPath& b) const {
@@ -948,6 +995,13 @@ public:
 	 */
 	void SetFromWin(const LPCWSTR pPath, const std::optional<bool> bIsDirectory) {
 		SetFromWin(std::wstring_view(pPath), bIsDirectory);
+	}
+
+	/// A CString - the MFC UI's, chiefly. Constrained rather than a CString
+	/// parameter, so a literal never reaches it and stays unambiguous.
+	template <tgit::zstr::IsStupidString TStr>
+	void SetFromWin(const TStr& sPath, const std::optional<bool> bIsDirectory = std::nullopt) {
+		SetFromWin(std::wstring_view(tgit::zstr::StringView{ sPath }), bIsDirectory);
 	}
 
 
@@ -1223,15 +1277,14 @@ public:
 	 */
 	void SetDirectoryStatus() const { m_bIsDirectory = true; }
 
-#ifdef TGIT_UNIT_TESTS
 protected:
+	// Virtual so the unit tests can count calls (MockCTGitPath). It was virtual
+	// only under TGIT_UNIT_TESTS - a different class layout per build, which a
+	// module, compiled once for every importer, cannot have. The cost is one
+	// vtable pointer per path, against a call that queries the filesystem.
 	virtual void UpdateAttributes() const;
-#endif
 
 private:
-#ifndef TGIT_UNIT_TESTS
-	void UpdateAttributes() const;
-#endif
 
 	// All these functions are const, and all the data
 	// is mutable, in order that the hidden caching operations
@@ -1326,11 +1379,9 @@ struct CTGitPathList {
 	              std::wstring* err = nullptr);
 #ifdef TGIT_LFS
 	int FillLFSLocks(const GitRunner& git, unsigned int action, std::wstring* err = nullptr);
-#ifndef TGIT_UNIT_TESTS
-private:
-#endif
+	// public for the unit tests; it was private unless TGIT_UNIT_TESTS, which a
+	// module, compiled once for every importer, can no longer see
 	int ParserFromLFSLocks(unsigned int action, std::wstring_view output, std::wstring* err = nullptr);
-public:
 #endif
 	/// The index entries of \a repository carrying any of the given flags.
 	int FillBasedOnIndexFlags(git_repository* repository, unsigned short flag, unsigned short flagextended,
@@ -2708,7 +2759,7 @@ int CTGitPathList::ParserFromLFSLocks(const unsigned int action, const std::wstr
 		}
 	} catch (json::parse_error& ex) {
 		if (err)
-			err->append(CUnicodeUtils::GetUnicode<std::wstring>(ex.what()));
+			err->append(CUnicodeUtils::GetUnicode<std::wstring>(std::string_view(ex.what())));
 		return -1;
 	}
 	return 0;
@@ -2757,7 +2808,7 @@ int CTGitPathList::FillLFSLocks(const GitRunner& git, const unsigned int action,
 		return -1;
 	}
 
-	return ParserFromLFSLocks(action, CUnicodeUtils::GetUnicode<std::wstring>(out)), err);
+	return ParserFromLFSLocks(action, CUnicodeUtils::GetUnicode<std::wstring>(std::string_view(out.data(), out.size())), err);
 }
 #endif
 

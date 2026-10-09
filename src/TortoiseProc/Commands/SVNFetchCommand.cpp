@@ -20,7 +20,7 @@
 #include "stdafx.h"
 #include "SVNFetchCommand.h"
 #include "ProgressDlg.h"
-#include "Git.h"
+import git_h;
 #include "AppUtils.h"
 
 bool SVNFetchCommand::Execute()
@@ -71,14 +71,14 @@ bool SVNFetchCommand::Execute()
 		postCmdList.emplace_back(IDI_DIFF, IDS_PROC_PULL_DIFFS, [&]
 		{
 			CString sCmd;
-			sCmd.Format(L"/command:showcompare /path:\"%s\" /revision1:%s /revision2:%s", static_cast<LPCWSTR>(g_Git.m_CurrentDir), static_cast<LPCWSTR>(upstreamOldHash.ToString()), static_cast<LPCWSTR>(upstreamNewHash.ToString()));
+			sCmd.Format(L"/command:showcompare /path:\"%s\" /revision1:%s /revision2:%s", static_cast<LPCWSTR>(g_Git.m_CurrentDir), (upstreamOldHash.ToString()).c_str(), (upstreamNewHash.ToString()).c_str());
 			CAppUtils::RunTortoiseGitProc(sCmd);
 		});
 
 		postCmdList.emplace_back(IDI_LOG, IDS_PROC_PULL_LOG, [&]
 		{
 			CString sCmd;
-			sCmd.Format(L"/command:log /path:\"%s\" /range:%s", static_cast<LPCWSTR>(g_Git.m_CurrentDir), static_cast<LPCWSTR>(upstreamOldHash.ToString() + L".." + upstreamNewHash.ToString()));
+			sCmd.Format(L"/command:log /path:\"%s\" /range:%s", static_cast<LPCWSTR>(g_Git.m_CurrentDir), (upstreamOldHash.ToString() + L".." + upstreamNewHash.ToString()).c_str());
 			CAppUtils::RunTortoiseGitProc(sCmd);
 		});
 	};

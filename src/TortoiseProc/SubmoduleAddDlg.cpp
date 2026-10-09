@@ -1,4 +1,4 @@
-// TortoiseGit - a Windows shell extension for easy version control
+﻿// TortoiseGit - a Windows shell extension for easy version control
 
 // Copyright (C) 2008-2013, 2015-2017, 2021-2022, 2024 - TortoiseGit
 
@@ -134,7 +134,7 @@ void CSubmoduleAddDlg::OnPathBrowse()
 	{
 		CString strUrl;
 		m_Repository.GetWindowTextW(strUrl);
-		if (CString repoName = CPathUtils::GetFileNameFromPath(tgit::wstr::View(strUrl)).c_str(); !repoName.IsEmpty())
+		if (CString repoName = PathUtils::GetFileNameFromPath(tgit::zstr::StringView(strUrl)).c_str(); !repoName.IsEmpty())
 		{
 			if (StringUtils::EndsWith(repoName, L".git"))
 				repoName = repoName.Left(repoName.GetLength() - static_cast<int>(wcslen(L".git")));
@@ -195,7 +195,7 @@ BOOL CSubmoduleAddDlg::OnRepoEndEdit(UINT, NMHDR*, LRESULT*)
 {
 	CString strUrl;
 	m_Repository.GetWindowTextW(strUrl);
-	CString repoName = CPathUtils::GetFileNameFromPath(tgit::wstr::View(strUrl)).c_str();
+	CString repoName = PathUtils::GetFileNameFromPath(tgit::zstr::StringView(strUrl)).c_str();
 	if (StringUtils::EndsWith(repoName, L".git"))
 		repoName = repoName.Left(repoName.GetLength() - static_cast<int>(wcslen(L".git")));
 	if (m_strPath.IsEmpty())

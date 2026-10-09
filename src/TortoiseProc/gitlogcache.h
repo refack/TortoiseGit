@@ -18,15 +18,15 @@
 //
 #pragma once
 
-#include "GitRevLoglist.h"
-#include "GitHash.h"
+import GitRevLoglist;
+import GitHash;
 
 #define LOG_INDEX_MAGIC		0x88AA5566
 #define LOG_DATA_MAGIC		0x99BB0FFF
 #define LOG_DATA_ITEM_MAGIC 0x0FCC9ACC
 #define LOG_DATA_FILE_MAGIC 0x19EE9DFF
 // bump whenever SLogCacheIndexItem's on-disk layout changes size, e.g. CGitHash/git_oid
-// growing under GIT_EXPERIMENTAL_SHA256 (33 bytes vs. 20) even while GIT_HASH_SIZE stays 20
+// growing under GIT_EXPERIMENTAL_SHA256 (33 bytes vs. 20) even while static_cast<int>(tgit::invarients::GitFormatHolder::GitHashSize()) stays 20
 #define LOG_INDEX_VERSION	0x12
 
 #pragma pack (1)

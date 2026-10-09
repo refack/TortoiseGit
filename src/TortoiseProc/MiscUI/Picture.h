@@ -24,7 +24,7 @@
 #pragma warning(disable: 4458) // declaration of 'xxx' hides class member
 #include <GdiPlus.h>
 #pragma warning(pop)
-#include "SmartHandle.h"
+import RIAA;
 #include <memory>
 #include <vector>
 

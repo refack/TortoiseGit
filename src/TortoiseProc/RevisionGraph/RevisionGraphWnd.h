@@ -20,7 +20,7 @@
 
 #pragma once
 #include "Colors.h"
-#include "Graphviz.h"
+import Graphviz;
 #include "LogDlgHelper.h"
 #include "ProgressDlg.h"
 #include "SVG.h"
@@ -191,7 +191,7 @@ protected:
 										// (will be activated only after some delay)
 
 	CString		GetFriendRefName(ogdf::node) const;
-	STRING_VECTOR	GetFriendRefNames(ogdf::node, const CString* exclude = nullptr, CGit::REF_TYPE* onlyRefType = nullptr) const;
+	STRING_VECTOR	GetFriendRefNames(ogdf::node, const CString* exclude = nullptr, TGitH::REF_TYPE* onlyRefType = nullptr) const;
 
 	ogdf::Graph	m_Graph;
 	ogdf::GraphAttributes m_GraphAttr;

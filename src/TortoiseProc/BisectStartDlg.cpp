@@ -22,10 +22,10 @@
 #include "stdafx.h"
 #include "TortoiseProc.h"
 #include "BisectStartDlg.h"
-#include "Git.h"
+import git_h;
 #include "LogDlg.h"
 #include "AppUtils.h"
-#include "StringUtils.h"
+import StringUtils;
 #include "MessageBox.h"
 
 IMPLEMENT_DYNAMIC(CBisectStartDlg, CHorizontalResizableStandAloneDialog)
@@ -93,7 +93,7 @@ BOOL CBisectStartDlg::OnInitDialog()
 
 	STRING_VECTOR list;
 	int current = -1;
-	g_Git.GetBranchList(list, &current, CGit::BRANCH_ALL);
+	g_Git.GetBranchList(list, &current, TGitH::BRANCH_ALL);
 	m_cLastGoodRevision.SetMaxHistoryItems(0x7FFFFFFF);
 	m_cFirstBadRevision.SetMaxHistoryItems(0x7FFFFFFF);
 	STRING_VECTOR tagsList;
@@ -159,7 +159,7 @@ void CBisectStartDlg::OnBnClickedButtonGood()
 	dlg.SingleSelection(true);
 	if (dlg.DoModal() == IDOK && !dlg.GetSelectedHash().empty())
 	{
-		m_cLastGoodRevision.SetWindowText(dlg.GetSelectedHash().at(0).ToString());
+		m_cLastGoodRevision.SetWindowText((dlg.GetSelectedHash().at(0).ToString()).c_str());
 		OnChangedRevision();
 	}
 	BringWindowToTop(); /* cf. issue #3493 */
@@ -184,7 +184,7 @@ void CBisectStartDlg::OnBnClickedButtonBad()
 	dlg.SingleSelection(true);
 	if (dlg.DoModal() == IDOK && !dlg.GetSelectedHash().empty())
 	{
-		m_cFirstBadRevision.SetWindowText(dlg.GetSelectedHash().at(0).ToString());
+		m_cFirstBadRevision.SetWindowText((dlg.GetSelectedHash().at(0).ToString()).c_str());
 		OnChangedRevision();
 	}
 	BringWindowToTop(); /* cf. issue #3493 */

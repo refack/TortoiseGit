@@ -18,11 +18,11 @@
 //
 #include "stdafx.h"
 #include "TortoiseProc.h"
-#include "Git.h"
+import git_h;
 #include "AppUtils.h"
 #include "SubmoduleDiffDlg.h"
 #include "LoglistCommonResource.h"
-#include "CmdLineParser.h"
+import CmdLineParser;
 
 IMPLEMENT_DYNAMIC(CSubmoduleDiffDlg, CHorizontalResizableStandAloneDialog)
 CSubmoduleDiffDlg::CSubmoduleDiffDlg(CWnd* pParent /*=nullptr*/)
@@ -46,11 +46,11 @@ void CSubmoduleDiffDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Text(pDX, IDC_FROMSUBJECT, m_sFromSubject);
 	DDX_Text(pDX, IDC_TOSUBJECT, m_sToSubject);
 	DDX_Control(pDX, IDC_SHOW_DIFF, m_ctrlShowDiffBtn);
-	GetDlgItem(IDC_FROMHASH)->SetWindowText(m_sFromHash.ToString());
+	GetDlgItem(IDC_FROMHASH)->SetWindowText((m_sFromHash.ToString()).c_str());
 	if (m_bDirty)
-		GetDlgItem(IDC_TOHASH)->SetWindowText(m_sToHash.ToString() + L"-dirty");
+		GetDlgItem(IDC_TOHASH)->SetWindowText((m_sToHash.ToString() + L"-dirty").c_str());
 	else
-		GetDlgItem(IDC_TOHASH)->SetWindowText(m_sToHash.ToString());
+		GetDlgItem(IDC_TOHASH)->SetWindowText((m_sToHash.ToString()).c_str());
 }
 
 BEGIN_MESSAGE_MAP(CSubmoduleDiffDlg, CHorizontalResizableStandAloneDialog)
@@ -234,7 +234,7 @@ void CSubmoduleDiffDlg::SetDiff(const CString& path, bool toIsWorkingCopy, const
 void CSubmoduleDiffDlg::ShowLog(const CGitHash& hash) const
 {
 	CString sCmd;
-	sCmd.Format(L"/command:log /path:%s /endrev:%s /rev:%s", static_cast<LPCWSTR>(CCmdLineParser::EscapeValue(g_Git.CombinePath(m_sPath))), static_cast<LPCWSTR>(hash.ToString()), static_cast<LPCWSTR>(hash.ToString()));
+	sCmd.Format(L"/command:log /path:%s /endrev:%s /rev:%s", static_cast<LPCWSTR>(CCmdLineParser::EscapeValue(g_Git.CombinePath(m_sPath))), (hash.ToString()).c_str(), (hash.ToString()).c_str());
 	CAppUtils::RunTortoiseGitProc(sCmd, false, false);
 }
 
@@ -255,7 +255,7 @@ void CSubmoduleDiffDlg::OnBnClickedShowDiff()
 		sCmd.Format(L"/command:repostatus /path:%s", static_cast<LPCWSTR>(CCmdLineParser::EscapeValue(g_Git.CombinePath(m_sPath))));
 	else
 	{
-		sCmd.Format(L"/command:showcompare /path:%s /revision1:%s /revision2:%s", static_cast<LPCWSTR>(CCmdLineParser::EscapeValue(g_Git.CombinePath(m_sPath))), static_cast<LPCWSTR>(m_sFromHash.ToString()), ((m_bDirty && m_nChangeType == CGitDiff::ChangeType::Unknown) || m_ctrlShowDiffBtn.GetCurrentEntry() == 1) ? GitRev::GetWorkingCopyRef() : static_cast<LPCWSTR>(m_sToHash.ToString()));
+		sCmd.Format(L"/command:showcompare /path:%s /revision1:%s /revision2:%s", static_cast<LPCWSTR>(CCmdLineParser::EscapeValue(g_Git.CombinePath(m_sPath))), (m_sFromHash.ToString()).c_str(), ((m_bDirty && m_nChangeType == CGitDiff::ChangeType::Unknown) || m_ctrlShowDiffBtn.GetCurrentEntry() == 1) ? GitRev::GetWorkingCopyRef() : (m_sToHash.ToString()).c_str());
 
 		if (!!(GetAsyncKeyState(VK_SHIFT) & 0x8000))
 			sCmd += L" /alternative";

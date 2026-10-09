@@ -18,9 +18,9 @@
 //
 
 #pragma once
-#include "TGitPath.h"
-#include "GitRev.h"
-#include "Git.h"
+import TGitPath;
+import GitRev;
+import git_h;
 
 class CGitDiff
 {

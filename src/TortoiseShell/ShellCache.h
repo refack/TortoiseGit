@@ -19,7 +19,7 @@
 //
 #pragma once
 import Registry;
-#include <Utils/CacheType.h>
+import tgittypes;	// CacheType, was Utils/CacheType.h
 #include <TortoiseShell/Globals.h>
 
 #define ADMINDIRTIMEOUT 10000
@@ -70,8 +70,8 @@ enum class Tristate
 class ShellCache
 {
 public:
-	using CacheType = TGitCacheType::CacheType;
-	using enum TGitCacheType::CacheType; // keeps ShellCache::dll etc. spelled as before
+	using CacheType = tgit::types::CacheType;
+	using enum tgit::types::CacheType; // keeps ShellCache::dll etc. spelled as before
 
 	ShellCache();
 	~ShellCache();

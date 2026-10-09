@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 4.0)
+﻿cmake_minimum_required(VERSION 4.0)
 project(TortoiseProc LANGUAGES CXX)
 
 find_package(ogdf REQUIRED CONFIG)
@@ -232,7 +232,6 @@ target_sources(TortoiseProc
         IgnoreDlg.h
         InputDlg.cpp
         InputDlg.h
-        lanes.cpp
         LFSLocksDlg.cpp
         LFSLocksDlg.h
         LogDataVector.cpp
@@ -423,9 +422,53 @@ target_sources(TortoiseProc
         WorktreeListDlg.h
 )
 
+# Sources that moved here from src\Utils and src\Utils\MiscUI (the MFC UI layer
+# that lives in the MFC binary), plus the resource script.
+target_sources(TortoiseProc
+    PRIVATE
+        ACEdit.cpp
+        ACListWnd.cpp
+        BrowseFolder.cpp
+        COMError.cpp
+        CommonAppUtils.cpp
+        EditWordBreak.cpp
+        FileDlgEventHandler.cpp
+        GitStatusListCtrl.cpp
+        Hooks.cpp
+        HorizontalResizableStandAloneDialog.cpp
+        IconExtractor.cpp
+        MiscUI/AnimationManager.cpp
+        MiscUI/BufferDC.cpp
+        MiscUI/FileDropEdit.cpp
+        MiscUI/FilterEdit.cpp
+        MiscUI/HistoryCombo.cpp
+        MiscUI/IconBitmapUtils.cpp
+        MiscUI/IconMenu.cpp
+        MiscUI/LinkControl.cpp
+        MiscUI/MenuButton.cpp
+        MiscUI/MessageBox.cpp
+        MiscUI/MyGraph.cpp
+        MiscUI/Picture.cpp
+        MiscUI/RegexEdit.cpp
+        MiscUI/SciEdit.cpp
+        MiscUI/SplitterControl.cpp
+        MiscUI/SVG.cpp
+        MiscUI/SysProgressDlg.cpp
+        MiscUI/ThemeControls.cpp
+        MiscUI/Tooltip.cpp
+        MiscUI/WaterEffect.cpp
+        StandAloneDlg.cpp
+        ThemeMFCVisualManager.cpp
+        TreePropSheet/PropPageFrame.cpp
+        TreePropSheet/PropPageFrameDefault.cpp
+        TreePropSheet/TreePropSheet.cpp
+        "${CMAKE_SOURCE_DIR}/src/Resources/TortoiseProcENG.rc"
+)
+
 set_target_properties(TortoiseProc PROPERTIES
     CMAKE_MFC_FLAG 2
 )
+set_target_properties(TortoiseProc PROPERTIES CXX_MODULE_STD ON)
 
 target_compile_features(TortoiseProc
     PRIVATE
@@ -435,13 +478,18 @@ target_compile_features(TortoiseProc
 
 target_include_directories(TortoiseProc
     PRIVATE
-        "${CMAKE_SOURCE_DIR}/src/Utils"
-        "${CMAKE_SOURCE_DIR}/src/Utils/MiscUI"
-        "${CMAKE_SOURCE_DIR}/src/Git"
+        # first, as $(ProjectDir) was in the vcxproj: a bare "resource.h" from a
+        # subdirectory must find this project's, not src/gitdll/resource.h further down
+        "${CMAKE_CURRENT_SOURCE_DIR}"
+        "${CMAKE_CURRENT_SOURCE_DIR}/MiscUI"
+        "${CMAKE_CURRENT_SOURCE_DIR}/TreePropSheet"
+        "${CMAKE_SOURCE_DIR}/src/libgit2/include"
+        "${CMAKE_SOURCE_DIR}/src/libgit2/include/Utils"
+        "${CMAKE_SOURCE_DIR}/src/gitdll"
+        "${CMAKE_SOURCE_DIR}/src/Resources"
         "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/include/scintilla2"
         "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/include/lexilla"
         "$<TARGET_FILE_DIR:TortoiseProc>"
-        "${CMAKE_CURRENT_SOURCE_DIR}"
         "${CMAKE_SOURCE_DIR}/src"
         "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/include"
 )
@@ -499,12 +547,13 @@ target_link_libraries(TortoiseProc
         crypt32
         gitdll
         AsyncFramework
-        TGitLibgit2
+        TGitLibgit2Mfc   # the MFC flavor: TortoiseProc speaks MFC CString
         ResizableLib
 )
 
 target_compile_options(TortoiseProc
     PRIVATE
+        /diagnostics:column
         /W3
         /external:W0
         /external:anglebrackets

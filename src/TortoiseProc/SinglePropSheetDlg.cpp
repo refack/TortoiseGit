@@ -23,7 +23,7 @@
 #include "stdafx.h"
 #include "TortoiseProc.h"
 #include "SinglePropSheetDlg.h"
-#include "Git.h"
+import git_h;
 #include "AppUtils.h"
 import DarkModeHelper;
 #include "DPIAware.h"
@@ -74,7 +74,7 @@ BOOL CSinglePropSheetDlg::OnInitDialog()
 {
 	BOOL bReturn = CTreePropSheet::OnInitDialog();
 
-	if (GitAdminDir::IsWorkingTreeOrBareRepo(g_Git.m_CurrentDir))
+	if (GitAdminDir::IsWorkingTreeOrBareRepo(tgit::zstr::StringView(g_Git.m_CurrentDir)))
 		CAppUtils::SetWindowTitle(*this, g_Git.m_CurrentDir);
 	else
 	{

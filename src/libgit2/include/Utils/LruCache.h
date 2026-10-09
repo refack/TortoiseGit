@@ -19,6 +19,7 @@
 
 #pragma once
 
+#include <algorithm>
 #include <unordered_map>
 #include <list>
 
@@ -64,7 +65,7 @@ public:
 
 	void reserve(size_t size)
 	{
-		itemsMap.reserve(min(maxSize, size));
+		itemsMap.reserve((std::min)(maxSize, size));
 	}
 
 	void clear()

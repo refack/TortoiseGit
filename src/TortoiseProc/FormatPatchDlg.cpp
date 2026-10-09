@@ -22,7 +22,7 @@
 #include "stdafx.h"
 #include "TortoiseProc.h"
 #include "FormatPatchDlg.h"
-#include "Git.h"
+import git_h;
 #include "BrowseFolder.h"
 #include "LogDlg.h"
 #include "BrowseRefsDlg.h"
@@ -122,7 +122,7 @@ BOOL CFormatPatchDlg::OnInitDialog()
 	m_cDir.AddString(g_Git.m_CurrentDir);
 
 	STRING_VECTOR list;
-	g_Git.GetBranchList(list, nullptr, CGit::BRANCH_ALL_F);
+	g_Git.GetBranchList(list, nullptr, TGitH::BRANCH_ALL_F);
 	m_cSince.SetMaxHistoryItems(static_cast<int>(list.size()));
 	m_cSince.SetList(list);
 
@@ -189,7 +189,7 @@ void CFormatPatchDlg::OnBnClickedButtonFrom()
 	dlg.SingleSelection(true);
 	if (dlg.DoModal() == IDOK && !dlg.GetSelectedHash().empty())
 	{
-		m_cFrom.AddString(dlg.GetSelectedHash().at(0).ToString());
+		m_cFrom.AddString(CString((dlg.GetSelectedHash().at(0).ToString()).c_str()));
 		CheckRadioButton(IDC_RADIO_SINCE, IDC_RADIO_RANGE, IDC_RADIO_RANGE);
 		OnBnClickedRadio();
 	}
@@ -213,7 +213,7 @@ void CFormatPatchDlg::OnBnClickedButtonTo()
 	dlg.SingleSelection(true);
 	if (dlg.DoModal() == IDOK && !dlg.GetSelectedHash().empty())
 	{
-		m_cTo.AddString(dlg.GetSelectedHash().at(0).ToString());
+		m_cTo.AddString(CString((dlg.GetSelectedHash().at(0).ToString()).c_str()));
 		CheckRadioButton(IDC_RADIO_SINCE, IDC_RADIO_RANGE, IDC_RADIO_RANGE);
 		OnBnClickedRadio();
 	}
