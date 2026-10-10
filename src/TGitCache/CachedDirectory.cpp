@@ -352,7 +352,7 @@ CStatusCacheEntry CCachedDirectory::GetStatusForMember(const CTGitPath& path, bo
 				m_childDirectories.clear();
 				m_entryCache.clear();
 				UpdateCurrentStatus();
-				CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": %s is not underversion control\n", path.GetWinPath());
+				TracePrintf(_T(__FUNCTION__) L": %s is not underversion control\n", path.GetWinPath());
 				return CStatusCacheEntry();
 			}
 			if (!bRequestForSelf && !IsOwnStatusValid())
@@ -364,7 +364,7 @@ CStatusCacheEntry CCachedDirectory::GetStatusForMember(const CTGitPath& path, bo
 			if (m_ownStatus.GetEffectiveStatus() == git_wc_status_ignored)
 			{
 				// shortcut if path is ignored
-				CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": %s return fast ignored status\n", path.GetWinPath());
+				TracePrintf(_T(__FUNCTION__) L": %s return fast ignored status\n", path.GetWinPath());
 				if (bRequestForSelf)
 					m_ownStatus = git_wc_status_ignored; // validate
 				UpdateCurrentStatus();
@@ -372,12 +372,12 @@ CStatusCacheEntry CCachedDirectory::GetStatusForMember(const CTGitPath& path, bo
 				// Check status is still ignored
 				if (m_ownStatus.GetEffectiveStatus() == git_wc_status_ignored)
 					return CStatusCacheEntry(git_wc_status_ignored);
-				CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": %s return fast ignored status failed!\n", path.GetWinPath());
+				TracePrintf(_T(__FUNCTION__) L": %s return fast ignored status failed!\n", path.GetWinPath());
 			}
 		}
 		if (!bRequestForSelf && path.IsDirectory() && !path.HasAdminDir(&sProjectRoot))
 		{
-			CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": %s is not under version control\n", path.GetWinPath());
+			TracePrintf(_T(__FUNCTION__) L": %s is not under version control\n", path.GetWinPath());
 			return CStatusCacheEntry();
 		}
 
@@ -409,7 +409,7 @@ CStatusCacheEntry CCachedDirectory::GetCacheStatusForMember(const CTGitPath& pat
 
 int CCachedDirectory::EnumFiles(const CTGitPath& path, CString sProjectRoot, const CString& sSubPath, bool isSelf)
 {
-	CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": EnumFiles %s\n", path.GetWinPath());
+	TracePrintf(_T(__FUNCTION__) L": EnumFiles %s\n", path.GetWinPath());
 
 	// strip "\" at the end, otherwise cache lookups for drives do not work correctly
 	sProjectRoot.TrimRight(L'\\');
@@ -479,7 +479,7 @@ CCachedDirectory::AddEntry(const CTGitPath& path, const git_wc_status2_t* pGitSt
 				if (entry_it->second.GetEffectiveStatus() > git_wc_status_none && entry_it->second.GetEffectiveStatus() != pGitStatus->status)
 				{
 					CGitStatusCache::Instance().UpdateShell(path);
-					CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": shell update for %s\n", path.GetWinPath());
+					TracePrintf(_T(__FUNCTION__) L": shell update for %s\n", path.GetWinPath());
 				}
 			}
 		}
@@ -624,7 +624,7 @@ git_wc_status_kind CCachedDirectory::CalculateRecursiveStatus()
 void CCachedDirectory::UpdateCurrentStatus()
 {
 	git_wc_status_kind newStatus = CalculateRecursiveStatus();
-	CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": Dir  %s, new: %d old: %d\n",
+	TracePrintf(_T(__FUNCTION__) L": Dir  %s, new: %d old: %d\n",
 		m_directoryPath.GetWinPath(),
 		newStatus, m_currentFullStatus);
 
@@ -635,7 +635,7 @@ void CCachedDirectory::UpdateCurrentStatus()
 		// Don't update m_currentFullStatus if we don't know our own folder status yet
 		// Updating m_currentFullStatus would cause an explorer refresh which would show the folder as unversioned (no icon, because GetOwnStatus() returns uninitialized m_ownstatus) and a later refresh of the folder wouldn't update the icon since m_currentFullStatus might not change.
 
-		CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": Dir %s, status change from %d to %d\n", m_directoryPath.GetWinPath(), m_currentFullStatus, newStatus);
+		TracePrintf(_T(__FUNCTION__) L": Dir %s, status change from %d to %d\n", m_directoryPath.GetWinPath(), m_currentFullStatus, newStatus);
 		m_currentFullStatus = newStatus;
 		CGitStatusCache::Instance().UpdateShell(m_directoryPath);
 	}
@@ -754,7 +754,7 @@ void CCachedDirectory::RefreshMostImportant(bool bUpdateShell /* = true */)
 	}
 	if (bUpdateShell && newStatus != m_mostImportantFileStatus)
 	{
-		CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": status change of path %s\n", m_directoryPath.GetWinPath());
+		TracePrintf(_T(__FUNCTION__) L": status change of path %s\n", m_directoryPath.GetWinPath());
 		CGitStatusCache::Instance().UpdateShell(m_directoryPath);
 	}
 	m_mostImportantFileStatus = newStatus;

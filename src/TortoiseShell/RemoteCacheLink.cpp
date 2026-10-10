@@ -75,7 +75,7 @@ bool CRemoteCacheLink::InternalEnsurePipeOpen(CAutoFile& hPipe, const CString& p
 			nullptr,  // don't set maximum bytes
 			nullptr)) // don't set maximum time
 		{
-			CTraceToOutputDebugString::Instance()(__FUNCTION__ ": SetNamedPipeHandleState failed\n");
+			TracePrintf(__FUNCTION__ ": SetNamedPipeHandleState failed\n");
 			hPipe.CloseHandle();
 		}
 	}
@@ -97,7 +97,7 @@ bool CRemoteCacheLink::EnsurePipeOpen()
 		if (m_hEvent)
 			return true;
 
-		CTraceToOutputDebugString::Instance()(__FUNCTION__ ": CreateEvent failed\n");
+		TracePrintf(__FUNCTION__ ": CreateEvent failed\n");
 		ClosePipe();
 	}
 
@@ -301,7 +301,7 @@ bool CRemoteCacheLink::RunTGitCacheProcess()
 	if (!CCreateProcessHelper::CreateProcessDetached(sCachePath, static_cast<LPWSTR>(nullptr)))
 	{
 		// It's not appropriate to do a message box here, because there may be hundreds of calls
-		CTraceToOutputDebugString::Instance()(__FUNCTION__ ": Failed to start cache\n");
+		TracePrintf(__FUNCTION__ ": Failed to start cache\n");
 		return false;
 	}
 	return true;

@@ -91,7 +91,7 @@ UINT CMessageBox::ShowCheck(HWND hWnd, LPCWSTR lpMessage, LPCWSTR lpCaption, int
 		{
 			ASSERT(type==REG_DWORD);
 			RegCloseKey(hKey);
-			CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": Using stored value %ld for \"%s\"\n", dwRetVal, lpMessage);
+			TracePrintf(_T(__FUNCTION__) L": Using stored value %ld for \"%s\"\n", dwRetVal, lpMessage);
 			return static_cast<UINT>(dwRetVal); //return with the last saved value
 		}
 		else
@@ -248,7 +248,7 @@ UINT CMessageBox::ShowCheck(HWND hWnd, LPCWSTR lpMessage, LPCWSTR lpCaption, UIN
 		{
 			ASSERT(type==REG_DWORD);
 			RegCloseKey(hKey);
-			CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": Using stored value %ld for \"%s\"\n", dwRetVal, lpMessage);
+			TracePrintf(_T(__FUNCTION__) L": Using stored value %ld for \"%s\"\n", dwRetVal, lpMessage);
 			return static_cast<UINT>(dwRetVal); // return with the last saved value
 		}
 		else

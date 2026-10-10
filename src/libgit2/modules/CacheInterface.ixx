@@ -13,7 +13,7 @@ import tgittypes;
 import DebugOutput;
 
 using std::operator""sv;
-using tgit::DebugOutput::CTraceToOutputDebugString;
+using tgit::DebugOutput::TracePrintf;
 using namespace tgit::types;
 
 
@@ -151,7 +151,7 @@ bool SendCacheCommand(const BYTE command, const WCHAR* path = nullptr)	// the de
 
 	if (!hPipe)
 	{
-		CTraceToOutputDebugString::Instance()(__FUNCTION__ ": Could not connect to pipe\n");
+		TracePrintf(__FUNCTION__ ": Could not connect to pipe\n");
 		return false;
 	}
 
@@ -186,7 +186,7 @@ bool SendCacheCommand(const BYTE command, const WCHAR* path = nullptr)	// the de
 
 		if (! fSuccess || sizeof(cmd) != cbWritten)
 		{
-			CTraceToOutputDebugString::Instance()(__FUNCTION__ ": Could not write to pipe\n");
+			TracePrintf(__FUNCTION__ ": Could not write to pipe\n");
 			DisconnectNamedPipe(hPipe);
 			return false;
 		}
@@ -203,7 +203,7 @@ bool SendCacheCommand(const BYTE command, const WCHAR* path = nullptr)	// the de
 	}
 	else
 	{
-		CTraceToOutputDebugString::Instance()(__FUNCTION__ ": SetNamedPipeHandleState failed\n");
+		TracePrintf(__FUNCTION__ ": SetNamedPipeHandleState failed\n");
 		return false;
 	}
 

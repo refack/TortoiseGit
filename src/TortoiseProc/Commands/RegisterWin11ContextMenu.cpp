@@ -41,7 +41,7 @@ bool RegisterWin11ContextMenuCommand::Execute()
 
 	if (BOOL isOOBEComplete = false, ooBECompleteOk = OOBEComplete(&isOOBEComplete); !ooBECompleteOk || !isOOBEComplete)
 	{
-		CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": Skip registering: OOBEComplete: %d, isOOBEComplete: %d\n", ooBECompleteOk, isOOBEComplete);
+		TracePrintf(_T(__FUNCTION__) L": Skip registering: OOBEComplete: %d, isOOBEComplete: %d\n", ooBECompleteOk, isOOBEComplete);
 		if (!ooBECompleteOk)
 		{
 			CString error;

@@ -43,7 +43,7 @@ void CFolderCrawler::Stop()
 	{
 		SetEvent(m_hTerminationEvent);
 		if (m_hThread.IsValid() && WaitForSingleObject(m_hThread, 4000) != WAIT_OBJECT_0)
-			CTraceToOutputDebugString::Instance()(__FUNCTION__ ": Error terminating crawler thread\n");
+			TracePrintf(__FUNCTION__ ": Error terminating crawler thread\n");
 	}
 	m_hThread.CloseHandle();
 	m_hTerminationEvent.CloseHandle();
@@ -75,7 +75,7 @@ void CFolderCrawler::AddDirectoryForUpdate(const CTGitPath& path)
 	if (!CGitStatusCache::Instance().IsPathGood(path))
 		return;
 	{
-		CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": AddDirectoryForUpdate %s\n", path.GetWinPath());
+		TracePrintf(_T(__FUNCTION__) L": AddDirectoryForUpdate %s\n", path.GetWinPath());
 
 		AutoLocker lock(m_critSec);
 
@@ -108,7 +108,7 @@ void CFolderCrawler::AddPathForUpdate(const CTGitPath& path)
 
 void CFolderCrawler::ReleasePathForUpdate(const CTGitPath& path)
 {
-	CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": ReleasePathForUpdate %s\n", path.GetWinPath());
+	TracePrintf(_T(__FUNCTION__) L": ReleasePathForUpdate %s\n", path.GetWinPath());
 	AutoLocker lock(m_critSec);
 
 	m_pathsToRelease.Push(path);
@@ -169,20 +169,20 @@ void CFolderCrawler::WorkerThread()
 			if(m_lCrawlInhibitSet > 0)
 			{
 				// We're in crawl hold-off
-				CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": Crawl hold-off\n");
+				TracePrintf(_T(__FUNCTION__) L": Crawl hold-off\n");
 				Sleep(50);
 				continue;
 			}
 			if (bFirstRunAfterWakeup)
 			{
 				Sleep(20);
-				CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": Crawl bFirstRunAfterWakeup\n");
+				TracePrintf(_T(__FUNCTION__) L": Crawl bFirstRunAfterWakeup\n");
 				bFirstRunAfterWakeup = false;
 				continue;
 			}
 			if ((m_blockReleasesAt < GetTickCount64()) && (!m_blockedPath.IsEmpty()))
 			{
-				CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": Crawl stop blocking path %s\n", m_blockedPath.GetWinPath());
+				TracePrintf(_T(__FUNCTION__) L": Crawl stop blocking path %s\n", m_blockedPath.GetWinPath());
 				m_blockedPath.Reset();
 			}
 			ULONGLONG timeUntilNextTimedoutBlock = CGitStatusCache::Instance().RemoveTimedoutBlocks();
@@ -198,7 +198,7 @@ void CFolderCrawler::WorkerThread()
 			{
 				if (timeUntilNextTimedoutBlock <= BLOCK_PATH_WAIT_AFTER_UNLOCK * 1000)
 				{
-					CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": Waiting for block to be released soon\n");
+					TracePrintf(_T(__FUNCTION__) L": Waiting for block to be released soon\n");
 					Sleep(100);
 					continue;
 				}
@@ -283,7 +283,7 @@ void CFolderCrawler::WorkerThread()
 						continue;
 					}
 
-					CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": Invalidating and refreshing folder: %s\n", workingPath.GetWinPath());
+					TracePrintf(_T(__FUNCTION__) L": Invalidating and refreshing folder: %s\n", workingPath.GetWinPath());
 					{
 						AutoLocker print(critSec);
 						_snwprintf_s(szCurrentCrawledPath[nCurrentCrawledpathIndex], MAX_CRAWLEDPATHSLEN, _TRUNCATE, L"Invalidating and refreshing folder: %s", workingPath.GetWinPath());
@@ -311,7 +311,7 @@ void CFolderCrawler::WorkerThread()
 								if ((status != git_wc_status_normal) && (pCachedDir->GetCurrentFullStatus() != status))
 								{
 									CGitStatusCache::Instance().UpdateShell(workingPath);
-									CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": shell update in crawler for %s\n", workingPath.GetWinPath());
+									TracePrintf(_T(__FUNCTION__) L": shell update in crawler for %s\n", workingPath.GetWinPath());
 								}
 							}
 							else
@@ -338,7 +338,7 @@ void CFolderCrawler::WorkerThread()
 						else
 							workingPath = workingPath.GetContainingDirectory();
 					}
-					CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": Updating path: %s\n", workingPath.GetWinPath());
+					TracePrintf(_T(__FUNCTION__) L": Updating path: %s\n", workingPath.GetWinPath());
 					{
 						AutoLocker print(critSec);
 						_snwprintf_s(szCurrentCrawledPath[nCurrentCrawledpathIndex], MAX_CRAWLEDPATHSLEN, _TRUNCATE, L"Updating path: %s", workingPath.GetWinPath());
@@ -392,7 +392,7 @@ void CFolderCrawler::WorkerThread()
 
 					if (m_foldersToUpdate.Any([&](const CTGitPath& folder){ return folder.IsAncestorOf(workingPath); }))
 					{
-						CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": Not crawling folder: \"%s\". Already in queue.\n", workingPath.GetWinPath());
+						TracePrintf(_T(__FUNCTION__) L": Not crawling folder: \"%s\". Already in queue.\n", workingPath.GetWinPath());
 						continue;
 					}
 				}
@@ -403,7 +403,7 @@ void CFolderCrawler::WorkerThread()
 				if (!CGitStatusCache::Instance().IsPathGood(workingPath))
 					continue;
 
-				CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": Crawling folder: %s\n", workingPath.GetWinPath());
+				TracePrintf(_T(__FUNCTION__) L": Crawling folder: %s\n", workingPath.GetWinPath());
 				{
 					AutoLocker print(critSec);
 					_snwprintf_s(szCurrentCrawledPath[nCurrentCrawledpathIndex], MAX_CRAWLEDPATHSLEN, _TRUNCATE, L"Crawling folder: %s", workingPath.GetWinPath());
@@ -422,7 +422,7 @@ void CFolderCrawler::WorkerThread()
 					{
 						if (workingPath.HasAdminDir())
 						{
-							CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": Add watch path %s\n", workingPath.GetWinPath());
+							TracePrintf(_T(__FUNCTION__) L": Add watch path %s\n", workingPath.GetWinPath());
 							CGitStatusCache::Instance().AddPathToWatch(workingPath);
 						}
 						if (cachedDir)
@@ -464,7 +464,7 @@ bool CFolderCrawler::SetHoldoff(DWORD milliseconds /* = 100*/)
 void CFolderCrawler::BlockPath(const CTGitPath& path, DWORD ticks)
 {
 	AutoLocker lock(m_critSec);
-	CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": block path %s from being crawled\n", path.GetWinPath());
+	TracePrintf(_T(__FUNCTION__) L": block path %s from being crawled\n", path.GetWinPath());
 	m_blockedPath = path;
 	if (ticks == 0)
 		m_blockReleasesAt = GetTickCount64() + 10000;

@@ -267,13 +267,13 @@ bool CPathWatcher::AddPath(const CTGitPath& path)
 	}
 	if (!newRoot.IsEmpty())
 	{
-		tgit::DebugOutput::CTraceToOutputDebugString::Instance()(TEXT(__FUNCTION__) L": add path to watch %s\n", newRoot.GetWinPath());
+		tgit::DebugOutput::TracePrintf(TEXT(__FUNCTION__) L": add path to watch %s\n", newRoot.GetWinPath());
 		watchedPaths.AddPath(newRoot);
 		watchedPaths.RemoveChildren();
 		m_hCompPort.CloseHandle();
 		return true;
 	}
-	tgit::DebugOutput::CTraceToOutputDebugString::Instance()(TEXT(__FUNCTION__) L": add path to watch %s\n", path.GetWinPath());
+	tgit::DebugOutput::TracePrintf(TEXT(__FUNCTION__) L": add path to watch %s\n", path.GetWinPath());
 	watchedPaths.AddPath(path);
 	m_hCompPort.CloseHandle();
 	return true;
@@ -361,7 +361,7 @@ void CPathWatcher::WorkerThread()
 						break;
 					}
 					AutoLocker _(m_critSec);
-					tgit::DebugOutput::CTraceToOutputDebugString::Instance()(TEXT(__FUNCTION__) L": watching path %s\n", pDirInfo->m_dirName.GetWinPath());
+					tgit::DebugOutput::TracePrintf(TEXT(__FUNCTION__) L": watching path %s\n", pDirInfo->m_dirName.GetWinPath());
 					watchInfoMap[pDirInfo->m_hDir] = pDirInfo.get();
 					pDirInfo.release();
 				}
@@ -394,7 +394,7 @@ void CPathWatcher::WorkerThread()
 								pNotify = reinterpret_cast<PFILE_NOTIFY_INFORMATION>(reinterpret_cast<LPBYTE>(pNotify) + nOffset);
 								if (changedPath.size() >= static_cast<size_t>(bufferSize))
 									continue;
-								tgit::DebugOutput::CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": change notification: %s\n", changedPath.c_str());
+								tgit::DebugOutput::TracePrintf(_T(__FUNCTION__) L": change notification: %s\n", changedPath.c_str());
 								{
 									AutoLocker _(m_critSec);
 									if (m_changedPaths.GetCount() < MAX_CHANGED_PATHS)

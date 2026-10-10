@@ -195,7 +195,7 @@ void CRevisionGraphWnd::Init(CWnd * pParent, LPRECT rect)
 	m_pDlgTip = new CToolTipCtrl;
 	if(!m_pDlgTip->Create(this))
 	{
-		CTraceToOutputDebugString::Instance()(__FUNCTION__ ": Unable to add tooltip!\n");
+		TracePrintf(__FUNCTION__ ": Unable to add tooltip!\n");
 	}
 	EnableToolTips();
 

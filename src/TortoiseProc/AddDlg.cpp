@@ -241,7 +241,7 @@ LRESULT CAddDlg::OnFileDropped(WPARAM, LPARAM lParam)
 
 	// Always start the timer, since the status of an existing item might have changed
 	SetTimer(REFRESHTIMER, 200, nullptr);
-	CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": Item %s dropped, timer started\n", path.GetWinPath());
+	TracePrintf(_T(__FUNCTION__) L": Item %s dropped, timer started\n", path.GetWinPath());
 	return 0;
 }
 
@@ -264,12 +264,12 @@ void CAddDlg::OnTimer(UINT_PTR nIDEvent)
 		if (m_bThreadRunning)
 		{
 			SetTimer(REFRESHTIMER, 200, nullptr);
-			CTraceToOutputDebugString::Instance()(__FUNCTION__ ": Wait some more before refreshing\n");
+			TracePrintf(__FUNCTION__ ": Wait some more before refreshing\n");
 		}
 		else
 		{
 			KillTimer(REFRESHTIMER);
-			CTraceToOutputDebugString::Instance()(__FUNCTION__ ": Refreshing after items dropped\n");
+			TracePrintf(__FUNCTION__ ": Refreshing after items dropped\n");
 			OnSVNStatusListCtrlNeedsRefresh(0, 0);
 		}
 		break;

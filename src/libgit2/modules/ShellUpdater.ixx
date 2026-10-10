@@ -95,7 +95,7 @@ void CShellUpdater::Flush()
 	if (m_pathsForUpdating.IsEmpty())
 		return;
 
-	tgit::DebugOutput::CTraceToOutputDebugString::Instance()(__FUNCTION__ ": Flushing shell update list\n");
+	tgit::DebugOutput::TracePrintf(__FUNCTION__ ": Flushing shell update list\n");
 
 	UpdateShell();
 	m_pathsForUpdating.Clear();
@@ -104,7 +104,7 @@ void CShellUpdater::Flush()
 void CShellUpdater::UpdateShell()
 {
 	// Tell the shell extension to purge its cache
-	tgit::DebugOutput::CTraceToOutputDebugString::Instance()(__FUNCTION__ ": Setting cache invalidation event %I64u\n", GetTickCount64());
+	tgit::DebugOutput::TracePrintf(__FUNCTION__ ": Setting cache invalidation event %I64u\n", GetTickCount64());
 	SetEvent(m_hInvalidationEvent);
 
 	// We use the SVN 'notify' call-back to add items to the list
@@ -137,14 +137,14 @@ void CShellUpdater::UpdateShell()
 			nullptr, // don't set maximum bytes
 			nullptr)) // don't set maximum time
 	{
-		tgit::DebugOutput::CTraceToOutputDebugString::Instance()(__FUNCTION__ ": SetNamedPipeHandleState failed\n");
+		tgit::DebugOutput::TracePrintf(__FUNCTION__ ": SetNamedPipeHandleState failed\n");
 		return;
 	}
 
 	CTGitPath path;
 	for (int nPath = 0; nPath < m_pathsForUpdating.GetCount(); ++nPath) {
 		path.SetFromWin(StringView{g_Git.CombinePath(m_pathsForUpdating[nPath])});
-		tgit::DebugOutput::CTraceToOutputDebugString::Instance()(
+		tgit::DebugOutput::TracePrintf(
 			__FUNCTION__ L": Cache Item Update for %s (%I64u)\n",
 			path.GetWinPathString().c_str(),
 			GetTickCount64()

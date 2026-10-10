@@ -42,7 +42,7 @@ void CShellUpdater::Stop()
 	{
 		SetEvent(m_hTerminationEvent);
 		if(WaitForSingleObject(m_hThread, 200) != WAIT_OBJECT_0)
-			CTraceToOutputDebugString::Instance()(__FUNCTION__ ": Error terminating shell updater thread\n");
+			TracePrintf(__FUNCTION__ ": Error terminating shell updater thread\n");
 	}
 	m_hThread.CloseHandle();
 	m_hTerminationEvent.CloseHandle();
@@ -132,7 +132,7 @@ void CShellUpdater::WorkerThread()
 			}
 			if (workingPath.IsEmpty())
 				continue;
-			CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": shell notification for %s\n", workingPath.GetWinPath());
+			TracePrintf(_T(__FUNCTION__) L": shell notification for %s\n", workingPath.GetWinPath());
 			if (workingPath.IsDirectory())
 			{
 				// first send a notification about a sub folder change, so explorer doesn't discard

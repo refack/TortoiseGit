@@ -552,7 +552,7 @@ bool CCheckForUpdatesDlg::VerifyUpdateFile(const CString& filename, const CStrin
 		if (sFileVer.IsEmpty())
 		{
 			m_sErrors.AppendFormat(L"%s: Invalid filetype found (neither executable nor MSI).\r\n", static_cast<LPCWSTR>(reportingFilename));
-			CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": MsiGetSummaryInformation reported: %s\n", (CFormatMessageWrapper(ret)).c_str());
+			TracePrintf(_T(__FUNCTION__) L": MsiGetSummaryInformation reported: %s\n", (CFormatMessageWrapper(ret)).c_str());
 			return false;
 		}
 		else if (sFileVer == versionnumber)

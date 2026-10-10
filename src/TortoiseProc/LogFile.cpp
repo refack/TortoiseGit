@@ -92,7 +92,7 @@ bool CLogFile::Close()
 	}
 	catch (CFileException* pE)
 	{
-		CTraceToOutputDebugString::Instance()(__FUNCTION__ ": CFileException saving log file\n");
+		TracePrintf(__FUNCTION__ ": CFileException saving log file\n");
 		pE->Delete();
 		return false;
 	}

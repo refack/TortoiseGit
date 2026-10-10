@@ -209,7 +209,7 @@ BOOL CRevisionGraphDlg::InitializeToolbar()
 	if (!m_ToolBar.m_ZoomCombo.CreateEx(WS_EX_RIGHT, WS_CHILD|WS_VISIBLE|CBS_AUTOHSCROLL|CBS_DROPDOWN,
 		rect, &m_ToolBar, ID_REVGRAPH_ZOOMCOMBO))
 	{
-		CTraceToOutputDebugString::Instance()(__FUNCTION__ ": Failed to create combo-box\n");
+		TracePrintf(__FUNCTION__ ": Failed to create combo-box\n");
 		return FALSE;
 	}
 	m_ToolBar.m_ZoomCombo.ShowWindow(SW_SHOW);

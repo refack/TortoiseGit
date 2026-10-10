@@ -156,7 +156,7 @@ STDMETHODIMP CShellExt::IsMemberOf(LPCWSTR pwszPath, DWORD dwAttrib)
 		if (g_ShellCache.IsOnlyNonElevated() && g_ShellCache.IsProcessElevated())
 		{
 			cacheType = ShellCache::none;
-			CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": elevated overlays blocked\n");
+			TracePrintf(_T(__FUNCTION__) L": elevated overlays blocked\n");
 		}
 		switch (cacheType)
 		{
@@ -238,7 +238,7 @@ STDMETHODIMP CShellExt::IsMemberOf(LPCWSTR pwszPath, DWORD dwAttrib)
 			break;
 		}
 		g_filestate = m_State;
-		CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": Status %d for file %s\n", status, pwszPath);
+		TracePrintf(_T(__FUNCTION__) L": Status %d for file %s\n", status, pwszPath);
 	}
 	g_filepath.clear();
 	g_filepath = pPath;

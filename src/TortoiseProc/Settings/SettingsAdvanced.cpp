@@ -38,6 +38,9 @@ CSettingsAdvanced::CSettingsAdvanced()
 	AddSetting<BooleanSetting>(L"ConflictDontGuessBranchNames", false);
 	AddSetting<BooleanSetting>(L"CygwinHack", false);
 	AddSetting<BooleanSetting>(L"Debug", false);
+	AddSetting<StringSetting> (L"DebugLogFile", L"");
+	AddSetting<DWORDSetting>  (L"DebugLogMaxFiles", 5);
+	AddSetting<DWORDSetting>  (L"DebugLogMaxSizeKB", 10 * 1024);
 	AddSetting<BooleanSetting>(L"DebugOutputString", false);
 	AddSetting<DWORDSetting>  (L"DialogTitles", 0);
 	AddSetting<DWORDSetting>  (L"DiffSimilarityIndexThreshold", 50);

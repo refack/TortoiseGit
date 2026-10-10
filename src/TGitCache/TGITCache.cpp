@@ -96,9 +96,9 @@ void HandleCommandLine(LPCSTR lpCmdLine)
 		{
 			if (::WaitForSingleObject(hProcess, 5000) != WAIT_OBJECT_0)
 			{
-				CTraceToOutputDebugString::Instance()(__FUNCTION__ ": Killing previous TGitCache PID %d\n", pid);
+				TracePrintf(__FUNCTION__ ": Killing previous TGitCache PID %d\n", pid);
 				if (!::TerminateProcess(hProcess, static_cast<UINT>(-1)))
-					CTraceToOutputDebugString::Instance()(__FUNCTION__ ": Kill previous TGitCache PID %d failed\n", pid);
+					TracePrintf(__FUNCTION__ ": Kill previous TGitCache PID %d failed\n", pid);
 				::WaitForSingleObject(hProcess, 5000);
 			}
 			::CloseHandle(hProcess);
@@ -123,7 +123,7 @@ void HandleRestart()
 		wchar_t cmdLine[20] = { 0 };
 		swprintf_s(cmdLine, L" /kill:%d", GetCurrentProcessId());
 		if (!CCreateProcessHelper::CreateProcessDetached(exeName, cmdLine))
-			CTraceToOutputDebugString::Instance()(__FUNCTION__ ": Failed to start cache\n");
+			TracePrintf(__FUNCTION__ ": Failed to start cache\n");
 	}
 }
 
@@ -263,7 +263,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		}
 	case WM_QUERYENDSESSION:
 		{
-			CTraceToOutputDebugString::Instance()(__FUNCTION__ ": WM_QUERYENDSESSION\n");
+			TracePrintf(__FUNCTION__ ": WM_QUERYENDSESSION\n");
 			CAutoWriteWeakLock writeLock(CGitStatusCache::Instance().GetGuard(), 200);
 			CGitStatusCache::Instance().Stop();
 			return TRUE;
@@ -274,7 +274,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	case WM_DESTROY:
 	case WM_QUIT:
 		{
-			CTraceToOutputDebugString::Instance()(__FUNCTION__ ": WM_CLOSE/DESTROY/ENDSESSION/QUIT\n");
+			TracePrintf(__FUNCTION__ ": WM_CLOSE/DESTROY/ENDSESSION/QUIT\n");
 			if (niData.hWnd)
 			{
 				niData.hIcon = LoadIconEx(GetModuleHandle(nullptr), MAKEINTRESOURCE(IDI_TGITCACHE_STOPPING));
@@ -296,19 +296,19 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			{
 			case DBT_CUSTOMEVENT:
 				{
-					CTraceToOutputDebugString::Instance()(__FUNCTION__ ": WM_DEVICECHANGE with DBT_CUSTOMEVENT\n");
+					TracePrintf(__FUNCTION__ ": WM_DEVICECHANGE with DBT_CUSTOMEVENT\n");
 					if (phdr->dbch_devicetype == DBT_DEVTYP_HANDLE)
 					{
 						auto phandle = reinterpret_cast<DEV_BROADCAST_HANDLE*>(lParam);
 						if (IsEqualGUID(phandle->dbch_eventguid, GUID_IO_VOLUME_DISMOUNT))
 						{
-							CTraceToOutputDebugString::Instance()(__FUNCTION__ ": Device to be dismounted\n");
+							TracePrintf(__FUNCTION__ ": Device to be dismounted\n");
 							CAutoWriteLock writeLock(CGitStatusCache::Instance().GetGuard());
 							CGitStatusCache::Instance().CloseWatcherHandles(phandle->dbch_handle);
 						}
 						if (IsEqualGUID(phandle->dbch_eventguid, GUID_IO_VOLUME_LOCK))
 						{
-							CTraceToOutputDebugString::Instance()(__FUNCTION__ ": Device lock event\n");
+							TracePrintf(__FUNCTION__ ": Device lock event\n");
 							CAutoWriteLock writeLock(CGitStatusCache::Instance().GetGuard());
 							CGitStatusCache::Instance().CloseWatcherHandles(phandle->dbch_handle);
 						}
@@ -318,7 +318,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			case DBT_DEVICEREMOVEPENDING:
 			case DBT_DEVICEQUERYREMOVE:
 			case DBT_DEVICEREMOVECOMPLETE:
-				CTraceToOutputDebugString::Instance()(__FUNCTION__ ": WM_DEVICECHANGE with DBT_DEVICEREMOVEPENDING/DBT_DEVICEQUERYREMOVE/DBT_DEVICEREMOVECOMPLETE\n");
+				TracePrintf(__FUNCTION__ ": WM_DEVICECHANGE with DBT_DEVICEREMOVEPENDING/DBT_DEVICEQUERYREMOVE/DBT_DEVICEREMOVECOMPLETE\n");
 				if (phdr->dbch_devicetype == DBT_DEVTYP_HANDLE)
 				{
 					auto phandle = reinterpret_cast<DEV_BROADCAST_HANDLE*>(lParam);
@@ -378,12 +378,12 @@ VOID GetAnswerToRequest(const TGITCacheRequest* pRequest, TGITCacheResponse* pRe
 	CAutoReadWeakLock readLock(CGitStatusCache::Instance().GetGuard(), 2000);
 	if (readLock.IsAcquired())
 	{
-		CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": app asked for status of %s\n", pRequest->path);
+		TracePrintf(_T(__FUNCTION__) L": app asked for status of %s\n", pRequest->path);
 		CGitStatusCache::Instance().GetStatusForPath(path, pRequest->flags).BuildCacheResponse(*pReply, *pResponseLength);
 	}
 	else
 	{
-		CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": timeout for asked status of %s\n", pRequest->path);
+		TracePrintf(_T(__FUNCTION__) L": timeout for asked status of %s\n", pRequest->path);
 		CStatusCacheEntry entry;
 		entry.BuildCacheResponse(*pReply, *pResponseLength);
 	}
@@ -511,7 +511,7 @@ DWORD WINAPI ExplorerMonitorThread(LPVOID lpvParam)
 
 DWORD WINAPI PipeThread(LPVOID lpvParam)
 {
-	CTraceToOutputDebugString::Instance()(__FUNCTION__ ": PipeThread started\n");
+	TracePrintf(__FUNCTION__ ": PipeThread started\n");
 	auto bThreadRun = reinterpret_cast<bool*>(lpvParam);
 	// The main loop creates an instance of the named pipe and
 	// then waits for a client to connect to it. When the client
@@ -578,13 +578,13 @@ DWORD WINAPI PipeThread(LPVOID lpvParam)
 			continue;	// don't end the thread!
 		}
 	}
-	CTraceToOutputDebugString::Instance()(__FUNCTION__ ": Pipe thread exited\n");
+	TracePrintf(__FUNCTION__ ": Pipe thread exited\n");
 	return 0;
 }
 
 DWORD WINAPI CommandWaitThread(LPVOID lpvParam)
 {
-	CTraceToOutputDebugString::Instance()(__FUNCTION__ ": CommandWaitThread started\n");
+	TracePrintf(__FUNCTION__ ": CommandWaitThread started\n");
 	auto bThreadRun = reinterpret_cast<bool*>(lpvParam);
 	// The main loop creates an instance of the named pipe and
 	// then waits for a client to connect to it. When the client
@@ -652,13 +652,13 @@ DWORD WINAPI CommandWaitThread(LPVOID lpvParam)
 			continue;	// don't end the thread!
 		}
 	}
-	CTraceToOutputDebugString::Instance()(__FUNCTION__ ": CommandWait thread exited\n");
+	TracePrintf(__FUNCTION__ ": CommandWait thread exited\n");
 	return 0;
 }
 
 DWORD WINAPI InstanceThread(LPVOID lpvParam)
 {
-	CTraceToOutputDebugString::Instance()(__FUNCTION__ ": InstanceThread started\n");
+	TracePrintf(__FUNCTION__ ": InstanceThread started\n");
 	TGITCacheResponse response;
 	DWORD cbBytesRead, cbWritten;
 
@@ -680,7 +680,7 @@ DWORD WINAPI InstanceThread(LPVOID lpvParam)
 		if (!fSuccess || cbBytesRead != sizeof(request))
 		{
 			DisconnectNamedPipe(hPipe);
-			CTraceToOutputDebugString::Instance()(__FUNCTION__ ": Instance thread exited\n");
+			TracePrintf(__FUNCTION__ ": Instance thread exited\n");
 			if (InterlockedDecrement(&nThreadCount) == 0)
 				PostMessage(hWndHidden, WM_CLOSE, 0, 0);
 			return 1;
@@ -704,7 +704,7 @@ DWORD WINAPI InstanceThread(LPVOID lpvParam)
 		if (! fSuccess || responseLength != cbWritten)
 		{
 			DisconnectNamedPipe(hPipe);
-			CTraceToOutputDebugString::Instance()(__FUNCTION__ ": Instance thread exited\n");
+			TracePrintf(__FUNCTION__ ": Instance thread exited\n");
 			if (InterlockedDecrement(&nThreadCount) == 0)
 				PostMessage(hWndHidden, WM_CLOSE, 0, 0);
 			return 1;
@@ -717,7 +717,7 @@ DWORD WINAPI InstanceThread(LPVOID lpvParam)
 
 	FlushFileBuffers(hPipe);
 	DisconnectNamedPipe(hPipe);
-	CTraceToOutputDebugString::Instance()(__FUNCTION__ ": Instance thread exited\n");
+	TracePrintf(__FUNCTION__ ": Instance thread exited\n");
 	if (InterlockedDecrement(&nThreadCount) == 0)
 		PostMessage(hWndHidden, WM_CLOSE, 0, 0);
 	return 0;
@@ -725,7 +725,7 @@ DWORD WINAPI InstanceThread(LPVOID lpvParam)
 
 DWORD WINAPI CommandThread(LPVOID lpvParam)
 {
-	CTraceToOutputDebugString::Instance()(__FUNCTION__ ": CommandThread started\n");
+	TracePrintf(__FUNCTION__ ": CommandThread started\n");
 	DWORD cbBytesRead;
 
 	// The thread's parameter is a handle to a pipe instance.
@@ -745,7 +745,7 @@ DWORD WINAPI CommandThread(LPVOID lpvParam)
 		if (! fSuccess || cbBytesRead == 0)
 		{
 			DisconnectNamedPipe(hPipe);
-			CTraceToOutputDebugString::Instance()(__FUNCTION__ ": Command thread exited\n");
+			TracePrintf(__FUNCTION__ ": Command thread exited\n");
 			return 1;
 		}
 
@@ -755,7 +755,7 @@ DWORD WINAPI CommandThread(LPVOID lpvParam)
 			case TGITCACHECOMMAND_END:
 				FlushFileBuffers(hPipe);
 				DisconnectNamedPipe(hPipe);
-				CTraceToOutputDebugString::Instance()(__FUNCTION__ ": Command thread exited\n");
+				TracePrintf(__FUNCTION__ ": Command thread exited\n");
 				return 0;
 			case TGITCACHECOMMAND_CRAWL:
 				{
@@ -772,7 +772,7 @@ DWORD WINAPI CommandThread(LPVOID lpvParam)
 			case TGITCACHECOMMAND_REFRESHALL:
 				{
 					CAutoWriteLock writeLock(CGitStatusCache::Instance().GetGuard());
-					CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": refresh all\n");
+					TracePrintf(_T(__FUNCTION__) L": refresh all\n");
 					CGitStatusCache::Instance().Refresh();
 				}
 				break;
@@ -780,7 +780,7 @@ DWORD WINAPI CommandThread(LPVOID lpvParam)
 				{
 					CTGitPath changedpath;
 					changedpath.SetFromWin(command.path, true);
-					CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": release handle for path %s\n", changedpath.GetWinPath());
+					TracePrintf(_T(__FUNCTION__) L": release handle for path %s\n", changedpath.GetWinPath());
 					CAutoWriteLock writeLock(CGitStatusCache::Instance().GetGuard());
 					CGitStatusCache::Instance().CloseWatcherHandles(changedpath);
 					CGitStatusCache::Instance().RemoveCacheForPath(changedpath);
@@ -793,7 +793,7 @@ DWORD WINAPI CommandThread(LPVOID lpvParam)
 				{
 					CTGitPath changedpath;
 					changedpath.SetFromWin(command.path);
-					CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": block path %s\n", changedpath.GetWinPath());
+					TracePrintf(_T(__FUNCTION__) L": block path %s\n", changedpath.GetWinPath());
 					CGitStatusCache::Instance().BlockPath(changedpath);
 				}
 				break;
@@ -801,7 +801,7 @@ DWORD WINAPI CommandThread(LPVOID lpvParam)
 				{
 					CTGitPath changedpath;
 					changedpath.SetFromWin(command.path);
-					CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": unblock path %s\n", changedpath.GetWinPath());
+					TracePrintf(_T(__FUNCTION__) L": unblock path %s\n", changedpath.GetWinPath());
 					CGitStatusCache::Instance().UnBlockPath(changedpath);
 				}
 				break;
@@ -814,7 +814,7 @@ DWORD WINAPI CommandThread(LPVOID lpvParam)
 
 	FlushFileBuffers(hPipe);
 	DisconnectNamedPipe(hPipe);
-	CTraceToOutputDebugString::Instance()(__FUNCTION__ ": Command thread exited\n");
+	TracePrintf(__FUNCTION__ ": Command thread exited\n");
 	return 0;
 }
 
@@ -828,7 +828,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
 
 	if ((!hReloadProtection) || (GetLastError() == ERROR_ALREADY_EXISTS)) {
 		// An instance of TGitCache is already running
-		CTraceToOutputDebugString::Instance()(__FUNCTION__ ": TGitCache ignoring restart\n");
+		TracePrintf(__FUNCTION__ ": TGitCache ignoring restart\n");
 		return 0;
 	}
 

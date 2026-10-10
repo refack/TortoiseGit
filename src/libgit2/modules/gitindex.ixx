@@ -750,7 +750,7 @@ int CGitIndexList::ReadIndex(const std::wstring& dgitdir)
 	const CAutoRepository repository(repodir);
 	if (!repository)
 	{
-		tgit::DebugOutput::CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": Could not open git repository in %s: %s\n", dgitdir.c_str(), static_cast<LPCWSTR>(GetLibGit2LastErr()));
+		tgit::DebugOutput::TracePrintf(_T(__FUNCTION__) L": Could not open git repository in %s: %s\n", dgitdir.c_str(), static_cast<LPCWSTR>(GetLibGit2LastErr()));
 		return -1;
 	}
 
@@ -779,7 +779,7 @@ int CGitIndexList::ReadIndex(const std::wstring& dgitdir)
 	if (git_repository_index(index.GetPointer(), repository))
 	{
 		config.Free();
-		CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": Could not get index of git repository in %s: %s\n", dgitdir.c_str(), static_cast<LPCWSTR>(GetLibGit2LastErr()));
+		TracePrintf(_T(__FUNCTION__) L": Could not get index of git repository in %s: %s\n", dgitdir.c_str(), static_cast<LPCWSTR>(GetLibGit2LastErr()));
 		return -1;
 	}
 
@@ -796,13 +796,13 @@ int CGitIndexList::ReadIndex(const std::wstring& dgitdir)
 	catch (const std::bad_alloc& ex)
 	{
 		config.Free();
-		CTraceToOutputDebugString::Instance()(__FUNCTION__ ": Could not resize index-vector: %s\n", ex.what());
+		TracePrintf(__FUNCTION__ ": Could not resize index-vector: %s\n", ex.what());
 		return -1;
 	}
 	catch (const std::length_error& ex)
 	{
 		config.Free();
-		CTraceToOutputDebugString::Instance()(__FUNCTION__ ": Could not resize index-vector, length_error: %s\n", ex.what());
+		TracePrintf(__FUNCTION__ ": Could not resize index-vector, length_error: %s\n", ex.what());
 		return -1;
 	}
 	for (size_t i = 0; i < ecount; ++i)
@@ -831,7 +831,7 @@ int CGitIndexList::ReadIndex(const std::wstring& dgitdir)
 	// best effort: a branch whose upstream state cannot be read does not fail the index
 	static_cast<void>(ReadIncomingOutgoing(repository));
 
-	CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": Reloaded index for repo: %s\n", dgitdir.c_str());
+	TracePrintf(_T(__FUNCTION__) L": Reloaded index for repo: %s\n", dgitdir.c_str());
 
 	return 0;
 }
@@ -954,7 +954,7 @@ int CGitIndexList::GetFileStatus(CAutoRepository& repository, const std::wstring
 
 			if (repository.Open(repodir))
 			{
-				CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": Could not open git repository in %s for checking file: %s\n", gitdir.c_str(), static_cast<LPCWSTR>(TGitH::GetLibGit2LastErr()));
+				TracePrintf(_T(__FUNCTION__) L": Could not open git repository in %s for checking file: %s\n", gitdir.c_str(), static_cast<LPCWSTR>(TGitH::GetLibGit2LastErr()));
 				return -1;
 			}
 			git_repository_set_config(repository, config);
@@ -1285,18 +1285,18 @@ std::expected<void, int> CGitHeadFileList::ReadTree(const bool ignoreCase)
 	}
 	catch (const std::bad_alloc& ex)
 	{
-		CTraceToOutputDebugString::Instance()(__FUNCTION__ ": Catched exception inside ReadTreeRecursive: %s\n", ex.what());
+		TracePrintf(__FUNCTION__ ": Catched exception inside ReadTreeRecursive: %s\n", ex.what());
 		return std::unexpected(-1);
 	}
 	catch (const std::length_error& ex)
 	{
-		CTraceToOutputDebugString::Instance()(__FUNCTION__ ": Catched exception inside ReadTreeRecursive, length_error: %s\n", ex.what());
+		TracePrintf(__FUNCTION__ ": Catched exception inside ReadTreeRecursive, length_error: %s\n", ex.what());
 		return std::unexpected(-1);
 	}
 	if (!ret)
 	{
 		m_entries.clear();
-		CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": Could not open git repository in %s and read HEAD commit %s: %s\n", m_Gitdir.c_str(), m_Head.ToString().c_str(), static_cast<LPCWSTR>(TGitH::GetLibGit2LastErr()));
+		TracePrintf(_T(__FUNCTION__) L": Could not open git repository in %s and read HEAD commit %s: %s\n", m_Gitdir.c_str(), m_Head.ToString().c_str(), static_cast<LPCWSTR>(TGitH::GetLibGit2LastErr()));
 		m_LastModifyTimeHead = 0;
 		m_LastFileSizeHead = -1;
 		return std::unexpected(-1);
@@ -1304,7 +1304,7 @@ std::expected<void, int> CGitHeadFileList::ReadTree(const bool ignoreCase)
 
 	DoSortFilenametSortVector(m_entries, ignoreCase);
 
-	CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": Reloaded HEAD tree (commit is %s) for repo: %s\n", m_Head.ToString().c_str(), m_Gitdir.c_str());
+	TracePrintf(_T(__FUNCTION__) L": Reloaded HEAD tree (commit is %s) for repo: %s\n", m_Head.ToString().c_str(), m_Gitdir.c_str());
 
 	return {};
 }

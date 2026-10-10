@@ -522,7 +522,7 @@ std::wstring ReadGitLink(const std::wstring_view topDir, const std::wstring_view
 	// gate all paths starting with a backslash that are rooted paths
 	if (gitPath[0] == L'\\' && gitPath.size() >= 2 && !TGitPath::detail::IsValidWindowsPathCharacter(gitPath[1])) {
 		const std::wstring top(topDir);
-		tgit::DebugOutput::CTraceToOutputDebugString::Instance()(
+		tgit::DebugOutput::TracePrintf(
 			__FUNCTIONW__ L": Found path starting with backslash for worktree \"%s\" in .git-file: %s\n", top.c_str(),
 			gitPath.c_str());
 
@@ -2426,7 +2426,7 @@ bool CTGitPathList::LoadFromFile(const CTGitPath& filename) {
 	                                          OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
 	LARGE_INTEGER size{};
 	if (!file || !::GetFileSizeEx(file, &size) || size.QuadPart > std::numeric_limits<DWORD>::max()) {
-		tgit::DebugOutput::CTraceToOutputDebugString::Instance()(__FUNCTION__ ": could not open target file list\n");
+		tgit::DebugOutput::TracePrintf(__FUNCTION__ ": could not open target file list\n");
 		return false;
 	}
 
@@ -2434,7 +2434,7 @@ bool CTGitPathList::LoadFromFile(const CTGitPath& filename) {
 	DWORD read = 0;
 	if (!content.empty() && !::ReadFile(file, content.data(), static_cast<DWORD>(content.size() * sizeof(wchar_t)),
 	                                    &read, nullptr)) {
-		tgit::DebugOutput::CTraceToOutputDebugString::Instance()(__FUNCTION__ ": could not read target file list\n");
+		tgit::DebugOutput::TracePrintf(__FUNCTION__ ": could not read target file list\n");
 		return false;
 	}
 	content.resize(read / sizeof(wchar_t));
@@ -2452,7 +2452,7 @@ bool CTGitPathList::WriteToFile(const std::wstring_view sFilename, const bool bU
 	const RIAA::CAutoFile file = ::CreateFile(std::wstring(sFilename).c_str(), GENERIC_READ | GENERIC_WRITE, 0, nullptr,
 	                                          CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
 	if (!file) {
-		tgit::DebugOutput::CTraceToOutputDebugString::Instance()(__FUNCTION__ ": could not create temp file\n");
+		tgit::DebugOutput::TracePrintf(__FUNCTION__ ": could not create temp file\n");
 		return false;
 	}
 
@@ -2471,7 +2471,7 @@ bool CTGitPathList::WriteToFile(const std::wstring_view sFilename, const bool bU
 			return write(line.data(), line.size() * sizeof(wchar_t));
 		}();
 		if (!ok) {
-			tgit::DebugOutput::CTraceToOutputDebugString::Instance()(__FUNCTION__ ": could not write temp file\n");
+			tgit::DebugOutput::TracePrintf(__FUNCTION__ ": could not write temp file\n");
 			return false;
 		}
 	}

@@ -520,7 +520,7 @@ public:
 			while (ret == WAIT_TIMEOUT && s_bThreadRunning)
 			{
 				if (i++ >= 10)
-					CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": waiting for loading thread to exit since %d seconds...\n", i);
+					TracePrintf(_T(__FUNCTION__) L": waiting for loading thread to exit since %d seconds...\n", i);
 				ret = ::WaitForSingleObject(m_LoadingThread->m_hThread, 1000);
 			}
 			delete m_LoadingThread;
@@ -676,7 +676,7 @@ public:
 		{
 			::SetEvent(m_AsyncDiffEvent);
 			while (::WaitForSingleObject(m_DiffingThread->m_hThread, 1000) == WAIT_TIMEOUT)
-				CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": Waiting for async diff thread to exit...\n");
+				TracePrintf(_T(__FUNCTION__) L": Waiting for async diff thread to exit...\n");
 			delete m_DiffingThread;
 			m_DiffingThread = nullptr;
 			InterlockedExchange(&m_AsyncThreadExit, FALSE);

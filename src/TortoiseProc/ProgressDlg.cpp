@@ -185,7 +185,7 @@ redo:
 			goto redo;
 		}
 		else
-			CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": Message %d-%d could not be sent (error %d; %s)\n", wParam, lParam, GetLastError(), (CFormatMessageWrapper()).c_str());
+			TracePrintf(_T(__FUNCTION__) L": Message %d-%d could not be sent (error %d; %s)\n", wParam, lParam, GetLastError(), (CFormatMessageWrapper()).c_str());
 	}
 }
 
@@ -261,19 +261,19 @@ UINT CProgressDlg::RunCmdList(CWnd* pWnd, ARGV_VECTOR& cmdlist, STRING_VECTOR& d
 		{
 			cliparser.AppendChunk({ buffer, readnumber });
 		}
-		CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": waiting for process to finish (%s), aborted: %d\n", static_cast<LPCWSTR>(command), *bAbort);
+		TracePrintf(_T(__FUNCTION__) L": waiting for process to finish (%s), aborted: %d\n", static_cast<LPCWSTR>(command), *bAbort);
 
 		WaitForSingleObject(pi.hProcess, INFINITE);
 
 		DWORD status = 0;
 		if (!GetExitCodeProcess(pi.hProcess, &status) || *bAbort)
 		{
-			CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": process %s finished, status code could not be fetched, (error %d; %s), aborted: %d\n", static_cast<LPCWSTR>(command), GetLastError(), (CFormatMessageWrapper()).c_str(), *bAbort);
+			TracePrintf(_T(__FUNCTION__) L": process %s finished, status code could not be fetched, (error %d; %s), aborted: %d\n", static_cast<LPCWSTR>(command), GetLastError(), (CFormatMessageWrapper()).c_str(), *bAbort);
 
 			EnsurePostMessage(pWnd, MSG_PROGRESSDLG_UPDATE_UI, MSG_PROGRESSDLG_FAILED, status);
 			return TGIT_GIT_ERROR_GET_EXIT_CODE;
 		}
-		CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": process %s finished with code %d\n", static_cast<LPCWSTR>(command), status);
+		TracePrintf(_T(__FUNCTION__) L": process %s finished with code %d\n", static_cast<LPCWSTR>(command), status);
 		ret |= status;
 	}
 
@@ -318,7 +318,7 @@ LRESULT CProgressDlg::OnProgressUpdateUI(WPARAM wParam, LPARAM lParam)
 	{
 		KillTimer(REFRESHTIMER);
 		UpdateCmdOutput(m_cliOutputParser, m_Log, m_Progress, GetSafeHwnd(), m_pTaskbarList, &m_CurrentWork);
-		CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": got message: %d\n", wParam);
+		TracePrintf(_T(__FUNCTION__) L": got message: %d\n", wParam);
 		ULONGLONG tickSpent = GetTickCount64() - m_startTick;
 		CString strEndTime = CLoglistUtils::FormatDateAndTime(CTime::GetCurrentTime(), DATE_SHORTDATE, true, false);
 
@@ -672,7 +672,7 @@ void CProgressDlg::OnClose()
 
 void CProgressDlg::OnCancel()
 {
-	CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": User canceled\n");
+	TracePrintf(_T(__FUNCTION__) L": User canceled\n");
 	m_bAbort = true;
 	if (m_bDone)
 	{

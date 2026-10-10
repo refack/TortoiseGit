@@ -288,7 +288,7 @@ protected:
 		{
 			m_bExitLoadingThread = true;
 			while (::WaitForSingleObject(m_pLoadingThread->m_hThread, 1000) == WAIT_TIMEOUT)
-				CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": Waiting for ref loading thread to exit...\n");
+				TracePrintf(_T(__FUNCTION__) L": Waiting for ref loading thread to exit...\n");
 		}
 		delete m_pLoadingThread;
 		m_pLoadingThread = nullptr;

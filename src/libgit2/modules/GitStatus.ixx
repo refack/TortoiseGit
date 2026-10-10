@@ -148,7 +148,7 @@ int GetFileStatus_int(const std::wstring& gitdir, CGitRepoLists& repolists, cons
 		if (start == NPOS)
 		{
 			status.status = git_wc_status_added;
-			tgit::DebugOutput::CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": File miss in head tree %s\n", path.c_str());
+			tgit::DebugOutput::TracePrintf(_T(__FUNCTION__) L": File miss in head tree %s\n", path.c_str());
 			return 0;
 		}
 

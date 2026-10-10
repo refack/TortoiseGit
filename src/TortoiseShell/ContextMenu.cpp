@@ -52,7 +52,7 @@ static int g_syncSeq = 0;
 
 STDMETHODIMP CShellExt::Initialize(LPCITEMIDLIST pIDFolder, LPDATAOBJECT pDataObj, HKEY /* hRegKey */)
 {
-	CTraceToOutputDebugString::Instance()(__FUNCTION__ ": Shell :: Initialize\n");
+	TracePrintf(__FUNCTION__ ": Shell :: Initialize\n");
 	PreserveChdir preserveChdir;
 	files_.clear();
 	folder_.clear();
@@ -187,7 +187,7 @@ STDMETHODIMP CShellExt::Initialize(LPCITEMIDLIST pIDFolder, LPDATAOBJECT pDataOb
 					}
 					catch (...)
 					{
-						CTraceToOutputDebugString::Instance()(__FUNCTION__ ": Exception in GitStatus::GetStatus()\n");
+						TracePrintf(__FUNCTION__ ": Exception in GitStatus::GetStatus()\n");
 					}
 
 					// TODO: should we really assume any sub-directory to be versioned
@@ -312,7 +312,7 @@ STDMETHODIMP CShellExt::Initialize(LPCITEMIDLIST pIDFolder, LPDATAOBJECT pDataOb
 						}
 						catch (...)
 						{
-							CTraceToOutputDebugString::Instance()(__FUNCTION__ ": Exception in GitStatus::GetStatus()\n");
+							TracePrintf(__FUNCTION__ ": Exception in GitStatus::GetStatus()\n");
 						}
 					}
 
@@ -421,7 +421,7 @@ STDMETHODIMP CShellExt::Initialize(LPCITEMIDLIST pIDFolder, LPDATAOBJECT pDataOb
 				}
 				catch ( ... )
 				{
-					CTraceToOutputDebugString::Instance()(__FUNCTION__ ": Exception in GitStatus::GetStatus()\n");
+					TracePrintf(__FUNCTION__ ": Exception in GitStatus::GetStatus()\n");
 				}
 			}
 			else
@@ -470,7 +470,7 @@ STDMETHODIMP CShellExt::Initialize(LPCITEMIDLIST pIDFolder, LPDATAOBJECT pDataOb
 					}
 					catch ( ... )
 					{
-						CTraceToOutputDebugString::Instance()(__FUNCTION__ ": Exception in GitStatus::GetStatus()\n");
+						TracePrintf(__FUNCTION__ ": Exception in GitStatus::GetStatus()\n");
 					}
 				}
 				else
@@ -816,7 +816,7 @@ STDMETHODIMP CShellExt::QueryDropContext(UINT uFlags, UINT idCmdFirst, HMENU hMe
 
 STDMETHODIMP CShellExt::QueryContextMenu(HMENU hMenu, UINT indexMenu, UINT idCmdFirst, UINT /*idCmdLast*/, UINT uFlags)
 {
-	CTraceToOutputDebugString::Instance()(__FUNCTION__ ": Shell :: QueryContextMenu itemStates=%ld\n", itemStates);
+	TracePrintf(__FUNCTION__ ": Shell :: QueryContextMenu itemStates=%ld\n", itemStates);
 	PreserveChdir preserveChdir;
 
 	//first check if our drop handler is called
@@ -1200,7 +1200,7 @@ void CShellExt::InvokeCommand(TGitShellCommand cmd, const std::wstring& appDir, 
 	//
 	//* path is a path to a single file/directory for commands which only act on single items (log, sync, ...)
 	//* pathfile is a path to a temporary file which contains a list of file paths
-	CTraceToOutputDebugString::Instance()(__FUNCTION__ "\n");
+	TracePrintf(__FUNCTION__ "\n");
 	std::wstring gitCmd = L" /command:";
 	switch (cmd)
 	{
@@ -1621,7 +1621,7 @@ STDMETHODIMP CShellExt::GetCommandString(UINT_PTR idCmd, UINT uFlags, UINT FAR *
 			if (verb_id_it != myVerbsIDMap.end() && verb_id_it->first == idCmd)
 			{
 				std::wstring help = verb_id_it->second;
-				CTraceToOutputDebugString::Instance()(__FUNCTION__ ": verb : %ws\n", help.c_str());
+				TracePrintf(__FUNCTION__ ": verb : %ws\n", help.c_str());
 				lstrcpynW(reinterpret_cast<LPWSTR>(pszName), help.c_str(), cchMax - 1);
 				hr = S_OK;
 			}
@@ -2177,23 +2177,23 @@ void CShellExt::RunCommand(const std::wstring& path, const std::wstring& command
 		Microsoft::WRL::ComPtr<IServiceProvider> serviceProvider;
 		if (SUCCEEDED(site.As(&serviceProvider)))
 		{
-			CTraceToOutputDebugString::Instance()(__FUNCTION__ ": got IServiceProvider\n");
+			TracePrintf(__FUNCTION__ ": got IServiceProvider\n");
 			Microsoft::WRL::ComPtr<IShellBrowser> shellBrowser;
 			if (SUCCEEDED(serviceProvider->QueryService(SID_SShellBrowser, IID_IShellBrowser, &shellBrowser)))
 			{
-				CTraceToOutputDebugString::Instance()(__FUNCTION__ ": got IShellBrowser\n");
+				TracePrintf(__FUNCTION__ ": got IShellBrowser\n");
 				Microsoft::WRL::ComPtr<IShellView> shellView;
 				if (SUCCEEDED(shellBrowser->QueryActiveShellView(&shellView)))
 				{
-					CTraceToOutputDebugString::Instance()(__FUNCTION__ ": got IShellView\n");
+					TracePrintf(__FUNCTION__ ": got IShellView\n");
 					Microsoft::WRL::ComPtr<IDispatch> spdispView;
 					if (SUCCEEDED(shellView->GetItemObject(SVGIO_BACKGROUND, IID_PPV_ARGS(&spdispView))))
 					{
-						CTraceToOutputDebugString::Instance()(__FUNCTION__ ": got IDispatch\n");
+						TracePrintf(__FUNCTION__ ": got IDispatch\n");
 						Microsoft::WRL::ComPtr<IShellFolderViewDual> spFolderView;
 						if (SUCCEEDED(spdispView.As(&spFolderView)))
 						{
-							CTraceToOutputDebugString::Instance()(__FUNCTION__ ": got IShellFolderViewDual\n");
+							TracePrintf(__FUNCTION__ ": got IShellFolderViewDual\n");
 							Microsoft::WRL::ComPtr<IDispatch> spdispShell;
 							if (SUCCEEDED(spFolderView->get_Application(&spdispShell)))
 							{
@@ -2251,14 +2251,14 @@ bool CShellExt::ShouldEnableMenu(const YesNoPair& pair) const
 // IExplorerCommand
 HRESULT __stdcall CShellExt::GetTitle(IShellItemArray* /*psiItemArray*/, LPWSTR* ppszName)
 {
-	CTraceToOutputDebugString::Instance()(__FUNCTION__ ": Shell :: GetTitle\n");
+	TracePrintf(__FUNCTION__ ": Shell :: GetTitle\n");
 	SHStrDupW(L"TortoiseGit", ppszName);
 	return S_OK;
 }
 
 HRESULT __stdcall CShellExt::GetIcon(IShellItemArray* /*psiItemArray*/, LPWSTR* ppszIcon)
 {
-	CTraceToOutputDebugString::Instance()(__FUNCTION__ ": Shell :: GetIcon\n");
+	TracePrintf(__FUNCTION__ ": Shell :: GetIcon\n");
 	std::wstring iconPath = CPathUtils::GetAppDirectory(g_hmodThisDll);
 	iconPath += L"TortoiseGitProc.exe,-";
 	iconPath += std::to_wstring(IDI_APP);
@@ -2268,21 +2268,21 @@ HRESULT __stdcall CShellExt::GetIcon(IShellItemArray* /*psiItemArray*/, LPWSTR* 
 
 HRESULT __stdcall CShellExt::GetToolTip(IShellItemArray* /*psiItemArray*/, LPWSTR* ppszInfotip)
 {
-	CTraceToOutputDebugString::Instance()(__FUNCTION__ ": Shell :: GetToolTip\n");
+	TracePrintf(__FUNCTION__ ": Shell :: GetToolTip\n");
 	*ppszInfotip = nullptr;
 	return E_NOTIMPL;
 }
 
 HRESULT __stdcall CShellExt::GetCanonicalName(GUID* pguidCommandName)
 {
-	CTraceToOutputDebugString::Instance()(__FUNCTION__ ": Shell :: GetCanonicalName\n");
+	TracePrintf(__FUNCTION__ ": Shell :: GetCanonicalName\n");
 	*pguidCommandName = GUID_NULL;
 	return S_OK;
 }
 
 HRESULT __stdcall CShellExt::GetState(IShellItemArray* psiItemArray, BOOL fOkToBeSlow, EXPCMDSTATE* pCmdState)
 {
-	CTraceToOutputDebugString::Instance()(__FUNCTION__ ": Shell :: GetState\n");
+	TracePrintf(__FUNCTION__ ": Shell :: GetState\n");
 	*pCmdState = ECS_ENABLED;
 	Microsoft::WRL::ComPtr<IShellItemArray> ownItemArray;
 	if (m_site)
@@ -2304,7 +2304,7 @@ HRESULT __stdcall CShellExt::GetState(IShellItemArray* psiItemArray, BOOL fOkToB
 			GetClassName(hWnd, szWndClassName, _countof(szWndClassName));
 			if (wcscmp(szWndClassName, L"NamespaceTreeControl"))
 			{
-				CTraceToOutputDebugString::Instance()(__FUNCTION__ ": Shell :: GetState - hidden\n");
+				TracePrintf(__FUNCTION__ ": Shell :: GetState - hidden\n");
 				*pCmdState = ECS_HIDDEN;
 				return S_OK;
 			}
@@ -2343,7 +2343,7 @@ HRESULT __stdcall CShellExt::GetState(IShellItemArray* psiItemArray, BOOL fOkToB
 					SetThreadDpiAwarenessContext(context);
 					if (!ownItemArray)
 					{
-						CTraceToOutputDebugString::Instance()(__FUNCTION__ ": Shell :: GetState - hidden\n");
+						TracePrintf(__FUNCTION__ ": Shell :: GetState - hidden\n");
 						*pCmdState = ECS_HIDDEN;
 						return S_OK;
 					}
@@ -2386,7 +2386,7 @@ HRESULT __stdcall CShellExt::GetState(IShellItemArray* psiItemArray, BOOL fOkToB
 		IDataObject* pDataObj = nullptr;
 		if (SUCCEEDED(psiItemArray->BindToHandler(nullptr, BHID_DataObject, IID_IDataObject, reinterpret_cast<void**>(&pDataObj))))
 		{
-			CTraceToOutputDebugString::Instance()(__FUNCTION__ ": Shell :: Initialize from GetState()\n");
+			TracePrintf(__FUNCTION__ ": Shell :: Initialize from GetState()\n");
 
 			Initialize(nullptr, pDataObj, nullptr);
 			pDataObj->Release();
@@ -2419,14 +2419,14 @@ HRESULT __stdcall CShellExt::Invoke(IShellItemArray* /*psiItemArray*/, IBindCtx*
 
 HRESULT __stdcall CShellExt::GetFlags(EXPCMDFLAGS* pFlags)
 {
-	CTraceToOutputDebugString::Instance()(__FUNCTION__ ": Shell :: GetFlags\n");
+	TracePrintf(__FUNCTION__ ": Shell :: GetFlags\n");
 	*pFlags = ECF_HASSUBCOMMANDS;
 	return S_OK;
 }
 
 HRESULT __stdcall CShellExt::EnumSubCommands(IEnumExplorerCommand** ppEnum)
 {
-	CTraceToOutputDebugString::Instance()(__FUNCTION__ ": Shell :: EnumSubCommands %lld\n", m_explorerCommands.size());
+	TracePrintf(__FUNCTION__ ": Shell :: EnumSubCommands %lld\n", m_explorerCommands.size());
 	m_explorerCommands.clear();
 	QueryContextMenu(nullptr, 0, 0, 0, CMF_EXTENDEDVERBS | CMF_NORMAL);
 	*ppEnum = Microsoft::WRL::Make<CExplorerCommandEnum>(m_explorerCommands).Detach();
@@ -2435,48 +2435,48 @@ HRESULT __stdcall CShellExt::EnumSubCommands(IEnumExplorerCommand** ppEnum)
 
 std::wstring CShellExt::ExplorerViewPath(const Microsoft::WRL::ComPtr<IUnknown>& site)
 {
-	CTraceToOutputDebugString::Instance()(__FUNCTION__ "\n");
+	TracePrintf(__FUNCTION__ "\n");
 
 	if (!site)
 		return {};
 
-	CTraceToOutputDebugString::Instance()(__FUNCTION__ ": got site\n");
+	TracePrintf(__FUNCTION__ ": got site\n");
 	Microsoft::WRL::ComPtr<IServiceProvider> serviceProvider;
 	if (!SUCCEEDED(site.As(&serviceProvider)))
 		return {};
 
-	CTraceToOutputDebugString::Instance()(__FUNCTION__ ": got IServiceProvider\n");
+	TracePrintf(__FUNCTION__ ": got IServiceProvider\n");
 	Microsoft::WRL::ComPtr<IShellBrowser> shellBrowser;
 	if (!SUCCEEDED(serviceProvider->QueryService(SID_SShellBrowser, IID_IShellBrowser, &shellBrowser)))
 		return {};
 
-	CTraceToOutputDebugString::Instance()(__FUNCTION__ ": got IShellBrowser\n");
+	TracePrintf(__FUNCTION__ ": got IShellBrowser\n");
 	Microsoft::WRL::ComPtr<IShellView> shellView;
 	if (!SUCCEEDED(shellBrowser->QueryActiveShellView(&shellView)))
 		return {};
 
-	CTraceToOutputDebugString::Instance()(__FUNCTION__ ": got IShellView\n");
+	TracePrintf(__FUNCTION__ ": got IShellView\n");
 	Microsoft::WRL::ComPtr<IFolderView> folderView;
 	if (!SUCCEEDED(shellView.As(&folderView)))
 		return {};
 
-	CTraceToOutputDebugString::Instance()(__FUNCTION__ ": got IFolderView\n");
+	TracePrintf(__FUNCTION__ ": got IFolderView\n");
 	Microsoft::WRL::ComPtr<IPersistFolder2> persistFolder;
 	if (!SUCCEEDED(folderView->GetFolder(IID_IPersistFolder2, (LPVOID*)&persistFolder)))
 		return {};
 
-	CTraceToOutputDebugString::Instance()(__FUNCTION__ ": got IPersistFolder2\n");
+	TracePrintf(__FUNCTION__ ": got IPersistFolder2\n");
 	PIDLIST_ABSOLUTE curFolder;
 	if (!SUCCEEDED(persistFolder->GetCurFolder(&curFolder)))
 		return {};
 	SCOPE_EXIT { CoTaskMemFree(curFolder); };
 
-	CTraceToOutputDebugString::Instance()(__FUNCTION__ ": got GetCurFolder\n");
+	TracePrintf(__FUNCTION__ ": got GetCurFolder\n");
 	wchar_t buf[MAX_PATH] = { 0 };
 	// find the path of the folder
 	if (!SHGetPathFromIDList(curFolder, buf))
 		return {};
 
-	CTraceToOutputDebugString::Instance()(__FUNCTION__ L": got SHGetPathFromIDList : %s\n", buf);
+	TracePrintf(__FUNCTION__ L": got SHGetPathFromIDList : %s\n", buf);
 	return { buf };
 }

@@ -100,7 +100,7 @@ std::optional<const FileStatusCacheEntry *> GitFolderStatus::BuildCache(const CT
 		status = { git_wc_status_none, false, false };
 	}
 
-	CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": building cache for %s - time %d\n", filepath.GetWinPath(), t2 - t1);
+	TracePrintf(_T(__FUNCTION__) L": building cache for %s - time %d\n", filepath.GetWinPath(), t2 - t1);
 
 	m_TimeStamp = GetTickCount64();
 
@@ -159,12 +159,12 @@ const FileStatusCacheEntry * GitFolderStatus::GetCachedItem(const CTGitPath& fil
 	if(m_mostRecentPath.IsEquivalentTo(CTGitPath(sCacheKey.c_str())))
 	{
 		// We've hit the same result as we were asked for last time
-		CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": fast cache hit for %s\n", filepath.GetWinPath());
+		TracePrintf(_T(__FUNCTION__) L": fast cache hit for %s\n", filepath.GetWinPath());
 		retVal = m_mostRecentStatus;
 	}
 	else if ((iter = m_cache.find(sCacheKey)) != m_cache.end())
 	{
-		CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": cache found for %s\n", filepath.GetWinPath());
+		TracePrintf(_T(__FUNCTION__) L": cache found for %s\n", filepath.GetWinPath());
 		retVal = &iter->second;
 		m_mostRecentStatus = retVal;
 		m_mostRecentPath = CTGitPath(sCacheKey.c_str());
@@ -179,14 +179,14 @@ const FileStatusCacheEntry * GitFolderStatus::GetCachedItem(const CTGitPath& fil
 	if ((now >= m_TimeStamp) && ((now - m_TimeStamp) > GetTimeoutValue()))
 	{
 		// Cache is timed-out
-		CTraceToOutputDebugString::Instance()(__FUNCTION__ ": Cache timed-out\n");
+		TracePrintf(__FUNCTION__ ": Cache timed-out\n");
 		ClearCache();
 		return nullptr;
 	}
 	else if (WaitForSingleObject(m_hInvalidationEvent, 0) == WAIT_OBJECT_0)
 	{
 		// TortoiseGitProc has just done something which has invalidated the cache
-		CTraceToOutputDebugString::Instance()(__FUNCTION__ ": Cache invalidated\n");
+		TracePrintf(__FUNCTION__ ": Cache invalidated\n");
 		ClearCache();
 		return nullptr;
 	}

@@ -379,14 +379,14 @@ public:
 		if (git_get_commit_from_hash(&commit, m_CommitHash.ToRaw()))
 		{
 			m_sErr = std::format(L"git_get_commit_from_hash failed for {}", m_CommitHash.ToString()).data();
-			tgit::DebugOutput::CTraceToOutputDebugString::Instance()(__FUNCTION__ L": " + m_sErr + L'\n');
+			tgit::DebugOutput::TraceRaw(std::wstring(__FUNCTION__ L": " + m_sErr + L'\n'));
 			return -1;
 		}
 	}
 	catch (std::exception& e)
 	{
 		m_sErr = std::format(L"Could not get commit \"{}\".\nlibgit reports:\n{}", m_CommitHash.ToString(), CUnicodeUtils::Convert2Unicode<std::wstring>(e.what())).data();
-		tgit::DebugOutput::CTraceToOutputDebugString::Instance()(__FUNCTION__ L": " + m_sErr + L'\n');
+		tgit::DebugOutput::TraceRaw(std::wstring(__FUNCTION__ L": " + m_sErr + L'\n'));
 		return -1;
 	}
 
@@ -415,7 +415,7 @@ public:
 		catch (const char* msg)
 		{
 			m_sErr.Format(L"Could do diff for \"%ls\".\nlibgit reports:\n%s", m_CommitHash.ToString().data(), CUnicodeUtils::Convert2Unicode<CString>(msg));
-			tgit::DebugOutput::CTraceToOutputDebugString::Instance()(__FUNCTION__ L": " + m_sErr + L'\n');
+			tgit::DebugOutput::TraceRaw(std::wstring(__FUNCTION__ L": " + m_sErr + L'\n'));
 			git_free_commit(&commit);
 			return -1;
 		}

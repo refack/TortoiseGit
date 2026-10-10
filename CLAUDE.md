@@ -538,6 +538,27 @@ What cutting it involves, so it need not be rediscovered:
 - It compiles `PathUtils.cpp`, `DarkModeHelper`, `LangDll` and `Theme` from
   `src\Utils` — see the consumer-sweep rule above before assuming it is isolated.
 
+### Tracing — `TracePrintf` → `Trace`
+
+`DebugOutput` is free functions over two module-scoped fields (2026-10-10);
+the log file is `RollingFile.ixx`. `TracePrintf` is `[[deprecated]]` and has
+~239 callers; measure with `git grep -c TracePrintf -- src`. Each one is
+a hand conversion, not a sweep, because a printf format is a set of per-argument
+decisions:
+
+- `%s`/`%d`/`%I64u` → `{}`, `%x` → `{:x}`; `%%` → `%`, and a literal `{`/`}`
+  must become `{{`/`}}`.
+- Narrow-format callers (`__FUNCTION__ ": …"`, the `PCSTR` overload) need the
+  `L`; `__FUNCTION__ L": {}"` still concatenates into one wide literal.
+- In MSVC's *wide* printf, `%s` is wide and `%S`/`%hs` narrow; `std::format`
+  rejects a `char*` argument outright, so those surface as compile errors.
+- `CString` arguments need a reachable `std::formatter<CStringT>` or an explicit
+  `std::wstring_view` bridge.
+- A runtime string is `TraceRaw`, never a format — `GitRevLoglist` passed
+  `m_sErr` as the format until this landed.
+
+When the count reaches zero, delete `TracePrintf` and the two `VFormat`s.
+
 ### Open risk areas
 
 - **`GetWorkingTreeChanges` under `LIBGIT2_ALL` is ~350× slower than the CLI.**

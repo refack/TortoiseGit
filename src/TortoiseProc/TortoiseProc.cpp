@@ -62,9 +62,9 @@ END_MESSAGE_MAP()
 
 CTortoiseProcApp::CTortoiseProcApp()
 {
-	CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": Constructor\n");
+	TracePrintf(_T(__FUNCTION__) L": Constructor\n");
 	SetDllDirectory(L"");
-	CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": CommandLine: %s\n", GetCommandLine());
+	TracePrintf(_T(__FUNCTION__) L": CommandLine: %s\n", GetCommandLine());
 	EnableHtmlHelp();
 	CHooks::Create();
 	git_libgit2_init();
@@ -102,7 +102,7 @@ CWnd* GetParentCWnd(HWND hWnd)
 
 BOOL CTortoiseProcApp::InitInstance()
 {
-	CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": InitInstance\n");
+	TracePrintf(_T(__FUNCTION__) L": InitInstance\n");
 	CheckUpgrade();
 	CMFCVisualManager::SetDefaultManager(RUNTIME_CLASS(CMFCVisualManagerWindows));
 	CMFCButton::EnableWindowsTheming();
@@ -114,7 +114,7 @@ BOOL CTortoiseProcApp::InitInstance()
 		AfxSetResourceHandle(hInst);
 	setlocale(LC_ALL, "");
 
-	CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": Initializing UI components ...\n");
+	TracePrintf(_T(__FUNCTION__) L": Initializing UI components ...\n");
 	// InitCommonControls() is required on Windows XP if an application
 	// manifest specifies use of ComCtl32.dll version 6 or later to enable
 	// visual styles.  Otherwise, any window creation will fail.
@@ -155,7 +155,7 @@ BOOL CTortoiseProcApp::InitInstance()
 		AfxMessageBox(AfxGetApp()->m_lpCmdLine, MB_OK | MB_ICONINFORMATION);
 
 #if PREVIEW
-	CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": Preview: %s\n", _T(PREVIEW_INFO));
+	TracePrintf(_T(__FUNCTION__) L": Preview: %s\n", _T(PREVIEW_INFO));
 #else
 	if (CString hotfix = (PathUtils::GetAppDirectory() + L"hotfix.ini").c_str(); PathFileExists(hotfix))
 	{
@@ -166,7 +166,7 @@ BOOL CTortoiseProcApp::InitInstance()
 			auto version = versionparser.GetTortoiseGitVersion();
 			if (version.major == TGIT_VERMAJOR && version.minor == TGIT_VERMINOR && (version.micro > TGIT_VERMICRO || version.micro == TGIT_VERMICRO && version.build > TGIT_VERBUILD))
 			{
-				CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": Hotfix: %s\n", static_cast<LPCWSTR>(versionparser.GetTortoiseGitVersion().version));
+				TracePrintf(_T(__FUNCTION__) L": Hotfix: %s\n", static_cast<LPCWSTR>(versionparser.GetTortoiseGitVersion().version));
 			}
 		}
 	}
@@ -236,7 +236,7 @@ BOOL CTortoiseProcApp::InitInstance()
 	{
 		CString versionString;
 		versionString.Format(L"%X", TGitH::ms_LastMsysGitVersion);
-		CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": msysGitVersion: %s\n", static_cast<LPCWSTR>(versionString));
+		TracePrintf(_T(__FUNCTION__) L": msysGitVersion: %s\n", static_cast<LPCWSTR>(versionString));
 	}
 
 	if (parser.HasKey(L"path") && parser.HasKey(L"pathfile"))
@@ -383,7 +383,7 @@ void CTortoiseProcApp::CheckUpgrade() const
 {
 	CRegString regVersion = CRegString(L"Software\\TortoiseGit\\CurrentVersion");
 	CString sVersion = regVersion;
-	CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": Current TGit Version %s vs. last used version %s\n", _T(STRPRODUCTVER), static_cast<LPCWSTR>(sVersion));
+	TracePrintf(_T(__FUNCTION__) L": Current TGit Version %s vs. last used version %s\n", _T(STRPRODUCTVER), static_cast<LPCWSTR>(sVersion));
 	if (sVersion.Compare(_T(STRPRODUCTVER))==0)
 		return;
 	// we're starting the first time with a new version!
@@ -565,7 +565,7 @@ void CTortoiseProcApp::CheckUpgrade() const
 		CRegStdDWORD(L"Software\\TortoiseGit\\CheckNewer").removeValue();
 	}
 
-	CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": Setting up diff scripts ...\n");
+	TracePrintf(_T(__FUNCTION__) L": Setting up diff scripts ...\n");
 	CAppUtils::SetupDiffScripts(false, CString());
 
 	// set the current version so we don't come here again until the next update!

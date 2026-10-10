@@ -128,7 +128,7 @@ int CLogCache::FetchCacheIndex(const CString& GitDir)
 		}
 		catch (CFileException* pE)
 		{
-			CTraceToOutputDebugString::Instance()(__FUNCTION__ ": CFileException loading shallow file commits list\n");
+			TracePrintf(__FUNCTION__ ": CFileException loading shallow file commits list\n");
 			pE->Delete();
 		}
 	}
@@ -495,7 +495,7 @@ int CLogCache::SaveCache()
 			SetFilePointerEx(m_DataFile, start, &offset, FILE_CURRENT);
 			if (SaveOneItem((*i).second, offset))
 			{
-				CTraceToOutputDebugString::Instance()(__FUNCTION__ ": Save one item error\n");
+				TracePrintf(__FUNCTION__ ": Save one item error\n");
 				if (!SetFilePointerEx(m_DataFile, offset, &offset, FILE_BEGIN))
 					break;
 				continue;

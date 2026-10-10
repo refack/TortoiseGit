@@ -123,6 +123,38 @@
 			</listitem>
 		</varlistentry>
 		<varlistentry>
+			<term condition="pot">DebugLogFile</term>
+			<listitem>
+				<para>
+					When <literal>DebugOutputString</literal> is enabled, also
+					append the debug messages to this file, each line stamped with
+					the time, process and thread. Environment variables are expanded,
+					e.g. <filename>%LOCALAPPDATA%\TortoiseGit\debug.log</filename>.
+					All TortoiseGit processes share the one file.
+					Empty (the default) writes no file.
+				</para>
+			</listitem>
+		</varlistentry>
+		<varlistentry>
+			<term condition="pot">DebugLogMaxFiles</term>
+			<listitem>
+				<para>
+					How many rolled-over debug log files to keep, named
+					<filename>&lt;DebugLogFile&gt;.1</filename> (newest) and up.
+					The default is 5.
+				</para>
+			</listitem>
+		</varlistentry>
+		<varlistentry>
+			<term condition="pot">DebugLogMaxSizeKB</term>
+			<listitem>
+				<para>
+					The size in KiB at which <literal>DebugLogFile</literal> is
+					rolled over. 0 disables rolling over. The default is 10240.
+				</para>
+			</listitem>
+		</varlistentry>
+		<varlistentry>
 			<term condition="pot">DebugOutputString</term>
 			<listitem>
 				<para>

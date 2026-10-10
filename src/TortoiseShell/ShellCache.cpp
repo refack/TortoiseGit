@@ -374,7 +374,7 @@ BOOL ShellCache::IsPathAllowed(LPCWSTR path)
 				wcsncpy_s(pathbuf, path, _countof(pathbuf) - 1);
 				PathStripToRoot(pathbuf);
 				PathAddBackslash(pathbuf);
-				CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": GetDriveType for %s, Drive %d\n", pathbuf, drivenumber);
+				TracePrintf(_T(__FUNCTION__) L": GetDriveType for %s, Drive %d\n", pathbuf, drivenumber);
 				drivetype = GetDriveType(pathbuf);
 			}
 			drivetypecache[drivenumber] = drivetype;
@@ -395,7 +395,7 @@ BOOL ShellCache::IsPathAllowed(LPCWSTR path)
 				drivetype = drivetypecache[26];
 			else
 			{
-				CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L"GetDriveType for %s\n", pathbuf);
+				TracePrintf(_T(__FUNCTION__) L"GetDriveType for %s\n", pathbuf);
 				drivetype = GetDriveType(pathbuf);
 				drivetypecache[26] = drivetype;
 				wcsncpy_s(drivetypepathcache, pathbuf, MAX_PATH - 1); // MAX_PATH ok.

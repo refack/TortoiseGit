@@ -136,14 +136,14 @@ void CGitStatusCache::Create()
 exit:
 	DeleteFile(path2);
 	m_pInstance->watcher.ClearInfoMap();
-	CTraceToOutputDebugString::Instance()(__FUNCTION__ ": cache loaded from disk successfully!\n");
+	TracePrintf(__FUNCTION__ ": cache loaded from disk successfully!\n");
 	return;
 error:
 	DeleteFile(path2);
 	m_pInstance->watcher.ClearInfoMap();
 	Destroy();
 	m_pInstance = new CGitStatusCache;
-	CTraceToOutputDebugString::Instance()(__FUNCTION__ ": cache not loaded from disk\n");
+	TracePrintf(__FUNCTION__ ": cache not loaded from disk\n");
 }
 
 bool CGitStatusCache::SaveCache()
@@ -186,7 +186,7 @@ bool CGitStatusCache::SaveCache()
 			}
 		}
 	}
-	CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": cache saved to disk at %s\n", static_cast<LPCWSTR>(path));
+	TracePrintf(_T(__FUNCTION__) L": cache saved to disk at %s\n", static_cast<LPCWSTR>(path));
 	return true;
 error:
 	Destroy();
@@ -268,7 +268,7 @@ bool CGitStatusCache::IsPathGood(const CTGitPath& path)
 		// TODO: maybe we also need to check if index.lock and HEAD.lock still exists after a specific timeout (if we miss update notifications for these files too often)
 		if (GetTickCount64() < it->second && it->first.IsAncestorOf(path))
 		{
-			CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": path not good: %s\n", it->first.GetWinPath());
+			TracePrintf(_T(__FUNCTION__) L": path not good: %s\n", it->first.GetWinPath());
 			return false;
 		}
 	}
@@ -298,7 +298,7 @@ bool CGitStatusCache::UnBlockPath(const CTGitPath& path)
 	std::map<CTGitPath, ULONGLONG>::iterator it = m_NoWatchPaths.find(path.GetDirectory());
 	if (it != m_NoWatchPaths.end())
 	{
-		CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": path removed from no good: %s\n", it->first.GetWinPath());
+		TracePrintf(_T(__FUNCTION__) L": path removed from no good: %s\n", it->first.GetWinPath());
 		m_NoWatchPaths.erase(it);
 		ret = true;
 	}
@@ -400,7 +400,7 @@ bool CGitStatusCache::RemoveCacheForDirectory(CCachedDirectory* cdir, const CTGi
 	RemoveCacheForDirectoryChildren(cdir, origPath);
 	RemoveCacheForDirectoryChildren(cdir, cdir->m_directoryPath);
 
-	CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": removed from cache %s\n", cdir->m_directoryPath.GetWinPath());
+	TracePrintf(_T(__FUNCTION__) L": removed from cache %s\n", cdir->m_directoryPath.GetWinPath());
 	delete cdir;
 	return true;
 }
@@ -461,7 +461,7 @@ CCachedDirectory * CGitStatusCache::GetDirectoryCacheEntry(const CTGitPath& path
 			// again. If that's the case, just do nothing
 			if (path.IsDirectory()||(!path.Exists()))
 			{
-				CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": adding %s to our cache\n", path.GetWinPath());
+				TracePrintf(_T(__FUNCTION__) L": adding %s to our cache\n", path.GetWinPath());
 				CCachedDirectory * newcdir = new CCachedDirectory(path);
 				if (newcdir)
 				{
@@ -525,7 +525,7 @@ CStatusCacheEntry CGitStatusCache::GetStatusForPathInternal(const CTGitPath& pat
 		CCachedDirectory * cachedDir = GetDirectoryCacheEntry(dirpath);
 		if (cachedDir)
 		{
-			//CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": GetStatusForMember %d\n", bFetch);
+			//TracePrintf(_T(__FUNCTION__) L": GetStatusForMember %d\n", bFetch);
 			return cachedDir->GetStatusForMember(path, bRecursive, false);
 		}
 	}
@@ -545,11 +545,11 @@ CStatusCacheEntry CGitStatusCache::GetStatusForPathInternal(const CTGitPath& pat
 			}
 		}
 	}
-	CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": ignored no good path %s\n", path.GetWinPath());
+	TracePrintf(_T(__FUNCTION__) L": ignored no good path %s\n", path.GetWinPath());
 	CStatusCacheEntry status;
 	if (m_shellCache.ShowExcludedAsNormal() && path.IsDirectory() && m_shellCache.HasGITAdminDir(path.GetWinPath(), true))
 	{
-		CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": force status %s\n", path.GetWinPath());
+		TracePrintf(_T(__FUNCTION__) L": force status %s\n", path.GetWinPath());
 		status.ForceStatus(git_wc_status_normal);
 	}
 	return status;

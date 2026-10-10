@@ -135,7 +135,7 @@ void CGravatar::GravatarThread()
 	HCRYPTPROV hProv = 0;
 	if (!CryptAcquireContext(&hProv, nullptr, nullptr, PROV_RSA_AES, CRYPT_VERIFYCONTEXT))
 	{
-		CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": Failed to acquire crypto context\n");
+		TracePrintf(_T(__FUNCTION__) L": Failed to acquire crypto context\n");
 		return;
 	}
 	SCOPE_EXIT { CryptReleaseContext(hProv, 0); };
@@ -150,7 +150,7 @@ void CGravatar::GravatarThread()
 	urlComponents.dwUrlPathLength = INTERNET_MAX_PATH_LENGTH;
 	if (!InternetCrackUrl(gravatarBaseUrl, gravatarBaseUrl.GetLength(), 0, &urlComponents))
 	{
-		CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": Gravatar URL seems to be invalid\n");
+		TracePrintf(_T(__FUNCTION__) L": Gravatar URL seems to be invalid\n");
 		CAutoLocker lock(m_gravatarLock);
 		m_filename.Empty();
 		return;
@@ -164,7 +164,7 @@ void CGravatar::GravatarThread()
 	m_hConnectHandle = InternetConnect(hOpenHandle, hostname, urlComponents.nPort, nullptr, nullptr, isHttps ? INTERNET_SCHEME_HTTP : urlComponents.nScheme, 0, 0);
 	if (!m_hConnectHandle)
 	{
-		CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": InternetConnect failed\n");
+		TracePrintf(_T(__FUNCTION__) L": InternetConnect failed\n");
 		CAutoLocker lock(m_gravatarLock);
 		m_filename.Empty();
 		return;
@@ -222,7 +222,7 @@ void CGravatar::GravatarThread()
 				const int ret = DownloadToFile([&]() { CAutoLocker lock(m_gravatarLock); return m_hConnectHandle; }(), isHttps, gravatarUrl, tempFile);
 				if (ret)
 				{
-					CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": Gravatar download for \"%s\" failed: %d\n", static_cast<LPCWSTR>(gravatarUrl), ret);
+					TracePrintf(_T(__FUNCTION__) L": Gravatar download for \"%s\" failed: %d\n", static_cast<LPCWSTR>(gravatarUrl), ret);
 					DeleteFile(tempFile);
 					if (m_gravatarExit)
 						break;
@@ -351,7 +351,7 @@ void CGravatar::SafeTerminateGravatarThread()
 			m_hConnectHandle = nullptr;
 		}
 		while (::WaitForSingleObject(m_gravatarThread->m_hThread, 1000) == WAIT_TIMEOUT)
-			CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": Waiting for Gravatar download thread to exit...\n");
+			TracePrintf(_T(__FUNCTION__) L": Waiting for Gravatar download thread to exit...\n");
 		delete m_gravatarThread;
 		m_gravatarThread = nullptr;
 	}

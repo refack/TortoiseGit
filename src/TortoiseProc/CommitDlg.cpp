@@ -1813,7 +1813,7 @@ LRESULT CCommitDlg::OnFileDropped(WPARAM, LPARAM lParam)
 
 	// Always start the timer, since the status of an existing item might have changed
 	SetTimer(REFRESHTIMER, 200, nullptr);
-	CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": Item %s dropped, timer started\n", path.GetWinPath());
+	TracePrintf(_T(__FUNCTION__) L": Item %s dropped, timer started\n", path.GetWinPath());
 	return 0;
 }
 
@@ -1855,7 +1855,7 @@ void CCommitDlg::ParseRegexFile(const CString& sFile, std::map<CString, CString>
 	}
 	catch (CFileException* pE)
 	{
-		CTraceToOutputDebugString::Instance()(__FUNCTION__ ": CFileException loading auto list regex file\n");
+		TracePrintf(__FUNCTION__ ": CFileException loading auto list regex file\n");
 		pE->Delete();
 	}
 }
@@ -1906,7 +1906,7 @@ void CCommitDlg::ParseSnippetFile(const CString& sFile, std::map<CString, CStrin
 	}
 	catch (CFileException* pE)
 	{
-		CTraceToOutputDebugString::Instance()(__FUNCTION__ ": CFileException loading auto list regex file\n");
+		TracePrintf(__FUNCTION__ ": CFileException loading auto list regex file\n");
 		pE->Delete();
 	}
 }
@@ -2011,7 +2011,7 @@ void CCommitDlg::GetAutocompletionList(std::map<CString, int>& autolist)
 
 		ScanFile(autolist, sWinPath, rdata, sExt);
 	}
-	CTraceToOutputDebugString::Instance()(_T(__FUNCTION__) L": Auto completion list loaded in %I64u msec\n", GetTickCount64() - starttime);
+	TracePrintf(_T(__FUNCTION__) L": Auto completion list loaded in %I64u msec\n", GetTickCount64() - starttime);
 }
 
 void CCommitDlg::ScanFile(std::map<CString, int>& autolist, const CString& sFilePath, const CString& sRegex, const CString& sExt)
@@ -2257,12 +2257,12 @@ void CCommitDlg::OnTimer(UINT_PTR nIDEvent)
 		if (m_bThreadRunning)
 		{
 			SetTimer(REFRESHTIMER, 200, nullptr);
-			CTraceToOutputDebugString::Instance()(__FUNCTION__ ": Wait some more before refreshing\n");
+			TracePrintf(__FUNCTION__ ": Wait some more before refreshing\n");
 		}
 		else
 		{
 			KillTimer(REFRESHTIMER);
-			CTraceToOutputDebugString::Instance()(__FUNCTION__ ": Refreshing after items dropped\n");
+			TracePrintf(__FUNCTION__ ": Refreshing after items dropped\n");
 			Refresh();
 		}
 		break;

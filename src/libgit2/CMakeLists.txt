@@ -154,6 +154,7 @@ function(tgit_core_library name flavor)
             modules/PersonalDictionary.ixx
             modules/RIAA.ixx
             modules/Registry.ixx
+            modules/RollingFile.ixx
             modules/ShellUpdater.ixx
             modules/SmartLibgit2Ref.ixx
             modules/StringUtils.ixx

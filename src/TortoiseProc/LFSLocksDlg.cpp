@@ -201,12 +201,12 @@ void CLFSLocksDlg::OnTimer(UINT_PTR nIDEvent)
 		if (m_bThreadRunning)
 		{
 			SetTimer(REFRESHTIMER, 200, nullptr);
-			CTraceToOutputDebugString::Instance()(__FUNCTION__ ": Wait some more before refreshing\n");
+			TracePrintf(__FUNCTION__ ": Wait some more before refreshing\n");
 		}
 		else
 		{
 			KillTimer(REFRESHTIMER);
-			CTraceToOutputDebugString::Instance()(__FUNCTION__ ": Refreshing after items dropped\n");
+			TracePrintf(__FUNCTION__ ": Refreshing after items dropped\n");
 			Refresh();
 		}
 		break;
