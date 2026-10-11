@@ -38,7 +38,7 @@ project(TortoiseGit)
 
 # we use this abstration breaking hack to hide from CLion
 # it needs to be after the `project` declaration
-string(APPEND CMAKE_CXX_COMPILE_OBJECT " /experimental:log <OBJECT>.serif")
+string(APPEND CMAKE_CXX_COMPILE_OBJECT " /experimental:log <OBJECT>.sarif")
 
 
 add_subdirectory(src/gitdll)

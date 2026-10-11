@@ -1,7 +1,9 @@
 ﻿module;
-#include <tgit_cstring.h>	// first: decides which CString this compile speaks
 #include <windows.h>
-#include <atlstr.h>		// CStringW / CStringA, for the std::formatter specializations
+#ifdef TGIT_MFC
+#include <afx.h>
+#endif
+#include <atlstr.h>
 
 
 export module wstr;
@@ -237,6 +239,11 @@ using namespace tgit::zstr;
 // carrying existing call sites across without re-deciding each one.
 export namespace tgit::wstr
 {
+using CString = ATL::CStringW;
+
+
+
+
 /// Whitespace CString::Trim() removes, so a converted call site keeps behaving.
 inline constexpr std::wstring_view kDefaultTrimChars = L" \t\r\n";
 
@@ -481,8 +488,12 @@ std::filesystem::path to_path(const TStr& sPath)
 
 // end export
 }
-
 using namespace tgit::wstr;
+
+
+export namespace tgit::str8 {
+	using CStringA = ATL::CStringA;
+}
 
 
 // Lets std::format take a CString wherever it already takes a std::wstring.
@@ -506,18 +517,19 @@ using namespace tgit::wstr;
 // and an MFC consumer crosses into it with std::wstring. Not `export`ed: a
 // specialization of a std template is reached through the primary.
 template <>
-struct std::formatter<CStringW, wchar_t> : std::formatter<std::wstring_view, wchar_t>
+struct std::formatter<ATL::CStringW, wchar_t> : std::formatter<std::wstring_view, wchar_t>
 {
-	auto format(const CStringW& value, auto& ctx) const
+	auto format(const ATL::CStringW& value, auto& ctx) const
 	{
 		return std::formatter<std::wstring_view, wchar_t>::format(std::wstring_view(value.GetString(), value.GetLength()), ctx);
 	}
 };
 
+
 template <>
-struct std::formatter<CStringA, char> : std::formatter<std::string_view, char>
+struct std::formatter<ATL::CStringA, char> : std::formatter<std::string_view, char>
 {
-	auto format(const CStringA& value, auto& ctx) const
+	auto format(const ATL::CStringA& value, auto& ctx) const
 	{
 		return std::formatter<std::string_view, char>::format(std::string_view(value.GetString(), value.GetLength()), ctx);
 	}

@@ -18,15 +18,33 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
-#include "stdafx.h"
+// #include "stdafx.h"
+// Header for gtest
+#include <gmock/gmock.h>
+#include <gtest/gtest.h>
+
+#include <windows.h>
+#include <atlstr.h>
+
+//libgit2
+#include <git2.h>
+
 
 #include <Resources/LoglistCommonResource.h>
 
 #include "AutoTempDir.h"
+import std;
+import wil_git2;
+
 import git_h;
 import StringUtils;
 import wstr;
+import tgittypes;
 import TGitPath;
+
+
+using namespace tgit::types;
+
 
 // FillUnRev takes the git runner it used to reach for itself (g_Git).
 static auto GitRunnerFor(CGit& git)
@@ -1630,7 +1648,10 @@ TEST(CTGitPath, ParserFromLog_Invalid)
 	}
 }
 
-static void setFlagOnFileInIndex(CAutoIndex& gitindex, const CString& filename, bool assumevalid, bool skipworktree)
+
+
+
+static void setFlagOnFileInIndex2(CAutoIndex& gitindex, const CString& filename, bool assumevalid, bool skipworktree)
 {
 	size_t idx = SIZE_MAX;
 	EXPECT_TRUE(git_index_find(&idx, gitindex, CUnicodeUtils::GetUTF8<CStringA>(filename)) == 0);
@@ -1647,7 +1668,7 @@ static void setFlagOnFileInIndex(CAutoIndex& gitindex, const CString& filename, 
 	EXPECT_TRUE(git_index_add(gitindex, e) == 0);
 }
 
-TEST(CTGitPath, FillBasedOnIndexFlags)
+TEST(CTGitPath, FillBasedOnIndexFlags2)
 {
 	CAutoTempDir tmpDir;
 
@@ -1669,12 +1690,12 @@ TEST(CTGitPath, FillBasedOnIndexFlags)
 		EXPECT_TRUE(git_index_add_bypath(gitindex, CUnicodeUtils::GetUTF8<CStringA>(filename)) == 0);
 	}
 
-	setFlagOnFileInIndex(gitindex, L"assume-unchanged", true, false);
-	setFlagOnFileInIndex(gitindex, L"a/assume-unchanged", true, false);
-	setFlagOnFileInIndex(gitindex, L"b/assume-unchanged", true, false);
-	setFlagOnFileInIndex(gitindex, L"skip-worktree", false, true);
-	setFlagOnFileInIndex(gitindex, L"a/skip-worktree", false, true);
-	setFlagOnFileInIndex(gitindex, L"b/skip-worktree", false, true);
+	setFlagOnFileInIndex2(gitindex, L"assume-unchanged", true, false);
+	setFlagOnFileInIndex2(gitindex, L"a/assume-unchanged", true, false);
+	setFlagOnFileInIndex2(gitindex, L"b/assume-unchanged", true, false);
+	setFlagOnFileInIndex2(gitindex, L"skip-worktree", false, true);
+	setFlagOnFileInIndex2(gitindex, L"a/skip-worktree", false, true);
+	setFlagOnFileInIndex2(gitindex, L"b/skip-worktree", false, true);
 
 	EXPECT_TRUE(git_index_write(gitindex) == 0);
 	gitindex.Free();
@@ -1729,6 +1750,144 @@ TEST(CTGitPath, FillBasedOnIndexFlags)
 	EXPECT_STREQ(L"a/skip-worktree", testList[1].GetGitPathString().c_str());
 
 	selectList.Clear();
+	selectList.AddPath(CTGitPath(L"a"));
+	EXPECT_TRUE(testList.FillBasedOnIndexFlags(g_Git.GetGitRepository().get(), GIT_INDEX_ENTRY_VALID, 0, &selectList) == 0);
+	EXPECT_EQ(1, testList.GetCount());
+	EXPECT_STREQ(L"a/assume-unchanged", testList[0].GetGitPathString().c_str());
+}
+
+
+
+
+static void setFlagOnFileInIndex(wil::unique_git_index& gitindex, const CString& filename, bool assumevalid, bool skipworktree)
+{
+	size_t idx = SIZE_MAX;
+	EXPECT_TRUE(git_index_find(&idx, gitindex.get(), CUnicodeUtils::GetUTF8<CStringA>(filename)) == 0);
+	git_index_entry *e = const_cast<git_index_entry *>(git_index_get_byindex(gitindex.get(), idx));
+	ASSERT_TRUE(e);
+	if (assumevalid == BST_UNCHECKED)
+		e->flags &= ~GIT_INDEX_ENTRY_VALID;
+	else if (assumevalid == BST_CHECKED)
+		e->flags |= GIT_INDEX_ENTRY_VALID;
+	if (skipworktree == BST_UNCHECKED)
+		e->flags_extended &= ~GIT_INDEX_ENTRY_SKIP_WORKTREE;
+	else if (skipworktree == BST_CHECKED)
+		e->flags_extended |= GIT_INDEX_ENTRY_SKIP_WORKTREE;
+	EXPECT_TRUE(git_index_add(gitindex.get(), e) == 0);
+}
+
+// Twelve files: in the root, a\ and b\, one each of versioned, assume-unchanged,
+// skip-worktree and unversioned. Every TEST_F below gets a fresh copy, so a
+// failure in SetUp is reported as setup and the validator body never runs.
+class FillBasedOnIndexFlags : public ::testing::Test
+{
+protected:
+	void SetUp() override
+	{
+		wil::unique_git_repository repo;
+		ASSERT_EQ(0, git_repository_init(repo.put(), CUnicodeUtils::GetUTF8<CStringA>(tmpDir.GetTempDir()), 0));
+
+		ASSERT_TRUE(CreateDirectory(tmpDir.GetTempDir() + L"\\a", nullptr));
+		ASSERT_TRUE(CreateDirectory(tmpDir.GetTempDir() + L"\\b", nullptr));
+
+		wil::unique_git_index gitindex;
+		ASSERT_EQ(0, git_repository_index(gitindex.put(), repo.get()));
+
+		const CString filenames[] = { L"versioned", L"assume-unchanged", L"skip-worktree", L"unversioned", L"a/versioned", L"a/assume-unchanged", L"a/skip-worktree", L"a/unversioned", L"b/versioned", L"b/assume-unchanged", L"b/skip-worktree", L"b/unversioned" };
+		for (const CString& filename : filenames)
+		{
+			const CString filenameWithPath = tmpDir.GetTempDir() + L'\\' + filename;
+			ASSERT_TRUE(StringUtils::WriteStringToTextFile(filenameWithPath, L"something"));
+			ASSERT_EQ(0, git_index_add_bypath(gitindex.get(), CUnicodeUtils::GetUTF8<CStringA>(filename)));
+		}
+
+		setFlagOnFileInIndex(gitindex, L"assume-unchanged", true, false);
+		setFlagOnFileInIndex(gitindex, L"a/assume-unchanged", true, false);
+		setFlagOnFileInIndex(gitindex, L"b/assume-unchanged", true, false);
+		setFlagOnFileInIndex(gitindex, L"skip-worktree", false, true);
+		setFlagOnFileInIndex(gitindex, L"a/skip-worktree", false, true);
+		setFlagOnFileInIndex(gitindex, L"b/skip-worktree", false, true);
+
+		ASSERT_EQ(0, git_index_write(gitindex.get()));
+		// setFlagOnFileInIndex reports with EXPECT, which does not stop SetUp by itself
+		ASSERT_FALSE(HasFailure()) << "fixture repository is not as specified";
+
+		// order matters: both handles are closed before g_Git opens the same repository
+		gitindex.reset();
+		repo.reset();
+
+		g_Git.SetCurrentDirExact(tmpDir.GetTempDir());
+	}
+
+	CAutoTempDir tmpDir;
+	CTGitPathList testList;
+};
+
+TEST_F(FillBasedOnIndexFlags, NoFlagsSelectsNothing)
+{
+	EXPECT_TRUE(testList.FillBasedOnIndexFlags(g_Git.GetGitRepository().get(), 0, 0) == 0);
+	EXPECT_EQ(0, testList.GetCount());
+}
+
+TEST_F(FillBasedOnIndexFlags, AssumeValid)
+{
+	EXPECT_TRUE(testList.FillBasedOnIndexFlags(g_Git.GetGitRepository().get(), GIT_INDEX_ENTRY_VALID, 0) == 0);
+	EXPECT_EQ(3, testList.GetCount());
+	EXPECT_STREQ(L"a/assume-unchanged", testList[0].GetGitPathString().c_str());
+	EXPECT_STREQ(L"assume-unchanged", testList[1].GetGitPathString().c_str());
+	EXPECT_STREQ(L"b/assume-unchanged", testList[2].GetGitPathString().c_str());
+}
+
+TEST_F(FillBasedOnIndexFlags, SkipWorktree)
+{
+	EXPECT_TRUE(testList.FillBasedOnIndexFlags(g_Git.GetGitRepository().get(), 0, GIT_INDEX_ENTRY_SKIP_WORKTREE) == 0);
+	EXPECT_EQ(3, testList.GetCount());
+	EXPECT_STREQ(L"a/skip-worktree", testList[0].GetGitPathString().c_str());
+	EXPECT_STREQ(L"b/skip-worktree", testList[1].GetGitPathString().c_str());
+	EXPECT_STREQ(L"skip-worktree", testList[2].GetGitPathString().c_str());
+}
+
+TEST_F(FillBasedOnIndexFlags, AssumeValidOrSkipWorktree)
+{
+	EXPECT_TRUE(testList.FillBasedOnIndexFlags(g_Git.GetGitRepository().get(), GIT_INDEX_ENTRY_VALID, GIT_INDEX_ENTRY_SKIP_WORKTREE) == 0);
+	EXPECT_EQ(6, testList.GetCount());
+	EXPECT_STREQ(L"a/assume-unchanged", testList[0].GetGitPathString().c_str());
+	EXPECT_STREQ(L"a/skip-worktree", testList[1].GetGitPathString().c_str());
+	EXPECT_STREQ(L"assume-unchanged", testList[2].GetGitPathString().c_str());
+	EXPECT_STREQ(L"b/assume-unchanged", testList[3].GetGitPathString().c_str());
+	EXPECT_STREQ(L"b/skip-worktree", testList[4].GetGitPathString().c_str());
+	EXPECT_STREQ(L"skip-worktree", testList[5].GetGitPathString().c_str());
+}
+
+TEST_F(FillBasedOnIndexFlags, FilteredByFiles)
+{
+	const CTGitPathList selectList{
+		CTGitPath(L"versioned"),
+		CTGitPath(L"assume-unchanged"),
+		CTGitPath(L"skip-worktree"),
+		CTGitPath(L"a/skip-worktree"),
+	};
+
+	EXPECT_TRUE(testList.FillBasedOnIndexFlags(g_Git.GetGitRepository().get(), GIT_INDEX_ENTRY_VALID, GIT_INDEX_ENTRY_SKIP_WORKTREE, &selectList) == 0);
+	EXPECT_EQ(3, testList.GetCount());
+	EXPECT_STREQ(L"a/skip-worktree", testList[0].GetGitPathString().c_str());
+	EXPECT_STREQ(L"assume-unchanged", testList[1].GetGitPathString().c_str());
+	EXPECT_STREQ(L"skip-worktree", testList[2].GetGitPathString().c_str());
+}
+
+TEST_F(FillBasedOnIndexFlags, FilteredByDirectory)
+{
+	CTGitPathList selectList;
+	selectList.AddPath(CTGitPath(L"a"));
+	EXPECT_TRUE(testList.FillBasedOnIndexFlags(g_Git.GetGitRepository().get(), GIT_INDEX_ENTRY_VALID, GIT_INDEX_ENTRY_SKIP_WORKTREE, &selectList) == 0);
+	EXPECT_EQ(2, testList.GetCount());
+	EXPECT_STREQ(L"a/assume-unchanged", testList[0].GetGitPathString().c_str());
+	EXPECT_STREQ(L"a/skip-worktree", testList[1].GetGitPathString().c_str());
+}
+
+TEST_F(FillBasedOnIndexFlags, FilteredByDirectoryAssumeValidOnly)
+{
+	CTGitPathList selectList;
 	selectList.AddPath(CTGitPath(L"a"));
 	EXPECT_TRUE(testList.FillBasedOnIndexFlags(g_Git.GetGitRepository().get(), GIT_INDEX_ENTRY_VALID, 0, &selectList) == 0);
 	EXPECT_EQ(1, testList.GetCount());

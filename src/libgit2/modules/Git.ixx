@@ -13,12 +13,16 @@
 #include "libgit2/ssh-wintunnel.h"
 #include "libgit2/filter-filter.h"
 
+#define STR2(x) #x
+#define STR(x) STR2(x)
+#define FILE_LINE __FUNCTION__ __FILE__ ":" STR(__LINE__)
+#define HERE std::to_array(FILE_LINE)
+
 
 
 export module git_h;
-import std;
-import gsl;
 
+import std;
 using std::operator""s;
 using std::operator""sv;
 using TGString = std::wstring;
@@ -29,7 +33,7 @@ namespace fs = std::filesystem;
 import wil;
 using namespace wil;
 
-
+import gsl;
 import DebugOutput;
 import GitHash;
 import PathUtils;
@@ -51,15 +55,8 @@ using tgit::DebugOutput::TracePrintf;
 using SmartLibgit2::CAutoRepository;
 using SmartLibgit2::CAutoObject;
 namespace GitFormatHolder = tgit::invarients::GitFormatHolder;
+using CAutoLocker = CComCritSecLock<CComCriticalSection>;
 
-// ReSharper disable once CppEnforceCVQualifiersPlacement
-using ArgvP = char const*;
-
-
-#define STR2(x) #x
-#define STR(x) STR2(x)
-#define FILE_LINE __FUNCTION__ __FILE__ ":" STR(__LINE__)
-#define HERE std::to_array(FILE_LINE)
 
 
 constexpr auto scope_flag(const CONFIG_TYPE t)
@@ -82,153 +79,6 @@ constexpr auto scope_flag(const CONFIG_TYPE t)
 
 export namespace TGitH
 {
-/// git's version as one comparable int, 8 bits per field. It returned std::byte,
-/// where `major << 24` shifts every bit out - so each version compared by its
-/// build number alone. Exported: the unit tests gate on it.
-consteval int ConvertVersionToInt(const int major, const int minor, const int patchlevel, const int build = 0)
-{
-	return (major << 24) | (minor << 16) | (patchlevel << 8) | build;
-}
-
-
-using BITS32 = std::uint32_t;
-using CAutoLocker = CComCritSecLock<CComCriticalSection>;
-
-
-constexpr auto REG_MSYSGIT_PATH = L"MSysGit"sv;
-constexpr auto REG_SYSTEM_GITCONFIGPATH = L"SystemConfig"sv;
-constexpr auto REG_MSYSGIT_EXTRA_PATH = L"MSysGitExtra"sv;
-
-constexpr auto G_OK = 0;
-constexpr auto GFail = -1;
-constexpr auto GIT_EXE_BUFFER_LIMIT = 50uz * 1024 * 1024;	// arbitrary chosen 50 MiB limit that should be large enough for all real life situations in remote situations
-constexpr auto GIT_EXE_STDERR_BUFFER_LIMIT = 1024uz;		// arbitrary chosen 1 KiB limit that should be large enough for all real life situations in remote situations
-
-constexpr auto DiffSimilarityIndexThreshold = L"DiffSimilarityIndexThreshold"sv;
-constexpr auto CygwinHack = L"CygwinHack"sv;
-constexpr auto Msys2Hack = L"Msys2Hack"sv;
-
-#define REG_SOFTWARE_ROOT          L"SOFTWARE"
-#define REG_SOFTWARE32_ROOT        REG_SOFTWARE_ROOT LR"(\Wow6432Node)"
-#define REG_UNINSTALL_TGIT_SUBKEY  LR"(\Microsoft\Windows\CurrentVersion\Uninstall\Git_is1)"
-constexpr auto UNINSTALL_REG_VALUE  = L"InstallLocation";
-constexpr auto UNINSTALL_REG_SUBKEY	= std::wstring_view{ REG_SOFTWARE_ROOT   REG_UNINSTALL_TGIT_SUBKEY };
-constexpr auto UNINSTALL_RGSK_WOW64 = std::wstring_view{ REG_SOFTWARE32_ROOT REG_UNINSTALL_TGIT_SUBKEY };
-
-
-constexpr auto CALL_OUTPUT_READ_CHUNK_SIZE = 1024u;
-
-
-enum LOG_ORDER
-{
-	LOG_ORDER_CHRONOLOGIALREVERSED,
-	LOG_ORDER_TOPOORDER,
-	LOG_ORDER_DATEORDER,
-	LOG_ORDER_AUTHORDATEORDER,
-};
-enum BRANCH_TYPE
-{
-	BRANCH_LOCAL = 0x1,
-	BRANCH_REMOTE = 0x2,
-	BRANCH_FETCH_HEAD = 0x4,
-	BRANCH_LOCAL_F = BRANCH_LOCAL | BRANCH_FETCH_HEAD,
-	BRANCH_ALL = BRANCH_LOCAL | BRANCH_REMOTE,
-	BRANCH_ALL_F = BRANCH_ALL | BRANCH_FETCH_HEAD,
-};
-enum LOG_INFO_MASK
-{
-	LOG_INFO_STAT = 0x1,
-	LOG_INFO_FILESTATE = 0x2,
-	LOG_INFO_BOUNDARY = 0x10,
-	LOG_INFO_ALL_BRANCH = 0x20,
-	LOG_INFO_ONLY_HASH = 0x40,
-	LOG_INFO_DETECT_RENAME = 0x80,
-	LOG_INFO_DETECT_COPYRENAME = 0x100,
-	LOG_INFO_FIRST_PARENT = 0x200,
-	LOG_INFO_NO_MERGE = 0x400,
-	LOG_INFO_FOLLOW = 0x800,
-	LOG_INFO_SHOW_MERGEDFILE = 0x1000,
-	LOG_INFO_FULL_DIFF = 0x2000,
-	LOG_INFO_SIMPILFY_BY_DECORATION = 0x4000,
-	LOG_INFO_LOCAL_BRANCHES = 0x8000,
-	LOG_INFO_BASIC_REFS = 0x10000,
-	LOG_INFO_SPARSE = 0x20000,
-	LOG_INFO_ALWAYS_APPLY_RANGE = 0x40000,
-	LOG_INFO_FULL_HISTORY = 0x80000,
-};
-enum REF_TYPE
-{
-	LOCAL_BRANCH,
-	REMOTE_BRANCH,
-	ANNOTATED_TAG,
-	TAG,
-	STASH,
-	BISECT_GOOD,
-	BISECT_BAD,
-	BISECT_SKIP,
-	NOTES,
-	UNKNOWN,
-
-};
-enum LIBGIT2_CMD : std::uint32_t
-{
-	GIT_CMD_CLONE = 1,
-	GIT_CMD_FETCH,
-	GIT_CMD_COMMIT_UPDATE_INDEX,
-	GIT_CMD_DIFF,
-	GIT_CMD_RESET,
-	GIT_CMD_REVERT,
-	GIT_CMD_MERGE_BASE,
-	GIT_CMD_DELETETAGBRANCH,
-	GIT_CMD_GETONEFILE,
-	GIT_CMD_ADD,
-	GIT_CMD_PUSH,
-	GIT_CMD_CHECK_CLEAN_WT,
-	GIT_CMD_CHECKCONFLICTS,
-	GIT_CMD_GET_COMMIT,
-	GIT_CMD_LOGLISTDIFF,
-	GIT_CMD_BRANCH_CONTAINS,
-	GIT_CMD_GETCONFLICTINFO,
-	GIT_CMD_FOREACHREF,
-	LAST_VALUE,
-};
-
-// Only the commands that still fork at runtime appear here; the ones in
-// LIBGIT2_ONLY_MASK are on whatever the registry says. GETONEFILE, GET_COMMIT
-// and FOREACHREF are what is left of the old default list - the other five
-// entries moved into LIBGIT2_ONLY_MASK, which is not a change of behaviour for
-// anyone since they were on by default already.
-constexpr BITS32 DEFAULT_USE_LIBGIT2_MASK = (
-	1 << GIT_CMD_GETONEFILE |
-	1 << GIT_CMD_GET_COMMIT |
-	1 << GIT_CMD_FOREACHREF
-);
-
-// Commands whose git.exe implementation is gone, so there is nothing left to
-// switch between. They keep their LIBGIT2_CMD value because GetGitLastErr still
-// has to know that the error worth reporting is libgit2's - and because when
-// this mask has swallowed the enum, UsingLibGit2 and the registry mask can go
-// with it in one move.
-//
-// GETONEFILE, GET_COMMIT and LOGLISTDIFF are deliberately absent: their other
-// branch is gitdll, not git.exe, and gitdll is a backend this project wants more
-// of rather than less. FOREACHREF is absent because its git.exe path is the
-// primary implementation when Browse References filters on merge status, not a
-// fallback. CLONE, FETCH, RESET and COMMIT_UPDATE_INDEX are absent because they
-// select between two whole dialogs, which is a bigger change than this one.
-constexpr BITS32 LIBGIT2_ONLY_MASK = (
-	1 << GIT_CMD_DIFF |
-	1 << GIT_CMD_REVERT |
-	1 << GIT_CMD_MERGE_BASE |
-	1 << GIT_CMD_DELETETAGBRANCH |
-	1 << GIT_CMD_ADD |
-	1 << GIT_CMD_PUSH |
-	1 << GIT_CMD_CHECK_CLEAN_WT |
-	1 << GIT_CMD_CHECKCONFLICTS |
-	1 << GIT_CMD_BRANCH_CONTAINS |
-	1 << GIT_CMD_GETCONFLICTINFO
-);
-
 
 constexpr size_t CalculateDiffSimilarityIndexThreshold() noexcept
 {
@@ -269,7 +119,7 @@ int LogError(const CString& out, const std::exception& ex)
 
 
 template <auto FuncName = __FUNCSIG__>
-constexpr auto LogError(CString out, std::exception ex, const bool isDll = true)
+constexpr auto LogError(const CString& out, std::exception ex, const bool isDll = true)
 {
 	[[maybe_unused]] const auto msg = std::format(
 	"[TortoiseGit] {} -> {}:\n{}\n{}",
@@ -311,7 +161,7 @@ bool LogicalCompareSz(const LPCWSTR left, const LPCWSTR right)
 
 
 #define BUFSIZE 512
-DWORD GetTortoiseGitTempPath(const DWORD nBufferLength, const LPWSTR lpBuffer)
+DWORD GetTortoiseGitTempPath(const DWORD nBufferLength, LPWSTR lpBuffer)
 {
 	constexpr auto subdirectory = L"TortoiseGit\\"sv;
 	constexpr auto extra = static_cast<DWORD>(subdirectory.size() + 1); // + the NUL: the 13 this used to spell out
@@ -491,7 +341,7 @@ int GetFileModifyTime(const path& filename, std::int64_t* time, bool* isDir = nu
 	if (isDir)
 		*isDir = attrs->isDirectory;
 	if (isSymlink)
-		*isSymlink = attrs->type == fs::file_type::symlink;      // a junction is not a symlink
+		*isSymlink = attrs->type == std::filesystem::file_type::symlink;      // a junction is not a symlink
 	return G_OK;
 }
 
@@ -566,46 +416,6 @@ int UnifiedDiffToStringA(const git_diff_delta * /*delta*/, const git_diff_hunk *
 }
 
 
-/// A C-style (argc, argv) over strings it owns, for gitdll's git_open_log /
-/// git_open_diff, which take `int argc, const char** argv` as git's own main does.
-///
-/// argv points into the std::strings in m_strings. Moving is safe - moving a
-/// std::vector hands over its buffer, so the std::string objects (and any SSO
-/// characters inside them) stay where they are - but copying is not, since a
-/// copy's pointers would still point into the original. Hence move-only.
-struct ArgvData
-{
-	ArgvData() = default;
-	ArgvData(ArgvData&&) noexcept = default;
-	ArgvData(const ArgvData&) = delete;
-	ArgvData& operator=(const ArgvData&) = delete;
-	ArgvData& operator=(ArgvData&&) = delete;
-
-	/// Callers pass argv[0] themselves (usually ""), as they always have.
-	/// Empty when the count would not fit an int argc.
-	static ArgvData VectorToARGV(std::vector<std::string> args)
-	{
-		ArgvData result;
-		if (args.size() >= static_cast<size_t>(std::numeric_limits<int>::max()))
-			return result;
-		result.m_strings = std::move(args);
-		result.m_argv.reserve(result.m_strings.size() + 1);
-		for (const auto& arg : result.m_strings)
-			result.m_argv.push_back(arg.c_str());
-		result.m_argv.push_back(nullptr); // argv[argc] == NULL, as the C runtime guarantees for main
-		return result;
-	}
-
-	[[nodiscard]] int argc() const noexcept { return static_cast<int>(m_strings.size()); }
-	const char** argv() noexcept { return m_argv.data(); }
-
-	explicit operator bool() const noexcept { return !m_strings.empty(); }
-
-private:
-	std::vector<std::string> m_strings{};
-	std::vector<ArgvP> m_argv{};
-};
-
 /**
  * SerializeArgv deliberately does not rewrite argument content, so a call site
  * that hands git a Windows path has to say so. Both callers of the two
@@ -621,381 +431,15 @@ std::wstring AsGitPath(const CString& path)
 }
 
 
-class CFilterData
-{
-public:
-	enum : std::uint8_t
-	{
-		SHOW_NO_LIMIT, // NOTE: no limitation does not mean "without all limitations", it's just without the following limitations. That say, the log still could be limited by author, committer, etc.
-		SHOW_LAST_SEL_DATE,
-		SHOW_LAST_N_COMMITS,
-		SHOW_LAST_N_YEARS,
-		SHOW_LAST_N_MONTHS,
-		SHOW_LAST_N_WEEKS,
-	};
-
-	CFilterData()
-	{
-		m_From = m_To = -1;
-		m_NumberOfLogsScale = SHOW_NO_LIMIT;
-		m_NumberOfLogs = 1;
-	}
-
-	DWORD m_NumberOfLogsScale;
-	DWORD m_NumberOfLogs;
-	__time64_t m_From;
-	__time64_t m_To;
-};
 
 
-class illegal_git_parameter
-{
-	CString m_error;
-
-public:
-	explicit illegal_git_parameter(const CString& error)
-		: m_error(error)
-	{}
-
-	[[nodiscard]] const CString& cause() const { return m_error; }
-};
-
-
-class CGitCall
-{
-public:
-	CGitCall() = default;
-	explicit CGitCall(const CString& cmd)
-		: m_Cmd(cmd)
-	{}
-	explicit CGitCall(const STRING_VECTOR& argv); // Out of line because it needs CGit::SerializeArgv, and CGit is declared below.
-	virtual ~CGitCall() = default;
-
-	[[nodiscard]] const CString& GetCmd() const { return m_Cmd; }
-
-	// These functions are called when command output data is available.
-	// When this function returns 'true' further output is ignored.
-	virtual bool OnOutputData(std::string_view data) = 0;
-	virtual bool OnOutputErrData(std::string_view data) = 0;
-	virtual void OnEnd() {}
-	void setLimit(const bool enableLimit) { m_maxLength = enableLimit ? GIT_EXE_BUFFER_LIMIT : std::numeric_limits<size_t>::max(); }
-	[[nodiscard]] virtual bool wasLimited() const = 0;
-
-private:
-	CString m_Cmd;
-
-protected:
-	// Unlimited unless setLimit(true): only remote-facing calls opt in.
-	size_t m_maxLength = std::numeric_limits<size_t>::max();
-};
-
-
-class CGitCall_ByteVector : public CGitCall
-{
-public:
-	CGitCall_ByteVector(const CString& cmd, BYTE_VECTOR* pvector, BYTE_VECTOR* pvectorErr = nullptr)
-		: CGitCall(cmd)
-		, m_pvector(pvector)
-		, m_pvectorErr(pvectorErr)
-	{}
-
-	bool OnOutputData(const std::string_view data) override
-	{
-		ATLASSERT(data.size() <= 1024); // data.size() cannot be larger than 1024, as RunAsync uses a buffer of that size
-		if (!m_pvector)
-			return true;
-		if (m_pvector->size() >= m_maxLength) // this simple check is fine as it is intended to be a rough length limit for remote connections as a safety measure
-			return true;
-		m_pvector->append(data);
-		return false;
-	}
-
-	bool OnOutputErrData(const std::string_view data) override
-	{
-		ATLASSERT(data.size() <= 1024); // data.size() cannot be larger than 1024, as RunAsync uses a buffer of that size
-		if (!m_pvectorErr)
-			return true;
-		if (m_maxLength != std::numeric_limits<size_t>::max() && m_pvectorErr->size() > GIT_EXE_STDERR_BUFFER_LIMIT) // arbitrary length limit for remote connections as a safety measure
-			return true;
-		m_pvectorErr->append(data);
-		return false;
-	}
-	BYTE_VECTOR* m_pvector{};
-	BYTE_VECTOR* m_pvectorErr{};
-
-	bool wasLimited() const override
-	{
-		if (!m_pvector)
-			return false;
-		return m_pvector->size() >= m_maxLength;
-	}
-};
-
-
-template <typename GitReceiverFunc>
-	requires std::is_convertible_v<GitReceiverFunc, std::function<void(std::string_view)>>
-class CGitCallCb : public CGitCall
-{
-	size_t m_received = 0;
-	GitReceiverFunc m_recv;
-	BYTE_VECTOR m_buffer{};
-	BYTE_VECTOR* m_pvectorErr{};
-
-public:
-	using CallbackType = GitReceiverFunc;
-
-	CGitCallCb(const CString& cmd, const GitReceiverFunc recv, BYTE_VECTOR* p_VectorErr = nullptr)
-		: CGitCall(cmd)
-		, m_recv(recv)
-		, m_pvectorErr(p_VectorErr)
-	{}
-
-	bool OnOutputData(const std::string_view data) override
-	{
-		ATLASSERT(data.size() <= 1024); // data.size() cannot be larger than 1024, as RunAsync uses a buffer of that size
-		if (data.empty())
-			return false;
-		// a rough length limit for remote connections, as a safety measure: once reached, stop.
-		// The count clamps at the limit rather than wrapping, even when the limit is "none" (SIZE_MAX).
-		if (m_received >= m_maxLength)
-			return true;
-		m_received += (std::min)(data.size(), m_maxLength - m_received);
-		m_buffer.append(data);
-		m_buffer.append("\n");
-		auto reader = std::istringstream(m_buffer.data());
-
-		// Break into lines and feed to m_recv
-		for (std::string line; std::getline(reader, line);)
-		{
-			if (line.empty())
-				continue;
-			m_recv(line);
-		}
-		m_buffer.clear();
-		return false;
-	}
-
-	bool OnOutputErrData(const std::string_view data) override
-	{
-		ATLASSERT(data.size() <= 1024); // data.size() cannot be larger than 1024, as RunAsync uses a buffer of that size
-		if (!m_pvectorErr)
-			return true;
-		if (m_maxLength != std::numeric_limits<size_t>::max() && m_pvectorErr->size() > GIT_EXE_STDERR_BUFFER_LIMIT) // arbitrary length limit for remote connections as a safety measure
-			return true;
-		m_pvectorErr->append(data);
-		return false;
-	}
-
-	void OnEnd() override
-	{
-		// do not send any incomplete lines
-		m_buffer.clear(); // Just for sure
-	}
-
-	[[nodiscard]] bool wasLimited() const override
-	{
-		return m_received >= m_maxLength;
-	}
-
-};
-
-
-/// Ordering for environment variable names. Windows resolves them
-/// case-insensitively - PATH and Path are one variable - so that has to be a
-/// property of the container rather than something every lookup remembers to do.
-/// It also gives the serialized block the case-insensitive name order Windows'
-/// own environment blocks come in, which the flat block lost the moment anything
-/// was added to it.
-struct EnvNameLess
-{
-	using is_transparent = void;
-	[[nodiscard]] bool operator()(const std::wstring_view lhs, const std::wstring_view rhs) const noexcept
-	{
-		return tgit::wstr::CompareNoCase(lhs, rhs) < 0;
-	}
-};
-using MAP_ENVIRONMENT = std::map<std::wstring, std::wstring, EnvNameLess>;
-
-
-
-/**
- * The environment handed to CreateProcess and to gitdll.
- *
- * It is a map of name to value, because that is what an environment is. It used
- * to be the serialized form - a std::vector<wchar_t> of "name=value\0...\0\0" -
- * with every lookup a linear scan that re-parsed it, and SetEnv splicing
- * characters in and out of the middle by iterator.
- *
- * Three properties of the flat form are load-bearing and are preserved:
- *
- *  - `operator const LPWSTR*` returns the address of a member, not of the block.
- *    gitdll's git_init(const LPWSTR* env), the ssh subtransport and the filter
- *    driver all *retain* that address and dereference it later, so the extra
- *    indirection is how a later SetEnv() reaches them without re-registering.
- *    m_baseptr therefore has a stable address and is repointed at the freshly
- *    serialized block on every mutation. GitTest's CEnvironment test captures
- *    the pointer once at the top and re-checks it after every operation, which
- *    is the contract stated as clearly as a test can state it.
- *  - An empty environment serializes to nullptr, not to an empty block.
- *    CreateProcess reads nullptr as "inherit the parent's environment" and an
- *    empty block as "the child gets no environment at all"; the difference is a
- *    git.exe with no PATH.
- *  - Names are matched case-insensitively, and the spelling of the most recent
- *    SetEnv wins. The second half matters because the msys and cygwin builds run
- *    git through bash, and a shell is not as forgiving about name case as
- *    Windows is.
- */
-class CEnvironment
-{
-public:
-	CEnvironment() = default;
-	CEnvironment(const CEnvironment& env)
-		: m_vars(env.m_vars)
-	{
-		Serialize();
-	}
-	CEnvironment& operator=(const CEnvironment& env)
-	{
-		if (this != &env)
-		{
-			m_vars = env.m_vars;
-			Serialize();
-		}
-		return *this;
-	}
-	// Deleted for the same reason they were before: m_baseptr's address is handed
-	// out and retained, so an object that has been moved from would leave its
-	// consumers pointing at an empty block.
-	CEnvironment(CEnvironment&& env) = delete;
-	CEnvironment& operator=(CEnvironment&& env) = delete;
-
-	/// Merges the process's own environment in. Variables already set here win,
-	/// which is what the flat block did by returning the first match on lookup.
-	void CopyProcessEnvironment();
-	[[nodiscard]] std::wstring GetEnv(std::wstring_view name) const;
-	void SetEnv(std::wstring_view name, std::wstring_view value);
-	/// Removes a variable. This used to be SetEnv(name, nullptr) - a deletion
-	/// spelled as an assignment, and invisible at the ~20 call sites that use it.
-	void UnsetEnv(std::wstring_view name);
-	void AddToPath(std::wstring value);
-	void clear();
-	[[nodiscard]] bool empty() const { return m_vars.empty(); }
-
-	/// The block itself, for CreateProcess and git_init: nullptr when empty, which
-	/// CreateProcess reads as "inherit" (see above).
-	operator LPWSTR() const noexcept { return m_baseptr; }
-	/// The stable address the ssh subtransport, the filter driver and gitdll's
-	/// wget_msysgit_etc retain and dereference later (see above).
-	operator const LPWSTR*() const noexcept { return &m_baseptr; }
-	[[nodiscard]] LPWSTR get_cp() const noexcept { return m_baseptr; }
-	/// get_cpp() used to be reinterpret_cast<wchar_t**>(m_block.data()) - the
-	/// block itself posing as a pointer-to-pointer, so every consumer's *pEnv read
-	/// the first characters of "NAME=value" as an address. It is &m_baseptr.
-	[[nodiscard]] LPWSTR* get_cpp() noexcept { return &m_baseptr; }
-
-private:
-	void Serialize();
-
-	MAP_ENVIRONMENT m_vars{};
-	/// The serialized "name=value\0...\0\0" block, rebuilt on every mutation.
-	std::vector<wchar_t> m_block{};
-	/// Repointed at m_block by every Serialize(); its *address* is what is handed out.
-	LPWSTR m_baseptr = nullptr;
-};
-
-void CEnvironment::Serialize()
-{
-	m_block.clear();
-	if (m_vars.empty())
-	{
-		m_baseptr = nullptr; // an empty environment is nullptr, not an empty block
-		return;
-	}
-
-	for (const auto& [name, value] : m_vars)
-	{
-		m_block.insert(m_block.end(), name.cbegin(), name.cend());
-		m_block.push_back(L'=');
-		m_block.insert(m_block.end(), value.cbegin(), value.cend());
-		m_block.push_back(L'\0');
-	}
-	m_block.push_back(L'\0'); // the block's own terminator, after the last entry's
-	m_baseptr = m_block.data();
-}
-
-void CEnvironment::clear()
-{
-	m_vars.clear();
-	Serialize(); // it cleared m_vars twice and never this, so the block kept the old environment
-}
-
-void CEnvironment::CopyProcessEnvironment()
-{
-	wchar_t* porig = GetEnvironmentStrings();
-	for (const wchar_t* p = porig; *p; p += wcslen(p) + 1)
-	{
-		// Split on the first '=' that is not at offset 0. Windows keeps a hidden
-		// per-drive working directory in each environment block as "=C:=C:\some\dir",
-		// and splitting on the very first '=' would give every one of those the same
-		// empty name - so a map would keep exactly one of them.
-		const wchar_t* separator = wcschr(p + 1, L'=');
-		if (!separator)
-			continue;
-		// emplace, not insert_or_assign: what is already set here wins, which is what
-		// the flat block did by returning the first match on lookup.
-		m_vars.emplace(std::wstring(p, separator - p), std::wstring(separator + 1));
-	}
-	FreeEnvironmentStrings(porig);
-
-	Serialize();
-}
-
-std::wstring CEnvironment::GetEnv(const std::wstring_view name) const
-{
-	const auto it = m_vars.find(name);
-	return it == m_vars.cend() ? std::wstring() : it->second;
-}
-
-void CEnvironment::SetEnv(const std::wstring_view name, const std::wstring_view value)
-{
-	// Erase before inserting rather than insert_or_assign, so the *passed* spelling
-	// of the name survives when it differs in case from what is already stored. The
-	// map is case-insensitive, so insert_or_assign would keep the older spelling,
-	// and the cygwin/msys builds hand this block to a shell that is not as relaxed
-	// about that as Windows is.
-	m_vars.erase(std::wstring(name));
-	m_vars.emplace(name, value);
-	Serialize();
-}
-
-void CEnvironment::UnsetEnv(const std::wstring_view name)
-{
-	if (m_vars.erase(std::wstring(name)) == 0)
-		return; // nothing removed, so the block cannot have changed
-	Serialize();
-}
-
-void CEnvironment::AddToPath(std::wstring value)
-{
-	TrimRight(value, L"\\");
-	if (value.empty())
-		return;
-
-	std::wstring path = GetEnv(L"PATH");
-	TrimRight(path, L";");
-	path += L';';
-
-	// do not double add paths to %PATH%
-	if (path.find(value + L';') != std::wstring::npos || path.find(value + L"\\;") != std::wstring::npos)
-		return;
-
-	path += value;
-
-	SetEnv(L"PATH", path);
-}
-
-
-
+/// A C-style (argc, argv) over strings it owns, for gitdll's git_open_log /
+/// git_open_diff, which take `int argc, const char** argv` as git's own main does.
+///
+/// argv points into the std::strings in m_strings. Moving is safe - moving a
+/// std::vector hands over its buffer, so the std::string objects (and any SSO
+/// characters inside them) stay where they are - but copying is not, since a
+/// copy's pointers would still point into the original. Hence move-only.
 class CGit
 {
 protected:
@@ -1073,7 +517,7 @@ public:
 		// cf. GitRevLoglist::SafeFetchFullInfo
 		static const std::string cParameter = std::format("-C{}%", ms_iSimilarityIndexThreshold);
 		static const std::string mParameter = std::format("-M{}%", ms_iSimilarityIndexThreshold);
-		auto argv = ArgvData::VectorToARGV({ "", cParameter, mParameter, "-r" });
+		ArgvData argv = { ""s, cParameter, mParameter, "-r"s };
 		git_open_diff_ex(&m_GitDiff, argv);
 		return m_GitDiff;
 	}
@@ -1085,7 +529,7 @@ public:
 #endif
 		if (m_GitSimpleListDiff)
 			return m_GitSimpleListDiff;
-		auto argv = ArgvData::VectorToARGV({ "", "-r" });
+		ArgvData argv = { "", "-r" };
 		git_open_diff_ex(&m_GitSimpleListDiff, argv);
 		return m_GitSimpleListDiff;
 	}
@@ -2481,7 +1925,7 @@ DWORD WINAPI CGit::AsyncReadStdErrThread(const LPVOID lpParam)
 
 void CGit::KillRelatedThreads(const DWORD threadId, const HANDLE threadHandle)
 {
-	CAutoLocker lock(m_critSecThreadMap);
+	CAutoLocker _(m_critSecThreadMap);
 	auto it = m_AsyncReadStdErrThreadMap.find(threadId);
 	if (it != m_AsyncReadStdErrThreadMap.cend())
 	{
@@ -2499,15 +1943,15 @@ int CGit::Run(CGitCall& pcall)
 	if (RunAsync(pcall.GetCmd(), pi, &hRead, &hReadErr))
 		return TGIT_GIT_ERROR_CREATE_PROCESS;
 
-	wil::CAutoGeneralHandle piThread(pi.hThread);
-	wil::CAutoGeneralHandle piProcess(pi.hProcess);
+	[[maybe_unused]]wil::CAutoGeneralHandle piThread(pi.hThread);
+	[[maybe_unused]]wil::CAutoGeneralHandle piProcess(pi.hProcess);
 
 	ASYNCREADSTDERRTHREADARGS threadArguments{ .fileHandle = hReadErr.get(), .pcall = &pcall };
 	const wil::CAutoGeneralHandle thread{ CreateThread(nullptr, 0, AsyncReadStdErrThread, &threadArguments, 0, nullptr) };
 
 	if (thread)
 	{
-		CAutoLocker lock(m_critSecThreadMap);
+		CAutoLocker _(m_critSecThreadMap);
 		m_AsyncReadStdErrThreadMap[GetCurrentThreadId()] = thread.get();
 	}
 
@@ -2528,7 +1972,7 @@ int CGit::Run(CGitCall& pcall)
 	{
 		WaitForSingleObject(thread.get(), INFINITE);
 
-		CAutoLocker lock(m_critSecThreadMap);
+		CAutoLocker _(m_critSecThreadMap);
 		m_AsyncReadStdErrThreadMap.erase(GetCurrentThreadId());
 	}
 
@@ -2661,7 +2105,7 @@ CString CGit::ReadConfigValue(const CString& name, const CString& def, const boo
 {
 	if(this->m_IsUseGitDLL)
 	{
-		CAutoLocker lock(g_Git.m_critGitDllSec);
+		CAutoLocker _(g_Git.m_critGitDllSec);
 
 		try
 		{
@@ -3975,7 +3419,10 @@ BOOL CGit::CheckMsysGitDir(const BOOL bFallback)
 		PathCanonicalize(CStrBuf(msysGitDir, MAX_PATH), TGitH::ms_LastMsysGitDir + L"\\..\\..");
 	TGitH::ms_MsysGitRootDir = msysGitDir;
 
-	if (const std::wstring_view systemConfig = StringView(g_Git.GetGitSystemConfig()); wil::reg::get_value_string(REG_SYSTEM_GITCONFIGPATH) != systemConfig)
+	if (
+		const std::wstring_view systemConfig = StringView(g_Git.GetGitSystemConfig());
+		wil::reg::get_value_string(REG_SYSTEM_GITCONFIGPATH) != systemConfig
+	)
 		std::ignore = wil::reg::set_value_string(REG_SYSTEM_GITCONFIGPATH, systemConfig);
 
 	TracePrintf(__FUNCTION__ L": ms_LastMsysGitDir = %s\n", static_cast<LPCWSTR>(TGitH::ms_LastMsysGitDir));
@@ -4216,7 +3663,7 @@ int CGit::RefreshGitIndex()
 		{
 			g_Git.CheckAndInitDll();
 
-			const auto cleanup = gsl::finally([] { git_exit_cleanup(); });
+			[[maybe_unused]]const auto cleanup = gsl::finally([] { git_exit_cleanup(); });
 			return git_update_index();
 		}catch(...)
 		{
@@ -4352,18 +3799,18 @@ int CGit::GitRevert(const int parent, const CGitHash &hash)
 
 	CAutoCommit commit;
 	if (git_commit_lookup(&commit, repo, hash))
-		return -1;
+		return GFail;
 
 	git_revert_options revert_opts = GIT_REVERT_OPTIONS_INIT;
 	revert_opts.mainline = parent;
-	return !git_revert(repo, commit, &revert_opts) ? 0 : -1;
+	return !git_revert(repo, commit, &revert_opts) ? G_OK : GFail;
 }
 
 int CGit::DeleteRef(const CString& reference)
 {
 	const CAutoRepository repo(GetGitRepository());
 	if (!repo)
-		return -1;
+		return GFail;
 
 	CStringA refA;
 	if (StringUtils::EndsWith(reference, L"^{}"))
@@ -4373,9 +3820,9 @@ int CGit::DeleteRef(const CString& reference)
 
 	CAutoReference ref;
 	if (git_reference_lookup(&ref, repo, refA))
-		return -1;
+		return GFail;
 
-	int result = -1;
+	int result;
 	if (git_reference_is_tag(ref))
 		result = git_tag_delete(repo, git_reference_shorthand(ref));
 	else if (git_reference_is_branch(ref))
@@ -4604,7 +4051,7 @@ void CGit::GetBisectTerms(CString* good, CString* bad)
 	static CString lastDir;
 	static ULONGLONG lastRead = 0;
 
-	const auto publish = gsl::finally([good, bad] {
+	[[maybe_unused]]const auto publish = gsl::finally([good, bad] {
 		if (bad)
 			*bad = lastBad;
 		if (good)

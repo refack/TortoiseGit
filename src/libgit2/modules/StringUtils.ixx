@@ -1,5 +1,7 @@
 ﻿module;
-#include <tgit_cstring.h>	// first: decides which CString this compile speaks
+#ifdef TGIT_MFC
+#include <afx.h>
+#endif
 #include <atlstr.h>
 
 

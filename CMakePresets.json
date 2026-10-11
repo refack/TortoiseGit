@@ -3,17 +3,13 @@
   "configurePresets": [
     {
       "name": "default",
-      "displayName": "Debug - msvc - ninja",
+      "displayName": "debug - msvc - ninja",
       "generator": "Ninja",
       "binaryDir": "build/debug",
       "toolchainFile": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
-      "$comment": "\"warnings\": {\"experimental\": false}",
-      "debug": {
-        "tryCompile": true
-      },
       "trace": {
         "mode": "expand",
-        "redirect": "trace.log"
+        "redirect": "CMakeTrace.txt"
       },
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",

@@ -320,7 +320,7 @@ TEST(libgit, StoreUninitializedRepositoryConfig)
 	SetCurrentDirectory(g_Git.m_CurrentDir);
 
 	// clear any leftovers in caches
-	EXPECT_THROW(g_Git.CheckAndInitDll(), const char*);
+	EXPECT_THROW(g_Git.CheckAndInitDll(), std::exception);
 
-	EXPECT_THROW(git_set_config("something", "else", CONFIG_LOCAL), const char*);
+	EXPECT_THROW(git_set_config("something", "else", CONFIG_LOCAL), std::exception);
 }

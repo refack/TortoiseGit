@@ -1,20 +1,19 @@
 ﻿module;
-#include <tgit_cstring.h>	// first: decides which CString this compile speaks
-#include <git2/oid.h>
-#define GIT_HASH_MAX_HEXSIZE (2 * GIT_OID_MAX_SIZE)
 
 
 export module GitHash;
 import std;
+
 import invarients;
-import wstr;
 using namespace tgit::invarients;
+
+import wstr;
 using tgit::zstr::IsTCompString;
 using tgit::zstr::StringViewTraits;
 
 
 /* also see gitdll.c */
-static_assert(GIT_OID_MAX_SIZE <= sizeof(git_oid::id), "git_oid raw storage must be able to hold the largest id");
+static_assert(OID_MAX_SIZE <= sizeof(git_oid::id), "git_oid raw storage must be able to hold the largest id");
 
 
 export namespace TGitHash
@@ -199,7 +198,6 @@ public:
 
 	friend struct std::hash<CGitHash>;
 };
-
 
 }
 export using namespace TGitHash;

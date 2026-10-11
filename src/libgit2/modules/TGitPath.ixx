@@ -1346,6 +1346,9 @@ struct CTGitPathList {
 	CTGitPathList() = default;
 	// A constructor which allows a path list to be easily built with one initial entry in
 	explicit CTGitPathList(const CTGitPath& firstEntry) { AddPath(firstEntry); }
+	// CTGitPathList{ CTGitPath(L"a"), CTGitPath(L"b") }; m_commonBaseDirectory starts empty
+	CTGitPathList(std::initializer_list<CTGitPath> paths)
+		: m_paths(paths) {}
 	unsigned int m_Action = 0;
 
 	using PathVector = std::vector<CTGitPath>;
