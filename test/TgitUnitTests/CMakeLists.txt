@@ -1,12 +1,12 @@
 cmake_minimum_required(VERSION 4.0)
-project(UnitTests LANGUAGES CXX)
+project(TGitUnitTests LANGUAGES CXX)
 
 find_package(GTest REQUIRED CONFIG)
 find_package(MFC REQUIRED)
 
-add_executable(UnitTests)
+add_executable(TGitUnitTests)
 
-target_sources(UnitTests
+target_sources(TGitUnitTests
     PRIVATE
         AutoTempDir.cpp
         AutoTempDir.h
@@ -64,18 +64,18 @@ set(UNITTESTS_PARKED
     WindowsCredentialsStoreTests.cpp  # Utils/WindowsCredentialsStore
 )
 
-set_target_properties(UnitTests PROPERTIES
+set_target_properties(TGitUnitTests PROPERTIES
     CMAKE_MFC_FLAG 2
     CXX_MODULE_STD ON
 )
 
-target_compile_features(UnitTests
+target_compile_features(TGitUnitTests
     PRIVATE
         cxx_std_23
         c_std_23
 )
 
-target_include_directories(UnitTests
+target_include_directories(TGitUnitTests
     PRIVATE
         "${CMAKE_SOURCE_DIR}/src"
         "${CMAKE_SOURCE_DIR}/src/gitdll"
@@ -85,7 +85,7 @@ target_include_directories(UnitTests
         "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/include"
 )
 
-target_compile_definitions(UnitTests
+target_compile_definitions(TGitUnitTests
     PRIVATE
         TGIT_TESTS_ONLY
         TGIT_LFS
@@ -101,20 +101,20 @@ target_compile_definitions(UnitTests
         WINDOWS
         NOMINMAX
         _AFXDLL
-        "$<$<CONFIG:Debug>:_DEBUG>"
+
         "$<$<CONFIG:Debug>:DEBUG>"
         "$<$<CONFIG:Release>:NDEBUG>"
         "$<$<STREQUAL:${CMAKE_CXX_COMPILER_ARCHITECTURE_ID},x64>:_AMD64_>"
         "$<$<STREQUAL:${CMAKE_CXX_COMPILER_ARCHITECTURE_ID},ARM64>:_ARM64_>"
 )
 
-target_link_directories(UnitTests
+target_link_directories(TGitUnitTests
     PRIVATE
         "$<$<CONFIG:Debug>:${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/debug/lib>"
         "$<$<CONFIG:Release>:${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/lib>"
 )
 
-target_link_libraries(UnitTests
+target_link_libraries(TGitUnitTests
     PRIVATE
         GTest::gtest
         GTest::gmock
@@ -129,12 +129,12 @@ target_link_libraries(UnitTests
 # gitdll is a DLL (and must stay one), so it has to sit next to the exe. Copied
 # rather than sharing a bin\ output directory: RepositoryFixtures' GetResourcesDir()
 # finds test\UnitTests\resources relative to where UnitTests.exe lives.
-add_custom_command(TARGET UnitTests POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_RUNTIME_DLLS:UnitTests> $<TARGET_FILE_DIR:UnitTests>
+add_custom_command(TARGET TGitUnitTests POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_RUNTIME_DLLS:TGitUnitTests> $<TARGET_FILE_DIR:TGitUnitTests>
     COMMAND_EXPAND_LISTS
 )
 
-target_compile_options(UnitTests
+target_compile_options(TGitUnitTests
     PRIVATE
         /Zm110
         /W3

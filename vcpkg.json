@@ -4,7 +4,7 @@
   "name": "tortoisegit",
   "version-string": "2.19.1",
   "description": "Dependencies TortoiseGit consumes through vcpkg instead of a hand-maintained ext/build/*.vcxproj.",
-  "builtin-baseline": "083b127bd091f04806ea9203ed13268decb9de20",
+  "builtin-baseline": "67e816ef4b11c01fa923a18d16ecf863216fda55",
   "dependencies": [
     "detours",
     "gtest",

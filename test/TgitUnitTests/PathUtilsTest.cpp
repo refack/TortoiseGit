@@ -18,10 +18,11 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
+#include <gtest/gtest.h>
 #include "stdafx.h"
 import PathUtils;
 
-TEST(CPathUtils, GetFileNameFromPath)
+TEST(PathUtilsTest, GetFileNameFromPath)
 {
 	std::wstring test(L"d:\\test\\filename.ext");
 	EXPECT_STREQ(L"filename.ext", PathUtils::GetFileNameFromPath(test).c_str());
@@ -224,7 +225,7 @@ TEST(CPathUtils, IsSamePath)
 TEST(CPathUtils, GetCopyrightForSelf)
 {
 	const std::wstring copyright = PathUtils::GetCopyrightForSelf();
-	EXPECT_TRUE(tgit::wstr::StartsWith(copyright, L"Copyright (C) 20"));
+	EXPECT_TRUE(tgit::wstr::StartsWith(copyright, L"Copyright (C) 20")) << "copyright:" << copyright;
 }
 
 TEST(CPathUtils, ConvertToSlash)

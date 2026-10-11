@@ -9,6 +9,8 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_CXX_MODULE_STD ON)
 
+set(CMAKE_EXPORT_SARIF ON)
+
 # The triplet is a project decision, not a per-machine one: static libraries
 # over the dynamic CRT, which is what UseOfMfc=Dynamic and every target's
 # MSVC_RUNTIME_LIBRARY MultiThreadedDLL already assume. It has to be set before
@@ -92,7 +94,6 @@ function(tgit_core_library name flavor)
             # project and only TortoiseProc defined this - so CTGitPath's layout
             # differed between binaries. A module is compiled once: one answer.
             TGIT_LFS
-            "$<$<CONFIG:Debug>:_DEBUG>"   # as gitdll and UnitTests spell it; -MDd implies it, C5050 compares spellings
             "$<$<CONFIG:Debug>:DEBUG>"
             "$<$<CONFIG:Release>:NDEBUG>"
             "$<$<STREQUAL:${CMAKE_CXX_COMPILER_ARCHITECTURE_ID},x64>:_AMD64_>"

@@ -45,7 +45,7 @@ target_compile_definitions(SshAskPass
         WINDOWS
         NOMINMAX
         _AFXDLL
-        "$<$<CONFIG:Debug>:_DEBUG>"
+
         "$<$<CONFIG:Debug>:DEBUG>"
         "$<$<CONFIG:Release>:NDEBUG>"
         "$<$<STREQUAL:${CMAKE_CXX_COMPILER_ARCHITECTURE_ID},x64>:_AMD64_>"

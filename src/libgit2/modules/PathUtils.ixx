@@ -482,37 +482,39 @@ std::wstring GetCopyrightForSelf()
 
 	std::wstring strReturn;
 	DWORD dwReserved = 0;
-	if (const DWORD dwBufferSize = GetFileVersionInfoSize(path.c_str(), &dwReserved); dwBufferSize > 0)
-	{
-		const auto pBuffer = std::make_unique<BYTE[]>(dwBufferSize);
-
-		if (pBuffer)
-		{
-			GetFileVersionInfo(path.c_str(),
-							   0,
-							   dwBufferSize,
-							   pBuffer.get());
-
-			UINT nFixedLength = 0;
-			VOID* lpFixedPointer;
-			struct TRANSARRAY
-			{
-				WORD wLanguageID;
-				WORD wCharacterSet;
-			};
-			// Check the current language
-			VerQueryValue(pBuffer.get(), L"\\VarFileInfo\\Translation", &lpFixedPointer, &nFixedLength);
-			const auto lpTransArray = static_cast<TRANSARRAY*>(lpFixedPointer);
-
-			const std::wstring strLangLegalCopyright = std::format(L"\\StringFileInfo\\{:04x}{:04x}\\LegalCopyright", lpTransArray[0].wLanguageID, lpTransArray[0].wCharacterSet);
-
-			UINT nInfoSize = 0;
-			LPWSTR lpVersion = nullptr;
-			VerQueryValue(pBuffer.get(), strLangLegalCopyright.c_str(), reinterpret_cast<LPVOID*>(&lpVersion), &nInfoSize);
-			if (nInfoSize && lpVersion)
-				strReturn = lpVersion;
-		}
+	const DWORD dwBufferSize = GetFileVersionInfoSize(path.c_str(), &dwReserved);
+	if (dwBufferSize <= 0) {
+		return L"GetCopyrightForSelf GetFileVersionInfoSize fail " + path;
 	}
+	const auto pBuffer = std::make_unique<BYTE[]>(dwBufferSize);
+	if (!pBuffer) {
+		return L"GetCopyrightForSelf make_unique fail";
+	}
+
+	GetFileVersionInfo(path.c_str(), 0, dwBufferSize, pBuffer.get());
+
+	UINT nFixedLength = 0;
+	VOID* lpFixedPointer;
+	struct TRANSARRAY
+	{
+		WORD wLanguageID;
+		WORD wCharacterSet;
+	};
+	// Check the current language
+	VerQueryValue(pBuffer.get(), L"\\VarFileInfo\\Translation", &lpFixedPointer, &nFixedLength);
+	const auto lpTransArray = static_cast<TRANSARRAY*>(lpFixedPointer);
+
+	const auto strLangLegalCopyright = std::format(
+		L"\\StringFileInfo\\{:04x}{:04x}\\LegalCopyright",
+		lpTransArray[0].wLanguageID,
+		lpTransArray[0].wCharacterSet
+	);
+
+	UINT nInfoSize = 0;
+	LPWSTR lpVersion = nullptr;
+	VerQueryValue(pBuffer.get(), strLangLegalCopyright.c_str(), reinterpret_cast<LPVOID*>(&lpVersion), &nInfoSize);
+	if (nInfoSize && lpVersion)
+		strReturn = lpVersion;
 
 	return strReturn;
 }
