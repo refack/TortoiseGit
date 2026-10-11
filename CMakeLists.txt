@@ -11,7 +11,8 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_EXPORT_SARIF ON)
 file(MAKE_DIRECTORY "${CMAKE_BINARY_DIR}/SARIF")
 add_compile_options(
-    $<$<COMPILE_LANGUAGE:CXX>:-DUSING_CXX>
+    $<$<COMPILE_LANGUAGE:CXX>:-wd4996>  # depracation TODO: later
+    $<$<COMPILE_LANGUAGE:CXX>:-wd4102>  # decorative goto labels
 )
 
 # The triplet is a project decision, not a per-machine one: static libraries

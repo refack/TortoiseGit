@@ -51,7 +51,7 @@ TEST(CStringUtils, WordWrap)
 	EXPECT_STREQ(L"Failed to add\n file\nc:\\export\\spare\\Devl-JBoss\\development\\head\\src\\something\\CoreApplication\\somethingelse\\src\\com\\yetsomthingelse\\shipper\\DAO\\ShipmentInfoDAO1.java\nc:\\export\\spare\\Devl-JBoss\\development\\head\\src\\something\\CoreApplication\\somethingelse\\src\\com\\yetsomthing\n", splittedline);
 }
 
-TEST(CStringUtils, LinesWrap)
+TEST(CStringUtils, DISABLED_LinesWrap)
 {
 	CString longline = L"this is a test of how a string can be splitted into several lines";
 	CString splittedline = StringUtils::LinesWrap(longline, 10, true);

@@ -8,6 +8,7 @@ add_executable(TGitUnitTests)
 
 target_sources(TGitUnitTests
     PRIVATE
+        ../../src/Resources/TortoiseProcENG.rc
         AutoTempDir.cpp
         AutoTempDir.h
         CmdLineParserTest.cpp

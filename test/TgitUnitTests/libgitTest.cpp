@@ -39,7 +39,7 @@ TEST(libgit, BrokenConfig)
 	CString testFile = tempdir.GetTempDir() + L"\\.git\\config";
 	EXPECT_TRUE(StringUtils::WriteStringToTextFile(testFile, L"[push]\ndefault=something-that-is-invalid\n"));
 
-	EXPECT_THROW(g_Git.CheckAndInitDll(), const char*);
+	EXPECT_THROW(g_Git.CheckAndInitDll(), std::exception);
 }
 
 TEST(libgit, Mailmap)
