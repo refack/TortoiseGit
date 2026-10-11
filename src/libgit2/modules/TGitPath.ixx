@@ -1,17 +1,14 @@
 ﻿module;
-#include <tgit_cstring.h>	// first: decides which CString this compile speaks
+// #include <tgit_cstring.h>	// first: decides which CString this compile speaks
+#include <cassert>
 #include <windows.h>
 #include <shellapi.h>
 #include <Shlwapi.h>
-#include <crtdbg.h>
-#include <limits.h>
 #include <git2.h>
-// Both are leaves of #defines: the action names' string ids, and the shell's
-// ITEMIS_* flags that GetAdminDirMask() answers in.
-#include <corecrt_share.h>
-#include <corecrt_wstdio.h>
+
 #include <Resources/LoglistCommonResource.h>
 #include <TortoiseShell/Globals.h>
+#include "sanity.h"
 
 
 export module TGitPath;
@@ -165,6 +162,19 @@ ConfigPtr NewConfig() {
 	git_config* config = nullptr;
 	git_config_new(&config);
 	return { config, &git_config_free };
+}
+
+
+/// The first 64 KiB of \a path, raw bytes; nothing when it does not open. For
+/// git's one-line link files (.git, commondir), whose callers trim the line end.
+std::optional<std::string> ReadFileHead(const fs::path& path) {
+	std::ifstream file(path, std::ios::binary);
+	if (!file)
+		return std::nullopt;
+	std::string bytes(64 * 1024, '\0');
+	file.read(bytes.data(), static_cast<std::streamsize>(bytes.size()));
+	bytes.resize(static_cast<std::size_t>(file.gcount()));
+	return bytes;
 }
 
 
@@ -494,14 +504,11 @@ bool IsBareRepo(const TStr& path, bool* invalidFormat = nullptr) {
 std::wstring ReadGitLink(const std::wstring_view topDir, const std::wstring_view dotGitPath) {
 	constexpr std::string_view GITDIR_PREFIX = "gitdir: ";
 
-	const RIAA::CAutoFILE pFile = _wfsopen(std::wstring(dotGitPath).c_str(), L"r", SH_DENYWR);
-	if (!pFile)
+	const auto contents = TGitPath::detail::ReadFileHead(dotGitPath);
+	if (!contents)
 		return {};
 
-	constexpr int size = 65536;
-	auto buffer = std::make_unique<char[]>(size);
-	const int length = static_cast<int>(std::fread(buffer.get(), sizeof(char), size, pFile));
-	std::string_view gitPathA(buffer.get(), static_cast<size_t>(length));
+	std::string_view gitPathA(*contents);
 	if (!gitPathA.starts_with(GITDIR_PREFIX))
 		return {};
 	gitPathA.remove_prefix(GITDIR_PREFIX.size());
@@ -593,14 +600,11 @@ std::optional<AdminDir> GetAdminDirPath(const std::wstring_view projectTopDir) {
 	if (!TGitPath::detail::FileExists(pathToCommonDir))
 		return AdminDir{ .path = *wtAdminDir, .isWorktree = false };
 
-	const RIAA::CAutoFILE pFile = _wfsopen(pathToCommonDir.c_str(), L"rb", SH_DENYWR);
-	if (!pFile)
+	const auto contents = TGitPath::detail::ReadFileHead(pathToCommonDir);
+	if (!contents)
 		return std::nullopt;
 
-	constexpr int size = 65536;
-	const auto buffer = std::make_unique<char[]>(size);
-	const auto length = std::fread(buffer.get(), sizeof(char), size, pFile);
-	auto commonDir = CUnicodeUtils::GetUnicode<std::wstring>(std::string_view{ buffer.get(), length });
+	auto commonDir = CUnicodeUtils::GetUnicode<std::wstring>(std::string_view{ *contents });
 	tgit::wstr::Trim(commonDir, L"\r\n"sv);
 	PathUtils::ConvertToBackslash(commonDir);
 	if (::PathIsRelative(commonDir.c_str()))
@@ -975,7 +979,7 @@ public:
 	/// As SetFromGit, from the UTF-8 git and libgit2 hand out.
 	void SetFromGit(const char* pPath) {
 		Reset();
-		_ASSERTE(pPath);
+		assert(pPath);
 		if (!pPath)
 			return;
 		m_sFwdslashPath = CUnicodeUtils::Convert2Unicode<std::wstring>(pPath);
@@ -1399,7 +1403,7 @@ struct CTGitPathList {
 
 
 	const CTGitPath& operator[](const std::int64_t index) const {
-		_ASSERTE(index >= 0 && static_cast<size_t>(index) < m_paths.size());
+		Expects(index >= 0 && static_cast<size_t>(index) < m_paths.size());
 		return m_paths[static_cast<size_t>(index)];
 	}
 
@@ -1693,7 +1697,7 @@ const std::wstring& CTGitPath::GetUIPathString() const {
 void CTGitPath::EnsureBackslashPathSet() const {
 	if (m_sBackslashPath.empty()) {
 		SetBackslashPath(m_sFwdslashPath);
-		_ASSERTE(IsEmpty() || !m_sBackslashPath.empty());
+		assert(IsEmpty() || !m_sBackslashPath.empty());
 	}
 }
 
@@ -1701,7 +1705,7 @@ void CTGitPath::EnsureBackslashPathSet() const {
 void CTGitPath::EnsureFwdslashPathSet() const {
 	if (m_sFwdslashPath.empty()) {
 		SetFwdslashPath(m_sBackslashPath);
-		_ASSERTE(IsEmpty() || !m_sFwdslashPath.empty());
+		assert(IsEmpty() || !m_sFwdslashPath.empty());
 	}
 }
 
@@ -1734,7 +1738,7 @@ void CTGitPath::Reset() {
 	m_StatDel.clear();
 	m_ParentNo = 0;
 	m_stagingStatus = StagingStatus::DontCare;
-	_ASSERTE(IsEmpty());
+	assert(IsEmpty());
 }
 
 
@@ -1817,7 +1821,7 @@ std::wstring CTGitPath::GetRootPathString() const {
 	std::wstring workingPath = m_sBackslashPath;
 	workingPath.resize((std::max)(workingPath.size(), static_cast<size_t>(MAX_PATH))); // MAX_PATH ok here.
 	[[maybe_unused]] const BOOL stripped = ::PathStripToRoot(workingPath.data());
-	_ASSERTE(stripped);
+	assert(stripped);
 	tgit::wstr::ReleaseBuffer(workingPath);
 	return workingPath;
 }
@@ -2780,7 +2784,7 @@ int CTGitPathList::FillUnRev(const GitRunner& git, const unsigned int action, co
 			cmd.emplace_back(L"-i");
 
 		if (filterlist) {
-			_ASSERTE(!(*filterlist)[i].GetWinPathString().empty());
+			assert(!(*filterlist)[i].GetWinPathString().empty());
 			cmd.insert(cmd.cend(), { L"--", (*filterlist)[i].GetGitPathString() });
 		}
 
