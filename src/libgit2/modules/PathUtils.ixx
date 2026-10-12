@@ -16,6 +16,25 @@ using std::operator""sv;
 
 // #pragma comment(lib, "Version.lib")
 
+// TortoiseGit policy, not a wil concern (it was wil::KnownEnvVars + wil::GetEnvVar):
+// an XDG_* variable, when set, overrides the Windows known folder that the
+// Get*Directory functions below would otherwise use.
+namespace PathUtils::xdg
+{
+constexpr wchar_t BinHome[] = L"XDG_BIN_HOME";
+constexpr wchar_t DataHome[] = L"XDG_DATA_HOME";
+constexpr wchar_t ConfigHome[] = L"XDG_CONFIG_HOME";
+constexpr wchar_t CacheHome[] = L"XDG_CACHE_HOME";
+
+/// The variable's value, or an empty path when it is not set. wil::GetEnvVar threw
+/// for an unset variable - which, for the XDG_* names, is the normal case on Windows -
+/// so every Get*Directory below threw instead of falling back to the known folder.
+fs::path GetEnvVar(const wchar_t* const name)
+{
+	return fs::path{ wil::TryGetEnvironmentVariable(name).value_or(std::wstring{}) };
+}
+}
+
 export namespace PathUtils
 {
 
@@ -424,7 +443,7 @@ std::wstring GetAppParentDirectory(const HMODULE hMod /* = nullptr */)
 
 std::wstring GetAppDataDirectory()
 {
-	if (const auto env = wil::GetEnvVar(wil::KnownEnvVars::XDGConfig); !env.empty())
+	if (const auto env = xdg::GetEnvVar(xdg::ConfigHome); !env.empty())
 		return EnsureTGitSubfolder(env);
 
 	return TortoiseGitSubfolderOf(FOLDERID_RoamingAppData);
@@ -432,7 +451,7 @@ std::wstring GetAppDataDirectory()
 
 std::wstring GetLocalAppDataDirectory()
 {
-	if (const auto env = wil::GetEnvVar(wil::KnownEnvVars::XDGCache); !env.empty())
+	if (const auto env = xdg::GetEnvVar(xdg::CacheHome); !env.empty())
 		return EnsureTGitSubfolder(env);
 
 	return TortoiseGitSubfolderOf(FOLDERID_LocalAppData);
@@ -440,7 +459,7 @@ std::wstring GetLocalAppDataDirectory()
 
 std::wstring GetDocumentsDirectory()
 {
-	if (const auto env = wil::GetEnvVar(wil::KnownEnvVars::XDGData); !env.empty())
+	if (const auto env = xdg::GetEnvVar(xdg::DataHome); !env.empty())
 		return EnsureTGitSubfolder(env);
 
 	return GetKnownFolder(FOLDERID_Documents);
@@ -448,7 +467,7 @@ std::wstring GetDocumentsDirectory()
 
 std::wstring GetProgramsDirectory()
 {
-	if (const auto env = wil::GetEnvVar(wil::KnownEnvVars::XDGBin); !env.empty())
+	if (const auto env = xdg::GetEnvVar(xdg::BinHome); !env.empty())
 		return EnsureTGitSubfolder(env);
 
 	return GetKnownFolder(FOLDERID_ProgramFiles);

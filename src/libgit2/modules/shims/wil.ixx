@@ -38,19 +38,6 @@ namespace wil::tgit_details {
 }
 
 export namespace wil {
-namespace KnownEnvVars {
-	constexpr auto XDGBin = L"XDG_BIN_HOME"sv;
-	constexpr auto XDGData = L"XDG_DATA_HOME"sv;
-	constexpr auto XDGConfig = L"XDG_CONFIG_HOME"sv;
-	constexpr auto XDGCache = L"XDG_CACHE_HOME"sv;
-	constexpr auto KDGState = L"XDG_STATE_HOME"sv;
-}
-
-
-
-using KnownEnvVar = std::wstring_view;
-
-
 // STL
 using file_ticks = std::chrono::duration<std::int64_t, std::ratio<1, 10'000'000>>;
 
@@ -342,14 +329,9 @@ auto GetKnownFolderPath(
 
 
 
-auto GetEnvVar(const KnownEnvVar which) {
-	return fs::path{ wil::GetEnvironmentVariableW(which.data()).get() };
-}
-
-
 /// wil::TryGetEnvironmentVariableW, compiled in this module (see the note at the
-/// re-exports). Empty when the variable is not set - unlike GetEnvVar above, which
-/// throws then; throws wil::ResultException on any other failure.
+/// re-exports). Empty when the variable is not set; throws wil::ResultException on
+/// any other failure.
 std::optional<std::wstring> TryGetEnvironmentVariable(const PCWSTR name) {
 	const auto value = wil::TryGetEnvironmentVariableW(name);
 	if (!value)
