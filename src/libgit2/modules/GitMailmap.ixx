@@ -1,6 +1,5 @@
 ﻿module;
-#include <tgit_cstring.h>	// first: decides which CString this compile speaks
-#include <atlstr.h>
+#include <windows.h>
 #include <gitdll.h>
 #include "sanity.h"
 
@@ -11,6 +10,9 @@ import git_h;
 import Registry;
 import str_utils;
 using tgit::str::StringView;
+// Both widths appear below, so only the wide one is brought in by name; the
+// narrow sites spell tgit::zstr::CString.
+using tgit::wstr::CString;
 
 export namespace GitMailmap
 {
@@ -43,7 +45,7 @@ CGitMailmap::CGitMailmap()
 			[[maybe_unused]]TGitH::CAutoLocker lock(g_Git.m_critGitDllSec);
 			g_Git.CheckAndInitDll();
 		} catch (const char* msg) {
-			MessageBox(nullptr, L"Could not initialize libgit. Disabling Mailmap support.\nlibgit reports:\n" + CUnicodeUtils::Convert2Unicode<CStringW>(msg), L"TortoiseGit", MB_ICONERROR);
+			MessageBox(nullptr, L"Could not initialize libgit. Disabling Mailmap support.\nlibgit reports:\n" + CUnicodeUtils::Convert2Unicode<CString>(msg), L"TortoiseGit", MB_ICONERROR);
 			return;
 		}
 		git_read_mailmap(&m_pMailmap);
@@ -72,9 +74,9 @@ void CGitMailmap::Translate(CString& name, CString& email) const
 	const char* email1 = nullptr;
 	const auto lamb = [](void* payload) -> const char* {
 		return reinterpret_cast<payload_struct*>(payload)->authorName = _strdup(
-			   CUnicodeUtils::GetUTF8<CStringA>(*reinterpret_cast<payload_struct*>(payload)->name));
+			   CUnicodeUtils::GetUTF8<tgit::zstr::CString>(*reinterpret_cast<payload_struct*>(payload)->name));
 	};
-	git_lookup_mailmap(m_pMailmap, &email1, &author1, CUnicodeUtils::GetUTF8<CStringA>(email), &payload, lamb);
+	git_lookup_mailmap(m_pMailmap, &email1, &author1, CUnicodeUtils::GetUTF8<tgit::zstr::CString>(email), &payload, lamb);
 	free((void*)payload.authorName);
 	if (email1)
 		email = CUnicodeUtils::Convert2Unicode<CString>(email1);
@@ -86,7 +88,7 @@ std::wstring GetMailmapMapping(GIT_MAILMAP mailmap, std::wstring_view email, std
 {
 	const char* author1{};
 	const char* email1{};
-	const auto emailA = CUnicodeUtils::GetUTF8<CStringA>(email);
+	const auto emailA = CUnicodeUtils::GetUTF8<tgit::zstr::CString>(email);
 	auto callback = [](void* vd) -> const char* {
 		const auto _name = *static_cast<std::wstring_view*>(vd);
 		return CUnicodeUtils::StdGetUTF8(_name).data();

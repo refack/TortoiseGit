@@ -11,6 +11,10 @@
 #endif
 #include <windows.h>
 #include <atlstr.h>
+// CTime's Format() returns this flavor's CString, so CTime is a shim type too: afx.h
+// already includes it under MFC; without _AFX it would pull atlstr.h into whichever
+// GMF included it, and that GMF would then speak ATL CString inside the MFC library.
+#include <atltime.h>
 #include <winrt/base.h>		// ::winrt::to_hstring, in CUnicodeUtils::GetUnicode
 
 
@@ -33,6 +37,9 @@ export namespace tgit::zstr { using CString = ::CStringA; }	// CStringT<char, St
 export namespace tgit::wstr { using CString = ATL::CAtlStringW; }	// CStringT<wchar_t, StrTraitATL<wchar_t, ChTraitsCRT<wchar_t>>>
 export namespace tgit::zstr { using CString = ATL::CAtlStringA; }	// CStringT<char, StrTraitATL<char, ChTraitsCRT<char>>>
 #endif
+// ATL::CTime in both flavors, but declared under the same _AFX answer as the
+// CString its Format() returns, so it is the shim's to hand out (GitRev::TimeType).
+export namespace tgit::wstr { using CTime = ::ATL::CTime; }
 
 
 // ---- tgit::str: the kind-generic layer ------------------------------------------

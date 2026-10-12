@@ -1,5 +1,5 @@
 ﻿module;
-#include <tgit_cstring.h>	// first: decides which CString this compile speaks
+#include <windows.h>
 #include <synchapi.h>
 #include <gitdll.h>
 #include <git2.h>
@@ -24,6 +24,7 @@ namespace fs = std::filesystem;
 using TGitPath::CTGitPath;
 using TGitPath::CTGitPathList;
 using tgit::str::StringView;
+using tgit::wstr::CString;
 
 // Application classes this module only refers to: TortoiseProc defines them, in
 // the global module. A plain forward declaration here would attach them to this

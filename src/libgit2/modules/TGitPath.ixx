@@ -1,5 +1,4 @@
 ﻿module;
-// #include <tgit_cstring.h>	// first: decides which CString this compile speaks
 #include <cassert>
 #include <windows.h>
 #include <shellapi.h>

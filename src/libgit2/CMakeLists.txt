@@ -33,7 +33,7 @@ find_package(libgit2 CONFIG REQUIRED)
 
 
 
-# The core library, once per CString flavor (include/tgit_cstring.h says why):
+# The core library, once per CString flavor (modules/shims/str_utils.ixx says why):
 #   TGitLibgit2     ATL - UnitTests, and later TortoiseShell / TGitCache
 #   TGitLibgit2Mfc  MFC - TortoiseProc
 # Both STATIC: the TGitCore.lib of CLAUDE.md's Phase B. As a DLL it exported none

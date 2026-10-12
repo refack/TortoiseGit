@@ -22,7 +22,7 @@
 import TGitPath;
 import RIAA;
 
-#include <atlstr.h>
+// CString here is MFC's, from the header's afxwin.h: this source is in the MFC library only.
 #include <commctrl.h>
 
 // Singleton constructor and destructor (private)

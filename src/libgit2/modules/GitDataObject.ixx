@@ -1,7 +1,7 @@
 ﻿module;
-#include <tgit_cstring.h>	// first: decides which CString this compile speaks
 #include <stddef.h> // offsetof: a macro, so import std does not provide it
-#include <atlstr.h>
+#include <windows.h>
+#include <Shlwapi.h>	// SHCreateStreamOnFileEx, which atlstr.h used to bring in
 #include <Shldisp.h>
 #include <shlobj_core.h>
 #include <sanity.h>
@@ -19,7 +19,7 @@ import GitHash;
 using TGitPath::CTGitPath;
 using TGitPath::CTGitPathList;
 using TGitHash::CGitHash;
-
+using tgit::wstr::CString;
 
 
 export namespace TGitDataObject

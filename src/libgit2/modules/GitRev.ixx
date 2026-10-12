@@ -1,8 +1,8 @@
 ﻿module;
-#include <tgit_cstring.h>	// first: decides which CString this compile speaks
+#include <windows.h>
+#include <atltrace.h>	// ATLASSERT/ATLTRACE: macros, which no import carries. Not CString: that is str_utils'
 #include <gitdll.h>
 #include <git2.h>
-#include <atltime.h>
 
 export module GitRev;
 import std;
@@ -21,6 +21,9 @@ import invarients;
 using TGitHash::CGitHash;
 using namespace TGitH;
 using tgit::str::StringView;
+// Both widths appear below, so only the wide one is brought in by name; the two
+// narrow sites spell tgit::zstr::CString.
+using tgit::wstr::CString;
 
 
 #define LOG_REV_AUTHOR_NAME L'0'
@@ -40,7 +43,7 @@ using tgit::str::StringView;
 export struct GitRev
 {
 	using StringType = CString;
-	using TimeType = ATL::CTime;
+	using TimeType = tgit::wstr::CTime;
 
 protected:
 	StringType m_AuthorName;
@@ -657,7 +660,7 @@ int GitRev::GetCommit(const CString& refname, bool allowTree /* false */)
 	}
 	catch (const char* msg)
 	{
-		m_sErr = L"Could not initiate libgit.\nlibgit reports:\n" + CUnicodeUtils::Convert2Unicode<CStringW>(msg);
+		m_sErr = L"Could not initiate libgit.\nlibgit reports:\n" + CUnicodeUtils::Convert2Unicode<CString>(msg);
 		return -1;
 	}
 
@@ -668,7 +671,7 @@ int GitRev::GetCommit(const CString& refname, bool allowTree /* false */)
 		m_sErr.Empty();
 		return 0;
 	}
-	CStringA rev = CUnicodeUtils::GetUTF8<CStringA>(g_Git.FixBranchName(refname + L"^{}")); // add ^{} in order to dereference signed tags
+	tgit::zstr::CString rev = CUnicodeUtils::GetUTF8<tgit::zstr::CString>(g_Git.FixBranchName(refname + L"^{}")); // add ^{} in order to dereference signed tags
 	GIT_HASH sha;
 
 	try
@@ -681,7 +684,7 @@ int GitRev::GetCommit(const CString& refname, bool allowTree /* false */)
 	}
 	catch (const char* msg)
 	{
-		m_sErr = L"Could not get SHA-1 of ref \"" + g_Git.FixBranchName(refname) + L"\".\nlibgit reports:\n" + CUnicodeUtils::Convert2Unicode<CStringW>(msg);
+		m_sErr = L"Could not get SHA-1 of ref \"" + g_Git.FixBranchName(refname) + L"\".\nlibgit reports:\n" + CUnicodeUtils::Convert2Unicode<CString>(msg);
 		return -1;
 	}
 
@@ -689,7 +692,7 @@ int GitRev::GetCommit(const CString& refname, bool allowTree /* false */)
 	if (int ret = GetCommitFromHash_withoutLock(hash); ret == 0 || ret < 0 && !allowTree)
 		return ret;
 
-	CStringA revTree = CUnicodeUtils::GetUTF8<CStringA>(g_Git.FixBranchName(refname + L"^{tree}"));
+	tgit::zstr::CString revTree = CUnicodeUtils::GetUTF8<tgit::zstr::CString>(g_Git.FixBranchName(refname + L"^{tree}"));
 	try
 	{
 		if (git_get_sha1(revTree, sha))
@@ -700,7 +703,7 @@ int GitRev::GetCommit(const CString& refname, bool allowTree /* false */)
 	}
 	catch (const char* msg)
 	{
-		m_sErr = L"Could not parse ref.\nlibgit reports:\n" + CUnicodeUtils::Convert2Unicode<CStringW>(msg);
+		m_sErr = L"Could not parse ref.\nlibgit reports:\n" + CUnicodeUtils::Convert2Unicode<CString>(msg);
 		return -1;
 	}
 

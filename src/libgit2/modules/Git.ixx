@@ -53,7 +53,6 @@ using CStrBufA = CStringA::CStrBuf;
 using wil::CFormatMessageWrapper;
 using tgit::DebugOutput::TracePrintf;
 namespace GitFormatHolder = tgit::invarients::GitFormatHolder;
-using CAutoLocker = CComCritSecLock<CComCriticalSection>;
 
 
 
@@ -131,6 +130,11 @@ bool NeedsPosixShellQuoting(const std::wstring_view argument)
 
 export namespace TGitH
 {
+
+/// The scoped lock over CGit's critical sections (m_critGitDllSec, m_critSecThreadMap).
+/// Exported: GitRev, GitRevLoglist and GitMailmap take g_Git.m_critGitDllSec with it,
+/// and this way their fragments need no ATL header of their own.
+using CAutoLocker = CComCritSecLock<CComCriticalSection>;
 
 // ---- From tgittypes (moved verbatim; tgittypes is gone) ---------------------------
 

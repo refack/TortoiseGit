@@ -19,7 +19,7 @@
 
 #pragma once
 #include "Utils/Hash.h"
-#include <atlstr.h>
+#include <windows.h>	// EnumDisplayMonitors, MONITORINFOEX. Was atlstr.h, but no CString is used here
 
 #include <string>
 #include <vector>

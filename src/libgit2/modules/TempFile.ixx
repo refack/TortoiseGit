@@ -1,5 +1,4 @@
 ﻿module;
-#include <tgit_cstring.h>	// first: decides which CString this compile speaks
 #include <windows.h>
 #include <winrt/base.h>		// ::winrt::clock, the FILETIME-epoch clock CDirFileEnum's times are on
 
