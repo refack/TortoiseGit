@@ -4162,11 +4162,13 @@ BOOL CGit::CheckMsysGitDir(const BOOL bFallback)
 		PathCanonicalize(CStrBuf(msysGitDir, MAX_PATH), TGitH::ms_LastMsysGitDir + L"\\..\\..");
 	TGitH::ms_MsysGitRootDir = msysGitDir;
 
+	// The CString is named: a view of the temporary GetGitSystemConfig() returned
+	// dangled before the comparison read it.
 	if (
-		const std::wstring_view systemConfig = StringView(g_Git.GetGitSystemConfig());
-		wil::reg::get_value_string(REG_SYSTEM_GITCONFIGPATH) != systemConfig
+		const CString systemConfigOwner = g_Git.GetGitSystemConfig();
+		wil::reg::get_value_string(REG_SYSTEM_GITCONFIGPATH) != std::wstring_view(StringView(systemConfigOwner))
 	)
-		std::ignore = wil::reg::set_value_string(REG_SYSTEM_GITCONFIGPATH, systemConfig);
+		std::ignore = wil::reg::set_value_string(REG_SYSTEM_GITCONFIGPATH, std::wstring_view(StringView(systemConfigOwner)));
 
 	TracePrintf(__FUNCTION__ L": ms_LastMsysGitDir = %s\n", static_cast<LPCWSTR>(TGitH::ms_LastMsysGitDir));
 	TracePrintf(__FUNCTION__ L": ms_MsysGitRootDir = %s\n", static_cast<LPCWSTR>(TGitH::ms_MsysGitRootDir));
