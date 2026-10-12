@@ -165,7 +165,7 @@ function(tgit_core_library name flavor)
             modules/gitindex.ixx
             modules/tgittypes.ixx
             modules/invarients.ixx
-            modules/wstr.ixx
+            modules/shims/str_utils.ixx
             modules/lanes.ixx
             modules/LangDll.ixx
             modules/GitStatus.ixx
