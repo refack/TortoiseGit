@@ -15,7 +15,7 @@ import str_utils;
 import GitRev;
 import TGitPath;
 import GitMailmap;
-import tgittypes;
+import wil;			// scope_exit_helper, which SCOPE_EXIT expands to
 import wil_git2;
 import DebugOutput;
 import GitHash;
@@ -25,7 +25,7 @@ namespace fs = std::filesystem;
 using TGitPath::CTGitPath;
 using TGitPath::CTGitPathList;
 using namespace SmartLibgit2;
-using tgit::zstr::StringView;
+using tgit::str::StringView;
 
 // Application classes this module only refers to: TortoiseProc defines them, in
 // the global module. A plain forward declaration here would attach them to this
@@ -120,7 +120,7 @@ public:
 
 
 	volatile LONG m_IsSimpleListReady = FALSE;
-	tgit::types::STRING_VECTOR m_SimpleFileList{};  /* use for find and filter, no rename detection and line num stat info */
+	std::vector<std::wstring> m_SimpleFileList{};  /* use for find and filter, no rename detection and line num stat info */
 
 
 	CString& GetAuthorName() { return m_AuthorName; }

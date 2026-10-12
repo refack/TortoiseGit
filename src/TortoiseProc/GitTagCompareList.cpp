@@ -459,7 +459,7 @@ void CGitTagCompareList::OnContextMenuList(CWnd * /*pWnd*/, CPoint point)
 			sysProgressDlg.SetShowProgressBar(false);
 			sysProgressDlg.ShowModal(this, true);
 
-			STRING_VECTOR list;
+			std::vector<std::wstring> list;
 			list.push_back(std::format(L"refs/tags/{}", tag));
 			if (g_Git.DeleteRemoteRefs(m_remote, list))
 			{

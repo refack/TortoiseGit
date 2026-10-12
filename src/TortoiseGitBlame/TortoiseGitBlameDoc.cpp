@@ -150,7 +150,7 @@ BOOL CTortoiseGitBlameDoc::OnOpenDocument(LPCWSTR lpszPathName, CString Rev)
 		// `option` was a CString holding a run of blame flags: "-C -C -C40 -w".
 		// It is a list of flags, so it is a list now, and the spaces that used to
 		// join them stop being part of any single option.
-		STRING_VECTOR cmd, option;
+		std::vector<std::wstring> cmd, option;
 		int dwDetectMovedOrCopiedLines = theApp.GetInt(L"DetectMovedOrCopiedLines", BLAME_DETECT_MOVED_OR_COPIED_LINES_DISABLED);
 		int dwDetectMovedOrCopiedLinesNumCharactersWithinFile = theApp.GetInt(L"DetectMovedOrCopiedLinesNumCharactersWithinFile", BLAME_DETECT_MOVED_OR_COPIED_LINES_NUM_CHARACTERS_WITHIN_FILE_DEFAULT);
 		int dwDetectMovedOrCopiedLinesNumCharactersFromFiles = theApp.GetInt(L"DetectMovedOrCopiedLinesNumCharactersFromFiles", BLAME_DETECT_MOVED_OR_COPIED_LINES_NUM_CHARACTERS_FROM_FILES_DEFAULT);
@@ -214,10 +214,10 @@ BOOL CTortoiseGitBlameDoc::OnOpenDocument(LPCWSTR lpszPathName, CString Rev)
 		cmd.insert(cmd.cend(), option.cbegin(), option.cend());
 		cmd.insert(cmd.cend(), { std::wstring(Rev), std::wstring(L"--"), path.GetGitPathString() });
 		m_BlameData.clear();
-		BYTE_VECTOR err;
+		std::string err;
 		if(g_Git.Run(cmd, &m_BlameData, &err))
 		{
-			MessageBox(nullptr, std::format(L"{}\n\n{}", CString(MAKEINTRESOURCE(IDS_BLAMEERROR)), err.Decode()).c_str(), L"TortoiseGitBlame", MB_OK | MB_ICONERROR);
+			MessageBox(nullptr, std::format(L"{}\n\n{}", CString(MAKEINTRESOURCE(IDS_BLAMEERROR)), CUnicodeUtils::DecodeUtf8UpToNul(err)).c_str(), L"TortoiseGitBlame", MB_OK | MB_ICONERROR);
 			return FALSE;
 		}
 

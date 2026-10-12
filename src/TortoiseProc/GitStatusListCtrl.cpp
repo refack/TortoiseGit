@@ -940,7 +940,7 @@ void CGitStatusListCtrl::GitStageEntry(CTGitPath* entry)
 void CGitStatusListCtrl::GitUnstageEntry(CTGitPath* entry)
 {
 	CString out;
-	STRING_VECTOR cmd1, cmd2;
+	std::vector<std::wstring> cmd1, cmd2;
 	// git restore --staged would avoid the whole mess below but requires at least git version 2.23
 	if (entry->m_Action & CTGitPath::Actions::LOGACTIONS_ADDED)
 		cmd1 = { L"git.exe", L"rm", L"-f", L"--cached", L"--", entry->GetGitPathString() };
@@ -3520,7 +3520,7 @@ void CGitStatusListCtrl::ResetChecked(const CTGitPath& entry)
 		adjustedEntry.SetFromWin(tgit::wstr::Right(entry.GetWinPathString(), static_cast<int>(entry.GetWinPathString().size()) - g_Git.m_CurrentDir.GetLength() - 1));
 	if (entry.IsDirectory())
 	{
-		// Not a STRING_VECTOR: these are keys of a std::map<CString, bool>, not git
+		// Not a std::vector<std::wstring>: these are keys of a std::map<CString, bool>, not git
 		// strings, and calling them the same thing is what made this look convertible.
 		std::vector<CString> toDelete;
 		for (auto it = m_mapFilenameToChecked.begin(); it != m_mapFilenameToChecked.end(); ++it)
@@ -4604,7 +4604,7 @@ int CGitStatusListCtrl::RevertSelectedItemToVersion(bool parent)
 		if (CTGitPath path{ g_Git.CombinePath(filename).GetString() }; useRecycleBin && !isAdded && !path.IsDirectory())
 			path.Delete(useRecycleBin, true);
 		CString out;
-		STRING_VECTOR argv;
+		std::vector<std::wstring> argv;
 		if (isAdded) // HACK for issue #4097
 			argv = { L"git.exe", L"rm", L"--cached", L"--ignore-unmatch", L"--", std::wstring(filename) };
 		else // remember to use --end-of-options as soon as version is not a hash any more

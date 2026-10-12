@@ -110,7 +110,7 @@ bool CAppUtils::StashSave(HWND hWnd, const CString& msg, bool showPull, bool pul
 		CGitHash oldStash;
 		g_Git.GetHash(oldStash, L"refs/stash");
 
-		STRING_VECTOR cmd{ L"git.exe", L"stash", L"push" };
+		std::vector<std::wstring> cmd{ L"git.exe", L"stash", L"push" };
 
 		if (dlg.m_bIncludeUntracked)
 			cmd.emplace_back(L"--include-untracked");
@@ -1049,7 +1049,7 @@ bool CAppUtils::CreateBranchTag(HWND hWnd, bool isTag /*true*/, const CString* r
 
 	if(dlg.DoModal()==IDOK)
 	{
-		STRING_VECTOR args;
+		std::vector<std::wstring> args;
 		if(dlg.m_bForce)
 			args.emplace_back(L"-f");
 
@@ -1079,7 +1079,7 @@ bool CAppUtils::CreateBranchTag(HWND hWnd, bool isTag /*true*/, const CString* r
 				args.emplace_back(L"--no-track");
 		}
 
-		STRING_VECTOR cmd{ L"git.exe", isTag ? L"tag" : L"branch" };
+		std::vector<std::wstring> cmd{ L"git.exe", isTag ? L"tag" : L"branch" };
 		cmd.insert(cmd.cend(), args.cbegin(), args.cend());
 		cmd.insert(cmd.cend(), { std::wstring(L"--"), std::wstring(dlg.m_BranchTagName), std::wstring(g_Git.FixBranchName(dlg.m_VersionName)) });
 
@@ -1112,7 +1112,7 @@ bool CAppUtils::CreateWorktree(HWND hWnd, const CString& target /* CString() */)
 	if (dlg.DoModal() != IDOK)
 		return FALSE;
 
-	STRING_VECTOR cmd{ L"git.exe", L"worktree", L"add" };
+	std::vector<std::wstring> cmd{ L"git.exe", L"worktree", L"add" };
 	if (!dlg.m_bCheckout)
 		cmd.emplace_back(L"--no-checkout"); // git defaults to --checkout
 	if (dlg.m_bForce)
@@ -1175,7 +1175,7 @@ bool CAppUtils::PerformSwitch(HWND hWnd, const CString& ref, bool bForce /* fals
 {
 	CProgressDlg progress(GetParentCWnd(hWnd));
 	{
-		STRING_VECTOR cmd{ L"git.exe", L"checkout" };
+		std::vector<std::wstring> cmd{ L"git.exe", L"checkout" };
 		if (bForce)
 			cmd.emplace_back(L"-f");
 		if (!sNewBranch.IsEmpty())
@@ -1258,7 +1258,7 @@ bool CAppUtils::PerformSwitch(HWND hWnd, const CString& ref, bool bForce /* fals
 class CIgnoreFile : public CStdioFile
 {
 public:
-	STRING_VECTOR m_Items;
+	std::vector<std::wstring> m_Items;
 	std::string m_eol{ "\n" };
 
 	BOOL ReadString(CString& rString) override
@@ -1629,7 +1629,7 @@ bool CAppUtils::ConflictEdit(HWND hWnd, CTGitPath& path, bool bAlternativeTool /
 
 	const std::wstring mergeGitPathString = merge.GetGitPathString();
 
-	BYTE_VECTOR vector;
+	std::string vector;
 	if (g_Git.Run({ L"git.exe", L"ls-files", L"-u", L"-t", L"-z", L"--", mergeGitPathString }, &vector))
 		return FALSE;
 
@@ -2059,7 +2059,7 @@ bool DoPull(HWND hWnd, const CString& url, BOOL bFetchTags, bool bNoFF, bool bFF
 		return false;
 	}
 
-	STRING_VECTOR args;
+	std::vector<std::wstring> args;
 	if (bFetchTags == BST_UNCHECKED)
 		args.emplace_back(L"--no-tags");
 	else if (bFetchTags == BST_CHECKED)
@@ -2090,7 +2090,7 @@ bool DoPull(HWND hWnd, const CString& url, BOOL bFetchTags, bool bNoFF, bool bFF
 
 	CProgressDlg progress(GetParentCWnd(hWnd));
 	{
-		STRING_VECTOR cmd{ L"git.exe", L"pull", L"--progress", L"-v", L"--no-rebase" };
+		std::vector<std::wstring> cmd{ L"git.exe", L"pull", L"--progress", L"-v", L"--no-rebase" };
 		cmd.insert(cmd.cend(), args.cbegin(), args.cend());
 		cmd.insert(cmd.cend(), { L"--", std::wstring(url) });
 		if (!remoteBranchName.IsEmpty())
@@ -2124,7 +2124,7 @@ bool DoPull(HWND hWnd, const CString& url, BOOL bFetchTags, bool bNoFF, bool bFF
 				return;
 			}
 
-			STRING_VECTOR remotes;
+			std::vector<std::wstring> remotes;
 			g_Git.GetRemoteList(remotes);
 			if (std::find(remotes.begin(), remotes.end(), tgit::str::StringView(url)) != remotes.end())
 			{
@@ -2277,7 +2277,7 @@ static bool DoFetch(HWND hWnd, const CString& url, const bool fetchAllRemotes, c
 	CGitHash oldUpstreamHash;
 	if (runRebase)
 	{
-		STRING_VECTOR list;
+		std::vector<std::wstring> list;
 		g_Git.GetRemoteList(list);
 		for (auto it = list.cbegin(); it != list.cend(); ++it)
 		{
@@ -2306,7 +2306,7 @@ static bool DoFetch(HWND hWnd, const CString& url, const bool fetchAllRemotes, c
 		}
 	}
 
-	STRING_VECTOR cmd{ L"git.exe", L"fetch" };
+	std::vector<std::wstring> cmd{ L"git.exe", L"fetch" };
 	if (fetchAllRemotes)
 		cmd.emplace_back(L"--all");
 
@@ -2488,7 +2488,7 @@ bool CAppUtils::DoPush(HWND hWnd, bool tags, bool allRemotes, bool allBranches, 
 	else if (sRecurseSubmodules == L"on-demand")
 		iRecurseSubmodules = 2;
 
-	STRING_VECTOR arg;
+	std::vector<std::wstring> arg;
 	if (tags && !allBranches)
 		arg.emplace_back(L"--tags");
 	if (force)
@@ -2510,7 +2510,7 @@ bool CAppUtils::DoPush(HWND hWnd, bool tags, bool allRemotes, bool allBranches, 
 
 	CProgressDlg progress(GetParentCWnd(hWnd));
 
-	STRING_VECTOR remotesList;
+	std::vector<std::wstring> remotesList;
 	if (allRemotes)
 		g_Git.GetRemoteList(remotesList);
 	else
@@ -2520,7 +2520,7 @@ bool CAppUtils::DoPush(HWND hWnd, bool tags, bool allRemotes, bool allBranches, 
 	{
 		// "git.exe push <what> <arg...> -- <remote> [<refspec>]"
 		const auto pushTo = [&](const wchar_t* what) {
-			STRING_VECTOR cmd{ L"git.exe", L"push" };
+			std::vector<std::wstring> cmd{ L"git.exe", L"push" };
 			if (what)
 				cmd.emplace_back(what);
 			cmd.insert(cmd.cend(), arg.cbegin(), arg.cend());
@@ -2542,7 +2542,7 @@ bool CAppUtils::DoPush(HWND hWnd, bool tags, bool allRemotes, bool allBranches, 
 				branch += L":";
 				branch += remoteBranch;
 			}
-			STRING_VECTOR cmd = pushTo(nullptr);
+			std::vector<std::wstring> cmd = pushTo(nullptr);
 			// The refspec used to interpolate as nothing when empty.
 			if (!branch.IsEmpty())
 				cmd.emplace_back(std::wstring(branch));
@@ -2622,7 +2622,7 @@ bool CAppUtils::RequestPull(HWND hWnd, const CString& endrevision, const CString
 	dlg.m_EndRevision = endrevision;
 	if (dlg.DoModal()==IDOK)
 	{
-		const STRING_VECTOR cmd{ L"git.exe", L"request-pull", L"--", std::wstring(dlg.m_StartRevision), std::wstring(dlg.m_RepositoryURL), std::wstring(dlg.m_EndRevision) };
+		const std::vector<std::wstring> cmd{ L"git.exe", L"request-pull", L"--", std::wstring(dlg.m_StartRevision), std::wstring(dlg.m_RepositoryURL), std::wstring(dlg.m_EndRevision) };
 
 		CSysProgressDlg sysProgressDlg;
 		sysProgressDlg.SetTitle(CString(MAKEINTRESOURCE(IDS_APPNAME)));
@@ -2881,7 +2881,7 @@ BOOL CAppUtils::SVNDCommit(HWND hWnd)
 
 static bool DoMerge(HWND hWnd, bool noFF, bool ffOnly, bool squash, bool noCommit, const int* log, bool unrelated, const CString& mergeStrategy, const CString& strategyOption, const CString& strategyParam, const CString& logMessage, const CString& version, bool isBranch, bool showStashPop)
 {
-	STRING_VECTOR cmd{ L"git.exe", L"merge" };
+	std::vector<std::wstring> cmd{ L"git.exe", L"merge" };
 	if (noFF)
 		cmd.emplace_back(L"--no-ff");
 	else if (ffOnly)
@@ -3273,7 +3273,7 @@ bool CAppUtils::BisectStart(HWND hWnd, const CString& lastGood, const CString& f
 
 bool CAppUtils::BisectOperation(HWND hWnd, const CString& op, const CString& ref)
 {
-	STRING_VECTOR cmd{ L"git.exe", L"bisect", std::wstring(op) };
+	std::vector<std::wstring> cmd{ L"git.exe", L"bisect", std::wstring(op) };
 	if (!ref.IsEmpty())
 		cmd.emplace_back(std::wstring(ref));
 
@@ -3418,7 +3418,7 @@ bool CAppUtils::DeleteRef(CWnd* parent, const CString& ref)
 			sysProgressDlg.SetLine(2, CString(MAKEINTRESOURCE(IDS_PROGRESSWAIT)));
 			sysProgressDlg.SetShowProgressBar(false);
 			sysProgressDlg.ShowModal(parent, true);
-			STRING_VECTOR list;
+			std::vector<std::wstring> list;
 			list.push_back(std::format(L"refs/heads/{}", shortname));
 			if (g_Git.DeleteRemoteRefs(remoteName, list))
 				CMessageBox::Show(parent->GetSafeOwner()->GetSafeHwnd(), g_Git.GetGitLastErr(L"Could not delete remote ref.", TGitH::GIT_CMD_PUSH), L"TortoiseGit", MB_OK | MB_ICONERROR);

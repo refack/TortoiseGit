@@ -47,7 +47,7 @@ bool FormatPatchCommand::Execute()
 
 	if(dlg.DoModal()==IDOK)
 	{
-		STRING_VECTOR cmd{ L"git.exe", L"format-patch" };
+		std::vector<std::wstring> cmd{ L"git.exe", L"format-patch" };
 		if (dlg.m_bNoPrefix)
 			cmd.emplace_back(L"--no-prefix");
 		cmd.insert(cmd.cend(), { L"-o", std::wstring(dlg.m_Dir) });

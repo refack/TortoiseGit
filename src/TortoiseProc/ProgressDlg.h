@@ -93,11 +93,11 @@ private:
 	static constexpr int IDD = IDD_GITPROGRESS;
 
 public:
-	STRING_VECTOR			m_GitCmd;		// one command, as argv
+	std::vector<std::wstring>			m_GitCmd;		// one command, as argv
 	PostCmdCallback			m_PostCmdCallback;
 	ARGV_VECTOR				m_GitCmdList;	// several commands, run in order
 	PostExecCallback		m_PostExecCallback; // After executing command line, this callback can modify exit code / display extra message
-	STRING_VECTOR			m_GitDirList;
+	std::vector<std::wstring>			m_GitDirList;
 	CString					m_PreText;		// optional text to show in log window before running command
 	CString					m_PreFailText;	// optional fail text to show in log window
 	bool					m_bShowCommand;	// whether to display the command in the log window (default true)
@@ -167,10 +167,10 @@ public:
 	 */
 	/**
 	 * \a cmdlist is a list of *commands*, each an argv vector - not one command's
-	 * argv. \a dirlist stays a plain STRING_VECTOR because it really is a list of
+	 * argv. \a dirlist stays a plain std::vector<std::wstring> because it really is a list of
 	 * directories, and it is indexed in lockstep with \a cmdlist.
 	 */
-	static UINT RunCmdList(CWnd* pWnd, ARGV_VECTOR& cmdlist, STRING_VECTOR& dirlist, bool bShowCommand, const CString* pfilename, CGitCliOutputParser& cliOutputParser, volatile bool* bAbort, CGit* git = &g_Git);
+	static UINT RunCmdList(CWnd* pWnd, ARGV_VECTOR& cmdlist, std::vector<std::wstring>& dirlist, bool bShowCommand, const CString* pfilename, CGitCliOutputParser& cliOutputParser, volatile bool* bAbort, CGit* git = &g_Git);
 
 	static void KillProcessTree(DWORD dwProcessId, unsigned int depth = 0);
 

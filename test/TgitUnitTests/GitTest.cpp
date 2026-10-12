@@ -737,7 +737,7 @@ static void FETCHHEAD(CGit& m_Git, bool isBare)
 	if (!isBare)
 		repoDir += L"\\.git";
 
-	STRING_VECTOR list;
+	std::vector<std::wstring> list;
 	EXPECT_EQ(0, m_Git.GetBranchList(list, nullptr));
 	EXPECT_EQ(7U, list.size());
 	list.clear();
@@ -889,7 +889,7 @@ TEST_P(CBasicGitWithEmptyRepositoryFixture, GetHash_EmptyRepo)
 
 TEST_P(CBasicGitWithEmptyRepositoryFixture, GetEmptyBranchesTagsRefs)
 {
-	STRING_VECTOR branches;
+	std::vector<std::wstring> branches;
 	int current = -2;
 	EXPECT_EQ(0, m_Git.GetBranchList(branches, &current));
 	EXPECT_TRUE(branches.empty());
@@ -899,11 +899,11 @@ TEST_P(CBasicGitWithEmptyRepositoryFixture, GetEmptyBranchesTagsRefs)
 	EXPECT_TRUE(branches.empty());
 	EXPECT_EQ(-2, current); // not touched
 
-	STRING_VECTOR tags;
+	std::vector<std::wstring> tags;
 	EXPECT_EQ(0, m_Git.GetTagList(tags));
 	EXPECT_TRUE(tags.empty());
 
-	STRING_VECTOR refs;
+	std::vector<std::wstring> refs;
 	EXPECT_EQ(0, m_Git.GetRefList(refs));
 	EXPECT_TRUE(refs.empty());
 
@@ -911,14 +911,14 @@ TEST_P(CBasicGitWithEmptyRepositoryFixture, GetEmptyBranchesTagsRefs)
 	EXPECT_EQ(0, m_Git.GetMapHashToFriendName(map));
 	EXPECT_TRUE(map.empty());
 
-	STRING_VECTOR remotes;
+	std::vector<std::wstring> remotes;
 	EXPECT_EQ(0, m_Git.GetRemoteList(remotes));
 	EXPECT_TRUE(remotes.empty());
 }
 
 static void GetBranchesTagsRefs(CGit& m_Git, config testConfig)
 {
-	STRING_VECTOR branches;
+	std::vector<std::wstring> branches;
 	int current = -2;
 	EXPECT_EQ(0, m_Git.GetBranchList(branches, &current));
 	ASSERT_EQ(7U, branches.size());
@@ -976,14 +976,14 @@ static void GetBranchesTagsRefs(CGit& m_Git, config testConfig)
 	EXPECT_EQ(-2, current); // not touched
 	EXPECT_STREQ(L"remotes/origin/master", branches[0].c_str());
 
-	STRING_VECTOR tags;
+	std::vector<std::wstring> tags;
 	EXPECT_EQ(0, m_Git.GetTagList(tags));
 	ASSERT_EQ(3U, tags.size());
 	EXPECT_STREQ(L"all-files-signed", tags[0].c_str());
 	EXPECT_STREQ(L"also-signed", tags[1].c_str());
 	EXPECT_STREQ(L"normal-tag", tags[2].c_str());
 
-	STRING_VECTOR refs;
+	std::vector<std::wstring> refs;
 	EXPECT_EQ(0, m_Git.GetRefList(refs));
 	ASSERT_EQ(13U, refs.size());
 	EXPECT_STREQ(L"refs/heads/forconflict", refs[0].c_str());
@@ -1031,7 +1031,7 @@ static void GetBranchesTagsRefs(CGit& m_Git, config testConfig)
 	ASSERT_EQ(1U, map[CGitHash::FromHexStr(L"313a41bc88a527289c87d7531802ab484715974f")].size());
 	EXPECT_STREQ(L"refs/tags/all-files-signed^{}", map[CGitHash::FromHexStr(L"313a41bc88a527289c87d7531802ab484715974f")][0].c_str());
 
-	STRING_VECTOR remotes;
+	std::vector<std::wstring> remotes;
 	EXPECT_EQ(0, m_Git.GetRemoteList(remotes));
 	ASSERT_EQ(1U, remotes.size());
 	EXPECT_STREQ(L"origin", remotes[0].c_str());
@@ -1130,7 +1130,7 @@ TEST_P(CBasicGitWithTestRepoFixture, GetBranchList_orphan)
 	EXPECT_EQ(0, m_Git.Run(L"git.exe checkout --orphan orphanic", &output, CP_UTF8));
 	EXPECT_STRNE(L"", output);
 
-	STRING_VECTOR branches;
+	std::vector<std::wstring> branches;
 	int current = -2;
 	EXPECT_EQ(0, m_Git.GetBranchList(branches, &current));
 	ASSERT_EQ(7U, branches.size());
@@ -1150,7 +1150,7 @@ TEST_P(CBasicGitWithTestRepoFixture, GetBranchList_utf8)
 	EXPECT_EQ(0, m_Git.Run(L"git.exe checkout -b branch_\u570B\u7ACB1d\u043A", &output, CP_UTF8));
 	EXPECT_STRNE(L"", output);
 
-	STRING_VECTOR branches;
+	std::vector<std::wstring> branches;
 	int current = -2;
 	EXPECT_EQ(0, m_Git.GetBranchList(branches, &current));
 	ASSERT_EQ(8U, branches.size());
@@ -1171,7 +1171,7 @@ TEST_P(CBasicGitWithTestRepoFixture, GetBranchList_detachedhead)
 	EXPECT_EQ(0, m_Git.Run(L"git.exe checkout a9d53b535cb49640a6099860ac4999f5a0857b91", &output, CP_UTF8));
 	EXPECT_STRNE(L"", output);
 
-	STRING_VECTOR branches;
+	std::vector<std::wstring> branches;
 	int current = -2;
 	EXPECT_EQ(0, m_Git.GetBranchList(branches, &current));
 	ASSERT_EQ(7U, branches.size());
@@ -1224,7 +1224,7 @@ TEST_P(CBasicGitWithEmptyBareRepositoryFixture, GetEmptyBranchesTagsRefs)
 {
 	EXPECT_STREQ(L"master", m_Git.GetCurrentBranch());
 
-	STRING_VECTOR branches;
+	std::vector<std::wstring> branches;
 	int current = -2;
 	EXPECT_EQ(0, m_Git.GetBranchList(branches, &current));
 	EXPECT_TRUE(branches.empty());
@@ -1234,11 +1234,11 @@ TEST_P(CBasicGitWithEmptyBareRepositoryFixture, GetEmptyBranchesTagsRefs)
 	EXPECT_TRUE(branches.empty());
 	EXPECT_EQ(-2, current); // not touched
 
-	STRING_VECTOR tags;
+	std::vector<std::wstring> tags;
 	EXPECT_EQ(0, m_Git.GetTagList(tags));
 	EXPECT_TRUE(tags.empty());
 
-	STRING_VECTOR refs;
+	std::vector<std::wstring> refs;
 	EXPECT_EQ(0, m_Git.GetRefList(refs));
 	EXPECT_TRUE(refs.empty());
 
@@ -1246,7 +1246,7 @@ TEST_P(CBasicGitWithEmptyBareRepositoryFixture, GetEmptyBranchesTagsRefs)
 	EXPECT_EQ(0, m_Git.GetMapHashToFriendName(map));
 	EXPECT_TRUE(map.empty());
 
-	STRING_VECTOR remotes;
+	std::vector<std::wstring> remotes;
 	EXPECT_EQ(0, m_Git.GetRemoteList(remotes));
 	EXPECT_TRUE(remotes.empty());
 }
@@ -1599,7 +1599,7 @@ TEST_P(CBasicGitWithTestRepoBareFixture, GetOneFile)
 
 static void GetBranchDescriptions(CGit& m_Git)
 {
-	MAP_STRING_STRING descriptions;
+	std::map<std::wstring, std::wstring> descriptions;
 	EXPECT_EQ(0, m_Git.GetBranchDescriptions(descriptions));
 	EXPECT_EQ(0U, descriptions.size());
 
@@ -4323,7 +4323,7 @@ TEST_P(CBasicGitWithTestRepoFixture, GetBisectTerms)
 
 TEST_P(CBasicGitWithTestRepoFixture, GetRefsCommitIsOn)
 {
-	STRING_VECTOR list;
+	std::vector<std::wstring> list;
 	EXPECT_EQ(0, m_Git.GetRefsCommitIsOn(list, CGitHash::FromHexStr(L"7c3cbfe13a929d2291a574dca45e4fd2d2ac1aa6"), false, false));
 	EXPECT_TRUE(list.empty());
 
@@ -4577,7 +4577,7 @@ TEST_P(CBasicGitWithTestRepoFixture, IsResultingCommitBecomeEmpty)
 
 TEST(CGit, ParseConflictHashesFromLsFile_Empty)
 {
-	CGitByteArray byteArray;
+	std::string byteArray;
 	bool baseIsFile = true, localIsFile = true, remoteIsFile = true;
 	CGitHash baseHash, localHash, remoteHash;
 	EXPECT_NE(0, TGitH::ParseConflictHashesFromLsFile(byteArray, baseHash, baseIsFile, localHash, localIsFile, remoteHash, remoteIsFile));
@@ -4586,7 +4586,7 @@ TEST(CGit, ParseConflictHashesFromLsFile_Empty)
 TEST(CGit, ParseConflictHashesFromLsFile_SimpleConflict)
 {
 	constexpr char git_ls_file_u_t_z_output[] = { "M 100644 1f9f46da1ee155aa765d6e379d9d19853358cb07 1	bla.txt\0M 100644 3aa011e7d3609ab9af90c4b10f616312d2be422f 2	bla.txt\0M 100644 56d252d69d535834b9fbfa6f6a633ecd505ea2e6 3	bla.txt" };
-	CGitByteArray byteArray;
+	std::string byteArray;
 	byteArray.append(git_ls_file_u_t_z_output, sizeof(git_ls_file_u_t_z_output));
 	bool baseIsFile = true, localIsFile = true, remoteIsFile = true;
 	CGitHash baseHash, localHash, remoteHash;
@@ -4602,7 +4602,7 @@ TEST(CGit, ParseConflictHashesFromLsFile_SimpleConflict)
 TEST(CGit, ParseConflictHashesFromLsFile_SubmoduleConflict_Simple)
 {
 	constexpr char git_ls_files_u_t_z_output[] = { "M 160000 46a2b8e855d5f6d8b60b81500a9f6779c7f63e63 1	libgit2\0M 160000 533da4ea00703f4ad6d5518e1ce81d20261c40c0 2	libgit2\0M 160000 ab2af775ec467ebb328a7374653f247920f258f3 3	libgit2" };
-	CGitByteArray byteArray;
+	std::string byteArray;
 	byteArray.append(git_ls_files_u_t_z_output, sizeof(git_ls_files_u_t_z_output));
 	bool baseIsFile = true, localIsFile = true, remoteIsFile = true;
 	CGitHash baseHash, localHash, remoteHash;
@@ -4619,7 +4619,7 @@ TEST(CGit, ParseConflictHashesFromLsFile_SubmoduleConflict_DeletedModified)
 {
 	// merged commit where submodule was modified into commit where it was deleted (git status says "deleted by us: libgit2")
 	constexpr char git_ls_files_u_t_z_output[] = { "M 160000 46a2b8e855d5f6d8b60b81500a9f6779c7f63e63 1	libgit2\0M 160000 ab2af775ec467ebb328a7374653f247920f258f3 3	libgit2" };
-	CGitByteArray byteArray;
+	std::string byteArray;
 	byteArray.append(git_ls_files_u_t_z_output, sizeof(git_ls_files_u_t_z_output));
 	bool baseIsFile = true, localIsFile = true, remoteIsFile = true;
 	CGitHash baseHash, localHash, remoteHash;
@@ -4636,7 +4636,7 @@ TEST(CGit, ParseConflictHashesFromLsFile_SubmoduleConflict_ToNormalDir)
 {
 	// merged commit where libgit2 is a normal folder (git status says "added by us: libgit2" and "new file: libgit2/Neues Textdokument.txt")
 	constexpr char git_ls_files_u_t_z_output[] = { "M 160000 533da4ea00703f4ad6d5518e1ce81d20261c40c0 2	libgit2" };
-	CGitByteArray byteArray;
+	std::string byteArray;
 	byteArray.append(git_ls_files_u_t_z_output, sizeof(git_ls_files_u_t_z_output));
 	bool baseIsFile = true, localIsFile = true, remoteIsFile = true;
 	CGitHash baseHash, localHash, remoteHash;
@@ -4653,7 +4653,7 @@ TEST(CGit, ParseConflictHashesFromLsFile_SubmoduleConflict_FileSubmodule)
 {
 	// merged commit where a file with the same name was created (git status says "both added: libgit2")
 	constexpr char git_ls_file_u_t_z_output[] = { "M 160000 533da4ea00703f4ad6d5518e1ce81d20261c40c0 2	libgit2\0M 100644 9ae3e601584cc03f8f03f93761416b6599ac7c0d 3	libgit2" };
-	CGitByteArray byteArray;
+	std::string byteArray;
 	byteArray.append(git_ls_file_u_t_z_output, sizeof(git_ls_file_u_t_z_output));
 	bool baseIsFile = true, localIsFile = true, remoteIsFile = true;
 	CGitHash baseHash, localHash, remoteHash;
@@ -4670,7 +4670,7 @@ TEST(CGit, ParseConflictHashesFromLsFile_DeletedFileConflict)
 {
 	// file added, modified on branch A, deleted on branch B, merge branch A on B (git status says: "deleted by us")
 	constexpr char git_ls_file_u_t_z_output[] = { "M 100644 24091f0add7afc47ac7cdc80ae4d3866b2ef588c 1	Neues Textdokument.txt\0M 100644 293b6f6293106b6ebb5d54ad482d7561b0f1c9ae 3	Neues Textdokument.txt" };
-	CGitByteArray byteArray;
+	std::string byteArray;
 	byteArray.append(git_ls_file_u_t_z_output, sizeof(git_ls_file_u_t_z_output));
 	bool baseIsFile = true, localIsFile = true, remoteIsFile = true;
 	CGitHash baseHash, localHash, remoteHash;
@@ -4690,7 +4690,7 @@ TEST(CGit, ParseConflictHashesFromLsFile_Invalid)
 	{
 		if (i == 60)
 			continue;
-		CGitByteArray byteArray;
+		std::string byteArray;
 		byteArray.append(git_ls_file_u_t_z_output, i);
 		bool baseIsFile = true, localIsFile = true, remoteIsFile = true;
 		CGitHash baseHash, localHash, remoteHash;
@@ -4770,14 +4770,17 @@ TEST(CGit, QuoteParameter)
 	EXPECT_STREQ(L"\"C:/\"", CGit::QuoteParameter(L"C:\\"));
 	EXPECT_STREQ(L"\"//localhost/some/path\"", CGit::QuoteParameter(L"\\\\localhost\\some\\path"));
 
-	EXPECT_THROW(std::ignore = CGit::QuoteParameter(L"src\"/Git.h"), illegal_git_parameter);
-	EXPECT_THROW(std::ignore = CGit::QuoteParameter(L"sr\"c/Git.h"), illegal_git_parameter);
-	EXPECT_THROW(std::ignore = CGit::QuoteParameter(L"\"git\""), illegal_git_parameter);
-	EXPECT_THROW(std::ignore = CGit::QuoteParameter(L"\""), illegal_git_parameter);
-	EXPECT_THROW(std::ignore = CGit::QuoteParameter(L"\\\""), illegal_git_parameter);
-	EXPECT_THROW(std::ignore = CGit::QuoteParameter(L"git\""), illegal_git_parameter);
-	EXPECT_THROW(std::ignore = CGit::QuoteParameter(L"src/Gi*t/"), illegal_git_parameter);
-	EXPECT_THROW(std::ignore = CGit::QuoteParameter(L"src/Gi?t/"), illegal_git_parameter);
+	// These eight threw illegal_git_parameter. Any value is quotable now: a double
+	// quote is escaped (\") as CommandLineToArgvW reads it back, and ? and * are
+	// plain characters inside quotes (wil::ArgvToCommandLine, ForceQuotes).
+	EXPECT_STREQ(L"\"src\\\"/Git.h\"", CGit::QuoteParameter(L"src\"/Git.h"));
+	EXPECT_STREQ(L"\"sr\\\"c/Git.h\"", CGit::QuoteParameter(L"sr\"c/Git.h"));
+	EXPECT_STREQ(L"\"\\\"git\\\"\"", CGit::QuoteParameter(L"\"git\""));
+	EXPECT_STREQ(L"\"\\\"\"", CGit::QuoteParameter(L"\""));
+	EXPECT_STREQ(L"\"/\\\"\"", CGit::QuoteParameter(L"\\\""));
+	EXPECT_STREQ(L"\"git\\\"\"", CGit::QuoteParameter(L"git\""));
+	EXPECT_STREQ(L"\"src/Gi*t/\"", CGit::QuoteParameter(L"src/Gi*t/"));
+	EXPECT_STREQ(L"\"src/Gi?t/\"", CGit::QuoteParameter(L"src/Gi?t/"));
 
 	// Relaxed mode (e.g., for config)
 	EXPECT_STREQ(L"\"C:\\\\\"", CGit::QuoteParameter(L"C:\\", true));
@@ -4894,7 +4897,7 @@ TEST(CGit, SerializeArgvRoundTrip)
 	SCOPE_EXIT{ TGitH::ms_bCygwinGit = oldCygwinGit; TGitH::ms_bMsys2Git = oldMsys2Git; };
 	TGitH::ms_bCygwinGit = TGitH::ms_bMsys2Git = false;
 
-	const STRING_VECTOR argv = {
+	const std::vector<std::wstring> argv = {
 		L"git.exe", // CommandLineToArgvW parses argv[0] by different rules, so it is excluded from the comparison below
 		L"plain",
 		L"with space",

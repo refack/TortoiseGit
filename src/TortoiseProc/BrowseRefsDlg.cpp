@@ -48,7 +48,7 @@ static int SplitRemoteBranchName(CString ref, CString &remote, CString &branch)
 	else if (StringUtils::StartsWith(ref, L"remotes/"))
 		ref = ref.Mid(static_cast<int>(wcslen(L"remotes/")));
 
-	STRING_VECTOR list;
+	std::vector<std::wstring> list;
 	const int result = g_Git.GetRemoteList(list);
 	if (result != 0)
 		return result;
@@ -474,7 +474,7 @@ void CBrowseRefsDlg::Refresh(CString selectRef)
 	}
 
 
-	STRING_VECTOR remoteBranches;
+	std::vector<std::wstring> remoteBranches;
 	if (g_Git.GetBranchList(remoteBranches, nullptr, TGitH::BRANCH_REMOTE))
 		MessageBox(L"Loading remote tracking branches failed.", L"TortoiseGit", MB_OK | MB_ICONERROR);
 	std::sort(remoteBranches.begin(), remoteBranches.end());
@@ -726,7 +726,7 @@ bool CBrowseRefsDlg::ConfirmDeleteRef(const VectorPShadowTree& leafs)
 bool CBrowseRefsDlg::DoDeleteRefs(const VectorPShadowTree& leafs)
 {
 	bool allRemoteBranch = true;
-	std::map<CString, STRING_VECTOR> remoteBranches;
+	std::map<CString, std::vector<std::wstring>> remoteBranches;
 	for (auto i = leafs.cbegin(); i != leafs.cend(); ++i)
 	{
 		CString completeRefName = (*i)->GetRefName();
@@ -756,7 +756,7 @@ bool CBrowseRefsDlg::DoDeleteRefs(const VectorPShadowTree& leafs)
 			sysProgressDlg.SetShowProgressBar(false);
 			sysProgressDlg.ShowModal(this, true);
 
-			STRING_VECTOR list;
+			std::vector<std::wstring> list;
 			list.reserve(remotebranchlist.second.size());
 			std::transform(remotebranchlist.second.cbegin(), remotebranchlist.second.cend(), std::back_inserter(list), [](auto& branch) { return L"refs/heads/" + branch; });
 			if (g_Git.DeleteRemoteRefs(remoteName, list))
@@ -804,7 +804,7 @@ bool CBrowseRefsDlg::DoDeleteRef(const CString& completeRefName)
 		sysProgressDlg.SetShowProgressBar(false);
 		sysProgressDlg.ShowModal(this, true);
 
-		STRING_VECTOR list;
+		std::vector<std::wstring> list;
 		list.push_back(std::format(L"refs/heads/{}", remoteBranchToDelete));
 		if (g_Git.DeleteRemoteRefs(remoteName, list))
 		{
@@ -890,7 +890,7 @@ CString CBrowseRefsDlg::GetTwoSelectedRefs(const VectorPShadowTree& selectedLeaf
 		return TGitH::StripRefName(selectedLeafs.at(0)->GetRefName()) + separator + TGitH::StripRefName(lastSelected);
 }
 
-int findVectorPosition(const STRING_VECTOR& vector, const CString& entry)
+int findVectorPosition(const std::vector<std::wstring>& vector, const CString& entry)
 {
 	int i = 0;
 	for (auto it = vector.cbegin(); it != vector.cend(); ++it, ++i)

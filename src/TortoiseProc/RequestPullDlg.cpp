@@ -71,7 +71,7 @@ BOOL CRequestPullDlg::OnInitDialog()
 
 	CAppUtils::SetWindowTitle(*this, g_Git.m_CurrentDir);
 
-	STRING_VECTOR list;
+	std::vector<std::wstring> list;
 	g_Git.GetBranchList(list, nullptr, TGitH::BRANCH_ALL);
 	m_cStartRevision.SetMaxHistoryItems(0x7FFFFFFF);
 	m_cStartRevision.SetList(list);

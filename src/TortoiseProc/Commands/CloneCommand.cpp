@@ -71,7 +71,7 @@ bool CloneCommand::Execute()
 
 	if(dlg.DoModal()==IDOK)
 	{
-		STRING_VECTOR args;
+		std::vector<std::wstring> args;
 		if(dlg.m_bRecursive)
 			args.emplace_back(L"--recursive");
 
@@ -109,7 +109,7 @@ bool CloneCommand::Execute()
 		if (dlg.m_bDepth)
 			args.insert(args.cend(), { L"--depth", std::to_wstring(dlg.m_nDepth) });
 
-		STRING_VECTOR cmd{ L"git.exe", L"clone", L"--progress" };
+		std::vector<std::wstring> cmd{ L"git.exe", L"clone", L"--progress" };
 		cmd.insert(cmd.cend(), args.cbegin(), args.cend());
 		cmd.insert(cmd.cend(), { L"-v", L"--", std::wstring(url), std::wstring(dir) });
 

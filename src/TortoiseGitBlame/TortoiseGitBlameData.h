@@ -40,7 +40,7 @@ public:
 	 * parser stays usable from a non-interactive context such as the unit tests. Pass
 	 * nullptr to ignore them; the affected lines get an empty author and date either way.
 	 */
-	void ParseBlameOutput(const BYTE_VECTOR& data, CGitHashMap& HashToRev, DWORD dateFormat, bool bRelativeTimes, CString* errors = nullptr);
+	void ParseBlameOutput(const std::string& data, CGitHashMap& HashToRev, DWORD dateFormat, bool bRelativeTimes, CString* errors = nullptr);
 	// updates sourcecode lines to the given encoding, encode==0 detects the encoding, returns the used encoding
 	int UpdateEncoding(int encode = 0);
 
@@ -134,7 +134,7 @@ private:
 	std::vector<CString>		m_Authors;
 	std::vector<CString>		m_Filenames;
 	std::vector<int>			m_OriginalLineNumbers;
-	std::vector<BYTE_VECTOR>	m_RawLines;
+	std::vector<std::string>	m_RawLines;
 
 	int m_encode = -1;
 	std::vector<CStringA> m_Utf8Lines;

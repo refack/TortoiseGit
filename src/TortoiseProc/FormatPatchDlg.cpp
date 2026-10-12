@@ -121,7 +121,7 @@ BOOL CFormatPatchDlg::OnInitDialog()
 	m_cDir.LoadHistory(L"Software\\TortoiseGit\\History\\FormatPatchURLS", L"path");
 	m_cDir.AddString(g_Git.m_CurrentDir);
 
-	STRING_VECTOR list;
+	std::vector<std::wstring> list;
 	g_Git.GetBranchList(list, nullptr, TGitH::BRANCH_ALL_F);
 	m_cSince.SetMaxHistoryItems(static_cast<int>(list.size()));
 	m_cSince.SetList(list);

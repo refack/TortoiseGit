@@ -20,7 +20,7 @@
 #pragma once
 #include "StandAloneDlg.h"
 import Registry;
-import tgittypes;
+import git_h;
 
 class CSubmoduleUpdateDlg : public CResizableStandAloneDialog
 {
@@ -57,8 +57,8 @@ public:
 	BOOL m_bMerge;
 	BOOL m_bRebase;
 	BOOL m_bRemote;
-	STRING_VECTOR m_PathFilterList;
-	STRING_VECTOR m_PathList;
+	std::vector<std::wstring> m_PathFilterList;
+	std::vector<std::wstring> m_PathList;
 	bool m_bAllSubmodulesSelected;
 
 protected:

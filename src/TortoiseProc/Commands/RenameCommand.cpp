@@ -57,7 +57,7 @@ bool RenameCommand::Execute()
 	else
 		sNewName = dlg.m_name;
 
-	STRING_VECTOR cmd{ L"git.exe", L"mv" };
+	std::vector<std::wstring> cmd{ L"git.exe", L"mv" };
 	// if the filenames only differ in case, we have to pass "-f"
 	if (sNewName.CompareNoCase(cmdLinePath.GetGitPathString().c_str()) == 0)
 		cmd.emplace_back(L"-f");

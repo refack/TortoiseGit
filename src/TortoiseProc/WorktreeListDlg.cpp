@@ -119,7 +119,7 @@ void CWorktreeListDlg::Refresh()
 	EndWaitCursor();
 }
 
-int CWorktreeListDlg::GetWorktreeNames(STRING_VECTOR& list, CString& error)
+int CWorktreeListDlg::GetWorktreeNames(std::vector<std::wstring>& list, CString& error)
 {
 	if (!g_Git.m_IsUseLibGit2)
 		return -1;
@@ -145,7 +145,7 @@ int CWorktreeListDlg::GetWorktreeNames(STRING_VECTOR& list, CString& error)
 
 int CWorktreeListDlg::FillListCtrlWithWorktreeList(CString& error)
 {
-	STRING_VECTOR list;
+	std::vector<std::wstring> list;
 	if (GetWorktreeNames(list, error) < 0)
 		return -1;
 
@@ -447,7 +447,7 @@ void CWorktreeListDlg::OnBnClickedButtonAdd()
 
 bool CWorktreeListDlg::RemoveWorktree(const CString& path, bool force)
 {
-	STRING_VECTOR cmd{ L"git.exe", L"worktree", L"remove" };
+	std::vector<std::wstring> cmd{ L"git.exe", L"worktree", L"remove" };
 	if (force)
 		cmd.emplace_back(L"--force");
 	cmd.insert(cmd.cend(), { L"--", std::wstring(path) });

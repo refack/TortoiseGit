@@ -18,7 +18,7 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 #pragma once
-import tgittypes;
+import wil;		// scope_exit_helper, which SCOPE_EXIT expands to
 
 /**
  * A helper class for invoking CreateProcess(). The lpProcessInformation

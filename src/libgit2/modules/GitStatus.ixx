@@ -1,7 +1,6 @@
 ﻿module;
-#include <tgit_cstring.h>	// first: decides which CString this compile speaks
 #include <windows.h>
-#include <atlstr.h>
+#include <atlbase.h>	// CComCritSecLock/CComCriticalSection, not CString: that is str_utils'
 // wil::GetFileInfo<> (instantiated below) reaches wil's error-reporting helpers, which call
 // strsafe's *static* StringCch* workers. A template instantiated here cannot use the static
 // definitions from module wil's own fragment (internal linkage), so this TU needs its own: C2129.
@@ -18,7 +17,6 @@ import str_utils;
 import TGitPath;
 import PathUtils;
 import Registry;
-import tgittypes;
 import GitHash;
 import GitIndex;
 import DebugOutput;
@@ -26,15 +24,23 @@ import wil_git2;
 
 namespace fs = std::filesystem;
 
-using tgit::types::CacheType;
-using tgit::types::git_wc_status2_t;
-using tgit::types::git_wc_status_kind;
 using tgit::wstr::to_path;
+using CString = tgit::wstr::CString;
 using namespace GitIndex;
 
 
 export namespace GitStatus
 {
+
+// From tgittypes (moved verbatim). TGitStatus is its lowest user. The values are
+// persisted in the registry (HKCU\Software\TortoiseGit\CacheType): never renumber.
+enum CacheType {
+	none,
+	exe,
+	dll,
+	dllFull, // same as dll except it uses commandline git tool with all status modes supported
+};
+
 
 CGitIndexFileMap g_IndexFileMap;
 CGitHeadFileMap g_HeadFileMap;
@@ -74,7 +80,6 @@ int GetFileStatus_int(const std::wstring& gitdir, CGitRepoLists& repolists, cons
 	Expects(repolists.pIndex);
 	Expects(!status.assumeValid && !status.skipWorktree);
 
-	using namespace tgit::types;
 
 	CGitHash hash;
 	if (repolists.pIndex->GetFileStatus(gitdir, path, status, &hash))
@@ -175,8 +180,7 @@ class GitStatus
 	// A higher number indicates a more important status.
 	static int GetStatusRanking(const git_wc_status_kind status)
 	{
-		using namespace tgit::types;
-		switch (status)
+			switch (status)
 		{
 		case git_wc_status_none:
 			return 0;
@@ -229,8 +233,7 @@ public:
 
 	static int GetDirStatus(const CString& gitdir, const CString& subpath, git_wc_status_kind* status, const bool IsFull = false, const bool IsRecursive = false, const bool IsIgnore = true)
 	{
-		using namespace tgit::types;
-
+	
 		Expects(status);
 
 		const std::wstring gitdirW(gitdir); // GitIndex speaks std::wstring
@@ -500,8 +503,7 @@ public:
 
 	static void AdjustFolderStatus(git_wc_status_kind& status)
 	{
-		using namespace tgit::types;
-
+	
 		if (status == git_wc_status_deleted || status == git_wc_status_added)
 			status = git_wc_status_modified;
 	}
@@ -614,7 +616,6 @@ int GitStatus::GetFileList(const CString& path_, std::vector<CGitFileName>& list
 
 int GitStatus::EnumDirStatus(const CString& gitdir, const CString& subpath, git_wc_status_kind* dirstatus, FILL_STATUS_CALLBACK callback, void* pData)
 {
-	using namespace tgit::types;
 	// the callback still takes a CString; the pieces are CStrings or std::wstrings
 	constexpr auto CombinePath = [](const auto& a, const auto& b) -> CString {
 		return (to_path(a) / to_path(b)).c_str();

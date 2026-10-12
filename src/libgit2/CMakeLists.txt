@@ -165,7 +165,6 @@ function(tgit_core_library name flavor)
             modules/TaskbarUUID.ixx
             modules/TempFile.ixx
             modules/gitindex.ixx
-            modules/tgittypes.ixx
             modules/invarients.ixx
             modules/lanes.ixx
             modules/LangDll.ixx

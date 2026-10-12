@@ -37,7 +37,7 @@ import CmdLineParser;
 
 IMPLEMENT_DYNAMIC(CGitLogList, CHintCtrl<CListCtrl>)
 
-static bool GetFirstEntryStartingWith(const STRING_VECTOR& heystack, const CString& needle, CString& result)
+static bool GetFirstEntryStartingWith(const std::vector<std::wstring>& heystack, const CString& needle, CString& result)
 {
 	auto it = std::find_if(heystack.cbegin(), heystack.cend(), [&needle](const std::wstring& entry) { return entry.starts_with(tgit::str::StringView(needle)); });
 	if (it == heystack.cend())
@@ -835,7 +835,7 @@ void CGitLogList::ContextMenuAction(int cmd, int FirstSelect, int LastSelect, CM
 				{
 					CString ref = *revIt;
 					CString out;
-					STRING_VECTOR argv{ L"git.exe" };
+					std::vector<std::wstring> argv{ L"git.exe" };
 					if (StringUtils::StartsWith(ref, L"stash"))
 						argv.insert(argv.cend(), { L"stash", L"drop" });
 					else

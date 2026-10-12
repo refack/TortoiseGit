@@ -277,7 +277,7 @@ void CCommitIsOnRefsDlg::OnContextMenu(CWnd* pWnd, CPoint point)
 	CIconMenu popup;
 	if (popup.CreatePopupMenu())
 	{
-		STRING_VECTOR selectedRefs;
+		std::vector<std::wstring> selectedRefs;
 		POSITION pos = m_cRefList.GetFirstSelectedItemPosition();
 		while (pos)
 			selectedRefs.push_back(std::wstring(m_cRefList.GetItemText(m_cRefList.GetNextSelectedItem(pos), 0)));
@@ -394,7 +394,7 @@ void CCommitIsOnRefsDlg::OnNMDblClickListRefs(NMHDR* pNMHDR, LRESULT* pResult)
 	}
 }
 
-CString CCommitIsOnRefsDlg::GetTwoSelectedRefs(const STRING_VECTOR& selectedRefs, const CString& lastSelected, const CString& separator)
+CString CCommitIsOnRefsDlg::GetTwoSelectedRefs(const std::vector<std::wstring>& selectedRefs, const CString& lastSelected, const CString& separator)
 {
 	ASSERT(selectedRefs.size() == 2);
 
@@ -442,7 +442,7 @@ UINT CCommitIsOnRefsDlg::GetRefsThread()
 	if (!m_bRefsLoaded)
 	{
 		m_cRevEdit.RemoveSearchAll();
-		STRING_VECTOR refs;
+		std::vector<std::wstring> refs;
 		g_Git.GetRefList(refs);
 		for (const auto& ref : refs)
 			m_cRevEdit.AddSearchString(ref.c_str());

@@ -23,7 +23,7 @@ struct TGITCacheResponse;
 extern ULONGLONG cachetimeout;
 
 #include "CacheInterface.h"
-
+import GitIndex;	// git_wc_status_kind / git_wc_status2_t
 /**
  * \ingroup TGitCache
  * Holds all the status data of one file or folder.

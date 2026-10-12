@@ -21,7 +21,7 @@
 #include "StandAloneDlg.h"
 #include "MiscUI/FilterEdit.h"
 #include "ResizableColumnsListCtrl.h"
-import tgittypes;
+import git_h;
 #include "Utils/HistoryCombo.h"
 #include "Utils/GestureEnabledControl.h"
 
@@ -186,7 +186,7 @@ private:
 
 	CString			m_cmdPath;
 
-	STRING_VECTOR	remotes;
+	std::vector<std::wstring>	remotes;
 
 	CShadowTree		m_TreeRoot;
 	const CShadowTree* m_pListCtrlRoot = nullptr;

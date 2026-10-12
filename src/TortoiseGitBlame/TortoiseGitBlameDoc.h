@@ -35,7 +35,7 @@ protected: // create from serialization only
 
 // Attributes
 public:
-	BYTE_VECTOR m_BlameData;
+	std::string m_BlameData;
 	CString m_CurrentFileName;
 #ifdef USE_TEMPFILENAME
 	CString m_TempFileName;

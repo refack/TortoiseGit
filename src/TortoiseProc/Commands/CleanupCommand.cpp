@@ -28,10 +28,10 @@ import str_utils;
 
 struct SubmodulePayload
 {
-	STRING_VECTOR &list;
+	std::vector<std::wstring> &list;
 	CString basePath;
-	STRING_VECTOR prefixList;
-	SubmodulePayload(STRING_VECTOR& alist, const CString& abasePath = L"", const STRING_VECTOR& aprefixList = STRING_VECTOR())
+	std::vector<std::wstring> prefixList;
+	SubmodulePayload(std::vector<std::wstring>& alist, const CString& abasePath = L"", const std::vector<std::wstring>& aprefixList = std::vector<std::wstring>())
 		: list(alist)
 		, basePath(abasePath)
 		, prefixList(aprefixList)
@@ -94,9 +94,9 @@ static bool GetSubmodulePathList(SubmodulePayload &payload)
 	return true;
 }
 
-static bool GetFilesToCleanUp(CTGitPathList& delList, const STRING_VECTOR& baseCmd, CGit *pGit, const CString& path, const boolean quotepath, CSysProgressDlg& sysProgressDlg)
+static bool GetFilesToCleanUp(CTGitPathList& delList, const std::vector<std::wstring>& baseCmd, CGit *pGit, const CString& path, const boolean quotepath, CSysProgressDlg& sysProgressDlg)
 {
-	STRING_VECTOR cmd(baseCmd);
+	std::vector<std::wstring> cmd(baseCmd);
 	if (!path.IsEmpty())
 		cmd.insert(cmd.cend(), { L"--", std::wstring(path) });
 
@@ -111,7 +111,7 @@ static bool GetFilesToCleanUp(CTGitPathList& delList, const STRING_VECTOR& baseC
 				return;
 
 			if (quotepath && line[0] == '"')
-				delList.AddPath(CTGitPath(pGit->CombinePath(StringUtils::UnescapeGitQuotePathA(line.substr(1))).GetString()));
+				delList.AddPath(CTGitPath(pGit->CombinePath(TGitH::UnescapeGitQuotePathA(line.substr(1))).GetString()));
 			else
 				delList.AddPath(CTGitPath(pGit->CombinePath(CUnicodeUtils::GetUnicode<CString>(line)).GetString()));
 		}, &cmdouterr))
@@ -133,7 +133,7 @@ static bool GetFilesToCleanUp(CTGitPathList& delList, const STRING_VECTOR& baseC
 
 static bool DoCleanUp(const CTGitPathList& pathList, int cleanType, bool bDir, bool bDirUnmanagedRepos, bool bSubmodules, bool bDryRun, bool bNoRecycleBin)
 {
-	STRING_VECTOR cmd{ L"git.exe", L"clean" };
+	std::vector<std::wstring> cmd{ L"git.exe", L"clean" };
 	if (bDryRun || !bNoRecycleBin)
 		cmd.emplace_back(L"-n");
 	if (bDir)
@@ -153,7 +153,7 @@ static bool DoCleanUp(const CTGitPathList& pathList, int cleanType, bool bDir, b
 	if (bDirUnmanagedRepos)
 		cmd.emplace_back(L"-f");
 
-	STRING_VECTOR submoduleList;
+	std::vector<std::wstring> submoduleList;
 	if (bSubmodules)
 	{
 		SubmodulePayload payload(submoduleList);
@@ -194,7 +194,7 @@ static bool DoCleanUp(const CTGitPathList& pathList, int cleanType, bool bDir, b
 			}
 			else
 				progress.m_GitDirList.push_back(std::wstring(g_Git.m_CurrentDir));
-			STRING_VECTOR clean = cmd;
+			std::vector<std::wstring> clean = cmd;
 			if (!path.IsEmpty())
 				clean.insert(clean.cend(), { L"--", std::wstring(path) });
 			progress.m_GitCmdList.push_back(std::move(clean));

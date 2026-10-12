@@ -1298,7 +1298,7 @@ int CFileDiffDlg::RevertSelectedItemToVersion(const CGitHash& rev, bool isOldVer
 	int count = 0;
 	while ((index = m_cFileList.GetNextSelectedItem(pos)) >= 0)
 	{
-		STRING_VECTOR cmd;
+		std::vector<std::wstring> cmd;
 		CString out;
 		auto fentry = m_arFilteredList[index];
 		if ((isOldVersion && fentry->m_Action == CTGitPath::LOGACTIONS_ADDED) || (!isOldVersion && fentry->m_Action == CTGitPath::LOGACTIONS_DELETED))
@@ -1513,7 +1513,7 @@ void CFileDiffDlg::FillPatchView(bool onlySetTimer)
 		return;
 	}
 
-	STRING_VECTOR ignore;
+	std::vector<std::wstring> ignore;
 	if (m_bIgnoreSpaceAtEol)
 		ignore.emplace_back(L"--ignore-space-at-eol");
 	if (m_bIgnoreSpaceChange)
@@ -1527,7 +1527,7 @@ void CFileDiffDlg::FillPatchView(bool onlySetTimer)
 	CString out;
 	if (!pos)
 	{
-		STRING_VECTOR cmd{ L"git.exe", L"diff" };
+		std::vector<std::wstring> cmd{ L"git.exe", L"diff" };
 		cmd.insert(cmd.cend(), ignore.cbegin(), ignore.cend());
 		if (m_rev2.m_CommitHash.IsEmpty())
 			cmd.insert(cmd.cend(), { L"--stat", L"-p", std::wstring(m_rev1.m_CommitHash.ToString()) });
@@ -1544,7 +1544,7 @@ void CFileDiffDlg::FillPatchView(bool onlySetTimer)
 		{
 			const int nSelect = m_cFileList.GetNextSelectedItem(pos);
 			auto fentry = m_arFilteredList[nSelect];
-			STRING_VECTOR cmd{ L"git.exe", L"diff" };
+			std::vector<std::wstring> cmd{ L"git.exe", L"diff" };
 			cmd.insert(cmd.cend(), ignore.cbegin(), ignore.cend());
 			if (m_rev2.m_CommitHash.IsEmpty())
 				cmd.emplace_back(m_rev1.m_CommitHash.ToString());

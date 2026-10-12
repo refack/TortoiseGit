@@ -243,7 +243,7 @@ int CHistoryCombo::InsertEntry(const CString& combostring, INT_PTR pos)
 	return nRet;
 }
 
-void CHistoryCombo::SetList(const STRING_VECTOR& list)
+void CHistoryCombo::SetList(const std::vector<std::wstring>& list)
 {
 	Reset();
 	for (size_t i = 0; i < list.size(); ++i)

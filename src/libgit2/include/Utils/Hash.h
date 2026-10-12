@@ -30,11 +30,10 @@ enum class HashType
 
 
 
-import tgittypes;
-
 #include <wincrypt.h>
 #include <vector>
 #include <sstream>
+import wil;		// scope_exit_helper, which SCOPE_EXIT expands to; after the textual includes
 
 std::wstring GetHashText(const void* data, const size_t data_size, HashType hashType)
 {

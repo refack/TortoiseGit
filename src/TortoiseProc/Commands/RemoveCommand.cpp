@@ -126,7 +126,7 @@ bool RemoveCommand::Execute()
 
 	// The two command templates differed by one flag. (Note the flag order is
 	// not the same as IgnoreCommand's; both are preserved as they were.)
-	STRING_VECTOR baseCmd{ L"git.exe", L"rm", L"-r", L"-f" };
+	std::vector<std::wstring> baseCmd{ L"git.exe", L"rm", L"-r", L"-f" };
 	if (keepLocal)
 		baseCmd.emplace_back(L"--cached");
 	baseCmd.emplace_back(L"--");
@@ -134,7 +134,7 @@ bool RemoveCommand::Execute()
 	int pathsHandled = 0;
 	for (int nPath = 0; nPath < pathList.GetCount(); ++nPath)
 	{
-		STRING_VECTOR cmd(baseCmd);
+		std::vector<std::wstring> cmd(baseCmd);
 		cmd.emplace_back(pathList[nPath].GetGitPathString());
 		CString output;
 		if (g_Git.Run(cmd, &output, CP_UTF8))

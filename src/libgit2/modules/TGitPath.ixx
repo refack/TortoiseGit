@@ -16,7 +16,6 @@ import std;
 import gsl;
 import nlohmann_json;	// LFS locks; a shim, cf. shims/json.ixx
 import str_utils;
-import tgittypes;
 import invarients;
 import PathUtils;
 import RIAA;
@@ -29,9 +28,7 @@ import DebugOutput;
 using std::operator""sv;
 namespace fs = std::filesystem;
 
-using tgit::types::BYTE_VECTOR;
-using tgit::types::STRING_VECTOR;
-using tgit::zstr::StringView;
+using tgit::str::StringView;
 
 // This module is layered, and each layer uses only the ones above it:
 //
@@ -225,7 +222,7 @@ struct Host {
 /// Runs git with an argv vector and captures its output; g_Git.Run's argv
 /// overload. The operations on CTGitPathList that shell out take one of these
 /// rather than reaching for g_Git.
-using GitRunner = std::function<int(const STRING_VECTOR& argv, BYTE_VECTOR* out, BYTE_VECTOR* err)>;
+using GitRunner = std::function<int(const std::vector<std::wstring>& argv, std::string* out, std::string* err)>;
 
 /// Was CGit::GetGitPathString: a Windows path in the forward-slash form git uses.
 std::wstring ToGitPath(const std::wstring_view path) {
@@ -491,9 +488,9 @@ bool IsBareRepo(const std::wstring_view path, bool* invalidFormat = nullptr) {
 }
 
 /// A CString - the MFC UI's. Constrained, so a literal still binds the view one.
-template <tgit::zstr::IsStupidString TStr>
+template <tgit::str::IsStupidString TStr>
 bool IsBareRepo(const TStr& path, bool* invalidFormat = nullptr) {
-	return IsBareRepo(std::wstring_view(tgit::zstr::StringView{ path }), invalidFormat);
+	return IsBareRepo(std::wstring_view(tgit::str::StringView{ path }), invalidFormat);
 }
 
 
@@ -615,17 +612,17 @@ std::optional<AdminDir> GetAdminDirPath(const std::wstring_view projectTopDir) {
 /// The out-parameter forms TortoiseProc's call sites were written against:
 /// `if (!GetAdminDirPath(dir, adminDir))`. Constrained to CString, so every other
 /// caller - and a literal - still binds the view-and-optional forms above.
-template <tgit::zstr::IsStupidString TStr>
+template <tgit::str::IsStupidString TStr>
 bool GetAdminDirPath(const TStr& projectTopDir, TStr& adminDir) {
-	const auto dir = GetAdminDirPath(std::wstring_view(tgit::zstr::StringView{ projectTopDir }));
+	const auto dir = GetAdminDirPath(std::wstring_view(tgit::str::StringView{ projectTopDir }));
 	if (!dir)
 		return false;
 	adminDir = dir->path.c_str();
 	return true;
 }
-template <tgit::zstr::IsStupidString TStr>
+template <tgit::str::IsStupidString TStr>
 bool GetWorktreeAdminDirPath(const TStr& projectTopDir, TStr& adminDir) {
-	const auto dir = GetWorktreeAdminDirPath(std::wstring_view(tgit::zstr::StringView{ projectTopDir }));
+	const auto dir = GetWorktreeAdminDirPath(std::wstring_view(tgit::str::StringView{ projectTopDir }));
 	if (!dir)
 		return false;
 	adminDir = dir->c_str();
@@ -720,7 +717,7 @@ bool HasAdminDir(const std::wstring_view path, std::wstring* projectTopDir = nul
 }
 
 /// The CString out-parameter form TortoiseProc's settings pages use.
-template <tgit::zstr::IsStupidString TStr>
+template <tgit::str::IsStupidString TStr>
 bool HasAdminDir(const std::wstring_view path, TStr* projectTopDir) {
 	std::wstring top;
 	const bool has = HasAdminDir(path, projectTopDir ? &top : nullptr);
@@ -862,9 +859,9 @@ public:
 	// turn every move of a path into a copy. Nothing deletes a CTGitPath through a
 	// base pointer - the mocks are stack objects.
 
-	template <tgit::zstr::IsTCompString StrT>
+	template <tgit::str::IsTCompString StrT>
 	CTGitPath(const StrT& sUnknownPath = {}, const std::optional<bool> bIsDirectory = std::nullopt) {
-		SetFromUnknown(tgit::zstr::StringView{ sUnknownPath });
+		SetFromUnknown(tgit::str::StringView{ sUnknownPath });
 		if (bIsDirectory.has_value()) {
 			m_bDirectoryKnown = true;
 			m_bIsDirectory = bIsDirectory.value();
@@ -1003,9 +1000,9 @@ public:
 
 	/// A CString - the MFC UI's, chiefly. Constrained rather than a CString
 	/// parameter, so a literal never reaches it and stays unambiguous.
-	template <tgit::zstr::IsStupidString TStr>
+	template <tgit::str::IsStupidString TStr>
 	void SetFromWin(const TStr& sPath, const std::optional<bool> bIsDirectory = std::nullopt) {
-		SetFromWin(std::wstring_view(tgit::zstr::StringView{ sPath }), bIsDirectory);
+		SetFromWin(std::wstring_view(tgit::str::StringView{ sPath }), bIsDirectory);
 	}
 
 
@@ -1375,9 +1372,9 @@ struct CTGitPathList {
 	[[nodiscard]] bool WriteToFile(std::wstring_view sFilename, bool bUTF8 = false) const;
 	[[nodiscard]] bool WriteToPathSpecFile(std::wstring_view sFilename) const;
 	[[nodiscard]] const CTGitPath* LookForGitPath(std::wstring_view path) const;
-	int ParserFromLog(const BYTE_VECTOR& log);
-	int ParserFromLsFileSimple(const BYTE_VECTOR& out, unsigned int action, bool clear = true);
-	int ParserFromLsFile(const BYTE_VECTOR& out);
+	int ParserFromLog(const std::string& log);
+	int ParserFromLsFileSimple(const std::string& out, unsigned int action, bool clear = true);
+	int ParserFromLsFile(const std::string& out);
 	void UpdateStagingStatusFromPath(std::wstring_view path, CTGitPath::StagingStatus status);
 
 	/// The untracked (or, with LOGACTIONS_IGNORE, ignored) files, via
@@ -2507,7 +2504,7 @@ bool CTGitPathList::WriteToPathSpecFile(const std::wstring_view sFilename) const
 //////////////////////////////////////////////////////////////////////////
 // CTGitPathList: git output parsers
 
-int CTGitPathList::ParserFromLsFileSimple(const BYTE_VECTOR& out, const unsigned int action,
+int CTGitPathList::ParserFromLsFileSimple(const std::string& out, const unsigned int action,
                                           const bool clear /*= true*/) {
 	size_t pos = 0;
 	const size_t end = out.size();
@@ -2516,7 +2513,7 @@ int CTGitPathList::ParserFromLsFileSimple(const BYTE_VECTOR& out, const unsigned
 		Clear();
 	while (pos < end) {
 		const size_t endOfLine = out.find('\0', pos);
-		if (endOfLine == BYTE_VECTOR::npos || endOfLine == pos || endOfLine - pos >= INT_MAX)
+		if (endOfLine == std::string::npos || endOfLine == pos || endOfLine - pos >= INT_MAX)
 			return -1;
 
 		std::string_view multibyte(&out[pos], endOfLine - pos);
@@ -2532,14 +2529,14 @@ int CTGitPathList::ParserFromLsFileSimple(const BYTE_VECTOR& out, const unsigned
 		path.m_Action = action;
 		AddPath(path);
 
-		pos = out.findNextString(endOfLine);
+		pos = tgit::zstr::FindNextString(out, endOfLine);
 	}
 	return 0;
 }
 
 
 // similar code in CGit::ParseConflictHashesFromLsFile
-int CTGitPathList::ParserFromLsFile(const BYTE_VECTOR& out) {
+int CTGitPathList::ParserFromLsFile(const std::string& out) {
 	size_t pos = 0;
 	const size_t end = out.size();
 	CTGitPath path;
@@ -2551,29 +2548,29 @@ int CTGitPathList::ParserFromLsFile(const BYTE_VECTOR& out) {
 		// also dropped LOGACTIONS_CACHE for 'H'
 		// path.m_Action=path.ParserAction(out[pos]);
 		pos = out.find(' ', pos); // advance to mode
-		if (pos == BYTE_VECTOR::npos)
+		if (pos == std::string::npos)
 			return -1;
 
 		const size_t modestart = pos + 1;
 
 		pos = out.find(' ', pos + 1); // advance to hash
-		if (pos == BYTE_VECTOR::npos)
+		if (pos == std::string::npos)
 			return -1;
 
 		pos = out.find(' ', pos + 1); // advance to Stage
-		if (pos == BYTE_VECTOR::npos)
+		if (pos == std::string::npos)
 			return -1;
 
 		const size_t stagestart = pos + 1;
 
 		pos = out.find('\t', pos + 1); // advance to filename
-		if (pos == BYTE_VECTOR::npos)
+		if (pos == std::string::npos)
 			return -1;
 
 		++pos;
-		const size_t fileNameEnd = out.find(0, pos);
+		const size_t fileNameEnd = out.find('\0', pos);
 		// <tag> <mode> <object> <stage>\t<file>, the object as wide as the repository's hashes
-		if (fileNameEnd == BYTE_VECTOR::npos || fileNameEnd == pos || pos - lineStart != "H 100644 "sv.size() + 2 *
+		if (fileNameEnd == std::string::npos || fileNameEnd == pos || pos - lineStart != "H 100644 "sv.size() + 2 *
 			tgit::invarients::HashSize() + " 0\t"sv.size())
 			return -1;
 		const std::wstring pathstring = CUnicodeUtils::GetUnicode<std::wstring>(std::string_view(&out[pos], fileNameEnd - pos));
@@ -2582,7 +2579,7 @@ int CTGitPathList::ParserFromLsFile(const BYTE_VECTOR& out) {
 		path.SetFromGit(pathstring, isDir);
 		if (strtol(&out[stagestart], nullptr, 10) != 0) {
 			if (!IsEmpty() && path == m_paths.back()) {
-				pos = out.findNextString(pos);
+				pos = tgit::zstr::FindNextString(out, pos);
 				continue;
 			}
 			path.m_Action = CTGitPath::LOGACTIONS_UNMERGED;
@@ -2590,13 +2587,13 @@ int CTGitPathList::ParserFromLsFile(const BYTE_VECTOR& out) {
 
 		AddPath(path);
 
-		pos = out.findNextString(pos);
+		pos = tgit::zstr::FindNextString(out, pos);
 	}
 	return 0;
 }
 
 
-int CTGitPathList::ParserFromLog(const BYTE_VECTOR& log) {
+int CTGitPathList::ParserFromLog(const std::string& log) {
 	static const bool mergeReplacedStatus = Registry::CRegDWORD(L"Software\\TortoiseGit\\MergeReplacedStatusKS", TRUE,
 	                                                            false, HKEY_LOCAL_MACHINE) == TRUE;
 	// TODO: remove kill-switch
@@ -2622,7 +2619,7 @@ int CTGitPathList::ParserFromLog(const BYTE_VECTOR& log) {
 			 * There are at least two modes (each 6 characters) and two hashes (variable length [4, 40], cf. https://github.com/git/git/blob/master/environment.c#L18)
 			 * and the status (a char + optional score), each separated by space
 			 */
-			if (statusEnd == BYTE_VECTOR::npos || statusEnd - pos < ((6 + 1) + (6 + 1) + (4 + 1) + (4 + 1) + 1))
+			if (statusEnd == std::string::npos || statusEnd - pos < ((6 + 1) + (6 + 1) + (4 + 1) + (4 + 1) + 1))
 				return -1;
 
 			const int modeOld = strtol(&log[pos + 1], nullptr, 8);
@@ -2630,26 +2627,26 @@ int CTGitPathList::ParserFromLog(const BYTE_VECTOR& log) {
 			// find start of status character
 			size_t statusStart = log.find(' ', statusEnd - 6);
 			// status: "A", "D", "U" or "C100" etc., 6 is chosen to find its start without interferring with the dst hash, see comment above
-			if (statusStart == BYTE_VECTOR::npos)
+			if (statusStart == std::string::npos)
 				return -1;
 
 			++statusStart;
 			pos = log.find('\0', statusStart); // advance to filename
-			if (pos == BYTE_VECTOR::npos || statusStart == pos)
+			if (pos == std::string::npos || statusStart == pos)
 				return -1;
 			++pos;
 
 			std::wstring oldPathname;
 			if (log[statusStart] == 'C' || log[statusStart] == 'R') {
 				const size_t filenameEnd = log.find('\0', pos);
-				if (filenameEnd == BYTE_VECTOR::npos || pos == filenameEnd || filenameEnd - pos >= INT_MAX)
+				if (filenameEnd == std::string::npos || pos == filenameEnd || filenameEnd - pos >= INT_MAX)
 					return -1;
 				// old filename before rename
 				oldPathname = CUnicodeUtils::GetUnicode<std::wstring>(std::string_view(&log[pos], filenameEnd - pos));
 				pos = filenameEnd + 1;
 			}
 			const size_t filenameEnd = log.find('\0', pos);
-			if (filenameEnd == BYTE_VECTOR::npos || pos == filenameEnd || filenameEnd - pos >= INT_MAX)
+			if (filenameEnd == std::string::npos || pos == filenameEnd || filenameEnd - pos >= INT_MAX)
 				return -1;
 			const auto pathname = CUnicodeUtils::GetUnicode<std::wstring>(std::string_view(&log[pos], filenameEnd - pos));
 			pos = filenameEnd + 1;
@@ -2694,14 +2691,14 @@ int CTGitPathList::ParserFromLog(const BYTE_VECTOR& log) {
 		else // numstat output
 		{
 			size_t tabstart = log.find('\t', pos); // find end of first number (added lines)
-			if (tabstart == BYTE_VECTOR::npos || tabstart - pos >= INT_MAX)
+			if (tabstart == std::string::npos || tabstart - pos >= INT_MAX)
 				return -1;
 
 			const auto statAdd = CUnicodeUtils::GetUnicode<std::wstring>(std::string_view(&log[pos], tabstart - pos));
 			pos = tabstart + 1;
 
 			tabstart = log.find('\t', pos); // find end of second number (removed lines)
-			if (tabstart == BYTE_VECTOR::npos || tabstart - pos >= INT_MAX)
+			if (tabstart == std::string::npos || tabstart - pos >= INT_MAX)
 				return -1;
 
 			const auto statDel = CUnicodeUtils::GetUnicode<std::wstring>(std::string_view(&log[pos], tabstart - pos));
@@ -2715,13 +2712,13 @@ int CTGitPathList::ParserFromLog(const BYTE_VECTOR& log) {
 			{
 				++pos;
 				const size_t endPathname = log.find('\0', pos);
-				if (endPathname == BYTE_VECTOR::npos || pos == endPathname || endPathname - pos >= INT_MAX)
+				if (endPathname == std::string::npos || pos == endPathname || endPathname - pos >= INT_MAX)
 					return -1;
 				oldPathname = CUnicodeUtils::GetUnicode<std::wstring>(std::string_view(&log[pos], endPathname - pos));
 				pos = endPathname + 1;
 			}
 			const size_t endPathname = log.find('\0', pos);
-			if (endPathname == BYTE_VECTOR::npos || pos == endPathname || endPathname - pos >= INT_MAX)
+			if (endPathname == std::string::npos || pos == endPathname || endPathname - pos >= INT_MAX)
 				return -1;
 			const auto pathname = CUnicodeUtils::GetUnicode<std::wstring>(std::string_view(&log[pos], endPathname - pos));
 			pos = endPathname + 1;
@@ -2782,7 +2779,7 @@ int CTGitPathList::FillUnRev(const GitRunner& git, const unsigned int action, co
 
 	const int count = filterlist ? filterlist->GetCount() : 1;
 	for (int i = 0; i < count; ++i) {
-		STRING_VECTOR cmd{ L"git.exe", L"ls-files", L"--exclude-standard", L"--full-name", L"--others", L"-z" };
+		std::vector<std::wstring> cmd{ L"git.exe", L"ls-files", L"--exclude-standard", L"--full-name", L"--others", L"-z" };
 		if (action & CTGitPath::LOGACTIONS_IGNORE)
 			cmd.emplace_back(L"-i");
 
@@ -2791,10 +2788,10 @@ int CTGitPathList::FillUnRev(const GitRunner& git, const unsigned int action, co
 			cmd.insert(cmd.cend(), { L"--", (*filterlist)[i].GetGitPathString() });
 		}
 
-		BYTE_VECTOR out, errb;
+		std::string out, errb;
 		if (git(cmd, &out, &errb)) {
 			if (err)
-				*err = errb.Decode();
+				*err = CUnicodeUtils::DecodeUtf8UpToNul(errb);
 			return -1;
 		}
 
@@ -2808,7 +2805,7 @@ int CTGitPathList::FillUnRev(const GitRunner& git, const unsigned int action, co
 int CTGitPathList::FillLFSLocks(const GitRunner& git, const unsigned int action, std::wstring* err) {
 	Clear();
 
-	BYTE_VECTOR out, errb;
+	std::string out, errb;
 	if (git({ L"git.exe", L"lfs", L"locks", L"--json" }, &out, &errb) != 0) {
 		if (err)
 			err->append(CUnicodeUtils::GetUnicode<std::wstring>(std::string_view(errb.data(), errb.size())));

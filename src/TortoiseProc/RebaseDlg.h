@@ -96,7 +96,7 @@ protected:
 	void UpdateProgress();
 	void UpdateCurrentStatus();
 	void ListConflictFile(bool noStoreScrollPosition);
-	int	RunGitCmdRetryOrAbort(const STRING_VECTOR& argv);
+	int	RunGitCmdRetryOrAbort(const std::vector<std::wstring>& argv);
 	int  DoRebase();
 	afx_msg LRESULT OnGitStatusListCtrlNeedsRefresh(WPARAM, LPARAM);
 	void Refresh();
@@ -164,7 +164,7 @@ protected:
 		// Two argv elements, not one string of two options. The author no longer
 		// needs quoting here: "--author=A B <c@d>" is one element, and whatever
 		// quoting the command line needs is SerializeArgv's business.
-		STRING_VECTOR GetAsParams(bool now) const
+		std::vector<std::wstring> GetAsParams(bool now) const
 		{
 			if (!set)
 				return {};

@@ -301,7 +301,7 @@ void CPullFetchDlg::Refresh()
 	if (!m_PreSelectRemote.IsEmpty())
 		pullRemote = m_PreSelectRemote;
 
-	STRING_VECTOR list;
+	std::vector<std::wstring> list;
 	m_Remote.Reset();
 	int sel=0;
 	if(!g_Git.GetRemoteList(list))

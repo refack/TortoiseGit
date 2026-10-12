@@ -25,6 +25,7 @@
 #include "LoglistUtils.h"
 #include "FileTextLines.h"
 import str_utils;
+import git_h;	// TGitH::UnescapeGitQuotePathA, which moved out of StringUtils
 
 constexpr wchar_t WideCharSwap2(wchar_t nValue) noexcept
 {
@@ -75,14 +76,14 @@ int CTortoiseGitBlameData::GetEncode(const char* buff, int size, int* bomoffset)
 	return GetACP();
 }
 
-void CTortoiseGitBlameData::ParseBlameOutput(const BYTE_VECTOR& data, CGitHashMap& HashToRev, DWORD dateFormat, bool bRelativeTimes, CString* errors)
+void CTortoiseGitBlameData::ParseBlameOutput(const std::string& data, CGitHashMap& HashToRev, DWORD dateFormat, bool bRelativeTimes, CString* errors)
 {
 	std::unordered_map<CGitHash, CString> hashToFilename;
 
 	std::vector<CGitHash>		hashes;
 	std::vector<int>			originalLineNumbers;
 	std::vector<CString>		filenames;
-	std::vector<BYTE_VECTOR>	rawLines;
+	std::vector<std::string>	rawLines;
 	std::vector<CString>		authors;
 	std::vector<CString>		dates;
 
@@ -103,7 +104,7 @@ void CTortoiseGitBlameData::ParseBlameOutput(const BYTE_VECTOR& data, CGitHashMa
 
 		size_t lineBegin = pos;
 		size_t lineEnd = data.find('\n', lineBegin);
-		if (lineEnd == BYTE_VECTOR::npos)
+		if (lineEnd == std::string::npos)
 			lineEnd = data.size();
 
 		if (lineEnd > lineBegin)
@@ -120,12 +121,12 @@ void CTortoiseGitBlameData::ParseBlameOutput(const BYTE_VECTOR& data, CGitHashMa
 						size_t hashEnd = lineBegin + 2 * GIT_HASH_SIZE;
 						size_t originalLineNumberBegin = hashEnd + 1;
 						size_t originalLineNumberEnd = data.find(' ', originalLineNumberBegin);
-						if (originalLineNumberEnd != BYTE_VECTOR::npos)
+						if (originalLineNumberEnd != std::string::npos)
 						{
 							originalLineNumber = atoi(CStringA(reinterpret_cast<LPCSTR>(&data[originalLineNumberBegin]), SafeSizeToInt(originalLineNumberEnd - originalLineNumberBegin)));
 							size_t finalLineNumberBegin = originalLineNumberEnd + 1;
 							size_t finalLineNumberEnd = (numberOfSubsequentLines == 0) ? data.find(' ', finalLineNumberBegin) : lineEnd;
-							if (finalLineNumberEnd != BYTE_VECTOR::npos)
+							if (finalLineNumberEnd != std::string::npos)
 							{
 								if (numberOfSubsequentLines == 0)
 								{
@@ -162,7 +163,7 @@ void CTortoiseGitBlameData::ParseBlameOutput(const BYTE_VECTOR& data, CGitHashMa
 				{
 					size_t tokenBegin = lineBegin;
 					size_t tokenEnd = data.find(' ', tokenBegin);
-					if (tokenEnd != BYTE_VECTOR::npos)
+					if (tokenEnd != std::string::npos)
 					{
 						if (!strncmp("filename", &data[tokenBegin], tokenEnd - tokenBegin))
 						{
@@ -182,9 +183,9 @@ void CTortoiseGitBlameData::ParseBlameOutput(const BYTE_VECTOR& data, CGitHashMa
 			{
 				expectHash = true;
 				// remove <TAB> at start
-				BYTE_VECTOR line;
+				std::string line;
 				if (lineEnd - 1 > lineBegin)
-					line.append(std::span<const char>(&data[lineBegin + 1], lineEnd - lineBegin - 1));
+					line.append(std::string_view(&data[lineBegin + 1], lineEnd - lineBegin - 1));
 
 				while (!line.empty() && line[line.size() - 1] == 13)
 					line.pop_back();
@@ -243,7 +244,7 @@ int CTortoiseGitBlameData::UpdateEncoding(int encoding)
 	int bomoffset = 0;
 	if (encoding==0)
 	{
-		BYTE_VECTOR all;
+		std::string all;
 		for (const auto& rawLine : m_RawLines)
 		{
 			if (!rawLine.empty())
@@ -260,7 +261,7 @@ int CTortoiseGitBlameData::UpdateEncoding(int encoding)
 	m_Utf8Lines.resize(m_RawLines.size());
 	for (size_t i_Lines = 0; i_Lines < m_RawLines.size(); ++i_Lines)
 	{
-		const BYTE_VECTOR& rawLine = m_RawLines[i_Lines];
+		const std::string& rawLine = m_RawLines[i_Lines];
 		if (rawLine.empty())
 			continue;
 
@@ -482,7 +483,7 @@ GitRevLoglist* CTortoiseGitBlameData::GetRevForHash(CGitHashMap& HashToRev, cons
 CString CTortoiseGitBlameData::UnquoteFilename(const std::string_view s)
 {
 	if (s[0] == '"')
-		return StringUtils::UnescapeGitQuotePathA(s.substr(1));
+		return TGitH::UnescapeGitQuotePathA(s.substr(1));
 	else
 		return CUnicodeUtils::GetUnicode(s);
 }

@@ -56,7 +56,7 @@ BEGIN_MESSAGE_MAP(CBisectStartDlg, CHorizontalResizableStandAloneDialog)
 	ON_CBN_EDITCHANGE(IDC_COMBOBOXEX_BAD, &CBisectStartDlg::OnChangedRevision)
 END_MESSAGE_MAP()
 
-static void uniqueMergeLists(STRING_VECTOR& list, const STRING_VECTOR& listToMerge)
+static void uniqueMergeLists(std::vector<std::wstring>& list, const std::vector<std::wstring>& listToMerge)
 {
 	std::map<std::wstring, int> map;
 	for (const auto& entry : list)
@@ -91,12 +91,12 @@ BOOL CBisectStartDlg::OnInitDialog()
 
 	CAppUtils::SetWindowTitle(*this, g_Git.m_CurrentDir);
 
-	STRING_VECTOR list;
+	std::vector<std::wstring> list;
 	int current = -1;
 	g_Git.GetBranchList(list, &current, TGitH::BRANCH_ALL);
 	m_cLastGoodRevision.SetMaxHistoryItems(0x7FFFFFFF);
 	m_cFirstBadRevision.SetMaxHistoryItems(0x7FFFFFFF);
-	STRING_VECTOR tagsList;
+	std::vector<std::wstring> tagsList;
 	g_Git.GetTagList(tagsList);
 	uniqueMergeLists(list, tagsList);
 	m_cLastGoodRevision.SetList(list);

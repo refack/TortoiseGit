@@ -31,7 +31,6 @@
 
 import std;
 import str_utils;
-import tgittypes;
 import TGitPath;
 
 using namespace std::literals;
@@ -298,7 +297,7 @@ TEST(ConjectureTGitPath, LongRelativePathIsResolvedThroughTheHost)
 TEST(ConjectureTGitPath, ParserFromLsFileParsesAWellFormedLine)
 {
 	const std::string line = "H 100644 " + std::string(40, 'a') + " 0\tdir/file.txt";
-	tgit::types::BYTE_VECTOR out;
+	std::string out;
 	out.append(line);
 	out.push_back('\0');
 	TGitPath::CTGitPathList list;
@@ -313,7 +312,7 @@ TEST(ConjectureTGitPath, ParserFromLsFileParsesAWellFormedLine)
 // Old module: FAILS. Original: PASSES.
 TEST(ConjectureTGitPath, ParserFromLogNumstatEntryIsKnownNotADirectory)
 {
-	tgit::types::BYTE_VECTOR out;
+	std::string out;
 	out.append("1\t2\tg.txt"sv);
 	out.push_back('\0');
 	TGitPath::CTGitPathList list;
@@ -328,8 +327,8 @@ TEST(ConjectureTGitPath, ParserFromLogNumstatEntryIsKnownNotADirectory)
 // Old module: FAILS. Original: PASSES.
 TEST(ConjectureTGitPath, FillUnRevWithoutFilterRunsGitOnce)
 {
-	std::vector<tgit::types::STRING_VECTOR> calls;
-	const TGitPath::GitRunner git = [&calls](const tgit::types::STRING_VECTOR& argv, tgit::types::BYTE_VECTOR* out, tgit::types::BYTE_VECTOR*) {
+	std::vector<std::vector<std::wstring>> calls;
+	const TGitPath::GitRunner git = [&calls](const std::vector<std::wstring>& argv, std::string* out, std::string*) {
 		calls.push_back(argv);
 		out->append("a.txt\0"sv);
 		return 0;
@@ -337,7 +336,7 @@ TEST(ConjectureTGitPath, FillUnRevWithoutFilterRunsGitOnce)
 	TGitPath::CTGitPathList list;
 	ASSERT_EQ(0, list.FillUnRev(git, TGitPath::CTGitPath::LOGACTIONS_UNVER));
 	ASSERT_EQ(1u, calls.size());
-	EXPECT_EQ((tgit::types::STRING_VECTOR{ L"git.exe", L"ls-files", L"--exclude-standard", L"--full-name", L"--others", L"-z" }), calls[0]);
+	EXPECT_EQ((std::vector<std::wstring>{ L"git.exe", L"ls-files", L"--exclude-standard", L"--full-name", L"--others", L"-z" }), calls[0]);
 	ASSERT_EQ(1, list.GetCount());
 	EXPECT_EQ(L"a.txt", list[0].GetGitPathString());
 }
@@ -348,8 +347,8 @@ TEST(ConjectureTGitPath, FillUnRevWithoutFilterRunsGitOnce)
 // Old module: FAILS. Original: PASSES.
 TEST(ConjectureTGitPath, FillUnRevBuildsAFreshCommandPerFilterEntry)
 {
-	std::vector<tgit::types::STRING_VECTOR> calls;
-	const TGitPath::GitRunner git = [&calls](const tgit::types::STRING_VECTOR& argv, tgit::types::BYTE_VECTOR*, tgit::types::BYTE_VECTOR*) {
+	std::vector<std::vector<std::wstring>> calls;
+	const TGitPath::GitRunner git = [&calls](const std::vector<std::wstring>& argv, std::string*, std::string*) {
 		calls.push_back(argv);
 		return 0;
 	};

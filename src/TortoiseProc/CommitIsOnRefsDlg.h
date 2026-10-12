@@ -76,9 +76,9 @@ protected:
 
 	DECLARE_MESSAGE_MAP()
 
-	STRING_VECTOR	m_RefList;
+	std::vector<std::wstring>	m_RefList;
 
-	static CString GetTwoSelectedRefs(const STRING_VECTOR& selectedRefs, const CString& lastSelected, const CString& separator);
+	static CString GetTwoSelectedRefs(const std::vector<std::wstring>& selectedRefs, const CString& lastSelected, const CString& separator);
 	void AddToList();
 	void CopySelectionToClipboard();
 

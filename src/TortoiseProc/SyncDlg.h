@@ -145,7 +145,7 @@ protected:
 	}
 
 	ARGV_VECTOR m_GitCmdList;
-	STRING_VECTOR	m_remotelist;
+	std::vector<std::wstring>	m_remotelist;
 
 	volatile bool	m_bAbort = false;
 	bool			m_bDone = false;

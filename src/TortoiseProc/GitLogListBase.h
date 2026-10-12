@@ -437,7 +437,7 @@ protected:
 public:
 	void ShowGraphColumn(bool bShow);
 	CString	GetTagInfo(GitRev* pLogEntry) const;
-	CString GetTagInfo(const STRING_VECTOR& refs) const;
+	CString GetTagInfo(const std::vector<std::wstring>& refs) const;
 
 	CFindDlg* m_pFindDialog = nullptr;
 	static const UINT	m_FindDialogMessage;

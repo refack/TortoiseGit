@@ -39,7 +39,7 @@ bool SubmoduleAddCommand::Execute()
 		if (StringUtils::StartsWith(dlg.m_strPath, g_Git.m_CurrentDir))
 			dlg.m_strPath = dlg.m_strPath.Right(dlg.m_strPath.GetLength()-g_Git.m_CurrentDir.GetLength()-1);
 
-		STRING_VECTOR cmd{ L"git.exe", L"submodule", L"add" };
+		std::vector<std::wstring> cmd{ L"git.exe", L"submodule", L"add" };
 		// Note the "=" rather than "+=" below in the original: --force *replaced*
 		// the branch option rather than adding to it. Preserved.
 		if (dlg.m_bForce)
@@ -78,7 +78,7 @@ bool SubmoduleUpdateCommand::Execute()
 		return false;
 	}
 
-	STRING_VECTOR pathFilterList;
+	std::vector<std::wstring> pathFilterList;
 	for (int i = 0; i < orgPathList.GetCount(); i++)
 	{
 		if (orgPathList[i].IsDirectory())
@@ -105,7 +105,7 @@ bool SubmoduleUpdateCommand::Execute()
 
 	g_Git.SetCurrentDirExact(super);
 
-	STRING_VECTOR cmd{ L"git.exe", L"submodule", L"update", L"--progress" };
+	std::vector<std::wstring> cmd{ L"git.exe", L"submodule", L"update", L"--progress" };
 	if (submoduleUpdateDlg.m_bInit)
 		cmd.emplace_back(L"--init");
 	if (submoduleUpdateDlg.m_bRecursive)
@@ -125,7 +125,7 @@ bool SubmoduleUpdateCommand::Execute()
 	{
 		// If not all submodules are selected, let CMassiveGitTaskBase create the list of commands.
 		// Otherwise, there is no need to specify any submodule.
-		STRING_VECTOR base = cmd;
+		std::vector<std::wstring> base = cmd;
 		base.emplace_back(L"--");
 		CMassiveGitTask::ConvertToCmdList(base, submoduleUpdateDlg.m_PathList, progress.m_GitCmdList);
 	}
@@ -183,7 +183,7 @@ bool SubmoduleSyncCommand::Execute()
 	{
 		if(orgPathList[i].IsDirectory())
 		{
-			STRING_VECTOR str{ L"git.exe", L"submodule", L"sync" };
+			std::vector<std::wstring> str{ L"git.exe", L"submodule", L"sync" };
 			if (const std::wstring path = orgPathList[i].GetSubPath(CTGitPath(super.GetString())).GetGitPathString(); !path.empty())
 				str.insert(str.cend(), { L"--", path });
 			progress.m_GitCmdList.push_back(str);

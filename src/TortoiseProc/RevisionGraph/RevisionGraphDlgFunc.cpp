@@ -409,16 +409,16 @@ CString	CRevisionGraphWnd::GetFriendRefName(ogdf::node v) const
 		return refsIt->second[0].c_str();
 }
 
-STRING_VECTOR CRevisionGraphWnd::GetFriendRefNames(ogdf::node v, const CString* exclude, TGitH::REF_TYPE* onlyRefType) const
+std::vector<std::wstring> CRevisionGraphWnd::GetFriendRefNames(ogdf::node v, const CString* exclude, TGitH::REF_TYPE* onlyRefType) const
 {
 	if (!v)
-		return STRING_VECTOR();
+		return std::vector<std::wstring>();
 	const CGitHash& hash = m_logEntries[v->index()];
 	if (const auto refsIt = m_HashMap.find(hash); refsIt == m_HashMap.end())
-		return STRING_VECTOR();
+		return std::vector<std::wstring>();
 	else
 	{
-		STRING_VECTOR list;
+		std::vector<std::wstring> list;
 		for (const auto& ref: refsIt->second)
 		{
 			TGitH::REF_TYPE refType;

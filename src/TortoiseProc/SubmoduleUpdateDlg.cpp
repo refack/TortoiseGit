@@ -74,8 +74,8 @@ END_MESSAGE_MAP()
 
 static int SubmoduleCallback(git_submodule *sm, const char * /*name*/, void *payload)
 {
-	auto list = *static_cast<STRING_VECTOR**>(payload);
-	auto prefixList = *(static_cast<STRING_VECTOR**>(payload) + 1);
+	auto list = *static_cast<std::vector<std::wstring>**>(payload);
+	auto prefixList = *(static_cast<std::vector<std::wstring>**>(payload) + 1);
 	CString path = CUnicodeUtils::Convert2Unicode<CString>(git_submodule_path(sm));
 	if (prefixList->empty())
 		list->push_back(std::wstring(path));
@@ -98,7 +98,7 @@ int LogicalComparePredicate(const std::wstring& left, const std::wstring& right)
 	return StrCmpI(left.c_str(), right.c_str()) < 0;
 }
 
-static void GetSubmodulePathList(STRING_VECTOR &list, STRING_VECTOR &prefixList)
+static void GetSubmodulePathList(std::vector<std::wstring> &list, std::vector<std::wstring> &prefixList)
 {
 	CAutoRepository repo(g_Git.GetGitRepository());
 	if (!repo)
@@ -107,7 +107,7 @@ static void GetSubmodulePathList(STRING_VECTOR &list, STRING_VECTOR &prefixList)
 		return;
 	}
 
-	const STRING_VECTOR* listParams[] = { &list, &prefixList };
+	const std::vector<std::wstring>* listParams[] = { &list, &prefixList };
 	if (git_submodule_foreach(repo, SubmoduleCallback, &listParams))
 	{
 		MessageBox(nullptr, TGitH::GetLibGit2LastErr(L"Could not get submodule list."), L"TortoiseGit", MB_ICONERROR);
@@ -276,10 +276,10 @@ void CSubmoduleUpdateDlg::Refresh()
 
 	m_regPath = CRegString(L"Software\\TortoiseGit\\History\\SubmoduleUpdatePath\\" + WorkingDir);
 	CString path = m_regPath;
-	STRING_VECTOR emptylist;
-	STRING_VECTOR list;
+	std::vector<std::wstring> emptylist;
+	std::vector<std::wstring> list;
 	GetSubmodulePathList(list, m_bWholeProject ? emptylist : m_PathFilterList);
-	STRING_VECTOR selected;
+	std::vector<std::wstring> selected;
 	if (m_PathList.empty())
 	{
 		int pos = 0;

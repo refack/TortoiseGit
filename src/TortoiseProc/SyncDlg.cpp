@@ -274,7 +274,7 @@ void CSyncDlg::OnBnClickedButtonPull()
 		return;
 	}
 
-	STRING_VECTOR cmd;
+	std::vector<std::wstring> cmd;
 
 	m_iPullRebase = 0;
 	if (CurrentEntry == 0) // check whether we need to override Pull if pull.rebase is set
@@ -675,7 +675,7 @@ void CSyncDlg::OnBnClickedButtonPush()
 
 	ShowTab(IDC_CMD_LOG);
 
-	STRING_VECTOR cmd{ L"git.exe", L"push", L"-v", L"--progress" };
+	std::vector<std::wstring> cmd{ L"git.exe", L"push", L"-v", L"--progress" };
 
 	CString error;
 	DWORD exitcode = 0xFFFFFFFF;
@@ -1257,7 +1257,7 @@ UINT CSyncDlg::ProgressThread()
 {
 	m_startTick = GetTickCount64();
 	m_bDone = false;
-	STRING_VECTOR list;
+	std::vector<std::wstring> list;
 	CProgressDlg::RunCmdList(this, m_GitCmdList, list, true, nullptr, m_cliOutputParser, &m_bAbort);
 	InterlockedExchange(&m_bBlock, FALSE);
 	return 0;
@@ -1546,7 +1546,7 @@ void CSyncDlg::OnBnClickedButtonSubmodule()
 
 	ShowTab(IDC_CMD_LOG);
 
-	STRING_VECTOR cmd;
+	std::vector<std::wstring> cmd;
 
 	switch (m_ctrlSubmodule.GetCurrentEntry())
 	{
@@ -1597,7 +1597,7 @@ void CSyncDlg::OnBnClickedButtonStash()
 	m_ctrlTabCtrl.ShowTab(IDC_IN_CHANGELIST -1, false);
 	m_ctrlTabCtrl.ShowTab(IDC_IN_CONFLICT -1, false);
 
-	STRING_VECTOR cmd;
+	std::vector<std::wstring> cmd;
 	switch (m_ctrlStash.GetCurrentEntry())
 	{
 	case 0:

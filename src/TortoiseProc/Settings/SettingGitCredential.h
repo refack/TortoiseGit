@@ -44,7 +44,7 @@ public:
 
 	static int GetCredentialDefaultUrlCallback(const git_config_entry *entry, void *payload)
 	{
-		static_cast<STRING_VECTOR*>(payload)->push_back(std::wstring(ConfigLevelToKey(entry->level)));
+		static_cast<std::vector<std::wstring>*>(payload)->push_back(std::wstring(ConfigLevelToKey(entry->level)));
 		return 0;
 	}
 
@@ -56,14 +56,14 @@ public:
 		CString url = name.Mid(pos1 + 1, pos2 - pos1 - 1);
 		CString display;
 		display.Format(L"%s:%s", static_cast<LPCWSTR>(ConfigLevelToKey(entry->level)), static_cast<LPCWSTR>(url));
-		static_cast<STRING_VECTOR*>(payload)->push_back(std::wstring(display));
+		static_cast<std::vector<std::wstring>*>(payload)->push_back(std::wstring(display));
 		return 0;
 	}
 
 	static int GetCredentialEntryCallback(const git_config_entry *entry, void *payload)
 	{
 		CString name = CUnicodeUtils::Convert2Unicode<CString>(entry->name);
-		static_cast<STRING_VECTOR*>(payload)->push_back(std::wstring(name));
+		static_cast<std::vector<std::wstring>*>(payload)->push_back(std::wstring(name));
 		return 0;
 	}
 
@@ -75,7 +75,7 @@ public:
 			value = CUnicodeUtils::Convert2Unicode<CString>(entry->value);
 		CString text;
 		text.Format(L"%s\n%s\n%s", static_cast<LPCWSTR>(ConfigLevelToKey(entry->level)), static_cast<LPCWSTR>(name), static_cast<LPCWSTR>(value));
-		static_cast<STRING_VECTOR*>(payload)->push_back(std::wstring(text));
+		static_cast<std::vector<std::wstring>*>(payload)->push_back(std::wstring(text));
 		return 0;
 	}
 

@@ -20,7 +20,6 @@
 #include "stdafx.h"
 #include "TortoiseProc.h"
 #include "RevGraphFilterDlg.h"
-import tgittypes;
 import git_h;
 #include "BrowseRefsDlg.h"
 import str_utils;
@@ -63,7 +62,7 @@ BOOL CRevGraphFilterDlg::OnInitDialog()
 	this->m_ctrlFromRev.Init();
 	this->m_ctrlToRev.Init();
 
-	STRING_VECTOR list;
+	std::vector<std::wstring> list;
 	if (g_Git.GetRefList(list))
 		MessageBox(g_Git.GetGitLastErr(L"Could not get all refs."), L"TortoiseGit", MB_ICONERROR);
 

@@ -14,7 +14,6 @@ import GitMailmap;
 import wil_git2;
 import GitHash;
 import invarients;
-import tgittypes;
 
 // a using-declaration, not an alias: MSVC mangles CGitHash reached through a module-local
 // alias as CGitHash[!GitHash] ($$_B) rather than CGitHash[GitHash] ($$_A), so every call
@@ -22,7 +21,7 @@ import tgittypes;
 using TGitHash::CGitHash;
 using namespace TGitH;
 using namespace SmartLibgit2;
-using tgit::zstr::StringView;
+using tgit::str::StringView;
 
 
 #define LOG_REV_AUTHOR_NAME L'0'
@@ -149,7 +148,7 @@ public:
 	int GetGitRevRefMap(MAP_REF_GITREVREFBROWSER& map, int mergefilter, StringType& err, std::function<bool(const StringType& refName)> filterCallback)
 	{
 		err.Empty();
-		tgit::types::MAP_STRING_STRING descriptions;
+		std::map<std::wstring, std::wstring> descriptions;
 		TGitH::g_Git.GetBranchDescriptions(descriptions);
 
 		CGitMailmap mailmap;
@@ -305,7 +304,7 @@ public:
 			return 0;
 		}
 
-		tgit::types::STRING_VECTOR cmd{ L"git.exe", L"for-each-ref" };
+		std::vector<std::wstring> cmd{ L"git.exe", L"for-each-ref" };
 		switch (mergefilter)
 		{
 		case 1:

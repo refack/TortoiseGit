@@ -839,7 +839,7 @@ void CCommitDlg::OnOK()
 		// Four independently-optional options that used to be four %s slots, each
 		// interpolating as nothing when unset. As argv elements an empty one would
 		// be a real empty argument, so each is now a conditional push.
-		STRING_VECTOR cmd{ L"git.exe", L"commit" };
+		std::vector<std::wstring> cmd{ L"git.exe", L"commit" };
 
 		CString dateTime;
 		if (m_bSetCommitDateTime)
@@ -2409,7 +2409,7 @@ void CCommitDlg::FillPatchView(bool onlySetTimer)
 			auto p = m_ListCtrl.GetListEntry(nSelect);
 			if(p && !(p->m_Action&CTGitPath::LOGACTIONS_UNVER) )
 			{
-				STRING_VECTOR cmd{ L"git.exe", L"diff" };
+				std::vector<std::wstring> cmd{ L"git.exe", L"diff" };
 				if (m_bStagingSupport)
 				{
 					// This will only work if called after ShowPartialStagingTextAndUpdateDisplayStatus (or Unstaging)

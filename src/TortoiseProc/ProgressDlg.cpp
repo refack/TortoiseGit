@@ -194,7 +194,7 @@ UINT CProgressDlg::ProgressThreadEntry(LPVOID pVoid)
 }
 
 //static function, Share with SyncDialog
-UINT CProgressDlg::RunCmdList(CWnd* pWnd, ARGV_VECTOR& cmdlist, STRING_VECTOR& dirlist, bool bShowCommand, const CString* pfilename, CGitCliOutputParser& cliparser, volatile bool* bAbort, CGit* git)
+UINT CProgressDlg::RunCmdList(CWnd* pWnd, ARGV_VECTOR& cmdlist, std::vector<std::wstring>& dirlist, bool bShowCommand, const CString* pfilename, CGitCliOutputParser& cliparser, volatile bool* bAbort, CGit* git)
 {
 	UINT ret = 0;
 

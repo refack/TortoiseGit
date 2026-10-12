@@ -45,7 +45,7 @@ bool DaemonCommand::Execute()
 		return false;
 	}
 
-	STRING_VECTOR ips;
+	std::vector<std::wstring> ips;
 	ADDRINFOA addrinfo = { 0 };
 	addrinfo.ai_family = AF_UNSPEC;
 	PADDRINFOA result = nullptr;

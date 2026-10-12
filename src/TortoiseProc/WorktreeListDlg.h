@@ -19,7 +19,7 @@
 
 #pragma once
 #include "StandAloneDlg.h"
-import tgittypes;
+import git_h;
 import GitHash;
 #include "Utils/GestureEnabledControl.h"
 #include "ResizableColumnsListCtrl.h"
@@ -108,7 +108,7 @@ private:
 
 	void Refresh();
 	int FillListCtrlWithWorktreeList(CString& error);
-	int GetWorktreeNames(STRING_VECTOR& list, CString& error);
+	int GetWorktreeNames(std::vector<std::wstring>& list, CString& error);
 
 	bool RemoveWorktree(const CString& path, bool force);
 	bool PruneWorktrees();

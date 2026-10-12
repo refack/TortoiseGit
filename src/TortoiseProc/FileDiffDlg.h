@@ -125,7 +125,7 @@ private:
 
 	UINT				LoadRefThread();
 
-	STRING_VECTOR		m_Reflist;
+	std::vector<std::wstring>		m_Reflist;
 
 	BOOL DestroyWindow() override;
 	void OnTextUpdate(CACEdit *pEdit);

@@ -21,6 +21,7 @@
 #include "stdafx.h"
 import str_utils;
 import CmdLineParser;
+import git_h;	// UnescapeGitQuotePath moved from StringUtils to TGitH
 
 // The out-parameter shape the assertions below were written against; the function
 // itself now returns { address, name }. An adapter, so the assertions stay as they were.
@@ -364,15 +365,15 @@ TEST(CStringUtils, EndsWithI)
 
 TEST(CStringUtils, UnescapeGitQuotePath)
 {
-	EXPECT_STREQ(L"", StringUtils::UnescapeGitQuotePath(L""));
+	EXPECT_STREQ(L"", TGitH::UnescapeGitQuotePath(L""));
 
-	EXPECT_STREQ(L"ascii.txt", StringUtils::UnescapeGitQuotePath(L"ascii.txt"));
-	EXPECT_STREQ(L"ümlauts.txt", StringUtils::UnescapeGitQuotePath(L"\\303\\274mlauts.txt")); 
-	EXPECT_STREQ(L"umläütß", StringUtils::UnescapeGitQuotePath(L"uml\\303\\244\\303\\274t\\303\\237"));
+	EXPECT_STREQ(L"ascii.txt", TGitH::UnescapeGitQuotePath(L"ascii.txt"));
+	EXPECT_STREQ(L"ümlauts.txt", TGitH::UnescapeGitQuotePath(L"\\303\\274mlauts.txt")); 
+	EXPECT_STREQ(L"umläütß", TGitH::UnescapeGitQuotePath(L"uml\\303\\244\\303\\274t\\303\\237"));
 
 	// taken from Git tests:
-	EXPECT_STREQ(L"\u6FF1\u91CE/file", StringUtils::UnescapeGitQuotePath(L"\\346\\277\\261\\351\\207\\216/file"));
-	EXPECT_STREQ(L"\u6FF1\u91CE\u7D14", StringUtils::UnescapeGitQuotePath(L"\\346\\277\\261\\351\\207\\216\\347\\264\\224"));
+	EXPECT_STREQ(L"\u6FF1\u91CE/file", TGitH::UnescapeGitQuotePath(L"\\346\\277\\261\\351\\207\\216/file"));
+	EXPECT_STREQ(L"\u6FF1\u91CE\u7D14", TGitH::UnescapeGitQuotePath(L"\\346\\277\\261\\351\\207\\216\\347\\264\\224"));
 }
 
 TEST(CStringUtils, EnsureCRLF)

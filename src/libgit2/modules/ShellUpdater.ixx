@@ -4,14 +4,13 @@ module;
 
 export module CShellUpdater;
 import git_h;
-import tgittypes;
 import str_utils;
 import RIAA;
 import TGitPath;
 import DebugOutput;
 import TGitCache.CacheInterface;
 
-using tgit::zstr::StringView;
+using tgit::str::StringView;
 
 /**
  * \ingroup Utils

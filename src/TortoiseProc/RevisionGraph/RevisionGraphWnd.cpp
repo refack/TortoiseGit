@@ -1104,7 +1104,7 @@ void CRevisionGraphWnd::DoCopyRefs() const
 	if (!m_SelectedEntry1)
 		return;
 
-	STRING_VECTOR list = GetFriendRefNames(m_SelectedEntry1);
+	std::vector<std::wstring> list = GetFriendRefNames(m_SelectedEntry1);
 	CString text;
 	if (list.empty())
 		text = (m_logEntries[m_SelectedEntry1->index()].ToString()).c_str();
@@ -1138,9 +1138,9 @@ void CRevisionGraphWnd::OnContextMenu(CWnd* /*pWnd*/, CPoint point)
 
 	AppendMenu (popup, IDS_REPOBROWSE_SHOWLOG, ID_SHOWLOG);
 
-	STRING_VECTOR branchNames;
-	STRING_VECTOR allRefNames;
-	STRING_VECTOR remoteBranchNames; 
+	std::vector<std::wstring> branchNames;
+	std::vector<std::wstring> allRefNames;
+	std::vector<std::wstring> remoteBranchNames; 
 	if (m_SelectedEntry1 && (m_SelectedEntry2 == nullptr))
 	{
 		AppendMenu(popup, IDS_LOG_BROWSEREPO, ID_BROWSEREPO);

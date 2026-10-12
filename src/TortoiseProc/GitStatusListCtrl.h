@@ -20,6 +20,7 @@
 #pragma once
 import TGitPath;
 import TGitStatus;
+import GitIndex;	// git_wc_status_kind / git_wc_status2_t
 #include "Colors.h"
 #include "ResizableColumnsListCtrl.h"
 import DragDrop;

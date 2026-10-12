@@ -30,6 +30,28 @@
 #include "LangDll.h"
 
 import Registry;
+import GitIndex;	// git_wc_status_kind
+
+/**
+ * \ingroup TortoiseShell
+ * Since we need an own COM-object for every different
+ * Icon-Overlay implemented this enum defines which class
+ * is used.
+ */
+enum FileState {
+	FileStateUncontrolled,
+	FileStateVersioned,
+	FileStateModified,
+	FileStateConflict,
+	FileStateDeleted,
+	FileStateReadOnly,
+	FileStateLockedOverlay,
+	FileStateAddedOverlay,
+	FileStateIgnoredOverlay,
+	FileStateUnversionedOverlay,
+	FileStateDropHandler,
+	FileStateInvalid
+};
 
 class CExplorerCommand;
 extern	volatile LONG		g_cRefThisDll;			// Reference count of this DLL.

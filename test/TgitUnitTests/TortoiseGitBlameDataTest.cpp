@@ -37,18 +37,18 @@ namespace
 	constexpr auto kBlameContentTwoNewLines = std::array{ "dsad", "sad", "ds\xC3\xB6""d", "dssdddd", "dd", "sdas", "", "" };  // NOLINT(bugprone-suspicious-missing-comma)
 	constexpr auto kBlameContentTwoNewLinesUtf16 = std::array{ L"dsad", L"sad", L"ds\xC3\xB6""d", L"dssdddd", L"dd", L"sdas", L"", L"", L"" };  // NOLINT(bugprone-suspicious-missing-comma)
 
-	BYTE_VECTOR RunBlame(const wchar_t* revision, const wchar_t* file)
+	std::string RunBlame(const wchar_t* revision, const wchar_t* file)
 	{
 		CString cmd;
 		cmd.Format(L"git.exe blame -p %s -- \"%s\"", revision, file);
 
-		BYTE_VECTOR blameData;
-		BYTE_VECTOR err;
+		std::string blameData;
+		std::string err;
 		EXPECT_EQ(0, g_Git.Run(cmd, &blameData, &err));
 		return blameData;
 	}
 
-	CTortoiseGitBlameData ParseBlame(const BYTE_VECTOR& blameData)
+	CTortoiseGitBlameData ParseBlame(const std::string& blameData)
 	{
 		CGitHashMap hashMap;
 		CTortoiseGitBlameData data;

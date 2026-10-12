@@ -172,7 +172,7 @@ protected:
 		m_ctrlLocalBranch.SetMaxHistoryItems(0x0FFFFFFF);
 		m_ctrlRemoteBranch.SetMaxHistoryItems(0x0FFFFFFF);
 
-		STRING_VECTOR list;
+		std::vector<std::wstring> list;
 		list.clear();
 		int current=0;
 

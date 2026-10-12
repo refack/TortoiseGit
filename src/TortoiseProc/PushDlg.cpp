@@ -213,7 +213,7 @@ void CPushDlg::Refresh()
 	m_RemoteReg = remote;
 	int sel = -1;
 
-	STRING_VECTOR list;
+	std::vector<std::wstring> list;
 	m_Remote.Reset();
 
 	if(!g_Git.GetRemoteList(list))

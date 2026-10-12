@@ -125,7 +125,7 @@ BOOL CFirstStartWizardAuthentication::OnWizardFinish()
 	return __super::OnWizardFinish();
 }
 
-static void AddHelper(CComboBox& combobox, STRING_VECTOR& availableHelpers, const CString& helper, const CString& selected = L"")
+static void AddHelper(CComboBox& combobox, std::vector<std::wstring>& availableHelpers, const CString& helper, const CString& selected = L"")
 {
 	availableHelpers.push_back(std::wstring(helper));
 	int idx = combobox.AddString(helper);
@@ -152,7 +152,7 @@ BOOL CFirstStartWizardAuthentication::OnInitDialog()
 	if (git_config_add_file_ondisk(config, CGit::GetGitPathStringA(g_Git.GetGitSystemConfig()), GIT_CONFIG_LEVEL_SYSTEM, nullptr, FALSE))
 		MessageBox(TGitH::GetLibGit2LastErr(), L"TortoiseGit", MB_ICONEXCLAMATION);
 
-	STRING_VECTOR defaultList;
+	std::vector<std::wstring> defaultList;
 	git_config_foreach_match(config, "credential\\.helper", CSettingGitCredential::GetCredentialDefaultUrlCallback, &defaultList);
 
 	if (defaultList.size() <= 1 && (defaultList.empty() || defaultList.at(0)[0] == 'X' || defaultList.at(0)[0] == 'G'))
@@ -170,7 +170,7 @@ BOOL CFirstStartWizardAuthentication::OnInitDialog()
 	if (CSettingGitCredential::WinstoreExists())
 		AddHelper(m_ctrlSimpleCredential, m_availableHelpers, CSettingGitCredential::GetWinstorePath(), selectedHelper);
 
-	STRING_VECTOR urlList;
+	std::vector<std::wstring> urlList;
 	git_config_foreach_match(config, "credential\\..*\\.helper", CSettingGitCredential::GetCredentialUrlCallback, &urlList);
 	if (!urlList.empty() || m_ctrlSimpleCredential.GetCurSel() == -1)
 	{

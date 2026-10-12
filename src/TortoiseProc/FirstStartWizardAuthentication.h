@@ -46,7 +46,7 @@ protected:
 	DECLARE_MESSAGE_MAP()
 
 	CComboBox		m_ctrlSimpleCredential;
-	STRING_VECTOR	m_availableHelpers;
+	std::vector<std::wstring>	m_availableHelpers;
 	BOOL			m_bNoSave;
 	CComboBox		m_ctrlSSHClient;
 };

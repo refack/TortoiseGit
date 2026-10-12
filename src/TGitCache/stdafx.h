@@ -42,6 +42,7 @@ using namespace ATL;
 #include <sanity.h>		// SCOPE_EXIT (CreateProcessHelper.h), was Utils/scope_exit_noexcept.h
 import wil;				// scope_exit_helper, which SCOPE_EXIT expands to
 import DebugOutput;
+import GitIndex;			// git_wc_status_kind / git_wc_status2_t, which tgittypes held
 
 using AutoLocker = CComCritSecLock<CComAutoCriticalSection>;
 

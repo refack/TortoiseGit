@@ -36,7 +36,7 @@ bool LFSSetLockedProgressCommand::Run(CGitProgressList* list, CString& sWindowTi
 
 	Git_WC_Notify_Action notifyAction = m_bIsLock ? Git_WC_Notify_Action::LFS_Lock : Git_WC_Notify_Action::LFS_Unlock;
 
-	STRING_VECTOR cmdBase{ L"git.exe", L"lfs", m_bIsLock ? L"lock" : L"unlock" };
+	std::vector<std::wstring> cmdBase{ L"git.exe", L"lfs", m_bIsLock ? L"lock" : L"unlock" };
 	if (m_bIsForce)
 		cmdBase.emplace_back(L"--force");
 	cmdBase.emplace_back(L"--");
@@ -73,7 +73,7 @@ bool LFSSetLockedProgressCommand::Run(CGitProgressList* list, CString& sWindowTi
 
 	for (int i = 0; i < m_targetPathList.GetCount(); ++i)
 	{
-		STRING_VECTOR cmd(cmdBase);
+		std::vector<std::wstring> cmd(cmdBase);
 		cmd.emplace_back(m_targetPathList[i].GetGitPathString());
 
 		list->AddNotify(new CGitProgressList::WC_File_NotificationData(m_targetPathList[i], notifyAction));

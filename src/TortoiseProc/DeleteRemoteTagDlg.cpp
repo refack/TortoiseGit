@@ -147,7 +147,7 @@ void CDeleteRemoteTagDlg::OnBnClickedOk()
 			return;
 	}
 
-	STRING_VECTOR list;
+	std::vector<std::wstring> list;
 	POSITION pos = m_ctrlTags.GetFirstSelectedItemPosition();
 	int index;
 	while ((index = m_ctrlTags.GetNextSelectedItem(pos)) >= 0)

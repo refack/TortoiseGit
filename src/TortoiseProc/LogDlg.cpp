@@ -1109,7 +1109,7 @@ void CLogDlg::FillPatchView(bool onlySetTimer)
 			auto p = m_ChangedFileListCtrl.GetListEntry(nSelect);
 			if (p && !(p->m_Action&CTGitPath::LOGACTIONS_UNVER))
 			{
-				STRING_VECTOR cmd{ L"git.exe", L"diff" };
+				std::vector<std::wstring> cmd{ L"git.exe", L"diff" };
 				if (pLogEntry->m_CommitHash.IsEmpty())
 					cmd.emplace_back(L"HEAD");
 				else

@@ -92,7 +92,7 @@ BOOL CSettingGitRemote::OnInitDialog()
 	AdjustControlSize(IDC_CHECK_PRUNE);
 	AdjustControlSize(IDC_CHECK_PUSHDEFAULT);
 
-	STRING_VECTOR remotes;
+	std::vector<std::wstring> remotes;
 	if (g_Git.GetRemoteList(remotes) != 0)
 		MessageBox(g_Git.GetGitLastErr(L"Could not load remotes."), L"TortoiseGit", MB_ICONERROR);
 

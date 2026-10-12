@@ -58,16 +58,8 @@ bool RevertProgressCommand::Run(CGitProgressList* list, CString& sWindowTitle, i
 
 	CTGitPathList moveList;
 	CMassiveGitTask unstageTask{ L"rm -f --cached" };
-	CString quotedRevisionToRevertTo;
-	try
-	{
-		quotedRevisionToRevertTo = CGit::QuoteParameter(m_sRevertToRevision);
-	}
-	catch (illegal_git_parameter& e)
-	{
-		list->ReportError(e.cause());
-		return false;
-	}
+	// QuoteParameter quotes any value now; illegal_git_parameter is gone.
+	const CString quotedRevisionToRevertTo = CGit::QuoteParameter(m_sRevertToRevision);
 	CMassiveGitTask checkoutTask{ L"checkout -f --end-of-options " + quotedRevisionToRevertTo };
 	CMassiveGitTask addTask{ L"add -f" };
 	CMassiveGitTask deleteTask{ L"rm --ignore-unmatch" };
@@ -149,7 +141,7 @@ bool RevertProgressCommand::Run(CGitProgressList* list, CString& sWindowTitle, i
 	// for handling submodule renames
 	for (const auto& path : moveList)
 	{
-		STRING_VECTOR cmd{ L"git.exe", L"mv" };
+		std::vector<std::wstring> cmd{ L"git.exe", L"mv" };
 		// A CString that only ever held "-f " or nothing was a bool all along.
 		// if the filenames only differ in case, we have to pass "-f"
 		if (tgit::wstr::CompareNoCase(path.GetGitPathString(), path.GetGitOldPathString()) == 0)

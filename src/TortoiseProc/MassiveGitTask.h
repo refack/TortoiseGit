@@ -22,7 +22,6 @@
 #include <cassert>
 #include <format>
 
-import tgittypes;
 import TGitPath;
 import git_h;
 #include "GitProgressList.h"
@@ -45,7 +44,7 @@ class CMassiveGitTaskBase {
 	bool m_bIgnoreErrors = false;
 	std::wstring m_sParams;
 	CTGitPathList m_pathList;
-	STRING_VECTOR m_itemList;
+	std::vector<std::wstring> m_itemList;
 
 public:
 	CMassiveGitTaskBase(CString gitParameters, const bool isPath, const bool ignoreErrors)
@@ -87,7 +86,7 @@ public:
 	 * under the command line length limit. \a baseArgv must already end with the
 	 * "--" separator; the paths are appended as further elements.
 	 */
-	static void ConvertToCmdList(const STRING_VECTOR& baseArgv, const STRING_VECTOR& pathList, ARGV_VECTOR& cmdList);
+	static void ConvertToCmdList(const std::vector<std::wstring>& baseArgv, const std::vector<std::wstring>& pathList, ARGV_VECTOR& cmdList);
 
 protected:
 	void SetPaths(const CTGitPathList* pathList) {
@@ -171,15 +170,13 @@ inline bool CMassiveGitTaskBase::ExecuteCommands(const bool cancel) {
 	int firstCombine = 0;
 	for (int i = 0; i < GetListCount(); ++i) {
 		if (maxLength + GetListItem(i).GetLength() > max_command_line_length || i == GetListCount() - 1 || cancel) {
-			auto add = L"";
-			try {
-				for (int j = firstCombine; j <= i; ++j) {
-					add += L' ';
-					add = add + CGit::QuoteParameter(GetListItem(j));
-				}
-			} catch (illegal_git_parameter& e) {
-				ReportError(e.cause(), -1);
-				return false;
+			// CString, not `auto add = L""`: that was a const wchar_t*, so += L' ' was
+			// pointer arithmetic and the assignment kept a pointer into a temporary.
+			// No try/catch: QuoteParameter quotes any value now (illegal_git_parameter is gone).
+			CString add;
+			for (int j = firstCombine; j <= i; ++j) {
+				add += L' ';
+				add += CGit::QuoteParameter(GetListItem(j));
 			}
 
 			CString cmd, out;
@@ -209,7 +206,7 @@ inline bool CMassiveGitTaskBase::ExecuteCommands(const bool cancel) {
 	return true;
 }
 
-inline void CMassiveGitTaskBase::ConvertToCmdList(const STRING_VECTOR& baseArgv, const STRING_VECTOR& pathList, ARGV_VECTOR& cmdList) {
+inline void CMassiveGitTaskBase::ConvertToCmdList(const std::vector<std::wstring>& baseArgv, const std::vector<std::wstring>& pathList, ARGV_VECTOR& cmdList) {
 	if (pathList.empty())
 		return;
 

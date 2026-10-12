@@ -367,10 +367,10 @@ void CSettingGitCredential::LoadList()
 	git_config_add_file_ondisk(config, CGit::GetGitPathStringA(g_Git.GetGitGlobalXDGConfig()), GIT_CONFIG_LEVEL_XDG, repo, FALSE);
 	git_config_add_file_ondisk(config, CGit::GetGitPathStringA(g_Git.GetGitSystemConfig()), GIT_CONFIG_LEVEL_SYSTEM, repo, FALSE);
 
-	STRING_VECTOR defaultList, urlList;
+	std::vector<std::wstring> defaultList, urlList;
 	git_config_foreach_match(config, "credential\\.helper", GetCredentialDefaultUrlCallback, &defaultList);
 	git_config_foreach_match(config, "credential\\..*\\.helper", GetCredentialUrlCallback, &urlList);
-	STRING_VECTOR anyList;
+	std::vector<std::wstring> anyList;
 	git_config_foreach_match(config, "credential\\..*", GetCredentialAnyEntryCallback, &anyList);
 
 	for (size_t i = 0; i < defaultList.size(); ++i)
@@ -587,7 +587,7 @@ int CSettingGitCredential::DeleteOtherKeys(int type)
 	git_config_add_file_ondisk(config, CGit::GetGitPathStringA(g_Git.GetGitGlobalXDGConfig()), GIT_CONFIG_LEVEL_XDG, repo, FALSE);
 	git_config_add_file_ondisk(config, CGit::GetGitPathStringA(g_Git.GetGitSystemConfig()), GIT_CONFIG_LEVEL_SYSTEM, repo, FALSE);
 
-	STRING_VECTOR list;
+	std::vector<std::wstring> list;
 	git_config_foreach_match(config, "credential\\..*", GetCredentialAnyEntryCallback, &list);
 	for (size_t i = 0; i < list.size(); ++i)
 	{
@@ -846,7 +846,7 @@ void CSettingGitCredential::OnBnClickedButtonRemove()
 				}
 			}
 
-			STRING_VECTOR list;
+			std::vector<std::wstring> list;
 			CStringA urlA = CUnicodeUtils::GetUTF8<CStringA>(url);
 			CStringA pattern = urlA.IsEmpty() ? CStringA("^credential\\.[^.]+$") : ("credential\\." + RegexEscape(urlA) + "\\..*");
 			git_config_foreach_match(config, pattern, GetCredentialEntryCallback, &list);

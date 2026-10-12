@@ -576,8 +576,8 @@ unique_git_repository OpenGitRepository(const char* const gitDirUtf8) {
 /// What sanity.h's SCOPE_EXIT expands against: `scope_exit_helper() << [&] { ... };`.
 /// Global, because the macro names it unqualified. The guard is wil's: its move
 /// disarms the source, which tgittypes' hand-rolled scope_exit_t did not (a moved-
-/// from guard still ran its lambda). tgittypes re-exports this one rather than
-/// defining its own, so no TU can reach two of them.
+/// from guard still ran its lambda). This is the only definition: a TU that
+/// expands SCOPE_EXIT imports wil (directly, or through wil_git2 until it retires).
 export struct scope_exit_helper {
 	template <class F>
 	[[nodiscard]] auto operator<<(F&& f) const {

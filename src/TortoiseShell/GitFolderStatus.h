@@ -22,6 +22,7 @@
 #include "GitStatus.h"
 import TGitPath;
 import RIAA;
+import GitIndex;	// git_wc_status_kind / git_wc_status2_t
 
 struct FileStatusCacheEntry
 {

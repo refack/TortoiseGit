@@ -72,7 +72,7 @@ protected:
 	CHistoryCombo	m_FindCombo;
 	CString			m_FindString;
 	CWnd*			m_pParent = nullptr;
-	STRING_VECTOR	m_RefList;
+	std::vector<std::wstring>	m_RefList;
 	CRegDWORD		m_regMatchCase;
 	CRegDWORD		m_regRegex;
 

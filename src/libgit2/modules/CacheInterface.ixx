@@ -1,20 +1,19 @@
 ﻿module;
-#include <tgit_cstring.h>	// first: decides which CString this compile speaks
-#include <minwindef.h>
-#include <atlstr.h>
+#include <windows.h>
 
 
 export module TGitCache.CacheInterface;
 import std;
 
 import RIAA;
+import str_utils;	// CString, the shim's
 import TGitStatus;
-import tgittypes;
+import GitIndex;	// git_wc_status_kind, the wire format of TGITCacheResponse::m_status
 import DebugOutput;
 
 using std::operator""sv;
 using tgit::DebugOutput::TracePrintf;
-using namespace tgit::types;
+using CString = tgit::wstr::CString;
 
 
 export namespace TGitCache
@@ -72,7 +71,7 @@ struct TGITCacheResponse
 	bool m_bAssumeValid;
 	bool m_bSkipWorktree;
 };
-static_assert(static_cast<UINT8>(tgit::types::git_wc_status_unknown) == tgit::types::git_wc_status_unknown, "type git_wc_status_kind fits into UINT8");
+static_assert(static_cast<UINT8>(GitIndex::git_wc_status_unknown) == GitIndex::git_wc_status_unknown, "type git_wc_status_kind fits into UINT8");
 static_assert(sizeof(TGITCacheResponse) == 3 && offsetof(TGITCacheResponse, m_status) == 0 && offsetof(TGITCacheResponse, m_bAssumeValid) == 1 && offsetof(TGITCacheResponse, m_bSkipWorktree) == 2, "Cross platform compatibility");
 
 /**

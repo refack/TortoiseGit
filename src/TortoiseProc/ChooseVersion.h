@@ -41,9 +41,9 @@ private:
 	std::atomic<bool> m_bExitLoadingThread;
 	struct GUI_UPDATE_DATA
 	{
-		STRING_VECTOR branches;
+		std::vector<std::wstring> branches;
 		int current_branch_idx = -1;
-		STRING_VECTOR tags;
+		std::vector<std::wstring> tags;
 	};
 	std::atomic<std::shared_ptr<GUI_UPDATE_DATA>> m_refData;
 

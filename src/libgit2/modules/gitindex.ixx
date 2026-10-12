@@ -1,11 +1,10 @@
 ﻿module;
-#include <tgit_cstring.h>	// first: decides which CString this compile speaks
 #include <sys/stat.h>
 #include <gitdll.h>
 #include <git2.h>
 #include <git2/sys/repository.h> // git_repository_set_config
 
-#include <atlstr.h>
+#include <atlbase.h>	// CComCritSecLock/CComAutoCriticalSection, not CString: that is str_utils'
 // detail::ReadSmallFile instantiates wil::GetFileInfo<>, which reaches wil's error-reporting
 // helpers and through them strsafe's *static* StringCch* workers. A template instantiated
 // here cannot use module wil's internal-linkage definitions, so this TU needs its own: C2129.
@@ -32,15 +31,15 @@ import str_utils;
 import TGitPath;
 import git_h;
 import invarients;
-import tgittypes;
 
 using namespace Registry;
 using namespace PathUtils;
 using namespace SmartLibgit2;
 using namespace tgit::DebugOutput;
 using namespace tgit;
-using types::git_wc_status2_t;
-using tgit::zstr::StringView;
+using tgit::str::StringView;
+using CString = tgit::wstr::CString;
+using CStringA = tgit::zstr::CString;
 
 
 // Exported: `export using namespace GitIndex;` at the end exports the using-
@@ -48,6 +47,31 @@ using tgit::zstr::StringView;
 // of these. The out-of-line definitions below reopen the namespace unexported.
 export namespace GitIndex {
 using CAutoLocker = CComCritSecLock<CComCriticalSection>;
+
+
+// From tgittypes (moved verbatim). GitIndex is the lowest module that uses them,
+// and TGitStatus imports GitIndex. The enumerator order and the UINT8 width are
+// the wire format TGitCache.CacheInterface's static_assert checks: append only.
+enum git_wc_status_kind {
+	git_wc_status_none,
+	git_wc_status_unversioned,
+	git_wc_status_ignored,
+	git_wc_status_normal,
+	git_wc_status_deleted,
+	git_wc_status_modified,
+	git_wc_status_added,
+	git_wc_status_conflicted,
+	git_wc_status_unknown, // should be last, see TGitCache/CacheInterface.h
+};
+
+
+
+struct git_wc_status2_t {
+	git_wc_status_kind status = git_wc_status_none;
+
+	bool assumeValid = false;
+	bool skipWorktree = false;
+};
 
 
 struct CGitIndex
@@ -111,7 +135,7 @@ inline std::wstring NormalizedKey(const std::wstring& path)
 /// is wider than tgit::wstr::Trim's default " \t\r\n" (\v, \f, Unicode spaces).
 inline void TrimSpace(std::wstring& s)
 {
-	constexpr auto notSpace = [](const wchar_t c) { return !tgit::zstr::is_space(c); };
+	constexpr auto notSpace = [](const wchar_t c) { return !tgit::str::is_space(c); };
 	s.erase(std::ranges::find_if(s | std::views::reverse, notSpace).base(), s.end());
 	s.erase(s.begin(), std::ranges::find_if(s, notSpace));
 }
@@ -442,11 +466,11 @@ std::wstring_view NameView(const TName& name)
 {
 	if constexpr (requires { name.native(); })
 		return name.native();
-	else if constexpr (tgit::zstr::HasViewTraitsOf<TName, wchar_t>)
-		return tgit::zstr::StringView{ name };
+	else if constexpr (tgit::str::HasViewTraitsOf<TName, wchar_t>)
+		return tgit::str::StringView{ name };
 	else
 	{
-		using traits = tgit::zstr::StringTraits<tgit::zstr::TOwnedKey<TName>>;
+		using traits = tgit::str::StringTraits<tgit::str::TOwnedKey<TName>>;
 		return { traits::data(name), traits::size(name) };
 	}
 }
@@ -894,7 +918,6 @@ std::expected<void, int> CGitIndexList::ReadIncomingOutgoing(git_repository* rep
 
 int CGitIndexList::GetFileStatus_NoRepo(const std::wstring& gitdir, const std::wstring& pathorg, git_wc_status2_t& status, const std::int64_t time, const std::int64_t filesize, const bool isSymlink, CGitHash* pHash) const
 {
-	using namespace tgit::types;
 
 	const size_t index = SearchInSortVector(m_entries, pathorg, -1, IsIgnoreCase());
 
@@ -917,7 +940,6 @@ int CGitIndexList::GetFileStatus_NoRepo(const std::wstring& gitdir, const std::w
 
 int CGitIndexList::GetFileStatus(CAutoRepository& repository, const std::wstring& gitdir, const CGitIndex& entry, git_wc_status2_t& status, const std::int64_t time, const std::int64_t filesize, const bool isSymlink) const
 {
-	using namespace tgit::types;
 	Expects(!status.assumeValid && !status.skipWorktree);
 
 	// skip-worktree has higher priority than assume-valid
@@ -999,7 +1021,6 @@ int CGitIndexList::GetFileStatus(CAutoRepository& repository, const std::wstring
 
 int CGitIndexList::GetFileStatus(const std::wstring& gitdir, const std::wstring& path, git_wc_status2_t& status, CGitHash* pHash) const
 {
-	using namespace tgit::types;
 	Expects(!status.assumeValid && !status.skipWorktree);
 
 	const auto attrs = get_path_attributes(path.empty() ? wstr::to_path(gitdir) : wstr::to_path(gitdir) / wstr::to_path(path));

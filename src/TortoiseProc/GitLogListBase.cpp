@@ -1177,9 +1177,9 @@ void CGitLogListBase::OnNMCustomdrawLoglist(NMHDR *pNMHDR, LRESULT *pResult)
 					FillBackGround(pLVCD->nmcd.hdc, pLVCD->nmcd.dwItemSpec, rect);
 
 					std::vector<REFLABEL> refsToShow;
-					STRING_VECTOR remoteTrackingList;
-					STRING_VECTOR::const_iterator refListIt;
-					STRING_VECTOR::const_iterator refListItEnd;
+					std::vector<std::wstring> remoteTrackingList;
+					std::vector<std::wstring>::const_iterator refListIt;
+					std::vector<std::wstring>::const_iterator refListItEnd;
 					auto commitRefsIt = hashMap.find(data->m_CommitHash);
 					if (commitRefsIt != hashMap.cend())
 					{
@@ -1704,7 +1704,7 @@ void CGitLogListBase::OnContextMenu(CWnd* pWnd, CPoint point)
 		const bool isStash = IsOnStash(FirstSelect);
 		GIT_REV_LIST parentHash;
 		GetParentHashes(pSelLogEntry, parentHash);
-		STRING_VECTOR parentInfo;
+		std::vector<std::wstring> parentInfo;
 		for (size_t i = 0; i < parentHash.size(); ++i)
 		{
 			CString str;
@@ -3093,7 +3093,7 @@ UINT CGitLogListBase::LogThread()
 
 void CGitLogListBase::FetchRemoteList()
 {
-	STRING_VECTOR remoteList;
+	std::vector<std::wstring> remoteList;
 	m_SingleRemote.Empty();
 	if (!g_Git.GetRemoteList(remoteList) && remoteList.size() == 1)
 		m_SingleRemote = remoteList[0].c_str();
@@ -3271,7 +3271,7 @@ CString CGitLogListBase::GetTagInfo(GitRev* pLogEntry) const
 	return GetTagInfo(refs->second);
 }
 
-CString CGitLogListBase::GetTagInfo(const STRING_VECTOR& refs) const
+CString CGitLogListBase::GetTagInfo(const std::vector<std::wstring>& refs) const
 {
 	CString tagInfo;
 	for (auto it = refs.cbegin(); it != refs.cend(); ++it)
@@ -3614,7 +3614,7 @@ BOOL CGitLogListBase::OnToolTipText(UINT /*id*/, NMHDR* pNMHDR, LRESULT* pResult
 			auto hashMap{ m_HashMap.load() };
 			if (IsMouseOnRefLabel(m_arShownList.SafeGetAt(nItem), lvhitTestInfo.pt, type, *hashMap.get(), &branch))
 			{
-				MAP_STRING_STRING descriptions;
+				std::map<std::wstring, std::wstring> descriptions;
 				g_Git.GetBranchDescriptions(descriptions);
 				if (const auto it = descriptions.find(std::wstring(branch)); it != descriptions.cend())
 				{

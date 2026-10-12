@@ -198,7 +198,7 @@ void CRefLogDlg::OnLvnItemchangedRefLoglist(NMHDR* pNMHDR, LRESULT* pResult)
 
 void CRefLogDlg::Refresh()
 {
-	STRING_VECTOR list;
+	std::vector<std::wstring> list;
 	list.push_back(L"HEAD");
 	if (g_Git.GetRefList(list))
 		MessageBox(g_Git.GetGitLastErr(L"Could not get all refs."), L"TortoiseGit", MB_ICONERROR);

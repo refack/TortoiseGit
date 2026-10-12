@@ -11,7 +11,7 @@ import std;
 import git_h;
 import PathUtils;
 import str_utils;
-import tgittypes;
+import wil;			// scope_exit_helper, which SCOPE_EXIT expands to
 
 
 // Local linkage

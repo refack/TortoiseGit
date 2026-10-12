@@ -38,7 +38,7 @@ bool IgnoreCommand::Execute()
 	if (parser.HasKey(L"delete"))
 	{
 		// The two format strings differed by one flag; that is what they say now.
-		STRING_VECTOR baseCmd{ L"git.exe", L"rm" };
+		std::vector<std::wstring> baseCmd{ L"git.exe", L"rm" };
 		if(CMessageBox::Show(GetExplorerHWND(), IDS_PROC_KEEPFILELOCAL, IDS_APPNAME, MB_ICONERROR|MB_YESNO) == IDYES)
 			baseCmd.emplace_back(L"--cache");
 		baseCmd.insert(baseCmd.cend(), { L"-r", L"-f", L"--" });
@@ -47,7 +47,7 @@ bool IgnoreCommand::Execute()
 		int nPath;
 		for (nPath = 0; nPath < pathList.GetCount(); ++nPath)
 		{
-			STRING_VECTOR cmd(baseCmd);
+			std::vector<std::wstring> cmd(baseCmd);
 			cmd.emplace_back(pathList[nPath].GetGitPathString());
 			if (g_Git.Run(cmd, &output, CP_UTF8))
 			{

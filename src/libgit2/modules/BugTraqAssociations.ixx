@@ -1,5 +1,6 @@
 ﻿module;
 #include <windows.h>
+#include <stdio.h>			// swprintf_s: a macro-free C function, but import std does not export it
 #include <Shlwapi.h>		// SHDeleteKey
 #include <comcat.h>			// ICatInformation
 #include <initguid.h>		// last: only CATID_BugTraqProvider below is to be defined here

@@ -130,9 +130,9 @@ import DebugOutput;
 import RIAA;			// SmartHandle.h
 import Registry;
 import PathUtils;
-import tgittypes;		// gittype.h
 import TGitPath;		// TGitPath.h, and GitAdminDir
-import git_h;			// Git.h
+import git_h;			// Git.h, and what gittype.h/tgittypes held for git
+import GitIndex;		// git_wc_status_kind / git_wc_status2_t, which tgittypes held
 import wil;
 import wil_git2;		// SmartLibgit2Ref.h
 // Git.h used to drag these in transitively; an import does not re-export what it imports.

@@ -92,7 +92,7 @@ bool CatCommand::Execute()
 		return false;
 	}
 
-	STRING_VECTOR cmd;
+	std::vector<std::wstring> cmd;
 	if (StringUtils::StartsWith(output, L"blob"))
 		cmd = { L"git.exe", L"cat-file", L"-p", L"--", std::wstring(revision) };
 	else

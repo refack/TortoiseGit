@@ -142,7 +142,7 @@ bool ResolveProgressCommand::Run(CGitProgressList* list, CString& sWindowTitle, 
 			}
 
 			CString output; // retest with registered submodule!
-			const STRING_VECTOR gitcmd{ L"git.exe", L"rm", L"-f", L"--", path.GetGitPathString() };
+			const std::vector<std::wstring> gitcmd{ L"git.exe", L"rm", L"-f", L"--", path.GetGitPathString() };
 			if (g_Git.Run(gitcmd, &output, CP_UTF8))
 			{
 				// a .git folder in a submodule which is not in .gitmodules cannot be deleted using "git rm"

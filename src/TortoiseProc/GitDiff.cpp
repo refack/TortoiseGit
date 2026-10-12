@@ -21,7 +21,7 @@
 #include "GitDiff.h"
 #include "TortoiseProc.h"
 #include "AppUtils.h"
-import tgittypes;
+import git_h;
 #include "resource.h"
 #include "MessageBox.h"
 #include "FileDiffDlg.h"
@@ -33,7 +33,7 @@ int CGitDiff::SubmoduleDiffNull(HWND hWnd, const CTGitPath* pPath, const CGitHas
 	CString newsub;
 	CGitHash newhash;
 
-	STRING_VECTOR argv;
+	std::vector<std::wstring> argv;
 	if (!hash.IsEmpty())
 		argv = { L"git.exe", L"ls-tree", std::wstring(hash.ToString()), L"--", pPath->GetGitPathString() };
 	else
@@ -223,10 +223,10 @@ int CGitDiff::SubmoduleDiff(HWND hWnd, const CTGitPath* pPath, const CTGitPath* 
 	}
 	else
 	{
-		BYTE_VECTOR bytes, errBytes;
+		std::string bytes, errBytes;
 		if (g_Git.Run({ L"git.exe", L"diff-tree", L"-r", L"-z", std::wstring(rev2.ToString()), std::wstring(rev1.ToString()), L"--", gitPath }, &bytes, &errBytes))
 		{
-			CString err = errBytes.Decode().c_str();
+			CString err = CUnicodeUtils::DecodeUtf8UpToNul(errBytes).c_str();
 			CMessageBox::Show(hWnd, err, L"TortoiseGit", MB_OK | MB_ICONERROR);
 			return -1;
 		}
