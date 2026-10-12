@@ -77,8 +77,7 @@ constexpr auto scope_flag(const CONFIG_TYPE t)
 // ---- POSIX quoting: NOT exported ------------------------------------------------
 // Moved verbatim from str_utils, where they were parked unexported. They are git
 // domain - the msys2/cygwin path writes the command line into a temp file for
-// bash.exe - and sit here beside SerializeArgv, which will call them again when
-// the msys2/cygwin branch is restored (its own follow-up). No caller today.
+// bash.exe - and sit here beside SerializeArgv, whose msys2/cygwin branch calls them.
 namespace TGitH
 {
 
@@ -1907,6 +1906,21 @@ public:
 
 	[[nodiscard]] static std::wstring SerializeArgv(const std::vector<std::wstring>& argv)
 	{
+		// The msys2/cygwin backend writes the line into a file and runs it through
+		// bash.exe (see RunAsync), so it is shell source there and a Win32 command
+		// line here. Same vector, two grammars.
+		if (ms_bMsys2Git || ms_bCygwinGit)
+		{
+			std::wstring cmd;
+			for (const auto& arg : argv)
+			{
+				if (!cmd.empty())
+					cmd += L' ';
+				cmd += NeedsPosixShellQuoting(arg) ? EscapePosixShellArgument(arg) : arg;
+			}
+			return cmd;
+		}
+
 		return wil::ArgvToCommandLine(argv);
 	}
 	[[nodiscard]] static auto SerializeArgvToCString(const std::vector<std::wstring>& argv)
