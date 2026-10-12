@@ -31,6 +31,25 @@ static HCURSOR SplitterControl_hCursor1 = nullptr;
 static HCURSOR SplitterControl_hCursor2 = nullptr;
 
 
+// Restored: both were lost in f3001767d (the header still declared them), so
+// CommitDlg, LogDlg and RebaseDlg could not link. OnPaint reads m_AnimVarHot and
+// draws with GDI+, so neither the variable nor the GDI+ session is optional.
+CSplitterControl::CSplitterControl()
+{
+	m_AnimVarHot = Animator::Instance().CreateAnimationVariable(0.0);
+
+	// GDI+ initialization
+	Gdiplus::GdiplusStartupInput input;
+	Gdiplus::GdiplusStartup(&m_gdiPlusToken, &input, nullptr);
+}
+
+CSplitterControl::~CSplitterControl()
+{
+	// GDI+ cleanup
+	Gdiplus::GdiplusShutdown(m_gdiPlusToken);
+}
+
+
 BEGIN_MESSAGE_MAP(CSplitterControl, CStatic)
 	ON_WM_PAINT()
 	ON_WM_MOUSEMOVE()

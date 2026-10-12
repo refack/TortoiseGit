@@ -56,6 +56,12 @@ static char THIS_FILE[] = __FILE__;
 /////////////////////////////////////////////////////////////////////////////
 // MyGraphSeries
 
+// Constructor. Restored: lost in f3001767d while the header kept declaring it.
+MyGraphSeries::MyGraphSeries(const CString& sLabel /* = "" */ )
+	: m_sLabel(sLabel)
+{
+}
+
 // Destructor.
 /* virtual */ MyGraphSeries::~MyGraphSeries()
 {

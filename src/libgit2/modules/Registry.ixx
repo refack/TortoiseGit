@@ -829,6 +829,82 @@ public: //members
 	reg_string_t m_path;     ///< the path to the key
 };
 
+// The definitions src\Utils\Registry.cpp held for the CString/CStringList
+// interface (behind __AFXCOLL_H__), never brought into the module: the class was
+// declared here and defined nowhere, so the settings pages that use it
+// (SetProgsAdvDlg, SetSavedDataPage) failed to link. Same bodies, std types.
+CRegistryKey::CRegistryKey(const reg_string_t& key, const HKEY base, const REGSAM sam)
+	: m_base(base)
+	, m_sam(sam)
+	, m_path(key)
+{
+	// CString::TrimLeft(L'\\'): an all-backslash path trims to nothing
+	if (const auto first = m_path.find_first_not_of(L'\\'); first != reg_string_t::npos)
+		m_path.erase(0, first);
+	else
+		m_path.clear();
+}
+
+CRegistryKey::~CRegistryKey()
+{
+	if (m_hKey)
+		RegCloseKey(m_hKey);
+}
+
+DWORD CRegistryKey::createKey()
+{
+	DWORD disp = 0;
+	const DWORD rc = RegCreateKeyEx(m_base, m_path.c_str(), 0, nullptr, REG_OPTION_NON_VOLATILE, KEY_WRITE | m_sam, nullptr, &m_hKey, &disp);
+	if (rc != ERROR_SUCCESS)
+		return rc;
+	return RegCloseKey(m_hKey);
+}
+
+DWORD CRegistryKey::removeKey()
+{
+	RegOpenKeyEx(m_base, m_path.c_str(), 0, KEY_WRITE | m_sam, &m_hKey);
+	return SHDeleteKey(m_base, m_path.c_str());
+}
+
+bool CRegistryKey::getValues(std::vector<reg_string_t>& values)
+{
+	values.clear();
+
+	if (RegOpenKeyEx(m_base, m_path.c_str(), 0, KEY_EXECUTE | m_sam, &m_hKey) == ERROR_SUCCESS)
+	{
+		for (DWORD i = 0, rc = ERROR_SUCCESS; rc == ERROR_SUCCESS; ++i)
+		{
+			wchar_t value[255] = { 0 };
+			DWORD size = static_cast<DWORD>(std::size(value));
+			rc = RegEnumValue(m_hKey, i, value, &size, nullptr, nullptr, nullptr, nullptr);
+			if (rc == ERROR_SUCCESS)
+				values.emplace_back(value, size);
+		}
+	}
+
+	return !values.empty();
+}
+
+bool CRegistryKey::getSubKeys(std::vector<reg_string_t>& subkeys)
+{
+	subkeys.clear();
+
+	if (RegOpenKeyEx(m_base, m_path.c_str(), 0, KEY_EXECUTE | m_sam, &m_hKey) == ERROR_SUCCESS)
+	{
+		for (DWORD i = 0, rc = ERROR_SUCCESS; rc == ERROR_SUCCESS; ++i)
+		{
+			wchar_t value[1024] = { 0 };
+			DWORD size = static_cast<DWORD>(std::size(value));
+			FILETIME lastWriteTime{};
+			rc = RegEnumKeyEx(m_hKey, i, value, &size, nullptr, nullptr, nullptr, &lastWriteTime);
+			if (rc == ERROR_SUCCESS)
+				subkeys.emplace_back(value, size);
+		}
+	}
+
+	return !subkeys.empty();
+}
+
 template<class T>
 class CKeyList
 {

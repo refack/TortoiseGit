@@ -51,6 +51,16 @@ CACListWnd::CACListWnd()
 	m_uiFont.CreateFontIndirect(&metrics.lfMessageFont);
 }
 
+/**********************************************************************/
+
+// Restored: lost in f3001767d while the header kept declaring it.
+CACListWnd::~CACListWnd()
+{
+	m_SearchList.RemoveAll();
+	m_DisplayList.RemoveAll();
+	DestroyWindow();
+}
+
 /*********************************************************************/
 
 void CACListWnd::OnActivateApp(BOOL bActive, DWORD dwThreadID)
