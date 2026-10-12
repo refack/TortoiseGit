@@ -23,7 +23,7 @@
 
 #include <gsl/narrow>
 
-import GitAdminDir;
+import TGitPath;	// GitAdminDir lives in the TGitPath module
 #include "GitStatusCache.h"
 import PathUtils;
 #include "GitStatus.h"

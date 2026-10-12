@@ -22,7 +22,7 @@
 #include "ShellUpdater.h"
 #include <ShlObj.h>
 #include <format>
-import GitAdminDir;
+import TGitPath;	// GitAdminDir lives in the TGitPath module
 
 CShellUpdater::CShellUpdater()
 {

@@ -148,7 +148,7 @@ function(tgit_core_library name flavor)
             modules/GitHash.ixx
             modules/GitMailmap.ixx
             modules/GitRev.ixx
-            modules/GitRevLogList.ixx
+            modules/GitRevLoglist.ixx
             modules/Graphviz.ixx
             modules/Libraries.ixx
             modules/PathUtils.ixx

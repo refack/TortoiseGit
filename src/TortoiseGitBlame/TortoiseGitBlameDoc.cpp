@@ -29,7 +29,7 @@
 #include "TortoiseGitBlameView.h"
 
 #include <Git/Git.h>
-import GitAdminDir;
+import TGitPath;	// GitAdminDir lives in the TGitPath module
 #include <Git/GitMailmap.h>
 #include <Git/TGitPath.h>
 #include <Utils/CmdLineParser.h>

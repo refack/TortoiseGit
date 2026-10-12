@@ -51,7 +51,7 @@ set(UNITTESTS_PARKED
 
     AppUtilsTest.cpp                # TortoiseProc/AppUtils
     FileTextLinesTest.cpp           # MFC (CStdioFile): belongs to the MFC binary, and this target is ATL
-    GitAdminDirTest.cpp             # GitAdminDir.ixx is not in TGitLibgit2's module set
+    GitAdminDirTest.cpp             # GitAdminDir now lives in TGitPath; still includes the retired StringUtils.h
     GitCliOutputParserTest.cpp      # TortoiseProc/GitCliOutputParser
     GitRevRefBrowseTest.cpp         # TortoiseProc/GitRevRefBrowser
     GitWCRevStatusTest.cpp          # GitWCRev/status

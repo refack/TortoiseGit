@@ -41,7 +41,6 @@ using namespace ATL;
 #include <functional>
 
 #include "git2.h"
-#include "SmartLibgit2Ref.h"
 
 #include "scope_exit_noexcept.h"
 

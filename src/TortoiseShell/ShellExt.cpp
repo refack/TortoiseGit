@@ -28,7 +28,7 @@
 #include <shellapi.h>
 
 #include "ShellObjects.h"
-import GitAdminDir;
+import TGitPath;	// GitAdminDir lives in the TGitPath module
 #include "LangDll.h"
 #undef swprintf
 

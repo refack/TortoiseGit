@@ -24,7 +24,7 @@
 #include <git2/repository.h>
 
 #include "RepositoryFixtures.h"
-#include "GitAdminDir.h"
+import TGitPath;	// GitAdminDir lives in the TGitPath module
 #include "StringUtils.h"
 
 class CGitAdminDirWithTestRepoFixture : public CBasicGitWithTestRepoFixture

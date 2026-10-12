@@ -23,7 +23,7 @@
 #include "PreserveChdir.h"
 #include "GitStatus.h"
 #include <TGitCache/CacheInterface.h>
-import GitAdminDir;
+import TGitPath;	// GitAdminDir lives in the TGitPath module
 #include "StringUtils.h"
 
 // "The Shell calls IShellIconOverlayIdentifier::GetOverlayInfo to request the

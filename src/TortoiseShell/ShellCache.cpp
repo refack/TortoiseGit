@@ -19,7 +19,7 @@
 //
 #include "stdafx.h"
 #include "ShellCache.h"
-import GitAdminDir;
+import TGitPath;	// GitAdminDir lives in the TGitPath module
 #include "Git.h"
 #include "LangDll.h"
 
