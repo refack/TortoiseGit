@@ -11,7 +11,7 @@ export module GitDataObject;
 import std;
 import git_h;
 import wil;
-import wstr;
+import str_utils;
 import TGitPath;
 import TempFile;
 import GitHash;

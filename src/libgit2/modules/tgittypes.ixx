@@ -13,7 +13,7 @@ using string_terminator_t = std::integral_constant<std::byte, std::byte{0}>;
 constexpr string_terminator_t NUL{};
 
 
-import wstr;
+import str_utils;
 import gsl;
 import invarients;
 import GitHash;

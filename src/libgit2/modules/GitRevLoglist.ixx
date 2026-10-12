@@ -11,7 +11,7 @@ import std;
 import lanes;
 
 import git_h;
-import wstr;
+import str_utils;
 import GitRev;
 import TGitPath;
 import GitMailmap;

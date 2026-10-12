@@ -14,13 +14,12 @@ import std;
 import wil;
 
 import libgit2;
-import wstr;
+import str_utils;
 import TGitPath;
 import PathUtils;
 import Registry;
 import tgittypes;
 import GitHash;
-import StringUtils;
 import GitIndex;
 import DebugOutput;
 import wil_git2;

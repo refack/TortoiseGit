@@ -28,12 +28,11 @@ import PathUtils;
 import RIAA;
 import Registry;
 import wil_git2;
-import StringUtils;
+import str_utils;
 import TGitPath;
 import git_h;
 import invarients;
 import tgittypes;
-import wstr;
 
 using namespace Registry;
 using namespace PathUtils;

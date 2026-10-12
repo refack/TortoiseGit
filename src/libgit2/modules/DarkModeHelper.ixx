@@ -10,7 +10,7 @@ export module DarkModeHelper;
 import std;
 import git_h;
 import PathUtils;
-import StringUtils;
+import str_utils;
 import tgittypes;
 
 

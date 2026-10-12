@@ -8,7 +8,7 @@ export module GitRev;
 import std;
 import gsl;
 
-import wstr;
+import str_utils;
 import git_h;
 import GitMailmap;
 import wil_git2;

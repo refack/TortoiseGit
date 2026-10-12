@@ -161,14 +161,12 @@ function(tgit_core_library name flavor)
             modules/RollingFile.ixx
             modules/ShellUpdater.ixx
             modules/SmartLibgit2Ref.ixx
-            modules/StringUtils.ixx
             modules/TGitPath.ixx
             modules/TaskbarUUID.ixx
             modules/TempFile.ixx
             modules/gitindex.ixx
             modules/tgittypes.ixx
             modules/invarients.ixx
-            modules/wstr.ixx
             modules/lanes.ixx
             modules/LangDll.ixx
             modules/GitStatus.ixx

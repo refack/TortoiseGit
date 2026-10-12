@@ -5,7 +5,7 @@ module;
 export module CShellUpdater;
 import git_h;
 import tgittypes;
-import wstr;
+import str_utils;
 import RIAA;
 import TGitPath;
 import DebugOutput;

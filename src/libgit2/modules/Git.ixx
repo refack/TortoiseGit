@@ -37,14 +37,13 @@ import gsl;
 import DebugOutput;
 import GitHash;
 import PathUtils;
-import StringUtils;
+import str_utils;
 import TGitPath;
 import invarients;
 import libgit2;
 import Registry;
 import tgittypes;
 import wil_git2;
-import wstr;
 
 using namespace TGitPath;
 using namespace tgit::types;

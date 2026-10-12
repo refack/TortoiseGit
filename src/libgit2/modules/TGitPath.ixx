@@ -15,7 +15,7 @@ export module TGitPath;
 import std;
 import gsl;
 import nlohmann_json;	// LFS locks; a shim, cf. shims/json.ixx
-import wstr;
+import str_utils;
 import tgittypes;
 import invarients;
 import PathUtils;
