@@ -33,6 +33,7 @@ target_compile_features(TortoiseUDiff
 target_include_directories(TortoiseUDiff
     PRIVATE
         "${CMAKE_SOURCE_DIR}/src"
+        "${CMAKE_SOURCE_DIR}/src/libgit2/include"   # sanity.h
         "${CMAKE_CURRENT_SOURCE_DIR}"
         "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/include"
 )

@@ -17,7 +17,7 @@
 // along with this program; if not, write to the Free Software Foundation,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #include "stdafx.h"
-#include "scope_exit_noexcept.h"
+#include <sanity.h>		// SCOPE_EXIT, over wil's scope_exit_helper
 #include "Utils.h"
 #include "UnicodeUtils.h"
 #include "ResModule.h"
@@ -31,6 +31,7 @@
 #include <codecvt>
 
 #include <Imagehlp.h>
+import wil;			// scope_exit_helper, which SCOPE_EXIT expands to
 
 #pragma comment(lib, "Imagehlp.lib")
 

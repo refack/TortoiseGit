@@ -120,7 +120,7 @@ using std::min;
 						// RegisterWin11ContextMenu's later winrt/*.h would redefine it (C2766)
 #include <gitdll.h>
 #include <Utils/ProfilingInfo.h>
-#include <sanity.h>		// SCOPE_EXIT, was Utils/scope_exit_noexcept.h
+#include <sanity.h>		// SCOPE_EXIT; its scope_exit_helper comes with `import wil` below
 
 // What were src\Git and src\Utils headers, now the TGitLibgit2Mfc modules.
 import std;

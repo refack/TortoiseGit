@@ -42,10 +42,10 @@ using std::min;
 
 // Git stuff
 #include <git2.h>
+#include <sanity.h>		// SCOPE_EXIT; textual includes before the imports
 import DebugOutput;
-#include <Utils/scope_exit_noexcept.h>
 import RIAA;
-import wil;		// the libgit2 owners (wil::unique_git_*)
+import wil;		// the libgit2 owners (wil::unique_git_*), scope_exit_helper for SCOPE_EXIT
 import str_utils;	// CUnicodeUtils, StringUtils, tgit::str (were UnicodeUtils.h/StringUtils.h)
 
 #ifdef _UNICODE

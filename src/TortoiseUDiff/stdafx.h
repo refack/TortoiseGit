@@ -37,8 +37,9 @@ using std::min;
 
 #define REGSTRING_DARKTHEME L"Software\\TortoiseGit\\UDiffDarkTheme"
 
+#include <sanity.h>		// SCOPE_EXIT; textual includes before the imports
 import RIAA;
-#include <Utils/scope_exit_noexcept.h>
+import wil;			// scope_exit_helper, which SCOPE_EXIT expands to
 
 #ifdef _WIN64
 #   define APP_X64_STRING "x64"

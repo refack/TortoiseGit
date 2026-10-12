@@ -35,7 +35,6 @@ import PathUtils;
 #include "resource.h"
 #include "LoadIconEx.h"
 #include "ClipboardHelper.h"
-#include "scope_exit_noexcept.h"
 #include "IconBitmapUtils.h"
 #include "CmdLineParser.h"
 

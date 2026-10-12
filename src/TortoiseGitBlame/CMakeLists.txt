@@ -56,6 +56,7 @@ target_include_directories(TortoiseGitBlame
         "${CMAKE_CURRENT_SOURCE_DIR}/../ResizableLib"
         "${CMAKE_CURRENT_SOURCE_DIR}/../Resources"
         "${CMAKE_SOURCE_DIR}/src"
+        "${CMAKE_SOURCE_DIR}/src/libgit2/include"   # sanity.h
         "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/include"
 )
 

@@ -57,6 +57,7 @@ target_compile_features(TortoiseShell
 target_include_directories(TortoiseShell
     PRIVATE
         "${CMAKE_SOURCE_DIR}/src/libgit2"
+        "${CMAKE_SOURCE_DIR}/src/libgit2/include"   # sanity.h
         "${CMAKE_SOURCE_DIR}/src/Utils"
         "${CMAKE_SOURCE_DIR}/src/Utils/MiscUI"
         "${CMAKE_CURRENT_SOURCE_DIR}"

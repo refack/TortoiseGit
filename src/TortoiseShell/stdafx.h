@@ -38,9 +38,9 @@ using std::min;
 
 #include <gitdll.h>
 #include <git2.h>
-import wil;		// the libgit2 owners (wil::unique_git_*)
+#include <sanity.h>		// SCOPE_EXIT
+import wil;		// the libgit2 owners (wil::unique_git_*), scope_exit_helper for SCOPE_EXIT
 
-#include <Utils/scope_exit_noexcept.h>
 #include <Utils/SysInfo.h>
 import DebugOutput;
 import RIAA;
