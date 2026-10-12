@@ -728,28 +728,29 @@ BOOL FindGitHash(const CString& msg, int offset, CWnd *pWnd)
 
 static int DescribeCommit(const CGitHash& hash, CString& result)
 {
-	CAutoRepository repo(g_Git.GetGitRepository());
+	const wil::unique_git_repository repo(g_Git.GetGitRepository());
 	if (!repo)
 		return -1;
-	CAutoObject commit;
-	if (git_object_lookup(commit.GetPointer(), repo, hash, GIT_OBJECT_COMMIT))
+	wil::unique_git_object commit;
+	if (git_object_lookup(commit.put(), repo.get(), hash, GIT_OBJECT_COMMIT))
 		return -1;
 
-	CAutoDescribeResult describe;
+	wil::unique_git_describe_result describe;
 	git_describe_options describe_options = GIT_DESCRIBE_OPTIONS_INIT;
 	describe_options.describe_strategy = CRegDWORD(L"Software\\TortoiseGit\\DescribeStrategy", GIT_DESCRIBE_DEFAULT);
 	describe_options.only_follow_first_parent = CRegDWORD(L"Software\\TortoiseGit\\DescribeOnlyFollowFirstParent", 0);
-	if (git_describe_commit(describe.GetPointer(), static_cast<git_object*>(commit), &describe_options))
+	if (git_describe_commit(describe.put(), commit.get(), &describe_options))
 		return -1;
 
-	CAutoBuf describe_buf;
+	wil::unique_git_buf describe_buf;
 	git_describe_format_options format_options = GIT_DESCRIBE_FORMAT_OPTIONS_INIT;
 	format_options.abbreviated_size = CRegDWORD(L"Software\\TortoiseGit\\DescribeAbbreviatedSize", GIT_DESCRIBE_DEFAULT_ABBREVIATED_SIZE);
 	format_options.always_use_long_format = CRegDWORD(L"Software\\TortoiseGit\\DescribeAlwaysLong");
-	if (git_describe_format(describe_buf, describe, &format_options))
+	if (git_describe_format(&describe_buf, describe.get(), &format_options))
 		return -1;
 
-	result = describe_buf.ToString();
+	// what CAutoBuf::ToString() was: the buffer's bytes, UTF-8 decoded
+	result = CUnicodeUtils::GetUnicode<CString>(std::string_view(describe_buf.ptr, describe_buf.size));
 	return 0;
 }
 

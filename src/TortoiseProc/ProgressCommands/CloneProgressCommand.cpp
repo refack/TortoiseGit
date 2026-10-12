@@ -77,11 +77,11 @@ bool CloneProgressCommand::Run(CGitProgressList* list, CString& sWindowTitle, in
 	{
 		auto data = static_cast<remote_cb_payload*>(payload);
 
-		CAutoRemote origin;
-		if (auto error = git_remote_create(origin.GetPointer(), repo, data->remoteName, url); error < 0)
+		wil::unique_git_remote origin;
+		if (auto error = git_remote_create(origin.put(), repo, data->remoteName, url); error < 0)
 			return error;
 
-		*out = origin.Detach();
+		*out = origin.release();
 		return 0;
 	};
 	remote_cb_payload remote_cb_payloadData;
@@ -94,8 +94,8 @@ bool CloneProgressCommand::Run(CGitProgressList* list, CString& sWindowTitle, in
 	cloneOpts.checkout_opts = checkout_opts;
 
 	CBlockCacheForPath block(m_targetPathList[0].GetWinPathString().c_str());
-	CAutoRepository cloned_repo;
-	if (git_clone(cloned_repo.GetPointer(), CUnicodeUtils::Convert2Multibyte<CStringA>(m_url.GetGitPathString().c_str()), CUnicodeUtils::Convert2Multibyte<CStringA>(m_targetPathList[0].GetWinPathString().c_str()), &cloneOpts) < 0)
+	wil::unique_git_repository cloned_repo;
+	if (git_clone(cloned_repo.put(), CUnicodeUtils::Convert2Multibyte<CStringA>(m_url.GetGitPathString().c_str()), CUnicodeUtils::Convert2Multibyte<CStringA>(m_targetPathList[0].GetWinPathString().c_str()), &cloneOpts) < 0)
 	{
 		list->ReportGitError();
 		return false;

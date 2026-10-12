@@ -124,21 +124,21 @@ int CWorktreeListDlg::GetWorktreeNames(std::vector<std::wstring>& list, CString&
 	if (!g_Git.m_IsUseLibGit2)
 		return -1;
 
-	CAutoRepository repo(g_Git.GetGitRepository());
+	const wil::unique_git_repository repo(g_Git.GetGitRepository());
 	if (!repo)
 	{
 		error = TGitH::GetLibGit2LastErr();
 		return -1;
 	}
 
-	CAutoStrArray worktrees;
-	if (git_worktree_list(worktrees, repo) < 0)
+	wil::unique_git_strarray worktrees;
+	if (git_worktree_list(&worktrees, repo.get()) < 0)
 	{
 		error = TGitH::GetLibGit2LastErr();
 		return -1;
 	}
 
-	worktrees.AppendTo(list);
+	TGitH::AppendTo(worktrees, list);
 
 	return 0;
 }
@@ -149,7 +149,7 @@ int CWorktreeListDlg::FillListCtrlWithWorktreeList(CString& error)
 	if (GetWorktreeNames(list, error) < 0)
 		return -1;
 
-	CAutoRepository repo(g_Git.GetGitRepository());
+	const wil::unique_git_repository repo(g_Git.GetGitRepository());
 	if (!repo)
 	{
 		error = TGitH::GetLibGit2LastErr();
@@ -158,16 +158,18 @@ int CWorktreeListDlg::FillListCtrlWithWorktreeList(CString& error)
 
 	// Base repo (not worktree)
 	{
-		git_repository* baseRepo = repo;
-		CAutoRepository autoBaseRepo;
-		if (git_repository_is_worktree(repo))
+		git_repository* baseRepo = repo.get();
+		wil::unique_git_repository autoBaseRepo;
+		if (git_repository_is_worktree(repo.get()))
 		{
-			autoBaseRepo.Open(git_repository_commondir(repo));
-			baseRepo = autoBaseRepo;
+			// Open()'s result was ignored here, and still is: on failure baseRepo is null
+			// and git_repository_head below reports the error.
+			autoBaseRepo = wil::OpenGitRepository(git_repository_commondir(repo.get()));
+			baseRepo = autoBaseRepo.get();
 		}
 
-		CAutoReference nonWorktreeHead;
-		if (git_repository_head(nonWorktreeHead.GetPointer(), baseRepo) < 0)
+		wil::unique_git_reference nonWorktreeHead;
+		if (git_repository_head(nonWorktreeHead.put(), baseRepo) < 0)
 		{
 			error = TGitH::GetLibGit2LastErr();
 			return -1;
@@ -179,24 +181,24 @@ int CWorktreeListDlg::FillListCtrlWithWorktreeList(CString& error)
 			workDirPath = CUnicodeUtils::Convert2Unicode<CString>(git_repository_workdir(baseRepo));
 		workDirPath.Replace(L'/', L'\\');
 		workDirPath.TrimRight(L'\\');
-		WorktreeDetails worktreeDetails(L"", workDirPath, git_reference_target(nonWorktreeHead), CUnicodeUtils::Convert2Unicode<CString>(git_reference_shorthand(nonWorktreeHead)));
+		WorktreeDetails worktreeDetails(L"", workDirPath, git_reference_target(nonWorktreeHead.get()), CUnicodeUtils::Convert2Unicode<CString>(git_reference_shorthand(nonWorktreeHead.get())));
 		worktreeDetails.m_isBaseRepo = TRUE;
 		m_Worktrees.push_back(worktreeDetails);
 	}
 
 	for (size_t i = 0; i < list.size(); ++i)
 	{
-		CAutoWorktree worktree;
-		if (git_worktree_lookup(worktree.GetPointer(), repo, CUnicodeUtils::StdGetUTF8(list[i]).c_str()) < 0)
+		wil::unique_git_worktree worktree;
+		if (git_worktree_lookup(worktree.put(), repo.get(), CUnicodeUtils::StdGetUTF8(list[i]).c_str()) < 0)
 		{
 			error = TGitH::GetLibGit2LastErr();
 			return -1;
 		}
-		CString worktreePath = CUnicodeUtils::Convert2Unicode<CString>(git_worktree_path(worktree));
+		CString worktreePath = CUnicodeUtils::Convert2Unicode<CString>(git_worktree_path(worktree.get()));
 		worktreePath.Replace(L'/', L'\\');
 
-		CAutoBuf reason;
-		unsigned int locked = git_worktree_is_locked(reason, worktree);
+		wil::unique_git_buf reason;
+		unsigned int locked = git_worktree_is_locked(&reason, worktree.get());
 		if (locked < 0)
 		{
 			error = TGitH::GetLibGit2LastErr();
@@ -206,7 +208,7 @@ int CWorktreeListDlg::FillListCtrlWithWorktreeList(CString& error)
 		git_worktree_prune_options prune_opts = GIT_WORKTREE_PRUNE_OPTIONS_INIT;
 		// Don't need to let it check for locked worktree, we can check that ourself
 		prune_opts.flags = GIT_WORKTREE_PRUNE_LOCKED;
-		if (int pruneable = git_worktree_is_prunable(worktree, &prune_opts); pruneable < 0)
+		if (int pruneable = git_worktree_is_prunable(worktree.get(), &prune_opts); pruneable < 0)
 		{
 			error = TGitH::GetLibGit2LastErr();
 			return -1;
@@ -217,31 +219,33 @@ int CWorktreeListDlg::FillListCtrlWithWorktreeList(CString& error)
 			WorktreeDetails worktreeDetails(list[i].c_str(), worktreePath, CGitHash(), L"");
 			worktreeDetails.m_isBaseRepo = FALSE;
 			worktreeDetails.m_IsLocked = locked;
-			if (locked && reason)
-				worktreeDetails.m_LockedReason = reason.ToString();
+			// `locked && reason` was always `locked`: the buffer converted to its own
+			// (never null) git_buf*. ToString() was the bytes, UTF-8 decoded.
+			if (locked)
+				worktreeDetails.m_LockedReason = CUnicodeUtils::GetUnicode<CString>(std::string_view(reason.ptr, reason.size));
 			m_Worktrees.push_back(worktreeDetails);
 			continue;
 		}
 
-		CAutoReference head;
-		if (git_repository_head_for_worktree(head.GetPointer(), repo, CUnicodeUtils::StdGetUTF8(list[i]).c_str()) < 0)
+		wil::unique_git_reference head;
+		if (git_repository_head_for_worktree(head.put(), repo.get(), CUnicodeUtils::StdGetUTF8(list[i]).c_str()) < 0)
 		{
 			error = TGitH::GetLibGit2LastErr();
 			return -1;
 		}
 
-		CString branch = CUnicodeUtils::Convert2Unicode<CString>(git_reference_shorthand(head));
+		CString branch = CUnicodeUtils::Convert2Unicode<CString>(git_reference_shorthand(head.get()));
 		if (branch == L"HEAD")
 		{
 			// `git worktree list` command says "detached HEAD", so we should say the same
 			branch = L"detached HEAD";
 		}
 
-		WorktreeDetails worktreeDetails(list[i].c_str(), worktreePath, git_reference_target(head), branch);
+		WorktreeDetails worktreeDetails(list[i].c_str(), worktreePath, git_reference_target(head.get()), branch);
 		worktreeDetails.m_isBaseRepo = FALSE;
 		worktreeDetails.m_IsLocked = locked;
-		if (locked && reason)
-			worktreeDetails.m_LockedReason = reason.ToString();
+		if (locked)
+			worktreeDetails.m_LockedReason = CUnicodeUtils::GetUnicode<CString>(std::string_view(reason.ptr, reason.size));
 		m_Worktrees.push_back(worktreeDetails);
 	}
 
@@ -382,8 +386,8 @@ void CWorktreeListDlg::ShowContextMenu(CPoint point, std::vector<int>& indexes)
 				if (leaf.m_isBaseRepo)
 					continue;
 
-				CAutoWorktree worktree;
-				if (git_worktree_lookup(worktree.GetPointer(), g_Git.GetGitRepository(), CUnicodeUtils::GetUTF8<CStringA>(leaf.m_WorktreeName)) < 0 || git_worktree_lock(worktree, nullptr) < 0)
+				wil::unique_git_worktree worktree;
+				if (git_worktree_lookup(worktree.put(), g_Git.GetGitRepository().get(), CUnicodeUtils::GetUTF8<CStringA>(leaf.m_WorktreeName)) < 0 || git_worktree_lock(worktree.get(), nullptr) < 0)
 				{
 					if (CMessageBox::Show(GetSafeHwnd(), TGitH::GetLibGit2LastErr(L"Failed to lock worktree \"" + leaf.m_WorktreeName + L"\"."), IDS_APPNAME, 1, IDI_ERROR, IDS_MSGBOX_CONTINUE, IDS_MSGBOX_ABORT) == 2)
 						break;
@@ -406,8 +410,8 @@ void CWorktreeListDlg::ShowContextMenu(CPoint point, std::vector<int>& indexes)
 				if (leaf.m_isBaseRepo)
 					continue;
 
-				CAutoWorktree worktree;
-				if (git_worktree_lookup(worktree.GetPointer(), g_Git.GetGitRepository(), CUnicodeUtils::GetUTF8<CStringA>(leaf.m_WorktreeName)) < 0 || git_worktree_unlock(worktree) < 0)
+				wil::unique_git_worktree worktree;
+				if (git_worktree_lookup(worktree.put(), g_Git.GetGitRepository().get(), CUnicodeUtils::GetUTF8<CStringA>(leaf.m_WorktreeName)) < 0 || git_worktree_unlock(worktree.get()) < 0)
 				{
 					if (CMessageBox::Show(GetSafeHwnd(), TGitH::GetLibGit2LastErr(L"Failed to unlock worktree \"" + leaf.m_WorktreeName + L"\"."), IDS_APPNAME, 1, IDI_ERROR, IDS_MSGBOX_CONTINUE, IDS_MSGBOX_ABORT) == 2)
 						break;

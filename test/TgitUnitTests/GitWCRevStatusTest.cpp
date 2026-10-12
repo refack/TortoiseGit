@@ -56,8 +56,8 @@ TEST(GitWCRevStatus, EmptyBareRepo)
 
 	git_repository_init_options options = GIT_REPOSITORY_INIT_OPTIONS_INIT;
 	options.flags = GIT_REPOSITORY_INIT_MKPATH | GIT_REPOSITORY_INIT_BARE | GIT_REPOSITORY_INIT_NO_DOTGIT_DIR;
-	CAutoRepository repo;
-	ASSERT_EQ(0, git_repository_init_ext(repo.GetPointer(), CUnicodeUtils::GetUTF8<CStringA>(tempdir.GetTempDir()), &options));
+	wil::unique_git_repository repo;
+	ASSERT_EQ(0, git_repository_init_ext(repo.put(), CUnicodeUtils::GetUTF8<CStringA>(tempdir.GetTempDir()), &options));
 
 	GitWCRev_t GitStat;
 	EXPECT_EQ(ERR_NOWC, GetStatusUnCleanPath(tempdir.GetTempDir(), GitStat));
@@ -132,12 +132,12 @@ TEST_P(GitWCRevStatusCBasicGitWithEmptyRepositoryFixture, EmptyRepoStagedFile)
 
 	EXPECT_TRUE(StringUtils::WriteStringToTextFile(file, L"something\n"));
 
-	CAutoRepository repo;
-	ASSERT_EQ(0, git_repository_open(repo.GetPointer(), CUnicodeUtils::GetUTF8<CStringA>(m_Dir.GetTempDir())));
-	CAutoIndex index;
-	ASSERT_EQ(0, git_repository_index(index.GetPointer(), repo));
-	ASSERT_EQ(0, git_index_add_bypath(index, "somefile.txt"));
-	ASSERT_EQ(0, git_index_write(index));
+	wil::unique_git_repository repo;
+	ASSERT_EQ(0, git_repository_open(repo.put(), CUnicodeUtils::GetUTF8<CStringA>(m_Dir.GetTempDir())));
+	wil::unique_git_index index;
+	ASSERT_EQ(0, git_repository_index(index.put(), repo.get()));
+	ASSERT_EQ(0, git_index_add_bypath(index.get(), "somefile.txt"));
+	ASSERT_EQ(0, git_index_write(index.get()));
 
 	GitWCRev_t GitStat3;
 	EXPECT_TRUE(StringUtils::WriteStringToTextFile(file, L"something\n"));

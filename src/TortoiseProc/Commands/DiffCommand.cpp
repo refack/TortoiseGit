@@ -67,9 +67,9 @@ bool DiffCommand::Execute()
 			{
 				// check if it is a newly added (but uncommitted) file
 				unsigned int status_flags = 0;
-				CAutoRepository repo(g_Git.GetGitRepository());
+				const wil::unique_git_repository repo(g_Git.GetGitRepository());
 				if (repo)
-					git_status_file(&status_flags, repo, CUnicodeUtils::Convert2Multibyte<CStringA>(cmdLinePath.GetWinPathString().c_str()));
+					git_status_file(&status_flags, repo.get(), CUnicodeUtils::Convert2Multibyte<CStringA>(cmdLinePath.GetWinPathString().c_str()));
 				if (status_flags == GIT_STATUS_INDEX_NEW)
 				{
 					if (!g_Git.IsInitRepos())

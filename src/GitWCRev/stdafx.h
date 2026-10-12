@@ -27,7 +27,7 @@ using std::min;
 #include <shellapi.h>
 
 #include "git2.h"
-import wil_git2;
+import wil;		// the libgit2 owners (wil::unique_git_*)
 
 #ifdef _WIN64
 #   define APP_X64_STRING "x64"

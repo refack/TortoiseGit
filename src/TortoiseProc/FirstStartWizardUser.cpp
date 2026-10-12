@@ -68,21 +68,22 @@ LRESULT CFirstStartWizardUser::OnWizardNext()
 			return -1;
 		}
 
-		CAutoConfig config(true);
-		int err = git_config_add_file_ondisk(config, CGit::GetGitPathStringA(g_Git.GetGitGlobalXDGConfig()), GIT_CONFIG_LEVEL_XDG, nullptr, FALSE);
+		wil::unique_git_config config;
+		git_config_new(config.put());
+		int err = git_config_add_file_ondisk(config.get(), CGit::GetGitPathStringA(g_Git.GetGitGlobalXDGConfig()), GIT_CONFIG_LEVEL_XDG, nullptr, FALSE);
 		if (!err && (PathFileExists(g_Git.GetGitGlobalConfig()) || !PathFileExists(g_Git.GetGitGlobalXDGConfig())))
-			err = git_config_add_file_ondisk(config, CGit::GetGitPathStringA(g_Git.GetGitGlobalConfig()), GIT_CONFIG_LEVEL_GLOBAL, nullptr, FALSE);
+			err = git_config_add_file_ondisk(config.get(), CGit::GetGitPathStringA(g_Git.GetGitGlobalConfig()), GIT_CONFIG_LEVEL_GLOBAL, nullptr, FALSE);
 		if (err)
 		{
 			MessageBox(TGitH::GetLibGit2LastErr(), L"TortoiseGit", MB_ICONEXCLAMATION);
 			return -1;
 		}
-		if (git_config_set_string(config, "user.name", CUnicodeUtils::GetUTF8<CStringA>(m_sUsername.Trim())))
+		if (git_config_set_string(config.get(), "user.name", CUnicodeUtils::GetUTF8<CStringA>(m_sUsername.Trim())))
 		{
 			MessageBox(TGitH::GetLibGit2LastErr(), L"TortoiseGit", MB_ICONEXCLAMATION);
 			return -1;
 		}
-		if (git_config_set_string(config, "user.email", CUnicodeUtils::GetUTF8<CStringA>(m_sUseremail.Trim())))
+		if (git_config_set_string(config.get(), "user.email", CUnicodeUtils::GetUTF8<CStringA>(m_sUseremail.Trim())))
 		{
 			MessageBox(TGitH::GetLibGit2LastErr(), L"TortoiseGit", MB_ICONEXCLAMATION);
 			return -1;
@@ -98,19 +99,20 @@ BOOL CFirstStartWizardUser::OnInitDialog()
 
 	AdjustControlSize(IDC_DONTSAVE);
 
-	CAutoConfig config(true);
-	if (git_config_add_file_ondisk(config, CGit::GetGitPathStringA(g_Git.GetGitGlobalConfig()), GIT_CONFIG_LEVEL_GLOBAL, nullptr, FALSE))
+	wil::unique_git_config config;
+	git_config_new(config.put());
+	if (git_config_add_file_ondisk(config.get(), CGit::GetGitPathStringA(g_Git.GetGitGlobalConfig()), GIT_CONFIG_LEVEL_GLOBAL, nullptr, FALSE))
 		MessageBox(TGitH::GetLibGit2LastErr(), L"TortoiseGit", MB_ICONEXCLAMATION);
 	else
 	{
-		if (git_config_add_file_ondisk(config, CGit::GetGitPathStringA(g_Git.GetGitGlobalXDGConfig()), GIT_CONFIG_LEVEL_XDG, nullptr, FALSE))
+		if (git_config_add_file_ondisk(config.get(), CGit::GetGitPathStringA(g_Git.GetGitGlobalXDGConfig()), GIT_CONFIG_LEVEL_XDG, nullptr, FALSE))
 			MessageBox(TGitH::GetLibGit2LastErr(), L"TortoiseGit", MB_ICONEXCLAMATION);
 	}
-	if (git_config_add_file_ondisk(config, CGit::GetGitPathStringA(g_Git.GetGitSystemConfig()), GIT_CONFIG_LEVEL_SYSTEM, nullptr, FALSE))
+	if (git_config_add_file_ondisk(config.get(), CGit::GetGitPathStringA(g_Git.GetGitSystemConfig()), GIT_CONFIG_LEVEL_SYSTEM, nullptr, FALSE))
 		MessageBox(TGitH::GetLibGit2LastErr(), L"TortoiseGit", MB_ICONEXCLAMATION);
 
-	config.GetString(L"user.name", m_sUsername);
-	config.GetString(L"user.email", m_sUseremail);
+	TGitH::GetConfigString(config.get(), L"user.name", m_sUsername);
+	TGitH::GetConfigString(config.get(), L"user.email", m_sUseremail);
 
 	UpdateData(FALSE);
 

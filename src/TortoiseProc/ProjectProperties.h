@@ -226,7 +226,7 @@ private:
 	 */
 	void AutoUpdateRegex();
 
-	void FetchHookString(CAutoConfig& gitconfig, const CString& sBase, CString& sHook);
+	void FetchHookString(const wil::unique_git_config& gitconfig, const CString& sBase, CString& sHook);
 
 	bool regExNeedUpdate = true;
 	std::wregex regCheck;

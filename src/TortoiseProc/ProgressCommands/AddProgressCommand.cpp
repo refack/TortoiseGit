@@ -39,20 +39,20 @@ bool AddProgressCommand::Run(CGitProgressList* list, CString& sWindowTitle, int&
 
 	m_itemCountTotal = m_targetPathList.GetCount();
 
-	CAutoRepository repo(g_Git.GetGitRepository());
+	const wil::unique_git_repository repo(g_Git.GetGitRepository());
 	if (!repo)
 	{
 		list->ReportGitError();
 		return false;
 	}
 
-	CAutoIndex index;
-	if (git_repository_index(index.GetPointer(), repo))
+	wil::unique_git_index index;
+	if (git_repository_index(index.put(), repo.get()))
 	{
 		list->ReportGitError();
 		return false;
 	}
-	if (git_index_read(index, true))
+	if (git_index_read(index.get(), true))
 	{
 		list->ReportGitError();
 		return false;
@@ -61,7 +61,7 @@ bool AddProgressCommand::Run(CGitProgressList* list, CString& sWindowTitle, int&
 	for (m_itemCount = 0; m_itemCount < m_itemCountTotal; ++m_itemCount)
 	{
 		CStringA filePathA = CUnicodeUtils::Convert2Multibyte<CStringA>(m_targetPathList[m_itemCount].GetGitPathString().c_str()).TrimRight(L'/');
-		if (git_index_add_bypath(index, filePathA))
+		if (git_index_add_bypath(index.get(), filePathA))
 		{
 			list->ReportGitError();
 			return false;
@@ -69,12 +69,12 @@ bool AddProgressCommand::Run(CGitProgressList* list, CString& sWindowTitle, int&
 
 		if (!m_targetPathList[m_itemCount].IsDirectory() && (m_bExecutable || m_bSymlink))
 		{
-			auto entry = const_cast<git_index_entry*>(git_index_get_bypath(index, filePathA, 0));
+			auto entry = const_cast<git_index_entry*>(git_index_get_bypath(index.get(), filePathA, 0));
 			if (m_bExecutable)
 				entry->mode = GIT_FILEMODE_BLOB_EXECUTABLE;
 			else if (m_bSymlink)
 				entry->mode = GIT_FILEMODE_LINK;
-			if (git_index_add(index, entry))
+			if (git_index_add(index.get(), entry))
 			{
 				list->ReportGitError();
 				return false;
@@ -90,7 +90,7 @@ bool AddProgressCommand::Run(CGitProgressList* list, CString& sWindowTitle, int&
 		}
 	}
 
-	if (git_index_write(index))
+	if (git_index_write(index.get()))
 	{
 		list->ReportGitError();
 		return false;
@@ -126,20 +126,20 @@ bool AddProgressCommand::Run(CGitProgressList* list, CString& sWindowTitle, int&
 
 bool AddProgressCommand::SetFileMode(uint32_t mode)
 {
-	CAutoRepository repo(g_Git.GetGitRepository());
+	const wil::unique_git_repository repo(g_Git.GetGitRepository());
 	if (!repo)
 	{
 		MessageBox(nullptr, TGitH::GetLibGit2LastErr(L"Could not open repository."), L"TortoiseGit", MB_ICONERROR);
 		return false;
 	}
 
-	CAutoIndex index;
-	if (git_repository_index(index.GetPointer(), repo))
+	wil::unique_git_index index;
+	if (git_repository_index(index.put(), repo.get()))
 	{
 		MessageBox(nullptr, TGitH::GetLibGit2LastErr(L"Could not get index."), L"TortoiseGit", MB_ICONERROR);
 		return false;
 	}
-	if (git_index_read(index, true))
+	if (git_index_read(index.get(), true))
 	{
 		MessageBox(nullptr, TGitH::GetLibGit2LastErr(L"Could not read index."), L"TortoiseGit", MB_ICONERROR);
 		return false;
@@ -150,21 +150,21 @@ bool AddProgressCommand::SetFileMode(uint32_t mode)
 		if (m_targetPathList[i].IsDirectory())
 			continue;
 		CStringA filePathA = CUnicodeUtils::Convert2Multibyte<CStringA>(m_targetPathList[i].GetGitPathString().c_str()).TrimRight(L'/');
-		auto entry = const_cast<git_index_entry*>(git_index_get_bypath(index, filePathA, 0));
+		auto entry = const_cast<git_index_entry*>(git_index_get_bypath(index.get(), filePathA, 0));
 		if (!entry)
 		{
 			MessageBox(nullptr, TGitH::GetLibGit2LastErr(L"Could not update file mode."), L"TortoiseGit", MB_ICONERROR);
 			return false;
 		}
 		entry->mode = mode;
-		if (git_index_add(index, entry))
+		if (git_index_add(index.get(), entry))
 		{
 			MessageBox(nullptr, TGitH::GetLibGit2LastErr(L"Could not update index."), L"TortoiseGit", MB_ICONERROR);
 			return false;
 		}
 	}
 
-	if (git_index_write(index))
+	if (git_index_write(index.get()))
 	{
 		MessageBox(nullptr, TGitH::GetLibGit2LastErr(L"Could not write index."), L"TortoiseGit", MB_ICONERROR);
 		return false;

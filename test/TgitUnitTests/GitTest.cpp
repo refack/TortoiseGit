@@ -348,8 +348,8 @@ TEST(CGit, GetRepository)
 	CGit cgit;
 	cgit.SetCurrentDirExact(tempdir.GetTempDir());
 
-	CAutoRepository repo = cgit.GetGitRepository();
-	EXPECT_FALSE(repo.IsValid());
+	wil::unique_git_repository repo = cgit.GetGitRepository();
+	EXPECT_FALSE(repo.is_valid());
 
 	cgit.SetCurrentDirExact(tempdir.GetTempDir() + L"\\aöäüb");
 	ASSERT_TRUE(CreateDirectory(cgit.m_CurrentDir, nullptr));
@@ -358,8 +358,8 @@ TEST(CGit, GetRepository)
 	EXPECT_EQ(0, cgit.Run(L"git.exe init -b master", &output, CP_UTF8));
 	EXPECT_STRNE(L"", output);
 
-	CAutoRepository repo2 = cgit.GetGitRepository(); // this tests GetGitRepository as well as m_Git.GetGitPathStringA
-	EXPECT_TRUE(repo2.IsValid());
+	wil::unique_git_repository repo2 = cgit.GetGitRepository(); // this tests GetGitRepository as well as m_Git.GetGitPathStringA
+	EXPECT_TRUE(repo2.is_valid());
 
 	cgit.SetCurrentDirExact(tempdir.GetTempDir() + L"\\aöäüb.git");
 	ASSERT_TRUE(CreateDirectory(cgit.m_CurrentDir, nullptr));
@@ -368,8 +368,8 @@ TEST(CGit, GetRepository)
 	EXPECT_EQ(0, cgit.Run(L"git.exe init --bare -b master", &output, CP_UTF8));
 	EXPECT_STRNE(L"", output);
 
-	CAutoRepository repo3 = cgit.GetGitRepository(); // this tests GetGitRepository as well as m_Git.GetGitPathStringA
-	EXPECT_TRUE(repo3.IsValid());
+	wil::unique_git_repository repo3 = cgit.GetGitRepository(); // this tests GetGitRepository as well as m_Git.GetGitPathStringA
+	EXPECT_TRUE(repo3.is_valid());
 }
 
 TEST_P(CBasicGitWithEmptyRepositoryFixture, IsInitRepos_GetInitAddList)
@@ -659,28 +659,29 @@ static void GetRemotePushBranch(CGit& m_Git)
 	EXPECT_STREQ(L"", remote);
 	EXPECT_STREQ(L"", branch);
 
-	CAutoRepository repo(m_Git.GetGitRepository());
-	ASSERT_TRUE(repo.IsValid());
-	CAutoConfig config(repo);
-	ASSERT_TRUE(config.IsValid());
+	const wil::unique_git_repository repo(m_Git.GetGitRepository());
+	ASSERT_TRUE(repo.is_valid());
+	wil::unique_git_config config;
+	git_repository_config(config.put(), repo.get());
+	ASSERT_TRUE(config.is_valid());
 
 	remote.Empty();
 	branch.Empty();
-	EXPECT_EQ(0, git_config_set_string(config, "remote.pushDefault", "originpush2"));
+	EXPECT_EQ(0, git_config_set_string(config.get(), "remote.pushDefault", "originpush2"));
 	m_Git.GetRemotePushBranch(L"master", remote, branch);
 	EXPECT_STREQ(L"originpush2", remote);
 	EXPECT_STREQ(L"master", branch);
 
 	remote.Empty();
 	branch.Empty();
-	EXPECT_EQ(0, git_config_set_string(config, "branch.master.pushremote", "originpush3"));
+	EXPECT_EQ(0, git_config_set_string(config.get(), "branch.master.pushremote", "originpush3"));
 	m_Git.GetRemotePushBranch(L"master", remote, branch);
 	EXPECT_STREQ(L"originpush3", remote);
 	EXPECT_STREQ(L"master", branch);
 
 	remote.Empty();
 	branch.Empty();
-	EXPECT_EQ(0, git_config_set_string(config, "branch.master.pushbranch", "masterbranch2"));
+	EXPECT_EQ(0, git_config_set_string(config.get(), "branch.master.pushbranch", "masterbranch2"));
 	m_Git.GetRemotePushBranch(L"master", remote, branch);
 	EXPECT_STREQ(L"originpush3", remote);
 	EXPECT_STREQ(L"masterbranch2", branch);
@@ -1515,15 +1516,16 @@ TEST_P(CBasicGitWithTestRepoFixture, GetOneFile)
 	CString smudgeFilterFilename = m_Git.m_CurrentDir + L"\\smudge_filter_openssl";
 	EXPECT_TRUE(StringUtils::WriteStringToTextFile(smudgeFilterFilename, L"#!/bin/bash\nopenssl version | grep -q \" 1\\\\.0\\\\.\"\nif [[ $? = 0 ]]; then\n\topenssl enc -d -base64 -aes-256-ecb -k PASS_FIXED\nelse\n\topenssl enc -d -base64 -pbkdf2 -aes-256-ecb -nosalt -k PASS_FIXED\nfi\n"));
 
-	CAutoRepository repo(m_Git.GetGitRepository());
-	ASSERT_TRUE(repo.IsValid());
-	CAutoConfig config(repo);
-	ASSERT_TRUE(config.IsValid());
+	const wil::unique_git_repository repo(m_Git.GetGitRepository());
+	ASSERT_TRUE(repo.is_valid());
+	wil::unique_git_config config;
+	git_repository_config(config.put(), repo.get());
+	ASSERT_TRUE(config.is_valid());
 	CStringA path = CUnicodeUtils::GetUTF8<CStringA>(m_Git.m_CurrentDir);
 	path.Replace('\\', '/');
-	EXPECT_EQ(0, git_config_set_string(config, "filter.openssl.clean", path + "/clean_filter_openssl"));
-	EXPECT_EQ(0, git_config_set_string(config, "filter.openssl.smudge", path + "/smudge_filter_openssl"));
-	EXPECT_EQ(0, git_config_set_bool(config, "filter.openssl.required", 1));
+	EXPECT_EQ(0, git_config_set_string(config.get(), "filter.openssl.clean", path + "/clean_filter_openssl"));
+	EXPECT_EQ(0, git_config_set_string(config.get(), "filter.openssl.smudge", path + "/smudge_filter_openssl"));
+	EXPECT_EQ(0, git_config_set_bool(config.get(), "filter.openssl.required", 1));
 
 	CString attributesFile = m_Git.m_CurrentDir + L"\\.gitattributes";
 	EXPECT_TRUE(StringUtils::WriteStringToTextFile(attributesFile, L"*.enc filter=openssl\n"));
@@ -1539,10 +1541,10 @@ TEST_P(CBasicGitWithTestRepoFixture, GetOneFile)
 	if (!TGitH::ms_bCygwinGit) // on AppVeyor with the VS2017 image we get a warning: "WARNING: can't open config file: /usr/local/ssl/openssl.cnf"
 		EXPECT_STREQ(L"", output);
 
-	CAutoIndex index;
-	ASSERT_EQ(0, git_repository_index(index.GetPointer(), repo));
-	EXPECT_EQ(0, git_index_add_bypath(index, "2.enc"));
-	EXPECT_EQ(0, git_index_write(index));
+	wil::unique_git_index index;
+	ASSERT_EQ(0, git_repository_index(index.put(), repo.get()));
+	EXPECT_EQ(0, git_index_add_bypath(index.get(), "2.enc"));
+	EXPECT_EQ(0, git_index_write(index.get()));
 
 	EXPECT_EQ(0, m_Git.Run(L"git.exe commit -m \"Message\"", &output, CP_UTF8));
 	EXPECT_STRNE(L"", output);

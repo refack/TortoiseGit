@@ -133,8 +133,7 @@ import PathUtils;
 import TGitPath;		// TGitPath.h, and GitAdminDir
 import git_h;			// Git.h, and what gittype.h/tgittypes held for git
 import GitIndex;		// git_wc_status_kind / git_wc_status2_t, which tgittypes held
-import wil;
-import wil_git2;		// SmartLibgit2Ref.h
+import wil;			// also the libgit2 owners, wil::unique_git_* (SmartLibgit2Ref.h's CAuto*)
 // Git.h used to drag these in transitively; an import does not re-export what it imports.
 import GitHash;
 import GitRev;

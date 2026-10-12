@@ -167,13 +167,13 @@ static int RepoStatus(const wchar_t* path, std::string pathA, git_repository* re
 	if (git_status_options.pathspec.count > 0)
 		git_status_options.pathspec.strings = const_cast<char**>(pathspec.data());
 
-	CAutoStatusList status;
-	if (git_status_list_new(status.GetPointer(), repo, &git_status_options) < 0)
+	wil::unique_git_status_list status;
+	if (git_status_list_new(status.put(), repo, &git_status_options) < 0)
 		return ERR_GIT_ERR;
 
-	for (size_t i = 0, maxi = git_status_list_entrycount(status); i < maxi; ++i)
+	for (size_t i = 0, maxi = git_status_list_entrycount(status.get()); i < maxi; ++i)
 	{
-		const git_status_entry* s = git_status_byindex(status, i);
+		const git_status_entry* s = git_status_byindex(status.get(), i);
 		if (s->index_to_workdir && s->index_to_workdir->new_file.mode == GIT_FILEMODE_COMMIT)
 		{
 			GitStat.bHasSubmodule = TRUE;
@@ -249,18 +249,21 @@ int GetStatus(const wchar_t* path, GitWCRev_t& GitStat)
 	git_libgit2_opts(GIT_OPT_SET_SEARCH_PATH, GIT_CONFIG_LEVEL_PROGRAMDATA, L"");
 
 	std::string pathA = CUnicodeUtils::StdGetUTF8(path);
-	CAutoBuf dotgitdir;
-	if (git_repository_discover(dotgitdir, pathA.c_str(), 0, nullptr) < 0)
+	wil::unique_git_buf dotgitdir;
+	if (git_repository_discover(&dotgitdir, pathA.c_str(), 0, nullptr) < 0)
 		return ERR_NOWC;
 
-	CAutoRepository repo;
-	if (git_repository_open(repo.GetPointer(), dotgitdir->ptr))
+	// A raw open, as before: routing this through wil::OpenGitRepository would also
+	// latch the object format, a behaviour change of its own (step 11), not part of
+	// retiring the bridge.
+	wil::unique_git_repository repo;
+	if (git_repository_open(repo.put(), dotgitdir.ptr))
 		return ERR_NOWC;
 
-	if (git_repository_is_bare(repo))
+	if (git_repository_is_bare(repo.get()))
 		return ERR_NOWC;
 
-	if (int ret = git_repository_head_unborn(repo); ret < 0)
+	if (int ret = git_repository_head_unborn(repo.get()); ret < 0)
 		return ERR_GIT_ERR;
 	else if (ret == 1)
 	{
@@ -269,47 +272,47 @@ int GetStatus(const wchar_t* path, GitWCRev_t& GitStat)
 		GitStat.HeadHashReadable[GIT_OID_SHA1_HEXSIZE] = '\0';
 		GitStat.bIsUnborn = TRUE;
 
-		CAutoReference symbolicHead;
-		if (git_reference_lookup(symbolicHead.GetPointer(), repo, "HEAD"))
+		wil::unique_git_reference symbolicHead;
+		if (git_reference_lookup(symbolicHead.put(), repo.get(), "HEAD"))
 			return ERR_GIT_ERR;
-		auto branchName = git_reference_symbolic_target(symbolicHead);
+		auto branchName = git_reference_symbolic_target(symbolicHead.get());
 		if (StringUtils::StartsWith(branchName, "refs/heads/"))
 			branchName += strlen("refs/heads/");
 		else if (StringUtils::StartsWith(branchName, "refs/"))
 			branchName += strlen("refs/");
 		GitStat.CurrentBranch = branchName;
 
-		return RepoStatus(path, pathA, repo, GitStat);
+		return RepoStatus(path, pathA, repo.get(), GitStat);
 	}
 
-	CAutoReference head;
-	if (git_repository_head(head.GetPointer(), repo) < 0)
+	wil::unique_git_reference head;
+	if (git_repository_head(head.put(), repo.get()) < 0)
 		return ERR_GIT_ERR;
-	GitStat.CurrentBranch = git_reference_shorthand(head);
+	GitStat.CurrentBranch = git_reference_shorthand(head.get());
 
-	CAutoObject object;
-	if (git_reference_peel(object.GetPointer(), head, GIT_OBJECT_COMMIT) < 0)
+	wil::unique_git_object object;
+	if (git_reference_peel(object.put(), head.get(), GIT_OBJECT_COMMIT) < 0)
 		return ERR_GIT_ERR;
 
-	const git_oid* oid = git_object_id(object);
+	const git_oid* oid = git_object_id(object.get());
 	git_oid_tostr(GitStat.HeadHashReadable, sizeof(GitStat.HeadHashReadable), oid);
 
-	CAutoCommit commit;
-	if (git_commit_lookup(commit.GetPointer(), repo, oid) < 0)
+	wil::unique_git_commit commit;
+	if (git_commit_lookup(commit.put(), repo.get(), oid) < 0)
 		return ERR_GIT_ERR;
 
-	const git_signature* sig = git_commit_author(commit);
+	const git_signature* sig = git_commit_author(commit.get());
 	GitStat.HeadTime = sig->when.time;
 	if (CRegStdDWORD(L"Software\\TortoiseGit\\UseMailmap", TRUE) == TRUE)
 	{
-		CAutoMailmap mailmap;
-		if (git_mailmap_from_repository(mailmap.GetPointer(), repo))
+		wil::unique_git_mailmap mailmap;
+		if (git_mailmap_from_repository(mailmap.put(), repo.get()))
 			return ERR_GIT_ERR;
-		CAutoSignature resolvedSignature;
-		if (git_mailmap_resolve_signature(resolvedSignature.GetPointer(), mailmap, sig))
+		wil::unique_git_signature resolvedSignature;
+		if (git_mailmap_resolve_signature(resolvedSignature.put(), mailmap.get(), sig))
 			return ERR_GIT_ERR;
-		GitStat.HeadAuthor = (*resolvedSignature).name;
-		GitStat.HeadEmail = (*resolvedSignature).email;
+		GitStat.HeadAuthor = resolvedSignature.get()->name;
+		GitStat.HeadEmail = resolvedSignature.get()->email;
 	}
 	else
 	{
@@ -317,9 +320,9 @@ int GetStatus(const wchar_t* path, GitWCRev_t& GitStat)
 		GitStat.HeadEmail = sig->email;
 	}
 
-	struct TagPayload { git_repository* repo; GitWCRev_t& GitStat; const git_oid* headOid; } tagpayload = { repo, GitStat, oid };
+	struct TagPayload { git_repository* repo; GitWCRev_t& GitStat; const git_oid* headOid; } tagpayload = { repo.get(), GitStat, oid };
 
-	if (git_tag_foreach(repo, [](const char*, git_oid* tagoid, void* payload)
+	if (git_tag_foreach(repo.get(), [](const char*, git_oid* tagoid, void* payload)
 	{
 		auto pl = reinterpret_cast<struct TagPayload*>(payload);
 		if (git_oid_cmp(tagoid, pl->headOid) == 0)
@@ -328,13 +331,13 @@ int GetStatus(const wchar_t* path, GitWCRev_t& GitStat)
 			return 0;
 		}
 
-		CAutoTag tag;
-		if (git_tag_lookup(tag.GetPointer(), pl->repo, tagoid))
+		wil::unique_git_tag tag;
+		if (git_tag_lookup(tag.put(), pl->repo, tagoid))
 			return 0; // not an annotated tag
-		CAutoObject tagObject;
-		if (git_tag_peel(tagObject.GetPointer(), tag))
+		wil::unique_git_object tagObject;
+		if (git_tag_peel(tagObject.put(), tag.get()))
 			return -1;
-		if (git_oid_cmp(git_object_id(tagObject), pl->headOid) == 0)
+		if (git_oid_cmp(git_object_id(tagObject.get()), pl->headOid) == 0)
 			pl->GitStat.bIsTagged = TRUE;
 
 		return 0;
@@ -342,15 +345,15 @@ int GetStatus(const wchar_t* path, GitWCRev_t& GitStat)
 		return ERR_GIT_ERR;
 
 	// count the first-parent revisions from HEAD to the first commit
-	CAutoRevwalk walker;
-	if (git_revwalk_new(walker.GetPointer(), repo) < 0)
+	wil::unique_git_revwalk walker;
+	if (git_revwalk_new(walker.put(), repo.get()) < 0)
 		return ERR_GIT_ERR;
-	git_revwalk_simplify_first_parent(walker);
-	if (git_revwalk_push_head(walker) < 0)
+	git_revwalk_simplify_first_parent(walker.get());
+	if (git_revwalk_push_head(walker.get()) < 0)
 		return ERR_GIT_ERR;
 	git_oid oidlog;
-	while (!git_revwalk_next(&oidlog, walker))
+	while (!git_revwalk_next(&oidlog, walker.get()))
 		++GitStat.NumCommits;
 
-	return RepoStatus(path, pathA, repo, GitStat);
+	return RepoStatus(path, pathA, repo.get(), GitStat);
 }

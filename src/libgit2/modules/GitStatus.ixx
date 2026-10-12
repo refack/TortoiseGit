@@ -20,7 +20,6 @@ import Registry;
 import GitHash;
 import GitIndex;
 import DebugOutput;
-import wil_git2;
 
 namespace fs = std::filesystem;
 
@@ -666,7 +665,7 @@ int GitStatus::EnumDirStatus(const CString& gitdir, const CString& subpath, git_
 		folderignoredchecked = true;
 	}
 
-	SmartLibgit2::CAutoRepository repository;
+	wil::unique_git_repository repository;
 	for (const auto & fileentry : filelist)
 	{
 		const std::wstring onepath = path + fileentry.m_FileName.native();
@@ -741,7 +740,7 @@ int GitStatus::EnumDirStatus(const CString& gitdir, const CString& subpath, git_
 			}
 		}
 	}/*End of For*/
-	repository.Free(); // explicitly free the handle here in order to keep an open repository as short as possible
+	repository.reset(); // explicitly free the handle here in order to keep an open repository as short as possible
 
 	/* Check deleted file in system */
 	std::set<std::wstring> alreadyReported;

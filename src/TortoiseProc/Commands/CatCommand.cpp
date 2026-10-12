@@ -31,7 +31,7 @@ bool CatCommand::Execute()
 
 	if (g_Git.UsingLibGit2(TGitH::GIT_CMD_GETONEFILE))
 	{
-		CAutoRepository repo(g_Git.GetGitRepository());
+		const wil::unique_git_repository repo(g_Git.GetGitRepository());
 		if (!repo)
 		{
 			::DeleteFile(savepath);
@@ -39,15 +39,15 @@ bool CatCommand::Execute()
 			return false;
 		}
 
-		CAutoObject obj;
-		if (git_revparse_single(obj.GetPointer(), repo, CUnicodeUtils::GetUTF8<CStringA>(revision)))
+		wil::unique_git_object obj;
+		if (git_revparse_single(obj.put(), repo.get(), CUnicodeUtils::GetUTF8<CStringA>(revision)))
 		{
 			::DeleteFile(savepath);
 			MessageBox(GetExplorerHWND(), TGitH::GetLibGit2LastErr(L"Could not parse revision."), L"TortoiseGit", MB_ICONERROR);
 			return false;
 		}
 
-		if (git_object_type(obj) == GIT_OBJECT_BLOB)
+		if (git_object_type(obj.get()) == GIT_OBJECT_BLOB)
 		{
 			CAutoFILE file = _wfsopen(savepath, L"wb", SH_DENYRW);
 			if (file == nullptr)
@@ -57,16 +57,16 @@ bool CatCommand::Execute()
 				return false;
 			}
 
-			CAutoBuf buf;
+			wil::unique_git_buf buf;
 			git_blob_filter_options opts = GIT_BLOB_FILTER_OPTIONS_INIT;
 			opts.flags &= ~static_cast<uint32_t>(GIT_BLOB_FILTER_CHECK_FOR_BINARY);
-			if (git_blob_filter(buf, reinterpret_cast<git_blob*>(static_cast<git_object*>(obj)), CUnicodeUtils::Convert2Multibyte<CStringA>(cmdLinePath.GetGitPathString().c_str()), &opts))
+			if (git_blob_filter(&buf, reinterpret_cast<git_blob*>(obj.get()), CUnicodeUtils::Convert2Multibyte<CStringA>(cmdLinePath.GetGitPathString().c_str()), &opts))
 			{
 				::DeleteFile(savepath);
 				MessageBox(GetExplorerHWND(), TGitH::GetLibGit2LastErr(L"Could not get filtered content."), L"TortoiseGit", MB_ICONERROR);
 				return false;
 			}
-			if (fwrite(buf->ptr, sizeof(char), buf->size, file) != buf->size)
+			if (fwrite(buf.ptr, sizeof(char), buf.size, file) != buf.size)
 			{
 				::DeleteFile(savepath);
 				CString err { (CFormatMessageWrapper()).c_str() };

@@ -128,7 +128,7 @@ BOOL CPullFetchDlg::OnInitDialog()
 	m_regFFonly = CRegDWORD(regkey, false);
 	m_bRebase = m_regRebase;
 
-	CAutoRepository repo(g_Git.GetGitRepository());
+	const wil::unique_git_repository repo(g_Git.GetGitRepository());
 	if (!repo)
 		MessageBox(TGitH::GetLibGit2LastErr(L"Could not open repository."), L"TortoiseGit", MB_OK | MB_ICONERROR);
 
@@ -140,23 +140,23 @@ BOOL CPullFetchDlg::OnInitDialog()
 		if (!repo)
 			break;
 
-		if (git_repository_head_detached(repo) == 1)
+		if (git_repository_head_detached(repo.get()) == 1)
 			break;
 
-		CAutoConfig config(true);
-		if (git_repository_config(config.GetPointer(), repo))
+		wil::unique_git_config config;
+		if (git_repository_config(config.put(), repo.get()))
 			break;
 
 		BOOL rebase = FALSE;
 		// branch.<name>.rebase overrides pull.rebase
-		if (config.GetBOOL(tgit::str::StringView(L"branch." + g_Git.GetCurrentBranch() + L".rebase"), rebase) == GIT_ENOTFOUND)
+		if (TGitH::GetConfigBOOL(config.get(), tgit::str::StringView(L"branch." + g_Git.GetCurrentBranch() + L".rebase"), rebase) == GIT_ENOTFOUND)
 		{
-			if (config.GetBOOL(L"pull.rebase", rebase) == GIT_ENOTFOUND)
+			if (TGitH::GetConfigBOOL(config.get(), L"pull.rebase", rebase) == GIT_ENOTFOUND)
 				break;
 			else
 			{
 				CString value;
-				config.GetString(L"pull.rebase", value);
+				TGitH::GetConfigString(config.get(), L"pull.rebase", value);
 				if (value == L"merges")
 				{
 					rebase = TRUE;
@@ -167,7 +167,7 @@ BOOL CPullFetchDlg::OnInitDialog()
 		else
 		{
 			CString value;
-			config.GetString(L"branch." + g_Git.GetCurrentBranch() + L".rebase", value);
+			TGitH::GetConfigString(config.get(), L"branch." + g_Git.GetCurrentBranch() + L".rebase", value);
 			if (value == L"merges")
 			{
 				rebase = TRUE;
@@ -217,7 +217,7 @@ BOOL CPullFetchDlg::OnInitDialog()
 	if (GitAdminDir::IsBareRepo(g_Git.m_CurrentDir))
 		this->GetDlgItem(IDC_CHECK_REBASE)->EnableWindow(FALSE);
 
-	if (repo && git_repository_is_shallow(repo))
+	if (repo && git_repository_is_shallow(repo.get()))
 	{
 		m_bDepth = TRUE;
 		UpdateData(FALSE);
@@ -271,14 +271,14 @@ void CPullFetchDlg::Refresh()
 	if (std::wstring parentRepoRoot; CTGitPath(g_Git.m_CurrentDir.GetString()).IsRegisteredSubmoduleOfParentProject(&parentRepoRoot))
 	{
 		const CString parentRepoDir(parentRepoRoot.c_str());
-		if (CAutoRepository parentRepo(parentRepoDir); parentRepo)
+		if (const wil::unique_git_repository parentRepo = TGitH::OpenGitRepository(tgit::str::StringView{ parentRepoDir }); parentRepo)
 		{
 			auto subModulePath = CUnicodeUtils::GetUTF8<CStringA>(g_Git.m_CurrentDir.Mid(parentRepoDir.GetLength() + 1));
 			subModulePath.Replace('\\', '/');
 
-			if (CAutoSubmodule subModule; !git_submodule_lookup(subModule.GetPointer(), parentRepo, subModulePath))
+			if (wil::unique_git_submodule subModule; !git_submodule_lookup(subModule.put(), parentRepo.get(), subModulePath))
 			{
-				auto branch = git_submodule_branch(subModule);
+				auto branch = git_submodule_branch(subModule.get());
 				if (branch)
 					defaultRemoteTrackingBranch = CUnicodeUtils::Convert2Unicode<CString>(branch);
 			}

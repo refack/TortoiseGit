@@ -60,6 +60,6 @@ import std;
 import str_utils;		// tgit::wstr, tgit::str::StringView (the CString bridge), CUnicodeUtils, StringUtils
 import DebugOutput;
 import RIAA;
-import wil_git2;		// CAutoRepository & co., was Utils/SmartLibgit2Ref.h
+import wil;			// the libgit2 owners (wil::unique_git_*), scope_exit_helper for SCOPE_EXIT
 
 #include "AutoTempDir.h"

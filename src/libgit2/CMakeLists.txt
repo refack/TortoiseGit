@@ -160,7 +160,6 @@ function(tgit_core_library name flavor)
             modules/Registry.ixx
             modules/RollingFile.ixx
             modules/ShellUpdater.ixx
-            modules/SmartLibgit2Ref.ixx
             modules/TGitPath.ixx
             modules/TaskbarUUID.ixx
             modules/TempFile.ixx

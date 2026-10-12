@@ -514,10 +514,11 @@ public:
 
 
 
-// Owners for libgit2 handles, moved here from wil_git2 (SmartLibgit2Ref.ixx).
-// Every one is wil's, so there is no class to get wrong - the hand-rolled
-// CSmartLibgit2Ref re-exposed its conversion operator through a
-// using-declaration that MSVC refuses across a module boundary (C2248).
+// Owners for libgit2 handles. Every one is wil's, so there is no class to get
+// wrong - the hand-rolled ones they replaced re-exposed a conversion operator
+// through a using-declaration that MSVC refuses across a module boundary (C2248).
+// No implicit conversion to the raw pointer: pass .get(), and .put() (or &x,
+// which frees first) for an out-parameter.
 template <typename T, void Free(T*)>
 using unique_git = unique_any<T*, decltype(Free), Free>;
 
@@ -560,9 +561,8 @@ using unique_git_strarray = unique_struct<git_strarray, decltype(&git_strarray_d
 ///
 /// UTF-8 only, deliberately: wil cannot see CUnicodeUtils. A caller holding a
 /// wide path goes through the one wide overload that encodes with
-/// CUnicodeUtils::StdGetUTF8 (CAutoRepository(std::wstring_view) today,
-/// TGitH::OpenGitRepository(std::wstring_view) once the bridge retires) - never
-/// its own conversion (CStringA(path) would be the ACP, not UTF-8).
+/// CUnicodeUtils::StdGetUTF8, TGitH::OpenGitRepository(std::wstring_view) in
+/// git_h - never its own conversion (CStringA(path) would be the ACP, not UTF-8).
 unique_git_repository OpenGitRepository(const char* const gitDirUtf8) {
 	unique_git_repository repo;
 	if (!git_repository_open(repo.put(), gitDirUtf8))
@@ -577,7 +577,7 @@ unique_git_repository OpenGitRepository(const char* const gitDirUtf8) {
 /// Global, because the macro names it unqualified. The guard is wil's: its move
 /// disarms the source, which tgittypes' hand-rolled scope_exit_t did not (a moved-
 /// from guard still ran its lambda). This is the only definition: a TU that
-/// expands SCOPE_EXIT imports wil (directly, or through wil_git2 until it retires).
+/// expands SCOPE_EXIT imports wil.
 export struct scope_exit_helper {
 	template <class F>
 	[[nodiscard]] auto operator<<(F&& f) const {

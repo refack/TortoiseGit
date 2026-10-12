@@ -462,8 +462,8 @@ bool Command::CheckRepo(PathRequirement requirement) const
 	if (!g_Git.m_IsUseLibGit2 || g_Git.m_CurrentDir.IsEmpty())
 		return true;
 
-	CAutoRepository repo;
-	if (int err = repo.Open(CGit::GetGitPathStringA(g_Git.m_CurrentDir)); err == 0)
+	// Open() returned 0 on success; the owner is non-empty on success.
+	if (const wil::unique_git_repository repo = wil::OpenGitRepository(CGit::GetGitPathStringA(g_Git.m_CurrentDir).GetString()); repo)
 		return true;
 
 	InaccessibleCommand iac;

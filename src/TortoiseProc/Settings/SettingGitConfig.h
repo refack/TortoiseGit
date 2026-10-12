@@ -39,8 +39,8 @@ protected:
 	BOOL OnInitDialog() override;
 	BOOL OnApply() override;
 
-	void LoadDataImpl(CAutoConfig& config) override;
-	BOOL SafeDataImpl(CAutoConfig& config) override;
+	void LoadDataImpl(wil::unique_git_config& config) override;
+	BOOL SafeDataImpl(wil::unique_git_config& config) override;
 	void EnDisableControls() override;
 	HWND GetDialogHwnd() const override { return GetSafeHwnd(); }
 

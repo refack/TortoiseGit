@@ -11,7 +11,7 @@ import gsl;
 import str_utils;
 import git_h;
 import GitMailmap;
-import wil_git2;
+import wil;
 import GitHash;
 import invarients;
 
@@ -20,7 +20,6 @@ import invarients;
 // into git_h taking a CGitHash came out unresolved at link time
 using TGitHash::CGitHash;
 using namespace TGitH;
-using namespace SmartLibgit2;
 using tgit::str::StringView;
 
 
@@ -154,17 +153,17 @@ public:
 		CGitMailmap mailmap;
 		if (g_Git.UsingLibGit2(TGitH::GIT_CMD_FOREACHREF) && mergefilter <= 0) // libgit2 implementation is significantly slower because of "git_graph_descendant_of", hence, only use it when merge status is not a filter
 		{
-			CAutoRepository repo = g_Git.GetGitRepository();
+			wil::unique_git_repository repo = g_Git.GetGitRepository();
 			if (!repo)
 			{
 				err = TGitH::GetLibGit2LastErr();
 				return -1;
 			}
 
-			CAutoReference head;
+			wil::unique_git_reference head;
 			if (mergefilter > 0)
 			{
-				if (const auto ret = git_repository_head(head.GetPointer(), repo); ret == GIT_EUNBORNBRANCH)
+				if (const auto ret = git_repository_head(head.put(), repo.get()); ret == GIT_EUNBORNBRANCH)
 					mergefilter = 0;
 				else if (ret < 0)
 				{
@@ -173,65 +172,65 @@ public:
 				}
 			}
 
-			CAutoReferenceIterator iter;
-			if (git_reference_iterator_new(iter.GetPointer(), repo) < 0)
+			wil::unique_git_reference_iterator iter;
+			if (git_reference_iterator_new(iter.put(), repo.get()) < 0)
 			{
 				err = TGitH::GetLibGit2LastErr();
 				return -1;
 			}
 
-			CAutoReference ref;
+			wil::unique_git_reference ref;
 			int error;
-			while (!(error = git_reference_next(ref.GetPointer(), iter)))
+			while (!(error = git_reference_next(ref.put(), iter.get())))
 			{
-				StringType refName = CUnicodeUtils::Convert2Unicode<StringType>(git_reference_name(ref));
+				StringType refName = CUnicodeUtils::Convert2Unicode<StringType>(git_reference_name(ref.get()));
 				if (filterCallback && !filterCallback(refName))
 					continue;
 
-				if (git_reference_type(ref) == GIT_REFERENCE_SYMBOLIC)
+				if (git_reference_type(ref.get()) == GIT_REFERENCE_SYMBOLIC)
 				{
-					CAutoReference target;
-					if (git_reference_resolve(target.GetPointer(), ref))
+					wil::unique_git_reference target;
+					if (git_reference_resolve(target.put(), ref.get()))
 					{
 						err = TGitH::GetLibGit2LastErr();
 						return -1;
 					}
-					ref.Swap(target);
+					ref.swap(target);
 				}
 
-				CAutoTag tag;
-				if (git_reference_is_tag(ref))
-					git_tag_lookup(tag.GetPointer(), repo, git_reference_target(ref));
+				wil::unique_git_tag tag;
+				if (git_reference_is_tag(ref.get()))
+					git_tag_lookup(tag.put(), repo.get(), git_reference_target(ref.get()));
 
 				if (mergefilter > 0)
 				{
-					const git_oid* oid = git_reference_target(ref);
+					const git_oid* oid = git_reference_target(ref.get());
 					if (tag)
-						oid = git_tag_target_id(tag);
+						oid = git_tag_target_id(tag.get());
 
-					const int ret = git_graph_descendant_of(repo, git_reference_target(head), oid);
+					const int ret = git_graph_descendant_of(repo.get(), git_reference_target(head.get()), oid);
 					if (ret < 0)
 					{
 						err = TGitH::GetLibGit2LastErr();
 						return -1;
 					}
-					if (mergefilter == 1 && ret == 0 && git_oid_cmp(oid, git_reference_target(head)) != 0)
+					if (mergefilter == 1 && ret == 0 && git_oid_cmp(oid, git_reference_target(head.get())) != 0)
 						continue;
-					if (mergefilter == 2 && (ret == 1 || git_oid_cmp(oid, git_reference_target(head)) == 0))
+					if (mergefilter == 2 && (ret == 1 || git_oid_cmp(oid, git_reference_target(head.get())) == 0))
 						continue;
 				}
 
 				GitRevRefBrowser entry;
-				entry.m_CommitHash = CGitHash(git_reference_target(ref)); // the git_oid* constructor is explicit
-				if (git_reference_is_tag(ref) && tag)
+				entry.m_CommitHash = CGitHash(git_reference_target(ref.get())); // the git_oid* constructor is explicit
+				if (git_reference_is_tag(ref.get()) && tag)
 				{
 					entry.m_objectType = GIT_OBJECT_TAG;
-					const char* msg = git_tag_message(tag);
+					const char* msg = git_tag_message(tag.get());
 					if (const char* body = strchr(msg, '\n'); !body)
 						entry.m_Subject = CUnicodeUtils::Convert2Unicode<StringType>(msg);
 					else
 						entry.m_Subject = CUnicodeUtils::GetUnicode<StringType>(std::string_view(msg, body - msg));
-					auto tagger = git_tag_tagger(tag);
+					auto tagger = git_tag_tagger(tag.get());
 					if (tagger)
 					{
 						entry.m_CommitterName = CUnicodeUtils::Convert2Unicode<StringType>(tagger->name);
@@ -249,24 +248,25 @@ public:
 					continue;
 				}
 
-				CAutoObject object;
-				if (git_object_lookup(object.GetPointer(), repo, git_reference_target(ref), GIT_OBJECT_ANY) < 0)
+				wil::unique_git_object object;
+				if (git_object_lookup(object.put(), repo.get(), git_reference_target(ref.get()), GIT_OBJECT_ANY) < 0)
 				{
 					err = TGitH::GetLibGit2LastErr();
 					return -1;
 				}
 
-				entry.m_objectType = git_object_type(object);
+				entry.m_objectType = git_object_type(object.get());
 
-				if (git_object_type(object) != GIT_OBJECT_COMMIT)
+				if (git_object_type(object.get()) != GIT_OBJECT_COMMIT)
 				{
 					map.emplace(refName, entry);
 					continue;
 				}
-				CAutoCommit commit{ std::move(object) };
-				auto author = git_commit_author(commit);
-				auto committer = git_commit_committer(commit);
-				entry.m_Subject = CUnicodeUtils::Convert2Unicode<StringType>(git_commit_summary(commit));
+				// the object is known to be a commit: ownership moves over as it did in CAutoCommit(CAutoObject&&)
+				wil::unique_git_commit commit{ reinterpret_cast<git_commit*>(object.release()) };
+				auto author = git_commit_author(commit.get());
+				auto committer = git_commit_committer(commit.get());
+				entry.m_Subject = CUnicodeUtils::Convert2Unicode<StringType>(git_commit_summary(commit.get()));
 				entry.m_AuthorName = CUnicodeUtils::Convert2Unicode<StringType>(author->name);
 				entry.m_AuthorEmail = CUnicodeUtils::Convert2Unicode<StringType>(author->email);
 				entry.m_AuthorDate = author->when.time;
@@ -279,12 +279,12 @@ public:
 					entry.m_CommitterName = mailmap.TranslateAuthor(entry.m_CommitterName, entry.m_CommitterEmail);
 				}
 
-				if (git_reference_is_branch(ref))
+				if (git_reference_is_branch(ref.get()))
 				{
 					entry.m_Description = descriptions[std::wstring(refName.Mid(static_cast<int>(wcslen(L"refs/heads/"))))].c_str();
 
-					CAutoBuf buf;
-					if (const auto ret = git_branch_upstream_name(buf, repo, git_reference_name(ref)); ret == 0)
+					wil::unique_git_buf buf;
+					if (const auto ret = git_branch_upstream_name(&buf, repo.get(), git_reference_name(ref.get())); ret == 0)
 						entry.m_UpstreamRef = CUnicodeUtils::GetUnicode<StringType>(std::string{buf.ptr, buf.ptr + buf.size});
 					else if (ret != GIT_ENOTFOUND)
 					{
@@ -519,14 +519,14 @@ int GitRev::ParserFromCommit(const git_commit* commit)
 int GitRev::GetCommitFromHash(git_repository* repo, const CGitHash& hash)
 {
 	ATLASSERT(repo);
-	CAutoCommit commit;
-	if (git_commit_lookup(commit.GetPointer(), repo, hash) < 0)
+	wil::unique_git_commit commit;
+	if (git_commit_lookup(commit.put(), repo, hash) < 0)
 	{
 		m_sErr = TGitH::GetLibGit2LastErr();
 		return -1;
 	}
 
-	return ParserFromCommit(commit);
+	return ParserFromCommit(commit.get());
 }
 
 int GitRev::GetCommit(git_repository* repo, const CString& refname)
@@ -620,23 +620,23 @@ int GitRev::GetCommit(const CString& refname, bool allowTree /* false */)
 {
 	if (g_Git.UsingLibGit2(GIT_CMD_GET_COMMIT))
 	{
-		CAutoRepository repo(g_Git.GetGitRepository());
+		const wil::unique_git_repository repo(g_Git.GetGitRepository());
 		if (!repo)
 		{
 			m_sErr = TGitH::GetLibGit2LastErr();
 			return -1;
 		}
-		if (int ret = GetCommit(repo, refname); ret == 0 || ret < 0 && !allowTree)
+		if (int ret = GetCommit(repo.get(), refname); ret == 0 || ret < 0 && !allowTree)
 			return ret;
 
 		CGitHash hash;
-		if (g_Git.GetHash(repo, hash, StringView{ refname }))
+		if (g_Git.GetHash(repo.get(), hash, StringView{ refname }))
 		{
 			m_sErr = TGitH::GetLibGit2LastErr();
 			return -1;
 		}
-		CAutoTree tree;
-		if (git_tree_lookup(tree.GetPointer(), repo, hash) < 0)
+		wil::unique_git_tree tree;
+		if (git_tree_lookup(tree.put(), repo.get(), hash) < 0)
 		{
 			m_sErr = TGitH::GetLibGit2LastErr();
 			return -1;

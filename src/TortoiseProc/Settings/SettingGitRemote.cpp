@@ -206,11 +206,12 @@ static int CheckRemoteCollideWithRefspec(const git_config_entry *entry, void * p
 bool CSettingGitRemote::IsRemoteCollideWithRefspec(const CString& remote) const
 {
 	CheckRefspecStruct crs = { CUnicodeUtils::GetUTF8<CStringA>(remote), false };
-	CAutoConfig config(true);
-	git_config_add_file_ondisk(config, CGit::GetGitPathStringA(g_Git.GetGitLocalConfig()), GIT_CONFIG_LEVEL_LOCAL, g_Git.GetGitRepository(), FALSE);
+	wil::unique_git_config config;
+	git_config_new(config.put());
+	git_config_add_file_ondisk(config.get(), CGit::GetGitPathStringA(g_Git.GetGitLocalConfig()), GIT_CONFIG_LEVEL_LOCAL, g_Git.GetGitRepository().get(), FALSE);
 	for (const auto pattern : { "remote\\..*\\.fetch", "svn-remote\\..*\\.fetch", "svn-remote\\..*\\.branches", "svn-remote\\..*\\.tags" })
 	{
-		git_config_foreach_match(config, pattern, CheckRemoteCollideWithRefspec, &crs);
+		git_config_foreach_match(config.get(), pattern, CheckRemoteCollideWithRefspec, &crs);
 		if (crs.result)
 			return true;
 	}

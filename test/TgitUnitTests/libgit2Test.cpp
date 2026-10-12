@@ -28,17 +28,62 @@ TEST(libgit2, Config)
 	CAutoTempDir tempdir;
 	CString testFile = tempdir.GetTempDir() + L"\\config";
 	EXPECT_TRUE(StringUtils::WriteStringToTextFile(testFile, L"[core]\nemail=dummy@example.com\ntrue=true\nfalse=false\n"));
-	CAutoConfig config(true);
-	EXPECT_EQ(0, git_config_add_file_ondisk(config, CUnicodeUtils::GetUTF8<CStringA>(testFile), GIT_CONFIG_LEVEL_LOCAL, nullptr, 1));
+	wil::unique_git_config config;
+	git_config_new(config.put());
+	EXPECT_EQ(0, git_config_add_file_ondisk(config.get(), CUnicodeUtils::GetUTF8<CStringA>(testFile), GIT_CONFIG_LEVEL_LOCAL, nullptr, 1));
 	bool ret = false;
-	EXPECT_EQ(0, config.GetBool(L"core.true", ret));
+	EXPECT_EQ(0, TGitH::GetConfigBool(config.get(), L"core.true", ret));
 	EXPECT_EQ(true, ret);
-	EXPECT_EQ(0, config.GetBool(L"core.false", ret));
+	EXPECT_EQ(0, TGitH::GetConfigBool(config.get(), L"core.false", ret));
 	EXPECT_EQ(false, ret);
-	EXPECT_EQ(-3, config.GetBool(L"core.not-exist", ret));
+	EXPECT_EQ(-3, TGitH::GetConfigBool(config.get(), L"core.not-exist", ret));
 	CString value;
-	EXPECT_EQ(0, config.GetString(L"core.email", value));
+	EXPECT_EQ(0, TGitH::GetConfigString(config.get(), L"core.email", value));
 	EXPECT_STREQ(L"dummy@example.com", value);
+}
+
+// The readers moved from CAutoConfig to git_h with their contract unchanged; the
+// callers (gitindex's core.ignorecase preset, SyncDlg/PullFetchDlg's pull.rebase,
+// GetBoolConfigValueComboBox) depend on these exact outcomes.
+TEST(libgit2, ConfigReadersKeepTheirContract)
+{
+	CAutoTempDir tempdir;
+	CString testFile = tempdir.GetTempDir() + L"\\config";
+	EXPECT_TRUE(StringUtils::WriteStringToTextFile(testFile, L"[core]\nmaybe=maybe\nemail=dummy@example.com\n"));
+
+	// no config: -1, and the in/out parameter is left alone
+	int preset = 42;
+	EXPECT_EQ(-1, TGitH::GetConfigBOOL(nullptr, L"core.maybe", preset));
+	EXPECT_EQ(42, preset);
+	CString untouched = L"keep";
+	EXPECT_EQ(-1, TGitH::GetConfigString(nullptr, L"core.email", untouched));
+	EXPECT_STREQ(L"keep", untouched);
+
+	wil::unique_git_config config;
+	git_config_new(config.put());
+	EXPECT_EQ(0, git_config_add_file_ondisk(config.get(), CUnicodeUtils::GetUTF8<CStringA>(testFile), GIT_CONFIG_LEVEL_LOCAL, nullptr, 1));
+
+	// a value that is not a bool: an error that is not GIT_ENOTFOUND, preset kept
+	preset = 1;
+	const int invalid = TGitH::GetConfigBOOL(config.get(), L"core.maybe", preset);
+	EXPECT_LT(invalid, 0);
+	EXPECT_NE(GIT_ENOTFOUND, invalid);
+	EXPECT_EQ(1, preset);
+	bool b = true;
+	EXPECT_EQ(invalid, TGitH::GetConfigBool(config.get(), L"core.maybe", b));
+	EXPECT_TRUE(b);
+
+	// a missing key: GIT_ENOTFOUND; the bool is left alone, the string is emptied
+	preset = 1;
+	EXPECT_EQ(GIT_ENOTFOUND, TGitH::GetConfigBOOL(config.get(), L"core.not-exist", preset));
+	EXPECT_EQ(1, preset);
+	std::wstring s = L"previous";
+	EXPECT_EQ(GIT_ENOTFOUND, TGitH::GetConfigString(config.get(), L"core.not-exist", s));
+	EXPECT_TRUE(s.empty());
+
+	// a CString key binds the constrained overload
+	EXPECT_EQ(0, TGitH::GetConfigString(config.get(), CString(L"core.email"), s));
+	EXPECT_EQ(L"dummy@example.com", s);
 }
 
 // the following test ís similar to a test in libgit2, keep it to prevent surprises
@@ -46,12 +91,12 @@ TEST(libgit2, ConfigSnaphot)
 {
 	CAutoTempDir tmpDir;
 
-	CAutoRepository repo;
-	ASSERT_TRUE(git_repository_init(repo.GetPointer(), CUnicodeUtils::GetUTF8<CStringA>(tmpDir.GetTempDir()), false) == 0);
+	wil::unique_git_repository repo;
+	ASSERT_TRUE(git_repository_init(repo.put(), CUnicodeUtils::GetUTF8<CStringA>(tmpDir.GetTempDir()), false) == 0);
 	// The includeIf sections below match on the branch name, and libgit2 honours the
 	// host's init.defaultBranch just as git.exe does. Pin HEAD so the test describes
 	// the config machinery rather than the machine it runs on.
-	ASSERT_TRUE(git_repository_set_head(repo, "refs/heads/master") == 0);
+	ASSERT_TRUE(git_repository_set_head(repo.get(), "refs/heads/master") == 0);
 	CString configFile = tmpDir.GetTempDir() + L"\\.git\\config";
 	CString text;
 	ASSERT_TRUE(StringUtils::ReadStringFromTextFile(configFile, text));
@@ -64,23 +109,23 @@ TEST(libgit2, ConfigSnaphot)
 	EXPECT_TRUE(StringUtils::WriteStringToTextFile(tmpDir.GetTempDir() + L"\\.git\\other.txt", L"[blup]\n\tbran = other\nother\n"));
 	EXPECT_TRUE(StringUtils::WriteStringToTextFile(tmpDir.GetTempDir() + L"\\.git\\include.txt", L"[blup]\n\tfoo = bar\n"));
 
-	CAutoConfig config;
-	EXPECT_EQ(0, git_repository_config_snapshot(config.GetPointer(), repo));
-	repo.Free();
+	wil::unique_git_config config;
+	EXPECT_EQ(0, git_repository_config_snapshot(config.put(), repo.get()));
+	repo.reset();
 
 	EXPECT_TRUE(StringUtils::WriteStringToTextFile(tmpDir.GetTempDir() + L"\\.git\\include.txt", L"[blup]\n\tfoo = changedafterwards\n"));
 
 	bool bResult = false;
-	EXPECT_EQ(-3, config.GetBool(L"blup.doesnotexist", bResult));
-	EXPECT_EQ(-3, config.GetBool(L"blup.other", bResult));
-	EXPECT_EQ(0, config.GetBool(L"blup.master", bResult));
+	EXPECT_EQ(-3, TGitH::GetConfigBool(config.get(), L"blup.doesnotexist", bResult));
+	EXPECT_EQ(-3, TGitH::GetConfigBool(config.get(), L"blup.other", bResult));
+	EXPECT_EQ(0, TGitH::GetConfigBool(config.get(), L"blup.master", bResult));
 	EXPECT_TRUE(bResult);
 
 	CString sResult;
-	EXPECT_EQ(0, config.GetString(L"blup.bran", sResult));
+	EXPECT_EQ(0, TGitH::GetConfigString(config.get(), L"blup.bran", sResult));
 	EXPECT_STREQ(L"master", sResult);
 	sResult.Empty();
-	EXPECT_EQ(0, config.GetString(L"blup.foo", sResult));
+	EXPECT_EQ(0, TGitH::GetConfigString(config.get(), L"blup.foo", sResult));
 	EXPECT_STREQ(L"bar", sResult);
 }
 
@@ -89,8 +134,8 @@ TEST(libgit2, ConfigSnaphotRepoHashFile)
 {
 	CAutoTempDir tmpDir;
 
-	CAutoRepository repo;
-	ASSERT_TRUE(git_repository_init(repo.GetPointer(), CUnicodeUtils::GetUTF8<CStringA>(tmpDir.GetTempDir()), false) == 0);
+	wil::unique_git_repository repo;
+	ASSERT_TRUE(git_repository_init(repo.put(), CUnicodeUtils::GetUTF8<CStringA>(tmpDir.GetTempDir()), false) == 0);
 	CString configFile = tmpDir.GetTempDir() + L"\\.git\\config";
 	CString text;
 	ASSERT_TRUE(StringUtils::ReadStringFromTextFile(configFile, text));
@@ -99,12 +144,12 @@ TEST(libgit2, ConfigSnaphotRepoHashFile)
 
 	EXPECT_TRUE(StringUtils::WriteStringToTextFile(tmpDir.GetTempDir() + L"\\test.txt", L"something"));
 	git_oid oid;
-	EXPECT_EQ(0, git_repository_hashfile(&oid, repo, "test.txt", GIT_OBJECT_BLOB, nullptr));
+	EXPECT_EQ(0, git_repository_hashfile(&oid, repo.get(), "test.txt", GIT_OBJECT_BLOB, nullptr));
 	EXPECT_STREQ(L"a459bc245bdbc45e1bca99e7fe61731da5c48da4", CGitHash(oid).ToString());
 
-	CAutoConfig config;
-	EXPECT_EQ(0, git_repository_config_snapshot(config.GetPointer(), repo));
-	git_repository_set_config(repo, config);
+	wil::unique_git_config config;
+	EXPECT_EQ(0, git_repository_config_snapshot(config.put(), repo.get()));
+	git_repository_set_config(repo.get(), config.get());
 
 	g_Git.SetCurrentDirExact(tmpDir.GetTempDir());
 	CString output;
@@ -117,12 +162,12 @@ TEST(libgit2, ConfigSnaphotRepoHashFile)
 	EXPECT_TRUE(StringUtils::WriteStringToTextFile(tmpDir.GetTempDir() + L"\\test.txt", L"something else"));
 
 	git_oid oid2;
-	EXPECT_EQ(0, git_repository_hashfile(&oid2, repo, "test.txt", GIT_OBJECT_BLOB, nullptr));
+	EXPECT_EQ(0, git_repository_hashfile(&oid2, repo.get(), "test.txt", GIT_OBJECT_BLOB, nullptr));
 	EXPECT_STREQ(L"339f0be6c0f5257a3279fcefc45373e805b7ebc3", CGitHash(oid2).ToString());
 
 	EXPECT_TRUE(StringUtils::WriteStringToTextFile(tmpDir.GetTempDir() + L"\\test.txt", L"something"));
 
 	git_oid oid3;
-	EXPECT_EQ(0, git_repository_hashfile(&oid3, repo, "test.txt", GIT_OBJECT_BLOB, nullptr));
+	EXPECT_EQ(0, git_repository_hashfile(&oid3, repo.get(), "test.txt", GIT_OBJECT_BLOB, nullptr));
 	EXPECT_STREQ(L"a459bc245bdbc45e1bca99e7fe61731da5c48da4", CGitHash(oid3).ToString());
 }

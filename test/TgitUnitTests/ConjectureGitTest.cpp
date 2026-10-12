@@ -18,7 +18,7 @@
 //
 
 // DRAFT, NOT YET BUILT. TDD assertions for conjectures about the git layer
-// (git_h / Git.cpp), SmartLibgit2 and the wil shim (2026-09-28).
+// (git_h / Git.cpp) and the wil shim's libgit2 owners (2026-09-28).
 //   FAILS - a real bug; PASSES - a pin, or a spurious conjecture;
 //   UB    - undefined behaviour: nondeterministic, reliable under ASan.
 
@@ -28,7 +28,6 @@ import std;
 import wil;
 import str_utils;
 import invarients;
-import SmartLibgit2;
 import git_h;
 
 using namespace std::literals;
@@ -163,7 +162,7 @@ TEST(ConjectureGit, CallbackLimitLetsTheCrossingChunkThroughThenStops)
 }
 
 // ---------------------------------------------------------------------------
-// SmartLibgit2 and wil
+// libgit2 owners (wil)
 
 // Conjecture: the hand-rolled CAuto* classes re-exposed their base's conversion
 // operator with a using-declaration that MSVC rejects across a module boundary

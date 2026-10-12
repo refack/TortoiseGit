@@ -119,7 +119,7 @@ int CGitTagCompareList::Fill(const CString& remote, CString& err)
 		return -1;
 	}
 
-	CAutoRepository repo(g_Git.GetGitRepository());
+	const wil::unique_git_repository repo(g_Git.GetGitRepository());
 	if (!repo)
 	{
 		err = TGitH::GetLibGit2LastErr(L"Could not open repository.");
@@ -127,7 +127,7 @@ int CGitTagCompareList::Fill(const CString& remote, CString& err)
 	}
 
 	MAP_HASH_NAME hashMap;
-	if (CGit::GetMapHashToFriendName(repo, hashMap))
+	if (CGit::GetMapHashToFriendName(repo.get(), hashMap))
 	{
 		err = TGitH::GetLibGit2LastErr(L"Could not get all refs.");
 		return -1;
@@ -147,10 +147,10 @@ int CGitTagCompareList::Fill(const CString& remote, CString& err)
 				if (tagname.ends_with(L"^{}"))
 				{
 					tagname.resize(tagname.size() - wcslen(L"^{}"));
-					CAutoObject gitObject;
-					if (git_revparse_single(gitObject.GetPointer(), repo, CUnicodeUtils::StdGetUTF8(tagname).c_str()))
+					wil::unique_git_object gitObject;
+					if (git_revparse_single(gitObject.put(), repo.get(), CUnicodeUtils::StdGetUTF8(tagname).c_str()))
 						return;
-					localTags.emplace_back(TGitRef{ tagname, git_object_id(gitObject) });
+					localTags.emplace_back(TGitRef{ tagname, git_object_id(gitObject.get()) });
 				}
 			}
 		});
@@ -165,31 +165,31 @@ int CGitTagCompareList::Fill(const CString& remote, CString& err)
 	{
 		if (SortPredicate(!!m_bSortLogical, remoteIt->name.c_str(), localIt->name.c_str()))
 		{
-			AddEntry(repo, remoteIt->name.c_str(), nullptr, &remoteIt->hash);
+			AddEntry(repo.get(), remoteIt->name.c_str(), nullptr, &remoteIt->hash);
 			++remoteIt;
 			continue;
 		}
 
 		if (remoteIt->name == localIt->name)
 		{
-			AddEntry(repo, remoteIt->name.c_str(), &localIt->hash, &remoteIt->hash);
+			AddEntry(repo.get(), remoteIt->name.c_str(), &localIt->hash, &remoteIt->hash);
 			++remoteIt;
 		}
 		else
-			AddEntry(repo, localIt->name.c_str(), &localIt->hash, nullptr);
+			AddEntry(repo.get(), localIt->name.c_str(), &localIt->hash, nullptr);
 
 		++localIt;
 	}
 
 	while (remoteIt != remoteTags.cend())
 	{
-		AddEntry(repo, remoteIt->name.c_str(), nullptr, &remoteIt->hash);
+		AddEntry(repo.get(), remoteIt->name.c_str(), nullptr, &remoteIt->hash);
 		++remoteIt;
 	}
 
 	while (localIt != localTags.cend())
 	{
-		AddEntry(repo, localIt->name.c_str(), &localIt->hash, nullptr);
+		AddEntry(repo.get(), localIt->name.c_str(), &localIt->hash, nullptr);
 		++localIt;
 	}
 
@@ -223,18 +223,18 @@ void CGitTagCompareList::AddEntry(git_repository* repo, const CString& tag, cons
 	if (theirHash)
 		entry.theirHash = *theirHash;
 
-	CAutoCommit oldCommit;
+	wil::unique_git_commit oldCommit;
 	if (myHash)
 	{
-		if (!git_commit_lookup(oldCommit.GetPointer(), repo, *myHash))
-			entry.myMessage = CGitRefCompareList::GetCommitMessage(oldCommit);
+		if (!git_commit_lookup(oldCommit.put(), repo, *myHash))
+			entry.myMessage = CGitRefCompareList::GetCommitMessage(oldCommit.get());
 	}
 
-	CAutoCommit newCommit;
+	wil::unique_git_commit newCommit;
 	if (theirHash)
 	{
-		if (!git_commit_lookup(newCommit.GetPointer(), repo, *theirHash))
-			entry.theirMessage = CGitRefCompareList::GetCommitMessage(newCommit);
+		if (!git_commit_lookup(newCommit.put(), repo, *theirHash))
+			entry.theirMessage = CGitRefCompareList::GetCommitMessage(newCommit.get());
 	}
 
 	if (myHash && theirHash)

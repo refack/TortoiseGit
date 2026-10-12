@@ -360,18 +360,19 @@ void CSettingGitCredential::FillSimpleList(bool anySystem, bool systemWincred, b
 
 void CSettingGitCredential::LoadList()
 {
-	CAutoConfig config(true);
-	CAutoRepository repo(g_Git.GetGitRepository());
-	git_config_add_file_ondisk(config, CGit::GetGitPathStringA(g_Git.GetGitLocalConfig()), GIT_CONFIG_LEVEL_LOCAL, repo, FALSE);
-	git_config_add_file_ondisk(config, CGit::GetGitPathStringA(g_Git.GetGitGlobalConfig()), GIT_CONFIG_LEVEL_GLOBAL, repo, FALSE);
-	git_config_add_file_ondisk(config, CGit::GetGitPathStringA(g_Git.GetGitGlobalXDGConfig()), GIT_CONFIG_LEVEL_XDG, repo, FALSE);
-	git_config_add_file_ondisk(config, CGit::GetGitPathStringA(g_Git.GetGitSystemConfig()), GIT_CONFIG_LEVEL_SYSTEM, repo, FALSE);
+	wil::unique_git_config config;
+	git_config_new(config.put());
+	const wil::unique_git_repository repo(g_Git.GetGitRepository());
+	git_config_add_file_ondisk(config.get(), CGit::GetGitPathStringA(g_Git.GetGitLocalConfig()), GIT_CONFIG_LEVEL_LOCAL, repo.get(), FALSE);
+	git_config_add_file_ondisk(config.get(), CGit::GetGitPathStringA(g_Git.GetGitGlobalConfig()), GIT_CONFIG_LEVEL_GLOBAL, repo.get(), FALSE);
+	git_config_add_file_ondisk(config.get(), CGit::GetGitPathStringA(g_Git.GetGitGlobalXDGConfig()), GIT_CONFIG_LEVEL_XDG, repo.get(), FALSE);
+	git_config_add_file_ondisk(config.get(), CGit::GetGitPathStringA(g_Git.GetGitSystemConfig()), GIT_CONFIG_LEVEL_SYSTEM, repo.get(), FALSE);
 
 	std::vector<std::wstring> defaultList, urlList;
-	git_config_foreach_match(config, "credential\\.helper", GetCredentialDefaultUrlCallback, &defaultList);
-	git_config_foreach_match(config, "credential\\..*\\.helper", GetCredentialUrlCallback, &urlList);
+	git_config_foreach_match(config.get(), "credential\\.helper", GetCredentialDefaultUrlCallback, &defaultList);
+	git_config_foreach_match(config.get(), "credential\\..*\\.helper", GetCredentialUrlCallback, &urlList);
 	std::vector<std::wstring> anyList;
-	git_config_foreach_match(config, "credential\\..*", GetCredentialAnyEntryCallback, &anyList);
+	git_config_foreach_match(config.get(), "credential\\..*", GetCredentialAnyEntryCallback, &anyList);
 
 	for (size_t i = 0; i < defaultList.size(); ++i)
 		m_ctrlUrlList.AddString(defaultList[i].c_str());
@@ -497,23 +498,24 @@ CString CSettingGitCredential::Load(const CString& key)
 	else
 		cmd.Format(L"credential.%s.%s", static_cast<LPCWSTR>(m_strUrl), static_cast<LPCWSTR>(key));
 
-	CAutoConfig config(true);
-	CAutoRepository repo(g_Git.GetGitRepository());
+	wil::unique_git_config config;
+	git_config_new(config.put());
+	const wil::unique_git_repository repo(g_Git.GetGitRepository());
 	int sel = m_ctrlConfigType.GetCurSel();
 	if (sel == ConfigType::Local)
-		git_config_add_file_ondisk(config, CGit::GetGitPathStringA(g_Git.GetGitLocalConfig()), GIT_CONFIG_LEVEL_LOCAL, repo, FALSE);
+		git_config_add_file_ondisk(config.get(), CGit::GetGitPathStringA(g_Git.GetGitLocalConfig()), GIT_CONFIG_LEVEL_LOCAL, repo.get(), FALSE);
 	else if (sel == ConfigType::Global)
 	{
-		git_config_add_file_ondisk(config, CGit::GetGitPathStringA(g_Git.GetGitGlobalConfig()), GIT_CONFIG_LEVEL_GLOBAL, repo, FALSE);
-		git_config_add_file_ondisk(config, CGit::GetGitPathStringA(g_Git.GetGitGlobalXDGConfig()), GIT_CONFIG_LEVEL_XDG, repo, FALSE);
+		git_config_add_file_ondisk(config.get(), CGit::GetGitPathStringA(g_Git.GetGitGlobalConfig()), GIT_CONFIG_LEVEL_GLOBAL, repo.get(), FALSE);
+		git_config_add_file_ondisk(config.get(), CGit::GetGitPathStringA(g_Git.GetGitGlobalXDGConfig()), GIT_CONFIG_LEVEL_XDG, repo.get(), FALSE);
 	}
 	else if (sel == ConfigType::System)
-		git_config_add_file_ondisk(config, CGit::GetGitPathStringA(g_Git.GetGitSystemConfig()), GIT_CONFIG_LEVEL_SYSTEM, repo, FALSE);
+		git_config_add_file_ondisk(config.get(), CGit::GetGitPathStringA(g_Git.GetGitSystemConfig()), GIT_CONFIG_LEVEL_SYSTEM, repo.get(), FALSE);
 
 	CStringA cmdA = CUnicodeUtils::GetUTF8<CStringA>(cmd);
 	CStringA valueA;
 	git_config_entry* entry;
-	if (!git_config_get_entry(&entry, config, cmdA))
+	if (!git_config_get_entry(&entry, config.get(), cmdA))
 		valueA = CStringA(entry->value);
 	git_config_entry_free(entry);
 
@@ -580,15 +582,16 @@ int CSettingGitCredential::DeleteOtherKeys(int type)
 	else if (type == SimpleCredentialType::SystemGCMCore)
 		match = L"S\ncredential.helper\nmanager-core";
 
-	CAutoConfig config(true);
-	CAutoRepository repo = g_Git.GetGitRepository();
-	git_config_add_file_ondisk(config, CGit::GetGitPathStringA(g_Git.GetGitLocalConfig()), GIT_CONFIG_LEVEL_LOCAL, repo, FALSE);
-	git_config_add_file_ondisk(config, CGit::GetGitPathStringA(g_Git.GetGitGlobalConfig()), GIT_CONFIG_LEVEL_GLOBAL, repo, FALSE);
-	git_config_add_file_ondisk(config, CGit::GetGitPathStringA(g_Git.GetGitGlobalXDGConfig()), GIT_CONFIG_LEVEL_XDG, repo, FALSE);
-	git_config_add_file_ondisk(config, CGit::GetGitPathStringA(g_Git.GetGitSystemConfig()), GIT_CONFIG_LEVEL_SYSTEM, repo, FALSE);
+	wil::unique_git_config config;
+	git_config_new(config.put());
+	const wil::unique_git_repository repo = g_Git.GetGitRepository();
+	git_config_add_file_ondisk(config.get(), CGit::GetGitPathStringA(g_Git.GetGitLocalConfig()), GIT_CONFIG_LEVEL_LOCAL, repo.get(), FALSE);
+	git_config_add_file_ondisk(config.get(), CGit::GetGitPathStringA(g_Git.GetGitGlobalConfig()), GIT_CONFIG_LEVEL_GLOBAL, repo.get(), FALSE);
+	git_config_add_file_ondisk(config.get(), CGit::GetGitPathStringA(g_Git.GetGitGlobalXDGConfig()), GIT_CONFIG_LEVEL_XDG, repo.get(), FALSE);
+	git_config_add_file_ondisk(config.get(), CGit::GetGitPathStringA(g_Git.GetGitSystemConfig()), GIT_CONFIG_LEVEL_SYSTEM, repo.get(), FALSE);
 
 	std::vector<std::wstring> list;
-	git_config_foreach_match(config, "credential\\..*", GetCredentialAnyEntryCallback, &list);
+	git_config_foreach_match(config.get(), "credential\\..*", GetCredentialAnyEntryCallback, &list);
 	for (size_t i = 0; i < list.size(); ++i)
 	{
 		int pos = 0;
@@ -810,8 +813,9 @@ void CSettingGitCredential::OnBnClickedButtonRemove()
 		msg.Format(IDS_WARN_REMOVE, static_cast<LPCWSTR>(str));
 		if (CMessageBox::Show(GetSafeHwnd(), msg, L"TortoiseGit", MB_YESNO | MB_ICONQUESTION) == IDYES)
 		{
-			CAutoConfig config(true);
-			CAutoRepository repo(g_Git.GetGitRepository());
+			wil::unique_git_config config;
+			git_config_new(config.put());
+			const wil::unique_git_repository repo(g_Git.GetGitRepository());
 			int pos = str.Find(L':');
 			CString prefix = pos >= 0 ? str.Left(pos) : str;
 			CString url = pos >= 0 ? str.Mid(pos + 1) : CString();
@@ -821,15 +825,15 @@ void CSettingGitCredential::OnBnClickedButtonRemove()
 			case L'L':
 				{
 				configLevel = CONFIG_LOCAL;
-				git_config_add_file_ondisk(config, CGit::GetGitPathStringA(g_Git.GetGitLocalConfig()), GIT_CONFIG_LEVEL_LOCAL, repo, FALSE);
+				git_config_add_file_ondisk(config.get(), CGit::GetGitPathStringA(g_Git.GetGitLocalConfig()), GIT_CONFIG_LEVEL_LOCAL, repo.get(), FALSE);
 				break;
 				}
 			case L'G':
 			case L'X':
 				{
 				configLevel = CONFIG_GLOBAL;
-				git_config_add_file_ondisk(config, CGit::GetGitPathStringA(g_Git.GetGitGlobalConfig()), GIT_CONFIG_LEVEL_GLOBAL, repo, FALSE);
-				git_config_add_file_ondisk(config, CGit::GetGitPathStringA(g_Git.GetGitGlobalXDGConfig()), GIT_CONFIG_LEVEL_XDG, repo, FALSE);
+				git_config_add_file_ondisk(config.get(), CGit::GetGitPathStringA(g_Git.GetGitGlobalConfig()), GIT_CONFIG_LEVEL_GLOBAL, repo.get(), FALSE);
+				git_config_add_file_ondisk(config.get(), CGit::GetGitPathStringA(g_Git.GetGitGlobalXDGConfig()), GIT_CONFIG_LEVEL_XDG, repo.get(), FALSE);
 				break;
 				}
 			case L'P':
@@ -841,7 +845,7 @@ void CSettingGitCredential::OnBnClickedButtonRemove()
 					return;
 				}
 				configLevel = CONFIG_SYSTEM;
-				git_config_add_file_ondisk(config, CGit::GetGitPathStringA(g_Git.GetGitSystemConfig()), GIT_CONFIG_LEVEL_SYSTEM, repo, FALSE);
+				git_config_add_file_ondisk(config.get(), CGit::GetGitPathStringA(g_Git.GetGitSystemConfig()), GIT_CONFIG_LEVEL_SYSTEM, repo.get(), FALSE);
 				break;
 				}
 			}
@@ -849,7 +853,7 @@ void CSettingGitCredential::OnBnClickedButtonRemove()
 			std::vector<std::wstring> list;
 			CStringA urlA = CUnicodeUtils::GetUTF8<CStringA>(url);
 			CStringA pattern = urlA.IsEmpty() ? CStringA("^credential\\.[^.]+$") : ("credential\\." + RegexEscape(urlA) + "\\..*");
-			git_config_foreach_match(config, pattern, GetCredentialEntryCallback, &list);
+			git_config_foreach_match(config.get(), pattern, GetCredentialEntryCallback, &list);
 			for (size_t i = 0; i < list.size(); ++i)
 				g_Git.UnsetConfigValue(list[i].c_str(), configLevel);
 			m_ctrlUrlList.DeleteString(index);

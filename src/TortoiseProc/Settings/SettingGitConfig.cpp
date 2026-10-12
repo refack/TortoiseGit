@@ -151,9 +151,9 @@ BOOL CSettingGitConfig::OnInitDialog()
 }
 // CSettingGitConfig message handlers
 
-void CSettingGitConfig::LoadDataImpl(CAutoConfig& config)
+void CSettingGitConfig::LoadDataImpl(wil::unique_git_config& config)
 {
-	m_bInheritSigningKey = (config.GetString(L"user.signingkey", m_UserSigningKey) == GIT_ENOTFOUND);
+	m_bInheritSigningKey = (TGitH::GetConfigString(config.get(), L"user.signingkey", m_UserSigningKey) == GIT_ENOTFOUND);
 
 	// special handling for UserName and UserEmail, because these can also be defined as environment variables for effective settings
 	if (m_iConfigSource == CFG_SRC_EFFECTIVE)
@@ -166,19 +166,19 @@ void CSettingGitConfig::LoadDataImpl(CAutoConfig& config)
 	}
 	else
 	{
-		m_bInheritUserName = (config.GetString(L"user.name", m_UserName) == GIT_ENOTFOUND);
-		m_bInheritEmail = (config.GetString(L"user.email", m_UserEmail) == GIT_ENOTFOUND);
+		m_bInheritUserName = (TGitH::GetConfigString(config.get(), L"user.name", m_UserName) == GIT_ENOTFOUND);
+		m_bInheritEmail = (TGitH::GetConfigString(config.get(), L"user.email", m_UserEmail) == GIT_ENOTFOUND);
 	}
 
 	BOOL bAutoCrLf = FALSE;
-	if (git_config_get_bool(&bAutoCrLf, config, "core.autocrlf") == GIT_ENOTFOUND)
+	if (git_config_get_bool(&bAutoCrLf, config.get(), "core.autocrlf") == GIT_ENOTFOUND)
 		m_cAutoCrLf.SetCurSel(0);
 	else if (bAutoCrLf)
 		m_cAutoCrLf.SetCurSel(2);
 	else
 	{
 		CString sAutoCrLf;
-		config.GetString(L"core.autocrlf", sAutoCrLf);
+		TGitH::GetConfigString(config.get(), L"core.autocrlf", sAutoCrLf);
 		sAutoCrLf = sAutoCrLf.MakeLower().Trim();
 		if (sAutoCrLf == L"input")
 			m_cAutoCrLf.SetCurSel(3);
@@ -186,7 +186,7 @@ void CSettingGitConfig::LoadDataImpl(CAutoConfig& config)
 			m_cAutoCrLf.SetCurSel(1);
 	}
 
-	if (git_config_get_bool(&m_bQuotePath, config, "core.quotepath") == GIT_ENOTFOUND)
+	if (git_config_get_bool(&m_bQuotePath, config.get(), "core.quotepath") == GIT_ENOTFOUND)
 	{
 		if (m_iConfigSource == CFG_SRC_EFFECTIVE)
 			m_bQuotePath = BST_CHECKED;
@@ -194,7 +194,7 @@ void CSettingGitConfig::LoadDataImpl(CAutoConfig& config)
 			m_bQuotePath = BST_INDETERMINATE;
 	}
 
-	if (git_config_get_bool(&m_bPrune, config, "fetch.prune") == GIT_ENOTFOUND)
+	if (git_config_get_bool(&m_bPrune, config.get(), "fetch.prune") == GIT_ENOTFOUND)
 	{
 		if (m_iConfigSource == CFG_SRC_EFFECTIVE)
 			m_bPrune = BST_UNCHECKED;
@@ -203,14 +203,14 @@ void CSettingGitConfig::LoadDataImpl(CAutoConfig& config)
 	}
 
 	BOOL bSafeCrLf = FALSE;
-	if (git_config_get_bool(&bSafeCrLf, config, "core.safecrlf") == GIT_ENOTFOUND)
+	if (git_config_get_bool(&bSafeCrLf, config.get(), "core.safecrlf") == GIT_ENOTFOUND)
 		m_cSafeCrLf.SetCurSel(0);
 	else if (bSafeCrLf)
 		m_cSafeCrLf.SetCurSel(2);
 	else
 	{
 		CString sSafeCrLf;
-		config.GetString(L"core.safecrlf", sSafeCrLf);
+		TGitH::GetConfigString(config.get(), L"core.safecrlf", sSafeCrLf);
 		sSafeCrLf = sSafeCrLf.MakeLower().Trim();
 		if (sSafeCrLf == L"warn")
 			m_cSafeCrLf.SetCurSel(3);
@@ -251,34 +251,34 @@ void CSettingGitConfig::OnChange()
 	SetModified();
 }
 
-BOOL CSettingGitConfig::SafeDataImpl(CAutoConfig& config)
+BOOL CSettingGitConfig::SafeDataImpl(wil::unique_git_config& config)
 {
-	if (!Save(config, L"user.name", m_UserName, m_bInheritUserName == TRUE))
+	if (!Save(config.get(), L"user.name", m_UserName, m_bInheritUserName == TRUE))
 		return FALSE;
 
-	if (!Save(config, L"user.email", m_UserEmail, m_bInheritEmail == TRUE))
+	if (!Save(config.get(), L"user.email", m_UserEmail, m_bInheritEmail == TRUE))
 		return FALSE;
 
-	if (!Save(config, L"user.signingkey", this->m_UserSigningKey, m_bInheritSigningKey == TRUE))
+	if (!Save(config.get(), L"user.signingkey", this->m_UserSigningKey, m_bInheritSigningKey == TRUE))
 		return FALSE;
 
-	if (!Save(config, L"core.quotepath", m_bQuotePath ? L"true" : L"false", m_bQuotePath == BST_INDETERMINATE))
+	if (!Save(config.get(), L"core.quotepath", m_bQuotePath ? L"true" : L"false", m_bQuotePath == BST_INDETERMINATE))
 		return FALSE;
 
-	if (!Save(config, L"fetch.prune", m_bPrune ? L"true" : L"false", m_bPrune == BST_INDETERMINATE))
+	if (!Save(config.get(), L"fetch.prune", m_bPrune ? L"true" : L"false", m_bPrune == BST_INDETERMINATE))
 		return FALSE;
 
 	{
 		CString autocrlf;
 		m_cAutoCrLf.GetWindowText(autocrlf);
-		if (!Save(config, L"core.autocrlf", autocrlf, autocrlf.IsEmpty()))
+		if (!Save(config.get(), L"core.autocrlf", autocrlf, autocrlf.IsEmpty()))
 			return FALSE;
 	}
 
 	{
 		CString safecrlf;
 		this->m_cSafeCrLf.GetWindowText(safecrlf);
-		if (!Save(config, L"core.safecrlf", safecrlf, safecrlf.IsEmpty()))
+		if (!Save(config.get(), L"core.safecrlf", safecrlf, safecrlf.IsEmpty()))
 			return FALSE;
 	}
 

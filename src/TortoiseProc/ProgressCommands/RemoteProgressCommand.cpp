@@ -71,12 +71,12 @@ int RemoteProgressCommand::RemoteUpdatetipsCallback(const char* refname, const g
 					change.Format(IDS_REWINDN, behind);
 				else
 				{
-					CAutoCommit oldCommit, newCommit;
+					wil::unique_git_commit oldCommit, newCommit;
 					git_time_t oldTime = 0, newTime = 0;
-					if (!git_commit_lookup(oldCommit.GetPointer(), ptr->repo, oldOid))
-						oldTime = git_commit_committer(oldCommit)->when.time;
-					if (!git_commit_lookup(newCommit.GetPointer(), ptr->repo, newOid))
-						newTime = git_commit_committer(newCommit)->when.time;
+					if (!git_commit_lookup(oldCommit.put(), ptr->repo, oldOid))
+						oldTime = git_commit_committer(oldCommit.get())->when.time;
+					if (!git_commit_lookup(newCommit.put(), ptr->repo, newOid))
+						newTime = git_commit_committer(newCommit.get())->when.time;
 					if (oldTime < newTime)
 						change.LoadString(IDS_SUBMODULEDIFF_NEWERTIME);
 					else if (oldTime > newTime)

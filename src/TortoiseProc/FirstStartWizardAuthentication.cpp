@@ -96,10 +96,11 @@ BOOL CFirstStartWizardAuthentication::OnWizardFinish()
 
 	if (m_ctrlSimpleCredential.IsWindowEnabled() && !m_bNoSave && m_ctrlSimpleCredential.GetCurSel() != -1)
 	{
-		CAutoConfig config(true);
-		int err = git_config_add_file_ondisk(config, CGit::GetGitPathStringA(g_Git.GetGitGlobalXDGConfig()), GIT_CONFIG_LEVEL_XDG, nullptr, FALSE);
+		wil::unique_git_config config;
+		git_config_new(config.put());
+		int err = git_config_add_file_ondisk(config.get(), CGit::GetGitPathStringA(g_Git.GetGitGlobalXDGConfig()), GIT_CONFIG_LEVEL_XDG, nullptr, FALSE);
 		if (!err && (PathFileExists(g_Git.GetGitGlobalConfig()) || !PathFileExists(g_Git.GetGitGlobalXDGConfig())))
-			err = git_config_add_file_ondisk(config, CGit::GetGitPathStringA(g_Git.GetGitGlobalConfig()), GIT_CONFIG_LEVEL_GLOBAL, nullptr, FALSE);
+			err = git_config_add_file_ondisk(config.get(), CGit::GetGitPathStringA(g_Git.GetGitGlobalConfig()), GIT_CONFIG_LEVEL_GLOBAL, nullptr, FALSE);
 		if (err)
 		{
 			MessageBox(TGitH::GetLibGit2LastErr(), L"TortoiseGit", MB_ICONEXCLAMATION);
@@ -108,14 +109,14 @@ BOOL CFirstStartWizardAuthentication::OnWizardFinish()
 
 		if (m_ctrlSimpleCredential.GetCurSel() == 0 && m_availableHelpers.at(0) == tgit::str::StringView(CString(MAKEINTRESOURCE(IDS_NONE))))
 		{
-			int ret = git_config_delete_entry(config, "credential.helper");
+			int ret = git_config_delete_entry(config.get(), "credential.helper");
 			if (ret != 0 && ret != GIT_ENOTFOUND)
 			{
 				MessageBox(TGitH::GetLibGit2LastErr(), L"TortoiseGit", MB_ICONEXCLAMATION);
 				return FALSE;
 			}
 		}
-		else if (git_config_set_string(config, "credential.helper", CUnicodeUtils::StdGetUTF8(m_availableHelpers.at(m_ctrlSimpleCredential.GetCurSel())).c_str()))
+		else if (git_config_set_string(config.get(), "credential.helper", CUnicodeUtils::StdGetUTF8(m_availableHelpers.at(m_ctrlSimpleCredential.GetCurSel())).c_str()))
 		{
 			MessageBox(TGitH::GetLibGit2LastErr(), L"TortoiseGit", MB_ICONEXCLAMATION);
 			return FALSE;
@@ -141,24 +142,25 @@ BOOL CFirstStartWizardAuthentication::OnInitDialog()
 	tmp.LoadString(IDS_FIRSTSTART_SSHHINT);
 	GetDlgItem(IDC_FIRSTSTART_SSHHINT)->SetWindowText(tmp);
 
-	CAutoConfig config(true);
-	if (git_config_add_file_ondisk(config, CGit::GetGitPathStringA(g_Git.GetGitGlobalConfig()), GIT_CONFIG_LEVEL_GLOBAL, nullptr, FALSE))
+	wil::unique_git_config config;
+	git_config_new(config.put());
+	if (git_config_add_file_ondisk(config.get(), CGit::GetGitPathStringA(g_Git.GetGitGlobalConfig()), GIT_CONFIG_LEVEL_GLOBAL, nullptr, FALSE))
 		MessageBox(TGitH::GetLibGit2LastErr(), L"TortoiseGit", MB_ICONEXCLAMATION);
 	else
 	{
-		if (git_config_add_file_ondisk(config, CGit::GetGitPathStringA(g_Git.GetGitGlobalXDGConfig()), GIT_CONFIG_LEVEL_XDG, nullptr, FALSE))
+		if (git_config_add_file_ondisk(config.get(), CGit::GetGitPathStringA(g_Git.GetGitGlobalXDGConfig()), GIT_CONFIG_LEVEL_XDG, nullptr, FALSE))
 			MessageBox(TGitH::GetLibGit2LastErr(), L"TortoiseGit", MB_ICONEXCLAMATION);
 	}
-	if (git_config_add_file_ondisk(config, CGit::GetGitPathStringA(g_Git.GetGitSystemConfig()), GIT_CONFIG_LEVEL_SYSTEM, nullptr, FALSE))
+	if (git_config_add_file_ondisk(config.get(), CGit::GetGitPathStringA(g_Git.GetGitSystemConfig()), GIT_CONFIG_LEVEL_SYSTEM, nullptr, FALSE))
 		MessageBox(TGitH::GetLibGit2LastErr(), L"TortoiseGit", MB_ICONEXCLAMATION);
 
 	std::vector<std::wstring> defaultList;
-	git_config_foreach_match(config, "credential\\.helper", CSettingGitCredential::GetCredentialDefaultUrlCallback, &defaultList);
+	git_config_foreach_match(config.get(), "credential\\.helper", CSettingGitCredential::GetCredentialDefaultUrlCallback, &defaultList);
 
 	if (defaultList.size() <= 1 && (defaultList.empty() || defaultList.at(0)[0] == 'X' || defaultList.at(0)[0] == 'G'))
 		AddHelper(m_ctrlSimpleCredential, m_availableHelpers, MAKEINTRESOURCE(IDS_NONE));
 	CString selectedHelper;
-	if (config.GetString(L"credential.helper", selectedHelper) == GIT_ENOTFOUND)
+	if (TGitH::GetConfigString(config.get(), L"credential.helper", selectedHelper) == GIT_ENOTFOUND)
 		m_ctrlSimpleCredential.SetCurSel(0);
 
 	if (CSettingGitCredential::GCMCoreExists())
@@ -171,7 +173,7 @@ BOOL CFirstStartWizardAuthentication::OnInitDialog()
 		AddHelper(m_ctrlSimpleCredential, m_availableHelpers, CSettingGitCredential::GetWinstorePath(), selectedHelper);
 
 	std::vector<std::wstring> urlList;
-	git_config_foreach_match(config, "credential\\..*\\.helper", CSettingGitCredential::GetCredentialUrlCallback, &urlList);
+	git_config_foreach_match(config.get(), "credential\\..*\\.helper", CSettingGitCredential::GetCredentialUrlCallback, &urlList);
 	if (!urlList.empty() || m_ctrlSimpleCredential.GetCurSel() == -1)
 	{
 		m_ctrlSimpleCredential.EnableWindow(FALSE);

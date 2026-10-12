@@ -38,19 +38,19 @@ bool ResetProgressCommand::Run(CGitProgressList* list, CString& sWindowTitle, in
 	list->ReportCmd(CString(MAKEINTRESOURCE(IDS_PROGRS_TITLE_RESET)) + L' ' + CString(MAKEINTRESOURCE(resetTypesResource[m_resetType])) + L' ' + m_revision);
 
 	list->ShowProgressBar();
-	CAutoRepository repo(g_Git.GetGitRepository());
+	const wil::unique_git_repository repo(g_Git.GetGitRepository());
 	if (!repo)
 	{
 		list->ReportGitError();
 		return false;
 	}
 
-	CGitProgressList::Payload cbpayload = { list, repo };
+	CGitProgressList::Payload cbpayload = { list, repo.get() };
 	git_checkout_options checkout_options = GIT_CHECKOUT_OPTIONS_INIT;
 
 	CBlockCacheForPath block(g_Git.m_CurrentDir);
-	CAutoObject target;
-	if (git_revparse_single(target.GetPointer(), repo, CUnicodeUtils::GetUTF8<CStringA>(m_revision)))
+	wil::unique_git_object target;
+	if (git_revparse_single(target.put(), repo.get(), CUnicodeUtils::GetUTF8<CStringA>(m_revision)))
 		goto error;
 	checkout_options.progress_payload = &cbpayload;
 	checkout_options.progress_cb = [](const char*, size_t completed_steps, size_t total_steps, void* payload)
@@ -76,7 +76,7 @@ bool ResetProgressCommand::Run(CGitProgressList* list, CString& sWindowTitle, in
 	};
 	checkout_options.notify_flags = GIT_CHECKOUT_NOTIFY_UPDATED;
 	checkout_options.notify_payload = list;
-	if (git_reset(repo, target, static_cast<git_reset_t>(m_resetType + 1), &checkout_options))
+	if (git_reset(repo.get(), target.get(), static_cast<git_reset_t>(m_resetType + 1), &checkout_options))
 		goto error;
 
 	// Not setting m_PostCmdCallback here, as clone is only called from AppUtils.cpp

@@ -78,14 +78,14 @@ static int SubmoduleCallback(git_submodule *sm, const char * /*name*/, void *pay
 
 static bool GetSubmodulePathList(SubmodulePayload &payload)
 {
-	CAutoRepository repo(payload.basePath);
+	const wil::unique_git_repository repo = TGitH::OpenGitRepository(tgit::str::StringView{ payload.basePath });
 	if (!repo)
 	{
 		// Silence the warning message, submodule may not be initialized yet.
 		return false;
 	}
 
-	if (git_submodule_foreach(repo, SubmoduleCallback, &payload))
+	if (git_submodule_foreach(repo.get(), SubmoduleCallback, &payload))
 	{
 		MessageBox(GetExplorerHWND(), TGitH::GetLibGit2LastErr(L"Could not get submodule list."), L"TortoiseGit", MB_ICONERROR);
 		return false;

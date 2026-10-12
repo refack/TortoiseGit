@@ -38,19 +38,19 @@ bool FetchProgressCommand::Run(CGitProgressList* list, CString& sWindowTitle, in
 
 	CSmartAnimation animate(list->m_pAnimate);
 
-	CAutoRepository repo(g_Git.GetGitRepository());
+	const wil::unique_git_repository repo(g_Git.GetGitRepository());
 	if (!repo)
 	{
 		list->ReportGitError();
 		return false;
 	}
 
-	CAutoRemote remote;
+	wil::unique_git_remote remote;
 	// first try with a named remote (e.g. "origin")
-	if (git_remote_lookup(remote.GetPointer(), repo, url) < 0)
+	if (git_remote_lookup(remote.put(), repo.get(), url) < 0)
 	{
 		// retry with repository located at a specific url
-		if (git_remote_create_anonymous(remote.GetPointer(), repo, url) < 0)
+		if (git_remote_create_anonymous(remote.put(), repo.get(), url) < 0)
 		{
 			list->ReportGitError();
 			return false;
@@ -68,13 +68,13 @@ bool FetchProgressCommand::Run(CGitProgressList* list, CString& sWindowTitle, in
 	callbacks.completion = RemoteCompletionCallback;
 	callbacks.credentials = CAppUtils::Git2GetUserPassword;
 	callbacks.certificate_check = CAppUtils::Git2CertificateCheck;
-	CGitProgressList::Payload cbpayload = { list, repo };
+	CGitProgressList::Payload cbpayload = { list, repo.get() };
 	callbacks.payload = &cbpayload;
 
-	if (!m_RefSpec.IsEmpty() && git_remote_add_fetch(repo, git_remote_name(remote), CUnicodeUtils::GetUTF8<CStringA>(m_RefSpec)))
+	if (!m_RefSpec.IsEmpty() && git_remote_add_fetch(repo.get(), git_remote_name(remote.get()), CUnicodeUtils::GetUTF8<CStringA>(m_RefSpec)))
 		goto error;
 
-	if (git_remote_fetch(remote, nullptr, &fetchopts, nullptr) < 0)
+	if (git_remote_fetch(remote.get(), nullptr, &fetchopts, nullptr) < 0)
 		goto error;
 
 	// Not setting m_PostCmdCallback here, as clone is only called from AppUtils.cpp

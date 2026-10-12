@@ -122,8 +122,9 @@ bool CHooks::Save()
 		return true;
 
 	// load the .tgitconfig file
-	CAutoConfig gitconfig(true);
-	git_config_add_file_ondisk(gitconfig, CGit::GetGitPathStringA(g_Git.CombinePath(L".tgitconfig")), GIT_CONFIG_LEVEL_LOCAL, nullptr, FALSE); // this needs to have the second highest priority
+	wil::unique_git_config gitconfig;
+	git_config_new(gitconfig.put());
+	git_config_add_file_ondisk(gitconfig.get(), CGit::GetGitPathStringA(g_Git.CombinePath(L".tgitconfig")), GIT_CONFIG_LEVEL_LOCAL, nullptr, FALSE); // this needs to have the second highest priority
 
 	// delete all existing local hooks
 	for (const auto& hook : { PROJECTPROPNAME_STARTCOMMITHOOK, PROJECTPROPNAME_PRECOMMITHOOK, PROJECTPROPNAME_POSTCOMMITHOOK, PROJECTPROPNAME_PREPUSHHOOK, PROJECTPROPNAME_POSTPUSHHOOK, PROJECTPROPNAME_PREREBASEHOOK })
@@ -131,7 +132,7 @@ bool CHooks::Save()
 		CStringA hookA = CUnicodeUtils::Convert2Multibyte<CStringA>(hook);
 		for (const auto& val : { "cmdline", "wait", "show" })
 		{
-			git_config_delete_entry(gitconfig, hookA + val);
+			git_config_delete_entry(gitconfig.get(), hookA + val);
 		}
 	}
 
@@ -163,9 +164,9 @@ bool CHooks::Save()
 			sHookPropName = CUnicodeUtils::Convert2Multibyte<CStringA>(PROJECTPROPNAME_PREREBASEHOOK);
 			break;
 		}
-		git_config_set_string(gitconfig, sHookPropName + "cmdline", CUnicodeUtils::GetUTF8<CStringA>(hook.second.commandline));
-		git_config_set_bool(gitconfig, sHookPropName + "wait", hook.second.bWait);
-		git_config_set_bool(gitconfig, sHookPropName + "show", hook.second.bShow);
+		git_config_set_string(gitconfig.get(), sHookPropName + "cmdline", CUnicodeUtils::GetUTF8<CStringA>(hook.second.commandline));
+		git_config_set_bool(gitconfig.get(), sHookPropName + "wait", hook.second.bWait);
+		git_config_set_bool(gitconfig.get(), sHookPropName + "show", hook.second.bShow);
 
 		CRegDWORD reg(hook.second.sRegKey);
 		if (!hook.second.bEnabled)

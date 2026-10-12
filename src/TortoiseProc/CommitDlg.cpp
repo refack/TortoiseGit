@@ -1099,7 +1099,7 @@ void CCommitDlg::PrepareIndexForCommitWithoutStagingSupport(int nListItems, bool
 		bAddSuccess = false;
 		do
 		{
-			CAutoRepository repository(g_Git.GetGitRepository());
+			const wil::unique_git_repository repository(g_Git.GetGitRepository());
 			if (!repository)
 			{
 				CMessageBox::Show(GetSafeHwnd(), TGitH::GetLibGit2LastErr(L"Could not open repository."), L"TortoiseGit", MB_OK | MB_ICONERROR);
@@ -1110,35 +1110,35 @@ void CCommitDlg::PrepareIndexForCommitWithoutStagingSupport(int nListItems, bool
 			CString revRef = L"HEAD";
 			if (m_bCommitAmend && !m_bAmendDiffToLastCommit)
 				revRef = L"HEAD~1";
-			if (CGit::GetHash(repository, revHash, revRef))
+			if (CGit::GetHash(repository.get(), revHash, revRef))
 			{
 				MessageBox(TGitH::GetLibGit2LastErr(L"Could not get HEAD hash after committing."), L"TortoiseGit", MB_ICONERROR);
 				break;
 			}
 
-			CAutoCommit commit;
-			if (!revHash.IsEmpty() && git_commit_lookup(commit.GetPointer(), repository, revHash))
+			wil::unique_git_commit commit;
+			if (!revHash.IsEmpty() && git_commit_lookup(commit.put(), repository.get(), revHash))
 			{
 				CMessageBox::Show(GetSafeHwnd(), TGitH::GetLibGit2LastErr(L"Could not get last commit."), L"TortoiseGit", MB_OK | MB_ICONERROR);
 				break;
 			}
 
-			CAutoTree tree;
-			if (!revHash.IsEmpty() && git_commit_tree(tree.GetPointer(), commit))
+			wil::unique_git_tree tree;
+			if (!revHash.IsEmpty() && git_commit_tree(tree.put(), commit.get()))
 			{
 				CMessageBox::Show(GetSafeHwnd(), TGitH::GetLibGit2LastErr(L"Could not read tree of commit."), L"TortoiseGit", MB_OK | MB_ICONERROR);
 				break;
 			}
 
-			CAutoIndex index;
-			if (git_repository_index(index.GetPointer(), repository))
+			wil::unique_git_index index;
+			if (git_repository_index(index.put(), repository.get()))
 			{
 				CMessageBox::Show(GetSafeHwnd(), TGitH::GetLibGit2LastErr(L"Could not get the repository index."), L"TortoiseGit", MB_OK | MB_ICONERROR);
 				break;
 			}
 
-			CAutoIndex indexOld;
-			if (!revHash.IsEmpty() && (git_index_new(indexOld.GetPointer(), nullptr) || git_index_read_tree(indexOld, tree)))
+			wil::unique_git_index indexOld;
+			if (!revHash.IsEmpty() && (git_index_new(indexOld.put(), nullptr) || git_index_read_tree(indexOld.get(), tree.get())))
 			{
 				CMessageBox::Show(GetSafeHwnd(), TGitH::GetLibGit2LastErr(L"Could not read the tree into the index."), L"TortoiseGit", MB_OK | MB_ICONERROR);
 				break;
@@ -1166,10 +1166,10 @@ void CCommitDlg::PrepareIndexForCommitWithoutStagingSupport(int nListItems, bool
 				if (entry->m_Checked && !m_bCommitMessageOnly)
 				{
 					if (entry->m_Action & CTGitPath::LOGACTIONS_DELETED)
-						git_index_remove_bypath(index, filePathA); // ignore error
+						git_index_remove_bypath(index.get(), filePathA); // ignore error
 					else
 					{
-						if (git_index_add_bypath(index, filePathA))
+						if (git_index_add_bypath(index.get(), filePathA))
 						{
 							bAddSuccess = false;
 							CMessageBox::Show(GetSafeHwnd(), TGitH::GetLibGit2LastErr(std::format(L"Could not add \"{}\" to index.", entry->GetGitPathString()).c_str()), L"TortoiseGit", MB_OK | MB_ICONERROR);
@@ -1178,7 +1178,7 @@ void CCommitDlg::PrepareIndexForCommitWithoutStagingSupport(int nListItems, bool
 					}
 
 					if ((entry->m_Action & CTGitPath::LOGACTIONS_REPLACED) && !entry->GetGitOldPathString().empty())
-						git_index_remove_bypath(index, CUnicodeUtils::Convert2Multibyte<CStringA>(entry->GetGitOldPathString().c_str())); // ignore error
+						git_index_remove_bypath(index.get(), CUnicodeUtils::Convert2Multibyte<CStringA>(entry->GetGitOldPathString().c_str())); // ignore error
 
 					++nchecked;
 				}
@@ -1186,13 +1186,13 @@ void CCommitDlg::PrepareIndexForCommitWithoutStagingSupport(int nListItems, bool
 				{
 					if (entry->m_Action & CTGitPath::LOGACTIONS_ADDED || entry->m_Action & CTGitPath::LOGACTIONS_REPLACED)
 					{
-						git_index_remove_bypath(index, filePathA); // ignore error
+						git_index_remove_bypath(index.get(), filePathA); // ignore error
 						mgtReAddAfterCommit.AddFile(*entry);
 
 						if (entry->m_Action & CTGitPath::LOGACTIONS_REPLACED && !entry->GetGitOldPathString().empty())
 						{
 							const git_index_entry* oldIndexEntry = nullptr;
-							if ((oldIndexEntry = git_index_get_bypath(indexOld, CUnicodeUtils::Convert2Multibyte<CStringA>(entry->GetGitOldPathString().c_str()), 0)) == nullptr || git_index_add(index, oldIndexEntry))
+							if ((oldIndexEntry = git_index_get_bypath(indexOld.get(), CUnicodeUtils::Convert2Multibyte<CStringA>(entry->GetGitOldPathString().c_str()), 0)) == nullptr || git_index_add(index.get(), oldIndexEntry))
 							{
 								bAddSuccess = false;
 								CMessageBox::Show(GetSafeHwnd(), TGitH::GetLibGit2LastErr(std::format(L"Could not reset \"{}\" to old index entry.", entry->GetGitOldPathString()).c_str()), L"TortoiseGit", MB_OK | MB_ICONERROR);
@@ -1204,7 +1204,7 @@ void CCommitDlg::PrepareIndexForCommitWithoutStagingSupport(int nListItems, bool
 					else if (!(entry->m_Action & CTGitPath::LOGACTIONS_UNVER))
 					{
 						const git_index_entry* oldIndexEntry = nullptr;
-						if ((oldIndexEntry = git_index_get_bypath(indexOld, filePathA, 0)) == nullptr || git_index_add(index, oldIndexEntry))
+						if ((oldIndexEntry = git_index_get_bypath(indexOld.get(), filePathA, 0)) == nullptr || git_index_add(index.get(), oldIndexEntry))
 						{
 							bAddSuccess = false;
 							CMessageBox::Show(GetSafeHwnd(), TGitH::GetLibGit2LastErr(std::format(L"Could not reset \"{}\" to old index entry.", entry->GetGitPathString()).c_str()), L"TortoiseGit", MB_OK | MB_ICONERROR);
@@ -1221,7 +1221,7 @@ void CCommitDlg::PrepareIndexForCommitWithoutStagingSupport(int nListItems, bool
 					break;
 				}
 			}
-			if (bAddSuccess && git_index_write(index))
+			if (bAddSuccess && git_index_write(index.get()))
 				bAddSuccess = false;
 
 			for (int j = 0; bAddSuccess && j < nListItems; ++j)

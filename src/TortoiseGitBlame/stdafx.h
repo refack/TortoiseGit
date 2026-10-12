@@ -45,7 +45,7 @@ using std::min;
 import DebugOutput;
 #include <Utils/scope_exit_noexcept.h>
 import RIAA;
-import wil_git2;
+import wil;		// the libgit2 owners (wil::unique_git_*)
 import str_utils;	// CUnicodeUtils, StringUtils, tgit::str (were UnicodeUtils.h/StringUtils.h)
 
 #ifdef _UNICODE

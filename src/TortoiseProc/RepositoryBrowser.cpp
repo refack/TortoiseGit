@@ -407,14 +407,14 @@ int CRepositoryBrowser::ReadTreeRecursive(git_repository& repo, const git_tree* 
 			base.ReleaseBuffer();
 			if (recursive)
 			{
-				CAutoTree subtree;
-				if (git_tree_lookup(subtree.GetPointer(), &repo, oid))
+				wil::unique_git_tree subtree;
+				if (git_tree_lookup(subtree.put(), &repo, oid))
 				{
 					MessageBox(TGitH::GetLibGit2LastErr(L"Could not lookup path."), L"TortoiseGit", MB_ICONERROR);
 					return -1;
 				}
 
-				ReadTreeRecursive(repo, subtree, pNextTree, recursive);
+				ReadTreeRecursive(repo, subtree.get(), pNextTree, recursive);
 			}
 		}
 		else
@@ -423,12 +423,12 @@ int CRepositoryBrowser::ReadTreeRecursive(git_repository& repo, const git_tree* 
 				pNextTree->m_bExecutable = true;
 			if (mode == GIT_FILEMODE_LINK)
 				pNextTree->m_bSymlink = true;
-			CAutoBlob blob;
-			git_blob_lookup(blob.GetPointer(), &repo, oid);
+			wil::unique_git_blob blob;
+			git_blob_lookup(blob.put(), &repo, oid);
 			if (!blob)
 				continue;
 
-			pNextTree->m_iSize = git_blob_rawsize(blob);
+			pNextTree->m_iSize = git_blob_rawsize(blob.get());
 		}
 	}
 
@@ -447,7 +447,7 @@ int CRepositoryBrowser::ReadTreeRecursive(git_repository& repo, const git_tree* 
 int CRepositoryBrowser::ReadTree(CShadowFilesTree* treeroot, const CString& root, bool recursive)
 {
 	CWaitCursor wait;
-	CAutoRepository repository(g_Git.GetGitRepository());
+	const wil::unique_git_repository repository(g_Git.GetGitRepository());
 	if (!repository)
 	{
 		MessageBox(TGitH::GetLibGit2LastErr(L"Could not open repository."), L"TortoiseGit", MB_ICONERROR);
@@ -456,7 +456,7 @@ int CRepositoryBrowser::ReadTree(CShadowFilesTree* treeroot, const CString& root
 
 	if (m_sRevision == L"HEAD")
 	{
-		int ret = git_repository_head_unborn(repository);
+		int ret = git_repository_head_unborn(repository.get());
 		if (ret == 1)	// is orphan
 			return ret;
 		else if (ret != 0)
@@ -467,31 +467,38 @@ int CRepositoryBrowser::ReadTree(CShadowFilesTree* treeroot, const CString& root
 	}
 
 	CGitHash hash;
-	if (CGit::GetHash(repository, hash, m_sRevision + L"^{}")) // add ^{} in order to dereference signed tags
+	if (CGit::GetHash(repository.get(), hash, m_sRevision + L"^{}")) // add ^{} in order to dereference signed tags
 	{
 		MessageBox(TGitH::GetLibGit2LastErr(L"Could not get hash of \"" + m_sRevision + L"^{}\"."), L"TortoiseGit", MB_ICONERROR);
 		return -1;
 	}
 
-	CAutoObject object;
-	if (git_object_lookup(object.GetPointer(), repository, hash, GIT_OBJECT_ANY) < 0)
+	wil::unique_git_object object;
+	if (git_object_lookup(object.put(), repository.get(), hash, GIT_OBJECT_ANY) < 0)
 	{
 		MessageBox(TGitH::GetLibGit2LastErr(L"Could not lookup object."), L"TortoiseGit", MB_ICONERROR);
 		return -1;
 	}
 
-	CAutoTree tree;
-	if (git_object_type(object) == GIT_OBJECT_COMMIT)
+	// What CAutoTree::ConvertFrom did: take over a git_object known to be a tree.
+	const auto takeTree = [](wil::unique_git_tree& tree, wil::unique_git_object&& object) {
+		if (tree.get() != reinterpret_cast<git_tree*>(object.get()))
+			tree.reset(reinterpret_cast<git_tree*>(object.release()));
+	};
+
+	wil::unique_git_tree tree;
+	if (git_object_type(object.get()) == GIT_OBJECT_COMMIT)
 	{
-		CAutoCommit commit{ std::move(object) };
-		if (git_commit_tree(tree.GetPointer(), commit))
+		// the object is known to be a commit: ownership moves over as it did in CAutoCommit(CAutoObject&&)
+		const wil::unique_git_commit commit{ reinterpret_cast<git_commit*>(object.release()) };
+		if (git_commit_tree(tree.put(), commit.get()))
 		{
 			MessageBox(TGitH::GetLibGit2LastErr(L"Could not get tree of commit."), L"TortoiseGit", MB_ICONERROR);
 			return -1;
 		}
 	}
-	else if (git_object_type(object) == GIT_OBJECT_TREE)
-		tree.ConvertFrom(std::move(object));
+	else if (git_object_type(object.get()) == GIT_OBJECT_TREE)
+		takeTree(tree, std::move(object));
 	else
 	{
 		MessageBox(TGitH::GetLibGit2LastErr(L"Found unknown object type."), L"TortoiseGit", MB_ICONERROR);
@@ -500,36 +507,36 @@ int CRepositoryBrowser::ReadTree(CShadowFilesTree* treeroot, const CString& root
 
 	if (!root.IsEmpty())
 	{
-		CAutoTreeEntry treeEntry;
-		if (git_tree_entry_bypath(treeEntry.GetPointer(), tree, CUnicodeUtils::GetUTF8<CStringA>(root)))
+		wil::unique_git_tree_entry treeEntry;
+		if (git_tree_entry_bypath(treeEntry.put(), tree.get(), CUnicodeUtils::GetUTF8<CStringA>(root)))
 		{
 			MessageBox(TGitH::GetLibGit2LastErr(L"Could not lookup path."), L"TortoiseGit", MB_ICONERROR);
 			return -1;
 		}
-		if (git_tree_entry_type(treeEntry) != GIT_OBJECT_TREE)
-		{
-			MessageBox(TGitH::GetLibGit2LastErr(L"Could not lookup path."), L"TortoiseGit", MB_ICONERROR);
-			return -1;
-		}
-
-		CAutoObject newTreeObj;
-		if (git_tree_entry_to_object(newTreeObj.GetPointer(), repository, treeEntry))
+		if (git_tree_entry_type(treeEntry.get()) != GIT_OBJECT_TREE)
 		{
 			MessageBox(TGitH::GetLibGit2LastErr(L"Could not lookup path."), L"TortoiseGit", MB_ICONERROR);
 			return -1;
 		}
 
-		tree.ConvertFrom(std::move(newTreeObj));
+		wil::unique_git_object newTreeObj;
+		if (git_tree_entry_to_object(newTreeObj.put(), repository.get(), treeEntry.get()))
+		{
+			MessageBox(TGitH::GetLibGit2LastErr(L"Could not lookup path."), L"TortoiseGit", MB_ICONERROR);
+			return -1;
+		}
+
+		takeTree(tree, std::move(newTreeObj));
 	}
 
-	treeroot->m_hash = git_tree_id(tree);
-	ReadTreeRecursive(*repository, tree, treeroot, recursive);
+	treeroot->m_hash = git_tree_id(tree.get());
+	ReadTreeRecursive(*repository.get(), tree.get(), treeroot, recursive);
 
 	// try to resolve hash to a branch name
 	if (m_sRevision == hash.ToString())
 	{
 		MAP_HASH_NAME map;
-		if (CGit::GetMapHashToFriendName(repository, map))
+		if (CGit::GetMapHashToFriendName(repository.get(), map))
 			MessageBox(TGitH::GetLibGit2LastErr(L"Could not get all refs."), L"TortoiseGit", MB_ICONERROR);
 		if (!map[hash].empty())
 			m_sRevision = map[hash].at(0).c_str();
@@ -1266,9 +1273,9 @@ void CRepositoryBrowser::OpenFile(const CString path, eOpenType mode, bool isSub
 		{
 			CTGitPath subPath = CTGitPath(g_Git.m_CurrentDir.GetString());
 			subPath.AppendPathString(gitPath.GetWinPathString().c_str());
-			CAutoRepository repo(subPath.GetGitPathString().c_str());
-			CAutoCommit commit;
-			if (!repo || git_commit_lookup(commit.GetPointer(), repo, itemHash))
+			const wil::unique_git_repository repo = TGitH::OpenGitRepository(subPath.GetGitPathString());
+			wil::unique_git_commit commit;
+			if (!repo || git_commit_lookup(commit.put(), repo.get(), itemHash))
 			{
 				CString out;
 				out.FormatMessage(IDS_REPOBROWSEASKSUBMODULEUPDATE, (itemHash.ToString()).c_str(), static_cast<LPCWSTR>(gitPath.GetGitPathString().c_str()));

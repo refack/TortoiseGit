@@ -2853,15 +2853,15 @@ void CGitStatusListCtrl::SetGitIndexFlagsForSelectedFiles(UINT message, BOOL ass
 
 	CAutoReadLock locker(m_guard);
 
-	CAutoRepository repository(g_Git.GetGitRepository());
+	const wil::unique_git_repository repository(g_Git.GetGitRepository());
 	if (!repository)
 	{
 		MessageBox(TGitH::GetLibGit2LastErr(), L"TortoiseGit", MB_ICONERROR);
 		return;
 	}
 
-	CAutoIndex gitindex;
-	if (git_repository_index(gitindex.GetPointer(), repository))
+	wil::unique_git_index gitindex;
+	if (git_repository_index(gitindex.put(), repository.get()))
 	{
 		MessageBox(TGitH::GetLibGit2LastErr(), L"TortoiseGit", MB_ICONERROR);
 		return;
@@ -2876,9 +2876,9 @@ void CGitStatusListCtrl::SetGitIndexFlagsForSelectedFiles(UINT message, BOOL ass
 			continue;
 
 		size_t idx;
-		if (!git_index_find(&idx, gitindex, CUnicodeUtils::Convert2Multibyte<CStringA>(path->GetGitPathString().c_str())))
+		if (!git_index_find(&idx, gitindex.get(), CUnicodeUtils::Convert2Multibyte<CStringA>(path->GetGitPathString().c_str())))
 		{
-			git_index_entry *e = const_cast<git_index_entry *>(git_index_get_byindex(gitindex, idx)); // HACK
+			git_index_entry *e = const_cast<git_index_entry *>(git_index_get_byindex(gitindex.get(), idx)); // HACK
 			if (assumevalid == BST_UNCHECKED)
 				e->flags &= ~GIT_INDEX_ENTRY_VALID;
 			else if (assumevalid == BST_CHECKED)
@@ -2887,13 +2887,13 @@ void CGitStatusListCtrl::SetGitIndexFlagsForSelectedFiles(UINT message, BOOL ass
 				e->flags_extended &= ~GIT_INDEX_ENTRY_SKIP_WORKTREE;
 			else if (skipworktree == BST_CHECKED)
 				e->flags_extended |= GIT_INDEX_ENTRY_SKIP_WORKTREE;
-			git_index_add(gitindex, e);
+			git_index_add(gitindex.get(), e);
 		}
 		else
 			MessageBox(TGitH::GetLibGit2LastErr(), L"TortoiseGit", MB_ICONERROR);
 	}
 
-	if (git_index_write(gitindex))
+	if (git_index_write(gitindex.get()))
 	{
 		MessageBox(TGitH::GetLibGit2LastErr(), L"TortoiseGit", MB_ICONERROR);
 		return;
@@ -3993,7 +3993,7 @@ bool CGitStatusListCtrl::PrepareGroups(bool bForce /* = false */)
 			grp.uAlign = LVGA_HEADER_LEFT;
 			InsertGroup(0, &grp);
 
-			CAutoRepository repository(g_Git.GetGitRepository());
+			const wil::unique_git_repository repository(g_Git.GetGitRepository());
 			if (!repository)
 				MessageBox(TGitH::GetLibGit2LastErr(L"Could not open repository."), L"TortoiseGit", MB_OK | MB_ICONERROR);
 			for (groupindex = 0; groupindex <= max; ++groupindex)
@@ -4005,7 +4005,7 @@ bool CGitStatusListCtrl::PrepareGroups(bool bForce /* = false */)
 					CString rev;
 					rev.Format(L"%s^%d", (m_CurrentVersion.ToString()).c_str(), groupindex + 1);
 					CGitHash hash;
-					if (!CGit::GetHash(repository, hash, rev))
+					if (!CGit::GetHash(repository.get(), hash, rev))
 						str += L": " + hash.ToString(g_Git.GetShortHASHLength());
 				}
 				grp.pszHeader = str.GetBuffer();
@@ -4673,14 +4673,14 @@ void CGitStatusListCtrl::DeleteSelectedFiles()
 	while ((index = GetNextSelectedItem(pos)) >= 0)
 		selectIndex.push_back(index);
 
-	CAutoRepository repo = g_Git.GetGitRepository();
+	const wil::unique_git_repository repo = g_Git.GetGitRepository();
 	if (!repo)
 	{
 		MessageBox(TGitH::GetLibGit2LastErr(L"Could not open repository."), L"TortoiseGit", MB_OK);
 		return;
 	}
-	CAutoIndex gitIndex;
-	if (git_repository_index(gitIndex.GetPointer(), repo))
+	wil::unique_git_index gitIndex;
+	if (git_repository_index(gitIndex.put(), repo.get()))
 	{
 		TGitH::GetLibGit2LastErr(L"Could not open index.");
 		return;
@@ -4698,7 +4698,7 @@ void CGitStatusListCtrl::DeleteSelectedFiles()
 			continue;
 
 		// do not report errors as we could remove an unversioned file
-		needWriteIndex += git_index_remove_bypath(gitIndex, CUnicodeUtils::StdGetUTF8(path->GetGitPathString()).c_str()) == 0 ? 1 : 0;
+		needWriteIndex += git_index_remove_bypath(gitIndex.get(), CUnicodeUtils::StdGetUTF8(path->GetGitPathString()).c_str()) == 0 ? 1 : 0;
 
 		if (!path->Exists())
 			continue;
@@ -4722,7 +4722,7 @@ void CGitStatusListCtrl::DeleteSelectedFiles()
 
 	if ((result == 0 || len == 1) && (!fileop.fAnyOperationsAborted))
 	{
-		if (needWriteIndex && git_index_write(gitIndex))
+		if (needWriteIndex && git_index_write(gitIndex.get()))
 			MessageBox(TGitH::GetLibGit2LastErr(L"Could not write index."), L"TortoiseGit", MB_OK);
 
 		if (needWriteIndex)

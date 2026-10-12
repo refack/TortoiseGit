@@ -34,7 +34,7 @@
 
 #include "AutoTempDir.h"
 import std;
-import wil_git2;
+import wil;
 
 import git_h;
 import str_utils;
@@ -1646,11 +1646,11 @@ TEST(CTGitPath, ParserFromLog_Invalid)
 
 
 
-static void setFlagOnFileInIndex2(CAutoIndex& gitindex, const CString& filename, bool assumevalid, bool skipworktree)
+static void setFlagOnFileInIndex2(wil::unique_git_index& gitindex, const CString& filename, bool assumevalid, bool skipworktree)
 {
 	size_t idx = SIZE_MAX;
-	EXPECT_TRUE(git_index_find(&idx, gitindex, CUnicodeUtils::GetUTF8<CStringA>(filename)) == 0);
-	git_index_entry *e = const_cast<git_index_entry *>(git_index_get_byindex(gitindex, idx));
+	EXPECT_TRUE(git_index_find(&idx, gitindex.get(), CUnicodeUtils::GetUTF8<CStringA>(filename)) == 0);
+	git_index_entry *e = const_cast<git_index_entry *>(git_index_get_byindex(gitindex.get(), idx));
 	ASSERT_TRUE(e);
 	if (assumevalid == BST_UNCHECKED)
 		e->flags &= ~GIT_INDEX_ENTRY_VALID;
@@ -1660,7 +1660,7 @@ static void setFlagOnFileInIndex2(CAutoIndex& gitindex, const CString& filename,
 		e->flags_extended &= ~GIT_INDEX_ENTRY_SKIP_WORKTREE;
 	else if (skipworktree == BST_CHECKED)
 		e->flags_extended |= GIT_INDEX_ENTRY_SKIP_WORKTREE;
-	EXPECT_TRUE(git_index_add(gitindex, e) == 0);
+	EXPECT_TRUE(git_index_add(gitindex.get(), e) == 0);
 }
 
 TEST(CTGitPath, FillBasedOnIndexFlags2)
@@ -1668,21 +1668,21 @@ TEST(CTGitPath, FillBasedOnIndexFlags2)
 	CAutoTempDir tmpDir;
 
 	CString output;
-	CAutoRepository repo;
-	EXPECT_TRUE(git_repository_init(repo.GetPointer(), CUnicodeUtils::GetUTF8<CStringA>(tmpDir.GetTempDir()), 0) == 0);
+	wil::unique_git_repository repo;
+	EXPECT_TRUE(git_repository_init(repo.put(), CUnicodeUtils::GetUTF8<CStringA>(tmpDir.GetTempDir()), 0) == 0);
 
 	ASSERT_TRUE(CreateDirectory(tmpDir.GetTempDir() + L"\\a", nullptr));
 	ASSERT_TRUE(CreateDirectory(tmpDir.GetTempDir() + L"\\b", nullptr));
 
-	CAutoIndex gitindex;
-	EXPECT_TRUE(git_repository_index(gitindex.GetPointer(), repo) == 0);
+	wil::unique_git_index gitindex;
+	EXPECT_TRUE(git_repository_index(gitindex.put(), repo.get()) == 0);
 
 	CString filenames[] = { L"versioned", L"assume-unchanged", L"skip-worktree", L"unversioned", L"a/versioned", L"a/assume-unchanged", L"a/skip-worktree", L"a/unversioned", L"b/versioned", L"b/assume-unchanged", L"b/skip-worktree", L"b/unversioned" };
 	for (const CString& filename : filenames)
 	{
 		CString filenameWithPath = tmpDir.GetTempDir() + L'\\' + filename;
 		EXPECT_TRUE(StringUtils::WriteStringToTextFile(filenameWithPath, L"something"));
-		EXPECT_TRUE(git_index_add_bypath(gitindex, CUnicodeUtils::GetUTF8<CStringA>(filename)) == 0);
+		EXPECT_TRUE(git_index_add_bypath(gitindex.get(), CUnicodeUtils::GetUTF8<CStringA>(filename)) == 0);
 	}
 
 	setFlagOnFileInIndex2(gitindex, L"assume-unchanged", true, false);
@@ -1692,9 +1692,9 @@ TEST(CTGitPath, FillBasedOnIndexFlags2)
 	setFlagOnFileInIndex2(gitindex, L"a/skip-worktree", false, true);
 	setFlagOnFileInIndex2(gitindex, L"b/skip-worktree", false, true);
 
-	EXPECT_TRUE(git_index_write(gitindex) == 0);
-	gitindex.Free();
-	repo.Free();
+	EXPECT_TRUE(git_index_write(gitindex.get()) == 0);
+	gitindex.reset();
+	repo.reset();
 
 	g_Git.SetCurrentDirExact(tmpDir.GetTempDir());
 
@@ -2088,8 +2088,8 @@ TEST(CTGitPath, FillUnRev)
 {
 	CAutoTempDir tmpDir;
 
-	CAutoRepository repo;
-	ASSERT_TRUE(git_repository_init(repo.GetPointer(), CUnicodeUtils::GetUTF8<CStringA>(tmpDir.GetTempDir()), false) == 0);
+	wil::unique_git_repository repo;
+	ASSERT_TRUE(git_repository_init(repo.put(), CUnicodeUtils::GetUTF8<CStringA>(tmpDir.GetTempDir()), false) == 0);
 
 	g_Git.SetCurrentDirExact(tmpDir.GetTempDir());
 
@@ -2269,8 +2269,8 @@ TEST(CTGitPath, HashStashDir)
 	path.Reset();
 	path.SetFromWin(tgit::str::StringView(tmpDir.GetTempDir()));
 
-	CAutoRepository repo;
-	ASSERT_TRUE(git_repository_init(repo.GetPointer(), CUnicodeUtils::GetUTF8<CStringA>(tmpDir.GetTempDir()), false) == 0);
+	wil::unique_git_repository repo;
+	ASSERT_TRUE(git_repository_init(repo.put(), CUnicodeUtils::GetUTF8<CStringA>(tmpDir.GetTempDir()), false) == 0);
 	// "git commit" follows and requires user to be set
 	CString configFile = tmpDir.GetTempDir() + L"\\.git\\config";
 	CString text;
@@ -2524,8 +2524,8 @@ TEST(CTGitPath, ParseFromLFSLocks_BrokenEmptyId)
 TEST(CTGitPath, IsRegisteredSubmoduleOfParentProject)
 {
 	CAutoTempDir tmp;
-	CAutoRepository repo;
-	EXPECT_EQ(0, git_repository_init(repo.GetPointer(), CUnicodeUtils::GetUTF8<CStringA>(tmp.GetTempDir()), false));
+	wil::unique_git_repository repo;
+	EXPECT_EQ(0, git_repository_init(repo.put(), CUnicodeUtils::GetUTF8<CStringA>(tmp.GetTempDir()), false));
 	EXPECT_TRUE(CreateDirectory(tmp.GetTempDir() + L"\\ext", nullptr));
 	EXPECT_TRUE(CreateDirectory(tmp.GetTempDir() + L"\\ext\\libgit2", nullptr));
 	EXPECT_TRUE(CreateDirectory(tmp.GetTempDir() + L"\\ext\\spell", nullptr));

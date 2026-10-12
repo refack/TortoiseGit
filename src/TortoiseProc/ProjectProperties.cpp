@@ -39,46 +39,47 @@ ProjectProperties::ProjectProperties()
 
 int ProjectProperties::ReadProps()
 {
-	CAutoConfig gitconfig(true);
-	CAutoRepository repo(g_Git.GetGitRepository());
+	wil::unique_git_config gitconfig;
+	git_config_new(gitconfig.put());
+	const wil::unique_git_repository repo(g_Git.GetGitRepository());
 	CString adminDirPath;
 	if (GitAdminDir::GetAdminDirPath(g_Git.m_CurrentDir, adminDirPath))
-		git_config_add_file_ondisk(gitconfig, CGit::GetGitPathStringA(adminDirPath + L"config"), GIT_CONFIG_LEVEL_APP, repo, FALSE); // this needs to have the highest priority in order to override .tgitconfig settings
+		git_config_add_file_ondisk(gitconfig.get(), CGit::GetGitPathStringA(adminDirPath + L"config"), GIT_CONFIG_LEVEL_APP, repo.get(), FALSE); // this needs to have the highest priority in order to override .tgitconfig settings
 
 	if (!GitAdminDir::IsBareRepo(g_Git.m_CurrentDir))
-		git_config_add_file_ondisk(gitconfig, CGit::GetGitPathStringA(g_Git.CombinePath(L".tgitconfig")), GIT_CONFIG_LEVEL_LOCAL, nullptr, FALSE); // this needs to have the second highest priority
+		git_config_add_file_ondisk(gitconfig.get(), CGit::GetGitPathStringA(g_Git.CombinePath(L".tgitconfig")), GIT_CONFIG_LEVEL_LOCAL, nullptr, FALSE); // this needs to have the second highest priority
 	else
 	{
 		CString tmpFile = TempFiles::GetTempFilePath(true).GetWinPathString().c_str();
 		CTGitPath path(L".tgitconfig");
 		if (g_Git.GetOneFile(L"HEAD", path, tmpFile) == 0)
-			git_config_add_file_ondisk(gitconfig, CGit::GetGitPathStringA(tmpFile), GIT_CONFIG_LEVEL_LOCAL, nullptr, FALSE); // this needs to have the second highest priority
+			git_config_add_file_ondisk(gitconfig.get(), CGit::GetGitPathStringA(tmpFile), GIT_CONFIG_LEVEL_LOCAL, nullptr, FALSE); // this needs to have the second highest priority
 	}
 
-	git_config_add_file_ondisk(gitconfig, CGit::GetGitPathStringA(g_Git.GetGitGlobalConfig()), GIT_CONFIG_LEVEL_GLOBAL, repo, FALSE);
-	git_config_add_file_ondisk(gitconfig,CGit::GetGitPathStringA(g_Git.GetGitGlobalXDGConfig()), GIT_CONFIG_LEVEL_XDG, repo, FALSE);
-	git_config_add_file_ondisk(gitconfig, CGit::GetGitPathStringA(g_Git.GetGitSystemConfig()), GIT_CONFIG_LEVEL_SYSTEM, repo, FALSE);
+	git_config_add_file_ondisk(gitconfig.get(), CGit::GetGitPathStringA(g_Git.GetGitGlobalConfig()), GIT_CONFIG_LEVEL_GLOBAL, repo.get(), FALSE);
+	git_config_add_file_ondisk(gitconfig.get(), CGit::GetGitPathStringA(g_Git.GetGitGlobalXDGConfig()), GIT_CONFIG_LEVEL_XDG, repo.get(), FALSE);
+	git_config_add_file_ondisk(gitconfig.get(), CGit::GetGitPathStringA(g_Git.GetGitSystemConfig()), GIT_CONFIG_LEVEL_SYSTEM, repo.get(), FALSE);
 	git_error_clear();
 
 	CString sPropVal;
 
-	gitconfig.GetString(BUGTRAQPROPNAME_LABEL, sLabel);
-	gitconfig.GetString(BUGTRAQPROPNAME_MESSAGE, sMessage);
+	TGitH::GetConfigString(gitconfig.get(), BUGTRAQPROPNAME_LABEL, sLabel);
+	TGitH::GetConfigString(gitconfig.get(), BUGTRAQPROPNAME_MESSAGE, sMessage);
 	nBugIdPos = sMessage.Find(L"%BUGID%");
-	gitconfig.GetString(BUGTRAQPROPNAME_URL, sUrl);
+	TGitH::GetConfigString(gitconfig.get(), BUGTRAQPROPNAME_URL, sUrl);
 
-	gitconfig.GetBOOL(BUGTRAQPROPNAME_WARNIFNOISSUE, bWarnIfNoIssue);
-	gitconfig.GetBOOL(BUGTRAQPROPNAME_NUMBER, bNumber);
-	gitconfig.GetBOOL(BUGTRAQPROPNAME_APPEND, bAppend);
+	TGitH::GetConfigBOOL(gitconfig.get(), BUGTRAQPROPNAME_WARNIFNOISSUE, bWarnIfNoIssue);
+	TGitH::GetConfigBOOL(gitconfig.get(), BUGTRAQPROPNAME_NUMBER, bNumber);
+	TGitH::GetConfigBOOL(gitconfig.get(), BUGTRAQPROPNAME_APPEND, bAppend);
 
-	gitconfig.GetString(BUGTRAQPROPNAME_PROVIDERUUID, sProviderUuid);
-	gitconfig.GetString(BUGTRAQPROPNAME_PROVIDERUUID64, sProviderUuid64);
-	gitconfig.GetString(BUGTRAQPROPNAME_PROVIDERPARAMS, sProviderParams);
+	TGitH::GetConfigString(gitconfig.get(), BUGTRAQPROPNAME_PROVIDERUUID, sProviderUuid);
+	TGitH::GetConfigString(gitconfig.get(), BUGTRAQPROPNAME_PROVIDERUUID64, sProviderUuid64);
+	TGitH::GetConfigString(gitconfig.get(), BUGTRAQPROPNAME_PROVIDERPARAMS, sProviderParams);
 
-	gitconfig.GetBOOL(PROJECTPROPNAME_WARNNOSIGNEDOFFBY, bWarnNoSignedOffBy);
-	gitconfig.GetString(PROJECTPROPNAME_ICON, sIcon);
+	TGitH::GetConfigBOOL(gitconfig.get(), PROJECTPROPNAME_WARNNOSIGNEDOFFBY, bWarnNoSignedOffBy);
+	TGitH::GetConfigString(gitconfig.get(), PROJECTPROPNAME_ICON, sIcon);
 
-	gitconfig.GetString(BUGTRAQPROPNAME_LOGREGEX, sPropVal);
+	TGitH::GetConfigString(gitconfig.get(), BUGTRAQPROPNAME_LOGREGEX, sPropVal);
 
 	sCheckRe = sPropVal;
 	if (sCheckRe.Find('\n')>=0)
@@ -89,7 +90,7 @@ int ProjectProperties::ReadProps()
 	if (!sCheckRe.IsEmpty())
 		sCheckRe = sCheckRe.Trim();
 
-	if (gitconfig.GetString(PROJECTPROPNAME_LOGWIDTHLINE, sPropVal) == 0)
+	if (TGitH::GetConfigString(gitconfig.get(), PROJECTPROPNAME_LOGWIDTHLINE, sPropVal) == 0)
 	{
 		CString val;
 		val = sPropVal;
@@ -97,7 +98,7 @@ int ProjectProperties::ReadProps()
 			nLogWidthMarker = _wtoi(val);
 	}
 
-	if (gitconfig.GetString(PROJECTPROPNAME_PROJECTLANGUAGE, sPropVal) == 0)
+	if (TGitH::GetConfigString(gitconfig.get(), PROJECTPROPNAME_PROJECTLANGUAGE, sPropVal) == 0)
 	{
 		CString val;
 		val = sPropVal;
@@ -110,7 +111,7 @@ int ProjectProperties::ReadProps()
 		}
 	}
 
-	if (gitconfig.GetString(PROJECTPROPNAME_LOGMINSIZE, sPropVal) == 0)
+	if (TGitH::GetConfigString(gitconfig.get(), PROJECTPROPNAME_LOGMINSIZE, sPropVal) == 0)
 	{
 		CString val;
 		val = sPropVal;
@@ -223,22 +224,22 @@ void ProjectProperties::AutoUpdateRegex()
 	}
 }
 
-void ProjectProperties::FetchHookString(CAutoConfig& gitconfig, const CString& sBase, CString& sHook)
+void ProjectProperties::FetchHookString(const wil::unique_git_config& gitconfig, const CString& sBase, CString& sHook)
 {
 	sHook.Empty();
 	CString sVal;
-	gitconfig.GetString(sBase + L"cmdline", sVal);
+	TGitH::GetConfigString(gitconfig.get(), sBase + L"cmdline", sVal);
 	if (sVal.IsEmpty())
 		return;
 	sHook += sVal + L'\n';
 	bool boolval = false;
-	gitconfig.GetBool(tgit::str::StringView(sBase + L"wait"), boolval);
+	TGitH::GetConfigBool(gitconfig.get(), tgit::str::StringView(sBase + L"wait"), boolval);
 	if (boolval)
 		sHook += L"true\n";
 	else
 		sHook += L"false\n";
 	boolval = false;
-	gitconfig.GetBool(tgit::str::StringView(sBase + L"show"), boolval);
+	TGitH::GetConfigBool(gitconfig.get(), tgit::str::StringView(sBase + L"show"), boolval);
 	if (boolval)
 		sHook += L"show";
 	else

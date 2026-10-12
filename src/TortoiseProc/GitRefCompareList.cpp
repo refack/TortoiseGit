@@ -92,18 +92,18 @@ int CGitRefCompareList::AddEntry(git_repository* repo, const CString& ref, const
 	if (newHash)
 		entry.newHash = (newHash->ToString(g_Git.GetShortHASHLength())).c_str();
 
-	CAutoCommit oldCommit;
+	wil::unique_git_commit oldCommit;
 	if (oldHash)
 	{
-		if (!git_commit_lookup(oldCommit.GetPointer(), repo, *oldHash))
-			entry.oldMessage = GetCommitMessage(oldCommit);
+		if (!git_commit_lookup(oldCommit.put(), repo, *oldHash))
+			entry.oldMessage = GetCommitMessage(oldCommit.get());
 	}
 
-	CAutoCommit newCommit;
+	wil::unique_git_commit newCommit;
 	if (newHash)
 	{
-		if (!git_commit_lookup(newCommit.GetPointer(), repo, *newHash))
-			entry.newMessage = GetCommitMessage(newCommit);
+		if (!git_commit_lookup(newCommit.put(), repo, *newHash))
+			entry.newMessage = GetCommitMessage(newCommit.get());
 	}
 
 	if (oldHash && newHash)
@@ -131,8 +131,8 @@ int CGitRefCompareList::AddEntry(git_repository* repo, const CString& ref, const
 				}
 				else
 				{
-					git_time_t oldTime = git_commit_committer(oldCommit)->when.time;
-					git_time_t newTime = git_commit_committer(newCommit)->when.time;
+					git_time_t oldTime = git_commit_committer(oldCommit.get())->when.time;
+					git_time_t newTime = git_commit_committer(newCommit.get())->when.time;
 					if (oldTime < newTime)
 					{
 						entry.change.LoadString(IDS_SUBMODULEDIFF_NEWERTIME);

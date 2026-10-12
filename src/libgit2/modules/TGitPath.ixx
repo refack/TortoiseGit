@@ -14,6 +14,7 @@
 export module TGitPath;
 import std;
 import gsl;
+import wil;				// the libgit2 owners (wil::unique_git_config, unique_git_index)
 import nlohmann_json;	// LFS locks; a shim, cf. shims/json.ixx
 import str_utils;
 import invarients;
@@ -147,18 +148,13 @@ int GetMatchingLength(const std::wstring_view lhs, const std::wstring_view rhs) 
 }
 
 
-// Plain unique_ptrs rather than wil_git2's CAutoConfig/CAutoIndex: those
-// re-expose their base's conversion operator with a using-declaration that
-// MSVC does not honor across the module boundary (C2248), and two owners are
-// all this module needs.
-using ConfigPtr = std::unique_ptr<git_config, decltype(&git_config_free)>;
-using IndexPtr = std::unique_ptr<git_index, decltype(&git_index_free)>;
-
-
-ConfigPtr NewConfig() {
-	git_config* config = nullptr;
-	git_config_new(&config);
-	return { config, &git_config_free };
+// The libgit2 owners are wil's (wil::unique_git_config, unique_git_index), like
+// everywhere else; these were std::unique_ptrs only while wil_git2's CAuto*
+// classes were the alternative.
+wil::unique_git_config NewConfig() {
+	wil::unique_git_config config;
+	git_config_new(config.put());
+	return config;
 }
 
 
@@ -368,7 +364,7 @@ namespace detail {
 	/// revoke an earlier one, and the last word wins.
 	bool IsListedInSafeDirectory(const std::wstring_view topDir) {
 		const Host& host = TheHost();
-		const ConfigPtr temp = NewConfig();
+		const wil::unique_git_config temp = NewConfig();
 		const auto add = [&temp](const std::wstring& path, const git_config_level_t level) {
 			if (!path.empty())
 				git_config_add_file_ondisk(temp.get(), ToGitPathA(path).c_str(), level, nullptr, FALSE);
@@ -376,9 +372,8 @@ namespace detail {
 		add(AskHost(host.globalConfigPath), GIT_CONFIG_LEVEL_GLOBAL);
 		add(AskHost(host.xdgConfigPath), GIT_CONFIG_LEVEL_XDG);
 		add(AskHost(host.systemConfigPath), GIT_CONFIG_LEVEL_SYSTEM);
-		git_config* snapshot = nullptr;
-		git_config_snapshot(&snapshot, temp.get());
-		const ConfigPtr config{ snapshot, &git_config_free };
+		wil::unique_git_config config;
+		git_config_snapshot(config.put(), temp.get());
 
 		struct Payload {
 			std::wstring_view topDir{};
@@ -2268,7 +2263,7 @@ bool CTGitPath::IsRegisteredSubmoduleOfParentProject(std::wstring* parentProject
 	if (!detail::FileExists(gitmodules))
 		return false;
 
-	const detail::ConfigPtr config = detail::NewConfig();
+	const wil::unique_git_config config = detail::NewConfig();
 	git_config_add_file_ondisk(config.get(), ToGitPathA(gitmodules).c_str(), GIT_CONFIG_LEVEL_APP, nullptr, FALSE);
 	std::wstring relativePath = tgit::wstr::Mid(GetWinPathString(), gsl::narrow<int>(topProjectDir.size()));
 	std::ranges::replace(relativePath, L'\\', L'/');
@@ -2825,10 +2820,9 @@ int CTGitPathList::FillBasedOnIndexFlags(git_repository* const repository, const
 	if (!repository)
 		return -1;
 
-	git_index* rawIndex = nullptr;
-	if (git_repository_index(&rawIndex, repository))
+	wil::unique_git_index index;
+	if (git_repository_index(index.put(), repository))
 		return -1;
-	const detail::IndexPtr index{ rawIndex, &git_index_free };
 
 	const int count = filterlist ? filterlist->GetCount() : 1;
 	for (int j = 0; j < count; ++j) {

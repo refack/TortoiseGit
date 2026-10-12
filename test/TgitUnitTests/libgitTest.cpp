@@ -163,24 +163,25 @@ TEST(libgit, RefreshIndex)
 
 	git_repository_init_options options = GIT_REPOSITORY_INIT_OPTIONS_INIT;
 	options.flags = GIT_REPOSITORY_INIT_MKPATH | GIT_REPOSITORY_INIT_EXTERNAL_TEMPLATE;
-	CAutoRepository repo;
-	ASSERT_EQ(0, git_repository_init_ext(repo.GetPointer(), CUnicodeUtils::GetUTF8<CStringA>(tempdir.GetTempDir()), &options));
-	CAutoConfig config(repo);
-	ASSERT_TRUE(config.IsValid());
+	wil::unique_git_repository repo;
+	ASSERT_EQ(0, git_repository_init_ext(repo.put(), CUnicodeUtils::GetUTF8<CStringA>(tempdir.GetTempDir()), &options));
+	wil::unique_git_config config;
+	git_repository_config(config.put(), repo.get());
+	ASSERT_TRUE(config.is_valid());
 	CStringA path = CUnicodeUtils::GetUTF8<CStringA>(g_Git.m_CurrentDir);
 	path.Replace('\\', '/');
-	EXPECT_EQ(0, git_config_set_string(config, "core.autocrlf", "false")); // newer Git complains for adding 1.enc with a safecrlf warning, especially an issue on AppVeyor where AutoCrLf=input is set
-	EXPECT_EQ(0, git_config_set_string(config, "filter.openssl.clean", path + "/clean_filter_openssl"));
-	EXPECT_EQ(0, git_config_set_string(config, "filter.openssl.smudge", path + "/smudge_filter_openssl"));
-	EXPECT_EQ(0, git_config_set_bool(config, "filter.openssl.required", 1));
+	EXPECT_EQ(0, git_config_set_string(config.get(), "core.autocrlf", "false")); // newer Git complains for adding 1.enc with a safecrlf warning, especially an issue on AppVeyor where AutoCrLf=input is set
+	EXPECT_EQ(0, git_config_set_string(config.get(), "filter.openssl.clean", path + "/clean_filter_openssl"));
+	EXPECT_EQ(0, git_config_set_string(config.get(), "filter.openssl.smudge", path + "/smudge_filter_openssl"));
+	EXPECT_EQ(0, git_config_set_bool(config.get(), "filter.openssl.required", 1));
 	CString cleanFilterFilename = g_Git.m_CurrentDir + L"\\clean_filter_openssl";
 	EXPECT_TRUE(StringUtils::WriteStringToTextFile(cleanFilterFilename, L"#!/bin/bash\nopenssl version | grep -q \" 1\\\\.0\\\\.\"\nif [[ $? = 0 ]]; then\n\topenssl enc -base64 -aes-256-ecb -S FEEDDEADBEEF -k PASS_FIXED\nelse\n\topenssl enc -base64 -pbkdf2 -aes-256-ecb -nosalt -k PASS_FIXED\nfi\n"));
 	CString smudgeFilterFilename = g_Git.m_CurrentDir + L"\\smudge_filter_openssl";
 	EXPECT_TRUE(StringUtils::WriteStringToTextFile(smudgeFilterFilename, L"#!/bin/bash\nopenssl version | grep -q \" 1\\\\.0\\\\.\"\nif [[ $? = 0 ]]; then\n\topenssl enc -d -base64 -aes-256-ecb -k PASS_FIXED\nelse\n\topenssl enc -d -base64 -pbkdf2 -aes-256-ecb -nosalt -k PASS_FIXED\nfi\n"));
-	EXPECT_EQ(0, git_config_set_string(config, "filter.test.clean", path + "/clean_filter_openssl"));
-	EXPECT_EQ(0, git_config_set_string(config, "filter.test.smudge", path + "/smudge_filter_openssl"));
-	EXPECT_EQ(0, git_config_set_string(config, "filter.test.process", path + "/clean_filter_openssl"));
-	EXPECT_EQ(0, git_config_set_bool(config, "filter.test.required", 1));
+	EXPECT_EQ(0, git_config_set_string(config.get(), "filter.test.clean", path + "/clean_filter_openssl"));
+	EXPECT_EQ(0, git_config_set_string(config.get(), "filter.test.smudge", path + "/smudge_filter_openssl"));
+	EXPECT_EQ(0, git_config_set_string(config.get(), "filter.test.process", path + "/clean_filter_openssl"));
+	EXPECT_EQ(0, git_config_set_bool(config.get(), "filter.test.required", 1));
 
 	// need to make sure sh.exe is on PATH
 	g_Git.CheckMsysGitDir();
@@ -280,8 +281,8 @@ TEST(libgit, IncludeIf)
 
 	git_repository_init_options options = GIT_REPOSITORY_INIT_OPTIONS_INIT;
 	options.flags = GIT_REPOSITORY_INIT_EXTERNAL_TEMPLATE;
-	CAutoRepository repo;
-	ASSERT_EQ(0, git_repository_init_ext(repo.GetPointer(), CUnicodeUtils::GetUTF8<CStringA>(repoDir), &options));
+	wil::unique_git_repository repo;
+	ASSERT_EQ(0, git_repository_init_ext(repo.put(), CUnicodeUtils::GetUTF8<CStringA>(repoDir), &options));
 
 	EXPECT_TRUE(StringUtils::WriteStringToTextFile(repoDir + L"\\.git\\config", L"[core]\n	repositoryformatversion = 0\n	filemode = false\n	bare = false\n	logallrefupdates = true\n	symlinks = false\n	ignorecase = true\n	hideDotFiles = dotGitOnly\n[something]\n	thevalue = jap\n[includeIf \"gitdir:RepoWithAInPath/**\"]\n	path = configA\n[includeIf \"gitdir:RepoWithBInPath/**\"]\n	path = configB\n"));
 	EXPECT_TRUE(StringUtils::WriteStringToTextFile(repoDir + L"\\.git\\configA", L"[somethinga]\n	thevalue = jop\n"));

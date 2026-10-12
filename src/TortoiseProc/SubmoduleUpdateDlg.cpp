@@ -100,7 +100,7 @@ int LogicalComparePredicate(const std::wstring& left, const std::wstring& right)
 
 static void GetSubmodulePathList(std::vector<std::wstring> &list, std::vector<std::wstring> &prefixList)
 {
-	CAutoRepository repo(g_Git.GetGitRepository());
+	const wil::unique_git_repository repo(g_Git.GetGitRepository());
 	if (!repo)
 	{
 		MessageBox(nullptr, TGitH::GetLibGit2LastErr(L"Could not open repository."), L"TortoiseGit", MB_ICONERROR);
@@ -108,7 +108,7 @@ static void GetSubmodulePathList(std::vector<std::wstring> &list, std::vector<st
 	}
 
 	const std::vector<std::wstring>* listParams[] = { &list, &prefixList };
-	if (git_submodule_foreach(repo, SubmoduleCallback, &listParams))
+	if (git_submodule_foreach(repo.get(), SubmoduleCallback, &listParams))
 	{
 		MessageBox(nullptr, TGitH::GetLibGit2LastErr(L"Could not get submodule list."), L"TortoiseGit", MB_ICONERROR);
 		return;

@@ -15,8 +15,7 @@ import str_utils;
 import GitRev;
 import TGitPath;
 import GitMailmap;
-import wil;			// scope_exit_helper, which SCOPE_EXIT expands to
-import wil_git2;
+import wil;			// scope_exit_helper, which SCOPE_EXIT expands to; the libgit2 owners
 import DebugOutput;
 import GitHash;
 
@@ -24,7 +23,6 @@ namespace fs = std::filesystem;
 
 using TGitPath::CTGitPath;
 using TGitPath::CTGitPathList;
-using namespace SmartLibgit2;
 using tgit::str::StringView;
 
 // Application classes this module only refers to: TortoiseProc defines them, in
@@ -237,40 +235,40 @@ public:
 	m_Files.Clear();
 	if (git->UsingLibGit2(GIT_CMD_LOGLISTDIFF))
 	{
-		CAutoRepository repo(git->GetGitRepository());
+		const wil::unique_git_repository repo(git->GetGitRepository());
 		if (!repo)
 		{
 			m_sErr = TGitH::GetLibGit2LastErr();
 			return -1;
 		}
-		CAutoCommit commit;
-		if (git_commit_lookup(commit.GetPointer(), repo, m_CommitHash) < 0)
+		wil::unique_git_commit commit;
+		if (git_commit_lookup(commit.put(), repo.get(), m_CommitHash) < 0)
 		{
 			m_sErr = TGitH::GetLibGit2LastErr();
 			return -1;
 		}
 
-		CAutoTree commitTree;
-		if (git_commit_tree(commitTree.GetPointer(), commit) < 0)
+		wil::unique_git_tree commitTree;
+		if (git_commit_tree(commitTree.put(), commit.get()) < 0)
 		{
 			m_sErr = TGitH::GetLibGit2LastErr();
 			return -1;
 		}
 
-		bool isRoot = git_commit_parentcount(commit) == 0;
-		for (unsigned int parentId = 0; isRoot || parentId < git_commit_parentcount(commit); ++parentId)
+		bool isRoot = git_commit_parentcount(commit.get()) == 0;
+		for (unsigned int parentId = 0; isRoot || parentId < git_commit_parentcount(commit.get()); ++parentId)
 		{
-			CAutoTree parentTree;
+			wil::unique_git_tree parentTree;
 			if (!isRoot)
 			{
-				CAutoCommit parentCommit;
-				if (git_commit_parent(parentCommit.GetPointer(), commit, parentId) < 0)
+				wil::unique_git_commit parentCommit;
+				if (git_commit_parent(parentCommit.put(), commit.get(), parentId) < 0)
 				{
 					m_sErr = TGitH::GetLibGit2LastErr();
 					return -1;
 				}
 
-				if (git_commit_tree(parentTree.GetPointer(), parentCommit) < 0)
+				if (git_commit_tree(parentTree.put(), parentCommit.get()) < 0)
 				{
 					m_sErr = TGitH::GetLibGit2LastErr();
 					return -1;
@@ -278,8 +276,8 @@ public:
 			}
 			isRoot = false;
 
-			CAutoDiff diff;
-			if (git_diff_tree_to_tree(diff.GetPointer(), repo, parentTree, commitTree, nullptr) < 0)
+			wil::unique_git_diff diff;
+			if (git_diff_tree_to_tree(diff.put(), repo.get(), parentTree.get(), commitTree.get(), nullptr) < 0)
 			{
 				m_sErr = TGitH::GetLibGit2LastErr();
 				return -1;
@@ -291,7 +289,7 @@ public:
 				git_diff_find_options diffopts = GIT_DIFF_FIND_OPTIONS_INIT;
 				diffopts.flags = GIT_DIFF_FIND_COPIES | GIT_DIFF_FIND_RENAMES;
 				diffopts.rename_threshold = diffopts.copy_threshold = static_cast<uint16_t>(TGitH::ms_iSimilarityIndexThreshold);
-				if (git_diff_find_similar(diff, &diffopts) < 0)
+				if (git_diff_find_similar(diff.get(), &diffopts) < 0)
 				{
 					m_sErr = TGitH::GetLibGit2LastErr();
 					return -1;
@@ -300,17 +298,17 @@ public:
 
 			const git_diff_delta* lastDelta = nullptr;
 			int oldAction = 0;
-			size_t deltas = git_diff_num_deltas(diff);
+			size_t deltas = git_diff_num_deltas(diff.get());
 			for (size_t i = 0; i < deltas; ++i)
 			{
-				CAutoPatch patch;
-				if (git_patch_from_diff(patch.GetPointer(), diff, i) < 0)
+				wil::unique_git_patch patch;
+				if (git_patch_from_diff(patch.put(), diff.get(), i) < 0)
 				{
 					m_sErr = TGitH::GetLibGit2LastErr();
 					return -1;
 				}
 
-				const git_diff_delta* delta = git_patch_get_delta(patch);
+				const git_diff_delta* delta = git_patch_get_delta(patch.get());
 
 				bool isDir = (delta->new_file.mode == GIT_FILEMODE_TREE);
 				if (delta->status == GIT_DELTA_DELETED)
@@ -353,7 +351,7 @@ public:
 				else
 				{
 					size_t adds, dels;
-					if (git_patch_line_stats(nullptr, &adds, &dels, patch) < 0)
+					if (git_patch_line_stats(nullptr, &adds, &dels, patch.get()) < 0)
 					{
 						m_sErr = TGitH::GetLibGit2LastErr();
 						return -1;
@@ -473,40 +471,40 @@ public:
 	m_SimpleFileList.clear();
 	if (git->UsingLibGit2(GIT_CMD_LOGLISTDIFF))
 	{
-		CAutoRepository repo(git->GetGitRepository());
+		const wil::unique_git_repository repo(git->GetGitRepository());
 		if (!repo)
 			return -1;
-		CAutoCommit commit;
-		if (git_commit_lookup(commit.GetPointer(), repo, m_CommitHash) < 0)
+		wil::unique_git_commit commit;
+		if (git_commit_lookup(commit.put(), repo.get(), m_CommitHash) < 0)
 			return -1;
 
-		CAutoTree commitTree;
-		if (git_commit_tree(commitTree.GetPointer(), commit) < 0)
+		wil::unique_git_tree commitTree;
+		if (git_commit_tree(commitTree.put(), commit.get()) < 0)
 			return -1;
 
-		bool isRoot = git_commit_parentcount(commit) == 0;
-		for (unsigned int parentId = 0; isRoot || parentId < git_commit_parentcount(commit); ++parentId)
+		bool isRoot = git_commit_parentcount(commit.get()) == 0;
+		for (unsigned int parentId = 0; isRoot || parentId < git_commit_parentcount(commit.get()); ++parentId)
 		{
-			CAutoTree parentTree;
+			wil::unique_git_tree parentTree;
 			if (!isRoot)
 			{
-				CAutoCommit parentCommit;
-				if (git_commit_parent(parentCommit.GetPointer(), commit, parentId) < 0)
+				wil::unique_git_commit parentCommit;
+				if (git_commit_parent(parentCommit.put(), commit.get(), parentId) < 0)
 					return -1;
 
-				if (git_commit_tree(parentTree.GetPointer(), parentCommit) < 0)
+				if (git_commit_tree(parentTree.put(), parentCommit.get()) < 0)
 					return -1;
 			}
 			isRoot = false;
 
-			CAutoDiff diff;
-			if (git_diff_tree_to_tree(diff.GetPointer(), repo, parentTree, commitTree, nullptr) < 0)
+			wil::unique_git_diff diff;
+			if (git_diff_tree_to_tree(diff.put(), repo.get(), parentTree.get(), commitTree.get(), nullptr) < 0)
 				return -1;
 
-			size_t deltas = git_diff_num_deltas(diff);
+			size_t deltas = git_diff_num_deltas(diff.get());
 			for (size_t i = 0; i < deltas; ++i)
 			{
-				const git_diff_delta* delta = git_diff_get_delta(diff, i);
+				const git_diff_delta* delta = git_diff_get_delta(diff.get(), i);
 				m_SimpleFileList.push_back(CUnicodeUtils::Convert2Unicode<std::wstring>(delta->new_file.path));
 			}
 		}
@@ -608,23 +606,23 @@ int GitRevLoglist::GetRefLog(const CString& ref_, std::vector<GitRevLoglist>& re
 	refloglist.clear();
 	if (g_Git.m_IsUseLibGit2)
 	{
-		CAutoRepository repo(g_Git.GetGitRepository());
+		const wil::unique_git_repository repo(g_Git.GetGitRepository());
 		if (!repo)
 		{
 			error = GetLibGit2LastErr();
 			return -1;
 		}
 
-		CAutoReflog reflog;
-		if (git_reflog_read(reflog.GetPointer(), repo, CUnicodeUtils::StdGetUTF8(ref).c_str()) < 0)
+		wil::unique_git_reflog reflog;
+		if (git_reflog_read(reflog.put(), repo.get(), CUnicodeUtils::StdGetUTF8(ref).c_str()) < 0)
 		{
 			error = GetLibGit2LastErr();
 			return -1;
 		}
 
-		for (size_t i = 0; i < git_reflog_entrycount(reflog); ++i)
+		for (size_t i = 0; i < git_reflog_entrycount(reflog.get()); ++i)
 		{
-			const git_reflog_entry *entry = git_reflog_entry_byindex(reflog, i);
+			const git_reflog_entry *entry = git_reflog_entry_byindex(reflog.get(), i);
 			if (!entry)
 				continue;
 

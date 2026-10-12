@@ -54,10 +54,11 @@ bool InaccessibleCommand ::Execute()
 		addSafeDirectory.Format(IDS_PROC_ADDSAFEDIRECTORY, orgCmdLinePath.GetWinPath());
 		if (CMessageBox::Show(GetExplorerHWND(), error, L"TortoiseGit", 1, IDI_INFORMATION, CString(MAKEINTRESOURCE(IDS_OKBUTTON)), addSafeDirectory) == 2)
 		{
-			CAutoConfig config(true);
-			int err = git_config_add_file_ondisk(config, CGit::GetGitPathStringA(g_Git.GetGitGlobalXDGConfig()), GIT_CONFIG_LEVEL_XDG, nullptr, FALSE);
+			wil::unique_git_config config;
+			git_config_new(config.put());
+			int err = git_config_add_file_ondisk(config.get(), CGit::GetGitPathStringA(g_Git.GetGitGlobalXDGConfig()), GIT_CONFIG_LEVEL_XDG, nullptr, FALSE);
 			if (!err && (PathFileExists(g_Git.GetGitGlobalConfig()) || !PathFileExists(g_Git.GetGitGlobalXDGConfig())))
-				err = git_config_add_file_ondisk(config, CGit::GetGitPathStringA(g_Git.GetGitGlobalConfig()), GIT_CONFIG_LEVEL_GLOBAL, nullptr, FALSE);
+				err = git_config_add_file_ondisk(config.get(), CGit::GetGitPathStringA(g_Git.GetGitGlobalConfig()), GIT_CONFIG_LEVEL_GLOBAL, nullptr, FALSE);
 			if (err)
 			{
 				::MessageBox(GetExplorerHWND(), TGitH::GetLibGit2LastErr(), L"TortoiseGit", MB_ICONEXCLAMATION);
@@ -65,7 +66,7 @@ bool InaccessibleCommand ::Execute()
 			}
 			CString path = orgCmdLinePath.GetGitPathString().c_str();
 			path.TrimRight(L"/");
-			if (git_config_set_multivar(config, "safe.directory", "$^", CUnicodeUtils::GetUTF8<CStringA>(path)) < 0)
+			if (git_config_set_multivar(config.get(), "safe.directory", "$^", CUnicodeUtils::GetUTF8<CStringA>(path)) < 0)
 			{
 				MessageBox(GetExplorerHWND(), TGitH::GetLibGit2LastErr(), L"TortoiseGit", MB_ICONEXCLAMATION);
 				return false;

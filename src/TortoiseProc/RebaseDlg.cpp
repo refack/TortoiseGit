@@ -991,25 +991,25 @@ void CRebaseDlg::CheckRestoreStash()
 
 int CRebaseDlg::WriteReflog(CGitHash hash, const char* message)
 {
-	CAutoRepository repo(g_Git.GetGitRepository());
-	CAutoReflog reflog;
-	if (git_reflog_read(reflog.GetPointer(), repo, "HEAD") < 0)
+	const wil::unique_git_repository repo(g_Git.GetGitRepository());
+	wil::unique_git_reflog reflog;
+	if (git_reflog_read(reflog.put(), repo.get(), "HEAD") < 0)
 	{
 		MessageBox(g_Git.GetGitLastErr(L"Could not read HEAD reflog"), L"TortoiseGit", MB_ICONERROR);
 		return -1;
 	}
-	CAutoSignature signature;
-	if (git_signature_default(signature.GetPointer(), repo) < 0)
+	wil::unique_git_signature signature;
+	if (git_signature_default(signature.put(), repo.get()) < 0)
 	{
 		MessageBox(g_Git.GetGitLastErr(L"Could not get signature"), L"TortoiseGit", MB_ICONERROR);
 		return -1;
 	}
-	if (git_reflog_append(reflog, hash, signature, message) < 0)
+	if (git_reflog_append(reflog.get(), hash, signature.get(), message) < 0)
 	{
 		MessageBox(g_Git.GetGitLastErr(L"Could not append HEAD reflog"), L"TortoiseGit", MB_ICONERROR);
 		return -1;
 	}
-	if (git_reflog_write(reflog) < 0)
+	if (git_reflog_write(reflog.get()) < 0)
 	{
 		MessageBox(g_Git.GetGitLastErr(L"Could not write HEAD reflog"), L"TortoiseGit", MB_ICONERROR);
 		return -1;

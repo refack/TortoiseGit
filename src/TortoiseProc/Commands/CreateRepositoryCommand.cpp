@@ -72,8 +72,8 @@ bool CreateRepositoryCommand::Execute()
 		CStringA envTemplateDir = CUnicodeUtils::Convert2Multibyte<CStringA>(g_Git.m_Environment.GetEnv(L"GIT_TEMPLATE_DIR").c_str());
 		if (!envTemplateDir.IsEmpty())
 			options.template_path = envTemplateDir;
-		CAutoRepository repo;
-		if (git_repository_init_ext(repo.GetPointer(), CUnicodeUtils::GetUTF8<CStringA>(folder), &options))
+		wil::unique_git_repository repo;
+		if (git_repository_init_ext(repo.put(), CUnicodeUtils::GetUTF8<CStringA>(folder), &options))
 		{
 			CMessageBox::Show(GetExplorerHWND(), TGitH::GetLibGit2LastErr(L"Could not initialize a new repository."), L"TortoiseGit", MB_OK | MB_ICONERROR);
 			return false;

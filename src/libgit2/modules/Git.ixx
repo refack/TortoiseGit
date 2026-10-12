@@ -41,7 +41,6 @@ import TGitPath;
 import invarients;
 import libgit2;
 import Registry;
-import wil_git2;
 
 using namespace TGitPath;
 using TGitHash::CGitHash;
@@ -54,8 +53,6 @@ using CStrBuf = CString::CStrBuf;
 using CStrBufA = CStringA::CStrBuf;
 using wil::CFormatMessageWrapper;
 using tgit::DebugOutput::TracePrintf;
-using SmartLibgit2::CAutoRepository;
-using SmartLibgit2::CAutoObject;
 namespace GitFormatHolder = tgit::invarients::GitFormatHolder;
 using CAutoLocker = CComCritSecLock<CComCriticalSection>;
 
@@ -820,6 +817,76 @@ CString UnescapeGitQuotePathA(const std::string_view s)
 CString UnescapeGitQuotePath(const std::wstring_view s)
 {
 	return UnescapeGitQuotePathA(CUnicodeUtils::StdGetUTF8(s));
+}
+
+
+
+// ---- From wil_git2 (the SmartLibgit2 bridge, retired) -----------------------------
+// What the CAuto* classes did beyond owning a handle. The owners themselves are
+// wil's (wil::unique_git_*); these are the parts that need CUnicodeUtils, which
+// wil cannot see.
+
+/// What CAutoRepository(std::wstring_view) / Open(std::wstring_view) did: the one
+/// place a wide repository path is encoded for libgit2 - UTF-8, through
+/// StdGetUTF8 - and then opened through wil::OpenGitRepository, which latches the
+/// object format. A caller holding a wide path uses this, never its own narrow
+/// conversion (CStringA(path) would be the ACP). Check the result with (bool) /
+/// is_valid(): empty on failure, and git_error_last() says why.
+wil::unique_git_repository OpenGitRepository(const std::wstring_view gitDir)
+{
+	return wil::OpenGitRepository(CUnicodeUtils::StdGetUTF8(gitDir).c_str());
+}
+
+/// CAutoConfig's three readers, moved with their contract unchanged (an int
+/// return and an in/out parameter): -1 without a config, libgit2's error
+/// otherwise (GIT_ENOTFOUND for a missing key). GetConfigBOOL takes Win32's BOOL,
+/// i.e. int, and like GetConfigBool leaves \a value untouched on any error, so a
+/// caller's preset default survives.
+int GetConfigBOOL(const git_config* const config, const std::wstring_view key, int& value)
+{
+	if (!config)
+		return -1;
+	return git_config_get_bool(&value, config, CUnicodeUtils::StdGetUTF8(key).c_str());
+}
+
+int GetConfigBool(const git_config* const config, const std::wstring_view key, bool& value)
+{
+	int out = 0;
+	if (const int ret = GetConfigBOOL(config, key, out); ret < 0)
+		return ret;
+	value = out != 0;
+	return 0;
+}
+
+/// \a value is emptied on a libgit2 error and left untouched without a config.
+/// TOut is anything that assigns from a const wchar_t* - a CString or a std::wstring.
+template <typename TOut>
+int GetConfigString(const git_config* const config, const std::wstring_view key, TOut& value)
+{
+	if (!config)
+		return -1;
+	wil::unique_git_buf buf;
+	if (const int ret = git_config_get_string_buf(&buf, config, CUnicodeUtils::StdGetUTF8(key).c_str()); ret)
+	{
+		value = L"";
+		return ret;
+	}
+	value = CUnicodeUtils::GetUnicode<std::wstring>(std::string_view(buf.ptr, buf.size)).c_str();
+	return 0;
+}
+
+/// A CString key - the MFC UI's. Constrained, so a literal binds the view one.
+template <tgit::str::IsStupidString TKey, typename TOut>
+int GetConfigString(const git_config* const config, const TKey& key, TOut& value)
+{
+	return GetConfigString(config, std::wstring_view(tgit::str::StringView{ key }), value);
+}
+
+/// What CAutoStrArray::AppendTo was.
+void AppendTo(const git_strarray& array, std::vector<std::wstring>& list)
+{
+	for (size_t i = 0; i < array.count; ++i)
+		list.push_back(CUnicodeUtils::Convert2Unicode<std::wstring>(array.strings[i]));
 }
 
 
@@ -1855,21 +1922,21 @@ int resolve_to_tree(git_repository *repo, const char *identifier, git_tree **tre
 	ATLASSERT(repo && identifier && tree);
 
 	/* try to resolve identifier */
-	CAutoObject obj;
+	wil::unique_git_object obj;
 	if (git_revparse_single(&obj, repo, identifier))
 		return -1;
 
-	if (obj == nullptr)
+	if (!obj)
 		return GIT_ENOTFOUND;
 
 	int err = 0;
-	switch (git_object_type(obj))
+	switch (git_object_type(obj.get()))
 	{
 	case GIT_OBJECT_TREE:
-		*tree = reinterpret_cast<git_tree*>(obj.Detach());
+		*tree = reinterpret_cast<git_tree*>(obj.release());
 		break;
 	case GIT_OBJECT_COMMIT:
-		err = git_commit_tree(tree, reinterpret_cast<git_commit*>(static_cast<git_object*>(obj)));
+		err = git_commit_tree(tree, reinterpret_cast<git_commit*>(obj.get()));
 		break;
 	default:
 		err = GIT_ENOTFOUND;
@@ -1882,35 +1949,35 @@ int resolve_to_commit(git_repository* repo, const char* identifier, git_commit**
 {
 	ATLASSERT(repo && identifier && commit);
 
-	CAutoObject obj;
+	wil::unique_git_object obj;
 	if (git_revparse_single(&obj, repo, identifier))
 		return -1;
 
-	if (obj == nullptr)
+	if (!obj)
 		return GIT_ENOTFOUND;
 
-	return git_object_peel(reinterpret_cast<git_object**>(commit), obj, GIT_OBJECT_COMMIT);
+	return git_object_peel(reinterpret_cast<git_object**>(commit), obj.get(), GIT_OBJECT_COMMIT);
 }
 
 /* the tail every diff below shares. It is not done once at the end because a
    merge diffed with -m emits one stat block and one patch series per parent. */
 int EmitUnifiedDiff(git_diff* diff, const std::function<void(const git_buf*, void*)>& statCallback, git_diff_line_cb callback, void* data)
 {
-	CAutoDiffStats stats;
+	wil::unique_git_diff_stats stats;
 	if (git_diff_get_stats(&stats, diff))
 		return -1;
-	CAutoBuf statBuf;
-	if (git_diff_stats_to_buf(statBuf, stats, GIT_DIFF_STATS_FULL, 0))
+	wil::unique_git_buf statBuf;
+	if (git_diff_stats_to_buf(&statBuf, stats.get(), GIT_DIFF_STATS_FULL, 0))
 		return -1;
-	statCallback(statBuf, data);
+	statCallback(&statBuf, data);
 
 	for (size_t i = 0; i < git_diff_num_deltas(diff); ++i)
 	{
-		CAutoPatch patch;
+		wil::unique_git_patch patch;
 		if (git_patch_from_diff(&patch, diff, i))
 			return -1;
 
-		if (git_patch_print(patch, callback, data))
+		if (git_patch_print(patch.get(), callback, data))
 			return -1;
 	}
 
@@ -1963,11 +2030,11 @@ int GetUnifiedDiffLibGit2(
 	CStringA tree1 = CUnicodeUtils::GetUTF8<CStringA>(revNew);
 	CStringA tree2 = CUnicodeUtils::GetUTF8<CStringA>(revOld);
 
-	const CAutoRepository repo(g_Git.GetGitRepository());
+	const wil::unique_git_repository repo(g_Git.GetGitRepository());
 	if (!repo)
 		return -1;
 
-	const int isHeadOrphan = git_repository_head_unborn(repo);
+	const int isHeadOrphan = git_repository_head_unborn(repo.get());
 	if (isHeadOrphan == 1)
 		return 0;
 	else if (isHeadOrphan != 0)
@@ -2002,21 +2069,21 @@ int GetUnifiedDiffLibGit2(
 		if (revNew != tgit::invarients::ZeroRevSV().data())
 			opts.flags |= GIT_DIFF_REVERSE;
 
-		CAutoTree t1;
-		if (revNew != tgit::invarients::ZeroRevSV().data() && resolve_to_tree(repo, tree1, &t1))
+		wil::unique_git_tree t1;
+		if (revNew != tgit::invarients::ZeroRevSV().data() && resolve_to_tree(repo.get(), tree1, &t1))
 			return -1;
 
-		if (revOld != tgit::invarients::ZeroRevSV().data() && resolve_to_tree(repo, tree2, &t1))
+		if (revOld != tgit::invarients::ZeroRevSV().data() && resolve_to_tree(repo.get(), tree2, &t1))
 			return -1;
 
 		// One call rather than a hand-rolled tree_to_index + index_to_workdir + merge:
 		// it is the same three steps, but it loads the index once and hands the same
 		// one to both halves instead of letting each reload it.
-		CAutoDiff diff;
-		if (git_diff_tree_to_workdir_with_index(&diff, repo, t1, &opts))
+		wil::unique_git_diff diff;
+		if (git_diff_tree_to_workdir_with_index(&diff, repo.get(), t1.get(), &opts))
 			return -1;
 
-		return EmitUnifiedDiff(diff, statCallback, callback, data);
+		return EmitUnifiedDiff(diff.get(), statCallback, callback, data);
 	}
 
 	if (tree1.IsEmpty() && tree2.IsEmpty())
@@ -2028,58 +2095,58 @@ int GetUnifiedDiffLibGit2(
 		tree2.Empty();
 	}
 
-	CAutoTree t1;
-	if (!tree1.IsEmpty() && resolve_to_tree(repo, tree1, &t1))
+	wil::unique_git_tree t1;
+	if (!tree1.IsEmpty() && resolve_to_tree(repo.get(), tree1, &t1))
 		return -1;
 
 	// With no old rev, `-m` means "against each parent in turn" - which is the
 	// entire difference between a merge commit's diff and any other one. The
 	// single tree1~1 diff below is the first parent only, so every other parent
 	// used to be dropped without a word.
-	CAutoCommit commit;
-	if (bMerge && tree2.IsEmpty() && !resolve_to_commit(repo, tree1, &commit) && git_commit_parentcount(commit) > 1)
+	wil::unique_git_commit commit;
+	if (bMerge && tree2.IsEmpty() && !resolve_to_commit(repo.get(), tree1, &commit) && git_commit_parentcount(commit.get()) > 1)
 	{
-		for (unsigned int i = 0; i < git_commit_parentcount(commit); ++i)
+		for (unsigned int i = 0; i < git_commit_parentcount(commit.get()); ++i)
 		{
-			CAutoCommit parent;
-			if (git_commit_parent(&parent, commit, i))
+			wil::unique_git_commit parent;
+			if (git_commit_parent(&parent, commit.get(), i))
 				return -1;
 
-			CAutoTree parentTree;
-			if (git_commit_tree(&parentTree, parent))
+			wil::unique_git_tree parentTree;
+			if (git_commit_tree(&parentTree, parent.get()))
 				return -1;
 
-			CAutoDiff diff;
-			if (git_diff_tree_to_tree(&diff, repo, parentTree, t1, &opts))
+			wil::unique_git_diff diff;
+			if (git_diff_tree_to_tree(&diff, repo.get(), parentTree.get(), t1.get(), &opts))
 				return -1;
 
 			// A parent the merge result is identical to contributes nothing at all,
 			// not an empty stat block - which is what git prints, and what the stat
 			// callback would otherwise emit a stray newline for.
-			if (!git_diff_num_deltas(diff))
+			if (!git_diff_num_deltas(diff.get()))
 				continue;
 
-			if (EmitUnifiedDiff(diff, statCallback, callback, data))
+			if (EmitUnifiedDiff(diff.get(), statCallback, callback, data))
 				return -1;
 		}
 
 		return 0;
 	}
 
-	CAutoTree t2;
+	wil::unique_git_tree t2;
 	if (tree2.IsEmpty())
 	{
 		/* don't check return value, there are not parent commit at first commit*/
-		resolve_to_tree(repo, tree1 + "~1", &t2);
+		resolve_to_tree(repo.get(), tree1 + "~1", &t2);
 	}
-	else if (resolve_to_tree(repo, tree2, &t2))
+	else if (resolve_to_tree(repo.get(), tree2, &t2))
 		return -1;
 
-	CAutoDiff diff;
-	if (git_diff_tree_to_tree(&diff, repo, t2, t1, &opts))
+	wil::unique_git_diff diff;
+	if (git_diff_tree_to_tree(&diff, repo.get(), t2.get(), t1.get(), &opts))
 		return -1;
 
-	return EmitUnifiedDiff(diff, statCallback, callback, data);
+	return EmitUnifiedDiff(diff.get(), statCallback, callback, data);
 }
 
 std::vector<std::wstring> GetUnifiedDiffCmd(const CTGitPath& path, const CString& rev1, const CString& rev2, const bool bMerge, const bool bCombine, int diffContext, const bool bNoPrefix = false)
@@ -2341,25 +2408,25 @@ struct map_each_ref_payload {
 
 int libgit2_addto_map_each_ref_fn(git_reference* rawref, void* payload)
 {
-	const CAutoReference ref{ std::move(rawref) };
+	const wil::unique_git_reference ref{ std::move(rawref) };
 	const auto payloadContent = static_cast<map_each_ref_payload*>(payload);
 
-	std::wstring str = CUnicodeUtils::Convert2Unicode<std::wstring>(git_reference_name(ref));
+	std::wstring str = CUnicodeUtils::Convert2Unicode<std::wstring>(git_reference_name(ref.get()));
 
-	CAutoObject gitObject;
-	if (git_revparse_single(&gitObject, payloadContent->repo, git_reference_name(ref)))
-		return (git_reference_is_remote(ref) && git_reference_type(ref) == GIT_REFERENCE_SYMBOLIC) ? 0 : 1; // don't bail out for symbolic remote references ("git.exe show-ref -d" also doesn't complain), cf. issue #2926
+	wil::unique_git_object gitObject;
+	if (git_revparse_single(&gitObject, payloadContent->repo, git_reference_name(ref.get())))
+		return (git_reference_is_remote(ref.get()) && git_reference_type(ref.get()) == GIT_REFERENCE_SYMBOLIC) ? 0 : 1; // don't bail out for symbolic remote references ("git.exe show-ref -d" also doesn't complain), cf. issue #2926
 
-	if (git_object_type(gitObject) == GIT_OBJECT_TAG)
+	if (git_object_type(gitObject.get()) == GIT_OBJECT_TAG)
 	{
 		str += L"^{}"; // deref tag
-		CAutoObject derefedTag;
-		if (git_tag_target(&derefedTag, reinterpret_cast<git_tag*>(static_cast<git_object*>(gitObject))))
+		wil::unique_git_object derefedTag;
+		if (git_tag_target(&derefedTag, reinterpret_cast<git_tag*>(gitObject.get())))
 			return 1;
-		gitObject.Swap(derefedTag);
+		gitObject.swap(derefedTag);
 	}
 
-	(*payloadContent->map)[CGitHash(git_object_id(gitObject))].push_back(std::move(str));
+	(*payloadContent->map)[CGitHash(git_object_id(gitObject.get()))].push_back(std::move(str));
 
 	return 0;
 }
@@ -3243,10 +3310,8 @@ int CGit::RunLogFile(const CString& cmd, const CString& filename, CString* stdEr
 
 wil::unique_git_repository CGit::GetGitRepository() const
 {
-	// Through CAutoRepository for its Open(), the chokepoint that latches the
-	// object format; the caller gets the plain owner back.
-	CAutoRepository repo(TGitPath::ToGitPathA(m_CurrentDir.GetString()).c_str());
-	return std::move(repo);
+	// Through wil::OpenGitRepository, the chokepoint that latches the object format.
+	return wil::OpenGitRepository(TGitPath::ToGitPathA(m_CurrentDir.GetString()).c_str());
 }
 
 int CGit::GetHash(git_repository * repo, CGitHash &hash, const std::wstring_view friendname, const bool skipFastCheck /* = false */)
@@ -3275,11 +3340,11 @@ int CGit::GetHash(git_repository * repo, CGitHash &hash, const std::wstring_view
 			return -1;
 	}
 
-	CAutoObject gitObject;
-	if (git_revparse_single(gitObject.GetPointer(), repo, CUnicodeUtils::StdGetUTF8(friendname).c_str()))
+	wil::unique_git_object gitObject;
+	if (git_revparse_single(gitObject.put(), repo, CUnicodeUtils::StdGetUTF8(friendname).c_str()))
 		return -1;
 
-	hash = git_object_id(gitObject);
+	hash = git_object_id(gitObject.get());
 
 	return 0;
 }
@@ -3294,11 +3359,11 @@ int CGit::GetHash(CGitHash &hash, const std::wstring& friendname)
 
 	if (m_IsUseLibGit2)
 	{
-		const CAutoRepository repo(GetGitRepository());
+		const wil::unique_git_repository repo(GetGitRepository());
 		if (!repo)
 			return -1;
 
-		return GetHash(repo, hash, friendname, true);
+		return GetHash(repo.get(), hash, friendname, true);
 	}
 	else
 	{
@@ -3368,41 +3433,41 @@ int CGit::GetSubmoduleHash(const CString& pathOfSubmodule, const CGitHash& revis
 	if (!m_IsUseLibGit2)
 		return 0;
 
-	const CAutoRepository repository(g_Git.GetGitRepository());
+	const wil::unique_git_repository repository(g_Git.GetGitRepository());
 	if (!repository)
 	{
 		err = GetLibGit2LastErr(L"Could not open repository.");
 		return -1;
 	}
 
-	CAutoCommit commit;
-	if (git_commit_lookup(&commit, repository, revision))
+	wil::unique_git_commit commit;
+	if (git_commit_lookup(&commit, repository.get(), revision))
 	{
 		err = GetLibGit2LastErr(L"Could not lookup commit.");
 		return -1;
 	}
 
-	CAutoTree tree;
-	if (git_commit_tree(&tree, commit))
+	wil::unique_git_tree tree;
+	if (git_commit_tree(&tree, commit.get()))
 	{
 		err = GetLibGit2LastErr(L"Could not get tree of commit.");
 		return -1;
 	}
 
-	CAutoTreeEntry treeEntry;
-	if (git_tree_entry_bypath(treeEntry.GetPointer(), tree, CUnicodeUtils::StdGetUTF8(StringView(pathOfSubmodule)).c_str()))
+	wil::unique_git_tree_entry treeEntry;
+	if (git_tree_entry_bypath(treeEntry.put(), tree.get(), CUnicodeUtils::StdGetUTF8(StringView(pathOfSubmodule)).c_str()))
 	{
 		err = GetLibGit2LastErr(L"Could not lookup path.");
 		return -1;
 	}
 
-	if (git_tree_entry_type(treeEntry) != GIT_OBJECT_COMMIT)
+	if (git_tree_entry_type(treeEntry.get()) != GIT_OBJECT_COMMIT)
 	{
 		err.Format(L"No submodule found at \"%s\" in revision %s.", pathOfSubmodule, revision.ToString().c_str());
 		return -1;
 	}
 
-	submoduleRevision = git_tree_entry_id(treeEntry);
+	submoduleRevision = git_tree_entry_id(treeEntry.get());
 	return 0;
 }
 
@@ -3460,15 +3525,15 @@ int CGit::GetTagList(std::vector<std::wstring> &list)
 	const size_t prevCount = list.size();
 	if (this->m_IsUseLibGit2)
 	{
-		const SmartLibgit2::CAutoRepository repo(GetGitRepository());
+		const wil::unique_git_repository repo(GetGitRepository());
 		if (!repo)
 			return GFail;
 
-		SmartLibgit2::CAutoStrArray tag_names;
-		if (git_tag_list(tag_names, repo))
+		wil::unique_git_strarray tag_names;
+		if (git_tag_list(&tag_names, repo.get()))
 			return GFail;
 
-		tag_names.AppendTo(list);
+		AppendTo(tag_names, list);
 	}
 	else
 	{
@@ -3507,16 +3572,16 @@ bool CGit::IsBranchTagNameUnique(const CString& name)
 {
 	if (m_IsUseLibGit2)
 	{
-		const CAutoRepository repo(GetGitRepository());
+		const wil::unique_git_repository repo(GetGitRepository());
 		if (!repo)
 			return true; // TODO: optimize error reporting
 
-		CAutoReference tagRef;
-		if (git_reference_lookup(tagRef.GetPointer(), repo, CUnicodeUtils::StdGetUTF8(StringView{L"refs/tags/" + name}).c_str()))
+		wil::unique_git_reference tagRef;
+		if (git_reference_lookup(tagRef.put(), repo.get(), CUnicodeUtils::StdGetUTF8(StringView{L"refs/tags/" + name}).c_str()))
 			return true;
 
-		CAutoReference branchRef;
-		if (git_reference_lookup(branchRef.GetPointer(), repo, CUnicodeUtils::StdGetUTF8(StringView(L"refs/heads/" + name)).c_str()))
+		wil::unique_git_reference branchRef;
+		if (git_reference_lookup(branchRef.put(), repo.get(), CUnicodeUtils::StdGetUTF8(StringView(L"refs/heads/" + name)).c_str()))
 			return true;
 
 		return false;
@@ -3544,14 +3609,14 @@ bool CGit::BranchTagExists(const CString& name, const bool isBranch /*= true*/)
 {
 	if (m_IsUseLibGit2)
 	{
-		const CAutoRepository repo(GetGitRepository());
+		const wil::unique_git_repository repo(GetGitRepository());
 		if (!repo)
 			return false; // TODO: optimize error reporting
 
 		const auto prefix = isBranch ? L"refs/heads/" : L"refs/tags/";
 
-		CAutoReference ref;
-		if (git_reference_lookup(ref.GetPointer(), repo, CUnicodeUtils::StdGetUTF8(StringView(prefix + name)).c_str()))
+		wil::unique_git_reference ref;
+		if (git_reference_lookup(ref.put(), repo.get(), CUnicodeUtils::StdGetUTF8(StringView(prefix + name)).c_str()))
 			return false;
 
 		return true;
@@ -3617,11 +3682,11 @@ int CGit::GetBranchList(std::vector<std::wstring> &list, int *current, const BRA
 	bool headIsDetached = false;
 	if (m_IsUseLibGit2)
 	{
-		const CAutoRepository repo(GetGitRepository());
+		const wil::unique_git_repository repo(GetGitRepository());
 		if (!repo)
 			return -1;
 
-		if (git_repository_head_detached(repo) == 1)
+		if (git_repository_head_detached(repo.get()) == 1)
 			headIsDetached = true;
 
 		if ((type & (BRANCH_LOCAL | BRANCH_REMOTE)) != 0)
@@ -3632,16 +3697,16 @@ int CGit::GetBranchList(std::vector<std::wstring> &list, int *current, const BRA
 			else if (type & BRANCH_REMOTE)
 				flags = GIT_BRANCH_REMOTE;
 
-			CAutoBranchIterator it;
-			if (git_branch_iterator_new(&it, repo, flags))
+			wil::unique_git_branch_iterator it;
+			if (git_branch_iterator_new(&it, repo.get(), flags))
 				return -1;
 
-			CAutoReference ref;
+			wil::unique_git_reference ref;
 			git_branch_t branchType;
-			while (git_branch_next(&ref, &branchType, it) == 0)
+			while (git_branch_next(&ref, &branchType, it.get()) == 0)
 			{
 				const char * name = nullptr;
-				if (git_branch_name(&name, ref))
+				if (git_branch_name(&name, ref.get()))
 					continue;
 
 				std::wstring branchname = CUnicodeUtils::Convert2Unicode<std::wstring>(name);
@@ -3649,7 +3714,7 @@ int CGit::GetBranchList(std::vector<std::wstring> &list, int *current, const BRA
 					list.push_back(L"remotes/" + branchname);
 				else
 				{
-					if (git_branch_is_head(ref))
+					if (git_branch_is_head(ref.get()))
 					{
 						if (skipCurrent)
 							continue;
@@ -3732,18 +3797,18 @@ int CGit::GetRefsCommitIsOn(std::vector<std::wstring>& list, const CGitHash& has
 		return 0;
 
 	const size_t prevCount = list.size();
-	CAutoRepository repo(GetGitRepository());
+	const wil::unique_git_repository repo(GetGitRepository());
 	if (!repo)
 		return -1;
 
-	CAutoReferenceIterator it;
-	if (git_reference_iterator_new(&it, repo))
+	wil::unique_git_reference_iterator it;
+	if (git_reference_iterator_new(&it, repo.get()))
 		return -1;
 
 	auto checkDescendent = [&list, &hash, &repo](const git_oid* oid, const git_reference* ref) {
 		if (!oid)
 			return;
-		if (git_oid_equal(oid, hash) || git_graph_descendant_of(repo, oid, hash) == 1)
+		if (git_oid_equal(oid, hash) || git_graph_descendant_of(repo.get(), oid, hash) == 1)
 		{
 			const char* name = git_reference_name(ref);
 			if (!name)
@@ -3753,30 +3818,30 @@ int CGit::GetRefsCommitIsOn(std::vector<std::wstring>& list, const CGitHash& has
 		}
 	};
 
-	CAutoReference ref;
-	while (git_reference_next(&ref, it) == 0)
+	wil::unique_git_reference ref;
+	while (git_reference_next(&ref, it.get()) == 0)
 	{
-		if (git_reference_is_tag(ref))
+		if (git_reference_is_tag(ref.get()))
 		{
 			if (!includeTags)
 				continue;
 
-			CAutoTag tag;
-			if (git_tag_lookup(&tag, repo, git_reference_target(ref)) == 0)
+			wil::unique_git_tag tag;
+			if (git_tag_lookup(&tag, repo.get(), git_reference_target(ref.get())) == 0)
 			{
-				CAutoObject obj;
-				if (git_tag_peel(&obj, tag) < 0)
+				wil::unique_git_object obj;
+				if (git_tag_peel(&obj, tag.get()) < 0)
 					continue;
-				checkDescendent(git_object_id(obj), ref);
+				checkDescendent(git_object_id(obj.get()), ref.get());
 				continue;
 			}
 		}
-		else if (git_reference_is_remote(ref))
+		else if (git_reference_is_remote(ref.get()))
 		{
 			if (!includeBranches || !(type & BRANCH_REMOTE))
 				continue;
 		}
-		else if (git_reference_is_branch(ref))
+		else if (git_reference_is_branch(ref.get()))
 		{
 			if (!includeBranches || !(type & BRANCH_LOCAL))
 				continue;
@@ -3784,17 +3849,17 @@ int CGit::GetRefsCommitIsOn(std::vector<std::wstring>& list, const CGitHash& has
 		else
 			continue;
 
-		if (git_reference_type(ref) == GIT_REFERENCE_SYMBOLIC)
+		if (git_reference_type(ref.get()) == GIT_REFERENCE_SYMBOLIC)
 		{
-			CAutoReference peeledRef;
-			if (git_reference_resolve(&peeledRef, ref) < 0)
+			wil::unique_git_reference peeledRef;
+			if (git_reference_resolve(&peeledRef, ref.get()) < 0)
 				continue;
 
-			checkDescendent(git_reference_target(peeledRef), ref);
+			checkDescendent(git_reference_target(peeledRef.get()), ref.get());
 			continue;
 		}
 
-		checkDescendent(git_reference_target(ref), ref);
+		checkDescendent(git_reference_target(ref.get()), ref.get());
 	}
 
 	std::sort(list.begin() + prevCount, list.end(), details::LogicalCompareBranchesPredicate);
@@ -3808,15 +3873,15 @@ int CGit::GetRemoteList(std::vector<std::wstring> &list)
 	const size_t prevCount = list.size();
 	if (this->m_IsUseLibGit2)
 	{
-		const CAutoRepository repo(GetGitRepository());
+		const wil::unique_git_repository repo(GetGitRepository());
 		if (!repo)
 			return -1;
 
-		CAutoStrArray remotes;
-		if (git_remote_list(remotes, repo))
+		wil::unique_git_strarray remotes;
+		if (git_remote_list(&remotes, repo.get()))
 			return -1;
 
-		remotes.AppendTo(list);
+		AppendTo(remotes, list);
 
 		std::sort(list.begin() + prevCount, list.end(), details::LogicalComparePredicate);
 
@@ -3844,17 +3909,17 @@ int CGit::GetRemoteRefs(const CString& remote, REF_VECTOR& list, const bool incl
 	// starting to report the wrong side's error at the call sites of this function.
 	if (UsingLibGit2(GIT_CMD_FETCH))
 	{
-		const CAutoRepository repo(GetGitRepository());
+		const wil::unique_git_repository repo(GetGitRepository());
 		if (!repo)
 			return -1;
 
 		const std::string remoteA = CUnicodeUtils::StdGetUTF8(StringView(remote));
-		CAutoRemote gitremote;
+		wil::unique_git_remote gitremote;
 		// first try with a named remote (e.g. "origin")
-		if (git_remote_lookup(gitremote.GetPointer(), repo, remoteA.c_str()) < 0)
+		if (git_remote_lookup(gitremote.put(), repo.get(), remoteA.c_str()) < 0)
 		{
 			// retry with repository located at a specific url
-			if (git_remote_create_anonymous(gitremote.GetPointer(), repo, remoteA.c_str()) < 0)
+			if (git_remote_create_anonymous(gitremote.put(), repo.get(), remoteA.c_str()) < 0)
 				return -1;
 		}
 
@@ -3863,12 +3928,12 @@ int CGit::GetRemoteRefs(const CString& remote, REF_VECTOR& list, const bool incl
 		callbacks.certificate_check = g_Git2CheckCertificateCallback;
 		git_proxy_options proxy = GIT_PROXY_OPTIONS_INIT;
 		proxy.type = GIT_PROXY_AUTO;
-		if (git_remote_connect(gitremote, GIT_DIRECTION_FETCH, &callbacks, &proxy, nullptr) < 0)
+		if (git_remote_connect(gitremote.get(), GIT_DIRECTION_FETCH, &callbacks, &proxy, nullptr) < 0)
 			return -1;
 
 		const git_remote_head** heads = nullptr;
 		size_t size = 0;
-		if (git_remote_ls(&heads, &size, gitremote) < 0)
+		if (git_remote_ls(&heads, &size, gitremote.get()) < 0)
 			return -1;
 
 		for (size_t i = 0; i < size; i++)
@@ -3940,7 +4005,7 @@ int CGit::GetRefList(std::vector<std::wstring> &list)
 	const size_t prevCount = list.size();
 	if (this->m_IsUseLibGit2)
 	{
-		const CAutoRepository repo(GetGitRepository());
+		const wil::unique_git_repository repo(GetGitRepository());
 		if (!repo)
 			return -1;
 
@@ -3957,7 +4022,7 @@ int CGit::GetRefList(std::vector<std::wstring> &list)
 		};
 
 
-		if (git_reference_foreach(repo, callback, &list))
+		if (git_reference_foreach(repo.get(), callback, &list))
 			return -1;
 
 		std::sort(list.begin() + prevCount, list.end(), details::LogicalComparePredicate);
@@ -3988,11 +4053,11 @@ int CGit::GetMapHashToFriendName(MAP_HASH_NAME &map)
 {
 	if (this->m_IsUseLibGit2)
 	{
-		const CAutoRepository repo(GetGitRepository());
+		const wil::unique_git_repository repo(GetGitRepository());
 		if (!repo)
 			return -1;
 
-		return details::GetMapHashToFriendName(repo, map);
+		return details::GetMapHashToFriendName(repo.get(), map);
 	}
 
 	gitLastErr.Empty();
@@ -4042,10 +4107,11 @@ int CGit::GuessRefForHash(CString& ref, const CGitHash& hash)
 
 int CGit::GetBranchDescriptions(std::map<std::wstring, std::wstring>& map) const
 {
-	const CAutoConfig config(true);
-	if (git_config_add_file_ondisk(config, TGitPath::ToGitPathA(StringView(GetGitLocalConfig())).c_str(), GIT_CONFIG_LEVEL_LOCAL, nullptr, FALSE) < 0)
+	wil::unique_git_config config;
+	git_config_new(config.put());
+	if (git_config_add_file_ondisk(config.get(), TGitPath::ToGitPathA(StringView(GetGitLocalConfig())).c_str(), GIT_CONFIG_LEVEL_LOCAL, nullptr, FALSE) < 0)
 		return -1;
-	return git_config_foreach_match(config, "^branch\\..*\\.description$", [](const git_config_entry* entry, void* data)
+	return git_config_foreach_match(config.get(), "^branch\\..*\\.description$", [](const git_config_entry* entry, void* data)
 	{
 		const auto descriptions = static_cast<std::map<std::wstring, std::wstring>*>(data);
 		// extract branch name from config key; the match pattern above guarantees
@@ -4330,22 +4396,22 @@ CString CGit::GetNotesRef() const
 
 BOOL CGit::CheckCleanWorkTree(const bool stagedOk /* false */)
 {
-	const CAutoRepository repo(GetGitRepository());
+	const wil::unique_git_repository repo(GetGitRepository());
 	if (!repo)
 		return FALSE;
 
-	if (git_repository_head_unborn(repo))
+	if (git_repository_head_unborn(repo.get()))
 		return FALSE;
 
 	git_status_options statusopt = GIT_STATUS_OPTIONS_INIT;
 	statusopt.show = stagedOk ? GIT_STATUS_SHOW_WORKDIR_ONLY : GIT_STATUS_SHOW_INDEX_AND_WORKDIR;
 	statusopt.flags = GIT_STATUS_OPT_UPDATE_INDEX | GIT_STATUS_OPT_EXCLUDE_SUBMODULES;
 
-	CAutoStatusList status;
-	if (git_status_list_new(&status, repo, &statusopt))
+	wil::unique_git_status_list status;
+	if (git_status_list_new(&status, repo.get(), &statusopt))
 		return FALSE;
 
-	return (0 == git_status_list_entrycount(status));
+	return (0 == git_status_list_entrycount(status.get()));
 }
 
 BOOL CGit::IsResultingCommitBecomeEmpty(const bool amend /* = false */)
@@ -4357,37 +4423,37 @@ BOOL CGit::IsResultingCommitBecomeEmpty(const bool amend /* = false */)
 
 int CGit::HasWorkingTreeConflicts(git_repository* repo /* = nullptr */) const {
 prologoue:
-	[[maybe_unused]] CAutoRepository def_repo;
+	[[maybe_unused]] wil::unique_git_repository def_repo;
 	if (!repo) {
-		def_repo = CAutoRepository(GetGitRepository());
+		def_repo = GetGitRepository();
 		if (!def_repo)
 			return GFail;
 		repo = def_repo.get();
 	}
 body:
-	CAutoIndex index;
+	wil::unique_git_index index;
 	if (git_repository_index(&index, repo))
 		return GFail;
 
-	return git_index_has_conflicts(index);
+	return git_index_has_conflicts(index.get());
 }
 
 
 bool CGit::IsFastForward(const CString &from, const CString &to, CGitHash * commonAncestor)
 {
-	const CAutoRepository repo(GetGitRepository());
+	const wil::unique_git_repository repo(GetGitRepository());
 	if (!repo)
 		return false;
 
 	CGitHash fromHash, toHash, baseHash;
-	if (GetHash(repo, toHash, FixBranchName(to).GetBuffer()))
+	if (GetHash(repo.get(), toHash, FixBranchName(to).GetBuffer()))
 		return false;
 
-	if (GetHash(repo, fromHash, FixBranchName(from).GetBuffer()))
+	if (GetHash(repo.get(), fromHash, FixBranchName(from).GetBuffer()))
 		return false;
 
 	git_oid baseOid;
-	if (git_merge_base(&baseOid, repo, toHash, fromHash))
+	if (git_merge_base(&baseOid, repo.get(), toHash, fromHash))
 		return false;
 
 	baseHash = baseOid;
@@ -4426,35 +4492,35 @@ int CGit::GetOneFile(const CString &Refname, const CTGitPath &path, const CStrin
 	// git_blob_filter below does not - that is the difference on an LFS repository.
 	if (UsingLibGit2(GIT_CMD_GETONEFILE) || !g_Git.m_IsUseGitDLL)
 	{
-		const CAutoRepository repo(GetGitRepository());
+		const wil::unique_git_repository repo(GetGitRepository());
 		if (!repo)
 			return -1;
 
 		CGitHash hash;
 		const auto tmp = std::wstring{ Refname } + L"^{}";
-		if (GetHash(repo, hash, tmp)) // add ^{} in order to dereference signed tags
+		if (GetHash(repo.get(), hash, tmp)) // add ^{} in order to dereference signed tags
 			return -1;
 
-		CAutoCommit commit;
-		if (git_commit_lookup(&commit, repo, hash))
+		wil::unique_git_commit commit;
+		if (git_commit_lookup(&commit, repo.get(), hash))
 			return -1;
 
-		CAutoTree tree;
-		if (git_commit_tree(&tree, commit))
+		wil::unique_git_tree tree;
+		if (git_commit_tree(&tree, commit.get()))
 			return -1;
 
-		CAutoTreeEntry entry;
-		if (const auto ret = git_tree_entry_bypath(&entry, tree, CUnicodeUtils::StdGetUTF8(path.GetGitPathString().c_str()).c_str()); ret)
+		wil::unique_git_tree_entry entry;
+		if (const auto ret = git_tree_entry_bypath(&entry, tree.get(), CUnicodeUtils::StdGetUTF8(path.GetGitPathString().c_str()).c_str()); ret)
 			return ret;
 
-		if (git_tree_entry_filemode(entry) == GIT_FILEMODE_COMMIT)
+		if (git_tree_entry_filemode(entry.get()) == GIT_FILEMODE_COMMIT)
 		{
 			git_error_set_str(GIT_ERROR_NONE, "The requested object is a submodule and not a file.");
 			return -1;
 		}
 
-		CAutoBlob blob;
-		if (git_tree_entry_to_object(reinterpret_cast<git_object**>(&blob), repo, entry))
+		wil::unique_git_blob blob;
+		if (git_tree_entry_to_object(reinterpret_cast<git_object**>(&blob), repo.get(), entry.get()))
 			return -1;
 
 		const wil::CAutoFile file{_wfsopen(outputfile, L"wb", SH_DENYWR)};
@@ -4463,12 +4529,12 @@ int CGit::GetOneFile(const CString &Refname, const CTGitPath &path, const CStrin
 			git_error_set_str(GIT_ERROR_NONE, "Could not create file.");
 			return -1;
 		}
-		CAutoBuf buf;
+		wil::unique_git_buf buf;
 		git_blob_filter_options opts = GIT_BLOB_FILTER_OPTIONS_INIT;
 		opts.flags &= ~static_cast<uint32_t>(GIT_BLOB_FILTER_CHECK_FOR_BINARY);
-		if (git_blob_filter(buf, blob, CUnicodeUtils::StdGetUTF8(path.GetGitPathString().c_str()).c_str(), &opts))
+		if (git_blob_filter(&buf, blob.get(), CUnicodeUtils::StdGetUTF8(path.GetGitPathString().c_str()).c_str(), &opts))
 			return -1;
-		if (fwrite(buf->ptr, sizeof(char), buf->size, file.get()) != buf->size)
+		if (fwrite(buf.ptr, sizeof(char), buf.size, file.get()) != buf.size)
 		{
 			git_error_set_str(GIT_ERROR_OS, "Could not write to file.");
 			return -1;
@@ -4538,22 +4604,22 @@ int CGit::GetUnifiedDiff(const CTGitPath& path, const CString& rev1, const CStri
 
 int CGit::GitRevert(const int parent, const CGitHash &hash)
 {
-	const CAutoRepository repo(GetGitRepository());
+	const wil::unique_git_repository repo(GetGitRepository());
 	if (!repo)
 		return -1;
 
-	CAutoCommit commit;
-	if (git_commit_lookup(&commit, repo, hash))
+	wil::unique_git_commit commit;
+	if (git_commit_lookup(&commit, repo.get(), hash))
 		return GFail;
 
 	git_revert_options revert_opts = GIT_REVERT_OPTIONS_INIT;
 	revert_opts.mainline = parent;
-	return !git_revert(repo, commit, &revert_opts) ? G_OK : GFail;
+	return !git_revert(repo.get(), commit.get(), &revert_opts) ? G_OK : GFail;
 }
 
 int CGit::DeleteRef(const CString& reference)
 {
-	const CAutoRepository repo(GetGitRepository());
+	const wil::unique_git_repository repo(GetGitRepository());
 	if (!repo)
 		return GFail;
 
@@ -4563,19 +4629,19 @@ int CGit::DeleteRef(const CString& reference)
 	else
 		refA = CUnicodeUtils::GetUTF8<CStringA>(reference);
 
-	CAutoReference ref;
-	if (git_reference_lookup(&ref, repo, refA))
+	wil::unique_git_reference ref;
+	if (git_reference_lookup(&ref, repo.get(), refA))
 		return GFail;
 
 	int result;
-	if (git_reference_is_tag(ref))
-		result = git_tag_delete(repo, git_reference_shorthand(ref));
-	else if (git_reference_is_branch(ref))
-		result = git_branch_delete(ref);
-	else if (git_reference_is_remote(ref))
-		result = git_branch_delete(ref);
+	if (git_reference_is_tag(ref.get()))
+		result = git_tag_delete(repo.get(), git_reference_shorthand(ref.get()));
+	else if (git_reference_is_branch(ref.get()))
+		result = git_branch_delete(ref.get());
+	else if (git_reference_is_remote(ref.get()))
+		result = git_branch_delete(ref.get());
 	else
-		result = git_reference_delete(ref);
+		result = git_reference_delete(ref.get());
 
 	return result;
 }
@@ -4586,13 +4652,13 @@ int CGit::DeleteRef(const CString& reference)
 // so is the reason for the split.
 int CGit::DeleteRemoteRefs(const CString& sRemote, const std::vector<std::wstring>& list)
 {
-	const CAutoRepository repo(GetGitRepository());
+	const wil::unique_git_repository repo(GetGitRepository());
 	if (!repo)
 		return -1;
 
 	const CStringA remoteA = CUnicodeUtils::GetUTF8<CStringA>(sRemote);
-	CAutoRemote remote;
-	if (git_remote_lookup(&remote, repo, remoteA) < 0)
+	wil::unique_git_remote remote;
+	if (git_remote_lookup(&remote, repo.get(), remoteA) < 0)
 		return -1;
 
 	git_push_options pushOpts = GIT_PUSH_OPTIONS_INIT;
@@ -4610,7 +4676,7 @@ int CGit::DeleteRemoteRefs(const CString& sRemote, const std::vector<std::wstrin
 	std::transform(refspecs.begin(), refspecs.end(), std::back_inserter(vc), [](std::string& s) -> char* { return s.data(); });
 	const git_strarray specs = { vc.data(), vc.size() };
 
-	if (git_remote_push(remote, &specs, &pushOpts) < 0)
+	if (git_remote_push(remote.get(), &specs, &pushOpts) < 0)
 		return -1;
 
 	return 0;
@@ -4886,12 +4952,12 @@ int CGit::GetGitVersion(CString* versiondebug, CString* errStr)
 
 int CGit::GetGitNotes(const CGitHash& hash, CString& notes)
 {
-	const CAutoRepository repo(GetGitRepository());
+	const wil::unique_git_repository repo(GetGitRepository());
 	if (!repo)
 		return -1;
 
-	CAutoNote note;
-	const int ret = git_note_read(&note, repo, nullptr, hash);
+	wil::unique_git_note note;
+	const int ret = git_note_read(&note, repo.get(), nullptr, hash);
 	if (ret == GIT_ENOTFOUND)
 	{
 		notes.Empty();
@@ -4899,22 +4965,22 @@ int CGit::GetGitNotes(const CGitHash& hash, CString& notes)
 	}
 	else if (ret)
 		return -1;
-	notes = CUnicodeUtils::Convert2Unicode<CString>(git_note_message(note));
+	notes = CUnicodeUtils::Convert2Unicode<CString>(git_note_message(note.get()));
 	return 0;
 }
 
 int CGit::SetGitNotes(const CGitHash& hash, const CString& notes)
 {
-	const CAutoRepository repo(GetGitRepository());
+	const wil::unique_git_repository repo(GetGitRepository());
 	if (!repo)
 		return -1;
 
-	CAutoSignature signature;
-	if (git_signature_default(&signature, repo) < 0)
+	wil::unique_git_signature signature;
+	if (git_signature_default(&signature, repo.get()) < 0)
 		return -1;
 
 	git_oid oid;
-	if (git_note_create(&oid, repo, nullptr, signature, signature, hash, CUnicodeUtils::GetUTF8<CStringA>(notes), 1) < 0)
+	if (git_note_create(&oid, repo.get(), nullptr, signature.get(), signature.get(), hash,CUnicodeUtils::GetUTF8<CStringA>(notes), 1) < 0)
 		return -1;
 
 	return 0;
@@ -4924,29 +4990,29 @@ int CGit::GetTagInfo(const CString& tagName, CString& output, const std::functio
 {
 	if (m_IsUseLibGit2)
 	{
-		const CAutoRepository repo{ g_Git.GetGitRepository() };
+		const wil::unique_git_repository repo{ g_Git.GetGitRepository() };
 		if (!repo)
 			return -1;
-		CAutoReference ref;
-		if (git_reference_lookup(&ref, repo, CUnicodeUtils::GetUTF8<CStringA>(tagName)) < 0)
+		wil::unique_git_reference ref;
+		if (git_reference_lookup(&ref, repo.get(), CUnicodeUtils::GetUTF8<CStringA>(tagName)) < 0)
 		{
 			output = TGitH::GetLibGit2LastErr();
 			return -1;
 		}
-		CAutoObject obj;
-		if (git_object_lookup(&obj, repo, git_reference_target(ref), GIT_OBJECT_TAG))
+		wil::unique_git_object obj;
+		if (git_object_lookup(&obj, repo.get(), git_reference_target(ref.get()), GIT_OBJECT_TAG))
 		{
 			output = TGitH::GetLibGit2LastErr();
 			return -1;
 		}
-		CAutoTag tag;
-		if (git_tag_lookup(&tag, repo, git_reference_target(ref)) < 0)
+		wil::unique_git_tag tag;
+		if (git_tag_lookup(&tag, repo.get(), git_reference_target(ref.get())) < 0)
 		{
 			output = TGitH::GetLibGit2LastErr();
 			return -1;
 		}
-		output = L"tag " + CUnicodeUtils::Convert2Unicode<CString>(git_tag_name(tag)) + L"\n";
-		const auto tagger = git_tag_tagger(tag);
+		output = L"tag " + CUnicodeUtils::Convert2Unicode<CString>(git_tag_name(tag.get())) + L"\n";
+		const auto tagger = git_tag_tagger(tag.get());
 		if (tagger)
 		{
 			output += "tagger ";
@@ -4966,7 +5032,7 @@ int CGit::GetTagInfo(const CString& tagName, CString& output, const std::functio
 			output += L'\n';
 		}
 		output += L'\n';
-		output += CUnicodeUtils::Convert2Unicode<CString>(git_tag_message(tag));
+		output += CUnicodeUtils::Convert2Unicode<CString>(git_tag_message(tag.get()));
 		output.TrimRight().AppendChar(L'\n');
 		return 0;
 	}
@@ -5026,11 +5092,11 @@ int GetSubmodulePointer(CGit::SubmoduleInfo& submoduleinfo)
 	if (superprojectRoot.empty())
 		return -1;
 
-	const CAutoRepository repo(std::wstring_view{ superprojectRoot });
+	const wil::unique_git_repository repo = TGitH::OpenGitRepository(superprojectRoot);
 	if (!repo)
 		return -1;
-	CAutoIndex index;
-	if (git_repository_index(index.GetPointer(), repo))
+	wil::unique_git_index index;
+	if (git_repository_index(index.put(), repo.get()))
 		return -1;
 
 	const int rootLength = CUnicodeUtils::SafeSizeToInt(superprojectRoot.size());
@@ -5045,7 +5111,7 @@ int GetSubmodulePointer(CGit::SubmoduleInfo& submoduleinfo)
 	const git_index_entry* ancestor{};
 	const git_index_entry* our{};
 	const git_index_entry* their{};
-	if (!git_index_conflict_get(&ancestor, &our, &their, index, CUnicodeUtils::GetUTF8<CStringA>(submodulePath)))
+	if (!git_index_conflict_get(&ancestor, &our, &their, index.get(), CUnicodeUtils::GetUTF8<CStringA>(submodulePath)))
 	{
 		if (our)
 			submoduleinfo.mergeconflictMineHash = our->id;
@@ -5067,7 +5133,7 @@ int GetSubmodulePointer(CGit::SubmoduleInfo& submoduleinfo)
 	}
 
 	// determine hash of submodule
-	const git_index_entry* entry = git_index_get_bypath(index, CUnicodeUtils::GetUTF8<CStringA>(submodulePath), 0);
+	const git_index_entry* entry = git_index_get_bypath(index.get(), CUnicodeUtils::GetUTF8<CStringA>(submodulePath), 0);
 	if (!entry)
 		return -1;
 

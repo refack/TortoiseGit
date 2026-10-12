@@ -26,7 +26,6 @@ import GitHash;
 import PathUtils;
 import RIAA;
 import Registry;
-import wil_git2;
 import str_utils;
 import TGitPath;
 import git_h;
@@ -34,7 +33,6 @@ import invarients;
 
 using namespace Registry;
 using namespace PathUtils;
-using namespace SmartLibgit2;
 using namespace tgit::DebugOutput;
 using namespace tgit;
 using tgit::str::StringView;
@@ -204,7 +202,7 @@ public:
 	int ReadIndex(const std::wstring& dgitdir);
 	std::expected<void, int> ReadIncomingOutgoing(git_repository* repo);
 	int GetFileStatus(const std::wstring& gitdir, const std::wstring& path, git_wc_status2_t& status, CGitHash* pHash = nullptr) const;
-	int GetFileStatus(CAutoRepository& repository, const std::wstring& gitdir, const CGitIndex& entry, git_wc_status2_t& status, std::int64_t time, std::int64_t filesize, bool isSymlink) const;
+	int GetFileStatus(wil::unique_git_repository& repository, const std::wstring& gitdir, const CGitIndex& entry, git_wc_status2_t& status, std::int64_t time, std::int64_t filesize, bool isSymlink) const;
 
 	// public for the unit tests (it was a FRIEND_TEST, which cannot reach into a module)
 	int GetFileStatus_NoRepo(const std::wstring& gitdir, const std::wstring& path, git_wc_status2_t& status, std::int64_t time, std::int64_t filesize, bool isSymlink, CGitHash* pHash = nullptr) const;
@@ -216,7 +214,7 @@ private:
 	int		m_iIndexCaps = GIT_INDEX_CAPABILITY_IGNORE_CASE | GIT_INDEX_CAPABILITY_NO_SYMLINKS;
 	std::int64_t m_iMaxCheckSize = 10 * 1024 * 1024;
 	bool	m_bCalculateIncomingOutgoing = true;
-	CAutoConfig config;
+	wil::unique_git_config config;
 };
 
 
@@ -770,7 +768,7 @@ int CGitIndexList::ReadIndex(const std::wstring& dgitdir)
 	if (dgitdir.size() == 2 && dgitdir[1] == L':')
 		repodir += L'\\'; // libgit2 requires a drive root to end with a (back)slash
 
-	const CAutoRepository repository(repodir);
+	const wil::unique_git_repository repository = TGitH::OpenGitRepository(repodir);
 	if (!repository)
 	{
 		tgit::DebugOutput::TracePrintf(_T(__FUNCTION__) L": Could not open git repository in %s: %s\n", dgitdir.c_str(), static_cast<LPCWSTR>(GetLibGit2LastErr()));
@@ -784,53 +782,54 @@ int CGitIndexList::ReadIndex(const std::wstring& dgitdir)
 	const std::wstring& systemConfigW = systemConfigValue; // operator const T& is non-const, hence the named object
 	const std::wstring systemConfig(systemConfigW.c_str()); // up to the first NUL, as the CString(c_str()) it replaces kept
 
-	CAutoConfig temp { true };
-	git_config_add_file_ondisk(temp, TGitPath::ToGitPathA(projectConfig).c_str(), GIT_CONFIG_LEVEL_LOCAL, repository, FALSE);
-	git_config_add_file_ondisk(temp, TGitPath::ToGitPathA(globalConfig).c_str(), GIT_CONFIG_LEVEL_GLOBAL, repository, FALSE);
-	git_config_add_file_ondisk(temp, TGitPath::ToGitPathA(globalXDGConfig).c_str(), GIT_CONFIG_LEVEL_XDG, repository, FALSE);
+	wil::unique_git_config temp;
+	git_config_new(temp.put());
+	git_config_add_file_ondisk(temp.get(), TGitPath::ToGitPathA(projectConfig).c_str(), GIT_CONFIG_LEVEL_LOCAL, repository.get(), FALSE);
+	git_config_add_file_ondisk(temp.get(), TGitPath::ToGitPathA(globalConfig).c_str(), GIT_CONFIG_LEVEL_GLOBAL, repository.get(), FALSE);
+	git_config_add_file_ondisk(temp.get(), TGitPath::ToGitPathA(globalXDGConfig).c_str(), GIT_CONFIG_LEVEL_XDG, repository.get(), FALSE);
 	if (!systemConfig.empty())
-		git_config_add_file_ondisk(temp, TGitPath::ToGitPathA(systemConfig).c_str(), GIT_CONFIG_LEVEL_SYSTEM, repository, FALSE);
+		git_config_add_file_ondisk(temp.get(), TGitPath::ToGitPathA(systemConfig).c_str(), GIT_CONFIG_LEVEL_SYSTEM, repository.get(), FALSE);
 
-	git_config_snapshot(config.GetPointer(), temp);
-	temp.Free();
-	git_repository_set_config(repository, config);
+	git_config_snapshot(config.put(), temp.get());
+	temp.reset();
+	git_repository_set_config(repository.get(), config.get());
 
 	TGitH::GetFileModifyTime((g_AdminDirMap.GetWorktreeAdminDir(dgitdir) + L"index").c_str(), &m_LastModifyTime, nullptr, &m_LastFileSize);
 
-	CAutoIndex index;
+	wil::unique_git_index index;
 	// load index in order to enumerate files
-	if (git_repository_index(index.GetPointer(), repository))
+	if (git_repository_index(index.put(), repository.get()))
 	{
-		config.Free();
+		config.reset();
 		TracePrintf(_T(__FUNCTION__) L": Could not get index of git repository in %s: %s\n", dgitdir.c_str(), static_cast<LPCWSTR>(GetLibGit2LastErr()));
 		return -1;
 	}
 
 	m_bHasConflicts = false;
-	m_iIndexCaps = git_index_caps(index);
+	m_iIndexCaps = git_index_caps(index.get());
 	if (CRegDWORD(L"Software\\TortoiseGit\\OverlaysCaseSensitive", TRUE) != FALSE)
 		m_iIndexCaps &= ~GIT_INDEX_CAPABILITY_IGNORE_CASE;
 
-	const size_t ecount = git_index_entrycount(index);
+	const size_t ecount = git_index_entrycount(index.get());
 	try
 	{
 		m_entries.resize(ecount);
 	}
 	catch (const std::bad_alloc& ex)
 	{
-		config.Free();
+		config.reset();
 		TracePrintf(__FUNCTION__ ": Could not resize index-vector: %s\n", ex.what());
 		return -1;
 	}
 	catch (const std::length_error& ex)
 	{
-		config.Free();
+		config.reset();
 		TracePrintf(__FUNCTION__ ": Could not resize index-vector, length_error: %s\n", ex.what());
 		return -1;
 	}
 	for (size_t i = 0; i < ecount; ++i)
 	{
-		const git_index_entry *e = git_index_get_byindex(index, i);
+		const git_index_entry *e = git_index_get_byindex(index.get(), i);
 
 		auto& item = m_entries[i];
 		item.m_FileName = CUnicodeUtils::Convert2Unicode<std::wstring>(e->path);
@@ -852,7 +851,7 @@ int CGitIndexList::ReadIndex(const std::wstring& dgitdir)
 	DoSortFilenametSortVector(m_entries, IsIgnoreCase());
 
 	// best effort: a branch whose upstream state cannot be read does not fail the index
-	static_cast<void>(ReadIncomingOutgoing(repository));
+	static_cast<void>(ReadIncomingOutgoing(repository.get()));
 
 	TracePrintf(_T(__FUNCTION__) L": Reloaded index for repo: %s\n", dgitdir.c_str());
 
@@ -881,34 +880,34 @@ std::expected<void, int> CGitIndexList::ReadIncomingOutgoing(git_repository* rep
 	else if (detachedhead < 0)
 		return std::unexpected(-1);
 
-	CAutoReference head;
+	wil::unique_git_reference head;
 	if (const int unborn = git_repository_head_unborn(repository); unborn < 0)
 		return std::unexpected(-1);
 	else if (unborn == 1)
 	{
-		if (git_reference_lookup(head.GetPointer(), repository, "HEAD") < 0)
+		if (git_reference_lookup(head.put(), repository, "HEAD") < 0)
 			return std::unexpected(-1);
 
 		// StripRefName still speaks CString; a null target reads as empty either way
-		m_branch = std::wstring(TGitH::StripRefName(CUnicodeUtils::Convert2Unicode<CString>(git_reference_symbolic_target(head))));
+		m_branch = std::wstring(TGitH::StripRefName(CUnicodeUtils::Convert2Unicode<CString>(git_reference_symbolic_target(head.get()))));
 		return {};
 	}
 
-	if (git_repository_head(head.GetPointer(), repository) < 0)
+	if (git_repository_head(head.put(), repository) < 0)
 		return std::unexpected(-1);
 
-	m_branch = CUnicodeUtils::Convert2Unicode<std::wstring>(git_reference_shorthand(head)); // nullptr reads as empty
+	m_branch = CUnicodeUtils::Convert2Unicode<std::wstring>(git_reference_shorthand(head.get())); // nullptr reads as empty
 
-	CAutoBuf upstreambranchname;
+	wil::unique_git_buf upstreambranchname;
 	git_oid upstream{};
 	// check whether there is an upstream branch
-	if (git_branch_upstream_name(upstreambranchname, repository, git_reference_name(head)) != 0 || git_reference_name_to_id(&upstream, repository, upstreambranchname->ptr) != 0)
+	if (git_branch_upstream_name(&upstreambranchname, repository, git_reference_name(head.get())) != 0 || git_reference_name_to_id(&upstream, repository, upstreambranchname.ptr) != 0)
 		return {}; // we don't have an upstream branch
 
 	// libgit2 writes through size_t*; only a complete answer is kept
 	size_t outgoing = 0;
 	size_t incoming = 0;
-	if (git_graph_ahead_behind(&outgoing, &incoming, repository, git_reference_target(head), &upstream) < 0)
+	if (git_graph_ahead_behind(&outgoing, &incoming, repository, git_reference_target(head.get()), &upstream) < 0)
 		return std::unexpected(-1);
 
 	m_outgoing = outgoing;
@@ -934,11 +933,11 @@ int CGitIndexList::GetFileStatus_NoRepo(const std::wstring& gitdir, const std::w
 	if (pHash)
 		*pHash = entry.m_IndexHash;
 	ATLASSERT(IsIgnoreCase() ? tgit::wstr::CompareNoCase(pathorg, entry.m_FileName) == 0 : pathorg == entry.m_FileName);
-	CAutoRepository repository;
+	wil::unique_git_repository repository;
 	return GetFileStatus(repository, gitdir, entry, status, time, filesize, isSymlink);
 }
 
-int CGitIndexList::GetFileStatus(CAutoRepository& repository, const std::wstring& gitdir, const CGitIndex& entry, git_wc_status2_t& status, const std::int64_t time, const std::int64_t filesize, const bool isSymlink) const
+int CGitIndexList::GetFileStatus(wil::unique_git_repository& repository,const std::wstring& gitdir, const CGitIndex& entry, git_wc_status2_t& status, const std::int64_t time, const std::int64_t filesize, const bool isSymlink) const
 {
 	Expects(!status.assumeValid && !status.skipWorktree);
 
@@ -973,12 +972,14 @@ int CGitIndexList::GetFileStatus(CAutoRepository& repository, const std::wstring
 			if (gitdir.size() == 2 && gitdir[1] == L':')
 				repodir += L'\\'; // libgit2 requires a drive root to end with a (back)slash
 
-			if (repository.Open(repodir))
+			// Open() returned non-zero on failure; the owner is empty on failure.
+			repository = TGitH::OpenGitRepository(repodir);
+			if (!repository)
 			{
 				TracePrintf(_T(__FUNCTION__) L": Could not open git repository in %s for checking file: %s\n", gitdir.c_str(), static_cast<LPCWSTR>(TGitH::GetLibGit2LastErr()));
 				return -1;
 			}
-			git_repository_set_config(repository, config);
+			git_repository_set_config(repository.get(), config.get());
 		}
 
 		git_oid actual;
@@ -1000,7 +1001,7 @@ int CGitIndexList::GetFileStatus(CAutoRepository& repository, const std::wstring
 			else
 				status.status = git_wc_status_modified;
 		}
-		else if (!git_repository_hashfile(&actual, repository, fileA.c_str(), GIT_OBJECT_BLOB, nullptr) && !git_oid_cmp(&actual, entry.m_IndexHash))
+		else if (!git_repository_hashfile(&actual, repository.get(), fileA.c_str(),GIT_OBJECT_BLOB, nullptr) && !git_oid_cmp(&actual, entry.m_IndexHash))
 		{
 			entry.SetModifyTime(time);
 			status.status = git_wc_status_normal;
@@ -1273,13 +1274,13 @@ void CGitHeadFileList::ReadTreeRecursive(git_repository& repo, const git_tree* t
 			continue;
 		}
 
-		CAutoObject object;
-		git_tree_entry_to_object(object.GetPointer(), &repo, entry);
+		wil::unique_git_object object;
+		git_tree_entry_to_object(object.put(), &repo, entry);
 		if (!object)
 			continue;
 		std::wstring parent = base + CUnicodeUtils::Convert2Unicode<std::wstring>(git_tree_entry_name(entry));
 		parent += L'/';
-		ReadTreeRecursive(repo, reinterpret_cast<git_tree*>(static_cast<git_object*>(object)), parent);
+		ReadTreeRecursive(repo, reinterpret_cast<git_tree*>(object.get()), parent);
 	}
 }
 
@@ -1292,16 +1293,16 @@ std::expected<void, int> CGitHeadFileList::ReadTree(const bool ignoreCase)
 	if (m_Head.IsEmpty())
 		return {};
 
-	const CAutoRepository repository(m_Gitdir);
-	CAutoCommit commit;
-	CAutoTree tree;
-	bool ret = repository;
-	ret = ret && !git_commit_lookup(commit.GetPointer(), repository, m_Head);
-	ret = ret && !git_commit_tree(tree.GetPointer(), commit);
+	const wil::unique_git_repository repository = TGitH::OpenGitRepository(m_Gitdir);
+	wil::unique_git_commit commit;
+	wil::unique_git_tree tree;
+	bool ret = static_cast<bool>(repository);
+	ret = ret && !git_commit_lookup(commit.put(), repository.get(), m_Head);
+	ret = ret && !git_commit_tree(tree.put(), commit.get());
 	try
 	{
 		if (ret)
-			ReadTreeRecursive(*repository, tree, L""); // cannot fail short of throwing; skips entries it cannot read
+			ReadTreeRecursive(*repository.get(), tree.get(), L""); // cannot fail short of throwing; skips entries it cannot read
 	}
 	catch (const std::bad_alloc& ex)
 	{
@@ -1577,15 +1578,16 @@ bool CGitIgnoreList::CheckAndUpdateCoreExcludefile(const std::wstring& adminDir)
 	if (!hasChanged)
 		return false;
 
-	const CAutoConfig config(true);
-	const CAutoRepository repo(adminDir);
-	git_config_add_file_ondisk(config, TGitPath::ToGitPathA(projectConfig).c_str(), GIT_CONFIG_LEVEL_LOCAL, repo, FALSE);
-	git_config_add_file_ondisk(config, TGitPath::ToGitPathA(globalConfig).c_str(), GIT_CONFIG_LEVEL_GLOBAL, repo, FALSE);
-	git_config_add_file_ondisk(config, TGitPath::ToGitPathA(globalXDGConfig).c_str(), GIT_CONFIG_LEVEL_XDG, repo, FALSE);
+	wil::unique_git_config config;
+	git_config_new(config.put());
+	const wil::unique_git_repository repo = TGitH::OpenGitRepository(adminDir);
+	git_config_add_file_ondisk(config.get(), TGitPath::ToGitPathA(projectConfig).c_str(), GIT_CONFIG_LEVEL_LOCAL, repo.get(), FALSE);
+	git_config_add_file_ondisk(config.get(), TGitPath::ToGitPathA(globalConfig).c_str(), GIT_CONFIG_LEVEL_GLOBAL, repo.get(), FALSE);
+	git_config_add_file_ondisk(config.get(), TGitPath::ToGitPathA(globalXDGConfig).c_str(), GIT_CONFIG_LEVEL_XDG, repo.get(), FALSE);
 	if (!m_sGitSystemConfigPath.empty())
-		git_config_add_file_ondisk(config, TGitPath::ToGitPathA(m_sGitSystemConfigPath).c_str(), GIT_CONFIG_LEVEL_SYSTEM, repo, FALSE);
+		git_config_add_file_ondisk(config.get(), TGitPath::ToGitPathA(m_sGitSystemConfigPath).c_str(), GIT_CONFIG_LEVEL_SYSTEM, repo.get(), FALSE);
 
-	config.GetString(L"core.excludesfile", excludesFile);
+	TGitH::GetConfigString(config.get(), L"core.excludesfile", excludesFile);
 	if (excludesFile.empty())
 		excludesFile = GetWindowsHome() + L"\\.config\\git\\ignore";
 	else if (excludesFile.starts_with(L"~/"))
@@ -1593,7 +1595,7 @@ bool CGitIgnoreList::CheckAndUpdateCoreExcludefile(const std::wstring& adminDir)
 
 	[[maybe_unused]]CAutoWriteLock lockMap(m_SharedMutex);
 	m_IgnoreCase[adminDir] = 1;
-	config.GetBOOL(L"core.ignorecase", m_IgnoreCase[adminDir]);
+	TGitH::GetConfigBOOL(config.get(), L"core.ignorecase", m_IgnoreCase[adminDir]);
 	TGitH::GetFileModifyTime(projectConfig.c_str(), &m_Map[projectConfig].m_LastModifyTime, nullptr, &m_Map[projectConfig].m_LastFileSize);
 	TGitH::GetFileModifyTime(globalXDGConfig.c_str(), &m_Map[globalXDGConfig].m_LastModifyTime, nullptr, &m_Map[globalXDGConfig].m_LastFileSize);
 	if (m_Map[globalXDGConfig].m_LastModifyTime == 0)

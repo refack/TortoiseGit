@@ -77,10 +77,10 @@ bool ResolveProgressCommand::Run(CGitProgressList* list, CString& sWindowTitle, 
 		return true;
 	}
 
-	CAutoIndex gitIndex;
+	wil::unique_git_index gitIndex;
 	{
-		CAutoRepository repo = g_Git.GetGitRepository();
-		if (!repo || git_repository_index(gitIndex.GetPointer(), repo) < 0)
+		const wil::unique_git_repository repo = g_Git.GetGitRepository();
+		if (!repo || git_repository_index(gitIndex.put(), repo.get()) < 0)
 		{
 			list->ReportGitError();
 			return false;
@@ -101,7 +101,7 @@ bool ResolveProgressCommand::Run(CGitProgressList* list, CString& sWindowTitle, 
 			const git_index_entry* ancestor = nullptr;
 			const git_index_entry* our = nullptr;
 			const git_index_entry* their = nullptr;
-			if (int err = git_index_conflict_get(&ancestor, &our, &their, gitIndex, CUnicodeUtils::StdGetUTF8(path.GetGitPathString()).c_str()); err == GIT_ENOTFOUND)
+			if (int err = git_index_conflict_get(&ancestor, &our, &their, gitIndex.get(), CUnicodeUtils::StdGetUTF8(path.GetGitPathString()).c_str()); err == GIT_ENOTFOUND)
 			{
 				list->AddNotify(new CGitProgressList::WC_File_NotificationData(path, Git_WC_Notify_Action::Skip));
 				++m_itemCount;

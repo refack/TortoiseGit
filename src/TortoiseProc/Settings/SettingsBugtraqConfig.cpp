@@ -165,7 +165,7 @@ void CSettingsBugtraqConfig::OnChange()
 	SetModified();
 }
 
-void CSettingsBugtraqConfig::LoadDataImpl(CAutoConfig& config)
+void CSettingsBugtraqConfig::LoadDataImpl(wil::unique_git_config& config)
 {
 	if (m_iConfigSource == CFG_SRC_EFFECTIVE)
 	{
@@ -220,16 +220,16 @@ void CSettingsBugtraqConfig::LoadDataImpl(CAutoConfig& config)
 	}
 	else
 	{
-		m_bInheritURL = (config.GetString(BUGTRAQPROPNAME_URL, m_URL) == GIT_ENOTFOUND);
-		m_bInheritMessage = (config.GetString(BUGTRAQPROPNAME_MESSAGE, m_Message) == GIT_ENOTFOUND);
-		m_bInheritLabel = (config.GetString(BUGTRAQPROPNAME_LABEL, m_Label) == GIT_ENOTFOUND);
+		m_bInheritURL = (TGitH::GetConfigString(config.get(), BUGTRAQPROPNAME_URL, m_URL) == GIT_ENOTFOUND);
+		m_bInheritMessage = (TGitH::GetConfigString(config.get(), BUGTRAQPROPNAME_MESSAGE, m_Message) == GIT_ENOTFOUND);
+		m_bInheritLabel = (TGitH::GetConfigString(config.get(), BUGTRAQPROPNAME_LABEL, m_Label) == GIT_ENOTFOUND);
 		GetBoolConfigValueComboBox(config, BUGTRAQPROPNAME_NUMBER, m_cNumber);
 		GetBoolConfigValueComboBox(config, BUGTRAQPROPNAME_APPEND, m_cAppend);
 		GetBoolConfigValueComboBox(config, BUGTRAQPROPNAME_WARNIFNOISSUE, m_cWarningifnoissue);
-		m_bInheritLogregex = (config.GetString(BUGTRAQPROPNAME_LOGREGEX, m_Logregex) == GIT_ENOTFOUND);
-		m_bInheritParams = (config.GetString(BUGTRAQPROPNAME_PROVIDERPARAMS, m_Params) == GIT_ENOTFOUND);
-		m_bInheritUUID32 = (config.GetString(BUGTRAQPROPNAME_PROVIDERUUID, m_UUID32) == GIT_ENOTFOUND);
-		m_bInheritUUID64 = (config.GetString(BUGTRAQPROPNAME_PROVIDERUUID64, m_UUID64) == GIT_ENOTFOUND);
+		m_bInheritLogregex = (TGitH::GetConfigString(config.get(), BUGTRAQPROPNAME_LOGREGEX, m_Logregex) == GIT_ENOTFOUND);
+		m_bInheritParams = (TGitH::GetConfigString(config.get(), BUGTRAQPROPNAME_PROVIDERPARAMS, m_Params) == GIT_ENOTFOUND);
+		m_bInheritUUID32 = (TGitH::GetConfigString(config.get(), BUGTRAQPROPNAME_PROVIDERUUID, m_UUID32) == GIT_ENOTFOUND);
+		m_bInheritUUID64 = (TGitH::GetConfigString(config.get(), BUGTRAQPROPNAME_PROVIDERUUID64, m_UUID64) == GIT_ENOTFOUND);
 	}
 
 	m_Logregex.Trim();
@@ -240,48 +240,48 @@ void CSettingsBugtraqConfig::LoadDataImpl(CAutoConfig& config)
 	UpdateData(FALSE);
 }
 
-BOOL CSettingsBugtraqConfig::SafeDataImpl(CAutoConfig& config)
+BOOL CSettingsBugtraqConfig::SafeDataImpl(wil::unique_git_config& config)
 {
-	if (!Save(config, BUGTRAQPROPNAME_URL, m_URL, m_bInheritURL == TRUE))
+	if (!Save(config.get(), BUGTRAQPROPNAME_URL, m_URL, m_bInheritURL == TRUE))
 		return FALSE;
 
-	if (!Save(config, BUGTRAQPROPNAME_MESSAGE, m_Message, m_bInheritMessage == TRUE))
+	if (!Save(config.get(), BUGTRAQPROPNAME_MESSAGE, m_Message, m_bInheritMessage == TRUE))
 		return FALSE;
 
-	if (!Save(config, BUGTRAQPROPNAME_LABEL, m_Label, m_bInheritLabel == TRUE))
+	if (!Save(config.get(), BUGTRAQPROPNAME_LABEL, m_Label, m_bInheritLabel == TRUE))
 		return FALSE;
 
-	if (!Save(config, BUGTRAQPROPNAME_PROVIDERPARAMS, m_Params, m_bInheritParams == TRUE))
+	if (!Save(config.get(), BUGTRAQPROPNAME_PROVIDERPARAMS, m_Params, m_bInheritParams == TRUE))
 		return FALSE;
 
-	if (!Save(config, BUGTRAQPROPNAME_PROVIDERUUID, m_UUID32, m_bInheritUUID32 == TRUE))
+	if (!Save(config.get(), BUGTRAQPROPNAME_PROVIDERUUID, m_UUID32, m_bInheritUUID32 == TRUE))
 		return FALSE;
 
-	if (!Save(config, BUGTRAQPROPNAME_PROVIDERUUID64, m_UUID64, m_bInheritUUID64 == TRUE))
+	if (!Save(config.get(), BUGTRAQPROPNAME_PROVIDERUUID64, m_UUID64, m_bInheritUUID64 == TRUE))
 		return FALSE;
 
 	{
 		CString value;
 		m_cAppend.GetWindowText(value);
-		if (!Save(config, BUGTRAQPROPNAME_APPEND, value, value.IsEmpty()))
+		if (!Save(config.get(), BUGTRAQPROPNAME_APPEND, value, value.IsEmpty()))
 			return FALSE;
 	}
 	{
 		CString value;
 		m_cNumber.GetWindowText(value);
-		if (!Save(config, BUGTRAQPROPNAME_NUMBER, value, value.IsEmpty()))
+		if (!Save(config.get(), BUGTRAQPROPNAME_NUMBER, value, value.IsEmpty()))
 			return FALSE;
 	}
 	{
 		CString value;
 		m_cWarningifnoissue.GetWindowText(value);
-		if (!Save(config, BUGTRAQPROPNAME_WARNIFNOISSUE, value, value.IsEmpty()))
+		if (!Save(config.get(), BUGTRAQPROPNAME_WARNIFNOISSUE, value, value.IsEmpty()))
 			return FALSE;
 	}
 	{
 		CString value(m_Logregex);
 		value.Replace(L"\r\n",L"\n");
-		if (!Save(config, BUGTRAQPROPNAME_LOGREGEX, value, m_bInheritLogregex == TRUE))
+		if (!Save(config.get(), BUGTRAQPROPNAME_LOGREGEX, value, m_bInheritLogregex == TRUE))
 			return FALSE;
 	}
 

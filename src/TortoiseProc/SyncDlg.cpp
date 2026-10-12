@@ -279,7 +279,7 @@ void CSyncDlg::OnBnClickedButtonPull()
 	m_iPullRebase = 0;
 	if (CurrentEntry == 0) // check whether we need to override Pull if pull.rebase is set
 	{
-		CAutoRepository repo(g_Git.GetGitRepository());
+		const wil::unique_git_repository repo(g_Git.GetGitRepository());
 		if (!repo)
 			MessageBox(TGitH::GetLibGit2LastErr(L"Could not open repository."), L"TortoiseGit", MB_OK | MB_ICONERROR);
 
@@ -289,22 +289,22 @@ void CSyncDlg::OnBnClickedButtonPull()
 			if (!repo)
 				break;
 
-			if (git_repository_head_detached(repo) == 1)
+			if (git_repository_head_detached(repo.get()) == 1)
 				break;
 
-			CAutoConfig config(true);
-			if (git_repository_config(config.GetPointer(), repo))
+			wil::unique_git_config config;
+			if (git_repository_config(config.put(), repo.get()))
 				break;
 
 			// branch.<name>.rebase overrides pull.rebase
-			if (config.GetBOOL(tgit::str::StringView(L"branch." + g_Git.GetCurrentBranch() + L".rebase"), m_iPullRebase) == GIT_ENOTFOUND)
+			if (TGitH::GetConfigBOOL(config.get(), tgit::str::StringView(L"branch." + g_Git.GetCurrentBranch() + L".rebase"), m_iPullRebase) == GIT_ENOTFOUND)
 			{
-				if (config.GetBOOL(L"pull.rebase", m_iPullRebase) == GIT_ENOTFOUND)
+				if (TGitH::GetConfigBOOL(config.get(), L"pull.rebase", m_iPullRebase) == GIT_ENOTFOUND)
 					break;
 				else
 				{
 					CString value;
-					config.GetString(L"pull.rebase", value);
+					TGitH::GetConfigString(config.get(), L"pull.rebase", value);
 					if (value == L"merges")
 					{
 						m_iPullRebase = 2;
@@ -315,7 +315,7 @@ void CSyncDlg::OnBnClickedButtonPull()
 			else
 			{
 				CString value;
-				config.GetString(L"branch." + g_Git.GetCurrentBranch() + L".rebase", value);
+				TGitH::GetConfigString(config.get(), L"branch." + g_Git.GetCurrentBranch() + L".rebase", value);
 				if (value == L"merges")
 				{
 					m_iPullRebase = 2;
@@ -1359,14 +1359,14 @@ void CSyncDlg::FillNewRefMap()
 	if (!g_Git.m_IsUseLibGit2)
 		return;
 
-	CAutoRepository repo(g_Git.GetGitRepository());
+	const wil::unique_git_repository repo(g_Git.GetGitRepository());
 	if (!repo)
 	{
 		CMessageBox::Show(m_hWnd, TGitH::GetLibGit2LastErr(L"Could not open repository."), L"TortoiseGit", MB_OK | MB_ICONERROR);
 		return;
 	}
 
-	if (CGit::GetMapHashToFriendName(repo, m_newHashMap))
+	if (CGit::GetMapHashToFriendName(repo.get(), m_newHashMap))
 	{
 		MessageBox(TGitH::GetLibGit2LastErr(L"Could not get all refs."), L"TortoiseGit", MB_ICONERROR);
 		return;
@@ -1383,13 +1383,13 @@ void CSyncDlg::FillNewRefMap()
 			if (oit->name == nit->name)
 			{
 				found = true;
-				m_refList.AddEntry(repo, oit->name.c_str(), &oit->hash, &nit->hash);
+				m_refList.AddEntry(repo.get(), oit->name.c_str(), &oit->hash, &nit->hash);
 				break;
 			}
 		}
 		// deleted ref
 		if (!found)
-			m_refList.AddEntry(repo, oit->name.c_str(), &oit->hash, nullptr);
+			m_refList.AddEntry(repo.get(), oit->name.c_str(), &oit->hash, nullptr);
 	}
 	for (auto nit = newRefMap.cbegin(); nit != newRefMap.cend(); ++nit)
 	{
@@ -1404,7 +1404,7 @@ void CSyncDlg::FillNewRefMap()
 		}
 		// new ref
 		if (!found)
-			m_refList.AddEntry(repo, nit->name.c_str(), nullptr, &nit->hash);
+			m_refList.AddEntry(repo.get(), nit->name.c_str(), nullptr, &nit->hash);
 	}
 	m_refList.Show();
 }
