@@ -83,8 +83,7 @@ protected:
 
 
 
-// (No "#define new DEBUG_NEW" here: in a header it redefined 
-ew for every includer,
+// (No "#define new DEBUG_NEW" here: in a header it redefined new for every includer,
 // and broke SimpleIni's "new (std::nothrow)" in AboutDlg. It belongs in a .cpp.)
 
 #define TOOLTIP_ID 1

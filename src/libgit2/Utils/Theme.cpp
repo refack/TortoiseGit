@@ -112,7 +112,7 @@ HBRUSH CTheme::s_backBrush = nullptr;
 HBRUSH CTheme::s_backHotBrush = nullptr;
 
 CTheme::CTheme()
-	: m_regDarkTheme(REGSTRING_DARKTHEME, 0) // define REGSTRING_DARKTHEME on app level as e.g. L"Software\\TortoiseMerge\\DarkTheme"
+	: m_regDarkTheme(tgit::invarients::REGSTRING_DARKTHEME, 0) // compiled once, in the library: an app-level REGSTRING_DARKTHEME macro no longer reaches this TU
 {
 }
 
