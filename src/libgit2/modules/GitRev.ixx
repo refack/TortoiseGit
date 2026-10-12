@@ -102,12 +102,13 @@ protected:
 	int ParserParentFromCommit(const git_commit* commit);
 	int GetCommitFromHash(git_repository* repo, const CGitHash& hash);
 	int GetCommit(git_repository* repo, const StringType& refname);
-	/// a std::wstring ref (CGitHash::ToString()). Constrained, so a literal still
-	/// binds the StringType overloads and stays unambiguous.
-	template <typename T> requires std::same_as<std::remove_cvref_t<T>, std::wstring>
-	int GetCommit(const T& refname) { return GetCommit(StringType(refname.c_str(), static_cast<int>(refname.size()))); }
 
 public:
+	/// a std::wstring ref (CGitHash::ToString()). Constrained, so a literal still
+	/// binds the StringType overloads and stays unambiguous. Public: it was declared
+	/// under the protected block above by accident, and every caller is outside.
+	template <typename T> requires std::same_as<std::remove_cvref_t<T>, std::wstring>
+	int GetCommit(const T& refname) { return GetCommit(StringType(refname.c_str(), static_cast<int>(refname.size()))); }
 	int GetParentFromHash(const CGitHash& hash);
 	int GetCommitFromHash(const CGitHash& hash)
 	{
@@ -144,7 +145,9 @@ public:
 		m_UpstreamRef.Empty();
 	}
 
-	int GetGitRevRefMap(MAP_REF_GITREVREFBROWSER& map, int mergefilter, StringType& err, std::function<bool(const StringType& refName)> filterCallback)
+	// static, as it was before the module move: it builds a map of fresh entries and
+	// reads nothing of *this. Every caller (BrowseRefsDlg, the unit tests) calls it so.
+	static int GetGitRevRefMap(MAP_REF_GITREVREFBROWSER& map, int mergefilter, StringType& err, std::function<bool(const StringType& refName)> filterCallback = nullptr)
 	{
 		err.Empty();
 		std::map<std::wstring, std::wstring> descriptions;

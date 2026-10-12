@@ -1841,7 +1841,7 @@ public:
 		requires std::same_as<std::remove_cvref_t<T>, std::wstring>
 	CString CombinePath(const T& path) const
 	{
-		return CombinePath(CString(path.data(), SafeSizeToInt(path.size())));
+		return CombinePath(CString(path.data(), CUnicodeUtils::SafeSizeToInt(path.size())));
 	}
 
 	[[nodiscard]] CString CombinePath(const CTGitPath& path) const
