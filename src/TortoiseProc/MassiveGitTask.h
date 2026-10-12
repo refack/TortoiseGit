@@ -134,7 +134,7 @@ inline bool CMassiveGitTaskBase::ExecuteCommands(const bool cancel) {
 			return false;
 		}
 
-		std::wstring pathSpecFileParam = std::format(L" --pathspec-from-file=%s --pathspec-file-nul", CGit::QuoteParameter(tempFilename));
+		std::wstring pathSpecFileParam = std::format(L" --pathspec-from-file={} --pathspec-file-nul", CGit::QuoteParameter(tempFilename));
 		const auto endOfParamsPosition = m_sParams.find(L" --end-of-options", 0);
 		const std::wstring params =
 			endOfParamsPosition == std::wstring::npos ?
