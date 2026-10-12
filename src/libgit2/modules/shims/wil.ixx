@@ -3,6 +3,7 @@ module;
 #include <wil/resource.h>
 #include <wil/filesystem.h>
 #include <wil/registry.h>
+#include <wil/com.h>			// com_ptr_nothrow: what CComPtr was, with no ATL header
 #include <winrt/base.h>
 #include <ShlObj.h>			// SHGetKnownFolderPath, FOLDERID_*, REFKNOWNFOLDERID
 #include <git2.h>			// the libgit2 owners and OpenGitRepository
@@ -64,6 +65,11 @@ using wil::unique_file;
 using wil::unique_handle;
 using wil::unique_struct;
 using wil::scope_exit;
+// COM owners. The nothrow flavor only: CComPtr never threw, and the throwing
+// policies reach wil's failure reporting, whose strsafe statics cannot cross an
+// import (C2129, see the note below). Spell .get() / .put(); create instances
+// with ::CoCreateInstance(..., IID_PPV_ARGS(p.put())).
+using wil::com_ptr_nothrow;
 // NOT re-exported: wil::TryGetEnvironmentVariableW, wil::reg::try_get_value_dword,
 // wil::reg::try_get_value_string. They are inline in wil's headers and their
 // failure-reporting path calls strsafe.h's `static` functions, which cannot cross

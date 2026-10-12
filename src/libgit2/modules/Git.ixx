@@ -1,6 +1,14 @@
 ﻿module;
+// No ATL header: outside the str_utils shim, atlbase.h without afx.h first gives
+// ATL's inline functions (AtlThrowImpl) a non-MFC body in an MFC target - an ODR
+// violation the linker resolves silently. The locks are std, the asserts _ASSERTE.
+#include <winsock2.h>		// before windows.h, whose winsock.h would otherwise collide with libgit2's
+#include <windows.h>
+#include <shlwapi.h>		// PathFileExists, PathIsDirectory, PathCanonicalize, StrCmpLogicalW
+#pragma comment(lib, "Shlwapi.lib")	// named here, not left to whatever header used to pull it in
+#include <share.h>			// SH_DENYWR/SH_DENYRW for _wfsopen
+#include <crtdbg.h>			// _ASSERTE: a macro, which no import carries
 #include <strsafe.h>
-#include <atlbase.h>		// CComCritSecLock/CComAutoCriticalSection, not CString: that is str_utils'
 #include <sanity.h>			// Expects (CGitCall*), which tgittypes' fragment used to supply
 #include <gitdll.h>
 #include <git2.h>
@@ -130,10 +138,11 @@ bool NeedsPosixShellQuoting(const std::wstring_view argument)
 export namespace TGitH
 {
 
-/// The scoped lock over CGit's critical sections (m_critGitDllSec, m_critSecThreadMap).
-/// Exported: GitRev, GitRevLoglist and GitMailmap take g_Git.m_critGitDllSec with it,
-/// and this way their fragments need no ATL header of their own.
-using CAutoLocker = CComCritSecLock<CComCriticalSection>;
+/// The scoped lock over CGit::m_critGitDllSec. Exported: GitRev, GitRevLoglist,
+/// GitMailmap and TortoiseProc take g_Git.m_critGitDllSec with it.
+/// Recursive, as the CComAutoCriticalSection it replaces was: a holder calls back
+/// into CGit members that take the same lock.
+using CAutoLocker = std::lock_guard<std::recursive_mutex>;
 
 // ---- From tgittypes (moved verbatim; tgittypes is gone) ---------------------------
 
@@ -1081,7 +1090,7 @@ int ParseConflictHashesFromLsFile(const std::string& out, CGitHash& baseHash, bo
 
 		if (out[pos] != 'M')
 		{
-			ATLASSERT(false && "this should never happen as this method should only be called for output of git ls-files -u -t -z");
+			_ASSERTE(false && "this should never happen as this method should only be called for output of git ls-files -u -t -z");
 			return -1;
 		}
 
@@ -1216,7 +1225,7 @@ int LogicalCompareBranchesPredicate(const std::wstring& left, const std::wstring
 
 void UnifiedDiffStatToStringA(const git_buf* text, void* payload)
 {
-	ATLASSERT(payload && text);
+	_ASSERTE(payload && text);
 	const auto str = static_cast<CStringA*>(payload);
 	str->Append(text->ptr, CUnicodeUtils::SafeSizeToInt(text->size));
 	str->AppendChar('\n');
@@ -1224,7 +1233,7 @@ void UnifiedDiffStatToStringA(const git_buf* text, void* payload)
 
 int UnifiedDiffToStringA(const git_diff_delta * /*delta*/, const git_diff_hunk * /*hunk*/, const git_diff_line *line, void *payload)
 {
-	ATLASSERT(payload && line);
+	_ASSERTE(payload && line);
 	const auto str = static_cast<CStringA*>(payload);
 	if (line->origin == GIT_DIFF_LINE_CONTEXT || line->origin == GIT_DIFF_LINE_ADDITION || line->origin == GIT_DIFF_LINE_DELETION)
 		str->Append(&line->origin, 1);
@@ -1269,7 +1278,7 @@ private:
 	CString gitLastErr;
 
 public:
-	CComAutoCriticalSection m_critGitDllSec;
+	std::recursive_mutex m_critGitDllSec;	// see TGitH::CAutoLocker
 	bool m_IsUseGitDLL{};
 	bool m_IsUseLibGit2{};
 	DWORD m_IsUseLibGit2_mask;
@@ -1279,7 +1288,7 @@ public:
 	void ForceReInitDll()
 	{
 #ifdef TGITCACHE
-		ATLASSERT("we should never get here");
+		_ASSERTE("we should never get here");
 #endif
 		m_IsGitDllInited = false;
 		CheckAndInitDll();
@@ -1287,7 +1296,7 @@ public:
 	void CheckAndInitDll()
 	{
 #ifdef TGITCACHE
-		ATLASSERT("we should never get here");
+		_ASSERTE("we should never get here");
 #endif
 		// Re-init when the working copy changed, not only when the dll was never
 		// initialized: g_gitObjectFormat describes the repository we latched it from,
@@ -1318,7 +1327,7 @@ public:
 	GIT_DIFF GetGitDiff()
 	{
 #ifdef TGITCACHE
-		ATLASSERT("we should never get here");
+		_ASSERTE("we should never get here");
 #endif
 		if (m_GitDiff)
 			return m_GitDiff;
@@ -1334,7 +1343,7 @@ public:
 	GIT_DIFF GetGitSimpleListDiff()
 	{
 #ifdef TGITCACHE
-		ATLASSERT("we should never get here");
+		_ASSERTE("we should never get here");
 #endif
 		if (m_GitSimpleListDiff)
 			return m_GitSimpleListDiff;
@@ -1465,7 +1474,8 @@ public:
 	}
 
 private:
-	CComAutoCriticalSection m_critSecThreadMap;
+	// A leaf lock: every holder only touches the map, so it need not be recursive.
+	std::mutex m_critSecThreadMap;
 	std::map<DWORD, HANDLE> m_AsyncReadStdErrThreadMap;
 	static DWORD WINAPI AsyncReadStdErrThread(LPVOID lpParam);
 	struct ASYNCREADSTDERRTHREADARGS
@@ -1842,7 +1852,7 @@ public:
 	// restored: TortoiseProc passes CTGitPath pointers (the selected-item lists)
 	[[nodiscard]] CString CombinePath(const CTGitPath* path) const
 	{
-		ATLASSERT(path != nullptr);	// not Expects: a gsl macro, and macros do not cross an import
+		_ASSERTE(path != nullptr);	// not Expects: a gsl macro, and macros do not cross an import
 		return CombinePath(*path);
 	}
 
@@ -1938,7 +1948,7 @@ CGit g_Git;
 namespace details {
 int resolve_to_tree(git_repository *repo, const char *identifier, git_tree **tree)
 {
-	ATLASSERT(repo && identifier && tree);
+	_ASSERTE(repo && identifier && tree);
 
 	/* try to resolve identifier */
 	wil::unique_git_object obj;
@@ -1966,7 +1976,7 @@ int resolve_to_tree(git_repository *repo, const char *identifier, git_tree **tre
 
 int resolve_to_commit(git_repository* repo, const char* identifier, git_commit** commit)
 {
-	ATLASSERT(repo && identifier && commit);
+	_ASSERTE(repo && identifier && commit);
 
 	wil::unique_git_object obj;
 	if (git_revparse_single(&obj, repo, identifier))
@@ -2018,7 +2028,7 @@ void SetLibGit2TemplatePath(const CString &value)
 
 void UnifiedDiffStatToFile(const git_buf* text, void* payload)
 {
-	ATLASSERT(payload && text);
+	_ASSERTE(payload && text);
 	const auto file = static_cast<FILE*>(payload);
 	fwrite(text->ptr, 1, text->size, file);
 	fwrite("\n", 1, 1, file);
@@ -2026,7 +2036,7 @@ void UnifiedDiffStatToFile(const git_buf* text, void* payload)
 
 int UnifiedDiffToFile(const git_diff_delta * /* delta */, const git_diff_hunk * /* hunk */, const git_diff_line * line, void *payload)
 {
-	ATLASSERT(payload && line);
+	_ASSERTE(payload && line);
 	const auto file = static_cast<FILE*>(payload);
 	if (line->origin == GIT_DIFF_LINE_CONTEXT || line->origin == GIT_DIFF_LINE_ADDITION || line->origin == GIT_DIFF_LINE_DELETION)
 		fwrite(&line->origin, 1, 1, file);
@@ -2452,7 +2462,7 @@ int libgit2_addto_map_each_ref_fn(git_reference* rawref, void* payload)
 
 int GetMapHashToFriendName(git_repository* repo, MAP_HASH_NAME &map)
 {
-	ATLASSERT(repo);
+	_ASSERTE(repo);
 
 	map_each_ref_payload payloadContent = { repo, &map };
 
@@ -2754,7 +2764,7 @@ DWORD WINAPI CGit::AsyncReadStdErrThread(const LPVOID lpParam)
 
 void CGit::KillRelatedThreads(const DWORD threadId, const HANDLE threadHandle)
 {
-	CAutoLocker _(m_critSecThreadMap);
+	std::lock_guard _(m_critSecThreadMap);
 	auto it = m_AsyncReadStdErrThreadMap.find(threadId);
 	if (it != m_AsyncReadStdErrThreadMap.cend())
 	{
@@ -2781,7 +2791,7 @@ int CGit::Run(CGitCall& pcall)
 
 	if (thread)
 	{
-		CAutoLocker _(m_critSecThreadMap);
+		std::lock_guard _(m_critSecThreadMap);
 		m_AsyncReadStdErrThreadMap[GetCurrentThreadId()] = thread.get();
 	}
 
@@ -2802,7 +2812,7 @@ int CGit::Run(CGitCall& pcall)
 	{
 		WaitForSingleObject(thread.get(), INFINITE);
 
-		CAutoLocker _(m_critSecThreadMap);
+		std::lock_guard _(m_critSecThreadMap);
 		m_AsyncReadStdErrThreadMap.erase(GetCurrentThreadId());
 	}
 
@@ -3298,7 +3308,7 @@ int CGit::RunLogFile(const CString& cmd, const CString& filename, CString* stdEr
 
 	if (thread)
 	{
-		[[maybe_unused]]CAutoLocker lock(m_critSecThreadMap);
+		[[maybe_unused]]std::lock_guard lock(m_critSecThreadMap);
 		m_AsyncReadStdErrThreadMap[GetCurrentThreadId()] = thread.get();
 	}
 
@@ -3308,7 +3318,7 @@ int CGit::RunLogFile(const CString& cmd, const CString& filename, CString* stdEr
 	{
 		WaitForSingleObject(thread.get(), INFINITE);
 
-		[[maybe_unused]]CAutoLocker lock(m_critSecThreadMap);
+		[[maybe_unused]]std::lock_guard lock(m_critSecThreadMap);
 		m_AsyncReadStdErrThreadMap.erase(GetCurrentThreadId());
 	}
 
@@ -3336,7 +3346,7 @@ wil::unique_git_repository CGit::GetGitRepository() const
 
 int CGit::GetHash(git_repository * repo, CGitHash &hash, const std::wstring_view friendname, const bool skipFastCheck /* = false */)
 {
-	ATLASSERT(repo);
+	_ASSERTE(repo);
 
 	// no need to look up a ref if it's already an OID
 	if (!skipFastCheck)
@@ -4054,7 +4064,7 @@ int CGit::GetRefList(std::vector<std::wstring> &list)
 	const int ret = Run({ L"git.exe", L"show-ref", L"-d" }, [&](const std::string_view lineA)
 	{
 		const size_t start = lineA.find(' ');
-		ATLASSERT(start == 2 * GitFormatHolder::GitHashSize());
+		_ASSERTE(start == 2 * GitFormatHolder::GitHashSize());
 		if (start != 2 * GitFormatHolder::GitHashSize() || start >= lineA.size())
 			return;
 
@@ -4084,7 +4094,7 @@ int CGit::GetMapHashToFriendName(MAP_HASH_NAME &map)
 	const int ret = Run({ L"git.exe", L"show-ref", L"-d" }, [&](const std::string_view lineA)
 	{
 		const size_t start = lineA.find(' ');
-		ATLASSERT(start == 2 * GitFormatHolder::GitHashSize());
+		_ASSERTE(start == 2 * GitFormatHolder::GitHashSize());
 		if (start != 2 * GitFormatHolder::GitHashSize() || start >= lineA.size())
 			return;
 
@@ -4712,7 +4722,7 @@ int CGit::GetWorkingTreeChanges(CTGitPathList& result, bool amend, const CTGitPa
 	int count = 1;
 	if (filterlist)
 		count = filterlist->GetCount();
-	ATLASSERT(count > 0);
+	_ASSERTE(count > 0);
 
 	CString head = L"HEAD";
 	if (amend)
@@ -4720,7 +4730,7 @@ int CGit::GetWorkingTreeChanges(CTGitPathList& result, bool amend, const CTGitPa
 
 	for (int i = 0; i < count; ++i)
 	{
-		ATLASSERT(!filterlist || !(*filterlist)[i].GetGitPathString().empty()); // pathspec must not be empty, be compatible with Git >= 2.16.0
+		_ASSERTE(!filterlist || !(*filterlist)[i].GetGitPathString().empty()); // pathspec must not be empty, be compatible with Git >= 2.16.0
 		std::string cmdout;
 		// The pathspec that used to be a pre-quoted " %s" appendix. Kept as a
 		// vector rather than an optional string so appending it is the same
@@ -4829,7 +4839,7 @@ int CGit::GetWorkingTreeChanges(CTGitPathList& result, bool amend, const CTGitPa
 			else
 			{
 				// should we ever get here?
-				ATLASSERT(false);
+				_ASSERTE(false);
 				result.AddPath(conflictlist[j]);
 				duplicateMap.insert(std::pair<std::wstring, int>(result[i].GetGitPathString().c_str(), result.GetCount() - 1));
 			}

@@ -1,6 +1,6 @@
 ﻿module;
 #include <windows.h>
-#include <atltrace.h>	// ATLASSERT/ATLTRACE: macros, which no import carries. Not CString: that is str_utils'
+#include <crtdbg.h>		// _ASSERTE: a macro, which no import carries. No ATL header: see Git.ixx
 #include <gitdll.h>
 #include <git2.h>
 
@@ -119,9 +119,6 @@ public:
 
 	void ApplyMailmap(const GitMailmap::CGitMailmap& mailmap = CGitMailmap());
 
-#if DEBUG
-	void DbgPrint() const;
-#endif
 
 private:
 	int GetCommitFromHash_withoutLock(const CGitHash& hash);
@@ -424,7 +421,7 @@ void GitRev::Clear()
 
 int GitRev::ParserParentFromCommit(const GIT_COMMIT* commit)
 {
-	ATLASSERT(commit);
+	_ASSERTE(commit);
 	this->m_ParentHash.clear();
 	GIT_COMMIT_LIST list;
 	GIT_HASH   parent;
@@ -439,7 +436,7 @@ int GitRev::ParserParentFromCommit(const GIT_COMMIT* commit)
 
 int GitRev::ParserFromCommit(const GIT_COMMIT *commit)
 {
-	ATLASSERT(commit);
+	_ASSERTE(commit);
 	auto get_value1 = [](const char* str, const int len, std::optional<bool> encode = std::nullopt) {
 		std::string_view multibyte{str, gsl::narrow<unsigned long long>(len)};
 		if (encode) {
@@ -472,7 +469,7 @@ int GitRev::ParserFromCommit(const GIT_COMMIT *commit)
 
 int GitRev::ParserParentFromCommit(const git_commit* commit)
 {
-	ATLASSERT(commit);
+	_ASSERTE(commit);
 	m_ParentHash.clear();
 	const unsigned int parentCount = git_commit_parentcount(commit);
 	for (unsigned int i = 0; i < parentCount; ++i)
@@ -483,7 +480,7 @@ int GitRev::ParserParentFromCommit(const git_commit* commit)
 
 int GitRev::ParserFromCommit(const git_commit* commit)
 {
-	ATLASSERT(commit);
+	_ASSERTE(commit);
 	Clear();
 	m_objectType = GIT_OBJECT_COMMIT;
 
@@ -521,7 +518,7 @@ int GitRev::ParserFromCommit(const git_commit* commit)
 
 int GitRev::GetCommitFromHash(git_repository* repo, const CGitHash& hash)
 {
-	ATLASSERT(repo);
+	_ASSERTE(repo);
 	wil::unique_git_commit commit;
 	if (git_commit_lookup(commit.put(), repo, hash) < 0)
 	{
@@ -534,7 +531,7 @@ int GitRev::GetCommitFromHash(git_repository* repo, const CGitHash& hash)
 
 int GitRev::GetCommit(git_repository* repo, const CString& refname)
 {
-	ATLASSERT(repo);
+	_ASSERTE(repo);
 	if (IsWorkingCopyRef(refname))
 	{
 		Clear();
@@ -551,17 +548,6 @@ int GitRev::GetCommit(git_repository* repo, const CString& refname)
 
 	return GetCommitFromHash(repo, hash);
 }
-
-#if DEBUG
-void GitRev::DbgPrint() const {
-	ATLTRACE(L"Commit %s\r\n", this->m_CommitHash.ToString().c_str());
-	for (unsigned int i = 0; i < this->m_ParentHash.size(); ++i)
-	{
-		ATLTRACE(L"Parent %i %s\r\n", i, m_ParentHash[i].ToString().c_str());
-	}
-	ATLTRACE(L"\r\n\r\n");
-}
-#endif
 
 int GitRev::GetParentFromHash(const CGitHash& hash)
 {

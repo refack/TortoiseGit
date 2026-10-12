@@ -2858,11 +2858,11 @@ UINT CGitLogListBase::LogThread()
 
 	if (shouldWalk)
 	{
-		g_Git.m_critGitDllSec.Lock();
+		g_Git.m_critGitDllSec.lock();
 		if (!m_DllGitLog)
 		{
 			::MessageBox(nullptr, L"Opening log failed.", L"TortoiseGit", MB_ICONERROR);
-			g_Git.m_critGitDllSec.Unlock();
+			g_Git.m_critGitDllSec.unlock();
 			InterlockedExchange(&s_bThreadRunning, FALSE);
 			InterlockedExchange(&m_bNoDispUpdates, FALSE);
 			return 1;
@@ -2874,7 +2874,7 @@ UINT CGitLogListBase::LogThread()
 			{
 				::MessageBox(nullptr, L"Getting first commit and preparing the revision walk failed. Broken repository?", L"TortoiseGit", MB_ICONERROR);
 				git_close_log(m_DllGitLog, 0);
-				g_Git.m_critGitDllSec.Unlock();
+				g_Git.m_critGitDllSec.unlock();
 				InterlockedExchange(&s_bThreadRunning, FALSE);
 				InterlockedExchange(&m_bNoDispUpdates, FALSE);
 				return 1;
@@ -2886,7 +2886,7 @@ UINT CGitLogListBase::LogThread()
 			::MessageBox(nullptr, L"Could not get first commit.\nlibgit reports:\n" + CUnicodeUtils::Convert2Unicode<CString>(msg), L"TortoiseGit", MB_ICONERROR);
 			ret = -1;
 		}
-		g_Git.m_critGitDllSec.Unlock();
+		g_Git.m_critGitDllSec.unlock();
 
 		if (CGitMailmap::ShouldLoadMailmap())
 			GitRevLoglist::s_Mailmap = std::make_shared<CGitMailmap>();
@@ -2908,21 +2908,21 @@ UINT CGitLogListBase::LogThread()
 		std::unordered_map<CGitHash, std::unordered_set<CGitHash>> commitChildren;
 		while (ret== 0 && !m_bExitThread)
 		{
-			g_Git.m_critGitDllSec.Lock();
+			g_Git.m_critGitDllSec.lock();
 			try
 			{
 				[&] { ret = git_get_log_nextcommit(this->m_DllGitLog, &commit, m_ShowMask & TGitH::LOG_INFO_FOLLOW); } ();
 			}
 			catch (const char* msg)
 			{
-				g_Git.m_critGitDllSec.Unlock();
+				g_Git.m_critGitDllSec.unlock();
 				::MessageBox(nullptr, L"Could not get next commit.\nlibgit reports:\n" + CUnicodeUtils::Convert2Unicode<CString>(msg), L"TortoiseGit", MB_ICONERROR);
 				break;
 			}
 
 			if(ret)
 			{
-				g_Git.m_critGitDllSec.Unlock();
+				g_Git.m_critGitDllSec.unlock();
 				if (ret != -2) // other than end of revision walking
 					::MessageBox(nullptr, (L"Could not get next commit.\nlibgit returns:" + std::to_wstring(ret)).c_str(), L"TortoiseGit", MB_ICONERROR);
 				break;
@@ -2931,7 +2931,7 @@ UINT CGitLogListBase::LogThread()
 			if (commit.m_ignore == 1)
 			{
 				git_free_commit(&commit);
-				g_Git.m_critGitDllSec.Unlock();
+				g_Git.m_critGitDllSec.unlock();
 				continue;
 			}
 
@@ -2939,7 +2939,7 @@ UINT CGitLogListBase::LogThread()
 			if(m_bExitThread)
 			{
 				git_free_commit(&commit);
-				g_Git.m_critGitDllSec.Unlock();
+				g_Git.m_critGitDllSec.unlock();
 				break;
 			}
 
@@ -2955,7 +2955,7 @@ UINT CGitLogListBase::LogThread()
 			}
 			catch (const char* msg)
 			{
-				g_Git.m_critGitDllSec.Unlock();
+				g_Git.m_critGitDllSec.unlock();
 				::MessageBox(nullptr, L"Could not get commit notes.\nlibgit reports:\n" + CUnicodeUtils::Convert2Unicode<CString>(msg), L"TortoiseGit", MB_ICONERROR);
 				break;
 			}
@@ -2967,7 +2967,7 @@ UINT CGitLogListBase::LogThread()
 				note = nullptr;
 			}
 			git_free_commit(&commit);
-			g_Git.m_critGitDllSec.Unlock();
+			g_Git.m_critGitDllSec.unlock();
 
 			if(!pRev->m_IsDiffFiles)
 			{
@@ -3066,9 +3066,9 @@ UINT CGitLogListBase::LogThread()
 				t1 = t2;
 			}
 		}
-		g_Git.m_critGitDllSec.Lock();
+		g_Git.m_critGitDllSec.lock();
 		git_close_log(m_DllGitLog, 1);
-		g_Git.m_critGitDllSec.Unlock();
+		g_Git.m_critGitDllSec.unlock();
 	}
 
 	if (m_bExitThread)

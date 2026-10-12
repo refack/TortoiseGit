@@ -27,7 +27,9 @@ import git_h;
 #include <WinCrypt.h>
 import RIAA;
 
-using CAutoLocker = CComCritSecLock<CComCriticalSection>;
+// Not named CAutoLocker: git_h exports TGitH::CAutoLocker over its own recursive mutex,
+// and the two would make every unqualified use ambiguous.
+using GravatarLocker = CComCritSecLock<CComCriticalSection>;
 
 static UINT WM_GRAVATAR_REFRESH = RegisterWindowMessage(L"TORTOISEGIT_GRAVATAR_REFRESH");
 
@@ -151,7 +153,7 @@ void CGravatar::GravatarThread()
 	if (!InternetCrackUrl(gravatarBaseUrl, gravatarBaseUrl.GetLength(), 0, &urlComponents))
 	{
 		TracePrintf(_T(__FUNCTION__) L": Gravatar URL seems to be invalid\n");
-		CAutoLocker lock(m_gravatarLock);
+		GravatarLocker lock(m_gravatarLock);
 		m_filename.Empty();
 		return;
 	}
@@ -165,13 +167,13 @@ void CGravatar::GravatarThread()
 	if (!m_hConnectHandle)
 	{
 		TracePrintf(_T(__FUNCTION__) L": InternetConnect failed\n");
-		CAutoLocker lock(m_gravatarLock);
+		GravatarLocker lock(m_gravatarLock);
 		m_filename.Empty();
 		return;
 	}
 	SCOPE_EXIT
 	{
-		CAutoLocker lock(m_gravatarLock);
+		GravatarLocker lock(m_gravatarLock);
 		if (m_hConnectHandle)
 			InternetCloseHandle(m_hConnectHandle);
 		m_hConnectHandle = nullptr;
@@ -208,7 +210,7 @@ void CGravatar::GravatarThread()
 			tempFile += hash;
 			if (PathFileExists(tempFile))
 			{
-				CAutoLocker lock(m_gravatarLock);
+				GravatarLocker lock(m_gravatarLock);
 				if (m_email == email)
 				{
 					m_filename = tempFile;
@@ -219,19 +221,19 @@ void CGravatar::GravatarThread()
 			}
 			else
 			{
-				const int ret = DownloadToFile([&]() { CAutoLocker lock(m_gravatarLock); return m_hConnectHandle; }(), isHttps, gravatarUrl, tempFile);
+				const int ret = DownloadToFile([&]() { GravatarLocker lock(m_gravatarLock); return m_hConnectHandle; }(), isHttps, gravatarUrl, tempFile);
 				if (ret)
 				{
 					TracePrintf(_T(__FUNCTION__) L": Gravatar download for \"%s\" failed: %d\n", static_cast<LPCWSTR>(gravatarUrl), ret);
 					DeleteFile(tempFile);
 					if (m_gravatarExit)
 						break;
-					CAutoLocker lock(m_gravatarLock);
+					GravatarLocker lock(m_gravatarLock);
 					m_filename.Empty();
 				}
 				if (m_gravatarExit)
 					break;
-				CAutoLocker lock(m_gravatarLock);
+				GravatarLocker lock(m_gravatarLock);
 				if (m_email == email && !ret)
 				{
 					CAutoFile hFile = CreateFile(tempFile, FILE_READ_ATTRIBUTES | FILE_WRITE_ATTRIBUTES, FILE_SHARE_READ, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
@@ -345,7 +347,7 @@ void CGravatar::SafeTerminateGravatarThread()
 		::SetEvent(m_gravatarEvent);
 		if (::WaitForSingleObject(m_gravatarThread->m_hThread, 1500) == WAIT_TIMEOUT && m_hConnectHandle)
 		{
-			CAutoLocker lock(m_gravatarLock);
+			GravatarLocker lock(m_gravatarLock);
 			if (m_hConnectHandle)
 				::InternetCloseHandle(m_hConnectHandle);
 			m_hConnectHandle = nullptr;

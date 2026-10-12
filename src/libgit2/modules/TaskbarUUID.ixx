@@ -1,7 +1,6 @@
 ﻿module;
 #include <windows.h>
 #include <Shobjidl.h>
-#include <atlbase.h>		// CComPtr, AtlLoadSystemLibraryUsingFullPath - not CString
 #include <GdiPlus.h>
 #include "Utils/LoadIconEx.h"
 
@@ -13,6 +12,7 @@ import gsl;
 import Registry;
 import RIAA;
 import CmdLineParser;
+import wil;		// com_ptr_nothrow, what CComPtr was
 
 #pragma comment(lib, "gdiplus.lib")
 constexpr auto APPID = L"TGIT.TGIT.1";
@@ -81,15 +81,10 @@ void SetUUIDOverlayIconFromCommandLine(HWND hWnd);
 
 void SetTaskIDPerUUID()
 {
-	using SetCurrentProcessExplicitAppUserModelIDFN = HRESULT(STDAPICALLTYPE)(PCWSTR AppID);
-	if (const CAutoLibrary hShell = AtlLoadSystemLibraryUsingFullPath(L"shell32.dll"))
-	{
-		if (const auto pfnSetCurrentProcessExplicitAppUserModelID = reinterpret_cast<SetCurrentProcessExplicitAppUserModelIDFN *>(GetProcAddress(hShell, "SetCurrentProcessExplicitAppUserModelID")))
-		{
-			const std::wstring id = GetTaskIDPerUUID();
-			std::ignore = pfnSetCurrentProcessExplicitAppUserModelID(id.c_str());
-		}
-	}
+	// Called directly: shell32 has exported it since Windows 7, so the
+	// AtlLoadSystemLibraryUsingFullPath/GetProcAddress probe guarded nothing.
+	const std::wstring id = GetTaskIDPerUUID();
+	std::ignore = ::SetCurrentProcessExplicitAppUserModelID(id.c_str());
 }
 
 std::wstring GetTaskIDPerUUID(LPCWSTR uuid /*= nullptr */)
@@ -141,8 +136,8 @@ void SetUUIDOverlayIcon(HWND hWnd, std::wstring uuid, std::wstring sicon, const 
 	if (uuid.empty())
 		return;
 
-	CComPtr<ITaskbarList3> pTaskbarInterface;
-	if (FAILED(pTaskbarInterface.CoCreateInstance(CLSID_TaskbarList, nullptr, CLSCTX_INPROC_SERVER)))
+	wil::com_ptr_nothrow<ITaskbarList3> pTaskbarInterface;
+	if (FAILED(::CoCreateInstance(CLSID_TaskbarList, nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(pTaskbarInterface.put()))))
 		return;
 
 	int foundUUIDIndex = 0;

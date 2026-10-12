@@ -4,7 +4,10 @@
 #include <git2.h>
 #include <git2/sys/repository.h> // git_repository_set_config
 
-#include <atlbase.h>	// CComCritSecLock/CComAutoCriticalSection, not CString: that is str_utils'
+#include <windows.h>
+#include <shlwapi.h>	// PathIsDirectory
+#pragma comment(lib, "Shlwapi.lib")
+#include <crtdbg.h>		// _ASSERTE: a macro, which no import carries. No ATL header: see Git.ixx
 // detail::ReadSmallFile instantiates wil::GetFileInfo<>, which reaches wil's error-reporting
 // helpers and through them strsafe's *static* StringCch* workers. A template instantiated
 // here cannot use module wil's internal-linkage definitions, so this TU needs its own: C2129.
@@ -44,7 +47,6 @@ using CStringA = tgit::zstr::CString;
 // directive, not the entities, so importers (GitStatus.cpp) could not name any
 // of these. The out-of-line definitions below reopen the namespace unexported.
 export namespace GitIndex {
-using CAutoLocker = CComCritSecLock<CComCriticalSection>;
 
 
 // From tgittypes (moved verbatim). GitIndex is the lowest module that uses them,
@@ -665,7 +667,7 @@ public:
 					m_reverseLookup[BuildPathWithPathDelimiter(NormalizePath(found->path))] = path;
 				return adminDir;
 			}
-			ATLASSERT(false);
+			_ASSERTE(false);
 			return BuildPathWithPathDelimiter(path) + L".git\\"; // in case of an error stick to old behavior
 		}
 
@@ -692,7 +694,7 @@ public:
 				m_reverseLookup[BuildPathWithPathDelimiter(NormalizePath(*wtadmindir))] = path;
 				return adminDir;
 			}
-			ATLASSERT(false);
+			_ASSERTE(false);
 			return BuildPathWithPathDelimiter(path) + L".git\\"; // we should never get here
 		}
 		return lookup->second;
@@ -762,7 +764,7 @@ bool CGitIndexList::HasIndexChangedOnDisk(const std::wstring& gitdir) const
 
 int CGitIndexList::ReadIndex(const std::wstring& dgitdir)
 {
-	ATLASSERT(m_entries.empty());
+	_ASSERTE(m_entries.empty());
 
 	std::wstring repodir = dgitdir;
 	if (dgitdir.size() == 2 && dgitdir[1] == L':')
@@ -771,7 +773,7 @@ int CGitIndexList::ReadIndex(const std::wstring& dgitdir)
 	const wil::unique_git_repository repository = TGitH::OpenGitRepository(repodir);
 	if (!repository)
 	{
-		tgit::DebugOutput::TracePrintf(_T(__FUNCTION__) L": Could not open git repository in %s: %s\n", dgitdir.c_str(), static_cast<LPCWSTR>(GetLibGit2LastErr()));
+		tgit::DebugOutput::TracePrintf(__FUNCTIONW__ L": Could not open git repository in %s: %s\n", dgitdir.c_str(), static_cast<LPCWSTR>(GetLibGit2LastErr()));
 		return -1;
 	}
 
@@ -801,7 +803,7 @@ int CGitIndexList::ReadIndex(const std::wstring& dgitdir)
 	if (git_repository_index(index.put(), repository.get()))
 	{
 		config.reset();
-		TracePrintf(_T(__FUNCTION__) L": Could not get index of git repository in %s: %s\n", dgitdir.c_str(), static_cast<LPCWSTR>(GetLibGit2LastErr()));
+		TracePrintf(__FUNCTIONW__ L": Could not get index of git repository in %s: %s\n", dgitdir.c_str(), static_cast<LPCWSTR>(GetLibGit2LastErr()));
 		return -1;
 	}
 
@@ -853,14 +855,14 @@ int CGitIndexList::ReadIndex(const std::wstring& dgitdir)
 	// best effort: a branch whose upstream state cannot be read does not fail the index
 	static_cast<void>(ReadIncomingOutgoing(repository.get()));
 
-	TracePrintf(_T(__FUNCTION__) L": Reloaded index for repo: %s\n", dgitdir.c_str());
+	TracePrintf(__FUNCTIONW__ L": Reloaded index for repo: %s\n", dgitdir.c_str());
 
 	return 0;
 }
 
 std::expected<void, int> CGitIndexList::ReadIncomingOutgoing(git_repository* repository)
 {
-	ATLASSERT(m_stashCount == 0 && !m_outgoing && !m_incoming && m_branch.empty());
+	_ASSERTE(m_stashCount == 0 && !m_outgoing && !m_incoming && m_branch.empty());
 
 	if (!m_bCalculateIncomingOutgoing)
 		return {};
@@ -932,7 +934,7 @@ int CGitIndexList::GetFileStatus_NoRepo(const std::wstring& gitdir, const std::w
 	const auto& entry = m_entries[index];
 	if (pHash)
 		*pHash = entry.m_IndexHash;
-	ATLASSERT(IsIgnoreCase() ? tgit::wstr::CompareNoCase(pathorg, entry.m_FileName) == 0 : pathorg == entry.m_FileName);
+	_ASSERTE(IsIgnoreCase() ? tgit::wstr::CompareNoCase(pathorg, entry.m_FileName) == 0 : pathorg == entry.m_FileName);
 	wil::unique_git_repository repository;
 	return GetFileStatus(repository, gitdir, entry, status, time, filesize, isSymlink);
 }
@@ -976,7 +978,7 @@ int CGitIndexList::GetFileStatus(wil::unique_git_repository& repository,const st
 			repository = TGitH::OpenGitRepository(repodir);
 			if (!repository)
 			{
-				TracePrintf(_T(__FUNCTION__) L": Could not open git repository in %s for checking file: %s\n", gitdir.c_str(), static_cast<LPCWSTR>(TGitH::GetLibGit2LastErr()));
+				TracePrintf(__FUNCTIONW__ L": Could not open git repository in %s for checking file: %s\n", gitdir.c_str(), static_cast<LPCWSTR>(TGitH::GetLibGit2LastErr()));
 				return -1;
 			}
 			git_repository_set_config(repository.get(), config.get());
@@ -1317,7 +1319,7 @@ std::expected<void, int> CGitHeadFileList::ReadTree(const bool ignoreCase)
 	if (!ret)
 	{
 		m_entries.clear();
-		TracePrintf(_T(__FUNCTION__) L": Could not open git repository in %s and read HEAD commit %s: %s\n", m_Gitdir.c_str(), m_Head.ToString().c_str(), static_cast<LPCWSTR>(TGitH::GetLibGit2LastErr()));
+		TracePrintf(__FUNCTIONW__ L": Could not open git repository in %s and read HEAD commit %s: %s\n", m_Gitdir.c_str(), m_Head.ToString().c_str(), static_cast<LPCWSTR>(TGitH::GetLibGit2LastErr()));
 		m_LastModifyTimeHead = 0;
 		m_LastFileSizeHead = -1;
 		return std::unexpected(-1);
@@ -1325,7 +1327,7 @@ std::expected<void, int> CGitHeadFileList::ReadTree(const bool ignoreCase)
 
 	DoSortFilenametSortVector(m_entries, ignoreCase);
 
-	TracePrintf(_T(__FUNCTION__) L": Reloaded HEAD tree (commit is %s) for repo: %s\n", m_Head.ToString().c_str(), m_Gitdir.c_str());
+	TracePrintf(__FUNCTIONW__ L": Reloaded HEAD tree (commit is %s) for repo: %s\n", m_Head.ToString().c_str(), m_Gitdir.c_str());
 
 	return {};
 }

@@ -1,6 +1,7 @@
 ﻿module;
 #include <windows.h>
-#include <atlbase.h>	// CComCritSecLock/CComCriticalSection, not CString: that is str_utils'
+#include <shlwapi.h>	// PathFileExists. No ATL header: see Git.ixx
+#pragma comment(lib, "Shlwapi.lib")
 // wil::GetFileInfo<> (instantiated below) reaches wil's error-reporting helpers, which call
 // strsafe's *static* StringCch* workers. A template instantiated here cannot use the static
 // definitions from module wil's own fragment (internal linkage), so this TU needs its own: C2129.
@@ -50,7 +51,7 @@ struct CGitFileName
 {
 	fs::path m_FileName{};
 	size_t m_Size = 0;
-	int64_t m_LastModified = 0;
+	std::int64_t m_LastModified = 0;
 	bool m_bSymlink = false;
 };
 
@@ -151,7 +152,7 @@ int GetFileStatus_int(const std::wstring& gitdir, CGitRepoLists& repolists, cons
 		if (start == NPOS)
 		{
 			status.status = git_wc_status_added;
-			tgit::DebugOutput::TracePrintf(_T(__FUNCTION__) L": File miss in head tree %s\n", path.c_str());
+			tgit::DebugOutput::TracePrintf(__FUNCTIONW__ L": File miss in head tree %s\n", path.c_str());
 			return 0;
 		}
 
@@ -204,9 +205,6 @@ class GitStatus
 	}
 
 public:
-	using CAutoLocker = CComCritSecLock<CComCriticalSection>;
-
-
 	static int GetFileStatus(const CString& gitdir, CString path, git_wc_status2_t& status, const bool IsFull = false, const bool IsIgnore = true, const bool update = true)
 	{
 		Expects(!status.assumeValid && !status.skipWorktree);

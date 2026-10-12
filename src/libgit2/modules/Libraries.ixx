@@ -3,8 +3,8 @@
 #include "resource.h"
 
 #include <Shlwapi.h>
+#include <stdio.h>			// swprintf_s
 #include <initguid.h>
-#include <atlcomcli.h>		// CComPtr - not CString, which comes from str_utils
 #include <ShObjIdl_core.h>
 #include <shlguid.h>
 #include <shlobj_core.h>
@@ -16,6 +16,7 @@ export module Libraries;
 import std;
 import str_utils;
 import PathUtils;
+import wil;		// com_ptr_nothrow, what CComPtr was
 
 using tgit::wstr::CString;
 
@@ -76,13 +77,13 @@ HRESULT OpenShellLibrary(const LPWSTR pwszLibraryName, IShellLibrary** ppShellLi
 {
 	*ppShellLib = nullptr;
 
-	CComPtr<IShellItem2> pShellItem;
-	HRESULT hr = GetShellLibraryItem(pwszLibraryName, &pShellItem);
+	wil::com_ptr_nothrow<IShellItem2> pShellItem;
+	HRESULT hr = GetShellLibraryItem(pwszLibraryName, pShellItem.put());
 	if (FAILED(hr))
 		return hr;
 
 	// Get the shell library object from the shell item with a read and write permissions
-	hr = SHLoadLibraryFromItem(pShellItem, STGM_READWRITE, IID_PPV_ARGS(ppShellLib));
+	hr = SHLoadLibraryFromItem(pShellItem.get(), STGM_READWRITE, IID_PPV_ARGS(ppShellLib));
 
 	return hr;
 }
@@ -103,17 +104,17 @@ void EnsureGitLibrary(const bool bCreate = true)
 	if (bIsWow64)
 		return;
 
-	CComPtr<IShellLibrary> pLibrary;
-	if (FAILED(OpenShellLibrary(const_cast<LPWSTR>(L"Git"), &pLibrary)))
+	wil::com_ptr_nothrow<IShellLibrary> pLibrary;
+	if (FAILED(OpenShellLibrary(const_cast<LPWSTR>(L"Git"), pLibrary.put())))
 	{
 		if (!bCreate)
 			return;
-		if (FAILED(SHCreateLibrary(IID_PPV_ARGS(&pLibrary))))
+		if (FAILED(SHCreateLibrary(IID_PPV_ARGS(pLibrary.put()))))
 			return;
 
 		// Save the new library under the user's Libraries folder.
-		CComPtr<IShellItem> pSavedTo;
-		if (FAILED(pLibrary->SaveInKnownFolder(FOLDERID_UsersLibraries, L"Git", LSF_OVERRIDEEXISTING, &pSavedTo)))
+		wil::com_ptr_nothrow<IShellItem> pSavedTo;
+		if (FAILED(pLibrary->SaveInKnownFolder(FOLDERID_UsersLibraries, L"Git", LSF_OVERRIDEEXISTING, pSavedTo.put())))
 			return;
 	}
 
