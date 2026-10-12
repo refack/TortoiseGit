@@ -35,7 +35,9 @@ enum class HashType
 #include <sstream>
 import wil;		// scope_exit_helper, which SCOPE_EXIT expands to; after the textual includes
 
-std::wstring GetHashText(const void* data, const size_t data_size, HashType hashType)
+// inline: a header definition, and TortoiseProc includes it from stdafx.h (through
+// Monitor.h) into every object - non-inline it was defined ~250 times at link.
+inline std::wstring GetHashText(const void* data, const size_t data_size, HashType hashType)
 {
 	HCRYPTPROV hProv = NULL;
 	if (!CryptAcquireContext(&hProv, nullptr, nullptr, PROV_RSA_AES, CRYPT_VERIFYCONTEXT))

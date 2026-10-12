@@ -114,3 +114,11 @@ target_compile_options(TortoiseShell
         /external:anglebrackets
 )
 
+# MenuInfo.cpp and ShellCache.cpp are also compiled by TortoiseProc (the settings
+# pages), so they do not #include "stdafx.h" themselves: each host force-includes
+# its own. See src/TortoiseProc/CMakeLists.txt for the other half.
+set_source_files_properties(MenuInfo.cpp ShellCache.cpp
+    TARGET_DIRECTORY TortoiseShell
+    PROPERTIES COMPILE_OPTIONS "/FI${CMAKE_CURRENT_SOURCE_DIR}/stdafx.h"
+)
+

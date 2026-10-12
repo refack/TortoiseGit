@@ -4,7 +4,8 @@ project(TortoiseProc LANGUAGES CXX)
 find_package(ogdf REQUIRED CONFIG)
 find_package(MFC REQUIRED)
 
-add_executable(TortoiseProc)
+# WIN32: a GUI subsystem exe; MFC supplies wWinMain (the vcxproj's SubSystem=Windows).
+add_executable(TortoiseProc WIN32)
 
 target_sources(TortoiseProc
     PRIVATE
@@ -436,6 +437,7 @@ target_sources(TortoiseProc
         GitStatusListCtrl.cpp
         Hooks.cpp
         HorizontalResizableStandAloneDialog.cpp
+        HyperLink.cpp
         IconExtractor.cpp
         MiscUI/AnimationManager.cpp
         MiscUI/BufferDC.cpp
@@ -465,7 +467,24 @@ target_sources(TortoiseProc
         "${CMAKE_SOURCE_DIR}/src/Resources/TortoiseProcENG.rc"
 )
 
+# Shared with TortoiseShell: the settings pages (SetLookAndFeelPage) read the
+# shell's menu table and its registry cache. Neither file includes a stdafx.h of
+# its own - a quoted one would resolve next to the file, to TortoiseShell's ATL
+# one - so this host force-includes TortoiseProc's.
+set(TORTOISEPROC_SHARED_SHELL_SOURCES
+    "${CMAKE_SOURCE_DIR}/src/TortoiseShell/MenuInfo.cpp"
+    "${CMAKE_SOURCE_DIR}/src/TortoiseShell/ShellCache.cpp"
+)
+target_sources(TortoiseProc PRIVATE ${TORTOISEPROC_SHARED_SHELL_SOURCES})
+set_source_files_properties(${TORTOISEPROC_SHARED_SHELL_SOURCES}
+    TARGET_DIRECTORY TortoiseProc
+    PROPERTIES COMPILE_OPTIONS "/FI${CMAKE_CURRENT_SOURCE_DIR}/stdafx.h"
+)
+
 set_target_properties(TortoiseProc PROPERTIES
+    # RunTortoiseGitProc and friends start <app dir>\TortoiseGitProc.exe, and the
+    # shell extension launches it by that name too.
+    OUTPUT_NAME TortoiseGitProc
     CMAKE_MFC_FLAG 2
 )
 set_target_properties(TortoiseProc PROPERTIES CXX_MODULE_STD ON)
@@ -558,4 +577,8 @@ target_compile_options(TortoiseProc
         /external:W0
         /external:anglebrackets
 )
+
+# _UNICODE MFC: the entry is wWinMain, which lives in the MFC library rather than
+# in an object of ours, so the linker cannot infer it and would look for WinMain.
+target_link_options(TortoiseProc PRIVATE /ENTRY:wWinMainCRTStartup)
 

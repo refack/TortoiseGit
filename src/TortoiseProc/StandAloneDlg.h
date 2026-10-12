@@ -38,7 +38,9 @@ extern bool g_bGroupingRemoveIcon;
 #define DIALOG_BLOCKHORIZONTAL 1
 #define DIALOG_BLOCKVERTICAL 2
 
-std::wstring GetMonitorSetupHash();
+// GetMonitorSetupHash() is Utils/Monitor.h's inline, which stdafx.h includes. A
+// bare redeclaration here had no definition behind it: the .cpp that defined it
+// out of line is gone, so all 47 dialogs failed to link against it.
 
 /**
  * \ingroup TortoiseProc

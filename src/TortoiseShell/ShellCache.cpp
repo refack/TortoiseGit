@@ -17,11 +17,14 @@
 // along with this program; if not, write to the Free Software Foundation,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
-#include "stdafx.h"
+// No #include "stdafx.h": this file is compiled by two hosts - TortoiseShell and
+// TortoiseProc (the settings pages) - and each force-includes its own stdafx.h
+// (/FI, set in its CMakeLists.txt). A quoted "stdafx.h" here would always find
+// TortoiseShell's, the file's own directory being searched first.
 #include "ShellCache.h"
 import TGitPath;	// GitAdminDir lives in the TGitPath module
-#include "Git.h"
-#include "LangDll.h"
+import LangDll;
+import DebugOutput;
 
 ShellCache::ShellCache()
 {
@@ -374,7 +377,7 @@ BOOL ShellCache::IsPathAllowed(LPCWSTR path)
 				wcsncpy_s(pathbuf, path, _countof(pathbuf) - 1);
 				PathStripToRoot(pathbuf);
 				PathAddBackslash(pathbuf);
-				TracePrintf(_T(__FUNCTION__) L": GetDriveType for %s, Drive %d\n", pathbuf, drivenumber);
+				tgit::DebugOutput::Trace(L"{}: GetDriveType for {}, Drive {}\n", __FUNCTIONW__, static_cast<const wchar_t*>(pathbuf), drivenumber);
 				drivetype = GetDriveType(pathbuf);
 			}
 			drivetypecache[drivenumber] = drivetype;
@@ -395,7 +398,7 @@ BOOL ShellCache::IsPathAllowed(LPCWSTR path)
 				drivetype = drivetypecache[26];
 			else
 			{
-				TracePrintf(_T(__FUNCTION__) L"GetDriveType for %s\n", pathbuf);
+				tgit::DebugOutput::Trace(L"{}: GetDriveType for {}\n", __FUNCTIONW__, static_cast<const wchar_t*>(pathbuf));
 				drivetype = GetDriveType(pathbuf);
 				drivetypecache[26] = drivetype;
 				wcsncpy_s(drivetypepathcache, pathbuf, MAX_PATH - 1); // MAX_PATH ok.
@@ -464,7 +467,7 @@ BOOL ShellCache::HasGITAdminDir(LPCWSTR path, BOOL bIsDir, CString* ProjectTopDi
 	{
 		if (size_t pos = folder.rfind(L'\\'); pos != std::wstring::npos)
 		{
-			if (CString folderString(folder.c_str()); !CGit::GitPathFileExists(folderString + L"\\.git") && !GitAdminDir::IsBareRepo(folderString))
+			if (!GitAdminDir::GitPathFileExists(folder + L"\\.git") && !GitAdminDir::IsBareRepo(folder))
 			{
 				folder.erase(pos);
 				Locker lock(m_critSec);
@@ -481,8 +484,8 @@ BOOL ShellCache::HasGITAdminDir(LPCWSTR path, BOOL bIsDir, CString* ProjectTopDi
 		}
 	}
 
-	CString sProjectRoot;
-	const BOOL hasAdminDir = GitAdminDir::HasAdminDir(folder.c_str(), true, &sProjectRoot);
+	std::wstring sProjectRoot;
+	const BOOL hasAdminDir = GitAdminDir::HasAdminDir(folder, true, &sProjectRoot);
 
 	Locker lock(m_critSec);
 	AdminDir_s& ad = admindircache[folder];
@@ -490,9 +493,9 @@ BOOL ShellCache::HasGITAdminDir(LPCWSTR path, BOOL bIsDir, CString* ProjectTopDi
 	ad.timeout = now + ADMINDIRTIMEOUT;
 	if (hasAdminDir)
 	{
-		ad.sProjectRoot.assign(sProjectRoot);
+		ad.sProjectRoot = sProjectRoot;
 		if (ProjectTopDir)
-			*ProjectTopDir = sProjectRoot;
+			*ProjectTopDir = sProjectRoot.c_str();
 	}
 
 	return hasAdminDir;

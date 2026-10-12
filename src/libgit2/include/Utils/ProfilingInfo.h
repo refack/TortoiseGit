@@ -218,7 +218,7 @@ inline void CProfilingRecord::Reset()
 // construction / destruction
 //////////////////////////////////////////////////////////////////////
 
-CProfilingInfo::~CProfilingInfo()
+inline CProfilingInfo::~CProfilingInfo()
 {
 	// if (!records.empty())
 	// {

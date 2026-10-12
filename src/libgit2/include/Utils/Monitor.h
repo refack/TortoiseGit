@@ -25,7 +25,9 @@
 #include <vector>
 #include <algorithm>
 
-static BOOL CALLBACK MonitorEnum(HMONITOR hMon, HDC /*hdc*/, LPRECT lprcMonitor, LPARAM pData)
+// inline, not static: the inline GetMonitorSetupHash below names it, and an inline
+// function with external linkage must not refer to a different entity per TU.
+inline BOOL CALLBACK MonitorEnum(HMONITOR hMon, HDC /*hdc*/, LPRECT lprcMonitor, LPARAM pData)
 {
 	MONITORINFOEX miex = { 0 };
 	miex.cbSize = sizeof(MONITORINFOEX);

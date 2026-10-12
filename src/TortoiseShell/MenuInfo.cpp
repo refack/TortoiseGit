@@ -17,7 +17,8 @@
 // along with this program; if not, write to the Free Software Foundation,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
-#include "stdafx.h"
+// No #include "stdafx.h": compiled by TortoiseShell and TortoiseProc, each of which
+// force-includes its own (/FI); see ShellCache.cpp.
 #include "menuinfo.h"
 #include "resource.h"
 #include "Globals.h"

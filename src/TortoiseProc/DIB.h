@@ -102,21 +102,23 @@ protected:
 	VOID* m_pBits = nullptr;
 };
 
-CDib::CDib() {
+// Every definition below is inline: this header is the class's only home (the
+// .cpp was folded in), and two TortoiseProc objects include it.
+inline CDib::CDib() {
 	DeleteObject();
 }
 
-CDib::~CDib() {
+inline CDib::~CDib() {
 	DeleteObject();
 }
 
-int CDib::BytesPerLine(int nWidth, int nBitsPerPixel) {
+inline int CDib::BytesPerLine(int nWidth, int nBitsPerPixel) {
 	int nBytesPerLine = nWidth * nBitsPerPixel;
 	nBytesPerLine = ((nBytesPerLine + 31) & (~31)) / 8;
 	return nBytesPerLine;
 }
 
-void CDib::DeleteObject() {
+inline void CDib::DeleteObject() {
 	m_pBits = nullptr;
 	if (m_hBitmap)
 		::DeleteObject(m_hBitmap);
@@ -170,7 +172,7 @@ void CDib::Create32BitFromPicture (CPictureHolder* pPicture, int iWidth, int iHe
 */
 
 //
-bool CDib::Create32BitFromSVG(const std::string_view svg, int iWidth, int iHeight) {
+inline bool CDib::Create32BitFromSVG(const std::string_view svg, int iWidth, int iHeight) {
 	// initialize Direct2D
 	D2D1_FACTORY_OPTIONS options = {
 #ifdef _DEBUG
@@ -241,7 +243,7 @@ bool CDib::Create32BitFromSVG(const std::string_view svg, int iWidth, int iHeigh
 //
 
 
-BOOL CDib::SetBitmap(const LPBITMAPINFO lpBitmapInfo, const LPVOID lpBits) {
+inline BOOL CDib::SetBitmap(const LPBITMAPINFO lpBitmapInfo, const LPVOID lpBits) {
 	DeleteObject();
 
 	if (!lpBitmapInfo)
@@ -280,7 +282,7 @@ BOOL CDib::SetBitmap(const LPBITMAPINFO lpBitmapInfo, const LPVOID lpBits) {
 	return TRUE;
 }
 
-BOOL CDib::Draw(CDC* pDC, CPoint ptDest) {
+inline BOOL CDib::Draw(CDC* pDC, CPoint ptDest) {
 	if (!m_hBitmap)
 		return FALSE;
 
@@ -296,7 +298,7 @@ BOOL CDib::Draw(CDC* pDC, CPoint ptDest) {
 		DIB_RGB_COLORS);
 }
 
-COLORREF CDib::FixColorRef(COLORREF clr) {
+inline COLORREF CDib::FixColorRef(COLORREF clr) {
 	int r = GetRValue(clr);
 	int g = GetGValue(clr);
 	int b = GetBValue(clr);
