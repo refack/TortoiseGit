@@ -19,7 +19,7 @@
 //
 #pragma once
 #include "StandAloneDlg.h"
-#include "RegHistory.h"
+import wil;
 
 #include "HistoryCombo.h"
 /**
@@ -36,7 +36,7 @@ public:
 	/// Returns the text of the selected entry.
 	CString GetSelectedText() const {return m_SelectedText;}
 	/// Sets the history object to use
-	void SetHistory(CRegHistory& history) {m_history = &history;}
+	void SetHistory(wil::CRegHistory& history) {m_history = &history;}
 	// Dialog Data
 	enum { IDD = IDD_HISTORYDLG };
 
@@ -54,6 +54,6 @@ protected:
 private:
 	CListBox		m_List;
 	CString			m_SelectedText;
-	CRegHistory*	m_history = nullptr;
+	wil::CRegHistory*	m_history = nullptr;
 	CHistoryCombo	m_VersionCombo;
 };

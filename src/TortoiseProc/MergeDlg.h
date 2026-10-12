@@ -21,7 +21,7 @@
 #include "StandAloneDlg.h"
 #include "ChooseVersion.h"
 #include "SciEdit.h"
-#include "RegHistory.h"
+import wil;
 
 // CMergeDlg dialog
 
@@ -66,7 +66,7 @@ public:
 	CString m_strLogMesage;
 
 private:
-	CRegHistory			m_History;
+	wil::CRegHistory	m_History;
 	int					m_nPopupPasteLastMessage = 0;
 	int					m_nPopupRecentMessage = 0;
 

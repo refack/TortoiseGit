@@ -15,6 +15,8 @@ add_compile_options(
     $<$<COMPILE_LANGUAGE:CXX>:-wd4102>  # decorative goto labels
 )
 
+set(CMAKE_MSVC_DEBUG_INFORMATION_FORMAT "$<$<CONFIG:Debug,RelWithDebInfo>:Embedded>")
+
 # The triplet is a project decision, not a per-machine one: static libraries
 # over the dynamic CRT, which is what UseOfMfc=Dynamic and every target's
 # MSVC_RUNTIME_LIBRARY MultiThreadedDLL already assume. It has to be set before

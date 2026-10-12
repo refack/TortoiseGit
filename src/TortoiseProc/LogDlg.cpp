@@ -471,7 +471,7 @@ BOOL CLogDlg::OnInitDialog()
 	CString reg;
 	reg.Format(L"Software\\TortoiseGit\\History\\log-refs\\%s", static_cast<LPCWSTR>(g_Git.m_CurrentDir));
 	reg.Replace(L':', L'_');
-	m_History.Load(reg, L"ref");
+	m_History.Load(std::wstring(reg), L"ref");
 
 	reg.Format(L"Software\\TortoiseGit\\History\\LogDlg_Limits\\%s\\FromDate", static_cast<LPCWSTR>(g_Git.m_CurrentDir));
 	reg.Replace(L':', L'_');
@@ -1388,7 +1388,7 @@ void CLogDlg::OnContextMenu(CWnd* pWnd, CPoint point)
 			popup.AppendMenu(MF_SEPARATOR, 0);
 			for (size_t i = 0; i < m_History.GetCount(); ++i)
 			{
-				CString entry = m_History.GetEntry(i);
+				CString entry{ m_History.GetEntry(i).c_str() };
 				if (entry.GetLength() > 150)
 					entry = entry.Left(150) + L"...";
 				popup.AppendMenuIcon(cnt++, entry);
@@ -1435,8 +1435,8 @@ void CLogDlg::OnContextMenu(CWnd* pWnd, CPoint point)
 		}
 		else if (cmd >= offset)
 		{
-			SetRange(m_History.GetEntry(cmd - offset));
-			m_History.AddEntry(m_LogList.m_sRange);
+			SetRange(CString{ m_History.GetEntry(cmd - offset).c_str() });
+			m_History.AddEntry(tgit::str::StringView(m_LogList.m_sRange));
 			m_History.Save();
 		}
 
@@ -3267,7 +3267,7 @@ void CLogDlg::OnBnClickedBrowseRef()
 	if(newRef.IsEmpty())
 		return;
 
-	m_History.AddEntry(newRef);
+	m_History.AddEntry(tgit::str::StringView(newRef));
 	m_History.Save();
 
 	SetRange(newRef);

@@ -57,7 +57,7 @@ void CHistoryDlg::OnBnClickedOk()
 		{
 			if (i > 0)
 				m_SelectedText += L"\n\n";
-			m_SelectedText += m_history->GetEntry(selectedIndexes.get()[i]);
+			m_SelectedText += m_history->GetEntry(selectedIndexes.get()[i]).c_str();
 		}
 	}
 	else
@@ -75,7 +75,7 @@ BOOL CHistoryDlg::OnInitDialog()
 	int horizExtent = 1;
 	for (size_t i = 0; i < m_history->GetCount(); ++i)
 	{
-		CString sEntry = m_history->GetEntry(i);
+		CString sEntry{ m_history->GetEntry(i).c_str() };
 		sEntry.Remove('\r');
 		sEntry.Replace('\n', ' ');
 		m_List.AddString(sEntry);
@@ -99,7 +99,7 @@ void CHistoryDlg::OnLbnDblclkHistorylist()
 	int pos = m_List.GetCurSel();
 	if (pos != LB_ERR)
 	{
-		m_SelectedText = m_history->GetEntry(pos);
+		m_SelectedText = m_history->GetEntry(pos).c_str();
 		OnOK();
 	}
 	else

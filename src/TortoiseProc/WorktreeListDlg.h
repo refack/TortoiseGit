@@ -57,7 +57,7 @@ public:
 	~CWorktreeListDlg() override = default;
 
 	// Dialog Data
-	enum: byte
+	enum: int
 	{
 		IDD = IDD_WORKTREE_LIST
 	};

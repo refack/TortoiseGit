@@ -115,6 +115,114 @@ namespace reg {
 }
 
 
+/// A most-recently-used list of strings (commit messages, log ranges), kept as
+/// one REG_MULTI_SZ value under HKEY_CURRENT_USER. It replaces Utils\RegHistory.h,
+/// which stored one REG_SZ value per entry (<name>0, <name>1, ...) and wrote them
+/// one at a time. Load still reads that layout when the REG_MULTI_SZ value is
+/// absent, and Save removes it, so an upgrade keeps the user's history.
+///
+/// The bodies are compiled here, not in the importer, for the same reason as the
+/// reg wrappers above. A registry failure is not an error to the caller: an
+/// unreadable history loads empty, and a failed write makes Save return false.
+class CRegHistory {
+	std::wstring m_subkey{};
+	std::wstring m_name{};
+	std::vector<std::wstring> m_entries{};
+	size_t m_maxEntries{ 25 };
+
+	void Truncate() {
+		if (m_entries.size() > m_maxEntries)
+			m_entries.resize(m_maxEntries);
+	}
+
+	[[nodiscard]] std::wstring LegacyValueName(const size_t n) const {
+		return std::format(L"{}{}", m_name, n);
+	}
+
+public:
+	/// Reads the history stored as value \a name under HKCU\ \a subkey, e.g.
+	/// ("Software\\TortoiseGit\\History\\merge", "logmsgs"). With an empty
+	/// argument this does nothing, and the history stays unbound (Save fails).
+	void Load(std::wstring subkey, std::wstring name) {
+		if (subkey.empty() || name.empty())
+			return;
+		m_subkey = std::move(subkey);
+		m_name = std::move(name);
+		m_entries.clear();
+
+		const HRESULT hr = ResultFromException([&] {
+			if (auto entries = wil::reg::try_get_value_multistring(HKEY_CURRENT_USER, m_subkey.c_str(), m_name.c_str())) {
+				m_entries = std::move(*entries);
+				return;
+			}
+			for (size_t n = 0; n < m_maxEntries; ++n) {
+				auto entry = wil::reg::try_get_value_string(HKEY_CURRENT_USER, m_subkey.c_str(), LegacyValueName(n).c_str());
+				if (!entry || entry->empty())
+					break;
+				m_entries.push_back(std::move(*entry));
+			}
+		});
+		if (FAILED(hr))
+			m_entries.clear();
+		// wil reads a REG_MULTI_SZ holding no strings back as one empty string.
+		std::erase_if(m_entries, [](const std::wstring& entry) { return entry.empty(); });
+		Truncate();
+	}
+
+
+	/// Writes the history in one call, then removes the legacy per-entry values.
+	bool Save() const {
+		if (m_subkey.empty())
+			return false;
+		const HRESULT hr = ResultFromException([&] {
+			wil::reg::set_value_multistring(HKEY_CURRENT_USER, m_subkey.c_str(), m_name.c_str(), m_entries);
+		});
+		if (FAILED(hr))
+			return false;
+		// The legacy values run contiguously from <name>0. Once they are gone this is
+		// one failing call per Save.
+		for (size_t n = 0; ::RegDeleteKeyValueW(HKEY_CURRENT_USER, m_subkey.c_str(), LegacyValueName(n).c_str()) == ERROR_SUCCESS; ++n) {
+		}
+		return true;
+	}
+
+
+	/// Moves \a text to the front of the list, adding it if it is not there yet.
+	/// Reloads first, so an entry another dialog saved in the meantime is kept.
+	/// Returns true when \a text was new.
+	bool AddEntry(const std::wstring_view text) {
+		if (text.empty())
+			return false;
+		if (!m_subkey.empty())
+			Load(m_subkey, m_name);
+
+		const auto existing = std::ranges::find(m_entries, text);
+		const bool added = existing == m_entries.end();
+		if (!added)
+			m_entries.erase(existing);
+		m_entries.emplace(m_entries.begin(), text);
+		Truncate();
+		return added;
+	}
+
+
+	void RemoveEntry(const size_t pos) {
+		if (pos < m_entries.size())
+			m_entries.erase(m_entries.begin() + static_cast<std::ptrdiff_t>(pos));
+	}
+
+	/// The most entries kept. The default is 25.
+	void SetMaxHistoryItems(const size_t maxEntries) {
+		m_maxEntries = maxEntries;
+		Truncate();
+	}
+
+	[[nodiscard]] size_t GetCount() const { return m_entries.size(); }
+	[[nodiscard]] bool IsEmpty() const { return m_entries.empty(); }
+	[[nodiscard]] const std::wstring& GetEntry(const size_t pos) const { return m_entries[pos]; }
+};
+
+
 
 /// open_clipboard, retried: OpenClipboard fails while another process holds the
 /// clipboard, which it usually does only briefly. Up to 8 tries, 1 ms doubling,

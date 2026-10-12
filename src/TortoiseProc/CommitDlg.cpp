@@ -998,13 +998,13 @@ void CCommitDlg::OnOK()
 				if (!m_sLogMessage.IsEmpty())
 				{
 					ReloadHistoryEntries();
-					m_History.AddEntry(m_sLogMessage);
+					m_History.AddEntry(tgit::str::StringView(m_sLogMessage));
 					m_History.Save();
 				}
 				if (m_bCommitAmend && !m_NoAmendStr.IsEmpty() && (m_sLogTemplate.Compare(m_NoAmendStr) != 0))
 				{
 					ReloadHistoryEntries();
-					m_History.AddEntry(m_NoAmendStr);
+					m_History.AddEntry(tgit::str::StringView(m_NoAmendStr));
 					m_History.Save();
 				}
 
@@ -1053,13 +1053,13 @@ void CCommitDlg::OnOK()
 	if (!m_sLogMessage.IsEmpty())
 	{
 		ReloadHistoryEntries();
-		m_History.AddEntry(m_sLogMessage);
+		m_History.AddEntry(tgit::str::StringView(m_sLogMessage));
 		m_History.Save();
 	}
 	if (m_bCommitAmend && !m_NoAmendStr.IsEmpty() && (m_sLogTemplate.Compare(m_NoAmendStr) != 0))
 	{
 		ReloadHistoryEntries();
-		m_History.AddEntry(m_NoAmendStr);
+		m_History.AddEntry(tgit::str::StringView(m_NoAmendStr));
 		m_History.Save();
 	}
 
@@ -1334,7 +1334,7 @@ void CCommitDlg::ReloadHistoryEntries()
 	CString reg;
 	reg.Format(L"Software\\TortoiseGit\\History\\commit%s", static_cast<LPCWSTR>(m_ListCtrl.m_sUUID));
 	reg.Replace(L':', L'_');
-	m_History.Load(reg, L"logmsgs");
+	m_History.Load(std::wstring(reg), L"logmsgs");
 }
 
 UINT CCommitDlg::StatusThread()
@@ -1585,13 +1585,13 @@ void CCommitDlg::OnCancel()
 	if (hasChangedMessage)
 	{
 		ReloadHistoryEntries();
-		m_History.AddEntry(m_sLogMessage);
+		m_History.AddEntry(tgit::str::StringView(m_sLogMessage));
 		m_History.Save();
 	}
 	if (m_bCommitAmend && !m_NoAmendStr.IsEmpty() && (m_sLogTemplate.Compare(m_NoAmendStr) != 0))
 	{
 		ReloadHistoryEntries();
-		m_History.AddEntry(m_NoAmendStr);
+		m_History.AddEntry(tgit::str::StringView(m_NoAmendStr));
 		m_History.Save();
 	}
 	SaveSplitterPos();
@@ -2227,7 +2227,7 @@ bool CCommitDlg::HandleMenuItemClick(int cmd, CSciEdit * pSciEdit)
 			return false;
 
 		CString logmsg;
-		logmsg +=m_History.GetEntry(0);
+		logmsg += m_History.GetEntry(0).c_str();
 		pSciEdit->InsertText(logmsg);
 		return true;
 	}

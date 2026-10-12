@@ -22,6 +22,7 @@
 
 #include "stdafx.h"
 import git_h;
+import str_utils;
 #include "TortoiseProc.h"
 #include "MergeDlg.h"
 #include "AppUtils.h"
@@ -195,7 +196,7 @@ void CMergeDlg::OnBnClickedOk()
 	if (!m_strLogMesage.IsEmpty() && !m_bNoCommit)
 	{
 		ReloadHistoryEntries();
-		m_History.AddEntry(m_strLogMesage);
+		m_History.AddEntry(tgit::str::StringView(m_strLogMesage));
 		m_History.Save();
 	}
 
@@ -214,7 +215,7 @@ void CMergeDlg::OnCancel()
 	if (m_strLogMesage != CString(this->m_pDefaultText) && !m_strLogMesage.IsEmpty() && !m_bNoCommit)
 	{
 		ReloadHistoryEntries();
-		m_History.AddEntry(m_strLogMesage);
+		m_History.AddEntry(tgit::str::StringView(m_strLogMesage));
 		m_History.Save();
 	}
 	CResizableStandAloneDialog::OnCancel();
@@ -253,7 +254,7 @@ bool CMergeDlg::HandleMenuItemClick(int cmd, CSciEdit * pSciEdit)
 	{
 		if (pSciEdit->GetText() == CString(m_pDefaultText))
 			pSciEdit->SetText(L"");
-		CString logmsg (m_History.GetEntry(0));
+		CString logmsg{ m_History.GetEntry(0).c_str() };
 		pSciEdit->InsertText(logmsg);
 		return true;
 	}

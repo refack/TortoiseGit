@@ -21,7 +21,7 @@
 #pragma once
 #include "StandAloneDlg.h"
 #include "GitStatusListCtrl.h"
-#include "Utils/RegHistory.h"
+import wil;
 import Registry;
 #include "MiscUI/SciEdit.h"
 #include "MiscUI/SplitterControl.h"
@@ -232,7 +232,7 @@ private:
 	int					m_nPopupPasteListCmd = 0;
 	int					m_nPopupPasteLastMessage = 0;
 	int					m_nPopupRecentMessage = 0;
-	CRegHistory			m_History;
+	wil::CRegHistory	m_History;
 	bool				m_bCancelled = false;
 	CSplitterControl	m_wndSplitter;
 	CRect				m_DlgOrigRect;

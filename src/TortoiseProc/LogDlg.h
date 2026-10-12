@@ -23,7 +23,7 @@
 #include "StandAloneDlg.h"
 import TGitPath;
 import Registry;
-#include "RegHistory.h"
+import wil;
 #include "SplitterControl.h"
 #include "Colors.h"
 #include "FilterEdit.h"
@@ -282,7 +282,7 @@ private:
 
 	HACCEL				m_hAccel = nullptr;
 
-	CRegHistory			m_History;
+	wil::CRegHistory	m_History;
 
 	CGravatar			m_gravatar;
 
