@@ -41,6 +41,12 @@ project(TortoiseGit)
 string(APPEND CMAKE_CXX_COMPILE_OBJECT " /experimental:log <OBJECT>.sarif")
 
 
+# The application's executables and DLLs share one directory, as the MSBuild
+# layout's bin\ did: TortoiseGitProc loads gitdll.dll and starts TGitCache.exe,
+# SshAskPass.exe and its siblings from its own directory. Tests keep their own
+# output directories (they copy $<TARGET_RUNTIME_DLLS> next to themselves).
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
+
 add_subdirectory(src/gitdll)
 add_subdirectory(src/AsyncFramework)
 add_subdirectory(src/IBugTraqProvider)
@@ -55,6 +61,8 @@ add_subdirectory(src/TortoiseProc)
 #add_subdirectory(src/TortoiseShell)
 add_subdirectory(src/TortoiseStub)
 #add_subdirectory(src/TortoiseUDiff)
+
+unset(CMAKE_RUNTIME_OUTPUT_DIRECTORY)
 add_subdirectory(test/Cache)
 add_subdirectory(test/ShellBench)
 add_subdirectory(test/TgitUnitTests)
