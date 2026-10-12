@@ -22,7 +22,7 @@
 #include "FirstStartWizard.h"
 #include "FirstStartWizardLanguage.h"
 #include "Theme.h"
-import LandDll;
+import LangDll;
 
 #define DOWNLOAD_URL L"https://tortoisegit.org/download/"
 #define WM_SETPAGEFOCUS WM_APP+2

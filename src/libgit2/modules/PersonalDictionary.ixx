@@ -4,7 +4,7 @@ module;
 
 export module PersonalDictionary;
 import std;
-import wstr;
+import str_utils;
 import PathUtils;
 using namespace PathUtils;
 

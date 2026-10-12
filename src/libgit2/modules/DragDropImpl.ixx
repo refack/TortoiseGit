@@ -9,7 +9,7 @@ import std;
 import wil;
 import gsl;
 
-import wstr;
+import str_utils;
 
 
 export namespace DragDrop

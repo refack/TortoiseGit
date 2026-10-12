@@ -34,7 +34,7 @@ import RIAA;
 import std;
 import wil;
 import Registry;
-import wstr;
+import str_utils;
 
 CFileTextLines::UnicodeType CFileTextLines::CheckUnicodeType(LPCVOID pBuffer, int cb)
 {
@@ -578,7 +578,7 @@ BOOL CFileTextLines::Save( const CString& sFilePath
 			StripWhiteSpace(sLineT, dwIgnoreWhitespaces, bBlame);
 			if (bIgnoreCase)
 				sLineT = sLineT.MakeLower();
-			pFilter->Write(tgit::zstr::StringView{ sLineT });
+			pFilter->Write(tgit::str::StringView{ sLineT });
 			EOL eEol = GetLineEnding(i);
 			pFilter->WriteBytes(oEncodedEol[static_cast<int>(eEol)]);
 		}

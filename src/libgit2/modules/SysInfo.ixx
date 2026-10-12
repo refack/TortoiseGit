@@ -1,10 +1,11 @@
 ﻿module;
+#include <windows.h>
 #include <Shlobj_core.h>
 
 export module SysInfo;
 import std;
 import PathUtils;
-import StringUtils;
+import str_utils;
 
 
 static bool InitializeIsWin11OrLater()
@@ -15,14 +16,11 @@ static bool InitializeIsWin11OrLater()
 	const auto sysPath = std::filesystem::path{ pszPath } / "shell32.dll";
 	CoTaskMemFree(pszPath);
 	const auto explorerVersion = PathUtils::GetVersionFromFile(sysPath.wstring().c_str());
-	const auto versionParts = explorerVersion
-		| std::views::split('.')
-		| std::views::transform([](auto r) {
-			int v{};
-			std::from_chars(r.data(), r.data() + r.size(), v);
-			return v;
-		})
-		| std::ranges::to<std::vector<int>>();
+	// The version is a wide string, which std::from_chars cannot parse: this never
+	// compiled while SysInfo.ixx was missing from the FILE_SET. Tokenized the way
+	// DarkModeHelper and Theme read the same kind of version string.
+	std::vector<int> versionParts;
+	StringUtils::stringtok(versionParts, explorerVersion, false, L".");
 	return versionParts.size() > 3 && versionParts[2] >= 22000;
 }
 

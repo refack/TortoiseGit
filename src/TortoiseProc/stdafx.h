@@ -140,7 +140,7 @@ import wil_git2;		// SmartLibgit2Ref.h
 import GitHash;
 import GitRev;
 import CmdLineParser;
-import LandDll;
+import LangDll;
 import TempFile;
 import CShellUpdater;
 import DarkModeHelper;

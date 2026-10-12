@@ -1,18 +1,26 @@
 ﻿module;
-#include <tgit_cstring.h>	// first: decides which CString this compile speaks
 #define READ_DIR_CHANGE_BUFFER_SIZE 4096
 #define MAX_CHANGED_PATHS  4000
-#include <atlstr.h>
+#include <windows.h>
+#include <process.h>	// _beginthreadex
+#include <tchar.h>		// _T
 #include "sanity.h"
 
 
 export module PathWatcher;
 import std;
+import str_utils;
 import RIAA;
 import TGitPath;
 import DebugOutput;
 
-using AutoLocker = CComCritSecLock<CComCriticalSection>;
+using tgit::wstr::CString;
+
+// Was CComCritSecLock<CComCriticalSection> over a CComAutoCriticalSection, which
+// came in through atlstr.h. Recursive like the critical section it replaces: the
+// destructor and the worker hold the lock while calling ClearInfoMap, which takes
+// it again.
+using AutoLocker = std::lock_guard<std::recursive_mutex>;
 
 /**
  * Helper class: provides information about watched directories.
@@ -53,7 +61,7 @@ struct CDirWatchInfo
  */
 export class CPathWatcher
 {
-	CComAutoCriticalSection	m_critSec;
+	std::recursive_mutex	m_critSec;
 	CAutoGeneralHandle		m_hThread;
 	CAutoGeneralHandle		m_hCompPort;
 	volatile LONG			m_bRunning = TRUE;

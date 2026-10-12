@@ -26,7 +26,7 @@ import git_h;
 #include "MessageBox.h"
 import Libraries;
 import TGitCache.CacheInterface;
-import LandDll;
+import LangDll;
 
 IMPLEMENT_DYNAMIC(CSetMainPage, ISettingsPropPage)
 CSetMainPage::CSetMainPage()

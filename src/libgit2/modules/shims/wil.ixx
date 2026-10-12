@@ -38,15 +38,6 @@ namespace wil::tgit_details {
 }
 
 export namespace wil {
-namespace KnownFolders {
-	inline const auto RoamingAppData = FOLDERID_RoamingAppData;
-	inline const auto LocalAppData = FOLDERID_LocalAppData;
-	inline const auto Documents = FOLDERID_Documents;
-	inline const auto ProgramFiles = FOLDERID_ProgramFiles;
-}
-
-
-
 namespace KnownEnvVars {
 	constexpr auto XDGBin = L"XDG_BIN_HOME"sv;
 	constexpr auto XDGData = L"XDG_DATA_HOME"sv;

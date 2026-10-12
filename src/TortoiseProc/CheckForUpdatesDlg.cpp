@@ -35,7 +35,7 @@ import DirFileEnum;
 #include <MsiDefs.h>
 #include <MsiQuery.h>
 #include "DPIAware.h"
-import LandDll;
+import LangDll;
 
 #pragma comment(lib, "msi.lib")
 

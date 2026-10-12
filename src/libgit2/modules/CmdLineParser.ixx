@@ -1,9 +1,6 @@
-﻿module;
-#include <tgit_cstring.h>	// first: decides which CString this compile speaks
-
-export module CmdLineParser;
+﻿export module CmdLineParser;
 import std;
-import wstr;
+import str_utils;
 
 using std::map;
 
@@ -131,10 +128,10 @@ namespace TCmdLineParser
         __int64 GetLongLongVal(const wchar_t* sKey) const;
 
         [[nodiscard]] static std::wstring EscapeValue(std::wstring_view input);
-        // CString is available in every compile now (tgit_cstring.h), so this is not
+        // CString is available in every compile now (the str_utils shim), so this is not
         // behind CSTRING_AVAILABLE any more. Constrained, not a plain CString parameter:
         // EscapeValue(L"...") would otherwise be ambiguous with the wstring_view one.
-        template <tgit::zstr::IsStupidString TStr>
+        template <tgit::str::IsStupidString TStr>
         [[nodiscard]] static TStr EscapeValue(TStr input)
         {
             input.Replace(L"\"", L"\"\"");

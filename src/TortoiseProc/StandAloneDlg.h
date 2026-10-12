@@ -29,6 +29,12 @@ import DarkModeHelper;
 #include "CommonAppUtils.h"
 #include "DPIAware.h"
 
+// Defined by each MFC application (TortoiseProc, TortoiseGitBlame); passed to
+// SetUUIDOverlayIcon, which no longer reaches for them itself.
+extern CString g_sGroupingUUID;
+extern CString g_sGroupingIcon;
+extern bool g_bGroupingRemoveIcon;
+
 #define DIALOG_BLOCKHORIZONTAL 1
 #define DIALOG_BLOCKVERTICAL 2
 
@@ -269,7 +275,7 @@ protected:
 
 	afx_msg LRESULT OnTaskbarButtonCreated(WPARAM /*wParam*/, LPARAM /*lParam*/)
 	{
-		SetUUIDOverlayIcon(BaseType::m_hWnd);
+		SetUUIDOverlayIcon(BaseType::m_hWnd, std::wstring(g_sGroupingUUID), std::wstring(g_sGroupingIcon), g_bGroupingRemoveIcon);
 		return 0;
 	}
 

@@ -103,7 +103,7 @@ LRESULT CALLBACK CMainWindow::WinMsgHandler(HWND hwnd, UINT uMsg, WPARAM wParam,
 {
 	if (uMsg == TaskBarButtonCreated)
 	{
-		SetUUIDOverlayIcon(hwnd);
+		SetUUIDOverlayIconFromCommandLine(hwnd);
 	}
 	auto optRet = CTheme::HandleMenuBar(hwnd, uMsg, wParam, lParam);
 	if (optRet.has_value())

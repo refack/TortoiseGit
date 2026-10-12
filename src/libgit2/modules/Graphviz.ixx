@@ -1,12 +1,12 @@
 ﻿module;
-#include <tgit_cstring.h>	// first: decides which CString this compile speaks
-#include <atlstr.h>
+#include <windows.h>
 #include <GdiPlus.h>
 
 export module Graphviz;
-import wstr;
+import str_utils;
 import std;
 using std::operator""sv;
+using tgit::wstr::CString;
 
 export class Graphviz
 {

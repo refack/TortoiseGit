@@ -1,8 +1,7 @@
 ﻿module;
-#include <tgit_cstring.h>	// first: decides which CString this compile speaks
 #include <windows.h>
 #include <Shobjidl.h>
-#include <atlbase.h>
+#include <atlbase.h>		// CComPtr, AtlLoadSystemLibraryUsingFullPath - not CString
 #include <GdiPlus.h>
 #include "Utils/LoadIconEx.h"
 
@@ -63,10 +62,22 @@ std::wstring GetTaskIDPerUUID(LPCWSTR uuid = nullptr);
  * const UINT TaskBarButtonCreated = RegisterWindowMessage(L"TaskbarButtonCreated");
  * \endcode
  *
- * The repository uuid is used by examining the command line of the process:
- * it must be set with /groupuuid:"uuid".
+ * The grouping is the caller's: the MFC applications pass their g_sGroupingUUID,
+ * g_sGroupingIcon and g_bGroupingRemoveIcon. This used to read those globals
+ * itself, behind `#ifdef TGIT_MFC` and `extern "C++"` declarations, which tied the
+ * library to whichever application linked it.
+ * \param uuid the repository uuid; nothing is done when it is empty
+ * \param icon an .ico or image file to use as the overlay, or empty
+ * \param removeIcon reset the icon remembered for \a uuid
  */
-void SetUUIDOverlayIcon(HWND hWnd);
+void SetUUIDOverlayIcon(HWND hWnd, std::wstring uuid, std::wstring icon, bool removeIcon);
+
+/**
+ * \ref SetUUIDOverlayIcon for an application without grouping globals: the uuid
+ * is /groupuuid:"uuid" from the process's command line, with no icon. What the
+ * non-MFC build of the old one-argument SetUUIDOverlayIcon did.
+ */
+void SetUUIDOverlayIconFromCommandLine(HWND hWnd);
 
 void SetTaskIDPerUUID()
 {
@@ -112,17 +123,14 @@ std::wstring GetTaskIDPerUUID(LPCWSTR uuid /*= nullptr */)
 	return id;
 }
 
-// The MFC applications (TortoiseProc, the unit tests) define these. "#ifdef __AFXWIN_H__"
-// keyed off the includer, which a module never sees, so it is the MFC flavor of
-// this library now; and extern "C++" attaches the declarations to the global
-// module, so they name the applications' variables and not new ones of this module's.
-#ifdef TGIT_MFC
-extern "C++" CString g_sGroupingUUID;
-extern "C++" CString g_sGroupingIcon;
-extern "C++" bool g_bGroupingRemoveIcon;
-#endif
+void SetUUIDOverlayIconFromCommandLine(HWND hWnd)
+{
+	CCmdLineParser parser(GetCommandLine());
+	// GetValStr, not GetVal - std::wstring(nullptr) is UB (CLAUDE.md failure mode 5)
+	SetUUIDOverlayIcon(hWnd, parser.GetValStr(L"groupuuid"), std::wstring{}, false);
+}
 
-void SetUUIDOverlayIcon( HWND hWnd )
+void SetUUIDOverlayIcon(HWND hWnd, std::wstring uuid, std::wstring sicon, const bool bRemoveicon)
 {
 	if (!CRegStdDWORD(L"Software\\TortoiseGit\\GroupTaskbarIconsPerRepo", 3))
 		return;
@@ -130,17 +138,6 @@ void SetUUIDOverlayIcon( HWND hWnd )
 	if (!CRegStdDWORD(L"Software\\TortoiseGit\\GroupTaskbarIconsPerRepoOverlay", TRUE))
 		return;
 
-#ifdef TGIT_MFC
-	std::wstring sicon(g_sGroupingIcon);	// direct-init: copy-init from a CString needs two conversions
-	bool bRemoveicon = g_bGroupingRemoveIcon;
-	std::wstring uuid(g_sGroupingUUID);
-#else
-	std::wstring sicon{};
-	bool bRemoveicon = false;
-	CCmdLineParser parser(GetCommandLine());
-	// not `: nullptr` - std::wstring(nullptr) is UB (CLAUDE.md failure mode 5)
-	std::wstring uuid = parser.HasVal(L"groupuuid") ? std::wstring(parser.GetVal(L"groupuuid")) : std::wstring();
-#endif
 	if (uuid.empty())
 		return;
 

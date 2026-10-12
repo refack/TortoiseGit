@@ -1,12 +1,10 @@
 ﻿module;
-#include <tgit_cstring.h>	// first: decides which CString this compile speaks
 #include <windows.h>
 #include "resource.h"
 
 #include <Shlwapi.h>
 #include <initguid.h>
-#include <atlcomcli.h>
-#include <atlstr.h>
+#include <atlcomcli.h>		// CComPtr - not CString, which comes from str_utils
 #include <ShObjIdl_core.h>
 #include <shlguid.h>
 #include <shlobj_core.h>
@@ -16,7 +14,10 @@
 
 export module Libraries;
 import std;
+import str_utils;
 import PathUtils;
+
+using tgit::wstr::CString;
 
 
 // helper:

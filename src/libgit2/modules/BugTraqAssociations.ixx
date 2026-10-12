@@ -1,13 +1,19 @@
 ﻿module;
-#include <tgit_cstring.h>	// first: decides which CString this compile speaks
-#include <atlstr.h>
-#include <initguid.h>
+#include <windows.h>
+#include <Shlwapi.h>		// SHDeleteKey
+#include <comcat.h>			// ICatInformation
+#include <initguid.h>		// last: only CATID_BugTraqProvider below is to be defined here
+
+#pragma comment(lib, "Shlwapi.lib")
 
 export module BugTraqProvider;
 import std;
 import gsl;
+import str_utils;
 
 import TGitPath;
+
+using tgit::wstr::CString;
 
 
 export namespace BugTraqProvider {

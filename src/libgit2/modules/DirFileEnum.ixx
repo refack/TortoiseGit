@@ -1,11 +1,12 @@
 ﻿module;
-#include <tgit_cstring.h>	// first: decides which CString this compile speaks
-#include <atlstr.h>
+#include <windows.h>
 #include <winrt/base.h>
 
 export module DirFileEnum;
-import StringUtils;
+import str_utils;
 import wil;
+
+using tgit::wstr::CString;
 
 export namespace DirFileEnum {
 /**

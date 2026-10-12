@@ -18,7 +18,7 @@
 //
 #pragma once
 
-import StringUtils;
+import str_utils;
 
 class CSelectFileFilter {
 public:

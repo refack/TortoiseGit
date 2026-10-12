@@ -20,7 +20,7 @@
 #pragma once
 
 #include <Shlwapi.h>
-import StringUtils;
+import str_utils;
 
 template <typename T>
 bool isalnumTmpl(T ch)

@@ -1,7 +1,7 @@
 ﻿module;
-#include <tgit_cstring.h>	// first: decides which CString this compile speaks
 #include <windows.h>
 #include <strsafe.h>
+#include <ShlObj.h>		// FOLDERID_*, REFKNOWNFOLDERID, KNOWN_FOLDER_FLAG
 // #include "sanity.h"
 
 
@@ -9,7 +9,7 @@ export module PathUtils;
 import std;
 import gsl;
 import wil;
-import wstr;
+import str_utils;
 import RIAA;
 namespace fs = std::filesystem;
 using std::operator""sv;
@@ -84,9 +84,9 @@ std::wstring GetModuleFileNameString(const HMODULE hMod)
 /// resize_and_overwrite to do here - the single copy is the std::wstring
 /// constructor, and the unique_ptr exists only to get the CoTaskMemFree
 /// right on every exit path.
-fs::path GetKnownFolder(const wil::KnownFolderCLSID& folderId)
+fs::path GetKnownFolder(REFKNOWNFOLDERID folderId)
 {
-	return wil::GetKnownFolderPath(folderId, wil::KnownFolderFlag::KF_FLAG_CREATE);
+	return wil::GetKnownFolderPath(folderId, KF_FLAG_CREATE);
 }
 
 fs::path GetLongPathname(const std::wstring& pathStr)
@@ -111,7 +111,7 @@ fs::path EnsureTGitSubfolder(const fs::path& folderId)
 }
 
 /// Appends TortoiseGit's own subfolder to one of the per-user roots, creating it.
-fs::path TortoiseGitSubfolderOf(const wil::KnownFolderCLSID& folderId)
+fs::path TortoiseGitSubfolderOf(REFKNOWNFOLDERID folderId)
 {
 	const auto path = GetKnownFolder(folderId);
 	return EnsureTGitSubfolder(path);
@@ -427,7 +427,7 @@ std::wstring GetAppDataDirectory()
 	if (const auto env = wil::GetEnvVar(wil::KnownEnvVars::XDGConfig); !env.empty())
 		return EnsureTGitSubfolder(env);
 
-	return TortoiseGitSubfolderOf(wil::KnownFolders::RoamingAppData);
+	return TortoiseGitSubfolderOf(FOLDERID_RoamingAppData);
 }
 
 std::wstring GetLocalAppDataDirectory()
@@ -435,7 +435,7 @@ std::wstring GetLocalAppDataDirectory()
 	if (const auto env = wil::GetEnvVar(wil::KnownEnvVars::XDGCache); !env.empty())
 		return EnsureTGitSubfolder(env);
 
-	return TortoiseGitSubfolderOf(wil::KnownFolders::LocalAppData);
+	return TortoiseGitSubfolderOf(FOLDERID_LocalAppData);
 }
 
 std::wstring GetDocumentsDirectory()
@@ -443,7 +443,7 @@ std::wstring GetDocumentsDirectory()
 	if (const auto env = wil::GetEnvVar(wil::KnownEnvVars::XDGData); !env.empty())
 		return EnsureTGitSubfolder(env);
 
-	return GetKnownFolder(wil::KnownFolders::Documents);
+	return GetKnownFolder(FOLDERID_Documents);
 }
 
 std::wstring GetProgramsDirectory()
@@ -451,7 +451,7 @@ std::wstring GetProgramsDirectory()
 	if (const auto env = wil::GetEnvVar(wil::KnownEnvVars::XDGBin); !env.empty())
 		return EnsureTGitSubfolder(env);
 
-	return GetKnownFolder(wil::KnownFolders::ProgramFiles);
+	return GetKnownFolder(FOLDERID_ProgramFiles);
 }
 
 void DropPathPrefixes(std::wstring& path)

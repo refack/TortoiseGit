@@ -60,6 +60,8 @@ public:
 
 extern CTortoiseGitBlameApp theApp;
 extern CString g_sGroupingUUID;
+extern CString g_sGroupingIcon;
+extern bool g_bGroupingRemoveIcon;
 
 #ifdef _WIN64
 #define APP_X64_STRING "x64"

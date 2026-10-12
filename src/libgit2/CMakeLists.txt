@@ -59,7 +59,9 @@ function(tgit_core_library name flavor)
                 Utils/FileTextLines.cpp
                 Utils/SysImageList.cpp
         )
-        target_compile_definitions(${name} PUBLIC TGIT_MFC)
+        # PRIVATE: only the str_utils shim tests it, and the shim is compiled once,
+        # here. A consumer that wanted to test it would be forking outside the shim.
+        target_compile_definitions(${name} PRIVATE TGIT_MFC)
     endif()
 
     target_compile_features(${name}
@@ -175,6 +177,7 @@ function(tgit_core_library name flavor)
             modules/utils/ReaderWriterLock.ixx
             modules/utils/PathWatcher.ixx
             modules/CacheInterface.ixx
+            modules/SysInfo.ixx
     )
 endfunction()
 

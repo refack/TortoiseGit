@@ -1,5 +1,4 @@
 ﻿module;
-#include <tgit_cstring.h>	// first: decides which CString this compile speaks
 #include <windows.h>
 #include <Shlwapi.h>
 #include "sanity.h"
@@ -11,7 +10,9 @@ export module Registry;
 import std;
 import gsl;
 import wil;
-import wstr;
+import str_utils;
+
+using tgit::wstr::CString;
 
 #ifndef QWORD
 using QWORD = std::uint64_t;
@@ -19,6 +20,10 @@ using QWORD = std::uint64_t;
 using reg_string_t = std::wstring;
 
 export namespace Registry {
+
+/// HKCU\<this> (and HKLM\<this>) is where TortoiseGit keeps its settings.
+/// NUL-terminated by construction, so it can go straight to a Win32 API.
+constexpr wchar_t TortoiseGitKey[] = L"Software\\TortoiseGit";
 
 /**
  * \ingroup Utils
@@ -192,8 +197,8 @@ public: //methods
  *
  * Restored: only the std::wstring base survived the module conversion, and
  * TortoiseProc uses CRegString in 123 places, assigning it to and from CString.
- * Which CString this is follows the compile (tgit_cstring.h): MFC's in
- * TGitLibgit2Mfc, ATL's in TGitLibgit2.
+ * Which CString this is follows the compile (tgit::wstr::CString, from the
+ * str_utils shim): MFC's in TGitLibgit2Mfc, ATL's in TGitLibgit2.
  */
 class CRegCStringBase : public CRegBaseCommon<CString>
 {
@@ -796,9 +801,9 @@ public: //methods
 	 */
 	CRegistryKey(const reg_string_t& key, HKEY base = HKEY_CURRENT_USER, REGSAM sam = 0);
 	/// A CString key - the settings pages'. Constrained, so a literal binds the one above.
-	template <tgit::zstr::IsStupidString TStr>
+	template <tgit::str::IsStupidString TStr>
 	explicit CRegistryKey(const TStr& key, HKEY base = HKEY_CURRENT_USER, REGSAM sam = 0)
-		: CRegistryKey(reg_string_t(tgit::zstr::StringView{ key }), base, sam) {}
+		: CRegistryKey(reg_string_t(tgit::str::StringView{ key }), base, sam) {}
 	~CRegistryKey();
 
 	/**

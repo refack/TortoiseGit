@@ -34,7 +34,7 @@ import gsl;
 
 import invarients;
 import PathUtils;
-import StringUtils;
+import str_utils;
 import RIAA;
 import DarkModeHelper;
 
@@ -981,7 +981,7 @@ bool CTheme::IsDarkModeAllowed()
 	m_bDarkModeIsAllowed = false;
 	auto version = PathUtils::GetVersionFromFile(L"uiribbon.dll");
 	std::vector<long> tokens;
-	stringtok(tokens, version, false, L".");
+	StringUtils::stringtok(tokens, version, false, L".");
 	if (tokens.size() == 4)
 	{
 		auto major = tokens[0];

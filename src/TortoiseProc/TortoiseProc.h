@@ -28,7 +28,7 @@
 
 #include <TortoiseShell/resource.h>
 #include <Resources/LoglistCommonResource.h>
-import LandDll;
+import LangDll;
 
 /**
  * \ingroup TortoiseProc

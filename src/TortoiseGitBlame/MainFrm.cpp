@@ -202,7 +202,7 @@ void CMainFrame::OnDestroy()
 
 LRESULT CMainFrame::OnTaskbarButtonCreated(WPARAM /*wParam*/, LPARAM /*lParam*/)
 {
-	SetUUIDOverlayIcon(m_hWnd);
+	SetUUIDOverlayIcon(m_hWnd, std::wstring(g_sGroupingUUID), std::wstring(g_sGroupingIcon), g_bGroupingRemoveIcon);
 	return 0;
 }
 

@@ -1,16 +1,17 @@
 ﻿module;
-#include <tgit_cstring.h>	// first: decides which CString this compile speaks
 #include <windows.h>
 #include <SimpleIni.h>
 #include <version.h>
 
-export module LandDll;
+export module LangDll;
 import std;
 import DirFileEnum;	// GetInstalledLanguages; it was TORTOISEGITPROC-only, a per-consumer macro a module never sees
 import RIAA;
 import Registry;
 import PathUtils;
-import StringUtils;
+import str_utils;
+
+using tgit::wstr::CString;
 
 export namespace LangDll
 {
