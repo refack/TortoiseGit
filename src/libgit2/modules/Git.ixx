@@ -341,6 +341,8 @@ constexpr std::uint32_t LIBGIT2_ONLY_MASK = (
 
 /// A C-style (argc, argv) over strings it owns, for gitdll's git_open_log /
 /// git_open_diff, which take `int argc, const char** argv` as git's own main does.
+/// gitdll copies what it keeps (dup_argv in gitdll.c), so an ArgvData only has to
+/// outlive the open call - it is never handed over and never freed by gitdll.
 ///
 /// argv points into the std::strings in _args. Moving is safe - moving a
 /// std::vector hands over its buffer, so the std::string objects (and any SSO

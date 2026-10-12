@@ -338,6 +338,36 @@ int git_free_commit(GIT_COMMIT *commit)
 	return 0;
 }
 
+/*
+ * git keeps pointers into argv for as long as the rev_info lives (pathspecs,
+ * revision names), so the handle owns a copy: the pointer table followed by the
+ * strings, in one block that git_close_log/git_close_diff free. The caller's
+ * argv only has to outlive the call. (It used to be the caller's own buffer,
+ * freed here - which became a double free once callers stopped allocating it
+ * with malloc and handing it over.)
+ */
+static const char** dup_argv(const int argc, const char** argv)
+{
+	size_t chars = 0;
+	for (int i = 0; i < argc; ++i)
+		chars += strlen(argv[i]) + 1;
+
+	const char** copy = malloc((argc + 1) * sizeof(char*) + chars);
+	if (!copy)
+		return NULL;
+
+	char* p = (char*)(copy + argc + 1);
+	for (int i = 0; i < argc; ++i)
+	{
+		const size_t len = strlen(argv[i]) + 1;
+		memcpy(p, argv[i], len);
+		copy[i] = p;
+		p += len;
+	}
+	copy[argc] = NULL;
+	return copy;
+}
+
 int git_open_log(GIT_LOG* handle, const int argc, const char** argv)
 {
 	struct setup_revision_opt opt;
@@ -365,25 +395,33 @@ int git_open_log(GIT_LOG* handle, const int argc, const char** argv)
 		}
 	}
 
-	struct rev_info* p_Rev = malloc(sizeof(struct rev_info));
-	if (!p_Rev)
+	const char** args = dup_argv(argc, argv);
+	if (!args)
 		return -1;
 
+	struct rev_info* p_Rev = malloc(sizeof(struct rev_info));
+	if (!p_Rev)
+	{
+		free(args);
+		return -1;
+	}
+
 	memset(p_Rev,0,sizeof(struct rev_info));
-	*handle = p_Rev; // set this before an exception may be thrown in gitdll so that we don't leak memory
+	// both before anything below can throw: the caller's git_close_log then frees each exactly once
+	p_Rev->pPrivate = (void*)args;
+	*handle = p_Rev;
 
 	ref_store_release_and_clear(the_repository);
 	clear_ref_decorations();
 
 	repo_init_revisions(the_repository, p_Rev, g_prefix);
 	p_Rev->diff = 1;
+	p_Rev->pPrivate = (void*)args; // repo_init_revisions memsets the struct
 
 	memset(&opt, 0, sizeof(opt));
 	opt.def = "HEAD";
 
-	cmd_log_init_tgit(argc, argv, g_prefix, p_Rev, &opt);
-
-	p_Rev->pPrivate = (void*)argv; // set last, so if an exception is thrown in gitdll it will not get freed twice
+	cmd_log_init_tgit(argc, args, g_prefix, p_Rev, &opt);
 	return 0;
 
 }
@@ -464,24 +502,33 @@ int git_open_diff(GIT_DIFF* diff, const int argc, const char** argv)
 {
 	assert(argc && argv);
 
+	const char** args = dup_argv(argc, argv);
+	if (!args)
+		return -1;
+
 	struct rev_info* p_Rev = malloc(sizeof(struct rev_info));
 	if (!p_Rev)
+	{
+		free(args);
 		return -1;
+	}
 	memset(p_Rev,0,sizeof(struct rev_info));
 
 	*diff = (GIT_DIFF)p_Rev;
 
 	repo_init_revisions(the_repository, p_Rev, g_prefix);
+	p_Rev->pPrivate = (void*)args; // after repo_init_revisions, which overwrites the whole struct
 	repo_config(the_repository, git_diff_basic_config, NULL); /* no "diff" UI options */
 	p_Rev->abbrev = 0;
 	p_Rev->diff = 1;
-	setup_revisions(argc, argv, p_Rev, NULL);
+	setup_revisions(argc, args, p_Rev, NULL);
 
 	return 0;
 }
 int git_close_diff(const GIT_DIFF handle)
 {
 	git_diff_flush(handle);
+	free(((struct rev_info*)handle)->pPrivate);
 	free(handle);
 	return 0;
 }
