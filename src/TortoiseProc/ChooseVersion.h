@@ -22,7 +22,7 @@
 #include "BrowseRefsDlg.h"
 #include "MiscUI/MessageBox.h"
 import Registry;
-import StringUtils;
+import str_utils;
 
 static UINT WM_GUIUPDATES = RegisterWindowMessage(L"TORTOISEGIT_CHOOSEVERSION_GUIUPDATES");
 

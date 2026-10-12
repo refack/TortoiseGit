@@ -20,7 +20,7 @@
 
 #include "stdafx.h"
 #include "CommitCommand.h"
-import StringUtils;
+import str_utils;
 #include "MessageBox.h"
 #include "AppUtils.h"
 

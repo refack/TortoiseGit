@@ -22,7 +22,7 @@
 #include "GitStatusListCtrl.h"
 import TGitPath;
 #include "ColumnManager.h"
-import wstr;
+import str_utils;
 
 // sorter utility class
 CSorter::CSorter ( ColumnManager* columnManager

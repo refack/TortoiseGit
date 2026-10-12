@@ -45,9 +45,8 @@
 import DarkModeHelper;
 #include <Utils/DPIAware.h>
 #include <Utils/FileTextLines.h>
-import StringUtils;
+import str_utils;
 #include <Utils/Theme.h>
-import wstr;
 #include <Utils/MiscUI/IconMenu.h>
 
 #ifdef _DEBUG
@@ -761,7 +760,7 @@ void CTortoiseGitBlameView::CopyToClipboard()
 		{
 			auto grid = static_cast<CMFCPropertyGridCtrl*>(wnd);
 			if (grid->GetCurSel() && !grid->GetCurSel()->IsGroup())
-				StringUtils::WriteAsciiStringToClipboard(grid->GetCurSel()->GetValue(), GetSafeHwnd());
+				wil::SetClipboardText(tgit::str::StringView{ CString(grid->GetCurSel()->GetValue()) }, GetSafeHwnd());
 		}
 		else
 			m_TextView.Call(SCI_COPY);

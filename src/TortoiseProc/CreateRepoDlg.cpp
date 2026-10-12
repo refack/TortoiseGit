@@ -23,7 +23,7 @@
 #include "TortoiseProc.h"
 #include "CreateRepoDlg.h"
 #include "AppUtils.h"
-import StringUtils;
+import str_utils;
 
 // CCreateRepoDlg dialog
 

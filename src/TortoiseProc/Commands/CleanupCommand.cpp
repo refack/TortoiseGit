@@ -23,7 +23,7 @@
 #include "ProgressDlg.h"
 import CShellUpdater;
 #include "CleanTypeDlg.h"
-import wstr;
+import str_utils;
 #include "SysProgressDlg.h"
 
 struct SubmodulePayload

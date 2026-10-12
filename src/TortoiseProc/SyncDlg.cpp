@@ -297,7 +297,7 @@ void CSyncDlg::OnBnClickedButtonPull()
 				break;
 
 			// branch.<name>.rebase overrides pull.rebase
-			if (config.GetBOOL(tgit::zstr::StringView(L"branch." + g_Git.GetCurrentBranch() + L".rebase"), m_iPullRebase) == GIT_ENOTFOUND)
+			if (config.GetBOOL(tgit::str::StringView(L"branch." + g_Git.GetCurrentBranch() + L".rebase"), m_iPullRebase) == GIT_ENOTFOUND)
 			{
 				if (config.GetBOOL(L"pull.rebase", m_iPullRebase) == GIT_ENOTFOUND)
 					break;
@@ -537,7 +537,7 @@ void CSyncDlg::FetchComplete()
 	m_ctrlURL.GetWindowText(remote);
 	if (!remote.IsEmpty())
 	{
-		if (std::find(m_remotelist.cbegin(), m_remotelist.cend(), tgit::zstr::StringView(remote)) == m_remotelist.cend())
+		if (std::find(m_remotelist.cbegin(), m_remotelist.cend(), tgit::str::StringView(remote)) == m_remotelist.cend())
 			remote.Empty();
 	}
 	m_ctrlRemoteBranch.GetWindowText(remotebranch);
@@ -1079,7 +1079,7 @@ void CSyncDlg::Refresh()
 		for (size_t i = 0; i < m_remotelist.size(); ++i)
 		{
 			m_ctrlURL.AddString(m_remotelist[i].c_str());
-			if (m_remotelist[i] == tgit::zstr::StringView(url))
+			if (m_remotelist[i] == tgit::str::StringView(url))
 				found = true;
 		}
 	}

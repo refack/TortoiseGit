@@ -149,7 +149,7 @@ BOOL CPullFetchDlg::OnInitDialog()
 
 		BOOL rebase = FALSE;
 		// branch.<name>.rebase overrides pull.rebase
-		if (config.GetBOOL(tgit::zstr::StringView(L"branch." + g_Git.GetCurrentBranch() + L".rebase"), rebase) == GIT_ENOTFOUND)
+		if (config.GetBOOL(tgit::str::StringView(L"branch." + g_Git.GetCurrentBranch() + L".rebase"), rebase) == GIT_ENOTFOUND)
 		{
 			if (config.GetBOOL(L"pull.rebase", rebase) == GIT_ENOTFOUND)
 				break;
@@ -312,7 +312,7 @@ void CPullFetchDlg::Refresh()
 		for (unsigned int i = 0; i < list.size(); ++i)
 		{
 			m_Remote.AddString(list[i].c_str());
-			if (!m_bAllRemotes && list[i] == tgit::zstr::StringView(pullRemote))
+			if (!m_bAllRemotes && list[i] == tgit::str::StringView(pullRemote))
 				sel = i + (!m_IsPull && list.size() > 1 ? 1 : 0);
 		}
 	}

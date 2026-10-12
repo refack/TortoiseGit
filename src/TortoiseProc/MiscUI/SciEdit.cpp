@@ -36,7 +36,7 @@ import Registry;
 #include <Utils/ScintillaRegistration.h>
 import RIAA;
 #include <Utils/Theme.h>
-import wstr;
+import str_utils;
 #include <Utils/URLFinder.h>
 
 
@@ -519,7 +519,7 @@ BOOL CSciEdit::IsMisspelled(const CString& sWord)
 	if (_istdigit(sWord.GetAt(0)))
 		return FALSE;
 	// words in the personal dictionary are correct too
-	if (m_personalDict.FindWord(tgit::zstr::StringView(sWord)))
+	if (m_personalDict.FindWord(tgit::str::StringView(sWord)))
 		return FALSE;
 
 	// Check spell checking cache first.
@@ -1038,7 +1038,7 @@ void CSciEdit::OnContextMenu(CWnd* /*pWnd*/, CPoint point)
 		// also allow the user to add the word to the custom dictionary so
 		// it won't show up as misspelled anymore
 		if (!bIsReadOnly && (sWord.GetLength() < PDICT_MAX_WORD_LENGTH) && (m_autolist.find(sWord) == m_autolist.end() && IsMisspelled(sWord)) &&
-			(!_istdigit(sWord.GetAt(0))) && (!m_personalDict.FindWord(tgit::zstr::StringView(sWord))))
+			(!_istdigit(sWord.GetAt(0))) && (!m_personalDict.FindWord(tgit::str::StringView(sWord))))
 		{
 			sMenuItemText.Format(IDS_SCIEDIT_ADDWORD, static_cast<LPCWSTR>(sWord));
 			popup.AppendMenu(uEnabledMenu, SCI_ADDWORD, sMenuItemText);
@@ -1101,7 +1101,7 @@ void CSciEdit::OnContextMenu(CWnd* /*pWnd*/, CPoint point)
 			Call(cmd);
 			break;
 		case SCI_ADDWORD:
-			m_personalDict.AddWord(tgit::zstr::StringView(sWord));
+			m_personalDict.AddWord(tgit::str::StringView(sWord));
 			CheckSpelling(static_cast<Sci_Position>(Call(SCI_POSITIONFROMLINE, static_cast<int>(Call(SCI_GETFIRSTVISIBLELINE)))), static_cast<Sci_Position>(Call(SCI_POSITIONFROMLINE, static_cast<int>(Call(SCI_GETFIRSTVISIBLELINE)) + static_cast<int>(Call(SCI_LINESONSCREEN)))));
 			break;
 		case SCI_LINESSPLIT:

@@ -22,7 +22,7 @@
 import wil;
 #include "GitProgressDlg.h"
 #include "MessageBox.h"
-import StringUtils;
+import str_utils;
 import DirFileEnum;
 #include "ProgressCommands/AddProgressCommand.h"
 

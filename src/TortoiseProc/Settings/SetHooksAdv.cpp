@@ -106,7 +106,7 @@ BOOL CSetHooksAdv::OnInitDialog()
 	UpdateData(FALSE);
 	OnBnClickedLocalcheck();
 
-	DialogEnableWindow(IDC_LOCALCHECK, GitAdminDir::HasAdminDir(tgit::zstr::StringView(g_Git.m_CurrentDir)));
+	DialogEnableWindow(IDC_LOCALCHECK, GitAdminDir::HasAdminDir(tgit::str::StringView(g_Git.m_CurrentDir)));
 
 	AddAnchor(IDC_ENABLE, TOP_LEFT);
 	AddAnchor(IDC_HOOKTYPELABEL, TOP_LEFT, TOP_RIGHT);

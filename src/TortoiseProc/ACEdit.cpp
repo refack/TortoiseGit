@@ -11,7 +11,7 @@
 
 
 #include "ACEdit.h"
-import StringUtils;
+import str_utils;
 
 #ifdef _DEBUG
 #define new DEBUG_NEW

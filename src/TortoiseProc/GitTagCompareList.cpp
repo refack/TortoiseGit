@@ -24,7 +24,7 @@ import git_h;
 #include "GitTagCompareList.h"
 #include "GitRefCompareList.h"
 import Registry;
-import wstr;
+import str_utils;
 #include "IconMenu.h"
 #include "AppUtils.h"
 #include <TortoiseShell/resource.h>

@@ -25,7 +25,7 @@
 import git_h;
 #include "AppUtils.h"
 import PathUtils;
-import StringUtils;
+import str_utils;
 #include "RevisionGraphDlg.h"
 import wil;
 import GitRevLoglist;
@@ -810,7 +810,7 @@ CString CRevisionGraphWnd::TooltipText(ogdf::node index)
 
 void CRevisionGraphWnd::SaveGraphAs(CString sSavePath)
 {
-	const std::wstring extension = PathUtils::GetFileExtFromPath(tgit::zstr::StringView(sSavePath));
+	const std::wstring extension = PathUtils::GetFileExtFromPath(tgit::str::StringView(sSavePath));
 	if (tgit::wstr::CompareNoCase(extension, L".wmf") == 0)
 	{
 		// save the graph as an enhanced metafile
@@ -934,7 +934,7 @@ void CRevisionGraphWnd::SaveGraphAs(CString sSavePath)
 						bitmap.Save(tfile, &encoderClsid, nullptr);
 					}
 					else
-						sErrormessage.Format(IDS_REVGRAPH_ERR_NOENCODER, PathUtils::GetFileExtFromPath(tgit::zstr::StringView(sSavePath)).c_str());
+						sErrormessage.Format(IDS_REVGRAPH_ERR_NOENCODER, PathUtils::GetFileExtFromPath(tgit::str::StringView(sSavePath)).c_str());
 				}
 				else
 					sErrormessage.LoadString(IDS_REVGRAPH_ERR_NOBITMAP);
@@ -1114,7 +1114,7 @@ void CRevisionGraphWnd::DoCopyRefs() const
 			text.Append(L"\r\n");
 		text.Append(list[i].c_str());
 	}
-	StringUtils::WriteAsciiStringToClipboard(text, m_hWnd);
+	wil::SetClipboardText(tgit::str::StringView{ text }, m_hWnd);
 }
 
 void CRevisionGraphWnd::OnContextMenu(CWnd* /*pWnd*/, CPoint point)

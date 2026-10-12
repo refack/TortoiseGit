@@ -22,7 +22,7 @@
 #include "stdafx.h"
 #include "TortoiseProc.h"
 #include "ProgressDlg.h"
-import wstr;
+import str_utils;
 #include "IconMenu.h"
 #include "LoglistCommonResource.h"
 #include <Tlhelp32.h>
@@ -33,7 +33,6 @@ import TGitCache.CacheInterface;
 #include "MessageBox.h"
 #include "LogFile.h"
 import CmdLineParser;
-import StringUtils;
 
 #define REFRESHTIMER 100
 

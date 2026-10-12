@@ -125,7 +125,7 @@ BOOL CSettingGitCredential::OnInitDialog()
 
 	AdjustControlSize(IDC_CHECK_USEHTTPPATH);
 
-	bool hasLocal = GitAdminDir::HasAdminDir(tgit::zstr::StringView(g_Git.m_CurrentDir));
+	bool hasLocal = GitAdminDir::HasAdminDir(tgit::str::StringView(g_Git.m_CurrentDir));
 
 	m_ctrlUrlList.ResetContent();
 
@@ -333,7 +333,7 @@ void CSettingGitCredential::FillSimpleList(bool anySystem, bool systemWincred, b
 {
 	ATLASSERT(SimpleCredentialType::Advanced == -1);
 
-	bool hasLocal = GitAdminDir::HasAdminDir(tgit::zstr::StringView(g_Git.m_CurrentDir));
+	bool hasLocal = GitAdminDir::HasAdminDir(tgit::str::StringView(g_Git.m_CurrentDir));
 	bool isAdmin = CAppUtils::IsAdminLogin();
 
 	AddSimpleCredential(SimpleCredentialType::Advanced, CString(MAKEINTRESOURCE(IDS_ADVANCED)));
@@ -593,7 +593,7 @@ int CSettingGitCredential::DeleteOtherKeys(int type)
 	{
 		int pos = 0;
 		CString prefix = tgit::wstr::Tokenize(list[i], L"\n", pos).c_str();
-		if ((prefix == L"S" || prefix == L"P") && list[i] != tgit::zstr::StringView(match) && !CAppUtils::IsAdminLogin())
+		if ((prefix == L"S" || prefix == L"P") && list[i] != tgit::str::StringView(match) && !CAppUtils::IsAdminLogin())
 		{
 			if (MessageBox(L"Cannot modify a system config without proper rights.\nDiscard changes?", L"TortoiseGit", MB_ICONERROR | MB_YESNO) == IDYES)
 				return 0;
@@ -608,7 +608,7 @@ int CSettingGitCredential::DeleteOtherKeys(int type)
 	SCOPE_EXIT { g_Git.m_IsUseGitDLL = old; };
 	for (size_t i = 0; i < list.size(); ++i)
 	{
-		if (list[i] == tgit::zstr::StringView(match))
+		if (list[i] == tgit::str::StringView(match))
 			continue;
 
 		int pos = 0;

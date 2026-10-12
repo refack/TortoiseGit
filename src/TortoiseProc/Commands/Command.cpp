@@ -442,7 +442,7 @@ bool Command::CheckRepo(PathRequirement requirement) const
 {
 	if (requirement >= PathRequirement::WorkingTreeRequired)
 	{
-		if (!GitAdminDir::HasAdminDir(tgit::zstr::StringView(g_Git.m_CurrentDir)))
+		if (!GitAdminDir::HasAdminDir(tgit::str::StringView(g_Git.m_CurrentDir)))
 		{
 			CMessageBox::Show(GetExplorerHWND(), IDS_NOWORKINGCOPY, IDS_APPNAME, MB_ICONERROR);
 			return false;
@@ -450,7 +450,7 @@ bool Command::CheckRepo(PathRequirement requirement) const
 	}
 	else if (requirement >= PathRequirement::WorkingTreeOrBareRepoRequired)
 	{
-		if (!GitAdminDir::IsWorkingTreeOrBareRepo(tgit::zstr::StringView(g_Git.m_CurrentDir)))
+		if (!GitAdminDir::IsWorkingTreeOrBareRepo(tgit::str::StringView(g_Git.m_CurrentDir)))
 		{
 			CMessageBox::Show(GetExplorerHWND(), IDS_NOGITREPO, IDS_APPNAME, MB_ICONERROR);
 			return false;

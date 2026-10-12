@@ -25,7 +25,7 @@ import wil;
 
 #include "CommonAppUtils.h"
 import PathUtils;
-import StringUtils;
+import str_utils;
 import Registry;
 #include <Utils/SelectFileFilter.h>
 #include <Utils/DPIAware.h>
@@ -258,7 +258,7 @@ bool CCommonAppUtils::FileOpenSave(CString& path, int* filterindex, UINT title, 
 		if (!SUCCEEDED(pfd->SetOptions(dwOptions | FOS_OVERWRITEPROMPT | FOS_FORCEFILESYSTEM | FOS_PATHMUSTEXIST)))
 			return false;
 	}
-	if ((!PathIsDirectory(path) || handleAsFile) && !SUCCEEDED(pfd->SetFileName(PathUtils::GetFileNameFromPath(tgit::zstr::StringView(path)).c_str())))
+	if ((!PathIsDirectory(path) || handleAsFile) && !SUCCEEDED(pfd->SetFileName(PathUtils::GetFileNameFromPath(tgit::str::StringView(path)).c_str())))
 		return false;
 
 	// Set a title
@@ -419,15 +419,15 @@ bool CCommonAppUtils::StartHtmlHelp(DWORD_PTR id, CString page /* = L"index.html
 		{
 			auto resString = std::string(resData, resSize);
 			std::vector<std::string> lines;
-			stringtok(lines, resString, true, "\r\n");
+			StringUtils::stringtok(lines, resString, true, "\r\n");
 			for (const auto& line : lines)
 			{
 				if (line.empty())
 					continue;
 				std::vector<std::string> lineParts;
-				stringtok(lineParts, line, true, "=");
+				StringUtils::stringtok(lineParts, line, true, "=");
 				if (lineParts.size() == 2)
-					idMap[std::stoi(lineParts[0], nullptr, 0)] = CUnicodeUtils::StdGetUnicode(lineParts[1]);
+					idMap[std::stoi(lineParts[0], nullptr, 0)] = CUnicodeUtils::GetUnicode<std::wstring>(lineParts[1]);
 			}
 		}
 	}

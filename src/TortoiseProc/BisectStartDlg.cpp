@@ -25,7 +25,7 @@
 import git_h;
 #include "LogDlg.h"
 #include "AppUtils.h"
-import StringUtils;
+import str_utils;
 #include "MessageBox.h"
 
 IMPLEMENT_DYNAMIC(CBisectStartDlg, CHorizontalResizableStandAloneDialog)

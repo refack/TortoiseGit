@@ -23,8 +23,7 @@
 #include "IconMenu.h"
 #include "MessageBox.h"
 #include "LoglistUtils.h"
-import StringUtils;
-import wstr;
+import str_utils;
 #include "resource.h"
 #include "LoglistCommonResource.h"
 #include <TortoiseShell/Resource.h>
@@ -314,7 +313,7 @@ void CGitLogListBase::InsertGitColumn()
 	m_boldItalicsFont.CreateFontIndirect(&lf);
 
 	// only load properties if we have a repository
-	if (GitAdminDir::IsWorkingTreeOrBareRepo(tgit::zstr::StringView(g_Git.m_CurrentDir)))
+	if (GitAdminDir::IsWorkingTreeOrBareRepo(tgit::str::StringView(g_Git.m_CurrentDir)))
 		UpdateProjectProperties();
 
 	const auto iconItemBorder = CDPIAware::Instance().ScaleX(GetSafeHwnd(), ICONITEMBORDER);
@@ -1221,7 +1220,7 @@ void CGitLogListBase::OnNMCustomdrawLoglist(NMHDR *pNMHDR, LRESULT *pResult)
 									bool found = false;
 									for (auto it2 = refListIt + 1; it2 != refListItEnd; ++it2)
 									{
-										if (*it2 == tgit::zstr::StringView(defaultUpstream))
+										if (*it2 == tgit::str::StringView(defaultUpstream))
 										{
 											found = true;
 											break;
@@ -1990,7 +1989,7 @@ void CGitLogListBase::OnContextMenu(CWnd* pWnd, CPoint point)
 					std::vector<const std::wstring*> branchs;
 					auto addCheck = [&](const std::wstring& ref)
 					{
-						if (!ref.starts_with(L"refs/heads/") || ref == tgit::zstr::StringView(currentBranch))
+						if (!ref.starts_with(L"refs/heads/") || ref == tgit::str::StringView(currentBranch))
 							return;
 						branchs.push_back(&ref);
 					};
@@ -2018,7 +2017,7 @@ void CGitLogListBase::OnContextMenu(CWnd* pWnd, CPoint point)
 						subbranchmenu.CreatePopupMenu();
 						for (size_t i = 0 ; i < branchs.size(); ++i)
 						{
-							if (*branchs[i] != tgit::zstr::StringView(currentBranch))
+							if (*branchs[i] != tgit::str::StringView(currentBranch))
 							{
 								subbranchmenu.AppendMenuIcon(ID_SWITCHBRANCH + (i << 16), tgit::wstr::Mid(*branchs[i], static_cast<int>(wcslen(L"refs/heads/"))).c_str());
 								subbranchmenu.SetMenuItemData(ID_SWITCHBRANCH+(i<<16), reinterpret_cast<LONG_PTR>(branchs[i]));
@@ -2248,7 +2247,7 @@ void CGitLogListBase::OnContextMenu(CWnd* pWnd, CPoint point)
 					std::vector<const std::wstring*> branchs;
 					auto addCheck = [&](const std::wstring& ref)
 					{
-						if (ref == tgit::zstr::StringView(currentBranch))
+						if (ref == tgit::str::StringView(currentBranch))
 							return;
 						branchs.push_back(&ref);
 					};
@@ -2490,7 +2489,7 @@ void CGitLogListBase::CopySelectionToClipBoard(int toCopy)
 
 			first = false;
 		}
-		StringUtils::WriteAsciiStringToClipboard(sClipdata, GetSafeHwnd());
+		wil::SetClipboardText(tgit::str::StringView{ sClipdata }, GetSafeHwnd());
 	}
 }
 

@@ -187,6 +187,6 @@ void CRefLogList::CopySelectionToClipBoard(int toCopy)
 
 			first = false;
 		}
-		StringUtils::WriteAsciiStringToClipboard(sClipdata, GetSafeHwnd());
+		wil::SetClipboardText(tgit::str::StringView{ sClipdata }, GetSafeHwnd());
 	}
 }

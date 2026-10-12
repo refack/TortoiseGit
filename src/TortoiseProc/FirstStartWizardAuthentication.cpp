@@ -106,7 +106,7 @@ BOOL CFirstStartWizardAuthentication::OnWizardFinish()
 			return FALSE;
 		}
 
-		if (m_ctrlSimpleCredential.GetCurSel() == 0 && m_availableHelpers.at(0) == tgit::zstr::StringView(CString(MAKEINTRESOURCE(IDS_NONE))))
+		if (m_ctrlSimpleCredential.GetCurSel() == 0 && m_availableHelpers.at(0) == tgit::str::StringView(CString(MAKEINTRESOURCE(IDS_NONE))))
 		{
 			int ret = git_config_delete_entry(config, "credential.helper");
 			if (ret != 0 && ret != GIT_ENOTFOUND)

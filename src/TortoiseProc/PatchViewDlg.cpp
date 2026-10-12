@@ -24,7 +24,7 @@
 #include "MessageBox.h"
 #include "PatchViewDlg.h"
 #include "CommonAppUtils.h"
-import StringUtils;
+import str_utils;
 #include "DPIAware.h"
 #include "StagingOperations.h"
 import git_h;

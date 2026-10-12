@@ -19,7 +19,7 @@
 //
 #include "stdafx.h"
 #include "LogCommand.h"
-import StringUtils;
+import str_utils;
 #include "LogDlg.h"
 
 bool LogCommand::Execute()

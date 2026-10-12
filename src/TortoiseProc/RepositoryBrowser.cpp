@@ -26,12 +26,11 @@
 #include "LogDlg.h"
 #include "AppUtils.h"
 #include "IconMenu.h"
-import wstr;
+import str_utils;
 #include "SysImageList.h"
 #include <sys/stat.h>
 import Registry;
 import PathUtils;
-import StringUtils;
 #include "GitDiff.h"
 import DragDrop;
 import GitDataObject;
@@ -603,7 +602,7 @@ void CRepositoryBrowser::FillListCtrlForShadowTree(CShadowFilesTree* pTree)
 		{
 			CString temp;
 
-			temp = PathUtils::GetFileExtFromPath(tgit::zstr::StringView((*itShadowTree).second.m_sName)).c_str();
+			temp = PathUtils::GetFileExtFromPath(tgit::str::StringView((*itShadowTree).second.m_sName)).c_str();
 			m_RepoList.SetItemText(indexItem, eCol_Extension, temp);
 
 			StrFormatByteSize64((*itShadowTree).second.m_iSize, CStrBuf(temp, 20), 20);
@@ -880,7 +879,7 @@ void CRepositoryBrowser::ShowContextMenu(CPoint point, TShadowFilesTreeList &sel
 			{
 				sClipboard += (*itShadowTree)->m_sName + L"\r\n";
 			}
-			StringUtils::WriteAsciiStringToClipboard(sClipboard);
+			wil::SetClipboardText(tgit::str::StringView{ sClipboard });
 		}
 		break;
 	case eCmd_CopyHash:
@@ -1339,7 +1338,7 @@ void CRepositoryBrowser::CopyHashToClipboard(TShadowFilesTreeList &selectedLeafs
 			sClipdata += selectedLeafs[i]->m_hash.ToString();
 			first = false;
 		}
-		StringUtils::WriteAsciiStringToClipboard(sClipdata, GetSafeHwnd());
+		wil::SetClipboardText(tgit::str::StringView{ sClipdata }, GetSafeHwnd());
 	}
 }
 

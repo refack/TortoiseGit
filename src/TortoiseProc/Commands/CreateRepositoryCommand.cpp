@@ -21,7 +21,7 @@
 #include "CreateRepositoryCommand.h"
 import CShellUpdater;
 #include "MessageBox.h"
-import wstr;
+import str_utils;
 #include "CreateRepoDlg.h"
 #include "AppUtils.h"
 

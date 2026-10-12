@@ -24,8 +24,7 @@
 #include "TortoiseGitBlameData.h"
 #include "LoglistUtils.h"
 #include "FileTextLines.h"
-#include "UnicodeUtils.h"
-#include "StringUtils.h"
+import str_utils;
 
 constexpr wchar_t WideCharSwap2(wchar_t nValue) noexcept
 {

@@ -22,8 +22,7 @@
 #include "SubmoduleUpdateDlg.h"
 import TGitPath;
 #include "AppUtils.h"
-import wstr;
-import StringUtils;
+import str_utils;
 import git_h;
 
 IMPLEMENT_DYNAMIC(CSubmoduleUpdateDlg, CResizableStandAloneDialog)

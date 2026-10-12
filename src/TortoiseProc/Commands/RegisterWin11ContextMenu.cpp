@@ -27,7 +27,7 @@
 #include <future>
 import SysInfo;
 import PathUtils;
-import wstr;
+import str_utils;
 
 using namespace winrt::Windows::Foundation;
 using namespace winrt::Windows::Management::Deployment;

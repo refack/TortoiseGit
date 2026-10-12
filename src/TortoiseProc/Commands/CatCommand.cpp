@@ -18,12 +18,11 @@
 //
 #include "stdafx.h"
 #include "CatCommand.h"
-import wstr;
+import str_utils;
 import PathUtils;
 import git_h;
 #include "MessageBox.h"
 import RIAA;
-import StringUtils;
 
 bool CatCommand::Execute()
 {

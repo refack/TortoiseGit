@@ -20,7 +20,7 @@
 #include "TortoiseProc.h"
 import git_h;
 #include "CommitIsOnRefsDlg.h"
-import StringUtils;
+import str_utils;
 #include "BrowseRefsDlg.h"
 #include "RefLogDlg.h"
 #include "LogDlg.h"
@@ -398,7 +398,7 @@ CString CCommitIsOnRefsDlg::GetTwoSelectedRefs(const STRING_VECTOR& selectedRefs
 {
 	ASSERT(selectedRefs.size() == 2);
 
-	if (selectedRefs.at(0) == tgit::zstr::StringView(lastSelected))
+	if (selectedRefs.at(0) == tgit::str::StringView(lastSelected))
 		return TGitH::StripRefName(selectedRefs.at(1).c_str()) + separator + TGitH::StripRefName(lastSelected);
 	else
 		return TGitH::StripRefName(selectedRefs.at(0).c_str()) + separator + TGitH::StripRefName(lastSelected);
@@ -581,5 +581,5 @@ void CCommitIsOnRefsDlg::CopySelectionToClipboard()
 		sTextForClipboard += m_cRefList.GetItemText(index, 0);
 		sTextForClipboard += L"\r\n";
 	}
-	StringUtils::WriteAsciiStringToClipboard(sTextForClipboard);
+	wil::SetClipboardText(tgit::str::StringView{ sTextForClipboard });
 }

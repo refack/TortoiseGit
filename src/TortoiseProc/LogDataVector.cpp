@@ -31,7 +31,7 @@ import git_h;
 import GitHash;
 import TGitPath;
 #include "LogDlgHelper.h"
-import wstr;
+import str_utils;
 
 void CLogDataVector::ClearAll()
 {

@@ -27,8 +27,7 @@ import GitRev;
 #include "MessageBox.h"
 import Registry;
 #include "AppUtils.h"
-import StringUtils;
-import wstr;
+import str_utils;
 #include "CommitDlg.h"
 #include "RebaseDlg.h"
 #include "CommitIsOnRefsDlg.h"
@@ -40,7 +39,7 @@ IMPLEMENT_DYNAMIC(CGitLogList, CHintCtrl<CListCtrl>)
 
 static bool GetFirstEntryStartingWith(const STRING_VECTOR& heystack, const CString& needle, CString& result)
 {
-	auto it = std::find_if(heystack.cbegin(), heystack.cend(), [&needle](const std::wstring& entry) { return entry.starts_with(tgit::zstr::StringView(needle)); });
+	auto it = std::find_if(heystack.cbegin(), heystack.cend(), [&needle](const std::wstring& entry) { return entry.starts_with(tgit::str::StringView(needle)); });
 	if (it == heystack.cend())
 		return false;
 	result = it->c_str();
@@ -512,7 +511,7 @@ void CGitLogList::ContextMenuAction(int cmd, int FirstSelect, int LastSelect, CM
 						sClipboard += L"\r\n";
 					}
 				}
-				StringUtils::WriteAsciiStringToClipboard(sClipboard, GetSafeHwnd());
+				wil::SetClipboardText(tgit::str::StringView{ sClipboard }, GetSafeHwnd());
 			}
 			break;
 		case ID_EXPORT:
@@ -1035,7 +1034,7 @@ void CGitLogList::ContextMenuAction(int cmd, int FirstSelect, int LastSelect, CM
 					bool nothingDeleted = true;
 					for (const auto& ref : refList->second)
 					{
-						if (ref == tgit::zstr::StringView(currentBranch))
+						if (ref == tgit::str::StringView(currentBranch))
 							continue;
 						if (!CAppUtils::DeleteRef(this, ref.c_str()))
 							break;

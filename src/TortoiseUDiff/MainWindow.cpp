@@ -32,10 +32,9 @@ import DarkModeHelper;
 #include <Utils/LoadIconEx.h>
 import Registry;
 #include <Utils/ScintillaRegistration.h>
-import StringUtils;
+import str_utils;
 import TaskbarUUID;
 #include <Utils/Theme.h>
-import wstr;
 #include <Utils/MiscUI/BaseWindow.h>
 
 #include "TortoiseUDiff.h"

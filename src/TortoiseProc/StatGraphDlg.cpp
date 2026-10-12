@@ -1468,7 +1468,7 @@ void CStatGraphDlg::OnFileSavestatgraphas()
 
 void CStatGraphDlg::SaveGraph(CString sFilename)
 {
-	const std::wstring extension = PathUtils::GetFileExtFromPath(tgit::zstr::StringView(sFilename));
+	const std::wstring extension = PathUtils::GetFileExtFromPath(tgit::str::StringView(sFilename));
 	if (tgit::wstr::CompareNoCase(extension, L".wmf") == 0)
 	{
 		// save the graph as an enhanced meta file
@@ -1539,7 +1539,7 @@ void CStatGraphDlg::SaveGraph(CString sFilename)
 							bitmap.Save(tfile, &encoderClsid, nullptr);
 						}
 						else
-							sErrormessage.Format(IDS_REVGRAPH_ERR_NOENCODER, PathUtils::GetFileExtFromPath(tgit::zstr::StringView(sFilename)).c_str());
+							sErrormessage.Format(IDS_REVGRAPH_ERR_NOENCODER, PathUtils::GetFileExtFromPath(tgit::str::StringView(sFilename)).c_str());
 					}
 					else
 						sErrormessage.LoadString(IDS_REVGRAPH_ERR_NOBITMAP);

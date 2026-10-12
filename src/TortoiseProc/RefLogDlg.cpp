@@ -211,7 +211,7 @@ void CRefLogDlg::Refresh()
 	bool found = false;
 	for (int i = 0; i < static_cast<int>(list.size()); ++i)
 	{
-		if (list[i] == tgit::zstr::StringView(m_CurrentBranch))
+		if (list[i] == tgit::str::StringView(m_CurrentBranch))
 		{
 			m_ChooseRef.SetCurSel(i);
 			found = true;

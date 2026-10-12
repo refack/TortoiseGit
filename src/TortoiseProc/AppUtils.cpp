@@ -26,14 +26,13 @@ import PathUtils;
 import Registry;
 import TGitPath;
 import git_h;
-import wstr;
+import str_utils;
 #include "URLFinder.h"
 #include "git2/sys/errors.h"
 import CmdLineParser;
 #ifndef TGIT_TESTS_ONLY
 #include "ExportDlg.h"
 #include "ProgressDlg.h"
-import TGitPath;	// GitAdminDir lives in the TGitPath module
 #include "BrowseFolder.h"
 import DirFileEnum;
 #include "CreateBranchTagDlg.h"
@@ -70,7 +69,6 @@ import RIAA;
 #include "GitDiff.h"
 import TGitCache.CacheInterface;
 #include "IconExtractor.h"
-import wil;
 #endif
 
 #ifndef TGIT_TESTS_ONLY
@@ -1389,7 +1387,7 @@ bool CAppUtils::IgnoreFile(HWND hWnd, const CTGitPathList& path,bool IsMask)
 				bool found = false;
 				for (size_t j = 0; j < file.m_Items.size(); ++j)
 				{
-					if (file.m_Items[j] == tgit::zstr::StringView(ignorePattern))
+					if (file.m_Items[j] == tgit::str::StringView(ignorePattern))
 					{
 						found = true;
 						break;
@@ -1958,9 +1956,9 @@ int CAppUtils::GetLogOutputEncode(CGit *pGit)
 	CString output;
 	output = pGit->GetConfigValue(L"i18n.logOutputEncoding");
 	if(output.IsEmpty())
-		return CUnicodeUtils::StdGetCPCode(tgit::zstr::StringView(pGit->GetConfigValue(L"i18n.commitencoding")));
+		return CUnicodeUtils::StdGetCPCode(tgit::str::StringView(pGit->GetConfigValue(L"i18n.commitencoding")));
 	else
-		return CUnicodeUtils::StdGetCPCode(tgit::zstr::StringView(output));
+		return CUnicodeUtils::StdGetCPCode(tgit::str::StringView(output));
 }
 
 bool CAppUtils::MessageContainsConflictHints(HWND hWnd, const CString& message)
@@ -1997,7 +1995,7 @@ int CAppUtils::SaveCommitUnicodeFile(const CString& filename, CString &message)
 	try
 	{
 		CFile file(filename, CFile::modeReadWrite | CFile::modeCreate);
-		const int cp = CUnicodeUtils::StdGetCPCode(tgit::zstr::StringView(g_Git.GetConfigValue(L"i18n.commitencoding")));
+		const int cp = CUnicodeUtils::StdGetCPCode(tgit::str::StringView(g_Git.GetConfigValue(L"i18n.commitencoding")));
 
 		const bool stripComments = (CRegDWORD(L"Software\\TortoiseGit\\StripCommentedLines", FALSE) == TRUE);
 		CString commentCharValue;
@@ -2039,7 +2037,7 @@ int CAppUtils::SaveCommitUnicodeFile(const CString& filename, CString &message)
 					file.Write("\n", 1);
 				emptyLineCnt = 0;
 			}
-			CStringA lineA = CUnicodeUtils::GetMulti(line + L'\n', cp);
+			CStringA lineA = CUnicodeUtils::GetMulti<CStringA>(line + L'\n', cp);
 			file.Write(static_cast<LPCSTR>(lineA), lineA.GetLength());
 		}
 		file.Close();
@@ -2128,7 +2126,7 @@ bool DoPull(HWND hWnd, const CString& url, BOOL bFetchTags, bool bNoFF, bool bFF
 
 			STRING_VECTOR remotes;
 			g_Git.GetRemoteList(remotes);
-			if (std::find(remotes.begin(), remotes.end(), tgit::zstr::StringView(url)) != remotes.end())
+			if (std::find(remotes.begin(), remotes.end(), tgit::str::StringView(url)) != remotes.end())
 			{
 				CString currentBranch;
 				if (g_Git.GetCurrentBranchFromFile(g_Git.m_CurrentDir, currentBranch))

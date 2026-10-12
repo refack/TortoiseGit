@@ -25,8 +25,7 @@ import CmdLineParser;
 #include "Hooks.h"
 #include "AppUtils.h"
 import PathUtils;
-import StringUtils;
-import wstr;
+import str_utils;
 #include "MessageBox.h"
 import RIAA;
 #include "Commands\Command.h"

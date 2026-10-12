@@ -22,7 +22,7 @@
 #include "TortoiseProc.h"
 #include "MyMemDC.h"
 import git_h;
-import wstr;
+import str_utils;
 #include "RevisionGraphWnd.h"
 import Registry;
 #include "DPIAware.h"

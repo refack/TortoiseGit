@@ -22,7 +22,7 @@
 #include "TortoiseProc.h"
 #include "SetOverlayPage.h"
 import TGitCache.CacheInterface;
-import StringUtils;
+import str_utils;
 
 IMPLEMENT_DYNAMIC(CSetOverlayPage, ISettingsPropPage)
 CSetOverlayPage::CSetOverlayPage()

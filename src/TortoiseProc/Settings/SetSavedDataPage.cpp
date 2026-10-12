@@ -25,7 +25,7 @@ import PathUtils;
 import DirFileEnum;
 #include "SetSavedDataPage.h"
 #include "MessageBox.h"
-import StringUtils;
+import str_utils;
 import git_h;
 #include "WindowsCredentialsStore.h"
 

@@ -26,7 +26,7 @@ import RIAA;
 #include <afxtaskdialog.h>
 #include "Utils/DPIAware.h"
 #include "Utils/LoadIconEx.h"
-import StringUtils;
+import str_utils;
 #include "MiscUI/MessageBox.h"
 
 #define BTN_OFFSET 100 // use an offset in order to not interfere with IDYES and so on...
@@ -1149,7 +1149,7 @@ BOOL CMessageBox::PreTranslateMessage(MSG* pMsg)
 			{
 				if (GetAsyncKeyState(VK_CONTROL)&0x8000)
 				{
-					StringUtils::WriteAsciiStringToClipboard(m_sMessage, GetSafeHwnd());
+					wil::SetClipboardText(tgit::str::StringView{ m_sMessage }, GetSafeHwnd());
 					return TRUE;
 				}
 			}

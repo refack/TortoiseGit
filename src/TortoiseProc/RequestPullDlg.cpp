@@ -26,7 +26,7 @@ import git_h;
 #include "LogDlg.h"
 #include "MessageBox.h"
 #include "AppUtils.h"
-import StringUtils;
+import str_utils;
 
 IMPLEMENT_DYNAMIC(CRequestPullDlg, CHorizontalResizableStandAloneDialog)
 

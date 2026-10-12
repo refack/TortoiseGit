@@ -25,7 +25,7 @@ import PathUtils;
 #include "AppUtils.h"
 #include "ChangedDlg.h"
 #include "GitDiff.h"
-import wstr;
+import str_utils;
 
 bool DiffCommand::Execute()
 {

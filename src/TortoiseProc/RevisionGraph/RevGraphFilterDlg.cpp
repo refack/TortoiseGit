@@ -23,7 +23,7 @@
 import tgittypes;
 import git_h;
 #include "BrowseRefsDlg.h"
-import StringUtils;
+import str_utils;
 
 IMPLEMENT_DYNAMIC(CRevGraphFilterDlg, CStandAloneDialog)
 

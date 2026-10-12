@@ -21,7 +21,7 @@
 
 #include "Hooks.h"
 import Registry;
-import StringUtils;
+import str_utils;
 import TempFile;
 import RIAA;
 import git_h;

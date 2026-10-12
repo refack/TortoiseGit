@@ -26,8 +26,8 @@
 #include "MainFrm.h"
 #include "TortoiseGitBlame.h"
 #include "IconMenu.h"
-#include "StringUtils.h"
 #include "Theme.h"
+import str_utils;
 
 #ifdef _DEBUG
 #undef THIS_FILE
@@ -326,7 +326,7 @@ void CPropertiesWnd::OnContextMenu(CWnd* /*pWnd*/, CPoint point)
 		case 0:
 			break;	// no command selected
 		case WM_COPY:
-			StringUtils::WriteAsciiStringToClipboard(pProperty->GetValue(), GetSafeHwnd());
+			wil::SetClipboardText(tgit::str::StringView{ CString(pProperty->GetValue()) }, GetSafeHwnd());
 			break;
 		}
 	}

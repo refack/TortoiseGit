@@ -232,13 +232,13 @@ void ProjectProperties::FetchHookString(CAutoConfig& gitconfig, const CString& s
 		return;
 	sHook += sVal + L'\n';
 	bool boolval = false;
-	gitconfig.GetBool(tgit::zstr::StringView(sBase + L"wait"), boolval);
+	gitconfig.GetBool(tgit::str::StringView(sBase + L"wait"), boolval);
 	if (boolval)
 		sHook += L"true\n";
 	else
 		sHook += L"false\n";
 	boolval = false;
-	gitconfig.GetBool(tgit::zstr::StringView(sBase + L"show"), boolval);
+	gitconfig.GetBool(tgit::str::StringView(sBase + L"show"), boolval);
 	if (boolval)
 		sHook += L"show";
 	else

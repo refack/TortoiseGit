@@ -20,7 +20,7 @@
 #pragma once
 
 import DragDrop;
-import wstr;
+import str_utils;
 #include <memory>
 
 /**

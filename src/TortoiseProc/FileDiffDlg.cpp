@@ -24,7 +24,7 @@
 #include "AppUtils.h"
 #include "SysImageList.h"
 #include "IconMenu.h"
-import StringUtils;
+import str_utils;
 import PathUtils;
 #include "BrowseFolder.h"
 #include "FileDiffDlg.h"
@@ -1241,7 +1241,7 @@ void CFileDiffDlg::CopySelectionToClipboard(BOOL isFull)
 			sTextForClipboard += L"\r\n";
 		}
 	}
-	StringUtils::WriteAsciiStringToClipboard(sTextForClipboard);
+	wil::SetClipboardText(tgit::str::StringView{ sTextForClipboard });
 }
 
 

@@ -21,7 +21,7 @@
 #include "TortoiseProc.h"
 import git_h;
 #include "Tooltip.h"
-import wstr;
+import str_utils;
 import TempFile;
 
 class CSettings;
@@ -61,7 +61,7 @@ protected:
 		CString str = g_Git.m_CurrentDir;
 		m_bIsBareRepo = GitAdminDir::IsBareRepo(str);
 		CString proj;
-		if (GitAdminDir::HasAdminDir(tgit::zstr::StringView(str), &proj) || m_bIsBareRepo)
+		if (GitAdminDir::HasAdminDir(tgit::str::StringView(str), &proj) || m_bIsBareRepo)
 		{
 			CString title;
 			page->GetWindowText(title);
@@ -232,7 +232,7 @@ protected:
 	static void GetBoolConfigValueComboBox(CAutoConfig& config, const CString &key, CComboBox &combobox)
 	{
 		BOOL out = 0;
-		if (config.GetBOOL(tgit::zstr::StringView(key), out) == GIT_ENOTFOUND)
+		if (config.GetBOOL(tgit::str::StringView(key), out) == GIT_ENOTFOUND)
 			combobox.SetCurSel(0);
 		else if (out)
 			combobox.SetCurSel(1);

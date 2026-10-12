@@ -10,7 +10,7 @@
 #include "stdafx.h"
 
 #include "ACListWnd.h"
-import StringUtils;
+import str_utils;
 #include "Utils/DPIAware.h"
 #include "Utils/Theme.h"
 

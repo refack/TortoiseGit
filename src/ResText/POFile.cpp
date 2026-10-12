@@ -24,7 +24,7 @@
 #include "ResModule.h"
 #include "POFile.h"
 
-import wstr;
+import str_utils;
 
 #include <algorithm>
 #include <cctype>

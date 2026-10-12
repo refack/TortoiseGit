@@ -20,7 +20,7 @@
 #include "GravatarPictureBox.h"
 #include "Picture.h"
 #include "MessageBox.h"
-import wstr;
+import str_utils;
 import git_h;
 #include "LoglistCommonResource.h"
 #include "resource.h"

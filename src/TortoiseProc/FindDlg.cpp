@@ -20,7 +20,7 @@
 #include "stdafx.h"
 #include "resource.h"
 #include "FindDlg.h"
-import StringUtils;
+import str_utils;
 
 // CFindDlg dialog
 

@@ -22,7 +22,7 @@
 #include "TortoiseProc.h"
 #include "GitProgressDlg.h"
 import RIAA;
-import StringUtils;
+import str_utils;
 import CmdLineParser;
 
 IMPLEMENT_DYNAMIC(CGitProgressDlg, CResizableStandAloneDialog)

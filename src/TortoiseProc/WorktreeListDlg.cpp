@@ -25,7 +25,7 @@
 #include "ProgressDlg.h"
 #include "AppUtils.h"
 #include "IconMenu.h"
-import wstr;
+import str_utils;
 #include "SysImageList.h"
 import PathUtils;
 #include "MessageBox.h"

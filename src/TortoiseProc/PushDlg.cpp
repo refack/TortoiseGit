@@ -23,7 +23,7 @@
 #include "stdafx.h"
 #include "TortoiseProc.h"
 #include "PushDlg.h"
-import StringUtils;
+import str_utils;
 import git_h;
 import Registry;
 #include "AppUtils.h"
@@ -223,7 +223,7 @@ void CPushDlg::Refresh()
 		for (unsigned int i = 0; i < list.size(); ++i)
 		{
 			m_Remote.AddString(list[i].c_str());
-			if (list[i] == tgit::zstr::StringView(static_cast<CString>(remote)))
+			if (list[i] == tgit::str::StringView(static_cast<CString>(remote)))
 				sel = i + (list.size() > 1 ? 1 : 0);
 		}
 	}

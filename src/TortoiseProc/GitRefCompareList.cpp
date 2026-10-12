@@ -23,7 +23,7 @@
 import git_h;
 #include "GitRefCompareList.h"
 import Registry;
-import wstr;
+import str_utils;
 #include "IconMenu.h"
 #include "AppUtils.h"
 #include <TortoiseShell/resource.h>
@@ -416,7 +416,7 @@ CString CGitRefCompareList::GetCommitMessage(git_commit *commit)
 	int encode = CP_UTF8;
 	const char *encodingString = git_commit_message_encoding(commit);
 	if (encodingString != nullptr)
-		encode = CUnicodeUtils::StdGetCPCode(tgit::zstr::StringView(CUnicodeUtils::Convert2Unicode<CString>(encodingString)));
+		encode = CUnicodeUtils::StdGetCPCode(tgit::str::StringView(CUnicodeUtils::Convert2Unicode<CString>(encodingString)));
 
 	CString message = CUnicodeUtils::StdGetUnicode<CString>(git_commit_message(commit), encode);
 	int start = 0;

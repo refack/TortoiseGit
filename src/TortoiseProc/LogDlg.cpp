@@ -23,8 +23,7 @@
 #include "LogDlg.h"
 #include "MessageBox.h"
 #include "AppUtils.h"
-import StringUtils;
-import wstr;
+import str_utils;
 #include "IconMenu.h"
 #include "BrowseRefsDlg.h"
 import RIAA;
@@ -1348,7 +1347,7 @@ void CLogDlg::CopyChangedSelectionToClipBoard()
 	}
 #endif
 	sPaths.Trim();
-	StringUtils::WriteAsciiStringToClipboard(sPaths, GetSafeHwnd());
+	wil::SetClipboardText(tgit::str::StringView{ sPaths }, GetSafeHwnd());
 }
 
 void CLogDlg::OnContextMenu(CWnd* pWnd, CPoint point)
@@ -1563,7 +1562,7 @@ void CLogDlg::OnContextMenu(CWnd* pWnd, CPoint point)
 				const int oldLine = pEdit->GetFirstVisibleLine();
 					pEdit->SetSel(0, -1);
 					// manually copy text, to detach it from process (cf. issue #3909)
-					StringUtils::WriteAsciiStringToClipboard(pEdit->GetSelText(), m_hWnd);
+					wil::SetClipboardText(tgit::str::StringView{ pEdit->GetSelText() }, m_hWnd);
 					pEdit->SetSel(start, end);
 					const int newLine = pEdit->GetFirstVisibleLine();
 					pEdit->LineScroll(oldLine - newLine);
@@ -1572,7 +1571,7 @@ void CLogDlg::OnContextMenu(CWnd* pWnd, CPoint point)
 				}
 				break;
 			case WM_COPY:
-				StringUtils::WriteAsciiStringToClipboard(pEdit->GetSelText(), m_hWnd); // manually copy text, to detach it from process (cf. issue #3909)
+				wil::SetClipboardText(tgit::str::StringView{ pEdit->GetSelText() }, m_hWnd); // manually copy text, to detach it from process (cf. issue #3909)
 				break;
 			case CGitLogList::ID_EDITNOTE:
 				CAppUtils::EditNote(GetSafeHwnd(), pRev, &m_LogList.m_ProjectProperties);
@@ -1821,7 +1820,7 @@ BOOL CLogDlg::PreTranslateMessage(MSG* pMsg)
 	{
 		// manually copy text, to detach it from process (cf. issue #3909)
 		auto pEdit = reinterpret_cast<CRichEditCtrl*>(GetDlgItem(IDC_MSGVIEW));
-		StringUtils::WriteAsciiStringToClipboard(pEdit->GetSelText(), m_hWnd);
+		wil::SetClipboardText(tgit::str::StringView{ pEdit->GetSelText() }, m_hWnd);
 		return TRUE;
 	}
 	if (m_hAccel && !bSkipAccelerator)

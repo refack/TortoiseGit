@@ -36,7 +36,7 @@
 #include "SysProgressDlg.h"
 #include "LoglistUtils.h"
 import GitRev;
-import StringUtils;
+import str_utils;
 #include "BrowseRefsDlgFilter.h"
 #include "DPIAware.h"
 import CmdLineParser;
@@ -489,7 +489,7 @@ void CBrowseRefsDlg::Refresh(CString selectRef)
 		TGitH::GetShortName(ref.m_UpstreamRef, ref.m_UpstreamRef, L"refs/");
 		treeLeaf.m_csUpstream = ref.m_UpstreamRef;
 		TGitH::GetShortName(treeLeaf.m_csUpstream, treeLeaf.m_csUpstream, L"remotes/");
-		if (!ref.m_UpstreamRef.IsEmpty() && !std::binary_search(remoteBranches.cbegin(), remoteBranches.cend(), tgit::zstr::StringView(ref.m_UpstreamRef)))
+		if (!ref.m_UpstreamRef.IsEmpty() && !std::binary_search(remoteBranches.cbegin(), remoteBranches.cend(), tgit::str::StringView(ref.m_UpstreamRef)))
 			treeLeaf.m_csUpstream = L"(gone: " + treeLeaf.m_csUpstream + L")";
 		treeLeaf.m_csSubject = ref.GetSubject();
 		treeLeaf.m_csAuthor = ref.GetAuthorName();
@@ -895,7 +895,7 @@ int findVectorPosition(const STRING_VECTOR& vector, const CString& entry)
 	int i = 0;
 	for (auto it = vector.cbegin(); it != vector.cend(); ++it, ++i)
 	{
-		if (*it == tgit::zstr::StringView(entry))
+		if (*it == tgit::str::StringView(entry))
 			return i;
 	}
 	return -1;
@@ -1335,7 +1335,7 @@ void CBrowseRefsDlg::ShowContextMenu(CPoint point, HTREEITEM hTreePos, VectorPSh
 				sClipdata += TGitH::StripRefName(leaf->GetRefName());
 				first = false;
 			}
-			StringUtils::WriteAsciiStringToClipboard(sClipdata, GetSafeHwnd());
+			wil::SetClipboardText(tgit::str::StringView{ sClipdata }, GetSafeHwnd());
 		}
 		break;
 	}

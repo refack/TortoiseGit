@@ -18,7 +18,7 @@
 //
 
 #pragma once
-import StringUtils;
+import str_utils;
 import git_h;
 #include "MiscUI/MessageBox.h"
 #include "AppUtils.h"

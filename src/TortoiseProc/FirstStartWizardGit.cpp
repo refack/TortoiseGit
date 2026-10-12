@@ -22,7 +22,6 @@
 #include "FirstStartWizard.h"
 #include "FirstStartWizardGit.h"
 import git_h;
-import git_h;
 import TGitCache.CacheInterface;
 #include "Theme.h"
 

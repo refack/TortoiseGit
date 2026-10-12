@@ -21,11 +21,10 @@
 #include "stdafx.h"
 #include "CloneCommand.h"
 #include "GitProgressDlg.h"
-import StringUtils;
+import str_utils;
 #include "CloneDlg.h"
 #include "ProgressDlg.h"
 #include "AppUtils.h"
-import wstr;
 #include "ProgressCommands/CloneProgressCommand.h"
 import CmdLineParser;
 

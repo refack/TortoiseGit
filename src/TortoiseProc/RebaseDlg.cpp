@@ -26,13 +26,12 @@
 #include "AppUtils.h"
 #include "LoglistUtils.h"
 #include "MessageBox.h"
-import wstr;
+import str_utils;
 #include "BrowseRefsDlg.h"
 import RIAA;
 import TGitCache.CacheInterface;
 #include "MassiveGitTask.h"
 #include "CommitDlg.h"
-import StringUtils;
 #include "Hooks.h"
 #include "LogDlg.h"
 #include "ThemeMFCVisualManager.h"

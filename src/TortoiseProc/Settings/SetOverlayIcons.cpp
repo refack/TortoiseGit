@@ -22,7 +22,7 @@
 #include "TortoiseProc.h"
 import DirFileEnum;
 #include "SetOverlayIcons.h"
-import StringUtils;
+import str_utils;
 #include "LoadIconEx.h"
 
 IMPLEMENT_DYNAMIC(CSetOverlayIcons, ISettingsPropPage)

@@ -134,7 +134,7 @@ void CSubmoduleAddDlg::OnPathBrowse()
 	{
 		CString strUrl;
 		m_Repository.GetWindowTextW(strUrl);
-		if (CString repoName = PathUtils::GetFileNameFromPath(tgit::zstr::StringView(strUrl)).c_str(); !repoName.IsEmpty())
+		if (CString repoName = PathUtils::GetFileNameFromPath(tgit::str::StringView(strUrl)).c_str(); !repoName.IsEmpty())
 		{
 			if (StringUtils::EndsWith(repoName, L".git"))
 				repoName = repoName.Left(repoName.GetLength() - static_cast<int>(wcslen(L".git")));
@@ -195,7 +195,7 @@ BOOL CSubmoduleAddDlg::OnRepoEndEdit(UINT, NMHDR*, LRESULT*)
 {
 	CString strUrl;
 	m_Repository.GetWindowTextW(strUrl);
-	CString repoName = PathUtils::GetFileNameFromPath(tgit::zstr::StringView(strUrl)).c_str();
+	CString repoName = PathUtils::GetFileNameFromPath(tgit::str::StringView(strUrl)).c_str();
 	if (StringUtils::EndsWith(repoName, L".git"))
 		repoName = repoName.Left(repoName.GetLength() - static_cast<int>(wcslen(L".git")));
 	if (m_strPath.IsEmpty())

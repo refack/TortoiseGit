@@ -125,12 +125,11 @@ using std::min;
 // What were src\Git and src\Utils headers, now the TGitLibgit2Mfc modules.
 import std;
 import invarients;
-import wstr;			// UnicodeUtils.h, WideString.h
+import str_utils;		// UnicodeUtils.h, WideString.h, StringUtils.h
 import DebugOutput;
 import RIAA;			// SmartHandle.h
 import Registry;
 import PathUtils;
-import StringUtils;
 import tgittypes;		// gittype.h
 import TGitPath;		// TGitPath.h, and GitAdminDir
 import git_h;			// Git.h

@@ -70,7 +70,7 @@ bool SubmoduleUpdateCommand::Execute()
 			bkpath = bkpath.Left(start);
 	}
 
-	CString super = (GitAdminDir::GetSuperProjectRoot(tgit::zstr::StringView(bkpath))).c_str();
+	CString super = (GitAdminDir::GetSuperProjectRoot(tgit::str::StringView(bkpath))).c_str();
 	if (super.IsEmpty())
 	{
 		CMessageBox::Show(GetExplorerHWND(), IDS_ERR_NOTFOUND_SUPER_PRJECT, IDS_APPNAME, MB_OK | MB_ICONERROR);
@@ -169,7 +169,7 @@ bool SubmoduleSyncCommand::Execute()
 			bkpath=bkpath.Left(start);
 	}
 
-	CString super = (GitAdminDir::GetSuperProjectRoot(tgit::zstr::StringView(bkpath))).c_str();
+	CString super = (GitAdminDir::GetSuperProjectRoot(tgit::str::StringView(bkpath))).c_str();
 	if(super.IsEmpty())
 	{
 		CMessageBox::Show(GetExplorerHWND(), IDS_ERR_NOTFOUND_SUPER_PRJECT, IDS_APPNAME, MB_OK | MB_ICONERROR);

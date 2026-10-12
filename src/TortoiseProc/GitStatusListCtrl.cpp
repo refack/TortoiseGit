@@ -26,11 +26,10 @@
 #include "GitStatusListCtrl.h"
 #include "MiscUI/MessageBox.h"
 #include "Utils/MyMemDC.h"
-import wstr;
+import str_utils;
 #include "AppUtils.h"
 import PathUtils;
 import TempFile;
-import StringUtils;
 #include "LoglistUtils.h"
 import git_h;
 import GitRev;
@@ -39,7 +38,6 @@ import GitRev;
 #include "Utils/SysImageList.h"
 import TGitPath;
 import Registry;
-import TGitPath;	// GitAdminDir lives in the TGitPath module
 import GitDataObject;
 #include "ProgressCommands/AddProgressCommand.h"
 #include "ProgressCommands/LFSSetLockedProgressCommand.h"
@@ -3934,7 +3932,7 @@ bool CGitStatusListCtrl::CopySelectedEntriesToClipboard(DWORD dwCols, int cmd)
 		ADDNEWLINETOCLIPBOARDSTRING();
 	}
 
-	return StringUtils::WriteAsciiStringToClipboard(sClipboard);
+	return wil::SetClipboardText(tgit::str::StringView{ sClipboard });
 }
 
 bool CGitStatusListCtrl::HasChangelistInSelection()
