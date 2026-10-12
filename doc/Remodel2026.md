@@ -1663,11 +1663,6 @@ grep gate only and never compiled.
   unconditional at `4089cafdf`).
 - **`#define _KERNEL_MODE 1` in sanity.h** is still there. Removing it changes
   gsl's Expects/Ensures failure path; separate commit, re-run the suite.
-- **AtlThrow ODR in the Mfc flavor.** The fragments that kept `atlbase.h`
-  compile it without `_AFX` (they used to get `afx.h` through
-  `tgit_cstring.h`), so `ATL::AtlThrowImpl` has two bodies under one mangled
-  name across TGitLibgit2Mfc and TortoiseProc. Fix: wil/std locks and
-  `wil::com_ptr` in those modules, or export the ATL types from the shim.
 - Found by review, pre-existing, deliberately untouched: the
   `DiffSimilarityIndexThreshold` default of 0 (UI and upstream use 50),
   gitindex's bare-name `CRegStdString` system-config read, GetCurrentBranch's
@@ -1678,4 +1673,43 @@ grep gate only and never compiled.
   retire RIAA (and its inverted `CCloseFILE::Close`); libgit2 owners in `wil`
   vs the `libgit2` shim; fold `StringUtils::` into `tgit::wstr`; re-point
   TortoiseGitBlame/TgitUnitTests (`_AFXDLL`, ATL link) at TGitLibgit2Mfc.
+
+### Morning pass (`d767a381f`..`587472325`)
+
+- **AtlThrow ODR, introduced by this run, fixed** (`d767a381f`). The fragments
+  that kept `atlbase.h` compiled it without `_AFX` (they used to get `afx.h`
+  through `tgit_cstring.h`), so `ATL::AtlThrowImpl` had two bodies under one
+  mangled name across TGitLibgit2Mfc and TortoiseProc. Every ATL header left
+  the non-shim fragments: `CGit::m_critGitDllSec` is a `std::recursive_mutex`
+  (TortoiseProc locks it by hand), the thread map a `std::mutex`, `CComPtr`
+  is `wil::com_ptr_nothrow` (the throwing com_ptr reaches strsafe statics,
+  C2129). `dumpbin`: inside the library only `str_utils` and the two exempt
+  MFC-only TUs define `AtlThrowImpl`, all with the MFC body. A2's letter
+  ("no CString headers") was the wrong rule; the right one is "no ATL/MFC
+  header outside the shim".
+- **The 0xC0000409 in `FillBasedOnIndexFlags`, root-caused** (`5c0a388b2`).
+  958c18f48 moved TGitPath into a module that cannot import CGit and replaced
+  `g_Git.CombinePath` with `detail::CombinePath`, which returns the path
+  unchanged when no `TGitPath::Host` is installed - and nothing in `src\`
+  installs one. A directory filter like `"a"` was therefore tested with
+  `PathIsDirectory("a")` against the *process* CWD, the count came back 0,
+  the non-fatal `EXPECT_EQ` let `testList[0]` run, and `operator[]`'s gsl
+  `Expects` failed fast (`__fastfail(RANGE_CHECKS_FAILURE)` exits 0xC0000409
+  with no gtest output). The test passed when launched from a directory that
+  happened to contain an `a\`. Fix: the filter resolves against
+  `git_repository_workdir(repository)`, which the function already has; the
+  count checks are `ASSERT_EQ`; a new test covers the missing-directory case.
+  The same Host gap affects every other `detail::CombinePath` caller in a
+  process that installs no host - worth an audit.
+- **`TortoiseGitProc.exe` links** (`8f6b62731`..`587472325`): every TortoiseProc
+  object compiles. Fixes were older API drift at call sites, definitions that
+  f3001767d lost while headers still declared them (CSplitterControl,
+  CACListWnd, MyGraphSeries, `Registry::CRegistryKey`), header bodies not
+  marked inline, and vcxproj pieces the CMake port missed (TortoiseShell's
+  MenuInfo/ShellCache sources, the WIN32 subsystem and entry point). Whole
+  build: 12 FAILED, all the baseline's own. Suite: 469/486 at `5c0a388b2`
+  (the 17 failures are the same set as before; GetOneFile/2 and /3 still
+  excluded for `exit(67)`). **The runtime smoke test is not done:**
+  `/command:about` started and showed no window within 10 s (0 ms CPU) while
+  an installed TortoiseGitProc was also running; untriaged.
 
