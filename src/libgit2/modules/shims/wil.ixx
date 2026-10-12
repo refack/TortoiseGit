@@ -38,34 +38,10 @@ namespace wil::tgit_details {
 }
 
 export namespace wil {
-// STL
-using file_ticks = std::chrono::duration<std::int64_t, std::ratio<1, 10'000'000>>;
-
-
-// Win32
-using RWND = std::remove_pointer_t<HWND>;
-using RKEY = std::remove_pointer_t<HKEY>;
-using RHANDLE = std::remove_pointer_t<HANDLE>;
-using RINSTANCE = std::remove_pointer_t<HINSTANCE>;
-using RWSTR = std::remove_pointer_t<LPWSTR>;
-
-constexpr auto UIDToResID(const std::uint_fast32_t uID) { return MAKEINTRESOURCE((uID >> 4) + 1); }
-constexpr auto FirstNibble(const std::uint_fast32_t uID) { return uID & ((1 << 4) - 1); }
-
-template <typename ErrT>
-using expect_nothing = std::expected<void, ErrT>;
-using expect_no_hres = std::expected<void, winrt::hresult>;
-
-
-
-template <class E>
-struct ThrowIfError {
-	explicit ThrowIfError(const expect_nothing<E>& r) {
-		[[maybe_unused]]r.value();
-	};
-};
-
-
+// The R* pointee aliases (RWND, RKEY, RHANDLE, RINSTANCE, RWSTR), file_ticks,
+// expect_nothing/expect_no_hres/ThrowIfError, the wil::winrt re-exports and the
+// CAuto* handle aliases are gone: they renamed Win32, std or winrt types. Spell
+// HWND, HKEY, HANDLE, HINSTANCE, ::winrt::clock and unique_handle/unique_file.
 
 // wil
 using wil::ArgvToCommandLine;
@@ -94,8 +70,7 @@ using wil::scope_exit;
 // a module boundary: an importer without a textual <strsafe.h> fails with C2129
 // ("static function 'StringValidateDestW' declared but not defined"). Use the
 // wrappers below instead (TryGetEnvironmentVariable, reg::try_get_dword,
-// reg::try_get_string), whose bodies are compiled once, here - the same reason
-// CreateFileUnique exists.
+// reg::try_get_string), whose bodies are compiled once, here.
 
 
 // Clipboard - what CClipboardHelper was
@@ -107,134 +82,29 @@ using wil::GetFileInfo;
 using wil::ResultException;
 
 
-namespace winrt {
-	using ::winrt::clock;
-	using ::winrt::hresult;
-	using ::winrt::impl::error_ok;
-	using ::winrt::to_string;
-	using ::winrt::to_hstring;
-}
-
-
-
-// Registry Wrapper
+// Registry. There is no TortoiseGit default here any more: the get_value_* /
+// set_value_string wrappers that silently read HKCU\Software\TortoiseGit are gone,
+// and every caller names its root and subkey (Registry::TortoiseGitKey owns the
+// TortoiseGit one). A missing value is an empty optional; the caller's value_or
+// is its default, so no default can be a null pointer (CLAUDE.md failure mode 5).
 namespace reg {
-	using wil::reg::reg_view_details::reg_view;
-	// The stock writers, for call sites that leave the wrappers below. Each takes
-	// the root and subkey explicitly, so nothing defaults to HKCU.
+	// The stock writers. Each takes the root and subkey explicitly.
 	using wil::reg::set_value_string_nothrow;
 	using wil::reg::set_value_dword_nothrow;
 
 
 	/// wil::reg::try_get_value_dword(root, subkey, name), compiled in this module
 	/// (see the note at the re-exports). Empty when the value is absent; throws
-	/// wil::ResultException on any other failure, exactly as wil's does. The root
-	/// and subkey are the caller's - nothing here defaults to HKCU\Software\TortoiseGit.
-	std::optional<std::uint32_t> try_get_dword(RKEY* const root, const PCWSTR subkey, const PCWSTR name) {
+	/// wil::ResultException on any other failure, exactly as wil's does.
+	std::optional<std::uint32_t> try_get_dword(const HKEY root, const PCWSTR subkey, const PCWSTR name) {
 		return wil::reg::try_get_value_dword(root, subkey, name);
 	}
 
 
 	/// wil::reg::try_get_value_string(root, subkey, name), compiled in this module.
 	/// Same contract as try_get_dword.
-	std::optional<std::wstring> try_get_string(RKEY* const root, const PCWSTR subkey, const PCWSTR name) {
+	std::optional<std::wstring> try_get_string(const HKEY root, const PCWSTR subkey, const PCWSTR name) {
 		return wil::reg::try_get_value_string(root, subkey, name);
-	}
-
-
-	constexpr auto SOFTWARE_TGIT_KEY = L"Software\\TortoiseGit"sv;
-
-
-
-	namespace hkey {
-
-		// ReSharper disable CppRedundantCastExpression
-		const auto ClassesRoot = reinterpret_cast<HKEY>(HKEY_CLASSES_ROOT);
-		const auto CurrentUser = reinterpret_cast<HKEY>(HKEY_CURRENT_USER);
-		const auto LocalMachine = reinterpret_cast<HKEY>(HKEY_LOCAL_MACHINE);
-		const auto CurrentUserLocalSettings = reinterpret_cast<HKEY>(HKEY_CURRENT_USER_LOCAL_SETTINGS);
-		// ReSharper enable CppRedundantCastExpression
-	}
-
-
-
-	template <typename value_type>
-	value_type get_value_typed(
-		const std::wstring_view key,
-		const std::optional<const value_type> o_def = std::nullopt,
-		const std::optional<RKEY* const> o_root = std::nullopt,
-		const std::optional<std::wstring_view> o_sub = std::nullopt
-	) {
-		auto root = o_root.value_or(hkey::CurrentUser);
-		auto sub = o_sub.value_or(SOFTWARE_TGIT_KEY);
-		auto tmp = wil::reg::try_get_value<value_type>(root, sub.data(), key.data());
-		return tmp.value_or(o_def.value_or({}));
-	}
-
-
-	template <>
-	bool get_value_typed(
-		const std::wstring_view key,
-		const std::optional<const bool> o_def,
-		const std::optional<RKEY* const> o_root,
-		const std::optional<std::wstring_view> o_sub
-	) {
-		return get_value_typed<DWORD>(key, o_def, o_root, o_sub) != 0;
-	}
-
-
-	static_assert(std::is_convertible_v<std::wstring, const std::wstring_view&>);
-
-	// `using` cannot alias a function template's specialization; thin wrappers can.
-	auto get_value_dword(
-		const std::wstring_view key,
-		const std::optional<DWORD> o_def = std::nullopt,
-		const std::optional<RKEY* const> o_root = std::nullopt,
-		const std::optional<std::wstring_view> o_sub = std::nullopt
-	) {
-		return get_value_typed<DWORD>(key, o_def, o_root, o_sub);
-	}
-
-
-	/// CRegString's contract: the value, else the default, else empty - never UB.
-	/// It used to be std::wstring{ get_value_typed<LPCWCHAR>(...) }: a missing value
-	/// with no default is a nullptr there, and std::wstring(nullptr) is undefined
-	/// (CLAUDE.md failure mode 5) - it crashed g_Git's constructor, via
-	/// GetConfiguredSshClient(), on any machine without an "SSH" value. Read owned,
-	/// so no pointer into a buffer that has gone out of scope is ever involved.
-	std::wstring get_value_string(
-		const std::wstring_view key,
-		const std::optional<const wchar_t* const> o_def = std::nullopt,
-		const std::optional<RKEY* const> o_root = std::nullopt,
-		// ReSharper disable once CppPassValueParameterByConstReference
-		const std::optional<std::wstring_view> o_sub = std::nullopt
-	) {
-		const auto root = o_root.value_or(hkey::CurrentUser);
-		// views need not be NUL-terminated; the API takes C strings
-		const std::wstring sub(o_sub.value_or(SOFTWARE_TGIT_KEY));
-		const std::wstring name(key);
-		if (auto value = wil::reg::try_get_value_string(root, sub.c_str(), name.c_str()))
-			return std::move(*value);
-		const wchar_t* const def = o_def.value_or(nullptr);
-		return def ? std::wstring(def) : std::wstring();
-	}
-
-
-	/// The writing twin of get_value_string. Best effort, as CRegString's write()
-	/// was: the HRESULT is there for a caller that cares.
-	inline expect_no_hres set_value_string(
-		const std::wstring_view key,
-		const std::wstring_view value,
-		RKEY* const root = hkey::CurrentUser,
-		const std::wstring_view sub = SOFTWARE_TGIT_KEY
-	) {
-		const auto ret = wil::reg::set_value_string_nothrow(root, sub.data(), key.data(), value.data());
-		if (ret != winrt::error_ok) {
-			return std::unexpected(ret);
-		}
-		else {
-			return {};
-		}
 	}
 }
 
@@ -245,7 +115,7 @@ namespace reg {
 /// at most 127 ms in all. Test the result with `if (!clipboard)`; keep it in a
 /// variable scoped to the whole operation, not in an if-init-statement, or the
 /// clipboard closes again before anything is written to it.
-unique_close_clipboard_call open_clipboard_retrying(RWND* const owner) {
+unique_close_clipboard_call open_clipboard_retrying(const HWND owner) {
 	for (int attempt = 0; attempt < 8; ++attempt) {
 		if (attempt > 0)
 			::Sleep(1u << (attempt - 1));
@@ -291,9 +161,9 @@ unique_hglobal make_moveable_hglobal(const std::string_view text) {
 
 
 /// Puts \a text on the clipboard as CF_UNICODETEXT; the OS synthesizes CF_TEXT
-/// from it. What StringUtils::WriteAsciiStringToClipboard(const CStringW&, RWND*)
+/// from it. What StringUtils::WriteAsciiStringToClipboard(const CStringW&, HWND)
 /// did, without the CString. A CString caller bridges visibly with a view.
-bool SetClipboardText(const std::wstring_view text, RWND* const owner = nullptr) {
+bool SetClipboardText(const std::wstring_view text, const HWND owner = nullptr) {
 	// Not an if-init-statement: the clipboard has to stay open until we return.
 	const auto clipboard = open_clipboard_retrying(owner);
 	if (!clipboard)
@@ -308,21 +178,18 @@ bool SetClipboardText(const std::wstring_view text, RWND* const owner = nullptr)
 }
 
 
-// Win32
-using KnownFolderCLSID = KNOWNFOLDERID;
-using RefKnownFolderCLSID = REFKNOWNFOLDERID;
-using KnownFolderFlag = KNOWN_FOLDER_FLAG;
-
-
-auto GetKnownFolderPath(
-	RefKnownFolderCLSID folderId,
-	const KnownFolderFlag flags = KF_FLAG_DEFAULT,
-	RHANDLE* const token = {}
+/// The known folder's path. Throws std::runtime_error (not wil::ResultException)
+/// when SHGetKnownFolderPath fails: no caller catches either, and changing the
+/// type is a decision of its own, not part of trimming this module.
+fs::path GetKnownFolderPath(
+	REFKNOWNFOLDERID folderId,
+	const KNOWN_FOLDER_FLAG flags = KF_FLAG_DEFAULT,
+	const HANDLE token = nullptr
 ) {
 	wil::unique_cotaskmem_string result{};
 	if (::SHGetKnownFolderPath(folderId, flags, token, result.put()) != S_OK) {
-		const auto hstring = winrt::to_hstring(folderId);
-		throw std::runtime_error{ "SHGetKnownFolderPath failed for " + winrt::to_string(hstring) };
+		const auto hstring = ::winrt::to_hstring(folderId);
+		throw std::runtime_error{ "SHGetKnownFolderPath failed for " + ::winrt::to_string(hstring) };
 	}
 	return fs::path{ result.get() };
 }
@@ -340,42 +207,13 @@ std::optional<std::wstring> TryGetEnvironmentVariable(const PCWSTR name) {
 }
 
 
-using CAutoGeneralHandle = wil::unique_handle;
-using CAutoFile = wil::unique_file;
-using CAutoFILE = wil::unique_file;
-
-// Concrete parameter types: an abbreviated template's `auto p = nullptr` default
-// can never be deduced, so every call that omitted a trailing argument failed.
-CAutoGeneralHandle CreateFileUnique(
-	const LPCWSTR lpFileName,
-	const DWORD dwDesiredAccess,
-	const DWORD dwShareMode,
-	const DWORD dwCreationDisposition,
-	const DWORD dwFlagsAndAttributes = FILE_ATTRIBUTE_NORMAL,
-	SECURITY_ATTRIBUTES* const lpSecurityAttributes = {},
-	RHANDLE* const hTemplateFile = {}
-) {
-	CAutoGeneralHandle fileHandle{ CreateFileW(
-		lpFileName,
-		dwDesiredAccess,
-		dwShareMode,
-		lpSecurityAttributes,
-		dwCreationDisposition,
-		dwFlagsAndAttributes,
-		hTemplateFile
-	) };
-
-	// CreateFileW returns INVALID_HANDLE_VALUE on failure, which is exactly what
-	// unique_hfile's operator bool tests; get() is never null here.
-	THROW_LAST_ERROR_IF(!fileHandle);
-
-	return fileHandle;
-}
-
-
-
 /// This is a representation of an API horizon.
 /// We should validate all of our invariants here.
+///
+/// Kept, deliberately, past the wil trim: MAKESTRING (TortoiseShell) reads its
+/// strings through LoadStringEx, and moving it to ::LoadStringW changes what it
+/// returns for an over-long, NUL-bearing or ill-formed string and which language
+/// it picks. That is a behaviour decision with its own commit, not a trim.
 namespace til {
 	/// Every high surrogate is followed by a low one, and every low one follows a high one.
 	[[nodiscard]] constexpr bool IsWellFormedUtf16(const std::wstring_view s) noexcept {
@@ -401,7 +239,7 @@ namespace til {
 
 	/// Copies `source` into `dest` whole, NUL-terminated, as well-formed UTF-16, or not at all.
 	/// On failure `dest` holds "" (when it has room), never a partial or stale string.
-	[[nodiscard]] expect_nothing<CopyError>
+	[[nodiscard]] std::expected<void, CopyError>
 	CopyTerminated(const std::span<wchar_t> dest, const std::wstring_view source) noexcept {
 		const auto fail = [&](CopyError e) {
 			if (!dest.empty())
@@ -421,15 +259,17 @@ namespace til {
 	}
 
 
-	std::wstring_view get_string_resource(const std::optional<wil::RINSTANCE*> oInstance, const UINT uID,
+	std::wstring_view get_string_resource(const std::optional<HINSTANCE> oInstance, const UINT uID,
 	                                      const WORD wLanguage = LANG_USER_DEFAULT) {
+		// A string table is stored in blocks of 16: block (uID / 16) + 1, slot uID % 16.
+		const auto blockResId = MAKEINTRESOURCE((uID >> 4) + 1);
 		const wchar_t* pCurrentStr;
 		{
 			const auto hInstance = oInstance.value_or(nullptr);
-			HRSRC hResInfo = FindResourceEx(hInstance, RT_STRING, wil::UIDToResID(uID), wLanguage);
+			HRSRC hResInfo = FindResourceEx(hInstance, RT_STRING, blockResId, wLanguage);
 			if (!hResInfo) {
 				//try the default language before giving up!
-				hResInfo = FindResource(hInstance, wil::UIDToResID(uID), RT_STRING);
+				hResInfo = FindResource(hInstance, blockResId, RT_STRING);
 				if (!hResInfo)
 					return {};
 			}
@@ -444,7 +284,7 @@ namespace til {
 		}
 
 		// 5. Index into the block to find the precise string slot (4 first bits, norm 0 to 15)
-		const auto stringIndexWithinBlock = FirstNibble(uID);
+		const auto stringIndexWithinBlock = uID & ((1u << 4) - 1);
 
 		// Iterate through the variable-length strings ahead of our target slot
 		for (auto i = 0u; i < stringIndexWithinBlock; ++i) {
@@ -463,7 +303,7 @@ namespace til {
 	}
 
 
-	size_t LoadStringEx(wil::RINSTANCE* const hInstance, const UINT uID, wchar_t* const lpBuffer_, const int nBufferMax,
+	size_t LoadStringEx(const HINSTANCE hInstance, const UINT uID, wchar_t* const lpBuffer_, const int nBufferMax,
 	                    const WORD wLanguage) {
 		if (lpBuffer_ == nullptr || nBufferMax <= 0)
 			return 0;
@@ -473,7 +313,7 @@ namespace til {
 		auto&& resView = get_string_resource(hInstance, uID, wLanguage);
 		auto&& r = CopyTerminated(lpBuffer, resView);
 		if (!r)
-			return 0; // ThrowIfError{r};
+			return 0;
 
 		return resView.size();
 	}

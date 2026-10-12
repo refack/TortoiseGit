@@ -29,8 +29,7 @@ using TGStringView = std::wstring_view;
 using std::filesystem::path;
 namespace fs = std::filesystem;
 
-import wil;
-using namespace wil;
+import wil;		// qualified at every use; no using-directive
 
 import gsl;
 import DebugOutput;
@@ -180,9 +179,11 @@ constexpr int ConvertVersionToInt(const int major, const int minor, const int pa
 }
 
 
-constexpr auto REG_MSYSGIT_PATH = L"MSysGit"sv;
-constexpr auto REG_SYSTEM_GITCONFIGPATH = L"SystemConfig"sv;
-constexpr auto REG_MSYSGIT_EXTRA_PATH = L"MSysGitExtra"sv;
+// Value names under HKCU\Registry::TortoiseGitKey. Arrays, not views: they go
+// straight to the registry API, so they are NUL-terminated by construction.
+constexpr wchar_t REG_MSYSGIT_PATH[] = L"MSysGit";
+constexpr wchar_t REG_SYSTEM_GITCONFIGPATH[] = L"SystemConfig";
+constexpr wchar_t REG_MSYSGIT_EXTRA_PATH[] = L"MSysGitExtra";
 
 constexpr auto G_OK = 0;
 constexpr auto GFail = -1;
@@ -191,15 +192,15 @@ constexpr auto GIT_EXE_BUFFER_LIMIT = 50uz * 1024 * 1024;
 constexpr auto GIT_EXE_STDERR_BUFFER_LIMIT = 1024uz;
 // arbitrary chosen 1 KiB limit that should be large enough for all real life situations in remote situations
 
-constexpr auto DiffSimilarityIndexThreshold = L"DiffSimilarityIndexThreshold"sv;
-constexpr auto CygwinHack = L"CygwinHack"sv;
-constexpr auto Msys2Hack = L"Msys2Hack"sv;
+constexpr wchar_t DiffSimilarityIndexThreshold[] = L"DiffSimilarityIndexThreshold";
+constexpr wchar_t CygwinHack[] = L"CygwinHack";
+constexpr wchar_t Msys2Hack[] = L"Msys2Hack";
 
 // The REG_SOFTWARE_ROOT / REG_SOFTWARE32_ROOT / REG_UNINSTALL_TGIT_SUBKEY macros
 // spelled these by literal concatenation; the bytes are the same.
 constexpr auto UNINSTALL_REG_VALUE = L"InstallLocation";
-constexpr auto UNINSTALL_REG_SUBKEY = std::wstring_view{ LR"(SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\Git_is1)" };
-constexpr auto UNINSTALL_RGSK_WOW64 = std::wstring_view{ LR"(SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall\Git_is1)" };
+constexpr wchar_t UNINSTALL_REG_SUBKEY[] = LR"(SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\Git_is1)";
+constexpr wchar_t UNINSTALL_RGSK_WOW64[] = LR"(SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall\Git_is1)";
 
 
 constexpr auto CALL_OUTPUT_READ_CHUNK_SIZE = 1024u;
@@ -895,7 +896,7 @@ void AppendTo(const git_strarray& array, std::vector<std::wstring>& list)
 
 constexpr size_t CalculateDiffSimilarityIndexThreshold() noexcept
 {
-	const size_t index = wil::reg::get_value_dword(DiffSimilarityIndexThreshold);
+	const size_t index = wil::reg::try_get_dword(HKEY_CURRENT_USER, Registry::TortoiseGitKey, DiffSimilarityIndexThreshold).value_or(0);
 	return (index <= 100) ? index : 50;
 }
 
@@ -903,8 +904,8 @@ constexpr size_t CalculateDiffSimilarityIndexThreshold() noexcept
 CString ms_LastMsysGitDir;
 CString ms_MsysGitRootDir;
 int ms_LastMsysGitVersion = 0;
-bool ms_bCygwinGit = wil::reg::get_value_typed<bool>(CygwinHack);
-bool ms_bMsys2Git = wil::reg::get_value_typed<bool>(Msys2Hack);
+bool ms_bCygwinGit = wil::reg::try_get_dword(HKEY_CURRENT_USER, Registry::TortoiseGitKey, CygwinHack).value_or(0) != 0;
+bool ms_bMsys2Git = wil::reg::try_get_dword(HKEY_CURRENT_USER, Registry::TortoiseGitKey, Msys2Hack).value_or(0) != 0;
 size_t ms_iSimilarityIndexThreshold = CalculateDiffSimilarityIndexThreshold();
 int m_LogEncode = CP_UTF8;
 // this is a HACK to protect again excessive input from remote servers
@@ -1040,7 +1041,7 @@ bool LoadTextFile(const CString &filename, CString &msg)
 	if (!PathFileExists(filename))
 		return false;
 
-	const wil::CAutoFile pFile{_wfsopen(filename, L"rb", SH_DENYWR)};
+	const wil::unique_file pFile{_wfsopen(filename, L"rb", SH_DENYWR)};
 	if (!pFile)
 	{
 		::MessageBox(nullptr, L"Could not open " + filename, L"TortoiseGit", MB_ICONERROR);
@@ -1354,7 +1355,7 @@ public:
 	[[nodiscard]] CString GetGitGlobalConfig() const;
 	[[nodiscard]] CString GetGitGlobalXDGConfig(bool returnDirectory = false) const;
 	[[nodiscard]] CString GetGitSystemConfig() const;
-	[[nodiscard]] unique_git_repository GetGitRepository() const;
+	[[nodiscard]] wil::unique_git_repository GetGitRepository() const;
 
 	/**
 	 * The configured SSH client, HKCU then HKLM, empty when none is set and the OpenSSH
@@ -1363,9 +1364,9 @@ public:
 	 */
 	static std::wstring GetConfiguredSshClient()
 	{
-		std::wstring sshclient = wil::reg::get_value_string(L"SSH");
+		std::wstring sshclient = wil::reg::try_get_string(HKEY_CURRENT_USER, Registry::TortoiseGitKey, L"SSH").value_or(std::wstring{});
 		if (sshclient.empty())
-			sshclient = wil::reg::get_value_string(L"SSH", L"", HKEY_LOCAL_MACHINE);
+			sshclient = wil::reg::try_get_string(HKEY_LOCAL_MACHINE, Registry::TortoiseGitKey, L"SSH").value_or(std::wstring{});
 
 		// Installs from before TortoiseGitPlink was retired still point at it, and an upgrade does
 		// not rewrite an existing value. Left alone it would be exported verbatim and every network
@@ -2451,14 +2452,14 @@ int GetMapHashToFriendName(git_repository* repo, MAP_HASH_NAME &map)
 bool FindGitForWindows(CString& sMsysGitPath) // not static: an internal-linkage name cannot be exported (C2294)
 {
 	// First non-empty InstallLocation wins: per-user install, then machine, then 32-bit machine.
-	const std::pair<HKEY, std::wstring_view> candidates[]{
+	const std::pair<HKEY, const wchar_t*> candidates[]{
 		{ HKEY_CURRENT_USER,  UNINSTALL_REG_SUBKEY },
 		{ HKEY_LOCAL_MACHINE, UNINSTALL_REG_SUBKEY },
 		{ HKEY_LOCAL_MACHINE, UNINSTALL_RGSK_WOW64 },
 	};
 	for (const auto& [root, key] : candidates)
 	{
-		sMsysGitPath = wil::reg::get_value_string(UNINSTALL_REG_VALUE, L"", root, key).c_str();
+		sMsysGitPath = wil::reg::try_get_string(root, key, UNINSTALL_REG_VALUE).value_or(std::wstring{}).c_str();
 		sMsysGitPath.TrimRight(L'\\');
 		if (!sMsysGitPath.IsEmpty())
 			break;
@@ -2486,7 +2487,7 @@ bool FindGitForWindows(CString& sMsysGitPath) // not static: an internal-linkage
 
 int FindAndSetGitExePath(const BOOL bFallback)
 {
-	const std::wstring str = wil::reg::get_value_string(REG_MSYSGIT_PATH);
+	const std::wstring str = wil::reg::try_get_string(HKEY_CURRENT_USER, Registry::TortoiseGitKey, REG_MSYSGIT_PATH).value_or(std::wstring{});
 	if (!str.empty() && PathFileExists((str + L"\\git.exe").c_str()))
 	{
 		TGitH::ms_LastMsysGitDir = str.c_str();
@@ -2501,14 +2502,14 @@ int FindAndSetGitExePath(const BOOL bFallback)
 	if (FindGitPath())
 	{
 		TracePrintf(__FUNCTION__ L": FindGitPath() => %s\n", static_cast<LPCWSTR>(TGitH::ms_LastMsysGitDir));
-		std::ignore = wil::reg::set_value_string(REG_MSYSGIT_PATH, StringView(TGitH::ms_LastMsysGitDir));
+		std::ignore = wil::reg::set_value_string_nothrow(HKEY_CURRENT_USER, Registry::TortoiseGitKey, REG_MSYSGIT_PATH, TGitH::ms_LastMsysGitDir.GetString());
 		return TRUE;
 	}
 
 	if (CString found = str.c_str(); FindGitForWindows(found))
 	{
 		TGitH::ms_LastMsysGitDir = found;
-		std::ignore = wil::reg::set_value_string(REG_MSYSGIT_PATH, StringView(found));
+		std::ignore = wil::reg::set_value_string_nothrow(HKEY_CURRENT_USER, Registry::TortoiseGitKey, REG_MSYSGIT_PATH, found.GetString());
 		return TRUE;
 	}
 
@@ -2536,9 +2537,9 @@ CGit::CGit()
 	// It writes the storage rather than a setter because CStrBuf fills a buffer in
 	// place, and because this write is not choosing a repository.
 	GetCurrentDirectory(MAX_PATH, CStrBuf(m_CurrentDirStorage, MAX_PATH));
-	m_IsUseGitDLL = wil::reg::get_value_typed<bool>(L"UsingGitDLL"sv);
-	m_IsUseLibGit2 = wil::reg::get_value_typed<bool>(L"UseLibgit2"sv, true);
-	m_IsUseLibGit2_mask = wil::reg::get_value_typed<std::uint32_t>(L"UseLibgit2_mask"sv, DEFAULT_USE_LIBGIT2_MASK);
+	m_IsUseGitDLL = wil::reg::try_get_dword(HKEY_CURRENT_USER, Registry::TortoiseGitKey, L"UsingGitDLL").value_or(0) != 0;
+	m_IsUseLibGit2 = wil::reg::try_get_dword(HKEY_CURRENT_USER, Registry::TortoiseGitKey, L"UseLibgit2").value_or(1) != 0;
+	m_IsUseLibGit2_mask = wil::reg::try_get_dword(HKEY_CURRENT_USER, Registry::TortoiseGitKey, L"UseLibgit2_mask").value_or(DEFAULT_USE_LIBGIT2_MASK);
 
 		// the unit tests pin these three in their fixture, after construction
 		g_bSortLogical = !Registry::CRegDWORD(L"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\Explorer\\NoStrCmpLogical", 0, false, HKEY_CURRENT_USER);
@@ -2587,7 +2588,7 @@ int CGit::RunAsync(
 	HANDLE* hErrReadOut,
 	const CString* StdioFile
 ) {
-	wil::CAutoGeneralHandle hRead, hWrite, hReadErr, hWriteErr, hWriteIn, hReadIn;
+	wil::unique_handle hRead, hWrite, hReadErr, hWriteErr, hWriteIn, hReadIn;
 
 	SECURITY_ATTRIBUTES sa = {};
 	sa.nLength = sizeof(SECURITY_ATTRIBUTES);
@@ -2611,10 +2612,11 @@ int CGit::RunAsync(
 		return TGIT_GIT_ERROR_OPEN_PIP;
 	}
 
-	wil::unique_handle hStdioFile;
+	// unique_hfile: CreateFile fails with INVALID_HANDLE_VALUE, not null. A failed
+	// open has always meant an invalid stdout handle for the child, not an exception;
+	// get() hands the child the same value either way.
+	wil::unique_hfile hStdioFile;
 	if (StdioFile)
-		// Not CreateFileUnique: that throws, and a failed open here has always meant
-		// an invalid stdout handle for the child, not an exception.
 		hStdioFile.reset(CreateFile(StdioFile->GetString(),
 		                            GENERIC_WRITE,
 		                            FILE_SHARE_READ | FILE_SHARE_WRITE,
@@ -2748,16 +2750,16 @@ void CGit::KillRelatedThreads(const DWORD threadId, const HANDLE threadHandle)
 int CGit::Run(CGitCall& pcall)
 {
 	PROCESS_INFORMATION pi;
-	wil::CAutoGeneralHandle hRead, hReadErr;
+	wil::unique_handle hRead, hReadErr;
 	const std::wstring& cmd = pcall.GetCmd();	// CGitCall holds a std::wstring; RunAsync still takes the CString - bridged here
 	if (RunAsync(CString(cmd.data(), gsl::narrow<int>(cmd.size())), pi, &hRead, &hReadErr))
 		return TGIT_GIT_ERROR_CREATE_PROCESS;
 
-	[[maybe_unused]]wil::CAutoGeneralHandle piThread(pi.hThread);
-	[[maybe_unused]]wil::CAutoGeneralHandle piProcess(pi.hProcess);
+	[[maybe_unused]]wil::unique_handle piThread(pi.hThread);
+	[[maybe_unused]]wil::unique_handle piProcess(pi.hProcess);
 
 	ASYNCREADSTDERRTHREADARGS threadArguments{ .fileHandle = hReadErr.get(), .pcall = &pcall };
-	const wil::CAutoGeneralHandle thread{ CreateThread(nullptr, 0, AsyncReadStdErrThread, &threadArguments, 0, nullptr) };
+	const wil::unique_handle thread{ CreateThread(nullptr, 0, AsyncReadStdErrThread, &threadArguments, 0, nullptr) };
 
 	if (thread)
 	{
@@ -3071,7 +3073,7 @@ int CGit::GetCurrentBranchFromFile(const CString &sProjectRoot, CString &sBranch
 
 	const CString sHeadFile = (*sDotGitPath + L"HEAD").c_str();
 
-	const wil::CAutoFile pFile{_wfsopen(sHeadFile.GetString(), L"r", SH_DENYWR)};
+	const wil::unique_file pFile{_wfsopen(sHeadFile.GetString(), L"r", SH_DENYWR)};
 	if (!pFile)
 		return -1;
 
@@ -3264,17 +3266,17 @@ std::vector<std::string> CGit::GetLogCmd(CString range, const CTGitPath* path, c
 int CGit::RunLogFile(const CString& cmd, const CString& filename, CString* stdErr)
 {
 	PROCESS_INFORMATION pi{};
-	wil::CAutoGeneralHandle hReadErr{};
+	wil::unique_handle hReadErr{};
 	if (RunAsync(cmd, pi, nullptr, &hReadErr, &filename))
 		return TGIT_GIT_ERROR_CREATE_PROCESS;
 
-	[[maybe_unused]]wil::CAutoGeneralHandle piThread(pi.hThread);
-	[[maybe_unused]]wil::CAutoGeneralHandle piProcess(pi.hProcess);
+	[[maybe_unused]]wil::unique_handle piThread(pi.hThread);
+	[[maybe_unused]]wil::unique_handle piProcess(pi.hProcess);
 
 	std::string stderrVector{};
 	CGitCall_ByteVector pcall(L"", nullptr, &stderrVector);
 	ASYNCREADSTDERRTHREADARGS threadArguments{ .fileHandle = hReadErr.get(), .pcall = &pcall };
-	const wil::CAutoGeneralHandle thread{ CreateThread(nullptr, 0, AsyncReadStdErrThread, &threadArguments, 0, nullptr) };
+	const wil::unique_handle thread{ CreateThread(nullptr, 0, AsyncReadStdErrThread, &threadArguments, 0, nullptr) };
 
 	if (thread)
 	{
@@ -4232,9 +4234,9 @@ BOOL CGit::CheckMsysGitDir(const BOOL bFallback)
 	// dangled before the comparison read it.
 	if (
 		const CString systemConfigOwner = g_Git.GetGitSystemConfig();
-		wil::reg::get_value_string(REG_SYSTEM_GITCONFIGPATH) != std::wstring_view(StringView(systemConfigOwner))
+		wil::reg::try_get_string(HKEY_CURRENT_USER, Registry::TortoiseGitKey, REG_SYSTEM_GITCONFIGPATH).value_or(std::wstring{}) != std::wstring_view(StringView(systemConfigOwner))
 	)
-		std::ignore = wil::reg::set_value_string(REG_SYSTEM_GITCONFIGPATH, std::wstring_view(StringView(systemConfigOwner)));
+		std::ignore = wil::reg::set_value_string_nothrow(HKEY_CURRENT_USER, Registry::TortoiseGitKey, REG_SYSTEM_GITCONFIGPATH, systemConfigOwner.GetString());
 
 	TracePrintf(__FUNCTION__ L": ms_LastMsysGitDir = %s\n", static_cast<LPCWSTR>(TGitH::ms_LastMsysGitDir));
 	TracePrintf(__FUNCTION__ L": ms_MsysGitRootDir = %s\n", static_cast<LPCWSTR>(TGitH::ms_MsysGitRootDir));
@@ -4273,7 +4275,7 @@ BOOL CGit::CheckMsysGitDir(const BOOL bFallback)
 		details::SetLibGit2TemplatePath(TGitH::ms_MsysGitRootDir + L"usr\\share\\git-core\\templates");
 
 	m_Environment.AddToPath(std::wstring(TGitH::ms_LastMsysGitDir));
-	m_Environment.AddToPath(wil::reg::get_value_string(REG_MSYSGIT_EXTRA_PATH));
+	m_Environment.AddToPath(wil::reg::try_get_string(HKEY_CURRENT_USER, Registry::TortoiseGitKey, REG_MSYSGIT_EXTRA_PATH).value_or(std::wstring{}));
 
 #if !defined(TGITCACHE) && !defined(TORTOISESHELL)
 	// register filter only once
@@ -4523,7 +4525,7 @@ int CGit::GetOneFile(const CString &Refname, const CTGitPath &path, const CStrin
 		if (git_tree_entry_to_object(reinterpret_cast<git_object**>(&blob), repo.get(), entry.get()))
 			return -1;
 
-		const wil::CAutoFile file{_wfsopen(outputfile, L"wb", SH_DENYWR)};
+		const wil::unique_file file{_wfsopen(outputfile, L"wb", SH_DENYWR)};
 		if (!file)
 		{
 			git_error_set_str(GIT_ERROR_NONE, "Could not create file.");
@@ -4584,7 +4586,7 @@ int CGit::GetUnifiedDiff(const CTGitPath& path, const CString& rev1, const CStri
 		return ret;
 	}
 
-	const wil::CAutoFILE file{_wfsopen(patchfile, L"wb", SH_DENYRW)};
+	const wil::unique_file file{_wfsopen(patchfile, L"wb", SH_DENYRW)};
 	if (!file)
 		return -1;
 	return details::GetUnifiedDiffLibGit2(path, rev1, rev2,  details::UnifiedDiffStatToFile,  details::UnifiedDiffToFile, file.get(), bMerge, diffContext, bNoPrefix);
@@ -4887,8 +4889,8 @@ void CGit::GetBisectTerms(CString* good, CString* bad)
 		return;
 
 	const std::wstring termsFile = adminDir->path + L"BISECT_TERMS";
-	// _wfsopen, like the other readers here; _wfopen_s would need a FILE** out of CAutoFILE.
-	const wil::CAutoFILE fp{_wfsopen(termsFile.c_str(), L"rb", SH_DENYWR)};
+	// _wfsopen, like the other readers here; _wfopen_s would need a FILE** out of the owner.
+	const wil::unique_file fp{_wfsopen(termsFile.c_str(), L"rb", SH_DENYWR)};
 	if (!fp)
 		return;
 	char badA[MAX_PATH] = {};

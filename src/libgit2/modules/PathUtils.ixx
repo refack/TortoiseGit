@@ -681,7 +681,7 @@ using expected_os = std::expected<PathAttributes, std::error_code>;
 expected_os get_path_attributes(const fs::directory_entry& entry)
 {
 	// MSVC's file_clock is FILETIME - 100ns ticks since 1601 - so count() is the raw value callers store
-	static_assert(std::same_as<fs::file_time_type::period, wil::file_ticks::period>);
+	static_assert(std::same_as<fs::file_time_type::period, std::ratio<1, 10'000'000>>);
 
 	const auto type = entry.symlink_status().type();      // link itself, no following
 	if (type == fs::file_type::not_found || type == fs::file_type::none) {

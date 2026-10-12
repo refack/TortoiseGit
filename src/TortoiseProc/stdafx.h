@@ -164,8 +164,8 @@ inline CString operator+(const CString& lhs, const std::wstring& rhs)
 	return result;
 }
 /// The full key path of a TortoiseGit setting, for CRegString. REG_MSYSGIT_PATH &
-/// co. are value names under Software\TortoiseGit now (the wil helpers' default
-/// subkey); in the header era they were full paths, and passing one of the new ones
+/// co. are value names under Software\TortoiseGit now (Registry::TortoiseGitKey,
+/// which git_h reads them under); in the header era they were full paths, and passing one of the new ones
 /// straight to CRegString would compile and silently read HKCU\MSysGit.
 inline CString TGitRegPath(const std::wstring_view valueName)
 {

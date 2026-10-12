@@ -1,7 +1,7 @@
 ﻿module;
 #include <tgit_cstring.h>	// first: decides which CString this compile speaks
 #include <windows.h>
-
+#include <winrt/base.h>		// ::winrt::clock, the FILETIME-epoch clock CDirFileEnum's times are on
 
 export module TempFile;
 import std;
@@ -91,7 +91,7 @@ void DeleteOldTempFiles() {
 	if (path.empty())
 		return;
 
-	const auto sysTime = wil::winrt::clock::now();
+	const auto sysTime = ::winrt::clock::now();
 	// only delete files older than a day
 	const auto cutoff = sysTime - std::chrono::days{ 1 };
 
