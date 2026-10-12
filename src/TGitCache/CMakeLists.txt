@@ -5,6 +5,7 @@ find_package(libgit2 REQUIRED CONFIG)
 find_package(MFC REQUIRED)
 
 add_executable(TGitCache WIN32)
+tgit_app_manifests(TGitCache "${TGIT_SYSTEM_DPI_MANIFEST}")
 
 target_sources(TGitCache
     PRIVATE

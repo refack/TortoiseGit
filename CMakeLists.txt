@@ -47,6 +47,20 @@ string(APPEND CMAKE_CXX_COMPILE_OBJECT " /experimental:log <OBJECT>.sarif")
 # output directories (they copy $<TARGET_RUNTIME_DLLS> next to themselves).
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
 
+# The manifests the vcxproj layer gave every application: TortoiseGit.common.props
+# merged src\compatibility.manifest.xml (supportedOS Windows 10/11) into all of
+# them, and each project's EnableDpiAwareness=true added a *system*-aware
+# <dpiAware>true</dpiAware> (TortoiseShell alone was per-monitor). CMake embeds a
+# source only when its extension is .manifest, so the shared .xml is copied to one
+# - listing the .xml itself is silently ignored. Per-monitor-v2 is a later,
+# separate step: MFC and ResizableLib lay out in pixels and do not handle
+# WM_DPICHANGED, so declaring it renders larger, not sharper.
+configure_file(src/compatibility.manifest.xml "${CMAKE_BINARY_DIR}/manifests/compatibility.manifest" COPYONLY)
+function(tgit_app_manifests target)
+    target_sources(${target} PRIVATE "${CMAKE_BINARY_DIR}/manifests/compatibility.manifest" ${ARGN})
+endfunction()
+set(TGIT_SYSTEM_DPI_MANIFEST "${CMAKE_SOURCE_DIR}/src/systemDpiAware.manifest")
+
 add_subdirectory(src/gitdll)
 add_subdirectory(src/AsyncFramework)
 add_subdirectory(src/IBugTraqProvider)

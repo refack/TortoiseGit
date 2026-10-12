@@ -5,9 +5,10 @@ find_package(MFC REQUIRED)
 
 add_executable(GitWCRev)
 
+tgit_app_manifests(GitWCRev)	# the .xml listed here was never embedded (not a .manifest)
+
 target_sources(GitWCRev
     PRIVATE
-        ../compatibility.manifest.xml
         GitWCRev.cpp
         GitWCRev.h
         GitWCRev.rc

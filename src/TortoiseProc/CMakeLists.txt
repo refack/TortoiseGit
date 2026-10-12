@@ -477,10 +477,10 @@ set(TORTOISEPROC_SHARED_SHELL_SOURCES
 )
 target_sources(TortoiseProc PRIVATE ${TORTOISEPROC_SHARED_SHELL_SOURCES})
 
-# Per-monitor-v2 DPI awareness (the vcxproj's EnableDpiAwareness). A .manifest
-# source is merged into the linker-generated manifest, beside the Common-Controls
-# v6 dependency TortoiseProc.cpp requests with #pragma comment(linker).
-target_sources(TortoiseProc PRIVATE "${CMAKE_SOURCE_DIR}/src/perMonitorV2DpiAware.manifest")
+# The vcxproj's manifests (see tgit_app_manifests in the root CMakeLists): merged
+# into the linker-generated one beside the Common-Controls v6 dependency that
+# TortoiseProc.cpp requests with #pragma comment(linker).
+tgit_app_manifests(TortoiseProc "${TGIT_SYSTEM_DPI_MANIFEST}")
 set_source_files_properties(${TORTOISEPROC_SHARED_SHELL_SOURCES}
     TARGET_DIRECTORY TortoiseProc
     PROPERTIES COMPILE_OPTIONS "/FI${CMAKE_CURRENT_SOURCE_DIR}/stdafx.h"
