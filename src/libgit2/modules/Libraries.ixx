@@ -12,6 +12,8 @@
 #include <shlobj_core.h>
 #include <TortoiseProc/resource.h>
 
+#pragma comment(lib, "Shlwapi.lib")	// PathCanonicalize; was linked via wil.ixx's IsURL until it went
+
 export module Libraries;
 import std;
 import PathUtils;

@@ -4,6 +4,8 @@
 #include <Shlwapi.h>
 #include "sanity.h"
 
+#pragma comment(lib, "Shlwapi.lib")	// SHDeleteKey; was linked via wil.ixx's IsURL until it went
+
 
 export module Registry;
 import std;

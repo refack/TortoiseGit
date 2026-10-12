@@ -5,17 +5,37 @@ module;
 #include <wil/registry.h>
 #include <winrt/base.h>
 #include <ShlObj.h>			// SHGetKnownFolderPath, FOLDERID_*, REFKNOWNFOLDERID
-#include <Shlwapi.h>		// PathIsURL
-
-#pragma comment(lib, "Shlwapi.lib")
+#include <git2.h>			// the libgit2 owners and OpenGitRepository
 
 export module wil;
 import std;
 import gsl;
+import invarients;			// LatchObjectFormat; invarients imports only std, so this stays acyclic
 
 using std::operator""s;
 using std::operator""sv;
 namespace fs = std::filesystem;
+
+// Not exported: the body both text overloads of make_moveable_hglobal share.
+namespace wil::tgit_details {
+	/// A GMEM_MOVEABLE block holding \a text and a terminating NUL that this writes
+	/// itself. The view need not be NUL-terminated - the previous version copied
+	/// text.size() + 1 characters, reading one past the end of every view that was
+	/// not.
+	template <class CharT>
+	unique_hglobal make_moveable_text(const std::basic_string_view<CharT> text) {
+		const auto bytes = std::as_bytes(std::span(text.data(), text.size()));
+		unique_hglobal block{ ::GlobalAlloc(GMEM_MOVEABLE, bytes.size() + sizeof(CharT)) };
+		if (!block)
+			return {};
+		auto* const target = static_cast<std::byte*>(::GlobalLock(block.get()));
+		if (!target)
+			return {};
+		std::ranges::fill_n(std::ranges::copy(bytes, target).out, sizeof(CharT), std::byte{ 0 });
+		::GlobalUnlock(block.get());
+		return block;
+	}
+}
 
 export namespace wil {
 namespace KnownFolders {
@@ -71,19 +91,39 @@ struct ThrowIfError {
 
 // wil
 using wil::ArgvToCommandLine;
+// The flags and the operators DEFINE_ENUM_FLAG_OPERATORS put beside them in
+// namespace wil travel together: without the operators, `a | b` on two
+// re-exported enumerators finds no viable overload in an importer.
+using wil::ArgvToCommandLineFlags;
+using wil::operator|;
+using wil::operator|=;
+using wil::operator&;
+using wil::operator&=;
+using wil::operator^;
+using wil::operator^=;
+using wil::operator~;
 using wil::unique_any;
 using wil::unique_hfile;
 using wil::unique_cotaskmem_string;
+using wil::unique_hlocal_string;
 using wil::unique_file;
 using wil::unique_handle;
 using wil::unique_struct;
+using wil::scope_exit;
+// NOT re-exported: wil::TryGetEnvironmentVariableW, wil::reg::try_get_value_dword,
+// wil::reg::try_get_value_string. They are inline in wil's headers and their
+// failure-reporting path calls strsafe.h's `static` functions, which cannot cross
+// a module boundary: an importer without a textual <strsafe.h> fails with C2129
+// ("static function 'StringValidateDestW' declared but not defined"). Use the
+// wrappers below instead (TryGetEnvironmentVariable, reg::try_get_dword,
+// reg::try_get_string), whose bodies are compiled once, here - the same reason
+// CreateFileUnique exists.
 
 
 // Clipboard - what CClipboardHelper was
 using wil::unique_close_clipboard_call;
 using wil::open_clipboard;
 using wil::unique_hglobal;
-using wil::make_range;
 using wil::open_file;
 using wil::GetFileInfo;
 using wil::ResultException;
@@ -102,6 +142,28 @@ namespace winrt {
 // Registry Wrapper
 namespace reg {
 	using wil::reg::reg_view_details::reg_view;
+	// The stock writers, for call sites that leave the wrappers below. Each takes
+	// the root and subkey explicitly, so nothing defaults to HKCU.
+	using wil::reg::set_value_string_nothrow;
+	using wil::reg::set_value_dword_nothrow;
+
+
+	/// wil::reg::try_get_value_dword(root, subkey, name), compiled in this module
+	/// (see the note at the re-exports). Empty when the value is absent; throws
+	/// wil::ResultException on any other failure, exactly as wil's does. The root
+	/// and subkey are the caller's - nothing here defaults to HKCU\Software\TortoiseGit.
+	std::optional<std::uint32_t> try_get_dword(RKEY* const root, const PCWSTR subkey, const PCWSTR name) {
+		return wil::reg::try_get_value_dword(root, subkey, name);
+	}
+
+
+	/// wil::reg::try_get_value_string(root, subkey, name), compiled in this module.
+	/// Same contract as try_get_dword.
+	std::optional<std::wstring> try_get_string(RKEY* const root, const PCWSTR subkey, const PCWSTR name) {
+		return wil::reg::try_get_value_string(root, subkey, name);
+	}
+
+
 	constexpr auto SOFTWARE_TGIT_KEY = L"Software\\TortoiseGit"sv;
 
 
@@ -238,15 +300,33 @@ unique_hglobal make_moveable_hglobal(const std::span<const std::byte> bytes) {
 }
 
 
-/// The text plus its terminating NUL, which is what every text clipboard
-/// format expects.
+/// The text plus a terminating NUL, which is what every text clipboard
+/// format expects. The NUL is written here, so any view will do.
 unique_hglobal make_moveable_hglobal(const std::wstring_view text) {
-	return make_moveable_hglobal(std::as_bytes(std::span(text.data(), text.size() + 1)));
+	return tgit_details::make_moveable_text(text);
 }
 
 
 unique_hglobal make_moveable_hglobal(const std::string_view text) {
-	return make_moveable_hglobal(std::as_bytes(std::span(text.data(), text.size() + 1)));
+	return tgit_details::make_moveable_text(text);
+}
+
+
+/// Puts \a text on the clipboard as CF_UNICODETEXT; the OS synthesizes CF_TEXT
+/// from it. What StringUtils::WriteAsciiStringToClipboard(const CStringW&, RWND*)
+/// did, without the CString. A CString caller bridges visibly with a view.
+bool SetClipboardText(const std::wstring_view text, RWND* const owner = nullptr) {
+	// Not an if-init-statement: the clipboard has to stay open until we return.
+	const auto clipboard = open_clipboard_retrying(owner);
+	if (!clipboard)
+		return false;
+
+	::EmptyClipboard();
+	auto block = make_moveable_hglobal(text);
+	if (!block || !::SetClipboardData(CF_UNICODETEXT, block.get()))
+		return false;
+	block.release(); // the clipboard owns it now
+	return true;
 }
 
 
@@ -254,7 +334,6 @@ unique_hglobal make_moveable_hglobal(const std::string_view text) {
 using KnownFolderCLSID = KNOWNFOLDERID;
 using RefKnownFolderCLSID = REFKNOWNFOLDERID;
 using KnownFolderFlag = KNOWN_FOLDER_FLAG;
-constexpr auto IsURL = PathIsURL;
 
 
 auto GetKnownFolderPath(
@@ -274,6 +353,17 @@ auto GetKnownFolderPath(
 
 auto GetEnvVar(const KnownEnvVar which) {
 	return fs::path{ wil::GetEnvironmentVariableW(which.data()).get() };
+}
+
+
+/// wil::TryGetEnvironmentVariableW, compiled in this module (see the note at the
+/// re-exports). Empty when the variable is not set - unlike GetEnvVar above, which
+/// throws then; throws wil::ResultException on any other failure.
+std::optional<std::wstring> TryGetEnvironmentVariable(const PCWSTR name) {
+	const auto value = wil::TryGetEnvironmentVariableW(name);
+	if (!value)
+		return std::nullopt;
+	return std::wstring{ value.get() };
 }
 
 
@@ -420,7 +510,7 @@ namespace til {
 
 class CFormatMessageWrapper {
 	DWORD err_id = {};
-	WCHAR* buffer = {};
+	unique_hlocal_string buffer; // FORMAT_MESSAGE_ALLOCATE_BUFFER hands back LocalAlloc'ed memory
 	DWORD length = {};
 
 public:
@@ -433,15 +523,10 @@ public:
 			nullptr,
 			err_id,
 			MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), // Default language
-			reinterpret_cast<LPWSTR>(&buffer),
+			reinterpret_cast<LPWSTR>(buffer.put()),
 			0,
 			nullptr
 		);
-	}
-
-
-	~CFormatMessageWrapper() {
-		LocalFree(buffer);
 	}
 
 
@@ -450,8 +535,80 @@ public:
 
 	explicit operator bool() const { return length != 0; }
 	[[nodiscard]] bool empty() const { return length == 0; }
-	[[nodiscard]] LPCWSTR c_str() const { return buffer ? buffer : L""; }
+	[[nodiscard]] LPCWSTR c_str() const { return buffer ? buffer.get() : L""; }
 	[[nodiscard]] DWORD code() const { return err_id; }
 };
+
+
+
+// Owners for libgit2 handles, moved here from wil_git2 (SmartLibgit2Ref.ixx).
+// Every one is wil's, so there is no class to get wrong - the hand-rolled
+// CSmartLibgit2Ref re-exposed its conversion operator through a
+// using-declaration that MSVC refuses across a module boundary (C2248).
+template <typename T, void Free(T*)>
+using unique_git = unique_any<T*, decltype(Free), Free>;
+
+using unique_git_object           = unique_git<git_object,             git_object_free>;
+using unique_git_commit           = unique_git<git_commit,             git_commit_free>;
+using unique_git_tree             = unique_git<git_tree,               git_tree_free>;
+using unique_git_blob             = unique_git<git_blob,               git_blob_free>;
+using unique_git_tag              = unique_git<git_tag,                git_tag_free>;
+using unique_git_tree_entry       = unique_git<git_tree_entry,         git_tree_entry_free>;
+using unique_git_reference        = unique_git<git_reference,          git_reference_free>;
+using unique_git_repository       = unique_git<git_repository,         git_repository_free>;
+using unique_git_config           = unique_git<git_config,             git_config_free>;
+using unique_git_index            = unique_git<git_index,              git_index_free>;
+using unique_git_submodule        = unique_git<git_submodule,          git_submodule_free>;
+using unique_git_diff             = unique_git<git_diff,               git_diff_free>;
+using unique_git_patch            = unique_git<git_patch,              git_patch_free>;
+using unique_git_diff_stats       = unique_git<git_diff_stats,         git_diff_stats_free>;
+using unique_git_remote           = unique_git<git_remote,             git_remote_free>;
+using unique_git_reflog           = unique_git<git_reflog,             git_reflog_free>;
+using unique_git_revwalk          = unique_git<git_revwalk,            git_revwalk_free>;
+using unique_git_branch_iterator  = unique_git<git_branch_iterator,    git_branch_iterator_free>;
+using unique_git_reference_iterator = unique_git<git_reference_iterator, git_reference_iterator_free>;
+using unique_git_describe_result  = unique_git<git_describe_result,    git_describe_result_free>;
+using unique_git_status_list      = unique_git<git_status_list,        git_status_list_free>;
+using unique_git_note             = unique_git<git_note,               git_note_free>;
+using unique_git_signature        = unique_git<git_signature,          git_signature_free>;
+using unique_git_mailmap          = unique_git<git_mailmap,            git_mailmap_free>;
+using unique_git_worktree         = unique_git<git_worktree,           git_worktree_free>;
+
+// Structs libgit2 fills in place and disposes of by address; unique_struct
+// derives from the struct, so &buf is a git_buf* and buf.ptr just works.
+using unique_git_buf      = unique_struct<git_buf,      decltype(&git_buf_dispose),      git_buf_dispose>;
+using unique_git_strarray = unique_struct<git_strarray, decltype(&git_strarray_dispose), git_strarray_dispose>;
+
+
+/// The one thing CAutoRepository did that is not ownership: TGitCache and the
+/// shell extension never initialize gitdll, so opening a repository here is the
+/// only place their object format is ever established. Check the result with
+/// is_valid(); on failure it is empty and git_error_last() says why.
+///
+/// UTF-8 only, deliberately: wil cannot see CUnicodeUtils. A caller holding a
+/// wide path goes through the one wide overload that encodes with
+/// CUnicodeUtils::StdGetUTF8 (CAutoRepository(std::wstring_view) today,
+/// TGitH::OpenGitRepository(std::wstring_view) once the bridge retires) - never
+/// its own conversion (CStringA(path) would be the ACP, not UTF-8).
+unique_git_repository OpenGitRepository(const char* const gitDirUtf8) {
+	unique_git_repository repo;
+	if (!git_repository_open(repo.put(), gitDirUtf8))
+		tgit::invarients::LatchObjectFormat(git_repository_oid_type(repo.get()));
+	return repo;
+}
 } // end wil
+
+
+
+/// What sanity.h's SCOPE_EXIT expands against: `scope_exit_helper() << [&] { ... };`.
+/// Global, because the macro names it unqualified. The guard is wil's: its move
+/// disarms the source, which tgittypes' hand-rolled scope_exit_t did not (a moved-
+/// from guard still ran its lambda). tgittypes re-exports this one rather than
+/// defining its own, so no TU can reach two of them.
+export struct scope_exit_helper {
+	template <class F>
+	[[nodiscard]] auto operator<<(F&& f) const {
+		return wil::scope_exit(std::forward<F>(f));
+	}
+};
 

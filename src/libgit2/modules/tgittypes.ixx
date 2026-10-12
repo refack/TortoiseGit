@@ -17,6 +17,7 @@ import wstr;
 import gsl;
 import invarients;
 import GitHash;
+import wil;			// scope_exit_helper
 
 
 
@@ -168,46 +169,8 @@ using BYTE_VECTOR = CGitByteArray;
 
 
 
-template <typename D>
-struct scope_exit_t {
-	using func_type = D;
-
-
-	explicit scope_exit_t(D&& f) :
-		func(f) {}
-
-
-	scope_exit_t(scope_exit_t&& s) noexcept :
-		func(s.func) {}
-
-
-	~scope_exit_t() { func(); }
-
-	// Prohibit construction from lvalues.
-	scope_exit_t(D&) = delete;
-
-	// Prohibit copying.
-	scope_exit_t(const scope_exit_t&) = delete;
-	scope_exit_t& operator=(const scope_exit_t&) = delete;
-
-	// Prohibit new/delete.
-	void* operator new(size_t) = delete;
-	void* operator new[](size_t) = delete;
-	void operator delete(void*) = delete;
-	void operator delete[](void*) = delete;
-
-private:
-	const func_type func;
-};
-
-
-
-struct scope_exit_helper {
-	template <typename D>
-	scope_exit_t<D> operator<<(D&& f) {
-		return scope_exit_t<D>(std::forward<D>(f));
-	}
-};
+// scope_exit_t / scope_exit_helper lived here; SCOPE_EXIT's helper is wil's now
+// (re-exported at the bottom of this file), so no TU reaches two of them.
 
 
 
@@ -932,4 +895,6 @@ void CEnvironment::AddToPath(std::wstring value) {
 }
 
 export using namespace tgit::types;
-export using tgit::types::scope_exit_helper;
+// The one SCOPE_EXIT helper, wil's: importers of tgittypes alone keep finding it,
+// and an importer of both modules finds the same entity twice, not two of them.
+export using ::scope_exit_helper;
