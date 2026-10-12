@@ -7,11 +7,11 @@ import std;
 // and OpenGitRepository moved into wil, and TUs that import only wil_git2 (test
 // stdafx.h, TGitPathTest.cpp, TGitCache, GitWCRev) still spell them.
 export import wil;
-import wstr;
+import str_utils;
 import invarients;
 
-using tgit::zstr::IsStupidString;
-using tgit::zstr::StringView;
+using tgit::str::IsStupidString;
+using tgit::str::StringView;
 
 // The owners for libgit2 handles (wil::unique_git_*, unique_git_buf,
 // unique_git_strarray) and wil::OpenGitRepository live in module wil now.
@@ -167,8 +167,8 @@ struct CAutoConfig : CAutoGitRef<wil::unique_git_config>
 	/// \a value is emptied on failure. TOut is anything that assigns from a
 	/// const wchar_t* - a CString or a std::wstring.
 	/// A CString key - the MFC UI's. Constrained, so a literal binds the view one.
-	template <tgit::zstr::IsStupidString TKey, typename TOut>
-	int GetString(const TKey& key, TOut& value) const { return GetString(std::wstring_view(tgit::zstr::StringView{ key }), value); }
+	template <tgit::str::IsStupidString TKey, typename TOut>
+	int GetString(const TKey& key, TOut& value) const { return GetString(std::wstring_view(tgit::str::StringView{ key }), value); }
 
 	template <typename TOut>
 	int GetString(const std::wstring_view key, TOut& value) const

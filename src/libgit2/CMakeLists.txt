@@ -137,6 +137,7 @@ function(tgit_core_library name flavor)
         FILES
             modules/shims/gsl.ixx
             modules/shims/wil.ixx
+            modules/shims/str_utils.ixx
             modules/shims/libgit2.ixx
             modules/shims/json.ixx
             modules/Git.ixx
@@ -165,7 +166,7 @@ function(tgit_core_library name flavor)
             modules/gitindex.ixx
             modules/tgittypes.ixx
             modules/invarients.ixx
-            modules/shims/str_utils.ixx
+            modules/wstr.ixx
             modules/lanes.ixx
             modules/LangDll.ixx
             modules/GitStatus.ixx

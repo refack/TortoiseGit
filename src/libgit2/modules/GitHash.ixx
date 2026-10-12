@@ -10,9 +10,9 @@ import std;
 import invarients;
 using namespace tgit::invarients;
 
-import wstr;
-using tgit::zstr::IsTCompString;
-using tgit::zstr::StringViewTraits;
+import str_utils;
+using tgit::str::IsTCompString;
+using tgit::str::StringViewTraits;
 
 
 /* also see gitdll.c */
@@ -29,7 +29,7 @@ namespace TGitHash
 template <IsTCompString Str>
 bool IsFullHexLength(const Str& str) noexcept
 {
-	return tgit::zstr::StringView<Str>{ str }.size() == 2 * GitFormatHolder::GitHashSize();
+	return tgit::str::StringView<Str>{ str }.size() == 2 * GitFormatHolder::GitHashSize();
 }
 }
 
