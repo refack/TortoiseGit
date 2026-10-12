@@ -34,21 +34,6 @@ import PathUtils;
 
 IMPLEMENT_DYNAMIC(CWorktreeListDlg, CResizableStandAloneDialog)
 
-CWorktreeListDlg::CWorktreeListDlg(CWnd* pParent /*=nullptr*/)
-	: CResizableStandAloneDialog(CWorktreeListDlg::IDD, pParent)
-{
-}
-
-CWorktreeListDlg::~CWorktreeListDlg()
-{
-}
-
-void CWorktreeListDlg::DoDataExchange(CDataExchange* pDX)
-{
-	CDialog::DoDataExchange(pDX);
-	DDX_Control(pDX, IDC_WORKTREE_LIST, m_WorktreeList);
-}
-
 BEGIN_MESSAGE_MAP(CWorktreeListDlg, CResizableStandAloneDialog)
 	ON_WM_SETCURSOR()
 	ON_BN_CLICKED(IDC_BUTTON_ADD, &CWorktreeListDlg::OnBnClickedButtonAdd)
@@ -181,7 +166,7 @@ int CWorktreeListDlg::FillListCtrlWithWorktreeList(CString& error)
 			workDirPath = CUnicodeUtils::Convert2Unicode<CString>(git_repository_workdir(baseRepo));
 		workDirPath.Replace(L'/', L'\\');
 		workDirPath.TrimRight(L'\\');
-		WorktreeDetails worktreeDetails(L"", workDirPath, git_reference_target(nonWorktreeHead.get()), CUnicodeUtils::Convert2Unicode<CString>(git_reference_shorthand(nonWorktreeHead.get())));
+		WorktreeDetails worktreeDetails(L"", workDirPath, CGitHash(git_reference_target(nonWorktreeHead.get())),CUnicodeUtils::Convert2Unicode<CString>(git_reference_shorthand(nonWorktreeHead.get())));
 		worktreeDetails.m_isBaseRepo = TRUE;
 		m_Worktrees.push_back(worktreeDetails);
 	}
@@ -241,7 +226,7 @@ int CWorktreeListDlg::FillListCtrlWithWorktreeList(CString& error)
 			branch = L"detached HEAD";
 		}
 
-		WorktreeDetails worktreeDetails(list[i].c_str(), worktreePath, git_reference_target(head.get()), branch);
+		WorktreeDetails worktreeDetails(list[i].c_str(), worktreePath, CGitHash(git_reference_target(head.get())), branch);
 		worktreeDetails.m_isBaseRepo = FALSE;
 		worktreeDetails.m_IsLocked = locked;
 		if (locked)

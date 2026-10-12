@@ -51,7 +51,7 @@ public:
 class CWorktreeListDlg : public CResizableStandAloneDialog
 {
 public:
-	DECLARE_DYNAMIC(CWorktreeListDlg, CResizableStandAloneDialog)
+	DECLARE_DYNAMIC(CWorktreeListDlg)
 
 	explicit CWorktreeListDlg(CWnd* pParent = nullptr) : CResizableStandAloneDialog(IDD, pParent) {}
 	~CWorktreeListDlg() override = default;
@@ -62,7 +62,9 @@ public:
 		IDD = IDD_WORKTREE_LIST
 	};
 
-	enum eCmd : byte
+	// UINT, not byte: WM_APP is 0x8000, and a byte truncated every command id to 0..4,
+	// so eCmd_Open was 0, the value TrackPopupMenu returns for a dismissed menu.
+	enum eCmd : UINT
 	{
 		eCmd_Open = WM_APP,
 		eCmd_Remove,
