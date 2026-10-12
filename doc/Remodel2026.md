@@ -1526,3 +1526,156 @@ log list was painting a *modified* file's Action cell.
 > SHA256 stack. 16 of them turned out to be caused by this work — one missing
 > line in `CGitHash` (see `21a8e1628`). A revert proves only what it reverts.
 
+
+## 2026-10-12 - five core modules become wil + str_utils
+
+An unattended overnight run applied a reviewed plan to the five modules at the
+bottom of `src\libgit2\modules`: `wil` (shims/wil.ixx), `wstr`, `StringUtils`,
+`wil_git2` (SmartLibgit2Ref.ixx) and `tgittypes`. Baseline is `4089cafdf`; the
+trail is `4678d0f0a`..`8253ce532`, 19 commits, every subject prefixed
+`consolidate:`. The plan, the adversarial reviews, the per-entity inventory and
+every FAILED-set baseline live outside the tree in
+`C:\temp\USR\tgit-consolidation\` (plan.json, reviews.json, inventory.json,
+baseline-*.txt).
+
+### What moved where
+
+- **`wil`** stays the leaf and is flavor-neutral (imports std, gsl, invarients).
+  It now owns the libgit2 owners (`unique_git<T,Free>` and the `unique_git_*`
+  aliases, moved from wil_git2), `wil::OpenGitRepository(const char* utf8)` as
+  the only libgit2 object-format latch, the one global `scope_exit_helper` that
+  `SCOPE_EXIT` binds, `SetClipboardText`, and `CFormatMessageWrapper` on
+  `unique_hlocal_string`. The R* aliases, the reg wrappers, `wil::winrt`,
+  KnownFolders/KnownEnvVar, the CAuto* handles, `CreateFileUnique`, `IsURL`,
+  `make_range` and the expect_* helpers are gone. `wil::til` (LoadStringEx) was
+  **kept**: switching to `::LoadStringW` changes language selection and
+  long-string behaviour, so it is a step-11 decision.
+- **`str_utils`** (shims/str_utils.ixx, a `git mv` of wstr.ixx so `--follow`
+  reaches its history) is the shim: the only module fragment with `afx.h`,
+  `atlstr.h`, `atltime.h` or `#ifdef TGIT_MFC`. It exports
+  `tgit::wstr::CString`, `tgit::zstr::CString` and `tgit::wstr::CTime`;
+  `tgit::str` holds the width-generic traits (the old `tgit::zstr` layer);
+  StringUtils' body is folded in, qualified-only (`export using namespace
+  StringUtils` is gone).
+- **`tgittypes` is deleted**, its contents sent to owners: the TGitH git-domain
+  block, `UnescapeGitQuotePath(A)` and the POSIX quoting helpers to `git_h`;
+  `git_wc_status_kind`/`git_wc_status2_t` to `GitIndex`; `CacheType` to
+  `TGitStatus`; `TGitContextMenuEntries` to `TortoiseShell/Globals.h`;
+  `FileState` to `ShellExt.h`. `BYTE_VECTOR`/`CGitByteArray` became
+  `std::string`, `STRING_VECTOR`/`MAP_STRING_STRING` the std containers.
+- **`wil_git2` is deleted.** The CAuto* call sites hold `wil::unique_git_*`;
+  the CAutoConfig readers are `TGitH::GetConfigBOOL/GetConfigBool/GetConfigString`
+  with the exact old contract; wide-path callers use
+  `TGitH::OpenGitRepository(std::wstring_view)`.
+- **`invarients`**: `g_gitObjectFormat` is one definition with module linkage,
+  read and written only through non-inline accessors; `HashSize`/`GitHashSize`
+  are runtime, not consteval. `GitHash` gained `IsFullHexLength` (was
+  tgittypes' `HasEnoughSpace`).
+- Smaller owners: PathUtils owns the XDG policy, Registry owns
+  `Registry::TortoiseGitKey`, `GitAdminDir.ixx` (empty) is gone in favour of
+  TGitPath, `LandDll` is spelled `LangDll`, `TGIT_MFC` is PRIVATE.
+
+### Where the plan was overruled, and why
+
+The amendments (A1-A15) were written after the reviews and override plan.json.
+The ones that changed the shape of the work:
+
+- **Add, migrate, delete** (A10). wstr and StringUtils lived on as two-line
+  forwarders (`export module X; export import str_utils;` - MSVC rejects a
+  second declaration on the module line, C7586) until every importer moved,
+  and wil_git2 re-exported wil until the bridge died. No TU ever saw two
+  definitions of one entity.
+- **No behaviour change inside a structural move** (A11). `SafeSizeToInt`
+  stays (the plan wanted `gsl::narrow`), `GetKnownFolderPath` still throws
+  `std::runtime_error`, `LoadStringEx` stays, `git_object_peel` was *not*
+  substituted for CAutoCommit's reinterpret-cast transfer, and every
+  persisted enum is byte-identical to `4089cafdf` (11 of 11 diffed). The two
+  behaviour changes that did land are each a single-decision commit:
+  `dbaf559dd` (an unset `XDG_*` now falls back to the known folder instead of
+  throwing) and `22c9767e8` (a dangling `wstring_view` of a temporary CString
+  in `CheckMsysGitDir` that crashed the test binary's static init).
+- **No std::expected for the config readers** (A4): same int return, same
+  in/out parameter, same not-found behaviour; pinned by the new
+  `libgit2.ConfigReadersKeepTheirContract`.
+- **`illegal_git_parameter` is gone on purpose** (A6, user decision):
+  `QuoteParameter` quotes anything through `wil::ArgvToCommandLine`; the 8
+  `EXPECT_THROW` cases in GitTest now assert the quoted output.
+- **Registry reads keep their root and subkey** (A3). They go through the
+  module-compiled `wil::reg::try_get_dword/try_get_string`, *not* stock
+  `try_get_value_*`: those are inline and call strsafe.h `static` functions,
+  so any importer without a textual `<strsafe.h>` fails with C2129. Same
+  reason `wil::TryGetEnvironmentVariable` is a wrapper.
+- **A7: relocations move HEAD's text**, never resurrect `HEAD~1`'s CGitCall
+  family; `ArgvData` stayed move-only.
+- **A2 was read to its letter.** `atlbase.h`/`atlcomcli.h` remain in Git,
+  gitindex, GitStatus, TaskbarUUID and Libraries (CComCritSecLock, CComPtr),
+  because A2 forbids only the CString includes. See the open AtlThrow item
+  below: that letter was not enough.
+
+### How it was verified
+
+At `4089cafdf` **neither library compiled under ninja**: 40 scans failed
+(20 per flavor, mostly the missing `tgit_cstring.h`), so CMake's module
+collation never ran and the FAILED set could not show a module object at
+all. Until S11 the run therefore verified modules by hand: scripts in
+`C:\temp\USR\tgit-consolidation\scripts\` compile each module interface with
+its exact `compile_commands.json` flags against a hand-built BMI chain,
+in both flavors, plus link-and-run probes for the behaviour contracts
+(SCOPE_EXIT once, NUL-terminated clipboard text, the latch, the XDG
+fallback, the registry roots, QuoteParameter's 31 assertions).
+
+| | `4089cafdf` | `8253ce532` |
+| --- | --- | --- |
+| ninja FAILED, TGitLibgit2 | 20 | 0 (links) |
+| ninja FAILED, TGitLibgit2Mfc | 20 | 0 (links) |
+| ninja FAILED, whole build | 96 | 35 |
+| `TGitUnitTests.exe` | did not build | links; 482 run, 465 pass |
+
+Of the 35, **23 are TortoiseProc TUs ninja could not reach before** (the
+library collation blocked them); their first errors are older API drift. The
+other 12 are the baseline's own (GitWCRevCOM, IBugTraqProvider, SshAskPass,
+TGitCache x6, TortoiseStub, test/Cache). `dumpbin /SYMBOLS` over every library
+object: no StrTraitATL symbol in the Mfc flavor and none of StrTraitMFC in the
+ATL one.
+
+The 17 test failures and 5 process-killing tests are listed with causes in
+the run's test log (`green2-tests-serial.log`). **They are called pre-existing
+by reading, not by running:** the code under each is identical (or only
+mechanically renamed) at `4089cafdf`, but `4089cafdf` cannot build the test
+binary, so no direct comparison exists. Per the warning above, treat that
+label as a claim, not a result. Disabled directories (TortoiseShell,
+TortoiseGitBlame, TortoiseUDiff) and the 18 parked test TUs were edited by
+grep gate only and never compiled.
+
+### What is left
+
+- **Plan step 10**, accounted test-only deletions (the test-only StringUtils
+  helpers, `tgit::wstr::FindOneOf/MakeUpper/ReleaseBuffer/to_path`), one
+  commit with the count in its message.
+- **Plan step 11**, one decision per commit: Trim's default set,
+  CompareStringOrdinal for StartsWithI/EndsWithI, pure EscapeAccelerators,
+  `FormatErrorMessage(DWORD)`, enum-class CacheType and flag operators for
+  TGitContextMenuEntries, file-local ExpandPlaceholdersForCmd, fs::path text
+  file helpers; plus what this run deferred into it: `LoadStringEx` ->
+  `::LoadStringW`, `git_object_peel`, GitWCRev's raw `git_repository_open`
+  (the remaining SHA256 latch gap). 11(d) is already taken: `bf6411ff5`
+  restored POSIX quoting for msys2/cygwin in `SerializeArgv` (it was
+  unconditional at `4089cafdf`).
+- **`#define _KERNEL_MODE 1` in sanity.h** is still there. Removing it changes
+  gsl's Expects/Ensures failure path; separate commit, re-run the suite.
+- **AtlThrow ODR in the Mfc flavor.** The fragments that kept `atlbase.h`
+  compile it without `_AFX` (they used to get `afx.h` through
+  `tgit_cstring.h`), so `ATL::AtlThrowImpl` has two bodies under one mangled
+  name across TGitLibgit2Mfc and TortoiseProc. Fix: wil/std locks and
+  `wil::com_ptr` in those modules, or export the ATL types from the shim.
+- Found by review, pre-existing, deliberately untouched: the
+  `DiffSimilarityIndexThreshold` default of 0 (UI and upstream use 50),
+  gitindex's bare-name `CRegStdString` system-config read, GetCurrentBranch's
+  trailing newline, GetShortName's `.data()` without length, GitMailmap's
+  dangling `StdGetUTF8(...).data()`, `filter_stream`'s `exit(67)` stub, and
+  GitRevLoglist's reflog callback copying its vector.
+- Open questions from plan.json, unanswered: drop or keep the XDG overrides;
+  retire RIAA (and its inverted `CCloseFILE::Close`); libgit2 owners in `wil`
+  vs the `libgit2` shim; fold `StringUtils::` into `tgit::wstr`; re-point
+  TortoiseGitBlame/TgitUnitTests (`_AFXDLL`, ATL link) at TGitLibgit2Mfc.
+
