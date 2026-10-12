@@ -20,9 +20,10 @@
 //
 
 #include "stdafx.h"
+#include "std.h"
+
 #include "TortoiseProc.h"
 #include "ResetDlg.h"
-import git_h;
 #include "FileDiffDlg.h"
 #include "AppUtils.h"
 

@@ -18,11 +18,12 @@
 //
 
 #include "stdafx.h"
+#include "std.h"
+
 #include "TortoiseProc.h"
 #include "FirstStartWizard.h"
 #include "FirstStartWizardLanguage.h"
 #include "Theme.h"
-import LangDll;
 
 #define DOWNLOAD_URL L"https://tortoisegit.org/download/"
 #define WM_SETPAGEFOCUS WM_APP+2

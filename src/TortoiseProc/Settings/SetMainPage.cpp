@@ -19,16 +19,17 @@
 //
 
 #include "stdafx.h"
+#include "std.h"
+
 #include "TortoiseProc.h"
 #include "SetMainPage.h"
 #include "AppUtils.h"
-import git_h;
 #include "MessageBox.h"
 import Libraries;
-import TGitCache.CacheInterface;
-import LangDll;
 
 IMPLEMENT_DYNAMIC(CSetMainPage, ISettingsPropPage)
+
+
 CSetMainPage::CSetMainPage()
 	: ISettingsPropPage(CSetMainPage::IDD)
 	, m_bCheckNewer(TRUE)

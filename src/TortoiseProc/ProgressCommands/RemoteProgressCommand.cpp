@@ -17,6 +17,8 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 #include "stdafx.h"
+#include "std.h"
+
 #include <TortoiseProc/resource.h>	// restored: these IDs used to arrive through headers that are imports now
 #include "resource.h"
 #include "RemoteProgressCommand.h"

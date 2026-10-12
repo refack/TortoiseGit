@@ -19,14 +19,14 @@
 //
 
 #include "stdafx.h"
+#include "std.h"
+
 #include "TortoiseProc.h"
 #include <gdiplus.h>
 #include "RevisionGraphWnd.h"
-import git_h;
 #include "DPIAware.h"
 #include <regex>
 #include "AppUtils.h"
-import CmdLineParser;
 
 #ifdef _DEBUG
 #define new DEBUG_NEW

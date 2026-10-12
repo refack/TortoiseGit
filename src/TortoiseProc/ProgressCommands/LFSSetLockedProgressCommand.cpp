@@ -18,10 +18,11 @@
 //
 
 #include "stdafx.h"
+#include "std.h"
+
 #include "TortoiseProc.h"
 #include "LFSSetLockedProgressCommand.h"
 #include "AppUtils.h"
-import TempFile;
 
 using Git_WC_Notify_Action = CGitProgressList::WC_File_NotificationData::Git_WC_Notify_Action;
 

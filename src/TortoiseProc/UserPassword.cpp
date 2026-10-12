@@ -19,6 +19,8 @@
 // UserPassword.cpp : implementation file
 //
 #include "stdafx.h"
+#include "std.h"
+
 #include "resource.h"
 #include "UserPassword.h"
 

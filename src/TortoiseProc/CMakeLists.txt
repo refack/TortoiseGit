@@ -1,4 +1,4 @@
-﻿cmake_minimum_required(VERSION 4.0)
+﻿cmake_minimum_required(VERSION 4.4)
 project(TortoiseProc LANGUAGES CXX)
 
 find_package(ogdf REQUIRED CONFIG)
@@ -6,6 +6,8 @@ find_package(MFC REQUIRED)
 
 # WIN32: a GUI subsystem exe; MFC supplies wWinMain (the vcxproj's SubSystem=Windows).
 add_executable(TortoiseProc WIN32)
+
+target_precompile_headers(TortoiseProc PRIVATE stdafx.h)
 
 target_sources(TortoiseProc
     PRIVATE
@@ -586,4 +588,3 @@ target_compile_options(TortoiseProc
 # _UNICODE MFC: the entry is wWinMain, which lives in the MFC library rather than
 # in an object of ours, so the linker cannot infer it and would look for WinMain.
 target_link_options(TortoiseProc PRIVATE /ENTRY:wWinMainCRTStartup)
-

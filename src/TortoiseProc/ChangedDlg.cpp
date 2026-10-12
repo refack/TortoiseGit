@@ -19,13 +19,14 @@
 //
 
 #include "stdafx.h"
+#include "std.h"
+
 #include "TortoiseProc.h"
 #include "ChangedDlg.h"
 #include "MessageBox.h"
 #include "AppUtils.h"
 #include "IconMenu.h"
 #include "RefLogDlg.h"
-import CmdLineParser;
 
 IMPLEMENT_DYNAMIC(CChangedDlg, CResizableStandAloneDialog)
 CChangedDlg::CChangedDlg(CWnd* pParent /*=nullptr*/)

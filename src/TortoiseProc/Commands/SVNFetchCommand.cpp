@@ -18,9 +18,10 @@
 //
 
 #include "stdafx.h"
+#include "std.h"
+
 #include "SVNFetchCommand.h"
 #include "ProgressDlg.h"
-import git_h;
 #include "AppUtils.h"
 
 bool SVNFetchCommand::Execute()

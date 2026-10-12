@@ -18,10 +18,10 @@
 //
 
 #include "stdafx.h"
+#include "std.h"
+
 #include "ProjectProperties.h"
 #include "CommonAppUtils.h"
-import git_h;
-import TempFile;
 #include <WinInet.h>
 #include "git2/sys/errors.h"
 

@@ -19,18 +19,15 @@
 //
 
 #include "stdafx.h"
+#include "std.h"
+
 #include "TortoiseProc.h"
 #include "CommitDlg.h"
 #include "MessageBox.h"
 #include "AppUtils.h"
-import PathUtils;
-import git_h;
 #include "HistoryDlg.h"
 #include "Hooks.h"
-import str_utils;
-import TGitCache.CacheInterface;
 #include "ProgressDlg.h"
-import CShellUpdater;
 #include "COMError.h"
 #include "TortoiseShell/Globals.h"
 #include "SysProgressDlg.h"
@@ -39,7 +36,6 @@ import CShellUpdater;
 #include "BstrSafeVector.h"
 #include "FileTextLines.h"
 #include "DPIAware.h"
-import CmdLineParser;
 
 #ifdef _DEBUG
 #define new DEBUG_NEW

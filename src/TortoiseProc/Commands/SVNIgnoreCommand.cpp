@@ -17,10 +17,11 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 #include "stdafx.h"
+#include "std.h"
+
 #include "SVNIgnoreCommand.h"
 
 #include "ProgressDlg.h"
-import git_h;
 #include "SVNIgnoreTypeDlg.h"
 
 bool SVNIgnoreCommand::Execute()

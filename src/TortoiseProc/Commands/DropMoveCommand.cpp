@@ -18,13 +18,13 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 #include "stdafx.h"
+#include "std.h"
+
 #include "DropMoveCommand.h"
 
 #include "SysProgressDlg.h"
 #include "MessageBox.h"
-import git_h;
 #include "RenameDlg.h"
-import CShellUpdater;
 
 bool DropMoveCommand::Execute()
 {

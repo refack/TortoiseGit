@@ -18,6 +18,8 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 #include "stdafx.h"
+#include "std.h"
+
 #include <TortoiseProc/resource.h>	// restored: these IDs used to arrive through headers that are imports now
 
 
@@ -26,30 +28,19 @@
 #include "GitStatusListCtrl.h"
 #include "MiscUI/MessageBox.h"
 #include "Utils/MyMemDC.h"
-import str_utils;
 #include "AppUtils.h"
-import PathUtils;
-import TempFile;
 #include "LoglistUtils.h"
-import git_h;
-import GitRev;
 #include "GitDiff.h"
 #include "GitProgressDlg.h"
 #include "Utils/SysImageList.h"
-import TGitPath;
-import Registry;
-import GitDataObject;
 #include "ProgressCommands/AddProgressCommand.h"
 #include "ProgressCommands/LFSSetLockedProgressCommand.h"
 #include "ProgressCommands/RevertProgressCommand.h"
 #include "ProgressCommands/ResolveProgressCommand.h"
 #include "MiscUI/IconMenu.h"
-import wil;
 #include "Utils/BrowseFolder.h"
 #include "CreateChangelistDlg.h"
 #include "Utils/Theme.h"
-#include <fstream>
-import CmdLineParser;
 
 const UINT CGitStatusListCtrl::GITSLNM_ITEMCOUNTCHANGED
 					= ::RegisterWindowMessage(L"GITSLNM_ITEMCOUNTCHANGED");

@@ -20,10 +20,11 @@
 //
 
 #include "stdafx.h"
+#include "std.h"
+
 #include "TortoiseProc.h"
 #include "SettingsBugtraqConfig.h"
 #include "ProjectProperties.h"
-import git_h;
 #include "BugtraqRegexTestDlg.h"
 import BugTraqProvider;
 

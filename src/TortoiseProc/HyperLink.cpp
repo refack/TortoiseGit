@@ -21,6 +21,8 @@
 // TortoiseProc object that included it then defined all of CHyperLink (and its
 // message map) once more - LNK2005 x 30 objects at the first link.
 #include "stdafx.h"
+#include "std.h"
+
 #include "HyperLink.h"
 
 // (No "#define new DEBUG_NEW" here: it broke SimpleIni's "new (std::nothrow)" in AboutDlg.)

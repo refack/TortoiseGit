@@ -21,13 +21,16 @@
 //
 
 #include "stdafx.h"
+#include "std.h"
+
+#include <Mmsystem.h>
+
 #include "TortoiseProc.h"
 #include "SyncDlg.h"
 #include "AppUtils.h"
 #include "ProgressDlg.h"
 #include "MessageBox.h"
 #include "Hooks.h"
-import RIAA;
 #include "ProgressCommands/FetchProgressCommand.h"
 #include "SysProgressDlg.h"
 #include "ThemeMFCVisualManager.h"

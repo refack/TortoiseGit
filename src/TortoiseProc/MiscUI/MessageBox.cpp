@@ -18,15 +18,15 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 #include "../stdafx.h"
+#include "../std.h"
+
 
 
 #include "resource.h"			//if you defined some IDS_MSGBOX_xxxx this include is needed!
 #include "Utils/dlgtemplate.h"
-import RIAA;
 #include <afxtaskdialog.h>
 #include "Utils/DPIAware.h"
 #include "Utils/LoadIconEx.h"
-import str_utils;
 #include "MiscUI/MessageBox.h"
 
 #define BTN_OFFSET 100 // use an offset in order to not interfere with IDYES and so on...

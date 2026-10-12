@@ -18,6 +18,8 @@
 //
 
 #include "stdafx.h"
+#include "std.h"
+
 #include "VersioncheckParser.h"
 
 CVersioncheckParser::CVersioncheckParser()

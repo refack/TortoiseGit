@@ -1,21 +1,22 @@
-﻿// stdafx.h : include file for standard system include files,
+﻿// std.h : include file for standard system include files,
 // or project specific include files that are used frequently,
 // but are changed infrequently
 
+// ReSharper disable CppUnusedIncludeDirective
 #pragma once
 // Every textual include first, every import last: a textual std header after an
 // `import std;` redefines what the import brought (C2011/C2995), and the module
 // imports below all import std.
 #include <SDKDDKVer.h>
 
-#define _ATL_CSTRING_EXPLICIT_CONSTRUCTORS	// some CString constructors will be explicit
+#define _ATL_CSTRING_EXPLICIT_CONSTRUCTORS	// some CString constructors will be explicit NOLINT(*-reserved-identifier)
 
 #include <algorithm>
 using std::max;
 using std::min;
 
 // turns off MFC's hiding of some common and often safely ignored warning messages
-#define _AFX_ALL_WARNINGS
+#define _AFX_ALL_WARNINGS	// NOLINT(*-reserved-identifier)
 
 #include <afxwin.h>         // MFC core and standard components
 #include <afxext.h>         // MFC extensions
@@ -39,22 +40,22 @@ using std::min;
 
 #include <git2.h>
 
-#include <string>
-#include <vector>
-#include <map>
-#include <set>
-#include <functional>
-#include <format>
-#include <locale>
-#include <xlocale>
 #include <concepts>
 #include <format>
+#include <format>
 #include <functional>
+#include <functional>
+#include <locale>
 #include <map>
+#include <map>
+#include <set>
 #include <sstream>
+#include <string>
 #include <string_view>
 #include <type_traits>
 #include <vector>
+#include <vector>
+#include <xlocale>
 // The rest of the std headers project headers include, so that a later textual
 // include finds them guarded rather than re-declaring them after `import std;`.
 #include <array>
@@ -64,6 +65,7 @@ using std::min;
 #include <chrono>
 #include <condition_variable>
 #include <deque>
+#include <exception>
 #include <expected>
 #include <filesystem>
 #include <fstream>
@@ -92,8 +94,8 @@ using std::min;
 #include <utility>
 #include <variant>
 
-#include <comdef.h>	// _COM_SMARTPTR_TYPEDEF (AnimationManager.h); the old PCH supplied it
-#include <vfw.h>
+#include <comdef.h>		// _COM_SMARTPTR_TYPEDEF (AnimationManager.h); the old PCH supplied it
+// #include <vfw.h>		// unused
 #include <shlobj.h>
 #include <Shlwapi.h>
 #include <shlguid.h>
@@ -108,7 +110,7 @@ using std::min;
 #define USE_GDI_GRADIENT
 #define HISTORYCOMBO_WITH_SYSIMAGELIST
 
-#include <afxdhtml.h>
+// #include <afxdhtml.h>	// unused
 
 #ifdef _WIN64
 #	define APP_X64_STRING	"x64"
@@ -122,36 +124,6 @@ using std::min;
 #include <Utils/ProfilingInfo.h>
 #include <sanity.h>		// SCOPE_EXIT; its scope_exit_helper comes with `import wil` below
 
-// What were src\Git and src\Utils headers, now the TGitLibgit2Mfc modules.
-import std;
-import invarients;
-import str_utils;		// UnicodeUtils.h, WideString.h, StringUtils.h
-import DebugOutput;
-import RIAA;			// SmartHandle.h
-import Registry;
-import PathUtils;
-import TGitPath;		// TGitPath.h, and GitAdminDir
-import git_h;			// Git.h, and what gittype.h/tgittypes held for git
-import GitIndex;		// git_wc_status_kind / git_wc_status2_t, which tgittypes held
-import wil;			// also the libgit2 owners, wil::unique_git_* (SmartLibgit2Ref.h's CAuto*)
-// Git.h used to drag these in transitively; an import does not re-export what it imports.
-import GitHash;
-import GitRev;
-import CmdLineParser;
-import LangDll;
-import TempFile;
-import CShellUpdater;
-import DarkModeHelper;
-
-// The one textual include after the imports, and on purpose: Monitor.h's Hash.h
-// expands SCOPE_EXIT, whose scope_exit_helper arrives with `import wil` above.
-// Every std header it pulls is already included (and guarded) at the top.
-// GetMonitorSetupHash, which every StandAloneDlg names its window-state key with.
-#include <Utils/Monitor.h>
-
-// Names that were global in the header era and live in a namespace now.
-using wil::CFormatMessageWrapper;
-using CUnicodeUtils::SafeSizeToInt;
 
 // MFC CString meets the modules' std::wstring. This is the MFC UI, which keeps
 // CString (CLAUDE.md, "Making src\ cohesive"), so concatenating across the

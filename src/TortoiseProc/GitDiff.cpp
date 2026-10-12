@@ -18,15 +18,15 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 #include "stdafx.h"
+#include "std.h"
+
 #include "GitDiff.h"
 #include "TortoiseProc.h"
 #include "AppUtils.h"
-import git_h;
 #include "resource.h"
 #include "MessageBox.h"
 #include "FileDiffDlg.h"
 #include "SubmoduleDiffDlg.h"
-import TempFile;
 
 int CGitDiff::SubmoduleDiffNull(HWND hWnd, const CTGitPath* pPath, const CGitHash& hash)
 {

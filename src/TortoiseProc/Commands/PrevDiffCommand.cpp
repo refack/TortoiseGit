@@ -19,6 +19,8 @@
 //
 
 #include "stdafx.h"
+#include "std.h"
+
 #include "PrevDiffCommand.h"
 #include "GitDiff.h"
 #include "MessageBox.h"

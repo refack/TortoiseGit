@@ -18,6 +18,8 @@
 //
 
 #include "stdafx.h"
+#include "std.h"
+
 #include "TortoiseProc.h"
 #include "FirstStartWizard.h"
 

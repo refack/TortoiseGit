@@ -20,6 +20,8 @@
 //
 
 #include "stdafx.h"
+#include "std.h"
+
 #include "TortoiseProc.h"
 #include "BrowseRefsDlg.h"
 #include "LogDlg.h"
@@ -35,11 +37,8 @@
 #include "InputDlg.h"
 #include "SysProgressDlg.h"
 #include "LoglistUtils.h"
-import GitRev;
-import str_utils;
 #include "BrowseRefsDlgFilter.h"
 #include "DPIAware.h"
-import CmdLineParser;
 
 static int SplitRemoteBranchName(CString ref, CString &remote, CString &branch)
 {

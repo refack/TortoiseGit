@@ -20,14 +20,14 @@
 //
 
 #include "stdafx.h"
+#include "std.h"
+
 #include "TortoiseProc.h"
 #include "MessageBox.h"
 #include "PatchViewDlg.h"
 #include "CommonAppUtils.h"
-import str_utils;
 #include "DPIAware.h"
 #include "StagingOperations.h"
-import git_h;
 #include "EnableStagingTypes.h"
 
 #pragma comment(lib, "Dwmapi.lib")

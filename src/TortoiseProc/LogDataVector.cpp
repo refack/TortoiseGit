@@ -27,11 +27,9 @@
 */
 
 #include "stdafx.h"
-import git_h;
-import GitHash;
-import TGitPath;
+#include "std.h"
+
 #include "LogDlgHelper.h"
-import str_utils;
 
 void CLogDataVector::ClearAll()
 {

@@ -20,12 +20,12 @@
 //
 
 #include "stdafx.h"
+#include "std.h"
+
 #include "TortoiseProc.h"
 #include "BisectStartDlg.h"
-import git_h;
 #include "LogDlg.h"
 #include "AppUtils.h"
-import str_utils;
 #include "MessageBox.h"
 
 IMPLEMENT_DYNAMIC(CBisectStartDlg, CHorizontalResizableStandAloneDialog)

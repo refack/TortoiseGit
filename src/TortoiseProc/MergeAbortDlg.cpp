@@ -20,8 +20,9 @@
 //
 
 #include "stdafx.h"
+#include "std.h"
+
 #include "TortoiseProc.h"
-import git_h;
 #include "MergeAbortDlg.h"
 #include "FileDiffDlg.h"
 #include "AppUtils.h"

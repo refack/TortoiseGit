@@ -20,13 +20,13 @@
 //
 
 #include "stdafx.h"
+#include "std.h"
+
 #include "TortoiseProc.h"
 #include "RequestPullDlg.h"
-import git_h;
 #include "LogDlg.h"
 #include "MessageBox.h"
 #include "AppUtils.h"
-import str_utils;
 
 IMPLEMENT_DYNAMIC(CRequestPullDlg, CHorizontalResizableStandAloneDialog)
 

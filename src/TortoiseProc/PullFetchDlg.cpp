@@ -21,9 +21,10 @@
 //
 
 #include "stdafx.h"
+#include "std.h"
+
 #include "TortoiseProc.h"
 #include "PullFetchDlg.h"
-import git_h;
 #include "AppUtils.h"
 #include "SelectRemoteRefDlg.h"
 #include "MessageBox.h"

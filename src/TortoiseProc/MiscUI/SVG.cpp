@@ -18,9 +18,10 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 #include "../stdafx.h"
+#include "../std.h"
+
 
 #include "MiscUI/SVG.h"
-import RIAA;
 
 SVG::SVG()
 {

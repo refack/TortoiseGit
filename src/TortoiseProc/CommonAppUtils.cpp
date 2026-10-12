@@ -18,15 +18,13 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 #include "stdafx.h"
+#include "std.h"
+
 #include <afxwin.h>
 #include <format>
-import wil;
 #include <shlobj_core.h>
 
 #include "CommonAppUtils.h"
-import PathUtils;
-import str_utils;
-import Registry;
 #include <Utils/SelectFileFilter.h>
 #include <Utils/DPIAware.h>
 #include <Utils/LoadIconEx.h>
@@ -34,7 +32,6 @@ import Registry;
 #include <Utils/CreateProcessHelper.h>
 
 #include "ACEdit.h"
-import RIAA;
 
 extern CString g_sGroupingUUID;
 

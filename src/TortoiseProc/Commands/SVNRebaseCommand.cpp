@@ -17,12 +17,13 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 #include "stdafx.h"
+#include "std.h"
+
 #include "SVNRebaseCommand.h"
 
 #include "SysProgressDlg.h"
 #include "ProgressDlg.h"
 #include "MessageBox.h"
-import git_h;
 #include "RebaseDlg.h"
 #include "AppUtils.h"
 

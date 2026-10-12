@@ -21,23 +21,17 @@
 //
 
 #include "stdafx.h"
+#include "std.h"
+
 #include "TortoiseProc.h"
 #include "RepositoryBrowser.h"
 #include "LogDlg.h"
 #include "AppUtils.h"
 #include "IconMenu.h"
-import str_utils;
 #include "SysImageList.h"
-#include <sys/stat.h>
-import Registry;
-import PathUtils;
 #include "GitDiff.h"
-import DragDrop;
-import GitDataObject;
-import TempFile;
 #include "DPIAware.h"
 #include "MessageBox.h"
-import CmdLineParser;
 
 #define OVERLAY_EXTERNAL	1
 #define OVERLAY_EXECUTABLE	2

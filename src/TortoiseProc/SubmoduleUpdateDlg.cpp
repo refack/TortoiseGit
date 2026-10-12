@@ -18,12 +18,11 @@
 //
 
 #include "stdafx.h"
+#include "std.h"
+
 #include "TortoiseProc.h"
 #include "SubmoduleUpdateDlg.h"
-import TGitPath;
 #include "AppUtils.h"
-import str_utils;
-import git_h;
 
 IMPLEMENT_DYNAMIC(CSubmoduleUpdateDlg, CResizableStandAloneDialog)
 

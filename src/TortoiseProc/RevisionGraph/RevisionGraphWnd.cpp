@@ -19,17 +19,13 @@
 //
 
 #include "stdafx.h"
+#include "std.h"
+
 #include "TortoiseProc.h"
 #include "RevisionGraphWnd.h"
 #include "MessageBox.h"
-import git_h;
 #include "AppUtils.h"
-import PathUtils;
-import str_utils;
 #include "RevisionGraphDlg.h"
-import wil;
-import GitRevLoglist;
-import CmdLineParser;
 
 #pragma warning(push)
 #pragma warning(disable: 4100) // unreferenced formal parameter

@@ -18,11 +18,12 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 #include "../stdafx.h"
+#include "../std.h"
+
 
 
 #include "MiscUI/Tooltip.h"
 #include "Utils/Theme.h"
-import DarkModeHelper;
 
 
 BEGIN_MESSAGE_MAP(CToolTips, CToolTipCtrl)

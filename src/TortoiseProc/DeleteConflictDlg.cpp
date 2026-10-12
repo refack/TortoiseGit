@@ -20,11 +20,11 @@
 //
 
 #include "stdafx.h"
+#include "std.h"
+
 #include "resource.h"
 #include "DeleteConflictDlg.h"
 #include "AppUtils.h"
-import git_h;
-import CmdLineParser;
 
 // CDeleteConflictDlg dialog
 

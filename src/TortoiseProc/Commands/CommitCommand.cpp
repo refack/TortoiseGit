@@ -19,8 +19,9 @@
 //
 
 #include "stdafx.h"
+#include "std.h"
+
 #include "CommitCommand.h"
-import str_utils;
 #include "MessageBox.h"
 #include "AppUtils.h"
 

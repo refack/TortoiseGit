@@ -18,13 +18,13 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 #include "stdafx.h"
+#include "std.h"
+
 #include "TortoiseProc.h"
 #include "RenameDlg.h"
 #include "AppUtils.h"
 #include "MessageBox.h"
 
-import TGitPath;
-import git_h;
 
 namespace CControlsBridge
 {

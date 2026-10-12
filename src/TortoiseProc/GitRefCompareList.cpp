@@ -19,17 +19,15 @@
 // GitRefCompareList.cpp : implementation file
 //
 #include "stdafx.h"
+#include "std.h"
+
 #include "resource.h"
-import git_h;
 #include "GitRefCompareList.h"
-import Registry;
-import str_utils;
 #include "IconMenu.h"
 #include "AppUtils.h"
 #include <TortoiseShell/resource.h>
 #include "LoglistCommonResource.h"
 #include "DPIAware.h"
-import CmdLineParser;
 
 IMPLEMENT_DYNAMIC(CGitRefCompareList, CHintCtrl<CListCtrl>)
 

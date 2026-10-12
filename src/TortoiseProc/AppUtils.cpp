@@ -19,22 +19,17 @@
 //
 
 #include "stdafx.h"
+#include "std.h"
+
 #include "TortoiseProc.h"
-import PathUtils;
 #include "AppUtils.h"
 #include "MessageBox.h"
-import Registry;
-import TGitPath;
-import git_h;
-import str_utils;
 #include "URLFinder.h"
 #include "git2/sys/errors.h"
-import CmdLineParser;
 #ifndef TGIT_TESTS_ONLY
 #include "ExportDlg.h"
 #include "ProgressDlg.h"
 #include "BrowseFolder.h"
-import DirFileEnum;
 #include "CreateBranchTagDlg.h"
 #include "CreateWorktreeDlg.h"
 #include "GitSwitchDlg.h"
@@ -55,8 +50,6 @@ import DirFileEnum;
 #include "PropKey.h"
 #include "StashSave.h"
 #include "IgnoreDlg.h"
-import wil;
-import RIAA;
 #include "BisectStartDlg.h"
 #include "SysProgressDlg.h"
 #include "UserPassword.h"
@@ -67,7 +60,6 @@ import RIAA;
 #include "CheckCertificateDlg.h"
 #include "SubmoduleResolveConflictDlg.h"
 #include "GitDiff.h"
-import TGitCache.CacheInterface;
 #include "IconExtractor.h"
 #endif
 

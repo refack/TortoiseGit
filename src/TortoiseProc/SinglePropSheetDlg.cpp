@@ -21,11 +21,11 @@
 //
 
 #include "stdafx.h"
+#include "std.h"
+
 #include "TortoiseProc.h"
 #include "SinglePropSheetDlg.h"
-import git_h;
 #include "AppUtils.h"
-import DarkModeHelper;
 #include "DPIAware.h"
 
 // CSinglePropSheetDlg dialog

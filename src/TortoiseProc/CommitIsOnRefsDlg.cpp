@@ -17,10 +17,10 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 #include "stdafx.h"
+#include "std.h"
+
 #include "TortoiseProc.h"
-import git_h;
 #include "CommitIsOnRefsDlg.h"
-import str_utils;
 #include "BrowseRefsDlg.h"
 #include "RefLogDlg.h"
 #include "LogDlg.h"
@@ -28,7 +28,6 @@ import str_utils;
 #include "AppUtils.h"
 #include "FileDiffDlg.h"
 #include "MessageBox.h"
-import CmdLineParser;
 
 // CCommitIsOnRefsDlg dialog
 

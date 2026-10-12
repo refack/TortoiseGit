@@ -20,12 +20,13 @@
 //
 
 #include "stdafx.h"
+#include "std.h"
+
 #include "TortoiseProc.h"
 #include "SettingGitCredential.h"
 import TGitPath;	// GitAdminDir lives in the TGitPath module
 #include "MessageBox.h"
 #include "AppUtils.h"
-import git_h;
 
 namespace SimpleCredentialType
 {

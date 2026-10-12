@@ -19,6 +19,8 @@
 //
 
 #include "stdafx.h"
+#include "std.h"
+
 #include "TortoiseProc.h"
 #include "InputDlg.h"
 #include "AppUtils.h"

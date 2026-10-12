@@ -16,10 +16,9 @@
 // along with this program; if not, write to the Free Software Foundation,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
-#include <stdafx.h>
+#include "stdafx.h"
 #include "StagingOperations.h"
-#include <regex>
-import git_h;
+#include "std.h"
 
 bool StagingOperations::IsWithinFileHeader(int line) const
 {

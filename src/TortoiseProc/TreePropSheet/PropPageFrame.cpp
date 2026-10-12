@@ -17,6 +17,8 @@
 *
 *********************************************************************/
 #include "../stdafx.h"
+#include "../std.h"
+
 
 
 #include "TreePropSheet/PropPageFrame.h"

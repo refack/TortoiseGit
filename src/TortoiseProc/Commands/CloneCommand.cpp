@@ -19,14 +19,14 @@
 //
 
 #include "stdafx.h"
+#include "std.h"
+
 #include "CloneCommand.h"
 #include "GitProgressDlg.h"
-import str_utils;
 #include "CloneDlg.h"
 #include "ProgressDlg.h"
 #include "AppUtils.h"
 #include "ProgressCommands/CloneProgressCommand.h"
-import CmdLineParser;
 
 static CString GetExistingDirectoryForClone(CString path)
 {

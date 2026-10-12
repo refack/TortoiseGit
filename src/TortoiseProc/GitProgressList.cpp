@@ -18,18 +18,17 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 #include "stdafx.h"
+#include "std.h"
+
+#include <Mmsystem.h>
+
 #include "TortoiseProc.h"
 #include "GitProgressList.h"
-import git_h;
-import Registry;
 #include "AppUtils.h"
-import str_utils;
 #include "LogFile.h"
 #include "LoglistUtils.h"
 #include "Theme.h"
-import TempFile;
 #include "git2/sys/errors.h"
-import CmdLineParser;
 
 BOOL	CGitProgressList::m_bAscending = FALSE;
 int		CGitProgressList::m_nSortedColumn = -1;

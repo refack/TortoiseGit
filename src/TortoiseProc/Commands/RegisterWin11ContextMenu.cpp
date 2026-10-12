@@ -19,6 +19,8 @@
 //
 
 #include "stdafx.h"
+#include "std.h"
+
 #include "RegisterWin11ContextMenu.h"
 #include <oobenotification.h>
 #include <winrt/Windows.Management.Deployment.h>
@@ -26,8 +28,6 @@
 #include <winrt/Windows.ApplicationModel.h>
 #include <future>
 import SysInfo;
-import PathUtils;
-import str_utils;
 
 using namespace winrt::Windows::Foundation;
 using namespace winrt::Windows::Management::Deployment;

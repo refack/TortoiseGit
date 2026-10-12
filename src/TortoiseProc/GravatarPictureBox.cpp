@@ -17,15 +17,14 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 #include "stdafx.h"
+#include "std.h"
+
 #include "GravatarPictureBox.h"
 #include "Picture.h"
 #include "MessageBox.h"
-import str_utils;
-import git_h;
 #include "LoglistCommonResource.h"
 #include "resource.h"
 #include <WinCrypt.h>
-import RIAA;
 
 // Not named CAutoLocker: git_h exports TGitH::CAutoLocker over its own recursive mutex,
 // and the two would make every unqualified use ambiguous.

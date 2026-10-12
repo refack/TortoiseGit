@@ -19,6 +19,8 @@
 //
 
 #include "stdafx.h"
+#include "std.h"
+
 #include "resource.h"
 #include "MassiveGitTask.h"
 #include "ProgressDlg.h"

@@ -20,9 +20,10 @@
 //
 
 #include "stdafx.h"
+#include "std.h"
+
 #include "TortoiseProc.h"
 #include "CleanTypeDlg.h"
-import git_h;
 #include "AppUtils.h"
 
 // CCleanTypeDlg dialog

@@ -18,11 +18,12 @@
 //
 
 #include "stdafx.h"
+#include "std.h"
+
 #include "TortoiseProc.h"
 #include "StashSave.h"
 #include "AppUtils.h"
 #include "MessageBox.h"
-import git_h;
 
 IMPLEMENT_DYNAMIC(CStashSaveDlg, CHorizontalResizableStandAloneDialog)
 

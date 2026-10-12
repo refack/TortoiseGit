@@ -18,17 +18,18 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 #include "stdafx.h"
+#include "std.h"
+
+#include <Mmsystem.h>
+
 #include "TortoiseProc.h"
 #include "StatGraphDlg.h"
 #include "LogDlg.h"
 #include "MessageBox.h"
 #include "AppUtils.h"
-import str_utils;
 #include "IconMenu.h"
 #include "BrowseRefsDlg.h"
-import RIAA;
 #include "LogOrdering.h"
-import wil;
 #include "DPIAware.h"
 #include "LogDlgFileFilter.h"
 

@@ -17,12 +17,12 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 #include "stdafx.h"
+#include "std.h"
+
 #include "TortoiseProc.h"
 #include "FirstStartWizard.h"
 #include "FirstStartWizardAuthentication.h"
-import git_h;
 #include "Settings/SettingGitCredential.h"
-import PathUtils;
 #include "Theme.h"
 
 #define WM_SETPAGEFOCUS WM_APP+2

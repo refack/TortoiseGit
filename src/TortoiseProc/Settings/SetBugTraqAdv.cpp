@@ -18,10 +18,11 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 #include "stdafx.h"
+#include "std.h"
+
 #include <TortoiseProc/resource.h>	// restored: these IDs used to arrive through headers that are imports now
 #include "SetBugTraqAdv.h"
 #include "BrowseFolder.h"
-import BugTraqProvider;
 #include <IBugTraqProvider/IBugTraqProvider_h.h>
 
 IMPLEMENT_DYNAMIC(CSetBugTraqAdv, CResizableStandAloneDialog)

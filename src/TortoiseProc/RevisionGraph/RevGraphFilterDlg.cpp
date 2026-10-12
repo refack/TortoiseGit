@@ -18,11 +18,11 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 #include "stdafx.h"
+#include "std.h"
+
 #include "TortoiseProc.h"
 #include "RevGraphFilterDlg.h"
-import git_h;
 #include "BrowseRefsDlg.h"
-import str_utils;
 
 IMPLEMENT_DYNAMIC(CRevGraphFilterDlg, CStandAloneDialog)
 

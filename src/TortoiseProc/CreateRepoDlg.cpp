@@ -20,10 +20,11 @@
 //
 
 #include "stdafx.h"
+#include "std.h"
+
 #include "TortoiseProc.h"
 #include "CreateRepoDlg.h"
 #include "AppUtils.h"
-import str_utils;
 
 // CCreateRepoDlg dialog
 

@@ -18,11 +18,12 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 #include "stdafx.h"
+#include "std.h"
+
 #include "AddCommand.h"
 #include "AddDlg.h"
 #include "GitProgressDlg.h"
 #include "ProgressCommands/AddProgressCommand.h"
-import CShellUpdater;
 
 bool AddCommand::Execute()
 {

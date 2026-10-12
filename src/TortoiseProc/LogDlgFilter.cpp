@@ -18,6 +18,8 @@
 //
 
 #include "stdafx.h"
+#include "std.h"
+
 #include "LogDlgFilter.h"
 #include "GitLogListBase.h"
 

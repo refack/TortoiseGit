@@ -18,10 +18,10 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 #include "stdafx.h"
+#include "std.h"
+
 #include "FormatPatchCommand.h"
 #include "FormatPatchDlg.h"
-import git_h;
-import CShellUpdater;
 #include "ProgressDlg.h"
 #include "AppUtils.h"
 

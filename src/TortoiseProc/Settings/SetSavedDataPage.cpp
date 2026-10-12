@@ -18,15 +18,12 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 #include "stdafx.h"
+#include "std.h"
+
 #include "TortoiseProc.h"
-import Registry;
-import PathUtils;
 #include "AppUtils.h"
-import DirFileEnum;
 #include "SetSavedDataPage.h"
 #include "MessageBox.h"
-import str_utils;
-import git_h;
 #include "WindowsCredentialsStore.h"
 
 // CRegistryKey reports into std::vector<std::wstring> now; this page keeps its

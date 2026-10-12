@@ -19,6 +19,8 @@
 //
 
 #include "stdafx.h"
+#include "std.h"
+
 #include "ColumnManager.h"
 #include "LoglistCommonResource.h"
 #include "DPIAware.h"

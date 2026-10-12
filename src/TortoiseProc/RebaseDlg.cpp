@@ -21,15 +21,14 @@
 //
 
 #include "stdafx.h"
+#include "std.h"
+
 #include "TortoiseProc.h"
 #include "RebaseDlg.h"
 #include "AppUtils.h"
 #include "LoglistUtils.h"
 #include "MessageBox.h"
-import str_utils;
 #include "BrowseRefsDlg.h"
-import RIAA;
-import TGitCache.CacheInterface;
 #include "MassiveGitTask.h"
 #include "CommitDlg.h"
 #include "Hooks.h"

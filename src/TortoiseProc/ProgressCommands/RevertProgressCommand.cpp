@@ -17,13 +17,11 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 #include "stdafx.h"
+#include "std.h"
+
 #include "TortoiseProc.h"
 #include "RevertProgressCommand.h"
-import CShellUpdater;
-import TGitCache.CacheInterface;
 #include "MassiveGitTask.h"
-import GitRev;
-import CmdLineParser;
 
 using Git_WC_Notify_Action = CGitProgressList::WC_File_NotificationData::Git_WC_Notify_Action;
 

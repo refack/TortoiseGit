@@ -20,9 +20,10 @@
 //
 
 #include "stdafx.h"
+#include "std.h"
+
 #include "resource.h"
 #include "RefLogDlg.h"
-import git_h;
 #include "AppUtils.h"
 #include "MessageBox.h"
 

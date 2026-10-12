@@ -19,23 +19,18 @@
 //
 
 #include "stdafx.h"
+#include "std.h"
+
 #include "TortoiseProc.h"
-import git_h;
 #include "LoglistCommonResource.h"
 #include <version.h>
 #include "MessageBox.h"
 #include "CheckForUpdatesDlg.h"
-import Registry;
 #include "AppUtils.h"
-import TempFile;
-import RIAA;
-import PathUtils;
-import DirFileEnum;
 #include "UpdateCrypto.h"
 #include <MsiDefs.h>
 #include <MsiQuery.h>
 #include "DPIAware.h"
-import LangDll;
 
 #pragma comment(lib, "msi.lib")
 

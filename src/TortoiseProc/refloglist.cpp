@@ -17,12 +17,13 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 #include "stdafx.h"
+#include "std.h"
+
 #include "resource.h"
 #include "refloglist.h"
 #include "LoglistUtils.h"
 #include "AppUtils.h"
 #include "DPIAware.h"
-import CmdLineParser;
 
 IMPLEMENT_DYNAMIC(CRefLogList, CGitLogList)
 

@@ -21,11 +21,10 @@
 //
 
 #include "stdafx.h"
+#include "std.h"
+
 #include "TortoiseProc.h"
 #include "PushDlg.h"
-import str_utils;
-import git_h;
-import Registry;
 #include "AppUtils.h"
 #include "LogDlg.h"
 #include "BrowseRefsDlg.h"

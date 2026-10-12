@@ -19,12 +19,11 @@
 //
 
 #include "stdafx.h"
+#include "std.h"
+
 #include "TortoiseProc.h"
 #include "MyMemDC.h"
-import git_h;
-import str_utils;
 #include "RevisionGraphWnd.h"
-import Registry;
 #include "DPIAware.h"
 #include "Theme.h"
 #include "AppUtils.h"

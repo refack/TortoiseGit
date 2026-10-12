@@ -19,10 +19,11 @@
 //
 
 #include "stdafx.h"
+#include "std.h"
+
 #include "TortoiseProc.h"
 #include "SettingsColors.h"
 #include "Theme.h"
-import DarkModeHelper;
 #include "Settings/Settings.h"
 
 IMPLEMENT_DYNAMIC(CSettingsColors, ISettingsPropPage)

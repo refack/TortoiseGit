@@ -21,6 +21,8 @@
 //
 
 #include "stdafx.h"
+#include "std.h"
+
 #include "resource.h"
 #include "SubmoduleAddDlg.h"
 #include "BrowseFolder.h"

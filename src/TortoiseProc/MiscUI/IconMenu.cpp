@@ -18,9 +18,10 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 #include "../stdafx.h"
+#include "../std.h"
+
 
 #include "MiscUI/IconMenu.h"
-import Registry;
 #include "Utils/LoadIconEx.h"
 #include "MiscUI/IconBitmapUtils.h"
 

@@ -18,10 +18,11 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 #include "stdafx.h"
+#include "std.h"
+
 #include "UnIgnoreCommand.h"
 
 #include "MessageBox.h"
-import PathUtils;
 #include "SVNProperties.h"
 
 bool UnIgnoreCommand::Execute()

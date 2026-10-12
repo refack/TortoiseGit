@@ -18,13 +18,10 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 #include "stdafx.h"
+#include "std.h"
+
 
 #include "Hooks.h"
-import Registry;
-import str_utils;
-import TempFile;
-import RIAA;
-import git_h;
 #include "resource.h"
 #include <afxtaskdialog.h>
 #include <WinCrypt.h>
@@ -289,7 +286,7 @@ void CHooks::AddParam(CString& sCmd, const CString& param)
 void CHooks::AddPathParam(CString& sCmd, const CTGitPathList& pathList)
 {
 	CTGitPath temppath = TempFiles::GetTempFilePath(true);
-	pathList.WriteToFile(temppath.GetWinPathString().c_str(), true);
+	std::ignore = pathList.WriteToFile(temppath.GetWinPathString().c_str(), true);
 	AddParam(sCmd, temppath.GetWinPathString().c_str());
 }
 

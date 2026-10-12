@@ -19,9 +19,10 @@
 //
 
 #include "stdafx.h"
+#include "std.h"
+
 #include "TortoiseProc.h"
 #include "SettingsAdvanced.h"
-import git_h;
 
 IMPLEMENT_DYNAMIC(CSettingsAdvanced, ISettingsPropPage)
 

@@ -18,12 +18,12 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 #include "stdafx.h"
+#include "std.h"
+
 #include "TortoiseProc.h"
 #include "MessageBox.h"
 #include "ResolveDlg.h"
-import PathUtils;
 #include "AppUtils.h"
-import git_h;
 
 #define REFRESHTIMER   100
 

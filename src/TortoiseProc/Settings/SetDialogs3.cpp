@@ -18,11 +18,12 @@
 //
 
 #include "stdafx.h"
+#include "std.h"
+
 #include "TortoiseProc.h"
 #include "ProjectProperties.h"
 #include "SetDialogs3.h"
 #include "AppUtils.h"
-import LangDll;
 
 static std::vector<DWORD> g_langs;
 

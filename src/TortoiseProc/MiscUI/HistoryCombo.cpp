@@ -18,13 +18,13 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 #include "../stdafx.h"
+#include "../std.h"
+
 
 
 #include "Utils/HistoryCombo.h"
-import Registry;
 #include "Utils/DPIAware.h"
 #include "Utils/Theme.h"
-import wil;
 
 #ifdef HISTORYCOMBO_WITH_SYSIMAGELIST
 #include "Utils/SysImageList.h"

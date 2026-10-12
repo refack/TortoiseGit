@@ -17,10 +17,10 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 #include "stdafx.h"
+#include "std.h"
+
 #include "TortoiseProc.h"
 #include "ResolveProgressCommand.h"
-import CShellUpdater;
-import TGitCache.CacheInterface;
 #include "AppUtils.h"
 #include "MassiveGitTask.h"
 #include "MessageBox.h"

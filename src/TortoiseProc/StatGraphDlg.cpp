@@ -19,13 +19,11 @@
 //
 
 #include "stdafx.h"
+#include "std.h"
+
 #include "TortoiseProc.h"
-import git_h;
 #include "StatGraphDlg.h"
 #include "AppUtils.h"
-import PathUtils;
-import Registry;
-import wil;
 #include "SysProgressDlg.h"
 #include <cmath>
 #include <utility>

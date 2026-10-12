@@ -19,13 +19,13 @@
 //
 
 #include "stdafx.h"
+#include "std.h"
+
 #include "TortoiseProc.h"
 #include "MessageBox.h"
 #include "AppUtils.h"
 #include "SysImageList.h"
 #include "IconMenu.h"
-import str_utils;
-import PathUtils;
 #include "BrowseFolder.h"
 #include "FileDiffDlg.h"
 #include "GitDiff.h"
@@ -35,10 +35,7 @@ import PathUtils;
 #include "LogDlg.h"
 #include "RefLogDlg.h"
 #include "GitStatusListCtrl.h"
-import wil;
-import GitDataObject;
 #include "LogDlgFileFilter.h"
-import CmdLineParser;
 
 #define ID_COMPARE 1
 #define ID_BLAME 2
@@ -1476,7 +1473,7 @@ void CFileDiffDlg::OnLvnBegindrag(NMHDR* pNMHDR, LRESULT* pResult)
 
 	pdsrc->AddRef();
 
-	GitDataObject* pdobj = new GitDataObject(toExport, m_rev2.m_CommitHash);
+	auto* pdobj = new TGitDataObject::GitDataObject(toExport, m_rev2.m_CommitHash);
 	if (!pdobj)
 		return;
 	pdobj->AddRef();

@@ -20,14 +20,14 @@
 //
 
 #include "stdafx.h"
+#include "std.h"
+
 #include "TortoiseProc.h"
 #include "SettingGitRemote.h"
 import TGitPath;	// GitAdminDir lives in the TGitPath module
 #include "MessageBox.h"
 #include "AppUtils.h"
-import git_h;
 #include "HistoryCombo.h"
-import CmdLineParser;
 
 // CSettingGitRemote dialog
 

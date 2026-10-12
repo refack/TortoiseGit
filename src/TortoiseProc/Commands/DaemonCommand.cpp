@@ -18,6 +18,8 @@
 //
 
 #include "stdafx.h"
+#include "std.h"
+
 #include "DaemonCommand.h"
 #include "ProgressDlg.h"
 #include "MessageBox.h"

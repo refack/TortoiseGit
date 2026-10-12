@@ -19,6 +19,8 @@
 // CUpdateListCtrl
 
 #include "stdafx.h"
+#include "std.h"
+
 #include "UpdateListCtrl.h"
 
 IMPLEMENT_DYNAMIC(CUpdateListCtrl, CListCtrl)

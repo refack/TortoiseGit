@@ -19,6 +19,8 @@
 //
 
 #include "stdafx.h"
+#include "std.h"
+
 #include "Command.h"
 #include "MessageBox.h"
 #include "AboutCommand.h"

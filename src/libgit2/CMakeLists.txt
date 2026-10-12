@@ -1,4 +1,4 @@
-﻿cmake_minimum_required(VERSION 4.3)
+﻿cmake_minimum_required(VERSION 4.4)
 
 # before project() — the gate is read when the CXX toolchain is discovered
 set(CMAKE_EXPERIMENTAL_CXX_IMPORT_STD "f35a9ac6-8463-4d38-8eec-5d6008153e7d")
@@ -177,5 +177,5 @@ function(tgit_core_library name flavor)
     )
 endfunction()
 
-tgit_core_library(TGitLibgit2 ATL)
+#tgit_core_library(TGitLibgit2 ATL)
 tgit_core_library(TGitLibgit2Mfc MFC)

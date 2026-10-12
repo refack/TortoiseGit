@@ -18,11 +18,11 @@
 //
 
 #include "stdafx.h"
+#include "std.h"
+
 #include "TortoiseProc.h"
 #include "FirstStartWizard.h"
 #include "FirstStartWizardGit.h"
-import git_h;
-import TGitCache.CacheInterface;
 #include "Theme.h"
 
 IMPLEMENT_DYNAMIC(CFirstStartWizardGit, CFirstStartWizardBasePage)

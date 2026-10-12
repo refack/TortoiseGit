@@ -18,10 +18,11 @@
 //
 
 #include "stdafx.h"
+#include "std.h"
+
 #include "SubmoduleCommand.h"
 
 #include "AppUtils.h"
-import git_h;
 #include "MassiveGitTask.h"
 #include "MessageBox.h"
 #include "ProgressDlg.h"

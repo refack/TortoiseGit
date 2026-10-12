@@ -19,23 +19,21 @@
 //
 
 #include "stdafx.h"
+#include "std.h"
+
 #include "TortoiseProc.h"
 #include "GitLogList.h"
-import GitRev;
 #include "IconMenu.h"
 #include "SysProgressDlg.h"
 #include "MessageBox.h"
-import Registry;
 #include "AppUtils.h"
-import str_utils;
 #include "CommitDlg.h"
 #include "RebaseDlg.h"
 #include "CommitIsOnRefsDlg.h"
 #include "GitDiff.h"
-import TGitCache.CacheInterface;
-import CmdLineParser;
 
 IMPLEMENT_DYNAMIC(CGitLogList, CHintCtrl<CListCtrl>)
+
 
 static bool GetFirstEntryStartingWith(const std::vector<std::wstring>& heystack, const CString& needle, CString& result)
 {

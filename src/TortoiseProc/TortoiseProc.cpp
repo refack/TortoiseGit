@@ -19,31 +19,27 @@
 //
 
 #include "stdafx.h"
+#include "std.h"
+
 #include "TortoiseProc.h"
 #include "SysImageList.h"
-import CmdLineParser;
 #include "Hooks.h"
 #include "AppUtils.h"
-import PathUtils;
-import str_utils;
 #include "MessageBox.h"
-import RIAA;
 #include "Commands\Command.h"
 #include <version.h>
 #include "JumpListHelpers.h"
 #include "ConfigureGitExe.h"
-import Libraries;
-import TaskbarUUID;
 #include "ProjectProperties.h"
 #include "HistoryCombo.h"
 #include <random>
 #include "WindowsCredentialsStore.h"
 #include "AnimationManager.h"
 #include "VersioncheckParser.h"
-import TempFile;
 #include "Hash.h"
+import TaskbarUUID;
+import Libraries;
 
-import git_h;
 
 #define STRUCT_IOVEC_DEFINED
 

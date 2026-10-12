@@ -18,13 +18,14 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 #include "stdafx.h"
+#include "std.h"
+
 #include "DropCopyAddCommand.h"
-import wil;
 #include "GitProgressDlg.h"
 #include "MessageBox.h"
-import str_utils;
-import DirFileEnum;
 #include "ProgressCommands/AddProgressCommand.h"
+import DirFileEnum;
+
 
 bool DropCopyAddCommand::Execute()
 {
@@ -97,7 +98,7 @@ bool DropCopyAddCommand::Execute()
 				if (!SHFileOperation(&fileop))
 				{
 					// add all copied files WITH special handling for repos/submodules (folders which include a .git entry)
-					CDirFileEnum finder(droppath + L'\\' + name);
+					DirFileEnum::CDirFileEnum finder(droppath + L'\\' + name);
 					CString lastRepo;
 					bool isRepo = false;
 					while (auto file = finder.NextFile(!isRepo)) // don't recurse into .git directories
@@ -124,7 +125,7 @@ bool DropCopyAddCommand::Execute()
 								return FALSE;
 							if (ret == 1)
 							{
-								CTGitPath(filepath.GetString()).Delete(false, true);
+								std::ignore = CTGitPath(filepath.GetString()).Delete(false, true);
 								lastRepo.Empty();
 							}
 							continue;

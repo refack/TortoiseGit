@@ -18,7 +18,8 @@
 //
 
 #include "stdafx.h"
-import git_h;
+#include "std.h"
+
 #include "AppUtils.h"
 #include "TortoiseProc.h"
 #include "SelectRemoteRefDlg.h"

@@ -18,6 +18,8 @@
 //
 
 #include "stdafx.h"
+#include "std.h"
+
 #include "LFSCommands.h"
 #include "GitProgressDlg.h"
 #include "LFSLocksDlg.h"

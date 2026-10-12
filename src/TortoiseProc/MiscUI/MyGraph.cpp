@@ -1,5 +1,7 @@
 ﻿// MyGraph.cpp
 #include "../stdafx.h"
+#include "../std.h"
+
 
 
 #include "MiscUI/MyGraph.h"

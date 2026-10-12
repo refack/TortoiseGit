@@ -19,9 +19,10 @@
 //
 
 #include "stdafx.h"
+#include "std.h"
+
 #include "TortoiseProc.h"
 #include "RevisionGraphDlg.h"
-import git_h;
 #include "AppUtils.h"
 #include "RevGraphFilterDlg.h"
 #include "DPIAware.h"

@@ -20,19 +20,19 @@
 //
 
 #include "stdafx.h"
+#include "std.h"
+
+#include <Mmsystem.h>
+
 #include "TortoiseProc.h"
 #include "ProgressDlg.h"
-import str_utils;
 #include "IconMenu.h"
 #include "LoglistCommonResource.h"
 #include <Tlhelp32.h>
 #include "AppUtils.h"
-import RIAA;
-import TGitCache.CacheInterface;
 #include "LoglistUtils.h"
 #include "MessageBox.h"
 #include "LogFile.h"
-import CmdLineParser;
 
 #define REFRESHTIMER 100
 

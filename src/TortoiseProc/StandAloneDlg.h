@@ -20,14 +20,15 @@
 #pragma once
 
 #include "ResizableLib/ResizableDialog.h"
-import TaskbarUUID;
 #include "Tooltip.h"
 #include "CommonDialogFunctions.h"
 #include "EditWordBreak.h"
 #include "Theme.h"
-import DarkModeHelper;
 #include "CommonAppUtils.h"
 #include "DPIAware.h"
+
+import TaskbarUUID;
+import DarkModeHelper;
 
 // Defined by each MFC application (TortoiseProc, TortoiseGitBlame); passed to
 // SetUUIDOverlayIcon, which no longer reaches for them itself.

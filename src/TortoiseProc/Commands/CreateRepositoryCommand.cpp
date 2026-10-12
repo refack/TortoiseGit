@@ -18,10 +18,10 @@
 //
 
 #include "stdafx.h"
+#include "std.h"
+
 #include "CreateRepositoryCommand.h"
-import CShellUpdater;
 #include "MessageBox.h"
-import str_utils;
 #include "CreateRepoDlg.h"
 #include "AppUtils.h"
 

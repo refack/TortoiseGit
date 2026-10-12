@@ -20,14 +20,14 @@
 //
 
 #include "stdafx.h"
+#include "std.h"
+
 #include "TortoiseProc.h"
 #include "WorktreeListDlg.h"
 #include "ProgressDlg.h"
 #include "AppUtils.h"
 #include "IconMenu.h"
-import str_utils;
 #include "SysImageList.h"
-import PathUtils;
 #include "MessageBox.h"
 
 // CWorktreeListDlg dialog

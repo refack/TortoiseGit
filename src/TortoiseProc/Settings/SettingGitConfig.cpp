@@ -20,6 +20,8 @@
 //
 
 #include "stdafx.h"
+#include "std.h"
+
 #include "TortoiseProc.h"
 #include "SettingGitConfig.h"
 import TGitPath;	// GitAdminDir lives in the TGitPath module

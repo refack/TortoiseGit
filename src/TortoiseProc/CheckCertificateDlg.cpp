@@ -18,10 +18,11 @@
 //
 
 #include "stdafx.h"
+#include "std.h"
+
 #include "TortoiseProc.h"
 #include "CheckCertificateDlg.h"
 #include "AppUtils.h"
-import TempFile;
 #include <WinCrypt.h>
 
 IMPLEMENT_DYNAMIC(CCheckCertificateDlg, CStandAloneDialog)

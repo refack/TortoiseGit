@@ -18,6 +18,8 @@
 //
 
 #include "stdafx.h"
+#include "std.h"
+
 #include "BisectCommand.h"
 #include "AppUtils.h"
 #include "resource.h"

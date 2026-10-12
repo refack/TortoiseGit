@@ -19,14 +19,14 @@
 //
 
 #include "stdafx.h"
+#include "std.h"
+
 #include "TortoiseProc.h"
 #include "AboutDlg.h"
-import PathUtils;
 #define NEED_SIGNING_KEY
 #include <version.h>
 #include "VersioncheckParser.h"
 #include "AppUtils.h"
-import git_h;
 #include "DPIAware.h"
 
 //IMPLEMENT_DYNAMIC(CAboutDlg, CStandAloneDialog)

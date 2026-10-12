@@ -18,15 +18,15 @@
 //
 
 #include "stdafx.h"
+#include "std.h"
+
 #include "TortoiseProc.h"
-import git_h;
 #include "AppUtils.h"
 #include "SubmoduleResolveConflictDlg.h"
 #include "SubmoduleDiffDlg.h"
 #include "MessageBox.h"
 #include "GitProgressDlg.h"
 #include "ProgressCommands/ResolveProgressCommand.h"
-import CmdLineParser;
 
 IMPLEMENT_DYNAMIC(CSubmoduleResolveConflictDlg, CHorizontalResizableStandAloneDialog)
 CSubmoduleResolveConflictDlg::CSubmoduleResolveConflictDlg(CWnd* pParent /*=nullptr*/)

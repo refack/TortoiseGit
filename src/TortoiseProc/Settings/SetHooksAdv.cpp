@@ -18,11 +18,12 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 #include "stdafx.h"
+#include "std.h"
+
 #include "TortoiseProc.h"
 #include "SetHooksAdv.h"
 #include "BrowseFolder.h"
 #include "AppUtils.h"
-import git_h;
 import TGitPath;	// GitAdminDir lives in the TGitPath module
 
 IMPLEMENT_DYNAMIC(CSetHooksAdv, CResizableStandAloneDialog)

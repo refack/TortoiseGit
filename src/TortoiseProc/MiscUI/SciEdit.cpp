@@ -18,12 +18,13 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 #include "../stdafx.h"
+#include "../std.h"
+
 
 #include "MiscUI/SciEdit.h"
 
 #include <string>
 
-import DarkModeHelper;
 // Needed for lexilla
 #include <scintilla/ILexer.h>
 #include <lexilla/SciLexer.h>
@@ -31,12 +32,8 @@ import DarkModeHelper;
 #include <Resources/LoglistCommonResource.h>
 #include <TortoiseUDiff/UDiffColors.h>
 #include <Utils/LoadIconEx.h>
-import PathUtils;
-import Registry;
 #include <Utils/ScintillaRegistration.h>
-import RIAA;
 #include <Utils/Theme.h>
-import str_utils;
 #include <Utils/URLFinder.h>
 
 
@@ -73,7 +70,7 @@ CSciEdit::CSciEdit()
 CSciEdit::~CSciEdit()
 {
 	CTheme::Instance().RemoveRegisteredCallback(m_themeCallbackId);
-	m_personalDict.Save();
+	std::ignore = m_personalDict.Save();
 }
 
 static std::unique_ptr<UINT[]> Icon2Image(HICON hIcon)

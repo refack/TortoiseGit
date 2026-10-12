@@ -18,15 +18,14 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 #include "stdafx.h"
+#include "std.h"
+
 #include "TortoiseProc.h"
 #include "Settings.h"
-import git_h;
 #include "MessageBox.h"
-import TGitCache.CacheInterface;
 import TGitPath;	// GitAdminDir lives in the TGitPath module
 #include "AppUtils.h"
 #include "Theme.h"
-import DarkModeHelper;
 #include "SetMainPage.h"
 #include "SetProxyPage.h"
 #include "SetOverlayPage.h"
@@ -56,6 +55,8 @@ import DarkModeHelper;
 import SysInfo;
 
 IMPLEMENT_DYNAMIC(CSettings, CTreePropSheet)
+
+
 CSettings::CSettings(UINT nIDCaption, CTGitPath * /*cmdPath*/, CWnd* pParentWnd, UINT iSelectPage)
 : CTreePropSheet(nIDCaption, pParentWnd)
 {

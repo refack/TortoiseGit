@@ -19,17 +19,17 @@
 //
 
 #include "stdafx.h"
+#include "std.h"
+
 #include "GitLogListBase.h"
 #include "IconMenu.h"
 #include "MessageBox.h"
 #include "LoglistUtils.h"
-import str_utils;
 #include "resource.h"
 #include "LoglistCommonResource.h"
 #include <TortoiseShell/Resource.h>
 #include "CommonAppUtils.h"
 #include "DPIAware.h"
-import TGitPath;
 
 const UINT CGitLogListBase::m_FindDialogMessage = RegisterWindowMessage(FINDMSGSTRING);
 const UINT CGitLogListBase::m_ScrollToMessage = RegisterWindowMessage(L"TORTOISEGIT_LOG_SCROLLTO");

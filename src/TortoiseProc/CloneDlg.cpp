@@ -20,8 +20,9 @@
 //
 
 #include "stdafx.h"
+#include "std.h"
+
 #include "TortoiseProc.h"
-import git_h;
 #include "CloneDlg.h"
 #include "BrowseFolder.h"
 #include "MessageBox.h"

@@ -19,13 +19,13 @@
 //
 
 #include "stdafx.h"
+#include "std.h"
+
 #include "DiffCommand.h"
 #include "MessageBox.h"
-import PathUtils;
 #include "AppUtils.h"
 #include "ChangedDlg.h"
 #include "GitDiff.h"
-import str_utils;
 
 bool DiffCommand::Execute()
 {

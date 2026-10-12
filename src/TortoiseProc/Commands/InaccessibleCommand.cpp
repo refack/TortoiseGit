@@ -18,9 +18,10 @@
 //
 #pragma once
 #include "stdafx.h"
+#include "std.h"
+
 #include "InaccessibleCommand.h"
 #include "MessageBox.h"
-import PathUtils;
 
 bool InaccessibleCommand ::Execute()
 {

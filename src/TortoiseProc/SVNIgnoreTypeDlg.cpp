@@ -18,10 +18,11 @@
 //
 
 #include "stdafx.h"
+#include "std.h"
+
 #include "TortoiseProc.h"
 #include "SVNIgnoreTypeDlg.h"
 #include "AppUtils.h"
-import git_h;
 
 // CSVNIgnoreTypeDlg dialog
 
