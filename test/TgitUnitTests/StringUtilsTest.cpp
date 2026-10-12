@@ -19,7 +19,7 @@
 //
 
 #include "stdafx.h"
-import StringUtils;
+import str_utils;
 import CmdLineParser;
 
 // The out-parameter shape the assertions below were written against; the function
@@ -502,50 +502,50 @@ TEST(CStringUtils, ExpandPlaceholdersForCmd)
 																	{ L"2", L"sth" },
 																	{ L"3", L"sth" },
 																	{ L"4", L"sth" },
-		}, [](CString s) -> CString { const std::wstring e = CCmdLineParser::EscapeValue(tgit::zstr::StringView(s)); return CString(e.data(), static_cast<int>(e.size())); }));
+		}, [](CString s) -> CString { const std::wstring e = CCmdLineParser::EscapeValue(tgit::str::StringView(s)); return CString(e.data(), static_cast<int>(e.size())); }));
 	EXPECT_STREQ(L"%5", StringUtils::ExpandPlaceholdersForCmd(L"%5", {
 																	{ L"1", L"sth" },
 																	{ L"2", L"sth" },
 																	{ L"3", L"sth" },
 																	{ L"4", L"sth" },
-		}, [](CString s) -> CString { const std::wstring e = CCmdLineParser::EscapeValue(tgit::zstr::StringView(s)); return CString(e.data(), static_cast<int>(e.size())); }));
+		}, [](CString s) -> CString { const std::wstring e = CCmdLineParser::EscapeValue(tgit::str::StringView(s)); return CString(e.data(), static_cast<int>(e.size())); }));
 	EXPECT_STREQ(L"\"arg1\"", StringUtils::ExpandPlaceholdersForCmd(L"%1", {
 																	{ L"1", L"arg1" },
 																	{ L"2", L"Arg2" },
 																	{ L"3", L"aRg3" },
 																	{ L"4", L"arG4" },
-		}, [](CString s) -> CString { const std::wstring e = CCmdLineParser::EscapeValue(tgit::zstr::StringView(s)); return CString(e.data(), static_cast<int>(e.size())); }));
+		}, [](CString s) -> CString { const std::wstring e = CCmdLineParser::EscapeValue(tgit::str::StringView(s)); return CString(e.data(), static_cast<int>(e.size())); }));
 	EXPECT_STREQ(L"\"arg1\"", StringUtils::ExpandPlaceholdersForCmd(L"\"%1\"", {
 																	{ L"1", L"arg1" },
 																	{ L"2", L"Arg2" },
 																	{ L"3", L"aRg3" },
 																	{ L"4", L"arG4" },
-		}, [](CString s) -> CString { const std::wstring e = CCmdLineParser::EscapeValue(tgit::zstr::StringView(s)); return CString(e.data(), static_cast<int>(e.size())); }));
+		}, [](CString s) -> CString { const std::wstring e = CCmdLineParser::EscapeValue(tgit::str::StringView(s)); return CString(e.data(), static_cast<int>(e.size())); }));
 	EXPECT_STREQ(L"/to:\"arg1\" /from:\"Arg2\"", StringUtils::ExpandPlaceholdersForCmd(L"/to:%1 /from:%2", {
 																	{ L"1", L"arg1" },
 																	{ L"2", L"Arg2" },
 																	{ L"3", L"aRg3" },
 																	{ L"4", L"arG4" },
-		}, [](CString s) -> CString { const std::wstring e = CCmdLineParser::EscapeValue(tgit::zstr::StringView(s)); return CString(e.data(), static_cast<int>(e.size())); }));
+		}, [](CString s) -> CString { const std::wstring e = CCmdLineParser::EscapeValue(tgit::str::StringView(s)); return CString(e.data(), static_cast<int>(e.size())); }));
 	EXPECT_STREQ(L"/to:\"arg1\" /from:\"Arg2\"", StringUtils::ExpandPlaceholdersForCmd(L"/to:\"%1\" /from:%2", {
 																	{ L"1", L"arg1" },
 																	{ L"2", L"Arg2" },
 																	{ L"3", L"aRg3" },
 																	{ L"4", L"arG4" },
-		}, [](CString s) -> CString { const std::wstring e = CCmdLineParser::EscapeValue(tgit::zstr::StringView(s)); return CString(e.data(), static_cast<int>(e.size())); }));
+		}, [](CString s) -> CString { const std::wstring e = CCmdLineParser::EscapeValue(tgit::str::StringView(s)); return CString(e.data(), static_cast<int>(e.size())); }));
 	EXPECT_STREQ(L"/to:\"ar%2g1\" /from:\"Ar\"\"g2\"", StringUtils::ExpandPlaceholdersForCmd(L"/to:\"%1\" /from:%2", {
 																	{ L"1", L"ar%2g1" },
 																	{ L"2", L"Ar\"g2" },
 																	{ L"3", L"aRg3" },
 																	{ L"4", L"arG4" },
-		}, [](CString s) -> CString { const std::wstring e = CCmdLineParser::EscapeValue(tgit::zstr::StringView(s)); return CString(e.data(), static_cast<int>(e.size())); }));
+		}, [](CString s) -> CString { const std::wstring e = CCmdLineParser::EscapeValue(tgit::str::StringView(s)); return CString(e.data(), static_cast<int>(e.size())); }));
 
 	EXPECT_STREQ(L"/to:\"Arg2\" /from:\"aRRRRRRg\" /empty:\"\" /random:\"aRRRRRRg\" bla", StringUtils::ExpandPlaceholdersForCmd(L"/to:\"%to\" /from:%from /empty:%empty /random:%from bla", {
 																	{ L"to", L"Arg2" },
 																	{ L"from", L"aRRRRRRg" },
 																	{ L"empty", L""},
 																	{ L"something", L"arG4" },
-		}, [](CString s) -> CString { const std::wstring e = CCmdLineParser::EscapeValue(tgit::zstr::StringView(s)); return CString(e.data(), static_cast<int>(e.size())); }));
+		}, [](CString s) -> CString { const std::wstring e = CCmdLineParser::EscapeValue(tgit::str::StringView(s)); return CString(e.data(), static_cast<int>(e.size())); }));
 }
 
 TEST(CStringUtils, EscapeWindowsCliArguments)

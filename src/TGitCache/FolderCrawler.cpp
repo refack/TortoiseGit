@@ -23,6 +23,7 @@
 #include "GitStatusCache.h"
 #include "registry.h"
 #include "TGitCache.h"
+import str_utils;	// StringUtils::EndsWith
 
 CFolderCrawler::CFolderCrawler()
 {

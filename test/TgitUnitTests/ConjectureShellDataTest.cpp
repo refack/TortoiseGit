@@ -35,7 +35,7 @@
 #include "WindowsCredentialsStore.h"
 
 import std;
-import StringUtils;
+import wil;			// wil::SetClipboardText, which replaced StringUtils' clipboard writers
 import TGitPath;
 import GitHash;
 import GitDataObject;
@@ -61,74 +61,35 @@ std::optional<std::string> ClipboardBlock(const UINT format)
 	GlobalUnlock(data);
 	return copy;
 }
-
-HANDLE ClipboardHandle(const UINT format)
-{
-	if (!OpenClipboard(nullptr))
-		return nullptr;
-	SCOPE_EXIT { CloseClipboard(); };
-	return GetClipboardData(format);
-}
 }
 
 // ---------------------------------------------------------------------------
-// Clipboard (StringUtils)
-
-// Conjecture: two of the three writers opened the clipboard in an
+// Clipboard (wil::SetClipboardText)
+//
+// StringUtils had three writers. Two of them opened the clipboard in an
 // if-init-statement - `if (CClipboardHelper h; !h.Open(w)) return false;` - so
 // it closed again at the end of that `if`, before EmptyClipboard/SetClipboardData
-// ran. Those calls then fail on a closed clipboard and the writer returns false.
-// Old StringUtils: FAILS.
-TEST(ConjectureShellData, AsciiClipboardWriterKeepsTheClipboardOpen)
-{
-	const LCID lcid = MAKELCID(MAKELANGID(LANG_GERMAN, SUBLANG_GERMAN), SORT_DEFAULT);
-	ASSERT_TRUE(StringUtils::WriteAsciiStringToClipboard(CStringA("hello"), lcid, nullptr));
-	const auto text = ClipboardBlock(CF_TEXT);
-	ASSERT_TRUE(text.has_value());
-	EXPECT_EQ("hello", std::string(text->c_str()));
-}
+// ran; the CStringA/LCID writer also gave CF_LOCALE the GlobalLock'ed pointer
+// instead of the HGLOBAL, and WriteDiffToClipboard handed one HGLOBAL to the
+// clipboard twice. All three writers are gone (2026-10, str_utils): the
+// CStringA/LCID one and WriteDiffToClipboard had no callers left, and the wide
+// one became wil::SetClipboardText. The conjectures about the deleted writers
+// went with them; the one that applies to the survivor is kept.
 
-// Conjecture: CF_LOCALE was given the GlobalLock'ed *pointer* rather than the
-// HGLOBAL, which differ for a GMEM_MOVEABLE block, so the locale never arrived.
-// Old StringUtils: FAILS (once the clipboard stays open at all).
-TEST(ConjectureShellData, AsciiClipboardWriterSetsTheLocale)
+// Conjecture: the clipboard stays open until the data is set, so the writer
+// succeeds and the text arrives as CF_UNICODETEXT, NUL-terminated even from a
+// view that is not.
+// Old StringUtils: FAILS. wil::SetClipboardText: PASSES (a pin).
+TEST(ConjectureShellData, ClipboardWriterKeepsTheClipboardOpen)
 {
-	const LCID lcid = MAKELCID(MAKELANGID(LANG_GERMAN, SUBLANG_GERMAN), SORT_DEFAULT);
-	ASSERT_TRUE(StringUtils::WriteAsciiStringToClipboard(CStringA("hello"), lcid, nullptr));
-	const auto locale = ClipboardBlock(CF_LOCALE);
-	ASSERT_TRUE(locale.has_value());
-	ASSERT_GE(locale->size(), sizeof(LCID));
-	LCID stored = 0;
-	std::memcpy(&stored, locale->data(), sizeof(stored));
-	EXPECT_EQ(lcid, stored);
-}
-
-// Conjecture: the same if-init-statement defect in WriteDiffToClipboard.
-// Old StringUtils: FAILS.
-TEST(ConjectureShellData, DiffClipboardWriterKeepsTheClipboardOpen)
-{
-	ASSERT_TRUE(StringUtils::WriteDiffToClipboard(CStringA("--- a\n+++ b\n"), nullptr));
-	const UINT diffFormat = RegisterClipboardFormat(L"TGIT_UNIFIEDDIFF");
-	const auto diff = ClipboardBlock(diffFormat);
-	ASSERT_TRUE(diff.has_value());
-	EXPECT_EQ("--- a\n+++ b\n", std::string(diff->c_str()));
+	constexpr std::wstring_view text = L"hello, world";
+	ASSERT_TRUE(wil::SetClipboardText(text.substr(0, 5)));
 	const auto unicode = ClipboardBlock(CF_UNICODETEXT);
 	ASSERT_TRUE(unicode.has_value());
-	EXPECT_EQ(L"--- a\n+++ b\n"sv, std::wstring_view(reinterpret_cast<const wchar_t*>(unicode->data())));
-}
-
-// Conjecture (unfixed): WriteDiffToClipboard hands the *same* HGLOBAL to the
-// clipboard twice, as the diff format and as CF_TEXT. The clipboard then owns it
-// twice, and the next EmptyClipboard frees it twice.
-// Old and current StringUtils: FAILS.
-TEST(ConjectureShellData, DiffClipboardFormatsAreSeparateAllocations)
-{
-	ASSERT_TRUE(StringUtils::WriteDiffToClipboard(CStringA("diff"), nullptr));
-	const HANDLE diff = ClipboardHandle(RegisterClipboardFormat(L"TGIT_UNIFIEDDIFF"));
-	const HANDLE text = ClipboardHandle(CF_TEXT);
-	ASSERT_NE(nullptr, diff);
-	ASSERT_NE(nullptr, text);
-	EXPECT_NE(diff, text);
+	EXPECT_EQ(L"hello"sv, std::wstring_view(reinterpret_cast<const wchar_t*>(unicode->data())));
+	const auto ansi = ClipboardBlock(CF_TEXT);	// synthesized by the OS
+	ASSERT_TRUE(ansi.has_value());
+	EXPECT_EQ("hello", std::string(ansi->c_str()));
 }
 
 // ---------------------------------------------------------------------------

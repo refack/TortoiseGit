@@ -23,7 +23,6 @@
 #include "CacheInterface.h"
 #include "CacheDlg.h"
 #include <random>
-#include "scope_exit_noexcept.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW

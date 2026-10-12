@@ -57,7 +57,7 @@ namespace testing::internal
 // TGit/Utils
 #include <sanity.h>		// SCOPE_EXIT
 import std;
-import wstr;			// tgit::wstr, tgit::zstr::StringView (the CString bridge), CUnicodeUtils
+import str_utils;		// tgit::wstr, tgit::str::StringView (the CString bridge), CUnicodeUtils, StringUtils
 import DebugOutput;
 import RIAA;
 import wil_git2;		// CAutoRepository & co., was Utils/SmartLibgit2Ref.h

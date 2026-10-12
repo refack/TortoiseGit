@@ -19,7 +19,7 @@
 
 #include "stdafx.h"
 import CmdLineParser;
-import wstr;
+import str_utils;
 
 TEST(CCmdLineParser, Null)
 {
@@ -707,7 +707,7 @@ TEST(CCmdLineParser, EscapeValue)
 	LPCWSTR args[] = { L"", L" ", L"\"", L"\"\"", L"\" \"", L"\"\"\\", L"ascii", L"something\\", L"C:\\Test", L"some\\\"thing", L"something\\\"", L"some\"thing", L"some\"\"thing", L"something\"\\\""};
 	for (auto arg : args)
 	{
-		CheckEscapeValue(CCmdLineParser::EscapeValue(tgit::zstr::StringView(CString(arg))).c_str(), arg);
+		CheckEscapeValue(CCmdLineParser::EscapeValue(tgit::str::StringView(CString(arg))).c_str(), arg);
 		CheckEscapeValue(CCmdLineParser::EscapeValue(std::wstring_view(arg)).c_str(), arg);
 	}
 }

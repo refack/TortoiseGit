@@ -19,7 +19,7 @@
 
 #include "stdafx.h"
 #include "RepositoryFixtures.h"
-#include "StringUtils.h"
+import str_utils;
 #include "status.h"
 
 class GitWCRevStatusCBasicGitWithTestRepoFixture : public CBasicGitWithTestRepoFixture
@@ -57,7 +57,7 @@ TEST(GitWCRevStatus, EmptyBareRepo)
 	git_repository_init_options options = GIT_REPOSITORY_INIT_OPTIONS_INIT;
 	options.flags = GIT_REPOSITORY_INIT_MKPATH | GIT_REPOSITORY_INIT_BARE | GIT_REPOSITORY_INIT_NO_DOTGIT_DIR;
 	CAutoRepository repo;
-	ASSERT_EQ(0, git_repository_init_ext(repo.GetPointer(), CUnicodeUtils::GetUTF8(tempdir.GetTempDir()), &options));
+	ASSERT_EQ(0, git_repository_init_ext(repo.GetPointer(), CUnicodeUtils::GetUTF8<CStringA>(tempdir.GetTempDir()), &options));
 
 	GitWCRev_t GitStat;
 	EXPECT_EQ(ERR_NOWC, GetStatusUnCleanPath(tempdir.GetTempDir(), GitStat));
@@ -133,7 +133,7 @@ TEST_P(GitWCRevStatusCBasicGitWithEmptyRepositoryFixture, EmptyRepoStagedFile)
 	EXPECT_TRUE(StringUtils::WriteStringToTextFile(file, L"something\n"));
 
 	CAutoRepository repo;
-	ASSERT_EQ(0, git_repository_open(repo.GetPointer(), CUnicodeUtils::GetUTF8(m_Dir.GetTempDir())));
+	ASSERT_EQ(0, git_repository_open(repo.GetPointer(), CUnicodeUtils::GetUTF8<CStringA>(m_Dir.GetTempDir())));
 	CAutoIndex index;
 	ASSERT_EQ(0, git_repository_index(index.GetPointer(), repo));
 	ASSERT_EQ(0, git_index_add_bypath(index, "somefile.txt"));

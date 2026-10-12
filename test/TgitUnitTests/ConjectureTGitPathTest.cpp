@@ -30,7 +30,7 @@
 #include "stdafx.h"
 
 import std;
-import wstr;
+import str_utils;
 import tgittypes;
 import TGitPath;
 

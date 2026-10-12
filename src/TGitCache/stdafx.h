@@ -39,8 +39,8 @@ using namespace ATL;
 #include <functional>
 
 #include <git2.h>
-import wil_git2;
-#include <Utils/scope_exit_noexcept.h>
+#include <sanity.h>		// SCOPE_EXIT (CreateProcessHelper.h), was Utils/scope_exit_noexcept.h
+import wil;				// scope_exit_helper, which SCOPE_EXIT expands to
 import DebugOutput;
 
 using AutoLocker = CComCritSecLock<CComAutoCriticalSection>;

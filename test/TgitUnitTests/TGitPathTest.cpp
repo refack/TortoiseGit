@@ -37,8 +37,7 @@ import std;
 import wil_git2;
 
 import git_h;
-import StringUtils;
-import wstr;
+import str_utils;
 import tgittypes;
 import TGitPath;
 
@@ -2209,57 +2208,57 @@ TEST(CTGitPath, GetAbbreviatedRename)
 	std::wstring newName, oldName;
 
 	// just a failsafe
-	test.SetFromGit(tgit::zstr::StringView(newName), tgit::zstr::StringView(oldName));
+	test.SetFromGit(tgit::str::StringView(newName), tgit::str::StringView(oldName));
 	EXPECT_STREQ(L"", test.GetAbbreviatedRename().c_str());
 
 	oldName = L"B";
 	newName = L"A";
-	test.SetFromGit(tgit::zstr::StringView(newName), tgit::zstr::StringView(oldName));
+	test.SetFromGit(tgit::str::StringView(newName), tgit::str::StringView(oldName));
 	EXPECT_STREQ(L"B => A", test.GetAbbreviatedRename().c_str());
 
 	oldName = L"C/B/A";
 	newName = L"A/B/C";
-	test.SetFromGit(tgit::zstr::StringView(newName), tgit::zstr::StringView(oldName));
+	test.SetFromGit(tgit::str::StringView(newName), tgit::str::StringView(oldName));
 	EXPECT_STREQ(L"C/B/A => A/B/C", test.GetAbbreviatedRename().c_str());
 
 	oldName = L"B/C";
 	newName = L"A/C";
-	test.SetFromGit(tgit::zstr::StringView(newName), tgit::zstr::StringView(oldName));
+	test.SetFromGit(tgit::str::StringView(newName), tgit::str::StringView(oldName));
 	EXPECT_STREQ(L"{B => A}/C", test.GetAbbreviatedRename().c_str());
 
 	oldName = L"C/B";
 	newName = L"C/A";
-	test.SetFromGit(tgit::zstr::StringView(newName), tgit::zstr::StringView(oldName));
+	test.SetFromGit(tgit::str::StringView(newName), tgit::str::StringView(oldName));
 	EXPECT_STREQ(L"C/{B => A}", test.GetAbbreviatedRename().c_str());
 
 	oldName = L"C/D/E";
 	newName = L"C/B/A";
-	test.SetFromGit(tgit::zstr::StringView(newName), tgit::zstr::StringView(oldName));
+	test.SetFromGit(tgit::str::StringView(newName), tgit::str::StringView(oldName));
 	EXPECT_STREQ(L"C/{D/E => B/A}", test.GetAbbreviatedRename().c_str());
 
 	oldName = L"C/D/A";
 	newName = L"D/A";
-	test.SetFromGit(tgit::zstr::StringView(newName), tgit::zstr::StringView(oldName));
+	test.SetFromGit(tgit::str::StringView(newName), tgit::str::StringView(oldName));
 	EXPECT_STREQ(L"{C/D => D}/A", test.GetAbbreviatedRename().c_str());
 
 	oldName = L"A1/B/C/F";
 	newName = L"A2/B/C/F";
-	test.SetFromGit(tgit::zstr::StringView(newName), tgit::zstr::StringView(oldName));
+	test.SetFromGit(tgit::str::StringView(newName), tgit::str::StringView(oldName));
 	EXPECT_STREQ(L"{A1 => A2}/B/C/F", test.GetAbbreviatedRename().c_str());
 
 	oldName = L"C/D/E";
 	newName = L"D/E";
-	test.SetFromGit(tgit::zstr::StringView(newName), tgit::zstr::StringView(oldName));
+	test.SetFromGit(tgit::str::StringView(newName), tgit::str::StringView(oldName));
 	EXPECT_STREQ(L"{C/D => D}/E", test.GetAbbreviatedRename().c_str());
 
 	oldName = L"D/E";
 	newName = L"D/F/E";
-	test.SetFromGit(tgit::zstr::StringView(newName), tgit::zstr::StringView(oldName));
+	test.SetFromGit(tgit::str::StringView(newName), tgit::str::StringView(oldName));
 	EXPECT_STREQ(L"D/{ => F}/E", test.GetAbbreviatedRename().c_str());
 
 	oldName = L"D/F/E";
 	newName = L"D/F/F/E";
-	test.SetFromGit(tgit::zstr::StringView(newName), tgit::zstr::StringView(oldName));
+	test.SetFromGit(tgit::str::StringView(newName), tgit::str::StringView(oldName));
 	EXPECT_STREQ(L"D/F/{ => F}/E", test.GetAbbreviatedRename().c_str());
 }
 
@@ -2272,7 +2271,7 @@ TEST(CTGitPath, HashStashDir)
 	EXPECT_FALSE(path.HasStashDir());
 
 	path.Reset();
-	path.SetFromWin(tgit::zstr::StringView(tmpDir.GetTempDir()));
+	path.SetFromWin(tgit::str::StringView(tmpDir.GetTempDir()));
 
 	CAutoRepository repo;
 	ASSERT_TRUE(git_repository_init(repo.GetPointer(), CUnicodeUtils::GetUTF8<CStringA>(tmpDir.GetTempDir()), false) == 0);

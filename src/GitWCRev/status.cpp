@@ -17,13 +17,12 @@
 // along with this program; if not, write to the Free Software Foundation,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
+#include <fstream>	// textual std header: before stdafx.h's import (C2572 otherwise)
 #include "stdafx.h"
 #include "GitWCRev.h"
 #include "status.h"
 import Registry;
-import StringUtils;
-import wstr;
-#include <fstream>
+import str_utils;
 
 void LoadIgnorePatterns(const char* wc, GitWCRev_t* GitStat)
 {

@@ -19,7 +19,7 @@
 
 #include "stdafx.h"
 #define NEED_SIGNING_KEY
-#include "StringUtils.h"
+import str_utils;
 #include "UpdateCrypto.h"
 
 TEST(UpdateCrypto, SimpleVerify)

@@ -36,6 +36,7 @@ target_include_directories(Cache
         "${CMAKE_CURRENT_SOURCE_DIR}/../../src/TortoiseProc"
         "${CMAKE_CURRENT_SOURCE_DIR}/../../src/Utils/MiscUI"
         "${CMAKE_CURRENT_SOURCE_DIR}/../../src/TGitCache"
+        "${CMAKE_SOURCE_DIR}/src/libgit2/include"   # sanity.h
         "${CMAKE_CURRENT_SOURCE_DIR}"
         "${CMAKE_SOURCE_DIR}/src"
         "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/include"

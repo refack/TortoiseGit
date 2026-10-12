@@ -20,7 +20,7 @@
 #include "stdafx.h"
 #include <gitdll.h>
 import git_h;
-import StringUtils;
+import str_utils;
 
 TEST(libgit, BrokenConfig)
 {

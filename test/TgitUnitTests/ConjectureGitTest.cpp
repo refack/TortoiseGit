@@ -26,7 +26,7 @@
 
 import std;
 import wil;
-import wstr;
+import str_utils;
 import invarients;
 import SmartLibgit2;
 import tgittypes;

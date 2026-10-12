@@ -21,7 +21,7 @@
 #include "RepositoryFixtures.h"
 import git_h;
 import GitRev;
-import StringUtils;
+import str_utils;
 
 // For performance reason, turn LIBGIT off by default,
 INSTANTIATE_TEST_SUITE_P(CGit, CBasicGitWithEmptyRepositoryFixture, testing::Values(GIT_CLI, /*LIBGIT,*/ LIBGIT2, LIBGIT2_ALL));
@@ -1379,7 +1379,7 @@ TEST(CGit, CEnvironment)
 
 	env.clear();
 	CString path = L"c:\\windows;c:\\windows\\system32";
-	env.SetEnv(L"PATH", tgit::zstr::StringView(path));
+	env.SetEnv(L"PATH", tgit::str::StringView(path));
 	env.AddToPath(L"");
 	EXPECT_STREQ(path, env.GetEnv(L"PATH").c_str());
 	env.AddToPath(L"c:\\windows");
@@ -1401,7 +1401,7 @@ TEST(CGit, CEnvironment)
 	env.AddToPath(L"c:\\test");
 	EXPECT_STREQ(path, env.GetEnv(L"PATH").c_str());
 	path = L"c:\\windows;c:\\windows\\system32;";
-	env.SetEnv(L"PATH", tgit::zstr::StringView(path));
+	env.SetEnv(L"PATH", tgit::str::StringView(path));
 	env.AddToPath(L"");
 	EXPECT_STREQ(path, env.GetEnv(L"PATH").c_str());
 	env.AddToPath(L"c:\\test");
@@ -4400,7 +4400,7 @@ TEST_P(CBasicGitWithTestRepoFixture, GetRefsCommitIsOn)
 	EXPECT_STREQ(L"refs/remotes/origin/master", list[6].c_str());
 
 	// test for symbolic refs
-	const auto admin = GitAdminDir::GetAdminDirPath(tgit::zstr::StringView(g_Git.m_CurrentDir));
+	const auto admin = GitAdminDir::GetAdminDirPath(tgit::str::StringView(g_Git.m_CurrentDir));
 	ASSERT_TRUE(admin);
 	CString adminDir = admin->path.c_str();
 	adminDir += L"refs\\remotes\\origin\\HEAD";

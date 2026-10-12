@@ -19,7 +19,7 @@
 
 #include "stdafx.h"
 import PersonalDictionary;
-import StringUtils;
+import str_utils;
 import PathUtils;
 
 namespace
@@ -40,16 +40,16 @@ TEST(CPersonalDictionary, UseDictionary)
     dict.Init(LCID_INVALID);
 
     for (const CString& word : { L"", L"Test", L"Täst", L"рефакторинг" })
-        EXPECT_FALSE(dict.FindWord(tgit::zstr::StringView(word)));
+        EXPECT_FALSE(dict.FindWord(tgit::str::StringView(word)));
 
     const CString in[] = { L"Test", L"Täst", L"рефакторинг" };
 
     EXPECT_FALSE(dict.AddWord(L""));
     for (const CString& word : in)
     {
-        EXPECT_TRUE(dict.AddWord(tgit::zstr::StringView(word)));
-        EXPECT_TRUE(dict.FindWord(tgit::zstr::StringView(word)));
-        EXPECT_TRUE(dict.AddWord(tgit::zstr::StringView(word)));
+        EXPECT_TRUE(dict.AddWord(tgit::str::StringView(word)));
+        EXPECT_TRUE(dict.FindWord(tgit::str::StringView(word)));
+        EXPECT_TRUE(dict.AddWord(tgit::str::StringView(word)));
     }
 
     TCHAR tooLong[PDICT_MAX_WORD_LENGTH + 5] = { 0 };
@@ -70,7 +70,7 @@ TEST(CPersonalDictionary, UseDictionary)
     CPersonalDictionary dict2;
     dict2.Init(LCID_INVALID);
     for (const CString& word : in)
-        EXPECT_TRUE(dict2.FindWord(tgit::zstr::StringView(word)));
+        EXPECT_TRUE(dict2.FindWord(tgit::str::StringView(word)));
     EXPECT_TRUE(dict2.FindWord(L"test"));
     EXPECT_FALSE(dict2.FindWord(L"test2"));
 
@@ -90,7 +90,7 @@ TEST(CPersonalDictionary, LoadDictionary)
     EXPECT_FALSE(dict.FindWord(L""));
     for (const CString& word : { L"Test", L"Täst",
                                  L"\u0440\u0435\u0444\u0430\u043A\u0442\u043E\u0440\u0438\u043D\u0433" })
-        EXPECT_TRUE(dict.FindWord(tgit::zstr::StringView(word)));
+        EXPECT_TRUE(dict.FindWord(tgit::str::StringView(word)));
 
     EXPECT_FALSE(dict.FindWord(L"something"));
 

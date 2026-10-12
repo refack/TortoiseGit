@@ -30,7 +30,7 @@ import GitIndex;
 #include <LoadIconEx.h>
 #include <registry.h>
 import RIAA;
-import wstr;
+import str_utils;
 #include <wrl/client.h>
 
 #include "CacheInterface.h"
@@ -823,7 +823,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
 	SetDllDirectory(L"");
 	git_libgit2_init();
 	git_libgit2_opts(GIT_OPT_SET_WINDOWS_SHAREMODE, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE);
-	HandleCommandLine(CUnicodeUtils::GetUTF8(lpCmdLine));
+	HandleCommandLine(CUnicodeUtils::StdGetUTF8(lpCmdLine).c_str());
 	CAutoGeneralHandle hReloadProtection = ::CreateMutex(nullptr, FALSE, GetCacheMutexName());
 
 	if ((!hReloadProtection) || (GetLastError() == ERROR_ALREADY_EXISTS)) {

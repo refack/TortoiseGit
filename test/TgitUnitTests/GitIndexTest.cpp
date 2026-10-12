@@ -909,7 +909,7 @@ TEST_P(CBasicGitWithMultiLinkedTestWithSubmoduleRepoFixture, AdminDirMap) // Sub
 
 	// CGitAdminDirMap and CPathUtils speak std::wstring; the fixture's paths are
 	// still CStrings, so name the two roots once.
-	const std::wstring mainRoot = PathUtils::BuildPathWithPathDelimiter(tgit::zstr::StringView(m_MainWorkTreePath));
+	const std::wstring mainRoot = PathUtils::BuildPathWithPathDelimiter(tgit::str::StringView(m_MainWorkTreePath));
 	const std::wstring linkedRoot(m_LinkedWorkTreePath);
 
 	// Test if the main work tree admin directory can be found

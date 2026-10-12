@@ -21,7 +21,7 @@
 import git_h;
 import DirFileEnum;
 import PathUtils;
-import StringUtils;
+import str_utils;
 
 enum config
 {

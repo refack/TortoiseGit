@@ -44,6 +44,8 @@ target_include_directories(TGitCache
         "${CMAKE_SOURCE_DIR}/src/Git"
         "${CMAKE_SOURCE_DIR}/ext/gitdll"
         "${CMAKE_SOURCE_DIR}/src/Utils"
+        "${CMAKE_SOURCE_DIR}/src/libgit2/include"         # sanity.h
+        "${CMAKE_SOURCE_DIR}/src/libgit2/include/Utils"   # CreateProcessHelper.h, LoadIconEx.h, UniqueQueue.h
         "${CMAKE_CURRENT_SOURCE_DIR}"
         "${CMAKE_SOURCE_DIR}/src"
         "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/include"

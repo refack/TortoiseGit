@@ -19,7 +19,7 @@
 
 #include "stdafx.h"
 #include <git2/sys/repository.h>
-import StringUtils;
+import str_utils;
 import git_h;
 import GitHash;
 

@@ -19,7 +19,7 @@
 
 #include "stdafx.h"
 #include "VersioncheckParser.h"
-#include "StringUtils.h"
+import str_utils;
 #include "Git.h"
 
 TEST(CVersioncheckParser, Invalid)

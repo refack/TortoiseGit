@@ -26,8 +26,7 @@
 #include "stdafx.h"
 
 import std;
-import wstr;
-import StringUtils;
+import str_utils;
 import PathUtils;
 import invarients;
 
@@ -70,13 +69,13 @@ TEST(ConjectureString, WstrReplaceWithLongerReplacementKeepsTheRest)
 // Old concept: FAILS (vector and optional satisfied it).
 TEST(ConjectureString, IsRealStringMeansStdStringsOnly)
 {
-	EXPECT_TRUE(tgit::wstr::IsRealString<std::wstring>);
-	EXPECT_TRUE(tgit::wstr::IsRealString<std::string>);
-	EXPECT_TRUE(tgit::wstr::IsRealString<std::wstring_view>);
-	EXPECT_FALSE(tgit::wstr::IsRealString<std::vector<int>>);
-	EXPECT_FALSE(tgit::wstr::IsRealString<std::vector<wchar_t>>);
-	EXPECT_FALSE(tgit::wstr::IsRealString<std::optional<int>>);
-	EXPECT_FALSE(tgit::wstr::IsRealString<const wchar_t*>);
+	EXPECT_TRUE(tgit::str::IsRealString<std::wstring>);
+	EXPECT_TRUE(tgit::str::IsRealString<std::string>);
+	EXPECT_TRUE(tgit::str::IsRealString<std::wstring_view>);
+	EXPECT_FALSE(tgit::str::IsRealString<std::vector<int>>);
+	EXPECT_FALSE(tgit::str::IsRealString<std::vector<wchar_t>>);
+	EXPECT_FALSE(tgit::str::IsRealString<std::optional<int>>);
+	EXPECT_FALSE(tgit::str::IsRealString<const wchar_t*>);
 }
 
 // Conjecture: the two concepts must be disjoint, or StringData/StringSize are
@@ -84,10 +83,10 @@ TEST(ConjectureString, IsRealStringMeansStdStringsOnly)
 // Old concept: PASSES for CString (it has no value_type), but only by luck.
 TEST(ConjectureString, RealAndStupidStringsAreDisjoint)
 {
-	EXPECT_TRUE(tgit::wstr::IsStupidString<CStringW>);
-	EXPECT_TRUE(tgit::wstr::IsStupidString<CStringA>);
-	EXPECT_FALSE(tgit::wstr::IsRealString<CStringW>);
-	EXPECT_FALSE(tgit::wstr::IsStupidString<std::wstring>);
+	EXPECT_TRUE(tgit::str::IsStupidString<CStringW>);
+	EXPECT_TRUE(tgit::str::IsStupidString<CStringA>);
+	EXPECT_FALSE(tgit::str::IsRealString<CStringW>);
+	EXPECT_FALSE(tgit::str::IsStupidString<std::wstring>);
 }
 
 // Conjecture: one StringView over concept-specific getters serves both kinds;
@@ -97,12 +96,12 @@ TEST(ConjectureString, RealAndStupidStringsAreDisjoint)
 TEST(ConjectureString, StringViewServesBothKinds)
 {
 	const CStringW cstring(L"a\0b", 3);
-	EXPECT_EQ(3u, tgit::zstr::StringView{ cstring }.size());
-	EXPECT_EQ(L"a\0b"sv, std::wstring_view{ tgit::zstr::StringView{ cstring } });
+	EXPECT_EQ(3u, tgit::str::StringView{ cstring }.size());
+	EXPECT_EQ(L"a\0b"sv, std::wstring_view{ tgit::str::StringView{ cstring } });
 	const std::wstring stdString = L"cd";
-	EXPECT_EQ(L"cd"sv, std::wstring_view{ tgit::zstr::StringView{ stdString } });
+	EXPECT_EQ(L"cd"sv, std::wstring_view{ tgit::str::StringView{ stdString } });
 	const CStringA narrow("ef");
-	EXPECT_EQ("ef"sv, std::string_view{ tgit::zstr::StringView{ narrow } });
+	EXPECT_EQ("ef"sv, std::string_view{ tgit::str::StringView{ narrow } });
 }
 
 // Conjecture: CopyTruncating keeps StringCchCopy's contract - truncate, always
@@ -137,9 +136,9 @@ TEST(ConjectureString, LoadStringExAgreesWithLoadString)
 		if (expectedLength <= 0)
 			continue;
 		wchar_t actual[1024] = {};
-		const int actualLength = CUnicodeUtils::LoadStringEx(module, id, actual, static_cast<int>(std::size(actual)), MAKELANGID(LANG_NEUTRAL, SUBLANG_NEUTRAL));
+		const size_t actualLength = wil::til::LoadStringEx(module, id, actual, static_cast<int>(std::size(actual)), MAKELANGID(LANG_NEUTRAL, SUBLANG_NEUTRAL));
 		const auto want = std::wstring_view(expected, static_cast<size_t>(expectedLength)).substr(0, std::size(actual) - 1);
-		EXPECT_EQ(want, std::wstring_view(actual, static_cast<size_t>(actualLength))) << "id " << id;
+		EXPECT_EQ(want, std::wstring_view(actual, actualLength)) << "id " << id;
 		++compared;
 	}
 	EXPECT_GT(compared, 16) << "user32 exposed too few strings for this to mean anything";
@@ -185,8 +184,8 @@ TEST(ConjectureString, ParseEmailAddressKeepsTheMailinfoContract)
 	for (const auto& c : cases)
 	{
 		const auto parsed = StringUtils::ParseEmailAddress(c.input);
-		EXPECT_EQ(c.address, parsed.address) << c.input;
-		EXPECT_EQ(c.name, parsed.name) << c.input;
+		EXPECT_EQ(c.address, parsed.address) << std::wstring(c.input);	// gtest's Message streams std::wstring, not a view
+		EXPECT_EQ(c.name, parsed.name) << std::wstring(c.input);
 	}
 }
 
