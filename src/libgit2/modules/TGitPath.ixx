@@ -2823,8 +2823,23 @@ int CTGitPathList::FillBasedOnIndexFlags(git_repository* const repository, const
 	if (git_repository_index(index.put(), repository))
 		return -1;
 
+	// A filter entry is relative to the working tree of *this* repository, so that
+	// is what it is resolved against when asking the disk whether it names a
+	// directory. It used to be g_Git.CombinePath, then detail::CombinePath - a Host
+	// callback that nothing installs, so the relative path went to PathIsDirectory
+	// as-is and was resolved against the process's current directory instead. A
+	// bare repository has no working tree, and so no filter entry is a directory.
+	const char* const workdir = git_repository_workdir(repository);
+	const auto isWorkTreeDirectory = [workdir](const CTGitPath& filter) {
+		return workdir && detail::IsDirectoryOnDisk(
+			(fs::path(CUnicodeUtils::Convert2Unicode<std::wstring>(workdir)) / filter.GetWinPathString()).wstring());
+	};
+
 	const int count = filterlist ? filterlist->GetCount() : 1;
 	for (int j = 0; j < count; ++j) {
+		const CTGitPath* const filter = filterlist ? &(*filterlist)[j] : nullptr;
+		// probed at most once per filter entry, and only when an index entry needs it
+		std::optional<bool> filterIsDirectory;
 		for (size_t i = 0, ecount = git_index_entrycount(index.get()); i < ecount; ++i) {
 			const git_index_entry* e = git_index_get_byindex(index.get(), i);
 
@@ -2833,13 +2848,12 @@ int CTGitPathList::FillBasedOnIndexFlags(git_repository* const repository, const
 
 			const std::wstring one = CUnicodeUtils::Convert2Unicode<std::wstring>(e->path);
 
-			if (filterlist) {
-				const CTGitPath& filter = (*filterlist)[j];
-				const bool matches = filter.GetWinPathString().empty()
-				|| one == filter.GetGitPathString()
-				|| (detail::IsDirectoryPath(detail::CombinePath(filter.GetWinPathString())) && one.starts_with(
-					filter.GetGitPathString() + L'/'));
-				if (!matches)
+			if (filter && !filter->GetWinPathString().empty() && one != filter->GetGitPathString()) {
+				if (!one.starts_with(filter->GetGitPathString() + L'/'))
+					continue;
+				if (!filterIsDirectory)
+					filterIsDirectory = isWorkTreeDirectory(*filter);
+				if (!*filterIsDirectory)
 					continue;
 			}
 
