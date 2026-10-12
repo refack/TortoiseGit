@@ -21,13 +21,6 @@ import GitHash;
 
 
 export namespace tgit::types {
-template <zstr::IsTCompString Str>
-constexpr size_t HasEnoughSpace(const Str& sv) noexcept {
-	return zstr::StringView<Str>{ sv }.size() == 2 * tgit::invarients::GitFormatHolder::GitHashSize();
-}
-
-
-
 enum CacheType {
 	none,
 	exe,

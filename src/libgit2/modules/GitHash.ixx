@@ -1,4 +1,7 @@
 ﻿module;
+// git_oid_fromraw and the GIT_OID_* size macros: macros do not cross the
+// invarients import, so take them from the header.
+#include <git2/oid.h>
 
 
 export module GitHash;
@@ -14,6 +17,21 @@ using tgit::zstr::StringViewTraits;
 
 /* also see gitdll.c */
 static_assert(OID_MAX_SIZE <= sizeof(git_oid::id), "git_oid raw storage must be able to hold the largest id");
+
+
+namespace TGitHash
+{
+/*
+ * Whether str is exactly as long as a full hex id in the active object format.
+ * Not exported: CGitHash::FromHexStr is its only caller. Module linkage, not
+ * internal, because that caller is an exported template instantiated by importers.
+ */
+template <IsTCompString Str>
+bool IsFullHexLength(const Str& str) noexcept
+{
+	return tgit::zstr::StringView<Str>{ str }.size() == 2 * GitFormatHolder::GitHashSize();
+}
+}
 
 
 export namespace TGitHash
@@ -70,7 +88,7 @@ public:
 	template <IsTCompString Str>
 	static CGitHash FromHexStr(const Str& str, bool* isHash = nullptr)
 	{
-		if (!GitFormatHolder::HasEnoughSpace(str))
+		if (!IsFullHexLength(str))
 		{
 			if (isHash)
 				*isHash = false;

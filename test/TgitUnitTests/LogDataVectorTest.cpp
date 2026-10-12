@@ -347,7 +347,7 @@ TEST_P(CLogDataVectorCBasicGitWithSha256TestRepoFixture, ParserFromLog_Sha256)
 	// fixture clears m_IsGitDllInited per test, so this reflects *this* repo
 	// even when SHA1 tests ran first in the same process.
 	g_Git.CheckAndInitDll();
-	EXPECT_EQ(GitObjectFormat::SHA256, g_gitObjectFormat);
+	EXPECT_EQ(GitObjectFormat::SHA256, tgit::invarients::GetObjectFormat());
 	EXPECT_EQ(GIT_OID_SHA256_SIZE, GitHashSize());
 	EXPECT_STREQ(L"SHA-256", GitObjectFormatName());
 

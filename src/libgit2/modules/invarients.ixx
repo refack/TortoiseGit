@@ -64,7 +64,17 @@ enum class GitObjectFormat : int {
 };
 }
 
-static auto g_gitObjectFormat = tgit::invarients::GitObjectFormat::SHA1;
+/*
+ * The process-level object format: ONE definition, with module linkage.
+ *
+ * Not `static`: internal linkage in a module interface gave every importer that
+ * inlined a reader or the writer its own copy, so a format latched in one module
+ * was invisible to another. Not exported: nothing outside this module touches the
+ * variable. It is read and written only through the accessors below, which are
+ * deliberately non-inline (not constexpr) so their single out-of-line definitions
+ * live in invarients.ixx.obj and every importer calls them.
+ */
+tgit::invarients::GitObjectFormat g_gitObjectFormat = tgit::invarients::GitObjectFormat::SHA1;
 
 export namespace tgit::invarients {
 constexpr bool Is256(const GitObjectFormat _val) noexcept {
@@ -72,19 +82,29 @@ constexpr bool Is256(const GitObjectFormat _val) noexcept {
 }
 
 
-constexpr bool Is256() noexcept {
-	return g_gitObjectFormat == GitObjectFormat::SHA256;
+/* The latched format. Runtime state: see LatchObjectFormat. */
+GitObjectFormat GetObjectFormat() noexcept {
+	return g_gitObjectFormat;
 }
 
 
-/* Number of raw bytes an object id currently occupies; always <= GIT_HASH_MAX_SIZE. */
-consteval size_t HashSize() noexcept {
+bool Is256() noexcept {
+	return Is256(GetObjectFormat());
+}
+
+
+/*
+ * Number of raw bytes an object id currently occupies; always <= GIT_OID_MAX_SIZE.
+ * Runtime, not consteval: the format is latched when a repository is opened.
+ * Fixed buffers use OID_MAX_SIZE.
+ */
+size_t HashSize() noexcept {
 	return Is256() ? GIT_OID_SHA256_SIZE : GIT_OID_SHA1_SIZE;
 }
 
 
 /* Display name of the active object format, for UI labels. */
-constexpr auto ObjectFormatName() noexcept {
+std::wstring_view ObjectFormatName() noexcept {
 	return Is256() ? L"SHA256"sv : L"SHA1"sv;
 }
 
@@ -97,7 +117,7 @@ constexpr auto ObjectFormatName() noexcept {
  * id and every lookup fails with "null OID cannot exist". Oids received from libgit2
  * arrive tagged; ones we build ourselves from hex or raw bytes have to set it.
  */
-constexpr git_oid_t ActiveOidType() noexcept {
+git_oid_t ActiveOidType() noexcept {
 	return Is256() ? GIT_OID_SHA256 : GIT_OID_SHA1;
 }
 
@@ -112,7 +132,7 @@ constexpr git_oid_t ActiveOidType() noexcept {
  * "is this the working copy" test then fails, and the value is passed on to git as
  * if it were a real revision, which answers "fatal: bad object 000...".
  */
-constexpr auto ZeroRevSV() noexcept {
+std::wstring_view ZeroRevSV() noexcept {
 	static constexpr auto zeroSha1 = L"0000000000000000000000000000000000000000"sv;
 	static constexpr auto zeroSha256 = L"0000000000000000000000000000000000000000000000000000000000000000"sv;
 	return Is256() ? zeroSha256 : zeroSha1;
@@ -123,12 +143,12 @@ constexpr auto ZeroRevSV() noexcept {
  * Record the format of a repository that was just opened. Takes libgit2's oid type
  * so the libgit2 side does not have to know about git's hash_algo indices.
  */
-constexpr void LatchObjectFormat(const git_oid_t oidType) noexcept {
+void LatchObjectFormat(const git_oid_t oidType) noexcept {
 	g_gitObjectFormat = oidType == GIT_OID_SHA256 ? GitObjectFormat::SHA256 : GitObjectFormat::SHA1;
 }
 
 
-constexpr void LatchObjectFormat(const GitObjectFormat inType) noexcept {
+void LatchObjectFormat(const GitObjectFormat inType) noexcept {
 	g_gitObjectFormat = Is256(inType) ? GitObjectFormat::SHA256 : GitObjectFormat::SHA1;
 }
 
@@ -139,11 +159,11 @@ constexpr void LatchObjectFormat(const GitObjectFormat inType) noexcept {
  * functions above under the name CGitHash and GitRev reach for.
  */
 namespace GitFormatHolder {
-	constexpr git_oid_t get() noexcept { return ActiveOidType(); }
-	constexpr void set(const git_oid_t oidType) noexcept { LatchObjectFormat(oidType); }
-	consteval size_t GitHashSize() noexcept { return HashSize(); }
-	constexpr git_oid_t GitActiveOidType() noexcept { return ActiveOidType(); }
-	constexpr const wchar_t* GitObjectFormatName() noexcept { return ObjectFormatName().data(); }
+	git_oid_t get() noexcept { return ActiveOidType(); }
+	void set(const git_oid_t oidType) noexcept { LatchObjectFormat(oidType); }
+	size_t GitHashSize() noexcept { return HashSize(); }
+	git_oid_t GitActiveOidType() noexcept { return ActiveOidType(); }
+	const wchar_t* GitObjectFormatName() noexcept { return ObjectFormatName().data(); }	// a literal: NUL-terminated
 }
 
 

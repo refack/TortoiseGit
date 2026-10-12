@@ -239,7 +239,11 @@ using namespace tgit::zstr;
 // carrying existing call sites across without re-deciding each one.
 export namespace tgit::wstr
 {
-using CString = ATL::CStringW;
+// ::CStringW, not ATL::CStringW: under _AFX (TGIT_MFC) atlstr.h does not declare
+// ATL::CStringW and afxstr.h declares the MFC one globally; without _AFX the ATL one
+// reaches global scope through atldef's `using namespace ATL`. Either way this is
+// the flavor's CString.
+using CString = ::CStringW;
 
 
 
@@ -492,7 +496,7 @@ using namespace tgit::wstr;
 
 
 export namespace tgit::str8 {
-	using CStringA = ATL::CStringA;
+	using CStringA = ::CStringA;	// the flavor's narrow CString, see tgit::wstr::CString
 }
 
 
@@ -512,14 +516,14 @@ export namespace tgit::str8 {
 // module: MSVC did not find it from an importer (std::formattable<CString,
 // wchar_t> was false in StringUtils, which imports wstr), and its body built a
 // TCharType - one wchar_t - from the whole string, so it had never been
-// instantiated anywhere either. Naming the concrete types costs the MFC
-// flavor, which is deliberate: this library is ATL-flavor (CLAUDE.md Phase B),
-// and an MFC consumer crosses into it with std::wstring. Not `export`ed: a
-// specialization of a std template is reached through the primary.
+// instantiated anywhere either. They name the flavor's CStrings (::CStringW and
+// ::CStringA, see tgit::wstr::CString), so the TGIT_MFC build of this module
+// specializes for the MFC types and the ATL build for the ATL ones. Not
+// `export`ed: a specialization of a std template is reached through the primary.
 template <>
-struct std::formatter<ATL::CStringW, wchar_t> : std::formatter<std::wstring_view, wchar_t>
+struct std::formatter<::CStringW, wchar_t> : std::formatter<std::wstring_view, wchar_t>
 {
-	auto format(const ATL::CStringW& value, auto& ctx) const
+	auto format(const ::CStringW& value, auto& ctx) const
 	{
 		return std::formatter<std::wstring_view, wchar_t>::format(std::wstring_view(value.GetString(), value.GetLength()), ctx);
 	}
@@ -527,9 +531,9 @@ struct std::formatter<ATL::CStringW, wchar_t> : std::formatter<std::wstring_view
 
 
 template <>
-struct std::formatter<ATL::CStringA, char> : std::formatter<std::string_view, char>
+struct std::formatter<::CStringA, char> : std::formatter<std::string_view, char>
 {
-	auto format(const ATL::CStringA& value, auto& ctx) const
+	auto format(const ::CStringA& value, auto& ctx) const
 	{
 		return std::formatter<std::string_view, char>::format(std::string_view(value.GetString(), value.GetLength()), ctx);
 	}
