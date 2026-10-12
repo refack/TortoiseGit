@@ -879,7 +879,7 @@ void CLogDlg::FillLogMessageCtrl(bool bShow /* = true*/)
 			auto filter{ m_LogList.m_LogFilter.load() };
 
 			// set the log message text
-			CString msg = CString(GitObjectFormatName()) + L": ";
+			CString msg = std::format(L"{}: ", tgit::invarients::ObjectFormatName()).c_str();
 			int offset = msg.GetLength();
 			msg += pLogEntry->m_CommitHash.ToString();
 			if ((m_SelectedFilters & LOGFILTER_REVS) && filter->IsFilterActive())
@@ -1097,7 +1097,7 @@ void CLogDlg::FillPatchView(bool onlySetTimer)
 	{
 		const int diffContext = g_Git.GetConfigValueInt32(L"diff.context", -1);
 		CStringA outA;
-		CString rev1 = pLogEntry->m_CommitHash.IsEmpty() ? CString(L"HEAD") : (pLogEntry->m_CommitHash.ToString() + L"~1");
+		CString rev1 = pLogEntry->m_CommitHash.IsEmpty() ? CString(L"HEAD") : CString((pLogEntry->m_CommitHash.ToString() + L"~1").c_str());
 		CString rev2 = (pLogEntry->m_CommitHash.ToString()).c_str();
 		g_Git.GetUnifiedDiff(CTGitPath(), rev1, rev2, outA, false, false, diffContext);
 		out = CUnicodeUtils::GetUnicode<CString>(outA);

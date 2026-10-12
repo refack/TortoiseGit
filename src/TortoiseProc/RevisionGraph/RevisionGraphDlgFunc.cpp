@@ -404,7 +404,7 @@ CString	CRevisionGraphWnd::GetFriendRefName(ogdf::node v) const
 		return CString();
 	const CGitHash& hash = this->m_logEntries[v->index()];
 	if (const auto refsIt = m_HashMap.find(hash); refsIt == m_HashMap.end())
-		return hash.ToString();
+		return CString(hash.ToString().c_str());
 	else
 		return refsIt->second[0].c_str();
 }

@@ -310,11 +310,14 @@ BOOL CTortoiseProcApp::InitInstance()
 		case 3:
 		case 4:
 			{
-				CString wcroot;
-				if (GitAdminDir::HasAdminDir(g_Git.m_CurrentDir, true, &wcroot))
+				std::wstring wcrootStd;
+				if (GitAdminDir::HasAdminDir(tgit::str::StringView(g_Git.m_CurrentDir), true, &wcrootStd))
 				{
-					CStringA wcRootA{ CUnicodeUtils::GetUTF8<CStringA>(wcroot.MakeLower()) };
-					g_sGroupingUUID = GetHashText(wcRootA.GetBuffer(), wcRootA.GetLength(), HashType::HashSha1).c_str();
+					// CString's MakeLower, not tgit::wstr::MakeLower: the hash names the taskbar
+					// group, so the lowercasing must stay byte-for-byte what it was.
+					CString wcroot(wcrootStd.c_str());
+					const std::string wcRootA = CUnicodeUtils::StdGetUTF8(tgit::str::StringView(wcroot.MakeLower()));
+					g_sGroupingUUID = GetHashText(wcRootA.data(), wcRootA.size(), HashType::HashSha1).c_str();
 
 					ProjectProperties pp;
 					pp.ReadProps();
@@ -371,7 +374,7 @@ BOOL CTortoiseProcApp::InitInstance()
 	// Look for temporary files left around by TortoiseGit and
 	// remove them. But only delete 'old' files because some
 	// apps might still be needing the recent ones.
-	CTempFiles::Instance().DeleteOldTempFiles();
+	TempFiles::DeleteOldTempFiles();
 
 	// Since the dialog has been closed, return FALSE so that we exit the
 	// application, rather than start the application's message pump.

@@ -345,9 +345,8 @@ int CLogCache::LoadOneItem(GitRevLoglist& Rev, ULONGLONG ullOffset) const
 		if(fileheader->m_OldFileNameSize)
 			oldfile = CString(fileheader->m_FileName + fileheader->m_FileNameSize, fileheader->m_OldFileNameSize);
 		CTGitPath path;
-		int isSubmodule = fileheader->m_IsSubmodule;
-		std::wstring oldfileW(oldfile.GetString(), oldfile.GetLength());
-		path.SetFromGit(file.GetString(), oldfile.IsEmpty() ? nullptr : &oldfileW, static_cast<int*>(&isSubmodule));
+		// an empty old path is "no rename", as the nullptr it used to be passed as
+		path.SetFromGit(tgit::str::StringView(file), tgit::str::StringView(oldfile), fileheader->m_IsSubmodule != 0);
 
 		path.m_ParentNo = fileheader ->m_ParentNo;
 		path.m_Action = fileheader->m_Action & ~(CTGitPath::LOGACTIONS_HIDE | CTGitPath::LOGACTIONS_GRAY);

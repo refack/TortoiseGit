@@ -51,8 +51,8 @@ BOOL CSimplePrompt::OnInitDialog()
 	CStandAloneDialog::OnInitDialog();
 
 	GetDlgItem(IDC_USEREDIT)->SetFocus();
-	if (!m_hParentWnd && hWndExplorer)
-		CenterWindow(CWnd::FromHandle(m_hParentWnd));
+	if (HWND hWndExplorer = GetExplorerHWND(); !m_hParentWnd && hWndExplorer)
+		CenterWindow(CWnd::FromHandle(hWndExplorer));
 	return FALSE;
 }
 

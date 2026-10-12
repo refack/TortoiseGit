@@ -2704,7 +2704,7 @@ std::expected<bool, CString> CGitLogListBase::BeginFetchLog()
 	{
 		auto argvData = ArgvData::VectorToARGV(cmd);
 		m_DllGitLog = nullptr;
-		if (!rgvData || CGit::git_open_log_ex(&m_DllGitLog, argvData))
+		if (!argvData || CGit::git_open_log_ex(&m_DllGitLog, argvData))
 			return std::unexpected(L"Could not open log.");
 	}
 	catch (const char* msg)

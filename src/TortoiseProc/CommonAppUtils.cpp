@@ -330,7 +330,7 @@ HICON CCommonAppUtils::LoadIconEx(UINT resourceId, UINT cx, UINT cy)
 	return ::LoadIconEx(AfxGetResourceHandle(), MAKEINTRESOURCE(resourceId), cx, cy);
 }
 
-void CCommonAppUtils::SetCharFormat(CWnd* window, DWORD mask , DWORD effects, c_vetor_crange_t positions)
+void CCommonAppUtils::SetCharFormat(CWnd* window, DWORD mask , DWORD effects, const std::vector<CHARRANGE>& positions)
 {
 	CHARFORMAT2 format = {};
 	format.cbSize = sizeof(CHARFORMAT2);
@@ -354,7 +354,7 @@ void CCommonAppUtils::SetCharFormat(CWnd* window, DWORD mask, DWORD effects )
 	window->SendMessage(EM_SETCHARFORMAT, SCF_SELECTION, reinterpret_cast<LPARAM>(&format));
 }
 
-std::wstring CCommonAppUtils::GetLogFontName()
+CString CCommonAppUtils::GetLogFontName()
 {
 	return CRegString(L"Software\\TortoiseGit\\LogFontName", L"Consolas");
 }
@@ -382,7 +382,7 @@ void CCommonAppUtils::CreateFontForLogs(HWND hWnd, CFont& fontToCreate)
 	logFont.lfClipPrecision = CLIP_DEFAULT_PRECIS;
 	logFont.lfQuality = DRAFT_QUALITY;
 	logFont.lfPitchAndFamily = FF_DONTCARE | FIXED_PITCH;
-	wcsncpy_s(logFont.lfFaceName, GetLogFontName().c_str(), _TRUNCATE);
+	wcsncpy_s(logFont.lfFaceName, GetLogFontName(), _TRUNCATE);
 	VERIFY(fontToCreate.CreateFontIndirect(&logFont));
 }
 

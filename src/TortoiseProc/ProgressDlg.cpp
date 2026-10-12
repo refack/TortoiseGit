@@ -547,7 +547,7 @@ void CProgressDlg::UpdateCmdOutput(CGitCliOutputParser& cliOutputParser, CRichEd
 		log.SetSel(currentLength, currentLength);
 
 	CString str = CUnicodeUtils::GetUnicode<CString>(out.text);
-	if (currentLength == 0 && g_Git.m_LogEncode != CP_UTF8 && !out.text.empty() && out.text[0] == '[')
+	if (currentLength == 0 && TGitH::m_LogEncode != CP_UTF8 &&!out.text.empty() && out.text[0] == '[')
 	{
 		size_t start = 0;
 		// git.exe commit output begins with "[BRANCH] SUBJECT" whereas SUBJECT is encoded using m_LogEncode
@@ -563,7 +563,8 @@ void CProgressDlg::UpdateCmdOutput(CGitCliOutputParser& cliOutputParser, CRichEd
 		}
 
 		std::string_view buff = out.text;
-		str = CUnicodeUtils::GetUnicode<CString>(buff.substr(0, start), g_Git.m_LogEncode);
+		// an explicit code page, so StdGetUnicode: GetUnicode is the UTF-8-only path
+		str = CUnicodeUtils::StdGetUnicode<CString>(buff.substr(0, start), TGitH::m_LogEncode);
 		buff.remove_prefix(start);
 		CGit::StringAppend(str, buff);
 	}

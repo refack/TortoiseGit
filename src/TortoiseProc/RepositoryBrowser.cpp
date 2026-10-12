@@ -533,10 +533,10 @@ int CRepositoryBrowser::ReadTree(CShadowFilesTree* treeroot, const CString& root
 	ReadTreeRecursive(*repository.get(), tree.get(), treeroot, recursive);
 
 	// try to resolve hash to a branch name
-	if (m_sRevision == hash.ToString())
+	if (tgit::str::StringView(m_sRevision) == hash.ToString())
 	{
 		MAP_HASH_NAME map;
-		if (CGit::GetMapHashToFriendName(repository.get(), map))
+		if (TGitH::GetMapHashToFriendName(repository.get(), map))
 			MessageBox(TGitH::GetLibGit2LastErr(L"Could not get all refs."), L"TortoiseGit", MB_ICONERROR);
 		if (!map[hash].empty())
 			m_sRevision = map[hash].at(0).c_str();
@@ -1296,7 +1296,7 @@ void CRepositoryBrowser::OpenFile(const CString path, eOpenType mode, bool isSub
 
 		file += L".txt";
 		CFile submoduleCommit(file, CFile::modeCreate | CFile::modeWrite);
-		CStringA commitInfo = "Subproject commit " + CStringA(itemHash.ToString());
+		CStringA commitInfo = "Subproject commit " + CUnicodeUtils::GetUTF8<CStringA>(itemHash.ToString());
 		submoduleCommit.Write(commitInfo, commitInfo.GetLength());
 	}
 	else if (g_Git.GetOneFile(m_sRevision, gitPath, file))
@@ -1380,7 +1380,7 @@ void CRepositoryBrowser::OnLvnBegindragRepolist(NMHDR* pNMHDR, LRESULT* pResult)
 		}
 
 		CTGitPath path;
-		path.SetFromGit(item->GetFullName(), item->m_bSubmodule);
+		path.SetFromGit(tgit::str::StringView(item->GetFullName()), item->m_bSubmodule);
 		toExport.AddPath(path);
 	}
 
@@ -1401,7 +1401,7 @@ void CRepositoryBrowser::RecursivelyAdd(CTGitPathList& toExport, CShadowFilesTre
 			continue;
 		}
 		CTGitPath path;
-		path.SetFromGit((*itShadowTree).second.GetFullName(), (*itShadowTree).second.m_bSubmodule);
+		path.SetFromGit(tgit::str::StringView((*itShadowTree).second.GetFullName()), (*itShadowTree).second.m_bSubmodule);
 		toExport.AddPath(path);
 	}
 }

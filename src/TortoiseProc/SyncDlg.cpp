@@ -1366,7 +1366,7 @@ void CSyncDlg::FillNewRefMap()
 		return;
 	}
 
-	if (CGit::GetMapHashToFriendName(repo.get(), m_newHashMap))
+	if (TGitH::GetMapHashToFriendName(repo.get(), m_newHashMap))
 	{
 		MessageBox(TGitH::GetLibGit2LastErr(L"Could not get all refs."), L"TortoiseGit", MB_ICONERROR);
 		return;

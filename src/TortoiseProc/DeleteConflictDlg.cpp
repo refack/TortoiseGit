@@ -142,7 +142,7 @@ void CDeleteConflictDlg::OnBnClickedShowdiff()
 	base.LoadString(IDS_PROC_DIFF_BASE);
 	CAppUtils::StartExtDiff(m_FileBaseVersion.GetWinPathString().c_str(), g_Git.CombinePath(m_File),
 		base,
-		m_bDiffMine ? m_LocalHash.ToString() : m_RemoteHash.ToString(),
+		CString((m_bDiffMine ? m_LocalHash : m_RemoteHash).ToString().c_str()),
 		m_FileBaseVersion.GetWinPathString().c_str(),
 		g_Git.CombinePath(m_File),
 		m_bDiffMine ? m_LocalHash : m_RemoteHash,

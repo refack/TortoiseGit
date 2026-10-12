@@ -28,14 +28,6 @@ import git_h;
 #define REFRESHTIMER   100
 
 IMPLEMENT_DYNAMIC(CAddDlg, CResizableStandAloneDialog)
-CAddDlg::CAddDlg(CWnd* pParent /*=nullptr*/)
-	: CResizableStandAloneDialog(CAddDlg::IDD, pParent)
-{
-}
-
-CAddDlg::~CAddDlg()
-{
-}
 
 void CAddDlg::DoDataExchange(CDataExchange* pDX)
 {

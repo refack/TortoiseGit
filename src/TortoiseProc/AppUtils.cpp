@@ -488,8 +488,8 @@ bool CAppUtils::StartExtDiff(
 															{ L"yname", sName2.IsEmpty() ? file2 : sName2 },
 															{ L"bpath", originalFile1 },
 															{ L"ypath", originalFile2 },
-															{ L"brev", hash1.ToString() },
-															{ L"yrev", hash2.ToString() },
+															{ L"brev", CString(hash1.ToString().c_str()) },
+															{ L"yrev", CString(hash2.ToString().c_str()) },
 															{ L"wtroot", g_Git.m_CurrentDir },
 															},
 													bInternal ? [](const CString s) { return CCmdLineParser::EscapeValue(s); } : &EscapeAndQuoteParameters);
@@ -2553,8 +2553,8 @@ bool CAppUtils::DoPush(HWND hWnd, bool tags, bool allRemotes, bool allBranches, 
 			progress.m_GitCmdList.push_back({ L"git.exe", L"rev-list", L"--count", L"--first-parent", L"--end-of-options", std::wstring(localBranch), L"--" });
 	}
 
-	CString superprojectRoot;
-	GitAdminDir::HasAdminDir(g_Git.m_CurrentDir, false, &superprojectRoot);
+	std::wstring superprojectRoot;
+	GitAdminDir::HasAdminDir(tgit::str::StringView(g_Git.m_CurrentDir), false, &superprojectRoot);
 	progress.m_PostCmdCallback = [&](DWORD status, PostCmdList& postCmdList)
 	{
 		// need to execute hooks as those might be needed by post action commands
@@ -2588,12 +2588,12 @@ bool CAppUtils::DoPush(HWND hWnd, bool tags, bool allRemotes, bool allBranches, 
 		postCmdList.emplace_back(IDS_PROC_REQUESTPULL, [&]{ RequestPull(hWnd, remoteBranch); });
 		postCmdList.emplace_back(IDI_PUSH, IDS_MENUPUSH, [&]{ Push(hWnd, localBranch); });
 		postCmdList.emplace_back(IDI_SWITCH, IDS_MENUSWITCH, [&hWnd]{ Switch(hWnd); });
-		if (!superprojectRoot.IsEmpty())
+		if (!superprojectRoot.empty())
 		{
 			postCmdList.emplace_back(IDI_COMMIT, IDS_PROC_COMMIT_SUPERPROJECT, [&]
 			{
 				CString sCmd;
-				sCmd.Format(L"/command:commit /path:\"%s\"", static_cast<LPCWSTR>(superprojectRoot));
+				sCmd.Format(L"/command:commit /path:\"%s\"", superprojectRoot.c_str());
 				RunTortoiseGitProc(sCmd);
 			});
 		}

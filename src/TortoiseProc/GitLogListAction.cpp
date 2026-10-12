@@ -215,7 +215,7 @@ void CGitLogList::ContextMenuAction(int cmd, int FirstSelect, int LastSelect, CM
 						{
 							CStdioFile file(tempfile, CFile::typeText | CFile::modeRead | CFile::shareDenyWrite);
 							CString strLine;
-							bool isHash = file.ReadString(strLine) && r1->m_CommitHash.ToString() == strLine;
+							bool isHash = file.ReadString(strLine) && tgit::str::StringView(strLine) == r1->m_CommitHash.ToString();
 							bool more = isHash && file.ReadString(strLine) && !strLine.IsEmpty();
 							if (!more)
 							{
@@ -384,7 +384,7 @@ void CGitLogList::ContextMenuAction(int cmd, int FirstSelect, int LastSelect, CM
 						cmd=1;
 
 					if (m_Path.IsDirectory() || !(m_ShowMask & TGitH::LOG_INFO_FOLLOW))
-						CGitDiff::DiffCommit(GetParentHWND(), m_Path, pSelLogEntry->m_CommitHash.ToString(), pSelLogEntry->m_ParentHash[cmd - 1].ToString(), bShiftPressed);
+						CGitDiff::DiffCommit(GetParentHWND(), m_Path, CString(pSelLogEntry->m_CommitHash.ToString().c_str()), CString(pSelLogEntry->m_ParentHash[cmd - 1].ToString().c_str()), bShiftPressed);
 					else
 					{
 						CString path1 = m_Path.GetGitPathString().c_str();
@@ -406,7 +406,7 @@ void CGitLogList::ContextMenuAction(int cmd, int FirstSelect, int LastSelect, CM
 						if (file && !file->GetGitOldPathString().empty())
 							path2 = file->GetGitOldPathString().c_str();
 
-						CGitDiff::DiffCommit(GetParentHWND(), CTGitPath(path1.GetString()), CTGitPath(path2.GetString()), pSelLogEntry->m_CommitHash.ToString(), pSelLogEntry->m_ParentHash[cmd - 1].ToString(), bShiftPressed);
+						CGitDiff::DiffCommit(GetParentHWND(), CTGitPath(path1.GetString()), CTGitPath(path2.GetString()), CString(pSelLogEntry->m_CommitHash.ToString().c_str()), CString(pSelLogEntry->m_ParentHash[cmd - 1].ToString().c_str()), bShiftPressed);
 					}
 				}
 				else
@@ -435,17 +435,17 @@ void CGitLogList::ContextMenuAction(int cmd, int FirstSelect, int LastSelect, CM
 					MessageBox(L"Could not create temp file.", L"TortoiseGit", MB_OK | MB_ICONERROR);
 					break;
 				}
-				if (CString err; g_Git.RunLogFile(L"git.exe format-patch --stdout " + pFirstEntry->m_CommitHash.ToString() + L"~1.." + pFirstEntry->m_CommitHash.ToString(), patch1, &err))
+				if (CString err; g_Git.RunLogFile({ L"git.exe", L"format-patch", L"--stdout", std::format(L"{0}~1..{0}", pFirstEntry->m_CommitHash.ToString()) }, patch1, &err))
 				{
-					MessageBox(L"Could not generate patch for commit " + pFirstEntry->m_CommitHash.ToString() + L".\n" + err, L"TortoiseGit", MB_ICONERROR);
+					MessageBox(std::format(L"Could not generate patch for commit {}.\n{}", pFirstEntry->m_CommitHash.ToString(), err).c_str(), L"TortoiseGit", MB_ICONERROR);
 					break;
 				}
-				if (CString err; g_Git.RunLogFile(L"git.exe format-patch --stdout " + pLastEntry->m_CommitHash.ToString() + L"~1.." + pLastEntry->m_CommitHash.ToString(), patch2, &err))
+				if (CString err; g_Git.RunLogFile({ L"git.exe", L"format-patch", L"--stdout", std::format(L"{0}~1..{0}", pLastEntry->m_CommitHash.ToString()) }, patch2, &err))
 				{
-					MessageBox(L"Could not generate patch for commit " + pLastEntry->m_CommitHash.ToString() + L".\n" + err, L"TortoiseGit", MB_ICONERROR);
+					MessageBox(std::format(L"Could not generate patch for commit {}.\n{}", pLastEntry->m_CommitHash.ToString(), err).c_str(), L"TortoiseGit", MB_ICONERROR);
 					break;
 				}
-				CAppUtils::StartExtDiff(patch1, patch2, CString((pFirstEntry->m_CommitHash.ToString()).c_str()), CString((pLastEntry->m_CommitHash.ToString()).c_str()), CString((pFirstEntry->m_CommitHash.ToString() + L".patch").c_str()), pLastEntry->m_CommitHash.ToString() + L".patch", pFirstEntry->m_CommitHash, pLastEntry->m_CommitHash, CAppUtils::DiffFlags());
+				CAppUtils::StartExtDiff(patch1, patch2, CString((pFirstEntry->m_CommitHash.ToString()).c_str()), CString((pLastEntry->m_CommitHash.ToString()).c_str()), CString((pFirstEntry->m_CommitHash.ToString() + L".patch").c_str()), CString((pLastEntry->m_CommitHash.ToString() + L".patch").c_str()),pFirstEntry->m_CommitHash, pLastEntry->m_CommitHash, CAppUtils::DiffFlags());
 			}
 			break;
 		case ID_LOG_VIEWRANGE:
@@ -911,14 +911,14 @@ void CGitLogList::ContextMenuAction(int cmd, int FirstSelect, int LastSelect, CM
 		case ID_BISECTGOOD:
 			{
 				GitRev* first = m_arShownList.SafeGetAt(FirstSelect);
-				if (CAppUtils::BisectOperation(GetParentHWND(), L"good", !first->m_CommitHash.IsEmpty() ? first->m_CommitHash.ToString() : CString()))
+				if (CAppUtils::BisectOperation(GetParentHWND(), L"good", !first->m_CommitHash.IsEmpty() ? CString(first->m_CommitHash.ToString().c_str()) : CString()))
 					Refresh();
 			}
 			break;
 		case ID_BISECTBAD:
 			{
 				GitRev* first = m_arShownList.SafeGetAt(FirstSelect);
-				if (CAppUtils::BisectOperation(GetParentHWND(), L"bad", !first->m_CommitHash.IsEmpty() ? first->m_CommitHash.ToString() : CString()))
+				if (CAppUtils::BisectOperation(GetParentHWND(), L"bad", !first->m_CommitHash.IsEmpty() ? CString(first->m_CommitHash.ToString().c_str()) : CString()))
 					Refresh();
 			}
 			break;

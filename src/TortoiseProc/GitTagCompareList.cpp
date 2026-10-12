@@ -127,7 +127,7 @@ int CGitTagCompareList::Fill(const CString& remote, CString& err)
 	}
 
 	MAP_HASH_NAME hashMap;
-	if (CGit::GetMapHashToFriendName(repo.get(), hashMap))
+	if (TGitH::GetMapHashToFriendName(repo.get(), hashMap))
 	{
 		err = TGitH::GetLibGit2LastErr(L"Could not get all refs.");
 		return -1;
@@ -150,7 +150,7 @@ int CGitTagCompareList::Fill(const CString& remote, CString& err)
 					wil::unique_git_object gitObject;
 					if (git_revparse_single(gitObject.put(), repo.get(), CUnicodeUtils::StdGetUTF8(tagname).c_str()))
 						return;
-					localTags.emplace_back(TGitRef{ tagname, git_object_id(gitObject.get()) });
+					localTags.emplace_back(TGitRef{ tagname, CGitHash(git_object_id(gitObject.get())) });
 				}
 			}
 		});

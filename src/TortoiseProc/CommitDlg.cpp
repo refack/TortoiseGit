@@ -921,7 +921,11 @@ void CCommitDlg::OnOK()
 				CGitHash hash;
 				if (g_Git.GetHash(hash, L"HEAD"))
 					MessageBox(g_Git.GetGitLastErr(L"Could not get HEAD hash after committing."), L"TortoiseGit", MB_ICONERROR);
-				LONG version = g_Git.Hash2int(hash);
+				// the provider's "revision" is the hash's first four bytes, big-endian -
+				// what CGit::Hash2int computed before its only caller became this one
+				LONG version = 0;
+				for (int i = 0; i < 4; ++i)
+					version = (version << 8) | hash.ToRaw()[i];
 
 				ATL::CComBSTR temp;
 				if (FAILED(hr = pProvider->OnCommitFinished(GetSafeHwnd(),
@@ -2043,6 +2047,7 @@ void CCommitDlg::ScanFile(std::map<CString, int>& autolist, const CString& sFile
 	CFileTextLines filetextlines;
 	CFileTextLines::UnicodeType type = filetextlines.CheckUnicodeType(fileBuffer.get(), readbytes);
 	std::unique_ptr<CDecodeFilter> pFilter;
+	std::optional<std::wstring> decoded;
 	try
 	{
 		switch (type)
@@ -2072,7 +2077,8 @@ void CCommitDlg::ScanFile(std::map<CString, int>& autolist, const CString& sFile
 			pFilter = std::make_unique<CUtf32leFilter>(nullptr);
 			break;
 		}
-		if (!pFilter->Decode(std::move(fileBuffer), readbytes))
+		decoded = pFilter->Decode(std::string_view(reinterpret_cast<const char*>(fileBuffer.get()), readbytes));
+		if (!decoded)
 			return;
 	}
 	catch (CMemoryException*)
@@ -2080,7 +2086,7 @@ void CCommitDlg::ScanFile(std::map<CString, int>& autolist, const CString& sFile
 		return;
 	}
 
-	std::wstring_view sFileContent = pFilter->GetStringView();
+	const std::wstring_view sFileContent = *decoded;
 	if (sFileContent.empty() || !m_bRunThread)
 		return;
 

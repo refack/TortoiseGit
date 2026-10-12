@@ -62,6 +62,12 @@ const UINT CGitStatusListCtrl::GITSLNM_CHECKCHANGED
 const UINT CGitStatusListCtrl::GITSLNM_ITEMCHANGED
 					= ::RegisterWindowMessage(L"GITSLNM_ITEMCHANGED");
 
+/// g_Git as the git runner CTGitPathList's shelling-out operations take.
+static int RunGit(const std::vector<std::wstring>& argv, std::string* out, std::string* err)
+{
+	return g_Git.Run(argv, out, err);
+}
+
 struct icompare
 {
 	bool operator() (const std::wstring& lhs, const std::wstring& rhs) const
@@ -2303,13 +2309,13 @@ void CGitStatusListCtrl::OnContextMenuList(CWnd * pWnd, CPoint point)
 							{
 								if ((selectedFilepath->m_Action & CTGitPath::LOGACTIONS_ADDED) && revfail)
 								{
-									if (g_Git.GetUnifiedDiff(*selectedFilepath, GitRev::GetWorkingCopyRef(), m_CurrentVersion.ToString(), tempfile, false, false, diffContext, false))
+									if (g_Git.GetUnifiedDiff(*selectedFilepath, GitRev::GetWorkingCopyRef(), CString(m_CurrentVersion.ToString().c_str()), tempfile, false, false, diffContext, false))
 									{
 										::MessageBox(m_hWnd, g_Git.GetGitLastErr(L"Could not get unified diff.", TGitH::GIT_CMD_DIFF), L"TortoiseGit", MB_OK);
 										break;
 									}
 								}
-								else if (g_Git.GetUnifiedDiff(*selectedFilepath, prevHash.ToString(), m_CurrentVersion.ToString(), tempfile, false, false, diffContext, false))
+								else if (g_Git.GetUnifiedDiff(*selectedFilepath, CString(prevHash.ToString().c_str()), CString(m_CurrentVersion.ToString().c_str()), tempfile, false, false, diffContext, false))
 								{
 									::MessageBox(m_hWnd, g_Git.GetGitLastErr(L"Could not get unified diff.", TGitH::GIT_CMD_DIFF), L"TortoiseGit", MB_OK);
 									break;
@@ -2321,7 +2327,7 @@ void CGitStatusListCtrl::OnContextMenuList(CWnd * pWnd, CPoint point)
 								if (!(selectedFilepath->m_ParentNo & MERGE_MASK))
 									str.Format(L"%s^%d", (m_CurrentVersion.ToString()).c_str(), (selectedFilepath->m_ParentNo & PARENT_MASK) + 1);
 
-								if (g_Git.GetUnifiedDiff(*selectedFilepath, str, m_CurrentVersion.ToString(), tempfile, !!(selectedFilepath->m_ParentNo & MERGE_MASK), false, diffContext, false))
+								if (g_Git.GetUnifiedDiff(*selectedFilepath, str, CString(m_CurrentVersion.ToString().c_str()), tempfile, !!(selectedFilepath->m_ParentNo & MERGE_MASK), false, diffContext, false))
 								{
 									::MessageBox(m_hWnd, g_Git.GetGitLastErr(L"Could not get unified diff.", TGitH::GIT_CMD_DIFF), L"TortoiseGit", MB_OK);
 									break;
@@ -2404,13 +2410,13 @@ void CGitStatusListCtrl::OnContextMenuList(CWnd * pWnd, CPoint point)
 						if (!m_sDisplayedBranch.IsEmpty())
 							sCmd += L" /range:" + CCmdLineParser::EscapeValue(m_sDisplayedBranch);
 						else
-							sCmd += L" /endrev:\"" + m_CurrentVersion.ToString() + '"' + L" /rev:\"" + m_CurrentVersion.ToString() + '"';
+							sCmd += std::format(L" /endrev:\"{0}\" /rev:\"{0}\"", m_CurrentVersion.ToString()).c_str();
 					}
 					if (cmd == IDGITLC_LOGSUBMODULE && !m_CurrentVersion.IsEmpty() && (filepath->m_Action & CTGitPath::Actions::LOGACTIONS_DELETED) == 0 && CRegDWORD(L"Software\\TortoiseGit\\LogSubmoduleShowRevision", TRUE))
 					{
 						CGitHash submoduleHash;
 						if (CString error; g_Git.GetSubmoduleHash(filepath->GetGitPathString().c_str(), m_CurrentVersion, submoduleHash, error) == 0 && !submoduleHash.IsEmpty())
-							sCmd += L" /endrev:\"" + submoduleHash.ToString() + '"' + L" /rev:\"" + submoduleHash.ToString() + '"';
+							sCmd += std::format(L" /endrev:\"{0}\" /rev:\"{0}\"", submoduleHash.ToString()).c_str();
 						else
 							MessageBox(error, L"TortoiseGit", MB_ICONERROR);
 					}
@@ -3142,9 +3148,10 @@ void CGitStatusListCtrl::StartDiff(int fileindex)
 					str = L"~1";
 				else
 					str.Format(L"^%d", (file1.m_ParentNo & PARENT_MASK) + 1);
+				const CString currentVersion(m_CurrentVersion.ToString().c_str());
 				CGitDiff::Diff(GetParentHWND(), &file1,&file2,
-					m_CurrentVersion.ToString(),
-					m_CurrentVersion.ToString() + str, false, false, 0, !!(GetAsyncKeyState(VK_SHIFT) & 0x8000));
+					currentVersion,
+					currentVersion + str, false, false, 0, !!(GetAsyncKeyState(VK_SHIFT) & 0x8000));
 			}
 		}
 	}
@@ -4195,7 +4202,7 @@ int CGitStatusListCtrl::InsertUnRevListFromPreCalculatedList(const CTGitPathList
 int CGitStatusListCtrl::UpdateLFSLockedFileList(bool onlyExisting)
 {
 	CAutoWriteLock locker(m_guard);
-	if (std::wstring err; m_LocksFileList.FillLFSLocks(GITSLC_SHOWLFSLOCKS, &err))
+	if (std::wstring err; m_LocksFileList.FillLFSLocks(RunGit, GITSLC_SHOWLFSLOCKS, &err))
 	{
 		MessageBox(std::format(L"Failed to get LFS locks file list\n{}", err).c_str(), L"TortoiseGit", MB_OK | MB_ICONERROR);
 		return -1;
@@ -4209,7 +4216,7 @@ int CGitStatusListCtrl::UpdateLFSLockedFileList(bool onlyExisting)
 int CGitStatusListCtrl::UpdateUnRevFileList(const CTGitPathList* List)
 {
 	CAutoWriteLock locker(m_guard);
-	if (std::wstring err = m_UnRevFileList.FillUnRev(CTGitPath::LOGACTIONS_UNVER, *List))
+	if (std::wstring err; m_UnRevFileList.FillUnRev(RunGit, CTGitPath::LOGACTIONS_UNVER, List, &err))
 	{
 		MessageBox(std::format(L"Failed to get UnRev file list\n{}", err).c_str(), L"TortoiseGit", MB_OK | MB_ICONERROR);
 		return -1;
@@ -4245,7 +4252,7 @@ int CGitStatusListCtrl::UpdateUnRevFileList(const CTGitPathList* List)
 int CGitStatusListCtrl::UpdateIgnoreFileList(const CTGitPathList* List)
 {
 	CAutoWriteLock locker(m_guard);
-	if (std::wstring err = m_IgnoreFileList.FillUnRev(CTGitPath::LOGACTIONS_IGNORE, *List))
+	if (std::wstring err; m_IgnoreFileList.FillUnRev(RunGit, CTGitPath::LOGACTIONS_IGNORE, List, &err))
 	{
 		MessageBox(std::format(L"Failed to get Ignore file list\n{}", err).c_str(), L"TortoiseGit", MB_OK | MB_ICONERROR);
 		return -1;
@@ -4263,7 +4270,7 @@ int CGitStatusListCtrl::UpdateIgnoreFileList(const CTGitPathList* List)
 int CGitStatusListCtrl::UpdateLocalChangesIgnoredFileList(const CTGitPathList* list)
 {
 	CAutoWriteLock locker(m_guard);
-	m_LocalChangesIgnoredFileList.FillBasedOnIndexFlags(GIT_INDEX_ENTRY_VALID, GIT_INDEX_ENTRY_SKIP_WORKTREE, list);
+	m_LocalChangesIgnoredFileList.FillBasedOnIndexFlags(g_Git.GetGitRepository().get(), GIT_INDEX_ENTRY_VALID, GIT_INDEX_ENTRY_SKIP_WORKTREE, list);
 	for (int i = 0; i < m_LocalChangesIgnoredFileList.GetCount(); ++i)
 	{
 		auto gitpatch = const_cast<CTGitPath*>(&m_LocalChangesIgnoredFileList[i]);

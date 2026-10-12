@@ -595,7 +595,8 @@ void CGitProgressList::OnLvnGetdispinfoSvnprogress(NMHDR *pNMHDR, LRESULT *pResu
 						{
 							CFont * pFont = pDC->SelectObject(GetFont());
 							PathCompactPath(pDC->GetSafeHdc(), m_columnbuf, cWidth);
-							PathUtils::ConvertToSlash(m_columnbuf);
+							// ConvertToSlash in place: the buffer is the list's, not a std::wstring
+							std::replace(m_columnbuf, m_columnbuf + wcsnlen(m_columnbuf, std::size(m_columnbuf)), L'\\', L'/');
 							pDC->SelectObject(pFont);
 							ReleaseDC(pDC);
 						}
