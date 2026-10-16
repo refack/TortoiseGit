@@ -23,7 +23,7 @@
 #include "std.h"
 
 #include "CreateWorktreeDlg.h"
-import AppUtils;
+import AppUtils.Window;
 #include "Utils/BrowseFolder.h"
 
 // CCreateWorktreeDlg dialog

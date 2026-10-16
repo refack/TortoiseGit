@@ -24,7 +24,8 @@
 
 #include "../SharedMFC/Resources/resource.h"
 #include "DeleteConflictDlg.h"
-import AppUtils;
+import AppUtils.Launch;
+import AppUtils.Window;
 
 // CDeleteConflictDlg dialog
 
@@ -147,5 +148,5 @@ void CDeleteConflictDlg::OnBnClickedShowdiff()
 		g_Git.CombinePath(m_File),
 		m_bDiffMine ? m_LocalHash : m_RemoteHash,
 		m_bDiffMine ? m_RemoteHash : m_LocalHash,
-		CommonAppUtils::details::DiffFlags().AlternativeTool(!!(GetAsyncKeyState(VK_SHIFT) & 0x8000)));
+		CAppUtils::DiffFlags().AlternativeTool(!!(GetAsyncKeyState(VK_SHIFT) & 0x8000)));
 }

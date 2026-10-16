@@ -24,6 +24,8 @@
 #include "FirstStartWizard.h"
 #include "FirstStartWizardGit.h"
 #include "Utils/Theme.h"
+import AppUtils.Launch;
+import AppUtils.Window;
 
 IMPLEMENT_DYNAMIC(CFirstStartWizardGit, CFirstStartWizardBasePage)
 

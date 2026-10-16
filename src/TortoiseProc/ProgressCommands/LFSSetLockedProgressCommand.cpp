@@ -22,7 +22,7 @@
 
 #include "TortoiseProc.h"
 #include "LFSSetLockedProgressCommand.h"
-import AppUtils;
+import AppUtils.Launch;
 
 using Git_WC_Notify_Action = CGitProgressList::WC_File_NotificationData::Git_WC_Notify_Action;
 

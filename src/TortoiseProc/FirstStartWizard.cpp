@@ -22,6 +22,7 @@
 
 #include "TortoiseProc.h"
 #include "FirstStartWizard.h"
+import AppUtils.Window;
 
 IMPLEMENT_DYNAMIC(CFirstStartWizard, CStandAloneDialogTmpl<CPropertySheetEx>)
 

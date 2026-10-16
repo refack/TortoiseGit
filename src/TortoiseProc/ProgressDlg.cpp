@@ -29,7 +29,7 @@
 #include "IconMenu.h"
 #include "Resources/LoglistCommonResource.h"
 #include <Tlhelp32.h>
-import AppUtils;
+import AppUtils.Window;
 #include "LoglistUtils.h"
 #include "MessageBox.h"
 #include "LogFile.h"

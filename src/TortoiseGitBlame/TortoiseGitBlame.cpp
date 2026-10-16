@@ -29,7 +29,7 @@
 #include "TortoiseGitBlameView.h"
 #include "CmdLineParser.h"
 import PathUtils;
-import CommonAppUtils;
+import AppUtils.Launch;
 import TaskbarUUID;
 #include "DPIAware.h"
 

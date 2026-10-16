@@ -25,7 +25,7 @@
 #include "EditWordBreak.h"
 #include "Utils/Theme.h"
 #include "Utils/DPIAware.h"
-import CommonAppUtils;
+import AppUtils.Window;
 
 import TaskbarUUID;
 import DarkModeHelper;
@@ -272,7 +272,7 @@ protected:
 	void HtmlHelp(DWORD_PTR dwData, UINT nCmd = 0x000F) override
 	{
 		UNREFERENCED_PARAMETER(nCmd);
-		if (!CommonAppUtils::StartHtmlHelp(dwData))
+		if (!CAppUtils::StartHtmlHelp(dwData))
 			AfxMessageBox(AFX_IDP_FAILED_TO_LAUNCH_HELP);
 	}
 

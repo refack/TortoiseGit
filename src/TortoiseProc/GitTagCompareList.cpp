@@ -25,7 +25,7 @@
 #include "GitTagCompareList.h"
 #include "GitRefCompareList.h"
 #include "IconMenu.h"
-import AppUtils;
+import AppUtils.Launch;
 #include <../TortoiseShell/resource.h>
 #include "Resources/LoglistCommonResource.h"
 #include "SysProgressDlg.h"

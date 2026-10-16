@@ -23,8 +23,7 @@
 #include "ProjectProperties.h"
 #include <WinInet.h>
 
-import CommonAppUtils;
-import AppUtils;
+import AppUtils.Window;
 import libgit2;
 
 

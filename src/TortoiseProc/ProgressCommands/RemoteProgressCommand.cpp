@@ -21,7 +21,7 @@
 
 #include "RemoteProgressCommand.h"
 #include <../TortoiseShell/resource.h>
-import AppUtils;
+import AppUtils.Launch;
 #include "git2/sys/errors.h"
 
 int RemoteProgressCommand::RemoteProgressCallback(const char* str, int len, void* data)

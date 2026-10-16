@@ -23,7 +23,8 @@
 
 #include "TortoiseProc.h"
 #include "SetMainPage.h"
-import AppUtils;
+import AppUtils.Launch;
+import AppUtils.Window;
 #include "MessageBox.h"
 import Libraries;
 

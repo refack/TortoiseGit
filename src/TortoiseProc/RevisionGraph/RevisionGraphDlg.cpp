@@ -22,7 +22,7 @@
 #include "std.h"
 
 #include "RevisionGraphDlg.h"
-import AppUtils;
+import AppUtils.Window;
 #include "RevGraphFilterDlg.h"
 #include "Utils/DPIAware.h"
 #include "LogDlgFilter.h"

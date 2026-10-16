@@ -25,7 +25,9 @@
 #include "TortoiseProc.h"
 #include "WorktreeListDlg.h"
 #include "ProgressDlg.h"
-import AppUtils;
+import AppUtils.Launch;
+import AppUtils.Window;
+import AppUtils.Workflow;
 #include "IconMenu.h"
 #include "SysImageList.h"
 #include "MessageBox.h"

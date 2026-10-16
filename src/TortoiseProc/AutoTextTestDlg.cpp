@@ -23,7 +23,7 @@
 #include "TortoiseProc.h"
 #include "AutoTextTestDlg.h"
 #include "Utils/HighResClock.h"
-import AppUtils;
+import AppUtils.Window;
 
 // CAutoTextTestDlg dialog
 

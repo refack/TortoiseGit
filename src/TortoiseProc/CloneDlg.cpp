@@ -26,7 +26,8 @@
 #include "CloneDlg.h"
 #include "Utils/BrowseFolder.h"
 #include "MessageBox.h"
-import AppUtils;
+import AppUtils.Launch;
+import AppUtils.Window;
 
 // CCloneDlg dialog
 

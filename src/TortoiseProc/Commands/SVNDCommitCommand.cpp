@@ -20,7 +20,7 @@
 #include "std.h"
 
 #include "SVNDCommitCommand.h"
-import AppUtils;
+import AppUtils.Workflow;
 
 bool SVNDCommitCommand::Execute()
 {

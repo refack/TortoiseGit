@@ -23,7 +23,7 @@
 
 #include "CommitCommand.h"
 
-import AppUtils;
+import AppUtils.Workflow;
 #include "MessageBox.h"
 // import AppUtils;
 import Registry;

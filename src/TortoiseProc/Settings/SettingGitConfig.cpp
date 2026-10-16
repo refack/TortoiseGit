@@ -25,7 +25,7 @@
 #include "TortoiseProc.h"
 #include "SettingGitConfig.h"
 import TGitPath;	// GitAdminDir lives in the TGitPath module
-import AppUtils;
+import AppUtils.Launch;
 
 // CSettingGitConfig dialog
 

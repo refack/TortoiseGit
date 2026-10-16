@@ -26,7 +26,9 @@
 #include "StatGraphDlg.h"
 #include "LogDlg.h"
 #include "MessageBox.h"
-import AppUtils;
+import AppUtils.Launch;
+import AppUtils.Window;
+import AppUtils.Workflow;
 #include "IconMenu.h"
 #include "BrowseRefsDlg.h"
 #include "LogOrdering.h"

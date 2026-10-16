@@ -25,7 +25,8 @@
 
 #include "TortoiseProc.h"
 #include "RebaseDlg.h"
-import AppUtils;
+import AppUtils.Window;
+import AppUtils.Workflow;
 #include "LoglistUtils.h"
 #include "MessageBox.h"
 #include "BrowseRefsDlg.h"

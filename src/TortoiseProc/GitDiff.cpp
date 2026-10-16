@@ -22,7 +22,9 @@
 
 #include "GitDiff.h"
 #include "TortoiseProc.h"
-import AppUtils;
+import AppUtils.GitEnv;
+import AppUtils.Launch;
+import AppUtils.Window;
 #include "../SharedMFC/Resources/resource.h"
 #include "MessageBox.h"
 #include "FileDiffDlg.h"
@@ -133,7 +135,7 @@ int CGitDiff::DiffNull(HWND hWnd, const CTGitPath* pPath, const CString& rev1, b
 	CString tempfile = TempFiles::GetTempFilePath(false, *pPath, rev1Hash).GetWinPathString().c_str();
 	::SetFileAttributes(tempfile, FILE_ATTRIBUTE_READONLY);
 
-	const auto flags = CommonAppUtils::details::DiffFlags().AlternativeTool(bAlternative);
+	const auto flags = CAppUtils::DiffFlags().AlternativeTool(bAlternative);
 	if(bIsAdd)
 		CAppUtils::StartExtDiff(tempfile,file1,
 							pPath->GetGitPathString().c_str(),
@@ -450,7 +452,7 @@ int CGitDiff::Diff(HWND hWnd, const CTGitPath* pPath, const CTGitPath* pPath2, c
 							g_Git.CombinePath(pPath),
 							rev2Hash,
 							rev1Hash,
-							CommonAppUtils::details::DiffFlags().AlternativeTool(bAlternativeTool), jumpToLine);
+							CAppUtils::DiffFlags().AlternativeTool(bAlternativeTool), jumpToLine);
 
 	return 0;
 }

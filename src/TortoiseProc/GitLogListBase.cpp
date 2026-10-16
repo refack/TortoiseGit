@@ -30,8 +30,7 @@
 #include <../TortoiseShell/Resource.h>
 #include "Utils/DPIAware.h"
 
-import CommonAppUtils;
-import AppUtils;
+import AppUtils.Window;
 import GitMailmap;
 
 const UINT CGitLogListBase::m_FindDialogMessage = RegisterWindowMessage(FINDMSGSTRING);

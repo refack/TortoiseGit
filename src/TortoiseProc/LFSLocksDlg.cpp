@@ -23,7 +23,7 @@
 #include "TortoiseProc.h"
 #include "MessageBox.h"
 #include "LFSLocksDlg.h"
-import AppUtils;
+import AppUtils.Window;
 #include "GitProgressDlg.h"
 #include "ProgressCommands/LFSSetLockedProgressCommand.h"
 

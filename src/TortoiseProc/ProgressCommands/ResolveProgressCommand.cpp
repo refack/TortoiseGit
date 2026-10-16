@@ -22,7 +22,8 @@
 #include "TortoiseProc.h"
 #include "ResolveProgressCommand.h"
 #include "MessageBox.h"
-import AppUtils;
+import AppUtils.Launch;
+import AppUtils.Workflow;
 import TortoiseProc.MassiveGitTask;
 using MassiveGitTask::CMassiveGitTask;
 

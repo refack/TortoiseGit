@@ -22,7 +22,7 @@
 
 #include "RebaseCommand.h"
 #include "RebaseDlg.h"
-import AppUtils;
+import AppUtils.Launch;
 
 bool RebaseCommand::Execute()
 {
@@ -44,7 +44,7 @@ bool RebaseCommand::Execute()
 		{
 			CString cmd = L"/command:log";
 			cmd += L" /path:\"" + g_Git.m_CurrentDir + L'"';
-			CommonAppUtils::RunTortoiseGitProc(cmd);
+			CAppUtils::RunTortoiseGitProc(cmd);
 			return true;
 		}
 	}

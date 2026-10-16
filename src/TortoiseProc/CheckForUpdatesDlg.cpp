@@ -26,7 +26,7 @@
 #include <version.h>
 #include "MessageBox.h"
 #include "CheckForUpdatesDlg.h"
-import AppUtils;
+import AppUtils.Window;
 #include "UpdateCrypto.h"
 #include <MsiDefs.h>
 #include <MsiQuery.h>

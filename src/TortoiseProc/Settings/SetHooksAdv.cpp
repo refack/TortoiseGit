@@ -23,7 +23,7 @@
 #include "TortoiseProc.h"
 #include "SetHooksAdv.h"
 #include "Utils/BrowseFolder.h"
-import AppUtils;
+import AppUtils.Window;
 import TGitPath;	// GitAdminDir lives in the TGitPath module
 
 IMPLEMENT_DYNAMIC(CSetHooksAdv, CResizableStandAloneDialog)

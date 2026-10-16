@@ -24,7 +24,8 @@
 #include "TortoiseProc.h"
 #include "RevisionGraphWnd.h"
 #include "MessageBox.h"
-import AppUtils;
+import AppUtils.Launch;
+import AppUtils.Workflow;
 #include "RevisionGraphDlg.h"
 
 #pragma warning(push)

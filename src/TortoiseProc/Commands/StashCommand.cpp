@@ -20,7 +20,7 @@
 #include "std.h"
 
 #include "StashCommand.h"
-import AppUtils;
+import AppUtils.Workflow;
 
 bool StashSaveCommand::Execute()
 {

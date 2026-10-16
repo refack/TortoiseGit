@@ -25,7 +25,7 @@
 #include "Utils/DPIAware.h"
 #include "Utils/Theme.h"
 #include "RevisionGraphWnd.h"
-import AppUtils;
+import AppUtils.Window;
 
 #ifdef _DEBUG
 #define new DEBUG_NEW

@@ -24,7 +24,9 @@
 #include "TortoiseProc.h"
 #include "CommitDlg.h"
 #include "MessageBox.h"
-import AppUtils;
+import AppUtils.Launch;
+import AppUtils.Window;
+import AppUtils.Workflow;
 #include "HistoryDlg.h"
 #include "Hooks.h"
 #include "ProgressDlg.h"

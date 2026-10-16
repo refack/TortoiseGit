@@ -28,7 +28,9 @@
 #include "GitStatusListCtrl.h"
 #include "MiscUI/MessageBox.h"
 #include "Utils/MyMemDC.h"
-import AppUtils;
+import AppUtils.Launch;
+import AppUtils.Window;
+import AppUtils.Workflow;
 #include "LoglistUtils.h"
 #include "GitDiff.h"
 #include "GitProgressDlg.h"

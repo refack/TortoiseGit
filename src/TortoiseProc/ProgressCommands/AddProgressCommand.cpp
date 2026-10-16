@@ -22,7 +22,7 @@
 #include "TortoiseProc.h"
 #include "AddProgressCommand.h"
 import TortoiseProc.MassiveGitTask;
-import AppUtils;
+import AppUtils.Launch;
 
 using Git_WC_Notify_Action = CGitProgressList::WC_File_NotificationData::Git_WC_Notify_Action;
 
@@ -109,7 +109,7 @@ bool AddProgressCommand::Run(CGitProgressList* list, CString& sWindowTitle, int&
 			{
 				CString sCmd;
 				sCmd.Format(L"/command:commit /path:\"%s\"", static_cast<LPCWSTR>(g_Git.m_CurrentDir));
-				CommonAppUtils::RunTortoiseGitProc(sCmd);
+				CAppUtils::RunTortoiseGitProc(sCmd);
 			});
 		if (!(m_bExecutable || m_bSymlink))
 		{

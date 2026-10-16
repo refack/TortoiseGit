@@ -25,7 +25,7 @@
 #include "TortoiseProc.h"
 #include "BisectStartDlg.h"
 #include "LogDlg.h"
-import AppUtils;
+import AppUtils.Window;
 #include "MessageBox.h"
 
 IMPLEMENT_DYNAMIC(CBisectStartDlg, CHorizontalResizableStandAloneDialog)

@@ -24,6 +24,8 @@
 #include "FirstStartWizardAuthentication.h"
 #include "Settings/SettingGitCredential.h"
 #include "Utils/Theme.h"
+import AppUtils.Launch;
+import AppUtils.Window;
 
 #define WM_SETPAGEFOCUS WM_APP+2
 

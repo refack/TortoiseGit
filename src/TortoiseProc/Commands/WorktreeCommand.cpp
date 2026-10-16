@@ -21,7 +21,7 @@
 
 #include "WorktreeCommand.h"
 #include "WorktreeListDlg.h"
-import AppUtils;
+import AppUtils.Workflow;
 
 bool WorktreeCreateCommand::Execute()
 {

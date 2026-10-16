@@ -26,7 +26,8 @@
 #include "IconMenu.h"
 #include "SysProgressDlg.h"
 #include "MessageBox.h"
-import AppUtils;
+import AppUtils.Launch;
+import AppUtils.Workflow;
 #include "CommitDlg.h"
 #include "RebaseDlg.h"
 #include "CommitIsOnRefsDlg.h"
@@ -443,7 +444,7 @@ void CGitLogList::ContextMenuAction(int cmd, int FirstSelect, int LastSelect, CM
 					MessageBox(std::format(L"Could not generate patch for commit {}.\n{}", pLastEntry->m_CommitHash.ToString(), err).c_str(), L"TortoiseGit", MB_ICONERROR);
 					break;
 				}
-				CAppUtils::StartExtDiff(patch1, patch2, CString((pFirstEntry->m_CommitHash.ToString()).c_str()), CString((pLastEntry->m_CommitHash.ToString()).c_str()), CString((pFirstEntry->m_CommitHash.ToString() + L".patch").c_str()), CString((pLastEntry->m_CommitHash.ToString() + L".patch").c_str()),pFirstEntry->m_CommitHash, pLastEntry->m_CommitHash, CommonAppUtils::details::DiffFlags());
+				CAppUtils::StartExtDiff(patch1, patch2, CString((pFirstEntry->m_CommitHash.ToString()).c_str()), CString((pLastEntry->m_CommitHash.ToString()).c_str()), CString((pFirstEntry->m_CommitHash.ToString() + L".patch").c_str()), CString((pLastEntry->m_CommitHash.ToString() + L".patch").c_str()),pFirstEntry->m_CommitHash, pLastEntry->m_CommitHash, CAppUtils::DiffFlags());
 			}
 			break;
 		case ID_LOG_VIEWRANGE:

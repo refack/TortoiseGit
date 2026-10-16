@@ -25,7 +25,7 @@
 #include "TortoiseProc.h"
 #include "SettingGitRemote.h"
 #include "MessageBox.h"
-import AppUtils;
+import AppUtils.Launch;
 #include "Utils/HistoryCombo.h"
 import TGitPath;	// GitAdminDir lives in the TGitPath module
 

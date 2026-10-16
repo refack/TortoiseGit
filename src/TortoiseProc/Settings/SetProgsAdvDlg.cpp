@@ -23,7 +23,7 @@
 #include "TortoiseProc.h"
 #include "ToolAssocDlg.h"
 #include "SetProgsAdvDlg.h"
-import AppUtils;
+import AppUtils.Launch;
 
 // CRegistryKey reports into std::vector<std::wstring> now; this page keeps its
 // CStringList handling, so the result is copied across here.

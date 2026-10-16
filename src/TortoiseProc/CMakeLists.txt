@@ -584,7 +584,9 @@ target_sources(TortoiseProc
         FILE_SET CXX_MODULES
         BASE_DIRS "${CMAKE_CURRENT_SOURCE_DIR}"
     FILES
-        AppUtils.ixx
-        CommonAppUtils.ixx
+        AppUtils.Launch.ixx
+        AppUtils.Window.ixx
+        AppUtils.Workflow.ixx
+        AppUtils.GitEnv.ixx
         MassiveGitTask.ixx
 )

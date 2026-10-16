@@ -23,7 +23,7 @@
 #include "CreateRepositoryCommand.h"
 #include "MessageBox.h"
 #include "CreateRepoDlg.h"
-import AppUtils;
+import AppUtils.GitEnv;
 
 static bool CheckSpecialFolder(const CString& folder)
 {

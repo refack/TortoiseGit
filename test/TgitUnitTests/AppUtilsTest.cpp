@@ -18,7 +18,7 @@
 //
 
 #include "stdafx.h"
-import AppUtils;
+import AppUtils.Window;
 #include "Git.h"
 
 TEST(CAppUtils, FindWarningsErrors)

@@ -17,7 +17,7 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 #pragma once
-import AppUtils;
+import AppUtils.Workflow;
 #include "Command.h"
 import str_utils;
 

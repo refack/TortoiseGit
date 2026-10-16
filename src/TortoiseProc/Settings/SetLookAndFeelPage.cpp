@@ -22,7 +22,7 @@
 #include "std.h"
 
 #include "TortoiseProc.h"
-import AppUtils;
+import AppUtils.Window;
 #include "SetLookAndFeelPage.h"
 #include "../TortoiseShell/MenuInfo.h"
 #include "../TortoiseShell/ShellCache.h"

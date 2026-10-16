@@ -25,7 +25,8 @@
 #include "GitProgressDlg.h"
 #include "CloneDlg.h"
 #include "ProgressDlg.h"
-import AppUtils;
+import AppUtils.GitEnv;
+import AppUtils.Launch;
 #include "ProgressCommands/CloneProgressCommand.h"
 
 static CString GetExistingDirectoryForClone(auto path)
@@ -130,7 +131,7 @@ bool CloneCommand::Execute()
 
 			postCmdList.emplace_back(IDI_LOG, IDS_MENULOG, [&]{
 				const auto cmd2 = CString{L"/command:log"} + L" /path:" + TCmdLineParser::EscapeValue(dlg.m_Directory);
-				CommonAppUtils::RunTortoiseGitProc(cmd2);
+				CAppUtils::RunTortoiseGitProc(cmd2);
 			});
 
 			postCmdList.emplace_back(IDI_EXPLORER, IDS_STATUSLIST_CONTEXT_EXPLORE, [&]{ CAppUtils::ExploreTo(GetExplorerHWND(), dlg.m_Directory); });

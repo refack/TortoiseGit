@@ -25,7 +25,7 @@
 #include "TortoiseProc.h"
 #include "MergeAbortDlg.h"
 #include "FileDiffDlg.h"
-import AppUtils;
+import AppUtils.Window;
 
 // CMergeAbortDlg dialog
 

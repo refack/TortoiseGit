@@ -22,7 +22,7 @@
 
 #include "TortoiseProc.h"
 #include "SVNDCommitDlg.h"
-import AppUtils;
+import AppUtils.Window;
 
 IMPLEMENT_DYNAMIC(CSVNDCommitDlg, CStandAloneDialog)
 

@@ -21,7 +21,7 @@
 #include "std.h"
 
 #include "TortoiseProc.h"
-import AppUtils;
+import AppUtils.Window;
 #include "SettingsProgsAlternativeEditor.h"
 
 

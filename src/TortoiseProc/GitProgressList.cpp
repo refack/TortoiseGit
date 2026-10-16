@@ -24,7 +24,8 @@
 
 #include "TortoiseProc.h"
 #include "GitProgressList.h"
-import AppUtils;
+import AppUtils.Launch;
+import AppUtils.Window;
 #include "LogFile.h"
 #include "LoglistUtils.h"
 #include "Utils/Theme.h"

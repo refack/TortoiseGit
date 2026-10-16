@@ -24,7 +24,9 @@
 #include "TortoiseProc.h"
 #include "ChangedDlg.h"
 #include "MessageBox.h"
-import AppUtils;
+import AppUtils.Launch;
+import AppUtils.Window;
+import AppUtils.Workflow;
 #include "IconMenu.h"
 #include "RefLogDlg.h"
 
@@ -447,7 +449,7 @@ void CChangedDlg::OnBnClickedButtonUnifieddiff()
 	sCmd.Format(L"/command:showcompare /unified /path:%s /revision1:HEAD /revision2:%s", static_cast<LPCWSTR>(TCmdLineParser::EscapeValue(g_Git.CombinePath(commonDirectory))), GitRev::GetWorkingCopyRef());
 	if (!!(GetAsyncKeyState(VK_SHIFT) & 0x8000))
 		sCmd += L" /alternative";
-	CommonAppUtils::RunTortoiseGitProc(sCmd);
+	CAppUtils::RunTortoiseGitProc(sCmd);
 }
 
 void CChangedDlg::OnBnClickedWholeProject()

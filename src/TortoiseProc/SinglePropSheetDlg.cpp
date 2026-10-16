@@ -25,7 +25,7 @@
 
 #include "TortoiseProc.h"
 #include "SinglePropSheetDlg.h"
-import AppUtils;
+import AppUtils.Window;
 #include "Utils/DPIAware.h"
 
 // CSinglePropSheetDlg dialog

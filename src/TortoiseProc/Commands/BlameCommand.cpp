@@ -21,7 +21,7 @@
 #include "std.h"
 
 #include "BlameCommand.h"
-import AppUtils;
+import AppUtils.Launch;
 
 
 bool BlameCommand::Execute()

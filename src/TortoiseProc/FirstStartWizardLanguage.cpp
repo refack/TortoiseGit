@@ -24,6 +24,7 @@
 #include "FirstStartWizard.h"
 #include "FirstStartWizardLanguage.h"
 #include "Utils/Theme.h"
+import AppUtils.Launch;
 
 #define DOWNLOAD_URL L"https://tortoisegit.org/download/"
 #define WM_SETPAGEFOCUS WM_APP+2

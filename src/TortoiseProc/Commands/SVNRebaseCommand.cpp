@@ -25,7 +25,8 @@
 #include "ProgressDlg.h"
 #include "MessageBox.h"
 #include "RebaseDlg.h"
-import AppUtils;
+import AppUtils.Launch;
+import AppUtils.Workflow;
 
 bool SVNRebaseCommand::Execute()
 {

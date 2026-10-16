@@ -22,7 +22,7 @@
 
 #include "SVNFetchCommand.h"
 #include "ProgressDlg.h"
-import AppUtils;
+import AppUtils.Launch;
 
 bool SVNFetchCommand::Execute()
 {
@@ -73,7 +73,7 @@ bool SVNFetchCommand::Execute()
 		{
 			CString sCmd;
 			sCmd.Format(L"/command:showcompare /path:\"%s\" /revision1:%s /revision2:%s", static_cast<LPCWSTR>(g_Git.m_CurrentDir), (upstreamOldHash.ToString()).c_str(), (upstreamNewHash.ToString()).c_str());
-			CommonAppUtils::RunTortoiseGitProc(sCmd);
+			CAppUtils::RunTortoiseGitProc(sCmd);
 		});
 
 		postCmdList.emplace_back(IDI_LOG, IDS_PROC_PULL_LOG, [&]

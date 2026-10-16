@@ -21,7 +21,7 @@
 #include "std.h"
 
 #include "SwitchCommand.h"
-import AppUtils;
+import AppUtils.Workflow;
 
 bool SwitchCommand::Execute()
 {

@@ -21,7 +21,7 @@
 #include "std.h"
 
 #include "ExportCommand.h"
-import AppUtils;
+import AppUtils.Workflow;
 
 bool ExportCommand::Execute()
 {

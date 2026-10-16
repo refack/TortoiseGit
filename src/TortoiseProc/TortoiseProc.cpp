@@ -24,7 +24,9 @@
 #include "TortoiseProc.h"
 #include "Utils/SysImageList.h"
 #include "Hooks.h"
-import AppUtils;
+import AppUtils.GitEnv;
+import AppUtils.Launch;
+import AppUtils.Window;
 #include "MessageBox.h"
 #include "Commands\Command.h"
 #include <../libgit2/include/version.h>

@@ -25,7 +25,8 @@
 
 #include "TortoiseProc.h"
 #include "PushDlg.h"
-import AppUtils;
+import AppUtils.Window;
+import AppUtils.Workflow;
 #include "LogDlg.h"
 #include "BrowseRefsDlg.h"
 #include "RefLogDlg.h"

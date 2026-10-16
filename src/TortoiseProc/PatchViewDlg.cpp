@@ -28,8 +28,7 @@
 #include "Utils/DPIAware.h"
 #include "StagingOperations.h"
 #include "EnableStagingTypes.h"
-import CommonAppUtils;
-import AppUtils;
+import AppUtils.Window;
 
 #pragma comment(lib, "Dwmapi.lib")
 

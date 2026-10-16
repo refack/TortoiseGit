@@ -23,6 +23,7 @@
 #include "FirstStartWizard.h"
 #include "FirstStartWizardStart.h"
 #include "Utils/Theme.h"
+import AppUtils.Window;
 
 #define WM_SETPAGEFOCUS WM_APP+2
 

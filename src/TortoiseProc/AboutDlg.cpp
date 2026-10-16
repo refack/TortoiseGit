@@ -26,7 +26,8 @@
 #define NEED_SIGNING_KEY
 #include <../libgit2/include/version.h>
 #include "VersioncheckParser.h"
-import AppUtils;
+import AppUtils.Launch;
+import AppUtils.Window;
 #include "Utils/DPIAware.h"
 using namespace std::literals;
 
@@ -211,7 +212,7 @@ void CAboutDlg::OnMouseMove(UINT nFlags, CPoint point)
 
 void CAboutDlg::OnBnClickedUpdate()
 {
-	CommonAppUtils::RunTortoiseGitProc(L"/command:updatecheck /visible", false, false);
+	CAppUtils::RunTortoiseGitProc(L"/command:updatecheck /visible", false, false);
 }
 
 void CAboutDlg::OnClose()

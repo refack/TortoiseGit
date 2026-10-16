@@ -23,7 +23,7 @@
 
 #include "TortoiseProc.h"
 #include "SetProxyPage.h"
-import AppUtils;
+import AppUtils.Window;
 
 IMPLEMENT_DYNAMIC(CSetProxyPage, ISettingsPropPage)
 CSetProxyPage::CSetProxyPage()

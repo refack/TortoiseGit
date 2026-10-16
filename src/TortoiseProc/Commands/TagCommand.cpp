@@ -21,7 +21,7 @@
 #include "std.h"
 
 #include "TagCommand.h"
-import AppUtils;
+import AppUtils.Workflow;
 
 bool TagCommand::Execute()
 {

@@ -25,7 +25,7 @@
 #include "TortoiseGitBlameDoc.h"
 #include "TortoiseGitBlameView.h"
 #include "MainFrm.h"
-import CommonAppUtils;
+import AppUtils.Launch;
 #include "CmdLineParser.h"
 
 IMPLEMENT_DYNAMIC(CGitBlameLogList, CHintCtrl<CListCtrl>)

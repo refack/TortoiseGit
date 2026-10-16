@@ -26,7 +26,8 @@
 #include "Utils/BrowseFolder.h"
 #include "Resources/LoglistCommonResource.h"
 #include "MessageBox.h"
-import AppUtils;
+import AppUtils.Launch;
+import AppUtils.Window;
 #include "IconMenu.h"
 #include "FileDiffDlg.h"
 #include "GitDiff.h"

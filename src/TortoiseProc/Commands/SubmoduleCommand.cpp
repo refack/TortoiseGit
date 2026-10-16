@@ -22,7 +22,7 @@
 
 #include "SubmoduleCommand.h"
 
-import AppUtils;
+import AppUtils.Launch;
 import TortoiseProc.MassiveGitTask;
 #include "MessageBox.h"
 #include "ProgressDlg.h"
@@ -141,10 +141,10 @@ bool SubmoduleUpdateCommand::Execute()
 		CTGitPath gitPath(g_Git.m_CurrentDir.GetString());
 		if (gitPath.IsBisectActive())
 		{
-			postCmdList.emplace_back(IDI_THUMB_UP, IDS_MENUBISECTGOOD, [] { CommonAppUtils::RunTortoiseGitProc(L"/command:bisect /good"); });
-			postCmdList.emplace_back(IDI_THUMB_DOWN, IDS_MENUBISECTBAD, [] { CommonAppUtils::RunTortoiseGitProc(L"/command:bisect /bad"); });
-			postCmdList.emplace_back(IDI_BISECT, IDS_MENUBISECTSKIP, [] { CommonAppUtils::RunTortoiseGitProc(L"/command:bisect /skip"); });
-			postCmdList.emplace_back(IDI_BISECT_RESET, IDS_MENUBISECTRESET, [] { CommonAppUtils::RunTortoiseGitProc(L"/command:bisect /reset"); });
+			postCmdList.emplace_back(IDI_THUMB_UP, IDS_MENUBISECTGOOD, [] { CAppUtils::RunTortoiseGitProc(L"/command:bisect /good"); });
+			postCmdList.emplace_back(IDI_THUMB_DOWN, IDS_MENUBISECTBAD, [] { CAppUtils::RunTortoiseGitProc(L"/command:bisect /bad"); });
+			postCmdList.emplace_back(IDI_BISECT, IDS_MENUBISECTSKIP, [] { CAppUtils::RunTortoiseGitProc(L"/command:bisect /skip"); });
+			postCmdList.emplace_back(IDI_BISECT_RESET, IDS_MENUBISECTRESET, [] { CAppUtils::RunTortoiseGitProc(L"/command:bisect /reset"); });
 		}
 	};
 

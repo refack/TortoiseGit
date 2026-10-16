@@ -22,7 +22,7 @@
 #include <Resources/resource.h>
 #include "refloglist.h"
 #include "LoglistUtils.h"
-import AppUtils;
+import AppUtils.Launch;
 #include "Utils/DPIAware.h"
 
 IMPLEMENT_DYNAMIC(CRefLogList, CGitLogList)

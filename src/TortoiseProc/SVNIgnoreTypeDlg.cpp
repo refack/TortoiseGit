@@ -22,7 +22,7 @@
 
 #include "TortoiseProc.h"
 #include "SVNIgnoreTypeDlg.h"
-import AppUtils;
+import AppUtils.Window;
 
 // CSVNIgnoreTypeDlg dialog
 

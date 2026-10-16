@@ -21,7 +21,7 @@
 #include "std.h"
 
 #include "MergeCommand.h"
-import AppUtils;
+import AppUtils.Workflow;
 
 bool MergeCommand::Execute()
 {

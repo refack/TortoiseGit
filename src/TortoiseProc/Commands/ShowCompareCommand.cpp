@@ -20,7 +20,7 @@
 #include "std.h"
 
 #include "ShowCompareCommand.h"
-import AppUtils;
+import AppUtils.Launch;
 #include "GitDiff.h"
 
 bool ShowCompareCommand::Execute()

@@ -21,7 +21,7 @@
 #include "std.h"
 
 #include "BranchCommand.h"
-import AppUtils;
+import AppUtils.Workflow;
 
 bool BranchCommand::Execute()
 {

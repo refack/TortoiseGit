@@ -19,7 +19,7 @@
 //
 #pragma once
 #include "Command.h"
-import AppUtils;
+import AppUtils.Window;
 
 /**
  * \ingroup TortoiseProc

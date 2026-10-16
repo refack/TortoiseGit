@@ -23,7 +23,7 @@
 #include "TortoiseProc.h"
 #include "ProjectProperties.h"
 #include "SetDialogs3.h"
-import AppUtils;
+import AppUtils.Window;
 
 static std::vector<DWORD> g_langs;
 

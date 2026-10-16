@@ -21,7 +21,7 @@
 #include "std.h"
 
 #include "RequestPullCommand.h"
-import AppUtils;
+import AppUtils.Workflow;
 
 bool RequestPullCommand::Execute()
 {

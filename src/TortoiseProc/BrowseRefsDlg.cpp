@@ -38,9 +38,10 @@
 #include "LoglistUtils.h"
 #include "BrowseRefsDlgFilter.h"
 #include "Utils/DPIAware.h"
-import AppUtils;
-import CommonAppUtils;
-using CommonAppUtils::RunTortoiseGitProc;
+import AppUtils.Launch;
+import AppUtils.Window;
+import AppUtils.Workflow;
+using CAppUtils::RunTortoiseGitProc;
 
 
 static int SplitRemoteBranchName(CString ref, CString &remote, CString &branch)

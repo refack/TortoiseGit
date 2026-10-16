@@ -26,7 +26,8 @@
 #include "TortoiseProc.h"
 #include "RepositoryBrowser.h"
 #include "LogDlg.h"
-import AppUtils;
+import AppUtils.Launch;
+import AppUtils.Window;
 #include "IconMenu.h"
 #include "Utils/SysImageList.h"
 #include "GitDiff.h"

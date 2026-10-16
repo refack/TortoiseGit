@@ -27,7 +27,8 @@
 #include "Utils/BrowseFolder.h"
 #include "LogDlg.h"
 #include "BrowseRefsDlg.h"
-import AppUtils;
+import AppUtils.Launch;
+import AppUtils.Window;
 #include "MessageBox.h"
 
 // CFormatPatchDlg dialog

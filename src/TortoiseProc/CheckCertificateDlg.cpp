@@ -22,7 +22,8 @@
 
 #include "TortoiseProc.h"
 #include "CheckCertificateDlg.h"
-import AppUtils;
+import AppUtils.Launch;
+import AppUtils.Window;
 #include <WinCrypt.h>
 
 IMPLEMENT_DYNAMIC(CCheckCertificateDlg, CStandAloneDialog)

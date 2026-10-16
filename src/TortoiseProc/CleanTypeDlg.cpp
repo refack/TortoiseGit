@@ -24,7 +24,7 @@
 
 #include "TortoiseProc.h"
 #include "CleanTypeDlg.h"
-import AppUtils;
+import AppUtils.Window;
 
 // CCleanTypeDlg dialog
 

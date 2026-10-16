@@ -27,7 +27,7 @@
 #include <../TortoiseShell/resource.h>
 #include "Resources/LoglistCommonResource.h"
 #include "Utils/DPIAware.h"
-import AppUtils;
+import AppUtils.Launch;
 
 IMPLEMENT_DYNAMIC(CGitRefCompareList, CHintCtrl<CListCtrl>)
 

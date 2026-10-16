@@ -24,7 +24,7 @@
 #include "Settings.h"
 #include "MessageBox.h"
 import TGitPath;	// GitAdminDir lives in the TGitPath module
-import AppUtils;
+import AppUtils.Window;
 #include "Utils/Theme.h"
 #include "SetMainPage.h"
 #include "SetProxyPage.h"

@@ -25,7 +25,8 @@
 #include <regex>
 #include "RevisionGraphWnd.h"
 #include "Utils/DPIAware.h"
-import AppUtils;
+import AppUtils.Launch;
+import AppUtils.Window;
 
 #ifdef _DEBUG
 #define new DEBUG_NEW

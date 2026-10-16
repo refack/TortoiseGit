@@ -25,7 +25,7 @@
 #include "RefLogDlg.h"
 #include "LogDlg.h"
 #include "LoglistUtils.h"
-import AppUtils;
+import AppUtils.Launch;
 #include "FileDiffDlg.h"
 #include "MessageBox.h"
 

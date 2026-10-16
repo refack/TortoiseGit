@@ -25,7 +25,7 @@
 
 #include "TortoiseProc.h"
 #include "MergeDlg.h"
-import AppUtils;
+import AppUtils.Window;
 #include "HistoryDlg.h"
 
 // CMergeDlg dialog

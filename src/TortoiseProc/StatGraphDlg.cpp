@@ -23,7 +23,7 @@
 
 #include "TortoiseProc.h"
 #include "StatGraphDlg.h"
-import AppUtils;
+import AppUtils.Window;
 #include "SysProgressDlg.h"
 #include <cmath>
 #include <utility>
