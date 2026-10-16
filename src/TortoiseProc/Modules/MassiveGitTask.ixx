@@ -1,6 +1,6 @@
 ﻿module;
 #include "stdafx.h"
-#include "std.h"
+#include "../std.h"
 
 #include "ProgressDlg.h"
 #include "GitProgressList.h"

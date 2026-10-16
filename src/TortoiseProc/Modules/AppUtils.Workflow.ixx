@@ -1,6 +1,6 @@
 module;
 #include "stdafx.h"
-#include "std.h"
+#include "../std.h"
 
 #include "TortoiseProc.h"
 #include "MessageBox.h"
@@ -17,7 +17,7 @@ module;
 #include "MergeDlg.h"
 #include "MergeAbortDlg.h"
 #include "Hooks.h"
-#include "Settings/Settings.h"
+#include "../Settings/Settings.h"
 #include "InputDlg.h"
 #include "SVNDCommitDlg.h"
 #include "requestpulldlg.h"
@@ -27,9 +27,9 @@ module;
 #include "IgnoreDlg.h"
 #include "BisectStartDlg.h"
 #include "SysProgressDlg.h"
-#include "../SharedMFC/Resources/Globals.h"
-#include "ProgressCommands/ResetProgressCommand.h"
-#include "ProgressCommands/FetchProgressCommand.h"
+#include "../../SharedMFC/Resources/Globals.h"
+#include "../ProgressCommands/ResetProgressCommand.h"
+#include "../ProgressCommands/FetchProgressCommand.h"
 #include "SubmoduleResolveConflictDlg.h"
 #include "GitDiff.h"
 

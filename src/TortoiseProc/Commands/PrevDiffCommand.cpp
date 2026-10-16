@@ -24,7 +24,7 @@
 #include "PrevDiffCommand.h"
 #include "GitDiff.h"
 #include "MessageBox.h"
-#include "LogDlgHelper.h"
+#include "LogDataVector.h"
 #include "FileDiffDlg.h"
 
 bool PrevDiffCommand::Execute()

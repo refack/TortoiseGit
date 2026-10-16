@@ -37,13 +37,6 @@ using namespace DirFileEnum;
 
 import GitDataObject;
 
-
-// The one textual include after the imports, and on purpose: Monitor.h's Hash.h
-// expands SCOPE_EXIT, whose scope_exit_helper arrives with `import wil` above.
-// Every std header it pulls is already included (and guarded) at the top.
-// GetMonitorSetupHash, which every StandAloneDlg names its window-state key with.
-#include <Utils/Monitor.h>
-
 // Names that were global in the header era and live in a namespace now.
 using wil::CFormatMessageWrapper;
 using CUnicodeUtils::SafeSizeToInt;

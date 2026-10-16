@@ -120,7 +120,7 @@ index 864f9caa7..3bb663bfb 100644
 +    <ClInclude Include="..\..\src\TortoiseMerge\Patch.h" />
      <ClInclude Include="..\..\src\TortoiseProc\gitlogcache.h" />
      <ClInclude Include="..\..\src\TortoiseProc\lanes.h" />
-     <ClInclude Include="..\..\src\TortoiseProc\LogDlgHelper.h" />
+     <ClInclude Include="..\..\src\TortoiseProc\LogDataVector.h" />
 @@ -124,6 +125,7 @@
      <ClCompile Include="..\..\src\Git\MassiveGitTaskBase.cpp" />
      <ClCompile Include="..\..\src\Git\TGitPath.cpp" />

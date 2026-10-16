@@ -1,6 +1,6 @@
 module;
 #include "stdafx.h"
-#include "std.h"
+#include "../std.h"
 
 #include "TortoiseProc.h"
 #include "git2/sys/errors.h"

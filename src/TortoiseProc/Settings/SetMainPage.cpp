@@ -23,9 +23,9 @@
 
 #include "TortoiseProc.h"
 #include "SetMainPage.h"
+#include "MessageBox.h"
 import AppUtils.Launch;
 import AppUtils.Window;
-#include "MessageBox.h"
 import Libraries;
 
 IMPLEMENT_DYNAMIC(CSetMainPage, ISettingsPropPage)

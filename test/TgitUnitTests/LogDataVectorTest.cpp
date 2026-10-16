@@ -19,7 +19,7 @@
 
 #include "stdafx.h"
 #include "RepositoryFixtures.h"
-#include "LogDlgHelper.h"
+#include "LogDataVector.h"
 
 class CLogDataVectorCBasicGitWithTestRepoFixture : public CBasicGitWithTestRepoFixture
 {

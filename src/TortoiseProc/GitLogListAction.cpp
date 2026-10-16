@@ -26,12 +26,13 @@
 #include "IconMenu.h"
 #include "SysProgressDlg.h"
 #include "MessageBox.h"
-import AppUtils.Launch;
-import AppUtils.Workflow;
 #include "CommitDlg.h"
 #include "RebaseDlg.h"
 #include "CommitIsOnRefsDlg.h"
 #include "GitDiff.h"
+
+import AppUtils.Launch;
+import AppUtils.Workflow;
 
 IMPLEMENT_DYNAMIC(CGitLogList, CHintCtrl<CListCtrl>)
 

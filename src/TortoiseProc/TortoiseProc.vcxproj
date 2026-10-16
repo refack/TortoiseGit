@@ -335,7 +335,7 @@
     <ClInclude Include="GitLogListBase.h" />
     <ClInclude Include="Commands\LogCommand.h" />
     <ClInclude Include="LogDlg.h" />
-    <ClInclude Include="LogDlgHelper.h" />
+    <ClInclude Include="LogDataVector.h" />
     <ClInclude Include="LoglistUtils.h" />
     <ClInclude Include="StagingOperations.h" />
     <ClInclude Include="StatGraphDlg.h" />

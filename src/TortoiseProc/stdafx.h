@@ -11,10 +11,6 @@
 
 #define _ATL_CSTRING_EXPLICIT_CONSTRUCTORS	// some CString constructors will be explicit NOLINT(*-reserved-identifier)
 
-#include <algorithm>
-using std::max;
-using std::min;
-
 // turns off MFC's hiding of some common and often safely ignored warning messages
 #define _AFX_ALL_WARNINGS	// NOLINT(*-reserved-identifier)
 
@@ -23,23 +19,41 @@ using std::min;
 #include <WinSock2.h>
 #include <Ws2tcpip.h>
 #include <Wspiapi.h>
+#include <comdef.h>		// _COM_SMARTPTR_TYPEDEF (AnimationManager.h); the old PCH supplied it
+// #include <vfw.h>		// unused
+#include <shlobj.h>
+#include <Shlwapi.h>
+#include <shlguid.h>
+#include <uxtheme.h>
+#include <dlgs.h>
+#include <wininet.h>
+#include <assert.h>
+#include <math.h>
+#include <gdiplus.h>
+#include <intsafe.h>
 
-#include <afxdtctl.h>		// MFC support for Internet Explorer 4 Common Controls
+
+#include <afxdtctl.h>			// MFC support for Internet Explorer 4 Common Controls
+
 #ifndef _AFX_NO_AFXCMN_SUPPORT
-#include <afxcmn.h>			// MFC support for Windows Common Controls
-#endif // _AFX_NO_AFXCMN_SUPPORT
+#include <afxcmn.h>				// MFC support for Windows Common Controls
+#endif							// _AFX_NO_AFXCMN_SUPPORT
+
 #include <afxdlgs.h>
 #include <afxctl.h>
 #include <afxtempl.h>
 #include <afxmt.h>
-#include <afxext.h>         // MFC extensions
+#include <afxext.h>				// MFC extensions
 #include <afxcontrolbars.h>     // MFC support for ribbons and control bars
 #include <afxtaskdialog.h>
-
+// And ATL base last
 #include <atlbase.h>
 
 #include <git2.h>
 
+#include <algorithm>
+using std::max;
+using std::min;
 #include <concepts>
 #include <format>
 #include <format>
@@ -94,19 +108,6 @@ using std::min;
 #include <utility>
 #include <variant>
 
-#include <comdef.h>		// _COM_SMARTPTR_TYPEDEF (AnimationManager.h); the old PCH supplied it
-// #include <vfw.h>		// unused
-#include <shlobj.h>
-#include <Shlwapi.h>
-#include <shlguid.h>
-#include <uxtheme.h>
-#include <dlgs.h>
-#include <wininet.h>
-#include <assert.h>
-#include <math.h>
-#include <gdiplus.h>
-#include <intsafe.h>
-
 #define USE_GDI_GRADIENT
 #define HISTORYCOMBO_WITH_SYSIMAGELIST
 
@@ -122,37 +123,6 @@ using std::min;
 						// RegisterWin11ContextMenu's later winrt/*.h would redefine it (C2766)
 #include <gitdll.h>
 #include <Utils/ProfilingInfo.h>
+
+// Last
 #include <sanity.h>		// SCOPE_EXIT; its scope_exit_helper comes with `import wil` below
-
-
-// MFC CString meets the modules' std::wstring. This is the MFC UI, which keeps
-// CString (CLAUDE.md, "Making src\ cohesive"), so concatenating across the
-// boundary is spelled once here rather than as .c_str() at every site.
-// Concatenation only, deliberately: an implicit conversion either way would
-// re-bind existing overloads without any line changing (failure mode 3).
-inline CString& operator+=(CString& lhs, const std::wstring& rhs)
-{
-	lhs.Append(rhs.c_str(), static_cast<int>(rhs.size()));
-	return lhs;
-}
-inline CString operator+(const CString& lhs, const std::wstring& rhs)
-{
-	CString result(lhs);
-	result += rhs;
-	return result;
-}
-/// The full key path of a TortoiseGit setting, for CRegString. REG_MSYSGIT_PATH &
-/// co. are value names under Software\TortoiseGit now (Registry::TortoiseGitKey,
-/// which git_h reads them under); in the header era they were full paths, and passing one of the new ones
-/// straight to CRegString would compile and silently read HKCU\MSysGit.
-inline CString TGitRegPath(const std::wstring_view valueName)
-{
-	return L"Software\\TortoiseGit\\" + CString(valueName.data(), static_cast<int>(valueName.size()));
-}
-
-inline CString operator+(const std::wstring& lhs, const CString& rhs)
-{
-	CString result(lhs.c_str(), static_cast<int>(lhs.size()));
-	result += rhs;
-	return result;
-}

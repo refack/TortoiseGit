@@ -18,12 +18,13 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 #pragma once
+#include "GitLogCache.h"
+
+import std;
 import lanes;
 import GitHash;
 import git_h;
-#include "GitLogCache.h"
-#include <unordered_map>
-#include <unordered_set>
+
 class CLogDlg;
 
 /**
@@ -38,8 +39,7 @@ using MAP_HASH_REV = std::unordered_map<CGitHash, size_t>;
  * Helper class for the log dialog, handles all the log entries, including
  * sorting.
  */
-class CLogDataVector : private std::vector<CGitHash>
-{
+class CLogDataVector : private std::vector<CGitHash> {
 public:
 	CLogCache *m_pLogCache;
 	/// De-allocates log items.
@@ -207,3 +207,27 @@ public:
 	};
 #endif
 };
+
+
+// MFC CString meets the modules' std::wstring. This is the MFC UI, which keeps
+// CString (CLAUDE.md, "Making src\ cohesive"), so concatenating across the
+// boundary is spelled once here rather than as .c_str() at every site.
+// Concatenation only, deliberately: an implicit conversion either way would
+// re-bind existing overloads without any line changing (failure mode 3).
+inline CString& operator+=(CString& lhs, const std::wstring& rhs)
+{
+	lhs.Append(rhs.c_str(), static_cast<int>(rhs.size()));
+	return lhs;
+}
+inline CString operator+(const CString& lhs, const std::wstring& rhs)
+{
+	CString result(lhs);
+	result += rhs;
+	return result;
+}
+inline CString operator+(const std::wstring& lhs, const CString& rhs)
+{
+	CString result(lhs.c_str(), static_cast<int>(lhs.size()));
+	result += rhs;
+	return result;
+}

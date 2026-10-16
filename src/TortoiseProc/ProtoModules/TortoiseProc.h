@@ -46,10 +46,9 @@ class CTortoiseProcApp : public CWinAppEx
 {
 public:
 	CTortoiseProcApp();
-	~CTortoiseProcApp();
+	~CTortoiseProcApp() override;
 
 // Overrides
-public:
 	BOOL InitInstance() override;
 	int ExitInstance() override;
 
@@ -74,3 +73,23 @@ extern CTortoiseProcApp theApp;
 extern CString g_sGroupingUUID;
 HWND GetExplorerHWND();
 CWnd* GetParentCWnd(HWND hWnd);
+
+
+/// The full key path of a TortoiseGit setting, for CRegString. REG_MSYSGIT_PATH &
+/// co. are value names under Software\TortoiseGit now (Registry::TortoiseGitKey, which git_h reads them under);
+/// in the header era they were full paths, and passing one of the new ones
+/// straight to CRegString would compile and silently read HKCU\MSysGit.
+template <std::size_t LEN2>
+constexpr auto TGitRegPath(const wchar_t (&valName)[LEN2])
+{
+	using namespace std::literals;
+	constexpr auto prefix = L"Software\\TortoiseGit\\"sv;
+	constexpr std::size_t total_len = prefix.size() + LEN2;
+
+	std::array<wchar_t, total_len> result{};
+	std::copy(prefix.begin(), prefix.end(), result.begin());
+	std::copy_n(valName, LEN2, result.begin() + prefix.size());
+	result.back() = L'\0';
+
+	return CString{result.data(), static_cast<int>(result.size())};
+}

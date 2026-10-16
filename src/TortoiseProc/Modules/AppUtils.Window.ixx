@@ -1,13 +1,13 @@
 module;
 #include "stdafx.h"
-#include "std.h"
+#include "../std.h"
 
 #include <shlobj_core.h>
 #include <Utils/SelectFileFilter.h>
 #include <Utils/DPIAware.h>
 #include <Utils/LoadIconEx.h>
 #include <Utils/CreateProcessHelper.h>
-#include "MiscUI/IconBitmapUtils.h"
+#include "../MiscUI/IconBitmapUtils.h"
 #include "Utils/URLFinder.h"
 #include "TortoiseProc.h"
 

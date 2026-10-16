@@ -29,7 +29,9 @@
 #include "stdafx.h"
 #include "std.h"
 
-#include "LogDlgHelper.h"
+#include "LogDataVector.h"
+import GitMailmap;
+
 
 void CLogDataVector::ClearAll()
 {
@@ -120,8 +122,8 @@ int CLogDataVector::ParserFromLog(const CTGitPath* path, DWORD count, DWORD info
 		return -1;
 	}
 
-	if (CGitMailmap::ShouldLoadMailmap())
-		GitRevLoglist::s_Mailmap = std::make_shared<CGitMailmap>();
+	if (GitMailmap::CGitMailmap::ShouldLoadMailmap())
+		GitRevLoglist::s_Mailmap = std::make_shared<GitMailmap::CGitMailmap>();
 	else if (GitRevLoglist::s_Mailmap.load())
 		GitRevLoglist::s_Mailmap.store(nullptr);
 	auto mailmap{ GitRevLoglist::s_Mailmap.load() };
@@ -214,8 +216,8 @@ int CLogDataVector::Fill(const std::unordered_set<CGitHash>& hashes)
 		return -1;
 	}
 
-	if (CGitMailmap::ShouldLoadMailmap())
-		GitRevLoglist::s_Mailmap = std::make_shared<CGitMailmap>();
+	if (GitMailmap::CGitMailmap::ShouldLoadMailmap())
+		GitRevLoglist::s_Mailmap = std::make_shared<GitMailmap::CGitMailmap>();
 	else if (GitRevLoglist::s_Mailmap.load())
 		GitRevLoglist::s_Mailmap.store(nullptr);
 	auto mailmap{ GitRevLoglist::s_Mailmap.load() };

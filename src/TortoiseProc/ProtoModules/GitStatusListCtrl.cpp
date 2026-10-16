@@ -28,9 +28,6 @@
 #include "GitStatusListCtrl.h"
 #include "MiscUI/MessageBox.h"
 #include "Utils/MyMemDC.h"
-import AppUtils.Launch;
-import AppUtils.Window;
-import AppUtils.Workflow;
 #include "LoglistUtils.h"
 #include "GitDiff.h"
 #include "GitProgressDlg.h"
@@ -39,10 +36,13 @@ import AppUtils.Workflow;
 #include "ProgressCommands/LFSSetLockedProgressCommand.h"
 #include "ProgressCommands/RevertProgressCommand.h"
 #include "ProgressCommands/ResolveProgressCommand.h"
-#include "MiscUI/IconMenu.h"
 #include "Utils/BrowseFolder.h"
 #include "CreateChangelistDlg.h"
 #include "Utils/Theme.h"
+#include "LogDataVector.h"		// mix CString + std::wstring
+import AppUtils.Launch;
+import AppUtils.Window;
+import AppUtils.Workflow;
 
 const UINT CGitStatusListCtrl::GITSLNM_ITEMCOUNTCHANGED
 					= ::RegisterWindowMessage(L"GITSLNM_ITEMCOUNTCHANGED");

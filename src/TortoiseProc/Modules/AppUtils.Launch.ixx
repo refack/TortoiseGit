@@ -6,11 +6,13 @@ module;
 #include "TortoiseProc.h"
 #include "MessageBox.h"
 
+
+
+export module AppUtils.Launch;
+
 // Defined by each MFC application. Declared in the global module fragment so it
 // names the same variable as StandAloneDlg.h's, not one attached to this module.
 extern CString g_sGroupingUUID;
-
-export module AppUtils.Launch;
 
 template <tgit::str::IsStupidString TStr>
 TStr EscapeAndQuoteParameters(const TStr& input)

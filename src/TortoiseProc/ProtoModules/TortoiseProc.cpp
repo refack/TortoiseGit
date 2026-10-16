@@ -22,23 +22,23 @@
 #include "std.h"
 
 #include "TortoiseProc.h"
-#include "Utils/SysImageList.h"
+#include <../libgit2/include/version.h>
+#include "AnimationManager.h"
+#include "ConfigureGitExe.h"
 #include "Hooks.h"
+#include "JumpListHelpers.h"
+#include "MessageBox.h"
+#include "ProjectProperties.h"
+#include "VersioncheckParser.h"
+#include "Commands/Command.h"
+#include "Utils/HistoryCombo.h"
+#include "Utils/SysImageList.h"
+#include "Utils/WindowsCredentialsStore.h"
+
+import std;
 import AppUtils.GitEnv;
 import AppUtils.Launch;
 import AppUtils.Window;
-#include "MessageBox.h"
-#include "Commands\Command.h"
-#include <../libgit2/include/version.h>
-#include "JumpListHelpers.h"
-#include "ConfigureGitExe.h"
-#include "ProjectProperties.h"
-#include "Utils/HistoryCombo.h"
-#include <random>
-#include "Utils/WindowsCredentialsStore.h"
-#include "AnimationManager.h"
-#include "VersioncheckParser.h"
-#include "Utils/Hash.h"
 import TaskbarUUID;
 import Libraries;
 
@@ -280,7 +280,7 @@ BOOL CTortoiseProcApp::InitInstance()
 		pathList.AddPath(CTGitPath(g_Git.m_CurrentDir.GetString()));
 	}
 
-	CAutoGeneralHandle TGitMutex = ::CreateMutex(nullptr, FALSE, L"TortoiseGitProc.exe");
+	[[maybe_unused]]auto _ = ::CreateMutex(nullptr, FALSE, L"TortoiseGitProc.exe");
 	if (!g_Git.SetCurrentDir(cmdLinePath.GetWinPathString().c_str(), parser.HasKey(L"submodule") == TRUE))
 	{
 		for (int i = 0; i < pathList.GetCount(); ++i)
@@ -315,7 +315,7 @@ BOOL CTortoiseProcApp::InitInstance()
 					// group, so the lowercasing must stay byte-for-byte what it was.
 					CString wcroot(wcrootStd.c_str());
 					const std::string wcRootA = CUnicodeUtils::StdGetUTF8(tgit::str::StringView(wcroot.MakeLower()));
-					g_sGroupingUUID = GetHashText(wcRootA.data(), wcRootA.size(), HashType::HashSha1).c_str();
+					g_sGroupingUUID = TGitHash::GetHashText(wcRootA.data(), wcRootA.size(), TGitHash::HashType::HashSha1).c_str();
 
 					ProjectProperties pp;
 					pp.ReadProps();
@@ -326,10 +326,12 @@ BOOL CTortoiseProcApp::InitInstance()
 					g_sGroupingIcon = icon;
 				}
 			}
+		default:
+			std::unreachable();
 		}
 	}
 
-	CString sAppID = GetTaskIDPerUUID(g_sGroupingUUID).c_str();
+	CString sAppID = TaskbarUUID::GetTaskIDPerUUID(g_sGroupingUUID).c_str();
 	InitializeJumpList(sAppID);
 	EnsureGitLibrary(false);
 
@@ -661,11 +663,10 @@ void CTortoiseProcApp::CheckForNewerVersion() const
 				{
 					oldday = ptm.tm_yday;
 #else
-			int week = 0;
 			// we don't calculate the real 'week of the year' here
 			// because just to decide if we should check for an update
 			// that's not needed.
-			week = (ptm.tm_yday + CRegDWORD(L"Software\\TortoiseGit\\CheckNewerWeekDay", 0)) / 7;
+			int week = (ptm.tm_yday + CRegDWORD(L"Software\\TortoiseGit\\CheckNewerWeekDay", 0)) / 7;
 
 			CRegDWORD oldweek = CRegDWORD(L"Software\\TortoiseGit\\CheckNewerWeek", DWORD(-1));
 			if (oldweek == -1)

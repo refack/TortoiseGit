@@ -26,9 +26,9 @@
 #include "Utils/Theme.h"
 #include "Utils/DPIAware.h"
 import AppUtils.Window;
-
 import TaskbarUUID;
 import DarkModeHelper;
+import GitHash;
 
 // Defined by each MFC application (TortoiseProc, TortoiseGitBlame); passed to
 // SetUUIDOverlayIcon, which no longer reaches for them itself.
@@ -42,6 +42,37 @@ extern bool g_bGroupingRemoveIcon;
 // GetMonitorSetupHash() is Utils/Monitor.h's inline, which stdafx.h includes. A
 // bare redeclaration here had no definition behind it: the .cpp that defined it
 // out of line is gone, so all 47 dialogs failed to link against it.
+
+
+// inline, not static: the inline GetMonitorSetupHash below names it, and an inline
+// function with external linkage must not refer to a different entity per TU.
+inline BOOL CALLBACK MonitorEnum(HMONITOR hMon, HDC /*hdc*/, LPRECT lprcMonitor, LPARAM pData)
+{
+	MONITORINFOEX miex = { 0 };
+	miex.cbSize = sizeof(MONITORINFOEX);
+	GetMonitorInfo(hMon, &miex);
+
+	if (miex.dwFlags == DISPLAY_DEVICE_MIRRORING_DRIVER)
+		return TRUE;
+
+	auto* pMonRects = reinterpret_cast<std::vector<RECT>*>(pData);
+	pMonRects->push_back(*lprcMonitor);
+	return TRUE;
+}
+
+inline std::wstring GetMonitorSetupHash()
+{
+	std::vector<RECT> monRects;
+	EnumDisplayMonitors(0, 0, MonitorEnum, reinterpret_cast<LPARAM>(&monRects));
+	std::sort(monRects.begin(), monRects.end(),
+		[](const RECT& a, const RECT& b) -> bool {
+			if (a.left == b.left)
+				return a.top < b.top;
+			return a.left < b.left;
+		});
+	return TGitHash::GetHashText(monRects.data(), monRects.size() * sizeof(RECT), TGitHash::HashType::HashMd5);
+}
+
 
 /**
  * \ingroup TortoiseProc

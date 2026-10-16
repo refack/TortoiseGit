@@ -11,37 +11,9 @@ target_precompile_headers(TortoiseProc PRIVATE stdafx.h)
 
 target_sources(TortoiseProc
     PRIVATE
-        AboutDlg.cpp
-        AboutDlg.h
-        AddDlg.cpp
-        AddDlg.h
-        AddRemoteDlg.cpp
-        AddRemoteDlg.h
-        AutoTextTestDlg.cpp
-        AutoTextTestDlg.h
-        BisectStartDlg.cpp
-        BisectStartDlg.h
         BranchCombox.h
-        BrowseRefsDlg.cpp
-        BrowseRefsDlg.h
-        BrowseRefsDlgFilter.cpp
-        BrowseRefsDlgFilter.h
         BstrSafeVector.h
-        BugtraqRegexTestDlg.cpp
-        BugtraqRegexTestDlg.h
-        ChangedDlg.cpp
-        ChangedDlg.h
-        CheckCertificateDlg.cpp
-        CheckCertificateDlg.h
-        CheckForUpdatesDlg.cpp
-        CheckForUpdatesDlg.h
         ChooseVersion.h
-        CleanTypeDlg.cpp
-        CleanTypeDlg.h
-        CloneDlg.cpp
-        CloneDlg.h
-        Colors.cpp
-        Colors.h
         Commands/AboutCommand.cpp
         Commands/AboutCommand.h
         Commands/AddCommand.cpp
@@ -105,6 +77,7 @@ target_sources(TortoiseProc
         Commands/PullCommand.h
         Commands/PushCommand.cpp
         Commands/PushCommand.h
+        Commands/RTFMCommand.h
         Commands/RebaseCommand.cpp
         Commands/RebaseCommand.h
         Commands/RefBrowseCommand.h
@@ -116,10 +89,10 @@ target_sources(TortoiseProc
         Commands/RemoveCommand.h
         Commands/RenameCommand.cpp
         Commands/RenameCommand.h
-        Commands/RepositoryBrowserCommand.cpp
-        Commands/RepositoryBrowserCommand.h
         Commands/RepoStatusCommand.cpp
         Commands/RepoStatusCommand.h
+        Commands/RepositoryBrowserCommand.cpp
+        Commands/RepositoryBrowserCommand.h
         Commands/RequestPullCommand.cpp
         Commands/RequestPullCommand.h
         Commands/ResolveCommand.cpp
@@ -128,15 +101,6 @@ target_sources(TortoiseProc
         Commands/RevertCommand.h
         Commands/RevisionGraphCommand.cpp
         Commands/RevisionGraphCommand.h
-        Commands/RTFMCommand.h
-        Commands/SettingsCommand.cpp
-        Commands/SettingsCommand.h
-        Commands/ShowCompareCommand.cpp
-        Commands/ShowCompareCommand.h
-        Commands/StashCommand.cpp
-        Commands/StashCommand.h
-        Commands/SubmoduleCommand.cpp
-        Commands/SubmoduleCommand.h
         Commands/SVNDCommitCommand.cpp
         Commands/SVNDCommitCommand.h
         Commands/SVNFetchCommand.cpp
@@ -145,6 +109,14 @@ target_sources(TortoiseProc
         Commands/SVNIgnoreCommand.h
         Commands/SVNRebaseCommand.cpp
         Commands/SVNRebaseCommand.h
+        Commands/SettingsCommand.cpp
+        Commands/SettingsCommand.h
+        Commands/ShowCompareCommand.cpp
+        Commands/ShowCompareCommand.h
+        Commands/StashCommand.cpp
+        Commands/StashCommand.h
+        Commands/SubmoduleCommand.cpp
+        Commands/SubmoduleCommand.h
         Commands/SwitchCommand.cpp
         Commands/SwitchCommand.h
         Commands/SyncCommand.cpp
@@ -155,103 +127,13 @@ target_sources(TortoiseProc
         Commands/UpdateCheckCommand.h
         Commands/WorktreeCommand.cpp
         Commands/WorktreeCommand.h
-        CommitDlg.cpp
-        CommitDlg.h
-        CommitIsOnRefsDlg.cpp
-        CommitIsOnRefsDlg.h
         ConfigureGitExe.h
-        CreateBranchTagDlg.cpp
-        CreateBranchTagDlg.h
-        CreateChangelistDlg.cpp
-        CreateChangelistDlg.h
-        CreateRepoDlg.cpp
-        CreateRepoDlg.h
-        CreateWorktreeDlg.cpp
-        CreateWorktreeDlg.h
-        DeleteConflictDlg.cpp
-        DeleteConflictDlg.h
-        DeleteRemoteTagDlg.cpp
-        DeleteRemoteTagDlg.h
-        DiffLinesForStaging.cpp
-        DiffLinesForStaging.h
         EnableStagingTypes.h
-        ExportDlg.cpp
-        ExportDlg.h
-        FileDiffDlg.cpp
-        FileDiffDlg.h
-        FilterHelper.cpp
-        FilterHelper.h
-        FindBar.cpp
-        FindBar.h
-        FindDlg.cpp
-        FindDlg.h
-        FirstStartWizard.cpp
-        FirstStartWizard.h
-        FirstStartWizardAuthentication.cpp
-        FirstStartWizardAuthentication.h
-        FirstStartWizardBasePage.cpp
-        FirstStartWizardBasePage.h
-        FirstStartWizardGit.cpp
-        FirstStartWizardGit.h
-        FirstStartWizardLanguage.cpp
-        FirstStartWizardLanguage.h
-        FirstStartWizardStart.cpp
-        FirstStartWizardStart.h
-        FirstStartWizardUser.cpp
-        FirstStartWizardUser.h
-        FormatPatchDlg.cpp
-        FormatPatchDlg.h
-        GitCliOutputParser.cpp
-        GitCliOutputParser.h
-        GitDiff.cpp
-        GitDiff.h
-        GitLogCache.cpp
-        gitlogcache.h
         GitLogList.h
         GitLogListAction.cpp
-        GitLogListBase.cpp
-        GitLogListBase.h
-        GitProgressDlg.cpp
-        GitProgressDlg.h
-        GitProgressList.cpp
-        GitProgressList.h
-        GitRefCompareList.cpp
-        GitRefCompareList.h
         GitStatusListCtrlHelpers.cpp
-        GitSwitchDlg.cpp
-        GitSwitchDlg.h
-        GitTagCompareList.cpp
-        GitTagCompareList.h
-        GravatarPictureBox.cpp
-        GravatarPictureBox.h
-        HistoryDlg.cpp
-        HistoryDlg.h
-        IgnoreDlg.cpp
-        IgnoreDlg.h
-        InputDlg.cpp
-        InputDlg.h
-        LFSLocksDlg.cpp
-        LFSLocksDlg.h
         LogDataVector.cpp
-        LogDlg.cpp
-        LogDlg.h
-        LogDlgFileFilter.cpp
-        LogDlgFileFilter.h
-        LogDlgFilter.cpp
-        LogDlgFilter.h
-        LogDlgHelper.h
-        LogFile.cpp
-        LogFile.h
-        LoglistUtils.cpp
-        LoglistUtils.h
-        LogOrdering.cpp
-        LogOrdering.h
-        MergeAbortDlg.cpp
-        MergeAbortDlg.h
-        MergeDlg.cpp
-        MergeDlg.h
-        PatchViewDlg.cpp
-        PatchViewDlg.h
+        LogDataVector.h
         ProgressCommands/AddProgressCommand.cpp
         ProgressCommands/AddProgressCommand.h
         ProgressCommands/CloneProgressCommand.cpp
@@ -268,34 +150,196 @@ target_sources(TortoiseProc
         ProgressCommands/ResolveProgressCommand.h
         ProgressCommands/RevertProgressCommand.cpp
         ProgressCommands/RevertProgressCommand.h
-        ProgressDlg.cpp
-        ProgressDlg.h
-        ProjectProperties.cpp
-        ProjectProperties.h
-        PromptDlg.cpp
-        PromptDlg.h
-        PullFetchDlg.cpp
-        PullFetchDlg.h
-        PushDlg.cpp
-        PushDlg.h
-        RebaseDlg.cpp
-        RebaseDlg.h
-        RefLogDlg.cpp
-        RefLogDlg.h
-        RefLoglist.cpp
-        RefLoglist.h
-        RenameDlg.cpp
-        RenameDlg.h
-        RepositoryBrowser.cpp
-        RepositoryBrowser.h
-        RequestPullDlg.cpp
-        RequestPullDlg.h
-        ResetDlg.cpp
-        ResetDlg.h
-        ResolveDlg.cpp
-        ResolveDlg.h
-        RevertDlg.cpp
-        RevertDlg.h
+        ProtoModules/AboutDlg.cpp
+        ProtoModules/AboutDlg.h
+        ProtoModules/AddDlg.cpp
+        ProtoModules/AddDlg.h
+        ProtoModules/AddRemoteDlg.cpp
+        ProtoModules/AddRemoteDlg.h
+        ProtoModules/AutoTextTestDlg.cpp
+        ProtoModules/AutoTextTestDlg.h
+        ProtoModules/BisectStartDlg.cpp
+        ProtoModules/BisectStartDlg.h
+        ProtoModules/BrowseRefsDlg.cpp
+        ProtoModules/BrowseRefsDlg.h
+        ProtoModules/BrowseRefsDlgFilter.cpp
+        ProtoModules/BrowseRefsDlgFilter.h
+        ProtoModules/BugtraqRegexTestDlg.cpp
+        ProtoModules/BugtraqRegexTestDlg.h
+        ProtoModules/ChangedDlg.cpp
+        ProtoModules/ChangedDlg.h
+        ProtoModules/CheckCertificateDlg.cpp
+        ProtoModules/CheckCertificateDlg.h
+        ProtoModules/CheckForUpdatesDlg.cpp
+        ProtoModules/CheckForUpdatesDlg.h
+        ProtoModules/CleanTypeDlg.cpp
+        ProtoModules/CleanTypeDlg.h
+        ProtoModules/CloneDlg.cpp
+        ProtoModules/CloneDlg.h
+        ProtoModules/Colors.cpp
+        ProtoModules/Colors.h
+        ProtoModules/CommitDlg.cpp
+        ProtoModules/CommitDlg.h
+        ProtoModules/CommitIsOnRefsDlg.cpp
+        ProtoModules/CommitIsOnRefsDlg.h
+        ProtoModules/CreateBranchTagDlg.cpp
+        ProtoModules/CreateBranchTagDlg.h
+        ProtoModules/CreateChangelistDlg.cpp
+        ProtoModules/CreateChangelistDlg.h
+        ProtoModules/CreateRepoDlg.cpp
+        ProtoModules/CreateRepoDlg.h
+        ProtoModules/CreateWorktreeDlg.cpp
+        ProtoModules/CreateWorktreeDlg.h
+        ProtoModules/DeleteConflictDlg.cpp
+        ProtoModules/DeleteConflictDlg.h
+        ProtoModules/DeleteRemoteTagDlg.cpp
+        ProtoModules/DeleteRemoteTagDlg.h
+        ProtoModules/DiffLinesForStaging.cpp
+        ProtoModules/DiffLinesForStaging.h
+        ProtoModules/ExportDlg.cpp
+        ProtoModules/ExportDlg.h
+        ProtoModules/FileDiffDlg.cpp
+        ProtoModules/FileDiffDlg.h
+        ProtoModules/FilterHelper.cpp
+        ProtoModules/FilterHelper.h
+        ProtoModules/FindBar.cpp
+        ProtoModules/FindBar.h
+        ProtoModules/FindDlg.cpp
+        ProtoModules/FindDlg.h
+        ProtoModules/FirstStartWizard.cpp
+        ProtoModules/FirstStartWizard.h
+        ProtoModules/FirstStartWizardAuthentication.cpp
+        ProtoModules/FirstStartWizardAuthentication.h
+        ProtoModules/FirstStartWizardBasePage.cpp
+        ProtoModules/FirstStartWizardBasePage.h
+        ProtoModules/FirstStartWizardGit.cpp
+        ProtoModules/FirstStartWizardGit.h
+        ProtoModules/FirstStartWizardLanguage.cpp
+        ProtoModules/FirstStartWizardLanguage.h
+        ProtoModules/FirstStartWizardStart.cpp
+        ProtoModules/FirstStartWizardStart.h
+        ProtoModules/FirstStartWizardUser.cpp
+        ProtoModules/FirstStartWizardUser.h
+        ProtoModules/FormatPatchDlg.cpp
+        ProtoModules/FormatPatchDlg.h
+        ProtoModules/GitCliOutputParser.cpp
+        ProtoModules/GitCliOutputParser.h
+        ProtoModules/GitDiff.cpp
+        ProtoModules/GitDiff.h
+        ProtoModules/GitLogCache.cpp
+        ProtoModules/GitLogCache.h
+        ProtoModules/GitLogListBase.cpp
+        ProtoModules/GitLogListBase.h
+        ProtoModules/GitProgressDlg.cpp
+        ProtoModules/GitProgressDlg.h
+        ProtoModules/GitProgressList.cpp
+        ProtoModules/GitProgressList.h
+        ProtoModules/GitRefCompareList.cpp
+        ProtoModules/GitRefCompareList.h
+        ProtoModules/GitSwitchDlg.cpp
+        ProtoModules/GitSwitchDlg.h
+        ProtoModules/GitTagCompareList.cpp
+        ProtoModules/GitTagCompareList.h
+        ProtoModules/GravatarPictureBox.cpp
+        ProtoModules/GravatarPictureBox.h
+        ProtoModules/HistoryDlg.cpp
+        ProtoModules/HistoryDlg.h
+        ProtoModules/IgnoreDlg.cpp
+        ProtoModules/IgnoreDlg.h
+        ProtoModules/InputDlg.cpp
+        ProtoModules/InputDlg.h
+        ProtoModules/LFSLocksDlg.cpp
+        ProtoModules/LFSLocksDlg.h
+        ProtoModules/LogDlg.cpp
+        ProtoModules/LogDlg.h
+        ProtoModules/LogDlgFileFilter.cpp
+        ProtoModules/LogDlgFileFilter.h
+        ProtoModules/LogDlgFilter.cpp
+        ProtoModules/LogDlgFilter.h
+        ProtoModules/LogFile.cpp
+        ProtoModules/LogFile.h
+        ProtoModules/LogOrdering.cpp
+        ProtoModules/LogOrdering.h
+        ProtoModules/LoglistUtils.cpp
+        ProtoModules/LoglistUtils.h
+        ProtoModules/MergeAbortDlg.cpp
+        ProtoModules/MergeAbortDlg.h
+        ProtoModules/MergeDlg.cpp
+        ProtoModules/MergeDlg.h
+        ProtoModules/PatchViewDlg.cpp
+        ProtoModules/PatchViewDlg.h
+        ProtoModules/ProgressDlg.cpp
+        ProtoModules/ProgressDlg.h
+        ProtoModules/ProjectProperties.cpp
+        ProtoModules/ProjectProperties.h
+        ProtoModules/PromptDlg.cpp
+        ProtoModules/PromptDlg.h
+        ProtoModules/PullFetchDlg.cpp
+        ProtoModules/PullFetchDlg.h
+        ProtoModules/PushDlg.cpp
+        ProtoModules/PushDlg.h
+        ProtoModules/RebaseDlg.cpp
+        ProtoModules/RebaseDlg.h
+        ProtoModules/RefLogDlg.cpp
+        ProtoModules/RefLogDlg.h
+        ProtoModules/RefLoglist.cpp
+        ProtoModules/RefLoglist.h
+        ProtoModules/RenameDlg.cpp
+        ProtoModules/RenameDlg.h
+        ProtoModules/RepositoryBrowser.cpp
+        ProtoModules/RepositoryBrowser.h
+        ProtoModules/RequestPullDlg.cpp
+        ProtoModules/RequestPullDlg.h
+        ProtoModules/ResetDlg.cpp
+        ProtoModules/ResetDlg.h
+        ProtoModules/ResolveDlg.cpp
+        ProtoModules/ResolveDlg.h
+        ProtoModules/RevertDlg.cpp
+        ProtoModules/RevertDlg.h
+        ProtoModules/SVNDCommitDlg.cpp
+        ProtoModules/SVNDCommitDlg.h
+        ProtoModules/SVNIgnoreTypeDlg.cpp
+        ProtoModules/SVNIgnoreTypeDlg.h
+        ProtoModules/SelectRemoteRefDlg.cpp
+        ProtoModules/SelectRemoteRefDlg.h
+        ProtoModules/SimplePrompt.cpp
+        ProtoModules/SimplePrompt.h
+        ProtoModules/SinglePropSheetDlg.cpp
+        ProtoModules/SinglePropSheetDlg.h
+        ProtoModules/StagingOperations.cpp
+        ProtoModules/StagingOperations.h
+        ProtoModules/StashSave.cpp
+        ProtoModules/StashSave.h
+        ProtoModules/StatGraphDlg.cpp
+        ProtoModules/StatGraphDlg.h
+        ProtoModules/SubmoduleAddDlg.cpp
+        ProtoModules/SubmoduleAddDlg.h
+        ProtoModules/SubmoduleDiffDlg.cpp
+        ProtoModules/SubmoduleDiffDlg.h
+        ProtoModules/SubmoduleResolveConflictDlg.cpp
+        ProtoModules/SubmoduleResolveConflictDlg.h
+        ProtoModules/SubmoduleUpdateDlg.cpp
+        ProtoModules/SubmoduleUpdateDlg.h
+        ProtoModules/SyncDlg.cpp
+        ProtoModules/SyncDlg.h
+        ProtoModules/SyncTabCtrl.cpp
+        ProtoModules/SyncTabCtrl.h
+        ProtoModules/TortoiseProc.cpp
+        ProtoModules/TortoiseProc.h
+        ProtoModules/URLDlg.cpp
+        ProtoModules/URLDlg.h
+        ProtoModules/UpdateCrypto.cpp
+        ProtoModules/UpdateCrypto.h
+        ProtoModules/UpdateDownloader.cpp
+        ProtoModules/UpdateDownloader.h
+        ProtoModules/UpdateListCtrl.cpp
+        ProtoModules/UpdateListCtrl.h
+        ProtoModules/UserPassword.cpp
+        ProtoModules/UserPassword.h
+        ProtoModules/VersioncheckParser.cpp
+        ProtoModules/VersioncheckParser.h
+        ProtoModules/WorktreeListDlg.cpp
+        ProtoModules/WorktreeListDlg.h
         RevisionGraph/RevGraphFilterDlg.cpp
         RevisionGraph/RevGraphFilterDlg.h
         RevisionGraph/RevisionGraphDlg.cpp
@@ -304,8 +348,6 @@ target_sources(TortoiseProc
         RevisionGraph/RevisionGraphDlgFunc.cpp
         RevisionGraph/RevisionGraphWnd.cpp
         RevisionGraph/RevisionGraphWnd.h
-        SelectRemoteRefDlg.cpp
-        SelectRemoteRefDlg.h
         Settings/GitSettings.h
         Settings/SetBugTraq.cpp
         Settings/SetBugTraq.h
@@ -338,6 +380,7 @@ target_sources(TortoiseProc
         Settings/SetProxyPage.h
         Settings/SetSavedDataPage.cpp
         Settings/SetSavedDataPage.h
+        Settings/SetWin11ContextMenu.h
         Settings/SettingGitConfig.cpp
         Settings/SettingGitConfig.h
         Settings/SettingGitCredential.cpp
@@ -368,68 +411,16 @@ target_sources(TortoiseProc
         Settings/SettingsTBlame.h
         Settings/SettingsTUDiff.cpp
         Settings/SettingsTUDiff.h
-        Settings/SetWin11ContextMenu.h
         Settings/ToolAssocDlg.cpp
         Settings/ToolAssocDlg.h
-        SimplePrompt.cpp
-        SimplePrompt.h
-        SinglePropSheetDlg.cpp
-        SinglePropSheetDlg.h
-        StagingOperations.cpp
-        StagingOperations.h
-        StashSave.cpp
-        StashSave.h
-        StatGraphDlg.cpp
-        StatGraphDlg.h
         stdafx.cpp
         stdafx.h
-        SubmoduleAddDlg.cpp
-        SubmoduleAddDlg.h
-        SubmoduleDiffDlg.cpp
-        SubmoduleDiffDlg.h
-        SubmoduleResolveConflictDlg.cpp
-        SubmoduleResolveConflictDlg.h
-        SubmoduleUpdateDlg.cpp
-        SubmoduleUpdateDlg.h
-        SVNDCommitDlg.cpp
-        SVNDCommitDlg.h
-        SVNIgnoreTypeDlg.cpp
-        SVNIgnoreTypeDlg.h
-        SyncDlg.cpp
-        SyncDlg.h
-        SyncTabCtrl.cpp
-        SyncTabCtrl.h
-        TortoiseProc.cpp
-        TortoiseProc.h
-        UpdateCrypto.cpp
-        UpdateCrypto.h
-        UpdateDownloader.cpp
-        UpdateDownloader.h
-        UpdateListCtrl.cpp
-        UpdateListCtrl.h
-        URLDlg.cpp
-        URLDlg.h
-        UserPassword.cpp
-        UserPassword.h
-        VersioncheckParser.cpp
-        VersioncheckParser.h
-        WorktreeListDlg.cpp
-        WorktreeListDlg.h
 )
 
 # Sources that moved here from src\Utils and src\Utils\MiscUI (the MFC UI layer
 # that lives in the MFC binary), plus the resource script.
 target_sources(TortoiseProc
     PRIVATE
-        BrowseFolder.cpp
-        COMError.cpp
-        EditWordBreak.cpp
-        FileDlgEventHandler.cpp
-        GitStatusListCtrl.cpp
-        Hooks.cpp
-        HorizontalResizableStandAloneDialog.cpp
-        HyperLink.cpp
-        IconExtractor.cpp
         MiscUI/AnimationManager.cpp
         MiscUI/BufferDC.cpp
         MiscUI/FileDropEdit.cpp
@@ -443,15 +434,33 @@ target_sources(TortoiseProc
         MiscUI/MyGraph.cpp
         MiscUI/Picture.cpp
         MiscUI/RegexEdit.cpp
+        MiscUI/SVG.cpp
         MiscUI/SciEdit.cpp
         MiscUI/SplitterControl.cpp
-        MiscUI/SVG.cpp
         MiscUI/SysProgressDlg.cpp
         MiscUI/ThemeControls.cpp
         MiscUI/Tooltip.cpp
         MiscUI/WaterEffect.cpp
-        StandAloneDlg.cpp
-        ThemeMFCVisualManager.cpp
+        ProtoModules/COMError.cpp
+        ProtoModules/COMError.h
+        ProtoModules/EditWordBreak.cpp
+        ProtoModules/EditWordBreak.h
+        ProtoModules/FileDlgEventHandler.cpp
+        ProtoModules/FileDlgEventHandler.h
+        ProtoModules/GitStatusListCtrl.cpp
+        ProtoModules/GitStatusListCtrl.h
+        ProtoModules/Hooks.cpp
+        ProtoModules/Hooks.h
+        ProtoModules/HorizontalResizableStandAloneDialog.cpp
+        ProtoModules/HorizontalResizableStandAloneDialog.h
+        ProtoModules/HyperLink.cpp
+        ProtoModules/HyperLink.h
+        ProtoModules/IconExtractor.cpp
+        ProtoModules/IconExtractor.h
+        ProtoModules/StandAloneDlg.cpp
+        ProtoModules/StandAloneDlg.h
+        ProtoModules/ThemeMFCVisualManager.cpp
+        ProtoModules/ThemeMFCVisualManager.h
         TreePropSheet/PropPageFrame.cpp
         TreePropSheet/PropPageFrameDefault.cpp
         TreePropSheet/TreePropSheet.cpp
@@ -464,7 +473,9 @@ target_sources(TortoiseProc
 # one - so this host force-includes TortoiseProc's.
 set(TORTOISEPROC_SHARED_SHELL_SOURCES
     "${CMAKE_SOURCE_DIR}/src/TortoiseShell/MenuInfo.cpp"
+    "${CMAKE_SOURCE_DIR}/src/TortoiseShell/MenuInfo.h"
     "${CMAKE_SOURCE_DIR}/src/TortoiseShell/ShellCache.cpp"
+    "${CMAKE_SOURCE_DIR}/src/TortoiseShell/ShellCache.h"
 )
 target_sources(TortoiseProc PRIVATE ${TORTOISEPROC_SHARED_SHELL_SOURCES})
 
@@ -496,6 +507,7 @@ target_include_directories(TortoiseProc
         # subdirectory must find this project's, not src/gitdll/resource.h further down
         "${CMAKE_CURRENT_SOURCE_DIR}"
         "${CMAKE_CURRENT_SOURCE_DIR}/MiscUI"
+        "${CMAKE_CURRENT_SOURCE_DIR}/ProtoModules"
         "${CMAKE_CURRENT_SOURCE_DIR}/TreePropSheet"
         "${CMAKE_SOURCE_DIR}/ext/gitdll"
         "${CMAKE_SOURCE_DIR}/ext/ResizableLib"
@@ -582,11 +594,11 @@ target_link_options(TortoiseProc PRIVATE /ENTRY:wWinMainCRTStartup)
 target_sources(TortoiseProc
     PUBLIC
         FILE_SET CXX_MODULES
-        BASE_DIRS "${CMAKE_CURRENT_SOURCE_DIR}"
+        BASE_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/Modules"
     FILES
-        AppUtils.Launch.ixx
-        AppUtils.Window.ixx
-        AppUtils.Workflow.ixx
-        AppUtils.GitEnv.ixx
-        MassiveGitTask.ixx
+        Modules/AppUtils.Launch.ixx
+        Modules/AppUtils.Window.ixx
+        Modules/AppUtils.Workflow.ixx
+        Modules/AppUtils.GitEnv.ixx
+        Modules/MassiveGitTask.ixx
 )

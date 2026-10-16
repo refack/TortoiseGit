@@ -25,7 +25,7 @@ import git_h;
 import TGitPath;
 import Registry;
 #include "Colors.h"
-#include "LogDlgHelper.h"
+#include "LogDataVector.h"
 import GitRevLoglist;
 import lanes;
 #include "GitLogCache.h"

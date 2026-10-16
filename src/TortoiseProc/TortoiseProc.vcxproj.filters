@@ -853,7 +853,7 @@
     <ClInclude Include="LogDlg.h">
       <Filter>Commands\Log</Filter>
     </ClInclude>
-    <ClInclude Include="LogDlgHelper.h">
+    <ClInclude Include="LogDataVector.h">
       <Filter>Commands\Log</Filter>
     </ClInclude>
     <ClInclude Include="LoglistUtils.h">

@@ -1,11 +1,16 @@
 ﻿module;
+#include <Windows.h>
+#include <wincrypt.h>
 // git_oid_fromraw and the GIT_OID_* size macros: macros do not cross the
 // invarients import, so take them from the header.
 #include <git2/oid.h>
+#include "sanity.h"
+
 
 
 export module GitHash;
 import std;
+import wil;
 
 import invarients;
 using namespace tgit::invarients;
@@ -19,8 +24,7 @@ using tgit::str::StringViewTraits;
 static_assert(OID_MAX_SIZE <= sizeof(git_oid::id), "git_oid raw storage must be able to hold the largest id");
 
 
-namespace TGitHash
-{
+namespace TGitHash {
 /*
  * Whether str is exactly as long as a full hex id in the active object format.
  * Not exported: CGitHash::FromHexStr is its only caller. Module linkage, not
@@ -34,8 +38,8 @@ bool IsFullHexLength(const Str& str) noexcept
 }
 
 
-export namespace TGitHash
-{
+export namespace TGitHash {
+
 
 class CGitHash
 {
@@ -217,6 +221,64 @@ public:
 	friend struct std::hash<CGitHash>;
 };
 
+enum class HashType
+{
+	HashSha1,
+	HashSha256,
+	HashMd5
+};
+
+// inline: a header definition, and TortoiseProc includes it from stdafx.h (through
+// Monitor.h) into every object - non-inline it was defined ~250 times at link.
+inline std::wstring GetHashText(const void* data, const size_t data_size, HashType hashType)
+{
+	HCRYPTPROV hProv = NULL;
+	if (!CryptAcquireContext(&hProv, nullptr, nullptr, PROV_RSA_AES, CRYPT_VERIFYCONTEXT))
+		return {};
+	SCOPE_EXIT { CryptReleaseContext(hProv, 0); };
+
+	bool hash_ok{};
+	HCRYPTPROV hHash = NULL;
+	switch (hashType)
+	{
+	case HashType::HashSha1:
+		hash_ok = CryptCreateHash(hProv, CALG_SHA1, 0, 0, &hHash);
+		break;
+	case HashType::HashSha256:
+		hash_ok = CryptCreateHash(hProv, CALG_SHA_256, 0, 0, &hHash);
+		break;
+	case HashType::HashMd5:
+		hash_ok = CryptCreateHash(hProv, CALG_MD5, 0, 0, &hHash);
+		break;
+	}
+	if (!hash_ok)
+		return {};
+
+	SCOPE_EXIT { CryptDestroyHash(hHash); };
+
+	if (!CryptHashData(hHash, static_cast<const BYTE*>(data), static_cast<DWORD>(data_size), 0))
+		return {};
+
+	DWORD cbHashSize = 0;
+	DWORD dwCount = sizeof(DWORD);
+	if (!CryptGetHashParam(hHash, HP_HASHSIZE, reinterpret_cast<BYTE*>(&cbHashSize), &dwCount, 0))
+		return {};
+
+	std::vector<BYTE> buffer(cbHashSize);
+	if (!CryptGetHashParam(hHash, HP_HASHVAL, buffer.data(), &cbHashSize, 0))
+		return {};
+
+	std::wostringstream oss;
+	oss.fill('0');
+	oss.width(2);
+
+	for (const auto& b : buffer)
+	{
+		oss << std::hex << static_cast<const int>(b);
+	}
+
+	return oss.str();
+}
 }
 export using namespace TGitHash;
 export using TGitHash::CGitHash;
