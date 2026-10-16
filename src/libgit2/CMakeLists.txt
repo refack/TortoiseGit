@@ -32,7 +32,6 @@ project(TGitLibgit2 LANGUAGES C CXX)
 find_package(libgit2 CONFIG REQUIRED)
 
 
-
 # The core library, once per CString flavor (modules/shims/str_utils.ixx says why):
 #   TGitLibgit2     ATL - UnitTests, and later TortoiseShell / TGitCache
 #   TGitLibgit2Mfc  MFC - TortoiseProc
@@ -40,142 +39,115 @@ find_package(libgit2 CONFIG REQUIRED)
 # of our symbols - only libgit2's C API, which a static git2.lib marks dllexport -
 # so nothing could link against the module code. gitdll stays the one DLL, and
 # that boundary is what keeps libgit.lib off this library's consumers.
-function(tgit_core_library name flavor)
-    add_library(${name} STATIC)
+set(name TGitLibgit2Mfc)
+set(flavor MFC)
 
-    target_sources(${name}
-        PRIVATE
-            patches/filter-filter.c
-            patches/ssh-wintunnel.c
-            patches/system-call.c
-            Utils/Theme.cpp
-            modules/lanes.cpp   # the lanes module's implementation unit
-    )
-    if(flavor STREQUAL "MFC")
-        # MFC-only sources: CStdioFile, CImageList. They used to be compiled into
-        # the ATL library too, an MFC object inside an ATL-flavor library.
-        target_sources(${name}
-            PRIVATE
-                Utils/FileTextLines.cpp
-                Utils/SysImageList.cpp
-        )
-        # PRIVATE: only the str_utils shim tests it, and the shim is compiled once,
-        # here. A consumer that wanted to test it would be forking outside the shim.
-        target_compile_definitions(${name} PRIVATE TGIT_MFC)
-    endif()
+add_library(${name} STATIC)
 
-    target_compile_features(${name}
-        PRIVATE
-            cxx_std_23
-            c_std_23
-    )
+target_sources("${name}"
+    PRIVATE
+        patches/filter-filter.c
+        patches/ssh-wintunnel.c
+        patches/system-call.c
+        modules/lanes.cpp   # the lanes module's implementation unit
+)
 
-    target_include_directories(${name}
-        PRIVATE
-            "${CMAKE_CURRENT_SOURCE_DIR}/include"
-            "${CMAKE_SOURCE_DIR}/src/gitdll"
-            "${CMAKE_CURRENT_SOURCE_DIR}"
-            "${CMAKE_SOURCE_DIR}/src"
-            "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/include"
-    )
+target_compile_features(${name}
+    PRIVATE
+        cxx_std_23
+        c_std_23
+)
 
-    target_compile_definitions(${name}
-        PRIVATE
-            _WIN64
-            WIN64
-            UNICODE
-            _UNICODE
-            GIT_DEPRECATE_HARD
-            ENABLE_INTSAFE_SIGNED_FUNCTIONS
-            _WIN32_WINNT=0x0A00
-            _WINDOWS
-            WINDOWS
-            NOMINMAX
-            _AFXDLL
-            # Compiled in for every consumer. With headers, TGitPath.cpp was built per
-            # project and only TortoiseProc defined this - so CTGitPath's layout
-            # differed between binaries. A module is compiled once: one answer.
-            TGIT_LFS
-            "$<$<CONFIG:Debug>:DEBUG>"
-            "$<$<CONFIG:Release>:NDEBUG>"
-            "$<$<STREQUAL:${CMAKE_CXX_COMPILER_ARCHITECTURE_ID},x64>:_AMD64_>"
-            "$<$<STREQUAL:${CMAKE_CXX_COMPILER_ARCHITECTURE_ID},ARM64>:_ARM64_>"
-    )
+target_include_directories(${name}
+    PRIVATE
+        "${CMAKE_SOURCE_DIR}/ext/gitdll"
+        "${CMAKE_CURRENT_SOURCE_DIR}/include"
+        "${CMAKE_SOURCE_DIR}/src/SharedMFC"
+)
 
-    target_link_directories(${name}
-        PRIVATE
-            "$<$<CONFIG:Debug>:${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/debug/lib>"
-            "$<$<CONFIG:Release>:${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/lib>"
-    )
+target_compile_definitions(${name}
+    PRIVATE
+        _WIN64
+        WIN64
+        UNICODE
+        _UNICODE
+        GIT_DEPRECATE_HARD
+        ENABLE_INTSAFE_SIGNED_FUNCTIONS
+        _WIN32_WINNT=0x0A00
+        _WINDOWS
+        WINDOWS
+        NOMINMAX
 
-    target_link_libraries(${name}
-        PUBLIC
-            gitdll
-        PRIVATE
-            # static, and it carries its private symbols (git__calloc, git_str_*) the
-            # patches/*.c link against - which a libgit2 DLL would not export
-            libgit2::libgit2package
-            detours     # DarkModeHelper hooks OpenNcThemeData
-            version     # PathUtils::GetVersionFromFile
-            winhttp
-            rpcrt4
-            gdi32
-            crypt32
-    )
+        $<$<STREQUAL:${flavor},MFC>:TGIT_MFC>
+        $<$<STREQUAL:${flavor},MFC>:_AFXDLL>
 
-    target_compile_options(${name}
-        PRIVATE
-            /W3
-            /external:W0
-            /external:anglebrackets
-    )
+        "$<$<CONFIG:Debug>:DEBUG>"
+        "$<$<CONFIG:Release>:NDEBUG>"
+        "$<$<STREQUAL:${CMAKE_CXX_COMPILER_ARCHITECTURE_ID},x64>:_AMD64_>"
+        "$<$<STREQUAL:${CMAKE_CXX_COMPILER_ARCHITECTURE_ID},ARM64>:_ARM64_>"
+)
 
-    set_target_properties(${name} PROPERTIES CXX_MODULE_STD ON)
+target_link_directories(${name}
+    PRIVATE
+        "$<$<CONFIG:Debug>:${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/debug/lib>"
+        "$<$<CONFIG:Release>:${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/lib>"
+)
 
-    target_sources(${name}
-        PUBLIC
-            FILE_SET CXX_MODULES
-            BASE_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/modules"
-        FILES
-            modules/shims/gsl.ixx
-            modules/shims/wil.ixx
-            modules/shims/str_utils.ixx
-            modules/shims/libgit2.ixx
-            modules/shims/json.ixx
-            modules/Git.ixx
-            modules/BugTraqAssociations.ixx
-            modules/DarkModeHelper.ixx
-            modules/DebugOutput.ixx
-            modules/DirFileEnum.ixx
-            modules/GitDataObject.ixx
-            modules/GitHash.ixx
-            modules/GitMailmap.ixx
-            modules/GitRev.ixx
-            modules/GitRevLoglist.ixx
-            modules/Graphviz.ixx
-            modules/Libraries.ixx
-            modules/PathUtils.ixx
-            modules/PersonalDictionary.ixx
-            modules/RIAA.ixx
-            modules/Registry.ixx
-            modules/RollingFile.ixx
-            modules/ShellUpdater.ixx
-            modules/TGitPath.ixx
-            modules/TaskbarUUID.ixx
-            modules/TempFile.ixx
-            modules/gitindex.ixx
-            modules/invarients.ixx
-            modules/lanes.ixx
-            modules/LangDll.ixx
-            modules/GitStatus.ixx
-            modules/CmdLineParser.ixx
-            modules/DragDropImpl.ixx
-            modules/utils/ReaderWriterLock.ixx
-            modules/utils/PathWatcher.ixx
-            modules/CacheInterface.ixx
-            modules/SysInfo.ixx
-    )
-endfunction()
+target_link_libraries(${name}
+    PUBLIC
+        gitdll
+    PRIVATE
+        # static, and it carries its private symbols (git__calloc, git_str_*) the
+        # patches/*.c link against - which a libgit2 DLL would not export
+        libgit2::libgit2package
+        detours     # DarkModeHelper hooks OpenNcThemeData
+        version     # PathUtils::GetVersionFromFile
+        winhttp
+        rpcrt4
+        gdi32
+        crypt32
+)
 
-#tgit_core_library(TGitLibgit2 ATL)
-tgit_core_library(TGitLibgit2Mfc MFC)
+target_sources(${name}
+    PUBLIC
+        FILE_SET CXX_MODULES
+        BASE_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/modules"
+    FILES
+        modules/shims/gsl.ixx
+        modules/shims/wil.ixx
+        modules/shims/str_utils.ixx
+        modules/shims/libgit2.ixx
+        modules/shims/json.ixx
+        modules/Git.ixx
+        modules/BugTraqAssociations.ixx
+        modules/DarkModeHelper.ixx
+        modules/DebugOutput.ixx
+        modules/DirFileEnum.ixx
+        modules/GitDataObject.ixx
+        modules/GitHash.ixx
+        modules/GitMailmap.ixx
+        modules/GitRev.ixx
+        modules/GitRevLoglist.ixx
+        modules/Graphviz.ixx
+        modules/Libraries.ixx
+        modules/PathUtils.ixx
+        modules/PersonalDictionary.ixx
+        modules/RIAA.ixx
+        modules/Registry.ixx
+        modules/RollingFile.ixx
+        modules/ShellUpdater.ixx
+        modules/TGitPath.ixx
+        modules/TaskbarUUID.ixx
+        modules/TempFile.ixx
+        modules/gitindex.ixx
+        modules/invarients.ixx
+        modules/lanes.ixx
+        modules/LangDll.ixx
+        modules/GitStatus.ixx
+        modules/CmdLineParser.ixx
+        modules/DragDropImpl.ixx
+        modules/utils/ReaderWriterLock.ixx
+        modules/utils/PathWatcher.ixx
+        modules/CacheInterface.ixx
+        modules/SysInfo.ixx
+)

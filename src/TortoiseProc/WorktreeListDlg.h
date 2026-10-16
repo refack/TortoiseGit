@@ -22,7 +22,7 @@
 import git_h;
 import GitHash;
 #include "Utils/GestureEnabledControl.h"
-#include "ResizableColumnsListCtrl.h"
+#include "Utils/ResizableColumnsListCtrl.h"
 
 class WorktreeDetails
 {

@@ -26,11 +26,11 @@
 #include "StatGraphDlg.h"
 #include "LogDlg.h"
 #include "MessageBox.h"
-#include "AppUtils.h"
+import AppUtils;
 #include "IconMenu.h"
 #include "BrowseRefsDlg.h"
 #include "LogOrdering.h"
-#include "DPIAware.h"
+#include "Utils/DPIAware.h"
 #include "LogDlgFileFilter.h"
 
 #define MIN_CTRL_HEIGHT (CDPIAware::Instance().ScaleY(GetSafeHwnd(), 20))
@@ -375,8 +375,8 @@ BOOL CLogDlg::OnInitDialog()
 	m_JumpType.SetCurSel(0);
 	const int iconWidth = GetSystemMetrics(SM_CXSMICON);
 	const int iconHeight = GetSystemMetrics(SM_CYSMICON);
-	m_JumpUp.SetIcon(CCommonAppUtils::LoadIconEx(IDI_JUMPUP, iconWidth, iconHeight));
-	m_JumpDown.SetIcon(CCommonAppUtils::LoadIconEx(IDI_JUMPDOWN, iconWidth, iconHeight));
+	m_JumpUp.SetIcon(CAppUtils::LoadIconEx(IDI_JUMPUP, iconWidth, iconHeight));
+	m_JumpDown.SetIcon(CAppUtils::LoadIconEx(IDI_JUMPDOWN, iconWidth, iconHeight));
 
 	if (GetExplorerHWND())
 		CenterWindow(CWnd::FromHandle(GetExplorerHWND()));

@@ -7,12 +7,12 @@
 
 // ACEdit.cpp: Implementierungsdatei
 //
-#include "stdafx.h"
-#include "std.h"
+#include "../../TortoiseProc/stdafx.h"
+#include "../../TortoiseProc/std.h"
 
 
 
-#include "ACEdit.h"
+#include "../../TortoiseProc/ACEdit.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW

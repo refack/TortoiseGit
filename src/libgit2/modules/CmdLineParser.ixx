@@ -5,7 +5,7 @@ import str_utils;
 using std::map;
 
 
-namespace TCmdLineParser
+export namespace TCmdLineParser
 {
     /**
      * \ingroup Utils
@@ -126,17 +126,6 @@ namespace TCmdLineParser
         long GetLongVal(const wchar_t* sKey) const;
 
         __int64 GetLongLongVal(const wchar_t* sKey) const;
-
-        [[nodiscard]] static std::wstring EscapeValue(std::wstring_view input);
-        // CString is available in every compile now (the str_utils shim), so this is not
-        // behind CSTRING_AVAILABLE any more. Constrained, not a plain CString parameter:
-        // EscapeValue(L"...") would otherwise be ambiguous with the wstring_view one.
-        template <tgit::str::IsStupidString TStr>
-        [[nodiscard]] static TStr EscapeValue(TStr input)
-        {
-            input.Replace(L"\"", L"\"\"");
-            return L'"' + input + L'"';
-        }
 
     private:
         bool Parse(const wchar_t* sCmdLine);
@@ -381,13 +370,18 @@ namespace TCmdLineParser
         return (pos == m_valueMap.cend());
     }
 
-    std::wstring CCmdLineParser::EscapeValue(const std::wstring_view input)
+	template <tgit::str::TStrOfWide TStr>
+	TStr EscapeValue(const TStr& input)
     {
-        std::wstring result;
+    	using SV = tgit::str::StringView<TStr>;
+    	using char_t = SV::char_type;
+
+    	const auto in_sv = SV{input}.as_view();
+        TStr result;
         result += L'"';
 
-        result.reserve(input.size());
-        for (const wchar_t c : input)
+        // result.reserve(in_sv.size());
+        for (const char_t& c : in_sv)
         {
             if (c == L'"')
                 result += L'"';
@@ -398,6 +392,7 @@ namespace TCmdLineParser
 
         return result;
     }
+
 }
 
-export using TCmdLineParser::CCmdLineParser;
+export using namespace TCmdLineParser;

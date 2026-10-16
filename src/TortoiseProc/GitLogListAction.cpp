@@ -26,7 +26,7 @@
 #include "IconMenu.h"
 #include "SysProgressDlg.h"
 #include "MessageBox.h"
-#include "AppUtils.h"
+import AppUtils;
 #include "CommitDlg.h"
 #include "RebaseDlg.h"
 #include "CommitIsOnRefsDlg.h"
@@ -443,7 +443,7 @@ void CGitLogList::ContextMenuAction(int cmd, int FirstSelect, int LastSelect, CM
 					MessageBox(std::format(L"Could not generate patch for commit {}.\n{}", pLastEntry->m_CommitHash.ToString(), err).c_str(), L"TortoiseGit", MB_ICONERROR);
 					break;
 				}
-				CAppUtils::StartExtDiff(patch1, patch2, CString((pFirstEntry->m_CommitHash.ToString()).c_str()), CString((pLastEntry->m_CommitHash.ToString()).c_str()), CString((pFirstEntry->m_CommitHash.ToString() + L".patch").c_str()), CString((pLastEntry->m_CommitHash.ToString() + L".patch").c_str()),pFirstEntry->m_CommitHash, pLastEntry->m_CommitHash, CAppUtils::DiffFlags());
+				CAppUtils::StartExtDiff(patch1, patch2, CString((pFirstEntry->m_CommitHash.ToString()).c_str()), CString((pLastEntry->m_CommitHash.ToString()).c_str()), CString((pFirstEntry->m_CommitHash.ToString() + L".patch").c_str()), CString((pLastEntry->m_CommitHash.ToString() + L".patch").c_str()),pFirstEntry->m_CommitHash, pLastEntry->m_CommitHash, CommonAppUtils::details::DiffFlags());
 			}
 			break;
 		case ID_LOG_VIEWRANGE:
@@ -459,11 +459,11 @@ void CGitLogList::ContextMenuAction(int cmd, int FirstSelect, int LastSelect, CM
 				CString cmdline;
 				if ((cmd & 0xFFFF) == ID_LOG_VIEWRANGE_REVERSE)
 					cmdline.Format(L"/command:log /path:%s /range:%s",
-								   static_cast<LPCWSTR>(CCmdLineParser::EscapeValue(g_Git.CombinePath(m_Path))),
+								   static_cast<LPCWSTR>(TCmdLineParser::EscapeValue(g_Git.CombinePath(m_Path))),
 								   static_cast<LPCWSTR>(pSelLogEntry->m_CommitHash.ToString() + sep + pLastEntry->m_CommitHash.ToString()));
 				else
 					cmdline.Format(L"/command:log /path:%s /range:%s",
-								   static_cast<LPCWSTR>(CCmdLineParser::EscapeValue(g_Git.CombinePath(m_Path))),
+								   static_cast<LPCWSTR>(TCmdLineParser::EscapeValue(g_Git.CombinePath(m_Path))),
 								   static_cast<LPCWSTR>(pLastEntry->m_CommitHash.ToString() + sep + pSelLogEntry->m_CommitHash.ToString()));
 				CAppUtils::RunTortoiseGitProc(cmdline);
 			}

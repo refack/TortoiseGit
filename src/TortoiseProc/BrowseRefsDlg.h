@@ -17,10 +17,10 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 #pragma once
-#include "resource.h"
+#include "../SharedMFC/Resources/resource.h"
 #include "StandAloneDlg.h"
 #include "MiscUI/FilterEdit.h"
-#include "ResizableColumnsListCtrl.h"
+#include "Utils/ResizableColumnsListCtrl.h"
 import git_h;
 #include "Utils/HistoryCombo.h"
 #include "Utils/GestureEnabledControl.h"

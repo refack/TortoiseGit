@@ -18,8 +18,8 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 #pragma once
-#include <TortoiseProc/resource.h>	// restored: macros do not cross an import
-#include "resource.h"
+#include <../../SharedMFC/Resources/resource.h>
+#include "../../SharedMFC/Resources/resource.h"
 #include "StandAloneDlg.h"
 
 import BugTraqProvider;	// not a forward declaration: that would name a different, global-module class

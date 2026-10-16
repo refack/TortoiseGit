@@ -36,9 +36,8 @@ target_include_directories(gitdll
         "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/include/tgit-libgit/compat/regex"
         "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/include/tgit-libgit/compat/win32"
         "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/include/tgit-libgit/compat/vcbuild/include"
-        "${CMAKE_CURRENT_SOURCE_DIR}"
-        "${CMAKE_SOURCE_DIR}/src"
         "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/include"
+        "${CMAKE_CURRENT_SOURCE_DIR}"
 )
 
 target_compile_definitions(gitdll

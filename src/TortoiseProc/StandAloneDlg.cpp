@@ -21,7 +21,7 @@
 #include "std.h"
 
 
-#include "Resource.h"
+#include "../SharedMFC/Resources/resource.h"
 #include "StandAloneDlg.h"
 
 #pragma comment(lib, "Dwmapi.lib")

@@ -22,16 +22,16 @@
 
 #include "SettingsCommand.h"
 #include <Settings/Settings.h>
-#include "DPIAware.h"
+#include "Utils/DPIAware.h"
 #include "SinglePropSheetDlg.h"
 #include "Settings/SettingGitCredential.h"
-#include "AppUtils.h"
+import AppUtils;
 
 bool SettingsCommand::Execute()
 {
 	CString defaultpage = parser.GetVal(L"page");
 
-	if (defaultpage == L"gitcredential" && CAppUtils::IsAdminLogin())
+	if (defaultpage == L"gitcredential" && CommonAppUtils::IsAdminLogin())
 	{
 		CSinglePropSheetDlg(CString(MAKEINTRESOURCE(IDS_PROC_SETTINGS_TITLE)), new CSettingGitCredential(), nullptr).DoModal();
 		return true;

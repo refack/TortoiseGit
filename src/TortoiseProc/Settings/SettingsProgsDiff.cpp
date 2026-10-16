@@ -21,7 +21,7 @@
 #include "std.h"
 
 #include "TortoiseProc.h"
-#include "AppUtils.h"
+import AppUtils;
 #include "SettingsProgsDiff.h"
 
 

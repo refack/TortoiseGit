@@ -20,7 +20,7 @@
 #pragma once
 
 #include "StandAloneDlg.h"
-#include "resource.h"
+#include "../SharedMFC/Resources/resource.h"
 
 /**
  * \ingroup TortoiseProc

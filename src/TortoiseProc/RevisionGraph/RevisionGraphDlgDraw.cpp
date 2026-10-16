@@ -21,12 +21,11 @@
 #include "stdafx.h"
 #include "std.h"
 
-#include "TortoiseProc.h"
-#include "MyMemDC.h"
+#include "Utils/MyMemDC.h"
+#include "Utils/DPIAware.h"
+#include "Utils/Theme.h"
 #include "RevisionGraphWnd.h"
-#include "DPIAware.h"
-#include "Theme.h"
-#include "AppUtils.h"
+import AppUtils;
 
 #ifdef _DEBUG
 #define new DEBUG_NEW

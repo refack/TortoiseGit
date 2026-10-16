@@ -22,7 +22,7 @@
 
 #include "TortoiseProc.h"
 #include "RenameDlg.h"
-#include "AppUtils.h"
+import AppUtils;
 #include "MessageBox.h"
 
 

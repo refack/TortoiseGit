@@ -70,7 +70,7 @@ const std::unique_ptr<tgit::CRollingFile> g_file = [] () -> std::unique_ptr<tgit
 
 export namespace tgit::DebugOutput {
 
-bool TraceActive()
+bool IsTraceActive()
 {
 	return g_active;
 }
@@ -111,7 +111,7 @@ void TracePrintf(PCWSTR pszFormat, ...)
 template <class... Args>
 void Trace(std::wformat_string<Args...> fmt, Args&&... args)
 {
-	if (TraceActive())
+	if (IsTraceActive())
 		TraceRaw(std::format(fmt, std::forward<Args>(args)...));
 }
 

@@ -8,9 +8,7 @@ add_executable(TGitUnitTests)
 
 target_sources(TGitUnitTests
     PRIVATE
-        ../../src/Resources/TortoiseProcENG.rc
-        AutoTempDir.cpp
-        AutoTempDir.h
+        "${CMAKE_SOURCE_DIR}/src/SharedMFC/Resources/TortoiseProcENG.rc"
         CmdLineParserTest.cpp
         CrashProbe.cpp   # TEMPORARY: static-init crash diagnosis
         GitByteArrayTest.cpp
@@ -78,19 +76,16 @@ target_compile_features(TGitUnitTests
 
 target_include_directories(TGitUnitTests
     PRIVATE
-        "${CMAKE_SOURCE_DIR}/src"
-        "${CMAKE_SOURCE_DIR}/src/gitdll"
+        "${CMAKE_SOURCE_DIR}/ext/gitdll"
         "${CMAKE_SOURCE_DIR}/src/libgit2/include"
-        "${CMAKE_SOURCE_DIR}/src/libgit2/include/Utils"
-        "${CMAKE_CURRENT_SOURCE_DIR}"
-        "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/include"
+        "${CMAKE_SOURCE_DIR}/src/SharedMFC"
 )
 
 target_compile_definitions(TGitUnitTests
     PRIVATE
         TGIT_TESTS_ONLY
-        TGIT_LFS
         "TGIT_TEST_RESOURCES_DIR=L\"${CMAKE_CURRENT_SOURCE_DIR}/resources\""
+
         _WIN64
         WIN64
         UNICODE
@@ -135,11 +130,11 @@ add_custom_command(TARGET TGitUnitTests POST_BUILD
     COMMAND_EXPAND_LISTS
 )
 
-target_compile_options(TGitUnitTests
-    PRIVATE
-        /Zm110
-        /W3
-        /external:W0
-        /external:anglebrackets
-)
 
+target_sources(TGitUnitTests
+    PUBLIC
+        FILE_SET CXX_MODULES
+        BASE_DIRS "${CMAKE_CURRENT_SOURCE_DIR}"
+    FILES
+        AutoTempDir.ixx
+)

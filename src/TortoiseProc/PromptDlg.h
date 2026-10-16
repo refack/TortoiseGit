@@ -19,7 +19,7 @@
 //
 #pragma once
 
-#include "resource.h"
+#include "../SharedMFC/Resources/resource.h"
 #include "StandAloneDlg.h"
 
 /**

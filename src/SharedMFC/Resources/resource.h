@@ -1,5 +1,4 @@
-﻿//{{NO_DEPENDENCIES}}
-// Microsoft Visual C++ generated include file.
+﻿// Microsoft Visual C++ generated include file.
 // Used by d:\TortoiseGit\src\Resources\TortoiseProcENG.rc
 //
 #define IDR_MAINFRAME                   1

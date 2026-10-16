@@ -22,8 +22,8 @@
 #include "GravatarPictureBox.h"
 #include "Picture.h"
 #include "MessageBox.h"
-#include "LoglistCommonResource.h"
-#include "resource.h"
+#include "Resources/LoglistCommonResource.h"
+#include "Resources/resource.h"
 #include <WinCrypt.h>
 
 // Not named CAutoLocker: git_h exports TGitH::CAutoLocker over its own recursive mutex,

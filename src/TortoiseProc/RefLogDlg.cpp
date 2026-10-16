@@ -22,9 +22,9 @@
 #include "stdafx.h"
 #include "std.h"
 
-#include "resource.h"
+#include "../SharedMFC/Resources/resource.h"
 #include "RefLogDlg.h"
-#include "AppUtils.h"
+import AppUtils;
 #include "MessageBox.h"
 
 // CRefLogDlg dialog

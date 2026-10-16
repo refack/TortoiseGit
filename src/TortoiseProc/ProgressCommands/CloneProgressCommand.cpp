@@ -21,7 +21,7 @@
 
 #include "TortoiseProc.h"
 #include "CloneProgressCommand.h"
-#include "AppUtils.h"
+import AppUtils;
 
 bool CloneProgressCommand::Run(CGitProgressList* list, CString& sWindowTitle, int& /*m_itemCountTotal*/, int& /*m_itemCount*/)
 {

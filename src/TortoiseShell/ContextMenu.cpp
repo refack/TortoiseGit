@@ -1347,7 +1347,7 @@ void CShellExt::InvokeCommand(TGitShellCommand cmd, const std::wstring& appDir, 
 			{
 				AddPathCommand(gitCmd, L"diff", true, paths, folder);
 				gitCmd += L" /path2:";
-				gitCmd += CCmdLineParser::EscapeValue(std::wstring(regDiffLater));
+				gitCmd += TCmdLineParser::EscapeValue(std::wstring(regDiffLater));
 				if (GetAsyncKeyState(VK_SHIFT) & 0x8000)
 					gitCmd += L" /alternative";
 				regDiffLater.removeValue();

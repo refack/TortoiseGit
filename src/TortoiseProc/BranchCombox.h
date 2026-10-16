@@ -19,7 +19,7 @@
 
 #pragma once
 #include "BrowseRefsDlg.h"
-#include "HistoryCombo.h"
+#include "Utils/HistoryCombo.h"
 #include "LoglistUtils.h"
 #include "Tooltip.h"
 import GitRev;

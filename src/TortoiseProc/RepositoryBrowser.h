@@ -20,10 +20,11 @@
 #pragma once
 #include <map>
 #include "StandAloneDlg.h"
+#include "Utils/GestureEnabledControl.h"
+#include "Utils/ResizableColumnsListCtrl.h"
+
 import GitHash;
-#include "GestureEnabledControl.h"
 import TGitPath;
-#include "ResizableColumnsListCtrl.h"
 
 #define REPOBROWSER_CTRL_MIN_WIDTH	20
 

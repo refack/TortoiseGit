@@ -19,8 +19,8 @@
 //
 #pragma once
 #include "SettingsPropPage.h"
+#include "Utils/HistoryCombo.h"
 import Registry;
-#include "HistoryCombo.h"
 
 
 /**

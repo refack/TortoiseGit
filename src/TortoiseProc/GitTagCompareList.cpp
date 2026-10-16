@@ -21,13 +21,13 @@
 #include "stdafx.h"
 #include "std.h"
 
-#include "resource.h"
+#include "Resources/resource.h"
 #include "GitTagCompareList.h"
 #include "GitRefCompareList.h"
 #include "IconMenu.h"
-#include "AppUtils.h"
-#include <TortoiseShell/resource.h>
-#include "LoglistCommonResource.h"
+import AppUtils;
+#include <../TortoiseShell/resource.h>
+#include "Resources/LoglistCommonResource.h"
 #include "SysProgressDlg.h"
 #include "ProgressDlg.h"
 
@@ -417,7 +417,7 @@ void CGitTagCompareList::OnContextMenuList(CWnd * /*pWnd*/, CPoint point)
 		case IDGITRCL_THEIRLOG:
 		{
 			CString sCmd;
-			auto revToShow = cmd == IDGITRCL_MYLOG ? static_cast<LPCWSTR>(CCmdLineParser::EscapeValue(myHash)) : static_cast<LPCWSTR>(CCmdLineParser::EscapeValue(theirHash));
+			auto revToShow = cmd == IDGITRCL_MYLOG ? static_cast<LPCWSTR>(TCmdLineParser::EscapeValue(myHash)) : static_cast<LPCWSTR>(TCmdLineParser::EscapeValue(theirHash));
 			sCmd.Format(L"/command:log /path:\"%s\" /endrev:%s /rev:%s", static_cast<LPCWSTR>(g_Git.m_CurrentDir), revToShow, revToShow);
 			CAppUtils::RunTortoiseGitProc(sCmd);
 			break;
@@ -425,7 +425,7 @@ void CGitTagCompareList::OnContextMenuList(CWnd * /*pWnd*/, CPoint point)
 		case IDGITRCL_COMPARE:
 		{
 			CString sCmd;
-			sCmd.Format(L"/command:showcompare /path:\"%s\" /revision1:%s /revision2:%s", static_cast<LPCWSTR>(g_Git.m_CurrentDir), static_cast<LPCWSTR>(CCmdLineParser::EscapeValue(myHash)), static_cast<LPCWSTR>(CCmdLineParser::EscapeValue(theirHash)));
+			sCmd.Format(L"/command:showcompare /path:\"%s\" /revision1:%s /revision2:%s", static_cast<LPCWSTR>(g_Git.m_CurrentDir), static_cast<LPCWSTR>(TCmdLineParser::EscapeValue(myHash)), static_cast<LPCWSTR>(TCmdLineParser::EscapeValue(theirHash)));
 			if (!!(GetAsyncKeyState(VK_SHIFT) & 0x8000))
 				sCmd += L" /alternative";
 			CAppUtils::RunTortoiseGitProc(sCmd);

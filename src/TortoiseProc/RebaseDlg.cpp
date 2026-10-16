@@ -25,11 +25,11 @@
 
 #include "TortoiseProc.h"
 #include "RebaseDlg.h"
-#include "AppUtils.h"
+import AppUtils;
 #include "LoglistUtils.h"
 #include "MessageBox.h"
 #include "BrowseRefsDlg.h"
-#include "MassiveGitTask.h"
+import TortoiseProc.MassiveGitTask;
 #include "CommitDlg.h"
 #include "Hooks.h"
 #include "LogDlg.h"
@@ -316,7 +316,7 @@ BOOL CRebaseDlg::OnInitDialog()
 		GetDlgItem(IDC_CHECK_CHERRYPICKED_FROM)->EnableWindow(FALSE);
 		const int iconWidth = GetSystemMetrics(SM_CXSMICON);
 		const int iconHeight = GetSystemMetrics(SM_CYSMICON);
-		static_cast<CButton*>(GetDlgItem(IDC_BUTTON_REVERSE))->SetIcon(CCommonAppUtils::LoadIconEx(IDI_SWITCHLEFTRIGHT, iconWidth, iconHeight));
+		static_cast<CButton*>(GetDlgItem(IDC_BUTTON_REVERSE))->SetIcon(CAppUtils::LoadIconEx(IDI_SWITCHLEFTRIGHT, iconWidth, iconHeight));
 		SetContinueButtonText();
 		m_CommitList.DeleteAllItems();
 		FetchLogList();

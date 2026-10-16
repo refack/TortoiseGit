@@ -20,7 +20,7 @@
 #include "std.h"
 
 
-#include "resource.h"
+#include "../SharedMFC/Resources/resource.h"
 #include "FileDlgEventHandler.h"
 
 CFileDlgEventHandler::CFileDlgEventHandler()

@@ -24,10 +24,10 @@
 
 #include "TortoiseProc.h"
 #include "GitProgressList.h"
-#include "AppUtils.h"
+import AppUtils;
 #include "LogFile.h"
 #include "LoglistUtils.h"
-#include "Theme.h"
+#include "Utils/Theme.h"
 #include "git2/sys/errors.h"
 
 BOOL	CGitProgressList::m_bAscending = FALSE;
@@ -1152,7 +1152,7 @@ void CGitProgressList::WC_File_NotificationData::GetContextMenu(CIconMenu& popup
 		{
 			CString cmd = L"/command:log";
 			CString sPath = g_Git.CombinePath(path);
-			cmd += L" /path:" + CCmdLineParser::EscapeValue(sPath);
+			cmd += L" /path:" + TCmdLineParser::EscapeValue(sPath);
 			CAppUtils::RunTortoiseGitProc(cmd);
 		});
 		popup.AppendMenuIcon(actions.size(), IDS_MENULOG, IDI_LOG);

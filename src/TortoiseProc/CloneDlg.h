@@ -19,7 +19,7 @@
 #pragma once
 
 #include "HorizontalResizableStandAloneDialog.h"
-#include "HistoryCombo.h"
+#include "Utils/HistoryCombo.h"
 #include "MenuButton.h"
 import Registry;
 // CCloneDlg dialog

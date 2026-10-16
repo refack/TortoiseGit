@@ -32,14 +32,13 @@
 
 #include <Resources/LoglistCommonResource.h>
 
-#include "AutoTempDir.h"
 import std;
 import wil;
 
 import git_h;
 import str_utils;
 import TGitPath;
-
+import AutoTempDir;
 
 // FillUnRev takes the git runner it used to reach for itself (g_Git).
 static auto GitRunnerFor(CGit& git)

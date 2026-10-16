@@ -21,7 +21,7 @@
 #include "std.h"
 
 #include "RequestPullCommand.h"
-#include "AppUtils.h"
+import AppUtils;
 
 bool RequestPullCommand::Execute()
 {

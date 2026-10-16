@@ -25,8 +25,8 @@
  */
 class CommitCommand : public Command
 {
-private:
 	CString LoadLogMessage();
+
 public:
 	/**
 	 * Executes the command.

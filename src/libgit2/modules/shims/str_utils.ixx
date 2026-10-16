@@ -20,10 +20,12 @@
 
 export module str_utils;
 import std;
+using namespace std::literals;
+
 import gsl;
 import wil;			// wil::unique_hfile, for the text-file helpers
 
-
+#pragma region Interspersed narrow/wide concepts
 // ---- The shim fork ------------------------------------------------------------
 // CString is not one type: MFC-Dynamic gets CStringT<wchar_t, StrTraitMFC_DLL<...>>,
 // ATL-only gets CStringT<wchar_t, StrTraitATL<...>>, and the two mangle differently
@@ -40,6 +42,7 @@ export namespace tgit::zstr { using CString = ATL::CAtlStringA; }	// CStringT<ch
 // ATL::CTime in both flavors, but declared under the same _AFX answer as the
 // CString its Format() returns, so it is the shim's to hand out (GitRev::TimeType).
 export namespace tgit::wstr { using CTime = ::ATL::CTime; }
+#pragma endregion
 
 
 // ---- tgit::str: the kind-generic layer ------------------------------------------
@@ -205,13 +208,16 @@ template <IsTCompString TStr>
 struct StringView : std::basic_string_view<typename StringViewTraits<TStr>::char_type>
 {
 	using cnv_view_t = StringViewTraits<TStr>;
-	using std_view_t = std::basic_string_view<typename cnv_view_t::char_type>;
+	using char_type = cnv_view_t::char_type;
+	using std_view_t = std::basic_string_view<char_type>;
 
 	constexpr auto    as_view()    noexcept { return std_view_t{this->data(), this->size()}; }
 
 	constexpr static std_view_t    as_view(const TStr& s)    noexcept { return {cnv_view_t::data(s), cnv_view_t::size(s)}; }
 	constexpr explicit             StringView(const TStr& s) noexcept : std_view_t{as_view(s)} {}
 	constexpr explicit             StringView(const cnv_view_t::const_pointer s) noexcept : std_view_t{s} {}
+	constexpr cnv_view_t::const_pointer             begin() noexcept { return this->data(); }
+	constexpr cnv_view_t::const_pointer             end() noexcept { return this->data() + this->size(); }
 };
 
 
@@ -222,9 +228,30 @@ struct is_space_t {
 };
 inline constexpr is_space_t is_space{};
 
+template<typename CharT>
+struct generate_random_string_t {
+	using Traits = std::char_traits<CharT>;
 
+	constexpr static auto chars =
+		"abcdefghijklmnopqrstuvwxyz"
+		"ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+		"0123456789"sv;
+
+	static_assert(std::ranges::all_of(chars, [](const char c) { return static_cast<unsigned char>(c) < 0x80; }));
+
+	auto operator() (const std::size_t length = 12) const {
+		thread_local auto gen = std::mt19937_64{std::random_device{}()};
+		auto dist = std::uniform_int_distribution<std::size_t>{0, chars.size() - 1};
+
+		auto ret = std::basic_string<CharT>{length, CharT{}};
+		std::ranges::generate_n(ret, length, [&] { return static_cast<CharT>(chars[dist(gen)]); });
+		return ret;
+	}
+};
 }
 
+
+#pragma region in-module name sharing
 // Inside this module only - targeted, not a using-directive, so nothing here
 // pulls a whole namespace into another's lookup.
 using tgit::str::IsRealString;
@@ -239,6 +266,7 @@ using tgit::str::TStrOfChar;
 using tgit::str::TStrOfWide;
 using tgit::str::StringView;
 using tgit::str::is_space;
+#pragma endregion
 
 
 // The traits classification of every string shape a call site hands the
@@ -540,6 +568,8 @@ std::filesystem::path to_path(const TStr& sPath)
 }
 
 
+using generate_random_wstring = str::generate_random_string_t<wchar_t>;
+
 // end export
 }
 
@@ -569,6 +599,11 @@ std::size_t FindNextString(const std::string_view buffer, const std::size_t star
 
 	return pos;
 }
+
+
+using generate_random_string = str::generate_random_string_t<char>;
+
+
 
 }
 
@@ -1638,7 +1673,7 @@ EmailAddress ParseEmailAddress(const std::wstring_view input)
  * Expands placeholders to corresponding values provided in the map replacements.
  * This method makes sure that values cannot contain other placeholders that may be replaced later on.
  */
-CString ExpandPlaceholdersForCmd(const CString& input, const std::map<CString, CString>& values, CString (*escaper)(CString))
+CString ExpandPlaceholdersForCmd(const CString& input, const std::map<CString, CString>& values, CString (*escaper)(const CString&))
 {
 	CString result;
 	const int len = input.GetLength();
@@ -1753,6 +1788,8 @@ CString EscapeWindowsCliArguments(const CString& argument)
 	const std::wstring escaped = EscapeWindowsCliArgument(std::wstring_view(argument, argument.GetLength()));
 	return {escaped.data(), static_cast<int>(escaped.size())};
 }
+
+
 
 }
 

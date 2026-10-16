@@ -25,7 +25,7 @@
 #include "RefLogDlg.h"
 #include "LogDlg.h"
 #include "LoglistUtils.h"
-#include "AppUtils.h"
+import AppUtils;
 #include "FileDiffDlg.h"
 #include "MessageBox.h"
 
@@ -334,26 +334,26 @@ void CCommitIsOnRefsDlg::OnContextMenu(CWnd* pWnd, CPoint point)
 		{
 			CString sCmd = L"/command:log";
 			sCmd += L" /path:\"" + g_Git.m_CurrentDir + L"\" ";
-			sCmd += std::format(L" /endrev:{}", CCmdLineParser::EscapeValue(selectedRefs.at(0))).c_str();
+			sCmd += std::format(L" /endrev:{}", TCmdLineParser::EscapeValue(selectedRefs.at(0))).c_str();
 			CAppUtils::RunTortoiseGitProc(sCmd);
 		}
 		break;
 		case eCmd_ViewLogRange:
 		{
 			CString sCmd;
-			sCmd.Format(L"/command:log /path:\"%s\" /range:%s", static_cast<LPCWSTR>(g_Git.m_CurrentDir), static_cast<LPCWSTR>(CCmdLineParser::EscapeValue(GetTwoSelectedRefs(selectedRefs, m_sLastSelected, L".."))));
+			sCmd.Format(L"/command:log /path:\"%s\" /range:%s", static_cast<LPCWSTR>(g_Git.m_CurrentDir), static_cast<LPCWSTR>(TCmdLineParser::EscapeValue(GetTwoSelectedRefs(selectedRefs, m_sLastSelected, L".."))));
 			CAppUtils::RunTortoiseGitProc(sCmd);
 		}
 		break;
 		case eCmd_ViewLogRangeReachableFromOnlyOne:
 		{
 			CString sCmd;
-			sCmd.Format(L"/command:log /path:\"%s\" /range:%s", static_cast<LPCWSTR>(g_Git.m_CurrentDir), static_cast<LPCWSTR>(CCmdLineParser::EscapeValue(GetTwoSelectedRefs(selectedRefs, m_sLastSelected, L"..."))));
+			sCmd.Format(L"/command:log /path:\"%s\" /range:%s", static_cast<LPCWSTR>(g_Git.m_CurrentDir), static_cast<LPCWSTR>(TCmdLineParser::EscapeValue(GetTwoSelectedRefs(selectedRefs, m_sLastSelected, L"..."))));
 			CAppUtils::RunTortoiseGitProc(sCmd);
 		}
 		break;
 		case eCmd_RepoBrowser:
-			CAppUtils::RunTortoiseGitProc(std::format(L"/command:repobrowser /path:\"{}\" /rev:{}", g_Git.m_CurrentDir, CCmdLineParser::EscapeValue(selectedRefs[0])).c_str());
+			CAppUtils::RunTortoiseGitProc(std::format(L"/command:repobrowser /path:\"{}\" /rev:{}", g_Git.m_CurrentDir, TCmdLineParser::EscapeValue(selectedRefs[0])).c_str());
 			break;
 		case eCmd_Copy:
 			CopySelectionToClipboard();
@@ -361,7 +361,7 @@ void CCommitIsOnRefsDlg::OnContextMenu(CWnd* pWnd, CPoint point)
 		case eCmd_DiffWC:
 		{
 			CString sCmd;
-			sCmd = std::format(L"/command:showcompare /path:\"{}\" /revision1:{} /revision2:{}", g_Git.m_CurrentDir, CCmdLineParser::EscapeValue(selectedRefs[0]), GitRev::GetWorkingCopyRef()).c_str();
+			sCmd = std::format(L"/command:showcompare /path:\"{}\" /revision1:{} /revision2:{}", g_Git.m_CurrentDir, TCmdLineParser::EscapeValue(selectedRefs[0]), GitRev::GetWorkingCopyRef()).c_str();
 			if (!!(GetAsyncKeyState(VK_SHIFT) & 0x8000))
 				sCmd += L" /alternative";
 

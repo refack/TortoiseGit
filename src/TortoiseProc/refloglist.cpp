@@ -19,11 +19,11 @@
 #include "stdafx.h"
 #include "std.h"
 
-#include "resource.h"
+#include <Resources/resource.h>
 #include "refloglist.h"
 #include "LoglistUtils.h"
-#include "AppUtils.h"
-#include "DPIAware.h"
+import AppUtils;
+#include "Utils/DPIAware.h"
 
 IMPLEMENT_DYNAMIC(CRefLogList, CGitLogList)
 
@@ -129,7 +129,7 @@ void CRefLogList::OnNMDblclkLoglist(NMHDR* /*pNMHDR*/, LRESULT* pResult)
 		return;
 
 	CString cmdline;
-	cmdline.Format(L"/command:log /path:%s /endrev:%s /rev:%s", static_cast<LPCWSTR>(CCmdLineParser::EscapeValue(g_Git.CombinePath(m_Path))), (pSelLogEntry->m_CommitHash.ToString()).c_str(), (pSelLogEntry->m_CommitHash.ToString()).c_str());
+	cmdline.Format(L"/command:log /path:%s /endrev:%s /rev:%s", static_cast<LPCWSTR>(TCmdLineParser::EscapeValue(g_Git.CombinePath(m_Path))), (pSelLogEntry->m_CommitHash.ToString()).c_str(), (pSelLogEntry->m_CommitHash.ToString()).c_str());
 	CAppUtils::RunTortoiseGitProc(cmdline);
 }
 

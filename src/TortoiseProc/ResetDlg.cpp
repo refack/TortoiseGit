@@ -25,7 +25,7 @@
 #include "TortoiseProc.h"
 #include "ResetDlg.h"
 #include "FileDiffDlg.h"
-#include "AppUtils.h"
+import AppUtils;
 
 // CResetDlg dialog
 

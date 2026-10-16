@@ -18,7 +18,7 @@
 //
 #pragma once
 #include <span>
-#include "Globals.h"
+#include "../SharedMFC/Resources/Globals.h"
 
 enum class TGitShellCommand
 {

@@ -23,7 +23,7 @@
 
 #include "TortoiseProc.h"
 #include "SetOverlayIcons.h"
-#include "LoadIconEx.h"
+#include "Utils/LoadIconEx.h"
 
 IMPLEMENT_DYNAMIC(CSetOverlayIcons, ISettingsPropPage)
 CSetOverlayIcons::CSetOverlayIcons()

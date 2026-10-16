@@ -21,7 +21,7 @@
 import GitRev;
 
 #include "StandAloneDlg.h"
-#include "ACEdit.h"
+#include "../SharedMFC/ACEdir/ACEdit.h"
 #include "MiscUI/MenuButton.h"
 #include "MiscUI/FilterEdit.h"
 #include "Utils/HintCtrl.h"

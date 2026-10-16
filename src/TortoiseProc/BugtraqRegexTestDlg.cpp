@@ -22,7 +22,7 @@
 
 #include "TortoiseProc.h"
 #include "BugtraqRegexTestDlg.h"
-#include "AppUtils.h"
+import AppUtils;
 #include "ProjectProperties.h"
 
 // CBugtraqRegexTestDlg dialog

@@ -23,7 +23,7 @@
 #include "FormatPatchCommand.h"
 #include "FormatPatchDlg.h"
 #include "ProgressDlg.h"
-#include "AppUtils.h"
+import AppUtils;
 
 bool FormatPatchCommand::Execute()
 {

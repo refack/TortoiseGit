@@ -21,7 +21,7 @@
 #include "StandAloneDlg.h"
 import wil;
 
-#include "HistoryCombo.h"
+#include "Utils/HistoryCombo.h"
 /**
  * \ingroup TortoiseProc
  * Dialog showing the log message history.

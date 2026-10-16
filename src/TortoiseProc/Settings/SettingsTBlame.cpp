@@ -22,8 +22,8 @@
 
 #include "TortoiseProc.h"
 #include "SettingsTBlame.h"
-#include <TortoiseGitBlame/BlameIndexColors.h>
-#include <TortoiseGitBlame/BlameDetectMovedOrCopiedLines.h>
+#include <../TortoiseGitBlame/BlameIndexColors.h>
+#include <../TortoiseGitBlame/BlameDetectMovedOrCopiedLines.h>
 
 
 // CSettingsTBlame dialog

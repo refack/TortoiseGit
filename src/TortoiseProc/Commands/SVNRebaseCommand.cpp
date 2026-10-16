@@ -25,7 +25,7 @@
 #include "ProgressDlg.h"
 #include "MessageBox.h"
 #include "RebaseDlg.h"
-#include "AppUtils.h"
+import AppUtils;
 
 bool SVNRebaseCommand::Execute()
 {

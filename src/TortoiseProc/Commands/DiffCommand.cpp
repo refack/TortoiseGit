@@ -23,7 +23,7 @@
 
 #include "DiffCommand.h"
 #include "MessageBox.h"
-#include "AppUtils.h"
+import AppUtils;
 #include "ChangedDlg.h"
 #include "GitDiff.h"
 
@@ -126,7 +126,7 @@ bool DiffCommand::Execute()
 			bRet = CAppUtils::StartExtDiff(
 				path2, orgCmdLinePath.GetWinPathString().c_str(), CString(), CString(),
 				CString(), CString(), CGitHash(), CGitHash(),
-				CAppUtils::DiffFlags().AlternativeTool(bAlternativeTool), parser.GetLongVal(L"line"));
+				CommonAppUtils::details::DiffFlags().AlternativeTool(bAlternativeTool), parser.GetLongVal(L"line"));
 		}
 	}
 

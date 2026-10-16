@@ -1,6 +1,6 @@
 // Microsoft Visual C++ generated resource script.
 //
-#include "../TortoiseProc/resource.h"
+#include "resource.h"
 
 #define APSTUDIO_READONLY_SYMBOLS
 /////////////////////////////////////////////////////////////////////////////
@@ -92,7 +92,7 @@ IDI_FILE                ICON                    "file.ico"
 IDI_CODE                ICON                    "code.ico"
 IDI_SNIPPET             ICON                    "snippet.ico"
 IDI_CERTCHECK           ICON                    "certcheck.ico"
-IDI_TORTOISEUDIFF       ICON                    "..\\TortoiseUDiff\\TortoiseUDiff.ico"
+IDI_TORTOISEUDIFF       ICON                    "..\\..\\TortoiseUDiff\\TortoiseUDiff.ico"
 IDI_LIBRARY_WIN10       ICON                    "library-win10.ico"
 IDI_RESET               ICON                    "reset.ico"
 IDI_NOTEPAD             ICON                    "notepad.ico"

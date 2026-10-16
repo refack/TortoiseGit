@@ -25,7 +25,7 @@
 
 #include "TortoiseProc.h"
 #include "PullFetchDlg.h"
-#include "AppUtils.h"
+import AppUtils;
 #include "SelectRemoteRefDlg.h"
 #include "MessageBox.h"
 

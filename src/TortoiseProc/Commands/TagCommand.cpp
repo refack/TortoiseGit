@@ -21,7 +21,7 @@
 #include "std.h"
 
 #include "TagCommand.h"
-#include "AppUtils.h"
+import AppUtils;
 
 bool TagCommand::Execute()
 {

@@ -20,7 +20,7 @@
 #include "stdafx.h"
 #include "std.h"
 
-#include "AppUtils.h"
+import AppUtils;
 #include "TortoiseProc.h"
 #include "DeleteRemoteTagDlg.h"
 #include "MessageBox.h"

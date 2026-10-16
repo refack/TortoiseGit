@@ -24,9 +24,9 @@
 
 #include "TortoiseProc.h"
 #include "CloneDlg.h"
-#include "BrowseFolder.h"
+#include "Utils/BrowseFolder.h"
 #include "MessageBox.h"
-#include "AppUtils.h"
+import AppUtils;
 
 // CCloneDlg dialog
 
@@ -136,7 +136,7 @@ BOOL CCloneDlg::OnInitDialog()
 
 	if (m_Directory.IsEmpty())
 	{
-		CString dir = m_regCloneDir;
+		tgit::wstr::CString dir = m_regCloneDir;
 		int index = dir.ReverseFind('\\');
 		if (index >= 0)
 			dir = dir.Left(index);

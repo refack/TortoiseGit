@@ -20,7 +20,7 @@
 
 #pragma once
 
-#include "cursor.h"
+#include "Utils/cursor.h"
 
 #define IDC_MESSAGEBOX_BUTTON1 101
 #define IDC_MESSAGEBOX_BUTTON2 102

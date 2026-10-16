@@ -19,7 +19,7 @@
 //
 
 #include "stdafx.h"
-#include "UniqueQueue.h"
+#include "Utils/UniqueQueue.h"
 
 TEST(UniqueQueue, CString)
 {

@@ -24,7 +24,7 @@
 #include "TortoiseProc.h"
 #include "RevisionGraphWnd.h"
 #include "MessageBox.h"
-#include "AppUtils.h"
+import AppUtils;
 #include "RevisionGraphDlg.h"
 
 #pragma warning(push)
@@ -1065,12 +1065,12 @@ void CRevisionGraphWnd::DoShowLog() const
 
 	if(m_SelectedEntry2)
 		sCmd.Format(L"/command:log /path:%s /startrev:%s /endrev:%s",
-			static_cast<LPCWSTR>(CCmdLineParser::EscapeValue(m_sPath)),
+			static_cast<LPCWSTR>(TCmdLineParser::EscapeValue(m_sPath)),
 			(this->m_logEntries[m_SelectedEntry1->index()].ToString()).c_str(),
 			(this->m_logEntries[m_SelectedEntry2->index()].ToString()).c_str());
 	else
 		sCmd.Format(L"/command:log /path:%s /endrev:%s /rev:%s",
-			static_cast<LPCWSTR>(CCmdLineParser::EscapeValue(m_sPath)),
+			static_cast<LPCWSTR>(TCmdLineParser::EscapeValue(m_sPath)),
 			(this->m_logEntries[m_SelectedEntry1->index()].ToString()).c_str(),
 			(this->m_logEntries[m_SelectedEntry1->index()].ToString()).c_str());
 
@@ -1089,8 +1089,8 @@ void CRevisionGraphWnd::DoBrowseRepo() const
 
 	CString sCmd;
 	sCmd.Format(L"/command:repobrowser /path:%s /rev:%s",
-		static_cast<LPCWSTR>(CCmdLineParser::EscapeValue(m_sPath)),
-		static_cast<LPCWSTR>(CCmdLineParser::EscapeValue(GetFriendRefName(m_SelectedEntry1))));
+		static_cast<LPCWSTR>(TCmdLineParser::EscapeValue(m_sPath)),
+		static_cast<LPCWSTR>(TCmdLineParser::EscapeValue(GetFriendRefName(m_SelectedEntry1))));
 
 	CAppUtils::RunTortoiseGitProc(sCmd);
 }

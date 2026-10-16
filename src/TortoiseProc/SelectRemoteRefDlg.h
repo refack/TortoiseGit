@@ -20,7 +20,7 @@
 #pragma once
 
 #include "HorizontalResizableStandAloneDialog.h"
-#include "HistoryCombo.h"
+#include "Utils/HistoryCombo.h"
 
 class CSelectRemoteRefDlg : public CHorizontalResizableStandAloneDialog
 {

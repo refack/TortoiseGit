@@ -1,22 +1,4 @@
-﻿// TortoiseGit - a Windows shell extension for easy version control
-
-// Copyright (C) 2008-2020, 2023-2025 - TortoiseGit
-// Copyright (C) 2003-2008, 2010, 2020 - TortoiseSVN
-
-// This program is free software; you can redistribute it and/or
-// modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; either version 2
-// of the License, or (at your option) any later version.
-
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-
-// You should have received a copy of the GNU General Public License
-// along with this program; if not, write to the Free Software Foundation,
-// 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-//
+﻿module;
 #include "stdafx.h"
 #include "std.h"
 
@@ -24,18 +6,126 @@
 #include <format>
 #include <shlobj_core.h>
 
-#include "CommonAppUtils.h"
 #include <Utils/SelectFileFilter.h>
 #include <Utils/DPIAware.h>
 #include <Utils/LoadIconEx.h>
 #include "MiscUI/IconBitmapUtils.h"
 #include <Utils/CreateProcessHelper.h>
 
-#include "ACEdit.h"
+
+
+export module CommonAppUtils;
+import GitRevLoglist;
+
+// // no "class CTGitPath;": in a header it declares a global-module class, a different
+// // type from the TGitPath module's. stdafx.h imports the real one.
+// class CIgnoreFile;
+// class ProjectProperties;
+
 
 extern CString g_sGroupingUUID;
 
-bool CCommonAppUtils::LaunchApplication(const CString& sCommandLine, const LaunchApplicationFlags& flags)
+
+/**
+ * \ingroup TortoiseProc
+ * An utility class with static functions.
+ */
+export namespace CommonAppUtils {
+
+using ::LoadIconEx;
+
+namespace details {
+	CString FormatWindowTitle(const CString& urlorpath,
+	                          const CString& dialogname,
+	                          const CString& appname,
+	                          DWORD format);
+	CString PickDiffTool(const CTGitPath& file1, const CTGitPath& file2);
+
+
+
+	struct LaunchApplicationFlags {
+		bool bWaitForStartup = false;
+		bool bWaitForExit = false;
+		HANDLE hWaitHandle = nullptr;
+		bool bUAC = false;
+		LPCWSTR psCWD = nullptr;
+		UINT uiIDErrMessageFormat = 0;
+		DWORD* pdwExitCode = nullptr;
+
+		LaunchApplicationFlags() {}
+
+
+		LaunchApplicationFlags& UseSpecificErrorMessage(const UINT idErrMessageFormat) {
+			uiIDErrMessageFormat = idErrMessageFormat;
+			return *this;
+		}
+
+
+		LaunchApplicationFlags& WaitForStartup(const bool b = true) {
+			bWaitForStartup = b;
+			return *this;
+		}
+
+
+		LaunchApplicationFlags& WaitForExit(const bool b = true, const HANDLE& h = nullptr, DWORD* pExitCode = nullptr) {
+			Implies(h, b);
+			bWaitForExit = b;
+			hWaitHandle = h;
+			pdwExitCode = pExitCode;
+			return *this;
+		}
+
+
+		LaunchApplicationFlags& UAC(const bool b = true) {
+			bUAC = b;
+			return *this;
+		}
+
+
+		LaunchApplicationFlags& UseCWD(const LPCWSTR pCwd) {
+			psCWD = pCwd;
+			return *this;
+		}
+	};
+
+
+
+	/**
+	* Flags for StartExtDiff function.
+	*/
+	struct DiffFlags {
+		bool bWait;
+		bool bReadOnly;
+		bool bAlternativeTool; // If true, invert selection of git's tool vs. the configured external diff tool
+
+		DiffFlags() :
+			bWait(false), bReadOnly(false), bAlternativeTool(false) {}
+
+
+		DiffFlags& Wait(const bool b = true) {
+			bWait = b;
+			return *this;
+		}
+
+
+		DiffFlags& ReadOnly(const bool b = true) {
+			bReadOnly = b;
+			return *this;
+		}
+
+
+		DiffFlags& AlternativeTool(const bool b = true) {
+			bAlternativeTool = b;
+			return *this;
+		}
+	};
+}
+
+
+/**
+* Launch an external application (usually the diff viewer)
+*/
+bool LaunchApplication(const CString& sCommandLine, const CommonAppUtils::details::LaunchApplicationFlags& flags)
 {
 	LPCWSTR theCWD = nullptr;
 	if (flags.psCWD)
@@ -144,8 +234,8 @@ bool CCommonAppUtils::LaunchApplication(const CString& sCommandLine, const Launc
 		return false;
 	}
 
-	CAutoGeneralHandle piThread(std::move(process.hThread));
-	CAutoGeneralHandle piProcess(std::move(process.hProcess));
+	[[maybe_unused]] const CAutoGeneralHandle piThread(std::move(process.hThread));
+	[[maybe_unused]] const CAutoGeneralHandle piProcess(std::move(process.hProcess));
 
 	AllowSetForegroundWindow(process.dwProcessId);
 
@@ -176,7 +266,7 @@ bool CCommonAppUtils::LaunchApplication(const CString& sCommandLine, const Launc
 	return true;
 }
 
-bool CCommonAppUtils::RunTortoiseGitProc(const CString& sCommandLine, bool uac, bool includeGroupingUUID)
+bool RunTortoiseGitProc(const CString& sCommandLine, const bool uac = false, const bool includeGroupingUUID = false)
 {
 	const std::wstring pathToExecutable = PathUtils::GetAppDirectory() + L"TortoiseGitProc.exe";
 	CString sCmd = std::format(L"\"{}\" {}", pathToExecutable, sCommandLine).c_str();
@@ -189,10 +279,10 @@ bool CCommonAppUtils::RunTortoiseGitProc(const CString& sCommandLine, bool uac, 
 		sCmd += L'"';
 	}
 
-	return LaunchApplication(sCmd, LaunchApplicationFlags().UAC(uac));
+	return LaunchApplication(sCmd, details::LaunchApplicationFlags().UAC(uac));
 }
 
-bool CCommonAppUtils::IsAdminLogin()
+bool IsAdminLogin()
 {
 	SID_IDENTIFIER_AUTHORITY ntAuthority = SECURITY_NT_AUTHORITY;
 	PSID administratorsGroup;
@@ -209,12 +299,7 @@ bool CCommonAppUtils::IsAdminLogin()
 	return !!isInAdminGroup;
 }
 
-bool CCommonAppUtils::SetListCtrlBackgroundImage(HWND hListCtrl, UINT nID)
-{
-	return SetListCtrlBackgroundImage(hListCtrl, nID, CDPIAware::Instance().ScaleX(hListCtrl, 128), CDPIAware::Instance().ScaleY(hListCtrl, 128));
-}
-
-bool CCommonAppUtils::SetListCtrlBackgroundImage(HWND hListCtrl, UINT nID, int width, int height)
+bool SetListCtrlBackgroundImage(const HWND& hListCtrl, const UINT nID, const int width, const int height)
 {
 	if (static_cast<DWORD>(CRegStdDWORD(L"Software\\TortoiseGit\\ShowListBackgroundImage", TRUE)) == FALSE)
 		return false;
@@ -232,7 +317,15 @@ bool CCommonAppUtils::SetListCtrlBackgroundImage(HWND hListCtrl, UINT nID, int w
 	return true;
 }
 
-bool CCommonAppUtils::FileOpenSave(CString& path, int* filterindex, UINT title, UINT filterId, bool bOpen, HWND hwndOwner, LPCWSTR defaultExt, bool handleAsFile)
+bool SetListCtrlBackgroundImage(const HWND& hListCtrl, const UINT nID)
+{
+	return SetListCtrlBackgroundImage(hListCtrl, nID, CDPIAware::Instance().ScaleX(hListCtrl, 128), CDPIAware::Instance().ScaleY(hListCtrl, 128));
+}
+
+
+bool FileOpenSave(
+	CString& path, int* filterindex, const UINT title, const UINT filterId, const bool bOpen, const std::optional<HWND> hwndOwner = {}, const LPCWSTR defaultExt = nullptr, const bool handleAsFile = false
+)
 {
 	// Create a new common save file dialog
 	CComPtr<IFileDialog> pfd;
@@ -281,7 +374,7 @@ bool CCommonAppUtils::FileOpenSave(CString& path, int* filterindex, UINT title, 
 	}
 
 	if (defaultExt && !SUCCEEDED(pfd->SetDefaultExtension(defaultExt)))
-			return false;
+		return false;
 
 	// set the default folder
 	CComPtr<IShellItem> psiFolder;
@@ -300,7 +393,7 @@ bool CCommonAppUtils::FileOpenSave(CString& path, int* filterindex, UINT title, 
 	}
 
 	// Show the save/open file dialog
-	if (!SUCCEEDED(pfd->Show(hwndOwner)))
+	if (!SUCCEEDED(pfd->Show(hwndOwner.value_or(nullptr))))
 		return false;
 
 	// Get the selection from the user
@@ -317,17 +410,22 @@ bool CCommonAppUtils::FileOpenSave(CString& path, int* filterindex, UINT title, 
 	{
 		UINT fi = 0;
 		pfd->GetFileTypeIndex(&fi);
-		*filterindex = fi;
+		*filterindex = gsl::narrow<int>(fi);
 	}
 	return true;
 }
 
-HICON CCommonAppUtils::LoadIconEx(UINT resourceId, UINT cx, UINT cy)
+HICON LoadIconEx(const UINT resourceId, const UINT cx, const UINT cy)
 {
-	return ::LoadIconEx(AfxGetResourceHandle(), MAKEINTRESOURCE(resourceId), cx, cy);
+	return ::LoadIconEx(AfxGetResourceHandle(), MAKEINTRESOURCE(resourceId), gsl::narrow<int>(cx), gsl::narrow<int>(cy));
 }
 
-void CCommonAppUtils::SetCharFormat(CWnd* window, DWORD mask , DWORD effects, const std::vector<CHARRANGE>& positions)
+/**
+ * Apply the @a effects or color (depending on @a mask)
+ * for all char ranges given in @a positions to the
+ * @a window text.
+ */
+void SetCharFormat(CWnd* window, const DWORD mask , const DWORD effects, const std::vector<CHARRANGE>& positions)
 {
 	CHARFORMAT2 format = {};
 	format.cbSize = sizeof(CHARFORMAT2);
@@ -342,7 +440,7 @@ void CCommonAppUtils::SetCharFormat(CWnd* window, DWORD mask , DWORD effects, co
 	}
 }
 
-void CCommonAppUtils::SetCharFormat(CWnd* window, DWORD mask, DWORD effects )
+void SetCharFormat(CWnd* window, const DWORD mask, const DWORD effects )
 {
 	CHARFORMAT2 format = {};
 	format.cbSize = sizeof(CHARFORMAT2);
@@ -351,17 +449,17 @@ void CCommonAppUtils::SetCharFormat(CWnd* window, DWORD mask, DWORD effects )
 	window->SendMessage(EM_SETCHARFORMAT, SCF_SELECTION, reinterpret_cast<LPARAM>(&format));
 }
 
-CString CCommonAppUtils::GetLogFontName()
+CString GetLogFontName()
 {
 	return CRegString(L"Software\\TortoiseGit\\LogFontName", L"Consolas");
 }
 
-DWORD CCommonAppUtils::GetLogFontSize()
+DWORD GetLogFontSize()
 {
 	return CRegDWORD(L"Software\\TortoiseGit\\LogFontSize", 9);
 }
 
-void CCommonAppUtils::CreateFontForLogs(HWND hWnd, CFont& fontToCreate)
+void CreateFontForLogs(const HWND& hWnd, CFont& fontToCreate)
 {
 	LOGFONT logFont;
 	HDC hScreenDC = ::GetDC(nullptr);
@@ -383,7 +481,7 @@ void CCommonAppUtils::CreateFontForLogs(HWND hWnd, CFont& fontToCreate)
 	VERIFY(fontToCreate.CreateFontIndirect(&logFont));
 }
 
-const char* CCommonAppUtils::GetResourceData(const wchar_t* resName, int id, DWORD& resLen)
+const char* GetResourceData(const wchar_t* resName, const int id, DWORD& resLen)
 {
 	resLen = 0;
 	auto hResource = FindResource(nullptr, MAKEINTRESOURCE(id), resName);
@@ -397,7 +495,7 @@ const char* CCommonAppUtils::GetResourceData(const wchar_t* resName, int id, DWO
 	return lpResLock;
 }
 
-bool CCommonAppUtils::StartHtmlHelp(DWORD_PTR id, CString page /* = L"index.html" */)
+bool StartHtmlHelp(const DWORD_PTR id, const CString& page = L"index.html")
 {
 	ATLASSERT(page == L"index.html" || id == 0);
 
@@ -463,7 +561,7 @@ bool CCommonAppUtils::StartHtmlHelp(DWORD_PTR id, CString page /* = L"index.html
 #endif
 }
 
-int CCommonAppUtils::ExploreTo(HWND hwnd, CString path)
+int ExploreTo(const HWND& hwnd, CString path)
 {
 	if (PathFileExists(path))
 	{
@@ -486,4 +584,4 @@ int CCommonAppUtils::ExploreTo(HWND hwnd, CString path)
 	} while (!PathFileExists(path));
 	return reinterpret_cast<INT_PTR>(ShellExecute(hwnd, L"explore", path, nullptr, nullptr, SW_SHOW)) > 32 ? 0 : -1;
 }
-
+}

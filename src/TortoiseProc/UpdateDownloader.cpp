@@ -20,7 +20,7 @@
 #include "std.h"
 
 #include "UpdateDownloader.h"
-#include <version.h>
+#include <../libgit2/include/version.h>
 
 CUpdateDownloader::CUpdateDownloader(HWND hwnd, const CString& sVersion, bool force, UINT msg, CEvent *eventStop)
 : m_hWnd(hwnd)

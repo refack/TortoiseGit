@@ -22,21 +22,21 @@
 #include "std.h"
 
 #include "TortoiseProc.h"
-#include "SysImageList.h"
+#include "Utils/SysImageList.h"
 #include "Hooks.h"
-#include "AppUtils.h"
+import AppUtils;
 #include "MessageBox.h"
 #include "Commands\Command.h"
-#include <version.h>
+#include <../libgit2/include/version.h>
 #include "JumpListHelpers.h"
 #include "ConfigureGitExe.h"
 #include "ProjectProperties.h"
-#include "HistoryCombo.h"
+#include "Utils/HistoryCombo.h"
 #include <random>
-#include "WindowsCredentialsStore.h"
+#include "Utils/WindowsCredentialsStore.h"
 #include "AnimationManager.h"
 #include "VersioncheckParser.h"
-#include "Hash.h"
+#include "Utils/Hash.h"
 import TaskbarUUID;
 import Libraries;
 
@@ -129,7 +129,7 @@ BOOL CTortoiseProcApp::InitInstance()
 	CWinAppEx::InitInstance();
 	SetRegistryKey(L"TortoiseGit");
 	SYS_IMAGE_LIST();
-	CHistoryCombo::m_nGitIconIndex = SYS_IMAGE_LIST().AddIcon(CCommonAppUtils::LoadIconEx(IDI_GITCONFIG, 0, 0));
+	CHistoryCombo::m_nGitIconIndex = SYS_IMAGE_LIST().AddIcon(CAppUtils::LoadIconEx(IDI_GITCONFIG, 0, 0));
 	AfxGetApp()->m_pszProfileName = _wcsdup(L"TortoiseProc"); // w/o this ResizableLib will store data under TortoiseGitProc which is not compatible with older versions
 
 	CCmdLineParser parser(AfxGetApp()->m_lpCmdLine);
@@ -194,7 +194,7 @@ BOOL CTortoiseProcApp::InitInstance()
 			return FALSE;
 		}
 		CString newCmd;
-		newCmd.Format(L"/command:clone /url:%s /hasurlhandler", static_cast<LPCWSTR>(CCmdLineParser::EscapeValue(url)));
+		newCmd.Format(L"/command:clone /url:%s /hasurlhandler", static_cast<LPCWSTR>(TCmdLineParser::EscapeValue(url)));
 		parser = CCmdLineParser(newCmd);
 	}
 

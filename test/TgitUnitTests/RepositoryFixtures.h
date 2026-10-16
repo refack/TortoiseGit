@@ -215,11 +215,12 @@ protected:
 	virtual void SetUp() override
 	{
 		CBasicGitFixture::SetUp();
-		CString output;
+		std::wstring output;
+		std::wstring errput;
 		// -b pins the initial branch: without it the repository inherits the host's
 		// init.defaultBranch, and every assertion about the branch name becomes a
 		// statement about the machine the tests happen to run on.
-		EXPECT_EQ(0, m_Git.Run(L"git.exe init -b master", &output, CP_UTF8));
+		EXPECT_EQ(0, m_Git.Run(L"git.exe init -b master", std::out_ptr(output), std::out_ptr(errput), CP_UTF8));
 		EXPECT_STRNE(L"", output);
 		output.Empty();
 		EXPECT_EQ(0, m_Git.Run(L"git.exe config core.autocrlf false", &output, CP_UTF8));

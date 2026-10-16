@@ -22,7 +22,7 @@
 
 #include "TortoiseProc.h"
 #include "StashSave.h"
-#include "AppUtils.h"
+import AppUtils;
 #include "MessageBox.h"
 
 IMPLEMENT_DYNAMIC(CStashSaveDlg, CHorizontalResizableStandAloneDialog)

@@ -17,8 +17,6 @@ target_sources(TortoiseProc
         AddDlg.h
         AddRemoteDlg.cpp
         AddRemoteDlg.h
-        AppUtils.cpp
-        AppUtils.h
         AutoTextTestDlg.cpp
         AutoTextTestDlg.h
         BisectStartDlg.cpp
@@ -44,14 +42,11 @@ target_sources(TortoiseProc
         CloneDlg.h
         Colors.cpp
         Colors.h
-        ColumnManager.cpp
-        ColumnManager.h
         Commands/AboutCommand.cpp
         Commands/AboutCommand.h
         Commands/AddCommand.cpp
         Commands/AddCommand.h
         Commands/AutoTextTestCommand.h
-        Commands/BisectCommand.cpp
         Commands/BisectCommand.h
         Commands/BlameCommand.cpp
         Commands/BlameCommand.h
@@ -251,8 +246,6 @@ target_sources(TortoiseProc
         LoglistUtils.h
         LogOrdering.cpp
         LogOrdering.h
-        MassiveGitTask.cpp
-        MassiveGitTask.h
         MergeAbortDlg.cpp
         MergeAbortDlg.h
         MergeDlg.cpp
@@ -301,7 +294,6 @@ target_sources(TortoiseProc
         ResetDlg.h
         ResolveDlg.cpp
         ResolveDlg.h
-        Resource.h
         RevertDlg.cpp
         RevertDlg.h
         RevisionGraph/RevGraphFilterDlg.cpp
@@ -429,11 +421,8 @@ target_sources(TortoiseProc
 # that lives in the MFC binary), plus the resource script.
 target_sources(TortoiseProc
     PRIVATE
-        ACEdit.cpp
-        ACListWnd.cpp
         BrowseFolder.cpp
         COMError.cpp
-        CommonAppUtils.cpp
         EditWordBreak.cpp
         FileDlgEventHandler.cpp
         GitStatusListCtrl.cpp
@@ -466,7 +455,7 @@ target_sources(TortoiseProc
         TreePropSheet/PropPageFrame.cpp
         TreePropSheet/PropPageFrameDefault.cpp
         TreePropSheet/TreePropSheet.cpp
-        "${CMAKE_SOURCE_DIR}/src/Resources/TortoiseProcENG.rc"
+        "${CMAKE_SOURCE_DIR}/src/SharedMFC/Resources/TortoiseProcENG.rc"
 )
 
 # Shared with TortoiseShell: the settings pages (SetLookAndFeelPage) read the
@@ -492,7 +481,6 @@ set_target_properties(TortoiseProc PROPERTIES
     # RunTortoiseGitProc and friends start <app dir>\TortoiseGitProc.exe, and the
     # shell extension launches it by that name too.
     OUTPUT_NAME TortoiseGitProc
-    CMAKE_MFC_FLAG 2
 )
 set_target_properties(TortoiseProc PROPERTIES CXX_MODULE_STD ON)
 
@@ -509,21 +497,23 @@ target_include_directories(TortoiseProc
         "${CMAKE_CURRENT_SOURCE_DIR}"
         "${CMAKE_CURRENT_SOURCE_DIR}/MiscUI"
         "${CMAKE_CURRENT_SOURCE_DIR}/TreePropSheet"
+        "${CMAKE_SOURCE_DIR}/ext/gitdll"
+        "${CMAKE_SOURCE_DIR}/ext/ResizableLib"
+        "${CMAKE_SOURCE_DIR}/ext/AsyncFramework"
         "${CMAKE_SOURCE_DIR}/src/libgit2/include"
         "${CMAKE_SOURCE_DIR}/src/libgit2/include/Utils"
-        "${CMAKE_SOURCE_DIR}/src/gitdll"
-        "${CMAKE_SOURCE_DIR}/src/Resources"
-        "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/include/scintilla2"
-        "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/include/lexilla"
+        "${CMAKE_SOURCE_DIR}/src/SharedMFC"
+        "${CMAKE_SOURCE_DIR}/src/SharedMFC/Utils"
+        "${CMAKE_SOURCE_DIR}/src/SharedMFC/Resources"
+        "${CMAKE_SOURCE_DIR}/src/IBugTraqProvider"
+#        "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/include/scintilla2"
+#        "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/include/lexilla"
         "$<TARGET_FILE_DIR:TortoiseProc>"
-        "${CMAKE_SOURCE_DIR}/src"
-        "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/include"
 )
 
 target_compile_definitions(TortoiseProc
     PRIVATE
         TORTOISEGITPROC
-        TGIT_LFS
         _WIN64
         WIN64
         UNICODE
@@ -588,3 +578,13 @@ target_compile_options(TortoiseProc
 # _UNICODE MFC: the entry is wWinMain, which lives in the MFC library rather than
 # in an object of ours, so the linker cannot infer it and would look for WinMain.
 target_link_options(TortoiseProc PRIVATE /ENTRY:wWinMainCRTStartup)
+
+target_sources(TortoiseProc
+    PUBLIC
+        FILE_SET CXX_MODULES
+        BASE_DIRS "${CMAKE_CURRENT_SOURCE_DIR}"
+    FILES
+        AppUtils.ixx
+        CommonAppUtils.ixx
+        MassiveGitTask.ixx
+)

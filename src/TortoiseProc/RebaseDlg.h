@@ -22,7 +22,7 @@
 #include "GitStatusListCtrl.h"
 #include "SciEdit.h"
 #include "SplitterControl.h"
-#include "HistoryCombo.h"
+#include "Utils/HistoryCombo.h"
 #include "GitLogList.h"
 #include "MenuButton.h"
 #include "ProjectProperties.h"

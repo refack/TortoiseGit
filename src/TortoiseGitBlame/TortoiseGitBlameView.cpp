@@ -482,12 +482,12 @@ void CTortoiseGitBlameView::ContextMenuAction(int cmd, GitRev *pRev, GIT_REV_LIS
 			int line = m_data.GetOriginalLineNumber(selectedLine);
 
 			CString procCmd = L"/command:blame";
-			procCmd += L" /path:" + CCmdLineParser::EscapeValue(path);
+			procCmd += L" /path:" + TCmdLineParser::EscapeValue(path);
 			procCmd += L" /endrev:" + endrev;
 			procCmd += L" /line:";
 			procCmd.AppendFormat(L"%d", line);
 
-			CCommonAppUtils::RunTortoiseGitProc(procCmd);
+			CAppUtils::RunTortoiseGitProc(procCmd);
 		}
 		break;
 
@@ -502,13 +502,13 @@ void CTortoiseGitBlameView::ContextMenuAction(int cmd, GitRev *pRev, GIT_REV_LIS
 			CString endrev = pRev->m_CommitHash.ToString();
 
 			CString procCmd = L"/command:diff";
-			procCmd += L" /path:" + CCmdLineParser::EscapeValue(path);
+			procCmd += L" /path:" + TCmdLineParser::EscapeValue(path);
 			procCmd += L" /startrev:" + startrev;
 			procCmd += L" /endrev:" + endrev;
 			if (!!(GetAsyncKeyState(VK_SHIFT) & 0x8000))
 				procCmd += L" /alternative";
 
-			CCommonAppUtils::RunTortoiseGitProc(procCmd);
+			CAppUtils::RunTortoiseGitProc(procCmd);
 		}
 		break;
 
@@ -518,11 +518,11 @@ void CTortoiseGitBlameView::ContextMenuAction(int cmd, GitRev *pRev, GIT_REV_LIS
 			CString rev = m_data.GetHash(selectedLine).ToString();
 
 			CString procCmd = L"/command:log";
-			procCmd += L" /path:" + CCmdLineParser::EscapeValue(path);
+			procCmd += L" /path:" + TCmdLineParser::EscapeValue(path);
 			procCmd += L" /rev:" + rev;
 			procCmd += L" /endrev:" + rev;
 
-			CCommonAppUtils::RunTortoiseGitProc(procCmd);
+			CAppUtils::RunTortoiseGitProc(procCmd);
 		}
 		break;
 

@@ -17,7 +17,9 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 #pragma once
+import AppUtils;
 #include "Command.h"
+import str_utils;
 
 class BisectCommand : public Command
 {
@@ -25,5 +27,41 @@ public:
 	/**
 	 * Executes the command.
 	 */
-	bool			Execute() override;
+	bool BisectCommand::Execute()
+	{
+		CTGitPath path(g_Git.m_CurrentDir.GetString());
+
+		if (parser.HasKey(L"start") && !path.IsBisectActive())
+		{
+			CString lastGood, firstBad;
+			if (parser.HasKey(L"good"))
+				lastGood = parser.GetVal(L"good");
+			if (parser.HasKey(L"bad"))
+				firstBad = parser.GetVal(L"bad");
+
+			return CAppUtils::BisectStart(GetExplorerHWND(), lastGood, firstBad);
+		}
+		else if ((this->parser.HasKey(L"good") || this->parser.HasKey(L"bad") || this->parser.HasKey(L"skip") || this->parser.HasKey(L"reset")) && path.IsBisectActive())
+		{
+			tgit::wstr::CString op;
+			tgit::wstr::CString ref;
+
+			if (parser.HasKey(L"good"))
+				g_Git.GetBisectTerms(&op, nullptr);
+			else if (parser.HasKey(L"bad"))
+				g_Git.GetBisectTerms(nullptr, &op);
+			else if (this->parser.HasKey(L"skip"))
+				op = L"skip";
+			else if (parser.HasKey(L"reset"))
+				op = L"reset";
+
+			if (parser.HasKey(L"ref") && !parser.HasKey(L"reset"))
+				ref = parser.GetVal(L"ref");
+
+			return CAppUtils::BisectOperation(GetExplorerHWND(), op, ref);
+		}
+		else
+			MessageBox(GetExplorerHWND(), L"Operation unknown or not allowed.", L"TortoiseGit", MB_OK | MB_ICONINFORMATION);
+		return false;
+	}
 };

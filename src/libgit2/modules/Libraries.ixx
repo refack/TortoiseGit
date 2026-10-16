@@ -8,7 +8,7 @@
 #include <ShObjIdl_core.h>
 #include <shlguid.h>
 #include <shlobj_core.h>
-#include <TortoiseProc/resource.h>
+#include <../../SharedMFC/Resources/resource.h>
 
 #pragma comment(lib, "Shlwapi.lib")	// PathCanonicalize; was linked via wil.ixx's IsURL until it went
 

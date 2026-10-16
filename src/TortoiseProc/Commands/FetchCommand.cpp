@@ -20,7 +20,7 @@
 #include "std.h"
 
 #include "FetchCommand.h"
-#include "AppUtils.h"
+import AppUtils;
 import TGitPath;	// GitAdminDir lives in the TGitPath module
 
 bool FetchCommand::Execute()

@@ -22,15 +22,16 @@
 #include "std.h"
 
 #include "TortoiseProc.h"
-#include "LoglistCommonResource.h"
+#include "Resources/LoglistCommonResource.h"
 #include <version.h>
 #include "MessageBox.h"
 #include "CheckForUpdatesDlg.h"
-#include "AppUtils.h"
+import AppUtils;
 #include "UpdateCrypto.h"
 #include <MsiDefs.h>
 #include <MsiQuery.h>
-#include "DPIAware.h"
+#include "Utils/DPIAware.h"
+import gsl;
 
 #pragma comment(lib, "msi.lib")
 
@@ -114,7 +115,7 @@ BOOL CCheckForUpdatesDlg::OnInitDialog()
 	m_ctrlFiles.SetColumnWidth(1, CDPIAware::Instance().ScaleX(GetSafeHwnd(), 200));
 
 	m_cLogMessage.Init(-1);
-	m_cLogMessage.SetFont(CAppUtils::GetLogFontName(), CAppUtils::GetLogFontSize());
+	m_cLogMessage.SetFont(CAppUtils::GetLogFontName(), gsl::narrow<int>(CAppUtils::GetLogFontSize()));
 	m_cLogMessage.Call(SCI_SETUNDOCOLLECTION, 0);
 	m_cLogMessage.SetReadOnly(true);
 
@@ -175,38 +176,36 @@ UINT CCheckForUpdatesDlg::CheckThreadEntry(LPVOID pVoid)
 
 UINT CCheckForUpdatesDlg::CheckThread()
 {
+	using CStringW = CRegString::StringT;
+
 	m_bThreadRunning = TRUE;
 
-	CString temp;
-	CString tempfile = TempFiles::GetTempFilePath(true).GetWinPathString().c_str();
+	CStringW temp;
+	CStringW tempfile = TempFiles::GetTempFilePath(true).GetWinPathString().c_str();
 
 	bool official = false;
 
-	CRegString checkurluser = CRegString(L"Software\\TortoiseGit\\UpdateCheckURL", L"");
-	CRegString checkurlmachine = CRegString(L"Software\\TortoiseGit\\UpdateCheckURL", L"", FALSE, HKEY_LOCAL_MACHINE);
-	CString sCheckURL = checkurluser;
+	auto checkurluser = CStringW{CRegString(L"Software\\TortoiseGit\\UpdateCheckURL", L"")};
+	auto checkurlmachine = CStringW{CRegString(L"Software\\TortoiseGit\\UpdateCheckURL", L"", FALSE, HKEY_LOCAL_MACHINE)};
+	auto sCheckURL = checkurluser.IsEmpty() ? checkurlmachine : checkurluser;
 	if (sCheckURL.IsEmpty())
 	{
-		sCheckURL = checkurlmachine;
-		if (sCheckURL.IsEmpty())
-		{
-			official = true;
-			bool checkPreview = false;
+		official = true;
+		bool checkPreview = false;
 #if PREVIEW
-			checkPreview = true;
+		checkPreview = true;
 #else
-			CRegStdDWORD regCheckPreview(L"Software\\TortoiseGit\\VersionCheckPreview", FALSE);
-			if (DWORD(regCheckPreview))
-				checkPreview = true;
+		const DWORD regCheckPreview = CRegStdDWORD(L"Software\\TortoiseGit\\VersionCheckPreview", FALSE);
+		if (regCheckPreview)
+			checkPreview = true;
 #endif
-			if (checkPreview)
-			{
-				sCheckURL = L"https://versioncheck.tortoisegit.org/version-preview.txt";
-				SetDlgItemText(IDC_SOURCE, L"Using preview release channel");
-			}
-			else
-				sCheckURL = L"https://versioncheck.tortoisegit.org/version.txt";
+		if (checkPreview)
+		{
+			sCheckURL = L"https://versioncheck.tortoisegit.org/version-preview.txt";
+			SetDlgItemText(IDC_SOURCE, L"Using preview release channel");
 		}
+		else
+			sCheckURL = L"https://versioncheck.tortoisegit.org/version.txt";
 	}
 
 	if (!official && StringUtils::StartsWith(sCheckURL, L"https://versioncheck.tortoisegit.org/"))
@@ -227,7 +226,7 @@ UINT CCheckForUpdatesDlg::CheckThread()
 		{
 			CString error = L"Could not verify digital signature.";
 			if (ret)
-				error += L"\r\nError: " + GetWinINetError(ret) + L" (on " + sCheckURL + SIGNATURE_FILE_ENDING + L")";
+				error.AppendFormat(L"\r\nError: %s (on %s%s)", GetWinINetError(ret), sCheckURL, SIGNATURE_FILE_ENDING);
 			SetDlgItemText(IDC_CHECKRESULT, error);
 			DeleteUrlCacheEntry(sCheckURL);
 			DeleteUrlCacheEntry(sCheckURL + SIGNATURE_FILE_ENDING);
@@ -240,7 +239,7 @@ UINT CCheckForUpdatesDlg::CheckThread()
 		if (CRegDWORD(L"Software\\Microsoft\\Windows\\CurrentVersion\\Internet Settings\\GlobalUserOffline", 0))
 			errorText.LoadString(IDS_OFFLINEMODE); // offline mode enabled
 		else
-			errorText.FormatMessage(IDS_CHECKNEWER_NETERROR_FORMAT, static_cast<LPCWSTR>(GetWinINetError(ret) + L" URL: " + sCheckURL), ret);
+			errorText.FormatMessage(IDS_CHECKNEWER_NETERROR_FORMAT, (GetWinINetError(ret) + L" URL: " + CString{sCheckURL}), ret);
 		SetDlgItemText(IDC_CHECKRESULT, errorText);
 		goto finish;
 	}
@@ -262,7 +261,7 @@ UINT CCheckForUpdatesDlg::CheckThread()
 	{
 		BOOL bNewer = FALSE;
 		if (m_bForce)
-			bNewer = TRUE;
+			bNewer = TRUE; // NOLINT(*-branch-clone)
 		else if (version.major > m_myVersion.major)
 			bNewer = TRUE;
 		else if ((version.minor > m_myVersion.minor) && (version.major == m_myVersion.major))
@@ -354,16 +353,18 @@ void CCheckForUpdatesDlg::FillDownloads(CVersioncheckParser& versioncheck)
 	std::vector<DWORD> installedLangs;
 	{
 		auto installed = CLangDll::GetInstalledLanguages();
-		std::for_each(installed.cbegin(), installed.cend(), [&installedLangs](auto& item) { installedLangs.push_back(item.second); });
+		std::ranges::for_each(
+			std::as_const(installed),
+			[&installedLangs](auto& item) { installedLangs.push_back(item.second); }
+		);
 	}
 
 	for (auto& languagepack : versioncheck.GetTortoiseGitLanguagePacks())
 	{
-		bool installed = std::find(installedLangs.cbegin(), installedLangs.cend(), languagepack.m_LocaleID) != installedLangs.cend();
-		LangPack pack = { languagepack, installed };
-		availableLangs.push_back(pack);
+		const bool installed = std::ranges::find(std::as_const(installedLangs), languagepack.m_LocaleID) != installedLangs.cend();
+		availableLangs.emplace_back(languagepack, installed);
 	}
-	std::stable_sort(availableLangs.begin(), availableLangs.end(), [&](const LangPack& a, const LangPack& b) -> int
+	std::ranges::stable_sort(availableLangs, [&](const LangPack& a, const LangPack& b) -> int
 	{
 		return (a.m_Installed && !b.m_Installed) ? 1 : (!a.m_Installed && b.m_Installed) ? 0 : (a.languagepack.m_PackName.Compare(b.languagepack.m_PackName) < 0);
 	});
@@ -539,7 +540,7 @@ bool CCheckForUpdatesDlg::VerifyUpdateFile(const CString& filename, const CStrin
 	}
 
 	MSIHANDLE hSummary;
-	DWORD ret = 0;
+	DWORD ret;
 	if ((ret = MsiGetSummaryInformation(NULL, filename, 0, &hSummary)) != 0)
 	{
 		CString sFileVer = PathUtils::GetVersionFromFile(filename).c_str();
@@ -562,7 +563,7 @@ bool CCheckForUpdatesDlg::VerifyUpdateFile(const CString& filename, const CStrin
 	DWORD cchValue = 4096;
 	CString buffer;
 	int intValue;
-	if (MsiSummaryInfoGetProperty(hSummary, PID_SUBJECT, &uiDataType, &intValue, nullptr, CStrBuf(buffer, cchValue + 1), &cchValue))
+	if (MsiSummaryInfoGetProperty(hSummary, PID_SUBJECT, &uiDataType, &intValue, nullptr, CStrBuf(buffer, gsl::narrow<int>(cchValue + 1)), &cchValue))
 	{
 		m_sErrors.AppendFormat(L"%s: Error obtaining version of MSI file (%s).\r\n", static_cast<LPCWSTR>(reportingFilename), (CFormatMessageWrapper(ret)).c_str());
 		return false;
@@ -746,7 +747,7 @@ CString CCheckForUpdatesDlg::GetDownloadsDirectory()
 {
 	if (CComHeapPtr<WCHAR> wcharPtr; SUCCEEDED(SHGetKnownFolderPath(FOLDERID_Downloads, KF_FLAG_CREATE, nullptr, &wcharPtr)))
 	{
-		CString folder { static_cast<LPCWSTR>(wcharPtr) };
+		CString folder { wcharPtr };
 		return folder.TrimRight(L'\\') + L'\\';
 	}
 
@@ -760,8 +761,8 @@ LRESULT CCheckForUpdatesDlg::OnDisplayStatus(WPARAM, LPARAM lParam)
 	{
 		ASSERT(::AfxIsValidAddress(pDownloadStatus, sizeof(CUpdateDownloader::DOWNLOADSTATUS)));
 
-		m_progress.SetRange32(0, pDownloadStatus->ulProgressMax);
-		m_progress.SetPos(pDownloadStatus->ulProgress);
+		m_progress.SetRange32(0, gsl::narrow<int>(pDownloadStatus->ulProgressMax));
+		m_progress.SetPos(gsl::narrow<int>(pDownloadStatus->ulProgress));
 		if (m_pTaskbarList)
 		{
 			m_pTaskbarList->SetProgressState(m_hWnd, TBPF_NORMAL);

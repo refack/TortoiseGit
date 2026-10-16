@@ -25,7 +25,7 @@ protected:
 	bool m_bExecutable = false;
 	bool m_bSymlink = false;
 
-	bool SetFileMode(uint32_t mode);
+	bool SetFileMode(uint32_t mode) const;
 
 public:
 	bool Run(CGitProgressList* list, CString& sWindowTitle, int& m_itemCountTotal, int& m_itemCount) override;

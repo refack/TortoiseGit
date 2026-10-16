@@ -21,7 +21,7 @@
 #pragma once
 
 #include "HorizontalResizableStandAloneDialog.h"
-#include "HistoryCombo.h"
+#include "Utils/HistoryCombo.h"
 import Registry;
 
 class CRequestPullDlg : public CHorizontalResizableStandAloneDialog

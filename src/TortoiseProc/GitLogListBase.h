@@ -19,7 +19,7 @@
 
 #pragma once
 #include "Utils/HintCtrl.h"
-#include "ResizableColumnsListCtrl.h"
+#include "Utils/ResizableColumnsListCtrl.h"
 import git_h;
 #include "ProjectProperties.h"
 import TGitPath;

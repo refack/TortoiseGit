@@ -22,7 +22,7 @@
 #include "std.h"
 
 #include "GitStatusListCtrl.h"
-#include "ColumnManager.h"
+#include "../SharedMFC/ColumnManager.h"
 
 // sorter utility class
 CSorter::CSorter ( ColumnManager* columnManager

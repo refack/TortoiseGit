@@ -65,23 +65,27 @@ target_include_directories(ResizableLib
     PRIVATE
         "${CMAKE_CURRENT_SOURCE_DIR}"
         "${CMAKE_SOURCE_DIR}/src"
-        "${CMAKE_SOURCE_DIR}/src/libgit2/include"   # Utils/DPIAware.h
-        "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/include"
+        "${CMAKE_SOURCE_DIR}/src/SharedMFC"       # Utils/DPIAware.h
 )
 
 target_compile_definitions(ResizableLib
     PRIVATE
-        _WIN64
-        WIN64
-        UNICODE
-        _UNICODE
         GIT_DEPRECATE_HARD
         ENABLE_INTSAFE_SIGNED_FUNCTIONS
-        _WIN32_WINNT=0x0A00
+
+        UNICODE
+        _UNICODE
+
+        NOMINMAX        # Make Windows.h sane
+
+        _WIN64
+        WIN64
         _WINDOWS
         WINDOWS
-        NOMINMAX
-        _AFXDLL
+        WINVER=_WIN32_WINNT_WIN10
+        _WIN32_WINNT=_WIN32_WINNT_WIN10
+
+        _AFXDLL     # use the shared Microsoft Foundation Class (MFC) DLLs instead of statically linking the MFC libraries
 
         "$<$<CONFIG:Debug>:DEBUG>"
         "$<$<CONFIG:Release>:NDEBUG>"

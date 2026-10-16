@@ -102,14 +102,14 @@ namespace reg {
 	/// wil::reg::try_get_value_dword(root, subkey, name), compiled in this module
 	/// (see the note at the re-exports). Empty when the value is absent; throws
 	/// wil::ResultException on any other failure, exactly as wil's does.
-	std::optional<std::uint32_t> try_get_dword(const HKEY root, const PCWSTR subkey, const PCWSTR name) {
+	std::optional<std::uint32_t> try_get_dword(const HKEY& root, const PCWSTR subkey, const PCWSTR name) {
 		return wil::reg::try_get_value_dword(root, subkey, name);
 	}
 
 
 	/// wil::reg::try_get_value_string(root, subkey, name), compiled in this module.
 	/// Same contract as try_get_dword.
-	std::optional<std::wstring> try_get_string(const HKEY root, const PCWSTR subkey, const PCWSTR name) {
+	std::optional<std::wstring> try_get_string(const HKEY& root, const PCWSTR subkey, const PCWSTR name) {
 		return wil::reg::try_get_value_string(root, subkey, name);
 	}
 }
@@ -151,6 +151,7 @@ public:
 		m_entries.clear();
 
 		const HRESULT hr = ResultFromException([&] {
+			// ReSharper disable once CppLocalVariableMayBeConst
 			if (auto entries = wil::reg::try_get_value_multistring(HKEY_CURRENT_USER, m_subkey.c_str(), m_name.c_str())) {
 				m_entries = std::move(*entries);
 				return;
@@ -227,9 +228,9 @@ public:
 /// open_clipboard, retried: OpenClipboard fails while another process holds the
 /// clipboard, which it usually does only briefly. Up to 8 tries, 1 ms doubling,
 /// at most 127 ms in all. Test the result with `if (!clipboard)`; keep it in a
-/// variable scoped to the whole operation, not in an if-init-statement, or the
-/// clipboard closes again before anything is written to it.
-unique_close_clipboard_call open_clipboard_retrying(const HWND owner) {
+/// variable scoped to the whole operation, like an if-init-statement testing
+/// for validity, or the it closes before anything is written to it.
+unique_close_clipboard_call open_clipboard_retrying(const HWND& owner) {
 	for (int attempt = 0; attempt < 8; ++attempt) {
 		if (attempt > 0)
 			::Sleep(1u << (attempt - 1));
@@ -277,18 +278,17 @@ unique_hglobal make_moveable_hglobal(const std::string_view text) {
 /// Puts \a text on the clipboard as CF_UNICODETEXT; the OS synthesizes CF_TEXT
 /// from it. What StringUtils::WriteAsciiStringToClipboard(const CStringW&, HWND)
 /// did, without the CString. A CString caller bridges visibly with a view.
-bool SetClipboardText(const std::wstring_view text, const HWND owner = nullptr) {
-	// Not an if-init-statement: the clipboard has to stay open until we return.
-	const auto clipboard = open_clipboard_retrying(owner);
-	if (!clipboard)
-		return false;
-
-	::EmptyClipboard();
-	auto block = make_moveable_hglobal(text);
-	if (!block || !::SetClipboardData(CF_UNICODETEXT, block.get()))
-		return false;
-	block.release(); // the clipboard owns it now
-	return true;
+bool SetClipboardText(const std::wstring_view text, const HWND& owner = nullptr) {
+	// An if-init-statement for truth: `clipboard` is a RAII so we spell out a nested scope for it.
+	if (const auto clipboard = open_clipboard_retrying(owner); clipboard) {
+		::EmptyClipboard();
+		auto block = make_moveable_hglobal(text);
+		if (!block || !::SetClipboardData(CF_UNICODETEXT, block.get()))
+			return false;
+		block.release(); // the clipboard owns it now
+		return true;
+	}
+	return false;
 }
 
 
@@ -298,10 +298,10 @@ bool SetClipboardText(const std::wstring_view text, const HWND owner = nullptr) 
 fs::path GetKnownFolderPath(
 	REFKNOWNFOLDERID folderId,
 	const KNOWN_FOLDER_FLAG flags = KF_FLAG_DEFAULT,
-	const HANDLE token = nullptr
+	const std::optional<HANDLE> token = std::nullopt
 ) {
 	wil::unique_cotaskmem_string result{};
-	if (::SHGetKnownFolderPath(folderId, flags, token, result.put()) != S_OK) {
+	if (::SHGetKnownFolderPath(folderId, flags, token.value_or(nullptr), result.put()) != S_OK) {
 		const auto hstring = ::winrt::to_hstring(folderId);
 		throw std::runtime_error{ "SHGetKnownFolderPath failed for " + ::winrt::to_string(hstring) };
 	}
@@ -417,14 +417,20 @@ namespace til {
 	}
 
 
-	size_t LoadStringEx(const HINSTANCE hInstance, const UINT uID, wchar_t* const lpBuffer_, const int nBufferMax,
-	                    const WORD wLanguage) {
+	size_t LoadStringEx(
+		const HINSTANCE& hInstance,
+		const UINT uID,
+		wchar_t* const lpBuffer_,
+		const int nBufferMax,
+		const WORD wLanguage
+	) {
 		if (lpBuffer_ == nullptr || nBufferMax <= 0)
 			return 0;
 		lpBuffer_[0] = L'\0';
 
 		auto&& lpBuffer = std::span{ lpBuffer_, gsl::narrow<size_t>(nBufferMax) };
 		auto&& resView = get_string_resource(hInstance, uID, wLanguage);
+		// ReSharper disable once CppTooWideScopeInitStatement
 		auto&& r = CopyTerminated(lpBuffer, resView);
 		if (!r)
 			return 0;

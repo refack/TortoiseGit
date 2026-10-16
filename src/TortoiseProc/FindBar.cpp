@@ -19,9 +19,9 @@
 #include "stdafx.h"
 #include "std.h"
 
-#include "resource.h"
+#include "Resources/resource.h"
+#include "Utils/LoadIconEx.h"
 #include "FindBar.h"
-#include "LoadIconEx.h"
 
 UINT CFindBar::WM_FINDEXIT = RegisterWindowMessage(L"TORTOISEGIT_PATCHVIEW_FINDEXIT_MSG");
 UINT CFindBar::WM_FINDNEXT = RegisterWindowMessage(L"TORTOISEGIT_PATCHVIEW_FINDNEXT_MSG");

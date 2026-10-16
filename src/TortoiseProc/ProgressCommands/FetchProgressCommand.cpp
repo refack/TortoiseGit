@@ -21,7 +21,7 @@
 
 #include "TortoiseProc.h"
 #include "FetchProgressCommand.h"
-#include "AppUtils.h"
+import AppUtils;
 
 bool FetchProgressCommand::Run(CGitProgressList* list, CString& sWindowTitle, int& /*m_itemCountTotal*/, int& /*m_itemCount*/)
 {

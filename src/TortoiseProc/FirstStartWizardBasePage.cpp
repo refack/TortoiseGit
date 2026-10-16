@@ -20,6 +20,6 @@
 #include "std.h"
 
 #include "FirstStartWizardBasePage.h"
-#include "resource.h"
+#include "../SharedMFC/Resources/resource.h"
 
 IMPLEMENT_DYNAMIC(CFirstStartWizardBasePage, CPropertyPageEx)

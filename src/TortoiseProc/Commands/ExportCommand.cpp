@@ -21,7 +21,7 @@
 #include "std.h"
 
 #include "ExportCommand.h"
-#include "AppUtils.h"
+import AppUtils;
 
 bool ExportCommand::Execute()
 {

@@ -21,6 +21,7 @@
 
 #include "CatCommand.h"
 #include "MessageBox.h"
+using namespace std::literals;
 
 bool CatCommand::Execute()
 {
@@ -82,8 +83,8 @@ bool CatCommand::Execute()
 		return true;
 	}
 
-	CString output, err;
-	if (g_Git.Run({ L"git.exe", L"cat-file", L"-t", L"--", std::wstring(revision) }, &output, &err, CP_UTF8))
+	tgit::wstr::CString output, err;
+	if (g_Git.Run({ L"git.exe", L"cat-file", L"-t", L"--", revision.GetString() }, &output, &err))
 	{
 		::DeleteFile(savepath);
 		MessageBox(GetExplorerHWND(), output + L'\n' + err, L"TortoiseGit", MB_ICONERROR);

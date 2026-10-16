@@ -18,12 +18,16 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
-#include "stdafx.h"
-#include "std.h"
+// #include "stdafx.h"
+// #include "std.h"
 
 #include "CommitCommand.h"
+
+import AppUtils;
 #include "MessageBox.h"
-#include "AppUtils.h"
+// import AppUtils;
+import Registry;
+import str_utils;
 
 CString CommitCommand::LoadLogMessage()
 {
@@ -46,7 +50,7 @@ bool CommitCommand::Execute()
 		return false;
 	}
 	CString sLogMsg = LoadLogMessage();
-	bool bSelectFilesForCommit = !!DWORD(CRegStdDWORD(L"Software\\TortoiseGit\\SelectFilesForCommit", TRUE));
+	bool bSelectFilesForCommit = !!DWORD(Registry::CRegStdDWORD(L"Software\\TortoiseGit\\SelectFilesForCommit", TRUE));
 
 	return !!CAppUtils::Commit(GetExplorerHWND(),
 								parser.GetVal(L"bugid"),

@@ -17,7 +17,7 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
-#include "libgit2/filter-filter.h"
+#include "../include/filter-filter.h"
 #include <git2.h>
 #include <git2/filter.h>
 #include <git2/sys/filter.h>

@@ -24,12 +24,12 @@
 #include <afxwinappex.h>
 #include "TortoiseGitBlame.h"
 #include "MainFrm.h"
-#include <version.h>
+#include <../libgit2/include/version.h>
 #include "TortoiseGitBlameDoc.h"
 #include "TortoiseGitBlameView.h"
 #include "CmdLineParser.h"
 import PathUtils;
-#include "CommonAppUtils.h"
+import CommonAppUtils;
 import TaskbarUUID;
 #include "DPIAware.h"
 
@@ -267,7 +267,7 @@ void CTortoiseGitBlameApp::OnAppAbout()
 
 void CTortoiseGitBlameApp::OnFileSettings()
 {
-	CCommonAppUtils::RunTortoiseGitProc(L" /command:settings /page:blame");
+	CAppUtils::RunTortoiseGitProc(L" /command:settings /page:blame");
 }
 
 // CTortoiseGitBlameApp message handlers

@@ -24,7 +24,7 @@
 
 #include "TortoiseProc.h"
 #include "CreateRepoDlg.h"
-#include "AppUtils.h"
+import AppUtils;
 
 // CCreateRepoDlg dialog
 

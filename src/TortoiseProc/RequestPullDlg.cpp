@@ -26,7 +26,7 @@
 #include "RequestPullDlg.h"
 #include "LogDlg.h"
 #include "MessageBox.h"
-#include "AppUtils.h"
+import AppUtils;
 
 IMPLEMENT_DYNAMIC(CRequestPullDlg, CHorizontalResizableStandAloneDialog)
 

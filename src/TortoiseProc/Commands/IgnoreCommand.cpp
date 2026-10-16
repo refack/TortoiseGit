@@ -23,7 +23,7 @@
 #include "IgnoreCommand.h"
 
 #include "MessageBox.h"
-#include "AppUtils.h"
+import AppUtils;
 
 bool IgnoreCommand::Execute()
 {

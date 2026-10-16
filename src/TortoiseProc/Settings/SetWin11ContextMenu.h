@@ -18,8 +18,8 @@
 //
 
 #pragma once
-#include "resource.h"
-#include <TortoiseShell/Globals.h>
+#include "../../SharedMFC/Resources/resource.h"
+#include <../../SharedMFC/Resources/Globals.h>
 
 class CSetWin11ContextMenu : public ISettingsPropPage
 {

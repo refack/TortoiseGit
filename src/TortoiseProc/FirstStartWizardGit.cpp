@@ -23,7 +23,7 @@
 #include "TortoiseProc.h"
 #include "FirstStartWizard.h"
 #include "FirstStartWizardGit.h"
-#include "Theme.h"
+#include "Utils/Theme.h"
 
 IMPLEMENT_DYNAMIC(CFirstStartWizardGit, CFirstStartWizardBasePage)
 

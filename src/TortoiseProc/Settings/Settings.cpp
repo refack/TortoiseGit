@@ -24,8 +24,8 @@
 #include "Settings.h"
 #include "MessageBox.h"
 import TGitPath;	// GitAdminDir lives in the TGitPath module
-#include "AppUtils.h"
-#include "Theme.h"
+import AppUtils;
+#include "Utils/Theme.h"
 #include "SetMainPage.h"
 #include "SetProxyPage.h"
 #include "SetOverlayPage.h"
@@ -217,6 +217,6 @@ BOOL CSettings::OnInitDialog()
 
 void CSettings::HtmlHelp(DWORD_PTR dwData, UINT /* nCmd */)
 {
-	if (!CCommonAppUtils::StartHtmlHelp(dwData))
+	if (!CAppUtils::StartHtmlHelp(dwData))
 		AfxMessageBox(AFX_IDP_FAILED_TO_LAUNCH_HELP);
 }

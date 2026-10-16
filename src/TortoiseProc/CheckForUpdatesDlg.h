@@ -92,7 +92,7 @@ private:
 	CString		m_sUpdateDownloadLink;			///< Where to send a user looking to download a update
 	CString		m_sUpdateChangeLogLink;			///< Where to send a user looking to change log
 	CHyperLink	m_link;
-	CString		GetDownloadsDirectory();
+	static CString		GetDownloadsDirectory();
 	CMenuButton	m_ctrlUpdate;
 	void		FillDownloads(CVersioncheckParser& versionfile);
 	CSciEdit	m_cLogMessage;

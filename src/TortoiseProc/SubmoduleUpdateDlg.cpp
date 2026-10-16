@@ -22,7 +22,7 @@
 
 #include "TortoiseProc.h"
 #include "SubmoduleUpdateDlg.h"
-#include "AppUtils.h"
+import AppUtils;
 
 IMPLEMENT_DYNAMIC(CSubmoduleUpdateDlg, CResizableStandAloneDialog)
 

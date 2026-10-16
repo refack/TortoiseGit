@@ -23,7 +23,7 @@
 
 #include "TortoiseProc.h"
 #include "InputDlg.h"
-#include "AppUtils.h"
+import AppUtils;
 
 IMPLEMENT_DYNAMIC(CInputDlg, CResizableStandAloneDialog)
 CInputDlg::CInputDlg(CWnd* pParent /*=nullptr*/)

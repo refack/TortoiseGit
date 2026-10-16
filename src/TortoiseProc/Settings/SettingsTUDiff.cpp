@@ -22,6 +22,7 @@
 
 #include "TortoiseProc.h"
 #include "SettingsTUDiff.h"
+#include "../TortoiseUDiff/UDiffColors.h"
 
 // CSettingsUDiff dialog
 
@@ -247,15 +248,15 @@ void CSettingsUDiff::OnBnClickedColor()
 	SetModified();
 }
 
-void CSettingsUDiff::OnMeasureItem(int nIDCtl, LPMEASUREITEMSTRUCT lpMeasureItemStruct)
+void CSettingsUDiff::OnMeasureItem(const int nIDCtl, const LPMEASUREITEMSTRUCT lpMeasureItemStruct)
 {
 	CFont* pFont = GetFont();
 	if (pFont)
 	{
 		CDC* pDC = GetDC();
 		CFont* pFontPrev = pDC->SelectObject(pFont);
-		int iborder = ::GetSystemMetrics(SM_CYBORDER);
-		CSize sz = pDC->GetTextExtent(L"0");
+		const int iborder = ::GetSystemMetrics(SM_CYBORDER);
+		const CSize sz = pDC->GetTextExtent(L"0");
 		lpMeasureItemStruct->itemHeight = sz.cy + 2 * iborder;
 		pDC->SelectObject(pFontPrev);
 		ReleaseDC(pDC);

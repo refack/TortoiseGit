@@ -21,7 +21,7 @@
 #include "std.h"
 
 #include "SwitchCommand.h"
-#include "AppUtils.h"
+import AppUtils;
 
 bool SwitchCommand::Execute()
 {

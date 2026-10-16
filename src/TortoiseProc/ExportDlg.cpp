@@ -24,7 +24,7 @@
 #include "TortoiseProc.h"
 #include "ExportDlg.h"
 #include "MessageBox.h"
-#include "AppUtils.h"
+import AppUtils;
 
 IMPLEMENT_DYNAMIC(CExportDlg, CHorizontalResizableStandAloneDialog)
 CExportDlg::CExportDlg(CWnd* pParent /*=nullptr*/)

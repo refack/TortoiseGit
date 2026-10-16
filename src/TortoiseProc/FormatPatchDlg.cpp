@@ -24,10 +24,10 @@
 
 #include "TortoiseProc.h"
 #include "FormatPatchDlg.h"
-#include "BrowseFolder.h"
+#include "Utils/BrowseFolder.h"
 #include "LogDlg.h"
 #include "BrowseRefsDlg.h"
-#include "AppUtils.h"
+import AppUtils;
 #include "MessageBox.h"
 
 // CFormatPatchDlg dialog

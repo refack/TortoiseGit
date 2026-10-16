@@ -21,10 +21,10 @@
 #include "std.h"
 
 #include "TortoiseProc.h"
-#include "AppUtils.h"
+import AppUtils;
 #include "SetSavedDataPage.h"
 #include "MessageBox.h"
-#include "WindowsCredentialsStore.h"
+#include "Utils/WindowsCredentialsStore.h"
 
 // CRegistryKey reports into std::vector<std::wstring> now; this page keeps its
 // CStringList handling, so the result is copied across here.

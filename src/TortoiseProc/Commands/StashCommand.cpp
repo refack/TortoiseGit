@@ -20,7 +20,7 @@
 #include "std.h"
 
 #include "StashCommand.h"
-#include "AppUtils.h"
+import AppUtils;
 
 bool StashSaveCommand::Execute()
 {

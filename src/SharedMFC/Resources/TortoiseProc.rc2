@@ -1,9 +1,11 @@
-// Microsoft Visual C++ generated resource script.
+//
+// TortoiseProc.RC2 - resources Microsoft Visual C++ does not edit directly
 //
 
 #ifdef APSTUDIO_INVOKED
 #error this file is not editable by Microsoft Visual C++
 #endif //APSTUDIO_INVOKED
+
 
 /////////////////////////////////////////////////////////////////////////////
 // Add manually edited resources here...
@@ -12,11 +14,6 @@
 // Version
 //
 #include <version.h>
-// GIT_VERSION comes from the header git's own build generates, resolved through
-// the tgit-libgit port's include directory. It used to be read out of
-// compat\msvc.h, which hardcoded it and had drifted two releases behind - the
-// DLL described itself as "based on git version 2.53." while linking 2.55.
-#include <tgit-libgit/version-def.h>
 VS_VERSION_INFO VERSIONINFO
  FILEVERSION FILEVER
  PRODUCTVERSION PRODUCTVER
@@ -27,7 +24,7 @@ VS_VERSION_INFO VERSIONINFO
  FILEFLAGS 0x0L
 #endif
  FILEOS VOS_NT_WINDOWS32
- FILETYPE VFT_DLL
+ FILETYPE VFT_APP
  FILESUBTYPE VFT2_UNKNOWN
 BEGIN
     BLOCK "StringFileInfo"
@@ -35,16 +32,11 @@ BEGIN
         BLOCK "040904e4"
         BEGIN
             VALUE "CompanyName", "https://tortoisegit.org/"
-            VALUE "FileDescription", "libgit (based on git version " GIT_VERSION ") implementation for TortoiseGit"
+            VALUE "FileDescription", "TortoiseGit client"
             VALUE "FileVersion", STRFILEVER
-            VALUE "LegalCopyright", "Copyright (C) 2008-2026 - TortoiseGit, Copyright (C) 2005-2026 - Git developers"
-#ifdef _WIN64
-            VALUE "OriginalFilename", "gitdll.dll"
-            VALUE "InternalName", "gitdll"
-#else
-            VALUE "OriginalFilename", "gitdll32.dll"
-            VALUE "InternalName", "gitdll32"
-#endif
+            VALUE "InternalName", "TortoiseGitProc"
+            VALUE "LegalCopyright", "Copyright (C) 2008-2026 - TortoiseGit and Copyright (C) 2003-2024 - TortoiseSVN"
+            VALUE "OriginalFilename", "TortoiseGitProc.exe"
             VALUE "ProductName", "TortoiseGit"
             VALUE "ProductVersion", STRPRODUCTVER
         END
@@ -55,5 +47,6 @@ BEGIN
     END
 END
 
+#include "../../TortoiseShell/resourceshell.rc"
+#include "TortoiseLoglistCommon.rc2"
 /////////////////////////////////////////////////////////////////////////////
-

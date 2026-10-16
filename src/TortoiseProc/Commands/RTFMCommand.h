@@ -20,7 +20,7 @@
 #pragma once
 #include "Command.h"
 #include <ShlObj.h>
-#include "AppUtils.h"
+import AppUtils;
 #include "MiscUI/MessageBox.h"
 
 /**

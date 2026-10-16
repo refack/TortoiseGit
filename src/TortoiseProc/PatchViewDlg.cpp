@@ -25,10 +25,11 @@
 #include "TortoiseProc.h"
 #include "MessageBox.h"
 #include "PatchViewDlg.h"
-#include "CommonAppUtils.h"
-#include "DPIAware.h"
+#include "Utils/DPIAware.h"
 #include "StagingOperations.h"
 #include "EnableStagingTypes.h"
+import CommonAppUtils;
+import AppUtils;
 
 #pragma comment(lib, "Dwmapi.lib")
 
@@ -294,7 +295,7 @@ void CPatchViewDlg::OnEscape()
 		OnFindExit();
 		return;
 	}
-	SendMessage(WM_CLOSE);
+	std::ignore = SendMessage(WM_CLOSE);
 }
 
 void CPatchViewDlg::OnShowFindBar()
@@ -539,7 +540,7 @@ bool CPatchViewDlg::HandleMenuItemClick(int cmd, CSciEdit*)
 	if (cmd == m_nPopupSave)
 	{
 		CString filename;
-		if (CCommonAppUtils::FileOpenSave(filename, nullptr, 0, IDS_PATCHFILEFILTER, false, GetSafeHwnd(), L"diff"))
+		if (CAppUtils::FileOpenSave(filename, nullptr, 0, IDS_PATCHFILEFILTER, false, GetSafeHwnd(), L"diff"))
 			StringUtils::WriteStringToTextFile(filename, m_ctrlPatchView.GetText());
 		return true;
 	}

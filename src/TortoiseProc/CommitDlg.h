@@ -21,18 +21,21 @@
 #pragma once
 #include "StandAloneDlg.h"
 #include "GitStatusListCtrl.h"
-import wil;
-import Registry;
 #include "MiscUI/SciEdit.h"
 #include "MiscUI/SplitterControl.h"
 #include "MiscUI/LinkControl.h"
-import PathWatcher;
-import BugTraqProvider;
-#include <IBugTraqProvider/IBugTraqProvider_h.h>
+#include <IBugTraqProvider_h.h>
 #include "HyperLink.h"
 #include "PatchViewDlg.h"
 #include "MiscUI/MenuButton.h"
-#include "MassiveGitTask.h"
+import TortoiseProc.MassiveGitTask;
+using MassiveGitTask::CMassiveGitTask;
+
+import wil;
+import Registry;
+import PathWatcher;
+import BugTraqProvider;
+
 
 #define ENDDIALOGTIMER	100
 #define REFRESHTIMER	101

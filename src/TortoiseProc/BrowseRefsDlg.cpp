@@ -26,7 +26,6 @@
 #include "BrowseRefsDlg.h"
 #include "LogDlg.h"
 #include "AddRemoteDlg.h"
-#include "AppUtils.h"
 #include "Settings/SettingGitRemote.h"
 #include "SinglePropSheetDlg.h"
 #include "MessageBox.h"
@@ -38,7 +37,11 @@
 #include "SysProgressDlg.h"
 #include "LoglistUtils.h"
 #include "BrowseRefsDlgFilter.h"
-#include "DPIAware.h"
+#include "Utils/DPIAware.h"
+import AppUtils;
+import CommonAppUtils;
+using CommonAppUtils::RunTortoiseGitProc;
+
 
 static int SplitRemoteBranchName(CString ref, CString &remote, CString &branch)
 {
@@ -1135,26 +1138,26 @@ void CBrowseRefsDlg::ShowContextMenu(CPoint point, HTREEITEM hTreePos, VectorPSh
 	case eCmd_ViewLog:
 		{
 			CString sCmd;
-			sCmd.Format(L"/command:log /path:\"%s\" /range:%s", static_cast<LPCWSTR>(g_Git.m_CurrentDir), static_cast<LPCWSTR>(CCmdLineParser::EscapeValue(g_Git.FixBranchName(selectedLeafs[0]->GetRefName()))));
-			CAppUtils::RunTortoiseGitProc(sCmd);
+			sCmd.Format(L"/command:log /path:\"%s\" /range:%s", static_cast<LPCWSTR>(g_Git.m_CurrentDir), static_cast<LPCWSTR>(TCmdLineParser::EscapeValue(g_Git.FixBranchName(selectedLeafs[0]->GetRefName()))));
+			RunTortoiseGitProc(sCmd);
 		}
 		break;
 	case eCmd_ViewLogRange:
 		{
 			CString sCmd;
-			sCmd.Format(L"/command:log /path:\"%s\" /range:%s", static_cast<LPCWSTR>(g_Git.m_CurrentDir), static_cast<LPCWSTR>(CCmdLineParser::EscapeValue(GetTwoSelectedRefs(selectedLeafs, m_sLastSelected, L".."))));
-			CAppUtils::RunTortoiseGitProc(sCmd);
+			sCmd.Format(L"/command:log /path:\"%s\" /range:%s", static_cast<LPCWSTR>(g_Git.m_CurrentDir), static_cast<LPCWSTR>(TCmdLineParser::EscapeValue(GetTwoSelectedRefs(selectedLeafs, m_sLastSelected, L".."))));
+			RunTortoiseGitProc(sCmd);
 		}
 		break;
 	case eCmd_ViewLogRangeReachableFromOnlyOne:
 		{
 			CString sCmd;
-			sCmd.Format(L"/command:log /path:\"%s\" /range:%s", static_cast<LPCWSTR>(g_Git.m_CurrentDir), static_cast<LPCWSTR>(CCmdLineParser::EscapeValue(GetTwoSelectedRefs(selectedLeafs, m_sLastSelected, L"..."))));
-			CAppUtils::RunTortoiseGitProc(sCmd);
+			sCmd.Format(L"/command:log /path:\"%s\" /range:%s", static_cast<LPCWSTR>(g_Git.m_CurrentDir), static_cast<LPCWSTR>(TCmdLineParser::EscapeValue(GetTwoSelectedRefs(selectedLeafs, m_sLastSelected, L"..."))));
+			RunTortoiseGitProc(sCmd);
 		}
 		break;
 	case eCmd_RepoBrowser:
-		CAppUtils::RunTortoiseGitProc(L"/command:repobrowser /path:\"" + g_Git.m_CurrentDir + L"\" /rev:" + CCmdLineParser::EscapeValue(selectedLeafs[0]->GetRefName()));
+		RunTortoiseGitProc(L"/command:repobrowser /path:\"" + g_Git.m_CurrentDir + L"\" /rev:" + TCmdLineParser::EscapeValue(selectedLeafs[0]->GetRefName()));
 		break;
 	case eCmd_DeleteBranch:
 	case eCmd_DeleteRemoteBranch:
@@ -1271,11 +1274,11 @@ void CBrowseRefsDlg::ShowContextMenu(CPoint point, HTREEITEM hTreePos, VectorPSh
 	case eCmd_DiffWC:
 		{
 			CString sCmd;
-			sCmd.Format(L"/command:showcompare /path:\"%s\" /revision1:%s /revision2:%s", static_cast<LPCWSTR>(g_Git.m_CurrentDir), static_cast<LPCWSTR>(CCmdLineParser::EscapeValue(selectedLeafs[0]->GetRefName())), GitRev::GetWorkingCopyRef());
+			sCmd.Format(L"/command:showcompare /path:\"%s\" /revision1:%s /revision2:%s", static_cast<LPCWSTR>(g_Git.m_CurrentDir), static_cast<LPCWSTR>(TCmdLineParser::EscapeValue(selectedLeafs[0]->GetRefName())), GitRev::GetWorkingCopyRef());
 			if (!!(GetAsyncKeyState(VK_SHIFT) & 0x8000))
 				sCmd += L" /alternative";
 
-			CAppUtils::RunTortoiseGitProc(sCmd);
+			RunTortoiseGitProc(sCmd);
 		}
 		break;
 	case eCmd_EditBranchDescription:
@@ -1475,10 +1478,10 @@ void CBrowseRefsDlg::OnNMDblclkListRefLeafs(NMHDR * /*pNMHDR*/, LRESULT *pResult
 
 	CString sCmd;
 	if (selectedLeafs[0]->m_objectType == GIT_OBJECT_TREE)
-		sCmd.Format(L"/command:repobrowser /path:\"%s\" /rev:%s", static_cast<LPCWSTR>(g_Git.m_CurrentDir), static_cast<LPCWSTR>(CCmdLineParser::EscapeValue(g_Git.FixBranchName(GetSelectedRef(true, false)))));
+		sCmd.Format(L"/command:repobrowser /path:\"%s\" /rev:%s", static_cast<LPCWSTR>(g_Git.m_CurrentDir), static_cast<LPCWSTR>(TCmdLineParser::EscapeValue(g_Git.FixBranchName(GetSelectedRef(true, false)))));
 	else
-		sCmd.Format(L"/command:log /path:\"%s\" /range:%s", static_cast<LPCWSTR>(g_Git.m_CurrentDir), static_cast<LPCWSTR>(CCmdLineParser::EscapeValue(g_Git.FixBranchName(GetSelectedRef(true, false)))));
-	CAppUtils::RunTortoiseGitProc(sCmd);
+		sCmd.Format(L"/command:log /path:\"%s\" /range:%s", static_cast<LPCWSTR>(g_Git.m_CurrentDir), static_cast<LPCWSTR>(TCmdLineParser::EscapeValue(g_Git.FixBranchName(GetSelectedRef(true, false)))));
+	RunTortoiseGitProc(sCmd);
 }
 
 CString CBrowseRefsDlg::PickRef(bool /*returnAsHash*/, CString initialRef, int pickRef_Kind, bool pickMultipleRefs, bool showRangeOptionWithTwoRefs)

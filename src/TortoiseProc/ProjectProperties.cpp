@@ -21,9 +21,13 @@
 #include "std.h"
 
 #include "ProjectProperties.h"
-#include "CommonAppUtils.h"
 #include <WinInet.h>
-#include "git2/sys/errors.h"
+
+import CommonAppUtils;
+import AppUtils;
+import libgit2;
+
+
 
 struct num_compare
 {
@@ -59,7 +63,7 @@ int ProjectProperties::ReadProps()
 	git_config_add_file_ondisk(gitconfig.get(), CGit::GetGitPathStringA(g_Git.GetGitGlobalConfig()), GIT_CONFIG_LEVEL_GLOBAL, repo.get(), FALSE);
 	git_config_add_file_ondisk(gitconfig.get(), CGit::GetGitPathStringA(g_Git.GetGitGlobalXDGConfig()), GIT_CONFIG_LEVEL_XDG, repo.get(), FALSE);
 	git_config_add_file_ondisk(gitconfig.get(), CGit::GetGitPathStringA(g_Git.GetGitSystemConfig()), GIT_CONFIG_LEVEL_SYSTEM, repo.get(), FALSE);
-	git_error_clear();
+	tgit::libgit2::git_error_clear();
 
 	CString sPropVal;
 
@@ -373,7 +377,7 @@ std::vector<CHARRANGE> ProjectProperties::FindBugIDPositions(const CString& msg)
 BOOL ProjectProperties::FindBugID(const CString& msg, CWnd * pWnd)
 {
 	std::vector<CHARRANGE> positions = FindBugIDPositions(msg);
-	CCommonAppUtils::SetCharFormat(pWnd, CFM_LINK, CFE_LINK, positions);
+	CAppUtils::SetCharFormat(pWnd, CFM_LINK, CFE_LINK, positions);
 
 	return positions.empty() ? FALSE : TRUE;
 }

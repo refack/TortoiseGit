@@ -24,10 +24,10 @@
 
 #include "TortoiseProc.h"
 #include "SettingGitRemote.h"
-import TGitPath;	// GitAdminDir lives in the TGitPath module
 #include "MessageBox.h"
-#include "AppUtils.h"
-#include "HistoryCombo.h"
+import AppUtils;
+#include "Utils/HistoryCombo.h"
+import TGitPath;	// GitAdminDir lives in the TGitPath module
 
 // CSettingGitRemote dialog
 
@@ -454,7 +454,7 @@ BOOL CSettingGitRemote::OnApply()
 		GetDlgItem(IDC_BUTTON_ADD)->EnableWindow(TRUE);
 		GetDlgItem(IDC_BUTTON_RENAME_REMOTE)->EnableWindow(TRUE);
 		if (!m_bNoFetch && CMessageBox::Show(GetSafeHwnd(), IDS_SETTINGS_FETCH_ADDEDREMOTE, IDS_APPNAME, MB_ICONQUESTION | MB_YESNO) == IDYES)
-			CCommonAppUtils::RunTortoiseGitProc(L"/command:fetch /path:\"" + g_Git.m_CurrentDir + L"\" /remote:" + CCmdLineParser::EscapeValue(m_strRemote));
+			CAppUtils::RunTortoiseGitProc(L"/command:fetch /path:\"" + g_Git.m_CurrentDir + L"\" /remote:" + TCmdLineParser::EscapeValue(m_strRemote));
 	}
 	if(m_ChangedMask & REMOTE_URL)
 	{

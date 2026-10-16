@@ -19,13 +19,13 @@
 //
 #pragma once
 
-#include "ResizableLib/ResizableDialog.h"
+#include <ResizableDialog.h>
 #include "Tooltip.h"
-#include "CommonDialogFunctions.h"
+#include "Utils/CommonDialogFunctions.h"
 #include "EditWordBreak.h"
-#include "Theme.h"
-#include "CommonAppUtils.h"
-#include "DPIAware.h"
+#include "Utils/Theme.h"
+#include "Utils/DPIAware.h"
+import CommonAppUtils;
 
 import TaskbarUUID;
 import DarkModeHelper;
@@ -272,7 +272,7 @@ protected:
 	void HtmlHelp(DWORD_PTR dwData, UINT nCmd = 0x000F) override
 	{
 		UNREFERENCED_PARAMETER(nCmd);
-		if (!CCommonAppUtils::StartHtmlHelp(dwData))
+		if (!CommonAppUtils::StartHtmlHelp(dwData))
 			AfxMessageBox(AFX_IDP_FAILED_TO_LAUNCH_HELP);
 	}
 
@@ -297,7 +297,7 @@ public:
 	CStateDialog(LPCWSTR lpszTemplateName, CWnd* pParentWnd = nullptr)
 	: CDialog(lpszTemplateName, pParentWnd)
 	{}
-	virtual ~CStateDialog() {};
+	~CStateDialog() override {};
 
 private:
 	// flags
@@ -324,7 +324,7 @@ protected:
 		LoadWindowRect(m_sSection, bRectOnly, false, false);
 	};
 
-	virtual CWnd* GetResizableWnd() const override
+	CWnd* GetResizableWnd() const override
 	{
 		// make the layout know its parent window
 		return CWnd::FromHandle(m_hWnd);

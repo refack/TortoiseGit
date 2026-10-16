@@ -21,9 +21,10 @@
 
 #include "TortoiseProc.h"
 #include "ResolveProgressCommand.h"
-#include "AppUtils.h"
-#include "MassiveGitTask.h"
 #include "MessageBox.h"
+import AppUtils;
+import TortoiseProc.MassiveGitTask;
+using MassiveGitTask::CMassiveGitTask;
 
 using Git_WC_Notify_Action = CGitProgressList::WC_File_NotificationData::Git_WC_Notify_Action;
 

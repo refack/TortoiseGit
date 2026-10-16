@@ -21,18 +21,19 @@
 #pragma once
 #include "afxcmn.h"
 #include "StandAloneDlg.h"
-import GitRev;
-import TGitPath;
-#include "HintCtrl.h"
+#include "Utils/HintCtrl.h"
 #include "Colors.h"
 #include "FilterEdit.h"
 #include "MenuButton.h"
-#include "ACEdit.h"
-#include "GestureEnabledControl.h"
+#include "../SharedMFC/ACEdir/ACEdit.h"
+#include "Utils/GestureEnabledControl.h"
 #include "LogDlgFileFilter.h"
 #include "PatchViewDlg.h"
 #include "HyperLink.h"
 #include "ThemeControls.h"
+
+import GitRev;
+import TGitPath;
 
 #define IDT_FILTER		101
 #define IDT_INPUT		102

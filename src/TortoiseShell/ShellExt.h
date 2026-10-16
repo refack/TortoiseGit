@@ -19,7 +19,7 @@
 //
 #pragma once
 #include <wrl/client.h>
-#include "Globals.h"
+#include "../SharedMFC/Resources/Globals.h"
 #include "resource.h"
 #include "ShellCache.h"
 #include "RemoteCacheLink.h"

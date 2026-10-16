@@ -22,7 +22,7 @@
 
 
 #include "Hooks.h"
-#include "resource.h"
+#include "../SharedMFC/Resources/resource.h"
 #include <afxtaskdialog.h>
 #include <WinCrypt.h>
 

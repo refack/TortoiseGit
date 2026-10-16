@@ -19,11 +19,9 @@
 #include "stdafx.h"
 #include "std.h"
 
-#include <TortoiseProc/resource.h>	// restored: these IDs used to arrive through headers that are imports now
-#include "resource.h"
 #include "RemoteProgressCommand.h"
-#include <TortoiseShell/resource.h>
-#include "AppUtils.h"
+#include <../TortoiseShell/resource.h>
+import AppUtils;
 #include "git2/sys/errors.h"
 
 int RemoteProgressCommand::RemoteProgressCallback(const char* str, int len, void* data)

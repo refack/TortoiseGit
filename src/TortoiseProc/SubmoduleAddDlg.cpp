@@ -23,10 +23,10 @@
 #include "stdafx.h"
 #include "std.h"
 
-#include "resource.h"
+#include <Resources/resource.h>
 #include "SubmoduleAddDlg.h"
-#include "BrowseFolder.h"
-#include "AppUtils.h"
+#include "Utils/BrowseFolder.h"
+import AppUtils;
 
 // CSubmoduleAddDlg dialog
 

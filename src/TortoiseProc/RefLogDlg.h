@@ -19,7 +19,7 @@
 
 #pragma once
 #include "StandAloneDlg.h"
-#include "HistoryCombo.h"
+#include "Utils/HistoryCombo.h"
 #include "refloglist.h"
 // CRefLogDlg dialog
 

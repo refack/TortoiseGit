@@ -22,7 +22,7 @@
 
 
 
-#include "resource.h"			//if you defined some IDS_MSGBOX_xxxx this include is needed!
+#include "../../SharedMFC/Resources/resource.h"
 #include "Utils/dlgtemplate.h"
 #include <afxtaskdialog.h>
 #include "Utils/DPIAware.h"

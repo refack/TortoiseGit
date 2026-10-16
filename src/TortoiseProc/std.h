@@ -5,6 +5,7 @@
 
 // What were src\Git and src\Utils headers, now the TGitLibgit2Mfc modules.
 import std;
+import gsl;
 
 import invarients;
 import str_utils;		// UnicodeUtils.h, WideString.h, StringUtils.h

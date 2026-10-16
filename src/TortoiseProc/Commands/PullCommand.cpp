@@ -21,7 +21,7 @@
 #include "std.h"
 
 #include "PullCommand.h"
-#include "AppUtils.h"
+import AppUtils;
 import TGitPath;	// GitAdminDir lives in the TGitPath module
 
 bool PullCommand::Execute()

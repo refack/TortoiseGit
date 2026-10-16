@@ -105,7 +105,7 @@ BOOL CTortoiseGitBlameDoc::OnOpenDocument(LPCWSTR lpszPathName, CString Rev)
 	// (SDI documents will reuse this document)
 	if(!g_Git.CheckMsysGitDir())
 	{
-		CCommonAppUtils::RunTortoiseGitProc(L" /command:settings");
+		CAppUtils::RunTortoiseGitProc(L" /command:settings");
 		return FALSE;
 	}
 	CString topdir;

@@ -22,10 +22,9 @@
 #include "stdafx.h"
 #include "std.h"
 
-#include "TortoiseProc.h"
 #include "CreateWorktreeDlg.h"
-#include "AppUtils.h"
-#include "BrowseFolder.h"
+import AppUtils;
+#include "Utils/BrowseFolder.h"
 
 // CCreateWorktreeDlg dialog
 

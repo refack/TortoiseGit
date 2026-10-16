@@ -19,7 +19,6 @@
 #pragma once
 #include "SettingsPropPage.h"
 import Registry;
-#include <TortoiseUDiff/UDiffColors.h>
 
 /**
 * \ingroup TortoiseGitProc

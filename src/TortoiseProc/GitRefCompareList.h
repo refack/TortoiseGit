@@ -20,7 +20,7 @@
 //
 #pragma once
 
-#include "HintCtrl.h"
+#include "Utils/HintCtrl.h"
 import GitHash;
 
 class CGitRefCompareList : public CHintCtrl<CListCtrl>

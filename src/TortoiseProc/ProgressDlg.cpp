@@ -27,9 +27,9 @@
 #include "TortoiseProc.h"
 #include "ProgressDlg.h"
 #include "IconMenu.h"
-#include "LoglistCommonResource.h"
+#include "Resources/LoglistCommonResource.h"
 #include <Tlhelp32.h>
-#include "AppUtils.h"
+import AppUtils;
 #include "LoglistUtils.h"
 #include "MessageBox.h"
 #include "LogFile.h"

@@ -18,7 +18,7 @@
 //
 #pragma once
 #include "HorizontalResizableStandAloneDialog.h"
-#include "resource.h"
+#include "../SharedMFC/Resources/resource.h"
 #include "GitDiff.h"
 
 class CSubmoduleResolveConflictDlg : public CHorizontalResizableStandAloneDialog

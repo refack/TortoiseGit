@@ -1,12 +1,12 @@
 ﻿module;
-#include <cassert>
 #include <windows.h>
 #include <shellapi.h>
 #include <Shlwapi.h>
+
 #include <git2.h>
 
 #include <Resources/LoglistCommonResource.h>
-#include <TortoiseShell/Globals.h>
+#include <Resources/Globals.h>
 #include "sanity.h"
 
 
@@ -920,9 +920,10 @@ public:
 	std::wstring m_StatAdd{};
 	std::wstring m_StatDel{};
 	StagingStatus m_stagingStatus = StagingStatus::DontCare;
-#ifdef TGIT_LFS
+
+	// TGIT_LFS
 	std::wstring m_LFSLockOwner;
-#endif
+
 	unsigned int m_Action = 0;
 	bool m_Checked = false;
 
@@ -970,7 +971,7 @@ public:
 	/// As SetFromGit, from the UTF-8 git and libgit2 hand out.
 	void SetFromGit(const char* pPath) {
 		Reset();
-		assert(pPath);
+		Expects(pPath);
 		if (!pPath)
 			return;
 		m_sFwdslashPath = CUnicodeUtils::Convert2Unicode<std::wstring>(pPath);
@@ -1373,17 +1374,16 @@ struct CTGitPathList {
 
 	/// The untracked (or, with LOGACTIONS_IGNORE, ignored) files, via
 	/// `git ls-files --others`, once per entry of \a filterlist or once overall.
-	int FillUnRev(const GitRunner& git, unsigned int action, const CTGitPathList* filterlist = nullptr,
-	              std::wstring* err = nullptr);
-#ifdef TGIT_LFS
+	int FillUnRev(const GitRunner& git, unsigned int action, const CTGitPathList* filterlist = nullptr, std::wstring* err = nullptr);
+
+	// TGIT_LFS
 	int FillLFSLocks(const GitRunner& git, unsigned int action, std::wstring* err = nullptr);
 	// public for the unit tests; it was private unless TGIT_UNIT_TESTS, which a
 	// module, compiled once for every importer, can no longer see
 	int ParserFromLFSLocks(unsigned int action, std::wstring_view output, std::wstring* err = nullptr);
-#endif
+
 	/// The index entries of \a repository carrying any of the given flags.
-	int FillBasedOnIndexFlags(git_repository* repository, unsigned short flag, unsigned short flagextended,
-	                          const CTGitPathList* filterlist = nullptr);
+	int FillBasedOnIndexFlags(git_repository* repository, unsigned short flag, unsigned short flagextended, const CTGitPathList* filterlist = nullptr);
 	unsigned int GetAction() const { return m_Action; }
 	/**
 	 * Load from the path argument string, when the 'path' parameter is used
@@ -1689,18 +1689,18 @@ const std::wstring& CTGitPath::GetUIPathString() const {
 
 
 void CTGitPath::EnsureBackslashPathSet() const {
-	if (m_sBackslashPath.empty()) {
-		SetBackslashPath(m_sFwdslashPath);
-		assert(IsEmpty() || !m_sBackslashPath.empty());
-	}
+	if (!m_sBackslashPath.empty())
+		return;
+	SetBackslashPath(m_sFwdslashPath);
+	Ensures(IsEmpty() || !m_sBackslashPath.empty());
 }
 
 
 void CTGitPath::EnsureFwdslashPathSet() const {
-	if (m_sFwdslashPath.empty()) {
-		SetFwdslashPath(m_sBackslashPath);
-		assert(IsEmpty() || !m_sFwdslashPath.empty());
-	}
+	if (!m_sFwdslashPath.empty())
+		return;
+	SetFwdslashPath(m_sBackslashPath);
+	Ensures(IsEmpty() || !m_sFwdslashPath.empty());
 }
 
 
@@ -1732,7 +1732,7 @@ void CTGitPath::Reset() {
 	m_StatDel.clear();
 	m_ParentNo = 0;
 	m_stagingStatus = StagingStatus::DontCare;
-	assert(IsEmpty());
+	Ensures(IsEmpty());
 }
 
 
@@ -1814,8 +1814,9 @@ std::wstring CTGitPath::GetRootPathString() const {
 	// and then trimmed back to the NUL it leaves - which is what CStrBuf did.
 	std::wstring workingPath = m_sBackslashPath;
 	workingPath.resize((std::max)(workingPath.size(), static_cast<size_t>(MAX_PATH))); // MAX_PATH ok here.
-	[[maybe_unused]] const BOOL stripped = ::PathStripToRoot(workingPath.data());
-	assert(stripped);
+	auto&& stripped = ::PathStripToRoot(workingPath.data());
+	Ensures(stripped);
+
 	tgit::wstr::ReleaseBuffer(workingPath);
 	return workingPath;
 }
@@ -2736,7 +2737,7 @@ int CTGitPathList::ParserFromLog(const std::string& log) {
 	return 0;
 }
 
-#ifdef TGIT_LFS
+// TGIT_LFS
 int CTGitPathList::ParserFromLFSLocks(const unsigned int action, const std::wstring_view output, std::wstring* err) {
 	using json = nlohmann::json;
 	Clear();
@@ -2762,7 +2763,7 @@ int CTGitPathList::ParserFromLFSLocks(const unsigned int action, const std::wstr
 	}
 	return 0;
 }
-#endif
+
 
 //////////////////////////////////////////////////////////////////////////
 // CTGitPathList: filled by running git
@@ -2778,7 +2779,7 @@ int CTGitPathList::FillUnRev(const GitRunner& git, const unsigned int action, co
 			cmd.emplace_back(L"-i");
 
 		if (filterlist) {
-			assert(!(*filterlist)[i].GetWinPathString().empty());
+			Expects(!(*filterlist)[i].GetWinPathString().empty());
 			cmd.insert(cmd.cend(), { L"--", (*filterlist)[i].GetGitPathString() });
 		}
 
@@ -2795,8 +2796,8 @@ int CTGitPathList::FillUnRev(const GitRunner& git, const unsigned int action, co
 	return 0;
 }
 
-#ifdef TGIT_LFS
-int CTGitPathList::FillLFSLocks(const GitRunner& git, const unsigned int action, std::wstring* err) {
+// TGIT_LFS
+int CTGitPathList::FillLFSLocks(const GitRunner& git, const unsigned int action, std::wstring* const err) {
 	Clear();
 
 	std::string out, errb;
@@ -2808,7 +2809,8 @@ int CTGitPathList::FillLFSLocks(const GitRunner& git, const unsigned int action,
 
 	return ParserFromLFSLocks(action, CUnicodeUtils::GetUnicode<std::wstring>(std::string_view(out.data(), out.size())), err);
 }
-#endif
+
+
 
 int CTGitPathList::FillBasedOnIndexFlags(git_repository* const repository, const unsigned short flag,
                                          const unsigned short flagextended,

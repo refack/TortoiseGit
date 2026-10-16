@@ -26,7 +26,10 @@
 #include "SettingGitCredential.h"
 import TGitPath;	// GitAdminDir lives in the TGitPath module
 #include "MessageBox.h"
-#include "AppUtils.h"
+import AppUtils;
+import CommonAppUtils;
+
+
 
 namespace SimpleCredentialType
 {
@@ -876,6 +879,6 @@ void CSettingGitCredential::OnBnClickedWindowscredmgr()
 	if (CComHeapPtr<WCHAR> wcharPtr; SUCCEEDED(SHGetKnownFolderPath(FOLDERID_System, 0, nullptr, &wcharPtr)))
 	{
 		CString folder{ static_cast<LPCWSTR>(wcharPtr) };
-		CAppUtils::LaunchApplication(folder + L"\\rundll32.exe keymgr.dll,KRShowKeyMgr", CAppUtils::LaunchApplicationFlags());
+		CAppUtils::LaunchApplication(folder + L"\\rundll32.exe keymgr.dll,KRShowKeyMgr", CommonAppUtils::details::LaunchApplicationFlags());
 	}
 }

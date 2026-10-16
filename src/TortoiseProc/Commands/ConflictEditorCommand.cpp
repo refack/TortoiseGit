@@ -21,7 +21,7 @@
 #include "std.h"
 
 #include "ConflictEditorCommand.h"
-#include "AppUtils.h"
+import AppUtils;
 
 bool ConflictEditorCommand::Execute()
 {

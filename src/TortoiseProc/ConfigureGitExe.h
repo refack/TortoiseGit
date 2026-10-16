@@ -21,7 +21,7 @@
 import str_utils;
 import git_h;
 #include "MiscUI/MessageBox.h"
-#include "AppUtils.h"
+import AppUtils;
 import TGitCache.CacheInterface;
 
 #define GIT_FOR_WINDOWS_URL L"https://gitforwindows.org/"
@@ -114,7 +114,7 @@ protected:
 		dir = gitpath;
 		if (!dir.IsEmpty())
 			dir += L"\\git.exe";
-		if (!CCommonAppUtils::FileOpenSave(dir, nullptr, 0, IDS_GITEXEFILEFILTER, true, hwnd))
+		if (!CommonAppUtils::FileOpenSave(dir, nullptr, 0, IDS_GITEXEFILEFILTER, true, hwnd))
 			return false;
 
 		gitpath = dir;

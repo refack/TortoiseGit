@@ -21,7 +21,9 @@
 
 #include "TortoiseProc.h"
 #include "RevertProgressCommand.h"
-#include "MassiveGitTask.h"
+import TortoiseProc.MassiveGitTask;
+using MassiveGitTask::CMassiveGitTask;
+import AppUtils;
 
 using Git_WC_Notify_Action = CGitProgressList::WC_File_NotificationData::Git_WC_Notify_Action;
 
@@ -34,7 +36,7 @@ bool RevertProgressCommand::Run(CGitProgressList* list, CString& sWindowTitle, i
 	list->SetWindowTitle(IDS_PROGRS_TITLE_REVERT, g_Git.CombinePath(m_targetPathList.GetCommonRoot().GetUIPathString().c_str()), sWindowTitle);
 	list->SetBackgroundImage(IDI_REVERT_BKG);
 
-	CBlockCacheForPath block(g_Git.m_CurrentDir);
+	CBlockCacheForPath _(g_Git.m_CurrentDir);
 
 	m_itemCountTotal = 2 * m_targetPathList.GetCount();
 	CTGitPathList delList;
@@ -49,7 +51,7 @@ bool RevertProgressCommand::Run(CGitProgressList* list, CString& sWindowTitle, i
 			continue;
 		delList.AddPath(path);
 	}
-	if (DWORD(CRegDWORD(L"Software\\TortoiseGit\\RevertWithRecycleBin", TRUE)))
+	if (static_cast<DWORD>(CRegDWORD(L"Software\\TortoiseGit\\RevertWithRecycleBin", TRUE)))
 		delList.DeleteAllFiles(true);
 
 	list->ReportCmd(CString(MAKEINTRESOURCE(IDS_PROGRS_CMD_REVERT)));
@@ -183,8 +185,8 @@ bool RevertProgressCommand::Run(CGitProgressList* list, CString& sWindowTitle, i
 						pathString = path.GetGitOldPathString().c_str();
 
 					CString sCmd;
-					sCmd.Format(L"/command:diff /submodule /startrev:%s /endrev:%s /path:%s", static_cast<LPCWSTR>(CCmdLineParser::EscapeValue(m_sRevertToRevision)), GitRev::GetWorkingCopyRef(), static_cast<LPCWSTR>(CCmdLineParser::EscapeValue(pathString)));
-					CCommonAppUtils::RunTortoiseGitProc(sCmd);
+					sCmd.Format(L"/command:diff /submodule /startrev:%s /endrev:%s /path:%s", static_cast<LPCWSTR>(TCmdLineParser::EscapeValue(m_sRevertToRevision)), GitRev::GetWorkingCopyRef(), static_cast<LPCWSTR>(TCmdLineParser::EscapeValue(pathString)));
+					CAppUtils::RunTortoiseGitProc(sCmd);
 				}
 			});
 		};

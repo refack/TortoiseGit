@@ -20,8 +20,8 @@
 #pragma once
 #include "MiscUI/MessageBox.h"
 #include "Tooltip.h"
-#include "CommonDialogFunctions.h"
-#include "Theme.h"
+#include "Utils/CommonDialogFunctions.h"
+#include "Utils/Theme.h"
 
 /**
  * \ingroup TortoiseProc

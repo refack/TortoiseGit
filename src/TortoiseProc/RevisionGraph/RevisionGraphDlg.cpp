@@ -21,11 +21,10 @@
 #include "stdafx.h"
 #include "std.h"
 
-#include "TortoiseProc.h"
 #include "RevisionGraphDlg.h"
-#include "AppUtils.h"
+import AppUtils;
 #include "RevGraphFilterDlg.h"
-#include "DPIAware.h"
+#include "Utils/DPIAware.h"
 #include "LogDlgFilter.h"
 #include "GitLogListBase.h"
 

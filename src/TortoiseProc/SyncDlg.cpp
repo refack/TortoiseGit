@@ -27,7 +27,7 @@
 
 #include "TortoiseProc.h"
 #include "SyncDlg.h"
-#include "AppUtils.h"
+import AppUtils;
 #include "ProgressDlg.h"
 #include "MessageBox.h"
 #include "Hooks.h"

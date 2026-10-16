@@ -22,14 +22,14 @@
 #include "std.h"
 
 #include "TortoiseProc.h"
+#include "Utils/SysImageList.h"
+#include "Utils/BrowseFolder.h"
+#include "Resources/LoglistCommonResource.h"
 #include "MessageBox.h"
-#include "AppUtils.h"
-#include "SysImageList.h"
+import AppUtils;
 #include "IconMenu.h"
-#include "BrowseFolder.h"
 #include "FileDiffDlg.h"
 #include "GitDiff.h"
-#include "LoglistCommonResource.h"
 #include "LoglistUtils.h"
 #include "BrowseRefsDlg.h"
 #include "LogDlg.h"
@@ -152,7 +152,7 @@ BOOL CFileDiffDlg::OnInitDialog()
 
 	const int iconWidth = GetSystemMetrics(SM_CXSMICON);
 	const int iconHeight = GetSystemMetrics(SM_CYSMICON);
-	m_SwitchButton.SetImage(CCommonAppUtils::LoadIconEx(IDI_SWITCHLEFTRIGHT, iconWidth, iconHeight));
+	m_SwitchButton.SetImage(CAppUtils::LoadIconEx(IDI_SWITCHLEFTRIGHT, iconWidth, iconHeight));
 	m_SwitchButton.Invalidate();
 
 	m_cFilter.SetCancelBitmaps(IDI_CANCELNORMAL, IDI_CANCELPRESSED, 14, 14);
@@ -687,7 +687,7 @@ void CFileDiffDlg::OnContextMenu(CWnd* pWnd, CPoint point)
 						else
 							MessageBox(error, L"TortoiseGit", MB_ICONERROR);
 					}
-					sCmd += L" /path:" + CCmdLineParser::EscapeValue(g_Git.CombinePath(m_arFilteredList[index]->GetWinPathString().c_str()));
+					sCmd += L" /path:" + TCmdLineParser::EscapeValue(g_Git.CombinePath(m_arFilteredList[index]->GetWinPathString().c_str()));
 					if (cmd == ID_LOG)
 						sCmd += L" /endrev:" + m_rev2.m_CommitHash.ToString() + L" /rev:" + m_rev2.m_CommitHash.ToString();
 					CAppUtils::RunTortoiseGitProc(sCmd);

@@ -20,7 +20,7 @@
 
 
 #include "StandAloneDlg.h"
-#include "HistoryCombo.h"
+#include "Utils/HistoryCombo.h"
 
 
 /**

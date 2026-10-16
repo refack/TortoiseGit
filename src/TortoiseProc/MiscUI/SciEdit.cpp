@@ -30,7 +30,7 @@
 #include <lexilla/SciLexer.h>
 #include <lexilla/Lexilla.h>
 #include <Resources/LoglistCommonResource.h>
-#include <TortoiseUDiff/UDiffColors.h>
+#include <../TortoiseUDiff/UDiffColors.h>
 #include <Utils/LoadIconEx.h>
 #include <Utils/ScintillaRegistration.h>
 #include <Utils/Theme.h>

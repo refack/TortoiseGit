@@ -19,7 +19,7 @@
 //
 #pragma once
 #include "HorizontalResizableStandAloneDialog.h"
-#include "IInputValidator.h"
+#include "Utils/IInputValidator.h"
 
 /**
  * \ingroup TortoiseProc

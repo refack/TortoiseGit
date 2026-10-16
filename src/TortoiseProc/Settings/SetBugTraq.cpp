@@ -20,7 +20,7 @@
 #include "stdafx.h"
 #include "std.h"
 
-#include <TortoiseProc/resource.h>	// restored: these IDs used to arrive through headers that are imports now
+#include <../../SharedMFC/Resources/resource.h>
 #include "SetBugTraq.h"
 #include "SetBugTraqAdv.h"
 

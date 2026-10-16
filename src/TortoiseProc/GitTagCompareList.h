@@ -19,7 +19,7 @@
 // GitLogList.cpp : implementation file
 //
 #pragma once
-#include "HintCtrl.h"
+#include "Utils/HintCtrl.h"
 import GitHash;
 
 class CGitTagCompareList : public CHintCtrl<CListCtrl>

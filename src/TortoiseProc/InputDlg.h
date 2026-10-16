@@ -21,7 +21,7 @@
 
 #include "StandAloneDlg.h"
 #include "SciEdit.h"
-#include "resource.h"
+#include "../SharedMFC/Resources/resource.h"
 /**
  * \ingroup TortoiseProc
  * Helper dialog to ask for various text inputs.

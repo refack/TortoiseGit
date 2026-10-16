@@ -23,7 +23,7 @@
 #include "TortoiseProc.h"
 #include "MessageBox.h"
 #include "ResolveDlg.h"
-#include "AppUtils.h"
+import AppUtils;
 
 #define REFRESHTIMER   100
 

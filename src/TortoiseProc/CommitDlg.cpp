@@ -24,18 +24,18 @@
 #include "TortoiseProc.h"
 #include "CommitDlg.h"
 #include "MessageBox.h"
-#include "AppUtils.h"
+import AppUtils;
 #include "HistoryDlg.h"
 #include "Hooks.h"
 #include "ProgressDlg.h"
 #include "COMError.h"
-#include "TortoiseShell/Globals.h"
+#include "Resources/Globals.h"
 #include "SysProgressDlg.h"
-#include "MassiveGitTask.h"
+import TortoiseProc.MassiveGitTask;
 #include "LogDlg.h"
 #include "BstrSafeVector.h"
-#include "FileTextLines.h"
-#include "DPIAware.h"
+#include "Utils/FileTextLines.h"
+#include "Utils/DPIAware.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -719,7 +719,7 @@ void CCommitDlg::OnOK()
 			if (result == 1)
 			{
 				CString cmdCommit;
-				cmdCommit.Format(L"/command:commit /path:%s", static_cast<LPCWSTR>(CCmdLineParser::EscapeValue(g_Git.CombinePath(entry))));
+				cmdCommit.Format(L"/command:commit /path:%s", static_cast<LPCWSTR>(TCmdLineParser::EscapeValue(g_Git.CombinePath(entry))));
 				CAppUtils::RunTortoiseGitProc(cmdCommit);
 				return;
 			}

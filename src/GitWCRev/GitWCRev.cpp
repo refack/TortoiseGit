@@ -22,7 +22,7 @@
 
 #include <fcntl.h>
 #include <io.h>
-#include <version.h>
+#include <../libgit2/include/version.h>
 import RIAA;
 import str_utils;
 

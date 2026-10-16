@@ -25,10 +25,10 @@
 #include "GitProgressDlg.h"
 #include "CloneDlg.h"
 #include "ProgressDlg.h"
-#include "AppUtils.h"
+import AppUtils;
 #include "ProgressCommands/CloneProgressCommand.h"
 
-static CString GetExistingDirectoryForClone(CString path)
+static CString GetExistingDirectoryForClone(auto path)
 {
 	if (PathFileExists(path))
 		return path;
@@ -128,11 +128,9 @@ bool CloneCommand::Execute()
 			// After cloning, change current directory to the cloned directory
 			g_Git.SetCurrentDirExact(dlg.m_Directory);
 
-			postCmdList.emplace_back(IDI_LOG, IDS_MENULOG, [&]
-			{
-				CString cmd = L"/command:log";
-				cmd += L" /path:" + CCmdLineParser::EscapeValue(dlg.m_Directory);
-				CAppUtils::RunTortoiseGitProc(cmd);
+			postCmdList.emplace_back(IDI_LOG, IDS_MENULOG, [&]{
+				const auto cmd2 = CString{L"/command:log"} + L" /path:" + TCmdLineParser::EscapeValue(dlg.m_Directory);
+				CommonAppUtils::RunTortoiseGitProc(cmd2);
 			});
 
 			postCmdList.emplace_back(IDI_EXPLORER, IDS_STATUSLIST_CONTEXT_EXPLORE, [&]{ CAppUtils::ExploreTo(GetExplorerHWND(), dlg.m_Directory); });

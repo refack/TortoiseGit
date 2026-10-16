@@ -22,9 +22,9 @@
 #include "stdafx.h"
 #include "std.h"
 
-#include "resource.h"
+#include "../SharedMFC/Resources/resource.h"
 #include "DeleteConflictDlg.h"
-#include "AppUtils.h"
+import AppUtils;
 
 // CDeleteConflictDlg dialog
 
@@ -132,7 +132,7 @@ void CDeleteConflictDlg::OnBnClickedModify()
 void CDeleteConflictDlg::ShowLog(const CString& hash) const
 {
 	CString sCmd;
-	sCmd.Format(L"/command:log /path:%s /endrev:%s /rev:%s", static_cast<LPCWSTR>(CCmdLineParser::EscapeValue(g_Git.CombinePath(m_File))), static_cast<LPCWSTR>(hash), static_cast<LPCWSTR>(hash));
+	sCmd.Format(L"/command:log /path:%s /endrev:%s /rev:%s", static_cast<LPCWSTR>(TCmdLineParser::EscapeValue(g_Git.CombinePath(m_File))), static_cast<LPCWSTR>(hash), static_cast<LPCWSTR>(hash));
 	CAppUtils::RunTortoiseGitProc(sCmd, false, false);
 }
 
@@ -147,5 +147,5 @@ void CDeleteConflictDlg::OnBnClickedShowdiff()
 		g_Git.CombinePath(m_File),
 		m_bDiffMine ? m_LocalHash : m_RemoteHash,
 		m_bDiffMine ? m_RemoteHash : m_LocalHash,
-		CAppUtils::DiffFlags().AlternativeTool(!!(GetAsyncKeyState(VK_SHIFT) & 0x8000)));
+		CommonAppUtils::details::DiffFlags().AlternativeTool(!!(GetAsyncKeyState(VK_SHIFT) & 0x8000)));
 }

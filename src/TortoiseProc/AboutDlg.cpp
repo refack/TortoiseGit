@@ -24,10 +24,11 @@
 #include "TortoiseProc.h"
 #include "AboutDlg.h"
 #define NEED_SIGNING_KEY
-#include <version.h>
+#include <../libgit2/include/version.h>
 #include "VersioncheckParser.h"
-#include "AppUtils.h"
-#include "DPIAware.h"
+import AppUtils;
+#include "Utils/DPIAware.h"
+using namespace std::literals;
 
 //IMPLEMENT_DYNAMIC(CAboutDlg, CStandAloneDialog)
 CAboutDlg::CAboutDlg(CWnd* pParent /*=nullptr*/)
@@ -80,7 +81,7 @@ BOOL CAboutDlg::OnInitDialog()
 	CString temp;
 
 	CString out, err;
-	if (g_Git.Run({ L"git.exe", L"--version" }, &out, &err, CP_UTF8))
+	if (g_Git.Run(std::vector{L"git.exe"s, L"--version"s}, &out, &err))
 		out = L"git not found (" + err + L')';
 	out.Trim();
 
@@ -97,7 +98,7 @@ BOOL CAboutDlg::OnInitDialog()
 	}
 
 	CString tortoisegitprocpath;
-	CString additionalVersionInformation;
+	std::wstring additionalVersionInformation;
 #if PREVIEW
 	additionalVersionInformation = _T(PREVIEW_INFO);
 #else
@@ -114,7 +115,7 @@ BOOL CAboutDlg::OnInitDialog()
 #endif
 	std::wstring appDirectory = PathUtils::GetAppDirectory();
 	tgit::wstr::TrimRight(appDirectory, L"\\");
-	if (!additionalVersionInformation.IsEmpty())
+	if (!additionalVersionInformation.empty())
 		tortoisegitprocpath = std::format(L"({}; {})", additionalVersionInformation, appDirectory).c_str();
 	else
 		tortoisegitprocpath = std::format(L"({})", appDirectory).c_str();
@@ -210,7 +211,7 @@ void CAboutDlg::OnMouseMove(UINT nFlags, CPoint point)
 
 void CAboutDlg::OnBnClickedUpdate()
 {
-	CAppUtils::RunTortoiseGitProc(L"/command:updatecheck /visible", false, false);
+	CommonAppUtils::RunTortoiseGitProc(L"/command:updatecheck /visible", false, false);
 }
 
 void CAboutDlg::OnClose()

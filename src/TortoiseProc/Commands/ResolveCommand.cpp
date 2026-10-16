@@ -21,7 +21,7 @@
 #include "std.h"
 
 #include "ResolveCommand.h"
-#include "AppUtils.h"
+import AppUtils;
 #include "ResolveDlg.h"
 #include "GitProgressDlg.h"
 #include "ProgressCommands/ResolveProgressCommand.h"

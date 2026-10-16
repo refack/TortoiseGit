@@ -24,7 +24,7 @@ import Graphviz;
 #include "LogDlgHelper.h"
 #include "ProgressDlg.h"
 #include "SVG.h"
-#include <AsyncFramework/Future.h>
+#include <Future.h>
 
 #pragma warning(push)
 #pragma warning(disable: 4100) // unreferenced formal parameter

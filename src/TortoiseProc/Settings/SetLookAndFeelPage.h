@@ -21,9 +21,9 @@
 
 #include "SettingsPropPage.h"
 import Registry;
-#include <TortoiseShell/Globals.h>
+#include <../../SharedMFC/Resources/Globals.h>
 
-#include "resource.h"
+#include "../../SharedMFC/Resources/resource.h"
 
 /**
  * \ingroup TortoiseProc

@@ -22,8 +22,8 @@
 
 #include "GitDiff.h"
 #include "TortoiseProc.h"
-#include "AppUtils.h"
-#include "resource.h"
+import AppUtils;
+#include "../SharedMFC/Resources/resource.h"
 #include "MessageBox.h"
 #include "FileDiffDlg.h"
 #include "SubmoduleDiffDlg.h"
@@ -133,7 +133,7 @@ int CGitDiff::DiffNull(HWND hWnd, const CTGitPath* pPath, const CString& rev1, b
 	CString tempfile = TempFiles::GetTempFilePath(false, *pPath, rev1Hash).GetWinPathString().c_str();
 	::SetFileAttributes(tempfile, FILE_ATTRIBUTE_READONLY);
 
-	const auto flags = CAppUtils::DiffFlags().AlternativeTool(bAlternative);
+	const auto flags = CommonAppUtils::details::DiffFlags().AlternativeTool(bAlternative);
 	if(bIsAdd)
 		CAppUtils::StartExtDiff(tempfile,file1,
 							pPath->GetGitPathString().c_str(),
@@ -403,7 +403,7 @@ int CGitDiff::Diff(HWND hWnd, const CTGitPath* pPath, const CTGitPath* pPath2, c
 			sMsg.Format(IDS_PROC_DIFFERROR_FILENOTINWORKINGTREE, static_cast<LPCWSTR>(file1));
 			if (MessageBox(hWnd, sMsg, L"TortoiseGit", MB_ICONEXCLAMATION | MB_YESNO) != IDYES)
 				return 1;
-			if (!CCommonAppUtils::FileOpenSave(file1, nullptr, IDS_SELECTFILE, IDS_COMMONFILEFILTER, true))
+			if (!CAppUtils::FileOpenSave(file1, nullptr, IDS_SELECTFILE, IDS_COMMONFILEFILTER, true))
 				return 1;
 			title1 = file1;
 		}
@@ -450,7 +450,7 @@ int CGitDiff::Diff(HWND hWnd, const CTGitPath* pPath, const CTGitPath* pPath2, c
 							g_Git.CombinePath(pPath),
 							rev2Hash,
 							rev1Hash,
-							CAppUtils::DiffFlags().AlternativeTool(bAlternativeTool), jumpToLine);
+							CommonAppUtils::details::DiffFlags().AlternativeTool(bAlternativeTool), jumpToLine);
 
 	return 0;
 }

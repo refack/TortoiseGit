@@ -2,15 +2,22 @@ cmake_minimum_required(VERSION 4.4)
 
 # before project() — the gate is read when the CXX toolchain is discovered
 set(CMAKE_EXPERIMENTAL_CXX_IMPORT_STD "f35a9ac6-8463-4d38-8eec-5d6008153e7d")
-#set(CMAKE_CXX_MODULE_STD ON)          # or per-target: set_target_properties(TGitLibgit2 PROPERTIES CXX_MODULE_STD ON)
+#set(CMAKE_CXX_MODULE_STD ON)
+# or per-target:
+#set_target_properties(TGitLibgit2 PROPERTIES CXX_MODULE_STD ON)
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_EXTENSIONS OFF)
+set(CMAKE_CXX_EXTENSIONS ON)
+set(CMAKE_CXX_MODULE_STD ON)
+set(CMAKE_MFC_FLAG 2)
 
 set(CMAKE_EXPORT_SARIF ON)
 file(MAKE_DIRECTORY "${CMAKE_BINARY_DIR}/SARIF")
 add_compile_options(
+    -W3
+    -external:W0
+    -external:anglebrackets
     $<$<COMPILE_LANGUAGE:CXX>:-wd4996>  # depracation TODO: later
     $<$<COMPILE_LANGUAGE:CXX>:-wd4102>  # decorative goto labels
 )
@@ -33,8 +40,11 @@ set(CMAKE_MSVC_DEBUG_INFORMATION_FORMAT "$<$<CONFIG:Debug,RelWithDebInfo>:Embedd
 set(VCPKG_HOST_TRIPLET "x64-windows-static-md" CACHE STRING "" FORCE)
 set(VCPKG_TARGET_TRIPLET "x64-windows-static-md" CACHE STRING "" FORCE)
 
+
 #set(CMAKE_C_COMPILER_LAUNCHER   "${CMAKE_CURRENT_LIST_DIR}/cl-shim.cmd")
 #set(CMAKE_CXX_COMPILER_LAUNCHER "${CMAKE_CURRENT_LIST_DIR}/cl-shim.cmd")
+
+
 
 project(TortoiseGit)
 
@@ -63,25 +73,31 @@ function(tgit_app_manifests target)
 endfunction()
 set(TGIT_SYSTEM_DPI_MANIFEST "${CMAKE_SOURCE_DIR}/src/systemDpiAware.manifest")
 
-add_subdirectory(src/gitdll)
-add_subdirectory(src/AsyncFramework)
+
+add_subdirectory(ext/gitdll)
+add_subdirectory(ext/AsyncFramework)
+
 add_subdirectory(src/IBugTraqProvider)
 add_subdirectory(src/libgit2)
 add_subdirectory(src/GitWCRev)
 add_subdirectory(src/GitWCRevCOM)
-add_subdirectory(src/ResizableLib)
+
+add_subdirectory(ext/ResizableLib)
 add_subdirectory(src/SshAskPass)
 add_subdirectory(src/TGitCache)
-#add_subdirectory(src/TortoiseGitBlame)
 add_subdirectory(src/TortoiseProc)
-#add_subdirectory(src/TortoiseShell)
 add_subdirectory(src/TortoiseStub)
+
+#add_subdirectory(src/TortoiseGitBlame)
+#add_subdirectory(src/TortoiseShell)
 #add_subdirectory(src/TortoiseUDiff)
 
-unset(CMAKE_RUNTIME_OUTPUT_DIRECTORY)
+
+string(APPEND CMAKE_RUNTIME_OUTPUT_DIRECTORY "/tests")
 add_subdirectory(test/Cache)
 add_subdirectory(test/ShellBench)
 add_subdirectory(test/TgitUnitTests)
+
 
 string(TIMESTAMP CURRENT_TIME "%Y-%m-%d %H:%M:%S")
 message(STATUS "configure timestamp: ${CURRENT_TIME}")

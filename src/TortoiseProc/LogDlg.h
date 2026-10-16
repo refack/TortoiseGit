@@ -19,7 +19,7 @@
 //
 
 #pragma once
-#include "resource.h"
+#include "../SharedMFC/Resources/resource.h"
 #include "StandAloneDlg.h"
 import TGitPath;
 import Registry;
@@ -33,7 +33,7 @@ import wil;
 #include "GravatarPictureBox.h"
 #include "PatchViewDlg.h"
 #include "MenuButton.h"
-#include "GestureEnabledControl.h"
+#include "Utils/GestureEnabledControl.h"
 
 #define LOGFILTER_TIMER	101
 #define LOGFTIME_TIMER	102

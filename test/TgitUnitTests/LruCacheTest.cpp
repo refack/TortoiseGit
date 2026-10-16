@@ -19,7 +19,7 @@
 //
 
 #include "stdafx.h"
-#include "LruCache.h"
+#include "Utils/LruCache.h"
 
 TEST(LruCache, InsertGet)
 {

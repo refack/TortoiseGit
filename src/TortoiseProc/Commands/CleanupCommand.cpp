@@ -100,7 +100,7 @@ static bool GetFilesToCleanUp(CTGitPathList& delList, const std::vector<std::wst
 	if (!path.IsEmpty())
 		cmd.insert(cmd.cend(), { L"--", std::wstring(path) });
 
-	CString cmdouterr;
+	tgit::wstr::CString cmdouterr;
 	if (pGit->Run(cmd, [&](std::string_view line)
 		{
 			if (!line.starts_with("Would remove "))
@@ -110,14 +110,14 @@ static bool GetFilesToCleanUp(CTGitPathList& delList, const std::vector<std::wst
 			if (line.empty())
 				return;
 
-			if (quotepath && line[0] == '"')
-				delList.AddPath(CTGitPath(pGit->CombinePath(TGitH::UnescapeGitQuotePathA(line.substr(1))).GetString()));
-			else
-				delList.AddPath(CTGitPath(pGit->CombinePath(CUnicodeUtils::GetUnicode<CString>(line)).GetString()));
+			const auto pathString = (quotepath && line[0] == '"') ?
+				CTGitPath{TGitH::UnescapeGitQuotePathA(line.substr(1))} :
+				CTGitPath{CUnicodeUtils::GetUnicode<::CStringW>(line)};
+			delList.AddPath(CTGitPath(pGit->CombinePath(pathString).GetString()));
 		}, &cmdouterr))
 	{
 		if (cmdouterr.IsEmpty())
-			cmdouterr.Format(IDS_GITEXEERROR_NOMESSAGE, static_cast<LPCWSTR>(CGit::SerializeArgvToCString(cmd)));
+			cmdouterr.Format(IDS_GITEXEERROR_NOMESSAGE, CGit::SerializeArgvToCString(cmd));
 		MessageBox(GetExplorerHWND(), cmdouterr, L"TortoiseGit", MB_ICONERROR);
 		return false;
 	}

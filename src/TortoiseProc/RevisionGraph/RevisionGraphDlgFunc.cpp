@@ -21,12 +21,11 @@
 #include "stdafx.h"
 #include "std.h"
 
-#include "TortoiseProc.h"
 #include <gdiplus.h>
-#include "RevisionGraphWnd.h"
-#include "DPIAware.h"
 #include <regex>
-#include "AppUtils.h"
+#include "RevisionGraphWnd.h"
+#include "Utils/DPIAware.h"
+import AppUtils;
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -444,9 +443,9 @@ void CRevisionGraphWnd::CompareRevs(const CString& revTo)
 	CString sCmd;
 
 	sCmd.Format(L"/command:showcompare /path:%s /revision1:%s /revision2:%s",
-				static_cast<LPCWSTR>(CCmdLineParser::EscapeValue(m_sPath)),
-				static_cast<LPCWSTR>(CCmdLineParser::EscapeValue(GetFriendRefName(m_SelectedEntry1))),
-				!revTo.IsEmpty() ? static_cast<LPCWSTR>(CCmdLineParser::EscapeValue(revTo)) : static_cast<LPCWSTR>(CCmdLineParser::EscapeValue(GetFriendRefName(m_SelectedEntry2))));
+				static_cast<LPCWSTR>(TCmdLineParser::EscapeValue(m_sPath)),
+				static_cast<LPCWSTR>(TCmdLineParser::EscapeValue(GetFriendRefName(m_SelectedEntry1))),
+				!revTo.IsEmpty() ? static_cast<LPCWSTR>(TCmdLineParser::EscapeValue(revTo)) : static_cast<LPCWSTR>(TCmdLineParser::EscapeValue(GetFriendRefName(m_SelectedEntry2))));
 
 	if (alternativeTool)
 		sCmd += L" /alternative";

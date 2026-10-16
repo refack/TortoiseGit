@@ -21,8 +21,8 @@
 
 #include "Colors.h"
 #include "ProgressDlg.h"
-import TGitPath;
 #include "MiscUI/IconMenu.h"
+import TGitPath;
 
 /**
  * \ingroup TortoiseProc

@@ -24,9 +24,11 @@
 #include "TortoiseProc.h"
 #include "ChangedDlg.h"
 #include "MessageBox.h"
-#include "AppUtils.h"
+import AppUtils;
 #include "IconMenu.h"
 #include "RefLogDlg.h"
+
+
 
 IMPLEMENT_DYNAMIC(CChangedDlg, CResizableStandAloneDialog)
 CChangedDlg::CChangedDlg(CWnd* pParent /*=nullptr*/)
@@ -254,10 +256,10 @@ void CChangedDlg::SetDlgTitle()
 		CAppUtils::SetWindowTitle(m_hWnd, g_Git.m_CurrentDir, m_sTitle);
 	else
 	{
-		if (m_pathList.GetCount() == 1)
-			CAppUtils::SetWindowTitle(m_hWnd, g_Git.CombinePath(m_pathList[0].GetUIPathString().c_str()), m_sTitle);
-		else
-			CAppUtils::SetWindowTitle(m_hWnd, g_Git.CombinePath(m_FileListCtrl.GetCommonDirectory(false)), m_sTitle);
+		const auto pathTitle = (m_pathList.GetCount() == 1) ?
+			m_pathList[0].GetUIPathString() :
+			std::wstring{ m_FileListCtrl.GetCommonDirectory(false) };
+		CAppUtils::SetWindowTitle(m_hWnd, g_Git.CombinePath(pathTitle), m_sTitle);
 	}
 }
 
@@ -442,10 +444,10 @@ void CChangedDlg::OnBnClickedButtonUnifieddiff()
 	if (bSingleFile)
 		commonDirectory = m_pathList[0];
 	CString sCmd;
-	sCmd.Format(L"/command:showcompare /unified /path:%s /revision1:HEAD /revision2:%s", static_cast<LPCWSTR>(CCmdLineParser::EscapeValue(g_Git.CombinePath(commonDirectory))), GitRev::GetWorkingCopyRef());
+	sCmd.Format(L"/command:showcompare /unified /path:%s /revision1:HEAD /revision2:%s", static_cast<LPCWSTR>(TCmdLineParser::EscapeValue(g_Git.CombinePath(commonDirectory))), GitRev::GetWorkingCopyRef());
 	if (!!(GetAsyncKeyState(VK_SHIFT) & 0x8000))
 		sCmd += L" /alternative";
-	CAppUtils::RunTortoiseGitProc(sCmd);
+	CommonAppUtils::RunTortoiseGitProc(sCmd);
 }
 
 void CChangedDlg::OnBnClickedWholeProject()

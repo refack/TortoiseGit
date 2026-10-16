@@ -25,11 +25,14 @@
 #include "IconMenu.h"
 #include "MessageBox.h"
 #include "LoglistUtils.h"
-#include "resource.h"
-#include "LoglistCommonResource.h"
-#include <TortoiseShell/Resource.h>
-#include "CommonAppUtils.h"
-#include "DPIAware.h"
+#include "Resources/resource.h"
+#include "Resources/LoglistCommonResource.h"
+#include <../TortoiseShell/Resource.h>
+#include "Utils/DPIAware.h"
+
+import CommonAppUtils;
+import AppUtils;
+import GitMailmap;
 
 const UINT CGitLogListBase::m_FindDialogMessage = RegisterWindowMessage(FINDMSGSTRING);
 const UINT CGitLogListBase::m_ScrollToMessage = RegisterWindowMessage(L"TORTOISEGIT_LOG_SCROLLTO");
@@ -37,7 +40,7 @@ const UINT CGitLogListBase::m_ScrollToRef = RegisterWindowMessage(L"TORTOISEGIT_
 const UINT CGitLogListBase::m_RebaseActionMessage = RegisterWindowMessage(L"TORTOISEGIT_LOG_REBASEACTION");
 const UINT CGitLogListBase::LOGLIST_RESET_WCREV = RegisterWindowMessage(L"TORTOISEGIT_LOG_RESET_WCREV");
 
-long volatile CGitLogListBase::s_bThreadRunning = FALSE;
+volatile long CGitLogListBase::s_bThreadRunning = FALSE;
 
 IMPLEMENT_DYNAMIC(CGitLogListBase, CHintCtrl<CResizableColumnsListCtrl<CListCtrl>>)
 
@@ -54,13 +57,13 @@ CGitLogListBase::CGitLogListBase() : CHintCtrl<CResizableColumnsListCtrl<CListCt
 
 	const int cx = GetSystemMetrics(SM_CXSMICON);
 	const int cy = GetSystemMetrics(SM_CYSMICON);
-	m_hModifiedIcon = CCommonAppUtils::LoadIconEx(IDI_ACTIONMODIFIED, cx, cy);
-	m_hReplacedIcon = CCommonAppUtils::LoadIconEx(IDI_ACTIONREPLACED, cx, cy);
-	m_hConflictedIcon = CCommonAppUtils::LoadIconEx(IDI_ACTIONCONFLICTED, cx, cy);
-	m_hAddedIcon = CCommonAppUtils::LoadIconEx(IDI_ACTIONADDED, cx, cy);
-	m_hDeletedIcon = CCommonAppUtils::LoadIconEx(IDI_ACTIONDELETED, cx, cy);
-	m_hFetchIcon = CCommonAppUtils::LoadIconEx(IDI_ACTIONFETCHING, cx, cy);
-	m_hErrorIcon = CCommonAppUtils::LoadIconEx(IDI_ACTIONERROR, cx, cy);
+	m_hModifiedIcon = CAppUtils::LoadIconEx(IDI_ACTIONMODIFIED, cx, cy);
+	m_hReplacedIcon = CAppUtils::LoadIconEx(IDI_ACTIONREPLACED, cx, cy);
+	m_hConflictedIcon = CAppUtils::LoadIconEx(IDI_ACTIONCONFLICTED, cx, cy);
+	m_hAddedIcon = CAppUtils::LoadIconEx(IDI_ACTIONADDED, cx, cy);
+	m_hDeletedIcon = CAppUtils::LoadIconEx(IDI_ACTIONDELETED, cx, cy);
+	m_hFetchIcon = CAppUtils::LoadIconEx(IDI_ACTIONFETCHING, cx, cy);
+	m_hErrorIcon = CAppUtils::LoadIconEx(IDI_ACTIONERROR, cx, cy);
 
 	m_Filter.m_NumberOfLogsScale = CRegDWORD(L"Software\\TortoiseGit\\LogDialog\\NumberOfLogsScale", CFilterData::SHOW_NO_LIMIT);
 	if (m_Filter.m_NumberOfLogsScale == CFilterData::SHOW_LAST_SEL_DATE)
@@ -295,7 +298,7 @@ void CGitLogListBase::InsertGitColumn()
 	Init();
 	if (CRegDWORD(L"Software\\TortoiseGit\\LogFontForLogCtrl", FALSE))
 	{
-		CCommonAppUtils::CreateFontForLogs(GetSafeHwnd(), m_Font);
+		CAppUtils::CreateFontForLogs(GetSafeHwnd(), m_Font);
 		SetFont(&m_Font);
 	}
 
@@ -2888,8 +2891,8 @@ UINT CGitLogListBase::LogThread()
 		}
 		g_Git.m_critGitDllSec.unlock();
 
-		if (CGitMailmap::ShouldLoadMailmap())
-			GitRevLoglist::s_Mailmap = std::make_shared<CGitMailmap>();
+		if (GitMailmap::CGitMailmap::ShouldLoadMailmap())
+			GitRevLoglist::s_Mailmap = std::make_shared<GitMailmap::CGitMailmap>();
 		else if (GitRevLoglist::s_Mailmap.load())
 			GitRevLoglist::s_Mailmap.store(nullptr);
 		auto mailmap{ GitRevLoglist::s_Mailmap.load() };

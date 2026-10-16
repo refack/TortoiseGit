@@ -21,8 +21,8 @@
 
 #include "TortoiseProc.h"
 #include "AddProgressCommand.h"
-#include "MassiveGitTask.h"
-#include "AppUtils.h"
+import TortoiseProc.MassiveGitTask;
+import AppUtils;
 
 using Git_WC_Notify_Action = CGitProgressList::WC_File_NotificationData::Git_WC_Notify_Action;
 
@@ -109,15 +109,15 @@ bool AddProgressCommand::Run(CGitProgressList* list, CString& sWindowTitle, int&
 			{
 				CString sCmd;
 				sCmd.Format(L"/command:commit /path:\"%s\"", static_cast<LPCWSTR>(g_Git.m_CurrentDir));
-				CAppUtils::RunTortoiseGitProc(sCmd);
+				CommonAppUtils::RunTortoiseGitProc(sCmd);
 			});
 		if (!(m_bExecutable || m_bSymlink))
 		{
 			postCmdList.emplace_back(IDI_ADD, IDS_STATUSLIST_CONTEXT_ADD_EXE, [this] {
-				SetFileMode(GIT_FILEMODE_BLOB_EXECUTABLE);
+				std::ignore = SetFileMode(GIT_FILEMODE_BLOB_EXECUTABLE);
 			});
 			postCmdList.emplace_back(IDI_ADD, IDS_STATUSLIST_CONTEXT_ADD_LINK, [this] {
-				SetFileMode(GIT_FILEMODE_LINK);
+				std::ignore = SetFileMode(GIT_FILEMODE_LINK);
 			});
 		}
 	};
@@ -125,8 +125,7 @@ bool AddProgressCommand::Run(CGitProgressList* list, CString& sWindowTitle, int&
 	return true;
 }
 
-bool AddProgressCommand::SetFileMode(uint32_t mode)
-{
+bool AddProgressCommand::SetFileMode(uint32_t mode) const {
 	const wil::unique_git_repository repo(g_Git.GetGitRepository());
 	if (!repo)
 	{

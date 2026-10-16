@@ -20,15 +20,15 @@
 #include "stdafx.h"
 #include "std.h"
 
-#include <TortoiseProc/resource.h>	// restored: these IDs used to arrive through headers that are imports now
+#include <Resources/resource.h>
 
 
 #include <Resources/LoglistCommonResource.h>
-#include <TortoiseShell/resource.h>
+#include <../TortoiseShell/resource.h>
 #include "GitStatusListCtrl.h"
 #include "MiscUI/MessageBox.h"
 #include "Utils/MyMemDC.h"
-#include "AppUtils.h"
+import AppUtils;
 #include "LoglistUtils.h"
 #include "GitDiff.h"
 #include "GitProgressDlg.h"
@@ -290,7 +290,7 @@ void CGitStatusListCtrl::Init(DWORD dwColumns, const CString& sColumnInfoContain
 	}
 
 	m_nIconFolder = SYS_IMAGE_LIST().GetDirIconIndex();
-	m_nRestoreOvl = SYS_IMAGE_LIST().AddIcon(CCommonAppUtils::LoadIconEx(IDI_RESTOREOVL, 0, 0));
+	m_nRestoreOvl = SYS_IMAGE_LIST().AddIcon(CAppUtils::LoadIconEx(IDI_RESTOREOVL, 0, 0));
 	SYS_IMAGE_LIST().SetOverlayImage(m_nRestoreOvl, OVL_RESTORE);
 	SetImageList(&SYS_IMAGE_LIST(), LVSIL_SMALL);
 
@@ -352,7 +352,7 @@ void CGitStatusListCtrl::EnableThreeStateCheckboxes(bool enable)
 		if (!m_bThreeStateCheckboxes)
 		{
 			VERIFY(numStateImageList == 2);
-			stateImageList->Add(CCommonAppUtils::LoadIconEx(IDI_INDETERMINATE, 0, 0));
+			stateImageList->Add(CAppUtils::LoadIconEx(IDI_INDETERMINATE, 0, 0));
 			m_bThreeStateCheckboxes = true;
 		}
 	}
@@ -1682,7 +1682,7 @@ void CGitStatusListCtrl::OnContextMenuList(CWnd * pWnd, CPoint point)
 				{
 					popup.AppendMenuIcon(IDGITLC_RESOLVECONFLICT, IDS_STATUSLIST_CONTEXT_RESOLVED, IDI_RESOLVE);
 					CString tmp, mineTitle, theirsTitle;
-					CAppUtils::GetConflictTitles(nullptr, mineTitle, nullptr, theirsTitle, nullptr, m_bIsRevertTheirMy);
+					CAppUtils::GetConflictTitles(nullptr, mineTitle, theirsTitle, m_bIsRevertTheirMy);
 					tmp.Format(IDS_SVNPROGRESS_MENURESOLVEUSING, static_cast<LPCWSTR>(theirsTitle));
 					if (m_bIsRevertTheirMy)
 					{
@@ -2255,9 +2255,9 @@ void CGitStatusListCtrl::OnContextMenuList(CWnd * pWnd, CPoint point)
 
 						CString sCmd;
 						if (m_CurrentVersion.IsEmpty())
-							sCmd.Format(L"/command:diff /path:%s /startrev:%s /path2:%s /endrev:%s /hwnd:%p", CCmdLineParser::EscapeValue(firstfilepath->GetWinPathString()).c_str(), firstfilepath->Exists() ? GitRev::GetWorkingCopyRef() : L"HEAD", CCmdLineParser::EscapeValue(secondfilepath->GetWinPathString()).c_str(), secondfilepath->Exists() ? GitRev::GetWorkingCopyRef() : L"HEAD", reinterpret_cast<void*>(m_hWnd));
+							sCmd.Format(L"/command:diff /path:%s /startrev:%s /path2:%s /endrev:%s /hwnd:%p", TCmdLineParser::EscapeValue(firstfilepath->GetWinPathString()).c_str(), firstfilepath->Exists() ? GitRev::GetWorkingCopyRef() : L"HEAD", TCmdLineParser::EscapeValue(secondfilepath->GetWinPathString()).c_str(), secondfilepath->Exists() ? GitRev::GetWorkingCopyRef() : L"HEAD", reinterpret_cast<void*>(m_hWnd));
 						else
-							sCmd.Format(L"/command:diff /path:%s /startrev:%s /path2:%s /endrev:%s /hwnd:%p", CCmdLineParser::EscapeValue(firstfilepath->GetWinPathString()).c_str(), firstfilepath->m_Action & CTGitPath::LOGACTIONS_DELETED ? (m_CurrentVersion.ToString() + L"~1").c_str() : (m_CurrentVersion.ToString()).c_str(), CCmdLineParser::EscapeValue(secondfilepath->GetWinPathString()).c_str(), secondfilepath->m_Action & CTGitPath::LOGACTIONS_DELETED ? (m_CurrentVersion.ToString() + L"~1").c_str() : (m_CurrentVersion.ToString()).c_str(), reinterpret_cast<void*>(m_hWnd));
+							sCmd.Format(L"/command:diff /path:%s /startrev:%s /path2:%s /endrev:%s /hwnd:%p", TCmdLineParser::EscapeValue(firstfilepath->GetWinPathString()).c_str(), firstfilepath->m_Action & CTGitPath::LOGACTIONS_DELETED ? (m_CurrentVersion.ToString() + L"~1").c_str() : (m_CurrentVersion.ToString()).c_str(), TCmdLineParser::EscapeValue(secondfilepath->GetWinPathString()).c_str(), secondfilepath->m_Action & CTGitPath::LOGACTIONS_DELETED ? (m_CurrentVersion.ToString() + L"~1").c_str() : (m_CurrentVersion.ToString()).c_str(), reinterpret_cast<void*>(m_hWnd));
 						if (bShift)
 							sCmd += L" /alternative";
 						CAppUtils::RunTortoiseGitProc(sCmd);
@@ -2393,13 +2393,13 @@ void CGitStatusListCtrl::OnContextMenuList(CWnd * pWnd, CPoint point)
 			case IDGITLC_LOGSUBMODULE:
 				{
 					CString sCmd;
-					sCmd.Format(L"/command:log /path:%s", static_cast<LPCWSTR>(CCmdLineParser::EscapeValue(g_Git.CombinePath(filepath))));
+					sCmd.Format(L"/command:log /path:%s", static_cast<LPCWSTR>(TCmdLineParser::EscapeValue(g_Git.CombinePath(filepath))));
 					if (cmd == IDGITLC_LOG)
 					{
 						if (filepath->IsDirectory())
 							sCmd += L" /submodule";
 						if (!m_sDisplayedBranch.IsEmpty())
-							sCmd += L" /range:" + CCmdLineParser::EscapeValue(m_sDisplayedBranch);
+							sCmd += L" /range:" + TCmdLineParser::EscapeValue(m_sDisplayedBranch);
 						else
 							sCmd += std::format(L" /endrev:\"{0}\" /rev:\"{0}\"", m_CurrentVersion.ToString()).c_str();
 					}
@@ -2419,11 +2419,11 @@ void CGitStatusListCtrl::OnContextMenuList(CWnd * pWnd, CPoint point)
 				{
 					CTGitPath oldName(filepath->GetGitOldPathString().c_str());
 					CString sCmd;
-					sCmd.Format(L"/command:log /path:%s", static_cast<LPCWSTR>(CCmdLineParser::EscapeValue(g_Git.CombinePath(oldName))));
+					sCmd.Format(L"/command:log /path:%s", static_cast<LPCWSTR>(TCmdLineParser::EscapeValue(g_Git.CombinePath(oldName))));
 					if (filepath->IsDirectory())
 						sCmd += L" /submodule";
 					if (!m_sDisplayedBranch.IsEmpty())
-						sCmd += L" /range:" + CCmdLineParser::EscapeValue(m_sDisplayedBranch);
+						sCmd += L" /range:" + TCmdLineParser::EscapeValue(m_sDisplayedBranch);
 					CAppUtils::RunTortoiseGitProc(sCmd);
 				}
 				break;

@@ -19,18 +19,18 @@
 
 #pragma once
 #include "StandAloneDlg.h"
-#include "HistoryCombo.h"
+#include "Utils/HistoryCombo.h"
+#include "Utils/GestureEnabledControl.h"
 #include "MenuButton.h"
-import Registry;
 #include "BranchCombox.h"
 #include "GitLoglist.h"
 #include "GitProgressList.h"
 #include "GitRefCompareList.h"
 #include "GitTagCompareList.h"
 #include "SyncTabCtrl.h"
-#include "GestureEnabledControl.h"
 #include "GitStatusListCtrl.h"
 #include "GitCliOutputParser.h"
+import Registry;
 
 // CSyncDlg dialog
 #define IDC_SYNC_TAB 0x1000000

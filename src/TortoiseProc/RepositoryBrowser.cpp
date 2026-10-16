@@ -26,11 +26,11 @@
 #include "TortoiseProc.h"
 #include "RepositoryBrowser.h"
 #include "LogDlg.h"
-#include "AppUtils.h"
+import AppUtils;
 #include "IconMenu.h"
-#include "SysImageList.h"
+#include "Utils/SysImageList.h"
 #include "GitDiff.h"
-#include "DPIAware.h"
+#include "Utils/DPIAware.h"
 #include "MessageBox.h"
 
 #define OVERLAY_EXTERNAL	1
@@ -214,9 +214,9 @@ BOOL CRepositoryBrowser::OnInitDialog()
 	DWORD exStyle = TVS_EX_FADEINOUTEXPANDOS | TVS_EX_AUTOHSCROLL | TVS_EX_DOUBLEBUFFER;
 	m_RepoTree.SetExtendedStyle(exStyle, exStyle);
 
-	m_nExternalOvl = SYS_IMAGE_LIST().AddIcon(CCommonAppUtils::LoadIconEx(IDI_EXTERNALOVL, 0, 0));
-	m_nExecutableOvl = SYS_IMAGE_LIST().AddIcon(CCommonAppUtils::LoadIconEx(IDI_EXECUTABLEOVL, 0, 0));
-	m_nSymlinkOvl = SYS_IMAGE_LIST().AddIcon(CCommonAppUtils::LoadIconEx(IDI_SYMLINKOVL, 0, 0));
+	m_nExternalOvl = SYS_IMAGE_LIST().AddIcon(CAppUtils::LoadIconEx(IDI_EXTERNALOVL, 0, 0));
+	m_nExecutableOvl = SYS_IMAGE_LIST().AddIcon(CAppUtils::LoadIconEx(IDI_EXECUTABLEOVL, 0, 0));
+	m_nSymlinkOvl = SYS_IMAGE_LIST().AddIcon(CAppUtils::LoadIconEx(IDI_SYMLINKOVL, 0, 0));
 	// set externaloverlay in SYS_IMAGE_LIST() in Refresh method, so that it is updated after every launch of the logdialog
 
 	int borderWidth = 0;
@@ -819,11 +819,11 @@ void CRepositoryBrowser::ShowContextMenu(CPoint point, TShadowFilesTreeList &sel
 	case eCmd_ViewLogSubmodule:
 		{
 			CString sCmd;
-			sCmd.Format(L"/command:log /path:%s", static_cast<LPCWSTR>(CCmdLineParser::EscapeValue(g_Git.CombinePath(selectedLeafs.at(0)->GetFullName()))));
+			sCmd.Format(L"/command:log /path:%s", static_cast<LPCWSTR>(TCmdLineParser::EscapeValue(g_Git.CombinePath(selectedLeafs.at(0)->GetFullName()))));
 			if (cmd == eCmd_ViewLog && selectedLeafs.at(0)->m_bSubmodule)
 				sCmd += L" /submodule";
 			if (cmd == eCmd_ViewLog)
-				sCmd += L" /endrev:" + CCmdLineParser::EscapeValue(m_sRevision) + L" /rev:" + CCmdLineParser::EscapeValue(m_sRevision);
+				sCmd += L" /endrev:" + TCmdLineParser::EscapeValue(m_sRevision) + L" /rev:" + TCmdLineParser::EscapeValue(m_sRevision);
 			else if (cmd == eCmd_ViewLogSubmodule)
 				sCmd += L" /rev:" + selectedLeafs.at(0)->m_hash.ToString() + L" /endrev:" + selectedLeafs.at(0)->m_hash.ToString();
 			CAppUtils::RunTortoiseGitProc(sCmd);
@@ -1277,13 +1277,13 @@ void CRepositoryBrowser::OpenFile(const CString path, eOpenType mode, bool isSub
 					return;
 
 				CString sCmd;
-				sCmd.Format(L"/command:subupdate /bkpath:\"%s\" /selectedpath:%s", static_cast<LPCWSTR>(g_Git.m_CurrentDir), CCmdLineParser::EscapeValue(gitPath.GetGitPathString()).c_str());
+				sCmd.Format(L"/command:subupdate /bkpath:\"%s\" /selectedpath:%s", static_cast<LPCWSTR>(g_Git.m_CurrentDir), TCmdLineParser::EscapeValue(gitPath.GetGitPathString()).c_str());
 				CAppUtils::RunTortoiseGitProc(sCmd);
 				return;
 			}
 
 			CString cmd;
-			cmd.Format(L"/command:repobrowser /path:%s /rev:%s", static_cast<LPCWSTR>(CCmdLineParser::EscapeValue(g_Git.CombinePath(path))), (itemHash.ToString()).c_str());
+			cmd.Format(L"/command:repobrowser /path:%s /rev:%s", static_cast<LPCWSTR>(TCmdLineParser::EscapeValue(g_Git.CombinePath(path))), (itemHash.ToString()).c_str());
 			CAppUtils::RunTortoiseGitProc(cmd);
 			return;
 		}

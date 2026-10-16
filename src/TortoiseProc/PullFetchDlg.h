@@ -20,7 +20,7 @@
 #pragma once
 
 #include "HorizontalResizableStandAloneDialog.h"
-#include "HistoryCombo.h"
+#include "Utils/HistoryCombo.h"
 #include "HyperLink.h"
 import Registry;
 // CPullFetchDlg dialog

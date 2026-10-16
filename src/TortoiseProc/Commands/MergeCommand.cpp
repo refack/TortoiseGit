@@ -21,7 +21,7 @@
 #include "std.h"
 
 #include "MergeCommand.h"
-#include "AppUtils.h"
+import AppUtils;
 
 bool MergeCommand::Execute()
 {

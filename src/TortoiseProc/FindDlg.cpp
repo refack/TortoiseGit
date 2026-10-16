@@ -20,7 +20,7 @@
 #include "stdafx.h"
 #include "std.h"
 
-#include "resource.h"
+#include "../SharedMFC/Resources/resource.h"
 #include "FindDlg.h"
 
 // CFindDlg dialog

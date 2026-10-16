@@ -24,9 +24,9 @@
 #endif
 
 
-#include "resource.h"		// main symbols
+#include "Resources/resource.h"
 
-#include <TortoiseShell/resource.h>
+#include <../TortoiseShell/resource.h>
 #include <Resources/LoglistCommonResource.h>
 import LangDll;
 

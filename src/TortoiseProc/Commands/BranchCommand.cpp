@@ -21,7 +21,7 @@
 #include "std.h"
 
 #include "BranchCommand.h"
-#include "AppUtils.h"
+import AppUtils;
 
 bool BranchCommand::Execute()
 {
