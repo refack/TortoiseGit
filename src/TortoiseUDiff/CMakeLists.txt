@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 4.0)
+cmake_minimum_required(VERSION 4.4)
 project(TortoiseUDiff LANGUAGES CXX)
 
 find_package(MFC REQUIRED)

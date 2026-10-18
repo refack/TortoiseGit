@@ -22,7 +22,7 @@
 
 #include "TortoiseProc.h"
 #include "Settings.h"
-#include "MessageBox.h"
+import MessageBox;
 import TGitPath;	// GitAdminDir lives in the TGitPath module
 import AppUtils.Window;
 #include "Utils/Theme.h"

@@ -19,13 +19,15 @@
 //
 #pragma once
 #include <span>
+#include <functional>
+#include <set>
 
 struct ColumnDefinition
 {
-	int localId; // just for sanitycheck that the IDs used map to each other
-	unsigned int title;
-	bool visibleByDefault;
-	bool available;
+	int localId{}; // just for sanitycheck that the IDs used map to each other
+	unsigned int title{};
+	bool visibleByDefault{};
+	bool available{};
 	int defaultWidth = 0;
 };
 
@@ -217,7 +219,7 @@ private:
 	std::vector<ColumnInfo> columns;
 
 	/// user-defined properties
-	std::set<CString> itemProps;
+	std::set<CString> itemProps{};
 
 	/// global column ordering including unused user props
 	std::vector<int> columnOrder;

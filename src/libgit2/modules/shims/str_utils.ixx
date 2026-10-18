@@ -25,6 +25,190 @@ using namespace std::literals;
 import gsl;
 import wil;			// wil::unique_hfile, for the text-file helpers
 
+
+#pragma region long constants
+// Local: the table's row type is a detail of this lookup, not an export.
+struct CodeMap
+{
+	const int code;
+	const std::wstring_view page_name;
+};
+
+// ReSharper disable CppUseDesignatedInitializers
+constexpr auto codepage_map = std::array<CodeMap, 156>{{
+	{21027, L"21027"sv},			// (deprecated)
+	{710,   L"arabic"sv},			// - Transparent Arabic
+	{709,   L"arabic"sv},			// (ASMO-449+, BCON V4)
+	{708,   L"asmo-708"sv},			// Arabic (ASMO 708)
+	{950,   L"big5"sv},				// ANSI/OEM Traditional Chinese (Taiwan; Hong Kong SAR, PRC); Chinese Traditional (Big5)
+	{1251,  L"cp-1251"sv},			// IBM EBCDIC Cyrillic Serbian-Bulgarian
+	{1251,  L"cp_1251"sv},			// IBM EBCDIC Cyrillic Serbian-Bulgarian
+	{21025, L"cp1025"sv},			// IBM EBCDIC Cyrillic Serbian-Bulgarian
+	{1251,  L"cp1251"sv},
+	{866,   L"cp866"sv},			// OEM Russian; Cyrillic (DOS)
+	{875,   L"cp875"sv},			// IBM EBCDIC Greek Modern
+	{949,   L"cp949"sv},			// ANSI/OEM Korean (Unified Hangul Code)
+	{50221, L"csiso2022jp"sv},		// ISO 2022 Japanese with halfwidth Katakana; Japanese (JIS-Allow 1 byte Kana)
+	{720,   L"dos-720"sv},			// Arabic (Transparent ASMO); Arabic (DOS)
+	{862,   L"dos-862"sv},			// OEM Hebrew; Hebrew (DOS)
+	{50930, L"ebcdic"sv},			// Japanese (Katakana) Extended
+	{50939, L"ebcdic"sv},			// Japanese (Latin) Extended and Japanese
+	{50933, L"ebcdic"sv},			// Korean Extended and Korean
+	{50936, L"ebcdic"sv},			// Simplified Chinese
+	{50935, L"ebcdic"sv},			// Simplified Chinese Extended and Simplified Chinese
+	{50931, L"ebcdic"sv},			// US-Canada and Japanese
+	{50937, L"ebcdic"sv},			// US-Canada and Traditional Chinese
+	{51936, L"euc-cn"sv},			// EUC Simplified Chinese; Chinese Simplified (EUC)
+	{51932, L"euc-jp"sv},			// EUC Japanese
+	{20932, L"euc-jp"sv},			// Japanese (JIS 0208-1990 and 0121-1990)
+	{51949, L"euc-kr"sv},			// EUC Korean
+	{51950, L"euc"sv},				// Traditional Chinese
+	{54936, L"gb18030"sv},			// Windows XP and later: GB18030 Simplified Chinese (4 byte); Chinese Simplified (GB18030)
+	{936,   L"gb2312"sv},			// ANSI/OEM Simplified Chinese (PRC, Singapore); Chinese Simplified (GB2312)
+	{52936, L"hz-gb-2312"sv},		// HZ-GB2312 Simplified Chinese; Chinese Simplified (HZ)
+	{20838, L"ibm-thai"sv},			// IBM EBCDIC Thai
+	{858,   L"ibm00858"sv},			// OEM Multilingual Latin 1 + Euro symbol
+	{20924, L"ibm00924"sv},			// IBM EBCDIC Latin 1/Open System (1047 + Euro symbol)
+	{1047,  L"ibm01047"sv},			// IBM EBCDIC Latin 1/Open System
+	{1140,  L"ibm01140"sv},			// IBM EBCDIC US-Canada (037 + Euro symbol); IBM EBCDIC (US-Canada-Euro)
+	{1141,  L"ibm01141"sv},			// IBM EBCDIC Germany (20273 + Euro symbol); IBM EBCDIC (Germany-Euro)
+	{1142,  L"ibm01142"sv},			// IBM EBCDIC Denmark-Norway (20277 + Euro symbol); IBM EBCDIC (Denmark-Norway-Euro)
+	{1143,  L"ibm01143"sv},			// IBM EBCDIC Finland-Sweden (20278 + Euro symbol); IBM EBCDIC (Finland-Sweden-Euro)
+	{1144,  L"ibm01144"sv},			// IBM EBCDIC Italy (20280 + Euro symbol); IBM EBCDIC (Italy-Euro)
+	{1145,  L"ibm01145"sv},			// IBM EBCDIC Latin America-Spain (20284 + Euro symbol); IBM EBCDIC (Spain-Euro)
+	{1146,  L"ibm01146"sv},			// IBM EBCDIC United Kingdom (20285 + Euro symbol); IBM EBCDIC (UK-Euro)
+	{1147,  L"ibm01147"sv},			// IBM EBCDIC France (20297 + Euro symbol); IBM EBCDIC (France-Euro)
+	{1148,  L"ibm01148"sv},			// IBM EBCDIC International (500 + Euro symbol); IBM EBCDIC (International-Euro)
+	{1149,  L"ibm01149"sv},			// IBM EBCDIC Icelandic (20871 + Euro symbol); IBM EBCDIC (Icelandic-Euro)
+	{37,    L"ibm037"sv},			// IBM EBCDIC US-Canada
+	{1026,  L"ibm1026"sv},			// IBM EBCDIC Turkish (Latin 5)
+	{20273, L"ibm273"sv},			// IBM EBCDIC Germany
+	{20277, L"ibm277"sv},			// IBM EBCDIC Denmark-Norway
+	{20278, L"ibm278"sv},			// IBM EBCDIC Finland-Sweden
+	{20280, L"ibm280"sv},			// IBM EBCDIC Italy
+	{20284, L"ibm284"sv},			// IBM EBCDIC Latin America-Spain
+	{20285, L"ibm285"sv},			// IBM EBCDIC United Kingdom
+	{20290, L"ibm290"sv},			// IBM EBCDIC Japanese Katakana Extended
+	{20297, L"ibm297"sv},			// IBM EBCDIC France
+	{20420, L"ibm420"sv},			// IBM EBCDIC Arabic
+	{20423, L"ibm423"sv},			// IBM EBCDIC Greek
+	{20424, L"ibm424"sv},			// IBM EBCDIC Hebrew
+	{437,   L"ibm437"sv},			// OEM United States
+	{500,   L"ibm500"sv},			// IBM EBCDIC International
+	{737,   L"ibm737"sv},			// OEM Greek (formerly 437G); Greek (DOS)
+	{775,   L"ibm775"sv},			// OEM Baltic; Baltic (DOS)
+	{850,   L"ibm850"sv},			// OEM Multilingual Latin 1; Western European (DOS)
+	{852,   L"ibm852"sv},			// OEM Latin 2; Central European (DOS)
+	{855,   L"ibm855"sv},			// OEM Cyrillic (primarily Russian)
+	{857,   L"ibm857"sv},			// OEM Turkish; Turkish (DOS)
+	{860,   L"ibm860"sv},			// OEM Portuguese; Portuguese (DOS)
+	{861,   L"ibm861"sv},			// OEM Icelandic; Icelandic (DOS)
+	{863,   L"ibm863"sv},			// OEM French Canadian; French Canadian (DOS)
+	{864,   L"ibm864"sv},			// OEM Arabic; Arabic (864)
+	{865,   L"ibm865"sv},			// OEM Nordic; Nordic (DOS)
+	{869,   L"ibm869"sv},			// OEM Modern Greek; Greek, Modern (DOS)
+	{870,   L"ibm870"sv},			// IBM EBCDIC Multilingual/ROECE (Latin 2); IBM EBCDIC Multilingual Latin 2
+	{20871, L"ibm871"sv},			// IBM EBCDIC Icelandic
+	{20880, L"ibm880"sv},			// IBM EBCDIC Cyrillic Russian
+	{20905, L"ibm905"sv},			// IBM EBCDIC Turkish
+	{50222, L"iso-2022-jp"sv},		// ISO 2022 Japanese JIS X 0201-1989; Japanese (JIS-Allow 1 byte Kana - SO/SI)
+	{50220, L"iso-2022-jp"sv},		// ISO 2022 Japanese with no halfwidth Katakana; Japanese (JIS)
+	{50225, L"iso-2022-kr"sv},		// ISO 2022 Korean
+	{28591, L"iso-8859-1"sv},		// ISO 8859-1 Latin 1; Western European (ISO)
+	{28603, L"iso-8859-13"sv},		// ISO 8859-13 Estonian
+	{28605, L"iso-8859-15"sv},		// ISO 8859-15 Latin 9
+	{28592, L"iso-8859-2"sv},		// ISO 8859-2 Central European; Central European (ISO)
+	{28593, L"iso-8859-3"sv},		// ISO 8859-3 Latin 3
+	{28594, L"iso-8859-4"sv},		// ISO 8859-4 Baltic
+	{28595, L"iso-8859-5"sv},		// ISO 8859-5 Cyrillic
+	{28596, L"iso-8859-6"sv},		// ISO 8859-6 Arabic
+	{28597, L"iso-8859-7"sv},		// ISO 8859-7 Greek
+	{38598, L"iso-8859-8-i"sv},		// ISO 8859-8 Hebrew; Hebrew (ISO-Logical)
+	{28598, L"iso-8859-8"sv},		// ISO 8859-8 Hebrew; Hebrew (ISO-Visual)
+	{28599, L"iso-8859-9"sv},		// ISO 8859-9 Turkish
+	{50229, L"iso"sv},				// 2022 Traditional Chinese
+	{1361,  L"johab"sv},			// Korean (Johab)
+	{20866, L"koi8-r"sv},			// Russian (KOI8-R); Cyrillic (KOI8-R)
+	{21866, L"koi8-u"sv},			// Ukrainian (KOI8-U); Cyrillic (KOI8-U)
+	{949,   L"ks_c_5601-1987"sv},	// ANSI/OEM Korean (Unified Hangul Code)
+	{10000, L"macintosh"sv},		// MAC Roman; Western European (Mac)
+	{932,   L"shift_jis"sv},		// ANSI/OEM Japanese; Japanese (Shift-JIS)
+	{1201,  L"unicodefffe"sv},		// Unicode UTF-16, big endian byte order; available only to managed applications
+	{20127, L"us-ascii"sv},			// US-ASCII (7-bit)
+	{1200,  L"utf-16"sv},			// Unicode UTF-16, little endian byte order (BMP of ISO 10646); available only to managed applications
+	{12000, L"utf-32"sv},			// Unicode UTF-32, little endian byte order; available only to managed applications
+	{12001, L"utf-32be"sv},			// Unicode UTF-32, big endian byte order; available only to managed applications
+	{65000, L"utf-7"sv},			// Unicode (UTF-7)
+	{65001, L"utf-8"sv},			// Unicode (UTF-8)
+	{1250,  L"windows-1250"sv},		// ANSI Central European; Central European (Windows)
+	{1251,  L"windows-1251"sv},		// ANSI Cyrillic; Cyrillic (Windows)
+	{1252,  L"windows-1252"sv},		// ANSI Latin 1; Western European (Windows)
+	{1253,  L"windows-1253"sv},		// ANSI Greek; Greek (Windows)
+	{1254,  L"windows-1254"sv},		// ANSI Turkish; Turkish (Windows)
+	{1255,  L"windows-1255"sv},		// ANSI Hebrew; Hebrew (Windows)
+	{1256,  L"windows-1256"sv},		// ANSI Arabic; Arabic (Windows)
+	{1257,  L"windows-1257"sv},		// ANSI Baltic; Baltic (Windows)
+	{1258,  L"windows-1258"sv},		// ANSI/OEM Vietnamese; Vietnamese (Windows)
+	{874,   L"windows-874"sv},		// ANSI/OEM Thai (same as 28605, ISO 8859-15); Thai (Windows)
+	{20000, L"x-chinese_cns"sv},	// CNS Taiwan; Chinese Traditional (CNS)
+	{20001, L"x-cp20001"sv},		// TCA Taiwan
+	{20003, L"x-cp20003"sv},		// IBM5550 Taiwan
+	{20004, L"x-cp20004"sv},		// TeleText Taiwan
+	{20005, L"x-cp20005"sv},		// Wang Taiwan
+	{20261, L"x-cp20261"sv},		// T.61
+	{20269, L"x-cp20269"sv},		// ISO 6937 Non-Spacing Accent
+	{20936, L"x-cp20936"sv},		// Simplified Chinese (GB2312); Chinese Simplified (GB2312-80)
+	{20949, L"x-cp20949"sv},		// Korean Wansung
+	{50227, L"x-cp50227"sv},		// ISO 2022 Simplified Chinese; Chinese Simplified (ISO 2022)
+	{20833, L"x-ebcdic-koreanextended"sv},	// IBM EBCDIC Korean Extended
+	{29001, L"x-europa"sv},			// Europa 3
+	{20106, L"x-ia5-german"sv},		// IA5 German (7-bit)
+	{20108, L"x-ia5-norwegian"sv},	// IA5 Norwegian (7-bit)
+	{20107, L"x-ia5-swedish"sv},	// IA5 Swedish (7-bit)
+	{20105, L"x-ia5"sv},			// IA5 (IRV International Alphabet No. 5, 7-bit); Western European (IA5)
+	{57006, L"x-iscii-as"sv},		// ISCII Assamese
+	{57003, L"x-iscii-be"sv},		// ISCII Bengali
+	{57002, L"x-iscii-de"sv},		// ISCII Devanagari
+	{57010, L"x-iscii-gu"sv},		// ISCII Gujarati
+	{57008, L"x-iscii-ka"sv},		// ISCII Kannada
+	{57009, L"x-iscii-ma"sv},		// ISCII Malayalam
+	{57007, L"x-iscii-or"sv},		// ISCII Oriya
+	{57011, L"x-iscii-pa"sv},		// ISCII Punjabi
+	{57004, L"x-iscii-ta"sv},		// ISCII Tamil
+	{57005, L"x-iscii-te"sv},		// ISCII Telugu
+	{10004, L"x-mac-arabic"sv},		// Arabic (Mac)
+	{10029, L"x-mac-ce"sv},			// MAC Latin 2; Central European (Mac)
+	{10008, L"x-mac-chinesesimp"sv},// MAC Simplified Chinese (GB 2312); Chinese Simplified (Mac)
+	{10002, L"x-mac-chinesetrad"sv},// MAC Traditional Chinese (Big5); Chinese Traditional (Mac)
+	{10082, L"x-mac-croatian"sv},	// Croatian (Mac)
+	{10007, L"x-mac-cyrillic"sv},	// Cyrillic (Mac)
+	{10006, L"x-mac-greek"sv},		// Greek (Mac)
+	{10005, L"x-mac-hebrew"sv},		// Hebrew (Mac)
+	{10079, L"x-mac-icelandic"sv},	// Icelandic (Mac)
+	{10001, L"x-mac-japanese"sv},	// Japanese (Mac)
+	{10003, L"x-mac-korean"sv},		// Korean (Mac)
+	{10010, L"x-mac-romanian"sv},	// Romanian (Mac)
+	{10021, L"x-mac-thai"sv},		// Thai (Mac)
+	{10081, L"x-mac-turkish"sv},	// Turkish (Mac)
+	{10017, L"x-mac-ukrainian"sv},	// Ukrainian (Mac)
+	{20002, L"x_chinese-eten"sv} 	// Eten Taiwan; Chinese Traditional (Eten)
+}};
+// ReSharper restore CppUseDesignatedInitializers
+#pragma endregion
+// static_assert(std::ranges::is_sorted(codepage_map, {}, &CodeMap::page_name));
+
+// Read-optimized O(log N) compile-time compatible lookup
+constexpr std::optional<int> find_codepage(const std::wstring_view key) {
+	const auto it = std::ranges::lower_bound(codepage_map, key, {}, &CodeMap::page_name);
+
+	if (it == codepage_map.end() || it->page_name != key)
+		return std::nullopt;
+
+	return it->code;
+}
+
+
+
 #pragma region Interspersed narrow/wide concepts
 // ---- The shim fork ------------------------------------------------------------
 // CString is not one type: MFC-Dynamic gets CStringT<wchar_t, StrTraitMFC_DLL<...>>,
@@ -678,225 +862,31 @@ inline int SafeSizeToInt(const size_t sizeValue)
 // substitute for anyway, since they can encode every input. The paired
 // lpUsedDefaultChar flag is deliberately not offered: no call site has ever
 // read it.
-template <TStrOfChar TOut = std::string>
-TOut GetMulti(const std::wstring_view wide, const int acp = CP_UTF8, const char* const defaultChar = nullptr)
+template <TStrOfChar TOut, TStrOfWide TIn>
+TOut GetMulti(const TIn& in_string, const int acp = CP_UTF8, const char* const defaultChar = nullptr)
 {
-	TOut out;
-	if (wide.empty())
-		return out;
-
-	const auto len = gsl::narrow<int>(wide.length());
-	const char* const subst = acp == CP_UTF8 || acp == CP_UTF7 ? nullptr : defaultChar;
-	// Both calls must agree on the substitution character, or the measured size
-	// is not the size the second call writes.
-	const int need = WideCharToMultiByte(acp, 0, wide.data(), len, nullptr, 0, subst, nullptr);
-	if (need > 0)
-		StringTraits<TOut>::overwrite(out, gsl::narrow<size_t>(need), [&](char* buf, const size_t cap) {
-			return gsl::narrow<size_t>(WideCharToMultiByte(acp, 0, wide.data(), len, buf, gsl::narrow<int>(cap), subst, nullptr));
-		});
-	// Non-empty input never converts to nothing, so empty here is a failure of
-	// either call.
-	if (StringViewTraits<TOut>::size(out) == 0)
-		throw std::exception("WideCharToMultiByte failed");
-	return out;
+	auto temp = wil::WideCharToMultiByte(StringView<TIn>{in_string}, acp, defaultChar);
+	return TOut{temp.data(), StringViewTraits<TOut>::size(temp)};
 }
 
 
 std::string StdGetMulti(const std::wstring_view wide, const int acp = CP_UTF8, const char* const defaultChar = nullptr)
 {
-	return GetMulti(wide, acp, defaultChar);
+	return wil::WideCharToMultiByte(wide, acp, defaultChar);
 }
 
 
-int StdGetCPCode(const std::wstring_view codename)
+int StdGetCPCode(const std::wstring_view codename_arg)
 {
-	// Local: the table's row type is a detail of this lookup, not an export.
-	struct CodeMap
-	{
-		int m_Code;
-		const wchar_t* m_CodeName;
-	};
-
-	// ReSharper disable CppUseDesignatedInitializers
-	static constexpr CodeMap map[] =
-	{
-		{ 37, L"IBM037"}, // IBM EBCDIC US-Canada
-		{ 437, L"IBM437"}, // OEM United States
-		{ 500, L"IBM500"},// IBM EBCDIC International
-		{708, L"ASMO-708"},// Arabic (ASMO 708)
-		{709, L"Arabic"},// (ASMO-449+, BCON V4)
-		{710, L"Arabic"},// - Transparent Arabic
-		{720, L"DOS-720"},// Arabic (Transparent ASMO); Arabic (DOS)
-		{737, L"ibm737"},// OEM Greek (formerly 437G); Greek (DOS)
-		{775, L"ibm775"},// OEM Baltic; Baltic (DOS)
-		{850, L"ibm850"},// OEM Multilingual Latin 1; Western European (DOS)
-		{852, L"ibm852"},// OEM Latin 2; Central European (DOS)
-		{855, L"IBM855"},// OEM Cyrillic (primarily Russian)
-		{857, L"ibm857"},// OEM Turkish; Turkish (DOS)
-		{858, L"IBM00858"},// OEM Multilingual Latin 1 + Euro symbol
-		{860, L"IBM860"},// OEM Portuguese; Portuguese (DOS)
-		{861, L"ibm861"},// OEM Icelandic; Icelandic (DOS)
-		{862, L"DOS-862"},// OEM Hebrew; Hebrew (DOS)
-		{863, L"IBM863"},// OEM French Canadian; French Canadian (DOS)
-		{864, L"IBM864"},// OEM Arabic; Arabic (864)
-		{865, L"IBM865"},// OEM Nordic; Nordic (DOS)
-		{866, L"cp866"},// OEM Russian; Cyrillic (DOS)
-		{869, L"ibm869"},// OEM Modern Greek; Greek, Modern (DOS)
-		{870, L"IBM870"},// IBM EBCDIC Multilingual/ROECE (Latin 2); IBM EBCDIC Multilingual Latin 2
-		{874, L"windows-874"},// ANSI/OEM Thai (same as 28605, ISO 8859-15); Thai (Windows)
-		{875, L"cp875"},// IBM EBCDIC Greek Modern
-		{932, L"shift_jis"},// ANSI/OEM Japanese; Japanese (Shift-JIS)
-		{936, L"gb2312"},// ANSI/OEM Simplified Chinese (PRC, Singapore); Chinese Simplified (GB2312)
-		{949, L"ks_c_5601-1987"},// ANSI/OEM Korean (Unified Hangul Code)
-		{949, L"cp949"},// ANSI/OEM Korean (Unified Hangul Code)
-		{950, L"big5"},// ANSI/OEM Traditional Chinese (Taiwan; Hong Kong SAR, PRC); Chinese Traditional (Big5)
-		{1026,L"IBM1026"},// IBM EBCDIC Turkish (Latin 5)
-		{1047,L"IBM01047"},// IBM EBCDIC Latin 1/Open System
-		{1140,L"IBM01140"},// IBM EBCDIC US-Canada (037 + Euro symbol); IBM EBCDIC (US-Canada-Euro)
-		{1141, L"IBM01141"},// IBM EBCDIC Germany (20273 + Euro symbol); IBM EBCDIC (Germany-Euro)
-		{1142, L"IBM01142"},// IBM EBCDIC Denmark-Norway (20277 + Euro symbol); IBM EBCDIC (Denmark-Norway-Euro)
-		{1143, L"IBM01143"},// IBM EBCDIC Finland-Sweden (20278 + Euro symbol); IBM EBCDIC (Finland-Sweden-Euro)
-		{1144, L"IBM01144"},// IBM EBCDIC Italy (20280 + Euro symbol); IBM EBCDIC (Italy-Euro)
-		{1145, L"IBM01145"},// IBM EBCDIC Latin America-Spain (20284 + Euro symbol); IBM EBCDIC (Spain-Euro)
-		{1146, L"IBM01146"},// IBM EBCDIC United Kingdom (20285 + Euro symbol); IBM EBCDIC (UK-Euro)
-		{1147, L"IBM01147"},// IBM EBCDIC France (20297 + Euro symbol); IBM EBCDIC (France-Euro)
-		{1148, L"IBM01148"},// IBM EBCDIC International (500 + Euro symbol); IBM EBCDIC (International-Euro)
-		{1149, L"IBM01149"},// IBM EBCDIC Icelandic (20871 + Euro symbol); IBM EBCDIC (Icelandic-Euro)
-		{1200, L"utf-16"},// Unicode UTF-16, little endian byte order (BMP of ISO 10646); available only to managed applications
-		{1201, L"unicodeFFFE"},// Unicode UTF-16, big endian byte order; available only to managed applications
-		{1250, L"windows-1250"},// ANSI Central European; Central European (Windows)
-		{1251, L"windows-1251"},// ANSI Cyrillic; Cyrillic (Windows)
-		{1251, L"cp1251"},
-		{1251, L"cp-1251"},
-		{1251, L"cp_1251"},
-		{1252, L"windows-1252"},// ANSI Latin 1; Western European (Windows)
-		{1253, L"windows-1253"},// ANSI Greek; Greek (Windows)
-		{1254, L"windows-1254"},// ANSI Turkish; Turkish (Windows)
-		{1255, L"windows-1255"},// ANSI Hebrew; Hebrew (Windows)
-		{1256, L"windows-1256"},// ANSI Arabic; Arabic (Windows)
-		{1257, L"windows-1257"},// ANSI Baltic; Baltic (Windows)
-		{1258, L"windows-1258"},// ANSI/OEM Vietnamese; Vietnamese (Windows)
-		{1361, L"Johab"},// Korean (Johab)
-		{10000,L"macintosh"},// MAC Roman; Western European (Mac)
-		{10001, L"x-mac-japanese"},// Japanese (Mac)
-		{10002, L"x-mac-chinesetrad"},// MAC Traditional Chinese (Big5); Chinese Traditional (Mac)
-		{10003, L"x-mac-korean"},// Korean (Mac)
-		{10004, L"x-mac-arabic"},// Arabic (Mac)
-		{10005, L"x-mac-hebrew"},// Hebrew (Mac)
-		{10006, L"x-mac-greek"},// Greek (Mac)
-		{10007, L"x-mac-cyrillic"},// Cyrillic (Mac)
-		{10008, L"x-mac-chinesesimp"},// MAC Simplified Chinese (GB 2312); Chinese Simplified (Mac)
-		{10010, L"x-mac-romanian"},// Romanian (Mac)
-		{10017, L"x-mac-ukrainian"},// Ukrainian (Mac)
-		{10021, L"x-mac-thai"},// Thai (Mac)
-		{10029, L"x-mac-ce"},// MAC Latin 2; Central European (Mac)
-		{10079, L"x-mac-icelandic"},// Icelandic (Mac)
-		{10081, L"x-mac-turkish"},// Turkish (Mac)
-		{10082, L"x-mac-croatian"},// Croatian (Mac)
-		{12000, L"utf-32"},// Unicode UTF-32, little endian byte order; available only to managed applications
-		{12001, L"utf-32BE"},// Unicode UTF-32, big endian byte order; available only to managed applications
-		{20000, L"x-Chinese_CNS"},// CNS Taiwan; Chinese Traditional (CNS)
-		{20001, L"x-cp20001"},// TCA Taiwan
-		{20002, L"x_Chinese-Eten"},// Eten Taiwan; Chinese Traditional (Eten)
-		{20003, L"x-cp20003"},// IBM5550 Taiwan
-		{20004, L"x-cp20004"},// TeleText Taiwan
-		{20005, L"x-cp20005"},// Wang Taiwan
-		{20105, L"x-IA5"},// IA5 (IRV International Alphabet No. 5, 7-bit); Western European (IA5)
-		{20106, L"x-IA5-German"},// IA5 German (7-bit)
-		{20107, L"x-IA5-Swedish"},// IA5 Swedish (7-bit)
-		{20108, L"x-IA5-Norwegian"},// IA5 Norwegian (7-bit)
-		{20127, L"us-ascii"},// US-ASCII (7-bit)
-		{20261, L"x-cp20261"},// T.61
-		{20269, L"x-cp20269"},// ISO 6937 Non-Spacing Accent
-		{20273, L"IBM273"},// IBM EBCDIC Germany
-		{20277, L"IBM277"},//IBM EBCDIC Denmark-Norway
-		{20278, L"IBM278"},// IBM EBCDIC Finland-Sweden
-		{20280, L"IBM280"},// IBM EBCDIC Italy
-		{20284, L"IBM284"},// IBM EBCDIC Latin America-Spain
-		{20285, L"IBM285"},// IBM EBCDIC United Kingdom
-		{20290, L"IBM290"},// IBM EBCDIC Japanese Katakana Extended
-		{20297, L"IBM297"},// IBM EBCDIC France
-		{20420, L"IBM420"},// IBM EBCDIC Arabic
-		{20423, L"IBM423"},// IBM EBCDIC Greek
-		{20424, L"IBM424"},// IBM EBCDIC Hebrew
-		{20833, L"x-EBCDIC-KoreanExtended"},// IBM EBCDIC Korean Extended
-		{20838, L"IBM-Thai"},// IBM EBCDIC Thai
-		{20866, L"koi8-r"},// Russian (KOI8-R); Cyrillic (KOI8-R)
-		{20871, L"IBM871"},// IBM EBCDIC Icelandic
-		{20880, L"IBM880"},// IBM EBCDIC Cyrillic Russian
-		{20905, L"IBM905"},// IBM EBCDIC Turkish
-		{20924, L"IBM00924"},// IBM EBCDIC Latin 1/Open System (1047 + Euro symbol)
-		{20932, L"EUC-JP"},// Japanese (JIS 0208-1990 and 0121-1990)
-		{20936, L"x-cp20936"},// Simplified Chinese (GB2312); Chinese Simplified (GB2312-80)
-		{20949, L"x-cp20949"},// Korean Wansung
-		{21025, L"cp1025"},// IBM EBCDIC Cyrillic Serbian-Bulgarian
-		{21027, L"21027"},// (deprecated)
-		{21866, L"koi8-u"},// Ukrainian (KOI8-U); Cyrillic (KOI8-U)
-		{28591, L"iso-8859-1"},// ISO 8859-1 Latin 1; Western European (ISO)
-		{28592, L"iso-8859-2"},// ISO 8859-2 Central European; Central European (ISO)
-		{28593, L"iso-8859-3"},// ISO 8859-3 Latin 3
-		{28594, L"iso-8859-4"},// ISO 8859-4 Baltic
-		{28595, L"iso-8859-5"},// ISO 8859-5 Cyrillic
-		{28596, L"iso-8859-6"},// ISO 8859-6 Arabic
-		{28597, L"iso-8859-7"},// ISO 8859-7 Greek
-		{28598, L"iso-8859-8"},// ISO 8859-8 Hebrew; Hebrew (ISO-Visual)
-		{28599, L"iso-8859-9"},// ISO 8859-9 Turkish
-		{28603, L"iso-8859-13"},// ISO 8859-13 Estonian
-		{28605, L"iso-8859-15"},// ISO 8859-15 Latin 9
-		{29001, L"x-Europa"},// Europa 3
-		{38598, L"iso-8859-8-i"},// ISO 8859-8 Hebrew; Hebrew (ISO-Logical)
-		{50220, L"iso-2022-jp"},// ISO 2022 Japanese with no halfwidth Katakana; Japanese (JIS)
-		{50221, L"csISO2022JP"},// ISO 2022 Japanese with halfwidth Katakana; Japanese (JIS-Allow 1 byte Kana)
-		{50222, L"iso-2022-jp"},// ISO 2022 Japanese JIS X 0201-1989; Japanese (JIS-Allow 1 byte Kana - SO/SI)
-		{50225, L"iso-2022-kr"},// ISO 2022 Korean
-		{50227, L"x-cp50227"},// ISO 2022 Simplified Chinese; Chinese Simplified (ISO 2022)
-		{50229, L"ISO"},// 2022 Traditional Chinese
-		{50930, L"EBCDIC"},// Japanese (Katakana) Extended
-		{50931, L"EBCDIC"},// US-Canada and Japanese
-		{50933, L"EBCDIC"},// Korean Extended and Korean
-		{50935, L"EBCDIC"},// Simplified Chinese Extended and Simplified Chinese
-		{50936, L"EBCDIC"},// Simplified Chinese
-		{50937, L"EBCDIC"},// US-Canada and Traditional Chinese
-		{50939, L"EBCDIC"},// Japanese (Latin) Extended and Japanese
-		{51932, L"euc-jp"},// EUC Japanese
-		{51936, L"EUC-CN"},// EUC Simplified Chinese; Chinese Simplified (EUC)
-		{51949, L"euc-kr"},// EUC Korean
-		{51950, L"EUC"},// Traditional Chinese
-		{52936, L"hz-gb-2312"},// HZ-GB2312 Simplified Chinese; Chinese Simplified (HZ)
-		{54936, L"GB18030"},// Windows XP and later: GB18030 Simplified Chinese (4 byte); Chinese Simplified (GB18030)
-		{57002, L"x-iscii-de"},// ISCII Devanagari
-		{57003, L"x-iscii-be"},// ISCII Bengali
-		{57004, L"x-iscii-ta"},// ISCII Tamil
-		{57005, L"x-iscii-te"},// ISCII Telugu
-		{57006, L"x-iscii-as"},// ISCII Assamese
-		{57007, L"x-iscii-or"},// ISCII Oriya
-		{57008, L"x-iscii-ka"},// ISCII Kannada
-		{57009, L"x-iscii-ma"},// ISCII Malayalam
-		{57010, L"x-iscii-gu"},// ISCII Gujarati
-		{57011, L"x-iscii-pa"},// ISCII Punjabi
-		{65000, L"utf-7"},// Unicode (UTF-7)
-		{65001, L"utf-8"},// Unicode (UTF-8)
-	};
-	// ReSharper restore CppUseDesignatedInitializers
-	if (codename.empty())
-		return CP_UTF8;
-	std::wstring code(codename);
-	tgit::wstr::MakeLower(code);
-	for (const auto &[m_Code, m_CodeName] : map)
-	{
-		std::wstring str(m_CodeName);
-		tgit::wstr::MakeLower(str);
-
-		if (str == code)
-			return m_Code;
-	}
-
-	return CP_UTF8;
+	std::wstring codename;
+	std::ranges::transform(codename_arg, codename.begin(), ::towlower);
+	auto&& opt_cp = find_codepage(codename_arg);
+	return opt_cp.value_or(CP_UTF8);
 }
 
 std::string StdGetUTF8(const std::wstring_view wide)
 {
-	return StdGetMulti(wide, CP_UTF8);
+	return wil::WideCharToMultiByte(wide, CP_UTF8);
 }
 
 // Thin adapters over the above, kept while call sites move across. They
@@ -981,7 +971,7 @@ TOut Convert2Multibyte(const TIn& inStr)
 
 
 template <TStrOfWide TOut = std::wstring>
-TOut StdGetUnicode(const std::string_view multibyte, const int acp)
+TOut StdGetUnicode(const std::string_view multibyte, const int acp = CP_ACP)
 {
 	TOut out;
 	if (multibyte.empty())
@@ -1111,6 +1101,7 @@ CString EnsureCRLF(const std::wstring_view text)
 	const std::wstring out = std::regex_replace(std::wstring(text), lineEnd, L"\r\n");
 	return CString(out.data(), gsl::narrow<int>(out.size()));
 }
+// this is templated to catch all CString variants
 template <IsStupidString TStr>
 CString EnsureCRLF(const TStr& text)
 {
@@ -1348,7 +1339,7 @@ void RemoveAccelerators(CString& text)
 /**
  * Escapes all '&' chars from a string with another '&'.
  */
-CString EscapeAccellerators(CString& text)
+CString EscapeAccellerators(CString text)
 {
 	text.Replace(L"&", L"&&");
 	return text;

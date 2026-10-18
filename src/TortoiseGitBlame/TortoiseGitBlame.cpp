@@ -22,16 +22,16 @@
 
 #include "stdafx.h"
 #include <afxwinappex.h>
+#include <version.h>
 #include "TortoiseGitBlame.h"
 #include "MainFrm.h"
-#include <../libgit2/include/version.h>
 #include "TortoiseGitBlameDoc.h"
 #include "TortoiseGitBlameView.h"
-#include "CmdLineParser.h"
+#include "DPIAware.h"
 import PathUtils;
 import AppUtils.Launch;
 import TaskbarUUID;
-#include "DPIAware.h"
+import CmdLineParser;
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -65,9 +65,6 @@ CTortoiseGitBlameApp::~CTortoiseGitBlameApp()
 
 // The one and only CTortoiseGitBlameApp object
 CTortoiseGitBlameApp theApp;
-CString g_sGroupingUUID;
-CString g_sGroupingIcon;
-bool g_bGroupingRemoveIcon = false;
 
 // CTortoiseGitBlameApp initialization
 
@@ -136,8 +133,8 @@ BOOL CTortoiseGitBlameApp::InitInstance()
 		return FALSE;
 	AddDocTemplate(pDocTemplate);
 
-	CCmdLineParser parser(m_lpCmdLine);
-	g_sGroupingUUID = parser.GetVal(L"groupuuid");
+	TCmdLineParser::CCmdLineParser parser(m_lpCmdLine);
+	CAppUtils::g_sGroupingUUID = parser.GetVal(L"groupuuid");
 
 	// Parse command line for standard shell commands, DDE, file open
 	CCommandLineInfo cmdInfo;
@@ -165,7 +162,7 @@ BOOL CTortoiseGitBlameApp::InitInstance()
 
 BOOL CTortoiseGitBlameApp::LoadWindowPlacement(CRect& rectNormalPosition, int& nFlags, int& nShowCmd)
 {
-	CRegString placement = CRegString(CString(L"Software\\TortoiseGitBlame\\WindowPos_") + GetMonitorSetupHash().c_str());
+	auto placement = Registry::CRegString(CString(L"Software\\TortoiseGitBlame\\WindowPos_") + GetMonitorSetupHash().c_str());
 	CString sPlacement = placement;
 	if (sPlacement.IsEmpty())
 		return FALSE;
@@ -191,7 +188,7 @@ BOOL CTortoiseGitBlameApp::LoadWindowPlacement(CRect& rectNormalPosition, int& n
 
 BOOL CTortoiseGitBlameApp::StoreWindowPlacement(const CRect& rectNormalPosition, int nFlags, int nShowCmd)
 {
-	CRegString placement(CString(L"Software\\TortoiseGitBlame\\WindowPos_") + GetMonitorSetupHash().c_str());
+	Registry::CRegString placement(CString(L"Software\\TortoiseGitBlame\\WindowPos_") + GetMonitorSetupHash().c_str());
 
 	WINDOWPLACEMENT wp = { 0 };
 	wp.length = sizeof(wp);
@@ -246,13 +243,13 @@ BOOL CAboutDlg::OnInitDialog()
 {
 	CStandAloneDialog::OnInitDialog();
 
-	wchar_t verbuf[1024] = { 0 };
-	wchar_t maskbuf[1024] = { 0 };
+	wchar_t verbuf[1024] = {};
+	wchar_t maskbuf[1024] = {};
 	::LoadString(GetModuleHandle(nullptr), IDS_VERSION, maskbuf, _countof(maskbuf));
 	swprintf_s(verbuf, maskbuf, TGIT_VERMAJOR, TGIT_VERMINOR, TGIT_VERMICRO, TGIT_VERBUILD);
 	SetDlgItemText(IDC_VERSION, verbuf);
 
-	SetDlgItemText(IDC_COPYRIGHT, CPathUtils::GetCopyrightForSelf().c_str());
+	SetDlgItemText(IDC_COPYRIGHT, PathUtils::GetCopyrightForSelf().c_str());
 	SetDlgItemText(IDC_STATIC_AUTHORS, L"Sven Strickroth <email@cs-ware.de> (Current Maintainer), Sup Yut Sum <ch3cooli@gmail.com>, Frank Li <lznuaa@gmail.com> and Martin Strauß <MStrauss@MuellerBBM-vas.de>");
 
 	return FALSE;

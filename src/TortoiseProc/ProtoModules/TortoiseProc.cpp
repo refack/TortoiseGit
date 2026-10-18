@@ -27,7 +27,7 @@
 #include "ConfigureGitExe.h"
 #include "Hooks.h"
 #include "JumpListHelpers.h"
-#include "MessageBox.h"
+import MessageBox;
 #include "ProjectProperties.h"
 #include "VersioncheckParser.h"
 #include "Commands/Command.h"
@@ -79,9 +79,6 @@ CTortoiseProcApp::~CTortoiseProcApp()
 
 // The one and only CTortoiseProcApp object
 CTortoiseProcApp theApp;
-CString g_sGroupingUUID;
-CString g_sGroupingIcon;
-bool g_bGroupingRemoveIcon = false;
 HWND GetExplorerHWND()
 {
 	return theApp.GetExplorerHWND();
@@ -137,9 +134,9 @@ BOOL CTortoiseProcApp::InitInstance()
 	CCmdLineParser parser(AfxGetApp()->m_lpCmdLine);
 
 	hWndExplorer = nullptr;
-	CString sVal = parser.GetVal(L"hwnd");
-	if (!sVal.IsEmpty())
-		hWndExplorer = reinterpret_cast<HWND>(_wcstoui64(sVal, nullptr, 16));
+	std::wstring sVal = parser.GetValStr(L"hwnd");
+	if (!sVal.empty())
+		hWndExplorer = reinterpret_cast<HWND>(_wcstoui64(sVal.c_str(), nullptr, 16));
 
 	while (hWndExplorer && GetParent(hWndExplorer))
 		hWndExplorer = GetParent(hWndExplorer);
@@ -244,8 +241,8 @@ BOOL CTortoiseProcApp::InitInstance()
 
 	CTGitPath cmdLinePath;
 	CTGitPathList pathList;
-	if (g_sGroupingUUID.IsEmpty())
-		g_sGroupingUUID = parser.GetVal(L"groupuuid");
+	if (CAppUtils::g_sGroupingUUID.empty())
+		CAppUtils::g_sGroupingUUID = parser.GetVal(L"groupuuid");
 	if (parser.HasKey(L"pathfile"))
 	{
 		CString sPathfileArgument = PathUtils::GetLongPathname(parser.GetValStr(L"pathfile")).c_str();
@@ -296,7 +293,7 @@ BOOL CTortoiseProcApp::InitInstance()
 	if (!cmd->CheckRepo())
 		return FALSE;
 
-	if (g_sGroupingUUID.IsEmpty())
+	if (CAppUtils::g_sGroupingUUID.empty())
 	{
 		CRegStdDWORD groupSetting = CRegStdDWORD(L"Software\\TortoiseGit\\GroupTaskbarIconsPerRepo", 3);
 		switch (DWORD(groupSetting))
@@ -315,15 +312,15 @@ BOOL CTortoiseProcApp::InitInstance()
 					// group, so the lowercasing must stay byte-for-byte what it was.
 					CString wcroot(wcrootStd.c_str());
 					const std::string wcRootA = CUnicodeUtils::StdGetUTF8(tgit::str::StringView(wcroot.MakeLower()));
-					g_sGroupingUUID = TGitHash::GetHashText(wcRootA.data(), wcRootA.size(), TGitHash::HashType::HashSha1).c_str();
+					CAppUtils::g_sGroupingUUID = TGitHash::GetHashText(wcRootA.data(), wcRootA.size(), TGitHash::HashType::HashSha1).c_str();
 
 					ProjectProperties pp;
 					pp.ReadProps();
 					CString icon = pp.sIcon;
 					icon.Replace('/', '\\');
 					if (icon.IsEmpty())
-						g_bGroupingRemoveIcon = true;
-					g_sGroupingIcon = icon;
+						CAppUtils::g_bGroupingRemoveIcon = true;
+					CAppUtils::g_sGroupingIcon = icon;
 				}
 			}
 		default:
@@ -331,7 +328,7 @@ BOOL CTortoiseProcApp::InitInstance()
 		}
 	}
 
-	CString sAppID = TaskbarUUID::GetTaskIDPerUUID(g_sGroupingUUID).c_str();
+	CString sAppID = TaskbarUUID::GetTaskIDPerUUID(CAppUtils::g_sGroupingUUID).c_str();
 	InitializeJumpList(sAppID);
 	EnsureGitLibrary(false);
 

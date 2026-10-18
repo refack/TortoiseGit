@@ -23,7 +23,7 @@
 
 #include "TortoiseProc.h"
 #include "RevisionGraphWnd.h"
-#include "MessageBox.h"
+import MessageBox;
 import AppUtils.Launch;
 import AppUtils.Workflow;
 #include "RevisionGraphDlg.h"

@@ -28,7 +28,7 @@
 import AppUtils.Window;
 import AppUtils.Workflow;
 #include "LoglistUtils.h"
-#include "MessageBox.h"
+import MessageBox;
 #include "BrowseRefsDlg.h"
 import TortoiseProc.MassiveGitTask;
 #include "CommitDlg.h"

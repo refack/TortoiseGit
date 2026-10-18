@@ -22,7 +22,7 @@
 
 #include "DaemonCommand.h"
 #include "ProgressDlg.h"
-#include "MessageBox.h"
+import MessageBox;
 
 bool DaemonCommand::Execute()
 {

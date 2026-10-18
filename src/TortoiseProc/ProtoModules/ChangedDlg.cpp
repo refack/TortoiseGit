@@ -23,7 +23,7 @@
 
 #include "TortoiseProc.h"
 #include "ChangedDlg.h"
-#include "MessageBox.h"
+import MessageBox;
 import AppUtils.Launch;
 import AppUtils.Window;
 import AppUtils.Workflow;

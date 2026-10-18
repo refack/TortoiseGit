@@ -28,7 +28,7 @@
 import AppUtils.Window;
 import AppUtils.Workflow;
 #include "SelectRemoteRefDlg.h"
-#include "MessageBox.h"
+import MessageBox;
 
 // CPullFetchDlg dialog
 

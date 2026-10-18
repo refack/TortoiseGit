@@ -32,7 +32,7 @@ import AppUtils.Window;
 #include "Utils/SysImageList.h"
 #include "GitDiff.h"
 #include "Utils/DPIAware.h"
-#include "MessageBox.h"
+import MessageBox;
 
 #define OVERLAY_EXTERNAL	1
 #define OVERLAY_EXECUTABLE	2

@@ -21,7 +21,7 @@
 #include "std.h"
 
 #include "InaccessibleCommand.h"
-#include "MessageBox.h"
+import MessageBox;
 
 bool InaccessibleCommand ::Execute()
 {

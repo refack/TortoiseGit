@@ -25,20 +25,15 @@ import AppUtils.Launch;
 
 bool ShowCompareCommand::Execute()
 {
-	CString		rev1;
-	CString		rev2;
-
 	bool		unified = !!parser.HasKey(L"unified");
 
-	if (parser.HasVal(L"revision1"))
-		rev1 = parser.GetVal(L"revision1");
-	if (parser.HasVal(L"revision2"))
-		rev2 = parser.GetVal(L"revision2");
+	auto rev1 = parser.GetValStr(L"revision1");
+	auto rev2 = parser.GetValStr(L"revision2");
 
 	bool bAlternativeTool = !!parser.HasKey(L"alternative");
 
 	if (unified)
-		return !!CAppUtils::StartShowUnifiedDiff(nullptr, cmdLinePath, rev1, CTGitPath(), rev2, bAlternativeTool);
+		return !!CAppUtils::StartShowUnifiedDiff(nullptr, cmdLinePath, rev1.c_str(), CTGitPath(), rev2.c_str(), bAlternativeTool);
 	else
-		return !!CGitDiff::DiffCommit(GetExplorerHWND(), cmdLinePath, rev2, rev1, bAlternativeTool);
+		return !!CGitDiff::DiffCommit(GetExplorerHWND(), cmdLinePath, rev2.c_str(), rev1.c_str(), bAlternativeTool);
 }

@@ -24,7 +24,7 @@
 
 #include "CreateWorktreeDlg.h"
 import AppUtils.Window;
-#include "Utils/BrowseFolder.h"
+import BrowseFolder;
 
 // CCreateWorktreeDlg dialog
 

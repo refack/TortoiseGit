@@ -21,7 +21,7 @@
 #include "std.h"
 
 #include "CreateRepositoryCommand.h"
-#include "MessageBox.h"
+import MessageBox;
 #include "CreateRepoDlg.h"
 import AppUtils.GitEnv;
 

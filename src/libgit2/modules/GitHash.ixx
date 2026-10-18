@@ -159,7 +159,7 @@ public:
 		std::wstring str;
 		str.reserve(GitFormatHolder::GitHashSize() * 2);
 		for (int i = 0; i < GitFormatHolder::GitHashSize(); ++i)
-			str.append(std::format(L"{:02x}", m_oid.id[i]));
+			str.append_range(std::format(L"{:02x}", m_oid.id[i]));
 		return str;
 	}
 

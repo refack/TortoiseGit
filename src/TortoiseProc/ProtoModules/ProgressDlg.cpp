@@ -31,7 +31,7 @@
 #include <Tlhelp32.h>
 import AppUtils.Window;
 #include "LoglistUtils.h"
-#include "MessageBox.h"
+import MessageBox;
 #include "LogFile.h"
 
 #define REFRESHTIMER 100

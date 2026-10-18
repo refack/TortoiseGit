@@ -170,7 +170,7 @@ static void SetTheme(HWND hWnd)
 	SystemParametersInfo(SPI_GETHIGHCONTRAST, sizeof(HIGHCONTRAST), &hc, FALSE);
 	bool isHighContrastMode = ((hc.dwFlags & HCF_HIGHCONTRASTON) != 0);
 
-	g_darkmode = !isHighContrastMode && DarkModeHelper::Instance().CanHaveDarkMode() && DarkModeHelper::Instance().ShouldAppsUseDarkMode() && CRegStdDWORD(L"Software\\TortoiseGit\\DarkTheme", FALSE) == TRUE;
+	g_darkmode = !isHighContrastMode && DarkModeHelper::Instance().ShouldAppsUseDarkMode() && CRegStdDWORD(L"Software\\TortoiseGit\\DarkTheme", FALSE) == TRUE;
 	if (g_darkmode)
 	{
 		DarkModeHelper::Instance().AllowDarkModeForApp(TRUE);

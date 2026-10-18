@@ -31,7 +31,7 @@ import AppUtils.Launch;
 import AppUtils.Window;
 import AppUtils.Workflow;
 #include "ProgressDlg.h"
-#include "MessageBox.h"
+import MessageBox;
 #include "Hooks.h"
 #include "ProgressCommands/FetchProgressCommand.h"
 #include "SysProgressDlg.h"

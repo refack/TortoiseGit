@@ -21,7 +21,7 @@
 #include "std.h"
 
 #include "TortoiseProc.h"
-#include "MessageBox.h"
+import MessageBox;
 #include "RevertDlg.h"
 import AppUtils.Window;
 

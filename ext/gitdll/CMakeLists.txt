@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 4.0)
+cmake_minimum_required(VERSION 4.4)
 project(gitdll LANGUAGES C CXX)
 
 find_package(ZLIB REQUIRED)
@@ -17,6 +17,20 @@ target_sources(gitdll
         gitdll.h
         gitdll.rc
         resource.h
+)
+
+# 1. Declare public headers and base include directory
+target_sources(gitdll
+    PUBLIC
+        FILE_SET HEADERS
+        BASE_DIRS .
+        FILES gitdll.h
+)
+
+# 2. Install the target and its file sets
+install(TARGETS gitdll
+    EXPORT tgit_ext
+    FILE_SET HEADERS DESTINATION .
 )
 
 set_target_properties(gitdll PROPERTIES

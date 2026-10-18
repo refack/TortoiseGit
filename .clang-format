@@ -109,7 +109,7 @@ BraceWrapping:
 #    , initializer2()
 BreakConstructorInitializers: AfterColon
 BreakConstructorInitializersBeforeComma: false
-ColumnLimit: 120
+ColumnLimit: 160
 ConstructorInitializerAllOnOneLineOrOnePerLine: false
 # int valuve = aaaaaaaaaaaaa +
 #              bbbbbb -

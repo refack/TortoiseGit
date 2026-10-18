@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 4.0)
+cmake_minimum_required(VERSION 4.4)
 project(TGitCache LANGUAGES CXX)
 
 find_package(libgit2 REQUIRED CONFIG)

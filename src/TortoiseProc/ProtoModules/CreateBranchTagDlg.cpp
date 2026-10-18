@@ -24,7 +24,7 @@
 #include "TortoiseProc.h"
 #include "CreateBranchTagDlg.h"
 import AppUtils.Window;
-#include "MessageBox.h"
+import MessageBox;
 
 // CCreateBranchTagDlg dialog
 

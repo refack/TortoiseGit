@@ -26,7 +26,7 @@
 #include <Resources/LoglistCommonResource.h>
 #include <../TortoiseShell/resource.h>
 #include "GitStatusListCtrl.h"
-#include "MiscUI/MessageBox.h"
+import MessageBox;
 #include "Utils/MyMemDC.h"
 #include "LoglistUtils.h"
 #include "GitDiff.h"
@@ -36,7 +36,7 @@
 #include "ProgressCommands/LFSSetLockedProgressCommand.h"
 #include "ProgressCommands/RevertProgressCommand.h"
 #include "ProgressCommands/ResolveProgressCommand.h"
-#include "Utils/BrowseFolder.h"
+import BrowseFolder;
 #include "CreateChangelistDlg.h"
 #include "Utils/Theme.h"
 #include "LogDataVector.h"		// mix CString + std::wstring
@@ -235,7 +235,8 @@ CGitStatusListCtrl::CGitStatusListCtrl() : CResizableColumnsListCtrl<CListCtrl>(
 		[this](int column, bool visible)
 		{
 			OnColumnVisibilityChanged(column, visible);
-		});
+		}
+	);
 
 	m_regKeepChangeLists = CRegDWORD(L"Software\\TortoiseGit\\KeepChangeLists", FALSE);
 	m_bKeepChangeLists = m_regKeepChangeLists;
@@ -270,7 +271,7 @@ void CGitStatusListCtrl::ClearStatusArray()
 
 void CGitStatusListCtrl::Init(DWORD dwColumns, const CString& sColumnInfoContainer, unsigned __int64 dwContextMenus /* = GitSLC_POPALL */, bool bHasCheckboxes /* = true */, bool bHasWC /* = true */, DWORD allowedColumns /* = 0xffffffff */)
 {
-	CAutoWriteLock locker(m_guard);
+	CAutoWriteLock _(m_guard);
 
 	m_dwContextMenus = dwContextMenus;
 	m_bHasCheckboxes = bHasCheckboxes;
@@ -373,7 +374,7 @@ BOOL CGitStatusListCtrl::GetStatus ( const CTGitPathList* pathList
 									, bool bShowLFSLocks  /* = false */
 									, bool bGetStagingStatus /* = false */)
 {
-	CAutoWriteLock locker(m_guard);
+	CAutoWriteLock _(m_guard);
 
 	m_bEmpty = false;
 	m_bBusy = true;

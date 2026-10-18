@@ -40,4 +40,5 @@ import GitDataObject;
 // Names that were global in the header era and live in a namespace now.
 using wil::CFormatMessageWrapper;
 using CUnicodeUtils::SafeSizeToInt;
+namespace fs = std::filesystem;
 

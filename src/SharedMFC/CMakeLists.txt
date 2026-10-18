@@ -1,9 +1,11 @@
-cmake_minimum_required(VERSION 4.0)
+cmake_minimum_required(VERSION 4.4)
 project(SharedMFC LANGUAGES CXX)
 
 find_package(MFC REQUIRED)
 
-add_library(SharedMFC)
+add_library(SharedMFC STATIC)
+
+target_precompile_headers(SharedMFC PRIVATE stdafx.h)
 
 target_sources(SharedMFC
     PRIVATE
@@ -14,7 +16,6 @@ target_sources(SharedMFC
         ResText/POFile.cpp
         ResText/ResModule.cpp
         ResText/ResText.cpp
-        ResText/stdafx.cpp
         ResText/Utils.cpp
         Utils/FileTextLines.cpp
         Utils/SysImageList.cpp
@@ -34,27 +35,30 @@ target_compile_features(SharedMFC
 
 target_include_directories(SharedMFC
     PRIVATE
+        "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/include"
         "${CMAKE_SOURCE_DIR}/src"
         "${CMAKE_SOURCE_DIR}/src/libgit2/include"   # sanity.h
         "${CMAKE_CURRENT_SOURCE_DIR}"
-        "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/include"
 )
 
 target_compile_definitions(SharedMFC
     PRIVATE
-        _WIN64
-        WIN64
-        UNICODE
-        _UNICODE
         GIT_DEPRECATE_HARD
         ENABLE_INTSAFE_SIGNED_FUNCTIONS
-        _WIN32_WINNT=0x0A00
+
+        UNICODE
+        _UNICODE
+
+        NOMINMAX        # Make Windows.h sane
+
+        _WIN64
+        WIN64
         _WINDOWS
         WINDOWS
-        NOMINMAX
-        _AFXDLL
+        WINVER=_WIN32_WINNT_WIN10
+        _WIN32_WINNT=_WIN32_WINNT_WIN10
 
-        TGIT_MFC
+        _AFXDLL     # use the shared Microsoft Foundation Class (MFC) DLLs instead of statically linking the MFC libraries
 
         "$<$<CONFIG:Debug>:DEBUG>"
         "$<$<CONFIG:Release>:NDEBUG>"
@@ -70,10 +74,6 @@ target_link_directories(SharedMFC
 
 target_link_libraries(SharedMFC
     PRIVATE
-        uxtheme
-        detours
-        Scintilla
-        Lexilla
         imm32
         msimg32
         ole32
@@ -83,6 +83,9 @@ target_link_libraries(SharedMFC
         rpcrt4
         gdi32
         crypt32
+
+        gitdll
+        TGitLibgit2Mfc
 )
 
 target_compile_options(SharedMFC
@@ -92,3 +95,11 @@ target_compile_options(SharedMFC
         /external:anglebrackets
 )
 
+target_sources(SharedMFC
+    PUBLIC
+        FILE_SET CXX_MODULES
+        BASE_DIRS "${CMAKE_CURRENT_SOURCE_DIR}"
+    FILES
+        BrowseFolder.ixx
+        MessageBox.ixx
+)

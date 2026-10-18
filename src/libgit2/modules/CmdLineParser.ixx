@@ -100,7 +100,7 @@ export namespace TCmdLineParser
          * \param sKey the key to get the value from
          * \return the value string of the key
          */
-        const wchar_t* GetVal(const wchar_t* sKey) const;
+        // const wchar_t* GetVal(const wchar_t* sKey) const;
 
         /**
          * Reads the value for a key as an owning string. A key that is not there
@@ -310,13 +310,13 @@ export namespace TCmdLineParser
         return true;
     }
 
-    const wchar_t* CCmdLineParser::GetVal(const wchar_t* sKey) const
-    {
-        const auto it = findKey(sKey);
-        if (it == m_valueMap.cend())
-            return nullptr;
-        return it->second.c_str();
-    }
+    // const wchar_t* CCmdLineParser::GetVal(const wchar_t* sKey) const
+    // {
+    //     const auto it = findKey(sKey);
+    //     if (it == m_valueMap.cend())
+    //         return nullptr;
+    //     return it->second.c_str();
+    // }
 
     std::wstring CCmdLineParser::GetValStr(const wchar_t* sKey) const
     {

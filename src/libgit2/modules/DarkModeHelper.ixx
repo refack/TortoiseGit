@@ -22,8 +22,7 @@ LONG DetourTransaction(const std::function<LONG()>& callback)
 	if (res != NO_ERROR)
 		return res;
 
-	SCOPE_EXIT
-	{
+	SCOPE_EXIT {
 		if (res != ERROR_SUCCESS)
 			DetourTransactionAbort();
 	};
@@ -110,7 +109,6 @@ public:
 		SIZE_T cbData;
 	};
 
-	bool CanHaveDarkMode() const;
 	void AllowDarkModeForApp(BOOL allow) const;
 	void AllowDarkModeForWindow(HWND hwnd, BOOL allow) const;
 	BOOL ShouldAppsUseDarkMode() const;
@@ -160,7 +158,6 @@ private:
 	FlushMenuThemesFN m_pFlushMenuThemes = nullptr;
 	SetWindowCompositionAttributeFPN m_pSetWindowCompositionAttribute = nullptr;
 	HMODULE m_hUxthemeLib = nullptr;
-	bool m_bCanHaveDarkMode = false;
 	static OpenNcThemeDataType m_openNcThemeData;
 	/// Detours refuses to detach a hook it never attached, so the pair has to be balanced
 	/// rather than called speculatively. AllowDarkModeForApp(FALSE) runs at startup in light
@@ -176,11 +173,6 @@ DarkModeHelper& DarkModeHelper::Instance()
 {
 	static DarkModeHelper helper;
 	return helper;
-}
-
-bool DarkModeHelper::CanHaveDarkMode() const
-{
-	return m_bCanHaveDarkMode;
 }
 
 void DarkModeHelper::AllowDarkModeForApp(BOOL allow) const
@@ -269,34 +261,12 @@ DarkModeHelper::DarkModeHelper()
 	};
 	InitCommonControlsEx(&used);
 
-	m_bCanHaveDarkMode = false;
 	long micro = 0;
-	{
-		const auto version = PathUtils::GetVersionFromFile(L"uxtheme.dll");
-		std::vector<long> tokens;
-		StringUtils::stringtok(tokens, version, false, L".");
-		if (tokens.size() == 4)
-		{
-			auto major = tokens[0];
-			auto minor = tokens[1];
-			micro = tokens[2];
-
-			// the windows 10 update 1809 has the version
-			// number as 10.0.17763.1
-			if (major > 10)
-				m_bCanHaveDarkMode = true;
-			else if (major == 10)
-			{
-				if (minor > 0)
-					m_bCanHaveDarkMode = true;
-				else if (micro > 17762)
-					m_bCanHaveDarkMode = true;
-			}
-		}
-	}
+	if (const auto vstr = PathUtils::GetVersionFromFile(L"uxtheme.dll"); std::ranges::count(vstr, L'.') == 3)
+		micro = std::stoul(vstr.substr(vstr.rfind('.') + 1), nullptr, 10);
 
 	m_hUxthemeLib = LoadLibrary(L"uxtheme.dll");
-	if (m_hUxthemeLib && m_bCanHaveDarkMode)
+	if (m_hUxthemeLib)
 	{
 		// Note: these functions are undocumented! Which meas I shouldn't even use them.
 		// So, since MS decided to keep this new feature to themselves, I have to use

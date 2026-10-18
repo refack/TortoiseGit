@@ -26,6 +26,7 @@ bool CommitIsOnRefsCommand::Execute()
 {
 	CCommitIsOnRefsDlg dlg;
 	theApp.m_pMainWnd = &dlg;
-	dlg.m_Rev = parser.GetVal(L"rev");
+	auto stdStr = parser.GetValStr(L"rev");
+	dlg.m_Rev = CString{stdStr.c_str(), gsl::narrow<int>(stdStr.length())};
 	return !!dlg.DoModal();
 }

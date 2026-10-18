@@ -25,10 +25,6 @@ import AppUtils.Workflow;
 
 bool ExportCommand::Execute()
 {
-	CString base = parser.GetVal(L"rev");
-	CString *p=&base;
-	if(base.IsEmpty())
-		p = nullptr;
-
+	auto base = parser.GetValStr(L"rev");
 	return CAppUtils::Export(GetExplorerHWND(), p, &orgCmdLinePath);
 }

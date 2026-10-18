@@ -22,7 +22,7 @@
 #include <ShlObj.h>
 import AppUtils.Launch;
 import AppUtils.Window;
-#include "MiscUI/MessageBox.h"
+import MessageBox;
 
 /**
  * \ingroup TortoiseProc

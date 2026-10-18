@@ -23,7 +23,7 @@
 
 #include "GitLogListBase.h"
 #include "IconMenu.h"
-#include "MessageBox.h"
+import MessageBox;
 #include "LoglistUtils.h"
 #include "Resources/resource.h"
 #include "Resources/LoglistCommonResource.h"

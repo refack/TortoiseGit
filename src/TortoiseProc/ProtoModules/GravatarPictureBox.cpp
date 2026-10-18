@@ -21,7 +21,7 @@
 
 #include "GravatarPictureBox.h"
 #include "Picture.h"
-#include "MessageBox.h"
+import MessageBox;
 #include "Resources/LoglistCommonResource.h"
 #include "Resources/resource.h"
 #include <WinCrypt.h>

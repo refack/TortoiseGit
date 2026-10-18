@@ -4,15 +4,11 @@ module;
 
 #include <shlobj_core.h>
 #include "TortoiseProc.h"
-#include "MessageBox.h"
 
 
 
 export module AppUtils.Launch;
-
-// Defined by each MFC application. Declared in the global module fragment so it
-// names the same variable as StandAloneDlg.h's, not one attached to this module.
-extern CString g_sGroupingUUID;
+import MessageBox;
 
 template <tgit::str::IsStupidString TStr>
 TStr EscapeAndQuoteParameters(const TStr& input)
@@ -31,6 +27,14 @@ TStr EscapeAndQuoteParameters(const TStr& input)
  * ShellExecute; nothing opens a TortoiseGit dialog of its own.
  */
 export namespace CAppUtils {
+
+/////////////////// some hacky GLOBALS //////////////////
+// Defined by each MFC application. Declared in the global module fragment so it
+// names the same variable as StandAloneDlg.h's, not one attached to this module.
+std::wstring g_sGroupingUUID{};
+std::wstring g_sGroupingIcon{};
+bool g_bGroupingRemoveIcon{};
+/////////////////////////////////////////////////////////
 
 struct LaunchApplicationFlags {
 	bool bWaitForStartup = false;
@@ -257,10 +261,10 @@ bool RunTortoiseGitProc(const CString& sCommandLine, const bool uac = false, con
 	CString sCmd = std::format(L"\"{}\" {}", pathToExecutable, sCommandLine).c_str();
 	if (AfxGetMainWnd()->GetSafeHwnd() && (sCommandLine.Find(L"/hwnd:") < 0))
 		sCmd.AppendFormat(L" /hwnd:%p", static_cast<void*>(AfxGetMainWnd()->GetSafeHwnd()));
-	if (!g_sGroupingUUID.IsEmpty() && includeGroupingUUID)
+	if (!g_sGroupingUUID.empty() && includeGroupingUUID)
 	{
 		sCmd += L" /groupuuid:\"";
-		sCmd += g_sGroupingUUID;
+		sCmd += g_sGroupingUUID.c_str();
 		sCmd += L'"';
 	}
 
@@ -404,10 +408,10 @@ bool LaunchTortoiseBlame(const CString& sBlameFile, const CString& Rev, const CS
 	viewer += TCmdLineParser::EscapeValue(sBlameFile);
 	if (!Rev.IsEmpty() && Rev != GitRev::GetWorkingCopyRef())
 		viewer += L" /rev:" + TCmdLineParser::EscapeValue(Rev);
-	if (!g_sGroupingUUID.IsEmpty())
+	if (!g_sGroupingUUID.empty())
 	{
 		viewer += L" /groupuuid:\"";
-		viewer += g_sGroupingUUID;
+		viewer += g_sGroupingUUID.c_str();
 		viewer += L'"';
 	}
 	viewer += L' ' + sParams;
@@ -576,10 +580,10 @@ BOOL StartUnifiedDiffViewer(const CString& patchfile, const CString& title, BOOL
 		viewer = L'"' + viewer + L'"';
 		// add the params
 		viewer = viewer + L" /patchfile:%1 /title:%title";
-		if (!g_sGroupingUUID.IsEmpty())
+		if (!g_sGroupingUUID.empty())
 		{
 			viewer += L" /groupuuid:\"";
-			viewer += g_sGroupingUUID;
+			viewer += g_sGroupingUUID.c_str();
 			viewer += L'"';
 		}
 		bInternal = true;
@@ -839,10 +843,10 @@ BOOL StartExtMerge(bool bAlternative,
 				com = L"notepad.exe %merged";
 			}
 		}
-		if (!g_sGroupingUUID.IsEmpty())
+		if (!g_sGroupingUUID.empty())
 		{
 			com += L" /groupuuid:\"";
-			com += g_sGroupingUUID;
+			com += g_sGroupingUUID.c_str();
 			com += L'"';
 		}
 	}

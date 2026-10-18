@@ -7,11 +7,9 @@
 
 // ACWnd.cpp: Implementierungsdatei
 //
-#include "../../TortoiseProc/stdafx.h"
-#include "../../TortoiseProc/std.h"
+#include "stdafx.h"
 
-
-#include "../../TortoiseProc/ACListWnd.h"
+#include "ACListWnd.h"
 #include "Utils/DPIAware.h"
 #include "Utils/Theme.h"
 

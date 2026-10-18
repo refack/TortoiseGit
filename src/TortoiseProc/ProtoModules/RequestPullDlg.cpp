@@ -25,7 +25,7 @@
 #include "TortoiseProc.h"
 #include "RequestPullDlg.h"
 #include "LogDlg.h"
-#include "MessageBox.h"
+import MessageBox;
 import AppUtils.Window;
 
 IMPLEMENT_DYNAMIC(CRequestPullDlg, CHorizontalResizableStandAloneDialog)

@@ -30,7 +30,7 @@ import AppUtils.Workflow;
 #include "LogDlg.h"
 #include "BrowseRefsDlg.h"
 #include "RefLogDlg.h"
-#include "MessageBox.h"
+import MessageBox;
 
 // CPushDlg dialog
 

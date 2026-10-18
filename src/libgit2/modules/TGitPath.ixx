@@ -846,6 +846,7 @@ constexpr int MERGE_MASK = 0x1000000;
 // &oldPath) cannot reach a directory flag through any overload now.
 class CTGitPath {
 public:
+	virtual ~CTGitPath() = default;
 	CTGitPath() = default;
 
 	// No virtual destructor although UpdateAttributes() is virtual (for the unit
@@ -855,7 +856,8 @@ public:
 
 	template <tgit::str::IsTCompString StrT>
 	CTGitPath(const StrT& sUnknownPath = {}, const std::optional<bool> bIsDirectory = std::nullopt) {
-		SetFromUnknown(tgit::str::StringView{ sUnknownPath });
+		const auto sv = tgit::str::StringView<StrT>::as_view(sUnknownPath);
+		SetFromUnknown(sv);
 		if (bIsDirectory.has_value()) {
 			m_bDirectoryKnown = true;
 			m_bIsDirectory = bIsDirectory.value();
@@ -875,7 +877,10 @@ public:
 	/// no implicit route competes with CString overloads; and a nullptr is the
 	/// empty path, where std::wstring_view(nullptr) is UB (CLAUDE.md failure mode 5).
 	explicit CTGitPath(const wchar_t* const sUnknownPath, const std::optional<bool> bIsDirectory = std::nullopt)
-		: CTGitPath(sUnknownPath ? std::wstring_view(sUnknownPath) : std::wstring_view(), bIsDirectory) {}
+		: CTGitPath(std::wstring_view{sUnknownPath}, bIsDirectory) {}
+
+	explicit CTGitPath(const std::filesystem::path& sUnknownPath, const std::optional<bool> bIsDirectory = std::nullopt)
+		: CTGitPath(sUnknownPath.wstring(), bIsDirectory) {}
 
 
 	auto operator>(const CTGitPath& b) const {

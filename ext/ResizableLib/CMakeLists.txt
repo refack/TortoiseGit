@@ -1,4 +1,4 @@
-﻿cmake_minimum_required(VERSION 4.0)
+﻿cmake_minimum_required(VERSION 4.4)
 project(ResizableLib LANGUAGES CXX)
 
 find_package(MFC REQUIRED)
@@ -63,9 +63,9 @@ target_compile_features(ResizableLib
 
 target_include_directories(ResizableLib
     PRIVATE
-        "${CMAKE_CURRENT_SOURCE_DIR}"
         "${CMAKE_SOURCE_DIR}/src"
         "${CMAKE_SOURCE_DIR}/src/SharedMFC"       # Utils/DPIAware.h
+        "${CMAKE_CURRENT_SOURCE_DIR}"
 )
 
 target_compile_definitions(ResizableLib

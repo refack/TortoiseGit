@@ -22,7 +22,7 @@
 
 #include "IgnoreCommand.h"
 
-#include "MessageBox.h"
+import MessageBox;
 import AppUtils.Workflow;
 
 bool IgnoreCommand::Execute()

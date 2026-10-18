@@ -21,7 +21,7 @@
 
 #include "RebuildIconCacheCommand.h"
 
-#include "MessageBox.h"
+import MessageBox;
 
 bool RebuildIconCacheCommand::Execute()
 {

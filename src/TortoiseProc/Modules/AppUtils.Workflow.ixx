@@ -1,9 +1,8 @@
 module;
 #include "stdafx.h"
-#include "../std.h"
+#include "std.h"
 
 #include "TortoiseProc.h"
-#include "MessageBox.h"
 #include "ExportDlg.h"
 #include "ProgressDlg.h"
 #include "CreateBranchTagDlg.h"
@@ -17,7 +16,7 @@ module;
 #include "MergeDlg.h"
 #include "MergeAbortDlg.h"
 #include "Hooks.h"
-#include "../Settings/Settings.h"
+#include "Settings/Settings.h"
 #include "InputDlg.h"
 #include "SVNDCommitDlg.h"
 #include "requestpulldlg.h"
@@ -27,15 +26,17 @@ module;
 #include "IgnoreDlg.h"
 #include "BisectStartDlg.h"
 #include "SysProgressDlg.h"
-#include "../../SharedMFC/Resources/Globals.h"
-#include "../ProgressCommands/ResetProgressCommand.h"
-#include "../ProgressCommands/FetchProgressCommand.h"
+#include "Resources/Globals.h"
+#include "ProgressCommands/ResetProgressCommand.h"
+#include "ProgressCommands/FetchProgressCommand.h"
 #include "SubmoduleResolveConflictDlg.h"
 #include "GitDiff.h"
+
 
 export module AppUtils.Workflow;
 import AppUtils.Launch;
 import GitRevLoglist;
+import MessageBox;
 
 /**
  * \ingroup TortoiseProc
@@ -317,12 +318,12 @@ bool DeleteRef(CWnd* parent, const CString& ref)
 	return false;
 }
 
-bool Export(HWND hWnd, const CString* BashHash, const CTGitPath* orgPath)
+bool Export(const HWND& hWnd, std::wstring&& BashHash, const CTGitPath* orgPath)
 {
 	// ask from where the export has to be done
 	CExportDlg dlg(GetParentCWnd(hWnd));
-	if(BashHash)
-		dlg.m_initialRefName=*BashHash;
+	if(!BashHash.empty())
+		dlg.m_initialRefName = BashHash;
 	if (orgPath)
 	{
 		if (PathIsRelative(orgPath->GetWinPath()))

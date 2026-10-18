@@ -24,7 +24,7 @@
 #include "CommitCommand.h"
 
 import AppUtils.Workflow;
-#include "MessageBox.h"
+import MessageBox;
 // import AppUtils;
 import Registry;
 import str_utils;

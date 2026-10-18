@@ -23,7 +23,7 @@
 #include "TortoiseProc.h"
 import AppUtils.Launch;
 #include "SetSavedDataPage.h"
-#include "MessageBox.h"
+import MessageBox;
 #include "Utils/WindowsCredentialsStore.h"
 
 // CRegistryKey reports into std::vector<std::wstring> now; this page keeps its

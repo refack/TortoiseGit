@@ -22,7 +22,7 @@
 
 #include "RenameCommand.h"
 
-#include "MessageBox.h"
+import MessageBox;
 #include "RenameDlg.h"
 
 bool RenameCommand::Execute()

@@ -27,7 +27,7 @@
 #include "LoglistUtils.h"
 import AppUtils.Launch;
 #include "FileDiffDlg.h"
-#include "MessageBox.h"
+import MessageBox;
 
 // CCommitIsOnRefsDlg dialog
 

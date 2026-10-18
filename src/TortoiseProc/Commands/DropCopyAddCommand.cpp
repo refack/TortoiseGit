@@ -22,7 +22,7 @@
 
 #include "DropCopyAddCommand.h"
 #include "GitProgressDlg.h"
-#include "MessageBox.h"
+import MessageBox;
 #include "ProgressCommands/AddProgressCommand.h"
 import DirFileEnum;
 
@@ -30,12 +30,13 @@ import DirFileEnum;
 bool DropCopyAddCommand::Execute()
 {
 	bool bRet = false;
-	CString droppath = parser.GetVal(L"droptarget");
-	if (CTGitPath(droppath.GetString()).IsAdminDir())
+	auto git_path = fs::path{parser.GetValStr(L"droptarget")};
+	auto droppath = CTGitPath{git_path};
+	if (droppath.IsAdminDir())
 		return FALSE;
 
 	std::wstring projectTopDir;
-	const bool hasAdminDir = CTGitPath(droppath.GetString()).HasAdminDir(&projectTopDir);
+	const bool hasAdminDir = droppath.HasAdminDir(&projectTopDir);
 	g_Git.SetCurrentDirExact(projectTopDir.c_str());
 	if (!hasAdminDir)
 		return FALSE;
@@ -45,21 +46,22 @@ bool DropCopyAddCommand::Execute()
 	CTGitPathList copiedFiles;
 	for(int nPath = 0; nPath < orgPathList.GetCount(); ++nPath)
 	{
-		if (orgPathList[nPath].IsEquivalentTo(CTGitPath(droppath.GetString())))
+		if (orgPathList[nPath].IsEquivalentTo(droppath))
 			continue;
 
 		//copy the file to the new location
-		CString name = orgPathList[nPath].GetFileOrDirectoryName().c_str();
-		if (::PathFileExists(droppath + L'\\' + name))
+		auto name = orgPathList[nPath].GetFileOrDirectoryName();
+		auto psz_path = git_path / name;
+		if (fs::exists(psz_path))
 		{
-			if (::PathIsDirectory(droppath + L'\\' + name))
+			if (fs::is_directory(psz_path))
 			{
 				if (orgPathList[nPath].IsDirectory())
 					continue;
 			}
 
 			CString strMessage;
-			strMessage.Format(IDS_PROC_OVERWRITE_CONFIRM, static_cast<LPCWSTR>(droppath + L'\\' + name));
+			strMessage.Format(IDS_PROC_OVERWRITE_CONFIRM, psz_path.c_str());
 			CString sBtn1(MAKEINTRESOURCE(IDS_PROC_OVERWRITEEXPORT_OVERWRITE));
 			CString sBtn2(MAKEINTRESOURCE(IDS_PROC_OVERWRITEEXPORT_KEEP));
 			CString sBtn3(MAKEINTRESOURCE(IDS_PROC_OVERWRITEEXPORT_CANCEL));
@@ -69,7 +71,7 @@ bool DropCopyAddCommand::Execute()
 				return FALSE; //cancel the whole operation
 			if (ret == 1)
 			{
-				if (!::CopyFile(orgPathList[nPath].GetWinPath(), droppath + L'\\' + name, FALSE))
+				if (!::CopyFile(orgPathList[nPath].GetWinPath(), psz_path.c_str(), FALSE))
 				{
 					//the copy operation failed! Get out of here!
 					ShowErrorMessage();
@@ -82,13 +84,13 @@ bool DropCopyAddCommand::Execute()
 			if (orgPathList[nPath].IsDirectory())
 			{
 				CString fromPath(std::format(L"{}||", orgPathList[nPath].GetWinPathString()).c_str());
-				CString toPath = droppath + L'\\' + name + L"||";
+				auto toPath = psz_path.wstring() + L"||";
 				auto fromBuf = std::make_unique<wchar_t[]>(fromPath.GetLength() + 1);
-				auto toBuf = std::make_unique<wchar_t[]>(toPath.GetLength() + 1);
+				auto toBuf = std::make_unique<wchar_t[]>(toPath.length() + 1);
 				wcscpy_s(fromBuf.get(), fromPath.GetLength() + 1, fromPath);
-				wcscpy_s(toBuf.get(), toPath.GetLength() + 1, toPath);
+				wcscpy_s(toBuf.get(), toPath.length() + 1, toPath.c_str());
 				StringUtils::PipesToNulls(fromBuf.get(), fromPath.GetLength());
-				StringUtils::PipesToNulls(toBuf.get(), toPath.GetLength());
+				StringUtils::PipesToNulls(toBuf.get(), toPath.length());
 
 				SHFILEOPSTRUCT fileop = {0};
 				fileop.wFunc = FO_COPY;
@@ -98,7 +100,7 @@ bool DropCopyAddCommand::Execute()
 				if (!SHFileOperation(&fileop))
 				{
 					// add all copied files WITH special handling for repos/submodules (folders which include a .git entry)
-					DirFileEnum::CDirFileEnum finder(droppath + L'\\' + name);
+					DirFileEnum::CDirFileEnum finder(psz_path.c_str());
 					CString lastRepo;
 					bool isRepo = false;
 					while (auto file = finder.NextFile(!isRepo)) // don't recurse into .git directories
@@ -136,14 +138,14 @@ bool DropCopyAddCommand::Execute()
 				}
 				continue; // do not add a directory to copiedFiles
 			}
-			else if (!CopyFile(orgPathList[nPath].GetWinPath(), droppath + L'\\' + name, FALSE))
+			else if (std::error_code ec; fs::copy(orgPathList[nPath].GetWinPath(), psz_path, ec), ec)
 			{
 				//the copy operation failed! Get out of here!
 				ShowErrorMessage();
 				return FALSE;
 			}
 		}
-		CString destPath(droppath + L'\\' + name);
+		CString destPath(psz_path.c_str());
 		copiedFiles.AddPath(CTGitPath(destPath.Mid(worktreePathLen + 1).GetString())); //add the new filepath
 	}
 	//now add all the newly copied files to the working copy

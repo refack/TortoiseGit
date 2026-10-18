@@ -25,7 +25,7 @@ import AppUtils.Launch;
 import AppUtils.Window;
 #include "SubmoduleResolveConflictDlg.h"
 #include "SubmoduleDiffDlg.h"
-#include "MessageBox.h"
+import MessageBox;
 #include "GitProgressDlg.h"
 #include "ProgressCommands/ResolveProgressCommand.h"
 

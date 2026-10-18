@@ -24,7 +24,7 @@
 
 import AppUtils.Launch;
 import TortoiseProc.MassiveGitTask;
-#include "MessageBox.h"
+import MessageBox;
 #include "ProgressDlg.h"
 #include "SubmoduleAddDlg.h"
 #include "SubmoduleUpdateDlg.h"

@@ -22,7 +22,7 @@
 
 #include "UnIgnoreCommand.h"
 
-#include "MessageBox.h"
+import MessageBox;
 #include "SVNProperties.h"
 
 bool UnIgnoreCommand::Execute()

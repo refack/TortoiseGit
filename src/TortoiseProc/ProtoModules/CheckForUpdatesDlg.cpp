@@ -24,7 +24,7 @@
 #include "TortoiseProc.h"
 #include "Resources/LoglistCommonResource.h"
 #include <version.h>
-#include "MessageBox.h"
+import MessageBox;
 #include "CheckForUpdatesDlg.h"
 import AppUtils.Window;
 #include "UpdateCrypto.h"

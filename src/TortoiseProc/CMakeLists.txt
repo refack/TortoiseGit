@@ -430,7 +430,6 @@ target_sources(TortoiseProc
         MiscUI/IconMenu.cpp
         MiscUI/LinkControl.cpp
         MiscUI/MenuButton.cpp
-        MiscUI/MessageBox.cpp
         MiscUI/MyGraph.cpp
         MiscUI/Picture.cpp
         MiscUI/RegexEdit.cpp
@@ -445,8 +444,6 @@ target_sources(TortoiseProc
         ProtoModules/COMError.h
         ProtoModules/EditWordBreak.cpp
         ProtoModules/EditWordBreak.h
-        ProtoModules/FileDlgEventHandler.cpp
-        ProtoModules/FileDlgEventHandler.h
         ProtoModules/GitStatusListCtrl.cpp
         ProtoModules/GitStatusListCtrl.h
         ProtoModules/Hooks.cpp
@@ -574,9 +571,11 @@ target_link_libraries(TortoiseProc
         gdi32
         crypt32
         gitdll
+
         AsyncFramework
         TGitLibgit2Mfc   # the MFC flavor: TortoiseProc speaks MFC CString
         ResizableLib
+        SharedMFC
 )
 
 target_compile_options(TortoiseProc

@@ -1,30 +1,135 @@
-﻿// TortoiseGit - a Windows shell extension for easy version control
-
-// Copyright (C) 2016, 2019, 2023, 2025 - TortoiseGit
-// Copyright (C) 2003-2014, 2016 - TortoiseSVN
-
-// This program is free software; you can redistribute it and/or
-// modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; either version 2
-// of the License, or (at your option) any later version.
-
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-
-// You should have received a copy of the GNU General Public License
-// along with this program; if not, write to the Free Software Foundation,
-// 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-//
+﻿module;
 #include "stdafx.h"
-#include "std.h"
-
-
-
-#include "Utils/BrowseFolder.h"
-#include "FileDlgEventHandler.h"
 #include <strsafe.h>
+#include <sanity.h>
+
+
+export module BrowseFolder;
+import wil;
+
+
+export namespace BrowseFolder {
+
+
+
+/**
+ * helper class for IFileDialogEvents and IFileDialogControlEvents.
+ * use this class as a base class so you only need to implement
+ * the methods you actually need and not all of them.
+ */
+class CFileDlgEventHandler :
+public CComObjectRootEx<CComSingleThreadModel>,
+public CComCoClass<CFileDlgEventHandler>,
+public IFileDialogEvents,
+public IFileDialogControlEvents
+{
+public:
+	CFileDlgEventHandler() = default;
+	// ReSharper disable once CppHidingFunction
+	virtual ~CFileDlgEventHandler() = default;
+
+	BEGIN_COM_MAP(CFileDlgEventHandler)
+		COM_INTERFACE_ENTRY(IFileDialogEvents)
+		COM_INTERFACE_ENTRY(IFileDialogControlEvents)
+	END_COM_MAP()
+
+	// IFileDialogEvents
+	STDMETHODIMP OnFileOk(IFileDialog* pfd) override{
+		return S_OK;	// allow the dialog to close
+	}
+	STDMETHODIMP OnFolderChanging(IFileDialog* pfd, IShellItem* psiFolder) override{
+		return S_OK;	// allow the change
+	}
+	STDMETHODIMP OnFolderChange(IFileDialog* pfd) override{
+		return S_OK;
+	}
+	STDMETHODIMP OnSelectionChange(IFileDialog* pfd) override{
+		return S_OK;
+	}
+	STDMETHODIMP OnShareViolation(IFileDialog* pfd, IShellItem* psi, FDE_SHAREVIOLATION_RESPONSE* pResponse) override{
+		return S_OK;
+	}
+	STDMETHODIMP OnTypeChange(IFileDialog* pfd) override{
+		return S_OK;
+	}
+	STDMETHODIMP OnOverwrite(IFileDialog* pfd, IShellItem* psi, FDE_OVERWRITE_RESPONSE* pResponse) override{
+		return S_OK;
+	}
+
+	// IFileDialogControlEvents
+	STDMETHODIMP OnItemSelected(IFileDialogCustomize* pfdc, DWORD dwIDCtl, DWORD dwIDItem) override{
+		return S_OK;
+	}
+	STDMETHODIMP OnButtonClicked(IFileDialogCustomize* pfdc, DWORD dwIDCtl) override{
+		return S_OK;
+	}
+	STDMETHODIMP OnCheckButtonToggled(IFileDialogCustomize* pfdc, DWORD dwIDCtl, BOOL bChecked) override{
+		return S_OK;
+	}
+	STDMETHODIMP OnControlActivating(IFileDialogCustomize* pfdc, DWORD dwIDCtl) override{
+		return S_OK;
+	}
+};
+
+
+
+/**
+ * \ingroup Utils
+ * On Vista and later, the IFileDialog is used with the FOS_PICKFOLDERS flag.
+ */
+class CBrowseFolder
+{
+public:
+	enum retVal
+	{
+		CANCEL = 0,		///< the user has pressed cancel
+		NOPATH,			///< no folder was selected
+		OK				///< everything went just fine
+	};
+
+	//constructor / deconstructor
+	CBrowseFolder();
+	~CBrowseFolder();
+
+	DWORD m_style = 0;		///< styles of the dialog.
+	/**
+	 * Sets the info text of the dialog. Call this method before calling Show().
+	 */
+	void SetInfo(LPCWSTR title);
+	/*
+	 * Sets the text to show for the checkbox. If this method is not called,
+	 * then no checkbox is added.
+	 */
+	void SetCheckBoxText(LPCWSTR checktext);
+	void SetCheckBoxText2(LPCWSTR checktext);
+	/**
+	 * Shows the Dialog.
+	 * \param parent [in] window handle of the parent window.
+	 * \param path [out] the path to the folder which the user has selected
+	 * \param sDefaultPath [in]
+	 * \return one of CANCEL, NOPATH or OK
+	 */
+	CBrowseFolder::retVal Show(HWND parent, CString& path, const CString& sDefaultPath = CString());
+	CBrowseFolder::retVal Show(HWND parent, LPWSTR path, size_t pathlen, LPCWSTR szDefaultPath = nullptr);
+
+	/**
+	 * If this is set to true, then the second checkbox gets disabled as soon as the first
+	 * checkbox is checked. If the first checkbox is unchecked, then the second checkbox is enabled
+	 * again.
+	 */
+	void DisableCheckBox2WhenCheckbox1IsEnabled(bool bSet = true) {m_DisableCheckbox2WhenCheckbox1IsChecked = bSet;}
+
+	static BOOL m_bCheck;		///< state of the checkbox on closing the dialog
+	static BOOL m_bCheck2;
+
+protected:
+	static CString m_sDefaultPath;
+	wchar_t m_title[200]{};
+	CString m_CheckText;
+	CString m_CheckText2;
+	bool m_DisableCheckbox2WhenCheckbox1IsChecked = false;
+};
+
 
 BOOL CBrowseFolder::m_bCheck = FALSE;
 BOOL CBrowseFolder::m_bCheck2 = FALSE;
@@ -61,12 +166,11 @@ CBrowseFolder::~CBrowseFolder()
 //show the dialog
 CBrowseFolder::retVal CBrowseFolder::Show(HWND parent, LPWSTR path, size_t pathlen, LPCWSTR szDefaultPath /* = nullptr */)
 {
-	CString temp;
-	temp = path;
+	CString temp = path;
 	CString sDefault;
 	if (szDefaultPath)
 		sDefault = szDefaultPath;
-	CBrowseFolder::retVal ret = Show(parent, temp, sDefault);
+	const CBrowseFolder::retVal ret = Show(parent, temp, sDefault);
 	wcscpy_s(path, pathlen, temp);
 	return ret;
 }
@@ -184,3 +288,6 @@ void CBrowseFolder::SetCheckBoxText2(LPCWSTR checktext)
 	if (checktext)
 		m_CheckText2 = checktext;
 }
+}
+
+export using BrowseFolder::CBrowseFolder;

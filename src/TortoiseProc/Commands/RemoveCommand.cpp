@@ -22,7 +22,7 @@
 
 #include "RemoveCommand.h"
 
-#include "MessageBox.h"
+import MessageBox;
 
 bool RemoveCommand::Execute()
 {

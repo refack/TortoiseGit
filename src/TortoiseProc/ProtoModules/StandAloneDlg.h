@@ -25,16 +25,11 @@
 #include "EditWordBreak.h"
 #include "Utils/Theme.h"
 #include "Utils/DPIAware.h"
+import AppUtils.Launch;
 import AppUtils.Window;
 import TaskbarUUID;
 import DarkModeHelper;
 import GitHash;
-
-// Defined by each MFC application (TortoiseProc, TortoiseGitBlame); passed to
-// SetUUIDOverlayIcon, which no longer reaches for them itself.
-extern CString g_sGroupingUUID;
-extern CString g_sGroupingIcon;
-extern bool g_bGroupingRemoveIcon;
 
 #define DIALOG_BLOCKHORIZONTAL 1
 #define DIALOG_BLOCKVERTICAL 2
@@ -63,8 +58,8 @@ inline BOOL CALLBACK MonitorEnum(HMONITOR hMon, HDC /*hdc*/, LPRECT lprcMonitor,
 inline std::wstring GetMonitorSetupHash()
 {
 	std::vector<RECT> monRects;
-	EnumDisplayMonitors(0, 0, MonitorEnum, reinterpret_cast<LPARAM>(&monRects));
-	std::sort(monRects.begin(), monRects.end(),
+	EnumDisplayMonitors(nullptr, nullptr, MonitorEnum, reinterpret_cast<LPARAM>(&monRects));
+	std::ranges::sort(monRects,
 		[](const RECT& a, const RECT& b) -> bool {
 			if (a.left == b.left)
 				return a.top < b.top;
@@ -242,8 +237,8 @@ protected:
 			BaseType::RemoveAllAnchors();
 
 			auto minTrackSize = BaseType::GetMinTrackSize();
-			minTrackSize.cx = (LONG)(minTrackSize.cx * zoom);
-			minTrackSize.cy = (LONG)(minTrackSize.cy * zoom);
+			minTrackSize.cx = gsl::narrow<long>(minTrackSize.cx * zoom);
+			minTrackSize.cy = gsl::narrow<long>(minTrackSize.cy * zoom);
 			BaseType::SetMinTrackSize(minTrackSize);
 
 			BaseType::m_noNcCalcSizeAdjustments = true;
@@ -309,7 +304,7 @@ protected:
 
 	afx_msg LRESULT OnTaskbarButtonCreated(WPARAM /*wParam*/, LPARAM /*lParam*/)
 	{
-		SetUUIDOverlayIcon(BaseType::m_hWnd, std::wstring(g_sGroupingUUID), std::wstring(g_sGroupingIcon), g_bGroupingRemoveIcon);
+		SetUUIDOverlayIcon(BaseType::m_hWnd, CAppUtils::g_sGroupingUUID, CAppUtils::g_sGroupingIcon, CAppUtils::g_bGroupingRemoveIcon);
 		return 0;
 	}
 

@@ -23,7 +23,7 @@
 
 #include "PrevDiffCommand.h"
 #include "GitDiff.h"
-#include "MessageBox.h"
+import MessageBox;
 #include "LogDataVector.h"
 #include "FileDiffDlg.h"
 

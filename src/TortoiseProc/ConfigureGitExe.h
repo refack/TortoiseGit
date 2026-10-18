@@ -20,7 +20,7 @@
 #pragma once
 import str_utils;
 import git_h;
-#include "MiscUI/MessageBox.h"
+import MessageBox;
 import AppUtils.GitEnv;
 import AppUtils.Window;
 import TGitCache.CacheInterface;

@@ -22,7 +22,7 @@
 #include "std.h"
 
 #include "Command.h"
-#include "MessageBox.h"
+import MessageBox;
 #include "AboutCommand.h"
 #include "AutoTextTestCommand.h"
 #include "CommitCommand.h"

@@ -32,12 +32,8 @@
 export module git_h;
 
 import std;
-using std::operator""s;
-using std::operator""sv;
 using TGString = std::wstring;
 using TGStringView = std::wstring_view;
-using std::filesystem::path;
-namespace fs = std::filesystem;
 
 import wil;		// qualified at every use; no using-directive
 
@@ -84,61 +80,11 @@ constexpr auto scope_flag(const CONFIG_TYPE t)
 }
 
 
-// ---- POSIX quoting: NOT exported ------------------------------------------------
-// Moved verbatim from str_utils, where they were parked unexported. They are git
-// domain - the msys2/cygwin path writes the command line into a temp file for
-// bash.exe - and sit here beside SerializeArgv, whose msys2/cygwin branch calls them.
-namespace TGitH
-{
-
-/**
- * Quotes one argv element for a POSIX shell, which is what the msys2/cygwin
- * path needs: CGit writes the whole command line into a temp file and hands
- * it to bash.exe, so there the "command line" is shell *source*.
- */
-std::wstring EscapePosixShellArgument(const std::wstring_view argument)
-{
-	// Single quotes suppress every expansion bash performs, and the only thing
-	// that cannot appear between them is a single quote - so close, escape it
-	// outside, and reopen.
-	std::wstring result;
-	result.reserve(argument.size() + 2);
-	result += L'\'';
-	for (const wchar_t c : argument)
-	{
-		if (c == L'\'')
-			result += L"'\\''";
-		else
-			result += c;
-	}
-	result += L'\'';
-
-	return result;
-}
-
-
-/**
- * True unless \a argument is made entirely of characters no shell touches.
- * Deliberately a whitelist: a blacklist of bash metacharacters is a list you
- * are always one shell feature behind on.
- */
-bool NeedsPosixShellQuoting(const std::wstring_view argument)
-{
-	if (argument.empty())
-		return true;
-	for (const wchar_t c : argument) // NOLINT(*-use-anyofallof)
-	{
-		if (!((c >= L'a' && c <= L'z') || (c >= L'A' && c <= L'Z') || (c >= L'0' && c <= L'9') || c == L'_' || c == L'-' || c == L'.' || c == L'/' || c == L'=' || c == L':' || c == L',' || c == L'+'))
-			return true;
-	}
-	return false;
-}
-
-}
-
-
 export namespace TGitH
 {
+
+namespace fs = std::filesystem;
+using namespace std::literals;
 
 /// The scoped lock over CGit::m_critGitDllSec. Exported: GitRev, GitRevLoglist,
 /// GitMailmap and TortoiseProc take g_Git.m_critGitDllSec with it.
@@ -341,70 +287,6 @@ constexpr std::uint32_t LIBGIT2_ONLY_MASK = (
 
 
 
-/// A C-style (argc, argv) over strings it owns, for gitdll's git_open_log /
-/// git_open_diff, which take `int argc, const char** argv` as git's own main does.
-/// gitdll copies what it keeps (dup_argv in gitdll.c), so an ArgvData only has to
-/// outlive the open call - it is never handed over and never freed by gitdll.
-///
-/// argv points into the std::strings in _args. Moving is safe - moving a
-/// std::vector hands over its buffer, so the std::string objects (and any SSO
-/// characters inside them) stay where they are - but copying is not, since a
-/// copy's pointers would still point into the original. Hence move-only.
-struct ArgvData {
-	ArgvData() = default;
-	ArgvData(ArgvData&&) noexcept = default;
-	ArgvData(const ArgvData&) = delete;
-	ArgvData& operator=(const ArgvData&) = delete;
-	ArgvData& operator=(ArgvData&&) noexcept = default;
-
-	/// Callers pass argv[0] themselves (usually ""), as they always have.
-	ArgvData(const std::initializer_list<std::string> args) :
-		_args{ args } {
-		fill_argv();
-	}
-
-
-	ArgvData(const std::initializer_list<const char*> args) {
-		for (auto s : args) {
-			_args.emplace_back(s);
-		}
-		fill_argv();
-	}
-
-
-	/// For an argv built up at runtime (the log and diff callers in TortoiseProc).
-	/// Empty when the count would not fit an int argc.
-	static ArgvData VectorToARGV(std::vector<std::string> args) {
-		ArgvData result;
-		if (args.size() >= static_cast<size_t>(std::numeric_limits<int>::max()))
-			return result;
-		result._args = std::move(args);
-		result.fill_argv();
-		return result;
-	}
-
-
-	explicit operator bool() const noexcept { return !_args.empty(); }
-	// HEAD spelled gsl::narrow<int>(_args), which does not compile: the count is the size.
-	[[nodiscard]] int argc() const { return gsl::narrow<int>(_args.size()); }
-	[[nodiscard]] auto argv() noexcept { return _argv.data(); }
-
-private:
-	void fill_argv() {
-		this->_argv.reserve(_args.size() + 1);
-		for (auto& s : _args) {
-			_argv.push_back(s.data());
-		}
-		_argv.push_back(nullptr); // Null-terminated array
-	}
-
-
-	std::vector<std::string> _args{};
-	std::vector<const char*> _argv{};
-};
-
-
-
 struct CFilterData {
 	enum : std::uint8_t {
 		SHOW_NO_LIMIT,
@@ -435,149 +317,50 @@ struct CFilterData {
 
 class CGitCall {
 	std::wstring m_Cmd{};
+	std::wstring& m_pvector;
+	std::wstring& m_pvectorErr;
+
+	constexpr auto UNLIMITED = std::numeric_limits<size_t>::max();
+
+	// Unlimited unless setLimit(true): only remote-facing calls opt in.
+	bool m_maxLengthLimit = false;
 
 public:
-	CGitCall() = default;
+	CGitCall(const std::wstring& cmd, std::optional<std::wstring&> pvector = std::nullopt, std::optional<std::wstring&> pvectorErr = std::nullopt) :
+		m_Cmd(cmd),
+		m_pvector(pvector.value_or(std::wstring{})) ,
+		m_pvectorErr(pvectorErr.value_or(std::wstring{})) {}
 
+	CGitCall(const wil::ArgvData& argv, std::optional<std::wstring&> pvector = std::nullopt, std::optional<std::wstring&> pvectorErr = std::nullopt) :
+		m_Cmd(argv.SerializeArgv(false)),
+		m_pvector(pvector.value_or(std::wstring{})) ,
+		m_pvectorErr(pvectorErr.value_or(std::wstring{})) {}
 
-	explicit CGitCall(const std::wstring& cmd) :
-		m_Cmd(cmd) {}
-
-
-	explicit CGitCall(const std::vector<std::wstring>& argv);
-	// Out of line because it needs CGit::SerializeArgv, and CGit is declared below.
-	virtual ~CGitCall() = default;
 
 	[[nodiscard]] const std::wstring& GetCmd() const { return m_Cmd; }
 
+	void setLimit(const bool enableLimit) { m_maxLengthLimit = enableLimit;	}
+	bool hasLimit() const { return m_maxLengthLimit; }
+
 	// These functions are called when command output data is available.
 	// When this function returns 'true' further output is ignored.
-	virtual bool OnOutputData(std::string_view data) = 0;
-	virtual bool OnOutputErrData(std::string_view data) = 0;
-	virtual void OnEnd() {}
-
-
-	void setLimit(const bool enableLimit) {
-		m_maxLength = enableLimit ? GIT_EXE_BUFFER_LIMIT : std::numeric_limits<size_t>::max();
-	}
-
-
-	[[nodiscard]] virtual bool wasLimited() const = 0;
-
-protected:
-	// Unlimited unless setLimit(true): only remote-facing calls opt in.
-	size_t m_maxLength = std::numeric_limits<size_t>::max();
-};
-
-
-
-class CGitCall_ByteVector : public CGitCall {
-public:
-	CGitCall_ByteVector(const std::wstring& cmd, std::string* pvector, std::string* pvectorErr = nullptr) :
-		CGitCall(cmd)
-		, m_pvector(pvector)
-		, m_pvectorErr(pvectorErr) {}
-
-
-	bool OnOutputData(const std::string_view data) override {
+	bool OnOutputData(const std::wstring_view data) {
 		Expects(data.size() <= 1024); // data.size() cannot be larger than 1024, as RunAsync uses a buffer of that size
-		if (!m_pvector)
+		// this simple check is fine as it is intended to be a rough length limit for remote connections as a safety measure
+		if (hasLimit && m_pvector.size() + data.size() >= GIT_EXE_BUFFER_LIMIT)
 			return true;
-		if (m_pvector->size() >= m_maxLength)
-			// this simple check is fine as it is intended to be a rough length limit for remote connections as a safety measure
-			return true;
-		m_pvector->append(data);
+		m_pvector.append(data);
 		return false;
 	}
 
 
-	bool OnOutputErrData(const std::string_view data) override {
+	bool OnOutputErrData(const std::wstring_view data) {
 		Expects(data.size() <= 1024); // data.size() cannot be larger than 1024, as RunAsync uses a buffer of that size
-		if (!m_pvectorErr)
+		// arbitrary length limit for remote connections as a safety measure
+		if (hasLimit && m_pvectorErr.size() > GIT_EXE_STDERR_BUFFER_LIMIT)
 			return true;
-		if (m_maxLength != std::numeric_limits<size_t>::max() && m_pvectorErr->size() > GIT_EXE_STDERR_BUFFER_LIMIT)
-			// arbitrary length limit for remote connections as a safety measure
-			return true;
-		m_pvectorErr->append(data);
+		m_pvectorErr.append(data);
 		return false;
-	}
-
-
-	std::string* m_pvector{};
-	std::string* m_pvectorErr{};
-
-
-	bool wasLimited() const override {
-		if (!m_pvector)
-			return false;
-		return m_pvector->size() >= m_maxLength;
-	}
-};
-
-
-
-template <typename GitReceiverFunc>
-	requires std::is_convertible_v<GitReceiverFunc, std::function<void(std::string_view)>>
-class CGitCallCb : public CGitCall {
-	size_t m_received = 0;
-	GitReceiverFunc m_recv;
-	std::string m_buffer{};
-	std::string* m_pvectorErr{};
-
-public:
-	using CallbackType = GitReceiverFunc;
-
-
-	CGitCallCb(const std::wstring& cmd, const GitReceiverFunc recv, std::string* p_VectorErr = nullptr) :
-		CGitCall(cmd)
-		, m_recv(recv)
-		, m_pvectorErr(p_VectorErr) {}
-
-
-	bool OnOutputData(const std::string_view data) override {
-		Expects(data.size() <= 1024); // data.size() cannot be larger than 1024, as RunAsync uses a buffer of that size
-		if (data.empty())
-			return false;
-		// a rough length limit for remote connections, as a safety measure: once reached, stop.
-		// The count clamps at the limit rather than wrapping, even when the limit is "none" (SIZE_MAX).
-		if (m_received >= m_maxLength)
-			return true;
-		m_received += (std::min)(data.size(), m_maxLength - m_received);
-		m_buffer.append(data);
-		m_buffer.append("\n");
-		auto reader = std::istringstream(m_buffer.data());
-
-		// Break into lines and feed to m_recv
-		for (std::string line; std::getline(reader, line);) {
-			if (line.empty())
-				continue;
-			m_recv(line);
-		}
-		m_buffer.clear();
-		return false;
-	}
-
-
-	bool OnOutputErrData(const std::string_view data) override {
-		Expects(data.size() <= 1024); // data.size() cannot be larger than 1024, as RunAsync uses a buffer of that size
-		if (!m_pvectorErr)
-			return true;
-		if (m_maxLength != std::numeric_limits<size_t>::max() && m_pvectorErr->size() > GIT_EXE_STDERR_BUFFER_LIMIT)
-			// arbitrary length limit for remote connections as a safety measure
-			return true;
-		m_pvectorErr->append(data);
-		return false;
-	}
-
-
-	void OnEnd() override {
-		// do not send any incomplete lines
-		m_buffer.clear(); // Just for sure
-	}
-
-
-	[[nodiscard]] bool wasLimited() const override {
-		return m_received >= m_maxLength;
 	}
 };
 
@@ -916,21 +699,6 @@ constexpr size_t CalculateDiffSimilarityIndexThreshold() noexcept
 	return (index <= 100) ? index : 50;
 }
 
-// the last msysgitdir added to the path, blank if none
-CStringW ms_LastMsysGitDir;
-CStringW ms_MsysGitRootDir;
-int ms_LastMsysGitVersion = 0;
-bool ms_bCygwinGit = wil::reg::try_get_dword(HKEY_CURRENT_USER, Registry::TortoiseGitKey, CygwinHack).value_or(0) != 0;
-bool ms_bMsys2Git = wil::reg::try_get_dword(HKEY_CURRENT_USER, Registry::TortoiseGitKey, Msys2Hack).value_or(0) != 0;
-size_t ms_iSimilarityIndexThreshold = CalculateDiffSimilarityIndexThreshold();
-int m_LogEncode = CP_UTF8;
-// this is a HACK to protect again excessive input from remote servers
-bool s_limitGitExeOutput = false;
-
-
-
-git_credential_acquire_cb g_Git2CredCallback;
-git_transport_certificate_check_cb g_Git2CheckCertificateCallback;
 
 template <std::array Name, bool isDll = true>
 int LogError(const CStringW& out, const std::exception& ex)
@@ -1158,7 +926,7 @@ constexpr std::int64_t filetime_to_time_t(std::int64_t winTime) noexcept
 }
 
 // lstat semantics, as git means them - see PathUtils::get_path_attributes
-int GetFileModifyTime(const path& filename, std::int64_t* time, bool* isDir = nullptr, std::int64_t* size = nullptr, bool* isSymlink = nullptr)
+int GetFileModifyTime(const fs::path& filename, std::int64_t* time, bool* isDir = nullptr, std::int64_t* size = nullptr, bool* isSymlink = nullptr)
 {
 	const auto attrs = get_path_attributes(filename);
 	if (!attrs || !attrs->exists())
@@ -1180,7 +948,7 @@ int GetFileModifyTime(LPCWSTR filename, std::int64_t* time, bool* isDir = nullpt
 {
 	if (!filename)      // path(nullptr) is UB; GetFileAttributesEx(nullptr) merely failed
 		return GFail;
-	return GetFileModifyTime(path(filename), time, isDir, size, isSymlink);
+	return GetFileModifyTime(fs::path(filename), time, isDir, size, isSymlink);
 }
 
 
@@ -1264,24 +1032,68 @@ std::wstring AsGitPath(const CStringW& path)
 
 class CGit
 {
-protected:
-	GIT_DIFF m_GitDiff = nullptr;
-	GIT_DIFF m_GitSimpleListDiff = nullptr;
 
-// Public for the unit tests, which force a lazy re-init between fixtures. It used
-// to be public only where gtest was included first; a module is compiled once, so
-// access can no longer depend on the importer.
+	GIT_DIFF m_GitDiff{};
+	GIT_DIFF m_GitSimpleListDiff{};
+	CStringW gitLastErr{};
+
+	// A leaf lock: every holder only touches the map, so it need not be recursive.
+	std::mutex m_critSecThreadMap;
+	std::map<DWORD, HANDLE> m_AsyncReadStdErrThreadMap;
+	static DWORD WINAPI AsyncReadStdErrThread(LPVOID lpParam);
+	struct ASYNCREADSTDERRTHREADARGS
+	{
+		HANDLE fileHandle;
+		CGitCall* pcall;
+	};
+
+	// Only the two setters above may name this. Everything else - some 400 read
+	// sites - goes through the reference below.
+	CStringW m_CurrentDirStorage;
+	void NormalizeCurrentDir()
+	{
+		// "C:" is relative to that drive's own working directory, "C:\" is its root.
+		// Applied by both setters so the two cannot disagree about a drive root; the
+		// raw assignments this replaced only got it when they happened to go through
+		// SetCurrentDir.
+		if (m_CurrentDirStorage.GetLength() == 2 && m_CurrentDirStorage[1] == L':')
+			m_CurrentDirStorage += L'\\';
+	}
+
+	/*
+	 * The single config reader. \a canonicalizeBool asks git.exe for --bool, which
+	 * is what makes a valueless key ("[section]\nkey" with no =) read as true; the
+	 * gitdll path ignores it and leaves the parsing to the caller.
+	 *
+	 * It is a *type* request, so it does not belong on the untyped public getter -
+	 * GetConfigValueBool is its only user.
+	 */
+	CStringW ReadConfigValue(const CStringW& name, const CStringW& def, bool canonicalizeBool);
+
+	// the last msysgitdir added to the path, blank if none
+	std::filesystem::path ms_LastMsysGitDir;
+	std::filesystem::path ms_MsysGitRootDir;
+
+	int ms_LastMsysGitVersion = 0;
+	bool ms_bCygwinGit = wil::reg::try_get_dword(HKEY_CURRENT_USER, Registry::TortoiseGitKey, CygwinHack).value_or(0) != 0;
+	bool ms_bMsys2Git = wil::reg::try_get_dword(HKEY_CURRENT_USER, Registry::TortoiseGitKey, Msys2Hack).value_or(0) != 0;
+	size_t ms_iSimilarityIndexThreshold = CalculateDiffSimilarityIndexThreshold();
+	int m_LogEncode = CP_UTF8;
+	// this is a HACK to protect again excessive input from remote servers
+	bool s_limitGitExeOutput = false;
+
 public:
+	// Public for the unit tests, which force a lazy re-init between fixtures. It used
+	// to be public only where gtest was included first; a module is compiled once, so
+	// access can no longer depend on the importer.
+	static git_credential_acquire_cb g_Git2CredCallback;
+	static git_transport_certificate_check_cb g_Git2CheckCertificateCallback;
+
 	bool m_IsGitDllInited = false;
 	// Directory g_gitObjectFormat was latched from. The latched format only describes
 	// the repository at m_CurrentDir, so the two have to move together; keeping the
 	// directory here lets CheckAndInitDll() notice when they have drifted apart.
 	CStringW m_formatLatchedFor;
-
-private:
-	CStringW gitLastErr;
-
-public:
 	std::recursive_mutex m_critGitDllSec;	// see TGitH::CAutoLocker
 	bool m_IsUseGitDLL{};
 	bool m_IsUseLibGit2{};
@@ -1289,10 +1101,53 @@ public:
 
 	CEnvironment m_Environment;
 
+	bool m_bInitialized = false;
+
+	PROCESS_INFORMATION m_CurrentGitPi{};
+
+
+	CGit() {
+		git_libgit2_init();
+		// Seeded from the process's own working directory, which is emphatically not guaranteed to be a working copy root - every caller that cares sets one.
+		// This is the third writer of the directory and the only one a grep for "m_CurrentDir =" could never find, which is the argument for making the member
+		// const rather than merely documenting that it should not be assigned. It writes the storage rather than a setter because CStrBuf fills a buffer
+		// inplace, and because this write is not choosing a repository.
+		GetCurrentDirectory(MAX_PATH, CStrBufW(m_CurrentDirStorage, MAX_PATH));
+		m_IsUseGitDLL = wil::reg::get_bool(HKEY_CURRENT_USER, Registry::TortoiseGitKey, L"UsingGitDLL", false);
+		m_IsUseLibGit2 = wil::reg::get_bool(HKEY_CURRENT_USER, Registry::TortoiseGitKey, L"UseLibgit2", true);
+		m_IsUseLibGit2_mask = wil::reg::try_get_dword(HKEY_CURRENT_USER, Registry::TortoiseGitKey, L"UseLibgit2_mask").value_or(DEFAULT_USE_LIBGIT2_MASK);
+
+		// the unit tests pin these three in their fixture, after construction
+		constexpr auto sw_Explorer = L"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\Explorer";
+		g_bSortLogical = !wil::reg::get_bool(HKEY_CURRENT_USER, sw_Explorer, L"NoStrCmpLogical", false);
+		g_bSortLogical &= !wil::reg::get_bool(HKEY_LOCAL_MACHINE, sw_Explorer, L"NoStrCmpLogical", false);
+		g_bSortLocalBranchesFirst = !wil::reg::get_bool(HKEY_CURRENT_USER, Registry::TortoiseGitKey, L"NoSortLocalBranchesFirst", false);
+		g_bSortLocalBranchesFirst &= !wil::reg::get_bool(HKEY_LOCAL_MACHINE, Registry::TortoiseGitKey, L"NoSortLocalBranchesFirst", false);
+		g_bSortTagsReversed = wil::reg::get_bool(HKEY_CURRENT_USER, Registry::TortoiseGitKey, L"SortTagsReversed", false);
+		g_bSortLocalBranchesFirst &= wil::reg::get_bool(HKEY_LOCAL_MACHINE, Registry::TortoiseGitKey, L"SortTagsReversed", false);
+
+		CheckMsysGitDir();
+	}
+
+
+	~CGit()
+	{
+		if(this->m_GitDiff) {
+			git_close_diff(m_GitDiff);
+			m_GitDiff = nullptr;
+		}
+		if(this->m_GitSimpleListDiff) {
+			git_close_diff(m_GitSimpleListDiff);
+			m_GitSimpleListDiff = nullptr;
+		}
+		git_libgit2_shutdown();
+	}
+
+
 	void ForceReInitDll()
 	{
 #ifdef TGITCACHE
-		_ASSERTE("we should never get here");
+		std::unreachable();
 #endif
 		m_IsGitDllInited = false;
 		CheckAndInitDll();
@@ -1300,7 +1155,7 @@ public:
 	void CheckAndInitDll()
 	{
 #ifdef TGITCACHE
-		_ASSERTE("we should never get here");
+		std::unreachable();
 #endif
 		// Re-init when the working copy changed, not only when the dll was never
 		// initialized: g_gitObjectFormat describes the repository we latched it from,
@@ -1318,20 +1173,20 @@ public:
 		}
 	}
 
-	static int git_open_diff_ex(GIT_DIFF* diff, ArgvData& argv)
-	{
-		return git_open_diff(diff, argv.argc(), argv.argv());
+	static int git_open_diff_ex(GIT_DIFF* diff, const wil::ArgvData& argv) {
+		auto&& temp = argv.utf8();
+		return git_open_diff(diff, temp.argc(), temp.argv());
 	}
 
-	static int git_open_log_ex(GIT_DIFF* m_DllGitLog, ArgvData& argv)
-	{
-		return git_open_log(m_DllGitLog, argv.argc(), argv.argv());
+	static int git_open_log_ex(GIT_DIFF* m_DllGitLog, wil::ArgvData& argv) {
+		auto&& temp = argv.utf8();
+		return git_open_log(m_DllGitLog, temp.argc(), temp.argv());
 	}
 
 	GIT_DIFF GetGitDiff()
 	{
 #ifdef TGITCACHE
-		_ASSERTE("we should never get here");
+		std::unreachable();
 #endif
 		if (m_GitDiff)
 			return m_GitDiff;
@@ -1339,7 +1194,7 @@ public:
 		// cf. GitRevLoglist::SafeFetchFullInfo
 		static const std::string cParameter = std::format("-C{}%", ms_iSimilarityIndexThreshold);
 		static const std::string mParameter = std::format("-M{}%", ms_iSimilarityIndexThreshold);
-		ArgvData argv = { ""s, cParameter, mParameter, "-r"s };
+		wil::ArgvData argv = { ""s, cParameter, mParameter, "-r"s };
 		git_open_diff_ex(&m_GitDiff, argv);
 		return m_GitDiff;
 	}
@@ -1347,17 +1202,16 @@ public:
 	GIT_DIFF GetGitSimpleListDiff()
 	{
 #ifdef TGITCACHE
-		_ASSERTE("we should never get here");
+		std::unreachable();
 #endif
 		if (m_GitSimpleListDiff)
 			return m_GitSimpleListDiff;
-		ArgvData argv = { "", "-r" };
+		wil::ArgvData argv = { "", "-r" };
 		git_open_diff_ex(&m_GitSimpleListDiff, argv);
 		return m_GitSimpleListDiff;
 	}
 
 	BOOL CheckMsysGitDir(BOOL bFallback = TRUE);
-	bool m_bInitialized = false;
 
 	static_assert(LIBGIT2_CMD::LAST_VALUE < sizeof(DWORD) * 8, "too many flags for storing them in a DWORD bitfield");
 	bool UsingLibGit2(const LIBGIT2_CMD cmd) const { return (1 << cmd) & LIBGIT2_ONLY_MASK ? true : (m_IsUseLibGit2 && (1 << cmd) & m_IsUseLibGit2_mask); }
@@ -1378,29 +1232,7 @@ public:
 	 * default applies. A stale path to the retired TortoiseGitPlink.exe reads as unset,
 	 * so upgrades do not keep exporting a binary that no longer exists.
 	 */
-	static std::wstring GetConfiguredSshClient()
-	{
-		std::wstring sshclient = wil::reg::try_get_string(HKEY_CURRENT_USER, Registry::TortoiseGitKey, L"SSH").value_or(std::wstring{});
-		if (sshclient.empty())
-			sshclient = wil::reg::try_get_string(HKEY_LOCAL_MACHINE, Registry::TortoiseGitKey, L"SSH").value_or(std::wstring{});
-
-		// Installs from before TortoiseGitPlink was retired still point at it, and an upgrade does
-		// not rewrite an existing value. Left alone it would be exported verbatim and every network
-		// operation would fail to spawn. Only *our own* removed binary is cleared, and only when it
-		// is really gone: TortoiseSVN ships a working TortoisePlink.exe, and someone who deliberately
-		// pointed at that must keep it.
-		if (!sshclient.empty() && !PathFileExists(sshclient.c_str()))
-		{
-			std::wstring exe = PathUtils::GetFileNameFromPath(sshclient);
-			tgit::wstr::MakeLower(exe);
-			if (exe == L"tortoisegitplink.exe" || exe == L"tortoiseplink.exe")
-				sshclient.clear();
-		}
-
-		return sshclient;
-	}
- 	[[nodiscard]] CStringW GetNotesRef() const;
-	static bool IsBranchNameValid(const CStringW& branchname);
+	[[nodiscard]] CStringW GetNotesRef() const;
 	bool IsLocalBranch(const CStringW& shortName);
 	bool IsBranchTagNameUnique(const CStringW& name);
 	/**
@@ -1409,17 +1241,15 @@ public:
 	 */
 	bool BranchTagExists(const CStringW& name, bool isBranch = true);
 
-	PROCESS_INFORMATION m_CurrentGitPi{};
-
-	CGit();
-	~CGit();
-	// m_CurrentDir is a reference into *this, so an implicit copy would bind the
-	// copy's member to the *source* object's storage and the two would silently
-	// share a working directory. Nothing copies CGit today - g_Git and the handful
-	// of `CGit subgit;` locals are all default-constructed - so deleting these
-	// costs nothing and closes the hole before someone opens it.
+	/* m_CurrentDir is a reference into *this, so an implicit copy would bind the
+	 * copy's member to the *source* object's storage and the two would silently
+	 * share a working directory. Nothing copies CGit today - g_Git and the handful
+	 * of `CGit subgit;` locals are all default-constructed - so deleting these
+	 * costs nothing and closes the hole before someone opens it.
+	 */
 	CGit(const CGit&) = delete;
 	CGit& operator=(const CGit&) = delete;
+
 
 	/**
 	 * The invoke API, in two spellings of the same thing.
@@ -1435,60 +1265,66 @@ public:
 	 * argv is not something you can do correctly after the fact, which is the
 	 * reason the flat form has to be retired site by site rather than adapted.
 	 */
-	int Run(const std::vector<std::wstring>& argv, CStringW* output, const int code) { return Run(SerializeArgvToCString(argv), output, code); }
-	int Run(const std::vector<std::wstring>& argv, CStringW* output, CStringW* outputErr, const int code = CP_UTF8) { return Run(SerializeArgvToCString(argv), output, outputErr, code); }
-	int Run(const std::vector<std::wstring>& argv, std::string* byte_array, std::string* byte_arrayErr = nullptr) { return Run(SerializeArgvToCString(argv), byte_array, byte_arrayErr); }
-	template <typename GitReceiverFunc>
-	int Run(const std::vector<std::wstring>& argv, GitReceiverFunc recv, CStringW* outputErr = nullptr) { return Run_reciver(SerializeArgvToCString(argv), recv, outputErr); }
+	auto SerializeArgvToCString(const wil::ArgvData& argv) { return argv.SerializeArgv(this->ms_bMsys2Git || this->ms_bCygwinGit); }
 
-	int Run(const CStringW& cmd, CStringW* output, int code);
-	int Run(const CStringW& cmd, CStringW* output, CStringW* outputErr, int code);
-	int Run(const auto& argv, auto* output, auto* outputErr = nullptr)
-	{
-		const auto cmd = SerializeArgv(argv);
-		return Run(cmd, output, outputErr);
+	template <typename GitReceiverFunc>
+	int Run(const wil::ArgvData& argv, GitReceiverFunc recv, CStringW* outputErr = nullptr)
+	{ return Run_reciver(SerializeArgvToCString(argv), recv, outputErr); }
+
+	int Run(
+		const std::wstring& cmd,
+		std::optional<std::wstring&> vector = std::nullopt,
+		std::optional<std::wstring&> vectorErr = std::nullopt,
+		const int code = CP_UTF8
+	) {
+		auto call = CGitCall{cmd, vector, vectorErr};
+		if (s_limitGitExeOutput && vectorErr)
+		{
+			if (vectorErr->size() > GIT_EXE_STDERR_BUFFER_LIMIT)
+				vectorErr->append(std::format("\n\n[Git.exe error output truncated by TortoiseGit at about {} KiB]", GIT_EXE_STDERR_BUFFER_LIMIT / 1024));
+			if (call.hasLimit())
+				vectorErr->append(std::format("\n\n[Git.exe's output truncated by TortoiseGit at about {} MiB]", GIT_EXE_BUFFER_LIMIT / 1024 / 1024));
+		}
+		return Run(call);
 	}
-	int Run(const CStringW& cmd, std::string* vector, std::string* vectorErr = nullptr);
 	int Run(CGitCall& pcall);
+
 	template <typename GitReceiverFunc>
 	int Run_reciver(const CStringW& cmd, GitReceiverFunc recv, CStringW* const outputErr = nullptr)
 	{
 		if (outputErr)
 		{
-			std::string vectorErr;
-			auto callback = CGitCallCb<GitReceiverFunc>{std::wstring(cmd), recv, &vectorErr};
+			std::wstring vectorErr;
+			auto callback = CGitCallCb<GitReceiverFunc>{std::wstring(cmd), recv, vectorErr};
 			callback.setLimit(s_limitGitExeOutput);
 			const int ret = Run(callback);
 			if (!vectorErr.empty())
 			{
-				StringAppend(*outputErr, std::string_view(vectorErr.data(), vectorErr.size()));
+				StringAppend(*outputErr, std::wstring_view(vectorErr.data(), vectorErr.size()));
 				if (s_limitGitExeOutput && vectorErr.size() > GIT_EXE_STDERR_BUFFER_LIMIT)
 					StringAppend(*outputErr, std::format(
 											 "\n\n[Git.exe error output truncated by TortoiseGit at about {} KiB]",
 											 GIT_EXE_STDERR_BUFFER_LIMIT / 1024));
 			}
 			if (s_limitGitExeOutput && callback.wasLimited())
-				vectorErr.append(std::format("\n\n[Git.exe's output truncated by TortoiseGit at about {} MiB]", GIT_EXE_BUFFER_LIMIT / 1024 / 1024));
+				vectorErr.append(std::format(L"\n\n[Git.exe's output truncated by TortoiseGit at about {} MiB]", GIT_EXE_BUFFER_LIMIT / 1024 / 1024));
 			return ret;
 		}
 
-		CGitCallCb callback(std::wstring(cmd), recv);
+		CGitCall callback(std::wstring(cmd), recv);
 		callback.setLimit(s_limitGitExeOutput);
 		return Run(callback);
 	}
 
-private:
-	// A leaf lock: every holder only touches the map, so it need not be recursive.
-	std::mutex m_critSecThreadMap;
-	std::map<DWORD, HANDLE> m_AsyncReadStdErrThreadMap;
-	static DWORD WINAPI AsyncReadStdErrThread(LPVOID lpParam);
-	struct ASYNCREADSTDERRTHREADARGS
-	{
-		HANDLE fileHandle;
-		CGitCall* pcall;
-	};
+	int RunAsync(CStringW cmd, PROCESS_INFORMATION& pi, HANDLE* hRead, HANDLE* hErrReadOut, const CStringW* StdioFile = nullptr);
+	int RunAsync(const wil::ArgvData& argv, PROCESS_INFORMATION& pi, HANDLE* hRead, HANDLE* hErrReadOut, const CStringW* StdioFile = nullptr)
+		{ return RunAsync(argv.SerializeArgv(this->ms_bMsys2Git || this->ms_bCygwinGit).c_str(), pi, hRead, hErrReadOut, StdioFile); }
 
-public:
+	int RunLogFile(const CStringW& cmd, const CStringW& filename, CStringW* stdErr);
+	int RunLogFile(const wil::ArgvData& argv, const CStringW& filename, CStringW* stdErr)
+		{ return RunLogFile(argv.SerializeArgv(this->ms_bMsys2Git || this->ms_bCygwinGit).c_str(), filename, stdErr); }
+
+	bool IsFastForward(const CStringW& from, const CStringW& to, CGitHash* commonAncestor = nullptr);
 	/// Takes the two things it reads from a CWinThread rather than the CWinThread:
 	/// the core library has no business including MFC's UI (afxwin.h), and this way
 	/// it exists in both flavors. Callers pass m_pThread->m_nThreadID, ->m_hThread.
@@ -1499,23 +1335,6 @@ public:
 	{
 		return CUnicodeUtils::GetUTF8<CStringA>(CTGitPath(path).GetGitPathString());
 	}
-	int RunAsync(CStringW cmd, PROCESS_INFORMATION& pi, HANDLE* hRead, HANDLE* hErrReadOut, const CStringW* StdioFile = nullptr);
-	int RunAsync(const std::vector<std::wstring>& argv, PROCESS_INFORMATION& pi, HANDLE* hRead, HANDLE* hErrReadOut, const CStringW* StdioFile = nullptr) { return RunAsync(SerializeArgvToCString(argv), pi, hRead, hErrReadOut, StdioFile); }
-	int RunLogFile(const CStringW& cmd, const CStringW& filename, CStringW* stdErr);
-	int RunLogFile(const std::vector<std::wstring>& argv, const CStringW& filename, CStringW* stdErr) { return RunLogFile(SerializeArgvToCString(argv), filename, stdErr); }
-
-	bool IsFastForward(const CStringW& from, const CStringW& to, CGitHash* commonAncestor = nullptr);
-
-private:
-	/**
-	 * The single config reader. \a canonicalizeBool asks git.exe for --bool, which
-	 * is what makes a valueless key ("[section]\nkey" with no =) read as true; the
-	 * gitdll path ignores it and leaves the parsing to the caller.
-	 *
-	 * It is a *type* request, so it does not belong on the untyped public getter -
-	 * GetConfigValueBool is its only user.
-	 */
-	CStringW ReadConfigValue(const CStringW& name, const CStringW& def, bool canonicalizeBool);
 
 public:
 	/**
@@ -1579,27 +1398,29 @@ public:
 			}
 		}
 
-		std::vector<std::wstring> argv{ L"git.exe", L"config" };
+		wil::ArgvData argv{ L"git.exe", L"config" };
 		// CONFIG_LOCAL (and XDG) pass no scope flag, as before: an empty argv element
 		// would reach git as a real empty argument.
 		if (type == CONFIG_GLOBAL)
-			argv.emplace_back(L"--global");
+			argv << L"--global";
 		else if (type == CONFIG_SYSTEM)
-			argv.emplace_back(L"--system");
+			argv << L"--system";
 		if (!value)
-			argv.emplace_back(L"--unset");
-		argv.emplace_back(L"--end-of-options");
-		argv.emplace_back(std::wstring(key));
+			argv << L"--unset";
+		argv << L"--end-of-options";
+		argv << StringView{key};
 		if (value)
-			argv.emplace_back(std::wstring(*value));
+			argv << StringView{*value};
 
-		CStringW out;
-		if (Run(argv, &out, nullptr, CP_UTF8))
-		{
-			TracePrintf(L"%S: git config failed for %s: %s\n", where.function_name(), static_cast<LPCWSTR>(key), static_cast<LPCWSTR>(out));
-			return -1;
+		std::wstring out;
+		std::wstring err;
+		auto&& ret = Run(argv, out, err);
+		Trace(L"{}: git config for {}: {}\n", where.function_name(), key, out);
+		if (ret) {
+			Trace(L"{}: git config for {} failed:\n\t{}", where.function_name(), key, err);
+			return GFail;
 		}
-		return 0;
+		return G_OK;
 	}
 
 	CStringW GetUserName();
@@ -1693,22 +1514,7 @@ public:
 	 */
 	[[nodiscard]] const CStringW& GetCurrentDir() const { return m_CurrentDir; }
 
-private:
-	// Only the two setters above may name this. Everything else - some 400 read
-	// sites - goes through the reference below.
-	CStringW m_CurrentDirStorage;
 
-	void NormalizeCurrentDir()
-	{
-		// "C:" is relative to that drive's own working directory, "C:\" is its root.
-		// Applied by both setters so the two cannot disagree about a drive root; the
-		// raw assignments this replaced only got it when they happened to go through
-		// SetCurrentDir.
-		if (m_CurrentDirStorage.GetLength() == 2 && m_CurrentDirStorage[1] == L':')
-			m_CurrentDirStorage += L'\\';
-	}
-
-public:
 	/*
 	 * Reads exactly like the public member it replaces - `g_Git.m_CurrentDir` still
 	 * compiles verbatim everywhere - but it is a reference to const, so every
@@ -1775,11 +1581,11 @@ public:
 	class SubmoduleInfo
 	{
 	public:
-		CGitHash superProjectHash;
-		CGitHash mergeconflictMineHash;
-		CGitHash mergeconflictTheirsHash;
-		CStringW mineLabel;
-		CStringW theirsLabel;
+		CGitHash superProjectHash{};
+		CGitHash mergeconflictMineHash{};
+		CGitHash mergeconflictTheirsHash{};
+		CStringW mineLabel{};
+		CStringW theirsLabel{};
 
 		[[nodiscard]] bool AnyMatches(const CGitHash& hash) const
 		{
@@ -1801,6 +1607,7 @@ public:
 
 	// Example: master -> refs/heads/master
 	CStringW GetFullRefName(const CStringW& shortRefName);
+	std::wstring GetFullRefName(const std::wstring& shortRefName);
 	// Removes 'refs/heads/' or just 'refs'. Example: refs/heads/master -> master
 
 	int GetCommitDiffList(const CStringW& rev1, const CStringW& rev2, CTGitPathList& outpathlist, CStringW& error, bool ignoreSpaceAtEol = false, bool ignoreSpaceChange = false, bool ignoreAllSpace = false, bool ignoreBlankLines = false);
@@ -1893,55 +1700,6 @@ public:
 		return QuoteParameter(CStringW(value.data(), gsl::narrow<int>(value.size())), relaxed);
 	}
 
-	/**
-	 * Turns an argv vector into the one flat command line Win32 insists on.
-	 *
-	 * This is the whole point of the argv overloads: CreateProcess has no argv
-	 * API, so *someone* has to do this - and doing it here, once, is the
-	 * difference between one implementation of the quoting rules and the ~256
-	 * QuoteParameter calls scattered over the call sites it replaces.
-	 *
-	 * Two serializations, because RunAsync has two backends. Native git.exe gets
-	 * MSDN's backslash/quote rules, read back by CommandLineToArgvW. For
-	 * msys2/cygwin the line is written to a temp file and handed to bash.exe, so
-	 * there it is shell *source* and gets POSIX single-quoting instead.
-	 *
-	 * Elements are quoted only when quoting changes the reading. That is not an
-	 * optimization: RunAsync decides whether to prepend ms_LastMsysGitDir by
-	 * testing whether the line starts with "git", so a serializer that quoted
-	 * argv[0] unconditionally would silently resolve git through PATH instead.
-	 */
-
-	/**
-	 * SerializeArgv in the spelling the flat overloads want. It will go away with
-	 * them; SerializeArgv is the one that stays, because it is what a future
-	 * wstring-native (or third-party) process launcher would call.
-	 */
-
-	[[nodiscard]] static std::wstring SerializeArgv(const std::vector<std::wstring>& argv)
-	{
-		// The msys2/cygwin backend writes the line into a file and runs it through
-		// bash.exe (see RunAsync), so it is shell source there and a Win32 command
-		// line here. Same vector, two grammars.
-		if (ms_bMsys2Git || ms_bCygwinGit)
-		{
-			std::wstring cmd;
-			for (const auto& arg : argv)
-			{
-				if (!cmd.empty())
-					cmd += L' ';
-				cmd += NeedsPosixShellQuoting(arg) ? EscapePosixShellArgument(arg) : arg;
-			}
-			return cmd;
-		}
-
-		return wil::ArgvToCommandLine(argv);
-	}
-	[[nodiscard]] static auto SerializeArgvToCString(const std::vector<std::wstring>& argv)
-	{
-		const std::wstring cmd = SerializeArgv(argv);
-		return CStringW(cmd.data(), gsl::narrow<int>(cmd.size()));
-	}
 };
 
 
@@ -2558,51 +2316,6 @@ using details::GetMapHashToFriendName;
 
 
 
-CGit::CGit()
-{
-	git_libgit2_init();
-	// Seeded from the process's own working directory, which is emphatically not
-	// guaranteed to be a working copy root - every caller that cares sets one.
-	// This is the third writer of the directory and the only one a grep for
-	// "m_CurrentDir =" could never find, which is the argument for making the
-	// member const rather than merely documenting that it should not be assigned.
-	// It writes the storage rather than a setter because CStrBuf fills a buffer in
-	// place, and because this write is not choosing a repository.
-	GetCurrentDirectory(MAX_PATH, CStrBufW(m_CurrentDirStorage, MAX_PATH));
-	m_IsUseGitDLL = wil::reg::try_get_dword(HKEY_CURRENT_USER, Registry::TortoiseGitKey, L"UsingGitDLL").value_or(0) != 0;
-	m_IsUseLibGit2 = wil::reg::try_get_dword(HKEY_CURRENT_USER, Registry::TortoiseGitKey, L"UseLibgit2").value_or(1) != 0;
-	m_IsUseLibGit2_mask = wil::reg::try_get_dword(HKEY_CURRENT_USER, Registry::TortoiseGitKey, L"UseLibgit2_mask").value_or(DEFAULT_USE_LIBGIT2_MASK);
-
-		// the unit tests pin these three in their fixture, after construction
-		g_bSortLogical = !Registry::CRegDWORD(L"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\Explorer\\NoStrCmpLogical", 0, false, HKEY_CURRENT_USER);
-		if (g_bSortLogical)
-			g_bSortLogical = !Registry::CRegDWORD(L"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\Explorer\\NoStrCmpLogical", 0, false, HKEY_LOCAL_MACHINE);
-		g_bSortLocalBranchesFirst = !Registry::CRegDWORD(L"Software\\TortoiseGit\\NoSortLocalBranchesFirst", 0, false, HKEY_CURRENT_USER);
-		if (g_bSortLocalBranchesFirst)
-			g_bSortLocalBranchesFirst = !Registry::CRegDWORD(L"Software\\TortoiseGit\\NoSortLocalBranchesFirst", 0, false, HKEY_LOCAL_MACHINE);
-		g_bSortTagsReversed = !!Registry::CRegDWORD(L"Software\\TortoiseGit\\SortTagsReversed", 0, false, HKEY_LOCAL_MACHINE);
-		if (!g_bSortTagsReversed)
-			g_bSortTagsReversed = !!Registry::CRegDWORD(L"Software\\TortoiseGit\\SortTagsReversed", 0, false, HKEY_CURRENT_USER);
-
-
-	CheckMsysGitDir();
-}
-
-CGit::~CGit()
-{
-	if(this->m_GitDiff)
-	{
-		git_close_diff(m_GitDiff);
-		m_GitDiff = nullptr;
-	}
-	if(this->m_GitSimpleListDiff)
-	{
-		git_close_diff(m_GitSimpleListDiff);
-		m_GitSimpleListDiff = nullptr;
-	}
-	git_libgit2_shutdown();
-}
-
 bool CGit::IsBranchNameValid(const CStringW& branchname)
 {
 	if (branchname.FindOneOf(L"\"|<>") >= 0) // not valid on Windows
@@ -2614,7 +2327,7 @@ bool CGit::IsBranchNameValid(const CStringW& branchname)
 
 
 int CGit::RunAsync(
-	CStringW cmd,
+	std::wstring cmd,
 	PROCESS_INFORMATION& piOut,
 	HANDLE* hReadOut,
 	HANDLE* hErrReadOut,
@@ -2677,7 +2390,7 @@ int CGit::RunAsync(
 
 	memset(&this->m_CurrentGitPi, 0, sizeof(PROCESS_INFORMATION));
 
-	const bool startsWithGit = StringUtils::StartsWith(cmd, L"git");
+	const bool startsWithGit = cmd.starts_with(L"git");
 	if ((ms_bMsys2Git || ms_bCygwinGit) && startsWithGit) {
 		TracePrintf(__FUNCTION__ L": executing via bash: %s\n", static_cast<LPCWSTR>(cmd));
 		CStringW tmpFile = GetTempFile();
@@ -2685,16 +2398,16 @@ int CGit::RunAsync(
 			cmd = L"/usr/bin/" + cmd;
 		else if (ms_bCygwinGit)
 			cmd = L"/bin/" + cmd;
-		StringUtils::WriteStringToTextFile(tmpFile, cmd);
+		StringUtils::WriteStringToTextFile(tmpFile, cmd.c_str());
 		tmpFile.Replace(L'\\', L'/');
-		cmd = L'"' + TGitH::ms_LastMsysGitDir + L"\\bash.exe\" \"" + tmpFile + L'"';
+		cmd = L'"'s + this->ms_LastMsysGitDir + L"\\bash.exe\" \"" + tmpFile + L'"';
 	}
 	else if (startsWithGit || StringUtils::StartsWith(cmd, L"bash")) {
-		const int firstSpace = cmd.Find(L' ');
+		const int firstSpace = cmd.find(L" ");
 		if (firstSpace > 0)
-			cmd = L'"' + TGitH::ms_LastMsysGitDir + L'\\' + cmd.Left(firstSpace) + L'"' + cmd.Mid(firstSpace);
+			cmd = L'"' + this->ms_LastMsysGitDir.c_str() + L'\\' + cmd.Left(firstSpace) + L'"' + cmd.Mid(firstSpace);
 		else
-			cmd = L'"' + TGitH::ms_LastMsysGitDir + L'\\' + cmd + L'"';
+			cmd = L'"' + this->ms_LastMsysGitDir.c_str() + L'\\' + cmd + L'"';
 	}
 
 	TracePrintf(__FUNCTION__ L": executing %s\n", static_cast<LPCWSTR>(cmd));
@@ -2790,8 +2503,8 @@ int CGit::Run(CGitCall& pcall)
 	[[maybe_unused]]wil::unique_handle piThread(pi.hThread);
 	[[maybe_unused]]wil::unique_handle piProcess(pi.hProcess);
 
-	ASYNCREADSTDERRTHREADARGS threadArguments{ .fileHandle = hReadErr.get(), .pcall = &pcall };
-	const wil::unique_handle thread{ CreateThread(nullptr, 0, AsyncReadStdErrThread, &threadArguments, 0, nullptr) };
+	auto threadArguments = ASYNCREADSTDERRTHREADARGS{ .fileHandle = hReadErr.get(), .pcall = &pcall };
+	const auto thread = wil::unique_handle{ CreateThread(nullptr, 0, AsyncReadStdErrThread, &threadArguments, 0, nullptr) };
 
 	if (thread)
 	{
@@ -2821,7 +2534,7 @@ int CGit::Run(CGitCall& pcall)
 	}
 
 	WaitForSingleObject(pi.hProcess, INFINITE);
-	DWORD exitcode =0;
+	DWORD exitcode = 0;
 
 	if(!GetExitCodeProcess(pi.hProcess,&exitcode))
 	{
@@ -2836,52 +2549,6 @@ int CGit::Run(CGitCall& pcall)
 		return -1;
 
 	return exitcode;
-}
-
-int CGit::Run(const CStringW& cmd, std::string* vector, std::string* vectorErr)
-{
-	CGitCall_ByteVector call(std::wstring(cmd), vector, vectorErr);
-	if (s_limitGitExeOutput && vectorErr)
-	{
-		if (vectorErr->size() > GIT_EXE_STDERR_BUFFER_LIMIT)
-			vectorErr->append(std::format("\n\n[Git.exe error output truncated by TortoiseGit at about {} KiB]", GIT_EXE_STDERR_BUFFER_LIMIT / 1024));
-		if (call.wasLimited())
-			vectorErr->append(std::format("\n\n[Git.exe's output truncated by TortoiseGit at about {} MiB]", GIT_EXE_BUFFER_LIMIT / 1024 / 1024));
-	}
-	return Run(call);
-}
-
-int CGit::Run(const CStringW& cmd, CStringW* output, const int code)
-{
-	CStringW err;
-	const int ret = Run(cmd, output, &err, code);
-
-	if (output && !err.IsEmpty())
-	{
-		if (!output->IsEmpty())
-			*output += L'\n';
-		*output += err;
-	}
-
-	return ret;
-}
-
-int CGit::Run(const CStringW& cmd, CStringW* output, CStringW* outputErr, const int code)
-{
-	std::string vector, vectorErr;
-	int ret;
-	if (outputErr)
-		ret = Run(cmd, &vector, &vectorErr);
-	else
-		ret = Run(cmd, &vector);
-
-	if (output && !vector.empty())
-		StringAppend(*output, std::string_view(vector.data(), vector.size()), code);
-
-	if (outputErr && !vectorErr.empty())
-		StringAppend(*outputErr, std::string_view(vectorErr.data(), vectorErr.size()), code);
-
-	return ret;
 }
 
 CStringW CGit::GetUserName()
@@ -3089,6 +2756,16 @@ CStringW CGit::GetFullRefName(const CStringW& shortRefName)
 	CStringW refName;
 	if (Run({ L"git.exe", L"rev-parse", L"--symbolic-full-name", L"--verify", L"--end-of-options", std::wstring(shortRefName) }, &refName, nullptr, CP_UTF8) != 0)
 		return CStringW();//Error
+	return refName.TrimRight();
+}
+
+std::wstring CGit::GetFullRefName(const std::wstring& shortRefName)
+{
+	std::wstring refName;
+	if (Run({
+		L"git.exe", L"rev-parse", L"--symbolic-full-name", L"--verify", L"--end-of-options", shortRefName
+	}, refName, nullptr, CP_UTF8) != G_OK)
+		return {};		//Error
 	return refName.TrimRight();
 }
 
@@ -3347,6 +3024,29 @@ wil::unique_git_repository CGit::GetGitRepository() const
 	// Through wil::OpenGitRepository, the chokepoint that latches the object format.
 	return wil::OpenGitRepository(TGitPath::ToGitPathA(m_CurrentDir.GetString()).c_str());
 }
+
+
+std::wstring GetConfiguredSshClient() {
+	std::wstring sshclient = wil::reg::try_get_string(HKEY_CURRENT_USER, Registry::TortoiseGitKey, L"SSH").value_or(std::wstring{});
+	if (sshclient.empty())
+		sshclient = wil::reg::try_get_string(HKEY_LOCAL_MACHINE, Registry::TortoiseGitKey, L"SSH").value_or(std::wstring{});
+
+	// Installs from before TortoiseGitPlink was retired still point at it, and an upgrade does
+	// not rewrite an existing value. Left alone it would be exported verbatim and every network
+	// operation would fail to spawn. Only *our own* removed binary is cleared, and only when it
+	// is really gone: TortoiseSVN ships a working TortoisePlink.exe, and someone who deliberately
+	// pointed at that must keep it.
+	if (!sshclient.empty() && !PathFileExists(sshclient.c_str()))
+	{
+		std::wstring exe = PathUtils::GetFileNameFromPath(sshclient);
+		tgit::wstr::MakeLower(exe);
+		if (exe == L"tortoisegitplink.exe" || exe == L"tortoiseplink.exe")
+			sshclient.clear();
+	}
+
+	return sshclient;
+}
+
 
 int CGit::GetHash(git_repository * repo, CGitHash &hash, const std::wstring_view friendname, const bool skipFastCheck /* = false */)
 {

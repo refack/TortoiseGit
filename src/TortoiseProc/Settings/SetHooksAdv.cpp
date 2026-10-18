@@ -22,7 +22,7 @@
 
 #include "TortoiseProc.h"
 #include "SetHooksAdv.h"
-#include "Utils/BrowseFolder.h"
+import BrowseFolder;
 import AppUtils.Window;
 import TGitPath;	// GitAdminDir lives in the TGitPath module
 

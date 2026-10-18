@@ -70,7 +70,6 @@ private:
 };
 
 extern CTortoiseProcApp theApp;
-extern CString g_sGroupingUUID;
 HWND GetExplorerHWND();
 CWnd* GetParentCWnd(HWND hWnd);
 

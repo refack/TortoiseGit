@@ -23,7 +23,7 @@
 #include "std.h"
 
 #include "TortoiseProc.h"
-#include "MessageBox.h"
+import MessageBox;
 #include "PatchViewDlg.h"
 #include "Utils/DPIAware.h"
 #include "StagingOperations.h"

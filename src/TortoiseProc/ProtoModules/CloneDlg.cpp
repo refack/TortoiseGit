@@ -24,8 +24,9 @@
 
 #include "TortoiseProc.h"
 #include "CloneDlg.h"
-#include "Utils/BrowseFolder.h"
-#include "MessageBox.h"
+import MessageBox;
+import BrowseFolder;
+using namespace BrowseFolder;
 import AppUtils.Launch;
 import AppUtils.Window;
 

@@ -25,7 +25,7 @@
 
 #include <Resources/resource.h>
 #include "SubmoduleAddDlg.h"
-#include "Utils/BrowseFolder.h"
+import BrowseFolder;
 import AppUtils.Window;
 
 // CSubmoduleAddDlg dialog

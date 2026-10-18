@@ -22,13 +22,14 @@
 
 #include "DropCopyCommand.h"
 #include "SysProgressDlg.h"
-#include "MessageBox.h"
 #include "RenameDlg.h"
+import MessageBox;
+
 
 bool DropCopyCommand::Execute()
 {
-	CString sDroppath = parser.GetVal(L"droptarget");
-	if (CTGitPath(sDroppath.GetString()).IsAdminDir())
+	fs::path sDroppath = parser.GetValStr(L"droptarget");
+	if (CTGitPath(sDroppath).IsAdminDir())
 	{
 		MessageBox(GetExplorerHWND(), L"Can't drop to .git repository directory\n", L"TortoiseGit", MB_OK | MB_ICONERROR);
 		return FALSE;

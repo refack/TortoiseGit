@@ -18,7 +18,7 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #include "stdafx.h"
 #include "Utils.h"
-#include "FormatMessageWrapper.h"
+import wil;
 
 CUtils::CUtils()
 {
@@ -131,9 +131,9 @@ void CUtils::StringCollapse(LPWSTR str)
 
 void CUtils::Error()
 {
-	CFormatMessageWrapper errorDetails;
+	wil::CFormatMessageWrapper errorDetails;
 	if (errorDetails)
-		fwprintf(stderr, L"%s\n", static_cast<LPCWSTR>(errorDetails));
+		fwprintf(stderr, L"%s\n", errorDetails.c_str());
 }
 
 void CUtils::SearchReplace(std::wstring& str, const std::wstring& toreplace, const std::wstring& replacewith)

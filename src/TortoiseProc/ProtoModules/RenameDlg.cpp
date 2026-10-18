@@ -23,7 +23,7 @@
 #include "TortoiseProc.h"
 #include "RenameDlg.h"
 import AppUtils.Window;
-#include "MessageBox.h"
+import MessageBox;
 
 
 namespace CControlsBridge

@@ -25,7 +25,7 @@
 #include "GitLogList.h"
 #include "IconMenu.h"
 #include "SysProgressDlg.h"
-#include "MessageBox.h"
+import MessageBox;
 #include "CommitDlg.h"
 #include "RebaseDlg.h"
 #include "CommitIsOnRefsDlg.h"
@@ -516,11 +516,11 @@ void CGitLogList::ContextMenuAction(int cmd, int FirstSelect, int LastSelect, CM
 			break;
 		case ID_EXPORT:
 			{
-				CString str= (pSelLogEntry->m_CommitHash.ToString()).c_str();
+				CString str = (pSelLogEntry->m_CommitHash.ToString()).c_str();
 				// try to get the tag
 				if (auto refList = hashMap.find(pSelLogEntry->m_CommitHash); refList != hashMap.cend())
 					GetFirstEntryStartingWith(refList->second, L"refs/tags/", str);
-				CAppUtils::Export(GetParentHWND(), &str, &m_Path);
+				CAppUtils::Export(GetParentHWND(), str, &m_Path);
 			}
 			break;
 		case ID_CREATE_BRANCH:

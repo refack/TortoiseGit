@@ -21,7 +21,7 @@
 #include "std.h"
 
 #include "TortoiseProc.h"
-#include "MessageBox.h"
+import MessageBox;
 #include "LFSLocksDlg.h"
 import AppUtils.Window;
 #include "GitProgressDlg.h"

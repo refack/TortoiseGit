@@ -21,7 +21,7 @@
 #include "std.h"
 
 #include "TortoiseProc.h"
-#include "MessageBox.h"
+import MessageBox;
 #include "ResolveDlg.h"
 import AppUtils.Window;
 

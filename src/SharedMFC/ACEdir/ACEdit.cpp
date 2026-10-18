@@ -7,12 +7,9 @@
 
 // ACEdit.cpp: Implementierungsdatei
 //
-#include "../../TortoiseProc/stdafx.h"
-#include "../../TortoiseProc/std.h"
-
-
-
-#include "../../TortoiseProc/ACEdit.h"
+#include "stdafx.h"
+#include "ACEdit.h"
+import str_utils;
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -87,7 +84,7 @@ void CACEdit::Init()
 {
 	CString szClassName = AfxRegisterWndClass(CS_CLASSDC|CS_SAVEBITS|CS_HREDRAW|CS_VREDRAW,
 		0, reinterpret_cast<HBRUSH>(COLOR_WINDOW), 0);
-	CRect rcWnd,rcWnd1;
+	CRect rcWnd;
 	GetWindowRect(rcWnd);
 
 	VERIFY(m_Liste.CreateEx(WS_EX_TOOLWINDOW,
@@ -109,7 +106,7 @@ void CACEdit::Init()
 		{
 			m_iType = _COMBOBOX_;
 
-			m_pEdit = static_cast<CEdit*>(GetWindow(GW_CHILD));
+			m_pEdit = dynamic_cast<CEdit*>(GetWindow(GW_CHILD));
 			VERIFY(m_pEdit);
 			::GetClassName(m_pEdit->GetSafeHwnd(), CStrBuf(m_ClassName, 32), 32);
 			VERIFY(m_ClassName.Compare(L"Edit") == 0);
@@ -262,7 +259,7 @@ bool CACEdit::HandleKey(UINT nChar, bool m_bFromChild)
 					}
 				}
 
-				GetParent()->SendMessage(ENAC_UPDATE, WM_KEYDOWN, GetDlgCtrlID());
+				std::ignore = GetParent()->SendMessage(ENAC_UPDATE, WM_KEYDOWN, GetDlgCtrlID());
 				m_CursorMode = false;
 				if (nChar == VK_RETURN)
 					m_Liste.ShowWindow(false);
@@ -271,7 +268,7 @@ bool CACEdit::HandleKey(UINT nChar, bool m_bFromChild)
 
 			if(m_iMode & _MODE_SEPARATION_)
 			{
-				CString m_Text,m_Left,m_Right;
+				CString m_Text;
 				int left,right,pos2=0,len;
 
 				m_CursorMode = true;
@@ -305,7 +302,7 @@ bool CACEdit::HandleKey(UINT nChar, bool m_bFromChild)
 					m_Text += this->m_SeparationStr;
 
 					SetWindowText(m_Text);
-					GetParent()->SendMessage(ENAC_UPDATE, WM_KEYDOWN, GetDlgCtrlID());
+					std::ignore = GetParent()->SendMessage(ENAC_UPDATE, WM_KEYDOWN, GetDlgCtrlID());
 
 					right = FindSepLeftPos2(pos2 - 1);
 					left -= right;
@@ -405,7 +402,7 @@ void CACEdit::OnChange()
 			m_Liste.FindString(-1,m_EditText);
 	}
 	//----------------------------------------------
-	GetParent()->SendMessage(ENAC_UPDATE, EN_UPDATE, GetDlgCtrlID());
+	std::ignore = GetParent()->SendMessage(ENAC_UPDATE, EN_UPDATE, GetDlgCtrlID());
 }
 
 /*********************************************************************/
@@ -518,7 +515,6 @@ void CACEdit::ReadDirectory(CString m_Dir)
 {
 	CFileFind FoundFiles;
 	wchar_t ch;
-	CWaitCursor hg;
 
 	// Wenn mittem im Pfad,
 	// vorheriges Verzeichnis einlesen.
@@ -584,7 +580,6 @@ void CACEdit::ReadDirectory(CString m_Dir)
 		AddSearchString(m_Name);
 	}
 	FoundFiles.Close();
-	return;
 }
 
 /*********************************************************************/
@@ -670,7 +665,7 @@ int CACEdit::GetCurSel()
 {
 	if(m_iType == _COMBOBOX_)
 	{
-		reinterpret_cast<CComboBox*>(this)->GetCurSel();
+		std::ignore = reinterpret_cast<CComboBox*>(this)->GetCurSel();
 	}
 	return CB_ERR;
 }

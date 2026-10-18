@@ -23,7 +23,7 @@
 
 #include "SysProgressDlg.h"
 #include "ProgressDlg.h"
-#include "MessageBox.h"
+import MessageBox;
 #include "RebaseDlg.h"
 import AppUtils.Launch;
 import AppUtils.Workflow;

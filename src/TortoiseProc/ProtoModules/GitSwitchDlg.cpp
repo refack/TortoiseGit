@@ -25,7 +25,7 @@
 #include "TortoiseProc.h"
 #include "GitSwitchDlg.h"
 import AppUtils.Window;
-#include "MessageBox.h"
+import MessageBox;
 
 // CGitSwitchDlg dialog
 

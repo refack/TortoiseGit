@@ -23,7 +23,7 @@
 import AppUtils.Window;
 #include "TortoiseProc.h"
 #include "DeleteRemoteTagDlg.h"
-#include "MessageBox.h"
+import MessageBox;
 #include "SysProgressDlg.h"
 
 IMPLEMENT_DYNAMIC(CDeleteRemoteTagDlg, CResizableStandAloneDialog)

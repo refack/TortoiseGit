@@ -22,7 +22,7 @@
 #include "std.h"
 
 #include "DiffCommand.h"
-#include "MessageBox.h"
+import MessageBox;
 import AppUtils.Launch;
 #include "ChangedDlg.h"
 #include "GitDiff.h"

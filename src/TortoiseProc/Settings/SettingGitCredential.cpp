@@ -25,7 +25,7 @@
 #include "TortoiseProc.h"
 #include "SettingGitCredential.h"
 import TGitPath;	// GitAdminDir lives in the TGitPath module
-#include "MessageBox.h"
+import MessageBox;
 import AppUtils.Launch;
 
 

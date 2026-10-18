@@ -83,6 +83,7 @@ add_subdirectory(src/GitWCRev)
 add_subdirectory(src/GitWCRevCOM)
 
 add_subdirectory(ext/ResizableLib)
+add_subdirectory(src/SharedMFC)
 add_subdirectory(src/SshAskPass)
 add_subdirectory(src/TGitCache)
 add_subdirectory(src/TortoiseProc)

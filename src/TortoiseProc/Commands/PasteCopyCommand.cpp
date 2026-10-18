@@ -23,7 +23,7 @@
 #include "PasteCopyCommand.h"
 
 #include "SysProgressDlg.h"
-#include "MessageBox.h"
+import MessageBox;
 #include "RenameDlg.h"
 
 bool PasteCopyCommand::Execute()

@@ -25,7 +25,7 @@
 #include "../SharedMFC/Resources/resource.h"
 #include "RefLogDlg.h"
 import AppUtils.Window;
-#include "MessageBox.h"
+import MessageBox;
 
 // CRefLogDlg dialog
 

@@ -27,7 +27,7 @@
 #endif
 
 #include "resource.h"       // main symbols
-#include "LangDll.h"
+import LangDll;
 
 // CTortoiseGitBlameApp:
 // See TortoiseGitBlame.cpp for the implementation of this class
@@ -35,33 +35,31 @@
 
 class CTortoiseGitBlameApp : public CWinAppEx
 {
+	DECLARE_MESSAGE_MAP()
+
 public:
 	CTortoiseGitBlameApp();
-	~CTortoiseGitBlameApp();
-	ULONG_PTR m_gdiplusToken = 0;
-
-// Overrides
-public:
+	~CTortoiseGitBlameApp() override;
+	int ExitInstance() override;
 	BOOL InitInstance() override;
 
+// Overrides
+protected:
 	BOOL LoadWindowPlacement(CRect& rectNormalPosition, int& nFlags, int& nShowCmd) override;
 	BOOL StoreWindowPlacement(const CRect& rectNormalPosition, int nFlags, int nShowCmd) override;
 
 // Implementation
+public:
+	ULONG_PTR m_gdiplusToken = 0;
 	BOOL m_bHiColorIcons = TRUE;
-
 	CString m_Rev;
+	CLangDll m_langDll;
+
 	afx_msg void OnAppAbout();
 	afx_msg void OnFileSettings();
-	DECLARE_MESSAGE_MAP()
-	int ExitInstance() override;
-	CLangDll m_langDll;
 };
 
 extern CTortoiseGitBlameApp theApp;
-extern CString g_sGroupingUUID;
-extern CString g_sGroupingIcon;
-extern bool g_bGroupingRemoveIcon;
 
 #ifdef _WIN64
 #define APP_X64_STRING "x64"

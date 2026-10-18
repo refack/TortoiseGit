@@ -26,7 +26,7 @@
 #include "BisectStartDlg.h"
 #include "LogDlg.h"
 import AppUtils.Window;
-#include "MessageBox.h"
+import MessageBox;
 
 IMPLEMENT_DYNAMIC(CBisectStartDlg, CHorizontalResizableStandAloneDialog)
 

@@ -18,74 +18,19 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
-#include "../TortoiseProc/stdafx.h"
-#include "../TortoiseProc/std.h"
+#include "stdafx.h"
 
-#include "../TortoiseProc/ColumnManager.h"
-#include "LoglistCommonResource.h"
-#include "DPIAware.h"
+#include "ColumnManager.h"
+#include "Resources/LoglistCommonResource.h"
+#include "Utils/DPIAware.h"
+
+import std;
+import Registry;
 
 // registry version number of column-settings of both GitLogListBase and GitStatusListCtrl
 #define GITSLC_COL_VERSION 6
 #define MAX_COLUMNS 0xff
 
-#ifndef assert
-#define assert(x) ATLASSERT(x)
-#endif
-// assign property list
-#if 0
-PropertyList&
-PropertyList::operator= (const char* rhs)
-{
-	// do you really want to replace the property list?
-	assert(properties.empty());
-	properties.clear();
-
-	// add all properties in the list
-	while (rhs && *rhs)
-	{
-		const char* next = strchr(rhs, ' ');
-
-		CString name(rhs, static_cast<int>(!next ? strlen(rhs) : next - rhs));
-		properties.insert(std::make_pair(name, CString()));
-
-		rhs = !next ? nullptr : next + 1;
-	}
-
-	// done
-	return *this;
-}
-
-// collect property names in a set
-
-void PropertyList::GetPropertyNames(std::set<CString>& names)
-{
-	for (CIT iter = properties.cbegin(), end = properties.cend(); iter != end; ++iter)
-		names.insert(iter->first);
-}
-
-// get a property value.
-
-CString PropertyList::operator[](const CString& name) const
-{
-	CIT iter = properties.find(name);
-	return iter == properties.end() ? CString() : iter->second;
-}
-
-// set a property value.
-
-CString& PropertyList::operator[](const CString& name)
-{
-	return properties[name];
-}
-
-/// check whether that property has been set on this item.
-
-bool PropertyList::HasProperty(const CString& name) const
-{
-	return properties.find(name) != properties.end();
-}
-#endif
 // registry access
 
 void ColumnManager::ReadSettings(std::span<const ColumnDefinition> definedColumns, const CString& containerName, DWORD version)
@@ -122,10 +67,10 @@ void ColumnManager::ReadSettings(std::span<const ColumnDefinition> definedColumn
 	if (valid)
 	{
 		// read (possibly different) column selection
-		DWORD selectedStandardColumns = CRegDWORD(registryPrefix, m_dwDefaultColumns);
+		const DWORD selectedStandardColumns = CRegDWORD(registryPrefix, m_dwDefaultColumns);
 
 		// read column widths
-		CString colWidths = CRegString(registryPrefix + L"_Width");
+		const CString colWidths = CRegString(registryPrefix + L"_Width");
 
 		ParseWidths(colWidths);
 
@@ -196,7 +141,9 @@ bool ColumnManager::IsVisible(int column) const
 
 int ColumnManager::GetInvisibleCount() const
 {
-	return static_cast<int>(std::count_if(columns.cbegin(), columns.cend(), [](const auto& column) { return !column.visible || !column.relevant; }));
+	return static_cast<int>(
+		std::ranges::count_if(columns, [](const auto& col) { return !col.visible || !col.relevant; })
+	);
 }
 
 bool ColumnManager::IsRelevant(int column) const
@@ -254,7 +201,7 @@ int ColumnManager::GetWidth(int column, bool useDefaults) const
 			for (int i = 0, itemCnt = control->GetItemCount(); i < itemCnt; ++i)
 			{
 				// get the width of the string and add 14 pixels for the column separator and margins
-				int linewidth = control->GetStringWidth(control->GetItemText(i, column)) + 14;
+				const int linewidth = control->GetStringWidth(control->GetItemText(i, column)) + 14;
 				if (cx < linewidth)
 					cx = linewidth;
 			}
@@ -420,7 +367,7 @@ void ColumnManager::ParseWidths(const CString& widths)
 {
 	for (int i = 0, count = widths.GetLength() / 8; i < count; ++i)
 	{
-		long width = wcstol(widths.Mid(i * 8, 8), nullptr, 16);
+		const long width = wcstol(widths.Mid(i * 8, 8), nullptr, 16);
 		if (i < static_cast<int>(columns.size()))
 		{
 			// a standard column
@@ -564,7 +511,7 @@ void ColumnManager::OnContextMenuHeader(CWnd* pWnd, CPoint point, bool isGroundE
 {
 	if ((point.x == -1) && (point.y == -1))
 	{
-		auto pHeaderCtrl = static_cast<CHeaderCtrl*>(pWnd);
+		const auto pHeaderCtrl = dynamic_cast<CHeaderCtrl*>(pWnd);
 		CRect rect;
 		pHeaderCtrl->GetItemRect(0, &rect);
 		pHeaderCtrl->ClientToScreen(&rect);
@@ -574,11 +521,11 @@ void ColumnManager::OnContextMenuHeader(CWnd* pWnd, CPoint point, bool isGroundE
 	CMenu popup;
 	if (popup.CreatePopupMenu())
 	{
-		int columnCount = GetColumnCount();
+		const int columnCount = GetColumnCount();
 
 		CString temp;
-		UINT uCheckedFlags = MF_STRING | MF_ENABLED | MF_CHECKED;
-		UINT uUnCheckedFlags = MF_STRING | MF_ENABLED;
+		constexpr UINT uCheckedFlags = MF_STRING | MF_ENABLED | MF_CHECKED;
+		constexpr UINT uUnCheckedFlags = MF_STRING | MF_ENABLED;
 
 		// build control menu
 
@@ -618,12 +565,12 @@ void ColumnManager::OnContextMenuHeader(CWnd* pWnd, CPoint point, bool isGroundE
 
 		// show menu & let user pick an entry
 
-		int cmd = popup.TrackPopupMenu(TPM_RETURNCMD | TPM_LEFTALIGN | TPM_NONOTIFY, point.x, point.y, pWnd);
+		const int cmd = popup.TrackPopupMenu(TPM_RETURNCMD | TPM_LEFTALIGN | TPM_NONOTIFY, point.x, point.y, pWnd);
 		if ((cmd >= 1) && (cmd < columnCount))
 			SetVisible(cmd, !IsVisible(cmd));
 		else if (cmd == columnCount)
 		{
-			pWnd->GetParent()->SendMessage(LVM_ENABLEGROUPVIEW, !isGroundEnable, NULL);
+			std::ignore = pWnd->GetParent()->SendMessage(LVM_ENABLEGROUPVIEW, !isGroundEnable, NULL);
 			//EnableGroupView(!isGroundEnable);
 		}
 		else if (cmd == columnCount + 1)
@@ -639,5 +586,5 @@ void ColumnManager::OnContextMenuHeader(CWnd* pWnd, CPoint point, bool isGroundE
 
 void ColumnManager::SetOnVisibilityChanged(std::function<void(int, bool)> onVisibilityChangedFct)
 {
-	onVisibilityChanged = onVisibilityChangedFct;
+	onVisibilityChanged = std::move(onVisibilityChangedFct);
 }

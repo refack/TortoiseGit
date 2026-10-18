@@ -17,21 +17,14 @@
 // along with this program; if not, write to the Free Software Foundation,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #include "stdafx.h"
-#include <sanity.h>		// SCOPE_EXIT, over wil's scope_exit_helper
 #include "Utils.h"
-#include "UnicodeUtils.h"
 #include "ResModule.h"
-#include <regex>
-#include <memory>
-#include <fstream>
-#include <string>
-#include <algorithm>
-#include <functional>
-#include <locale>
-#include <codecvt>
-
 #include <Imagehlp.h>
-import wil;			// scope_exit_helper, which SCOPE_EXIT expands to
+#include <sanity.h>		// SCOPE_EXIT, over wil's scope_exit_helper
+
+import std;
+import wil;				// scope_exit_helper, which SCOPE_EXIT expands to
+import str_utils;
 
 #pragma comment(lib, "Imagehlp.lib")
 

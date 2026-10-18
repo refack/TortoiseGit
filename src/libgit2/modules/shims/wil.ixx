@@ -17,26 +17,30 @@ using std::operator""s;
 using std::operator""sv;
 namespace fs = std::filesystem;
 
+
+
 // Not exported: the body both text overloads of make_moveable_hglobal share.
 namespace wil::tgit_details {
-	/// A GMEM_MOVEABLE block holding \a text and a terminating NUL that this writes
-	/// itself. The view need not be NUL-terminated - the previous version copied
-	/// text.size() + 1 characters, reading one past the end of every view that was
-	/// not.
-	template <class CharT>
-	unique_hglobal make_moveable_text(const std::basic_string_view<CharT> text) {
-		const auto bytes = std::as_bytes(std::span(text.data(), text.size()));
-		unique_hglobal block{ ::GlobalAlloc(GMEM_MOVEABLE, bytes.size() + sizeof(CharT)) };
-		if (!block)
-			return {};
-		auto* const target = static_cast<std::byte*>(::GlobalLock(block.get()));
-		if (!target)
-			return {};
-		std::ranges::fill_n(std::ranges::copy(bytes, target).out, sizeof(CharT), std::byte{ 0 });
-		::GlobalUnlock(block.get());
-		return block;
-	}
+/// A GMEM_MOVEABLE block holding \a text and a terminating NUL that this writes
+/// itself. The view need not be NUL-terminated - the previous version copied
+/// text.size() + 1 characters, reading one past the end of every view that was
+/// not.
+template <class CharT>
+unique_hglobal make_moveable_text(const std::basic_string_view<CharT> text) {
+	const auto bytes = std::as_bytes(std::span(text.data(), text.size()));
+	unique_hglobal block{ ::GlobalAlloc(GMEM_MOVEABLE, bytes.size() + sizeof(CharT)) };
+	if (!block)
+		return {};
+	auto* const target = static_cast<std::byte*>(::GlobalLock(block.get()));
+	if (!target)
+		return {};
+	std::ranges::fill_n(std::ranges::copy(bytes, target).out, sizeof(CharT), std::byte{ 0 });
+	::GlobalUnlock(block.get());
+	return block;
 }
+}
+
+
 
 export namespace wil {
 // The R* pointee aliases (RWND, RKEY, RHANDLE, RINSTANCE, RWSTR), file_ticks,
@@ -63,6 +67,7 @@ using wil::unique_cotaskmem_string;
 using wil::unique_hlocal_string;
 using wil::unique_file;
 using wil::unique_handle;
+using wil::unique_hmodule;
 using wil::unique_struct;
 using wil::scope_exit;
 // COM owners. The nothrow flavor only: CComPtr never threw, and the throwing
@@ -105,6 +110,10 @@ namespace reg {
 	std::optional<std::uint32_t> try_get_dword(const HKEY& root, const PCWSTR subkey, const PCWSTR name) {
 		return wil::reg::try_get_value_dword(root, subkey, name);
 	}
+	bool get_bool(const HKEY& root, const PCWSTR subkey, const PCWSTR name, const bool def) {
+		auto&& temp = try_get_dword(root, subkey, name);
+		return temp ? *temp : def;
+	}
 
 
 	/// wil::reg::try_get_value_string(root, subkey, name), compiled in this module.
@@ -113,6 +122,7 @@ namespace reg {
 		return wil::reg::try_get_value_string(root, subkey, name);
 	}
 }
+
 
 
 /// A most-recently-used list of strings (commit messages, log ranges), kept as
@@ -130,10 +140,12 @@ class CRegHistory {
 	std::vector<std::wstring> m_entries{};
 	size_t m_maxEntries{ 25 };
 
+
 	void Truncate() {
 		if (m_entries.size() > m_maxEntries)
 			m_entries.resize(m_maxEntries);
 	}
+
 
 	[[nodiscard]] std::wstring LegacyValueName(const size_t n) const {
 		return std::format(L"{}{}", m_name, n);
@@ -152,12 +164,16 @@ public:
 
 		const HRESULT hr = ResultFromException([&] {
 			// ReSharper disable once CppLocalVariableMayBeConst
-			if (auto entries = wil::reg::try_get_value_multistring(HKEY_CURRENT_USER, m_subkey.c_str(), m_name.c_str())) {
+			if (auto entries =
+				wil::reg::try_get_value_multistring(HKEY_CURRENT_USER, m_subkey.c_str(), m_name.c_str())) {
 				m_entries = std::move(*entries);
 				return;
 			}
 			for (size_t n = 0; n < m_maxEntries; ++n) {
-				auto entry = wil::reg::try_get_value_string(HKEY_CURRENT_USER, m_subkey.c_str(), LegacyValueName(n).c_str());
+				auto entry = wil::reg::try_get_value_string(
+					HKEY_CURRENT_USER,
+					m_subkey.c_str(),
+					LegacyValueName(n).c_str());
 				if (!entry || entry->empty())
 					break;
 				m_entries.push_back(std::move(*entry));
@@ -182,8 +198,8 @@ public:
 			return false;
 		// The legacy values run contiguously from <name>0. Once they are gone this is
 		// one failing call per Save.
-		for (size_t n = 0; ::RegDeleteKeyValueW(HKEY_CURRENT_USER, m_subkey.c_str(), LegacyValueName(n).c_str()) == ERROR_SUCCESS; ++n) {
-		}
+		for (size_t n = 0; ::RegDeleteKeyValueW(HKEY_CURRENT_USER, m_subkey.c_str(), LegacyValueName(n).c_str()) ==
+			 ERROR_SUCCESS; ++n) {}
 		return true;
 	}
 
@@ -212,11 +228,13 @@ public:
 			m_entries.erase(m_entries.begin() + static_cast<std::ptrdiff_t>(pos));
 	}
 
+
 	/// The most entries kept. The default is 25.
 	void SetMaxHistoryItems(const size_t maxEntries) {
 		m_maxEntries = maxEntries;
 		Truncate();
 	}
+
 
 	[[nodiscard]] size_t GetCount() const { return m_entries.size(); }
 	[[nodiscard]] bool IsEmpty() const { return m_entries.empty(); }
@@ -321,6 +339,7 @@ std::optional<std::wstring> TryGetEnvironmentVariable(const PCWSTR name) {
 }
 
 
+
 /// This is a representation of an API horizon.
 /// We should validate all of our invariants here.
 ///
@@ -373,8 +392,9 @@ namespace til {
 	}
 
 
-	std::wstring_view get_string_resource(const std::optional<HINSTANCE> oInstance, const UINT uID,
-	                                      const WORD wLanguage = LANG_USER_DEFAULT) {
+	std::wstring_view get_string_resource(const std::optional<HINSTANCE> oInstance,
+										  const UINT uID,
+										  const WORD wLanguage = LANG_USER_DEFAULT) {
 		// A string table is stored in blocks of 16: block (uID / 16) + 1, slot uID % 16.
 		const auto blockResId = MAKEINTRESOURCE((uID >> 4) + 1);
 		const wchar_t* pCurrentStr;
@@ -455,7 +475,8 @@ public:
 			FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
 			nullptr,
 			err_id,
-			MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), // Default language
+			MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+			// Default language
 			reinterpret_cast<LPWSTR>(buffer.put()),
 			0,
 			nullptr
@@ -482,35 +503,35 @@ public:
 template <typename T, void Free(T*)>
 using unique_git = unique_any<T*, decltype(Free), Free>;
 
-using unique_git_object           = unique_git<git_object,             git_object_free>;
-using unique_git_commit           = unique_git<git_commit,             git_commit_free>;
-using unique_git_tree             = unique_git<git_tree,               git_tree_free>;
-using unique_git_blob             = unique_git<git_blob,               git_blob_free>;
-using unique_git_tag              = unique_git<git_tag,                git_tag_free>;
-using unique_git_tree_entry       = unique_git<git_tree_entry,         git_tree_entry_free>;
-using unique_git_reference        = unique_git<git_reference,          git_reference_free>;
-using unique_git_repository       = unique_git<git_repository,         git_repository_free>;
-using unique_git_config           = unique_git<git_config,             git_config_free>;
-using unique_git_index            = unique_git<git_index,              git_index_free>;
-using unique_git_submodule        = unique_git<git_submodule,          git_submodule_free>;
-using unique_git_diff             = unique_git<git_diff,               git_diff_free>;
-using unique_git_patch            = unique_git<git_patch,              git_patch_free>;
-using unique_git_diff_stats       = unique_git<git_diff_stats,         git_diff_stats_free>;
-using unique_git_remote           = unique_git<git_remote,             git_remote_free>;
-using unique_git_reflog           = unique_git<git_reflog,             git_reflog_free>;
-using unique_git_revwalk          = unique_git<git_revwalk,            git_revwalk_free>;
-using unique_git_branch_iterator  = unique_git<git_branch_iterator,    git_branch_iterator_free>;
+using unique_git_object = unique_git<git_object, git_object_free>;
+using unique_git_commit = unique_git<git_commit, git_commit_free>;
+using unique_git_tree = unique_git<git_tree, git_tree_free>;
+using unique_git_blob = unique_git<git_blob, git_blob_free>;
+using unique_git_tag = unique_git<git_tag, git_tag_free>;
+using unique_git_tree_entry = unique_git<git_tree_entry, git_tree_entry_free>;
+using unique_git_reference = unique_git<git_reference, git_reference_free>;
+using unique_git_repository = unique_git<git_repository, git_repository_free>;
+using unique_git_config = unique_git<git_config, git_config_free>;
+using unique_git_index = unique_git<git_index, git_index_free>;
+using unique_git_submodule = unique_git<git_submodule, git_submodule_free>;
+using unique_git_diff = unique_git<git_diff, git_diff_free>;
+using unique_git_patch = unique_git<git_patch, git_patch_free>;
+using unique_git_diff_stats = unique_git<git_diff_stats, git_diff_stats_free>;
+using unique_git_remote = unique_git<git_remote, git_remote_free>;
+using unique_git_reflog = unique_git<git_reflog, git_reflog_free>;
+using unique_git_revwalk = unique_git<git_revwalk, git_revwalk_free>;
+using unique_git_branch_iterator = unique_git<git_branch_iterator, git_branch_iterator_free>;
 using unique_git_reference_iterator = unique_git<git_reference_iterator, git_reference_iterator_free>;
-using unique_git_describe_result  = unique_git<git_describe_result,    git_describe_result_free>;
-using unique_git_status_list      = unique_git<git_status_list,        git_status_list_free>;
-using unique_git_note             = unique_git<git_note,               git_note_free>;
-using unique_git_signature        = unique_git<git_signature,          git_signature_free>;
-using unique_git_mailmap          = unique_git<git_mailmap,            git_mailmap_free>;
-using unique_git_worktree         = unique_git<git_worktree,           git_worktree_free>;
+using unique_git_describe_result = unique_git<git_describe_result, git_describe_result_free>;
+using unique_git_status_list = unique_git<git_status_list, git_status_list_free>;
+using unique_git_note = unique_git<git_note, git_note_free>;
+using unique_git_signature = unique_git<git_signature, git_signature_free>;
+using unique_git_mailmap = unique_git<git_mailmap, git_mailmap_free>;
+using unique_git_worktree = unique_git<git_worktree, git_worktree_free>;
 
 // Structs libgit2 fills in place and disposes of by address; unique_struct
 // derives from the struct, so &buf is a git_buf* and buf.ptr just works.
-using unique_git_buf      = unique_struct<git_buf,      decltype(&git_buf_dispose),      git_buf_dispose>;
+using unique_git_buf = unique_struct<git_buf, decltype(&git_buf_dispose), git_buf_dispose>;
 using unique_git_strarray = unique_struct<git_strarray, decltype(&git_strarray_dispose), git_strarray_dispose>;
 
 
@@ -529,8 +550,179 @@ unique_git_repository OpenGitRepository(const char* const gitDirUtf8) {
 		tgit::invarients::LatchObjectFormat(git_repository_oid_type(repo.get()));
 	return repo;
 }
-} // end wil
 
+
+// ---- POSIX quoting: NOT exported ------------------------------------------------
+// Moved verbatim from str_utils, where they were parked unexported. They are git
+// domain - the msys2/cygwin path writes the command line into a temp file for
+// bash.exe - and sit here beside SerializeArgv, whose msys2/cygwin branch calls them.
+
+/**
+ * Quotes one argv element for a POSIX shell, which is what the msys2/cygwin
+ * path needs: CGit writes the whole command line into a temp file and hands
+ * it to bash.exe, so there the "command line" is shell *source*.
+ */
+std::wstring EscapePosixShellArgument(const std::wstring_view argument)
+{
+	// Single quotes suppress every expansion bash performs, and the only thing
+	// that cannot appear between them is a single quote - so close, escape it
+	// outside, and reopen.
+	std::wstring result;
+	result.reserve(argument.size() + 2);
+	result += L'\'';
+	for (const wchar_t c : argument)
+	{
+		if (c == L'\'')
+			result += L"'\\''";
+		else
+			result += c;
+	}
+	result += L'\'';
+
+	return result;
+}
+
+
+std::string WideCharToMultiByte(
+	const std::wstring_view wide,
+	const std::optional<int> maybe_acp = std::nullopt,
+	const char* const defaultChar = nullptr
+) {
+	if (wide.empty())
+		return {};
+
+	const int acp = maybe_acp ? *maybe_acp : CP_UTF8;
+	// Both calls must agree on the substitution character, or the measured size is not the size the second call writes.
+	const auto subst = (acp == CP_UTF8 || acp == CP_UTF7) ? nullptr : defaultChar;
+
+	const auto wide_length = gsl::narrow<int>(wide.length());
+	const int needed_bytes = ::WideCharToMultiByte(acp, 0, wide.data(), wide_length, nullptr, 0, subst, nullptr);
+	if (needed_bytes <= 0)
+		throw std::exception("WideCharToMultiByte failed");
+
+	std::string out;
+	out.resize_and_overwrite(needed_bytes, [&](auto buf_ptr, auto buf_cap) -> size_t {
+		return ::WideCharToMultiByte(acp, 0, wide.data(), wide_length, buf_ptr, buf_cap, subst, nullptr);
+	});
+	if (out.empty())
+		throw std::exception("WideCharToMultiByte failed");
+
+	return out;
+}
+
+std::string WStringToUTF8(const std::wstring& wide) { return WideCharToMultiByte(wide, CP_UTF8); }
+
+std::wstring MultiByteToWideChar(const std::string& narrow, const int acp = CP_UTF8) {
+	if (narrow.empty())
+		return {};
+
+	const auto narrow_length = gsl::narrow<int>(narrow.length());
+	const int needed_bytes = ::MultiByteToWideChar(acp, 0, narrow.data(), narrow_length, nullptr, 0);
+	if (needed_bytes <= 0)
+		throw std::exception("WideCharToMultiByte failed");
+
+	std::wstring out;
+	out.resize_and_overwrite(needed_bytes, [&](auto buf_ptr, auto buf_cap) -> size_t {
+		return ::MultiByteToWideChar(acp, 0, narrow.data(), narrow_length, buf_ptr, buf_cap);
+	});
+	if (out.empty())
+		throw std::exception("WideCharToMultiByte failed");
+
+	return out;
+}
+
+std::wstring UTF8ToWString(const std::string& narrow) { return MultiByteToWideChar(narrow, CP_UTF8); }
+
+/**
+ * True unless \a argument is made entirely of characters no shell touches.
+ * Deliberately a whitelist: a blacklist of bash metacharacters is a list you
+ * are always one shell feature behind on.
+ */
+bool NeedsPosixShellQuoting(const std::wstring_view str)
+{
+	if (str.empty())
+		return true;
+
+	bool ret = false;
+	for (const wchar_t c : str)
+	{
+		ret |= !std::isalnum(c);
+		if (ret)
+			break;
+		ret |= !(c == L'_' || c == L'-' || c == L'.' || c == L'/' || c == L'=' || c == L':' || c == L',' || c == L'+');
+		if (ret)
+			break;
+	}
+	return ret;
+}
+
+
+/// Short-lived: owns the UTF-8 copies plus the null-terminated pointer array.
+class Utf8Argv {
+	std::vector<std::string> _s;
+	std::vector<const char*> _p;
+public:
+	explicit Utf8Argv(std::span<const std::wstring> a)
+		: _s{ std::from_range, std::views::transform(a, WStringToUTF8) } {
+		_p.reserve(_s.size() + 1);
+		for (auto& s : _s) _p.push_back(s.c_str());
+		_p.push_back(nullptr);
+	}
+	Utf8Argv(const Utf8Argv&) = delete;	// pointers into _s, as before
+	[[nodiscard]] int argc() const { return gsl::narrow<int>(_s.size()); }
+	[[nodiscard]] const char** argv() noexcept { return _p.data(); }
+};
+
+
+/// A C-style (argc, argv) over strings it owns, for gitdll's git_open_log /
+/// git_open_diff, which take `int argc, const char** argv` as git's own main does.
+/// gitdll copies what it keeps (dup_argv in gitdll.c), so an ArgvData only has to
+/// outlive the open call - it is never handed over and never freed by gitdll.
+///
+/// argv points into the std::strings in _args. Moving is safe - moving a
+/// std::vector hands over its buffer, so the std::string objects (and any SSO
+/// characters inside them) stay where they are - but copying is not, since a
+/// copy's pointers would still point into the original. Hence move-only.
+class ArgvData {
+	std::vector<std::wstring> _args{};
+
+public:
+	ArgvData(const std::initializer_list<std::wstring> args)
+	: _args{ args }
+	{}
+	ArgvData(const std::initializer_list<std::string> args)
+	: _args{ std::from_range, std::views::transform(args, UTF8ToWString) }
+	{}
+
+	// keep a std::string_view / const char* ctor that converts with StdGetUTF16 / MultiByteToWideChar if callers need it
+
+	ArgvData& operator<<(const std::wstring_view arg) { _args.emplace_back(arg); return *this; }
+	[[nodiscard]] const auto& args() const noexcept { return _args; }
+	[[nodiscard]] std::wstring to_cmd() const { return wil::ArgvToCommandLine(_args); }
+	[[nodiscard]] Utf8Argv utf8() const { return Utf8Argv{ _args }; }	// for gitdll
+
+	/**
+	 * Two serializations, because RunAsync has two backends. Native git.exe gets
+	 * MSDN's backslash/quote rules, read back by CommandLineToArgvW. For
+	 * msys2/cygwin the line is written to a temp file and handed to bash.exe, so
+	 * there it is shell *source* and gets POSIX single-quoting instead.
+	 *
+	 * Elements are quoted only when quoting changes the reading. That is not an
+	 * optimization: RunAsync decides whether to prepend ms_LastMsysGitDir by
+	 * testing whether the line starts with "git", so a serializer that quoted
+	 * argv[0] unconditionally would silently resolve git through PATH instead.
+	 */
+	[[nodiscard]] auto SerializeArgv(const bool is_weird) const
+	{
+		if (!is_weird)
+			return to_cmd();
+
+		std::wstring cmd;
+		for (const auto& arg : _args)
+			cmd += NeedsPosixShellQuoting(arg) ? EscapePosixShellArgument(arg) : arg;
+		return cmd;
+	}
+};
 
 
 /// What sanity.h's SCOPE_EXIT expands against: `scope_exit_helper() << [&] { ... };`.
@@ -538,10 +730,11 @@ unique_git_repository OpenGitRepository(const char* const gitDirUtf8) {
 /// disarms the source, which tgittypes' hand-rolled scope_exit_t did not (a moved-
 /// from guard still ran its lambda). This is the only definition: a TU that
 /// expands SCOPE_EXIT imports wil.
-export struct scope_exit_helper {
+using wil::scope_exit;
+struct scope_guard {
 	template <class F>
 	[[nodiscard]] auto operator<<(F&& f) const {
 		return wil::scope_exit(std::forward<F>(f));
 	}
 };
-
+}

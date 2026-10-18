@@ -26,7 +26,7 @@ import AppUtils.GitEnv;
 import AppUtils.Launch;
 import AppUtils.Window;
 #include "../SharedMFC/Resources/resource.h"
-#include "MessageBox.h"
+import MessageBox;
 #include "FileDiffDlg.h"
 #include "SubmoduleDiffDlg.h"
 

@@ -28,7 +28,7 @@
 #include "AddRemoteDlg.h"
 #include "Settings/SettingGitRemote.h"
 #include "SinglePropSheetDlg.h"
-#include "MessageBox.h"
+import MessageBox;
 #include "RefLogDlg.h"
 #include "IconMenu.h"
 #include "FileDiffDlg.h"

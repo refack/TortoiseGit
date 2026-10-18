@@ -20,13 +20,13 @@
 #include "std.h"
 
 #include "CatCommand.h"
-#include "MessageBox.h"
+import MessageBox;
 using namespace std::literals;
 
 bool CatCommand::Execute()
 {
 	CString savepath = PathUtils::GetLongPathname(parser.GetValStr(L"savepath")).c_str();
-	CString revision = parser.GetVal(L"revision");
+	std::wstring revision = parser.GetValStr(L"revision");
 
 	if (g_Git.UsingLibGit2(TGitH::GIT_CMD_GETONEFILE))
 	{
@@ -75,7 +75,7 @@ bool CatCommand::Execute()
 			return true;
 		}
 
-		if (g_Git.GetOneFile(revision, cmdLinePath, savepath))
+		if (g_Git.GetOneFile(revision.c_str(), cmdLinePath, savepath))
 		{
 			MessageBox(GetExplorerHWND(), g_Git.GetGitLastErr(L"Could get file.", TGitH::GIT_CMD_GETONEFILE), L"TortoiseGit", MB_ICONERROR);
 			return false;
@@ -84,7 +84,7 @@ bool CatCommand::Execute()
 	}
 
 	tgit::wstr::CString output, err;
-	if (g_Git.Run({ L"git.exe", L"cat-file", L"-t", L"--", revision.GetString() }, &output, &err))
+	if (g_Git.Run({ L"git.exe", L"cat-file", L"-t", L"--", revision }, &output, &err))
 	{
 		::DeleteFile(savepath);
 		MessageBox(GetExplorerHWND(), output + L'\n' + err, L"TortoiseGit", MB_ICONERROR);

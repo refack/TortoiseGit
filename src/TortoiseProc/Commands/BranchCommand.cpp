@@ -25,10 +25,7 @@ import AppUtils.Workflow;
 
 bool BranchCommand::Execute()
 {
-	CString base = parser.GetVal(L"rev");
-	CString *p=&base;
-	if(base.IsEmpty())
-		p = nullptr;
-
-	return CAppUtils::CreateBranchTag(GetExplorerHWND(), FALSE, p, false, parser.HasVal(L"name") ? parser.GetVal(L"name") : nullptr);
+	auto base = parser.GetValStr(L"rev");
+	auto name = parser.GetValStr(L"name");
+	return CAppUtils::CreateBranchTag(GetExplorerHWND(), FALSE, base.c_str(), false, name.c_str());
 }
