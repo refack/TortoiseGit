@@ -1,50 +1,15 @@
-﻿cmake_minimum_required(VERSION 4.4)
-
-# before project() — the gate is read when the CXX toolchain is discovered
-set(CMAKE_EXPERIMENTAL_CXX_IMPORT_STD "f35a9ac6-8463-4d38-8eec-5d6008153e7d")
-#set(CMAKE_CXX_MODULE_STD ON)          # or per-target: set_target_properties(TGitLibgit2 PROPERTIES CXX_MODULE_STD ON)
-
-set(CMAKE_CXX_STANDARD 23)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_EXTENSIONS OFF)
-set(CMAKE_CXX_MODULE_STD ON)
-
-set(CMAKE_EXPORT_SARIF ON)
-
-# The triplet is a project decision, not a per-machine one: static libraries
-# over the dynamic CRT, which is what UseOfMfc=Dynamic and every target's
-# MSVC_RUNTIME_LIBRARY MultiThreadedDLL already assume. It has to be set before
-# project(), because that is when the vcpkg toolchain reads it and runs the
-# manifest install. The toolchain FORCE-lifts this value into the cache, so a
-# build directory configured under another triplet corrects itself on the next
-# configure - and a -DVCPKG_TARGET_TRIPLET on the command line does not win;
-# change this line instead.
-#
-# Left alone, the toolchain derives the triplet from the compiler's platform
-# and lands on plain x64-windows - the *dynamic* triplet, under which every
-# vcpkg library becomes a DLL. VCPKG_DEFAULT_TRIPLET in the environment does
-# not change that; the toolchain never reads it.
-set(VCPKG_HOST_TRIPLET "x64-windows-static-md" CACHE STRING "" FORCE)
-set(VCPKG_TARGET_TRIPLET "x64-windows-static-md" CACHE STRING "" FORCE)
-
-project(TGitLibgit2 LANGUAGES C CXX)
-
-find_package(libgit2 CONFIG REQUIRED)
-
-
-# The core library, once per CString flavor (modules/shims/str_utils.ixx says why):
+﻿# The core library, once per CString flavor (modules/shims/str_utils.ixx says why):
 #   TGitLibgit2     ATL - UnitTests, and later TortoiseShell / TGitCache
 #   TGitLibgit2Mfc  MFC - TortoiseProc
 # Both STATIC: the TGitCore.lib of CLAUDE.md's Phase B. As a DLL it exported none
 # of our symbols - only libgit2's C API, which a static git2.lib marks dllexport -
 # so nothing could link against the module code. gitdll stays the one DLL, and
 # that boundary is what keeps libgit.lib off this library's consumers.
-set(name TGitLibgit2Mfc)
 set(flavor MFC)
 
-add_library(${name} STATIC)
+add_library(TGitLibgit2Mfc STATIC)
 
-target_sources("${name}"
+target_sources("TGitLibgit2Mfc"
     PRIVATE
         patches/filter-filter.c
         patches/ssh-wintunnel.c
@@ -52,48 +17,21 @@ target_sources("${name}"
         modules/lanes.cpp   # the lanes module's implementation unit
 )
 
-target_compile_features(${name}
-    PRIVATE
-        cxx_std_23
-        c_std_23
-)
-
-target_include_directories(${name}
+target_include_directories(TGitLibgit2Mfc
     PRIVATE
         "${CMAKE_SOURCE_DIR}/ext/gitdll"
         "${CMAKE_CURRENT_SOURCE_DIR}/include"
         "${CMAKE_SOURCE_DIR}/src/SharedMFC"
 )
 
-target_compile_definitions(${name}
+# _AFXDLL comes from the root for every target; the ATL flavor, when it returns,
+# has to take it back out (the root define is what the shim's TGIT_MFC split is for).
+target_compile_definitions(TGitLibgit2Mfc
     PRIVATE
-        _WIN64
-        WIN64
-        UNICODE
-        _UNICODE
-        GIT_DEPRECATE_HARD
-        ENABLE_INTSAFE_SIGNED_FUNCTIONS
-        _WIN32_WINNT=0x0A00
-        _WINDOWS
-        WINDOWS
-        NOMINMAX
-
         $<$<STREQUAL:${flavor},MFC>:TGIT_MFC>
-        $<$<STREQUAL:${flavor},MFC>:_AFXDLL>
-
-        "$<$<CONFIG:Debug>:DEBUG>"
-        "$<$<CONFIG:Release>:NDEBUG>"
-        "$<$<STREQUAL:${CMAKE_CXX_COMPILER_ARCHITECTURE_ID},x64>:_AMD64_>"
-        "$<$<STREQUAL:${CMAKE_CXX_COMPILER_ARCHITECTURE_ID},ARM64>:_ARM64_>"
 )
 
-target_link_directories(${name}
-    PRIVATE
-        "$<$<CONFIG:Debug>:${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/debug/lib>"
-        "$<$<CONFIG:Release>:${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/lib>"
-)
-
-target_link_libraries(${name}
+target_link_libraries(TGitLibgit2Mfc
     PUBLIC
         gitdll
     PRIVATE
@@ -108,7 +46,7 @@ target_link_libraries(${name}
         crypt32
 )
 
-target_sources(${name}
+target_sources(TGitLibgit2Mfc
     PUBLIC
         FILE_SET CXX_MODULES
         BASE_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/modules"

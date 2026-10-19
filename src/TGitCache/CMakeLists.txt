@@ -1,9 +1,3 @@
-cmake_minimum_required(VERSION 4.4)
-project(TGitCache LANGUAGES CXX)
-
-find_package(libgit2 REQUIRED CONFIG)
-find_package(MFC REQUIRED)
-
 add_executable(TGitCache WIN32)
 tgit_app_manifests(TGitCache "${TGIT_SYSTEM_DPI_MANIFEST}")
 
@@ -29,16 +23,6 @@ target_sources(TGitCache
         TGitCache.rc
 )
 
-set_target_properties(TGitCache PROPERTIES
-    CMAKE_MFC_FLAG 2
-)
-
-target_compile_features(TGitCache
-    PRIVATE
-        cxx_std_23
-        c_std_23
-)
-
 target_include_directories(TGitCache
     PRIVATE
         "${CMAKE_SOURCE_DIR}/src/TortoiseShell"
@@ -49,35 +33,12 @@ target_include_directories(TGitCache
         "${CMAKE_SOURCE_DIR}/src/libgit2/include/Utils"   # CreateProcessHelper.h, LoadIconEx.h, UniqueQueue.h
         "${CMAKE_CURRENT_SOURCE_DIR}"
         "${CMAKE_SOURCE_DIR}/src"
-        "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/include"
 )
 
 target_compile_definitions(TGitCache
     PRIVATE
         TGITCACHE
         _CONSOLE
-        _WIN64
-        WIN64
-        UNICODE
-        _UNICODE
-        GIT_DEPRECATE_HARD
-        ENABLE_INTSAFE_SIGNED_FUNCTIONS
-        _WIN32_WINNT=0x0A00
-        _WINDOWS
-        WINDOWS
-        NOMINMAX
-        _AFXDLL
-
-        "$<$<CONFIG:Debug>:DEBUG>"
-        "$<$<CONFIG:Release>:NDEBUG>"
-        "$<$<STREQUAL:${CMAKE_CXX_COMPILER_ARCHITECTURE_ID},x64>:_AMD64_>"
-        "$<$<STREQUAL:${CMAKE_CXX_COMPILER_ARCHITECTURE_ID},ARM64>:_ARM64_>"
-)
-
-target_link_directories(TGitCache
-    PRIVATE
-        "$<$<CONFIG:Debug>:${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/debug/lib>"
-        "$<$<CONFIG:Release>:${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/lib>"
 )
 
 target_link_libraries(TGitCache
@@ -90,11 +51,3 @@ target_link_libraries(TGitCache
         gitdll
         TGitLibgit2
 )
-
-target_compile_options(TGitCache
-    PRIVATE
-        /W3
-        /external:W0
-        /external:anglebrackets
-)
-

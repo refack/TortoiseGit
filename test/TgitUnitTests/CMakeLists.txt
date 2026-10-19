@@ -1,9 +1,3 @@
-cmake_minimum_required(VERSION 4.4)
-project(TGitUnitTests LANGUAGES CXX)
-
-find_package(GTest REQUIRED CONFIG)
-find_package(MFC REQUIRED)
-
 add_executable(TGitUnitTests)
 
 target_sources(TGitUnitTests
@@ -63,17 +57,6 @@ set(UNITTESTS_PARKED
     WindowsCredentialsStoreTests.cpp  # Utils/WindowsCredentialsStore
 )
 
-set_target_properties(TGitUnitTests PROPERTIES
-    CMAKE_MFC_FLAG 2
-    CXX_MODULE_STD ON
-)
-
-target_compile_features(TGitUnitTests
-    PRIVATE
-        cxx_std_23
-        c_std_23
-)
-
 target_include_directories(TGitUnitTests
     PRIVATE
         "${CMAKE_SOURCE_DIR}/ext/gitdll"
@@ -85,29 +68,6 @@ target_compile_definitions(TGitUnitTests
     PRIVATE
         TGIT_TESTS_ONLY
         "TGIT_TEST_RESOURCES_DIR=L\"${CMAKE_CURRENT_SOURCE_DIR}/resources\""
-
-        _WIN64
-        WIN64
-        UNICODE
-        _UNICODE
-        GIT_DEPRECATE_HARD
-        ENABLE_INTSAFE_SIGNED_FUNCTIONS
-        _WIN32_WINNT=0x0A00
-        _WINDOWS
-        WINDOWS
-        NOMINMAX
-        _AFXDLL
-
-        "$<$<CONFIG:Debug>:DEBUG>"
-        "$<$<CONFIG:Release>:NDEBUG>"
-        "$<$<STREQUAL:${CMAKE_CXX_COMPILER_ARCHITECTURE_ID},x64>:_AMD64_>"
-        "$<$<STREQUAL:${CMAKE_CXX_COMPILER_ARCHITECTURE_ID},ARM64>:_ARM64_>"
-)
-
-target_link_directories(TGitUnitTests
-    PRIVATE
-        "$<$<CONFIG:Debug>:${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/debug/lib>"
-        "$<$<CONFIG:Release>:${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/lib>"
 )
 
 target_link_libraries(TGitUnitTests

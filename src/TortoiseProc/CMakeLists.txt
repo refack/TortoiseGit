@@ -1,10 +1,4 @@
-﻿cmake_minimum_required(VERSION 4.4)
-project(TortoiseProc LANGUAGES CXX)
-
-find_package(ogdf REQUIRED CONFIG)
-find_package(MFC REQUIRED)
-
-# WIN32: a GUI subsystem exe; MFC supplies wWinMain (the vcxproj's SubSystem=Windows).
+﻿# WIN32: a GUI subsystem exe; MFC supplies wWinMain (the vcxproj's SubSystem=Windows).
 add_executable(TortoiseProc WIN32)
 
 target_precompile_headers(TortoiseProc PRIVATE stdafx.h)
@@ -490,13 +484,6 @@ set_target_properties(TortoiseProc PROPERTIES
     # shell extension launches it by that name too.
     OUTPUT_NAME TortoiseGitProc
 )
-set_target_properties(TortoiseProc PROPERTIES CXX_MODULE_STD ON)
-
-target_compile_features(TortoiseProc
-    PRIVATE
-        cxx_std_23
-        c_std_23
-)
 
 target_include_directories(TortoiseProc
     PRIVATE
@@ -523,28 +510,6 @@ target_include_directories(TortoiseProc
 target_compile_definitions(TortoiseProc
     PRIVATE
         TORTOISEGITPROC
-        _WIN64
-        WIN64
-        UNICODE
-        _UNICODE
-        GIT_DEPRECATE_HARD
-        ENABLE_INTSAFE_SIGNED_FUNCTIONS
-        _WIN32_WINNT=0x0A00
-        _WINDOWS
-        WINDOWS
-        NOMINMAX
-        _AFXDLL
-
-        "$<$<CONFIG:Debug>:DEBUG>"
-        "$<$<CONFIG:Release>:NDEBUG>"
-        "$<$<STREQUAL:${CMAKE_CXX_COMPILER_ARCHITECTURE_ID},x64>:_AMD64_>"
-        "$<$<STREQUAL:${CMAKE_CXX_COMPILER_ARCHITECTURE_ID},ARM64>:_ARM64_>"
-)
-
-target_link_directories(TortoiseProc
-    PRIVATE
-        "$<$<CONFIG:Debug>:${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/debug/lib>"
-        "$<$<CONFIG:Release>:${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/lib>"
 )
 
 target_link_libraries(TortoiseProc
@@ -581,9 +546,6 @@ target_link_libraries(TortoiseProc
 target_compile_options(TortoiseProc
     PRIVATE
         /diagnostics:column
-        /W3
-        /external:W0
-        /external:anglebrackets
 )
 
 # _UNICODE MFC: the entry is wWinMain, which lives in the MFC library rather than
