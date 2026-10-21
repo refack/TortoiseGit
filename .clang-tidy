@@ -1,33 +1,57 @@
-UseColor: true
+Checks:
+  # High-level Wildcard Patterns
+  - readability-*
+  - bugprone-*
+  - modernize-*
+  - performance-*
+  - portability-simd-intrinsics
+  - cppcoreguidelines-*
 
-Checks: >
-  readability-*
-  bugprone-*
-  cert-dcl21-cpp
-  cert-dcl58-cpp
-  cert-err34-c
-  cert-err52-cpp
-  cert-err60-cpp
-  cert-flp30-c
-  cert-msc50-cpp
-  cert-msc51-cpp
-  cert-str34-c
-  google-default-arguments
-  google-runtime-operator
-  hicpp-exception-baseclass
-  hicpp-multiway-paths-covered
-  misc-misplaced-const
-  misc-new-delete-overloads
-  misc-non-copyable-objects
-  misc-throw-by-value-catch-by-reference
-  misc-unconventional-assign-operator
-  misc-uniqueptr-reset-release
-  modernize-*
-  mpi-buffer-deref
-  mpi-type-mismatch
-  openmp-use-default-none
-  performance-*
-  portability-simd-intrinsics
-  readability-*
-  cppcoreguidelines-*
-  -*-implementation-in-namespace
+  # Specific Rule Slugs
+  - 'cert-dcl51-cpp'
+  - 'cert-dcl58-cpp'
+  - 'cert-err34-c'
+  - 'cert-err52-cpp'
+  - 'cert-err60-cpp'
+  - 'cert-flp30-c'
+  - 'cert-msc50-cpp'
+  - 'cert-msc51-cpp'
+  - 'cert-str34-c'
+  - 'google-default-arguments'
+  - 'google-runtime-operator'
+  - 'misc-misplaced-const'
+  - 'misc-new-delete-overloads'
+  - 'misc-non-copyable-objects'
+  - 'misc-throw-by-value-catch-by-reference'
+  - 'misc-unconventional-assign-operator'
+  - 'misc-uniqueptr-reset-release'
+  - 'mpi-buffer-deref'
+  - 'mpi-type-mismatch'
+  - 'openmp-use-default-none'
+
+  # deffered
+  - -*-implementation-in-namespace
+  - -clang-diagnostic-error
+  - -modernize-use-trailing-return-type
+  - -readability-braces-around-statements
+  - -readability-identifier-length
+  - -readability-implicit-bool-conversion
+  - -*-std-namespace-modification   # Adding stuff to std::
+  - -*-dcl58-cpp                    # Adding stuff to std::
+  - -*-else-after-return
+  - -bugprone-easily-swappable-parameters
+
+
+#UseColor: true
+
+
+CheckOptions:
+  performance-unnecessary-copy-initialization.AllowedTypes: 'std::source_location;sloc_t'
+
+
+ImplementationFileExtensions:
+  - c
+  - cc
+  - cpp
+  - ixx
+  - cxx

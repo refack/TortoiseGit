@@ -7,9 +7,9 @@
 # that boundary is what keeps libgit.lib off this library's consumers.
 set(flavor MFC)
 
-add_library(TGitLibgit2Mfc STATIC)
+add_library(TGitLibgit2 STATIC)
 
-target_sources("TGitLibgit2Mfc"
+target_sources("TGitLibgit2"
     PRIVATE
         patches/filter-filter.c
         patches/ssh-wintunnel.c
@@ -17,7 +17,7 @@ target_sources("TGitLibgit2Mfc"
         modules/lanes.cpp   # the lanes module's implementation unit
 )
 
-target_include_directories(TGitLibgit2Mfc
+target_include_directories(TGitLibgit2
     PRIVATE
         "${CMAKE_SOURCE_DIR}/ext/gitdll"
         "${CMAKE_CURRENT_SOURCE_DIR}/include"
@@ -26,12 +26,12 @@ target_include_directories(TGitLibgit2Mfc
 
 # _AFXDLL comes from the root for every target; the ATL flavor, when it returns,
 # has to take it back out (the root define is what the shim's TGIT_MFC split is for).
-target_compile_definitions(TGitLibgit2Mfc
+target_compile_definitions(TGitLibgit2
     PRIVATE
         $<$<STREQUAL:${flavor},MFC>:TGIT_MFC>
 )
 
-target_link_libraries(TGitLibgit2Mfc
+target_link_libraries(TGitLibgit2
     PUBLIC
         gitdll
     PRIVATE
@@ -46,7 +46,7 @@ target_link_libraries(TGitLibgit2Mfc
         crypt32
 )
 
-target_sources(TGitLibgit2Mfc
+target_sources(TGitLibgit2
     PUBLIC
         FILE_SET CXX_MODULES
         BASE_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/modules"

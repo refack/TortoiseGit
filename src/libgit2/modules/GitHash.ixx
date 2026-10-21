@@ -13,18 +13,15 @@ import std;
 import wil;
 
 import invarients;
-using namespace tgit::invarients;
 
 import str_utils;
 using tgit::str::IsTCompString;
 using tgit::str::StringViewTraits;
 
 
-/* also see gitdll.c */
-static_assert(OID_MAX_SIZE <= sizeof(git_oid::id), "git_oid raw storage must be able to hold the largest id");
-
-
 namespace TGitHash {
+using namespace tgit::invarients;
+
 /*
  * Whether str is exactly as long as a full hex id in the active object format.
  * Not exported: CGitHash::FromHexStr is its only caller. Module linkage, not
@@ -254,29 +251,30 @@ inline std::wstring GetHashText(const void* data, const size_t data_size, HashTy
 	if (!hash_ok)
 		return {};
 
-	SCOPE_EXIT { CryptDestroyHash(hHash); };
-
-	if (!CryptHashData(hHash, static_cast<const BYTE*>(data), static_cast<DWORD>(data_size), 0))
-		return {};
-
-	DWORD cbHashSize = 0;
-	DWORD dwCount = sizeof(DWORD);
-	if (!CryptGetHashParam(hHash, HP_HASHSIZE, reinterpret_cast<BYTE*>(&cbHashSize), &dwCount, 0))
-		return {};
-
-	std::vector<BYTE> buffer(cbHashSize);
-	if (!CryptGetHashParam(hHash, HP_HASHVAL, buffer.data(), &cbHashSize, 0))
-		return {};
-
 	std::wostringstream oss;
-	oss.fill('0');
-	oss.width(2);
-
-	for (const auto& b : buffer)
 	{
-		oss << std::hex << static_cast<const int>(b);
-	}
+		SCOPE_EXIT { CryptDestroyHash(hHash); };
 
+		if (!CryptHashData(hHash, static_cast<const BYTE*>(data), static_cast<DWORD>(data_size), 0))
+			return {};
+
+		DWORD cbHashSize = 0;
+		DWORD dwCount = sizeof(DWORD);
+		if (!CryptGetHashParam(hHash, HP_HASHSIZE, reinterpret_cast<BYTE*>(&cbHashSize), &dwCount, 0))
+			return {};
+
+		std::vector<BYTE> buffer(cbHashSize);
+		if (!CryptGetHashParam(hHash, HP_HASHVAL, buffer.data(), &cbHashSize, 0))
+			return {};
+
+		oss.fill('0');
+		oss.width(2);
+
+		for (const auto& b : buffer)
+		{
+			oss << std::hex << static_cast<const int>(b);
+		}
+	}
 	return oss.str();
 }
 }

@@ -127,7 +127,7 @@ protected:
 	Microsoft::WRL::ComPtr<IUnknown> m_site;
 	std::vector<Microsoft::WRL::ComPtr<CExplorerCommand>> m_explorerCommands;
 
-#define MAKESTRING(ID) wil::til::LoadStringEx(g_hResInst, ID, stringtablebuffer, _countof(stringtablebuffer), static_cast<WORD>(CRegStdDWORD(L"Software\\TortoiseGit\\LanguageID", MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT))))
+#define MAKESTRING(ID) wil::til::LoadStringEx(g_hResInst, ID, stringtablebuffer, static_cast<WORD>(CRegStdDWORD(L"Software\\TortoiseGit\\LanguageID", MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT))))
 private:
 	void			InsertGitMenu(BOOL istop, HMENU menu, UINT pos, UINT_PTR id, UINT stringid, UINT icon, UINT idCmdFirst, TGitShellCommand com, UINT uFlags);
 	bool			InsertLFSSubmenu(UINT& idCmd, UINT idCmdFirst, HMENU hMenu, HMENU subMenu, UINT& indexMenu, int& indexSubMenu, TGitContextMenuEntries topmenu, bool bShowIcons, UINT uFlags);

@@ -27,7 +27,7 @@ import DebugOutput;
 
 using std::operator""sv;
 namespace fs = std::filesystem;
-
+using namespace tgit;
 using tgit::str::StringView;
 
 // This module is layered, and each layer uses only the ones above it:
@@ -65,10 +65,7 @@ void ReplaceAll(std::wstring& s, const std::wstring_view from, const std::wstrin
 
 /// Adds the trailing separator a bare drive needs: "C:" is the current directory
 /// *on* C:, "C:\" is its root.
-void SanitizeRootPath(std::wstring& path, const wchar_t separator) {
-	if (path.size() == 2 && path[1] == L':')
-		path += separator;
-}
+constexpr void SanitizeRootPath(const std::wstring& path, const wchar_t separator = {}) {}
 
 
 /// The forward-slash (git) form of a path, exactly as CTGitPath stores it.
@@ -420,7 +417,8 @@ void InstallHost(const Host& host) {
 export namespace GitAdminDir {
 /// PathFileExists, except that it refuses a UNC path naming only a server:
 /// probing \\server\.git makes the SMB client write an error to the event log.
-bool GitPathFileExists(const std::wstring_view path) {
+template <tgit::str::TStrOfWide StrT>
+bool GitPathFileExists(const StrT& path) {
 	if (path.size() >= 2 && path[0] == L'\\' && path[1] == L'\\') {
 		const size_t server = path.find(L'\\', 2);
 		if (server == std::wstring_view::npos || path.find(L'\\', server + 1) == std::wstring_view::npos)
@@ -636,38 +634,37 @@ bool GetWorktreeAdminDirPath(const TStr& projectTopDir, TStr& adminDir) {
  * of CLAUDE.md's failure mode (3).
  */
 // TODO: std::optional
-bool HasAdminDir(const std::wstring_view path, const std::same_as<bool> auto isDirectory,
-                 std::wstring* const projectTopDir = nullptr, bool* isAdminDirPath = nullptr) {
-	if (path.empty())
-		return false;
-	std::wstring dirName(path);
-	if (!isDirectory) {
+bool HasAdminDir(
+	const auto& path_arg,
+	const bool isDirectory,
+	std::wstring* const projectTopDir = nullptr,
+	bool* isAdminDirPath = nullptr
+) {
+	auto path = fs::path{ path_arg };
+	if (!isDirectory || fs::is_directory(path)) {
 		// e.g "C:\"
-		if (path.size() <= 3)
+		if (path.string().size() <= 3)
 			return false;
-		dirName.resize(static_cast<size_t>((std::max)(0, tgit::wstr::ReverseFind(dirName, L'\\'))));
+		path = path.parent_path();
 	}
 
 	// a .git dir or anything inside it should be left out, only interested in working copy files -- Myagi
-	if (IsAdminDirPath(dirName)) {
+	if (IsAdminDirPath(path.c_str())) {
 		if (isAdminDirPath)
 			*isAdminDirPath = true;
 		return false;
 	}
 
 	for (;;) {
-		if (GitPathFileExists(dirName + L"\\.git")) {
-			// Make sure to add the trailing slash to root paths such as 'C:'
-			TGitPath::detail::SanitizeRootPath(dirName, L'\\');
-
+		if (fs::exists(path / L".git")) {
 			if (projectTopDir)
-				*projectTopDir = dirName;
+				*projectTopDir = path.c_str();
 
 			/* This code is not necessary in TGitCache as there are further checks for valid repos, however,
 			 * TODO: Optimize for usage in TGitCache
 			 */
 #ifndef TGITCACHE
-			const auto adminDir = GetAdminDirPath(dirName);
+			const auto adminDir = GetAdminDirPath(path.c_str());
 			if (!adminDir)
 				return false;
 
@@ -687,17 +684,10 @@ bool HasAdminDir(const std::wstring_view path, const std::same_as<bool> auto isD
 		// If there is a bare repo inside a regular repo, this needs to return false so that:
 		// - GetAdminDirMask() returns 0 causing the context menu of the outer repo to not be shown
 		// - CShellExt::IsMemberOf shows no overlays inside the bare repo
-		else if (IsBareRepo(dirName))
+		else if (IsBareRepo(path.c_str()))
 			return false;
 #endif
-
-		const int x = tgit::wstr::ReverseFind(dirName, L'\\');
-		if (x < 2)
-			break;
-
-		dirName.resize(static_cast<size_t>(x));
-		// don't check for \\COMPUTERNAME\.git
-		if (dirName[0] == L'\\' && dirName[1] == L'\\' && tgit::wstr::Find(dirName, L'\\', 2) < 0)
+		if (fs::is_directory(path))
 			break;
 	}
 
@@ -854,7 +844,7 @@ public:
 	// turn every move of a path into a copy. Nothing deletes a CTGitPath through a
 	// base pointer - the mocks are stack objects.
 
-	template <tgit::str::IsTCompString StrT>
+	template <tgit::str::TStrOfWide StrT>
 	CTGitPath(const StrT& sUnknownPath = {}, const std::optional<bool> bIsDirectory = std::nullopt) {
 		const auto sv = tgit::str::StringView<StrT>::as_view(sUnknownPath);
 		SetFromUnknown(sv);
@@ -863,6 +853,7 @@ public:
 			m_bIsDirectory = bIsDirectory.value();
 		}
 	}
+	CTGitPath(const fs::path& path) : CTGitPath{path.string(), fs::is_directory(path)} {}
 
 	/// A wide array - a literal, or a buffer a Win32 call filled. Unlike a pointer
 	/// it carries a bound, so this is a bounded scan rather than a walk; wcsnlen
@@ -870,7 +861,7 @@ public:
 	/// explicit: an implicit one gave every literal a second user-defined route,
 	/// and made CGit::CombinePath(L"...") ambiguous between CString and CTGitPath.
 	template <std::size_t N>
-	explicit CTGitPath(const wchar_t (&sUnknownPath)[N], const std::optional<bool> bIsDirectory = std::nullopt)
+	explicit CTGitPath(const std::array<wchar_t, N>& sUnknownPath, const std::optional<bool> bIsDirectory = std::nullopt)
 		: CTGitPath(std::wstring_view(sUnknownPath, wcsnlen(sUnknownPath, N)), bIsDirectory) {}
 
 	/// A NUL-terminated pointer - GetString(), an LPCWSTR parameter. explicit, so
@@ -1022,11 +1013,15 @@ public:
 	/**
 	 * Returns the path in Windows format, i.e. with backslashes
 	 */
-	LPCWSTR GetWinPath() const;
+	const std::wstring& GetWString() const { return m_sBackslashPath; }
 	/**
 	 * Returns the path in Windows format, i.e. with backslashes
 	 */
-	const std::wstring& GetWinPathString() const;
+	LPCWSTR GetWinPath() const { return m_sBackslashPath.c_str(); }
+	/**
+	 * Returns the path in Windows format, i.e. with backslashes
+	 */
+	const std::wstring& GetWinPathString() const { return m_sBackslashPath; }
 	/**
 	 * Returns the path with forward slashes.
 	 */
@@ -1375,6 +1370,10 @@ struct CTGitPathList {
 	int ParserFromLog(const std::string& log);
 	int ParserFromLsFileSimple(const std::string& out, unsigned int action, bool clear = true);
 	int ParserFromLsFile(const std::string& out);
+	int ParserFromLog(const std::wstring& log) {
+		return ParserFromLog(CUnicodeUtils::StdGetUTF8(log));
+	}
+
 	void UpdateStagingStatusFromPath(std::wstring_view path, CTGitPath::StagingStatus status);
 
 	/// The untracked (or, with LOGACTIONS_IGNORE, ignored) files, via
@@ -1488,12 +1487,12 @@ struct CTGitPathList {
 
 		// first entry is common root for itself
 		// (add trailing '\\' to detect partial matches of the last path element)
-		std::wstring root = m_paths[0].GetWinPathString() + L'\\';
+		std::wstring root = m_paths[0].GetWinPathString();
 		int rootLength = static_cast<int>(root.size());
 
 		// determine common path string prefix
 		for (auto it = m_paths.cbegin() + 1; it != m_paths.cend(); ++it) {
-			const std::wstring path = it->GetWinPathString() + L'\\';
+			const std::wstring path = it->GetWinPathString();
 
 			const int newLength = detail::GetMatchingLength(root, path);
 			if (newLength != rootLength) {
@@ -1504,7 +1503,7 @@ struct CTGitPathList {
 
 		// remove the last (partial) path element
 		if (rootLength > 0)
-			root.resize(std::max(0ull, root.rfind(L"\\")));
+			root.resize(std::max(0ull, root.rfind(L'\\')));
 
 		// done
 		return CTGitPath{ root };
@@ -1663,26 +1662,8 @@ void CTGitPath::SetFromUnknown(const std::wstring_view sPath) {
 }
 
 
-LPCWSTR CTGitPath::GetWinPath() const {
-	if (IsEmpty())
-		return L"";
-	return GetWinPathString().c_str();
-}
-
-
-// This is a temporary function, to be used during the migration to
-// the path class.  Ultimately, functions consuming paths should take a CTGitPath&, not a string
-const std::wstring& CTGitPath::GetWinPathString() const {
-	if (m_sBackslashPath.empty())
-		SetBackslashPath(m_sFwdslashPath);
-	return m_sBackslashPath;
-}
-
-
 const std::wstring& CTGitPath::GetGitPathString() const {
-	if (m_sFwdslashPath.empty())
-		SetFwdslashPath(m_sBackslashPath);
-	return m_sFwdslashPath;
+	return m_sBackslashPath;
 }
 
 
@@ -1767,12 +1748,8 @@ void CTGitPath::AppendPathString(const std::wstring_view sAppend) {
 CTGitPath CTGitPath::GetSubPath(const CTGitPath& root) const {
 	CTGitPath path;
 
-	if (tgit::wstr::StartsWith(GetWinPathString(), root.GetWinPathString())) {
-		const std::wstring& str = GetWinPathString();
-		path.SetFromWin(
-			tgit::wstr::Right(
-				str, static_cast<int>(str.size()) - static_cast<int>(root.GetWinPathString().size()) - 1));
-	}
+	if (auto shared_root = fs::relative(GetWinPathString(), root.GetWinPathString()); shared_root.has_root_directory())
+		return shared_root;
 	return path;
 }
 
@@ -2270,7 +2247,9 @@ bool CTGitPath::IsRegisteredSubmoduleOfParentProject(std::wstring* parentProject
 
 	const wil::unique_git_config config = detail::NewConfig();
 	git_config_add_file_ondisk(config.get(), ToGitPathA(gitmodules).c_str(), GIT_CONFIG_LEVEL_APP, nullptr, FALSE);
-	std::wstring relativePath = tgit::wstr::Mid(GetWinPathString(), gsl::narrow<int>(topProjectDir.size()));
+	// std::wstring relativePath = tgit::wstr::Mid(GetWinPathString(), gsl::narrow<int>(topProjectDir.size()));
+	std::unreachable();
+	std::wstring relativePath;
 	std::ranges::replace(relativePath, L'\\', L'/');
 	tgit::wstr::Trim(relativePath, L"/");
 	std::string submodulePath = CUnicodeUtils::StdGetUTF8(relativePath);
@@ -2594,8 +2573,7 @@ int CTGitPathList::ParserFromLsFile(const std::string& out) {
 
 
 int CTGitPathList::ParserFromLog(const std::string& log) {
-	static const bool mergeReplacedStatus = Registry::CRegDWORD(L"Software\\TortoiseGit\\MergeReplacedStatusKS", TRUE,
-	                                                            false, HKEY_LOCAL_MACHINE) == TRUE;
+	static const bool mergeReplacedStatus = Registry::CRegDWORD(L"Software\\TortoiseGit\\MergeReplacedStatusKS", TRUE, false, HKEY_LOCAL_MACHINE) == TRUE;
 	// TODO: remove kill-switch
 	Clear();
 	std::map<std::wstring, size_t> duplicateMap;

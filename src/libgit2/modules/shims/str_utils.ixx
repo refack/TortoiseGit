@@ -276,25 +276,38 @@ struct StringViewTraits<TStr> {
 	using char_type     = TStr::value_type;
 	using const_pointer = TStr::const_pointer;
 	using size_type     = TStr::size_type;
-	static constexpr const_pointer data(const TStr& s) noexcept { return s.data(); }
-	static constexpr size_t        size(const TStr& s) noexcept { return s.size(); }
+	static constexpr auto npos = TStr::npos;
+
+	static constexpr const_pointer	data(const TStr& s) noexcept { return s.data(); }
+	static constexpr size_t			size(const TStr& s) noexcept { return s.size(); }
 
 	template <IsTCompString TOut>
-	static constexpr auto          size(const TStr& s) { return gsl::narrow<typename StringViewTraits<TOut>::size_type>(size(s)); }
+	static constexpr auto			outsize(const TStr& s) { return gsl::narrow<typename StringViewTraits<TOut>::size_type>(size(s)); }
 };
 
 template <IsStupidString TStr>
 struct StringViewTraits<TStr> {
 	using char_type     = TStr::XCHAR;
 	using const_pointer = TStr::PCXSTR;
-	using size_type     = int;
-	static constexpr const_pointer data(const TStr& s) noexcept { return s.GetString(); }
-	static constexpr size_t        size(const TStr& s) noexcept { return gsl::narrow_cast<size_t>(s.GetLength()); }
+	using size_type     = std::invoke_result_t<decltype(&TStr::GetLength), TStr>;
+	static constexpr auto npos = -1;
+
+	static constexpr const_pointer	data(const TStr& s) noexcept { return s.GetString(); }
+	static constexpr size_t			size(const TStr& s) noexcept { return gsl::narrow_cast<size_t>(s.GetLength()); }
 
 	template <IsTCompString TOut>
-	static constexpr auto          size(const TStr& s) { return gsl::narrow<typename StringViewTraits<TOut>::size_type>(size(s)); }
+	static constexpr auto			outsize(const TStr& s) { return gsl::narrow<typename StringViewTraits<TOut>::size_type>(size(s)); }
+
 };
 
+
+template <IsTCompString TStr>
+constexpr auto to_atl(const TStr& s)
+{
+	using traits = StringViewTraits<TStr>;
+	using atl_str_t = ATL::CStringT<typename traits::char_type, ATL::StrTraitATL<typename traits::char_type>>;
+	return atl_str_t{traits::data(s), traits::template outsize<atl_str_t>(s)};
+}
 
 
 template <typename TStr>
@@ -310,24 +323,26 @@ struct StringTraits;
 template <IsRealString TStr> requires (!std::ranges::enable_borrowed_range<TStr>)
 // template <IsRealString TStr>
 struct StringTraits<TStr> : StringViewTraits<TStr> {
+	using view_traits	= StringViewTraits<TStr>;
+	using char_type		= view_traits::char_type;
+
 	static constexpr void        resize(TStr& s, size_t l) { s.resize(l); }
 
 	template <typename TFill>
 	static constexpr void        overwrite(TStr& s, const size_t cap, TFill fill)
-	{
-		s.resize_and_overwrite(cap, [&fill](typename TStr::value_type* buf, const size_t n) { return fill(buf, n); });
-	}
+	{ s.resize_and_overwrite(cap, [&fill](auto buf, const size_t n) { return fill(buf, n); }); }
 };
 
 template <IsStupidString TStr>
 struct StringTraits<TStr> : StringViewTraits<TStr> {
+	using view_traits	= StringViewTraits<TStr>;
+	using char_type		= view_traits::char_type;
+
 	static constexpr void        resize(TStr& s, size_t l) { s.Truncate(gsl::narrow_cast<int>(l)); }
 
 	template <typename TFill>
 	static void                  overwrite(TStr& s, const size_t cap, TFill fill)
-	{
-		s.ReleaseBuffer(gsl::narrow<int>(fill(s.GetBuffer(gsl::narrow<int>(cap)), cap)));
-	}
+	{ s.ReleaseBuffer(gsl::narrow<int>(fill(s.GetBuffer(gsl::narrow<int>(cap)), cap)));	}
 };
 
 
@@ -432,6 +447,40 @@ struct generate_random_string_t {
 		return ret;
 	}
 };
+
+// std: std::views::split (+ std::from_chars for numeric containers)
+auto stringtok(
+	const auto& in,
+	const bool trim,
+	const auto delimiters
+) {
+	using StrT = std::remove_cvref_t<decltype(in)>;
+	using traits = StringViewTraits<StrT>;
+	static_assert(IsTCompString<StrT>, "Wrong type of [in]");
+	static_assert(std::is_convertible_v<decltype(delimiters), typename StringViewTraits<StrT>::const_pointer>, "mismatched delimiter type");
+
+	auto container = std::vector<StrT>{};
+	for (typename traits::size_type i = {}; i < in.size();) {
+		if (trim) {
+			// eat leading empty tok
+			i = in.find_first_not_of(delimiters, i);
+			if (i == traits::npos)
+				break; // nothing left but empty toks
+		}
+
+		// find the end of the token
+		const auto j = in.find_first_of(delimiters, i);
+		auto substr = in.substr(i, j - i);
+		container.push_back(substr);
+		if (j == StrT::npos)
+			break;
+
+		// set up for next loop
+		i = j + 1;
+	}
+	return container;
+}
+
 }
 
 
@@ -754,6 +803,19 @@ std::filesystem::path to_path(const TStr& sPath)
 
 using generate_random_wstring = str::generate_random_string_t<wchar_t>;
 
+template <typename TStr>
+concept WideSink = requires(TStr& t, std::wstring_view sv) {
+	{ t.size() } -> std::convertible_to<size_t>;
+	t.append(sv);
+};
+
+
+struct AtlSink {
+	CStringW* the_sink;
+	[[nodiscard]] auto size() const noexcept { return !the_sink ? 0 : size_t_cast(the_sink->GetLength()); }
+	void append(const std::wstring_view sv) { if (the_sink) the_sink->Append(sv.data(), win32_cast(sv.size())); }
+};
+
 // end export
 }
 
@@ -784,6 +846,25 @@ std::size_t FindNextString(const std::string_view buffer, const std::size_t star
 	return pos;
 }
 
+
+std::optional<int> maybe_to_int(const std::string_view s) {
+	int value{};
+	if (std::from_chars(s.data(), s.data() + s.size(), value).ec == std::errc{})
+		return value;
+	else
+		return std::nullopt;
+};
+std::optional<int> maybe_to_int(const std::ranges::subrange<std::string_view::const_iterator> s) {
+	return maybe_to_int(std::string_view{s});
+}
+
+auto version_tok(const std::string& in_str) {
+	std::vector<std::optional<int>> versionParts;
+	for (const auto& part : str::stringtok(in_str, false, ".")) {
+		versionParts.push_back(tgit::zstr::maybe_to_int(part));
+	}
+	return versionParts;
+}
 
 using generate_random_string = str::generate_random_string_t<char>;
 
@@ -838,11 +919,11 @@ export namespace CUnicodeUtils
 inline int SafeSizeToInt(const size_t sizeValue)
 {
 	// ReSharper disable once CppTooWideScopeInitStatement
-	constexpr int kIntMax = (std::numeric_limits<int>::max)();
+	constexpr int kIntMax = std::numeric_limits<int>::max();
 	if (sizeValue >= static_cast<size_t>(kIntMax))
 		throw std::overflow_error("size_t value is too big to fit into an int.");
 
-	return gsl::narrow<int>(sizeValue);
+	return win32_cast(sizeValue);
 }
 
 // The conversion core, one body each way. TOut is whichever string the caller
@@ -865,14 +946,14 @@ inline int SafeSizeToInt(const size_t sizeValue)
 template <TStrOfChar TOut, TStrOfWide TIn>
 TOut GetMulti(const TIn& in_string, const int acp = CP_UTF8, const char* const defaultChar = nullptr)
 {
-	auto temp = wil::WideCharToMultiByte(StringView<TIn>{in_string}, acp, defaultChar);
-	return TOut{temp.data(), StringViewTraits<TOut>::size(temp)};
+	auto temp = til::WideCharToMultiByte(StringView<TIn>{in_string}, {.code_page = acp, .replacment = defaultChar});
+	return tgit::str::to_atl(temp);
 }
 
 
 std::string StdGetMulti(const std::wstring_view wide, const int acp = CP_UTF8, const char* const defaultChar = nullptr)
 {
-	return wil::WideCharToMultiByte(wide, acp, defaultChar);
+	return til::WideCharToMultiByte(wide, {.code_page = acp, .replacment = defaultChar});
 }
 
 
@@ -884,10 +965,6 @@ int StdGetCPCode(const std::wstring_view codename_arg)
 	return opt_cp.value_or(CP_UTF8);
 }
 
-std::string StdGetUTF8(const std::wstring_view wide)
-{
-	return wil::WideCharToMultiByte(wide, CP_UTF8);
-}
 
 // Thin adapters over the above, kept while call sites move across. They
 // used to carry their own copy of the WideCharToMultiByte /
@@ -915,10 +992,10 @@ std::string StdGetUTF8(const std::wstring_view wide)
 // conversions), so without them it has no overload at all, and a StringView -
 // which is a real string - must keep binding to the core rather than
 // re-entering a forwarder forever.
-template <TStrOfChar TOut, TStrOfWide TIn> requires IsStupidString<TIn>
-TOut GetMulti(const TIn& string, const int acp = CP_UTF8, const char* const defaultChar = nullptr)
+template <TStrOfWide TIn>
+std::string StdGetUTF8(const TIn& wide, const int acp = CP_UTF8, const char* const defaultChar = nullptr)
 {
-	return GetMulti<TOut>(StringView{ string }, acp, defaultChar);
+	return til::WideCharToMultiByte(StringView{wide}, {.code_page = acp, .replacment = defaultChar});
 }
 
 
@@ -931,11 +1008,14 @@ TOut GetUTF8(const TIn& string)
 
 
 template <TStrOfWide TOut, TStrOfChar TIn>
-TOut GetUnicode(const TIn& inStr)
-{
-	const auto fromUtf8 = ::winrt::to_hstring(std::string_view{ StringView{ inStr } });
-	const std::wstring_view wide = fromUtf8;
-	return TOut(wide.data(), StringViewTraits<std::wstring_view>::size<TOut>(wide));
+TOut GetUnicode(const TIn& inStr) {
+	const auto fromUtf8 = til::UTF8ToWString(StringView{ inStr });
+	const auto wide = std::wstring{fromUtf8.data(), fromUtf8.size()};
+	if constexpr (IsStupidString<TOut>)
+		return tgit::str::to_atl(wide);
+	else
+		return wide;
+
 }
 
 
@@ -1031,66 +1111,6 @@ using tgit::wstr::CString;
 // until their call sites move to it.
 export namespace StringUtils
 {
-
-// std: std::views::split (+ std::from_chars for numeric containers)
-// append = true as the default: a default value should never lose data!
-template <typename Container, IsRealString StrT, typename CHARTYPE = StrT::value_type>
-void stringtok(
-	Container& container,
-	const StrT& in,
-	const bool trim,
-	const CHARTYPE* const delimiters,
-	const bool append = true
-)
-{
-	const auto len = in.length();
-	decltype(in.length()) i = 0;
-	if (!append)
-		container.clear();
-
-	while (i < len)
-	{
-		if (trim)
-		{
-			// eat leading whitespace
-			i = in.find_first_not_of(delimiters, i);
-			if (i == StrT::npos)
-				return; // nothing left but white space
-		}
-
-		// find the end of the token
-		const auto j = in.find_first_of(delimiters, i);
-
-		// push token
-		if (j == StrT::npos)
-		{
-			if constexpr (std::is_same_v<typename Container::value_type, StrT>)
-				container.push_back(in.substr(i));
-			else if constexpr (std::is_same_v<CHARTYPE, wchar_t>)
-				container.push_back(static_cast<Container::value_type>(_wtoi64(in.substr(i).c_str())));
-			else if constexpr (std::is_same_v<CHARTYPE, char>)
-				container.push_back(static_cast<Container::value_type>(_atoi64(in.substr(i).c_str())));
-			else
-				static_assert(false);
-			return;
-		}
-		else
-		{
-			if constexpr (std::is_same_v<typename Container::value_type, StrT>)
-				container.push_back(in.substr(i, j - i));
-			else if constexpr (std::is_same_v<CHARTYPE, wchar_t>)
-				container.push_back(static_cast<Container::value_type>(_wtoi64(in.substr(i, j - i).c_str())));
-			else if constexpr (std::is_same_v<CHARTYPE, char>)
-				container.push_back(static_cast<Container::value_type>(_atoi64(in.substr(i, j - i).c_str())));
-			else
-				static_assert(false);
-		}
-
-		// set up for next loop
-		i = j + 1;
-	}
-}
-
 
 // Every line ending - \r\n, a lone \r, a lone \n - becomes \r\n.
 // (It took `const StringTraits<TStr>&`, where TStr cannot be deduced, so no call
@@ -1321,18 +1341,15 @@ export namespace StringUtils
 
 /**
  * Removes all '&' chars from a string.
+ * isomorph to `s/&(\w)/$1/`
  */
-void RemoveAccelerators(CString& text)
-{
-	int pos = 0;
-	while ((pos=text.Find('&',pos))>=0)
-	{
-		if (text.GetLength() > (pos-1))
-		{
-			if (text.GetAt(pos+1)!=' ')
-				text.Delete(pos);
-		}
-		++pos;
+void RemoveAccelerators(CString& text) {
+	for (auto pos = text.Find('&', 0); pos < text.GetLength(); ++pos) {
+		if (text.GetLength() <= pos - 1)
+			continue;
+		if (text.GetAt(pos + 1) == ' ')
+			continue;
+		text.Delete(pos);
 	}
 }
 

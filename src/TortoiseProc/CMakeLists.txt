@@ -538,14 +538,9 @@ target_link_libraries(TortoiseProc
         gitdll
 
         AsyncFramework
-        TGitLibgit2Mfc   # the MFC flavor: TortoiseProc speaks MFC CString
+        TGitLibgit2   # the MFC flavor: TortoiseProc speaks MFC CString
         ResizableLib
         SharedMFC
-)
-
-target_compile_options(TortoiseProc
-    PRIVATE
-        /diagnostics:column
 )
 
 # _UNICODE MFC: the entry is wWinMain, which lives in the MFC library rather than

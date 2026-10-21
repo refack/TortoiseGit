@@ -16,6 +16,210 @@ import invarients;			// LatchObjectFormat; invarients imports only std, so this 
 using std::operator""s;
 using std::operator""sv;
 namespace fs = std::filesystem;
+using sloc_t = std::source_location;
+
+
+template <>
+struct std::formatter<sloc_t, char> {
+	bool with_func = false;
+
+	constexpr auto parse(std::format_parse_context& ctx) {
+		auto it = ctx.begin();
+		if (it != ctx.end() && *it == 'f') { with_func = true; ++it; }   // "{:f}" adds the function
+		if (it != ctx.end() && *it != '}') throw std::format_error("bad source_location spec");
+		return it;
+	}
+
+	auto format(const sloc_t& loc, std::format_context& ctx) const {
+		auto out = std::format_to(ctx.out(), "{}({})", loc.file_name(), loc.line());
+		if (with_func) out = std::format_to(out, ": {}", loc.function_name());
+		return out;
+	}
+};
+
+/// This is a representation of an API horizon.
+/// We should validate all of our invariants here.
+///
+/// Kept, deliberately, past the wil trim: MAKESTRING (TortoiseShell) reads its
+/// strings through LoadStringEx, and moving it to ::LoadStringW changes what it
+/// returns for an over-long, NUL-bearing or ill-formed string and which language
+/// it picks. That is a behaviour decision with its own commit, not a trim.
+export namespace til {
+
+
+[[noreturn]] inline void THROW_LIVE_ERROR(const std::string_view what, const sloc_t loc)
+{
+	const DWORD err = ::GetLastError();
+	throw std::system_error(win32_cast(err), std::system_category(), std::format("[{:f}] {}", loc, what));
+}
+
+inline void THROW_LIVE_ERROR_IF(const bool cond, const std::string_view what, const sloc_t loc)
+{
+	if (cond) THROW_LIVE_ERROR(what, loc);
+}
+
+
+/// Every high surrogate is followed by a low one, and every low one follows a high one.
+[[nodiscard]] constexpr bool IsWellFormedUtf16(const std::wstring_view s) noexcept {
+	for (size_t i = 0; i < s.size(); ++i) {
+		if (IS_LOW_SURROGATE(s[i]))
+			return false; // low without a high
+		if (IS_HIGH_SURROGATE(s[i]) && !(++i < s.size() && IS_LOW_SURROGATE(s[i])))
+			return false; // high without a low
+	}
+	return true;
+}
+
+
+static_assert(IsWellFormedUtf16(L"a\xD83D\xDE00z")); // valid pair
+// ReSharper disable CppStaticAssertFailure
+static_assert(!IsWellFormedUtf16(L"a\xD83D")); // trailing high
+static_assert(!IsWellFormedUtf16(L"\xDE00z")); // lone low
+// ReSharper restore CppStaticAssertFailure
+
+enum class CopyError : std::uint8_t { embedded_null, lone_surrogate, buffer_too_small };
+
+
+
+/// Copies `source` into `dest` whole, NUL-terminated, as well-formed UTF-16, or not at all.
+/// On failure `dest` holds "" (when it has room), never a partial or stale string.
+[[nodiscard]] std::expected<void, CopyError>
+CopyTerminated(const std::span<wchar_t> dest, const std::wstring_view source) noexcept {
+	const auto fail = [&](CopyError e) {
+		if (!dest.empty())
+			dest.front() = L'\0';
+		return std::unexpected(e);
+	};
+
+	if (source.contains(L'\0'))
+		return fail(CopyError::embedded_null); // length == terminator
+	if (!IsWellFormedUtf16(source))
+		return fail(CopyError::lone_surrogate); // text, not WCHAR soup
+	if (source.size() >= dest.size())
+		return fail(CopyError::buffer_too_small); // room for the NUL
+
+	*std::ranges::copy(source, dest.begin()).out = L'\0';
+	return {};
+}
+
+
+std::wstring_view get_string_resource(const std::optional<HINSTANCE> oInstance,	const UINT uID,	const WORD wLanguage = LANG_USER_DEFAULT) {
+	auto pCurrentStr = [&] -> std::wstring_view {
+		// A string table is stored in blocks of 16: block (uID / 16) + 1, slot uID % 16.
+		auto* const blockResId = MAKEINTRESOURCE((uID >> 4U) + 1);
+		auto* const hInstance = oInstance.value_or(nullptr);
+		HRSRC hResInfo = FindResourceEx(hInstance, RT_STRING, blockResId, wLanguage);
+		if (!hResInfo) {
+			//try the default language before giving up!
+			hResInfo = FindResource(hInstance, blockResId, RT_STRING);
+			if (!hResInfo)
+				return {};
+		}
+
+		const HGLOBAL hResData = LoadResource(hInstance, hResInfo);
+		if (!hResData)
+			return {};
+		const auto bytes = ::SizeofResource(hInstance, hResInfo);
+		if (!bytes)
+			return {};
+		auto* const resVoidp = LockResource(hResData);
+		if (!resVoidp)
+			return {};
+		return {static_cast<const wchar_t*>(resVoidp), bytes / sizeof(wchar_t)};
+	}();
+
+
+	// 5. Index into the block to find the precise string slot (4 first bits, norm 0 to 15)
+	const auto stringIndexWithinBlock = uID & ((1U << 4U) - 1);
+
+	// Iterate through the variable-length strings ahead of our target slot
+	for (auto i = 0U; i < stringIndexWithinBlock; ++i) {
+		// Each entry starts with a WORD length prefix, followed by the characters
+		const auto len = pCurrentStr.front();
+		pCurrentStr.remove_prefix(sizeof(len) + len);
+	}
+
+	// Extract the target length and data pointer
+	WORD targetLen = *pCurrentStr.begin();
+	if (!targetLen)
+		return {}; // Slot is empty (explicitly null string in the table)
+	pCurrentStr = pCurrentStr.substr(1, targetLen);
+
+	// Return a zero-copy view directly into the PE module space
+	return pCurrentStr;
+}
+
+
+size_t LoadStringEx(const HINSTANCE& hInstance, const UINT uID, const std::span<wchar_t> lpBuffer, const WORD wLanguage) {
+	if (lpBuffer.empty())
+		return 0;
+	*lpBuffer.begin() = L'\0';
+
+	auto&& resView = get_string_resource(hInstance, uID, wLanguage);
+	// ReSharper disable once CppTooWideScopeInitStatement
+	auto&& r = CopyTerminated(lpBuffer, resView);
+	if (!r)
+		return 0;
+
+	return resView.size();
+}
+
+
+
+struct ConvOpts {
+	int code_page = CP_UTF8;
+	DWORD flags = 0;
+	const char* replacment = nullptr;
+};
+
+
+std::string WideCharToMultiByte(const std::wstring_view wide, const ConvOpts opts = {},	const sloc_t loc = {}) {
+	if (wide.empty())
+		return {};
+
+	// The Macros are number literals (int) but the API calls for UINT :facepalm:
+	UINT stupidMicrosoftValue = gsl::narrow<UINT>(opts.code_page);
+	const int needed_bytes = ::WideCharToMultiByte(stupidMicrosoftValue, opts.flags, wide.data(), win32_cast(wide.length()), nullptr, 0, opts.replacment, nullptr);
+	THROW_LIVE_ERROR_IF(needed_bytes <= 0, "WIN32::WideCharToMultiByte failed", loc);
+
+	std::string out;
+	out.resize_and_overwrite(
+		needed_bytes,
+		[&](auto buf_ptr, auto buf_cap) -> size_t {
+			return ::WideCharToMultiByte(opts.code_page, opts.flags, wide.data(), win32_cast(wide.length()), buf_ptr, win32_cast(buf_cap), opts.replacment, nullptr);
+		}
+	);
+	THROW_LIVE_ERROR_IF(out.empty(), "WIN32::WideCharToMultiByte failed", loc);
+
+	return out;
+}
+
+
+std::string WStringToUTF8(const std::wstring& wide) { return WideCharToMultiByte(wide); }
+
+
+std::wstring MultiByteToWideChar(const std::string_view narrow, const ConvOpts opts = {}, const sloc_t loc = sloc_t::current()) {
+	if (narrow.empty())
+		return {};
+
+	const int needed_bytes = ::MultiByteToWideChar(opts.code_page, opts.flags, narrow.data(), win32_cast(narrow.length()), nullptr, 0);
+	THROW_LIVE_ERROR_IF(needed_bytes <= 0, "WIN32::MultiByteToWideChar failed", loc);
+
+	std::wstring out;
+	out.resize_and_overwrite(
+		needed_bytes,
+		[&](auto buf_ptr, auto buf_cap) -> size_t {
+			return ::MultiByteToWideChar(opts.code_page, opts.flags, narrow.data(), win32_cast(narrow.length()), buf_ptr, win32_cast(buf_cap));
+		}
+	);
+	THROW_LIVE_ERROR_IF(out.empty(), "WIN32::MultiByteToWideChar failed", loc);
+
+	return out;
+}
+
+
+std::wstring UTF8ToWString(const std::string_view narrow) { return til::MultiByteToWideChar(narrow); }
+}
 
 
 
@@ -26,14 +230,14 @@ namespace wil::tgit_details {
 /// text.size() + 1 characters, reading one past the end of every view that was
 /// not.
 template <class CharT>
-unique_hglobal make_moveable_text(const std::basic_string_view<CharT> text) {
+unique_hglobal make_moveable_text(const std::basic_string_view<CharT> text, const sloc_t loc = sloc_t::current()) {
 	const auto bytes = std::as_bytes(std::span(text.data(), text.size()));
-	unique_hglobal block{ ::GlobalAlloc(GMEM_MOVEABLE, bytes.size() + sizeof(CharT)) };
-	if (!block)
-		return {};
+	auto block = unique_hglobal{ ::GlobalAlloc(GMEM_MOVEABLE, bytes.size() + sizeof(CharT)) };
+	til::THROW_LIVE_ERROR_IF(!!block, "WIN32::GlobalAlloc(GMEM_MOVEABLE) failed", loc);
+
 	auto* const target = static_cast<std::byte*>(::GlobalLock(block.get()));
-	if (!target)
-		return {};
+	til::THROW_LIVE_ERROR_IF(!!target, "WIN32::GlobalLock failed", loc);
+
 	std::ranges::fill_n(std::ranges::copy(bytes, target).out, sizeof(CharT), std::byte{ 0 });
 	::GlobalUnlock(block.get());
 	return block;
@@ -110,6 +314,8 @@ namespace reg {
 	std::optional<std::uint32_t> try_get_dword(const HKEY& root, const PCWSTR subkey, const PCWSTR name) {
 		return wil::reg::try_get_value_dword(root, subkey, name);
 	}
+
+
 	bool get_bool(const HKEY& root, const PCWSTR subkey, const PCWSTR name, const bool def) {
 		auto&& temp = try_get_dword(root, subkey, name);
 		return temp ? *temp : def;
@@ -135,10 +341,11 @@ namespace reg {
 /// reg wrappers above. A registry failure is not an error to the caller: an
 /// unreadable history loads empty, and a failed write makes Save return false.
 class CRegHistory {
-	std::wstring m_subkey{};
-	std::wstring m_name{};
-	std::vector<std::wstring> m_entries{};
-	size_t m_maxEntries{ 25 };
+	static constexpr auto DEFAULT_HISTORY_DEPTH = 25;
+	std::wstring m_subkey;
+	std::wstring m_name;
+	std::vector<std::wstring> m_entries;
+	size_t m_maxEntries = DEFAULT_HISTORY_DEPTH;
 
 
 	void Truncate() {
@@ -173,7 +380,8 @@ public:
 				auto entry = wil::reg::try_get_value_string(
 					HKEY_CURRENT_USER,
 					m_subkey.c_str(),
-					LegacyValueName(n).c_str());
+					LegacyValueName(n).c_str()
+				);
 				if (!entry || entry->empty())
 					break;
 				m_entries.push_back(std::move(*entry));
@@ -188,7 +396,7 @@ public:
 
 
 	/// Writes the history in one call, then removes the legacy per-entry values.
-	bool Save() const {
+	[[nodiscard]] bool Save() const {
 		if (m_subkey.empty())
 			return false;
 		const HRESULT hr = ResultFromException([&] {
@@ -196,10 +404,13 @@ public:
 		});
 		if (FAILED(hr))
 			return false;
-		// The legacy values run contiguously from <name>0. Once they are gone this is
-		// one failing call per Save.
-		for (size_t n = 0; ::RegDeleteKeyValueW(HKEY_CURRENT_USER, m_subkey.c_str(), LegacyValueName(n).c_str()) ==
-			 ERROR_SUCCESS; ++n) {}
+		// The legacy values run contiguously from <name>0. Once they are gone this is one failing call per Save.
+		constexpr auto ARBITRARY_ROOF = 100;
+		for (size_t n = 0; n < ARBITRARY_ROOF; ++n) {
+			auto&& ret = ::RegDeleteKeyValueW(HKEY_CURRENT_USER, m_subkey.c_str(), LegacyValueName(n).c_str());
+			if (ret != ERROR_SUCCESS)
+				break;
+		}
 		return true;
 	}
 
@@ -249,9 +460,10 @@ public:
 /// variable scoped to the whole operation, like an if-init-statement testing
 /// for validity, or the it closes before anything is written to it.
 unique_close_clipboard_call open_clipboard_retrying(const HWND& owner) {
-	for (int attempt = 0; attempt < 8; ++attempt) {
+	constexpr auto NUM_RETRY_CALLS = 8;
+	for (auto attempt = 0U; attempt < NUM_RETRY_CALLS; ++attempt) {
 		if (attempt > 0)
-			::Sleep(1u << (attempt - 1));
+			::Sleep(1U << (attempt - 1));
 		if (auto clipboard = open_clipboard(owner))
 			return clipboard;
 	}
@@ -316,13 +528,12 @@ bool SetClipboardText(const std::wstring_view text, const HWND& owner = nullptr)
 fs::path GetKnownFolderPath(
 	REFKNOWNFOLDERID folderId,
 	const KNOWN_FOLDER_FLAG flags = KF_FLAG_DEFAULT,
-	const std::optional<HANDLE> token = std::nullopt
+	const std::optional<HANDLE> token = std::nullopt,
+	const sloc_t loc = sloc_t::current()
 ) {
 	wil::unique_cotaskmem_string result{};
-	if (::SHGetKnownFolderPath(folderId, flags, token.value_or(nullptr), result.put()) != S_OK) {
-		const auto hstring = ::winrt::to_hstring(folderId);
-		throw std::runtime_error{ "SHGetKnownFolderPath failed for " + ::winrt::to_string(hstring) };
-	}
+	auto&& ret = ::SHGetKnownFolderPath(folderId, flags, token.value_or(nullptr), result.put());
+	til::THROW_LIVE_ERROR_IF(ret != S_OK, "SHGetKnownFolderPath failed", loc);
 	return fs::path{ result.get() };
 }
 
@@ -339,131 +550,9 @@ std::optional<std::wstring> TryGetEnvironmentVariable(const PCWSTR name) {
 }
 
 
-
-/// This is a representation of an API horizon.
-/// We should validate all of our invariants here.
-///
-/// Kept, deliberately, past the wil trim: MAKESTRING (TortoiseShell) reads its
-/// strings through LoadStringEx, and moving it to ::LoadStringW changes what it
-/// returns for an over-long, NUL-bearing or ill-formed string and which language
-/// it picks. That is a behaviour decision with its own commit, not a trim.
-namespace til {
-	/// Every high surrogate is followed by a low one, and every low one follows a high one.
-	[[nodiscard]] constexpr bool IsWellFormedUtf16(const std::wstring_view s) noexcept {
-		for (size_t i = 0; i < s.size(); ++i) {
-			if (IS_LOW_SURROGATE(s[i]))
-				return false; // low without a high
-			if (IS_HIGH_SURROGATE(s[i]) && !(++i < s.size() && IS_LOW_SURROGATE(s[i])))
-				return false; // high without a low
-		}
-		return true;
-	}
-
-
-	static_assert(IsWellFormedUtf16(L"a\xD83D\xDE00z")); // valid pair
-	// ReSharper disable CppStaticAssertFailure
-	static_assert(!IsWellFormedUtf16(L"a\xD83D")); // trailing high
-	static_assert(!IsWellFormedUtf16(L"\xDE00z")); // lone low
-	// ReSharper restore CppStaticAssertFailure
-
-	enum class CopyError { embedded_null, lone_surrogate, buffer_too_small };
-
-
-
-	/// Copies `source` into `dest` whole, NUL-terminated, as well-formed UTF-16, or not at all.
-	/// On failure `dest` holds "" (when it has room), never a partial or stale string.
-	[[nodiscard]] std::expected<void, CopyError>
-	CopyTerminated(const std::span<wchar_t> dest, const std::wstring_view source) noexcept {
-		const auto fail = [&](CopyError e) {
-			if (!dest.empty())
-				dest.front() = L'\0';
-			return std::unexpected(e);
-		};
-
-		if (source.contains(L'\0'))
-			return fail(CopyError::embedded_null); // length == terminator
-		if (!IsWellFormedUtf16(source))
-			return fail(CopyError::lone_surrogate); // text, not WCHAR soup
-		if (source.size() >= dest.size())
-			return fail(CopyError::buffer_too_small); // room for the NUL
-
-		*std::ranges::copy(source, dest.begin()).out = L'\0';
-		return {};
-	}
-
-
-	std::wstring_view get_string_resource(const std::optional<HINSTANCE> oInstance,
-										  const UINT uID,
-										  const WORD wLanguage = LANG_USER_DEFAULT) {
-		// A string table is stored in blocks of 16: block (uID / 16) + 1, slot uID % 16.
-		const auto blockResId = MAKEINTRESOURCE((uID >> 4) + 1);
-		const wchar_t* pCurrentStr;
-		{
-			const auto hInstance = oInstance.value_or(nullptr);
-			HRSRC hResInfo = FindResourceEx(hInstance, RT_STRING, blockResId, wLanguage);
-			if (!hResInfo) {
-				//try the default language before giving up!
-				hResInfo = FindResource(hInstance, blockResId, RT_STRING);
-				if (!hResInfo)
-					return {};
-			}
-
-			const HGLOBAL hResData = LoadResource(hInstance, hResInfo);
-			if (!hResData)
-				return {};
-
-			pCurrentStr = static_cast<const wchar_t*>(LockResource(hResData));
-			if (!pCurrentStr)
-				return {};
-		}
-
-		// 5. Index into the block to find the precise string slot (4 first bits, norm 0 to 15)
-		const auto stringIndexWithinBlock = uID & ((1u << 4) - 1);
-
-		// Iterate through the variable-length strings ahead of our target slot
-		for (auto i = 0u; i < stringIndexWithinBlock; ++i) {
-			// Each entry starts with a WORD length prefix, followed by the characters
-			const auto len = *reinterpret_cast<const WORD*>(pCurrentStr);
-			pCurrentStr += 1 + len;
-		}
-
-		// Extract the target length and data pointer
-		WORD targetLen = *reinterpret_cast<const WORD*>(pCurrentStr);
-		if (targetLen == 0)
-			return {}; // Slot is empty (explicitly null string in the table)
-
-		// Return a zero-copy view directly into the PE module space
-		return { pCurrentStr + 1, targetLen };
-	}
-
-
-	size_t LoadStringEx(
-		const HINSTANCE& hInstance,
-		const UINT uID,
-		wchar_t* const lpBuffer_,
-		const int nBufferMax,
-		const WORD wLanguage
-	) {
-		if (lpBuffer_ == nullptr || nBufferMax <= 0)
-			return 0;
-		lpBuffer_[0] = L'\0';
-
-		auto&& lpBuffer = std::span{ lpBuffer_, gsl::narrow<size_t>(nBufferMax) };
-		auto&& resView = get_string_resource(hInstance, uID, wLanguage);
-		// ReSharper disable once CppTooWideScopeInitStatement
-		auto&& r = CopyTerminated(lpBuffer, resView);
-		if (!r)
-			return 0;
-
-		return resView.size();
-	}
-}
-
-
-
 class CFormatMessageWrapper {
 	DWORD err_id = {};
-	unique_hlocal_string buffer; // FORMAT_MESSAGE_ALLOCATE_BUFFER hands back LocalAlloc'ed memory
+	wil::unique_hlocal_string buffer; // FORMAT_MESSAGE_ALLOCATE_BUFFER hands back LocalAlloc'ed memory
 	DWORD length = {};
 
 public:
@@ -501,7 +590,7 @@ public:
 // No implicit conversion to the raw pointer: pass .get(), and .put() (or &x,
 // which frees first) for an out-parameter.
 template <typename T, void Free(T*)>
-using unique_git = unique_any<T*, decltype(Free), Free>;
+using unique_git = wil::unique_any<T*, decltype(Free), Free>;
 
 using unique_git_object = unique_git<git_object, git_object_free>;
 using unique_git_commit = unique_git<git_commit, git_commit_free>;
@@ -531,8 +620,8 @@ using unique_git_worktree = unique_git<git_worktree, git_worktree_free>;
 
 // Structs libgit2 fills in place and disposes of by address; unique_struct
 // derives from the struct, so &buf is a git_buf* and buf.ptr just works.
-using unique_git_buf = unique_struct<git_buf, decltype(&git_buf_dispose), git_buf_dispose>;
-using unique_git_strarray = unique_struct<git_strarray, decltype(&git_strarray_dispose), git_strarray_dispose>;
+using unique_git_buf = wil::unique_struct<git_buf, decltype(&git_buf_dispose), git_buf_dispose>;
+using unique_git_strarray = wil::unique_struct<git_strarray, decltype(&git_strarray_dispose), git_strarray_dispose>;
 
 
 /// The one thing CAutoRepository did that is not ownership: TGitCache and the
@@ -562,16 +651,14 @@ unique_git_repository OpenGitRepository(const char* const gitDirUtf8) {
  * path needs: CGit writes the whole command line into a temp file and hands
  * it to bash.exe, so there the "command line" is shell *source*.
  */
-std::wstring EscapePosixShellArgument(const std::wstring_view argument)
-{
+std::wstring EscapePosixShellArgument(const std::wstring_view argument) {
 	// Single quotes suppress every expansion bash performs, and the only thing
 	// that cannot appear between them is a single quote - so close, escape it
 	// outside, and reopen.
 	std::wstring result;
 	result.reserve(argument.size() + 2);
 	result += L'\'';
-	for (const wchar_t c : argument)
-	{
+	for (const wchar_t c : argument) {
 		if (c == L'\'')
 			result += L"'\\''";
 		else
@@ -583,69 +670,17 @@ std::wstring EscapePosixShellArgument(const std::wstring_view argument)
 }
 
 
-std::string WideCharToMultiByte(
-	const std::wstring_view wide,
-	const std::optional<int> maybe_acp = std::nullopt,
-	const char* const defaultChar = nullptr
-) {
-	if (wide.empty())
-		return {};
-
-	const int acp = maybe_acp ? *maybe_acp : CP_UTF8;
-	// Both calls must agree on the substitution character, or the measured size is not the size the second call writes.
-	const auto subst = (acp == CP_UTF8 || acp == CP_UTF7) ? nullptr : defaultChar;
-
-	const auto wide_length = gsl::narrow<int>(wide.length());
-	const int needed_bytes = ::WideCharToMultiByte(acp, 0, wide.data(), wide_length, nullptr, 0, subst, nullptr);
-	if (needed_bytes <= 0)
-		throw std::exception("WideCharToMultiByte failed");
-
-	std::string out;
-	out.resize_and_overwrite(needed_bytes, [&](auto buf_ptr, auto buf_cap) -> size_t {
-		return ::WideCharToMultiByte(acp, 0, wide.data(), wide_length, buf_ptr, buf_cap, subst, nullptr);
-	});
-	if (out.empty())
-		throw std::exception("WideCharToMultiByte failed");
-
-	return out;
-}
-
-std::string WStringToUTF8(const std::wstring& wide) { return WideCharToMultiByte(wide, CP_UTF8); }
-
-std::wstring MultiByteToWideChar(const std::string& narrow, const int acp = CP_UTF8) {
-	if (narrow.empty())
-		return {};
-
-	const auto narrow_length = gsl::narrow<int>(narrow.length());
-	const int needed_bytes = ::MultiByteToWideChar(acp, 0, narrow.data(), narrow_length, nullptr, 0);
-	if (needed_bytes <= 0)
-		throw std::exception("WideCharToMultiByte failed");
-
-	std::wstring out;
-	out.resize_and_overwrite(needed_bytes, [&](auto buf_ptr, auto buf_cap) -> size_t {
-		return ::MultiByteToWideChar(acp, 0, narrow.data(), narrow_length, buf_ptr, buf_cap);
-	});
-	if (out.empty())
-		throw std::exception("WideCharToMultiByte failed");
-
-	return out;
-}
-
-std::wstring UTF8ToWString(const std::string& narrow) { return MultiByteToWideChar(narrow, CP_UTF8); }
-
 /**
  * True unless \a argument is made entirely of characters no shell touches.
  * Deliberately a whitelist: a blacklist of bash metacharacters is a list you
  * are always one shell feature behind on.
  */
-bool NeedsPosixShellQuoting(const std::wstring_view str)
-{
+bool NeedsPosixShellQuoting(const std::wstring_view str) {
 	if (str.empty())
 		return true;
 
 	bool ret = false;
-	for (const wchar_t c : str)
-	{
+	for (const wchar_t c : str) {
 		ret |= !std::isalnum(c);
 		if (ret)
 			break;
@@ -657,21 +692,27 @@ bool NeedsPosixShellQuoting(const std::wstring_view str)
 }
 
 
+
 /// Short-lived: owns the UTF-8 copies plus the null-terminated pointer array.
 class Utf8Argv {
 	std::vector<std::string> _s;
 	std::vector<const char*> _p;
+
 public:
-	explicit Utf8Argv(std::span<const std::wstring> a)
-		: _s{ std::from_range, std::views::transform(a, WStringToUTF8) } {
+	explicit Utf8Argv(std::span<const std::wstring> a) :
+		_s{ std::from_range, std::views::transform(a, til::WStringToUTF8) } {
 		_p.reserve(_s.size() + 1);
-		for (auto& s : _s) _p.push_back(s.c_str());
+		for (auto& s : _s)
+			_p.push_back(s.c_str());
 		_p.push_back(nullptr);
 	}
-	Utf8Argv(const Utf8Argv&) = delete;	// pointers into _s, as before
+
+
+	Utf8Argv(const Utf8Argv&) = delete; // pointers into _s, as before
 	[[nodiscard]] int argc() const { return gsl::narrow<int>(_s.size()); }
 	[[nodiscard]] const char** argv() noexcept { return _p.data(); }
 };
+
 
 
 /// A C-style (argc, argv) over strings it owns, for gitdll's git_open_log /
@@ -684,22 +725,44 @@ public:
 /// characters inside them) stay where they are - but copying is not, since a
 /// copy's pointers would still point into the original. Hence move-only.
 class ArgvData {
-	std::vector<std::wstring> _args{};
+	std::vector<std::wstring> _args;
 
 public:
-	ArgvData(const std::initializer_list<std::wstring> args)
-	: _args{ args }
-	{}
-	ArgvData(const std::initializer_list<std::string> args)
-	: _args{ std::from_range, std::views::transform(args, UTF8ToWString) }
-	{}
+	ArgvData() = default;
+
+	ArgvData(const std::initializer_list<std::wstring> args) : _args{ args } {}
+
+	ArgvData(const std::initializer_list<std::string> args) :
+		_args{ std::from_range, std::views::transform(args, til::UTF8ToWString) } {}
+
 
 	// keep a std::string_view / const char* ctor that converts with StdGetUTF16 / MultiByteToWideChar if callers need it
 
-	ArgvData& operator<<(const std::wstring_view arg) { _args.emplace_back(arg); return *this; }
+	ArgvData& operator<<(const std::wstring_view arg) {
+		_args.emplace_back(arg);
+		return *this;
+	}
+
+	ArgvData& operator<<(const std::initializer_list<std::wstring> args) {
+		_args.append_range(args);
+		return *this;
+	}
+
+	ArgvData& operator<<(const std::vector<std::wstring>& args) {
+		_args.append_range(args);
+		return *this;
+	}
+
+	[[deprecated("I don't like this name and shape, use <<")]]
+	ArgvData& emplace_back(const std::wstring_view arg) {
+		_args.emplace_back(arg);
+		return *this;
+	}
+
+
 	[[nodiscard]] const auto& args() const noexcept { return _args; }
 	[[nodiscard]] std::wstring to_cmd() const { return wil::ArgvToCommandLine(_args); }
-	[[nodiscard]] Utf8Argv utf8() const { return Utf8Argv{ _args }; }	// for gitdll
+	[[nodiscard]] Utf8Argv utf8() const { return Utf8Argv{ _args }; } // for gitdll
 
 	/**
 	 * Two serializations, because RunAsync has two backends. Native git.exe gets
@@ -712,8 +775,7 @@ public:
 	 * testing whether the line starts with "git", so a serializer that quoted
 	 * argv[0] unconditionally would silently resolve git through PATH instead.
 	 */
-	[[nodiscard]] auto SerializeArgv(const bool is_weird) const
-	{
+	[[nodiscard]] auto SerializeArgv(const bool is_weird) const {
 		if (!is_weird)
 			return to_cmd();
 
@@ -725,12 +787,12 @@ public:
 };
 
 
+
 /// What sanity.h's SCOPE_EXIT expands against: `scope_exit_helper() << [&] { ... };`.
 /// Global, because the macro names it unqualified. The guard is wil's: its move
 /// disarms the source, which tgittypes' hand-rolled scope_exit_t did not (a moved-
 /// from guard still ran its lambda). This is the only definition: a TU that
 /// expands SCOPE_EXIT imports wil.
-using wil::scope_exit;
 struct scope_guard {
 	template <class F>
 	[[nodiscard]] auto operator<<(F&& f) const {

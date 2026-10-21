@@ -1,27 +1,29 @@
 ﻿module;
 #include <windows.h>
-#include <Shlobj_core.h>
+#include <Shlobj_core.h>	// SHGetKnownFolderPath
 
 export module SysInfo;
 import std;
+import wil;
+import gsl;
+
 import PathUtils;
 import str_utils;
 
 
+constexpr auto Windows11_Cutoff = 22000;
+
 static bool InitializeIsWin11OrLater()
 {
-	PWSTR pszPath = nullptr;
-	if (SHGetKnownFolderPath(FOLDERID_System, KF_FLAG_CREATE, nullptr, &pszPath) != S_OK)
+	auto pszPath = wil::unique_cotaskmem_string{};
+	auto&& ret = SHGetKnownFolderPath(FOLDERID_System, KF_FLAG_CREATE, nullptr, pszPath.put());
+	if (ret != S_OK)
 		return false;
-	const auto sysPath = std::filesystem::path{ pszPath } / "shell32.dll";
-	CoTaskMemFree(pszPath);
-	const auto explorerVersion = PathUtils::GetVersionFromFile(sysPath.wstring().c_str());
-	// The version is a wide string, which std::from_chars cannot parse: this never
-	// compiled while SysInfo.ixx was missing from the FILE_SET. Tokenized the way
-	// DarkModeHelper and Theme read the same kind of version string.
-	std::vector<int> versionParts;
-	StringUtils::stringtok(versionParts, explorerVersion, false, L".");
-	return versionParts.size() > 3 && versionParts[2] >= 22000;
+	const auto sysPath = std::filesystem::path{ {pszPath.get(), size_t_cast(ret)} } / "shell32.dll";
+
+	const auto explorerVersion = PathUtils::GetVersionFromFile(sysPath.c_str());
+	const auto versionParts = tgit::zstr::version_tok(til::WStringToUTF8(explorerVersion));
+	return versionParts.size() > 3 && versionParts.at(2) >= Windows11_Cutoff;
 }
 
 

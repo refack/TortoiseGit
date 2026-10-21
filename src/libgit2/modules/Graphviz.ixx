@@ -2,11 +2,16 @@
 #include <windows.h>
 #include <GdiPlus.h>
 
+
+
 export module Graphviz;
 import str_utils;
 import std;
+import gsl;
 using std::operator""sv;
 using tgit::wstr::CString;
+
+
 
 export class Graphviz
 {
@@ -91,20 +96,20 @@ public:
 		if (!WriteFile(hFile, header.c_str(), static_cast<DWORD>(header.size()), &dwWritten, nullptr))
 			return false;
 
-		auto contentA = CUnicodeUtils::StdGetUTF8(m_content.GetString());
-		if (!WriteFile(hFile, contentA.c_str(), static_cast<DWORD>(contentA.size()), &dwWritten, nullptr))
+		auto contentA = CUnicodeUtils::GetUTF8<tgit::zstr::CString>(m_content);
+		if (!WriteFile(hFile, contentA, contentA.GetLength(), &dwWritten, nullptr))
 			return false;
-		if (!WriteFile(hFile, footer.data(), static_cast<DWORD>(footer.size()), &dwWritten, nullptr))
+		if (!WriteFile(hFile, footer.data(), win32_cast(footer.size()), &dwWritten, nullptr))
 			return false;
 
 		return true;
 	}
 
 private:
-	CString m_defaultFontName;
+	CString m_defaultFontName{};
 	int m_defaultFontSize = -1;
 	Gdiplus::Color m_defaultBackColor;
 	int m_defaultHeight = -1;
 	int m_tableNodeNum = 0;
-	CString m_content;
+	CString m_content{};
 };

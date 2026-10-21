@@ -38,7 +38,7 @@ target_link_libraries(SharedMFC
         crypt32
 
         gitdll
-        TGitLibgit2Mfc
+        TGitLibgit2
 )
 
 target_sources(SharedMFC

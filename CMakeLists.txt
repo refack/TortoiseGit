@@ -35,12 +35,6 @@ set(VCPKG_TARGET_TRIPLET "x64-windows-static-md" CACHE STRING "" FORCE)
 
 project(TortoiseGit)
 
-# `import std;` for every target. CMake finds MSVC's std.ixx by itself; for
-# clang-cl it only knows libc++ and libstdc++, so a clang-cl tree is told where
-# the MSVC STL modules are - the file an MSVC tree has already generated:
-#   -DCMAKE_CXX_STDLIB_MODULES_JSON=<msvc tree>/CMakeFiles/<cmake version>/msvcstl.modules.json
-set(CMAKE_CXX_MODULE_STD ON)
-
 # One meta-application: everything below applies to every target. The
 # per-directory CMakeLists.txt files were mechanically translated from the
 # vcxproj files and each repeated all of it; now they only describe their target.
@@ -58,6 +52,18 @@ add_compile_options(
     $<$<COMPILE_LANGUAGE:CXX>:-wd4102>  # decorative goto labels
     $<$<COMPILE_LANGUAGE:CXX>:-wd4996>  # depracation TODO: later
 )
+
+# `import std;` for every target. CMake finds MSVC's std.ixx by itself; for
+# clang-cl it only knows libc++ and libstdc++, so a clang-cl tree is told where
+# the MSVC STL modules are - the file an MSVC tree has already generated:
+#   -DCMAKE_CXX_STDLIB_MODULES_JSON=<msvc tree>/CMakeFiles/<cmake version>/msvcstl.modules.json
+if(CMAKE_C_COMPILER_ID STREQUAL "MSVC")
+    set(CMAKE_CXX_MODULE_STD ON)
+#    add_compile_options("-experimental:log<OBJECT>.sarif")     # broken
+#    string(APPEND CMAKE_CXX_COMPILE_OBJECT " -experimental:log<OBJECT>.sarif")     # obsolete by shim
+endif()
+
+
 
 add_compile_definitions(
     _WIN64

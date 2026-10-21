@@ -1,9 +1,17 @@
-# cl-shim.ps1 - a logging wrapper around MSVC's cl.exe.
+# cl-shim.ps1 - a wrapper around MSVC's cl.exe: SARIF injection and logging.
 #
-# Runs cl with the argv it was handed, writes the complete output to a
-# timestamped file, and passes everything EXCEPT the lines naming the MSVC
-# system include directory through to stdout. The build stays readable; the
-# full /showIncludes trail stays on disk.
+# Runs cl with the argv it was handed, plus one flag the build system never
+# sees: -experimental:log<object>.sarif, so every translation unit leaves a
+# SARIF log beside its object file for collate-sarif.ps1 to fold. Doing this
+# here rather than in CMake keeps the flag out of the codemodel CLion probes
+# with, out of compile_commands.json, and out of every CMakeLists.txt - the
+# diagnostics pipeline is a preset decision (CMAKE_<LANG>_COMPILER_LAUNCHER,
+# CMAKE_MAKE_PROGRAM) and the project description stays clean of it.
+#
+# It also writes the complete output to a timestamped file, and passes
+# everything EXCEPT the lines naming the MSVC system include directory through
+# to stdout. The build stays readable; the full /showIncludes trail stays on
+# disk.
 #
 # Usage, either shape:
 #   cl-shim.ps1 <cl args...>                 - resolves cl.exe from PATH
@@ -17,6 +25,7 @@
 #   CL_SHIM_LOGDIR    where logs go            (default: <this dir>\.cl-logs)
 #   CL_SHIM_FILTER    substring to suppress    (default: the MSVC include dir)
 #   CL_SHIM_NOFILTER  set to anything to pass the output through untouched
+#   CL_SHIM_NOSARIF   set to anything to skip the -experimental:log injection
 #
 # Note on CL_SHIM_NOFILTER: under Ninja, CMake compiles with /showIncludes and
 # ninja parses those very lines out of this script's stdout to build its header
@@ -63,7 +72,10 @@ $raw = [System.Environment]::GetCommandLineArgs()
 $fileAt = [System.Array]::FindIndex([string[]]$raw, [Predicate[string]] { param($a) $a -ieq '-File' })
 $argv = if ($fileAt -ge 0 -and $raw.Length -gt ($fileAt + 2)) { @($raw[($fileAt + 2)..($raw.Length - 1)]) } else { @() }
 
-if ($argv.Count -gt 0 -and $argv[0] -match '(^|[\\/])cl(\.exe)?$')
+# Any cl-flavoured driver counts, clang-cl included: a launcher must run the
+# compiler CMake chose, never substitute another from PATH. The PATH fallback
+# exists only for the bare "cl-shim.ps1 <args>" shape.
+if ($argv.Count -gt 0 -and $argv[0] -match '(^|[\\/])(clang-)?cl(\.exe)?$')
 {
 	$cl   = $argv[0]
 	$argv = @($argv | Select-Object -Skip 1)
@@ -80,6 +92,31 @@ if (-not $cl)
 	# would have produced without this shim in the way.
 	Write-Host 'cl-shim: no compiler argument and no cl.exe on PATH'
 	exit 9009
+}
+
+# SARIF injection. The log is named after the primary output so the collator
+# can pair the two and drop logs whose object is gone. CMake's Ninja rules put
+# /Fo<obj> for object compiles and "-ifcOutput <bmi>" for the BMI-only compiles
+# of synthetic module targets; a command with neither (dependency scanning,
+# preprocessing probes) is passed through untouched. Only MSVC's own driver
+# knows the flag - clang-cl would ignore it with a warning - so clang-cl is
+# left alone too. The glued spelling is deliberate: one token, so any tool that
+# does see the command line treats it as one unknown option rather than as an
+# option plus a stray source file.
+if (-not $env:CL_SHIM_NOSARIF -and $cl -match '(^|[\\/])cl(\.exe)?$' -and -not ($argv -match '^[-/]experimental:log'))
+{
+	$out = $null
+	$fo = $argv | Where-Object { $_ -match '^[-/]Fo(.+)$' } | Select-Object -Last 1
+	if ($fo) { $out = $fo.Substring(3) }
+	else
+	{
+		$i = [System.Array]::IndexOf([string[]]$argv, '-ifcOutput')
+		if ($i -ge 0 -and $i + 1 -lt $argv.Count) { $out = $argv[$i + 1] }
+	}
+	if ($out)
+	{
+		$argv += "-experimental:log$($out.Trim('"')).sarif"
+	}
 }
 
 # Name the log after the translation unit so the directory is navigable. The
@@ -105,7 +142,7 @@ Set-Content -Path $log -Encoding utf8 -Value @(
 # case in INCLUDE.
 & $cl @argv 2>&1 |
 	Tee-Object -FilePath $log -Append |
-	Where-Object { -not $filter -or $_ -notmatch '^C:\\' }
+	Where-Object { -not $filter -or ([string]$_).IndexOf($filter, [System.StringComparison]::OrdinalIgnoreCase) -lt 0 }
 
 # $LASTEXITCODE is still cl's own: every downstream stage of that pipeline is a
 # cmdlet, not a native command, so nothing overwrote it. Propagating it is what

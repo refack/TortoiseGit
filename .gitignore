@@ -18,3 +18,4 @@ compile_commands.json
 /ext/build/hook-list.h
 
 /build/
+/contrib/.cl-logs/

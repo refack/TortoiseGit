@@ -26,7 +26,7 @@
 #endif
 
 
-#ifndef nullptr
+#if (!defined(nullptr) && !defined(__need_nullptr_t))
 #define nullptr NULL;
 #endif
 

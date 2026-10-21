@@ -2,18 +2,49 @@
   "version": 10,
   "configurePresets": [
     {
+      "name": "base",
+      "hidden": true,
+      "generator": "Ninja",
+      "toolchainFile": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
+      "cacheVariables": {
+        "CMAKE_CXX_STDLIB_MODULES_JSON": "${sourceDir}/ext/msvcstl.modules.json",
+        "CMAKE_MAKE_PROGRAM": "${sourceDir}/contrib/ninja-sarif.cmd"
+      }
+    },
+    {
+      "inherits": "base",
       "name": "default",
       "displayName": "debug - msvc - ninja",
-      "generator": "Ninja",
       "binaryDir": "build/debug",
-      "toolchainFile": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
       "trace": {
         "mode": "expand",
         "redirect": "CMakeTrace.txt"
       },
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
-        "VCPKG_MANIFEST_INSTALL": "OFF"
+        "VCPKG_MANIFEST_INSTALL": "OFF",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+        "CMAKE_C_COMPILER_LAUNCHER": "pwsh;-NoProfile;-NonInteractive;-ExecutionPolicy;Bypass;-File;${sourceDir}/contrib/cl-shim.ps1",
+        "CMAKE_CXX_COMPILER_LAUNCHER": "pwsh;-NoProfile;-NonInteractive;-ExecutionPolicy;Bypass;-File;${sourceDir}/contrib/cl-shim.ps1"
+      }
+    },
+    {
+      "inherits": "base",
+      "name": "clang-cl",
+      "displayName": "debug - clang-cl - ninja",
+      "binaryDir": "build/clang-cl",
+      "trace": {
+        "mode": "expand",
+        "redirect": "CMakeTrace.clang-cl.txt"
+      },
+      "environment": {
+        "CC": "clang-cl",
+        "CXX": "clang-cl"
+      },
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "VCPKG_MANIFEST_INSTALL": "OFF",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
       }
     }
   ]
