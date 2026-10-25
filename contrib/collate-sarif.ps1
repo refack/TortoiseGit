@@ -10,6 +10,10 @@
 # Usage:
 #   collate-sarif.ps1 <build dir> <output file>
 #
+# Requires jq (1.7.1 or later) on PATH. The work is split by what each side is
+# good at: this script walks the file system - discovery, build.ninja, mtimes -
+# and collate-sarif.jq, beside it, does everything that is JSON.
+#
 # What it does, and why:
 #   - Appends each input's runs verbatim rather than merging them into one run.
 #     SARIF 2.1.0 allows any number of runs per log, and a verbatim copy is
@@ -23,18 +27,32 @@
 #     build.ninja describes a source that left the build. A missing X.obj is
 #     not the test - a failed compile has no object either, and that is the
 #     log worth keeping.
+#   - Points every result into the source tree (not build/**): a diagnostic
+#     MSVC reports inside gtest.h or <utility> moves to the line of ours that
+#     instantiated it, or to the translation unit, or to no location at all.
 #   - Dedupes identical results across translation units, so a header error is
 #     one finding rather than one per includer.
-#   - Drops stale results: anything whose location file or reporting unit was
-#     edited after the log was written. Current, not comprehensive.
-#   - Lifts MSVC's relatedLocations (the template instantiation chain) into a
-#     codeFlow, which is the shape the viewer can actually display.
-#   - Repairs URIs MSVC writes unescaped (see Repair-Uri).
+#   - Drops stale results: anything whose file or reporting unit was edited
+#     after the log was written. Current, not comprehensive.
+#   - Re-lays MSVC's relatedLocations - overload candidates, the template
+#     instantiation chain, notes - as one codeFlow of indented lists, which is
+#     the shape the viewer can actually display.
+#   - Folds MSVC's multi-line "with [ T=... ]" template bindings into one line.
+#   - Drops nodes whose message matches drop_message (in collate-sarif.jq).
+#   - Repairs URIs MSVC writes unescaped (see repair_uri in collate-sarif.jq).
 #   - Always writes the output, even when there is nothing to report, so the
 #     path CLion remembers keeps resolving to a valid, empty log.
 #
+# Pipeline (see the WORKFLOW section at the bottom):
+#   1. Build graph  - read build.ninja's outputs, for orphan detection.
+#   2. Discover     - find every *.sarif under the build directory.
+#   3. Bundle       - drop orphans and no-op logs; pack the rest for jq.
+#   4. Stat         - jq lists every file the logs mention; stat each once.
+#   5. Collate      - jq reshapes, dedupes and merges.
+#   6. Emit         - write the merged log and a one-line summary.
+#
 # Diagnostics are data, not failures: this script exits 0 unless it cannot read
-# the build directory or write the output.
+# the build directory, run jq, or write the output.
 
 #Requires -Version 7
 
@@ -43,7 +61,89 @@ param(
 	[Parameter(Mandatory, Position = 1)] [string] $OutFile
 )
 
-$ErrorActionPreference = 'Stop'
+Set-StrictMode -Off
+$ErrorActionPreference = 'Break'
+
+
+# =============================================================================
+# FUNCTIONS
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# Build graph
+# -----------------------------------------------------------------------------
+
+# Orphan detection asks the build graph, not the file system. "The object is
+# missing" is ambiguous: a removed source leaves no object, but so does a failed
+# compile, and the failed compile is the log worth keeping. Ninja's graph is
+# unambiguous - an object that is still an output of some build edge belongs to
+# a translation unit that is still part of the build. CMake writes one flat
+# build.ninja (no subninja), with outputs relative to the build directory and
+# only the drive colon of absolute paths escaped as "$:".
+#
+# Returns the set of outputs, or $null when there is no build.ninja (which
+# disables orphan detection rather than treating every log as an orphan).
+function Get-NinjaOutputs([string] $buildDir)
+{
+	$ninjaFile = Join-Path $buildDir 'build.ninja'
+	if (-not (Test-Path -LiteralPath $ninjaFile -PathType Leaf)) { return $null }
+
+	$outputs = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
+	foreach ($line in [System.IO.File]::ReadLines($ninjaFile))
+	{
+		if (-not $line.StartsWith('build ')) { continue }
+		# outputs end at the first colon that is not a "$:" escape
+		$m = [regex]::Match($line, '^build\s+(.*?)(?<!\$):')
+		if (-not $m.Success) { continue }
+		foreach ($token in ($m.Groups[1].Value -split '\s+'))
+		{
+			if ($token -and $token -ne '|') { [void]$outputs.Add($token.Replace('$:', ':').Replace('$ ', ' ').Replace('$$', '$')) }
+		}
+	}
+	# The comma stops PowerShell from unrolling the set into the pipeline.
+	return , $outputs
+}
+
+# -----------------------------------------------------------------------------
+# jq
+# -----------------------------------------------------------------------------
+
+# Run collate-sarif.jq over the bundle and return its stdout lines. Arguments
+# go in as plain --arg strings only: PowerShell's native-argument quoting
+# mangles embedded double quotes, so JSON never travels on the command line -
+# anything structured goes through a file (--slurpfile).
+function Invoke-CollateJq([string] $mode, [string[]] $extra)
+{
+	$jqArgs = @(
+		'-n', '-r'
+		'-f', (Join-Path $PSScriptRoot 'collate-sarif.jq')
+		'--arg', 'mode', $mode
+		'--arg', 'root', $script:rootUri
+		'--arg', 'exclude', ($script:excludeUris -join '|')
+		'--arg', 'schema', $script:schema
+	) + $extra + @($script:bundleFile)
+	$out = & jq @jqArgs
+	if ($LASTEXITCODE -ne 0) { throw "collate-sarif: jq ($mode) exited with $LASTEXITCODE" }
+	# The comma keeps a one-line result an array.
+	return , @($out)
+}
+
+# A directory as a file: URI with a trailing slash, the form the jq side
+# compares prefixes against.
+function ConvertTo-DirUri([string] $path)
+{
+	return [System.Uri]::new([System.IO.Path]::TrimEndingDirectorySeparator($path) + '\').AbsoluteUri
+}
+
+function ConvertTo-UnixMs([datetime] $utc)
+{
+	return [System.DateTimeOffset]::new($utc).ToUnixTimeMilliseconds()
+}
+
+
+# =============================================================================
+# WORKFLOW
+# =============================================================================
 
 $BuildDir = [System.IO.Path]::GetFullPath($BuildDir)
 $OutFile  = [System.IO.Path]::GetFullPath($OutFile)
@@ -53,222 +153,131 @@ if (-not (Test-Path -LiteralPath $BuildDir -PathType Container))
 	Write-Host "collate-sarif: build directory not found: $BuildDir"
 	exit 1
 }
-
-$schema = 'https://schemastore.azurewebsites.net/schemas/json/sarif-2.1.0-rtm.5.json'
-$runs   = [System.Collections.Generic.List[object]]::new()
-# When each kept run's log was written, parallel to $runs. Kept outside the run
-# object: an extra top-level property on a run is off-schema and the viewer
-# validates before importing.
-$runTimes = [System.Collections.Generic.List[datetime]]::new()
-
-$seen = 0; $orphans = 0; $repaired = 0
-
-# MSVC writes artifact URIs with the path unescaped - a header under
-# "C:\Windows Kits\10" comes out as file:///C:/Windows Kits/10/..., with the
-# space intact. The SARIF schema types every uri as an RFC 3986 uri-reference,
-# and CLion validates against the schema before importing, so one such location
-# anywhere in the log rejects the whole file. [System.Uri] re-emits an absolute
-# URI with every reserved character percent-encoded; relative references get
-# the one character MSVC is known to leak.
-function Repair-Uri([string] $value)
+if (-not (Get-Command jq -CommandType Application -ErrorAction SilentlyContinue))
 {
-	if ($value -match '^[A-Za-z][A-Za-z0-9+.-]*:')
-	{
-		try { return ([System.Uri] $value).AbsoluteUri } catch { }
-	}
-	return ($value -replace '\\', '/') -replace ' ', '%20'
+	Write-Host 'collate-sarif: jq not found on PATH'
+	exit 1
 }
 
-# Walk the parsed run and fix every property named "uri" in place. SARIF puts
-# them in artifactLocation objects at several depths (results, relatedLocations,
-# codeFlows, artifacts), so a generic walk is simpler than naming each path.
-function Repair-Uris($node)
+# This script lives in <tree>\contrib. "The tree" excludes <tree>\build and the
+# build directory itself, wherever it is.
+$treeDir     = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
+$rootUri     = ConvertTo-DirUri $treeDir
+$excludeUris = @((ConvertTo-DirUri (Join-Path $treeDir 'build')), (ConvertTo-DirUri $BuildDir)) | Select-Object -Unique
+$schema      = 'https://json.schemastore.org/sarif-2.1.0-rtm.5.json'
+
+$seen = 0; $orphans = 0; $noop = 0
+
+# jq reads and writes UTF-8; make PowerShell decode its stdout the same way.
+$savedEncoding = [Console]::OutputEncoding
+[Console]::OutputEncoding = [System.Text.UTF8Encoding]::new($false)
+$workDir = Join-Path ([System.IO.Path]::GetTempPath()) "collate-sarif-$([guid]::NewGuid().ToString('N'))"
+[void][System.IO.Directory]::CreateDirectory($workDir)
+$bundleFile = Join-Path $workDir 'bundle.jsonl'
+$mtimesFile = Join-Path $workDir 'mtimes.json'
+
+try
 {
-	if ($null -eq $node -or $node -is [string]) { return }
-	if ($node -is [System.Collections.IList])
-	{
-		foreach ($item in $node) { Repair-Uris $item }
-		return
-	}
-	if ($node -is [System.Management.Automation.PSCustomObject])
-	{
-		foreach ($prop in $node.PSObject.Properties)
-		{
-			if ($prop.Name -eq 'uri' -and $prop.Value -is [string])
-			{
-				$fixed = Repair-Uri $prop.Value
-				if ($fixed -cne $prop.Value) { $prop.Value = $fixed; $script:repaired++ }
-			}
-			else
-			{
-				Repair-Uris $prop.Value
-			}
-		}
-	}
-}
+	# -------------------------------------------------------------------------
+	# Stage 1: Build graph - which objects does the build still produce?
+	# -------------------------------------------------------------------------
 
-# Orphan detection asks the build graph, not the file system. "The object is
-# missing" is ambiguous: a removed source leaves no object, but so does a failed
-# compile, and the failed compile is the log worth keeping. Ninja's graph is
-# unambiguous - an object that is still an output of some build edge belongs to
-# a translation unit that is still part of the build. CMake writes one flat
-# build.ninja (no subninja), with outputs relative to the build directory and
-# only the drive colon of absolute paths escaped as "$:".
-$liveOutputs = $null
-$ninjaFile = Join-Path $BuildDir 'build.ninja'
-if (Test-Path -LiteralPath $ninjaFile -PathType Leaf)
-{
-	$liveOutputs = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
-	foreach ($line in [System.IO.File]::ReadLines($ninjaFile))
-	{
-		if (-not $line.StartsWith('build ')) { continue }
-		# outputs end at the first colon that is not a "$:" escape
-		$m = [regex]::Match($line, '^build\s+(.*?)(?<!\$):')
-		if (-not $m.Success) { continue }
-		foreach ($token in ($m.Groups[1].Value -split '\s+'))
-		{
-			if ($token -and $token -ne '|') { [void]$liveOutputs.Add($token.Replace('$:', ':').Replace('$ ', ' ').Replace('$$', '$')) }
-		}
-	}
-}
+	$liveOutputs = Get-NinjaOutputs $BuildDir
 
-# -Filter runs in the provider, so the walk is cheap even on a large tree.
-# The output file may itself live under the build directory; never read it back.
-$inputs = Get-ChildItem -LiteralPath $BuildDir -Recurse -File -Filter '*.sarif' |
-	Where-Object { $_.FullName -ne $OutFile }
+	# -------------------------------------------------------------------------
+	# Stage 2: Discover - every SARIF log under the build directory.
+	# -------------------------------------------------------------------------
 
-foreach ($file in $inputs)
-{
-	$seen++
+	# -Filter runs in the provider, so the walk is cheap even on a large tree.
+	# The output file may itself live under the build directory; never read it back.
+	$inputs = Get-ChildItem -LiteralPath $BuildDir -Recurse -File -Filter '*.sarif' |
+		Where-Object { $_.FullName -ne $OutFile }
 
-	# X.obj.sarif / X.bmi.sarif belong to an object; if the graph no longer
-	# produces that object, the log describes a translation unit that is gone.
-	if ($null -ne $liveOutputs -and $file.Name -match '\.(obj|bmi)\.sarif$')
-	{
-		$object = [System.IO.Path]::GetRelativePath($BuildDir, $file.FullName.Substring(0, $file.FullName.Length - '.sarif'.Length))
-		if (-not $liveOutputs.Contains($object)) { $orphans++; continue }
-	}
+	# -------------------------------------------------------------------------
+	# Stage 3: Bundle - drop orphans and no-op logs; pack the rest for jq.
+	# -------------------------------------------------------------------------
 
-	$text = [System.IO.File]::ReadAllText($file.FullName)
-
-	# The common case is the no-op log MSVC writes for a clean compile. A text
-	# test is far cheaper than parsing it to find out, and the only runs it can
-	# miss are ones we parse anyway.
-	if ($text -match '"results"\s*:\s*\[\s*\]' -and $text -notmatch '"results"\s*:\s*\[\s*\{') { continue }
-
+	# One JSON object per line, the log carried as a string so that jq can
+	# reject one malformed log without losing the stream. Files, not arguments:
+	# a broken build can leave more logs than a command line holds.
+	$writer = [System.IO.StreamWriter]::new($bundleFile, $false, [System.Text.UTF8Encoding]::new($false))
 	try
 	{
-		$log = $text | ConvertFrom-Json -Depth 100
-	}
-	catch
-	{
-		Write-Host "collate-sarif: skipping unreadable $($file.FullName): $($_.Exception.Message)"
-		continue
-	}
-
-	if ($log.'$schema') { $schema = $log.'$schema' }
-
-	foreach ($run in @($log.runs))
-	{
-		#if (-not $run.results -or @($run.results).Count -eq 0) { continue }
-		Repair-Uris $run
-		$runs.Add($run)
-		$runTimes.Add($file.LastWriteTimeUtc)
-	}
-}
-
-# Two reshapes for a viewer that renders only locations[0] and the message:
-#
-# - Dedupe across translation units. An error in a header is reported once per
-#   includer, each as its own result with a different analysisTarget. One
-#   finding per (rule, location, message) is what a reader wants; the first
-#   TU to report it is as good as any.
-# - Lift relatedLocations into a codeFlow. MSVC records the template
-#   instantiation chain ("see reference to ... being compiled", with
-#   nestingLevel) as relatedLocations, which the viewer ignores; it does render
-#   codeFlows. The thread flow is the chain in MSVC's order, which is oldest
-#   first, ending at the result's own location.
-$seenKeys = [System.Collections.Generic.HashSet[string]]::new()
-$duplicates = 0; $flows = 0; $stale = 0
-$kept = 0; $results = 0
-$deduped = [System.Collections.Generic.List[object]]::new()
-
-# The collated log is current, not comprehensive. A log describes the last
-# compile of its translation unit, and a build that stops at the first failure
-# can leave that compile far behind the sources. A result is stale when the
-# file it points at, or the unit that reported it, was modified after the log
-# was written: the line it names may no longer be the line it meant, so it is
-# dropped. The next compile of that unit says what is true now.
-$mtimeCache = [System.Collections.Generic.Dictionary[string, datetime]]::new([System.StringComparer]::OrdinalIgnoreCase)
-function Get-UriMTime([string] $uri)
-{
-	if (-not $uri -or -not $uri.StartsWith('file:', [System.StringComparison]::OrdinalIgnoreCase)) { return [datetime]::MinValue }
-	if ($mtimeCache.ContainsKey($uri)) { return $mtimeCache[$uri] }
-	$t = [datetime]::MinValue
-	try
-	{
-		$local = ([System.Uri] $uri).LocalPath
-		if (Test-Path -LiteralPath $local -PathType Leaf) { $t = (Get-Item -LiteralPath $local).LastWriteTimeUtc }
-	}
-	catch { }
-	$mtimeCache[$uri] = $t
-	return $t
-}
-
-for ($r = 0; $r -lt $runs.Count; $r++)
-{
-	$run = $runs[$r]
-	$logTime = $runTimes[$r]
-	$unique = [System.Collections.Generic.List[object]]::new()
-	foreach ($res in @($run.results))
-	{
-		$loc = $res.locations[0].physicalLocation
-		$key = "$($res.ruleId)|$($loc.artifactLocation.uri)|$($loc.region.startLine)|$($loc.region.startColumn)|$($res.message.text)"
-		if (-not $seenKeys.Add($key)) { $duplicates++; continue }
-
-		if ((Get-UriMTime $loc.artifactLocation.uri) -gt $logTime -or (Get-UriMTime $res.analysisTarget.uri) -gt $logTime)
+		foreach ($file in $inputs)
 		{
-			$stale++
-			continue
-		}
+			$seen++
 
-		if ($res.relatedLocations -and -not $res.codeFlows)
-		{
-			$steps = foreach ($rel in @($res.relatedLocations))
+			# X.obj.sarif / X.bmi.sarif belong to an object; if the graph no longer
+			# produces that object, the log describes a translation unit that is gone.
+			if ($null -ne $liveOutputs -and $file.Name -match '\.(obj|bmi)\.sarif$')
 			{
-				$step = [ordered]@{ location = [ordered]@{ physicalLocation = $rel.physicalLocation } }
-				if ($rel.message) { $step.location.message = $rel.message }
-				if ($null -ne $rel.properties.nestingLevel) { $step.nestingLevel = [int]$rel.properties.nestingLevel }
-				[pscustomobject]$step
+				$object = [System.IO.Path]::GetRelativePath($BuildDir, $file.FullName.Substring(0, $file.FullName.Length - '.sarif'.Length))
+				if (-not $liveOutputs.Contains($object)) { $orphans++; continue }
 			}
-			$steps = @($steps) + [pscustomobject]@{ location = [ordered]@{ physicalLocation = $loc; message = $res.message } }
-			$res | Add-Member -NotePropertyName codeFlows -NotePropertyValue @(
-				[pscustomobject]@{ threadFlows = @([pscustomobject]@{ locations = $steps }) }
-			)
-			$flows++
+
+			$text = [System.IO.File]::ReadAllText($file.FullName)
+
+			# The common case is the no-op log MSVC writes for a clean compile. A text
+			# test is far cheaper than handing it to jq, and the only runs it can
+			# miss are ones jq sees anyway.
+			if ($text -match '"results"\s*:\s*\[\s*\]' -and $text -notmatch '"results"\s*:\s*\[\s*\{') { $noop++; continue }
+
+			$writer.Write('{"file":')
+			$writer.Write((ConvertTo-Json -InputObject $file.FullName -Compress))
+			$writer.Write(',"mtime":')
+			$writer.Write((ConvertTo-UnixMs $file.LastWriteTimeUtc))
+			$writer.Write(',"text":')
+			$writer.Write((ConvertTo-Json -InputObject $text -Compress))
+			$writer.WriteLine('}')
 		}
-
-		$unique.Add($res)
 	}
-	if ($unique.Count -eq 0) { continue }
-	$run.results = $unique.ToArray()
-	$deduped.Add($run)
-	$kept++
-	$results += $unique.Count
+	finally
+	{
+		$writer.Dispose()
+	}
+
+	# -------------------------------------------------------------------------
+	# Stage 4: Stat - every file the logs mention, once.
+	# -------------------------------------------------------------------------
+
+	# Staleness compares each result's files against its log's write time; jq
+	# cannot stat, so it names the files and this stage answers.
+	$mtimes = [ordered]@{}
+	foreach ($uri in (Invoke-CollateJq 'uris' @()))
+	{
+		try
+		{
+			$local = ([System.Uri] $uri).LocalPath
+			if (Test-Path -LiteralPath $local -PathType Leaf) { $mtimes[$uri] = ConvertTo-UnixMs (Get-Item -LiteralPath $local).LastWriteTimeUtc }
+		}
+		catch { }
+	}
+	[System.IO.File]::WriteAllText($mtimesFile, (ConvertTo-Json -InputObject $mtimes -Compress), [System.Text.UTF8Encoding]::new($false))
+
+	# -------------------------------------------------------------------------
+	# Stage 5: Collate - reshape, dedupe and merge (see collate-sarif.jq).
+	# -------------------------------------------------------------------------
+
+	# The first line is the stats object; the rest is the merged log.
+	$out   = Invoke-CollateJq 'collate' @('--slurpfile', 'mtimes', $mtimesFile)
+	$stats = $out[0] | ConvertFrom-Json
+	$json  = ($out | Select-Object -Skip 1) -join "`n"
+
+	# -------------------------------------------------------------------------
+	# Stage 6: Emit - always write, even an empty log, so CLion's path stays valid.
+	# -------------------------------------------------------------------------
+
+	[void][System.IO.Directory]::CreateDirectory([System.IO.Path]::GetDirectoryName($OutFile))
+	[System.IO.File]::WriteAllText($OutFile, $json + "`n", [System.Text.UTF8Encoding]::new($false))
+}
+finally
+{
+	[Console]::OutputEncoding = $savedEncoding
+	Remove-Item -LiteralPath $workDir -Recurse -Force -ErrorAction SilentlyContinue
 }
 
-$merged = [ordered]@{
-	'$schema' = $schema
-	version   = '2.1.0'
-	runs      = $deduped.ToArray()
-}
-
-[void][System.IO.Directory]::CreateDirectory([System.IO.Path]::GetDirectoryName($OutFile))
-
-# ConvertTo-Json's default depth of 2 would silently flatten everything below
-# runs[].results[] into strings; SARIF nests a dozen levels deep.
-$json = $merged | ConvertTo-Json -Depth 100
-[System.IO.File]::WriteAllText($OutFile, $json, [System.Text.UTF8Encoding]::new($false))
-
-Write-Host "collate-sarif: $seen logs, $kept with findings ($results results, $duplicates duplicates dropped, $stale stale dropped, $flows code flows), $orphans orphaned, $repaired URIs repaired -> $OutFile"
+foreach ($bad in $stats.unreadable) { Write-Host "collate-sarif: skipped unreadable $bad" }
+Write-Host ("collate-sarif: $seen logs, $($stats.runs) with findings ($($stats.results) results, " +
+	"$($stats.duplicates) duplicates dropped, $($stats.stale) stale dropped, $($stats.retargeted) retargeted, " +
+	"$($stats.flows) code flows), $($stats.filtered) filtered, $orphans orphaned, $($stats.repaired) URIs repaired -> $OutFile")
 exit 0

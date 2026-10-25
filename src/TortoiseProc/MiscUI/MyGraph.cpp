@@ -11,7 +11,6 @@
 #include <cmath>
 #define _USE_MATH_DEFINES
 #include <math.h>   // for M_PI
-#include <memory>
 
 #ifdef _DEBUG
 #define new DEBUG_NEW

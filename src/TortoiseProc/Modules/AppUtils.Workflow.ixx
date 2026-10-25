@@ -26,7 +26,7 @@ module;
 #include "IgnoreDlg.h"
 #include "BisectStartDlg.h"
 #include "SysProgressDlg.h"
-#include "Resources/Globals.h"
+#include "../../libgit2/Resources/Globals.h"
 #include "ProgressCommands/ResetProgressCommand.h"
 #include "ProgressCommands/FetchProgressCommand.h"
 #include "SubmoduleResolveConflictDlg.h"
@@ -68,7 +68,7 @@ bool UpdateBranchDescription(const CString& branch, CString description)
 
 bool CheckUserData(HWND hWnd)
 {
-	while (g_Git.GetUserName().IsEmpty() || g_Git.GetUserEmail().IsEmpty() || g_Git.GetCommitterName().IsEmpty() || g_Git.GetCommitterEmail().IsEmpty())
+	while (g_Git.GetUserNameW().IsEmpty() || g_Git.GetUserEmail().IsEmpty() || g_Git.GetCommitterName().IsEmpty() || g_Git.GetCommitterEmail().IsEmpty())
 	{
 		if (CMessageBox::Show(hWnd, IDS_PROC_NOUSERDATA, IDS_APPNAME, MB_YESNO | MB_ICONERROR) == IDYES)
 		{

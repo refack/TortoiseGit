@@ -27,7 +27,7 @@
 #include "TortoiseProc.h"
 #include "ProgressDlg.h"
 #include "IconMenu.h"
-#include "Resources/LoglistCommonResource.h"
+#include "../../libgit2/Resources/LoglistCommonResource.h"
 #include <Tlhelp32.h>
 import AppUtils.Window;
 #include "LoglistUtils.h"
@@ -142,7 +142,7 @@ BOOL CProgressDlg::OnInitDialog()
 		InitialText = m_PreText + L"\r\n";
 #if 0
 	if (m_bShowCommand && !m_GitCmd.empty())
-		InitialText += CGit::SerializeArgvToCString(m_GitCmd) + L"\r\n\r\n";
+		InitialText += CGit::SerializeArgvStdWString(m_GitCmd) + L"\r\n\r\n";
 #endif
 	m_Log.SetWindowTextW(InitialText);
 	m_CurrentWork.SetWindowText(L"");
@@ -227,7 +227,7 @@ UINT CProgressDlg::RunCmdList(CWnd* pWnd, ARGV_VECTOR& cmdlist, std::vector<std:
 		// this replaces existed because the command was assembled by pasting
 		// optional pieces together and could pick up stray spaces; argv elements
 		// have no such seams.
-		const CString command = CGit::SerializeArgvToCString(cmdlist[i]);
+		const CString command = CGit::SerializeArgvStdWString(cmdlist[i]);
 
 		if (bShowCommand)
 		{
@@ -566,7 +566,7 @@ void CProgressDlg::UpdateCmdOutput(CGitCliOutputParser& cliOutputParser, CRichEd
 		// an explicit code page, so StdGetUnicode: GetUnicode is the UTF-8-only path
 		str = CUnicodeUtils::StdGetUnicode<CString>(buff.substr(0, start), TGitH::m_LogEncode);
 		buff.remove_prefix(start);
-		CGit::StringAppend(str, buff);
+		str += CUnicodeUtils::GetUnicode<CStringW>(buff);
 	}
 	ClearESC(str);
 	log.ReplaceSel(str);

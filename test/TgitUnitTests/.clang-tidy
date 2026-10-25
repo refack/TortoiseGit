@@ -1,0 +1,9 @@
+InheritParentConfig: true
+Checks:
+  - -*-owning-memory
+  - -*-throwing-static-initialization
+  - -readability-function-cognitive-complexity
+  - -*-avoid-*
+  - -*-pro-bounds-*
+  - -*-magic-numbers
+  - -*-uppercase-literal-suffix

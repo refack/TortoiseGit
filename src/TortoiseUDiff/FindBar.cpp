@@ -22,7 +22,7 @@
 #include "resource.h"
 #include "FindBar.h"
 #include <string>
-#include <Utils/LoadIconEx.h>
+#include <../libgit2/Utils/LoadIconEx.h>
 #include <Utils/Theme.h>
 
 CFindBar::CFindBar()

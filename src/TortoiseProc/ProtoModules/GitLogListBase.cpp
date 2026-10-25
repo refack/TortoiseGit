@@ -26,7 +26,7 @@
 import MessageBox;
 #include "LoglistUtils.h"
 #include "Resources/resource.h"
-#include "Resources/LoglistCommonResource.h"
+#include "../../libgit2/Resources/LoglistCommonResource.h"
 #include <../TortoiseShell/Resource.h>
 #include "Utils/DPIAware.h"
 

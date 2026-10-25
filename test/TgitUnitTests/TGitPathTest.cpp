@@ -24,13 +24,12 @@
 #include <gtest/gtest.h>
 
 #include <windows.h>
-#include <atlstr.h>
 
 //libgit2
 #include <git2.h>
 
 
-#include <Resources/LoglistCommonResource.h>
+#include <../../src/libgit2/Resources/LoglistCommonResource.h>
 
 import std;
 import wil;
@@ -39,6 +38,8 @@ import git_h;
 import str_utils;
 import TGitPath;
 import AutoTempDir;
+using tgit::wstr::CString;
+using CStringA = tgit::zstr::CString;
 
 // FillUnRev takes the git runner it used to reach for itself (g_Git).
 static auto GitRunnerFor(CGit& git)
@@ -58,34 +59,34 @@ TEST(CTGitPath, GetDirectoryTest)
 {
 	// Bit tricky, this test, because we need to know something about the file
 	// layout on the machine which is running the test
-	TCHAR winDir[MAX_PATH + 1] = { 0 };
+	TCHAR winDir[MAX_PATH + 1] = {};
 	ASSERT_NE(0u, GetWindowsDirectory(winDir, _countof(winDir)));
-	CString sWinDir(winDir);
+	fs::path sWinDir(winDir);
 
 	CTGitPath testPath;
 	// This is a file which we know will always be there
-	testPath.SetFromUnknown((sWinDir + L"\\win.ini").GetString());
+	testPath.SetFromUnknown((sWinDir / L"win.ini").c_str());
 	EXPECT_TRUE(testPath.Exists());
 	EXPECT_FALSE(testPath.IsDirectory());
-	EXPECT_STREQ(sWinDir,testPath.GetDirectory().GetWinPathString().c_str());
-	EXPECT_STREQ(sWinDir,testPath.GetDirectoryOrParentIfDeleted().GetWinPathString().c_str());
-	EXPECT_STREQ(sWinDir, testPath.GetContainingDirectory().GetWinPathString().c_str());
+	EXPECT_EQ(sWinDir,testPath.GetDirectory().GetWinPathString().c_str());
+	EXPECT_EQ(sWinDir,testPath.GetDirectoryOrParentIfDeleted().GetWinPathString().c_str());
+	EXPECT_EQ(sWinDir, testPath.GetContainingDirectory().GetWinPathString().c_str());
 
 	// This is a file MS is unlikely to add
-	testPath.SetFromUnknown((sWinDir + L"\\windows_sucks.ini").GetString());
+	testPath.SetFromUnknown((sWinDir / L"windows_sucks.ini").c_str());
 	EXPECT_FALSE(testPath.Exists());
 	EXPECT_FALSE(testPath.IsDirectory());
 	EXPECT_STREQ(testPath.GetWinPathString().c_str(),testPath.GetDirectory().GetWinPathString().c_str());
-	EXPECT_STREQ(sWinDir,testPath.GetDirectoryOrParentIfDeleted().GetWinPathString().c_str());
-	EXPECT_STREQ(sWinDir, testPath.GetContainingDirectory().GetWinPathString().c_str());
+	EXPECT_EQ(sWinDir,testPath.GetDirectoryOrParentIfDeleted().GetWinPathString().c_str());
+	EXPECT_EQ(sWinDir, testPath.GetContainingDirectory().GetWinPathString().c_str());
 
 	// Now do the test on the win directory itself - It's hard to be sure about the containing directory
 	// but we know it must be different to the directory itself
-	testPath.SetFromUnknown(sWinDir.GetString());
+	testPath.SetFromUnknown(sWinDir.c_str());
 	EXPECT_TRUE(testPath.IsDirectory());
-	EXPECT_STREQ(sWinDir, testPath.GetDirectory().GetWinPathString().c_str());
-	EXPECT_STRNE(sWinDir, testPath.GetContainingDirectory().GetWinPathString().c_str());
-	EXPECT_GT(sWinDir.GetLength(), testPath.GetContainingDirectory().GetWinPathString().size());
+	EXPECT_EQ(sWinDir, testPath.GetDirectory().GetWinPathString().c_str());
+	EXPECT_NE(sWinDir, testPath.GetContainingDirectory().GetWinPathString().c_str());
+	EXPECT_GT(sWinDir.wstring().length(), testPath.GetContainingDirectory().GetWinPathString().size());
 
 	// Try a root path
 	testPath.SetFromUnknown(L"C:\\");
@@ -460,16 +461,16 @@ TEST(CTGitPath, ValidPathAndUrlTest)
 
 TEST(CTGitPath, ListLoadingTest)
 {
-	TCHAR buf[MAX_PATH] = { 0 };
+	TCHAR buf[MAX_PATH] = {};
 	GetCurrentDirectory(MAX_PATH, buf);
 	CString sPathList(L"Path1*c:\\path2 with spaces and stuff*\\funnypath\\*");
 	CTGitPathList testList;
 	testList.LoadFromAsteriskSeparatedString(sPathList.GetString());
 
 	EXPECT_EQ(3, testList.GetCount());
-	EXPECT_STREQ(CString(buf) + L"\\Path1", testList[0].GetWinPathString().c_str());
-	EXPECT_STREQ(L"c:\\path2 with spaces and stuff", testList[1].GetWinPathString().c_str());
-	EXPECT_STREQ(L"\\funnypath", testList[2].GetWinPathString().c_str());
+	EXPECT_EQ(fs::path(buf) / L"Path1", testList[0].GetWinPathString());
+	EXPECT_EQ(L"c:\\path2 with spaces and stuff", testList[1].GetWinPathString().c_str());
+	EXPECT_EQ(L"\\funnypath", testList[2].GetWinPathString().c_str());
 
 	EXPECT_STREQ(L"", testList.GetCommonRoot().GetWinPathString().c_str());
 	testList.Clear();
@@ -482,9 +483,9 @@ TEST(CTGitPath, LoadFromFileAndWriteToFile)
 {
 	CAutoTempDir tmpDir;
 	CTGitPathList testList;
-	CString fileNameRead = tmpDir.GetTempDir() + L"\\input";
+	CString fileNameRead = (tmpDir.GetTempDir() / L"input").c_str();
 	CString text;
-	CString fileNameWrite = tmpDir.GetTempDir() + L"\\output";
+	CString fileNameWrite = (tmpDir.GetTempDir() / L"output").c_str();
 
 	EXPECT_TRUE(StringUtils::WriteStringToTextFile(fileNameRead, L"Path1\nc:\\path2 with spaces and stuff\n\\funnypath\\", false));
 	EXPECT_TRUE(testList.LoadFromFile(CTGitPath(fileNameRead)));
@@ -1649,7 +1650,7 @@ static void setFlagOnFileInIndex2(wil::unique_git_index& gitindex, const CString
 {
 	size_t idx = SIZE_MAX;
 	EXPECT_TRUE(git_index_find(&idx, gitindex.get(), CUnicodeUtils::GetUTF8<CStringA>(filename)) == 0);
-	git_index_entry *e = const_cast<git_index_entry *>(git_index_get_byindex(gitindex.get(), idx));
+	auto *e = const_cast<git_index_entry *>(git_index_get_byindex(gitindex.get(), idx));
 	ASSERT_TRUE(e);
 	if (assumevalid == BST_UNCHECKED)
 		e->flags &= ~GIT_INDEX_ENTRY_VALID;
@@ -1666,21 +1667,20 @@ TEST(CTGitPath, FillBasedOnIndexFlags2)
 {
 	CAutoTempDir tmpDir;
 
-	CString output;
 	wil::unique_git_repository repo;
-	EXPECT_TRUE(git_repository_init(repo.put(), CUnicodeUtils::GetUTF8<CStringA>(tmpDir.GetTempDir()), 0) == 0);
+	EXPECT_TRUE(git_repository_init(repo.put(), CUnicodeUtils::GetUTF8<CStringA>(tmpDir.GetTempDir().wstring()), 0) == 0);
 
-	ASSERT_TRUE(CreateDirectory(tmpDir.GetTempDir() + L"\\a", nullptr));
-	ASSERT_TRUE(CreateDirectory(tmpDir.GetTempDir() + L"\\b", nullptr));
+	ASSERT_TRUE(CreateDirectory((tmpDir.GetTempDir() / L"a").c_str(), nullptr));
+	ASSERT_TRUE(CreateDirectory((tmpDir.GetTempDir() / L"b").c_str(), nullptr));
 
 	wil::unique_git_index gitindex;
 	EXPECT_TRUE(git_repository_index(gitindex.put(), repo.get()) == 0);
 
-	CString filenames[] = { L"versioned", L"assume-unchanged", L"skip-worktree", L"unversioned", L"a/versioned", L"a/assume-unchanged", L"a/skip-worktree", L"a/unversioned", L"b/versioned", L"b/assume-unchanged", L"b/skip-worktree", L"b/unversioned" };
-	for (const CString& filename : filenames)
+	auto filenames = std::array<std::wstring_view, 12>{ L"versioned", L"assume-unchanged", L"skip-worktree", L"unversioned", L"a/versioned", L"a/assume-unchanged", L"a/skip-worktree", L"a/unversioned", L"b/versioned", L"b/assume-unchanged", L"b/skip-worktree", L"b/unversioned" };
+	for (const auto& filename : filenames)
 	{
-		CString filenameWithPath = tmpDir.GetTempDir() + L'\\' + filename;
-		EXPECT_TRUE(StringUtils::WriteStringToTextFile(filenameWithPath, L"something"));
+		auto filenameWithPath = tmpDir.GetTempDir() / filename;
+		EXPECT_TRUE(StringUtils::WriteStringToTextFile(filenameWithPath.c_str(), L"something"));
 		EXPECT_TRUE(git_index_add_bypath(gitindex.get(), CUnicodeUtils::GetUTF8<CStringA>(filename)) == 0);
 	}
 
@@ -1757,7 +1757,7 @@ static void setFlagOnFileInIndex(wil::unique_git_index& gitindex, const CString&
 {
 	size_t idx = SIZE_MAX;
 	EXPECT_TRUE(git_index_find(&idx, gitindex.get(), CUnicodeUtils::GetUTF8<CStringA>(filename)) == 0);
-	git_index_entry *e = const_cast<git_index_entry *>(git_index_get_byindex(gitindex.get(), idx));
+	auto e = const_cast<git_index_entry *>(git_index_get_byindex(gitindex.get(), idx));
 	ASSERT_TRUE(e);
 	if (assumevalid == BST_UNCHECKED)
 		e->flags &= ~GIT_INDEX_ENTRY_VALID;
@@ -1779,20 +1779,20 @@ protected:
 	void SetUp() override
 	{
 		wil::unique_git_repository repo;
-		ASSERT_EQ(0, git_repository_init(repo.put(), CUnicodeUtils::GetUTF8<CStringA>(tmpDir.GetTempDir()), 0));
+		ASSERT_EQ(0, git_repository_init(repo.put(), CUnicodeUtils::GetUTF8<CStringA>(tmpDir.GetTempDir().wstring()), 0));
 
-		ASSERT_TRUE(CreateDirectory(tmpDir.GetTempDir() + L"\\a", nullptr));
-		ASSERT_TRUE(CreateDirectory(tmpDir.GetTempDir() + L"\\b", nullptr));
+		ASSERT_TRUE(CreateDirectory((tmpDir.GetTempDir() / L"a").c_str(), nullptr));
+		ASSERT_TRUE(CreateDirectory((tmpDir.GetTempDir() / L"b").c_str(), nullptr));
 
 		wil::unique_git_index gitindex;
 		ASSERT_EQ(0, git_repository_index(gitindex.put(), repo.get()));
 
-		const CString filenames[] = { L"versioned", L"assume-unchanged", L"skip-worktree", L"unversioned", L"a/versioned", L"a/assume-unchanged", L"a/skip-worktree", L"a/unversioned", L"b/versioned", L"b/assume-unchanged", L"b/skip-worktree", L"b/unversioned" };
-		for (const CString& filename : filenames)
+		const auto filenames = std::array{ L"versioned", L"assume-unchanged", L"skip-worktree", L"unversioned", L"a/versioned", L"a/assume-unchanged", L"a/skip-worktree", L"a/unversioned", L"b/versioned", L"b/assume-unchanged", L"b/skip-worktree", L"b/unversioned" };
+		for (const auto& filename : filenames)
 		{
-			const CString filenameWithPath = tmpDir.GetTempDir() + L'\\' + filename;
-			ASSERT_TRUE(StringUtils::WriteStringToTextFile(filenameWithPath, L"something"));
-			ASSERT_EQ(0, git_index_add_bypath(gitindex.get(), CUnicodeUtils::GetUTF8<CStringA>(filename)));
+			const auto filenameWithPath = tmpDir.GetTempDir() / filename;
+			ASSERT_TRUE(StringUtils::WriteStringToTextFile(filenameWithPath.c_str(), L"something"));
+			ASSERT_EQ(0, git_index_add_bypath(gitindex.get(), CUnicodeUtils::GetUTF8<CStringA>(std::wstring_view{filename})));
 		}
 
 		setFlagOnFileInIndex(gitindex, L"assume-unchanged", true, false);
@@ -1896,9 +1896,9 @@ TEST_F(FillBasedOnIndexFlags, FilteredByDirectoryAssumeValidOnly)
 // an exact match could select anything.
 TEST_F(FillBasedOnIndexFlags, FilteredByDirectoryMissingFromWorktree)
 {
-	for (const wchar_t* name : { L"\\a\\versioned", L"\\a\\assume-unchanged", L"\\a\\skip-worktree", L"\\a\\unversioned" })
-		ASSERT_TRUE(::DeleteFile(tmpDir.GetTempDir() + name));
-	ASSERT_TRUE(::RemoveDirectory(tmpDir.GetTempDir() + L"\\a"));
+	for (const wchar_t* name : { L"a\\versioned", L"a\\assume-unchanged", L"a\\skip-worktree", L"a\\unversioned" })
+		ASSERT_TRUE(::DeleteFile((tmpDir.GetTempDir() / name).c_str()));
+	ASSERT_TRUE(::RemoveDirectory((tmpDir.GetTempDir() / L"a").c_str()));
 
 	CTGitPathList selectList;
 	selectList.AddPath(CTGitPath(L"a"));
@@ -2106,7 +2106,7 @@ TEST(CTGitPath, FillUnRev)
 	CAutoTempDir tmpDir;
 
 	wil::unique_git_repository repo;
-	ASSERT_TRUE(git_repository_init(repo.put(), CUnicodeUtils::GetUTF8<CStringA>(tmpDir.GetTempDir()), false) == 0);
+	ASSERT_TRUE(git_repository_init(repo.put(), CUnicodeUtils::GetUTF8<CStringA>(tmpDir.GetTempDir().wstring()), false) == 0);
 
 	g_Git.SetCurrentDirExact(tmpDir.GetTempDir());
 
@@ -2117,7 +2117,7 @@ TEST(CTGitPath, FillUnRev)
 	EXPECT_EQ(0, testList.FillUnRev(GitRunnerFor(g_Git), CTGitPath::LOGACTIONS_IGNORE));
 	EXPECT_EQ(0, testList.GetCount());
 
-	CString fileOne = tmpDir.GetTempDir() + L"\\one";
+	CString fileOne = (tmpDir.GetTempDir() / L"one").c_str();
 	EXPECT_TRUE(StringUtils::WriteStringToTextFile(fileOne, L"something"));
 
 	EXPECT_EQ(0, testList.FillUnRev(GitRunnerFor(g_Git), 0));
@@ -2137,7 +2137,7 @@ TEST(CTGitPath, FillUnRev)
 	EXPECT_EQ(0, testList.FillUnRev(GitRunnerFor(g_Git), CTGitPath::LOGACTIONS_IGNORE, &selectList));
 	EXPECT_EQ(0, testList.GetCount());
 
-	CString gitIgnore = tmpDir.GetTempDir() + L"\\.gitignore";
+	CString gitIgnore = (tmpDir.GetTempDir() / L".gitignore").c_str();
 	EXPECT_TRUE(StringUtils::WriteStringToTextFile(gitIgnore, L""));
 
 	EXPECT_EQ(0, testList.FillUnRev(GitRunnerFor(g_Git), 0));
@@ -2172,7 +2172,7 @@ TEST(CTGitPath, FillUnRev)
 	EXPECT_EQ(1, testList.GetCount());
 	EXPECT_STREQ(L"one", testList[0].GetGitPathString().c_str());
 
-	EXPECT_TRUE(CreateDirectory(tmpDir.GetTempDir() + L"\\subdir", nullptr));
+	EXPECT_TRUE(CreateDirectory((tmpDir.GetTempDir() / L"subdir").c_str(), nullptr));
 	selectList.Clear();
 	selectList.AddPath(CTGitPath(L"subdir"));
 	EXPECT_EQ(0, testList.FillUnRev(GitRunnerFor(g_Git), 0, &selectList));
@@ -2181,7 +2181,7 @@ TEST(CTGitPath, FillUnRev)
 	EXPECT_EQ(0, testList.FillUnRev(GitRunnerFor(g_Git), CTGitPath::LOGACTIONS_IGNORE, &selectList));
 	EXPECT_EQ(0, testList.GetCount());
 
-	fileOne = tmpDir.GetTempDir() + L"\\subdir\\one";
+	fileOne = (tmpDir.GetTempDir() / L"subdir\\one").c_str();
 	EXPECT_TRUE(StringUtils::WriteStringToTextFile(fileOne, L"something"));
 
 	EXPECT_EQ(0, testList.FillUnRev(GitRunnerFor(g_Git), 0));
@@ -2218,7 +2218,8 @@ TEST(CTGitPath, FillUnRev)
 TEST(CTGitPath, GetAbbreviatedRename)
 {
 	CTGitPath test;
-	std::wstring newName, oldName;
+	std::wstring newName;
+	std::wstring oldName;
 
 	// just a failsafe
 	test.SetFromGit(tgit::str::StringView(newName), tgit::str::StringView(oldName));
@@ -2279,17 +2280,17 @@ TEST(CTGitPath, HashStashDir)
 {
 	CAutoTempDir tmpDir;
 
-	CTGitPath path(tmpDir.GetTempDir());
+	CTGitPath path = tmpDir.GetTempDir();
 	// no repository -> no stash
 	EXPECT_FALSE(path.HasStashDir());
 
 	path.Reset();
-	path.SetFromWin(tgit::str::StringView(tmpDir.GetTempDir()));
+	path.SetFromWin(tmpDir.GetTempDir().c_str());
 
 	wil::unique_git_repository repo;
-	ASSERT_TRUE(git_repository_init(repo.put(), CUnicodeUtils::GetUTF8<CStringA>(tmpDir.GetTempDir()), false) == 0);
+	ASSERT_TRUE(git_repository_init(repo.put(), CUnicodeUtils::GetUTF8<CStringA>(tmpDir.GetTempDir().wstring()), false) == 0);
 	// "git commit" follows and requires user to be set
-	CString configFile = tmpDir.GetTempDir() + L"\\.git\\config";
+	CString configFile = (tmpDir.GetTempDir() / L".git\\config").c_str();
 	CString text;
 	ASSERT_TRUE(StringUtils::ReadStringFromTextFile(configFile, text));
 	text += L"[user]\n  name = User\n  email = user@example.com\n";
@@ -2300,25 +2301,25 @@ TEST(CTGitPath, HashStashDir)
 	// empty repository no stash
 	EXPECT_FALSE(path.HasStashDir());
 
-	CString file(tmpDir.GetTempDir() + L"\\file");
+	CString file((tmpDir.GetTempDir() / L"file").c_str());
 	EXPECT_TRUE(StringUtils::WriteStringToTextFile(file, L"don't care"));
 
-	CString output;
-	EXPECT_EQ(0, g_Git.Run(L"git add file", &output, CP_UTF8));
-	EXPECT_EQ(0, g_Git.Run(L"git commit -m \"test\"", &output, CP_UTF8));
+	std::string output;
+	EXPECT_EQ(0, g_Git.Run({L"git", L"add", L"file"}, &output));
+	EXPECT_EQ(0, g_Git.Run({L"git", L"commit", L"-m", L"\"test\""}, &output));
 	EXPECT_TRUE(StringUtils::WriteStringToTextFile(file, L"don't care even more"));
-	EXPECT_EQ(0, g_Git.Run(L"git stash", &output, CP_UTF8));
+	EXPECT_EQ(0, g_Git.Run({L"git", L"stash"}, &output));
 	EXPECT_TRUE(path.HasStashDir());
 
 	// check for packed stash
-	EXPECT_EQ(0, g_Git.Run(L"git pack-refs --all", &output, CP_UTF8));
+	EXPECT_EQ(0, g_Git.Run({L"git", L"pack-refs", L"--all"}, &output));
 	EXPECT_TRUE(path.HasStashDir());
 
-	EXPECT_EQ(0, g_Git.Run(L"git stash clear", &output, CP_UTF8));
+	EXPECT_EQ(0, g_Git.Run({L"git", L"stash", L"clear"}, &output));
 	EXPECT_FALSE(path.HasStashDir());
 
-	file = tmpDir.GetTempDir() + L"\\.git\\packed-refs";
-	EXPECT_TRUE(StringUtils::WriteStringToTextFile(file, L"# pack-refs with: peeled fully-peeled\nf3a76c72d89aebd63a0346dd92ecafecdc780822 refs/stashNotReal\n"));
+	auto file1 = tmpDir.GetTempDir() / L".git\\packed-refs";
+	EXPECT_TRUE(StringUtils::WriteStringToTextFile(file1.c_str(), L"# pack-refs with: peeled fully-peeled\nf3a76c72d89aebd63a0346dd92ecafecdc780822 refs/stashNotReal\n"));
 	EXPECT_FALSE(path.HasStashDir());
 }
 
@@ -2351,7 +2352,7 @@ TEST(CTGitPath, SetDirectory_DiskAccess)
 	EXPECT_FALSE(path.IsDirectory());
 	EXPECT_FALSE(path.Exists());
 
-	TCHAR winDir[MAX_PATH + 1] = { 0 };
+	TCHAR winDir[MAX_PATH + 1] = {};
 	ASSERT_NE(0u, GetWindowsDirectory(winDir, _countof(winDir)));
 	MockCTGitPath pathWin;
 	pathWin.SetFromGit(winDir);
@@ -2417,15 +2418,15 @@ TEST(CTGitPath, AreAllPathsFiles)
 	EXPECT_TRUE(list.AreAllPathsFiles());
 
 	// now test relative paths
-	PreserveChdir chdir;
+	[[maybe_unused]] PreserveChdir chdir;
 	CAutoTempDir tmp;
-	SetCurrentDirectory(tmp.GetTempDir());
+	SetCurrentDirectory(tmp.GetTempDir().c_str());
 
-	EXPECT_TRUE(StringUtils::WriteStringToTextFile(tmp.GetTempDir() + L"\\file1", L"something"));
+	EXPECT_TRUE(StringUtils::WriteStringToTextFile((tmp.GetTempDir() / L"file1").c_str(), L"something"));
 	list.AddPath(CTGitPath(L"file1"));
 	EXPECT_TRUE(list.AreAllPathsFiles());
 
-	EXPECT_TRUE(CreateDirectory(tmp.GetTempDir() + L"\\dir", nullptr));
+	EXPECT_TRUE(CreateDirectory((tmp.GetTempDir() / L"dir").c_str(), nullptr));
 	list.AddPath(CTGitPath(L"dir"));
 	EXPECT_FALSE(list.AreAllPathsFiles());
 
@@ -2450,18 +2451,18 @@ TEST(CTGitPath, AreAllPathsDirectories)
 
 	list.Clear();
 	// now test relative paths
-	PreserveChdir chdir;
+	[[maybe_unused]] PreserveChdir chdir;
 	CAutoTempDir tmp;
-	SetCurrentDirectory(tmp.GetTempDir());
+	SetCurrentDirectory(tmp.GetTempDir().c_str());
 
-	EXPECT_TRUE(CreateDirectory(tmp.GetTempDir() + L"\\dir", nullptr));
+	EXPECT_TRUE(CreateDirectory((tmp.GetTempDir() / L"dir").c_str(), nullptr));
 	list.AddPath(CTGitPath()); // equivalent of "."
 	EXPECT_TRUE(list.AreAllPathsDirectories());
 
 	list.AddPath(CTGitPath(L"dir"));
 	EXPECT_TRUE(list.AreAllPathsDirectories());
 
-	EXPECT_TRUE(StringUtils::WriteStringToTextFile(tmp.GetTempDir() + L"\\file1", L"something"));
+	EXPECT_TRUE(StringUtils::WriteStringToTextFile((tmp.GetTempDir() / L"file1").c_str(), L"something"));
 	list.AddPath(CTGitPath(L"file1"));
 	EXPECT_FALSE(list.AreAllPathsDirectories());
 }
@@ -2542,47 +2543,53 @@ TEST(CTGitPath, IsRegisteredSubmoduleOfParentProject)
 {
 	CAutoTempDir tmp;
 	wil::unique_git_repository repo;
-	EXPECT_EQ(0, git_repository_init(repo.put(), CUnicodeUtils::GetUTF8<CStringA>(tmp.GetTempDir()), false));
-	EXPECT_TRUE(CreateDirectory(tmp.GetTempDir() + L"\\ext", nullptr));
-	EXPECT_TRUE(CreateDirectory(tmp.GetTempDir() + L"\\ext\\libgit2", nullptr));
-	EXPECT_TRUE(CreateDirectory(tmp.GetTempDir() + L"\\ext\\spell", nullptr));
-	EXPECT_TRUE(CreateDirectory(tmp.GetTempDir() + L"\\ext\\something", nullptr));
+	EXPECT_EQ(0, git_repository_init(repo.put(), CUnicodeUtils::GetUTF8<CStringA>(tmp.GetTempDir().wstring()), false));
+	EXPECT_TRUE(CreateDirectory((tmp.GetTempDir() / L"ext").c_str(), nullptr));
+	EXPECT_TRUE(CreateDirectory((tmp.GetTempDir() / L"ext\\libgit2").c_str(), nullptr));
+	EXPECT_TRUE(CreateDirectory((tmp.GetTempDir() / L"ext\\spell").c_str(), nullptr));
+	EXPECT_TRUE(CreateDirectory((tmp.GetTempDir() / L"ext\\something").c_str(), nullptr));
+
 	{
 		std::wstring topPath;
-		CTGitPath path{ (tmp.GetTempDir() + L"\\ext\\libgit2") };
+		CTGitPath path = tmp.GetTempDir() / L"ext\\libgit2";
 		EXPECT_FALSE(path.IsRegisteredSubmoduleOfParentProject(&topPath));
-		EXPECT_STREQ(tmp.GetTempDir(), topPath.c_str());
+		EXPECT_EQ(tmp.GetTempDir(), topPath.c_str());
 	}
-	EXPECT_TRUE(StringUtils::WriteStringToTextFile(tmp.GetTempDir() + L"\\.gitmodules", L"[submodule \"libgit2-ext\"]\n	path = ext/libgit2\n	url = https://github.com/libgit2/libgit2.git\n[submodule \"ext/spell\"]\n	path = ext/spell\n	url = https://github.com/LibreOffice/dictionaries"));
+
+	EXPECT_TRUE(
+		StringUtils::WriteStringToTextFile((tmp.GetTempDir() / L".gitmodules").c_str(),
+		L"[submodule \"libgit2-ext\"]\n	path = ext/libgit2\n	url = https://github.com/libgit2/libgit2.git\n[submodule \"ext/spell\"]\n	path = ext/spell\n	url = https://github.com/LibreOffice/dictionaries")
+	);
+
 	{
 		std::wstring topPath;
-		CTGitPath path{ (tmp.GetTempDir() + L"\\ext\\libgit2") };
+		CTGitPath path = tmp.GetTempDir() / L"ext\\libgit2";
 		EXPECT_TRUE(path.IsRegisteredSubmoduleOfParentProject(&topPath));
-		EXPECT_STREQ(tmp.GetTempDir(), topPath.c_str());
+		EXPECT_EQ(tmp.GetTempDir(), topPath.c_str());
 	}
 	{
 		std::wstring topPath;
-		CTGitPath path{ (tmp.GetTempDir() + L"\\ext\\spell") };
+		CTGitPath path = tmp.GetTempDir() / L"ext\\spell";
 		EXPECT_TRUE(path.IsRegisteredSubmoduleOfParentProject(&topPath));
-		EXPECT_STREQ(tmp.GetTempDir(), topPath.c_str());
+		EXPECT_EQ(tmp.GetTempDir(), topPath.c_str());
 	}
 	{
 		std::wstring topPath;
-		CTGitPath path{ (tmp.GetTempDir() + L"\\ext\\spELL") };
+		CTGitPath path = tmp.GetTempDir() / L"ext\\spELL";
 		EXPECT_FALSE(path.IsRegisteredSubmoduleOfParentProject(&topPath));
-		EXPECT_STREQ(tmp.GetTempDir(), topPath.c_str());
+		EXPECT_EQ(tmp.GetTempDir(), topPath.c_str());
 	}
 	{
 		std::wstring topPath;
-		CTGitPath path{ (tmp.GetTempDir() + L"\\ext\\something") };
+		CTGitPath path = tmp.GetTempDir() / L"ext\\something";
 		EXPECT_FALSE(path.IsRegisteredSubmoduleOfParentProject(&topPath));
-		EXPECT_STREQ(tmp.GetTempDir(), topPath.c_str());
+		EXPECT_EQ(tmp.GetTempDir(), topPath.c_str());
 	}
 	{
 		std::wstring topPath;
-		CTGitPath path{ (tmp.GetTempDir() + L"\\ext") };
+		CTGitPath path = tmp.GetTempDir() / L"ext";
 		EXPECT_FALSE(path.IsRegisteredSubmoduleOfParentProject(&topPath));
-		EXPECT_STREQ(tmp.GetTempDir(), topPath.c_str());
+		EXPECT_EQ(tmp.GetTempDir(), topPath.c_str());
 	}
 }
 

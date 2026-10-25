@@ -3,6 +3,8 @@ module;
 #include <cstdio>
 #include <windows.h>
 
+
+
 export module DebugOutput;
 
 import std;
@@ -14,10 +16,8 @@ import RollingFile;
 //   DebugLogFile       string  also append to this file (environment variables expanded)
 //   DebugLogMaxSizeKB  DWORD   roll the file over once it reaches this size (0 = never)
 //   DebugLogMaxFiles   DWORD   rolled-over files kept, as <file>.1 (newest) … <file>.N
-namespace {
 
-std::wstring VFormat(PCWSTR fmt, va_list args)
-{
+std::wstring VFormat(PCWSTR fmt, va_list args) {
 	va_list probe;
 	va_copy(probe, args);
 	const int len = _vscwprintf(fmt, probe);
@@ -29,8 +29,8 @@ std::wstring VFormat(PCWSTR fmt, va_list args)
 	return s;
 }
 
-std::wstring VFormat(PCSTR fmt, va_list args)
-{
+
+std::wstring VFormat(PCSTR fmt, va_list args) {
 	va_list probe;
 	va_copy(probe, args);
 	const int len = _vscprintf(fmt, probe);
@@ -44,8 +44,8 @@ std::wstring VFormat(PCSTR fmt, va_list args)
 	return s;
 }
 
-std::wstring ExpandEnvironment(const std::wstring& s)
-{
+
+std::wstring ExpandEnvironment(const std::wstring& s) {
 	std::wstring out(ExpandEnvironmentStringsW(s.c_str(), nullptr, 0), L'\0');
 	if (out.empty())
 		return s;
@@ -53,31 +53,32 @@ std::wstring ExpandEnvironment(const std::wstring& s)
 	return out;
 }
 
+
 const bool g_active = !!CRegStdDWORD(L"Software\\TortoiseGit\\DebugOutputString", FALSE);
 
-const std::unique_ptr<tgit::CRollingFile> g_file = [] () -> std::unique_ptr<tgit::CRollingFile> {
+const std::unique_ptr<tgit::CRollingFile> g_file = []() -> std::unique_ptr<tgit::CRollingFile> {
 	if (!g_active)
 		return nullptr;
 	const auto file = ExpandEnvironment(CRegStdString(L"Software\\TortoiseGit\\DebugLogFile", L""));
 	if (file.empty())
 		return nullptr;
-	return std::make_unique<tgit::CRollingFile>(file,
+	return std::make_unique<tgit::CRollingFile>(
+		file,
 		std::uintmax_t{ CRegStdDWORD(L"Software\\TortoiseGit\\DebugLogMaxSizeKB", 10 * 1024) } * 1024,
-		CRegStdDWORD(L"Software\\TortoiseGit\\DebugLogMaxFiles", 5));
+		CRegStdDWORD(L"Software\\TortoiseGit\\DebugLogMaxFiles", 5)
+	);
 }();
 
-}
+
 
 export namespace tgit::DebugOutput {
-
-bool IsTraceActive()
-{
+constexpr bool IsTraceActive() {
 	return g_active;
 }
 
+
 // Writes the message verbatim; safe for text that may contain '%'.
-void TraceRaw(const std::wstring& message)
-{
+void TraceRaw(const std::wstring& message) {
 	if (!g_active)
 		return;
 	OutputDebugStringW(message.c_str());
@@ -85,10 +86,10 @@ void TraceRaw(const std::wstring& message)
 		g_file->Append(message);
 }
 
+
 // printf-style; the format is only expanded when tracing is on.
 [[deprecated("use Trace(std::wformat_string, ...): its arguments are checked at compile time")]]
-void TracePrintf(PCSTR pszFormat, ...)
-{
+void TracePrintf(PCSTR pszFormat, ...) {
 	if (!g_active)
 		return;
 	va_list args;
@@ -96,10 +97,10 @@ void TracePrintf(PCSTR pszFormat, ...)
 	TraceRaw(VFormat(pszFormat, args));
 	va_end(args);
 }
+
 
 [[deprecated("use Trace(std::wformat_string, ...): its arguments are checked at compile time")]]
-void TracePrintf(PCWSTR pszFormat, ...)
-{
+void TracePrintf(PCWSTR pszFormat, ...) {
 	if (!g_active)
 		return;
 	va_list args;
@@ -108,13 +109,12 @@ void TracePrintf(PCWSTR pszFormat, ...)
 	va_end(args);
 }
 
+
 template <class... Args>
-void Trace(std::wformat_string<Args...> fmt, Args&&... args)
-{
+void Trace(std::wformat_string<Args...> fmt, Args&&... args) {
 	if (IsTraceActive())
 		TraceRaw(std::format(fmt, std::forward<Args>(args)...));
 }
-
 }
 
 export using namespace tgit::DebugOutput;

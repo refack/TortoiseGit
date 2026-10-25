@@ -22,7 +22,7 @@
 #include "GravatarPictureBox.h"
 #include "Picture.h"
 import MessageBox;
-#include "Resources/LoglistCommonResource.h"
+#include "../../libgit2/Resources/LoglistCommonResource.h"
 #include "Resources/resource.h"
 #include <WinCrypt.h>
 

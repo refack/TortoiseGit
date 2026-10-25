@@ -20,7 +20,7 @@
 #include "std.h"
 
 #include "Resources/resource.h"
-#include "Utils/LoadIconEx.h"
+#include "../../libgit2/Utils/LoadIconEx.h"
 #include "FindBar.h"
 
 UINT CFindBar::WM_FINDEXIT = RegisterWindowMessage(L"TORTOISEGIT_PATCHVIEW_FINDEXIT_MSG");

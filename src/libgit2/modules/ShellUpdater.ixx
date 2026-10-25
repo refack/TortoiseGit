@@ -142,7 +142,7 @@ void CShellUpdater::UpdateShell()
 
 	CTGitPath path;
 	for (int nPath = 0; nPath < m_pathsForUpdating.GetCount(); ++nPath) {
-		path.SetFromWin(StringView{g_Git.CombinePath(m_pathsForUpdating[nPath])});
+		path.SetFromWin(g_Git.CombinePath(m_pathsForUpdating[nPath]).c_str());
 		tgit::DebugOutput::TracePrintf(
 			__FUNCTION__ L": Cache Item Update for %s (%I64u)\n",
 			path.GetWinPathString().c_str(),

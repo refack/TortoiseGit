@@ -147,7 +147,7 @@ inline bool CMassiveGitTaskBase::ExecuteCommands(const bool cancel) {
 
 	int max_command_line_length = 30000;
 	int quotes_length = 2;
-	if (TGitH::ms_bCygwinGit || TGitH::ms_bMsys2Git) // see issue https://tortoisegit.org/issue/3542
+	if (GitCall::ms_bCygwinGit || GitCall::ms_bMsys2Git) // see issue https://tortoisegit.org/issue/3542
 	{
 		max_command_line_length = 3500;
 		quotes_length = 4;
@@ -198,8 +198,8 @@ inline void CMassiveGitTaskBase::ConvertToCmdList(const std::vector<std::wstring
 		return;
 
 	// see issue https://tortoisegit.org/issue/3542
-	const size_t max_command_line_length{ (TGitH::ms_bCygwinGit || TGitH::ms_bMsys2Git) ? 3500u : 30000u };
-	const size_t quotes_length{ (TGitH::ms_bCygwinGit || TGitH::ms_bMsys2Git) ? 4u : 2u };
+	const size_t max_command_line_length{ (GitCall::ms_bCygwinGit || GitCall::ms_bMsys2Git) ? 3500u : 30000u };
+	const size_t quotes_length{ (GitCall::ms_bCygwinGit || GitCall::ms_bMsys2Git) ? 4u : 2u };
 
 	// The limit is on the command line CreateProcess is handed, which is still a
 	// flat string however the arguments are spelled here, so the accounting is

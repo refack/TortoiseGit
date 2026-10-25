@@ -27,13 +27,13 @@ CTGitPathList m_TempFileList{};
 /// "<temp>\TortoiseGit\", or empty when there is no temp path. The two-call
 /// contract of GetTortoiseGitTempPath, filled straight into the string.
 std::wstring TortoiseGitTempDirectory() {
-	const DWORD needed = GetTortoiseGitTempPath(0, nullptr); // counts the NUL
+	const DWORD needed = GitCall::GetTortoiseGitTempPath(0, nullptr); // counts the NUL
 	if (needed == 0)
 		return {};
 	std::wstring directory;
 	directory.resize_and_overwrite(needed, [needed](wchar_t* const buffer, const size_t capacity) {
 		// on failure it leaves buffer[0] == 0, so wcsnlen answers "empty" either way
-		return GetTortoiseGitTempPath(needed, buffer) ? wcsnlen(buffer, capacity) : size_t{ 0 };
+		return GitCall::GetTortoiseGitTempPath(needed, buffer) ? wcsnlen(buffer, capacity) : size_t{ 0 };
 	});
 	return directory;
 }

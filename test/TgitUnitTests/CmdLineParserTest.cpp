@@ -20,13 +20,14 @@
 #include "stdafx.h"
 import CmdLineParser;
 import str_utils;
+using namespace std::literals;
 
 TEST(CCmdLineParser, Null)
 {
 	CCmdLineParser parser(nullptr);
 	EXPECT_FALSE(parser.HasKey(L"action"));
 	EXPECT_FALSE(parser.HasVal(L"action"));
-	EXPECT_EQ(nullptr, parser.GetVal(L"action"));
+	EXPECT_EQ(L"", parser.GetValStr(L"action"));
 	EXPECT_EQ(0, parser.GetLongVal(L"action"));
 	EXPECT_EQ(0, parser.GetLongLongVal(L"action"));
 }
@@ -36,7 +37,7 @@ TEST(CCmdLineParser, Empty)
 	CCmdLineParser parser(L"");
 	EXPECT_FALSE(parser.HasKey(L"action"));
 	EXPECT_FALSE(parser.HasVal(L"action"));
-	EXPECT_EQ(nullptr, parser.GetVal(L"action"));
+	EXPECT_EQ(L"", parser.GetValStr(L"action"));
 	EXPECT_EQ(0, parser.GetLongVal(L"action"));
 	EXPECT_EQ(0, parser.GetLongLongVal(L"action"));
 }
@@ -46,7 +47,7 @@ TEST(CCmdLineParser, Text)
 	CCmdLineParser parser(L"action");
 	EXPECT_FALSE(parser.HasKey(L"action"));
 	EXPECT_FALSE(parser.HasVal(L"action"));
-	EXPECT_EQ(nullptr, parser.GetVal(L"action"));
+	EXPECT_EQ(L"", parser.GetValStr(L"action"));
 	EXPECT_EQ(0, parser.GetLongVal(L"action"));
 	EXPECT_EQ(0, parser.GetLongLongVal(L"action"));
 }
@@ -78,7 +79,7 @@ TEST(CCmdLineParser, SingleSimpleArgValue)
 		CCmdLineParser parser(arg);
 		EXPECT_TRUE(parser.HasKey(L"action"));
 		EXPECT_FALSE(parser.HasVal(L"action"));
-		EXPECT_STREQ(L"", parser.GetVal(L"action"));
+		EXPECT_STREQ(L"", parser.GetValStr(L"action"));
 		EXPECT_EQ(0, parser.GetLongVal(L"action"));
 		EXPECT_EQ(0, parser.GetLongLongVal(L"action"));
 	}
@@ -92,7 +93,7 @@ TEST(CCmdLineParser, PrefixSingleSimpleArgValue)
 		CCmdLineParser parser(arg);
 		EXPECT_TRUE(parser.HasKey(L"action"));
 		EXPECT_FALSE(parser.HasVal(L"action"));
-		EXPECT_STREQ(L"", parser.GetVal(L"action"));
+		EXPECT_STREQ(L"", parser.GetValStr(L"action"));
 		EXPECT_EQ(0, parser.GetLongVal(L"action"));
 		EXPECT_EQ(0, parser.GetLongLongVal(L"action"));
 	}
@@ -106,10 +107,10 @@ TEST(CCmdLineParser, QuotedArgs)
 		CCmdLineParser parser(arg);
 		EXPECT_FALSE(parser.HasKey(L""));
 		EXPECT_FALSE(parser.HasVal(L""));
-		EXPECT_EQ(nullptr, parser.GetVal(L""));
+		EXPECT_EQ(L"", parser.GetValStr(L""));
 		EXPECT_FALSE(parser.HasKey(L"action"));
 		EXPECT_FALSE(parser.HasVal(L"action"));
-		EXPECT_EQ(nullptr, parser.GetVal(L"action"));
+		EXPECT_EQ(L"", parser.GetValStr(L"action"));
 	}
 }
 
@@ -123,7 +124,7 @@ TEST(CCmdLineParser, SingleSimpleArgStringValue)
 		EXPECT_FALSE(parser.HasVal(L"log"));
 		EXPECT_TRUE(parser.HasKey(L"action"));
 		EXPECT_TRUE(parser.HasVal(L"action"));
-		EXPECT_STREQ(L"log", parser.GetVal(L"action"));
+		EXPECT_STREQ(L"log", parser.GetValStr(L"action"));
 	}
 }
 
@@ -135,7 +136,7 @@ TEST(CCmdLineParser, SingleArgStringSpaceValue)
 		CCmdLineParser parser(arg);
 		EXPECT_TRUE(parser.HasKey(L"action"));
 		EXPECT_TRUE(parser.HasVal(L"action"));
-		EXPECT_STREQ(L"log", parser.GetVal(L"action"));
+		EXPECT_STREQ(L"log", parser.GetValStr(L"action"));
 		EXPECT_FALSE(parser.HasKey(L"log"));
 		EXPECT_FALSE(parser.HasVal(L"log"));
 		EXPECT_FALSE(parser.HasKey(L"2"));
@@ -151,7 +152,7 @@ TEST(CCmdLineParser, SingleArgStringSpaceValueQuoted)
 		CCmdLineParser parser(arg);
 		EXPECT_TRUE(parser.HasKey(L"action"));
 		EXPECT_TRUE(parser.HasVal(L"action"));
-		EXPECT_STREQ(L"log 2", parser.GetVal(L"action"));
+		EXPECT_STREQ(L"log 2", parser.GetValStr(L"action"));
 	}
 }
 
@@ -163,7 +164,7 @@ TEST(CCmdLineParser, SingleArgStringValueQuoted)
 		CCmdLineParser parser(arg);
 		EXPECT_TRUE(parser.HasKey(L"action"));
 		EXPECT_TRUE(parser.HasVal(L"action"));
-		EXPECT_STREQ(L"log", parser.GetVal(L"action"));
+		EXPECT_STREQ(L"log", parser.GetValStr(L"action"));
 	}
 }
 
@@ -175,7 +176,7 @@ TEST(CCmdLineParser, SingleArgStringValueQuotedWithQuotes)
 		CCmdLineParser parser(arg);
 		EXPECT_TRUE(parser.HasKey(L"action"));
 		EXPECT_TRUE(parser.HasVal(L"action"));
-		EXPECT_STREQ(L"lo\"g", parser.GetVal(L"action"));
+		EXPECT_STREQ(L"lo\"g", parser.GetValStr(L"action"));
 	}
 }
 
@@ -187,7 +188,7 @@ TEST(CCmdLineParser, SingleArgStringValueQuotedWithQuotesAtEnd)
 		CCmdLineParser parser(arg);
 		EXPECT_TRUE(parser.HasKey(L"action"));
 		EXPECT_TRUE(parser.HasVal(L"action"));
-		EXPECT_STREQ(L"lo\"", parser.GetVal(L"action"));
+		EXPECT_STREQ(L"lo\"", parser.GetValStr(L"action"));
 	}
 }
 
@@ -210,7 +211,7 @@ TEST(CCmdLineParser, SingleArgStringValueQuote)
 		CCmdLineParser parser(arg);
 		EXPECT_TRUE(parser.HasKey(L"action"));
 		EXPECT_TRUE(parser.HasVal(L"action"));
-		EXPECT_STREQ(L"l\"og", parser.GetVal(L"action"));
+		EXPECT_STREQ(L"l\"og", parser.GetValStr(L"action"));
 	}
 }
 
@@ -222,7 +223,7 @@ TEST(CCmdLineParser, SingleArgStringValueQuotes1)
 		CCmdLineParser parser(arg);
 		EXPECT_TRUE(parser.HasKey(L"action"));
 		EXPECT_TRUE(parser.HasVal(L"action"));
-		EXPECT_STREQ(L"l\"\"og", parser.GetVal(L"action"));
+		EXPECT_STREQ(L"l\"\"og", parser.GetValStr(L"action"));
 	}
 }
 
@@ -234,7 +235,7 @@ TEST(CCmdLineParser, SingleArgStringValueQuotes2)
 		CCmdLineParser parser(arg);
 		EXPECT_TRUE(parser.HasKey(L"action"));
 		EXPECT_TRUE(parser.HasVal(L"action"));
-		EXPECT_STREQ(L"l\"og\"", parser.GetVal(L"action"));
+		EXPECT_STREQ(L"l\"og\"", parser.GetValStr(L"action"));
 	}
 }
 
@@ -246,7 +247,7 @@ TEST(CCmdLineParser, SingleArgStringValueQuoteAtEnd)
 		CCmdLineParser parser(arg);
 		EXPECT_TRUE(parser.HasKey(L"action"));
 		EXPECT_TRUE(parser.HasVal(L"action"));
-		EXPECT_STREQ(L"log\"", parser.GetVal(L"action"));
+		EXPECT_STREQ(L"log\"", parser.GetValStr(L"action"));
 	}
 }
 
@@ -258,7 +259,7 @@ TEST(CCmdLineParser, SingleArgStringValueMultiQuote)
 		CCmdLineParser parser(arg);
 		EXPECT_TRUE(parser.HasKey(L"action"));
 		EXPECT_TRUE(parser.HasVal(L"action"));
-		EXPECT_STREQ(L"l\"o\"g", parser.GetVal(L"action"));
+		EXPECT_STREQ(L"l\"o\"g", parser.GetValStr(L"action"));
 	}
 }
 
@@ -270,7 +271,7 @@ TEST(CCmdLineParser, SingleArgStringValueQuotedWithQuote)
 		CCmdLineParser parser(arg);
 		EXPECT_TRUE(parser.HasKey(L"action"));
 		EXPECT_TRUE(parser.HasVal(L"action"));
-		EXPECT_STREQ(L"l", parser.GetVal(L"action"));
+		EXPECT_STREQ(L"l", parser.GetValStr(L"action"));
 	}
 }
 
@@ -282,7 +283,7 @@ TEST(CCmdLineParser, SingleArgStringValueQuotedWithTwoQuotes)
 		CCmdLineParser parser(arg);
 		EXPECT_TRUE(parser.HasKey(L"action"));
 		EXPECT_TRUE(parser.HasVal(L"action"));
-		EXPECT_STREQ(L"l\"o\"g", parser.GetVal(L"action"));
+		EXPECT_STREQ(L"l\"o\"g", parser.GetValStr(L"action"));
 	}
 }
 
@@ -305,7 +306,7 @@ TEST(CCmdLineParser, SingleArgStringSingleQuote)
 		CCmdLineParser parser(arg);
 		EXPECT_TRUE(parser.HasKey(L"action"));
 		EXPECT_TRUE(parser.HasVal(L"action"));
-		EXPECT_STREQ(L"\"", parser.GetVal(L"action"));
+		EXPECT_STREQ(L"\"", parser.GetValStr(L"action"));
 	}
 }
 
@@ -317,7 +318,7 @@ TEST(CCmdLineParser, SingleArgStringDoubleQuote)
 		CCmdLineParser parser(arg);
 		EXPECT_TRUE(parser.HasKey(L"action"));
 		EXPECT_TRUE(parser.HasVal(L"action"));
-		EXPECT_STREQ(L"\"\"", parser.GetVal(L"action"));
+		EXPECT_STREQ(L"\"\"", parser.GetValStr(L"action"));
 	}
 }
 
@@ -329,7 +330,7 @@ TEST(CCmdLineParser, SingleArgNumberValue)
 		CCmdLineParser parser(arg);
 		EXPECT_TRUE(parser.HasKey(L"action"));
 		EXPECT_TRUE(parser.HasVal(L"action"));
-		EXPECT_STREQ(L"10", parser.GetVal(L"action"));
+		EXPECT_STREQ(L"10", parser.GetValStr(L"action"));
 		EXPECT_EQ(10, parser.GetLongVal(L"action"));
 		EXPECT_EQ(10, parser.GetLongLongVal(L"action"));
 	}
@@ -343,7 +344,7 @@ TEST(CCmdLineParser, SingleArgNumberValueQuoted)
 		CCmdLineParser parser(arg);
 		EXPECT_TRUE(parser.HasKey(L"action"));
 		EXPECT_TRUE(parser.HasVal(L"action"));
-		EXPECT_STREQ(L"10", parser.GetVal(L"action"));
+		EXPECT_STREQ(L"10", parser.GetValStr(L"action"));
 		EXPECT_EQ(10, parser.GetLongVal(L"action"));
 		EXPECT_EQ(10, parser.GetLongLongVal(L"action"));
 	}
@@ -357,7 +358,7 @@ TEST(CCmdLineParser, SingleArgNumberValuePrefix)
 		CCmdLineParser parser(arg);
 		EXPECT_TRUE(parser.HasKey(L"action"));
 		EXPECT_TRUE(parser.HasVal(L"action"));
-		EXPECT_STREQ(L"010", parser.GetVal(L"action"));
+		EXPECT_STREQ(L"010", parser.GetValStr(L"action"));
 		EXPECT_EQ(10, parser.GetLongVal(L"action"));
 		EXPECT_EQ(10, parser.GetLongLongVal(L"action"));
 	}
@@ -371,7 +372,7 @@ TEST(CCmdLineParser, SingleArgQuotedArg1)
 		CCmdLineParser parser(arg);
 		EXPECT_TRUE(parser.HasKey(L"action"));
 		EXPECT_TRUE(parser.HasVal(L"action"));
-		EXPECT_STREQ(L"/test", parser.GetVal(L"action"));
+		EXPECT_STREQ(L"/test", parser.GetValStr(L"action"));
 	}
 }
 
@@ -383,7 +384,7 @@ TEST(CCmdLineParser, SingleArgQuotedArg2)
 		CCmdLineParser parser(arg);
 		EXPECT_TRUE(parser.HasKey(L"action"));
 		EXPECT_TRUE(parser.HasVal(L"action"));
-		EXPECT_STREQ(L"-test", parser.GetVal(L"action"));
+		EXPECT_STREQ(L"-test", parser.GetValStr(L"action"));
 	}
 }
 
@@ -395,7 +396,7 @@ TEST(CCmdLineParser, SingleArgBrokenQuote)
 		CCmdLineParser parser(arg);
 		EXPECT_TRUE(parser.HasKey(L"action"));
 		EXPECT_TRUE(parser.HasVal(L"action"));
-		EXPECT_STREQ(L"-test", parser.GetVal(L"action"));
+		EXPECT_STREQ(L"-test", parser.GetValStr(L"action"));
 		EXPECT_FALSE(parser.HasKey(L"test"));
 	}
 }
@@ -419,7 +420,7 @@ TEST(CCmdLineParser, SingleArgBrokenQuoteEndDoubleQuote)
 		CCmdLineParser parser(arg);
 		EXPECT_TRUE(parser.HasKey(L"action"));
 		EXPECT_TRUE(parser.HasVal(L"action"));
-		EXPECT_STREQ(L"-test\"", parser.GetVal(L"action"));
+		EXPECT_STREQ(L"-test\"", parser.GetValStr(L"action"));
 		EXPECT_FALSE(parser.HasKey(L"test"));
 	}
 }
@@ -432,7 +433,7 @@ TEST(CCmdLineParser, SingleArgBrokenQuote2)
 		CCmdLineParser parser(arg);
 		EXPECT_TRUE(parser.HasKey(L"action"));
 		EXPECT_TRUE(parser.HasVal(L"action"));
-		EXPECT_STREQ(L"-test ", parser.GetVal(L"action"));
+		EXPECT_STREQ(L"-test ", parser.GetValStr(L"action"));
 		EXPECT_FALSE(parser.HasKey(L"test"));
 		EXPECT_FALSE(parser.HasKey(L"bla"));
 	}
@@ -446,7 +447,7 @@ TEST(CCmdLineParser, SingleArgBrokenQuote3)
 		CCmdLineParser parser(arg);
 		EXPECT_TRUE(parser.HasKey(L"action"));
 		EXPECT_TRUE(parser.HasVal(L"action"));
-		EXPECT_STREQ(L"-test:", parser.GetVal(L"action"));
+		EXPECT_STREQ(L"-test:", parser.GetValStr(L"action"));
 		EXPECT_FALSE(parser.HasKey(L"test"));
 		EXPECT_FALSE(parser.HasKey(L"bla"));
 	}
@@ -494,7 +495,7 @@ TEST(CCmdLineParser, MultiArgMixedArgs1)
 		CCmdLineParser parser(arg);
 		EXPECT_TRUE(parser.HasKey(L"action"));
 		EXPECT_TRUE(parser.HasVal(L"action"));
-		EXPECT_STREQ(L"log", parser.GetVal(L"action"));
+		EXPECT_STREQ(L"log", parser.GetValStr(L"action"));
 		EXPECT_TRUE(parser.HasKey(L"rev"));
 		EXPECT_FALSE(parser.HasVal(L"rev"));
 		EXPECT_EQ(0, parser.GetLongVal(L"rev"));
@@ -512,7 +513,7 @@ TEST(CCmdLineParser, MultiArgMixedArgs2)
 		EXPECT_FALSE(parser.HasVal(L"action"));
 		EXPECT_TRUE(parser.HasKey(L"rev"));
 		EXPECT_TRUE(parser.HasVal(L"rev"));
-		EXPECT_STREQ(L"def", parser.GetVal(L"rev"));
+		EXPECT_STREQ(L"def", parser.GetValStr(L"rev"));
 	}
 }
 
@@ -524,14 +525,14 @@ TEST(CCmdLineParser, MultiArgStringSpaceValue)
 		CCmdLineParser parser(arg);
 		EXPECT_TRUE(parser.HasKey(L"action"));
 		EXPECT_TRUE(parser.HasVal(L"action"));
-		EXPECT_STREQ(L"log", parser.GetVal(L"action"));
+		EXPECT_STREQ(L"log", parser.GetValStr(L"action"));
 		EXPECT_FALSE(parser.HasKey(L"log"));
 		EXPECT_FALSE(parser.HasVal(L"log"));
 		EXPECT_FALSE(parser.HasKey(L"2"));
 		EXPECT_FALSE(parser.HasVal(L"2"));
 		EXPECT_TRUE(parser.HasKey(L"rev"));
 		EXPECT_TRUE(parser.HasVal(L"rev"));
-		EXPECT_STREQ(L"def", parser.GetVal(L"rev"));
+		EXPECT_STREQ(L"def", parser.GetValStr(L"rev"));
 	}
 }
 
@@ -543,10 +544,10 @@ TEST(CCmdLineParser, MultiArgStringSpaceLeftOverQuote)
 		CCmdLineParser parser(arg);
 		EXPECT_TRUE(parser.HasKey(L"action"));
 		EXPECT_TRUE(parser.HasVal(L"action"));
-		EXPECT_STREQ(L"log", parser.GetVal(L"action"));
+		EXPECT_STREQ(L"log", parser.GetValStr(L"action"));
 		EXPECT_TRUE(parser.HasKey(L"rev"));
 		EXPECT_TRUE(parser.HasVal(L"rev"));
-		EXPECT_STREQ(L"def", parser.GetVal(L"rev"));
+		EXPECT_STREQ(L"def", parser.GetValStr(L"rev"));
 	}
 }
 
@@ -558,10 +559,10 @@ TEST(CCmdLineParser, MultiArgStringSpaceValueQuoted)
 		CCmdLineParser parser(arg);
 		EXPECT_TRUE(parser.HasKey(L"action"));
 		EXPECT_TRUE(parser.HasVal(L"action"));
-		EXPECT_STREQ(L"log 2", parser.GetVal(L"action"));
+		EXPECT_STREQ(L"log 2", parser.GetValStr(L"action"));
 		EXPECT_TRUE(parser.HasKey(L"rev"));
 		EXPECT_TRUE(parser.HasVal(L"rev"));
-		EXPECT_STREQ(L"def", parser.GetVal(L"rev"));
+		EXPECT_STREQ(L"def", parser.GetValStr(L"rev"));
 	}
 }
 
@@ -573,10 +574,10 @@ TEST(CCmdLineParser, MultiArgStringSpaceValueQuotedWithQuote)
 		CCmdLineParser parser(arg);
 		EXPECT_TRUE(parser.HasKey(L"action"));
 		EXPECT_TRUE(parser.HasVal(L"action"));
-		EXPECT_STREQ(L"log \"2", parser.GetVal(L"action"));
+		EXPECT_STREQ(L"log \"2", parser.GetValStr(L"action"));
 		EXPECT_TRUE(parser.HasKey(L"rev"));
 		EXPECT_TRUE(parser.HasVal(L"rev"));
-		EXPECT_STREQ(L"def", parser.GetVal(L"rev"));
+		EXPECT_STREQ(L"def", parser.GetValStr(L"rev"));
 	}
 }
 
@@ -588,10 +589,10 @@ TEST(CCmdLineParser, MultiArgStringSpaceValueQuoted2)
 		CCmdLineParser parser(arg);
 		EXPECT_TRUE(parser.HasKey(L"action"));
 		EXPECT_TRUE(parser.HasVal(L"action"));
-		EXPECT_STREQ(L" log 2 ", parser.GetVal(L"action"));
+		EXPECT_STREQ(L" log 2 ", parser.GetValStr(L"action"));
 		EXPECT_TRUE(parser.HasKey(L"rev"));
 		EXPECT_TRUE(parser.HasVal(L"rev"));
-		EXPECT_STREQ(L"def", parser.GetVal(L"rev"));
+		EXPECT_STREQ(L"def", parser.GetValStr(L"rev"));
 	}
 }
 
@@ -603,10 +604,10 @@ TEST(CCmdLineParser, MultiArgStringSpaceValueQuotedWithQuote2)
 		CCmdLineParser parser(arg);
 		EXPECT_TRUE(parser.HasKey(L"action"));
 		EXPECT_TRUE(parser.HasVal(L"action"));
-		EXPECT_STREQ(L" log 2 \"", parser.GetVal(L"action"));
+		EXPECT_STREQ(L" log 2 \"", parser.GetValStr(L"action"));
 		EXPECT_TRUE(parser.HasKey(L"rev"));
 		EXPECT_TRUE(parser.HasVal(L"rev"));
-		EXPECT_STREQ(L"def", parser.GetVal(L"rev"));
+		EXPECT_STREQ(L"def", parser.GetValStr(L"rev"));
 	}
 }
 
@@ -618,7 +619,7 @@ TEST(CCmdLineParser, MultiArgValueTwice)
 		CCmdLineParser parser(arg);
 		EXPECT_TRUE(parser.HasKey(L"action"));
 		EXPECT_TRUE(parser.HasVal(L"action"));
-		EXPECT_STREQ(L"log", parser.GetVal(L"action"));
+		EXPECT_STREQ(L"log", parser.GetValStr(L"action"));
 	}
 }
 
@@ -630,7 +631,7 @@ TEST(CCmdLineParser, SingleArgPath)
 		CCmdLineParser parser(arg);
 		EXPECT_TRUE(parser.HasKey(L"path"));
 		EXPECT_TRUE(parser.HasVal(L"path"));
-		EXPECT_STREQ(L"C:\\test", parser.GetVal(L"path"));
+		EXPECT_STREQ(L"C:\\test", parser.GetValStr(L"path"));
 	}
 }
 
@@ -642,7 +643,7 @@ TEST(CCmdLineParser, SingleArgPathQuoted)
 		CCmdLineParser parser(arg);
 		EXPECT_TRUE(parser.HasKey(L"path"));
 		EXPECT_TRUE(parser.HasVal(L"path"));
-		EXPECT_STREQ(L"C:\\test", parser.GetVal(L"path"));
+		EXPECT_STREQ(L"C:\\test", parser.GetValStr(L"path"));
 	}
 }
 
@@ -654,7 +655,7 @@ TEST(CCmdLineParser, SingleArgPathQuotedBackslashAtEnd)
 		CCmdLineParser parser(arg);
 		EXPECT_TRUE(parser.HasKey(L"path"));
 		EXPECT_TRUE(parser.HasVal(L"path"));
-		EXPECT_STREQ(L"C:\\test\\", parser.GetVal(L"path"));
+		EXPECT_STREQ(L"C:\\test\\", parser.GetValStr(L"path"));
 	}
 }
 
@@ -666,7 +667,7 @@ TEST(CCmdLineParser, SingleArgUnixPath)
 		CCmdLineParser parser(arg);
 		EXPECT_TRUE(parser.HasKey(L"path"));
 		EXPECT_TRUE(parser.HasVal(L"path"));
-		EXPECT_STREQ(L"C:/test", parser.GetVal(L"path"));
+		EXPECT_STREQ(L"C:/test", parser.GetValStr(L"path"));
 		EXPECT_FALSE(parser.HasKey(L"C"));
 		EXPECT_FALSE(parser.HasKey(L"C:"));
 	}
@@ -681,7 +682,7 @@ TEST(CCmdLineParser, SingleArgUnixPathQuoted)
 		CCmdLineParser parser(arg);
 		EXPECT_TRUE(parser.HasKey(L"path"));
 		EXPECT_TRUE(parser.HasVal(L"path"));
-		EXPECT_STREQ(L"C:/test", parser.GetVal(L"path"));
+		EXPECT_STREQ(L"C:/test", parser.GetValStr(L"path"));
 		EXPECT_FALSE(parser.HasKey(L"C"));
 		EXPECT_FALSE(parser.HasKey(L"C:"));
 	}
@@ -697,17 +698,17 @@ static void CheckEscapeValue(const CString& escaped, LPCWSTR expected)
 		return;
 	}
 	EXPECT_TRUE(parser.HasVal(L"path"));
-	EXPECT_STREQ(expected, parser.GetVal(L"path"));
+	EXPECT_STREQ(expected, parser.GetValStr(L"path"));
 }
 
 TEST(CCmdLineParser, EscapeValue)
 {
-	EXPECT_STREQ(L"\"\"", TCmdLineParser::EscapeValue(L""));
+	EXPECT_STREQ(L"\"\"", TCmdLineParser::EscapeValue(L""s));
 
-	LPCWSTR args[] = { L"", L" ", L"\"", L"\"\"", L"\" \"", L"\"\"\\", L"ascii", L"something\\", L"C:\\Test", L"some\\\"thing", L"something\\\"", L"some\"thing", L"some\"\"thing", L"something\"\\\""};
-	for (auto arg : args)
+	constexpr auto args = std::array<std::wstring_view, 14>{ L"", L" ", L"\"", L"\"\"", L"\" \"", L"\"\"\\", L"ascii", L"something\\", L"C:\\Test", L"some\\\"thing", L"something\\\"", L"some\"thing", L"some\"\"thing", L"something\"\\\""};
+	for (const auto arg : args)
 	{
-		CheckEscapeValue(TCmdLineParser::EscapeValue(tgit::str::StringView(CString(arg))).c_str(), arg);
-		CheckEscapeValue(TCmdLineParser::EscapeValue(std::wstring_view(arg)).c_str(), arg);
+		CheckEscapeValue(TCmdLineParser::EscapeValue(tgit::str::StringView(CString(arg.data()))).data(), arg.data());
+		CheckEscapeValue(TCmdLineParser::EscapeValue(std::wstring_view(arg)).data(), arg.data());
 	}
 }

@@ -985,7 +985,7 @@ int CGitIndexList::GetFileStatus(wil::unique_git_repository& repository,const st
 		}
 
 		git_oid actual;
-		const auto fileA = CUnicodeUtils::GetUTF8<std::string>(entry.m_FileName);
+		const auto fileA = CUnicodeUtils::StdGetUTF8(entry.m_FileName);
 		if (isSymlink && detail::IsSymlinkMode(entry.m_Mode))
 		{
 			const auto filename = wstr::to_path(gitdir) / wstr::to_path(entry.m_FileName);
@@ -1003,7 +1003,7 @@ int CGitIndexList::GetFileStatus(wil::unique_git_repository& repository,const st
 			else
 				status.status = git_wc_status_modified;
 		}
-		else if (!git_repository_hashfile(&actual, repository.get(), fileA.c_str(),GIT_OBJECT_BLOB, nullptr) && !git_oid_cmp(&actual, entry.m_IndexHash))
+		else if (!git_repository_hashfile(&actual, repository.get(), fileA.c_str(), GIT_OBJECT_BLOB, nullptr) && !git_oid_cmp(&actual, entry.m_IndexHash))
 		{
 			entry.SetModifyTime(time);
 			status.status = git_wc_status_normal;
@@ -1348,7 +1348,7 @@ int CGitIgnoreItem::FetchIgnoreList(const std::wstring& projectroot, const std::
 		if(start > 0)
 		{
 			base.resize(static_cast<size_t>(start));
-			this->m_BaseDir = CUnicodeUtils::GetUTF8<std::string>(base) + "/";
+			this->m_BaseDir = CUnicodeUtils::StdGetUTF8(base) + "/";
 		}
 	}
 
@@ -1648,7 +1648,7 @@ int CGitIgnoreList::CheckIgnore(const std::wstring& path, const std::wstring& pr
 	std::wstring temp = (wstr::to_path(projectroot) / wstr::to_path(path)).native();
 	std::ranges::replace(temp, L'/', L'\\');
 
-	std::string patha = CUnicodeUtils::GetUTF8<std::string>(path);
+	std::string patha = CUnicodeUtils::StdGetUTF8(path);
 	std::ranges::replace(patha, '\\', '/');
 
 	auto type = [&] {

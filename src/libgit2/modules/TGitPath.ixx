@@ -214,7 +214,7 @@ struct Host {
 /// Runs git with an argv vector and captures its output; g_Git.Run's argv
 /// overload. The operations on CTGitPathList that shell out take one of these
 /// rather than reaching for g_Git.
-using GitRunner = std::function<int(const std::vector<std::wstring>& argv, std::string* out, std::string* err)>;
+using GitRunner = std::function<int(const wil::ArgvData& argv, std::string* out, std::string* err)>;
 
 /// Was CGit::GetGitPathString: a Windows path in the forward-slash form git uses.
 std::wstring ToGitPath(const std::wstring_view path) {

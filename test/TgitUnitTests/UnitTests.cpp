@@ -20,7 +20,7 @@
 #include "stdafx.h"
 #include <gtest/gtest.h>
 
-int _tmain(int argc, _TCHAR* argv[])
+int wmain(int argc, WCHAR* argv[])
 {
 	// Unattended: a Debug assertion is reported on stderr, not in a modal dialog
 	// that hangs the run. The text still lands in the output, where an
@@ -38,9 +38,7 @@ int _tmain(int argc, _TCHAR* argv[])
 	// no need for calling testing::InitGoogleTest() separately.
 	testing::InitGoogleMock(&argc, argv);
 	GTEST_FLAG_SET(catch_exceptions, false);
-	int result = RUN_ALL_TESTS();
+	const int result = RUN_ALL_TESTS();
 	git_libgit2_shutdown();
 	return result;
 }
-
-CString g_sGroupingUUID;

@@ -91,9 +91,9 @@ BOOL CAboutDlg::OnInitDialog()
 		out += L" (" + TGitH::ms_LastMsysGitDir;
 		out += L"; " + TGitH::ms_MsysGitRootDir;
 		out += L"; " + g_Git.GetGitSystemConfig();
-		if (TGitH::ms_bMsys2Git)
+		if (GitCall::ms_bMsys2Git)
 			out += L"; with msys2 hack";
-		else if (TGitH::ms_bCygwinGit)
+		else if (GitCall::ms_bCygwinGit)
 			out += L"; with cygwin hack";
 		out += L')';
 	}

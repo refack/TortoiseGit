@@ -90,7 +90,7 @@ TEST_P(GitWCRevStatusCBasicGitWithEmptyRepositoryFixture, EmptyRepo)
 
 TEST_P(GitWCRevStatusCBasicGitWithEmptyRepositoryFixture, EmptyRepoFile)
 {
-	CString file = m_Dir.GetTempDir() + L"\\somefile.txt";
+	CString file = m_Dir.GetTempDir() / L"somefile.txt";
 
 	GitWCRev_t GitStat;
 	EXPECT_TRUE(StringUtils::WriteStringToTextFile(file, L"something\n"));
@@ -128,7 +128,7 @@ TEST_P(GitWCRevStatusCBasicGitWithEmptyRepositoryFixture, EmptyRepoFile)
 
 TEST_P(GitWCRevStatusCBasicGitWithEmptyRepositoryFixture, EmptyRepoStagedFile)
 {
-	CString file = m_Dir.GetTempDir() + L"\\somefile.txt";
+	CString file = m_Dir.GetTempDir() / L"somefile.txt";
 
 	EXPECT_TRUE(StringUtils::WriteStringToTextFile(file, L"something\n"));
 
@@ -175,7 +175,7 @@ TEST_P(GitWCRevStatusCBasicGitWithEmptyRepositoryFixture, EmptyRepoStagedFile)
 
 TEST_P(GitWCRevStatusCBasicGitWithEmptyRepositoryFixture, EmptyRepoFolder)
 {
-	CString folder = m_Dir.GetTempDir() + L"\\folder";
+	CString folder = m_Dir.GetTempDir() / L"folder";
 	GitWCRev_t GitStat;
 	ASSERT_TRUE(CreateDirectory(folder, nullptr));
 	EXPECT_EQ(0, GetStatusUnCleanPath(m_Dir.GetTempDir(), GitStat));
@@ -212,7 +212,7 @@ TEST_P(GitWCRevStatusCBasicGitWithEmptyRepositoryFixture, EmptyRepoFolder)
 
 TEST_P(GitWCRevStatusCBasicGitWithEmptyRepositoryFixture, EmptyRepoFolderFile)
 {
-	CString folder = m_Dir.GetTempDir() + L"\\folder";
+	CString folder = m_Dir.GetTempDir() / L"folder";
 
 	GitWCRev_t GitStat;
 	ASSERT_TRUE(CreateDirectory(folder, nullptr));
@@ -323,10 +323,10 @@ TEST_P(GitWCRevStatusCBasicGitWithTestRepoFixture, Basic)
 	EXPECT_STREQ("Sven Strickroth", GitStat2.HeadAuthor.c_str());
 	EXPECT_STREQ("email@cs-ware.de", GitStat2.HeadEmail.c_str());
 
-	EXPECT_TRUE(DeleteFile(m_Dir.GetTempDir() + L"\\utf8-bom.txt"));
+	EXPECT_TRUE(DeleteFile(m_Dir.GetTempDir() / L"utf8-bom.txt"));
 
 	GitWCRev_t GitStat3;
-	EXPECT_EQ(0, GetStatusUnCleanPath(m_Dir.GetTempDir() + L"\\ansi.txt", GitStat3));
+	EXPECT_EQ(0, GetStatusUnCleanPath(m_Dir.GetTempDir() / L"ansi.txt", GitStat3));
 	EXPECT_TRUE(GitStat3.bIsGitItem);
 	EXPECT_FALSE(GitStat3.bIsUnborn);
 	EXPECT_STREQ("master2", GitStat3.CurrentBranch.c_str());
@@ -359,9 +359,9 @@ TEST_P(GitWCRevStatusCBasicGitWithTestRepoFixture, Basic)
 	EXPECT_STREQ("Sven Strickroth", GitStat4.HeadAuthor.c_str());
 	EXPECT_STREQ("email@cs-ware.de", GitStat4.HeadEmail.c_str());
 
-	EXPECT_TRUE(StringUtils::WriteStringToTextFile(m_Dir.GetTempDir() + L"\\copy\\ba.txt", L"something\n"));
+	EXPECT_TRUE(StringUtils::WriteStringToTextFile(m_Dir.GetTempDir() / L"copy\\ba.txt", L"something\n"));
 	GitWCRev_t GitStat5;
-	EXPECT_EQ(0, GetStatusUnCleanPath(m_Dir.GetTempDir() + L"\\copy", GitStat5));
+	EXPECT_EQ(0, GetStatusUnCleanPath(m_Dir.GetTempDir() / L"copy", GitStat5));
 	EXPECT_FALSE(GitStat5.bIsGitItem);
 	EXPECT_FALSE(GitStat5.bIsUnborn);
 	EXPECT_STREQ("master2", GitStat5.CurrentBranch.c_str());
@@ -377,9 +377,9 @@ TEST_P(GitWCRevStatusCBasicGitWithTestRepoFixture, Basic)
 	EXPECT_STREQ("Sven Strickroth", GitStat5.HeadAuthor.c_str());
 	EXPECT_STREQ("email@cs-ware.de", GitStat5.HeadEmail.c_str());
 
-	EXPECT_TRUE(StringUtils::WriteStringToTextFile(m_Dir.GetTempDir() + L"\\copy\\aaa.txt", L"something\n"));
+	EXPECT_TRUE(StringUtils::WriteStringToTextFile(m_Dir.GetTempDir() / L"copy\\aaa.txt", L"something\n"));
 	GitWCRev_t GitStat6;
-	EXPECT_EQ(0, GetStatusUnCleanPath(m_Dir.GetTempDir() + L"\\copy", GitStat6));
+	EXPECT_EQ(0, GetStatusUnCleanPath(m_Dir.GetTempDir() / L"copy", GitStat6));
 	EXPECT_FALSE(GitStat6.bIsGitItem);
 	EXPECT_FALSE(GitStat6.bIsUnborn);
 	EXPECT_STREQ("master2", GitStat6.CurrentBranch.c_str());
@@ -402,7 +402,7 @@ TEST_P(GitWCRevStatusCBasicGitWithTestRepoFixture, GitWCRevignore)
 	EXPECT_EQ(0, m_Git.Run(L"git.exe checkout -f master", &output, nullptr, CP_UTF8));
 	EXPECT_STRNE(L"", output);
 
-	EXPECT_TRUE(StringUtils::WriteStringToTextFile(m_Dir.GetTempDir() + L"\\.GitWCRevignore", L"\n"));
+	EXPECT_TRUE(StringUtils::WriteStringToTextFile(m_Dir.GetTempDir() / L".GitWCRevignore", L"\n"));
 
 	GitWCRev_t GitStat;
 	EXPECT_EQ(0, GetStatusUnCleanPath(m_Dir.GetTempDir(), GitStat));
@@ -421,7 +421,7 @@ TEST_P(GitWCRevStatusCBasicGitWithTestRepoFixture, GitWCRevignore)
 	EXPECT_STREQ("Sven Strickroth", GitStat.HeadAuthor.c_str());
 	EXPECT_STREQ("email@cs-ware.de", GitStat.HeadEmail.c_str());
 
-	EXPECT_TRUE(StringUtils::WriteStringToTextFile(m_Dir.GetTempDir() + L"\\.GitWCRevignore", L".GitWCRevignore\n"));
+	EXPECT_TRUE(StringUtils::WriteStringToTextFile(m_Dir.GetTempDir() / L".GitWCRevignore", L".GitWCRevignore\n"));
 	GitWCRev_t GitStat2;
 	EXPECT_EQ(0, GetStatusUnCleanPath(m_Dir.GetTempDir(), GitStat2));
 	EXPECT_TRUE(GitStat2.bIsGitItem);
@@ -439,8 +439,8 @@ TEST_P(GitWCRevStatusCBasicGitWithTestRepoFixture, GitWCRevignore)
 	EXPECT_STREQ("Sven Strickroth", GitStat2.HeadAuthor.c_str());
 	EXPECT_STREQ("email@cs-ware.de", GitStat2.HeadEmail.c_str());
 
-	EXPECT_TRUE(StringUtils::WriteStringToTextFile(m_Dir.GetTempDir() + L"\\utf8-bom.txt", L"modified!"));
-	EXPECT_TRUE(StringUtils::WriteStringToTextFile(m_Dir.GetTempDir() + L"\\.GitWCRevignore", L".GitWCRevignore\nutf8-bom.txt\n"));
+	EXPECT_TRUE(StringUtils::WriteStringToTextFile(m_Dir.GetTempDir() / L"utf8-bom.txt", L"modified!"));
+	EXPECT_TRUE(StringUtils::WriteStringToTextFile(m_Dir.GetTempDir() / L".GitWCRevignore", L".GitWCRevignore\nutf8-bom.txt\n"));
 
 	GitWCRev_t GitStat3;
 	EXPECT_EQ(0, GetStatusUnCleanPath(m_Dir.GetTempDir(), GitStat3));
@@ -460,7 +460,7 @@ TEST_P(GitWCRevStatusCBasicGitWithTestRepoFixture, GitWCRevignore)
 	EXPECT_STREQ("email@cs-ware.de", GitStat3.HeadEmail.c_str());
 
 	GitWCRev_t GitStat4;
-	EXPECT_EQ(0, GetStatusUnCleanPath(m_Dir.GetTempDir() + L"\\utf8-bom.txt", GitStat4));
+	EXPECT_EQ(0, GetStatusUnCleanPath(m_Dir.GetTempDir() / L"utf8-bom.txt", GitStat4));
 	EXPECT_TRUE(GitStat4.bIsGitItem);
 	EXPECT_FALSE(GitStat4.bIsUnborn);
 	EXPECT_STREQ("master", GitStat4.CurrentBranch.c_str());
@@ -493,7 +493,7 @@ TEST_P(GitWCRevStatusCBasicGitWithTestRepoFixture, GitWCRevignore)
 	EXPECT_STREQ("Sven Strickroth", GitStat5.HeadAuthor.c_str());
 	EXPECT_STREQ("email@cs-ware.de", GitStat5.HeadEmail.c_str());
 
-	EXPECT_TRUE(StringUtils::WriteStringToTextFile(m_Dir.GetTempDir() + L"\\ansi.txt", L"modified!"));
+	EXPECT_TRUE(StringUtils::WriteStringToTextFile(m_Dir.GetTempDir() / L"ansi.txt", L"modified!"));
 	GitWCRev_t GitStat6;
 	EXPECT_EQ(0, GetStatusUnCleanPath(m_Dir.GetTempDir(), GitStat6));
 	EXPECT_TRUE(GitStat6.bIsGitItem);
@@ -519,7 +519,7 @@ TEST_P(GitWCRevStatusCBasicGitWithTestRepoFixture, PathNormalize)
 	EXPECT_STRNE(L"", output);
 
 	GitWCRev_t GitStat;
-	EXPECT_EQ(0, GetStatusUnCleanPath(m_Dir.GetTempDir() + L"\\copy\\.\\ansi.txt", GitStat));
+	EXPECT_EQ(0, GetStatusUnCleanPath(m_Dir.GetTempDir() / L"copy\\.\\ansi.txt", GitStat));
 	EXPECT_TRUE(GitStat.bIsGitItem);
 	EXPECT_FALSE(GitStat.bIsUnborn);
 	EXPECT_STREQ("master", GitStat.CurrentBranch.c_str());

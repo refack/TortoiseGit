@@ -20,16 +20,17 @@
 // CStringT<wchar_t, StrTraitATL>. Under MFC this TU's CString would be the
 // StrTraitMFC_DLL flavor - a different type that cannot bind to the modules'
 // const CString& parameters (CLAUDE.md, "The CString ABI wall").
-#include <atlbase.h>
-#include <atlstr.h>
-#include <atltime.h>
+// #include <atlbase.h>
+// #include <atlstr.h>
+// #include <atltime.h>
 
 // Windows SDK
 #include <SDKDDKVer.h>
-#include <WinInet.h>
 #include <WinSock2.h>
 #include <Ws2tcpip.h>
+#include <WinInet.h>
 #include <Wspiapi.h>
+#include <Windows.h>
 
 //libgit2
 #include <git2.h>
@@ -63,4 +64,9 @@ import DebugOutput;
 import RIAA;
 import wil;				// the libgit2 owners (wil::unique_git_*), scope_exit_helper for SCOPE_EXIT
 import AutoTempDir;
+
+namespace fs = std::filesystem;
+using tgit::wstr::CString;
+using CStringA = tgit::zstr::CString;
+
 #endif

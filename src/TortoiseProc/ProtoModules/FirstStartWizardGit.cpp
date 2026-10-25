@@ -45,7 +45,7 @@ CFirstStartWizardGit::CFirstStartWizardGit() : CFirstStartWizardBasePage(CFirstS
 	m_sMsysGitPath = m_regMsysGitPath;
 	m_sMsysGitExtranPath = m_regMsysGitExtranPath;
 
-	m_bEnableHacks = (TGitH::ms_bCygwinGit || TGitH::ms_bMsys2Git);
+	m_bEnableHacks = (GitCall::ms_bCygwinGit || GitCall::ms_bMsys2Git);
 }
 
 CFirstStartWizardGit::~CFirstStartWizardGit()
@@ -78,12 +78,12 @@ LRESULT CFirstStartWizardGit::OnWizardNext()
 	SetGitHacks();
 
 	bool needsRestart = false;
-	if (m_sMsysGitPath.Compare(CString(m_regMsysGitPath)) || m_sMsysGitExtranPath.Compare(CString(m_regMsysGitExtranPath)) || TGitH::ms_bCygwinGit != (m_regCygwinHack == TRUE) || TGitH::ms_bMsys2Git != (m_regMsys2Hack == TRUE))
+	if (m_sMsysGitPath.Compare(CString(m_regMsysGitPath)) || m_sMsysGitExtranPath.Compare(CString(m_regMsysGitExtranPath)) || GitCall::ms_bCygwinGit != (m_regCygwinHack == TRUE) || GitCall::ms_bMsys2Git != (m_regMsys2Hack == TRUE))
 	{
 		StoreSetting(GetSafeHwnd(), m_sMsysGitPath, m_regMsysGitPath);
 		StoreSetting(GetSafeHwnd(), m_sMsysGitExtranPath, m_regMsysGitExtranPath);
-		StoreSetting(GetSafeHwnd(), TGitH::ms_bCygwinGit, m_regCygwinHack);
-		StoreSetting(GetSafeHwnd(), TGitH::ms_bMsys2Git, m_regMsys2Hack);
+		StoreSetting(GetSafeHwnd(), GitCall::ms_bCygwinGit, m_regCygwinHack);
+		StoreSetting(GetSafeHwnd(), GitCall::ms_bMsys2Git, m_regMsys2Hack);
 		needsRestart = true;
 	}
 
@@ -113,7 +113,7 @@ LRESULT CFirstStartWizardGit::OnWizardNext()
 
 void CFirstStartWizardGit::ShowWorkarounds(bool show)
 {
-	if (!(TGitH::ms_bCygwinGit || TGitH::ms_bMsys2Git || show))
+	if (!(GitCall::ms_bCygwinGit || GitCall::ms_bMsys2Git || show))
 		return;
 
 	GetDlgItem(IDC_WORKAROUNDS)->EnableWindow(TRUE);
@@ -124,9 +124,9 @@ void CFirstStartWizardGit::ShowWorkarounds(bool show)
 	GetDlgItem(IDC_GITHACKS2)->EnableWindow(m_bEnableHacks);
 	GetDlgItem(IDC_GITHACKS2)->ShowWindow(m_bEnableHacks ? SW_SHOW : SW_HIDE);
 
-	if (TGitH::ms_bCygwinGit)
+	if (GitCall::ms_bCygwinGit)
 		CheckRadioButton(IDC_GITHACKS1, IDC_GITHACKS2, IDC_GITHACKS1);
-	else if (TGitH::ms_bMsys2Git)
+	else if (GitCall::ms_bMsys2Git)
 		CheckRadioButton(IDC_GITHACKS1, IDC_GITHACKS2, IDC_GITHACKS2);
 }
 
@@ -206,25 +206,25 @@ void CFirstStartWizardGit::OnBrowseDir()
 
 void CFirstStartWizardGit::SetGitHacks()
 {
-	TGitH::ms_bCygwinGit = false;
-	TGitH::ms_bMsys2Git = false;
+	GitCall::ms_bCygwinGit = false;
+	GitCall::ms_bMsys2Git = false;
 	if (m_bEnableHacks)
 	{
 		int id = GetCheckedRadioButton(IDC_GITHACKS1, IDC_GITHACKS2);
-		TGitH::ms_bCygwinGit = (id == IDC_GITHACKS1);
-		TGitH::ms_bMsys2Git = (id == IDC_GITHACKS2);
+		GitCall::ms_bCygwinGit = (id == IDC_GITHACKS1);
+		GitCall::ms_bMsys2Git = (id == IDC_GITHACKS2);
 	}
 }
 
 void CFirstStartWizardGit::OnCheck()
 {
 	UpdateData();
-	bool oldCygwinGit = TGitH::ms_bCygwinGit;
-	bool oldMsys2Git = TGitH::ms_bMsys2Git;
+	bool oldCygwinGit = GitCall::ms_bCygwinGit;
+	bool oldMsys2Git = GitCall::ms_bMsys2Git;
 	SCOPE_EXIT
 	{
-		TGitH::ms_bCygwinGit = oldCygwinGit;
-		TGitH::ms_bMsys2Git = oldMsys2Git;
+		GitCall::ms_bCygwinGit = oldCygwinGit;
+		GitCall::ms_bMsys2Git = oldMsys2Git;
 	};
 
 	SetGitHacks();

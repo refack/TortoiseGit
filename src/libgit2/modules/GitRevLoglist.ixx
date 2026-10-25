@@ -25,6 +25,7 @@ using TGitPath::CTGitPath;
 using TGitPath::CTGitPathList;
 using tgit::str::StringView;
 using tgit::wstr::CString;
+using tgit::wstr::CTime;
 
 // Application classes this module only refers to: TortoiseProc defines them, in
 // the global module. A plain forward declaration here would attach them to this
@@ -79,10 +80,8 @@ private:
 
 
 
-export struct GitRevLoglist : GitRev
-{
-	using CString = GitRev::StringType;
-	using CTime = GitRev::TimeType;
+export struct GitRevLoglist : GitRev {
+
 	using CALL_UPDATE_DIFF_ASYNC = void(GitRevLoglist* pRev, IAsyncDiffCB* data);
 
 	friend class CLogCache;
@@ -285,11 +284,11 @@ public:
 			}
 
 			// cf. CGit::GetGitDiff()
-			if (TGitH::ms_iSimilarityIndexThreshold > 0)
+			if (GitCall::ms_iSimilarityIndexThreshold > 0)
 			{
 				git_diff_find_options diffopts = GIT_DIFF_FIND_OPTIONS_INIT;
 				diffopts.flags = GIT_DIFF_FIND_COPIES | GIT_DIFF_FIND_RENAMES;
-				diffopts.rename_threshold = diffopts.copy_threshold = static_cast<uint16_t>(TGitH::ms_iSimilarityIndexThreshold);
+				diffopts.rename_threshold = diffopts.copy_threshold = static_cast<uint16_t>(GitCall::ms_iSimilarityIndexThreshold);
 				if (git_diff_find_similar(diff.get(), &diffopts) < 0)
 				{
 					m_sErr = TGitH::GetLibGit2LastErr();
@@ -693,7 +692,7 @@ int GitRevLoglist::GetRefLog(const CString& ref_, std::vector<GitRevLoglist>& re
 		return 0;
 	}
 
-	const auto dotGitDirMaybe = GitAdminDir::GetAdminDirPath(StringView{g_Git.m_CurrentDir});
+	const auto dotGitDirMaybe = GitAdminDir::GetAdminDirPath(g_Git.m_CurrentDir.wstring());
 	if (!dotGitDirMaybe.has_value())
 	{
 		error = L".git directory not found";
@@ -711,7 +710,7 @@ int GitRevLoglist::GetRefLog(const CString& ref_, std::vector<GitRevLoglist>& re
 	CString out;
 	// The --pretty format was quoted inside the command line because it contains
 	// spaces; as an argv element it is one string and needs no quotes of its own.
-	if (g_Git.Run({ L"git.exe", L"reflog", L"show", L"--pretty=%H %gD: %gs", L"--date=raw", L"--end-of-options", std::wstring(ref) }, &out, &error))
+	if (GitCall::Run({ L"git.exe", L"reflog", L"show", L"--pretty=%H %gD: %gs", L"--date=raw", L"--end-of-options", std::wstring(ref) }, &out, &error))
 		return -1;
 
 	int i = 0;

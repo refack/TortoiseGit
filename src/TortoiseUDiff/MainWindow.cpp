@@ -29,7 +29,7 @@
 #include <Utils/CreateProcessHelper.h>
 import DarkModeHelper;
 #include <Utils/DPIAware.h>
-#include <Utils/LoadIconEx.h>
+#include <../libgit2/Utils/LoadIconEx.h>
 import Registry;
 #include <Utils/ScintillaRegistration.h>
 import str_utils;

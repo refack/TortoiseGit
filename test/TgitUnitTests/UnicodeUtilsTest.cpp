@@ -18,9 +18,10 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 #include "stdafx.h"
+using namespace std::literals;
+using tgit::wstr::CString;
+using CStringW = tgit::wstr::CString;
 
-#pragma warning(push)
-#pragma warning(disable:4566)
 TEST(UnicodeUtils, CString)
 {
 	CStringA result = CUnicodeUtils::Convert2Multibyte<CStringA>(L"");
@@ -96,59 +97,59 @@ TEST(UnicodeUtils, CString)
 
 TEST(UnicodeUtils, Std)
 {
-	std::string result = CUnicodeUtils::StdGetUTF8(L"");
+	std::string result = CUnicodeUtils::StdGetUTF8(L""s);
 	EXPECT_EQ(0u, result.size());
 	EXPECT_STREQ(result.c_str(), "");
 	std::wstring resultW = CUnicodeUtils::StdGetUnicode("", CP_UTF8);
 	EXPECT_EQ(0u, resultW.size());
 	EXPECT_STREQ(resultW.c_str(), L"");
 
-	result = CUnicodeUtils::StdGetUTF8(L"Iñtërnâtiônàlizætiøn");
+	result = CUnicodeUtils::StdGetUTF8(L"Iñtërnâtiônàlizætiøn"s);
 	EXPECT_EQ(27u, result.size());
 	EXPECT_STREQ(result.c_str(), "\x49\xC3\xB1\x74\xC3\xAB\x72\x6E\xC3\xA2\x74\x69\xC3\xB4\x6E\xC3\xA0\x6C\x69\x7A\xC3\xA6\x74\x69\xC3\xB8\x6E");
 	resultW = CUnicodeUtils::StdGetUnicode(result, CP_UTF8);
 	EXPECT_STREQ(resultW.c_str(), L"Iñtërnâtiônàlizætiøn");
 	EXPECT_EQ(20u, resultW.size());
 
-	result = CUnicodeUtils::StdGetUTF8(L"<value>退订</value>");
+	result = CUnicodeUtils::StdGetUTF8(L"<value>退订</value>"s);
 	resultW = CUnicodeUtils::StdGetUnicode(result, CP_UTF8);
 	EXPECT_STREQ(resultW.c_str(), L"<value>退订</value>");
 
-	result = CUnicodeUtils::StdGetUTF8(L"äöü");
+	result = CUnicodeUtils::StdGetUTF8(L"äöü"s);
 	EXPECT_EQ(6u, result.size());
 	resultW = CUnicodeUtils::StdGetUnicode(result, CP_UTF8);
 	EXPECT_STREQ(resultW.c_str(), L"äöü");
 	EXPECT_EQ(3u, resultW.size());
 
-	result = CUnicodeUtils::StdGetUTF8(L"äöüß");
+	result = CUnicodeUtils::StdGetUTF8(L"äöüß"s);
 	EXPECT_STREQ(result.c_str(), "\xC3\xA4\xC3\xB6\xC3\xBC\xC3\x9F");
 
-	result = CUnicodeUtils::StdGetUTF8(L"Продолжить выполнение скрипта?");
+	result = CUnicodeUtils::StdGetUTF8(L"Продолжить выполнение скрипта?"s);
 	resultW = CUnicodeUtils::StdGetUnicode(result, CP_UTF8);
 	EXPECT_STREQ(resultW.c_str(), L"Продолжить выполнение скрипта?");
 
-	result = CUnicodeUtils::StdGetUTF8(L"dvostruki klik za automtsko uključivanje alfa");
+	result = CUnicodeUtils::StdGetUTF8(L"dvostruki klik za automtsko uključivanje alfa"s);
 	resultW = CUnicodeUtils::StdGetUnicode(result, CP_UTF8);
 	EXPECT_STREQ(resultW.c_str(), L"dvostruki klik za automtsko uključivanje alfa");
 
-	result = CUnicodeUtils::StdGetUTF8(L"包含有错误的结构。");
+	result = CUnicodeUtils::StdGetUTF8(L"包含有错误的结构。"s);
 	resultW = CUnicodeUtils::StdGetUnicode(result, CP_UTF8);
 	EXPECT_STREQ(resultW.c_str(), L"包含有错误的结构。");
 
-	result = CUnicodeUtils::StdGetUTF8(L"个文件，共有 %2!d! 个文件");
+	result = CUnicodeUtils::StdGetUTF8(L"个文件，共有 %2!d! 个文件"s);
 	resultW = CUnicodeUtils::StdGetUnicode(result, CP_UTF8);
 	EXPECT_STREQ(resultW.c_str(), L"个文件，共有 %2!d! 个文件");
 
-	result = CUnicodeUtils::StdGetUTF8(L"は予期せぬオブジェクトを含んでいます。");
+	result = CUnicodeUtils::StdGetUTF8(L"は予期せぬオブジェクトを含んでいます。"s);
 	resultW = CUnicodeUtils::StdGetUnicode(result, CP_UTF8);
 	EXPECT_STREQ(resultW.c_str(), L"は予期せぬオブジェクトを含んでいます。");
 
-	result = CUnicodeUtils::StdGetUTF8(L"Verify that the correct path and file name are given.");
+	result = CUnicodeUtils::StdGetUTF8(L"Verify that the correct path and file name are given."s);
 	EXPECT_STREQ(result.c_str(), "Verify that the correct path and file name are given.");
 	resultW = CUnicodeUtils::StdGetUnicode(result, CP_UTF8);
 	EXPECT_STREQ(resultW.c_str(), L"Verify that the correct path and file name are given.");
 
-	result = CUnicodeUtils::StdGetUTF8(L"\U0002070e"); // 𠜎 is 4-byte utf8
+	result = CUnicodeUtils::StdGetUTF8(L"\U0002070e"s); // 𠜎 is 4-byte utf8
 	EXPECT_EQ(4u, result.size());
 	EXPECT_STREQ(result.c_str(), "\xf0\xa0\x9c\x8e");
 	resultW = CUnicodeUtils::StdGetUnicode("\xf0\xa0\x9c\x8e", CP_UTF8);
@@ -163,7 +164,6 @@ TEST(UnicodeUtils, Std)
 	EXPECT_STREQ(resultW.c_str(), L"\uFFFD(");
 	EXPECT_EQ(2u, resultW.size());
 }
-#pragma warning(pop)
 
 
 // Added when the CString overloads became thin adapters over the std:: ones

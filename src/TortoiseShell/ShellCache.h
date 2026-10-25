@@ -18,7 +18,7 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 #pragma once
-#include <../SharedMFC/Resources/Globals.h>
+#include <../libgit2/Resources/Globals.h>
 import Registry;
 import TGitStatus;	// CacheType, was Utils/CacheType.h, then tgittypes
 import GitIndex;	// git_wc_status_kind, which ShellCache.h's includers (TGitCache) reach through here

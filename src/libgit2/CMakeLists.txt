@@ -1,34 +1,23 @@
-﻿# The core library, once per CString flavor (modules/shims/str_utils.ixx says why):
-#   TGitLibgit2     ATL - UnitTests, and later TortoiseShell / TGitCache
-#   TGitLibgit2Mfc  MFC - TortoiseProc
-# Both STATIC: the TGitCore.lib of CLAUDE.md's Phase B. As a DLL it exported none
-# of our symbols - only libgit2's C API, which a static git2.lib marks dllexport -
-# so nothing could link against the module code. gitdll stays the one DLL, and
-# that boundary is what keeps libgit.lib off this library's consumers.
-set(flavor MFC)
-
-add_library(TGitLibgit2 STATIC)
+﻿add_library(TGitLibgit2 STATIC)
 
 target_sources("TGitLibgit2"
+    PUBLIC
+        FILE_SET HEADERS
+        BASE_DIRS .
+        FILES
+            include/sanity.h
+            Resources/LoglistCommonResource.h
     PRIVATE
         patches/filter-filter.c
         patches/ssh-wintunnel.c
         patches/system-call.c
-        modules/lanes.cpp   # the lanes module's implementation unit
 )
 
 target_include_directories(TGitLibgit2
     PRIVATE
-        "${CMAKE_SOURCE_DIR}/ext/gitdll"
         "${CMAKE_CURRENT_SOURCE_DIR}/include"
-        "${CMAKE_SOURCE_DIR}/src/SharedMFC"
-)
-
-# _AFXDLL comes from the root for every target; the ATL flavor, when it returns,
-# has to take it back out (the root define is what the shim's TGIT_MFC split is for).
-target_compile_definitions(TGitLibgit2
-    PRIVATE
-        $<$<STREQUAL:${flavor},MFC>:TGIT_MFC>
+        "${CMAKE_SOURCE_DIR}/ext/gitdll"
+        "${CMAKE_CURRENT_SOURCE_DIR}"
 )
 
 target_link_libraries(TGitLibgit2
@@ -57,6 +46,7 @@ target_sources(TGitLibgit2
         modules/shims/libgit2.ixx
         modules/shims/json.ixx
         modules/Git.ixx
+        modules/GitCall.ixx
         modules/BugTraqAssociations.ixx
         modules/DarkModeHelper.ixx
         modules/DebugOutput.ixx
@@ -88,4 +78,5 @@ target_sources(TGitLibgit2
         modules/utils/PathWatcher.ixx
         modules/CacheInterface.ixx
         modules/SysInfo.ixx
+        modules/ShellEnvironment.ixx
 )

@@ -239,7 +239,7 @@ STDMETHODIMP GitDataObject::GetData(FORMATETC* pformatetcIn, STGMEDIUM* pmedium)
 	{
 		// supports the IStream format.
 		// The lindex param is the index of the file to return
-		CString filepath;
+		fs::path filepath;
 		IStream* pIStream = nullptr;
 
 		// Note: we don't get called for directories since those are simply created and don't
@@ -255,21 +255,19 @@ STDMETHODIMP GitDataObject::GetData(FORMATETC* pformatetcIn, STGMEDIUM* pmedium)
 		{
 			if (pformatetcIn->lindex >= 0 && pformatetcIn->lindex < static_cast<LONG>(m_allPaths.size()))
 				filepath = g_Git.CombinePath(m_allPaths[pformatetcIn->lindex]);
-		}
-		else
-		{
-			filepath = TempFiles::GetTempFilePath(true).GetWinPathString().c_str();
+		} else {
+			filepath = TempFiles::GetTempFilePath(true).GetWinPathString();
 			if (pformatetcIn->lindex >= 0 && pformatetcIn->lindex < static_cast<LONG>(m_allPaths.size()))
 			{
-				if (g_Git.GetOneFile(m_revision.ToString().data(), m_allPaths[pformatetcIn->lindex], filepath))
+				if (g_Git.GetOneFile(m_revision.ToString().data(), m_allPaths[pformatetcIn->lindex], filepath.c_str()))
 				{
-					DeleteFile(filepath);
+					fs::remove(filepath);
 					return STG_E_ACCESSDENIED;
 				}
 			}
 		}
 
-		HRESULT res = SHCreateStreamOnFileEx(filepath, STGM_READ, FILE_ATTRIBUTE_NORMAL, FALSE, nullptr, &pIStream);
+		HRESULT res = SHCreateStreamOnFileEx(filepath.c_str(), STGM_READ, FILE_ATTRIBUTE_NORMAL, FALSE, nullptr, &pIStream);
 		if (res == S_OK)
 		{
 			// http://blogs.msdn.com/b/oldnewthing/archive/2014/09/18/10558763.aspx
@@ -352,7 +350,7 @@ STDMETHODIMP GitDataObject::GetData(FORMATETC* pformatetcIn, STGMEDIUM* pmedium)
 			if (pformatetcIn->cfFormat == CF_UNICODETEXT)
 				text += path.GetWinPathString();
 			else
-				text += g_Git.CombinePath(path).GetString();
+				text += g_Git.CombinePath(path).c_str();
 			text += L"\r\n";
 		}
 		return GiveToMedium(pmedium, wil::make_moveable_hglobal(text));
@@ -365,7 +363,7 @@ STDMETHODIMP GitDataObject::GetData(FORMATETC* pformatetcIn, STGMEDIUM* pmedium)
 		{
 			if (path.m_Action & (CTGitPath::LOGACTIONS_MISSING | CTGitPath::LOGACTIONS_DELETED) || path.IsDirectory())
 				continue;
-			names += g_Git.CombinePath(path).GetString();
+			names += g_Git.CombinePath(path).c_str();
 			names += L'\0';
 		}
 		names += L'\0';

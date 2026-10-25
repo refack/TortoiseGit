@@ -117,7 +117,7 @@ static bool GetFilesToCleanUp(CTGitPathList& delList, const std::vector<std::wst
 		}, &cmdouterr))
 	{
 		if (cmdouterr.IsEmpty())
-			cmdouterr.Format(IDS_GITEXEERROR_NOMESSAGE, CGit::SerializeArgvToCString(cmd));
+			cmdouterr.Format(IDS_GITEXEERROR_NOMESSAGE, CGit::SerializeArgvStdWString(cmd));
 		MessageBox(GetExplorerHWND(), cmdouterr, L"TortoiseGit", MB_ICONERROR);
 		return false;
 	}

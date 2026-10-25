@@ -8,6 +8,7 @@ target_sources(TGitUnitTests
         GitByteArrayTest.cpp
         GitHashTest.cpp
         GitIndexTest.cpp
+        GitLinesTest.cpp
         GitRevLoglistTest.cpp
         GitRevTest.cpp
         GitTest.cpp

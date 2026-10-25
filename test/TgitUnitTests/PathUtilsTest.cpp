@@ -18,9 +18,9 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
-#include <gtest/gtest.h>
 #include "stdafx.h"
 import PathUtils;
+namespace fs = std::filesystem;
 
 TEST(PathUtilsTest, GetFileNameFromPath)
 {
@@ -93,19 +93,19 @@ TEST(CPathUtils, ArePathStringsEqual)
 TEST(CPathUtils, MakeSureDirectoryPathExists)
 {
 	CAutoTempDir tmpDir;
-	EXPECT_TRUE(PathIsDirectory(tmpDir.GetTempDir()));
-	EXPECT_FALSE(PathFileExists(tmpDir.GetTempDir() + L"\\sub"));
-	EXPECT_FALSE(PathIsDirectory(tmpDir.GetTempDir() + L"\\sub"));
+	EXPECT_TRUE(fs::is_directory(tmpDir.GetTempDir()));
+	EXPECT_FALSE(fs::exists(tmpDir.GetTempDir() / L"sub"));
+	EXPECT_FALSE(fs::is_directory(tmpDir.GetTempDir() / L"sub"));
 
-	EXPECT_TRUE(PathUtils::MakeSureDirectoryPathExists(tmpDir.GetTempDir() + L"\\sub\\sub\\dir"));
-	EXPECT_TRUE(PathIsDirectory(tmpDir.GetTempDir() + L"\\sub"));
-	EXPECT_TRUE(PathIsDirectory(tmpDir.GetTempDir() + L"\\sub\\sub"));
-	EXPECT_TRUE(PathIsDirectory(tmpDir.GetTempDir() + L"\\sub\\sub\\dir"));
+	EXPECT_TRUE(PathUtils::MakeSureDirectoryPathExists((tmpDir.GetTempDir() / L"sub\\sub\\dir").c_str()));
+	EXPECT_TRUE(fs::is_directory(tmpDir.GetTempDir() / L"sub"));
+	EXPECT_TRUE(fs::is_directory(tmpDir.GetTempDir() / L"sub\\sub"));
+	EXPECT_TRUE(fs::is_directory(tmpDir.GetTempDir() / L"sub\\sub\\dir"));
 
-	EXPECT_TRUE(PathUtils::MakeSureDirectoryPathExists(tmpDir.GetTempDir() + L"\\sub/asub/adir"));
-	EXPECT_TRUE(PathIsDirectory(tmpDir.GetTempDir() + L"\\sub"));
-	EXPECT_TRUE(PathIsDirectory(tmpDir.GetTempDir() + L"\\sub\\asub"));
-	EXPECT_TRUE(PathIsDirectory(tmpDir.GetTempDir() + L"\\sub\\asub\\adir"));
+	EXPECT_TRUE(PathUtils::MakeSureDirectoryPathExists((tmpDir.GetTempDir() / L"sub/asub/adir").c_str()));
+	EXPECT_TRUE(fs::is_directory(tmpDir.GetTempDir() / L"sub"));
+	EXPECT_TRUE(fs::is_directory(tmpDir.GetTempDir() / L"sub\\asub"));
+	EXPECT_TRUE(fs::is_directory(tmpDir.GetTempDir() / L"sub\\asub\\adir"));
 }
 
 TEST(CPathUtils, EnsureTrailingPathDelimiter)

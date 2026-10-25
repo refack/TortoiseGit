@@ -25,7 +25,6 @@
 #include <GdiPlus.h>
 #pragma warning(pop)
 import RIAA;
-#include <memory>
 #include <vector>
 
 using namespace Gdiplus;

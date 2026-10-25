@@ -28,7 +28,6 @@ import str_utils;
 
 #include <algorithm>
 #include <cctype>
-#include <memory>
 #include <functional>
 
 #define MYERROR {CUtils::Error(); return FALSE;}

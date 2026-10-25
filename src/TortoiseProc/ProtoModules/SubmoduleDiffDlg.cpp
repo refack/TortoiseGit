@@ -23,7 +23,7 @@
 import AppUtils.Launch;
 import AppUtils.Window;
 #include "SubmoduleDiffDlg.h"
-#include "Resources/LoglistCommonResource.h"
+#include "../../libgit2/Resources/LoglistCommonResource.h"
 
 IMPLEMENT_DYNAMIC(CSubmoduleDiffDlg, CHorizontalResizableStandAloneDialog)
 CSubmoduleDiffDlg::CSubmoduleDiffDlg(CWnd* pParent /*=nullptr*/)

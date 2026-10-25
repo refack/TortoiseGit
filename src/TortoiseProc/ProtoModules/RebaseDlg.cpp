@@ -939,7 +939,7 @@ int CRebaseDlg::CheckRebaseCondition()
 		{
 			CString out;
 			const std::vector<std::wstring> argv{ L"git.exe", L"stash" };
-			this->AddLogString(CGit::SerializeArgvToCString(argv));
+			this->AddLogString(CGit::SerializeArgvStdWString(argv));
 			if (g_Git.Run(argv, &out, CP_UTF8))
 			{
 				MessageBox(out, L"TortoiseGit", MB_OK | MB_ICONERROR);
@@ -1057,7 +1057,7 @@ int CRebaseDlg::StartRebase()
 		if (g_Git.m_IsUseLibGit2)
 			WriteReflog(m_OrigHEADHash, "rebase: start (" + CUnicodeUtils::GetUTF8<CStringA>(m_OrigHEADBranch) + " on " + CUnicodeUtils::GetUTF8<CStringA>(m_OrigUpstreamHash.ToString()) + ")");
 		const std::vector<std::wstring> argv{ L"git.exe", L"checkout", L"-f", std::wstring(m_OrigUpstreamHash.ToString()), L"--" };
-		this->AddLogString(CGit::SerializeArgvToCString(argv));
+		this->AddLogString(CGit::SerializeArgvStdWString(argv));
 		if (RunGitCmdRetryOrAbort(argv))
 			return -1;
 		if (!g_Git.CheckCleanWorkTree())
@@ -1140,13 +1140,13 @@ int CRebaseDlg::FinishRebase()
 	if (g_Git.IsLocalBranch(m_BranchCtrl.GetString()))
 	{
 		const std::vector<std::wstring> checkout{ L"git.exe", L"checkout", L"-f", L"-B", std::wstring(m_BranchCtrl.GetString()), std::wstring(head.ToString()), L"--" };
-		AddLogString(CGit::SerializeArgvToCString(checkout));
+		AddLogString(CGit::SerializeArgvStdWString(checkout));
 		if (RunGitCmdRetryOrAbort(checkout))
 			return -1;
 	}
 
 	const std::vector<std::wstring> reset{ L"git.exe", L"reset", L"--hard", std::wstring(head.ToString()), L"--" };
-	AddLogString(CGit::SerializeArgvToCString(reset));
+	AddLogString(CGit::SerializeArgvStdWString(reset));
 	if (RunGitCmdRetryOrAbort(reset))
 		return -1;
 
@@ -1255,7 +1255,7 @@ void CRebaseDlg::OnBnClickedContinue()
 		if (g_Git.IsLocalBranch(m_BranchCtrl.GetString()))
 		{
 			const std::vector<std::wstring> checkout{ L"git.exe", L"checkout", L"--no-track", L"-f", L"-B", std::wstring(m_BranchCtrl.GetString()), L"--end-of-options", std::wstring(m_UpstreamCtrl.GetString()), L"--" };
-			AddLogString(CGit::SerializeArgvToCString(checkout));
+			AddLogString(CGit::SerializeArgvStdWString(checkout));
 			if (RunGitCmdRetryOrAbort(checkout))
 			{
 				GetDlgItem(IDC_REBASE_CONTINUE)->EnableWindow(TRUE);
@@ -1270,7 +1270,7 @@ void CRebaseDlg::OnBnClickedContinue()
 		log.Format(IDS_PROC_REBASE_FFTO, static_cast<LPCWSTR>(m_UpstreamCtrl.GetString()));
 		this->AddLogString(log);
 
-		AddLogString(CGit::SerializeArgvToCString(reset));
+		AddLogString(CGit::SerializeArgvStdWString(reset));
 		this->m_ctrlTabCtrl.SetActiveTab(REBASE_TAB_LOG);
 		if (RunGitCmdRetryOrAbort(reset))
 		{
@@ -1438,7 +1438,7 @@ void CRebaseDlg::OnBnClickedContinue()
 			argv.emplace_back(L"--allow-empty");
 		argv.insert(argv.cend(), { L"--allow-empty-message", L"-C", std::wstring(curRev->m_CommitHash.ToString()) });
 
-		AddLogString(CGit::SerializeArgvToCString(argv));
+		AddLogString(CGit::SerializeArgvStdWString(argv));
 
 		if (!skipCurrent && g_Git.Run(argv, &out, CP_UTF8))
 		{
@@ -1473,7 +1473,7 @@ void CRebaseDlg::OnBnClickedContinue()
 
 			out.Empty();
 			const std::vector<std::wstring> amend{ L"git.exe", L"commit", L"--amend", L"-F", std::wstring(tempfile) };
-			AddLogString(CGit::SerializeArgvToCString(amend));
+			AddLogString(CGit::SerializeArgvStdWString(amend));
 
 			if (g_Git.Run(amend, &out, CP_UTF8))
 			{
@@ -1970,7 +1970,7 @@ int CRebaseDlg::IsCommitEmpty(const CGitHash& hash)
 	const std::vector<std::wstring> argv{ L"git.exe", L"rev-parse", L"-q", L"--verify", std::format(L"{}^{{tree}}", hash.ToString()) };
 	if (g_Git.Run(argv, &tree, CP_UTF8))
 	{
-		AddLogString(CGit::SerializeArgvToCString(argv));
+		AddLogString(CGit::SerializeArgvStdWString(argv));
 		AddLogString(tree);
 		return -1;
 	}
@@ -2197,7 +2197,7 @@ int CRebaseDlg::DoRebase()
 					{
 						if (g_Git.Run(argv, &out, CP_UTF8))
 						{
-							AddLogString(CGit::SerializeArgvToCString(argv));
+							AddLogString(CGit::SerializeArgvStdWString(argv));
 							AddLogString(out);
 							const int hasConflicts = g_Git.HasWorkingTreeConflicts();
 							if (hasConflicts > 0)
@@ -3034,7 +3034,7 @@ int	CRebaseDlg::RunGitCmdRetryOrAbort(const std::vector<std::wstring>& argv)
 		CString out;
 		if (g_Git.Run(argv, &out, CP_UTF8))
 		{
-			const CString cmd = CGit::SerializeArgvToCString(argv);
+			const CString cmd = CGit::SerializeArgvStdWString(argv);
 			AddLogString(cmd);
 			AddLogString(CString(MAKEINTRESOURCE(IDS_FAIL)));
 			AddLogString(out);

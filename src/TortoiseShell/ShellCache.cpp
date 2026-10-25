@@ -60,7 +60,7 @@ ShellCache::ShellCache()
 	menumaskhigh_lm = CRegStdDWORD(L"Software\\TortoiseGit\\ContextMenuEntriesMaskHigh", 0, FALSE, HKEY_LOCAL_MACHINE, KEY_WOW64_64KEY);
 	menumasklow_cu = CRegStdDWORD(L"Software\\TortoiseGit\\ContextMenuEntriesMaskLow", 0, false, HKEY_CURRENT_USER, KEY_WOW64_64KEY);
 	menumaskhigh_cu = CRegStdDWORD(L"Software\\TortoiseGit\\ContextMenuEntriesMaskHigh", 0, false, HKEY_CURRENT_USER, KEY_WOW64_64KEY);
-	langid = CRegStdDWORD(L"Software\\TortoiseGit\\LanguageID", CLangDll::s_defaultLang, false, HKEY_CURRENT_USER, KEY_WOW64_64KEY);
+	langid = CRegStdDWORD(L"Software\\TortoiseGit\\LanguageID", LangDll::s_defaultLang, false, HKEY_CURRENT_USER, KEY_WOW64_64KEY);
 	blockstatus = CRegStdDWORD(L"Software\\TortoiseGit\\BlockStatus", 0, false, HKEY_CURRENT_USER, KEY_WOW64_64KEY);
 	std::fill_n(drivetypecache, 27, UINT(-1));
 	if (DWORD(drivefloppy) == 0)

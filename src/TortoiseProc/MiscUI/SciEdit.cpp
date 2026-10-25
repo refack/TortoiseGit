@@ -29,9 +29,9 @@
 #include <scintilla/ILexer.h>
 #include <lexilla/SciLexer.h>
 #include <lexilla/Lexilla.h>
-#include <Resources/LoglistCommonResource.h>
+#include <../../libgit2/Resources/LoglistCommonResource.h>
 #include <../TortoiseUDiff/UDiffColors.h>
-#include <Utils/LoadIconEx.h>
+#include <../../libgit2/Utils/LoadIconEx.h>
 #include <Utils/ScintillaRegistration.h>
 #include <Utils/Theme.h>
 #include <Utils/URLFinder.h>

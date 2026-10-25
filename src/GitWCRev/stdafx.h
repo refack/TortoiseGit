@@ -21,7 +21,6 @@ using std::min;
 #include <vector>
 #include <set>
 #include <tuple>
-#include <memory>
 
 #include <Shlwapi.h>
 #include <shellapi.h>

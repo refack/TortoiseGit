@@ -192,7 +192,7 @@ protected:
 					callHelp(IDD_SETTINGSMAIN);
 				return false;
 			}
-			else if (!(TGitH::ms_bCygwinGit || TGitH::ms_bMsys2Git) && out.Find(L"msysgit") == -1 && out.Find(L"windows") == -1)
+			else if (!(GitCall::ms_bCygwinGit || GitCall::ms_bMsys2Git) && out.Find(L"msysgit") == -1 && out.Find(L"windows") == -1)
 			{
 				bool wasAlreadyWarned = !needWorkarounds || *needWorkarounds;
 				if (CMessageBox::Show(hwnd, IDS_ERR_GITNEEDHACKS, IDS_APPNAME, 1, IDI_INFORMATION, IDS_MSGBOX_OK, IDS_MSGBOX_HELP) == 2)
@@ -202,7 +202,7 @@ protected:
 				if (!wasAlreadyWarned)
 					return false;
 			}
-			else if ((TGitH::ms_bCygwinGit || TGitH::ms_bMsys2Git) && out.Find(L"msysgit") > 0 && out.Find(L"windows") > 0)
+			else if ((GitCall::ms_bCygwinGit || GitCall::ms_bMsys2Git) && out.Find(L"msysgit") > 0 && out.Find(L"windows") > 0)
 			{
 				if (CMessageBox::Show(hwnd, IDS_ERR_GITUNNEEDEDHACKS, IDS_APPNAME, 1, IDI_INFORMATION, IDS_MSGBOX_OK, IDS_MSGBOX_HELP) == 2)
 					callHelp(IDD_SETTINGSMAIN);

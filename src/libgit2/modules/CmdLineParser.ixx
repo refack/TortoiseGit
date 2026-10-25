@@ -371,13 +371,13 @@ export namespace TCmdLineParser
     }
 
 	template <tgit::str::TStrOfWide TStr>
-	TStr EscapeValue(const TStr& input)
+	auto EscapeValue(const TStr& input)
     {
     	using SV = tgit::str::StringView<TStr>;
     	using char_t = SV::char_type;
 
     	const auto in_sv = SV{input}.as_view();
-        TStr result;
+        std::basic_string<char_t> result;
         result += L'"';
 
         // result.reserve(in_sv.size());

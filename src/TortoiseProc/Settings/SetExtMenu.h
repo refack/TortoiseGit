@@ -20,7 +20,7 @@
 
 #pragma once
 #include "../../SharedMFC/Resources/resource.h"
-#include <../../SharedMFC/Resources/Globals.h>
+#include <../../libgit2/Resources/Globals.h>
 
 class CSetExtMenu : public ISettingsPropPage
 {

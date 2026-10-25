@@ -21,7 +21,7 @@
 
 #include "SettingsPropPage.h"
 import Registry;
-#include <../../SharedMFC/Resources/Globals.h>
+#include <../../libgit2/Resources/Globals.h>
 
 #include "../../SharedMFC/Resources/resource.h"
 

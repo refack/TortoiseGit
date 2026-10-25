@@ -84,7 +84,7 @@ bool CatCommand::Execute()
 	}
 
 	tgit::wstr::CString output, err;
-	if (g_Git.Run({ L"git.exe", L"cat-file", L"-t", L"--", revision }, &output, &err))
+	if (GitCall::Run({ L"git.exe", L"cat-file", L"-t", L"--", revision }, &output, &err))
 	{
 		::DeleteFile(savepath);
 		MessageBox(GetExplorerHWND(), output + L'\n' + err, L"TortoiseGit", MB_ICONERROR);
@@ -102,7 +102,7 @@ bool CatCommand::Execute()
 		cmd = { L"git.exe", L"show", L"--end-of-options", std::wstring(revision), L"--", cmdLinePath.GetGitPathString() };
 	}
 
-	if (g_Git.RunLogFile(cmd, savepath, &err))
+	if (GitCall::RunLogFile(cmd, savepath, &err))
 	{
 		::DeleteFile(savepath);
 		MessageBox(GetExplorerHWND(), L"Cat file failed:\n" + err, L"TortoiseGit", MB_ICONERROR);

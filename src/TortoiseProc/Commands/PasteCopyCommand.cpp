@@ -85,7 +85,7 @@ bool PasteCopyCommand::Execute()
 			// GetGitPathString(), not GetWinPathString(): non-relaxed
 			// QuoteParameter used to convert the backslashes here.
 			CString output;
-			if (g_Git.Run({ L"git.exe", L"add", L"--", fullDropPath.GetGitPathString() }, &output, CP_UTF8))
+			if (g_Git.Run({ L"git.exe", L"add", L"--", fullDropPath.GetGitPathString() }, &output)))
 			{
 				TRACE(L"%s\n", static_cast<LPCWSTR>(output));
 				CMessageBox::Show(GetExplorerHWND(), output, L"TortoiseGit", MB_ICONERROR);

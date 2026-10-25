@@ -75,16 +75,16 @@ TEST(CGitAdminDir, IsBareRepo_normalRepo)
 
 	EXPECT_FALSE(GitAdminDir::IsBareRepo(tmpDir.GetTempDir()));
 
-	EXPECT_FALSE(GitAdminDir::IsBareRepo(tmpDir.GetTempDir() + L"\\.git"));
+	EXPECT_FALSE(GitAdminDir::IsBareRepo(tmpDir.GetTempDir() / L".git"));
 
-	EXPECT_FALSE(GitAdminDir::IsBareRepo(tmpDir.GetTempDir() + L"\\.git\\objects"));
+	EXPECT_FALSE(GitAdminDir::IsBareRepo(tmpDir.GetTempDir() / L".git\\objects"));
 }
 
 TEST(CGitAdminDir, IsBareRepo_ReferencedRepo)
 {
 	CAutoTempDir tmpDir;
 
-	CString gitFile = tmpDir.GetTempDir() + L"\\.git";
+	CString gitFile = tmpDir.GetTempDir() / L".git";
 	EXPECT_TRUE(StringUtils::WriteStringToTextFile(gitFile, L"gitdir: dontcare"));
 
 	EXPECT_FALSE(GitAdminDir::IsBareRepo(tmpDir.GetTempDir()));
@@ -101,23 +101,23 @@ TEST(CGitAdminDir, IsAdminDirPath)
 
 	EXPECT_FALSE(GitAdminDir::IsAdminDirPath(tmpDir.GetTempDir()));
 
-	EXPECT_TRUE(GitAdminDir::IsAdminDirPath(tmpDir.GetTempDir() + L"\\.git"));
+	EXPECT_TRUE(GitAdminDir::IsAdminDirPath(tmpDir.GetTempDir() / L".git"));
 
-	EXPECT_TRUE(GitAdminDir::IsAdminDirPath(tmpDir.GetTempDir() + L"\\.git\\config"));
+	EXPECT_TRUE(GitAdminDir::IsAdminDirPath(tmpDir.GetTempDir() / L".git\\config"));
 
-	EXPECT_TRUE(GitAdminDir::IsAdminDirPath(tmpDir.GetTempDir() + L"\\.git\\objects"));
+	EXPECT_TRUE(GitAdminDir::IsAdminDirPath(tmpDir.GetTempDir() / L".git\\objects"));
 
-	EXPECT_FALSE(GitAdminDir::IsAdminDirPath(tmpDir.GetTempDir() + L"\\.gitmodules"));
+	EXPECT_FALSE(GitAdminDir::IsAdminDirPath(tmpDir.GetTempDir() / L".gitmodules"));
 
 	{
 		LPCWSTR pos = nullptr;
-		CString dirName = tmpDir.GetTempDir() + L"\\.git";
+		CString dirName = tmpDir.GetTempDir() / L".git";
 		EXPECT_TRUE(GitAdminDir::IsAdminDirPath(dirName, &pos));
 		EXPECT_EQ(static_cast<LPCWSTR>(dirName) + dirName.GetLength() - wcslen(L"\\.git"), pos);
 	}
 
-	ASSERT_TRUE(CreateDirectory(tmpDir.GetTempDir() + L"\\.gitted", nullptr));
-	EXPECT_FALSE(GitAdminDir::IsAdminDirPath(tmpDir.GetTempDir() + L"\\.gitted"));
+	ASSERT_TRUE(CreateDirectory(tmpDir.GetTempDir() / L".gitted", nullptr));
+	EXPECT_FALSE(GitAdminDir::IsAdminDirPath(tmpDir.GetTempDir() / L".gitted"));
 }
 
 TEST(CGitAdminDir, IsAdminDirPath_BareRepo)
@@ -147,7 +147,7 @@ TEST(CGitAdminDir, GetAdminDirPath_BareRepo)
 	EXPECT_STREQ(tmpDir.GetTempDir() + L'\\', adminDir);
 
 	adminDir.Empty();
-	EXPECT_FALSE(GitAdminDir::GetAdminDirPath(tmpDir.GetTempDir() + L"\\objects", adminDir));
+	EXPECT_FALSE(GitAdminDir::GetAdminDirPath(tmpDir.GetTempDir() / L"objects", adminDir));
 	EXPECT_STREQ(L"", adminDir);
 }
 
@@ -155,7 +155,7 @@ TEST(CGitAdminDir, GetAdminDirPath_ReferencedRepo)
 {
 	CAutoTempDir tmpDir;
 
-	CString gitFile = tmpDir.GetTempDir() + L"\\.git";
+	CString gitFile = tmpDir.GetTempDir() / L".git";
 	EXPECT_TRUE(StringUtils::WriteStringToTextFile(gitFile, L""));
 
 	CString adminDir;
@@ -164,22 +164,22 @@ TEST(CGitAdminDir, GetAdminDirPath_ReferencedRepo)
 	EXPECT_TRUE(StringUtils::WriteStringToTextFile(gitFile, L"gitdir: dontcare\n"));
 
 	EXPECT_TRUE(GitAdminDir::GetAdminDirPath(tmpDir.GetTempDir(), adminDir));
-	EXPECT_STREQ(tmpDir.GetTempDir() + L"\\dontcare\\", adminDir);
+	EXPECT_STREQ(tmpDir.GetTempDir() / L"dontcare\\", adminDir);
 
-	ASSERT_TRUE(CreateDirectory(tmpDir.GetTempDir() + L"\\anotherdir", nullptr));
-	gitFile = tmpDir.GetTempDir() + L"\\anotherdir\\.git";
+	ASSERT_TRUE(CreateDirectory(tmpDir.GetTempDir() / L"anotherdir", nullptr));
+	gitFile = tmpDir.GetTempDir() / L"anotherdir\\.git";
 	EXPECT_TRUE(StringUtils::WriteStringToTextFile(gitFile, L"gitdir: ../something\n"));
 
-	EXPECT_TRUE(GitAdminDir::GetAdminDirPath(tmpDir.GetTempDir() + L"\\anotherdir", adminDir));
-	EXPECT_STREQ(tmpDir.GetTempDir() + L"\\something\\", adminDir);
+	EXPECT_TRUE(GitAdminDir::GetAdminDirPath(tmpDir.GetTempDir() / L"anotherdir", adminDir));
+	EXPECT_STREQ(tmpDir.GetTempDir() / L"something\\", adminDir);
 
-	ASSERT_TRUE(CreateDirectory(tmpDir.GetTempDir() + L"\\\x6587", nullptr));
-	gitFile = tmpDir.GetTempDir() + L"\\\x6587\\.git";
+	ASSERT_TRUE(CreateDirectory(tmpDir.GetTempDir() / L"\x6587", nullptr));
+	gitFile = tmpDir.GetTempDir() / L"\x6587\\.git";
 
 	EXPECT_TRUE(StringUtils::WriteStringToTextFile(gitFile, L"gitdir: ../\x4e2d\n"));
 
-	EXPECT_TRUE(GitAdminDir::GetAdminDirPath(tmpDir.GetTempDir() + L"\\\x6587", adminDir));
-	EXPECT_STREQ(tmpDir.GetTempDir() + L"\\\x4e2d\\", adminDir);
+	EXPECT_TRUE(GitAdminDir::GetAdminDirPath(tmpDir.GetTempDir() / L"\x6587", adminDir));
+	EXPECT_STREQ(tmpDir.GetTempDir() / L"\x4e2d\\", adminDir);
 }
 
 TEST(CGitAdminDir, HasAdminDir)
@@ -188,7 +188,7 @@ TEST(CGitAdminDir, HasAdminDir)
 
 	EXPECT_FALSE(GitAdminDir::HasAdminDir(tmpDir.GetTempDir()));
 
-	CString gitFile = tmpDir.GetTempDir() + L"\\.gitted";
+	CString gitFile = tmpDir.GetTempDir() / L".gitted";
 	EXPECT_TRUE(StringUtils::WriteStringToTextFile(gitFile, L"something"));
 
 	EXPECT_FALSE(GitAdminDir::HasAdminDir(tmpDir.GetTempDir()));
@@ -200,34 +200,34 @@ TEST(CGitAdminDir, HasAdminDir)
 	EXPECT_TRUE(GitAdminDir::HasAdminDir(tmpDir.GetTempDir(), &repoRoot));
 	EXPECT_STREQ(tmpDir.GetTempDir(), repoRoot);
 
-	EXPECT_FALSE(GitAdminDir::HasAdminDir(tmpDir.GetTempDir() + L"\\.git", &repoRoot));
+	EXPECT_FALSE(GitAdminDir::HasAdminDir(tmpDir.GetTempDir() / L".git", &repoRoot));
 
 	repoRoot.Empty();
-	EXPECT_TRUE(GitAdminDir::HasAdminDir(tmpDir.GetTempDir() + L"\\.gitmodules", &repoRoot));
+	EXPECT_TRUE(GitAdminDir::HasAdminDir(tmpDir.GetTempDir() / L".gitmodules", &repoRoot));
 	EXPECT_STREQ(tmpDir.GetTempDir(), repoRoot);
 
 	repoRoot.Empty();
-	EXPECT_TRUE(GitAdminDir::HasAdminDir(tmpDir.GetTempDir() + L"\\something", &repoRoot));
+	EXPECT_TRUE(GitAdminDir::HasAdminDir(tmpDir.GetTempDir() / L"something", &repoRoot));
 	EXPECT_STREQ(tmpDir.GetTempDir(), repoRoot);
 
-	ASSERT_TRUE(CreateDirectory(tmpDir.GetTempDir() + L"\\anotherdir", nullptr));
+	ASSERT_TRUE(CreateDirectory(tmpDir.GetTempDir() / L"anotherdir", nullptr));
 	repoRoot.Empty();
-	EXPECT_TRUE(GitAdminDir::HasAdminDir(tmpDir.GetTempDir() + L"\\anotherdir", &repoRoot));
+	EXPECT_TRUE(GitAdminDir::HasAdminDir(tmpDir.GetTempDir() / L"anotherdir", &repoRoot));
 	EXPECT_STREQ(tmpDir.GetTempDir(), repoRoot);
 
 	wil::unique_git_repository subrepo;
-	ASSERT_TRUE(git_repository_init(subrepo.put(), CUnicodeUtils::GetUTF8<CStringA>(tmpDir.GetTempDir() + L"\\anotherdir"), false) == 0);
+	ASSERT_TRUE(git_repository_init(subrepo.put(), CUnicodeUtils::GetUTF8<CStringA>(tmpDir.GetTempDir() / L"anotherdir"), false) == 0);
 
 	repoRoot.Empty();
-	EXPECT_TRUE(GitAdminDir::HasAdminDir(tmpDir.GetTempDir() + L"\\anotherdir", &repoRoot));
-	EXPECT_STREQ(tmpDir.GetTempDir() + L"\\anotherdir", repoRoot);
+	EXPECT_TRUE(GitAdminDir::HasAdminDir(tmpDir.GetTempDir() / L"anotherdir", &repoRoot));
+	EXPECT_STREQ(tmpDir.GetTempDir() / L"anotherdir", repoRoot);
 
 	repoRoot.Empty();
-	EXPECT_TRUE(GitAdminDir::HasAdminDir(tmpDir.GetTempDir() + L"\\anotherdir", true, &repoRoot));
-	EXPECT_STREQ(tmpDir.GetTempDir() + L"\\anotherdir", repoRoot);
+	EXPECT_TRUE(GitAdminDir::HasAdminDir(tmpDir.GetTempDir() / L"anotherdir", true, &repoRoot));
+	EXPECT_STREQ(tmpDir.GetTempDir() / L"anotherdir", repoRoot);
 
 	repoRoot.Empty();
-	EXPECT_TRUE(GitAdminDir::HasAdminDir(tmpDir.GetTempDir() + L"\\anotherdir", false, &repoRoot));
+	EXPECT_TRUE(GitAdminDir::HasAdminDir(tmpDir.GetTempDir() / L"anotherdir", false, &repoRoot));
 	EXPECT_STREQ(tmpDir.GetTempDir(), repoRoot);
 }
 
@@ -242,7 +242,7 @@ TEST(CGitAdminDir, HasAdminDir_bareRepo)
 
 	EXPECT_FALSE(GitAdminDir::HasAdminDir(tmpDir.GetTempDir()));
 
-	EXPECT_FALSE(GitAdminDir::IsBareRepo(tmpDir.GetTempDir() + L"\\objects"));
+	EXPECT_FALSE(GitAdminDir::IsBareRepo(tmpDir.GetTempDir() / L"objects"));
 }
 
 TEST(CGitAdminDir, HasAdminDir_bareRepoInRegularRepo)
@@ -254,27 +254,27 @@ TEST(CGitAdminDir, HasAdminDir_bareRepoInRegularRepo)
 	wil::unique_git_repository repo;
 	ASSERT_TRUE(git_repository_init(repo.put(), CUnicodeUtils::GetUTF8<CStringA>(tmpDir.GetTempDir()), false) == 0);
 	wil::unique_git_repository bareRepo;
-	ASSERT_TRUE(git_repository_init(bareRepo.put(), CUnicodeUtils::GetUTF8<CStringA>(tmpDir.GetTempDir() + L"\\bare"), true) == 0);
+	ASSERT_TRUE(git_repository_init(bareRepo.put(), CUnicodeUtils::GetUTF8<CStringA>(tmpDir.GetTempDir() / L"bare"), true) == 0);
 
 	EXPECT_TRUE(GitAdminDir::HasAdminDir(tmpDir.GetTempDir()));
-	EXPECT_FALSE(GitAdminDir::HasAdminDir(tmpDir.GetTempDir() + L"\\bare"));
-	EXPECT_FALSE(GitAdminDir::HasAdminDir(tmpDir.GetTempDir() + L"\\bare\\objects"));
+	EXPECT_FALSE(GitAdminDir::HasAdminDir(tmpDir.GetTempDir() / L"bare"));
+	EXPECT_FALSE(GitAdminDir::HasAdminDir(tmpDir.GetTempDir() / L"bare\\objects"));
 
 	EXPECT_FALSE(GitAdminDir::IsBareRepo(tmpDir.GetTempDir()));
-	EXPECT_TRUE(GitAdminDir::IsBareRepo(tmpDir.GetTempDir() + L"\\bare"));
-	EXPECT_FALSE(GitAdminDir::IsBareRepo(tmpDir.GetTempDir() + L"\\bare\\objects"));
+	EXPECT_TRUE(GitAdminDir::IsBareRepo(tmpDir.GetTempDir() / L"bare"));
+	EXPECT_FALSE(GitAdminDir::IsBareRepo(tmpDir.GetTempDir() / L"bare\\objects"));
 }
 
 TEST(CGitAdminDir, HasAdminDir_ReferencedRepo)
 {
 	CAutoTempDir tmpDir;
 
-	CString barePath = tmpDir.GetTempDir() + L"\\bare.git";
+	CString barePath = tmpDir.GetTempDir() / L"bare.git";
 	ASSERT_TRUE(CreateDirectory(barePath, nullptr));
 	wil::unique_git_repository repo;
 	ASSERT_TRUE(git_repository_init(repo.put(), CUnicodeUtils::GetUTF8<CStringA>(barePath), true) == 0);
 
-	CString wtPath = tmpDir.GetTempDir() + L"\\wt";
+	CString wtPath = tmpDir.GetTempDir() / L"wt";
 	ASSERT_TRUE(CreateDirectory(wtPath, nullptr));
 
 	EXPECT_TRUE(StringUtils::WriteStringToTextFile(wtPath + L"\\.git", L"gitdir: ../bare.git"));
@@ -291,9 +291,9 @@ TEST(CGitAdminDir, HasAdminDir_ReferencedRepo2)
 	wil::unique_git_repository repo;
 	ASSERT_TRUE(git_repository_init(repo.put(), CUnicodeUtils::GetUTF8<CStringA>(tmpDir.GetTempDir()), false) == 0);
 
-	EXPECT_TRUE(MoveFile(tmpDir.GetTempDir() + L"\\.git", tmpDir.GetTempDir() + L"\\_git"));
+	EXPECT_TRUE(MoveFile(tmpDir.GetTempDir() / L".git", tmpDir.GetTempDir() / L"_git"));
 
-	EXPECT_TRUE(StringUtils::WriteStringToTextFile(tmpDir.GetTempDir() + L"\\.git", L"gitdir: _git"));
+	EXPECT_TRUE(StringUtils::WriteStringToTextFile(tmpDir.GetTempDir() / L".git", L"gitdir: _git"));
 
 	CString repoRoot;
 	EXPECT_TRUE(GitAdminDir::HasAdminDir(tmpDir.GetTempDir(), &repoRoot));
@@ -304,7 +304,7 @@ TEST(CGitAdminDir, HasAdminDir_InvalidRepo)
 {
 	CAutoTempDir tmpDir;
 
-	EXPECT_TRUE(CreateDirectory(tmpDir.GetTempDir() + L"\\.git", nullptr));
+	EXPECT_TRUE(CreateDirectory(tmpDir.GetTempDir() / L".git", nullptr));
 
 	CString repoRoot;
 	EXPECT_FALSE(GitAdminDir::HasAdminDir(tmpDir.GetTempDir(), &repoRoot));
@@ -314,7 +314,7 @@ TEST(CGitAdminDir, HasAdminDir_InvalidRepoFile)
 {
 	CAutoTempDir tmpDir;
 
-	CString gitFile = tmpDir.GetTempDir() + L"\\.git";
+	CString gitFile = tmpDir.GetTempDir() / L".git";
 	EXPECT_TRUE(StringUtils::WriteStringToTextFile(gitFile, L"gitdir: dontcare"));
 
 	CString repoRoot;
@@ -344,21 +344,21 @@ TEST(CGitAdminDir, IsWorkingTreeOrBareRepo_normalRepo)
 
 	EXPECT_TRUE(GitAdminDir::IsWorkingTreeOrBareRepo(tmpDir.GetTempDir()));
 
-	EXPECT_FALSE(GitAdminDir::IsWorkingTreeOrBareRepo(tmpDir.GetTempDir() + L"\\.git"));
+	EXPECT_FALSE(GitAdminDir::IsWorkingTreeOrBareRepo(tmpDir.GetTempDir() / L".git"));
 
-	EXPECT_FALSE(GitAdminDir::IsWorkingTreeOrBareRepo(tmpDir.GetTempDir() + L"\\.git\\objects"));
+	EXPECT_FALSE(GitAdminDir::IsWorkingTreeOrBareRepo(tmpDir.GetTempDir() / L".git\\objects"));
 }
 
 TEST(CGitAdminDir, IsWorkingTreeOrBareRepo_ReferencedRepo)
 {
 	CAutoTempDir tmpDir;
 
-	CString barePath = tmpDir.GetTempDir() + L"\\bare.git";
+	CString barePath = tmpDir.GetTempDir() / L"bare.git";
 	ASSERT_TRUE(CreateDirectory(barePath, nullptr));
 	wil::unique_git_repository repo;
 	ASSERT_TRUE(git_repository_init(repo.put(), CUnicodeUtils::GetUTF8<CStringA>(barePath), true) == 0);
 
-	CString wtPath = tmpDir.GetTempDir() + L"\\wt";
+	CString wtPath = tmpDir.GetTempDir() / L"wt";
 	ASSERT_TRUE(CreateDirectory(wtPath, nullptr));
 
 	EXPECT_TRUE(StringUtils::WriteStringToTextFile(wtPath + L"\\.git", L"gitdir: ../bare.git"));
@@ -373,9 +373,9 @@ TEST(CGitAdminDir, IsWorkingTreeOrBareRepo_ReferencedRepo2)
 	wil::unique_git_repository repo;
 	ASSERT_TRUE(git_repository_init(repo.put(), CUnicodeUtils::GetUTF8<CStringA>(tmpDir.GetTempDir()), false) == 0);
 
-	EXPECT_TRUE(MoveFile(tmpDir.GetTempDir() + L"\\.git", tmpDir.GetTempDir() + L"\\_git"));
+	EXPECT_TRUE(MoveFile(tmpDir.GetTempDir() / L".git", tmpDir.GetTempDir() / L"_git"));
 
-	EXPECT_TRUE(StringUtils::WriteStringToTextFile(tmpDir.GetTempDir() + L"\\.git", L"gitdir: _git"));
+	EXPECT_TRUE(StringUtils::WriteStringToTextFile(tmpDir.GetTempDir() / L".git", L"gitdir: _git"));
 
 	EXPECT_TRUE(GitAdminDir::IsWorkingTreeOrBareRepo(tmpDir.GetTempDir()));
 }
@@ -384,7 +384,7 @@ TEST(CGitAdminDir, IsWorkingTreeOrBareRepo_InvalidRepo)
 {
 	CAutoTempDir tmpDir;
 
-	EXPECT_TRUE(CreateDirectory(tmpDir.GetTempDir() + L"\\.git", nullptr));
+	EXPECT_TRUE(CreateDirectory(tmpDir.GetTempDir() / L".git", nullptr));
 
 	EXPECT_FALSE(GitAdminDir::IsWorkingTreeOrBareRepo(tmpDir.GetTempDir()));
 }
@@ -393,7 +393,7 @@ TEST(CGitAdminDir, IsWorkingTreeOrBareRepo_InvalidRepoFile)
 {
 	CAutoTempDir tmpDir;
 
-	CString gitFile = tmpDir.GetTempDir() + L"\\.git";
+	CString gitFile = tmpDir.GetTempDir() / L".git";
 	EXPECT_TRUE(StringUtils::WriteStringToTextFile(gitFile, L"gitdir: dontcare"));
 
 	EXPECT_FALSE(GitAdminDir::IsWorkingTreeOrBareRepo(tmpDir.GetTempDir()));
@@ -403,7 +403,7 @@ TEST(CGitAdminDir, ReadGitLink)
 {
 	CAutoTempDir tmpDir;
 
-	CString gitFile = tmpDir.GetTempDir() + L"\\.git";
+	CString gitFile = tmpDir.GetTempDir() / L".git";
 	EXPECT_STREQ(L"", GitAdminDir::ReadGitLink(L"C:\\somerepo", gitFile));
 
 	EXPECT_TRUE(::CreateDirectory(gitFile, nullptr));
@@ -532,27 +532,27 @@ TEST(CGitAdminDir, GetSuperProjectRoot)
 
 	EXPECT_STREQ(L"", GitAdminDir::GetSuperProjectRoot(tmpDir.GetTempDir()));
 
-	EXPECT_TRUE(::CreateDirectory(tmpDir.GetTempDir() + L"\\.git", nullptr));
+	EXPECT_TRUE(::CreateDirectory(tmpDir.GetTempDir() / L".git", nullptr));
 	EXPECT_STREQ(L"", GitAdminDir::GetSuperProjectRoot(tmpDir.GetTempDir()));
 
-	EXPECT_TRUE(::CreateDirectory(tmpDir.GetTempDir() + L"\\subdir", nullptr));
+	EXPECT_TRUE(::CreateDirectory(tmpDir.GetTempDir() / L"subdir", nullptr));
 	EXPECT_STREQ(L"", GitAdminDir::GetSuperProjectRoot(tmpDir.GetTempDir()));
 
-	CString gitmodules = tmpDir.GetTempDir() + L"\\.gitmodules";
+	CString gitmodules = tmpDir.GetTempDir() / L".gitmodules";
 	EXPECT_TRUE(StringUtils::WriteStringToTextFile(gitmodules, L"something"));
 	EXPECT_STREQ(tmpDir.GetTempDir(), GitAdminDir::GetSuperProjectRoot(tmpDir.GetTempDir()));
-	EXPECT_STREQ(tmpDir.GetTempDir(), GitAdminDir::GetSuperProjectRoot(tmpDir.GetTempDir() + L"\\subdir"));
+	EXPECT_STREQ(tmpDir.GetTempDir(), GitAdminDir::GetSuperProjectRoot(tmpDir.GetTempDir() / L"subdir"));
 
 	// make subdir a nested repository
-	EXPECT_TRUE(::CreateDirectory(tmpDir.GetTempDir() + L"\\subdir\\.git", nullptr));
-	EXPECT_STREQ(L"", GitAdminDir::GetSuperProjectRoot(tmpDir.GetTempDir() + L"\\subdir"));
+	EXPECT_TRUE(::CreateDirectory(tmpDir.GetTempDir() / L"subdir\\.git", nullptr));
+	EXPECT_STREQ(L"", GitAdminDir::GetSuperProjectRoot(tmpDir.GetTempDir() / L"subdir"));
 
 	EXPECT_TRUE(::DeleteFile(gitmodules));
-	EXPECT_STREQ(L"", GitAdminDir::GetSuperProjectRoot(tmpDir.GetTempDir() + L"\\subdir"));
+	EXPECT_STREQ(L"", GitAdminDir::GetSuperProjectRoot(tmpDir.GetTempDir() / L"subdir"));
 
-	gitmodules = tmpDir.GetTempDir() + L"\\subdir\\.gitmodules";
+	gitmodules = tmpDir.GetTempDir() / L"subdir\\.gitmodules";
 	EXPECT_TRUE(StringUtils::WriteStringToTextFile(gitmodules, L"something"));
-	EXPECT_STREQ(tmpDir.GetTempDir() + L"\\subdir", GitAdminDir::GetSuperProjectRoot(tmpDir.GetTempDir() + L"\\subdir"));
+	EXPECT_STREQ(tmpDir.GetTempDir() / L"subdir", GitAdminDir::GetSuperProjectRoot(tmpDir.GetTempDir() / L"subdir"));
 }
 
 TEST_P(CGitAdminDirWithTestRepoFixture, HasAdminDir)

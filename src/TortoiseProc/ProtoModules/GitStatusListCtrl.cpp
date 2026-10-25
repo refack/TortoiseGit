@@ -23,7 +23,7 @@
 #include <Resources/resource.h>
 
 
-#include <Resources/LoglistCommonResource.h>
+#include <../../libgit2/Resources/LoglistCommonResource.h>
 #include <../TortoiseShell/resource.h>
 #include "GitStatusListCtrl.h"
 import MessageBox;

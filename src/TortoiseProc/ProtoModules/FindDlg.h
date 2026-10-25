@@ -21,7 +21,7 @@
 
 #include "Utils/HistoryCombo.h"
 #include "StandAloneDlg.h"
-#include <Resources/LoglistCommonResource.h>
+#include <../../libgit2/Resources/LoglistCommonResource.h>
 import Registry;
 #include "Utils/GestureEnabledControl.h"
 

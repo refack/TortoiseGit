@@ -19,7 +19,6 @@
 
 #pragma once
 #include <string>
-#include <memory>
 
 /**
  * Loads a string from the application resources.

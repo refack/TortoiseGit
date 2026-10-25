@@ -305,8 +305,10 @@ template <IsTCompString TStr>
 constexpr auto to_atl(const TStr& s)
 {
 	using traits = StringViewTraits<TStr>;
-	using atl_str_t = ATL::CStringT<typename traits::char_type, ATL::StrTraitATL<typename traits::char_type>>;
-	return atl_str_t{traits::data(s), traits::template outsize<atl_str_t>(s)};
+	if constexpr (std::is_same_v<typename traits::char_type, wchar_t>)
+		return wstr::CString{traits::data(s), traits::template outsize<zstr::CString>(s)};
+	else
+		return zstr::CString{traits::data(s), traits::template outsize<zstr::CString>(s)};
 }
 
 
@@ -450,15 +452,16 @@ struct generate_random_string_t {
 
 // std: std::views::split (+ std::from_chars for numeric containers)
 auto stringtok(
-	const auto& in,
+	const auto& in_nt,
 	const bool trim,
 	const auto delimiters
 ) {
-	using StrT = std::remove_cvref_t<decltype(in)>;
+	using StrT = std::remove_cvref_t<decltype(in_nt)>;
 	using traits = StringViewTraits<StrT>;
 	static_assert(IsTCompString<StrT>, "Wrong type of [in]");
 	static_assert(std::is_convertible_v<decltype(delimiters), typename StringViewTraits<StrT>::const_pointer>, "mismatched delimiter type");
 
+	auto in = std::basic_string_view<typename traits::char_type>{StringView{in_nt}};
 	auto container = std::vector<StrT>{};
 	for (typename traits::size_type i = {}; i < in.size();) {
 		if (trim) {
@@ -471,14 +474,30 @@ auto stringtok(
 		// find the end of the token
 		const auto j = in.find_first_of(delimiters, i);
 		auto substr = in.substr(i, j - i);
-		container.push_back(substr);
-		if (j == StrT::npos)
+		container.emplace_back(substr);
+		if (j == traits::npos)
 			break;
 
 		// set up for next loop
 		i = j + 1;
 	}
 	return container;
+}
+
+
+/// The '\n'-terminated lines of a growing buffer, each with the offset just past its '\n'; an
+/// unterminated tail is not yielded, it stays for the next read. The '\r' of a "\r\n" is dropped:
+/// every receiver reads git's CLI metadata (refs, hashes, paths), none of which can hold a '\r'.
+/// A receiver of file content would need the '\r' kept.
+template <IsRealString SV, typename char_type = SV::value_type>
+std::generator<std::pair<std::basic_string_view<char_type>, std::size_t>> lazy_tokenize_lines(const SV buf, std::size_t next = 0) {
+	constexpr char_type LE = '\n';
+	std::size_t nl;
+	while ((nl = buf.find(LE, next)) != buf.npos) {
+		const auto start = std::exchange(next, nl + 1);
+		const auto back_off = size_t{ nl > start && buf.at(nl - 1) == '\r' };
+		co_yield { buf.substr(start, nl - start - back_off), next };
+	}
 }
 
 }
@@ -1002,8 +1021,7 @@ std::string StdGetUTF8(const TIn& wide, const int acp = CP_UTF8, const char* con
 template <TStrOfChar TOut, TStrOfWide TIn>
 TOut GetUTF8(const TIn& string)
 {
-	const auto string_view = StringView{ string };
-	return GetMulti<TOut>(string_view, CP_UTF8);
+	return GetMulti<TOut>(string, CP_UTF8);
 }
 
 

@@ -27,7 +27,7 @@
 #include "IconMenu.h"
 import AppUtils.Launch;
 #include <../TortoiseShell/resource.h>
-#include "Resources/LoglistCommonResource.h"
+#include "../../libgit2/Resources/LoglistCommonResource.h"
 #include "SysProgressDlg.h"
 #include "ProgressDlg.h"
 

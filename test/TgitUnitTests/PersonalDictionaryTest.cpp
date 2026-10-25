@@ -22,64 +22,65 @@ import PersonalDictionary;
 import str_utils;
 import PathUtils;
 
-namespace
-{
-    constexpr auto LCID_INVALID = 11;
-    // use 11 here which is not a valid language code so that we don't overwrite dictionaries
 
-    constexpr CString GetPath(LONG languageID)
-    {
-        return std::format(L"{}{}.dic", PathUtils::GetAppDataDirectory(), languageID).c_str();
-    }
+constexpr auto LCID_INVALID = 11;
+// use 11 here which is not a valid language code so that we don't overwrite dictionaries
+
+static constexpr CString GetPath(LONG languageID)
+{
+    return std::format(L"{}{}.dic", PathUtils::GetAppDataDirectory(), languageID).c_str();
 }
 
-TEST(CPersonalDictionary, UseDictionary)
+
+
+TEST(CPersonalDictionary, UseDictionary) {
+	ASSERT_FALSE(fs::exists(GetPath(LCID_INVALID).GetString()));
+	CPersonalDictionary dict;
+	dict.Init(LCID_INVALID);
+
+	for (const CString& word : { L"", L"Test", L"Täst", L"рефакторинг" })
+		EXPECT_FALSE(dict.FindWord(tgit::str::StringView(word)));
+
+	EXPECT_FALSE(dict.AddWord(L""));
+	for (const CString& word : { L"Test", L"Täst", L"рефакторинг" })
+	{
+		EXPECT_TRUE(dict.AddWord(tgit::str::StringView(word)));
+		EXPECT_TRUE(dict.FindWord(tgit::str::StringView(word)));
+		EXPECT_TRUE(dict.AddWord(tgit::str::StringView(word)));
+	}
+
+	TCHAR tooLong[PDICT_MAX_WORD_LENGTH + 5] = {};
+	for (auto i = 0ULL; i < _countof(tooLong) - 1; ++i)
+		tooLong[i] = L'a';
+	EXPECT_FALSE(dict.AddWord(tooLong));
+	EXPECT_FALSE(dict.FindWord(tooLong));
+
+	// lowercase words
+	EXPECT_FALSE(dict.FindWord(L"test"));
+	EXPECT_TRUE(dict.AddWord(L"test"));
+
+	EXPECT_TRUE(dict.Save());
+	EXPECT_TRUE(dict.FindWord(L"test")); // Save does not clear the list
+	EXPECT_TRUE(fs::exists(GetPath(LCID_INVALID).GetString()));
+}
+
+
+TEST(CPersonalDictionary, UseDictionary2)
 {
-    ASSERT_FALSE(PathFileExists(GetPath(LCID_INVALID)));
-    CPersonalDictionary dict;
-    dict.Init(LCID_INVALID);
-
-    for (const CString& word : { L"", L"Test", L"Täst", L"рефакторинг" })
-        EXPECT_FALSE(dict.FindWord(tgit::str::StringView(word)));
-
-    const CString in[] = { L"Test", L"Täst", L"рефакторинг" };
-
-    EXPECT_FALSE(dict.AddWord(L""));
-    for (const CString& word : in)
-    {
-        EXPECT_TRUE(dict.AddWord(tgit::str::StringView(word)));
-        EXPECT_TRUE(dict.FindWord(tgit::str::StringView(word)));
-        EXPECT_TRUE(dict.AddWord(tgit::str::StringView(word)));
-    }
-
-    TCHAR tooLong[PDICT_MAX_WORD_LENGTH + 5] = { 0 };
-    for (auto i = 0ull; i < _countof(tooLong) - 1; ++i)
-        tooLong[i] = L'a';
-    EXPECT_FALSE(dict.AddWord(tooLong));
-    EXPECT_FALSE(dict.FindWord(tooLong));
-
-    // lowercase words
-    EXPECT_FALSE(dict.FindWord(L"test"));
-    EXPECT_TRUE(dict.AddWord(L"test"));
-
-    EXPECT_TRUE(dict.Save());
-    EXPECT_TRUE(dict.FindWord(L"test")); // Save does not clear the list
-    EXPECT_TRUE(PathFileExists(GetPath(LCID_INVALID)));
-
     // load safed words in ne dictionary
     CPersonalDictionary dict2;
     dict2.Init(LCID_INVALID);
-    for (const CString& word : in)
+    for (const CString& word : { L"Test", L"Täst", L"рефакторинг" })
         EXPECT_TRUE(dict2.FindWord(tgit::str::StringView(word)));
     EXPECT_TRUE(dict2.FindWord(L"test"));
     EXPECT_FALSE(dict2.FindWord(L"test2"));
 
-    EXPECT_TRUE(DeleteFile(GetPath(LCID_INVALID)));
+    EXPECT_TRUE(DeleteFile(GetPath(LCID_INVALID).GetString()));
 }
 
 TEST(CPersonalDictionary, LoadDictionary)
 {
-    ASSERT_FALSE(PathFileExists(GetPath(LCID_INVALID)));
+    ASSERT_FALSE(fs::exists(GetPath(LCID_INVALID).GetString()));
     CPersonalDictionary dict;
     dict.Init(LCID_INVALID);
 
@@ -89,7 +90,7 @@ TEST(CPersonalDictionary, LoadDictionary)
 
     EXPECT_FALSE(dict.FindWord(L""));
     for (const CString& word : { L"Test", L"Täst",
-                                 L"\u0440\u0435\u0444\u0430\u043A\u0442\u043E\u0440\u0438\u043D\u0433" })
+                                 L"\u0440\u0435\u0444\u0430\u043A\u0442\u043E\u0440\u0438\u043D\u0433", })
         EXPECT_TRUE(dict.FindWord(tgit::str::StringView(word)));
 
     EXPECT_FALSE(dict.FindWord(L"something"));

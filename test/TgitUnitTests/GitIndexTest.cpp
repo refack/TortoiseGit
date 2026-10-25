@@ -1,4 +1,4 @@
-﻿// TortoiseGit - a Windows shell extension for easy version control
+// TortoiseGit - a Windows shell extension for easy version control
 
 // Copyright (C) 2015-2020, 2023-2026 - TortoiseGit
 
@@ -58,46 +58,48 @@ protected:
 class CBasicGitWithMultiLinkedTestWithSubmoduleRepoFixture : public CBasicGitWithTestRepoCreatorFixture
 {
 protected:
-	virtual void SetUp()
-	{
+	virtual void SetUp() {
 		CBasicGitWithTestRepoCreatorFixture::SetUp();
 
 		// ====Main Work Tree Setup====
 		SetUpTestRepo(m_MainWorkTreePath);
 
 		m_Git.SetCurrentDirExact(m_MainWorkTreePath);
-		EXPECT_NE(0, SetCurrentDirectory(m_MainWorkTreePath));
+		EXPECT_NE(0, SetCurrentDirectory(m_MainWorkTreePath.c_str()));
 
-		CString output;
-		EXPECT_EQ(0, m_Git.Run(L"git.exe checkout -f master", &output, nullptr, CP_UTF8));
-		EXPECT_STRNE(L"", output);
+		
+		{
+			std::string output;
+			EXPECT_EQ(0, m_Git.Run({L"git.exe", L"checkout", L"-f", L"master"}, &output));
+			EXPECT_NE("", output);
 
-		if (TGitH::ms_bCygwinGit || TGitH::ms_bMsys2Git)
-			return;
+			if (GitCall::ms_bCygwinGit || GitCall::ms_bMsys2Git)
+				return;
 
-		// ====Source of the Sub-Module====
-		// Setup the repository in which the submodule will be fetched from
-		SetUpTestRepo(m_SubmoduleSource);
+			// ====Source of the Sub-Module====
+			// Setup the repository in which the submodule will be fetched from
+			SetUpTestRepo(m_SubmoduleSource);
+		}
 
 		//====Sub-Module Inside of The Main Work Tree (Root Level)====
-		output.Empty();
-		EXPECT_EQ(0, m_Git.Run(L"git.exe -c protocol.file.allow=always submodule add \"" + m_SubmoduleSource + L"\" sub1", &output, nullptr, CP_UTF8));
-		EXPECT_STREQ(L"", output);
+		std::string output;
+		EXPECT_EQ(0, m_Git.Run({L"git.exe", L"-c", L"protocol.file.allow=always", L"submodule", L"add", m_SubmoduleSource.c_str(), L"sub1"}, &output));
+		EXPECT_STREQ("", output);
 
-		output.Empty();
-		EXPECT_EQ(0, m_Git.Run(L"git.exe commit -a -m\"Add submodule for testing\"", &output, nullptr, CP_UTF8));
-		EXPECT_STRNE(L"", output);
+		std::string output2;
+		EXPECT_EQ(0, m_Git.Run({L"git.exe", L"commit", L"-a", L"-m", L"Add submodule for testing"}, &output2));
+		EXPECT_NE("", output2);
 
 		// ====Linked Work Tree setup (Absolute Path)====
 		// Linked worktree using git worktree with an absolute path
-		output.Empty();
-		EXPECT_EQ(0, m_Git.Run(L"git.exe worktree add -b TestBranch \"" + m_LinkedWorkTreePath + L"\"", &output, nullptr, CP_UTF8));
-		EXPECT_STRNE(L"", output);
+		std::string output3;
+		EXPECT_EQ(0, m_Git.Run({L"git.exe", L"worktree", L"add", L"-b", L"TestBranch", m_LinkedWorkTreePath.c_str()}, &output3));
+		EXPECT_NE("", output3);
 	}
 
-	CString m_MainWorkTreePath = m_Dir.GetTempDir() + L"\\MainWorkTree";
-	CString m_LinkedWorkTreePath = m_Dir.GetTempDir() + L"\\LinkedWorkTree";
-	CString m_SubmoduleSource = m_Dir.GetTempDir() + L"\\SubmoduleSource";
+	fs::path m_MainWorkTreePath = m_Dir.GetTempDir() / L"MainWorkTree";
+	fs::path m_LinkedWorkTreePath = m_Dir.GetTempDir() / L"LinkedWorkTree";
+	fs::path m_SubmoduleSource = m_Dir.GetTempDir() / L"SubmoduleSource";
 };
 
 INSTANTIATE_TEST_SUITE_P(GitIndex, GitIndexCBasicGitFixture, testing::Values(LIBGIT2));
@@ -113,9 +115,9 @@ TEST_P(GitIndexCBasicGitFixture, EmptyDir)
 }
 
 
-static void ReadAndCheckIndex(CGitIndexList& indexList, const CString& gitdir, unsigned int offset = 0)
+static void ReadAndCheckIndex(CGitIndexList& indexList, const fs::path& gitdir, unsigned int offset = 0)
 {
-	EXPECT_EQ(0, indexList.ReadIndex(std::wstring(gitdir)));
+	EXPECT_EQ(0, indexList.ReadIndex(gitdir.native()));
 	ASSERT_EQ(14 + offset, indexList.size());
 
 	EXPECT_STREQ(L"ansi.txt", indexList[offset].m_FileName.c_str());
@@ -143,15 +145,15 @@ static void ReadAndCheckIndex(CGitIndexList& indexList, const CString& gitdir, u
 
 TEST_P(GitIndexCBasicGitWithTestRepoFixture, ReadIndex)
 {
-	CString testFile = m_Dir.GetTempDir() + L"\\1.txt";
+	auto testFile = m_Dir.GetTempDir() / L"1.txt";
 	{
 		CGitIndexList indexList;
 		ReadAndCheckIndex(indexList, m_Dir.GetTempDir());
 
-		EXPECT_TRUE(StringUtils::WriteStringToTextFile(testFile, L"this is testing file."));
-		CString output;
-		EXPECT_EQ(0, m_Git.Run(L"git.exe add 1.txt", &output, CP_UTF8));
-		EXPECT_STREQ(L"", output);
+		EXPECT_TRUE(StringUtils::WriteStringToTextFile(testFile.c_str(), L"this is testing file."));
+		std::string output;
+		EXPECT_EQ(0, m_Git.Run({L"git.exe", L"add", L"1.txt"}, &output));
+		EXPECT_STREQ("", output);
 	}
 
 	{
@@ -163,18 +165,18 @@ TEST_P(GitIndexCBasicGitWithTestRepoFixture, ReadIndex)
 		EXPECT_EQ(5, indexList[0].m_Flags);
 		EXPECT_EQ(0, indexList[0].m_FlagsExtended);
 		EXPECT_STREQ(L"e4aac1275dfc440ec521a76e9458476fe07038bb", indexList[0].m_IndexHash.ToString());
-		CString output;
-		EXPECT_EQ(0, m_Git.Run(L"git.exe rm -f 1.txt", &output, CP_UTF8));
+		std::string output;
+		EXPECT_EQ(0, m_Git.Run({L"git.exe", L"rm", L"-f", L"1.txt"}, &output));
 	}
 
 	{
 		CGitIndexList indexList;
 		ReadAndCheckIndex(indexList, m_Dir.GetTempDir());
 
-		CString output;
-		EXPECT_TRUE(StringUtils::WriteStringToTextFile(testFile, L"this is testing file."));
-		EXPECT_EQ(0, m_Git.Run(L"git.exe add -N 1.txt", &output, CP_UTF8));
-		EXPECT_STREQ(L"", output);
+		std::string output;
+		EXPECT_TRUE(StringUtils::WriteStringToTextFile(testFile.c_str(), L"this is testing file."));
+		EXPECT_EQ(0, m_Git.Run({L"git.exe", L"add", L"-N", L"1.txt"}, &output));
+		EXPECT_STREQ("", output);
 	}
 
 	{
@@ -201,39 +203,39 @@ TEST_P(GitIndexCBasicGitWithTestRepoFixture, GetFileStatus)
 	__int64 time = -1;
 	__int64 filesize = -1;
 	status = { git_wc_status_none, false, false };
-	EXPECT_EQ(-1, TGitH::GetFileModifyTime(CombinePath(m_Dir.GetTempDir(), L"ansi.txt"), &time, nullptr, &filesize));
+	EXPECT_EQ(-1, TGitH::GetFileModifyTime(m_Dir.GetTempDir() / L"ansi.txt", &time, nullptr, &filesize));
 	EXPECT_EQ(0, indexList.GetFileStatus_NoRepo(std::wstring(m_Dir.GetTempDir()), L"ansi.txt", status, time, filesize, false));
 	EXPECT_EQ(git_wc_status_deleted, status.status);
 	filesize = 42; // some arbitrary size, i.e., file exists but is changed
 	EXPECT_EQ(0, indexList.GetFileStatus_NoRepo(std::wstring(m_Dir.GetTempDir()), L"ansi.txt", status, time, filesize, false));
 	EXPECT_EQ(git_wc_status_modified, status.status);
 
-	CString output;
-	EXPECT_EQ(0, m_Git.Run(L"git.exe reset --hard", &output, CP_UTF8));
+	std::string output;
+	EXPECT_EQ(0, m_Git.Run({L"git.exe", L"reset", L"--hard"}, &output));
 
-	EXPECT_EQ(0, TGitH::GetFileModifyTime(CombinePath(m_Dir.GetTempDir(), L"ansi.txt"), &time, nullptr, &filesize));
+	EXPECT_EQ(0, TGitH::GetFileModifyTime(m_Dir.GetTempDir() / L"ansi.txt", &time, nullptr, &filesize));
 	status = { git_wc_status_none, false, false };
 	EXPECT_EQ(0, indexList.GetFileStatus_NoRepo(std::wstring(m_Dir.GetTempDir()), L"ansi.txt", status, time, filesize, false));
 	EXPECT_EQ(git_wc_status_normal, status.status);
 	EXPECT_FALSE(status.assumeValid);
 	EXPECT_FALSE(status.skipWorktree);
 
-	EXPECT_TRUE(StringUtils::WriteStringToTextFile(CombinePath(m_Dir.GetTempDir(), L"ansi.txt"), L"this is testing file."));
-	EXPECT_EQ(0, TGitH::GetFileModifyTime(CombinePath(m_Dir.GetTempDir(), L"ansi.txt"), &time, nullptr, &filesize));
+	EXPECT_TRUE(StringUtils::WriteStringToTextFile((m_Dir.GetTempDir() / L"ansi.txt").c_str(), L"this is testing file."));
+	EXPECT_EQ(0, TGitH::GetFileModifyTime(m_Dir.GetTempDir() / L"ansi.txt", &time, nullptr, &filesize));
 	status = { git_wc_status_none, false, false };
 	EXPECT_EQ(0, indexList.GetFileStatus_NoRepo(std::wstring(m_Dir.GetTempDir()), L"ansi.txt", status, time, filesize, false));
 	EXPECT_EQ(git_wc_status_modified, status.status);
 	EXPECT_FALSE(status.assumeValid);
 	EXPECT_FALSE(status.skipWorktree);
 
-	EXPECT_TRUE(StringUtils::WriteStringToTextFile(CombinePath(m_Dir.GetTempDir(), L"just-added.txt"), L"this is testing file."));
-	EXPECT_EQ(0, m_Git.Run(L"git.exe add -- just-added.txt", &output, CP_UTF8));
+	EXPECT_TRUE(StringUtils::WriteStringToTextFile((m_Dir.GetTempDir() / L"just-added.txt").c_str(), L"this is testing file."));
+	EXPECT_EQ(0, m_Git.Run({L"git.exe", L"add", L"--", L"just-added.txt"}, &output));
 
-	EXPECT_TRUE(StringUtils::WriteStringToTextFile(CombinePath(m_Dir.GetTempDir(), L"noted-as-added.txt"), L"this is testing file."));
-	EXPECT_EQ(0, m_Git.Run(L"git.exe add -N -- noted-as-added.txt", &output, CP_UTF8));
+	EXPECT_TRUE(StringUtils::WriteStringToTextFile((m_Dir.GetTempDir() / L"noted-as-added.txt").c_str(), L"this is testing file."));
+	EXPECT_EQ(0, m_Git.Run({L"git.exe", L"add", L"-N", L"--", L"noted-as-added.txt"}, &output));
 
 	CGitIndexList indexList2;
-	EXPECT_EQ(0, m_Git.Run(L"git.exe update-index --skip-worktree -- ansi.txt", &output, CP_UTF8));
+	EXPECT_EQ(0, m_Git.Run({L"git.exe", L"update-index", L"--skip-worktree", L"--", L"ansi.txt"}, &output));
 	EXPECT_EQ(0, indexList2.ReadIndex(std::wstring(m_Dir.GetTempDir())));
 	EXPECT_FALSE(indexList2.m_bHasConflicts);
 	status = { git_wc_status_none, false, false };
@@ -242,41 +244,41 @@ TEST_P(GitIndexCBasicGitWithTestRepoFixture, GetFileStatus)
 	EXPECT_FALSE(status.assumeValid);
 	EXPECT_TRUE(status.skipWorktree);
 
-	EXPECT_EQ(0, TGitH::GetFileModifyTime(CombinePath(m_Dir.GetTempDir(), L"just-added.txt"), &time, nullptr, &filesize));
+	EXPECT_EQ(0, TGitH::GetFileModifyTime(m_Dir.GetTempDir() / L"just-added.txt", &time, nullptr, &filesize));
 	status = { git_wc_status_none, false, false };
 	EXPECT_EQ(0, indexList2.GetFileStatus_NoRepo(std::wstring(m_Dir.GetTempDir()), L"just-added.txt", status, time, filesize, false));
 	EXPECT_EQ(git_wc_status_normal, status.status);
 
-	EXPECT_EQ(0, TGitH::GetFileModifyTime(CombinePath(m_Dir.GetTempDir(), L"noted-as-added.txt"), &time, nullptr, &filesize));
+	EXPECT_EQ(0, TGitH::GetFileModifyTime(m_Dir.GetTempDir() / L"noted-as-added.txt", &time, nullptr, &filesize));
 	status = { git_wc_status_none, false, false };
 	EXPECT_EQ(0, indexList2.GetFileStatus_NoRepo(std::wstring(m_Dir.GetTempDir()), L"noted-as-added.txt", status, time, filesize, false));
 	EXPECT_EQ(git_wc_status_added, status.status);
 	EXPECT_FALSE(status.assumeValid);
 	EXPECT_FALSE(status.skipWorktree);
 
-	EXPECT_EQ(0, m_Git.Run(L"git.exe update-index --no-skip-worktree ansi.txt", &output, CP_UTF8));
+	EXPECT_EQ(0, m_Git.Run({L"git.exe", L"update-index", L"--no-skip-worktree", L"ansi.txt"}, &output));
 
 	Sleep(1000);
-	EXPECT_TRUE(StringUtils::WriteStringToTextFile(CombinePath(m_Dir.GetTempDir(), L"just-added.txt"), L"this IS testing file."));
-	EXPECT_EQ(0, TGitH::GetFileModifyTime(CombinePath(m_Dir.GetTempDir(), L"just-added.txt"), &time, nullptr, &filesize));
+	EXPECT_TRUE(StringUtils::WriteStringToTextFile((m_Dir.GetTempDir() / L"just-added.txt").c_str(), L"this IS testing file."));
+	EXPECT_EQ(0, TGitH::GetFileModifyTime(m_Dir.GetTempDir() / L"just-added.txt", &time, nullptr, &filesize));
 	status = { git_wc_status_none, false, false };
 	EXPECT_EQ(0, indexList2.GetFileStatus_NoRepo(std::wstring(m_Dir.GetTempDir()), L"just-added.txt", status, time, filesize, false));
 	EXPECT_EQ(git_wc_status_modified, status.status);
 
-	output.Empty();
-	EXPECT_EQ(0, m_Git.Run(L"git.exe checkout --force forconflict", &output, CP_UTF8));
-	EXPECT_STRNE(L"", output);
+	output.clear();
+	EXPECT_EQ(0, m_Git.Run({L"git.exe", L"checkout", L"--force", L"forconflict"}, &output));
+	EXPECT_NE("", output);
 
-	output.Empty();
-	EXPECT_EQ(1, m_Git.Run(L"git.exe merge simple-conflict", &output, CP_UTF8));
-	EXPECT_STRNE(L"", output);
+	output.clear();
+	EXPECT_EQ(1, m_Git.Run({L"git.exe", L"merge", L"simple-conflict"}, &output));
+	EXPECT_NE("", output);
 
 	CGitIndexList indexList3;
 	EXPECT_EQ(0, indexList3.ReadIndex(std::wstring(m_Dir.GetTempDir())));
 	EXPECT_EQ(9U, indexList3.size());
 	EXPECT_TRUE(indexList3.m_bHasConflicts);
 
-	EXPECT_EQ(0, TGitH::GetFileModifyTime(CombinePath(m_Dir.GetTempDir(), L"ansi.txt"), &time, nullptr, &filesize));
+	EXPECT_EQ(0, TGitH::GetFileModifyTime(m_Dir.GetTempDir() / L"ansi.txt", &time, nullptr, &filesize));
 	status = { git_wc_status_none, false, false };
 	EXPECT_EQ(0, indexList3.GetFileStatus_NoRepo(std::wstring(m_Dir.GetTempDir()), L"ansi.txt", status, time, filesize, false));
 	EXPECT_EQ(git_wc_status_conflicted, status.status);
@@ -831,7 +833,7 @@ TEST(GitIndex, CGitIgnoreItem)
 	EXPECT_EQ(-1, ignoreItem.IsPathIgnored("another/dir", type));
 	EXPECT_EQ(1, ignoreItem.IsPathIgnored("another/dir/some", type));
 
-	EXPECT_TRUE(::CreateDirectory(tempDir.GetTempDir() + L"\\subdir", nullptr));
+	EXPECT_TRUE(::CreateDirectory((tempDir.GetTempDir() / L"subdir").c_str(), nullptr));
 	ignoreFile = tempRoot + L"\\subdir\\.gitignore";
 	EXPECT_TRUE(StringUtils::WriteStringToTextFile(ignoreFile, L"/something"));
 	EXPECT_EQ(0, ignoreItem.FetchIgnoreList(tempRoot, ignoreFile, false, &ignoreCase));
@@ -908,8 +910,8 @@ TEST_P(CBasicGitWithMultiLinkedTestWithSubmoduleRepoFixture, AdminDirMap) // Sub
 	std::wstring workDir;
 
 	// CGitAdminDirMap and CPathUtils speak std::wstring; the fixture's paths are
-	// still CStrings, so name the two roots once.
-	const std::wstring mainRoot = PathUtils::BuildPathWithPathDelimiter(tgit::str::StringView(m_MainWorkTreePath));
+	// fs::path, so name the two roots once.
+	const std::wstring mainRoot = PathUtils::BuildPathWithPathDelimiter(m_MainWorkTreePath.native());
 	const std::wstring linkedRoot(m_LinkedWorkTreePath);
 
 	// Test if the main work tree admin directory can be found
@@ -920,7 +922,7 @@ TEST_P(CBasicGitWithMultiLinkedTestWithSubmoduleRepoFixture, AdminDirMap) // Sub
 	workDir = g_AdminDirMap.GetWorkingCopy(mainRoot + L".git");
 	EXPECT_TRUE(PathUtils::IsSamePath(std::wstring(m_MainWorkTreePath), workDir));
 
-	if (TGitH::ms_bCygwinGit || TGitH::ms_bMsys2Git)
+	if (GitCall::ms_bCygwinGit || GitCall::ms_bMsys2Git)
 		return;
 
 	// Test if the linked repository admin directory can be found (**WITHOUT** trailing path delimiter)

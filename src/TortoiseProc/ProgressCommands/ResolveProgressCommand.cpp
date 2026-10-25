@@ -145,7 +145,7 @@ bool ResolveProgressCommand::Run(CGitProgressList* list, CString& sWindowTitle, 
 
 			CString output; // retest with registered submodule!
 			const std::vector<std::wstring> gitcmd{ L"git.exe", L"rm", L"-f", L"--", path.GetGitPathString() };
-			if (g_Git.Run(gitcmd, &output, CP_UTF8))
+			if (g_Git.Run(gitcmd, &output)))
 			{
 				// a .git folder in a submodule which is not in .gitmodules cannot be deleted using "git rm"
 				if (!PathIsDirectoryEmpty(path.GetGitPathString().c_str()))
@@ -164,7 +164,7 @@ bool ResolveProgressCommand::Run(CGitProgressList* list, CString& sWindowTitle, 
 					}
 					path.Delete(true, true);
 					output.Empty();
-					if (!g_Git.Run(gitcmd, &output, CP_UTF8))
+					if (!g_Git.Run(gitcmd, &output)))
 					{
 						list->AddNotify(new CGitProgressList::WC_File_NotificationData(path, Git_WC_Notify_Action::Resolved));
 						++m_itemCount;
@@ -187,7 +187,7 @@ bool ResolveProgressCommand::Run(CGitProgressList* list, CString& sWindowTitle, 
 				CString output;
 				if (!fullPath.IsDirectory())
 				{
-					if (g_Git.Run({ L"git.exe", L"checkout-index", L"-f", std::format(L"--stage={}", destinationStage), L"--", path.GetGitPathString() }, &output, CP_UTF8))
+					if (g_Git.Run({ L"git.exe", L"checkout-index", L"-f", std::format(L"--stage={}", destinationStage), L"--", path.GetGitPathString() }, &output)))
 					{
 						list->ReportError(output);
 						return false;
@@ -197,7 +197,7 @@ bool ResolveProgressCommand::Run(CGitProgressList* list, CString& sWindowTitle, 
 				// only made sense while the value had to survive being parsed back
 				// out of a flat command line. As a single argv element it carries no
 				// quotes, or git would look for a file whose name begins with one.
-				if (g_Git.Run({ L"git.exe", L"update-index", L"--replace", L"--cacheinfo", std::format(L"0160000,{},{}", destinationHash.ToString(), path.GetGitPathString()) }, &output, CP_UTF8))
+				if (g_Git.Run({ L"git.exe", L"update-index", L"--replace", L"--cacheinfo", std::format(L"0160000,{},{}", destinationHash.ToString(), path.GetGitPathString()) }, &output)))
 				{
 					list->ReportError(output);
 					return false;

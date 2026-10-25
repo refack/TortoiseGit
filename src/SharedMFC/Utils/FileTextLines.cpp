@@ -24,7 +24,7 @@
 
 // the four IDS_ERR_FILE_* strings are shared: this file is compiled into TortoiseProc,
 // TortoiseGitBlame and the unit tests, which each have their own resource.h
-#include <Resources/LoglistCommonResource.h>
+#include <../../libgit2/Resources/LoglistCommonResource.h>
 #include "Utils/FileTextLines.h"
 import RIAA;
 

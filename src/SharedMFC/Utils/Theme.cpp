@@ -972,34 +972,7 @@ bool CTheme::IsDarkModeAllowed()
 	if (IsHighContrastMode())
 		return false;
 
-	if (m_bLoaded)
-		return m_bDarkModeIsAllowed;
-	// we only allow the dark mode for Win10 1809 and later,
-	// because on earlier versions it would look really, really ugly!
-	m_bDarkModeIsAllowed = false;
-	auto version = PathUtils::GetVersionFromFile(L"uiribbon.dll");
-	std::vector<long> tokens;
-	StringUtils::stringtok(tokens, version, false, L".");
-	if (tokens.size() == 4)
-	{
-		auto major = tokens[0];
-		auto minor = tokens[1];
-		auto micro = tokens[2];
-
-		// the windows 10 update 1809 has the version
-		// number as 10.0.17763.1
-		if (major > 10)
-			m_bDarkModeIsAllowed = true;
-		else if (major == 10)
-		{
-			if (minor > 0)
-				m_bDarkModeIsAllowed = true;
-			else if (micro > 17762)
-				m_bDarkModeIsAllowed = true;
-		}
-	}
-	m_bDarkModeIsAllowed = m_bDarkModeIsAllowed && DarkMode::Instance().ShouldAppsUseDarkMode();
-	return m_bDarkModeIsAllowed;
+	return true;
 }
 
 void CTheme::SetDarkTheme(bool b /*= true*/, bool force /*= false*/)

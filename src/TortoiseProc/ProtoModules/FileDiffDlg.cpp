@@ -24,7 +24,7 @@
 #include "TortoiseProc.h"
 #include "Utils/SysImageList.h"
 import BrowseFolder;
-#include "Resources/LoglistCommonResource.h"
+#include "../../libgit2/Resources/LoglistCommonResource.h"
 import MessageBox;
 import AppUtils.Launch;
 import AppUtils.Window;

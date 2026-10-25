@@ -86,7 +86,6 @@ using std::min;
 #include <future>
 #include <iomanip>
 #include <list>
-#include <memory>
 #include <mutex>
 #include <new>			// std::nothrow (SimpleIni.h)
 #include <numeric>

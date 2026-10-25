@@ -20,6 +20,9 @@
 #include "stdafx.h"
 #include "RepositoryFixtures.h"
 import GitRev;
+import GitHash;
+
+
 
 class GitRevCBasicGitWithTestRepoFixture : public CBasicGitWithTestRepoFixture
 {
@@ -36,7 +39,7 @@ static void GetRevParsingTests()
 {
 	GitRev rev;
 	EXPECT_TRUE(rev.m_CommitHash.IsEmpty());
-	EXPECT_EQ(0, rev.GetCommit(L"HEAD"));
+	EXPECT_EQ(0, rev.GetCommit(L"HEAD"s));
 	EXPECT_STREQ(L"7c3cbfe13a929d2291a574dca45e4fd2d2ac1aa6", rev.m_CommitHash.ToString());
 	EXPECT_STREQ(L"Sven Strickroth", rev.GetAuthorName());
 	EXPECT_STREQ(L"email@cs-ware.de", rev.GetAuthorEmail());
@@ -54,7 +57,7 @@ static void GetRevParsingTests()
 	EXPECT_STREQ(L"", rev.GetLastErr());
 	EXPECT_TRUE(rev.IsCommit());
 	rev.Clear();
-	EXPECT_EQ(0, rev.GetCommit(GitRev::GetWorkingCopyRef()));
+	EXPECT_EQ(0, rev.GetCommit(GitRev::GetWorkingCopyRef(), false));
 	EXPECT_TRUE(rev.m_CommitHash.IsEmpty());
 	EXPECT_STREQ(L"", rev.GetAuthorName());
 	EXPECT_STREQ(L"", rev.GetAuthorEmail());
@@ -67,7 +70,7 @@ static void GetRevParsingTests()
 	EXPECT_FALSE(rev.IsCommit());
 	rev.Clear();
 	EXPECT_STREQ(L"", rev.GetLastErr());
-	EXPECT_EQ(0, rev.GetCommit(L"aa5b97f89cea6863222823c8289ce392d06d1691"));
+	EXPECT_EQ(0, rev.GetCommit(L"aa5b97f89cea6863222823c8289ce392d06d1691"s));
 	EXPECT_STREQ(L"aa5b97f89cea6863222823c8289ce392d06d1691", rev.m_CommitHash.ToString());
 	EXPECT_STREQ(L"Another dummy with ümlaut", rev.GetAuthorName());
 	EXPECT_STREQ(L"anotherduemmy@example.com", rev.GetAuthorEmail());
@@ -81,7 +84,7 @@ static void GetRevParsingTests()
 	EXPECT_TRUE(rev.IsCommit());
 	rev.Clear();
 	EXPECT_TRUE(rev.m_CommitHash.IsEmpty());
-	EXPECT_EQ(0, rev.GetCommit(L"1fc3c9688e27596d8717b54f2939dc951568f6cb"));
+	EXPECT_EQ(0, rev.GetCommit(L"1fc3c9688e27596d8717b54f2939dc951568f6cb"s));
 	EXPECT_STREQ(L"1fc3c9688e27596d8717b54f2939dc951568f6cb", rev.m_CommitHash.ToString());
 	EXPECT_STREQ(L"Some other User", rev.GetAuthorName());
 	EXPECT_STREQ(L"dummy@example.com", rev.GetAuthorEmail());
@@ -94,7 +97,7 @@ static void GetRevParsingTests()
 	EXPECT_STREQ(L"", rev.GetLastErr());
 	EXPECT_TRUE(rev.IsCommit());
 	rev.Clear();
-	EXPECT_EQ(-1, rev.GetCommit(L"does-not-exist"));
+	EXPECT_EQ(-1, rev.GetCommit(L"does-not-exist"s));
 	EXPECT_STRNE(L"", rev.GetLastErr());
 	EXPECT_TRUE(rev.m_CommitHash.IsEmpty());
 	rev.Clear();
@@ -112,7 +115,7 @@ static void GetRevParsingTests()
 	EXPECT_STREQ(L"", rev.GetLastErr());
 	EXPECT_TRUE(rev.IsCommit());
 	rev.Clear();
-	EXPECT_EQ(0, rev.GetCommit(L"8d1ebbcc7eeb63af10ff8bcf7712afb9fcc90b8a"));
+	EXPECT_EQ(0, rev.GetCommit(L"8d1ebbcc7eeb63af10ff8bcf7712afb9fcc90b8a"s));
 	EXPECT_STREQ(L"8d1ebbcc7eeb63af10ff8bcf7712afb9fcc90b8a", rev.m_CommitHash.ToString());
 	EXPECT_STREQ(L"Sven Strickroth", rev.GetAuthorName());
 	EXPECT_STREQ(L"email@cs-ware.de", rev.GetAuthorEmail());
@@ -131,7 +134,7 @@ static void GetRevParsingTests()
 	EXPECT_TRUE(rev.IsCommit());
 	rev.Clear();
 	EXPECT_TRUE(rev.m_CommitHash.IsEmpty());
-	EXPECT_EQ(0, rev.GetCommit(L"844309789a13614b52d5e7cbfe6350dd73d1dc72")); // root-commit
+	EXPECT_EQ(0, rev.GetCommit(L"844309789a13614b52d5e7cbfe6350dd73d1dc72"s)); // root-commit
 	EXPECT_STREQ(L"844309789a13614b52d5e7cbfe6350dd73d1dc72", rev.m_CommitHash.ToString());
 	EXPECT_STREQ(L"Sven Strickroth", rev.GetAuthorName());
 	EXPECT_STREQ(L"email@cs-ware.de", rev.GetAuthorEmail());
@@ -149,7 +152,7 @@ static void GetRevParsingTests()
 	EXPECT_TRUE(rev.IsCommit());
 	rev.Clear();
 	// GPG signed commit which was also amended with different dates
-	EXPECT_EQ(0, rev.GetCommit(L"signed-commit"));
+	EXPECT_EQ(0, rev.GetCommit(L"signed-commit"s));
 	EXPECT_STREQ(L"4c5c93d2a0b368bc4570d5ec02ab03b9c4334d44", rev.m_CommitHash.ToString());
 	EXPECT_STREQ(L"Sven Strickroth", rev.GetAuthorName());
 	EXPECT_STREQ(L"email@cs-ware.de", rev.GetAuthorEmail());
@@ -168,7 +171,7 @@ static void GetRevParsingTests()
 	EXPECT_TRUE(rev.IsCommit());
 	rev.Clear();
 	// commit with different committer
-	EXPECT_EQ(0, rev.GetCommit(L"subdir/branch"));
+	EXPECT_EQ(0, rev.GetCommit(L"subdir/branch"s));
 	EXPECT_STREQ(L"31ff87c86e9f6d3853e438cb151043f30f09029a", rev.m_CommitHash.ToString());
 	EXPECT_STREQ(L"Sven Strickroth", rev.GetAuthorName());
 	EXPECT_STREQ(L"email@cs-ware.de", rev.GetAuthorEmail());
@@ -187,7 +190,7 @@ static void GetRevParsingTests()
 	EXPECT_TRUE(rev.IsCommit());
 	rev.Clear();
 	// ref is tree
-	EXPECT_EQ(-1, rev.GetCommit(L"tree-ref"));
+	EXPECT_EQ(-1, rev.GetCommit(L"tree-ref"s));
 	rev.Clear();
 	EXPECT_EQ(0, rev.GetCommit(L"tree-ref", true));
 	EXPECT_STREQ(L"f4c67ced4099e490f2bd728dbc78a82582aa5ec4", rev.m_CommitHash.ToString());

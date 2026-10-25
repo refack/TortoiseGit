@@ -76,7 +76,7 @@ bool PasteMoveCommand::Execute()
 			// GetGitPathString(), not GetWinPathString(): non-relaxed
 			// QuoteParameter used to convert the backslashes here.
 			CString output;
-			if (g_Git.Run({ L"git.exe", L"add", L"--", destPath.GetGitPathString() }, &output, CP_UTF8))
+			if (g_Git.Run({ L"git.exe", L"add", L"--", destPath.GetGitPathString() }, &output)))
 			//if (!Git.Add(CTGitorgPathList(destPath), &props, Git_depth_infinity, true, false, true))
 			{
 				TRACE(L"%s\n", static_cast<LPCWSTR>(output));
@@ -88,7 +88,7 @@ bool PasteMoveCommand::Execute()
 		else
 		{
 			CString output;
-			if (g_Git.Run({ L"git.exe", L"mv", orgPathList[nPath].GetGitPathString(), destPath.GetGitPathString() }, &output, CP_UTF8))
+			if (g_Git.Run({ L"git.exe", L"mv", orgPathList[nPath].GetGitPathString(), destPath.GetGitPathString() }, &output)))
 			//if (!Git.Move(CTGitorgPathList(orgPathList[nPath]), destPath, FALSE))
 			{
 #if 0

@@ -27,7 +27,6 @@
 #include "resource.h"
 #include <shlwapi.h>
 #include <shellapi.h>
-#include <memory>
 #include <string>
 #pragma comment(lib, "shlwapi")
 #pragma comment(lib, "shell32")

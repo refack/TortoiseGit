@@ -21,7 +21,6 @@
 
 import DragDrop;
 import str_utils;
-#include <memory>
 
 /**
  * \ingroup Utils

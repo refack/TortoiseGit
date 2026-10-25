@@ -1,11 +1,16 @@
 module;
-#include <winerror.h>
-
+#include <memory>
 
 export module AutoTempDir;
 import std;
+import str_utils;
 using namespace std::literals;
 namespace fs = std::filesystem;
+
+
+// something something something MFC/ATL
+constexpr auto ERROR_ACCESS_DENIED = 5L;
+
 
 void DeleteDirectoryRecursive(const fs::path& dir)
 {
@@ -16,7 +21,7 @@ void DeleteDirectoryRecursive(const fs::path& dir)
 			std::cerr << "remove " << dir << " failed: " << ec.message() << std::endl;
 	}
 
-	for (auto it : fs::recursive_directory_iterator(dir))
+	for (const auto& it : fs::recursive_directory_iterator(dir))
 	{
 		if (it.is_directory())
 			continue;
@@ -39,17 +44,15 @@ void DeleteDirectoryRecursive(const fs::path& dir)
 	}
 }
 
-export class CAutoTempDir
+export class CAutoTempDir // NOLINT(*-special-member-functions)
 {
-	fs::path m_tempdir{};
+	constexpr static auto retries = 10;
+	fs::path m_tempdir;
 
 public:
-	~CAutoTempDir() { DeleteDirectoryRecursive(m_tempdir); }
-	fs::path GetTempDir() const { return m_tempdir; }
-
-	CAutoTempDir()
-	: m_tempdir(std::filesystem::temp_directory_path())
-	{
+	CAutoTempDir() {
+		if (m_tempdir.empty())
+			m_tempdir = std::filesystem::temp_directory_path();
 		// This used to be GetTempFileName + DeleteFile + CreateDirectory. That is a
 		// race: GetTempFileName's uniqueness guarantee comes from the *file* it
 		// creates, so deleting it reopens the name to anyone else asking at the same
@@ -61,7 +64,7 @@ public:
 		// The process id makes collisions between processes impossible rather than
 		// unlikely, and the loop covers reuse within one process.
 		std::error_code ec;
-		for (int attempt = 0; attempt < 10; ++attempt)
+		for (const auto _ : std::views::iota(0, retries))
 		{
 
 			// ReSharper disable once CppDeprecatedEntity
@@ -74,6 +77,13 @@ public:
 				return;
 			}
 		}
-		throw std::system_error(ec);
+		std::exit(ec.value());
 	}
+
+	~CAutoTempDir() { try { DeleteDirectoryRecursive(m_tempdir); } catch (...) {} } // NOLINT(*-empty-catch)
+
+	[[nodiscard]] fs::path GetTempDir() const { return m_tempdir; }
+
+	/// The tests' spelling for it; git's object files are read-only, which fs::remove_all alone trips over.
+	static void DeleteDirectoryRecursive(const fs::path& dir) { ::DeleteDirectoryRecursive(dir); }
 };

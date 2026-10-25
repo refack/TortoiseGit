@@ -6,7 +6,6 @@ target_sources(SharedMFC
     PRIVATE
         ACEdir/ACEdit.cpp
         ACEdir/ACListWnd.cpp
-        ColumnManager.cpp
         ResText/codecvt.cpp
         ResText/POFile.cpp
         ResText/ResModule.cpp
@@ -20,12 +19,14 @@ target_sources(SharedMFC
 
 target_include_directories(SharedMFC
     PRIVATE
-        "${CMAKE_SOURCE_DIR}/src"
-        "${CMAKE_SOURCE_DIR}/src/libgit2/include"   # sanity.h
         "${CMAKE_CURRENT_SOURCE_DIR}"
 )
 
 target_link_libraries(SharedMFC
+    PUBLIC
+        gitdll
+        TGitLibgit2
+
     PRIVATE
         imm32
         msimg32
@@ -36,9 +37,6 @@ target_link_libraries(SharedMFC
         rpcrt4
         gdi32
         crypt32
-
-        gitdll
-        TGitLibgit2
 )
 
 target_sources(SharedMFC
@@ -47,5 +45,6 @@ target_sources(SharedMFC
         BASE_DIRS "${CMAKE_CURRENT_SOURCE_DIR}"
     FILES
         BrowseFolder.ixx
+        ColumnManager.ixx
         MessageBox.ixx
 )

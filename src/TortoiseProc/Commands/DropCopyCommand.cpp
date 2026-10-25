@@ -115,7 +115,7 @@ bool DropCopyCommand::Execute()
 					path = path.Mid(1);
 
 				CString output;
-				if (g_Git.Run({ L"git.exe", L"add", L"--", std::wstring(path) }, &output, CP_UTF8))
+				if (g_Git.Run({ L"git.exe", L"add", L"--", std::wstring(path) }, &output)))
 					MessageBox(GetExplorerHWND(), output, L"TortoiseGit", MB_OK | MB_ICONERROR);
 				else
 					CShellUpdater::Instance().AddPathForUpdate(fullDropPath);

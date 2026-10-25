@@ -22,7 +22,7 @@
 
 
 #include "MiscUI/IconMenu.h"
-#include "Utils/LoadIconEx.h"
+#include "../../libgit2/Utils/LoadIconEx.h"
 #include "MiscUI/IconBitmapUtils.h"
 
 CIconMenu::CIconMenu() : CMenu()

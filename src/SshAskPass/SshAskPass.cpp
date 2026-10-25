@@ -24,7 +24,6 @@
 
 #include <afxtaskdialog.h>
 #include <commctrl.h>
-#include <memory>
 #include <algorithm>
 #include <PropKey.h>
 #include <propsys.h>

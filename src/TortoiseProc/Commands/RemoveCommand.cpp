@@ -137,7 +137,7 @@ bool RemoveCommand::Execute()
 		std::vector<std::wstring> cmd(baseCmd);
 		cmd.emplace_back(pathList[nPath].GetGitPathString());
 		CString output;
-		if (g_Git.Run(cmd, &output, CP_UTF8))
+		if (g_Git.Run(cmd, &output)))
 		{
 			if (CMessageBox::Show(GetExplorerHWND(), output, IDS_APPNAME, 2, IDI_ERROR, IDS_IGNOREBUTTON, IDS_ABORTBUTTON) == 2)
 			{

@@ -18,10 +18,12 @@
 //
 
 #pragma once
+import std;
 import git_h;
 import DirFileEnum;
 import PathUtils;
 import str_utils;
+namespace fs = std::filesystem;
 
 enum config
 {
@@ -31,21 +33,20 @@ enum config
 	GIT_CLI,
 };
 
-static bool GetResourcesDir(CString& resourcesDir)
+static bool GetResourcesDir(fs::path& resourcesDir)
 {
-	resourcesDir = (PathUtils::GetAppDirectory() + L"\\resources").c_str();
-	if (!PathIsDirectory(resourcesDir))
-		resourcesDir = (PathUtils::GetAppDirectory() + L"\\..\\..\\..\\test\\UnitTests\\resources").c_str();
+	resourcesDir = (PathUtils::GetAppDirectory() + L"\\resources");
+	if (!fs::is_directory(resourcesDir))
+		resourcesDir = fs::canonical(PathUtils::GetAppDirectory() + L"\\..\\..\\..\\test\\UnitTests\\resources");
 #ifdef TGIT_TEST_RESOURCES_DIR
 	// The CMake build says where the sources are, so its binary directory can be
 	// anywhere; the relative probe above only fits the vcxproj's bin\Debug64\bin.
-	if (!PathIsDirectory(resourcesDir))
+	if (!fs::is_directory(resourcesDir))
 	{
-		resourcesDir = TGIT_TEST_RESOURCES_DIR;
-		resourcesDir.Replace(L'/', L'\\');
+		resourcesDir = fs::path{TGIT_TEST_RESOURCES_DIR};
 	}
 #endif
-	return PathIsDirectory(resourcesDir) != FALSE;
+	return fs::is_directory(resourcesDir) != FALSE;
 }
 
 static void CopyRecursively(const CString& source, const CString& dest)
@@ -89,15 +90,15 @@ protected:
 			m_Git.m_IsUseLibGit2_mask = 0;
 			m_Git.m_IsUseGitDLL = false;
 		}
-		m_Git.SetCurrentDirExact(m_Dir.GetTempDir());
+		m_Git.SetCurrentDirExact(m_Dir.GetTempDir().wstring());
 		// some methods rely on g_Git, so set values there as well
 		g_Git.m_IsGitDllInited = false;
-		g_Git.SetCurrentDirExact(m_Git.m_CurrentDir);
+		g_Git.SetCurrentDirExact(m_Git.m_CurrentDir.wstring());
 		g_Git.m_IsUseGitDLL = m_Git.m_IsUseGitDLL;
 		g_Git.m_IsUseLibGit2 = m_Git.m_IsUseLibGit2;
 		g_Git.m_IsUseLibGit2_mask = m_Git.m_IsUseLibGit2_mask;
 		// libgit relies on CWD being set to working tree
-		SetCurrentDirectory(m_Git.m_CurrentDir);
+		SetCurrentDirectory(m_Git.m_CurrentDir.c_str());
 
 		if (TGitH::ms_LastMsysGitVersion == 0)
 			TGitH::ms_LastMsysGitVersion = std::max(0, m_Git.GetGitVersion(nullptr, nullptr));
@@ -122,22 +123,21 @@ protected:
 	{
 	}
 
-	void SetUpTestRepo(CString path)
+	void SetUpTestRepo(fs::path path)
 	{
-		CString resourcesDir;
+		fs::path resourcesDir;
 		ASSERT_TRUE(GetResourcesDir(resourcesDir));
-		path.TrimRight(L'\\');
-		CreateDirectory(path, nullptr);
-		ASSERT_TRUE(PathIsDirectory(path));
-		if (!prefix.IsEmpty())
-			EXPECT_TRUE(CreateDirectory(path + prefix, nullptr));
-		CString repoDir = resourcesDir + L"\\" + m_reponame;
-		CopyRecursively(repoDir, path + prefix);
-		CString configFile = path + prefix + L"\\config";
+		CreateDirectory(path.c_str(), nullptr);
+		ASSERT_TRUE(fs::is_directory(path));
+		if (!prefix.empty())
+			EXPECT_TRUE(fs::create_directory(path / prefix));
+		fs::path repoDir = resourcesDir / m_reponame.GetString();
+		CopyRecursively(repoDir.c_str(), (path / prefix).c_str());
+		fs::path configFile = path / prefix / L"\\config";
 		CString text;
-		ASSERT_TRUE(StringUtils::ReadStringFromTextFile(configFile, text));
+		ASSERT_TRUE(StringUtils::ReadStringFromTextFile(configFile.c_str(), text));
 		text += L"\n[core]\n  autocrlf = false\n[user]\n  name = User\n  email = user@example.com\n";
-		EXPECT_TRUE(StringUtils::WriteStringToTextFile(configFile, text));
+		EXPECT_TRUE(StringUtils::WriteStringToTextFile(configFile.c_str(), text));
 	}
 
 	virtual void SetUp() override
@@ -145,7 +145,7 @@ protected:
 		CBasicGitFixture::SetUp();
 	}
 
-	CString prefix;
+	fs::path prefix;
 private:
 	CString m_reponame;
 };
@@ -171,11 +171,11 @@ public:
 protected:
 	virtual void SetUp() override
 	{
-		prefix.Empty();
+		prefix.clear();
 		CBasicGitWithTestRepoFixture::SetUp();
 
-		DeleteFile(m_Dir.GetTempDir() + L"\\index");
-		CString configFile = m_Dir.GetTempDir() + L"\\config";
+		fs::remove(m_Dir.GetTempDir() / L"index");
+		CString configFile = (m_Dir.GetTempDir() / L"config").c_str();
 		CString text;
 		ASSERT_TRUE(StringUtils::ReadStringFromTextFile(configFile, text));
 		EXPECT_EQ(1, text.Replace(L"bare = false", L"bare = true"));
@@ -220,16 +220,19 @@ protected:
 		// -b pins the initial branch: without it the repository inherits the host's
 		// init.defaultBranch, and every assertion about the branch name becomes a
 		// statement about the machine the tests happen to run on.
-		EXPECT_EQ(0, m_Git.Run(L"git.exe init -b master", std::out_ptr(output), std::out_ptr(errput), CP_UTF8));
-		EXPECT_STRNE(L"", output);
-		output.Empty();
-		EXPECT_EQ(0, m_Git.Run(L"git.exe config core.autocrlf false", &output, CP_UTF8));
+		EXPECT_EQ(0,  GitCall::Run({L"git.exe", L"init", L"-b", L"master"}, &output, &errput));
+		EXPECT_NE(L""s, output);
+
+		output.clear();
+		EXPECT_EQ(0,  GitCall::Run({L"git.exe", L"config", L"core.autocrlf", L"false"}, &output));
 		EXPECT_STREQ(L"", output);
-		output.Empty();
-		EXPECT_EQ(0, m_Git.Run(L"git.exe config user.name User", &output, CP_UTF8));
+
+		output.clear();
+		EXPECT_EQ(0,  GitCall::Run({L"git.exe", L"config", L"user.name", L"User"}, &output));
 		EXPECT_STREQ(L"", output);
-		output.Empty();
-		EXPECT_EQ(0, m_Git.Run(L"git.exe config user.email user@example.com", &output, CP_UTF8));
+
+		output.clear();
+		EXPECT_EQ(0,  GitCall::Run({L"git.exe", L"config", L"user.email", L"user@example.com"}, &output));
 		EXPECT_STREQ(L"", output);
 	}
 };
@@ -242,7 +245,7 @@ protected:
 		CBasicGitFixture::SetUp();
 		CString output;
 		// see the note on the non-bare fixture: pin the branch, do not inherit it
-		EXPECT_EQ(0, m_Git.Run(L"git.exe init --bare -b master", &output, CP_UTF8));
+		EXPECT_EQ(0,  GitCall::Run({L"git.exe", L"init", L"--bare", L"-b", L"master"}, &output));
 		EXPECT_STRNE(L"", output);
 	}
 };

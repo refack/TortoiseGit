@@ -50,7 +50,7 @@ bool IgnoreCommand::Execute()
 		{
 			std::vector<std::wstring> cmd(baseCmd);
 			cmd.emplace_back(pathList[nPath].GetGitPathString());
-			if (g_Git.Run(cmd, &output, CP_UTF8))
+			if (g_Git.Run(cmd, &output)))
 			{
 				if (MessageBox(GetExplorerHWND(), output, L"TortoiseGit", MB_ICONERROR | MB_OKCANCEL) == IDCANCEL)
 					return FALSE;

@@ -31,7 +31,7 @@ import AppUtils.Workflow;
 #include "Hooks.h"
 #include "ProgressDlg.h"
 #include "COMError.h"
-#include "Resources/Globals.h"
+#include "../../libgit2/Resources/Globals.h"
 #include "SysProgressDlg.h"
 import TortoiseProc.MassiveGitTask;
 #include "LogDlg.h"
@@ -1030,7 +1030,7 @@ void CCommitDlg::OnOK()
 				GetDlgItem(IDC_COMMIT_DATEPICKER)->ShowWindow(SW_HIDE);
 				GetDlgItem(IDC_COMMIT_TIMEPICKER)->ShowWindow(SW_HIDE);
 				m_bSetAuthor = FALSE;
-				m_sAuthor.Format(L"%s <%s>", static_cast<LPCWSTR>(g_Git.GetUserName()), static_cast<LPCWSTR>(g_Git.GetUserEmail()));
+				m_sAuthor.Format(L"%s <%s>", static_cast<LPCWSTR>(g_Git.GetUserNameW()), static_cast<LPCWSTR>(g_Git.GetUserEmail()));
 				GetDlgItem(IDC_COMMIT_AUTHORDATA)->SendMessage(EM_SETREADONLY, TRUE);
 			}
 
@@ -1504,7 +1504,7 @@ UINT CCommitDlg::StatusThread()
 			GetDlgItem(IDC_COMMIT_AUTHORDATA)->SendMessage(EM_SETREADONLY, FALSE);
 		else
 		{
-			m_sAuthor.Format(L"%s <%s>", static_cast<LPCWSTR>(g_Git.GetUserName()), static_cast<LPCWSTR>(g_Git.GetUserEmail()));
+			m_sAuthor.Format(L"%s <%s>", static_cast<LPCWSTR>(g_Git.GetUserNameW()), static_cast<LPCWSTR>(g_Git.GetUserEmail()));
 			if (m_bCommitAmend)
 			{
 				GitRev headRevision;
@@ -2689,7 +2689,7 @@ CString CCommitDlg::GetSignedOffByLine()
 {
 	CString str;
 
-	CString username = g_Git.GetUserName();
+	CString username = g_Git.GetUserNameW();
 	CString email = g_Git.GetUserEmail();
 	username.Remove(L'\n');
 	email.Remove(L'\n');
@@ -3057,7 +3057,7 @@ void CCommitDlg::OnBnClickedCommitSetauthor()
 
 	GetDlgItem(IDC_COMMIT_AUTHORDATA)->SendMessage(EM_SETREADONLY, m_bSetAuthor ? FALSE: TRUE);
 
-	m_sAuthor.Format(L"%s <%s>", static_cast<LPCWSTR>(g_Git.GetUserName()), static_cast<LPCWSTR>(g_Git.GetUserEmail()));
+	m_sAuthor.Format(L"%s <%s>", static_cast<LPCWSTR>(g_Git.GetUserNameW()), static_cast<LPCWSTR>(g_Git.GetUserEmail()));
 	if (m_bCommitAmend)
 	{
 		GitRev headRevision;

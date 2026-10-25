@@ -22,7 +22,7 @@
 
 
 #include "MiscUI/IconBitmapUtils.h"
-#include "Utils/LoadIconEx.h"
+#include "../../libgit2/Utils/LoadIconEx.h"
 
 #pragma comment(lib, "UxTheme.lib")
 

@@ -20,7 +20,7 @@
 #include "stdafx.h"
 #include "std.h"
 
-#include <Resources/LoglistCommonResource.h>
+#include <../../libgit2/Resources/LoglistCommonResource.h>
 #include "LoglistUtils.h"
 
 CLoglistUtils::CLoglistUtils()

@@ -22,7 +22,7 @@
 #include "std.h"
 
 #include "TortoiseProc.h"
-#include "Resources/LoglistCommonResource.h"
+#include "../../libgit2/Resources/LoglistCommonResource.h"
 #include <version.h>
 import MessageBox;
 #include "CheckForUpdatesDlg.h"

@@ -23,7 +23,7 @@
 #include "LoglistUtils.h"
 #include "Tooltip.h"
 import GitRev;
-#include <Resources/LoglistCommonResource.h>
+#include <../libgit2/Resources/LoglistCommonResource.h>
 
 class CBranchCombox
 {

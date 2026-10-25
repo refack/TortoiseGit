@@ -18,15 +18,10 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 #pragma once
-#include <unordered_map>
-#include <functional>
-#include <optional>
-#pragma warning(push)
-#pragma warning(disable : 4458) // declaration of 'xxx' hides class member
 #include <windows.h>
 #include <gdiplus.h>
-#pragma warning(pop)
 
+import std;
 import Registry;
 
 using ThemeChangeCallback = std::function<void()>;

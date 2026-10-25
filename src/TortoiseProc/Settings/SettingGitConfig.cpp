@@ -160,7 +160,7 @@ void CSettingGitConfig::LoadDataImpl(wil::unique_git_config& config)
 	// special handling for UserName and UserEmail, because these can also be defined as environment variables for effective settings
 	if (m_iConfigSource == CFG_SRC_EFFECTIVE)
 	{
-		m_UserName = g_Git.GetUserName();
+		m_UserName = g_Git.GetUserNameW();
 		m_UserEmail = g_Git.GetUserEmail();
 		m_bInheritUserName = FALSE;
 		m_bInheritEmail = FALSE;

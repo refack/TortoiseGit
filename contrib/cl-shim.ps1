@@ -142,7 +142,11 @@ Set-Content -Path $log -Encoding utf8 -Value @(
 # case in INCLUDE.
 & $cl @argv 2>&1 |
 	Tee-Object -FilePath $log -Append |
-	Where-Object { -not $filter -or ([string]$_).IndexOf($filter, [System.StringComparison]::OrdinalIgnoreCase) -lt 0 }
+	Where-Object {
+		-not $filter `
+		-or -not ([string]$_).StartsWith('Note: including file:') `
+		-or ([string]$_).IndexOf($filter, [System.StringComparison]::OrdinalIgnoreCase) -lt 0 `
+	}
 
 # $LASTEXITCODE is still cl's own: every downstream stage of that pipeline is a
 # cmdlet, not a native command, so nothing overwrote it. Propagating it is what

@@ -64,7 +64,7 @@ bool RenameCommand::Execute()
 	cmd.insert(cmd.cend(), { std::wstring(L"--"), cmdLinePath.GetGitPathString(), std::wstring(sNewName) });
 
 	CString output;
-	if (g_Git.Run(cmd, &output, CP_UTF8))
+	if (g_Git.Run(cmd, &output)))
 	{
 		CMessageBox::Show(GetExplorerHWND(), output, L"TortoiseGit", MB_OK);
 		bRet = false;

@@ -25,7 +25,7 @@
 #include "GitRefCompareList.h"
 #include "IconMenu.h"
 #include <../TortoiseShell/resource.h>
-#include "Resources/LoglistCommonResource.h"
+#include "../../libgit2/Resources/LoglistCommonResource.h"
 #include "Utils/DPIAware.h"
 import AppUtils.Launch;
 

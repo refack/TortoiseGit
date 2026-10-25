@@ -237,7 +237,7 @@ static void ParserFromLogTests()
 
 	// check whether libgit ref_cache is correctly invalidated
 	CString output;
-	EXPECT_EQ(0, g_Git.Run(L"git.exe branch -D simple-conflict", &output, CP_UTF8)); // normal ref in refs/heads
+	EXPECT_EQ(0, g_Git.Run(L"git.exe branch -D simple-conflict", &output))); // normal ref in refs/heads
 	EXPECT_STRNE(L"", output);
 	logCache.m_HashMap.clear();
 	logDataVector.ClearAll();
@@ -253,7 +253,7 @@ static void ParserFromLogTests()
 	EXPECT_TRUE(logDataVector.m_HashMap.find(CGitHash::FromHexStr(L"c5b89de0335fd674e2e421ac4543098cb2f22cde")) == logDataVector.m_HashMap.end());
 	EXPECT_TRUE(logCache.m_HashMap.find(CGitHash::FromHexStr(L"c5b89de0335fd674e2e421ac4543098cb2f22cde")) == logCache.m_HashMap.end());
 	output.Empty();
-	EXPECT_EQ(0, g_Git.Run(L"git.exe branch -D forconflict", &output, CP_UTF8)); // ref in packed-refs
+	EXPECT_EQ(0, g_Git.Run(L"git.exe branch -D forconflict", &output))); // ref in packed-refs
 	EXPECT_STRNE(L"", output);
 	logCache.m_HashMap.clear();
 	logDataVector.ClearAll();

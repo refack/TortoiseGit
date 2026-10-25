@@ -19,7 +19,7 @@ namespace fs = std::filesystem;
 using sloc_t = std::source_location;
 
 
-template <>
+export template <>
 struct std::formatter<sloc_t, char> {
 	bool with_func = false;
 
@@ -30,12 +30,14 @@ struct std::formatter<sloc_t, char> {
 		return it;
 	}
 
-	auto format(const sloc_t& loc, std::format_context& ctx) const {
-		auto out = std::format_to(ctx.out(), "{}({})", loc.file_name(), loc.line());
-		if (with_func) out = std::format_to(out, ": {}", loc.function_name());
-		return out;
+	auto format(const sloc_t& loc, auto& ctx) const {
+		if (!with_func)
+			return std::format_to(ctx.out(), "{}({})", std::string_view{loc.file_name()}, loc.line());
+		else
+			return std::format_to(ctx.out(), "{}({}): {}", std::string_view{loc.file_name()}, loc.line(), std::string_view{loc.function_name()});
 	}
 };
+static_assert(std::formattable<sloc_t, char>);
 
 /// This is a representation of an API horizon.
 /// We should validate all of our invariants here.
@@ -178,7 +180,7 @@ std::string WideCharToMultiByte(const std::wstring_view wide, const ConvOpts opt
 		return {};
 
 	// The Macros are number literals (int) but the API calls for UINT :facepalm:
-	UINT stupidMicrosoftValue = gsl::narrow<UINT>(opts.code_page);
+	const auto stupidMicrosoftValue = gsl::narrow<UINT>(opts.code_page);
 	const int needed_bytes = ::WideCharToMultiByte(stupidMicrosoftValue, opts.flags, wide.data(), win32_cast(wide.length()), nullptr, 0, opts.replacment, nullptr);
 	THROW_LIVE_ERROR_IF(needed_bytes <= 0, "WIN32::WideCharToMultiByte failed", loc);
 
@@ -247,6 +249,8 @@ unique_hglobal make_moveable_text(const std::basic_string_view<CharT> text, cons
 
 
 export namespace wil {
+
+using ::wil::GetEnvironmentVariableW;
 // The R* pointee aliases (RWND, RKEY, RHANDLE, RINSTANCE, RWSTR), file_ticks,
 // expect_nothing/expect_no_hres/ThrowIfError, the wil::winrt re-exports and the
 // CAuto* handle aliases are gone: they renamed Win32, std or winrt types. Spell
@@ -552,34 +556,40 @@ std::optional<std::wstring> TryGetEnvironmentVariable(const PCWSTR name) {
 
 class CFormatMessageWrapper {
 	DWORD err_id = {};
-	wil::unique_hlocal_string buffer; // FORMAT_MESSAGE_ALLOCATE_BUFFER hands back LocalAlloc'ed memory
-	DWORD length = {};
+	size_t length = {};
+	std::wstring message;
 
-public:
-	explicit CFormatMessageWrapper(const std::optional<DWORD> maybe_err_id = std::nullopt) {
-		err_id = maybe_err_id ? *maybe_err_id : ::GetLastError();
-
-		// The Dark Art incantation that has lived for over 30 years.
-		length = FormatMessageW(
+	// The Dark Art incantation that has lived for over 30 years.
+	static constexpr auto DarkArt(const std::uint32_t err_id_arg, wchar_t* buf_ptr = {}, const size_t buf_cap = 0) {
+		auto&& ret = FormatMessageW(
 			FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
 			nullptr,
-			err_id,
+			err_id_arg,
 			MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
 			// Default language
-			reinterpret_cast<LPWSTR>(buffer.put()),
-			0,
+			buf_ptr,
+			win32_cast(buf_cap),
 			nullptr
 		);
+		return size_t_cast(ret);
+	}
+public:
+	explicit CFormatMessageWrapper(const std::optional<DWORD> maybe_err_id = std::nullopt)
+	: err_id(maybe_err_id.value_or(0))
+	{
+		if (!maybe_err_id)
+			err_id = ::GetLastError();
+		length = DarkArt(err_id, nullptr);
+		message.resize_and_overwrite(length, [&](wchar_t* buf_ptr, const auto buf_cap) -> size_t {
+			return DarkArt(err_id, buf_ptr, buf_cap);
+		});
 	}
 
-
-	CFormatMessageWrapper(const CFormatMessageWrapper&) = delete;
-	CFormatMessageWrapper& operator=(const CFormatMessageWrapper&) = delete;
-
 	explicit operator bool() const { return length != 0; }
-	[[nodiscard]] bool empty() const { return length == 0; }
-	[[nodiscard]] LPCWSTR c_str() const { return buffer ? buffer.get() : L""; }
-	[[nodiscard]] DWORD code() const { return err_id; }
+	[[nodiscard]] auto code() const { return err_id; }
+	[[nodiscard]] const auto& get() const { return message; }
+	[[nodiscard]] auto empty() const { return length == 0; }
+	[[nodiscard]] auto c_str() const { return message.c_str(); }
 };
 
 
@@ -622,6 +632,9 @@ using unique_git_worktree = unique_git<git_worktree, git_worktree_free>;
 // derives from the struct, so &buf is a git_buf* and buf.ptr just works.
 using unique_git_buf = wil::unique_struct<git_buf, decltype(&git_buf_dispose), git_buf_dispose>;
 using unique_git_strarray = wil::unique_struct<git_strarray, decltype(&git_strarray_dispose), git_strarray_dispose>;
+
+// WIN32 Whole Environment Block;
+using unique_environment_block = wil::unique_any<wchar_t*, decltype(FreeEnvironmentStringsW), FreeEnvironmentStringsW>;
 
 
 /// The one thing CAutoRepository did that is not ownership: TGitCache and the
@@ -669,6 +682,9 @@ std::wstring EscapePosixShellArgument(const std::wstring_view argument) {
 	return result;
 }
 
+bool isextra_posix_char(const wchar_t c) {
+	return (c == L'_' || c == L'-' || c == L'.' || c == L'/' || c == L'=' || c == L':' || c == L',' || c == L'+');
+}
 
 /**
  * True unless \a argument is made entirely of characters no shell touches.
@@ -679,16 +695,16 @@ bool NeedsPosixShellQuoting(const std::wstring_view str) {
 	if (str.empty())
 		return true;
 
-	bool ret = false;
+	bool is_escape = false;
 	for (const wchar_t c : str) {
-		ret |= !std::isalnum(c);
-		if (ret)
+		is_escape |= !std::isalnum(c);
+		if (is_escape)
 			break;
-		ret |= !(c == L'_' || c == L'-' || c == L'.' || c == L'/' || c == L'=' || c == L':' || c == L',' || c == L'+');
-		if (ret)
+		is_escape |= !isextra_posix_char(c);
+		if (is_escape)
 			break;
 	}
-	return ret;
+	return is_escape;
 }
 
 
@@ -707,8 +723,6 @@ public:
 		_p.push_back(nullptr);
 	}
 
-
-	Utf8Argv(const Utf8Argv&) = delete; // pointers into _s, as before
 	[[nodiscard]] int argc() const { return gsl::narrow<int>(_s.size()); }
 	[[nodiscard]] const char** argv() noexcept { return _p.data(); }
 };
@@ -731,6 +745,11 @@ public:
 	ArgvData() = default;
 
 	ArgvData(const std::initializer_list<std::wstring> args) : _args{ args } {}
+
+	/// For an argv assembled conditionally before the call. Implicit, like the list
+	/// constructors, so a vector reaches every `const ArgvData&` parameter; a braced
+	/// list still picks the initializer_list constructor, which list-init prefers.
+	ArgvData(std::vector<std::wstring> args) : _args{ std::move(args) } {}
 
 	ArgvData(const std::initializer_list<std::string> args) :
 		_args{ std::from_range, std::views::transform(args, til::UTF8ToWString) } {}
@@ -800,3 +819,29 @@ struct scope_guard {
 	}
 };
 }
+
+
+/// TODO: Template these pairs
+
+// export template <>
+// struct std::formatter<sloc_t, wchar_t> {
+// 	bool with_func = false;
+//
+// 	constexpr auto parse(std::format_parse_context& ctx) {
+// 		auto it = ctx.begin();
+// 		// "{:f}" adds the function
+// 		if (it != ctx.end() && *it == L'f') {
+// 			with_func = true;
+// 			++it;
+// 		}
+// 		if (it != ctx.end() && *it != L'}')
+// 			throw std::format_error("bad source_location spec");
+// 		return it;
+// 	}
+//
+// 	auto format(const sloc_t& loc, std::format_context& ctx) const {
+// 		auto out = std::format_to(ctx.out(), L"{}({})", til::UTF8ToWString(loc.file_name()), loc.line());
+// 		if (with_func) out = std::format_to(out, L": {}", til::UTF8ToWString(loc.function_name()));
+// 		return out;
+// 	}
+// };
