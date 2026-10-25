@@ -1,5 +1,6 @@
 module;
 #include <memory>
+#include <process.h> // _getpid
 
 export module AutoTempDir;
 import std;
@@ -8,41 +9,32 @@ using namespace std::literals;
 namespace fs = std::filesystem;
 
 
-// something something something MFC/ATL
-constexpr auto ERROR_ACCESS_DENIED = 5L;
-
-
 void DeleteDirectoryRecursive(const fs::path& dir)
 {
+	std::error_code ec;
+	fs::remove_all(dir, ec);
+	if (!ec)
+		return;
+
+	// remove_all gives up at the first read-only file, and git's object files are
+	// read-only. Clear the bit on disk - fs::permissions, not file_status's setter,
+	// which only edits a copy - then remove again.
+	std::error_code walk;
+	for (auto it = fs::recursive_directory_iterator(dir, walk); !walk && it != fs::recursive_directory_iterator(); it.increment(walk))
 	{
-		std::error_code ec;
-		fs::remove_all(dir, ec);
-		if (ec && ec.value() != ERROR_ACCESS_DENIED)
-			std::cerr << "remove " << dir << " failed: " << ec.message() << std::endl;
+		std::error_code ignored;
+		if (!it->is_directory(ignored))
+			fs::permissions(it->path(), fs::perms::owner_write, fs::perm_options::add, ignored);
 	}
 
-	for (const auto& it : fs::recursive_directory_iterator(dir))
-	{
-		if (it.is_directory())
-			continue;
-
-		// remove READONLY
-		it.status().permissions(it.status().permissions() & ~fs::perms::owner_write);
-
-		std::error_code ec;
-		fs::remove(it, ec);
-		if (ec)
-			std::cerr << "remove(" << it.path() << ") failed: " << ec.message() << std::endl;
-	};
-
-	{
-		// pickup any empty directories
-		std::error_code ec;
-		fs::remove_all(dir, ec);
-		if (ec && ec.value() != ERROR_ACCESS_DENIED)
-			std::cerr << "remove(" << dir << ") failed: " << ec.message() << std::endl;
-	}
+	ec.clear();
+	fs::remove_all(dir, ec);
+	if (ec)
+		std::cerr << "remove(" << dir << ") failed: " << ec.message() << std::endl;
 }
+
+// Per-process sequence for CAutoTempDir names; the pid separates processes.
+std::atomic<unsigned> g_nextTempDir{ 0 };
 
 export class CAutoTempDir // NOLINT(*-special-member-functions)
 {
@@ -66,9 +58,9 @@ public:
 		std::error_code ec;
 		for (const auto _ : std::views::iota(0, retries))
 		{
-
-			// ReSharper disable once CppDeprecatedEntity
-			const auto uniqnam = "tgit-tests-{}"s + std::tmpnam(nullptr);
+			// Not std::tmpnam: the UCRT returns a *full path* in %TEMP%, so appending it
+			// built "%TEMP%\tgit-tests-{}C:\Users\...", which no attempt could create.
+			const auto uniqnam = std::format(L"tgit-tests-{}-{}", _getpid(), g_nextTempDir++);
 			if (
 				const auto candidate = m_tempdir / uniqnam;
 				fs::create_directory(candidate, ec)
@@ -77,7 +69,8 @@ public:
 				return;
 			}
 		}
-		std::exit(ec.value());
+		// ec is clear when every candidate merely existed; exiting with 0 would read as success
+		std::exit(ec ? ec.value() : EXIT_FAILURE);
 	}
 
 	~CAutoTempDir() { try { DeleteDirectoryRecursive(m_tempdir); } catch (...) {} } // NOLINT(*-empty-catch)

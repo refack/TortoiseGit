@@ -101,7 +101,11 @@ export struct CEnvironment {
 		const auto env_block_span = std::ranges::subrange{ porig.get(), std::unreachable_sentinel };
 		for (const auto& keyval_subrange : std::views::split(env_block_span, L'\0')) {
 			const auto keyval = std::wstring_view{keyval_subrange};
-			if (keyval.length() <= 1)
+			// The block ends at "\0\0", i.e. the first empty entry. The range is
+			// unbounded (unreachable_sentinel), so this is the only stop.
+			if (keyval.empty())
+				break;
+			if (keyval.length() == 1)
 				continue;
 			// Split on the first '=' that is not at offset 0. Windows keeps a hidden
 			// per-drive working directory in each environment block as "=C:=C:\some\dir",
@@ -141,7 +145,9 @@ export struct CEnvironment {
 	/// The stable address the ssh subtransport, the filter driver and gitdll's
 	/// wget_msysgit_etc retain and dereference later (see above).
 	/// operator LPWSTR() const noexcept { return m_baseptr; }
-	[[nodiscard]] auto get() const noexcept { return m_block.data(); }
+	/// m_baseptr, not m_block.data(): after clear() the vector keeps its capacity,
+	/// so data() would hand CreateProcess a stale block instead of nullptr.
+	[[nodiscard]] auto get() const noexcept { return m_baseptr; }
 	/// operator const LPWSTR*() const noexcept { return &m_baseptr; }
 	/// put() used to be reinterpret_cast<wchar_t**>(m_block.data()) - the
 	/// block itself posing as a pointer-to-pointer, so every consumer's *pEnv read
@@ -208,20 +214,29 @@ void CEnvironment::UnsetEnv(const std::wstring_view name) {
 
 
 void CEnvironment::AddToPath(const std::wstring_view value_view) {
-	const auto value = fs::path(value_view);
+	// PATH entries compare the way Windows reads them: case-insensitively, and
+	// with a trailing separator ignored. fs::path's == does neither - it is
+	// case-sensitive, and "c:\windows\" has one element more than "c:\windows".
+	// The separator after a drive letter stays: "c:\" and "c:" are different.
+	const auto strip = [](std::wstring_view s) {
+		while (s.size() > 1 && (s.back() == L'\\' || s.back() == L'/') && !(s.size() == 3 && s[1] == L':'))
+			s.remove_suffix(1);
+		return s;
+	};
+	const auto value = strip(value_view);
 	if (value.empty())
 		return;
-
 
 	std::wstring value_of_PATH = GetEnv(L"PATH");
 	tgit::wstr::TrimRight(value_of_PATH, L";");
 
 	// do not double add paths to %PATH%
 	for (const auto& part : tgit::str::stringtok(value_of_PATH, true, L";"))
-		if (fs::path{ part } == value)
+		if (tgit::wstr::CompareNoCase(strip(part), value) == 0)
 			return;
 
-	value_of_PATH += L";" + value.wstring();
+	value_of_PATH += L';';
+	value_of_PATH += value;
 
 	SetEnv(L"PATH", value_of_PATH);
 }

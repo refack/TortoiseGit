@@ -476,14 +476,21 @@ std::optional<std::wstring> LoadTextFile(const fs::path& filename) {
 		return {}; // load no further files
 	}
 
-	using buf_iter = std::istreambuf_iterator<wchar_t>;
-	std::wifstream file(filename);
-	auto str = std::wstring{ buf_iter(file), buf_iter{} };
+	// Bytes, through the handle that holds the SH_DENYWR lock. The file is UTF-8;
+	// a wifstream in the default locale widened it byte by byte.
+	std::string bytes;
+	std::array<char, 4096> buf{};
+	for (size_t n; (n = std::fread(buf.data(), 1, buf.size(), pFile.get())) > 0;)
+		bytes.append(buf.data(), n);
+
+	auto str = CUnicodeUtils::GetUnicode<std::wstring>(std::string_view{ bytes });
 	wstr::Replace(str, L"\r\n", L"\n");
-	str = str.substr(0, str.rfind(L'\n'));
+	// Exactly one trailing newline. rfind(L'\n') cut at the last newline anywhere,
+	// so a file without a trailing one lost its last line.
+	str.erase(str.find_last_not_of(L'\n') + 1);
 	str += L'\n';
 
-	return str; // load no further files
+	return str;
 }
 
 
@@ -491,7 +498,8 @@ bool LoadTextFile(const CStringW& filename, CStringW& msg) {
 	auto&& ret = LoadTextFile(fs::path{ StringView{ filename }.as_view() });
 	if (!ret)
 		return false;
-	msg.SetString(ret->data(), gsl::narrow<int>(ret->size()));
+	// Appends: callers assemble one message from several files.
+	msg.Append(ret->data(), gsl::narrow<int>(ret->size()));
 	return true;
 }
 
@@ -713,8 +721,8 @@ public:
 	// Public for the unit tests, which force a lazy re-init between fixtures. It used
 	// to be public only where gtest was included first; a module is compiled once, so
 	// access can no longer depend on the importer.
-	static git_credential_acquire_cb g_Git2CredCallback;
-	static git_transport_certificate_check_cb g_Git2CheckCertificateCallback;
+	static inline git_credential_acquire_cb g_Git2CredCallback = nullptr;
+	static inline git_transport_certificate_check_cb g_Git2CheckCertificateCallback = nullptr;
 
 	bool m_IsGitDllInited = false;
 	// Directory g_gitObjectFormat was latched from. The latched format only describes
@@ -1077,7 +1085,6 @@ public:
 	// When branchName == FETCH_HEAD, dereference it.
 	// A selected branch name got from GetBranchList(), with flag BRANCH_FETCH_HEAD enabled,
 	// should go through this function before it is used.
-	CStringW FixBranchName_Mod(CStringW& branchName);
 	CStringW FixBranchName(const CStringW& branchName);
 
 	static std::vector<std::string> GetLogCmd(CStringW range, const TGitPath::CTGitPath* path, int InfoMask, const CFilterData* filter, int logOrderBy);

@@ -695,16 +695,13 @@ bool NeedsPosixShellQuoting(const std::wstring_view str) {
 	if (str.empty())
 		return true;
 
-	bool is_escape = false;
-	for (const wchar_t c : str) {
-		is_escape |= !std::isalnum(c);
-		if (is_escape)
-			break;
-		is_escape |= !isextra_posix_char(c);
-		if (is_escape)
-			break;
-	}
-	return is_escape;
+	// A character is plain when it is an ASCII letter or digit OR one of the
+	// extras. ASCII spelled out, not std::isalnum: that takes an int in the
+	// unsigned char range, and a wchar_t above 255 is undefined behaviour.
+	const auto is_plain = [](const wchar_t c) {
+		return (c >= L'a' && c <= L'z') || (c >= L'A' && c <= L'Z') || (c >= L'0' && c <= L'9') || isextra_posix_char(c);
+	};
+	return !std::ranges::all_of(str, is_plain);
 }
 
 
@@ -799,8 +796,11 @@ public:
 			return to_cmd();
 
 		std::wstring cmd;
-		for (const auto& arg : _args)
+		for (const auto& arg : _args) {
+			if (!cmd.empty())
+				cmd += L' ';
 			cmd += NeedsPosixShellQuoting(arg) ? EscapePosixShellArgument(arg) : arg;
+		}
 		return cmd;
 	}
 };

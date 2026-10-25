@@ -750,10 +750,10 @@ static void FETCHHEAD(CGit& m_Git, bool isBare)
 	EXPECT_STREQ(L"master", m_Git.FixBranchName(L"master"));
 	EXPECT_STREQ(L"non-existing", m_Git.FixBranchName(L"non-existing"));
 	CString branch = L"master";
-	EXPECT_STREQ(L"master", m_Git.FixBranchName_Mod(branch));
+	branch = m_Git.FixBranchName(branch);
 	EXPECT_STREQ(L"master", branch);
 	branch = L"non-existing";
-	EXPECT_STREQ(L"non-existing", m_Git.FixBranchName_Mod(branch));
+	branch = m_Git.FixBranchName(branch);
 	EXPECT_STREQ(L"non-existing", branch);
 	CGitHash hash;
 	EXPECT_NE(0, m_Git.GetHash(hash, L"FETCH_HEAD"));
@@ -772,16 +772,16 @@ static void FETCHHEAD(CGit& m_Git, bool isBare)
 	EXPECT_STREQ(L"non-existing", m_Git.FixBranchName(L"non-existing"));
 	EXPECT_STREQ(L"b9ef30183497cdad5c30b88d32dc1bed7951dfeb", m_Git.FixBranchName(L"FETCH_HEAD"));
 	branch = L"HEAD";
-	EXPECT_STREQ(L"HEAD", m_Git.FixBranchName_Mod(branch));
+	branch = m_Git.FixBranchName(branch);
 	EXPECT_STREQ(L"HEAD", branch);
 	branch = L"master";
-	EXPECT_STREQ(L"master", m_Git.FixBranchName_Mod(branch));
+	branch = m_Git.FixBranchName(branch);
 	EXPECT_STREQ(L"master", branch);
 	branch = L"non-existing";
-	EXPECT_STREQ(L"non-existing", m_Git.FixBranchName_Mod(branch));
+	branch = m_Git.FixBranchName(branch);
 	EXPECT_STREQ(L"non-existing", branch);
 	branch = L"FETCH_HEAD";
-	EXPECT_STREQ(L"b9ef30183497cdad5c30b88d32dc1bed7951dfeb", m_Git.FixBranchName_Mod(branch));
+	branch = m_Git.FixBranchName(branch);
 	EXPECT_STREQ(L"b9ef30183497cdad5c30b88d32dc1bed7951dfeb", branch);
 	EXPECT_EQ(0, m_Git.GetHash(hash, L"FETCH_HEAD"));
 	EXPECT_STREQ(L"b9ef30183497cdad5c30b88d32dc1bed7951dfeb", hash.ToString());
@@ -797,7 +797,7 @@ static void FETCHHEAD(CGit& m_Git, bool isBare)
 
 	EXPECT_STREQ(L"b9ef30183497cdad5c30b88d32dc1bed7951dfeb", m_Git.FixBranchName(L"FETCH_HEAD"));
 	branch = L"FETCH_HEAD";
-	EXPECT_STREQ(L"b9ef30183497cdad5c30b88d32dc1bed7951dfeb", m_Git.FixBranchName_Mod(branch));
+	branch = m_Git.FixBranchName(branch);
 	EXPECT_STREQ(L"b9ef30183497cdad5c30b88d32dc1bed7951dfeb", branch);
 	// libgit2 fails here
 	//EXPECT_EQ(0, m_Git.GetHash(hash, L"FETCH_HEAD"));
