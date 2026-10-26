@@ -242,6 +242,10 @@ template <typename TStr>
 concept IsRealString = requires(const TStr& s) {
 	typename TStr::value_type;
 	typename TStr::const_pointer;
+	// What StringViewTraits<IsRealString> reads. Without these the concept admitted
+	// std::array and std::vector, whose traits then failed inside the class body.
+	typename TStr::size_type;
+	{ TStr::npos } -> std::convertible_to<typename TStr::size_type>;
 //	typename TStr::traits_type;
 	{ s.data() } -> std::convertible_to<typename TStr::const_pointer>;
 	{ s.size() } -> std::convertible_to<size_t>;
@@ -513,14 +517,25 @@ auto fake() -> void{
 }
 
 
+// What stringtok accepts, stated in its signature rather than asserted in its body.
+// A body static_assert is a hard error once the body is instantiated, so "this call
+// must not compile" could not even be asked; a constraint fails overload resolution
+// instead, at the caller, and `requires` reads that as a plain false. The parts are
+// named so the diagnostic names the one that failed.
+template <typename DelimT>
+concept TokDelimiters = IsTCompString<DelimT> || IsRawString<DelimT>;
+
+template <typename TStr, typename DelimT>
+concept TokSameChar = std::same_as<typename StringViewTraits<TStr>::char_type, typename RawStringTraits<DelimT>::char_type>;
+
+template <typename TStr, typename DelimT>
+concept Tokenizable = IsTCompString<TStr> && TokDelimiters<DelimT> && TokSameChar<TStr, DelimT>;
+
 // std: std::views::split (+ std::from_chars for numeric containers)
 template<typename TStr, typename DelimT>
+	requires Tokenizable<TStr, DelimT>
 auto stringtok(const TStr& in_nt, const bool trim, const DelimT& delimiters) {
 	using in_traits = StringViewTraits<TStr>;
-	using out_traits = RawStringTraits<DelimT>;
-	static_assert(IsTCompString<TStr>,							"\n *** Wrong type of 1st argument `in_nt[\n" __FUNCSIG__ "]\n");
-	static_assert(IsTCompString<DelimT> || IsRawString<DelimT>,	"\n *** Wrong type of 3rd argument `delimiters` [\n" __FUNCSIG__ "\n]");
-	static_assert(std::is_same_v<typename in_traits::char_type, typename out_traits::char_type>, "\n *** mismatched delimiter type [\n" __FUNCSIG__ "\n]");
 
 	auto in = StringView{in_nt}.as_view();
 	auto container = std::vector<TStr>{};
@@ -544,16 +559,25 @@ auto stringtok(const TStr& in_nt, const bool trim, const DelimT& delimiters) {
 	}
 	return container;
 }
+// Must compile, with this result: decltype of a *call* deduces the auto return type,
+// so each line compiles the body for exactly these argument types.
 static_assert(std::same_as<decltype(stringtok("a,b"s,  true, ","s)),	std::vector<std::string>>);
 static_assert(std::same_as<decltype(stringtok("a,b"sv, true, ","sv)),	std::vector<std::string_view>>);
 static_assert(std::same_as<decltype(stringtok(L"a;b"s, true, L";"sv)),	std::vector<std::wstring>>);
 static_assert(std::same_as<decltype(stringtok("a,b"sv, true, ",")),		std::vector<std::string_view>>);
-static_assert(!std::same_as<decltype(stringtok(L"a,b"sv, true, ",")),	std::vector<std::string_view>>);
-static_assert(!std::same_as<decltype(stringtok(5, true, L",")),			std::vector<std::string_view>>);
-static_assert(std::same_as<decltype(stringtok("a,b"sv, true, std::array{1,2})),			std::vector<std::string_view>>);
-static_assert(!std::same_as<decltype(stringtok(L"a,b"sv, true, std::array{1,2})),			std::vector<std::string_view>>);
 
-static_assert(!std::same_as<decltype(stringtok("a,b"sv, true, L",")),	std::vector<std::string_view>>);
+// Must not compile: asked of overload resolution, which the constraint answers with a
+// clean false. (A requires-expression outside a template is ill-formed when its
+// expression is, so the question goes through a concept.) The delimiter types are
+// what a literal deduces to: "," is char[2].
+template <typename TStr, typename DelimT>
+concept CanStringtok = requires(const TStr& in, const DelimT& delimiters) { stringtok(in, true, delimiters); };
+
+static_assert(!CanStringtok<std::wstring_view, char[2]>);				// wide input, narrow delimiters
+static_assert(!CanStringtok<std::string_view, wchar_t[2]>);				// narrow input, wide delimiters
+static_assert(!CanStringtok<int, wchar_t[2]>);							// not a string
+static_assert(!CanStringtok<std::string_view, std::array<int, 2>>);		// shaped like a string, but of int
+static_assert(!CanStringtok<std::wstring_view, std::array<int, 2>>);
 
 
 
@@ -569,7 +593,6 @@ std::generator<std::pair<std::basic_string_view<char_type>, std::size_t>> lazy_t
 		const auto start = std::exchange(next, nl + 1);
 		const auto back_off = size_t{ nl > start && buf.at(nl - 1) == '\r' };
 		co_yield { buf.substr(start, nl - start - back_off), next };
-		[[unlikely]]
 	}
 }
 
