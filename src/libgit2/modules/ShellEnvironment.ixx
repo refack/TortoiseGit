@@ -15,7 +15,6 @@ import str_utils;
 namespace fs = std::filesystem;
 
 
-
 /// Ordering for environment variable names. Windows resolves them
 /// case-insensitively - PATH and Path are one variable - so that has to be a
 /// property of the container rather than something every lookup remembers to do.
@@ -25,12 +24,18 @@ namespace fs = std::filesystem;
 struct EnvNameLess {
 	using is_transparent = void;
 
-
 	[[nodiscard]] bool operator()(const std::wstring_view lhs, const std::wstring_view rhs) const noexcept {
 		return tgit::wstr::CompareNoCase(lhs, rhs) < 0;
 	}
 };
 
+using MAP_ENVIRONMENT = std::map<std::wstring, std::wstring, EnvNameLess>;
+
+
+constexpr auto Z3_EXTREME_BOUND_ON_SIZE = 1U << 23U;
+constexpr auto KEY_VALUE_SEPARATOR = L"="sv;
+constexpr auto ENTRY_SEPARATOR = L"\0"sv;
+constexpr auto PATH_DELIMITER = L";"sv;
 
 
 /**
@@ -60,18 +65,23 @@ struct EnvNameLess {
  *    git through bash, and a shell is not as forgiving about name case as
  *    Windows is.
  */
-export struct CEnvironment {
-	using MAP_ENVIRONMENT = std::map<std::wstring, std::wstring, EnvNameLess>;
+export class CEnvironment {
+
+	MAP_ENVIRONMENT m_vars;
+	/// The serialized "name=value\0...\0\0" block, rebuilt on every mutation.
+	std::vector<wchar_t> m_block;
+	/// Repointed at m_block by every Serialize(); its *address* is what is handed out.
+	std::vector<wchar_t>::pointer m_baseptr = {};
 
 
+public:
 	~CEnvironment() = default;
+
 	CEnvironment() {
 		CopyProcessEnvironment();
 	}
 
-	CEnvironment(const CEnvironment& env)
-	: m_vars(env.m_vars)
-	{ Serialize(); }
+	CEnvironment(const CEnvironment& env) : m_vars(env.m_vars) { Serialize(); }
 
 	CEnvironment& operator=(const CEnvironment& env) {
 		if (this != &env) {
@@ -81,65 +91,39 @@ export struct CEnvironment {
 		return *this;
 	}
 
-
 	// Deleted for the same reason they were before: m_baseptr's address is handed
 	// out and retained, so an object that has been moved from would leave its
 	// consumers pointing at an empty block.
 	CEnvironment(CEnvironment&& env) = delete;
 	CEnvironment& operator=(CEnvironment&& env) = delete;
 
-	/// Merges the process's own environment in. Variables already set here win,
-	/// which is what the flat block did by returning the first match on lookup.
-	void CopyProcessEnvironment() {
-		constexpr auto EXTREME_Z3_UPPER_BOUND_ON_SIZE_OF_ENV_BLOCK = 1U << 23U;
-		constexpr auto BLOCK_END_SEP = std::array<wchar_t, 2>{};
-
-		const auto porig = wil::unique_environment_block{ GetEnvironmentStrings() };
-		if (!porig)
-			return;
-
-		const auto env_block_span = std::ranges::subrange{ porig.get(), std::unreachable_sentinel };
-		for (const auto& keyval_subrange : std::views::split(env_block_span, L'\0')) {
-			const auto keyval = std::wstring_view{keyval_subrange};
-			// The block ends at "\0\0", i.e. the first empty entry. The range is
-			// unbounded (unreachable_sentinel), so this is the only stop.
-			if (keyval.empty())
-				break;
-			if (keyval.length() == 1)
-				continue;
-			// Split on the first '=' that is not at offset 0. Windows keeps a hidden
-			// per-drive working directory in each environment block as "=C:=C:\some\dir",
-			// and splitting on the very first '=' would give every one of those the same
-			// empty name - so a map would keep exactly one of them.
-			const auto key_len = keyval.find(L'=', 1);
-			if (key_len == keyval.npos)
-				continue;
-
-			const auto key_sv = keyval.substr(0, key_len);
-			Expects(keyval[key_len] == L'=');
-			const auto val_sv = keyval.substr(key_len + 1);
-			// emplace, not insert_or_assign: what is already set here wins, which is what the flat block did by returning the first match on lookup.
-			m_vars.emplace(key_sv, val_sv);
-		}
-
-		Serialize();
-	}
-
 	void clear() {
 		m_vars.clear();
 		Serialize(); // it cleared m_vars twice and never this, so the block kept the old environment
 	}
+
 	[[nodiscard]] bool empty() const { return m_vars.empty(); }
-
-
-	[[nodiscard]] std::wstring GetEnv(std::wstring_view name) const;
-	void SetEnv(std::wstring_view name, std::wstring_view value);
+	[[nodiscard]] std::wstring GetEnv(const std::wstring_view name) const {
+		const auto it = m_vars.find(name);
+		return it == m_vars.cend() ? std::wstring() : it->second;
+	}
+	void SetEnv(const std::wstring_view name, const std::wstring_view value) {
+		// Erase before inserting rather than insert_or_assign, so the *passed* spelling
+		// of the name survives when it differs in case from what is already stored. The
+		// map is case-insensitive, so insert_or_assign would keep the older spelling,
+		// and the cygwin/msys builds hand this block to a shell that is not as relaxed
+		// about that as Windows is.
+		m_vars.erase(name);
+		m_vars.emplace(name, value);
+		Serialize();
+	}
 	/// Removes a variable. This used to be SetEnv(name, nullptr) - a deletion
 	/// spelled as an assignment, and invisible at the ~20 call sites that use it.
-	void UnsetEnv(std::wstring_view name);
-	void AddToPath(std::wstring_view value_view);
-
-
+	void UnsetEnv(const std::wstring_view name) {
+		if (m_vars.erase(std::wstring(name)) == 0)
+			return; // nothing removed, so the block cannot have changed
+		Serialize();
+	}
 	/// The block itself, for CreateProcess and git_init: nullptr when empty, which
 	/// CreateProcess reads as "inherit" (see above).
 	/// The stable address the ssh subtransport, the filter driver and gitdll's
@@ -154,89 +138,86 @@ export struct CEnvironment {
 	/// the first characters of "NAME=value" as an address. It is &m_baseptr.
 	[[nodiscard]] auto* put() noexcept { return &m_baseptr; }
 
-private:
-	void Serialize();
 
-	MAP_ENVIRONMENT m_vars;
-	/// The serialized "name=value\0...\0\0" block, rebuilt on every mutation.
-	std::vector<wchar_t> m_block;
-	/// Repointed at m_block by every Serialize(); its *address* is what is handed out.
-	std::span<wchar_t>::pointer m_baseptr = {};
-};
-
-
-
-void CEnvironment::Serialize() {
-	m_block.clear();
-	if (m_vars.empty()) {
-		m_baseptr = nullptr; // an empty environment is nullptr, not an empty block
-		return;
-	}
-
-	for (const auto& [name, value] : m_vars) {
-		m_block.insert(m_block.end(), name.cbegin(), name.cend());
-		m_block.push_back(L'=');
-		m_block.insert(m_block.end(), value.cbegin(), value.cend());
-		m_block.push_back(L'\0');
-	}
-	m_block.push_back(L'\0'); // the block's own terminator, after the last entry's
-	m_baseptr = m_block.data();
-}
-
-
-
-
-
-
-std::wstring CEnvironment::GetEnv(const std::wstring_view name) const {
-	const auto it = m_vars.find(name);
-	return it == m_vars.cend() ? std::wstring() : it->second;
-}
-
-
-void CEnvironment::SetEnv(const std::wstring_view name, const std::wstring_view value) {
-	// Erase before inserting rather than insert_or_assign, so the *passed* spelling
-	// of the name survives when it differs in case from what is already stored. The
-	// map is case-insensitive, so insert_or_assign would keep the older spelling,
-	// and the cygwin/msys builds hand this block to a shell that is not as relaxed
-	// about that as Windows is.
-	m_vars.erase(name);
-	m_vars.emplace(name, value);
-	Serialize();
-}
-
-
-void CEnvironment::UnsetEnv(const std::wstring_view name) {
-	if (m_vars.erase(std::wstring(name)) == 0)
-		return; // nothing removed, so the block cannot have changed
-	Serialize();
-}
-
-
-void CEnvironment::AddToPath(const std::wstring_view value_view) {
-	// PATH entries compare the way Windows reads them: case-insensitively, and
-	// with a trailing separator ignored. fs::path's == does neither - it is
-	// case-sensitive, and "c:\windows\" has one element more than "c:\windows".
-	// The separator after a drive letter stays: "c:\" and "c:" are different.
-	const auto strip = [](std::wstring_view s) {
-		while (s.size() > 1 && (s.back() == L'\\' || s.back() == L'/') && !(s.size() == 3 && s[1] == L':'))
-			s.remove_suffix(1);
-		return s;
-	};
-	const auto value = strip(value_view);
-	if (value.empty())
-		return;
-
-	std::wstring value_of_PATH = GetEnv(L"PATH");
-	tgit::wstr::TrimRight(value_of_PATH, L";");
-
-	// do not double add paths to %PATH%
-	for (const auto& part : tgit::str::stringtok(value_of_PATH, true, L";"))
-		if (tgit::wstr::CompareNoCase(strip(part), value) == 0)
+	void AddToPath(const std::wstring_view value_view) {
+		// PATH entries compare the way Windows reads them: case-insensitively, and
+		// with a trailing separator ignored. fs::path's == does neither - it is
+		// case-sensitive, and "c:\windows\" has one element more than "c:\windows".
+		// The separator after a drive letter stays: "c:\" and "c:" are different.
+		const auto strip = [](std::wstring_view s) {
+			while (s.size() > 1 && (s.back() == L'\\' || s.back() == L'/') && !(s.size() == 3 && s[1] == L':'))
+				s.remove_suffix(1);
+			return s;
+		};
+		const auto value = strip(value_view);
+		if (value.empty())
 			return;
 
-	value_of_PATH += L';';
-	value_of_PATH += value;
+		std::wstring value_of_PATH = GetEnv(L"PATH");
+		tgit::wstr::TrimRight(value_of_PATH, PATH_DELIMITER);
 
-	SetEnv(L"PATH", value_of_PATH);
-}
+		// do not double add paths to %PATH%
+		for (const auto& part : tgit::str::stringtok(value_of_PATH, true, PATH_DELIMITER))
+			if (tgit::wstr::CompareNoCase(strip(part), value) == 0)
+				return;
+
+		value_of_PATH += PATH_DELIMITER.front();
+		value_of_PATH += value;
+
+		SetEnv(L"PATH", value_of_PATH);
+	}
+
+
+	/// Merges the process's own environment in. Variables already set here win,
+	/// which is what the flat block did by returning the first match on lookup.
+	void CopyProcessEnvironment() {
+		const auto porig = wil::unique_environment_block{ GetEnvironmentStrings() };
+		if (!porig)
+			return;
+
+		// std::unreachable_sentinel freaks me out so I'm using Z3_EXTREME_BOUND_ON_SIZE as an anti-OOB amulet
+		for (const auto& keyval_subrange : std::views::counted(porig.get(), Z3_EXTREME_BOUND_ON_SIZE) | std::views::split(ENTRY_SEPARATOR)) {
+			// the simplest way to search for the L"\0\0"
+			if (keyval_subrange.empty())
+				break;
+			// weirdo, either a single char name with no value, or a floating '='. find(,1) would kick it out anyway.
+			if (keyval_subrange.size() == 1)
+				continue;
+
+			const auto keyval_pair = std::wstring_view{keyval_subrange};
+			// Split on the first '=' that is not at offset 0. Windows keeps a hidden
+			// per-drive working directory in each environment block as "=C:=C:\some\dir",
+			// and splitting on the very first '=' would give every one of those the same
+			// empty name - so a map would keep exactly one of them.
+			const auto key_len = keyval_pair.find(KEY_VALUE_SEPARATOR, 1);
+			if (key_len == keyval_pair.npos)
+				continue;
+
+			const auto key_sv = keyval_pair.substr(0, key_len);
+			Expects(keyval_pair[key_len] == KEY_VALUE_SEPARATOR.front());
+			const auto val_sv = keyval_pair.substr(key_len + KEY_VALUE_SEPARATOR.size());
+			// emplace, not insert_or_assign: what is already set here wins, which is what the flat block did by returning the first match on lookup.
+			m_vars.emplace(key_sv, val_sv);
+		}
+
+		Serialize();
+	}
+
+private:
+	void Serialize() {
+		m_block.clear();
+		if (m_vars.empty()) {
+			m_baseptr = nullptr; // an empty environment is nullptr, not an empty block
+			return;
+		}
+
+		for (const auto& [name, value] : m_vars) {
+			m_block.insert(m_block.end(), name.cbegin(), name.cend());
+			m_block.push_back(KEY_VALUE_SEPARATOR.front());
+			m_block.insert(m_block.end(), value.cbegin(), value.cend());
+			m_block.push_back(ENTRY_SEPARATOR.front());
+		}
+		m_block.push_back(ENTRY_SEPARATOR.front()); // the block's own terminator, after the last entry's
+		m_baseptr = m_block.data();
+	}
+};

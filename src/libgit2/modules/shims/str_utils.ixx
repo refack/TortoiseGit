@@ -3,12 +3,12 @@
 // atlstr.h, and the only one that tests TGIT_MFC (CLAUDE.md, "Strings"). Every
 // other module gets CString from here, as tgit::wstr::CString / tgit::zstr::CString,
 // and TGIT_MFC is set per target, so the choice below is frozen for each importer.
-//
-// The fork comes first: MFC requires afx.h ahead of anything that includes
-// windows.h.
-#ifdef TGIT_MFC
-#include <afx.h>
+
+// The fork comes first: MFC requires afx.h ahead of anything that includes windows.h.
+#ifdef NO_TGIT_MFC
+	#include <afx.h>
 #endif
+
 #include <windows.h>
 #include <atlstr.h>
 // CTime's Format() returns this flavor's CString, so CTime is a shim type too: afx.h
@@ -16,11 +16,12 @@
 // GMF included it, and that GMF would then speak ATL CString inside the MFC library.
 #include <atltime.h>
 #include <winrt/base.h>		// ::winrt::to_hstring, in CUnicodeUtils::GetUnicode
+#include "sanity.h"
 
 
 export module str_utils;
 import std;
-using namespace std::literals;
+export using namespace std::literals;
 
 import gsl;
 import wil;			// wil::unique_hfile, for the text-file helpers
@@ -301,6 +302,21 @@ struct StringViewTraits<TStr> {
 };
 
 
+/// A NUL-terminated char / wchar_t pointer.
+template <typename TStr>
+concept IsRawString = (std::is_pointer_v<TStr> || std::is_pointer_v<std::decay_t<TStr>>) && (
+	std::same_as<std::remove_cv_t<std::remove_pointer_t<TStr>>, char>
+ || std::same_as<std::remove_cv_t<std::remove_pointer_t<TStr>>, wchar_t>
+ || std::same_as<std::remove_cv_t<std::remove_pointer_t<std::decay_t<TStr>>>, char>
+ || std::same_as<std::remove_cv_t<std::remove_pointer_t<std::decay_t<TStr>>>, wchar_t>
+)
+;
+
+
+template <typename TChar>
+concept IsStringViewLike = IsRawString<TChar> || IsTCompString<TChar>;
+
+
 template <IsTCompString TStr>
 constexpr auto to_atl(const TStr& s)
 {
@@ -348,11 +364,7 @@ struct StringTraits<TStr> : StringViewTraits<TStr> {
 };
 
 
-/// A NUL-terminated char / wchar_t pointer.
-template <typename TStr>
-concept IsRawString = std::is_pointer_v<TStr>
-	&& (std::same_as<std::remove_cv_t<std::remove_pointer_t<TStr>>, char>
-	 || std::same_as<std::remove_cv_t<std::remove_pointer_t<TStr>>, wchar_t>);
+
 
 // A raw pointer has StringTraits but no StringViewTraits. Every view accessor
 // is an O(1) read of a length the string already knows; a pointer knows none,
@@ -366,7 +378,9 @@ template <IsRawString TStr>
 struct StringTraits<TStr> {
 	using char_type     = std::remove_cv_t<std::remove_pointer_t<TStr>>;
 	using const_pointer = const char_type*;
+
 	static constexpr const_pointer data(const TStr s) noexcept { return s; }
+
 	static constexpr size_t        size(const TStr s) noexcept { return s ? std::char_traits<char_type>::length(s) : 0; }
 };
 
@@ -385,6 +399,37 @@ concept HasStringTraitsOf = requires(const T& s) {
 	{ StringTraits<T>::data(s) } -> std::convertible_to<const TChar*>;
 	{ StringTraits<T>::size(s) } -> std::same_as<size_t>;
 } && std::same_as<typename StringTraits<T>::char_type, TChar>;
+
+
+template <typename Base>
+struct RawStringTraits;
+
+template <IsRawString TCharP>
+struct RawStringTraits<TCharP> {
+	using char_type				= std::remove_cv_t<std::remove_pointer_t<std::decay_t<TCharP>>>;
+	using const_pointer			= const char_type* const;
+
+	static constexpr auto npos	= nullptr;
+
+	static constexpr const_pointer	data(const TCharP s) noexcept { return s; }
+};
+
+
+static_assert(IsRawString<decltype("ffff")>);
+
+
+template <IsTCompString TStr>
+struct RawStringTraits<TStr> {
+	using sv_traits				= StringViewTraits<TStr>;
+	using char_type				= sv_traits::char_type;
+	using const_pointer			= sv_traits::const_pointer;
+
+	static constexpr auto npos	= sv_traits::npos;
+
+	static constexpr auto data  = sv_traits::data;
+};
+
+
 
 /// The traits key for an owned input as a template deduces it from `const TIn&`:
 /// a literal deduces as char[N], and the const has to go in before the decay
@@ -450,24 +495,40 @@ struct generate_random_string_t {
 	}
 };
 
-// std: std::views::split (+ std::from_chars for numeric containers)
-auto stringtok(
-	const auto& in_nt,
-	const bool trim,
-	const auto delimiters
-) {
-	using StrT = std::remove_cvref_t<decltype(in_nt)>;
-	using traits = StringViewTraits<StrT>;
-	static_assert(IsTCompString<StrT>, "Wrong type of [in]");
-	static_assert(std::is_convertible_v<decltype(delimiters), typename StringViewTraits<StrT>::const_pointer>, "mismatched delimiter type");
 
-	auto in = std::basic_string_view<typename traits::char_type>{StringView{in_nt}};
-	auto container = std::vector<StrT>{};
-	for (typename traits::size_type i = {}; i < in.size();) {
+using has_const_assert_constexpr_msg  = std::integral_constant<
+	bool,
+#if __cpp_static_assert >= 202306L
+	true
+#endif
+	false
+>;
+
+auto fake() -> void{
+	if constexpr(has_const_assert_constexpr_msg::value) {
+		#pragma message("finally P2741: User-generated static_assert messages (C++26)")
+	} else {
+		#pragma message("still waiting for P2741")
+	}
+}
+
+
+// std: std::views::split (+ std::from_chars for numeric containers)
+template<typename TStr, typename DelimT>
+auto stringtok(const TStr& in_nt, const bool trim, const DelimT& delimiters) {
+	using in_traits = StringViewTraits<TStr>;
+	using out_traits = RawStringTraits<DelimT>;
+	static_assert(IsTCompString<TStr>,							"\n *** Wrong type of 1st argument `in_nt[\n" __FUNCSIG__ "]\n");
+	static_assert(IsTCompString<DelimT> || IsRawString<DelimT>,	"\n *** Wrong type of 3rd argument `delimiters` [\n" __FUNCSIG__ "\n]");
+	static_assert(std::is_same_v<typename in_traits::char_type, typename out_traits::char_type>, "\n *** mismatched delimiter type [\n" __FUNCSIG__ "\n]");
+
+	auto in = StringView{in_nt}.as_view();
+	auto container = std::vector<TStr>{};
+	for (typename in_traits::size_type i = {}; i < in.size();) {
 		if (trim) {
 			// eat leading empty tok
 			i = in.find_first_not_of(delimiters, i);
-			if (i == traits::npos)
+			if (i == in_traits::npos)
 				break; // nothing left but empty toks
 		}
 
@@ -475,7 +536,7 @@ auto stringtok(
 		const auto j = in.find_first_of(delimiters, i);
 		auto substr = in.substr(i, j - i);
 		container.emplace_back(substr);
-		if (j == traits::npos)
+		if (j == in_traits::npos)
 			break;
 
 		// set up for next loop
@@ -483,6 +544,17 @@ auto stringtok(
 	}
 	return container;
 }
+static_assert(std::same_as<decltype(stringtok("a,b"s,  true, ","s)),	std::vector<std::string>>);
+static_assert(std::same_as<decltype(stringtok("a,b"sv, true, ","sv)),	std::vector<std::string_view>>);
+static_assert(std::same_as<decltype(stringtok(L"a;b"s, true, L";"sv)),	std::vector<std::wstring>>);
+static_assert(std::same_as<decltype(stringtok("a,b"sv, true, ",")),		std::vector<std::string_view>>);
+static_assert(!std::same_as<decltype(stringtok(L"a,b"sv, true, ",")),	std::vector<std::string_view>>);
+static_assert(!std::same_as<decltype(stringtok(5, true, L",")),			std::vector<std::string_view>>);
+static_assert(std::same_as<decltype(stringtok("a,b"sv, true, std::array{1,2})),			std::vector<std::string_view>>);
+static_assert(!std::same_as<decltype(stringtok(L"a,b"sv, true, std::array{1,2})),			std::vector<std::string_view>>);
+
+static_assert(!std::same_as<decltype(stringtok("a,b"sv, true, L",")),	std::vector<std::string_view>>);
+
 
 
 /// The '\n'-terminated lines of a growing buffer, each with the offset just past its '\n'; an
@@ -497,6 +569,7 @@ std::generator<std::pair<std::basic_string_view<char_type>, std::size_t>> lazy_t
 		const auto start = std::exchange(next, nl + 1);
 		const auto back_off = size_t{ nl > start && buf.at(nl - 1) == '\r' };
 		co_yield { buf.substr(start, nl - start - back_off), next };
+		[[unlikely]]
 	}
 }
 
