@@ -16,8 +16,8 @@ vcpkg_from_github(
     # Pinned to the commit ext/OGDF was vendored at: 19 commits past the
     # foxglove-202510 tag. Retiring the submodule is the point of this port, so
     # the commit has to live here rather than in .gitmodules.
-    REF 17f045b131851f5d32af184d5a7a864cec2bfc27
-    SHA512 fcef316193adb1b8775bbdf1528eaef7c96fb061b809c869c83032b654f137d23a8c8a3da526e3dec32683999a8c0f35ea79bc1600733215bfb88d174c27c266
+    REF 1a40505ac00677a58ab5ce532e1dcc3bd63116e5
+    SHA512 26dcaf21da87bc33940c4c9ddc600fdeef8b27ec8638af478b47a367b31335425790d8544b942fb5eadb7546fd86c500725277d75f49758d51fab0a4644286b5
     HEAD_REF master
     PATCHES
         cache-debug-postfix.diff
@@ -43,17 +43,17 @@ vcpkg_from_github(
 vcpkg_cmake_configure(
     SOURCE_PATH "${SOURCE_PATH}"
     OPTIONS
-        -DOGDF_MEMORY_MANAGER=POOL_TS
-        -DCOIN_SOLVER=CLP
-        -DOGDF_USE_ASSERT_EXCEPTIONS=OFF
-        -DOGDF_DEBUG_MODE=REGULAR
-        -DOGDF_INCLUDE_CGAL=OFF
-        -DOGDF_WARNING_ERRORS=OFF
-        -DOGDF_SEPARATE_TESTS=OFF
-        -DOGDF_ENABLE_CLANG_TIDY=OFF
         -DCMAKE_DEBUG_POSTFIX=
         -DCMAKE_DISABLE_FIND_PACKAGE_Doxygen=ON
+        -DCOIN_SOLVER=CLP
         -DDOC_INSTALL=OFF
+        -DOGDF_DEBUG_MODE=REGULAR
+        -DOGDF_ENABLE_CLANG_TIDY=OFF
+        -DOGDF_INCLUDE_CGAL=OFF
+        -DOGDF_MEMORY_MANAGER=POOL_TS
+        -DOGDF_SEPARATE_TESTS=OFF
+        -DOGDF_USE_ASSERT_EXCEPTIONS=OFF
+        -DOGDF_WARNING_ERRORS=OFF
     MAYBE_UNUSED_VARIABLES
         DOC_INSTALL
 )
@@ -116,3 +116,6 @@ vcpkg_install_copyright(FILE_LIST
     "${SOURCE_PATH}/LICENSE_GPL_v2.txt"
     "${SOURCE_PATH}/LICENSE_GPL_v3.txt"
 )
+
+# Not needed
+file(REMOVE_RECURSE "${CURRENT_PACKAGES_DIR}/lib/minisat/doc" "${CURRENT_PACKAGES_DIR}/include/ogdf/lib/minisat/doc")

@@ -2,6 +2,7 @@
   "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg-tool/main/docs/vcpkg.schema.json",
   "name": "ogdf",
   "version-string": "2025.10.01-17f045b1",
+  "port-version": 1,
   "description": "OGDF - the Open Graph Drawing Framework, with its bundled COIN-OR/Clp LP solver.",
   "homepage": "https://ogdf.github.io/",
   "license": "GPL-2.0-only OR GPL-3.0-only",
