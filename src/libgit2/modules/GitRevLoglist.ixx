@@ -310,9 +310,12 @@ public:
 
 				const git_diff_delta* delta = git_patch_get_delta(patch.get());
 
-				bool isDir = (delta->new_file.mode == GIT_FILEMODE_TREE);
+				// the directory *bit*, as upstream tested it: a submodule (gitlink,
+				// 0160000) carries it too and is listed as a directory; == TREE is not
+				const auto hasDirBit = [](const std::uint32_t mode) { return (mode & GIT_FILEMODE_TREE) == GIT_FILEMODE_TREE; };
+				bool isDir = hasDirBit(delta->new_file.mode);
 				if (delta->status == GIT_DELTA_DELETED)
-					isDir = (delta->old_file.mode == GIT_FILEMODE_TREE);
+					isDir = hasDirBit(delta->old_file.mode);
 
 				if (lastDelta && strcmp(lastDelta->new_file.path, delta->new_file.path) == 0 && (lastDelta->status == GIT_DELTA_DELETED && delta->status == GIT_DELTA_ADDED || delta->status == GIT_DELTA_DELETED && lastDelta->status == GIT_DELTA_ADDED))
 				{
