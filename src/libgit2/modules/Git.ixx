@@ -3112,7 +3112,8 @@ int CGit::GetBranchDescriptions(dict_t& map) const {
 	// Get the `config`
 	wil::unique_git_config config;
 	git_config_new(config.put());
-	const auto configFilepath = GetGitLocalConfig().string();
+	// UTF-8, as libgit2 reads it: path::string() would be the ACP
+	const auto configFilepath = CUnicodeUtils::StdGetUTF8(GetGitLocalConfig().wstring());
 	if (auto&& ret = git_config_add_file_ondisk(config.get(), configFilepath.c_str(), GIT_CONFIG_LEVEL_LOCAL, nullptr, FALSE); ret != GIT_OK)
 		return GFail;
 
@@ -3130,7 +3131,8 @@ int CGit::GetBranchDescriptions(dict_t& map) const {
             const std::wstring key_full = CUnicodeUtils::StdGetUnicode(entry->name);
         	const auto key = key_full.substr(prefix, key_full.size() - prefix - suffix);
 
-        	auto descriptions = *static_cast<dict_t*>(data);
+        	// a reference: `auto` copied the map, and every emplace went into the copy
+        	auto& descriptions = *static_cast<dict_t*>(data);
             descriptions.emplace(key, value);
             return G_OK;
         },

@@ -25,6 +25,18 @@
 #include <libgit2-private/util/alloc.h>
 #include <libgit2-private/util/cc-compat.h>
 
+/* libgit2's own, from src/libgit2/filter.h. Declared here because that header
+ * reaches git2_util.h, which the private-header package does not ship; the
+ * static libgit2 carries the symbol, as it does git__calloc and git_str_*. */
+extern int git_filter_buffered_stream_new(
+	git_writestream **out,
+	git_filter *filter,
+	int (*write_fn)(git_filter *, void **, git_str *, const git_str *, const git_filter_source *),
+	git_str *temp_buf,
+	void **payload,
+	const git_filter_source *source,
+	git_writestream *target);
+
 #include "system-call.h"
 
 struct filter_filter {
@@ -290,8 +302,7 @@ static int filter_stream(
 	const git_filter_source	*src,
 	git_writestream			*next)
 {
-	//TODO: return git_filter_buffered_stream_new(out, self, filter_apply, NULL, payload, src, next);
-	exit(67);
+	return git_filter_buffered_stream_new(out, self, filter_apply, NULL, payload, src, next);
 }
 
 git_filter *git_filter_filter_new(LPCWSTR shexepath, const LPWSTR *pEnv)
