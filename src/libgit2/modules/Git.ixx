@@ -3967,37 +3967,37 @@ int CGit::GetTagInfo(const CStringW& tagName, CStringW& output, const std::funct
 int GetSubmodulePointer(CGit::SubmoduleInfo& submoduleinfo) {
 	submoduleinfo.Empty();
 
-	if (Registry::CRegDWORD(L"Software\\TortoiseGit\\LogShowSuperProjectSubmodulePointer", TRUE) != TRUE)
+	if (wil::reg::try_get_dword(HKEY_CURRENT_USER, Registry::TortoiseGitKey, L"LogShowSuperProjectSubmodulePointer").value_or(1u) != 1u)
 		return 0;
 
 	const auto& currentDir = g_Git.m_CurrentDir.native();
 	if (GitAdminDir::IsBareRepo(currentDir))
 		return -1;
-	auto superprojectRoot = GitAdminDir::HasAdminDir(currentDir);
+	const auto superprojectRoot = GitAdminDir::HasAdminDir(currentDir);
 	if (superprojectRoot.empty())
 		return -1;
 
-	const wil::unique_git_repository repo = TGitH::OpenGitRepository(superprojectRoot.c_str());
+	const wil::unique_git_repository repo = TGitH::OpenGitRepository(superprojectRoot.native());
 	if (!repo)
 		return -1;
 	wil::unique_git_index index;
 	if (git_repository_index(index.put(), repo.get()))
 		return -1;
 
-	const int rootLength = win32_cast(superprojectRoot.wstring().size());
-	CStringW submodulePath;
-	// CString::Right(len - n) is the tail after n characters, i.e. substr(n)
-	if (superprojectRoot.wstring().back() == L'\\')
-		submodulePath = currentDir.substr(rootLength).c_str();
-	else
-		submodulePath = currentDir.substr(rootLength + 1).c_str();
-	submodulePath.Replace(L'\\', L'/');
+	// past the separator, unless the root already ends in one ("C:\")
+	const auto& root = superprojectRoot.native();
+	const size_t skip = root.ends_with(L'\\') ? root.size() : root.size() + 1;
+	// CString::Right clamped to "", substr throws: the root itself has no
+	// submodule path, and "" was never found in the index either
+	if (currentDir.size() <= skip)
+		return -1;
+	const std::string submodulePath = TGitPath::ToGitPathA(std::wstring_view{ currentDir }.substr(skip));
 
 	// if current submodule is in conflict state, return the relevant hashes
 	const git_index_entry* ancestor{};
 	const git_index_entry* our{};
 	const git_index_entry* their{};
-	if (!git_index_conflict_get(&ancestor, &our, &their, index.get(), CUnicodeUtils::GetUTF8<CStringA>(submodulePath))) {
+	if (!git_index_conflict_get(&ancestor, &our, &their, index.get(), submodulePath.c_str())) {
 		if (our)
 			submoduleinfo.mergeconflictMineHash = our->id;
 		if (their)
@@ -4016,7 +4016,7 @@ int GetSubmodulePointer(CGit::SubmoduleInfo& submoduleinfo) {
 	}
 
 	// determine hash of submodule
-	const git_index_entry* entry = git_index_get_bypath(index.get(), CUnicodeUtils::GetUTF8<CStringA>(submodulePath), 0);
+	const git_index_entry* entry = git_index_get_bypath(index.get(), submodulePath.c_str(), 0);
 	if (!entry)
 		return -1;
 
