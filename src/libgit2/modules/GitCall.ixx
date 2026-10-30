@@ -452,7 +452,8 @@ void set_log_encoding(const int encoding) {
 fs::path ms_LastMsysGitDir{}; // the last msysgitdir added to the path, blank if none
 fs::path ms_MsysGitRootDir{};
 size_t ms_iSimilarityIndexThreshold = []{
-	const size_t index = wil::reg::try_get_dword(HKEY_CURRENT_USER, Registry::TortoiseGitKey, DiffSimilarityIndexThreshold).value_or(0);
+	// absent is 50, as upstream's CRegDWORD default was: 0 switched rename detection off
+	const size_t index = wil::reg::try_get_dword(HKEY_CURRENT_USER, Registry::TortoiseGitKey, DiffSimilarityIndexThreshold).value_or(50);
 	return (index <= 100) ? index : 50;
 }();
 // Only the two setters above may name this. Everything else - some 400 read

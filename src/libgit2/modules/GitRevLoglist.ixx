@@ -662,7 +662,7 @@ int GitRevLoglist::GetRefLog(const CString& ref_, std::vector<GitRevLoglist>& re
 			void* data
 		)
 		{
-			auto vector = *static_cast<std::vector<GitRevLoglist>*>(data);
+			auto& vector = *static_cast<std::vector<GitRevLoglist>*>(data); // a reference: `auto` filled a copy
 			GitRevLoglist rev;
 			rev.m_CommitHash = CGitHash::FromRaw(new_oid->hash);
 			rev.GetCommitterDate() = CTime(time);
