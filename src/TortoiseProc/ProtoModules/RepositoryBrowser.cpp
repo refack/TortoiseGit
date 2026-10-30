@@ -373,7 +373,7 @@ int CRepositoryBrowser::ReadTreeRecursive(git_repository& repo, const git_tree* 
 
 		const int mode = git_tree_entry_filemode(entry);
 
-		CString base = CUnicodeUtils::Convert2Unicode<CString>(git_tree_entry_name(entry));
+		CString base = CUnicodeUtils::GetUnicode<CString>(git_tree_entry_name(entry));
 
 		const git_oid *oid = git_tree_entry_id(entry);
 		CShadowFilesTree * pNextTree = &treeroot->m_ShadowTree[base];

@@ -61,7 +61,7 @@ bool AddProgressCommand::Run(CGitProgressList* list, CString& sWindowTitle, int&
 
 	for (m_itemCount = 0; m_itemCount < m_itemCountTotal; ++m_itemCount)
 	{
-		CStringA filePathA = CUnicodeUtils::Convert2Multibyte<CStringA>(m_targetPathList[m_itemCount].GetGitPathString().c_str()).TrimRight(L'/');
+		CStringA filePathA = CUnicodeUtils::GetUTF8<CStringA>(m_targetPathList[m_itemCount].GetGitPathString().c_str()).TrimRight(L'/');
 		if (git_index_add_bypath(index.get(), filePathA))
 		{
 			list->ReportGitError();
@@ -149,7 +149,7 @@ bool AddProgressCommand::SetFileMode(uint32_t mode) const {
 	{
 		if (m_targetPathList[i].IsDirectory())
 			continue;
-		CStringA filePathA = CUnicodeUtils::Convert2Multibyte<CStringA>(m_targetPathList[i].GetGitPathString().c_str()).TrimRight(L'/');
+		CStringA filePathA = CUnicodeUtils::GetUTF8<CStringA>(m_targetPathList[i].GetGitPathString().c_str()).TrimRight(L'/');
 		auto entry = const_cast<git_index_entry*>(git_index_get_bypath(index.get(), filePathA, 0));
 		if (!entry)
 		{

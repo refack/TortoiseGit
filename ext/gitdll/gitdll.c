@@ -27,7 +27,7 @@
 
 
 #if (!defined(nullptr) && !defined(__need_nullptr_t))
-#define nullptr NULL;
+#define nullptr NULL
 #endif
 
 #define USE_THE_REPOSITORY_VARIABLE
@@ -141,7 +141,7 @@ int git_init(const wchar_t* env)
 	drop_all_attr_stacks();
 	repo_config_clear(the_repository);
 	g_prefix = setup_git_directory(the_repository);
-	repo_config(the_repository, git_default_config, NULL);
+	repo_config(the_repository, git_default_config, nullptr);
 	ref_store_release_and_clear(the_repository);
 	clear_ref_decorations();
 
@@ -176,7 +176,7 @@ static int git_parse_commit_author(struct GIT_COMMIT_AUTHOR* author, const char*
 	if (end == pbuff || !end || *end != ' ' || end[1] != '+' && end[1] != '-' || !isdigit(end[2]) || !isdigit(end[3]) || !isdigit(end[4]) || !isdigit(end[5]))
 		return -1;
 	pbuff = end + 1;
-	author->TimeZone = strtol(pbuff, NULL, 10);
+	author->TimeZone = strtol(pbuff, nullptr, 10);
 
 	return 0;
 }
@@ -187,10 +187,10 @@ int git_parse_commit(GIT_COMMIT *commit)
 
 	hashcpy(commit->m_hash, p->object.oid.hash, the_repository->hash_algo);
 
-	commit->m_Encode = NULL;
+	commit->m_Encode = nullptr;
 	commit->m_EncodeSize = 0;
 
-	commit->buffer = detach_commit_buffer(commit->m_pGitCommit, NULL);
+	commit->buffer = detach_commit_buffer(commit->m_pGitCommit, nullptr);
 
 	const char* pbuf = commit->buffer;
 	while(pbuf)
@@ -208,7 +208,7 @@ int git_parse_commit(GIT_COMMIT *commit)
 				return -5;
 
 			pbuf = strchr(pbuf,'\n');
-			if(pbuf == NULL)
+			if(pbuf == nullptr)
 				return -6;
 		}
 		else if (strncmp(pbuf, "encoding ", strlen("encoding ")) == 0)
@@ -262,7 +262,7 @@ int git_get_commit_from_hash(GIT_COMMIT* commit, const GIT_HASH hash)
 	struct commit *p;
 	struct object_id oid = {0};
 
-	if (commit == NULL)
+	if (commit == nullptr)
 		return -1;
 
 	memset(commit,0,sizeof(GIT_COMMIT));
@@ -272,7 +272,7 @@ int git_get_commit_from_hash(GIT_COMMIT* commit, const GIT_HASH hash)
 
 	commit->m_pGitCommit = p = lookup_commit(the_repository, &oid);
 
-	if(p == NULL)
+	if(p == nullptr)
 		return -1;
 
 	const int ret = repo_parse_commit(the_repository, p);
@@ -286,7 +286,7 @@ int git_get_commit_first_parent(const GIT_COMMIT* commit, GIT_COMMIT_LIST* list)
 {
 	const struct commit *p = commit->m_pGitCommit;
 
-	if(list == NULL)
+	if(list == nullptr)
 		return -1;
 
 	*list = p->parents;
@@ -301,11 +301,11 @@ int git_commit_is_root(const GIT_COMMIT* commit)
 
 int git_get_commit_next_parent(GIT_COMMIT_LIST *list, GIT_HASH hash)
 {
-	if (list == NULL)
+	if (list == nullptr)
 		return -1;
 
 	struct commit_list* l = *(struct commit_list**)list;
-	if (l == NULL)
+	if (l == nullptr)
 		return -1;
 
 	if(hash)
@@ -332,7 +332,7 @@ int git_free_commit(GIT_COMMIT *commit)
 
 	p->object.parsed = 0;
 	p->parents = 0;
-	p->maybe_tree = NULL;
+	p->maybe_tree = nullptr;
 
 	memset(commit,0,sizeof(GIT_COMMIT));
 	return 0;
@@ -354,7 +354,7 @@ static const char** dup_argv(const int argc, const char** argv)
 
 	const char** copy = malloc((argc + 1) * sizeof(char*) + chars);
 	if (!copy)
-		return NULL;
+		return nullptr;
 
 	char* p = (char*)(copy + argc + 1);
 	for (int i = 0; i < argc; ++i)
@@ -364,7 +364,7 @@ static const char** dup_argv(const int argc, const char** argv)
 		copy[i] = p;
 		p += len;
 	}
-	copy[argc] = NULL;
+	copy[argc] = nullptr;
 	return copy;
 }
 
@@ -386,10 +386,10 @@ int git_open_log(GIT_LOG* handle, const int argc, const char** argv)
 			{
 				struct commit* commit = (struct commit*)ob;
 				commit_list_free(commit->parents);
-				commit->parents = NULL;
+				commit->parents = nullptr;
 				if (commit->maybe_tree)
 					free_tree_buffer(commit->maybe_tree);
-				commit->maybe_tree = NULL;
+				commit->maybe_tree = nullptr;
 				ob->parsed = 0;
 			}
 		}
@@ -456,7 +456,7 @@ int git_get_log_nextcommit(const GIT_LOG handle, GIT_COMMIT* commit, const int f
 	memset(commit, 0, sizeof(GIT_COMMIT));
 
 	commit->m_pGitCommit = get_revision(p_Rev);
-	if( commit->m_pGitCommit == NULL)
+	if( commit->m_pGitCommit == nullptr)
 		return -2;
 
 	if (follow)
@@ -518,10 +518,10 @@ int git_open_diff(GIT_DIFF* diff, const int argc, const char** argv)
 
 	repo_init_revisions(the_repository, p_Rev, g_prefix);
 	p_Rev->pPrivate = (void*)args; // after repo_init_revisions, which overwrites the whole struct
-	repo_config(the_repository, git_diff_basic_config, NULL); /* no "diff" UI options */
+	repo_config(the_repository, git_diff_basic_config, nullptr); /* no "diff" UI options */
 	p_Rev->abbrev = 0;
 	p_Rev->diff = 1;
-	setup_revisions(argc, args, p_Rev, NULL);
+	setup_revisions(argc, args, p_Rev, nullptr);
 
 	return 0;
 }
@@ -546,7 +546,7 @@ int git_diff_flush(const GIT_DIFF diff)
 	if(q->queue)
 	{
 		free((void*)q->queue);
-		q->queue = NULL;
+		q->queue = nullptr;
 		q->nr = q->alloc = 0;
 	}
 
@@ -628,7 +628,7 @@ int git_get_diff_file(const GIT_DIFF diff, const GIT_FILE file, const int i, cha
 	struct rev_info* const p_Rev = (struct rev_info*)diff;
 
 	const struct diff_queue_struct* q = (struct diff_queue_struct *)file;
-	if(file == NULL)
+	if(file == nullptr)
 		return -1;
 	if(i>=q->nr)
 		return -1;
@@ -711,7 +711,7 @@ int git_check_excluded_1(const char *pathname,
 							const EXCLUDE_LIST el, const int ignorecase)
 {
 	ignore_case = ignorecase;
-	return path_matches_pattern_list(pathname, pathlen, basename, dtype, el, NULL);
+	return path_matches_pattern_list(pathname, pathlen, basename, dtype, el, nullptr);
 }
 
 int git_get_notes(const GIT_HASH hash, char** p_note)
@@ -736,7 +736,7 @@ int git_update_index(void)
 	cleanup_chdir_notify();
 	drop_all_attr_stacks();
 
-	const int ret = cmd_update_index(argc, argv, NULL, the_repository);
+	const int ret = cmd_update_index(argc, argv, nullptr, the_repository);
 
 	discard_index(the_repository->index);
 	odb_close_tgit(the_repository->objects);
@@ -795,7 +795,7 @@ int git_checkout_file(const char* ref, const char* path, char* outputpath)
 
 	struct cache_entry* const ce = (struct cache_entry*)xcalloc(1, cache_entry_size(strlen(path)));
 
-	matchbuf[0] = NULL;
+	matchbuf[0] = nullptr;
 	parse_pathspec(&pathspec, PATHSPEC_ALL_MAGIC, PATHSPEC_PREFER_CWD, path, matchbuf);
 	pathspec.items[0].nowildcard_len = pathspec.items[0].len;
 	{
@@ -816,7 +816,7 @@ int git_checkout_file(const char* ref, const char* path, char* outputpath)
 	convert_attrs(state.istate, &ca, path);
 
 	{
-		const int ret = write_entry(ce, outputpath, &ca, &state, 0, NULL);
+		const int ret = write_entry(ce, outputpath, &ca, &state, 0, nullptr);
 		odb_close_tgit(the_repository->objects);
 		free(ce);
 		return ret;
@@ -854,9 +854,9 @@ static int get_config(const char* key_, const char* value_, const struct config_
 }
 
 // wchar_t wrapper for git_etc_gitconfig()
-const wchar_t* wget_msysgit_etc(wchar_t** env)
+const wchar_t* wget_msysgit_etc(const LPWSTR* env)
 {
-	static const wchar_t *etc_gitconfig = NULL;
+	static const wchar_t *etc_gitconfig = nullptr;
 	wchar_t wpointer[MAX_PATH];
 
 	if (etc_gitconfig)
@@ -867,7 +867,7 @@ const wchar_t* wget_msysgit_etc(wchar_t** env)
 	if (xutftowcs_path(wpointer, systemconfig) < 0)
 	{
 		free(systemconfig);
-		return NULL;
+		return nullptr;
 	}
 	free(systemconfig);
 
@@ -902,7 +902,7 @@ int git_get_config(const char *key, char *buffer, const int size)
 		config_source.file = globalxdg;
 		config_with_options(get_config, &buf, &config_source, the_repository, &opts);
 		free(globalxdg);
-		globalxdg = NULL;
+		globalxdg = nullptr;
 		if (buf.seen)
 		{
 			free(global);
@@ -915,7 +915,7 @@ int git_get_config(const char *key, char *buffer, const int size)
 		config_source.file = global;
 		config_with_options(get_config, &buf, &config_source, the_repository, &opts);
 		free(global);
-		global = NULL;
+		global = nullptr;
 		if (buf.seen)
 			return !buf.seen;
 	}
@@ -953,18 +953,18 @@ int git_set_config(const char* key, const char* value, const CONFIG_TYPE type)
 	case CONFIG_GLOBAL:
 	case CONFIG_XDGGLOBAL:
 		{
-			char* global = NULL;
-			char* globalxdg = NULL;
+			char* global = nullptr;
+			char* globalxdg = nullptr;
 			git_global_config_paths(&global, &globalxdg);
 			if (type == CONFIG_GLOBAL)
 			{
 				config_exclusive_filename = global;
-				global = NULL;
+				global = nullptr;
 			}
 			else
 			{
 				config_exclusive_filename = globalxdg;
-				globalxdg = NULL;
+				globalxdg = nullptr;
 			}
 			free(global);
 			free(globalxdg);
@@ -977,7 +977,7 @@ int git_set_config(const char* key, const char* value, const CONFIG_TYPE type)
 	if(!config_exclusive_filename)
 		return -1;
 
-	const int ret = repo_config_set_multivar_in_file_gently(the_repository, config_exclusive_filename, key, value, NULL, NULL, 0);
+	const int ret = repo_config_set_multivar_in_file_gently(the_repository, config_exclusive_filename, key, value, nullptr, nullptr, 0);
 	free(config_exclusive_filename);
 	return ret;
 }
@@ -1004,8 +1004,8 @@ int git_read_mailmap(GIT_MAILMAP *mailmap)
 	if (!mailmap)
 		return -1;
 
-	*mailmap = NULL;
-	if ((map = (struct string_list *)calloc(1, sizeof(struct string_list))) == NULL)
+	*mailmap = nullptr;
+	if ((map = (struct string_list *)calloc(1, sizeof(struct string_list))) == nullptr)
 		return -1;
 
 	if ((result = read_mailmap(the_repository, map)) != 0)

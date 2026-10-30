@@ -480,7 +480,7 @@ bool IsBareRepo(const std::wstring_view path, bool* invalidFormat = nullptr) {
 }
 
 /// A CString - the MFC UI's. Constrained, so a literal still binds the view one.
-template <tgit::str::IsStupidString TStr>
+template <tgit::str::IsATLCStringDuck TStr>
 bool IsBareRepo(const TStr& path, bool* invalidFormat = nullptr) {
 	return IsBareRepo(std::wstring_view(tgit::str::StringView{ path }), invalidFormat);
 }
@@ -604,7 +604,7 @@ std::optional<AdminDir> GetAdminDirPath(const std::wstring_view projectTopDir) {
 /// The out-parameter forms TortoiseProc's call sites were written against:
 /// `if (!GetAdminDirPath(dir, adminDir))`. Constrained to CString, so every other
 /// caller - and a literal - still binds the view-and-optional forms above.
-template <tgit::str::IsStupidString TStr>
+template <tgit::str::IsATLCStringDuck TStr>
 bool GetAdminDirPath(const TStr& projectTopDir, TStr& adminDir) {
 	const auto dir = GetAdminDirPath(std::wstring_view(tgit::str::StringView{ projectTopDir }));
 	if (!dir)
@@ -612,7 +612,7 @@ bool GetAdminDirPath(const TStr& projectTopDir, TStr& adminDir) {
 	adminDir = dir->path.c_str();
 	return true;
 }
-template <tgit::str::IsStupidString TStr>
+template <tgit::str::IsATLCStringDuck TStr>
 bool GetWorktreeAdminDirPath(const TStr& projectTopDir, TStr& adminDir) {
 	const auto dir = GetWorktreeAdminDirPath(std::wstring_view(tgit::str::StringView{ projectTopDir }));
 	if (!dir)
@@ -701,7 +701,7 @@ bool HasAdminDir(const std::wstring_view path, std::wstring* projectTopDir = nul
 }
 
 /// The CString out-parameter form TortoiseProc's settings pages use.
-template <tgit::str::IsStupidString TStr>
+template <tgit::str::IsATLCStringDuck TStr>
 bool HasAdminDir(const std::wstring_view path, TStr* projectTopDir) {
 	std::wstring top;
 	const bool has = HasAdminDir(path, projectTopDir ? &top : nullptr);
@@ -827,7 +827,7 @@ constexpr int MERGE_MASK = 0x1000000;
 // Parameters are std::wstring_view uniformly. A CString call site converts by
 // spelling .GetString(), which is one implicit conversion; passing the CString
 // itself would need two (operator PCWSTR, then the view's constructor) and
-// will not compile - except through the explicit IsStupidString constructor.
+// will not compile - except through the explicit IsATLCStringDuck constructor.
 //
 // Every "is it a directory" parameter is std::same_as<bool> auto rather than
 // bool, for the reason GitAdminDir::HasAdminDir gives: a bool parameter also
@@ -846,7 +846,7 @@ public:
 
 	template <tgit::str::TStrOfWide StrT>
 	CTGitPath(const StrT& sUnknownPath = {}, const std::optional<bool> bIsDirectory = std::nullopt) {
-		const auto sv = tgit::str::StringView<StrT>::as_view(sUnknownPath);
+		const auto sv = tgit::str::as_view(sUnknownPath);
 		SetFromUnknown(sv);
 		if (bIsDirectory.has_value()) {
 			m_bDirectoryKnown = true;
@@ -965,12 +965,11 @@ public:
 
 
 	/// As SetFromGit, from the UTF-8 git and libgit2 hand out.
-	void SetFromGit(const char* pPath) {
+	void SetFromGit(const std::string_view pPath) {
 		Reset();
-		Expects(pPath);
-		if (!pPath)
+		if (!pPath.empty())
 			return;
-		m_sFwdslashPath = CUnicodeUtils::Convert2Unicode<std::wstring>(pPath);
+		m_sFwdslashPath = CUnicodeUtils::StdGetUnicode(pPath);
 		detail::SanitizeRootPath(m_sFwdslashPath, L'/');
 	}
 
@@ -991,7 +990,7 @@ public:
 
 	/// A CString - the MFC UI's, chiefly. Constrained rather than a CString
 	/// parameter, so a literal never reaches it and stays unambiguous.
-	template <tgit::str::IsStupidString TStr>
+	template <tgit::str::IsATLCStringDuck TStr>
 	void SetFromWin(const TStr& sPath, const std::optional<bool> bIsDirectory = std::nullopt) {
 		SetFromWin(std::wstring_view(tgit::str::StringView{ sPath }), bIsDirectory);
 	}
@@ -2817,7 +2816,7 @@ int CTGitPathList::FillBasedOnIndexFlags(git_repository* const repository, const
 	const char* const workdir = git_repository_workdir(repository);
 	const auto isWorkTreeDirectory = [workdir](const CTGitPath& filter) {
 		return workdir && detail::IsDirectoryOnDisk(
-			(fs::path(CUnicodeUtils::Convert2Unicode<std::wstring>(workdir)) / filter.GetWinPathString()).wstring());
+			(fs::path(CUnicodeUtils::StdGetUnicode(workdir)) / filter.GetWinPathString()).wstring());
 	};
 
 	const int count = filterlist ? filterlist->GetCount() : 1;
@@ -2831,7 +2830,7 @@ int CTGitPathList::FillBasedOnIndexFlags(git_repository* const repository, const
 			if (!e || !((e->flags & flag) || (e->flags_extended & flagextended)) || !e->path)
 				continue;
 
-			const std::wstring one = CUnicodeUtils::Convert2Unicode<std::wstring>(e->path);
+			const std::wstring one = CUnicodeUtils::StdGetUnicode(e->path);
 
 			if (filter && !filter->GetWinPathString().empty() && one != filter->GetGitPathString()) {
 				if (!one.starts_with(filter->GetGitPathString() + L'/'))

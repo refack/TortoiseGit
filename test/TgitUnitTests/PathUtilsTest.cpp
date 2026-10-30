@@ -22,55 +22,6 @@
 import PathUtils;
 namespace fs = std::filesystem;
 
-TEST(PathUtilsTest, GetFileNameFromPath)
-{
-	std::wstring test(L"d:\\test\\filename.ext");
-	EXPECT_STREQ(L"filename.ext", PathUtils::GetFileNameFromPath(test).c_str());
-	test = L"filename.ext";
-	EXPECT_STREQ(L"filename.ext", PathUtils::GetFileNameFromPath(test).c_str());
-	test = L"d:/test/filename";
-	EXPECT_STREQ(L"filename", PathUtils::GetFileNameFromPath(test).c_str());
-	test = L"d:\\test\\filename";
-	EXPECT_STREQ(L"filename", PathUtils::GetFileNameFromPath(test).c_str());
-	test = L"filename";
-	EXPECT_STREQ(L"filename", PathUtils::GetFileNameFromPath(test).c_str());
-	test.clear();
-	EXPECT_STREQ(L"", PathUtils::GetFileNameFromPath(test).c_str());
-
-	// Mixed separators, which nothing above covers and which is exactly what
-	// distinguishes the two implementations: this used to normalize every slash
-	// to a backslash and then take everything after the last one, and now looks
-	// for the last of either. Both answer "filename" - assert that they do.
-	EXPECT_STREQ(L"filename", PathUtils::GetFileNameFromPath(L"d:\\test/filename").c_str());
-	EXPECT_STREQ(L"filename", PathUtils::GetFileNameFromPath(L"d:/test\\filename").c_str());
-	EXPECT_STREQ(L"", PathUtils::GetFileNameFromPath(L"d:\\test\\").c_str());
-}
-
-TEST(CPathUtils, ExtTest)
-{
-	std::wstring test(L"d:\\test\\filename.ext");
-	EXPECT_STREQ(L".ext", PathUtils::GetFileExtFromPath(test).c_str());
-	test = L"filename.ext";
-	EXPECT_STREQ(L".ext", PathUtils::GetFileExtFromPath(test).c_str());
-	test = L"d:\\test\\filename";
-	EXPECT_STREQ(L"", PathUtils::GetFileExtFromPath(test).c_str());
-	test = L"filename";
-	EXPECT_STREQ(L"", PathUtils::GetFileExtFromPath(test).c_str());
-	test.clear();
-	EXPECT_STREQ(L"", PathUtils::GetFileExtFromPath(test).c_str());
-
-	// A dot in a directory name is not an extension of the file below it.
-	EXPECT_STREQ(L"", PathUtils::GetFileExtFromPath(L"d:\\te.st\\filename").c_str());
-}
-
-TEST(CPathUtils, ParseTests)
-{
-	std::wstring test(L"test 'd:\\testpath with spaces' test");
-	EXPECT_STREQ(L"d:\\testpath with spaces", PathUtils::ParsePathInString(test).c_str());
-	test = L"d:\\testpath with spaces";
-	EXPECT_STREQ(L"d:\\testpath with spaces", PathUtils::ParsePathInString(test).c_str());
-}
-
 TEST(CPathUtils, ArePathStringsEqual)
 {
 	// Two empty paths are equal, and must not reach the length-taking overload

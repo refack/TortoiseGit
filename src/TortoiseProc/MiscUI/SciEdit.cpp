@@ -1232,7 +1232,7 @@ bool CSciEdit::FindStyleChars(const char* line, char styler, Sci_Position& start
 	}
 
 	bool bFoundMarker = false;
-	CString sULine = CUnicodeUtils::Convert2Unicode<CString>(line);
+	CString sULine = CUnicodeUtils::GetUnicode<CString>(line);
 	// find a starting marker
 	while (line[i] != 0)
 	{

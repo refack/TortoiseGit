@@ -50,7 +50,7 @@ public:
 
 	static int GetCredentialUrlCallback(const git_config_entry *entry, void *payload)
 	{
-		CString name = CUnicodeUtils::Convert2Unicode<CString>(entry->name);
+		CString name = CUnicodeUtils::GetUnicode<CString>(entry->name);
 		int pos1 = name.Find(L'.');
 		int pos2 = name.ReverseFind(L'.');
 		CString url = name.Mid(pos1 + 1, pos2 - pos1 - 1);
@@ -62,17 +62,17 @@ public:
 
 	static int GetCredentialEntryCallback(const git_config_entry *entry, void *payload)
 	{
-		CString name = CUnicodeUtils::Convert2Unicode<CString>(entry->name);
+		CString name = CUnicodeUtils::GetUnicode<CString>(entry->name);
 		static_cast<std::vector<std::wstring>*>(payload)->push_back(std::wstring(name));
 		return 0;
 	}
 
 	static int GetCredentialAnyEntryCallback(const git_config_entry *entry, void *payload)
 	{
-		CString name = CUnicodeUtils::Convert2Unicode<CString>(entry->name);
+		CString name = CUnicodeUtils::GetUnicode<CString>(entry->name);
 		CString value;
 		if (entry->value)
-			value = CUnicodeUtils::Convert2Unicode<CString>(entry->value);
+			value = CUnicodeUtils::GetUnicode<CString>(entry->value);
 		CString text;
 		text.Format(L"%s\n%s\n%s", static_cast<LPCWSTR>(ConfigLevelToKey(entry->level)), static_cast<LPCWSTR>(name), static_cast<LPCWSTR>(value));
 		static_cast<std::vector<std::wstring>*>(payload)->push_back(std::wstring(text));

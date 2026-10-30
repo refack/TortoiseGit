@@ -10,7 +10,7 @@ module;
 export module AppUtils.Launch;
 import MessageBox;
 
-template <tgit::str::IsStupidString TStr>
+template <tgit::str::IsATLCStringDuck TStr>
 TStr EscapeAndQuoteParameters(const TStr& input)
 {
 	// let's go the safe way as there is no standard on Windows (cf. https://www.daviddeley.com/autohotkey/parameters/parameters.htm#WINNOSTANDARD)

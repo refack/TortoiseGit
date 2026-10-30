@@ -19,26 +19,6 @@ namespace fs = std::filesystem;
 using sloc_t = std::source_location;
 
 
-export template <>
-struct std::formatter<sloc_t, char> {
-	bool with_func = false;
-
-	constexpr auto parse(std::format_parse_context& ctx) {
-		auto it = ctx.begin();
-		if (it != ctx.end() && *it == 'f') { with_func = true; ++it; }   // "{:f}" adds the function
-		if (it != ctx.end() && *it != '}') throw std::format_error("bad source_location spec");
-		return it;
-	}
-
-	auto format(const sloc_t& loc, auto& ctx) const {
-		if (!with_func)
-			return std::format_to(ctx.out(), "{}({})", std::string_view{loc.file_name()}, loc.line());
-		else
-			return std::format_to(ctx.out(), "{}({}): {}", std::string_view{loc.file_name()}, loc.line(), std::string_view{loc.function_name()});
-	}
-};
-static_assert(std::formattable<sloc_t, char>);
-
 /// This is a representation of an API horizon.
 /// We should validate all of our invariants here.
 ///
@@ -48,14 +28,35 @@ static_assert(std::formattable<sloc_t, char>);
 /// it picks. That is a behaviour decision with its own commit, not a trim.
 export namespace til {
 
+// Win32
+using RWND = std::remove_pointer_t<HWND>;
+using RKEY = std::remove_pointer_t<HKEY>;
+using RHANDLE = std::remove_pointer_t<HANDLE>;
+using RINSTANCE = std::remove_pointer_t<HINSTANCE>;
+using RWSTR = std::remove_pointer_t<LPWSTR>;
+
+constexpr auto UIDToResID(const std::uint_fast32_t uID) { return MAKEINTRESOURCE((uID >> 4U) + 1); }
+constexpr auto FirstNibble(const std::uint_fast32_t uID) { return uID & ((1U << 4U) - 1); }
+
+template <typename ErrT>
+using expect_nothing = std::expected<void, ErrT>;
+using expect_no_hres = std::expected<void, winrt::hresult>;
+
+template <class E>
+struct ThrowIfError {
+	explicit ThrowIfError(const std::expected<void, E>& r) {
+		[[maybe_unused]]r.value();
+	}
+};
+
 
 [[noreturn]] inline void THROW_LIVE_ERROR(const std::string_view what, const sloc_t loc)
 {
 	const DWORD err = ::GetLastError();
-	throw std::system_error(win32_cast(err), std::system_category(), std::format("[{:f}] {}", loc, what));
+	throw std::system_error(win32_cast(err), std::system_category(), std::format("[{}:{}] {}", loc.file_name(), loc.line(), what));
 }
 
-inline void THROW_LIVE_ERROR_IF(const bool cond, const std::string_view what, const sloc_t loc)
+inline void THROW_LIVE_ERROR_IF(const bool cond, const std::string_view what, const sloc_t loc = {})
 {
 	if (cond) THROW_LIVE_ERROR(what, loc);
 }
@@ -108,7 +109,7 @@ CopyTerminated(const std::span<wchar_t> dest, const std::wstring_view source) no
 std::wstring_view get_string_resource(const std::optional<HINSTANCE> oInstance,	const UINT uID,	const WORD wLanguage = LANG_USER_DEFAULT) {
 	auto pCurrentStr = [&] -> std::wstring_view {
 		// A string table is stored in blocks of 16: block (uID / 16) + 1, slot uID % 16.
-		auto* const blockResId = MAKEINTRESOURCE((uID >> 4U) + 1);
+		const auto* const blockResId = MAKEINTRESOURCE((uID >> 4U) + 1);
 		auto* const hInstance = oInstance.value_or(nullptr);
 		HRSRC hResInfo = FindResourceEx(hInstance, RT_STRING, blockResId, wLanguage);
 		if (!hResInfo) {
@@ -124,7 +125,7 @@ std::wstring_view get_string_resource(const std::optional<HINSTANCE> oInstance,	
 		const auto bytes = ::SizeofResource(hInstance, hResInfo);
 		if (!bytes)
 			return {};
-		auto* const resVoidp = LockResource(hResData);
+		const auto* const resVoidp = LockResource(hResData);
 		if (!resVoidp)
 			return {};
 		return {static_cast<const wchar_t*>(resVoidp), bytes / sizeof(wchar_t)};
@@ -142,7 +143,7 @@ std::wstring_view get_string_resource(const std::optional<HINSTANCE> oInstance,	
 	}
 
 	// Extract the target length and data pointer
-	WORD targetLen = *pCurrentStr.begin();
+	const WORD targetLen = *pCurrentStr.begin();
 	if (!targetLen)
 		return {}; // Slot is empty (explicitly null string in the table)
 	pCurrentStr = pCurrentStr.substr(1, targetLen);
@@ -175,7 +176,7 @@ struct ConvOpts {
 };
 
 
-std::string WideCharToMultiByte(const std::wstring_view wide, const ConvOpts opts = {},	const sloc_t loc = {}) {
+std::string WideCharToMultiByte(const std::wstring_view wide, const ConvOpts opts = {},	const sloc_t loc = sloc_t::current()) {
 	if (wide.empty())
 		return {};
 
@@ -221,7 +222,91 @@ std::wstring MultiByteToWideChar(const std::string_view narrow, const ConvOpts o
 
 
 std::wstring UTF8ToWString(const std::string_view narrow) { return til::MultiByteToWideChar(narrow); }
+
+using ::winrt::clock;
 }
+
+
+// NOLINTBEGIN(cert-dcl58-cpp)
+export namespace std {
+
+template <>
+struct formatter<sloc_t, char> {
+	bool with_func = false;
+
+	constexpr auto parse(std::format_parse_context& ctx) {
+		auto it = ctx.begin();
+		// "{:f}" adds the function
+		if (it != ctx.end() && *it == 'f') { with_func = true; ++it; }   // "{:f}" adds the function
+		if (it != ctx.end() && *it != '}') throw std::format_error("bad source_location spec");
+		return it;
+	}
+
+	auto format(const sloc_t& loc, auto& ctx) const {
+		if (with_func)
+			return std::format_to(ctx.out(), "{}({}): {}", loc.file_name(), loc.line(), loc.function_name());
+		else
+			return std::format_to(ctx.out(), "{}({})", loc.file_name(), loc.line());
+	}
+};
+static_assert(std::formattable<sloc_t, char>);
+
+
+template <>
+struct formatter<sloc_t, wchar_t> {
+	bool with_func = false;
+
+	constexpr auto parse(std::wformat_parse_context& ctx) {
+		auto it = ctx.begin();
+		// "{:f}" adds the function
+		if (it != ctx.end() && *it == L'f') { with_func = true;	++it; }
+		if (it != ctx.end() && *it != L'}')	throw std::format_error("bad source_location spec");
+		return it;
+	}
+
+	auto format(const sloc_t& loc, auto& ctx) const {
+		if (with_func)
+			return std::format_to(ctx.out(), L"{}({}): {}", til::UTF8ToWString(loc.file_name()), loc.line(), til::UTF8ToWString(loc.function_name()));
+		else
+			return std::format_to(ctx.out(), L"{}({})", til::UTF8ToWString(loc.file_name()), loc.line());
+	}
+};
+static_assert(std::formattable<sloc_t, wchar_t>);
+static_assert(std::same_as<decltype(std::format(L"{}", sloc_t{})), std::wstring>);
+static_assert(std::same_as<decltype(std::format(L"{:f}", sloc_t{})), std::wstring>);
+
+
+#ifndef __cpp_lib_format_path
+template <>
+struct formatter<fs::path, wchar_t> {
+	bool generic = false;
+
+	constexpr auto parse(std::wformat_parse_context& ctx) {
+		auto it = ctx.begin();
+		if (it != ctx.end() && *it == L'g') { generic = true; ++it; }   // "{:g}" prints generic
+		if (it != ctx.end() && *it != L'}') throw std::format_error("bad source_location spec");
+		return it;
+	}
+
+	auto format(const fs::path& path, auto& ctx) const {
+		if (generic)
+			return std::format_to(ctx.out(), L"{}", path.generic_wstring());
+		else
+			return std::format_to(ctx.out(), L"{}", path.wstring());
+	}
+};
+static_assert(std::formattable<fs::path, wchar_t>);
+static_assert(std::same_as<decltype(std::format(L"{}", fs::path{".."})), std::wstring>);
+static_assert(std::same_as<decltype(std::format(L"{}", fs::path{L".."})), std::wstring>);
+static_assert(!std::same_as<decltype(std::format("{}", fs::path{L".."})), std::wstring>);
+#endif
+
+
+
+using ::std::runtime_error;
+
+}
+// NOLINTEND(cert-dcl58-cpp)
 
 
 
@@ -249,7 +334,6 @@ unique_hglobal make_moveable_text(const std::basic_string_view<CharT> text, cons
 
 
 export namespace wil {
-
 using ::wil::GetEnvironmentVariableW;
 // The R* pointee aliases (RWND, RKEY, RHANDLE, RINSTANCE, RWSTR), file_ticks,
 // expect_nothing/expect_no_hres/ThrowIfError, the wil::winrt re-exports and the
@@ -300,37 +384,108 @@ using wil::open_file;
 using wil::GetFileInfo;
 using wil::ResultException;
 
-
 // Registry. There is no TortoiseGit default here any more: the get_value_* /
 // set_value_string wrappers that silently read HKCU\Software\TortoiseGit are gone,
 // and every caller names its root and subkey (Registry::TortoiseGitKey owns the
 // TortoiseGit one). A missing value is an empty optional; the caller's value_or
 // is its default, so no default can be a null pointer (CLAUDE.md failure mode 5).
 namespace reg {
+	/// HKCU\<this> (and HKLM\<this>) is where TortoiseGit keeps its settings.
+	/// NUL-terminated by construction, so it can go straight to a Win32 API.
+	constexpr auto TortoiseGitKey = L"Software\\TortoiseGit"sv;
+
+
 	// The stock writers. Each takes the root and subkey explicitly.
 	using wil::reg::set_value_string_nothrow;
 	using wil::reg::set_value_dword_nothrow;
+
+	static_assert(std::is_convertible_v<PCWSTR, std::wstring_view>);
+	static_assert(std::is_convertible_v<PCWSTR, std::wstring_view>);
+	static_assert(std::is_convertible_v<std::wstring, std::wstring_view>);
+	// static_assert(std::is_convertible_v<std::wstring_view, std::wstring>);
+
+	til::expect_no_hres set_value_dword_expected(const HKEY& key, const std::wstring_view subkey, const std::wstring_view value_name, const uint32_t data) noexcept {
+		auto&& ret = ::wil::reg::set_value_nothrow(key, subkey.data(), value_name.data(), data);
+		if (ret)
+			return std::unexpected{ret};
+		return {};
+	}
+	til::expect_no_hres set_value_string_expected(const HKEY& key, const std::wstring_view subkey, const std::wstring_view value_name, const std::wstring_view data) noexcept {
+		auto&& ret = ::wil::reg::set_value_nothrow(key, subkey.data(), value_name.data(), std::wstring{data});
+		if (ret)
+			return std::unexpected{ret};
+		return {};
+	}
+
 
 
 	/// wil::reg::try_get_value_dword(root, subkey, name), compiled in this module
 	/// (see the note at the re-exports). Empty when the value is absent; throws
 	/// wil::ResultException on any other failure, exactly as wil's does.
-	std::optional<std::uint32_t> try_get_dword(const HKEY& root, const PCWSTR subkey, const PCWSTR name) {
-		return wil::reg::try_get_value_dword(root, subkey, name);
+	std::optional<std::uint32_t> try_get_dword(const HKEY& root, const std::wstring_view subkey, const std::wstring_view name) {
+		return wil::reg::try_get_value_dword(root, subkey.data(), name.data());
 	}
 
 
-	bool get_bool(const HKEY& root, const PCWSTR subkey, const PCWSTR name, const bool def) {
-		auto&& temp = try_get_dword(root, subkey, name);
+	bool get_bool(const HKEY& root, const std::wstring_view subkey, const std::wstring_view name, const bool def) {
+		auto&& temp = try_get_dword(root, subkey.data(), name.data());
 		return temp ? *temp : def;
 	}
 
 
 	/// wil::reg::try_get_value_string(root, subkey, name), compiled in this module.
 	/// Same contract as try_get_dword.
-	std::optional<std::wstring> try_get_string(const HKEY& root, const PCWSTR subkey, const PCWSTR name) {
-		return wil::reg::try_get_value_string(root, subkey, name);
+	std::optional<std::wstring> try_get_string(const HKEY& root, const std::wstring_view subkey, const std::wstring_view name) {
+		return wil::reg::try_get_value_string(root, subkey.data(), name.data());
 	}
+
+#pragma region TGit shortcuts
+
+	std::optional<std::wstring> try_get_tgit_string(const std::wstring_view name) {
+		auto value = wil::reg::try_get_string(HKEY_CURRENT_USER, TortoiseGitKey, name).value_or({});
+		if (value.empty())
+			value = wil::reg::try_get_string(HKEY_LOCAL_MACHINE, TortoiseGitKey, name).value_or({});
+
+		if (value.empty())
+			return std::nullopt;
+		return value;
+	}
+
+	til::expect_no_hres set_tgit_string(const HKEY& root, const std::wstring_view name, const std::wstring_view data) {
+		auto ret = wil::reg::set_value_nothrow(root, TortoiseGitKey.data(), name.data(), std::wstring{data});
+		if (ret)
+			return std::unexpected{ret};
+		return {};
+	}
+	til::expect_no_hres set_tgit_string(const std::wstring_view name, const std::wstring_view data) {
+		return set_tgit_string(HKEY_CURRENT_USER, name, data);
+	}
+
+	til::expect_no_hres delete_tgit_value(const std::wstring_view name) {
+		{
+			const auto regview = reg_view_details::reg_view_t<err_returncode_policy>{HKEY_CURRENT_USER};
+			const auto maybe_user = regview.try_get_value<PCWSTR>(TortoiseGitKey.data(), name.data());
+			if (maybe_user.has_value()) {
+				auto ret = regview.delete_value(TortoiseGitKey.data(), name.data());
+				if (ret != 0)
+					return std::unexpected{ret};
+			}
+		}
+
+		{
+			const auto regview = reg_view_details::reg_view_t<err_returncode_policy>{HKEY_LOCAL_MACHINE};
+			const auto maybe_user = regview.try_get_value<PCWSTR>(TortoiseGitKey.data(), name.data());
+			if (maybe_user.has_value()) {
+				auto ret = regview.delete_value(TortoiseGitKey.data(), name.data());
+				if (ret != 0)
+					return std::unexpected{ret};
+			}
+		}
+
+		return {};
+	}
+
+#pragma endregion
 }
 
 
@@ -560,7 +715,7 @@ class CFormatMessageWrapper {
 	std::wstring message;
 
 	// The Dark Art incantation that has lived for over 30 years.
-	static constexpr auto DarkArt(const std::uint32_t err_id_arg, wchar_t* buf_ptr = {}, const size_t buf_cap = 0) {
+	static constexpr auto DarkArt(const std::uint32_t err_id_arg, const LPWSTR& buf_ptr = {}, const size_t buf_cap = 0) {
 		auto&& ret = FormatMessageW(
 			FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
 			nullptr,
@@ -746,6 +901,7 @@ public:
 	/// For an argv assembled conditionally before the call. Implicit, like the list
 	/// constructors, so a vector reaches every `const ArgvData&` parameter; a braced
 	/// list still picks the initializer_list constructor, which list-init prefers.
+	// ReSharper disable once CppNonExplicitConvertingConstructor
 	ArgvData(std::vector<std::wstring> args) : _args{ std::move(args) } {}
 
 	ArgvData(const std::initializer_list<std::string> args) :
@@ -818,30 +974,11 @@ struct scope_guard {
 		return wil::scope_exit(std::forward<F>(f));
 	}
 };
+
+fs::path GetModulePath(const HMODULE module = {} /* current process module */) {
+	const auto ret = ::wil::GetModuleFileNameW(module);
+	return ret.get();
 }
 
 
-/// TODO: Template these pairs
-
-// export template <>
-// struct std::formatter<sloc_t, wchar_t> {
-// 	bool with_func = false;
-//
-// 	constexpr auto parse(std::format_parse_context& ctx) {
-// 		auto it = ctx.begin();
-// 		// "{:f}" adds the function
-// 		if (it != ctx.end() && *it == L'f') {
-// 			with_func = true;
-// 			++it;
-// 		}
-// 		if (it != ctx.end() && *it != L'}')
-// 			throw std::format_error("bad source_location spec");
-// 		return it;
-// 	}
-//
-// 	auto format(const sloc_t& loc, std::format_context& ctx) const {
-// 		auto out = std::format_to(ctx.out(), L"{}({})", til::UTF8ToWString(loc.file_name()), loc.line());
-// 		if (with_func) out = std::format_to(out, L": {}", til::UTF8ToWString(loc.function_name()));
-// 		return out;
-// 	}
-// };
+}

@@ -189,8 +189,11 @@ Cpp11BracedListStyle: false
 # function calls.
 #ForEachMacros: ['for_each_string_list_item']
 
-# No empty line at the start of a block.
-KeepEmptyLinesAtTheStartOfBlocks: false
+KeepEmptyLines:
+  AtEndOfBlock: true
+  AtEndOfFile: true
+  AtStartOfBlock: true
+  AtStartOfFile: true
 
 # Don't sort #include's
 SortIncludes: false

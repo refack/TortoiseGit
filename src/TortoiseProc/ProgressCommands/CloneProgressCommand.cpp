@@ -56,7 +56,7 @@ bool CloneProgressCommand::Run(CGitProgressList* list, CString& sWindowTitle, in
 
 	CSmartAnimation animate(list->m_pAnimate);
 	cloneOpts.bare = m_bBare;
-	CStringA envTemplateDir = CUnicodeUtils::Convert2Multibyte<CStringA>(g_Git.m_Environment.GetEnv(L"GIT_TEMPLATE_DIR").c_str());
+	CStringA envTemplateDir = CUnicodeUtils::GetUTF8<CStringA>(g_Git.m_Environment.GetEnv(L"GIT_TEMPLATE_DIR").c_str());
 	if (!envTemplateDir.IsEmpty())
 		cloneOpts.repository_cb_payload = const_cast<char*>(static_cast<LPCSTR>(envTemplateDir));
 	cloneOpts.repository_cb = [](git_repository** out, const char* path, int bare, void* payload) -> int
@@ -96,7 +96,7 @@ bool CloneProgressCommand::Run(CGitProgressList* list, CString& sWindowTitle, in
 
 	CBlockCacheForPath block(m_targetPathList[0].GetWinPathString().c_str());
 	wil::unique_git_repository cloned_repo;
-	if (git_clone(cloned_repo.put(), CUnicodeUtils::Convert2Multibyte<CStringA>(m_url.GetGitPathString().c_str()), CUnicodeUtils::Convert2Multibyte<CStringA>(m_targetPathList[0].GetWinPathString().c_str()), &cloneOpts) < 0)
+	if (git_clone(cloned_repo.put(), CUnicodeUtils::GetUTF8<CStringA>(m_url.GetGitPathString().c_str()), CUnicodeUtils::GetUTF8<CStringA>(m_targetPathList[0].GetWinPathString().c_str()), &cloneOpts) < 0)
 	{
 		list->ReportGitError();
 		return false;

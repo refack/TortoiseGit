@@ -53,6 +53,8 @@ struct CGitFileName
 	size_t m_Size = 0;
 	std::int64_t m_LastModified = 0;
 	bool m_bSymlink = false;
+
+	auto NameView() const noexcept { return m_FileName.wstring(); }
 };
 
 
@@ -111,8 +113,7 @@ int GetFileStatus_int(const std::wstring& gitdir, CGitRepoLists& repolists, cons
 			}
 
 			// deleted only in index item?
-			if (SearchInSortVector(*repolists.pTree, path, -1, repolists.pIndex->IsIgnoreCase()) != NPOS)
-			{
+			if (SearchInSortVector(repolists.pTree->m_entries, path, -1, repolists.pIndex->IsIgnoreCase()) != NPOS) {
 				status.status = git_wc_status_deleted;
 				return 0;
 			}
@@ -148,11 +149,11 @@ int GetFileStatus_int(const std::wstring& gitdir, CGitRepoLists& repolists, cons
 		}
 
 		//add item
-		size_t start = SearchInSortVector(*repolists.pTree, path, -1, repolists.pIndex->IsIgnoreCase());
+		size_t start = SearchInSortVector(repolists.pTree->m_entries, path, -1, repolists.pIndex->IsIgnoreCase());
 		if (start == NPOS)
 		{
 			status.status = git_wc_status_added;
-			tgit::DebugOutput::TracePrintf(__FUNCTIONW__ L": File miss in head tree %s\n", path.c_str());
+			tgit::DebugOutput::Trace(__FUNCTIONW__ L": File miss in head tree {}\n", path);
 			return 0;
 		}
 
@@ -251,7 +252,7 @@ public:
 			return -1;
 		}
 
-		size_t pos = SearchInSortVector(*sharedRepoLists.pIndex, path, pathLength, sharedRepoLists.pIndex->IsIgnoreCase());
+		size_t pos = SearchInSortVector(sharedRepoLists.pIndex->m_entries, path, pathLength, sharedRepoLists.pIndex->IsIgnoreCase());
 
 		// Not In Version Contorl
 		if (pos == NPOS)
@@ -277,7 +278,7 @@ public:
 			}
 
 			// check whether there files in head with are not in index
-			pos = SearchInSortVector(*sharedRepoLists.pTree, path, pathLength, sharedRepoLists.pIndex->IsIgnoreCase());
+			pos = SearchInSortVector(sharedRepoLists.pTree->m_entries, path, pathLength, sharedRepoLists.pIndex->IsIgnoreCase());
 			if (pos != NPOS)
 			{
 				*status = git_wc_status_deleted;
@@ -338,7 +339,7 @@ public:
 				{
 					for (const auto& indexentry : indexRun)
 					{
-						pos = SearchInSortVector(*sharedRepoLists.pTree, indexentry.m_FileName, -1, sharedRepoLists.pIndex->IsIgnoreCase());
+						pos = SearchInSortVector(sharedRepoLists.pTree->m_entries, indexentry.m_FileName, -1, sharedRepoLists.pIndex->IsIgnoreCase());
 
 						if (pos == NPOS)
 						{
@@ -359,7 +360,7 @@ public:
 					// Check Delete
 					if (*status == git_wc_status_normal)
 					{
-						pos = SearchInSortVector(*sharedRepoLists.pTree, path, pathLength, sharedRepoLists.pIndex->IsIgnoreCase());
+						pos = SearchInSortVector(sharedRepoLists.pTree->m_entries, path, pathLength, sharedRepoLists.pIndex->IsIgnoreCase());
 						if (pos == NPOS)
 							*status = GetMoreImportant(git_wc_status_added, *status); // added file found
 						else
@@ -367,7 +368,7 @@ public:
 							// we know that pos exists in treeptr
 							for (const auto& treeentry : GetRangeInSortVector(*sharedRepoLists.pTree, path, path.size(), sharedRepoLists.pIndex->IsIgnoreCase(), pos))
 							{
-								if (SearchInSortVector(*sharedRepoLists.pIndex, treeentry.m_FileName, -1, sharedRepoLists.pIndex->IsIgnoreCase()) == NPOS)
+								if (SearchInSortVector(sharedRepoLists.pIndex->m_entries, treeentry.m_FileName, -1, sharedRepoLists.pIndex->IsIgnoreCase()) == NPOS)
 								{
 									*status = GetMoreImportant(git_wc_status_deleted, *status); // deleted file found
 									break;
@@ -601,7 +602,7 @@ int GitStatus::GetFileList(const fs::path& path, std::vector<CGitFileName>& list
 		list.push_back(filename);
 	}
 
-	DoSortFilenametSortVector(list, ignoreCase);
+	std::ranges::sort(list, NameOrder(-1, ignoreCase), &CGitFileName::NameView);
 
 	return 0;
 }
@@ -641,8 +642,8 @@ int GitStatus::EnumDirStatus(const CString& gitdir, const CString& subpath, git_
 	if (!treeptr)
 		return -1;
 
-	size_t indexpos = SearchInSortVector(*indexptr, path, pathLength, indexptr->IsIgnoreCase()); // match path prefix, (sub)folders end with slash
-	size_t treepos = SearchInSortVector(*treeptr, path, pathLength, indexptr->IsIgnoreCase()); // match path prefix, (sub)folders end with slash
+	size_t indexpos = SearchInSortVector(indexptr->m_entries, path, pathLength, indexptr->IsIgnoreCase()); // match path prefix, (sub)folders end with slash
+	size_t treepos = SearchInSortVector(treeptr->m_entries, path, pathLength, indexptr->IsIgnoreCase()); // match path prefix, (sub)folders end with slash
 
 	std::set<std::wstring> localLastCheckCache;
 	const std::wstring adminDir = g_AdminDirMap.GetAdminDir(gitdirW);
@@ -673,8 +674,8 @@ int GitStatus::EnumDirStatus(const CString& gitdir, const CString& subpath, git_
 		int matchLength = -1;
 		if (bIsDir)
 			matchLength = static_cast<int>(onepath.size());
-		size_t pos = SearchInSortVector(*indexptr, onepath, matchLength, indexptr->IsIgnoreCase());
-		size_t posintree = SearchInSortVector(*treeptr, onepath, matchLength, indexptr->IsIgnoreCase());
+		size_t pos = SearchInSortVector(indexptr->m_entries, onepath, matchLength, indexptr->IsIgnoreCase());
+		size_t posintree = SearchInSortVector(treeptr->m_entries, onepath, matchLength, indexptr->IsIgnoreCase());
 
 		git_wc_status2_t status = { git_wc_status_none, false, false };
 

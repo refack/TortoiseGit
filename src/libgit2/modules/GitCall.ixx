@@ -236,6 +236,9 @@ private:
 
 
 
+namespace details {
+
+
 /**
  * Starts \a cmdline with stdin closed and stdout/stderr on pipes.
  *
@@ -309,9 +312,6 @@ int LaunchProcess(
 	return TGIT_GIT_SUCCESS;
 }
 
-
-
-namespace details {
 
 struct StdErrReaderArgs {
 	HANDLE pipe;
@@ -426,8 +426,13 @@ std::wstring gitLastErr;
 StdErrReaders m_stdErrReaders;
 // this is a HACK to protect again excessive input from remote servers
 bool s_limitGitExeOutput = false;
-int m_LogEncode = CP_UTF8;
+
 PROCESS_INFORMATION m_CurrentGitPi{};
+
+inline int m_LogEncode = CP_UTF8;
+void set_log_encoding(const int encoding) {
+	m_LogEncode = encoding;
+}
 
 
 // Process-level state, like the latched object format (GitHash.ixx): TortoiseGit
@@ -435,16 +440,15 @@ PROCESS_INFORMATION m_CurrentGitPi{};
 // process. Namespace scope is what every importer already spells
 // (ms_iSimilarityIndexThreshold in GitRevLoglist and DiffCommand), and
 // it keeps the values reachable from the static members of CGit.
-fs::path ms_LastMsysGitDir; // the last msysgitdir added to the path, blank if none
-fs::path ms_MsysGitRootDir;
+fs::path ms_LastMsysGitDir{}; // the last msysgitdir added to the path, blank if none
+fs::path ms_MsysGitRootDir{};
 size_t ms_iSimilarityIndexThreshold = []{
 	const size_t index = wil::reg::try_get_dword(HKEY_CURRENT_USER, Registry::TortoiseGitKey, DiffSimilarityIndexThreshold).value_or(0);
 	return (index <= 100) ? index : 50;
 }();
-CEnvironment m_Environment;
 // Only the two setters above may name this. Everything else - some 400 read
 // sites - goes through the reference below.
-fs::path m_CurrentDirStorage;
+fs::path m_CurrentDirStorage{};
 
 
 bool has_weird_paths() { return ms_bMsys2Git || ms_bCygwinGit; }
@@ -549,9 +553,9 @@ int RunAsync(
 	}
 
 	m_CurrentGitPi = {};
-	auto&& ret = LaunchProcess(
+	auto&& ret = details::LaunchProcess(
 		std::move(cmd_tmp),
-		m_Environment.get(),
+		Environment::g_Environment.get(),
 		m_CurrentDirStorage.c_str(),
 		m_CurrentGitPi,
 		hReadOut,

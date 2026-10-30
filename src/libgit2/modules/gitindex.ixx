@@ -7,14 +7,9 @@
 #include <windows.h>
 #include <shlwapi.h>	// PathIsDirectory
 #pragma comment(lib, "Shlwapi.lib")
-#include <crtdbg.h>		// _ASSERTE: a macro, which no import carries. No ATL header: see Git.ixx
-// detail::ReadSmallFile instantiates wil::GetFileInfo<>, which reaches wil's error-reporting
-// helpers and through them strsafe's *static* StringCch* workers. A template instantiated
-// here cannot use module wil's internal-linkage definitions, so this TU needs its own: C2129.
-// (GitStatus.ixx carries the same include for the same reason.)
-#include <new>
-#include <strsafe.h>
 
+#include <strsafe.h>	// We need this for linking
+#include <stdexcept>
 #include "sanity.h"
 
 export module GitIndex;
@@ -77,15 +72,16 @@ struct git_wc_status2_t {
 struct CGitIndex
 {
 	/* m_Size and m_ModifyTime are only uint32_t in libgit2, cf. https://github.com/libgit2/libgit2/blob/8535fdb9cbad8fcd15ee4022ed29c4138547e22d/include/git2/index.h#L48-L51 and https://tortoisegit.org/issue/4108 */
-	std::wstring	m_FileName;
-	mutable int32_t	m_ModifyTime{};
+	std::wstring		m_FileName;
+	mutable int32_t		m_ModifyTime{};
 	mutable uint32_t	m_ModifyTimeNanos{};
-	uint16_t	m_Flags{};
-	uint16_t	m_FlagsExtended{};
-	CGitHash	m_IndexHash;
-	uint32_t	m_Size{};
-	uint32_t	m_Mode{};
+	uint16_t			m_Flags{};
+	uint16_t			m_FlagsExtended{};
+	CGitHash			m_IndexHash;
+	uint32_t			m_Size{};
+	uint32_t			m_Mode{};
 
+	auto NameView() const noexcept { return std::wstring_view{m_FileName}; }
 	// git splits mtime into seconds since 1970 plus nanoseconds; ours is FILETIME ticks
 	[[nodiscard]] bool HasModifyTime(const std::int64_t filetime) const noexcept
 	{
@@ -103,13 +99,13 @@ struct CGitIndex
 	/// {:08X} would print a negative int with a minus sign.
 	void Print() const
 	{
-		std::fputws(std::format(
+		std::wcout << std::format(
 			L"0x{:08X}  0x{:08X} {} {}\n",
-			static_cast<std::uint32_t>(m_ModifyTime),
+			m_ModifyTime,
 			m_Flags,
 			m_IndexHash.ToString(),
 			m_FileName
-		).c_str(), stdout);
+		);
 	}
 };
 
@@ -117,13 +113,23 @@ struct CGitIndex
 struct CGitTreeItem
 {
 	std::wstring	m_FileName;
-	CGitHash	m_Hash;
-	int			m_Flags{};
+	CGitHash		m_Hash;
+	int				m_Flags{};
+
+	[[nodiscard]] auto NameView() const noexcept { return std::wstring_view{m_FileName}; }
 };
 
 
-namespace detail
+namespace details
 {
+
+/// Frees a gitdll exclude list; what makes a unique_ptr own one.
+struct ExcludeListDeleter
+{
+	void operator()(const EXCLUDE_LIST list) const noexcept { git_free_exclude_list(list); }
+};
+using unique_exclude_list = std::unique_ptr<void, ExcludeListDeleter>;
+
 /// The key every path-keyed cache below files a path under, so that two
 /// spellings of one directory share an entry.
 inline std::wstring NormalizedKey(const std::wstring& path)
@@ -158,9 +164,11 @@ inline constexpr std::wstring_view GitIgnoreSuffix = L"\\.gitignore";
 /// GitStatus walks it by index and iterator, and hands it to the sorted-name
 /// helpers below. Only the owning list fills, sorts and clears m_entries.
 template <class TEntry>
-class EntryList
+struct EntryList
 {
-public:
+	using entry = TEntry;
+	static_assert(entry{}.NameView);
+
 	[[nodiscard]] auto begin() noexcept { return m_entries.begin(); }
 	[[nodiscard]] auto begin() const noexcept { return m_entries.begin(); }
 	[[nodiscard]] auto end() noexcept { return m_entries.end(); }
@@ -172,15 +180,94 @@ public:
 	[[nodiscard]] TEntry& operator[](const size_t i) { return m_entries[i]; }
 	[[nodiscard]] const TEntry& operator[](const size_t i) const { return m_entries[i]; }
 
-protected:
 	std::vector<TEntry> m_entries;
 };
+	
+	
+// ====== Reading the small files git keeps beside the index ======
+//
+// HEAD, a loose ref, packed-refs and the ignore files are all read whole.
+
+/// What every reader here has always shared: a writer replacing the file under
+/// us (git writes a lock file and renames it over) must not be refused.
+inline constexpr DWORD ShareAll = FILE_SHARE_READ | FILE_SHARE_DELETE | FILE_SHARE_WRITE;
+
+/// Whether fewer bytes arriving than the file's size said - it shrank between
+/// the size query and the read - fails the read or keeps what did arrive.
+enum class ShortRead { Fail, Keep };
+
+/// path opened for GENERIC_READ with exactly shareMode; test with operator bool.
+inline wil::unique_hfile OpenForRead(const wchar_t* const path, const DWORD shareMode)
+{
+	return wil::unique_hfile{ ::CreateFileW(path, GENERIC_READ, shareMode, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr) };
+}
+
+/// The rest of an open file, from its current position: nullopt when its size
+/// cannot be read or is larger than maxSize (inclusive), allocation fails,
+/// ReadFile fails, or - with ShortRead::Fail - fewer bytes arrive than that size.
+inline std::optional<std::string> ReadSmallFile(const HANDLE file, const std::uint64_t maxSize, const ShortRead shortRead)
+{
+	try
+	{
+		const auto size = wil::GetFileInfo<FileStandardInfo>(file).EndOfFile.QuadPart; // throws on failure
+		if (size < 0 || static_cast<std::uint64_t>(size) > maxSize || static_cast<std::uint64_t>(size) > std::numeric_limits<DWORD>::max())
+			return std::nullopt;
+
+		const auto expected = static_cast<DWORD>(size);
+		bool readOk = false;
+		std::string bytes;
+		// allocates without zero-filling and keeps exactly what ReadFile delivered;
+		// the op must not throw, so a failed read is reported as 0 and checked below
+		bytes.resize_and_overwrite(expected, [&](char* const buffer, const size_t count) noexcept {
+			DWORD read = 0;
+			readOk = ::ReadFile(file, buffer, static_cast<DWORD>(count), &read, nullptr) != FALSE;
+			return readOk ? static_cast<size_t>(read) : size_t{ 0 };
+		});
+		if (!readOk || (shortRead == ShortRead::Fail && bytes.size() != expected))
+			return std::nullopt;
+		return bytes;
+	}
+	catch (...) // wil::ResultException from GetFileInfo, std::bad_alloc
+	{
+		return std::nullopt;
+	}
+}
+
+/// The whole of a small file, opened as OpenForRead opens it; nullopt when it
+/// does not open or on any failure ReadSmallFile(HANDLE, ...) reports.
+inline std::optional<std::string> ReadSmallFile(const wchar_t* const path, const DWORD shareMode, const std::uint64_t maxSize, const ShortRead shortRead)
+{
+	const auto file = OpenForRead(path, shareMode);
+	if (!file)
+		return std::nullopt;
+	return ReadSmallFile(file.get(), maxSize, shortRead);
+}
+	
+	
 } // namespace detail
 
 
-class CGitIndexList : public detail::EntryList<CGitIndex>
+/// CString::Compare / CompareNoCase over two names - or, with len >= 0, over
+/// their first len characters, which is what makes a search a prefix match.
+/// The sort and every search over one list must agree on ignoreCase, or the
+/// search walks an order the list is not in.
+auto NameOrder(const int len, const bool ignoreCase)
 {
-public:
+	return [len, ignoreCase](std::wstring_view a, std::wstring_view b) {
+		if (len >= 0)
+		{
+			a = a.substr(0, static_cast<size_t>(len));
+			b = b.substr(0, static_cast<size_t>(len));
+		}
+		return ignoreCase ? tgit::wstr::CompareNoCase(a, b) : a.compare(b);
+	};
+}
+
+
+struct CGitIndexList : details::EntryList<CGitIndex>
+{
+	using entry = CGitIndex;
+
 	bool		m_bHasConflicts = false;
 	std::wstring	m_branch;
 	/// commits behind / ahead of the upstream branch; both empty when there is
@@ -238,7 +325,7 @@ class SharedPtrMapTmpl
 public:
 	[[nodiscard]] SharedPtr SafeGet(const std::wstring& path) const
 	{
-		const auto key = detail::NormalizedKey(path);
+		const auto key = details::NormalizedKey(path);
 		std::scoped_lock lock(m_mutex);
 		const auto lookup = m_map.find(key);
 		if (lookup == m_map.cend())
@@ -248,14 +335,14 @@ public:
 
 	bool SafeClear(const std::wstring& path)
 	{
-		const auto key = detail::NormalizedKey(path);
+		const auto key = details::NormalizedKey(path);
 		std::scoped_lock lock(m_mutex);
 		return m_map.erase(key) != 0;
 	}
 
 	bool SafeClearRecursively(const std::wstring& path)
 	{
-		const auto key = detail::NormalizedKey(path);
+		const auto key = details::NormalizedKey(path);
 		std::scoped_lock lock(m_mutex);
 		return std::erase_if(m_map, [&key](const auto& entry) { return entry.first.starts_with(key); }) != 0;
 	}
@@ -263,7 +350,7 @@ public:
 protected:
 	void SafeSet(const std::wstring& path, SharedPtr ptr)
 	{
-		auto key = detail::NormalizedKey(path);
+		auto key = details::NormalizedKey(path);
 		std::scoped_lock lock(m_mutex);
 		m_map.insert_or_assign(std::move(key), std::move(ptr));
 	}
@@ -305,7 +392,7 @@ public:
 /* After object create, never change field against
  * that needn't lock to get field
 */
-class CGitHeadFileList : public detail::EntryList<CGitTreeItem>
+class CGitHeadFileList : public details::EntryList<CGitTreeItem>
 {
 private:
 	std::expected<void, int> GetPackRef(const std::wstring& gitdir);
@@ -331,6 +418,7 @@ public:
 
 	/// error: -1 (the only failure value they have ever reported)
 	std::expected<void, int> ReadTree(bool ignoreCase);
+	std::expected<int64_t, int> get_head_modify_time(const std::wstring& gitdir, const std::wstring&);
 	std::expected<void, int> ReadHeadHash(const std::wstring& gitdir);
 	[[nodiscard]] bool CheckHeadUpdate() const;
 
@@ -353,17 +441,6 @@ public:
 
 
 
-namespace detail
-{
-/// Frees a gitdll exclude list; what makes a unique_ptr own one.
-struct ExcludeListDeleter
-{
-	void operator()(const EXCLUDE_LIST list) const noexcept { git_free_exclude_list(list); }
-};
-using unique_exclude_list = std::unique_ptr<void, ExcludeListDeleter>;
-} // namespace detail
-
-
 /// Rule of zero, move-only: the exclude list is owned by a unique_ptr, so a
 /// copy does not compile, and everything it points at - the patterns and the
 /// base directory, which git_add_exclude keeps a pointer to as well - lives in
@@ -384,7 +461,7 @@ public:
 	/// NUL-terminated in place; m_pExcludeList points into it, so it is
 	/// declared first and outlives it
 	std::vector<char> m_buffer{};
-	detail::unique_exclude_list m_pExcludeList{};
+	details::unique_exclude_list m_pExcludeList{};
 	int* m_iIgnoreCase = nullptr;
 
 	int FetchIgnoreList(const std::wstring& projectroot, const std::wstring& file, bool isGlobal, int* ignoreCase);
@@ -414,7 +491,7 @@ private:
 	bool CheckFileChanged(const std::wstring& path);
 	void FetchIgnoreFile(const std::wstring& gitdir, const std::wstring& gitignore, bool isGlobal);
 
-	int CheckIgnore(const std::wstring& path, const std::wstring& root, bool isDir, const std::wstring& adminDir);
+	int CheckIgnore(const std::wstring& path_suf, const std::wstring& root, bool isDir, const std::wstring& adminDir);
 	int CheckFileAgainstIgnoreList(const std::wstring& ignorefile, const std::string& patha, const char* base, int& type);
 
 	// core.excludesfile stuff
@@ -430,7 +507,7 @@ private:
 	bool CheckAndUpdateCoreExcludefile(const std::wstring& adminDir);
 	static const std::wstring& GetWindowsHome()
 	{
-		static const std::wstring sWindowsHome(g_Git.GetHomeDirectory());
+		static const std::wstring sWindowsHome(TGitH::GetHomeDirectory());
 		return sWindowsHome;
 	}
 
@@ -457,117 +534,6 @@ public:
 // change them. (They used to compare through wcscmp on a const wchar_t*,
 // which is how GitStatus's fs::path names stopped compiling.)
 
-namespace detail
-{
-/// Any name these lists meet, as the view the comparisons take: O(1) for
-/// everything that knows its length, one walk for a pointer or literal.
-template <typename TName>
-std::wstring_view NameView(const TName& name)
-{
-	if constexpr (requires { name.native(); })
-		return name.native();
-	else if constexpr (tgit::str::HasViewTraitsOf<TName, wchar_t>)
-		return tgit::str::StringView{ name };
-	else
-	{
-		using traits = tgit::str::StringTraits<tgit::str::TOwnedKey<TName>>;
-		return { traits::data(name), traits::size(name) };
-	}
-}
-
-/// The projection every list is sorted and searched by.
-inline constexpr auto FileNameOf = [](const auto& entry) { return NameView(entry.m_FileName); };
-
-/// CString::Compare / CompareNoCase over two names - or, with len >= 0, over
-/// their first len characters, which is what makes a search a prefix match.
-/// The sort and every search over one list must agree on ignoreCase, or the
-/// search walks an order the list is not in.
-inline auto NameOrder(const int len, const bool ignoreCase)
-{
-	return [len, ignoreCase](std::wstring_view a, std::wstring_view b) {
-		if (len >= 0)
-		{
-			a = a.substr(0, static_cast<size_t>(len));
-			b = b.substr(0, static_cast<size_t>(len));
-		}
-		return ignoreCase ? tgit::wstr::CompareNoCase(a, b) : a.compare(b);
-	};
-}
-
-inline auto NameLess(const int len, const bool ignoreCase)
-{
-	return [order = NameOrder(len, ignoreCase)](const std::wstring_view a, const std::wstring_view b) { return order(a, b) < 0; };
-}
-
-
-// ====== Reading the small files git keeps beside the index ======
-//
-// HEAD, a loose ref, packed-refs and the ignore files are all read whole.
-
-/// What every reader here has always shared: a writer replacing the file under
-/// us (git writes a lock file and renames it over) must not be refused.
-inline constexpr DWORD ShareAll = FILE_SHARE_READ | FILE_SHARE_DELETE | FILE_SHARE_WRITE;
-
-/// Whether fewer bytes arriving than the file's size said - it shrank between
-/// the size query and the read - fails the read or keeps what did arrive.
-enum class ShortRead { Fail, Keep };
-
-/// path opened for GENERIC_READ with exactly shareMode; test with operator bool.
-inline wil::unique_hfile OpenForRead(const wchar_t* const path, const DWORD shareMode)
-{
-	return wil::unique_hfile{ ::CreateFileW(path, GENERIC_READ, shareMode, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr) };
-}
-
-/// The rest of an open file, from its current position: nullopt when its size
-/// cannot be read or is larger than maxSize (inclusive), allocation fails,
-/// ReadFile fails, or - with ShortRead::Fail - fewer bytes arrive than that size.
-inline std::optional<std::string> ReadSmallFile(const HANDLE file, const std::uint64_t maxSize, const ShortRead shortRead)
-{
-	try
-	{
-		const auto size = wil::GetFileInfo<FileStandardInfo>(file).EndOfFile.QuadPart; // throws on failure
-		if (size < 0 || static_cast<std::uint64_t>(size) > maxSize || static_cast<std::uint64_t>(size) > std::numeric_limits<DWORD>::max())
-			return std::nullopt;
-
-		const auto expected = static_cast<DWORD>(size);
-		bool readOk = false;
-		std::string bytes;
-		// allocates without zero-filling and keeps exactly what ReadFile delivered;
-		// the op must not throw, so a failed read is reported as 0 and checked below
-		bytes.resize_and_overwrite(expected, [&](char* const buffer, const size_t count) noexcept {
-			DWORD read = 0;
-			readOk = ::ReadFile(file, buffer, static_cast<DWORD>(count), &read, nullptr) != FALSE;
-			return readOk ? static_cast<size_t>(read) : size_t{ 0 };
-		});
-		if (!readOk || (shortRead == ShortRead::Fail && bytes.size() != expected))
-			return std::nullopt;
-		return bytes;
-	}
-	catch (const std::runtime_error&) // wil::ResultException from GetFileInfo, std::bad_alloc
-	{
-		return std::nullopt;
-	}
-}
-
-/// The whole of a small file, opened as OpenForRead opens it; nullopt when it
-/// does not open or on any failure ReadSmallFile(HANDLE, ...) reports.
-inline std::optional<std::string> ReadSmallFile(const wchar_t* const path, const DWORD shareMode, const std::uint64_t maxSize, const ShortRead shortRead)
-{
-	const auto file = OpenForRead(path, shareMode);
-	if (!file)
-		return std::nullopt;
-	return ReadSmallFile(file.get(), maxSize, shortRead);
-}
-} // namespace detail
-
-
-template <class T>
-void DoSortFilenametSortVector(T& vector, const bool ignoreCase)
-{
-	std::ranges::sort(vector, detail::NameLess(-1, ignoreCase), detail::FileNameOf);
-}
-
-
 
 constexpr size_t NPOS = std::numeric_limits<size_t>::max(); // bad/missing length/position
 static_assert(-1 == static_cast<int>(NPOS), "NPOS must equal -1");
@@ -578,17 +544,16 @@ static_assert(-1 == static_cast<int>(NPOS), "NPOS must equal -1");
 /// pos - which must itself match - in both directions, as a view into vector.
 /// It is empty exactly when there is no run (pos is NPOS or out of range, or
 /// the entry at pos does not match); otherwise it holds at least vector[pos].
-template <class T, class TKey>
-[[nodiscard]] std::ranges::subrange<std::ranges::iterator_t<const T>> GetRangeInSortVector(const T& vector, const TKey& key, const size_t len, const bool ignoreCase, const size_t pos)
+template <class T>
+[[nodiscard]] std::ranges::subrange<std::ranges::iterator_t<const T>> GetRangeInSortVector(const T& vector, const std::wstring_view key, const size_t len, const bool ignoreCase, const size_t pos)
 {
 	const auto first = std::ranges::begin(vector);
 	const auto last = std::ranges::end(vector);
 	if (pos == NPOS || pos >= std::ranges::size(vector))
 		return { last, last };
 
-	const auto needle = detail::NameView(key);
-	const auto order = detail::NameOrder(gsl::narrow<int>(len), ignoreCase);
-	const auto matches = [&](const auto& entry) { return order(detail::FileNameOf(entry), needle) == 0; };
+	const auto order = NameOrder(win32_cast(len), ignoreCase);
+	const auto matches = [&](const auto& entry) { return order(entry.NameView(), key) == 0; };
 	const auto at = first + pos;
 	if (!matches(*at))
 		return { last, last };
@@ -629,14 +594,18 @@ int GetRangeInSortVector(const T& vector, const TKey& key, const size_t len, con
 /// The index of an entry matching key - whole names when len < 0, otherwise
 /// their first len characters - or NPOS. With several matches it is the first
 /// of them; callers that want all of them pass it to GetRangeInSortVector.
-template <class T, class TKey>
-size_t SearchInSortVector(const T& vector, const TKey& key, const int len, const bool ignoreCase)
+template <class Ent>
+auto SearchInSortVectorRaw(const std::vector<Ent>& vector, const std::wstring_view key, const int len, const bool ignoreCase) {
+	const auto& found = std::ranges::lower_bound(vector, key, NameOrder(len, ignoreCase), &Ent::NameView);
+	return found;
+}
+template <class Ent>
+size_t SearchInSortVector(const std::vector<Ent>& vector, const std::wstring_view key, const int len, const bool ignoreCase)
 {
-	const auto needle = detail::NameView(key);
-	const auto found = std::ranges::lower_bound(vector, needle, detail::NameLess(len, ignoreCase), detail::FileNameOf);
-	if (found == std::ranges::end(vector) || detail::NameOrder(len, ignoreCase)(detail::FileNameOf(*found), needle) != 0)
+	const auto& found = SearchInSortVectorRaw(vector, key, len, ignoreCase);
+	if (found == vector.cend() || NameOrder(len, ignoreCase)(found->NameView(), key) != 0)
 		return NPOS;
-	return static_cast<size_t>(found - std::ranges::begin(vector));
+	return static_cast<size_t>(found - vector.cbegin());
 }
 
 
@@ -655,7 +624,7 @@ class CGitAdminDirMap
 public:
 	std::wstring GetAdminDir(const std::wstring& path)
 	{
-		const auto thePath = detail::NormalizedKey(path);
+		const auto thePath = details::NormalizedKey(path);
 		std::scoped_lock lock(m_mutex);
 		const auto lookup = m_adminDirs.find(thePath);
 		if (lookup == m_adminDirs.cend())
@@ -683,7 +652,7 @@ public:
 
 	std::wstring GetWorktreeAdminDir(const std::wstring& path)
 	{
-		const auto thePath = detail::NormalizedKey(path);
+		const auto thePath = details::NormalizedKey(path);
 		std::scoped_lock lock(m_mutex);
 		const auto lookup = m_WorktreeAdminDirLookup.find(thePath);
 		if (lookup == m_WorktreeAdminDirLookup.cend())
@@ -735,11 +704,7 @@ private:
 
 
 CGitAdminDirMap g_AdminDirMap;
-} // export namespace GitIndex
 
-
-
-export namespace GitIndex {
 // this file is compiled into projects with and without GIT_EXPERIMENTAL_SHA256; only SHA1 repos are supported so far
 inline int tgit_odb_hash(git_oid* out, const void* data, size_t len, git_object_t type)
 {
@@ -778,8 +743,8 @@ int CGitIndexList::ReadIndex(const std::wstring& dgitdir)
 	}
 
 	const std::wstring projectConfig = g_AdminDirMap.GetAdminDir(dgitdir) + L"config";
-	const std::wstring globalConfig(g_Git.GetGitGlobalConfig());
-	const std::wstring globalXDGConfig(g_Git.GetGitGlobalXDGConfig());
+	const std::wstring globalConfig(TGitH::GetGitGlobalConfig());
+	const std::wstring globalXDGConfig(TGitH::GetGitGlobalXDGConfig());
 	Registry::CRegStdString systemConfigValue(std::wstring(REG_SYSTEM_GITCONFIGPATH), L"", false);
 	const std::wstring& systemConfigW = systemConfigValue; // operator const T& is non-const, hence the named object
 	const std::wstring systemConfig(systemConfigW.c_str()); // up to the first NUL, as the CString(c_str()) it replaces kept
@@ -823,7 +788,7 @@ int CGitIndexList::ReadIndex(const std::wstring& dgitdir)
 		TracePrintf(__FUNCTION__ ": Could not resize index-vector: %s\n", ex.what());
 		return -1;
 	}
-	catch (const std::length_error& ex)
+	catch (const std::exception& ex)
 	{
 		config.reset();
 		TracePrintf(__FUNCTION__ ": Could not resize index-vector, length_error: %s\n", ex.what());
@@ -834,7 +799,7 @@ int CGitIndexList::ReadIndex(const std::wstring& dgitdir)
 		const git_index_entry *e = git_index_get_byindex(index.get(), i);
 
 		auto& item = m_entries[i];
-		item.m_FileName = CUnicodeUtils::Convert2Unicode<std::wstring>(e->path);
+		item.m_FileName = CUnicodeUtils::StdGetUnicode(e->path);
 		if (e->mode & S_IFDIR)
 			item.m_FileName += L'/';
 		static_assert(std::is_same_v<decltype(item.m_ModifyTime), decltype(e->mtime.seconds)>);
@@ -850,7 +815,8 @@ int CGitIndexList::ReadIndex(const std::wstring& dgitdir)
 		m_bHasConflicts = m_bHasConflicts || GIT_INDEX_ENTRY_STAGE(e) != 0;
 	}
 
-	DoSortFilenametSortVector(m_entries, IsIgnoreCase());
+	std::ranges::sort(m_entries, NameOrder(-1, this->IsIgnoreCase()), &CGitIndex::NameView);
+
 
 	// best effort: a branch whose upstream state cannot be read does not fail the index
 	static_cast<void>(ReadIncomingOutgoing(repository.get()));
@@ -891,14 +857,14 @@ std::expected<void, int> CGitIndexList::ReadIncomingOutgoing(git_repository* rep
 			return std::unexpected(-1);
 
 		// StripRefName still speaks CString; a null target reads as empty either way
-		m_branch = std::wstring(TGitH::StripRefName(CUnicodeUtils::Convert2Unicode<CString>(git_reference_symbolic_target(head.get()))));
+		m_branch = std::wstring(TGitH::StripRefName(CUnicodeUtils::GetUnicode<CString>(git_reference_symbolic_target(head.get()))));
 		return {};
 	}
 
 	if (git_repository_head(head.put(), repository) < 0)
 		return std::unexpected(-1);
 
-	m_branch = CUnicodeUtils::Convert2Unicode<std::wstring>(git_reference_shorthand(head.get())); // nullptr reads as empty
+	m_branch = CUnicodeUtils::StdGetUnicode(git_reference_shorthand(head.get())); // nullptr reads as empty
 
 	wil::unique_git_buf upstreambranchname;
 	git_oid upstream{};
@@ -920,10 +886,14 @@ std::expected<void, int> CGitIndexList::ReadIncomingOutgoing(git_repository* rep
 int CGitIndexList::GetFileStatus_NoRepo(const std::wstring& gitdir, const std::wstring& pathorg, git_wc_status2_t& status, const std::int64_t time, const std::int64_t filesize, const bool isSymlink, CGitHash* pHash) const
 {
 
-	const size_t index = SearchInSortVector(m_entries, pathorg, -1, IsIgnoreCase());
+	const auto foundEntry = std::ranges::lower_bound(
+		m_entries,
+		pathorg,
+		NameOrder(-1, this->IsIgnoreCase()),
+		&CGitIndex::m_FileName
+	);
 
-	if (index == NPOS)
-	{
+	if (foundEntry == m_entries.end())	{
 		status.status = git_wc_status_unversioned;
 		if (pHash)
 			pHash->Empty();
@@ -931,7 +901,7 @@ int CGitIndexList::GetFileStatus_NoRepo(const std::wstring& gitdir, const std::w
 		return 0;
 	}
 
-	const auto& entry = m_entries[index];
+	const auto& entry = *foundEntry;
 	if (pHash)
 		*pHash = entry.m_IndexHash;
 	_ASSERTE(IsIgnoreCase() ? tgit::wstr::CompareNoCase(pathorg, entry.m_FileName) == 0 : pathorg == entry.m_FileName);
@@ -956,7 +926,7 @@ int CGitIndexList::GetFileStatus(wil::unique_git_repository& repository,const st
 	}
 	else if (filesize == -1)
 		status.status = git_wc_status_deleted;
-	else if ((isSymlink && !detail::IsSymlinkMode(entry.m_Mode)) || ((m_iIndexCaps & GIT_INDEX_CAPABILITY_NO_SYMLINKS) != GIT_INDEX_CAPABILITY_NO_SYMLINKS && isSymlink != detail::IsSymlinkMode(entry.m_Mode)))
+	else if ((isSymlink && !details::IsSymlinkMode(entry.m_Mode)) || ((m_iIndexCaps & GIT_INDEX_CAPABILITY_NO_SYMLINKS) != GIT_INDEX_CAPABILITY_NO_SYMLINKS && isSymlink != details::IsSymlinkMode(entry.m_Mode)))
 		status.status = git_wc_status_modified;
 	else if (!isSymlink && static_cast<uint32_t>(filesize) != entry.m_Size)
 		status.status = git_wc_status_modified;
@@ -986,9 +956,9 @@ int CGitIndexList::GetFileStatus(wil::unique_git_repository& repository,const st
 
 		git_oid actual;
 		const auto fileA = CUnicodeUtils::StdGetUTF8(entry.m_FileName);
-		if (isSymlink && detail::IsSymlinkMode(entry.m_Mode))
+		if (isSymlink && details::IsSymlinkMode(entry.m_Mode))
 		{
-			const auto filename = wstr::to_path(gitdir) / wstr::to_path(entry.m_FileName);
+			const auto filename = str::to_path(gitdir) / entry.m_FileName;
 			const auto dest = PathUtils::ReadLink(filename);
 			if (
 				dest &&
@@ -1026,7 +996,7 @@ int CGitIndexList::GetFileStatus(const std::wstring& gitdir, const std::wstring&
 {
 	Expects(!status.assumeValid && !status.skipWorktree);
 
-	const auto attrs = get_path_attributes(path.empty() ? wstr::to_path(gitdir) : wstr::to_path(gitdir) / wstr::to_path(path));
+	const auto attrs = get_path_attributes(str::to_path(gitdir) / path);
 	const bool found = attrs && attrs->exists();
 	// the repository root itself is only asked whether it is a directory
 	const std::int64_t time = found ? attrs->lastWriteTime : 0;
@@ -1040,8 +1010,8 @@ int CGitIndexList::GetFileStatus(const std::wstring& gitdir, const std::wstring&
 
 	if (path.ends_with(L'/'))
 	{
-		const size_t index = SearchInSortVector(m_entries, path, -1, IsIgnoreCase());
-		if (index == NPOS)
+		const auto& foundEntry = SearchInSortVectorRaw(m_entries, path, -1, IsIgnoreCase());
+		if (foundEntry == m_entries.end())
 		{
 			status.status = git_wc_status_unversioned;
 			if (pHash)
@@ -1051,7 +1021,7 @@ int CGitIndexList::GetFileStatus(const std::wstring& gitdir, const std::wstring&
 		}
 
 		if (pHash)
-			*pHash = m_entries[index].m_IndexHash;
+			*pHash = foundEntry->m_IndexHash;
 
 		status.status = found ? git_wc_status_normal : git_wc_status_deleted;
 		return 0;
@@ -1072,7 +1042,8 @@ std::expected<void, int> CGitHeadFileList::GetPackRef(const std::wstring& gitdir
 {
 	const std::wstring PackRef = g_AdminDirMap.GetAdminDirConcat(gitdir, L"packed-refs");
 
-	std::int64_t mtime = 0, packsize = -1;
+	std::int64_t mtime = 0;
+	std::int64_t packsize = -1;
 	if (TGitH::GetFileModifyTime(PackRef.c_str(), &mtime, nullptr, &packsize))
 	{
 		//packed refs is not existed
@@ -1080,10 +1051,9 @@ std::expected<void, int> CGitHeadFileList::GetPackRef(const std::wstring& gitdir
 		this->m_PackRefMap.clear();
 		return {};
 	}
-	else if (mtime == m_LastModifyTimePackRef && packsize == m_LastFileSizePackRef)
+	else if (mtime == m_LastModifyTimePackRef && packsize == m_LastFileSizePackRef) {
 		return {};
-	else
-	{
+	} else {
 		this->m_PackRefFile = PackRef;
 		this->m_LastModifyTimePackRef = mtime;
 		this->m_LastFileSizePackRef = packsize;
@@ -1091,7 +1061,7 @@ std::expected<void, int> CGitHeadFileList::GetPackRef(const std::wstring& gitdir
 
 	m_PackRefMap.clear();
 
-	const auto packed = detail::ReadSmallFile(PackRef.c_str(), detail::ShareAll, std::numeric_limits<int>::max() - 1, detail::ShortRead::Fail);
+	const auto packed = details::ReadSmallFile(PackRef.c_str(), details::ShareAll, std::numeric_limits<int>::max() - 1, details::ShortRead::Fail);
 	if (!packed)
 		return std::unexpected(-1);
 
@@ -1118,24 +1088,32 @@ std::expected<void, int> CGitHeadFileList::GetPackRef(const std::wstring& gitdir
 	return {};
 }
 
+
+std::expected<std::int64_t, int> CGitHeadFileList::get_head_modify_time(const std::wstring& gitdir, const std::wstring& ref) {
+	std::int64_t time{};
+	if (auto&& ret = TGitH::GetFileModifyTime(m_HeadRefFile.c_str(), &time, nullptr))
+		return std::unexpected{ret};
+	return time;
+}
+
+
 std::expected<void, int> CGitHeadFileList::ReadHeadHash(const std::wstring& gitdir)
 {
+	constexpr std::string_view refPrefix = "ref:";
+	constexpr std::uint64_t maxHeadSize = 100 * 1024 * 1024 - 1;
 	Expects(m_Gitdir.empty() && m_HeadFile.empty() && m_Head.IsEmpty());
 
-	m_Gitdir = g_AdminDirMap.GetWorktreeAdminDir(gitdir);
 
+	m_Gitdir = g_AdminDirMap.GetWorktreeAdminDir(gitdir);
 	m_HeadFile = m_Gitdir;
 	m_HeadFile += L"HEAD";
 
 	if (TGitH::GetFileModifyTime(m_HeadFile.c_str(), &m_LastModifyTimeHead, nullptr, &m_LastFileSizeHead))
 		return std::unexpected(-1);
 
-	constexpr std::string_view refPrefix = "ref:";
-	constexpr std::uint64_t maxHeadSize = 100 * 1024 * 1024 - 1;
 	// hex length of an object id in the active format
-	const size_t hexSize = static_cast<size_t>(2 * tgit::invarients::HashSize());
 
-	const auto headBytes = detail::ReadSmallFile(m_HeadFile.c_str(), detail::ShareAll, maxHeadSize, detail::ShortRead::Keep);
+	const auto headBytes = details::ReadSmallFile(m_HeadFile.c_str(), details::ShareAll, maxHeadSize, details::ShortRead::Keep);
 	if (!headBytes || headBytes->size() < refPrefix.size())
 		return std::unexpected(-1);
 	const std::string_view head = *headBytes;
@@ -1148,19 +1126,18 @@ std::expected<void, int> CGitHeadFileList::ReadHeadHash(const std::wstring& gitd
 
 		// m_HeadRefFile keeps the trimmed text; ref is only its first line
 		m_HeadRefFile = CUnicodeUtils::GetUnicode<std::wstring>(head.substr(refPrefix.size()));
-		detail::TrimSpace(m_HeadRefFile);
+		details::TrimSpace(m_HeadRefFile);
 		int start = 0;
 		const std::wstring ref = tgit::wstr::Tokenize(m_HeadRefFile, L"\n", start);
 		m_HeadRefFile = g_AdminDirMap.GetAdminDir(gitdir) + m_HeadRefFile;
 		std::ranges::replace(m_HeadRefFile, L'/', L'\\');
 
-		std::int64_t time;
-		if (TGitH::GetFileModifyTime(m_HeadRefFile.c_str(), &time, nullptr))
-		{
-			if (auto packed = GetPackRef(gitdir); !packed)
-				return packed;
-			if (m_PackRefMap.contains(ref))
-			{
+		auto&& exp_time = get_head_modify_time(gitdir, ref);
+		if (!exp_time) {
+			// Hydrate the m_PackRefMap
+			if (auto exp_nothing = GetPackRef(gitdir); !exp_nothing) return std::unexpected{exp_nothing.error()};
+
+			if (m_PackRefMap.contains(ref))	{
 				m_bRefFromPackRefFile = true;
 				m_Head = m_PackRefMap[ref];
 				return {};
@@ -1168,15 +1145,13 @@ std::expected<void, int> CGitHeadFileList::ReadHeadHash(const std::wstring& gitd
 
 			// unborn branch
 			m_Head.Empty();
-
 			return {};
 		}
 
-		const auto href = detail::OpenForRead(m_HeadRefFile.c_str(), detail::ShareAll);
+		const auto href = details::OpenForRead(m_HeadRefFile.c_str(), details::ShareAll);
 		if (!href)
 		{
-			if (auto packed = GetPackRef(gitdir); !packed)
-				return packed;
+			if (auto exp_nothing = GetPackRef(gitdir); !exp_nothing) return std::unexpected{exp_nothing.error()};
 
 			if (!m_PackRefMap.contains(ref))
 				return std::unexpected(-1);
@@ -1187,24 +1162,24 @@ std::expected<void, int> CGitHeadFileList::ReadHeadHash(const std::wstring& gitd
 		}
 
 		// the loose ref's first hexSize bytes are the id; fewer is a failure
-		const auto loose = detail::ReadSmallFile(href.get(), maxHeadSize, detail::ShortRead::Keep);
-		if (!loose || loose->size() < hexSize)
+		const auto loose = details::ReadSmallFile(href.get(), maxHeadSize, details::ShortRead::Keep);
+		if (!loose || loose->size() < tgit::invarients::ZeroRevSV().size())
 			return std::unexpected(-1);
 
-		m_Head = CGitHash::FromHexStr(std::string_view(*loose).substr(0, hexSize));
-
-		m_LastModifyTimeRef = time;
+		m_Head = CGitHash::FromHexStr(std::string_view(*loose).substr(0, tgit::invarients::ZeroRevSV().size()));
+		// setting here is a weird invariant
+		m_LastModifyTimeRef = *exp_time;
 
 		return {};
 	}
 
 	// detached: HEAD's first hexSize bytes are the id, "ref:"'s four included
-	if (head.size() < hexSize)
+	if (head.size() < tgit::invarients::ZeroRevSV().size())
 		return std::unexpected(-1);
 
 	m_HeadRefFile.clear();
 
-	m_Head = CGitHash::FromHexStr(head.substr(0, hexSize));
+	m_Head = CGitHash::FromHexStr(head.substr(0, tgit::invarients::ZeroRevSV().size()));
 
 	return {};
 }
@@ -1214,7 +1189,8 @@ bool CGitHeadFileList::CheckHeadUpdate() const
 	if (this->m_HeadFile.empty())
 		return true;
 
-	std::int64_t mtime = 0, size = -1;
+	std::int64_t mtime = 0;
+	std::int64_t size = -1;
 
 	if (TGitH::GetFileModifyTime(m_HeadFile.c_str(), &mtime, nullptr, &size))
 		return true;
@@ -1225,13 +1201,12 @@ bool CGitHeadFileList::CheckHeadUpdate() const
 	if (!this->m_HeadRefFile.empty())
 	{
 		// we need to check for the HEAD ref file here, because the original ref might have come from packedrefs and now is a ref-file
-		if (TGitH::GetFileModifyTime(m_HeadRefFile.c_str(), &mtime))
-		{
+		if (TGitH::GetFileModifyTime(m_HeadRefFile.c_str(), &mtime)) {
 			if (!m_bRefFromPackRefFile)
 				return true;
-
-		} else if (mtime != this->m_LastModifyTimeRef)
+		} else if (mtime != this->m_LastModifyTimeRef) {
 			return true;
+		}
 	}
 
 	if (m_bRefFromPackRefFile && !m_PackRefFile.empty())
@@ -1260,16 +1235,16 @@ void CGitHeadFileList::ReadTreeRecursive(git_repository& repo, const git_tree* t
 		const git_tree_entry *entry = git_tree_entry_byindex(tree, i);
 		if (!entry)
 			continue;
-		const int mode = git_tree_entry_filemode(entry);
+		const git_filemode_t mode = git_tree_entry_filemode(entry);
 		const bool isDir = (mode & S_IFDIR) == S_IFDIR;
-		const bool isSubmodule = detail::IsGitlinkMode(static_cast<std::uint32_t>(mode));
+		const bool isSubmodule = details::IsGitlinkMode(static_cast<std::uint32_t>(mode));
 		if (!isDir || isSubmodule)
 		{
 			// tree entry names are UTF-8 by git's contract, so the fast path; like
 			// CGit::StringAppend, a failed conversion contributes nothing rather than throwing
 			CGitTreeItem item;
 			item.m_Hash = git_tree_entry_id(entry);
-			item.m_FileName = base + CUnicodeUtils::Convert2Unicode<std::wstring>(git_tree_entry_name(entry));
+			item.m_FileName = base + CUnicodeUtils::StdGetUnicode(git_tree_entry_name(entry));
 			if (isSubmodule)
 				item.m_FileName += L'/';
 			m_entries.push_back(std::move(item));
@@ -1280,7 +1255,8 @@ void CGitHeadFileList::ReadTreeRecursive(git_repository& repo, const git_tree* t
 		git_tree_entry_to_object(object.put(), &repo, entry);
 		if (!object)
 			continue;
-		std::wstring parent = base + CUnicodeUtils::Convert2Unicode<std::wstring>(git_tree_entry_name(entry));
+		std::wstring parent = base;
+		parent += CUnicodeUtils::StdGetUnicode(git_tree_entry_name(entry));
 		parent += L'/';
 		ReadTreeRecursive(repo, reinterpret_cast<git_tree*>(object.get()), parent);
 	}
@@ -1325,7 +1301,7 @@ std::expected<void, int> CGitHeadFileList::ReadTree(const bool ignoreCase)
 		return std::unexpected(-1);
 	}
 
-	DoSortFilenametSortVector(m_entries, ignoreCase);
+	std::ranges::sort(m_entries, NameOrder(-1, ignoreCase), &CGitTreeItem::NameView);
 
 	TracePrintf(__FUNCTIONW__ L": Reloaded HEAD tree (commit is %s) for repo: %s\n", m_Head.ToString().c_str(), m_Gitdir.c_str());
 
@@ -1344,26 +1320,24 @@ int CGitIgnoreItem::FetchIgnoreList(const std::wstring& projectroot, const std::
 		std::wstring base = tgit::wstr::Mid(file, gsl::narrow<int>(projectroot.size()) + 1); // clamps, as CString::Mid did
 		std::ranges::replace(base, L'\\', L'/');
 
-		const int start = tgit::wstr::ReverseFind(base, L'/');
-		if(start > 0)
-		{
+		if (const int start = tgit::wstr::ReverseFind(base, L'/'); start > 0) {
 			base.resize(static_cast<size_t>(start));
 			this->m_BaseDir = CUnicodeUtils::StdGetUTF8(base) + "/";
 		}
 	}
 
 	if (TGitH::GetFileModifyTime(file.c_str(), &m_LastModifyTime, nullptr, &m_LastFileSize))
-		return -1;
+		return GitCall::GFail;
 
 	// a short read keeps what arrived, as it always has
-	auto bytes = detail::ReadSmallFile(file.c_str(), detail::ShareAll, 100 * 1024 * 1024, detail::ShortRead::Keep);
+	auto bytes = details::ReadSmallFile(file.c_str(), details::ShareAll, 100 * 1024 * 1024, details::ShortRead::Keep);
 	if (!bytes)
-		return -1;
+		return GitCall::GFail;
 
 	{
 		EXCLUDE_LIST list = nullptr;
 		if (git_create_exclude_list(&list))
-			return -1;
+			return GitCall::GFail;
 		m_pExcludeList.reset(list);
 	}
 
@@ -1496,7 +1470,7 @@ bool CGitIgnoreList::CheckAndUpdateIgnoreFiles(const std::wstring& gitdir, const
 			lastChecked->insert(temp);
 		}
 
-		temp += detail::GitIgnoreSuffix;
+		temp += details::GitIgnoreSuffix;
 
 		if (CheckFileChanged(temp))
 		{
@@ -1504,7 +1478,7 @@ bool CGitIgnoreList::CheckAndUpdateIgnoreFiles(const std::wstring& gitdir, const
 			updated = true;
 		}
 
-		temp.resize(temp.size() - detail::GitIgnoreSuffix.size());
+		temp.resize(temp.size() - details::GitIgnoreSuffix.size());
 		if (PathUtils::ArePathStringsEqual(temp, gitdir))
 		{
 			const std::wstring adminDir = g_AdminDirMap.GetAdminDir(temp);
@@ -1558,8 +1532,8 @@ bool CGitIgnoreList::CheckAndUpdateGitSystemConfigPath(const bool force)
 bool CGitIgnoreList::CheckAndUpdateCoreExcludefile(const std::wstring& adminDir)
 {
 	const std::wstring projectConfig = adminDir + L"config";
-	const std::wstring globalConfig(g_Git.GetGitGlobalConfig());
-	const std::wstring globalXDGConfig(g_Git.GetGitGlobalXDGConfig());
+	const std::wstring globalConfig(TGitH::GetGitGlobalConfig());
+	const std::wstring globalXDGConfig(TGitH::GetGitGlobalXDGConfig());
 
 	[[maybe_unused]]CAutoWriteLock lock(m_coreExcludefilesSharedMutex);
 	bool hasChanged = CheckAndUpdateGitSystemConfigPath();
@@ -1643,29 +1617,19 @@ int CGitIgnoreList::CheckFileAgainstIgnoreList(const std::wstring& ignorefile, c
 
 	return item->second.IsPathIgnored(patha, base, type);
 }
-int CGitIgnoreList::CheckIgnore(const std::wstring& path, const std::wstring& projectroot, const bool isDir, const std::wstring& adminDir)
-{
-	std::wstring temp = (wstr::to_path(projectroot) / wstr::to_path(path)).native();
-	std::ranges::replace(temp, L'/', L'\\');
+int CGitIgnoreList::CheckIgnore(const std::wstring& path_suf, const std::wstring& projectroot, const bool isDir, const std::wstring& adminDir) {
+	auto temp = str::to_path(projectroot) / path_suf;
 
-	std::string patha = CUnicodeUtils::StdGetUTF8(path);
-	std::ranges::replace(patha, '\\', '/');
+	std::string patha = temp.generic_string();
 
 	auto type = [&] {
-		if (isDir)
-		{
+		if (isDir) {
 			// strip directory name
 			// we do not need to check for a .ignore file inside a directory we might ignore
-			if (const int i = tgit::wstr::ReverseFind(temp, L'\\'); i >= 0)
-				temp.resize(static_cast<size_t>(i));
+			temp = temp.parent_path();
 			return DT_DIR;
-		}
-		else
-		{
-			const int x = tgit::wstr::ReverseFind(temp, L'\\');
-			if (x >= 2)
-				temp.resize(static_cast<size_t>(x));
-
+		} else {
+			temp = temp.parent_path();
 			return DT_REG;
 		}
 	}();
@@ -1678,12 +1642,12 @@ int CGitIgnoreList::CheckIgnore(const std::wstring& path, const std::wstring& pr
 	[[maybe_unused]]CAutoReadLock lock(m_SharedMutex);
 	while (!temp.empty())
 	{
-		temp += detail::GitIgnoreSuffix;
+		temp += details::GitIgnoreSuffix;
 
 		if (const auto ret = CheckFileAgainstIgnoreList(temp, patha, base, type); ret != pattern_match_result::UNDECIDED)
 			return ret;
 
-		temp.resize(temp.size() - detail::GitIgnoreSuffix.size());
+		temp.resize(temp.size() - details::GitIgnoreSuffix.size());
 
 		if (PathUtils::ArePathStringsEqual(temp, projectroot))
 		{

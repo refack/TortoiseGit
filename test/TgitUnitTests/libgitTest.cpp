@@ -21,9 +21,9 @@
 #include <gitdll.h>
 import git_h;
 import str_utils;
+import ShellEnvironment;
 
-TEST(libgit, BrokenConfig)
-{
+TEST(libgit, BrokenConfig) {
 	CAutoTempDir tempdir;
 	g_Git.SetCurrentDirExact(tempdir.GetTempDir());
 	g_Git.m_IsGitDllInited = false;
@@ -191,7 +191,7 @@ TEST(libgit, RefreshIndex)
 	auto oldEnv = std::make_unique<wchar_t[]>(size);
 	ASSERT_TRUE(oldEnv);
 	_wgetenv_s(&size, oldEnv.get(), size, L"PATH");
-	_wputenv_s(L"PATH", GitCall::m_Environment.GetEnv(L"PATH").c_str());
+	_wputenv_s(L"PATH", Environment::g_Environment.GetEnv(L"PATH").c_str());
 	SCOPE_EXIT { _wputenv_s(L"PATH", oldEnv.get()); };
 	EXPECT_TRUE(StringUtils::WriteStringToTextFile((g_Git.m_CurrentDir / L"somefile.txt").c_str(), L"some content"));
 

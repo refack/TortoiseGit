@@ -41,4 +41,5 @@ import GitDataObject;
 using wil::CFormatMessageWrapper;
 using CUnicodeUtils::SafeSizeToInt;
 namespace fs = std::filesystem;
+using namespace tgit;
 

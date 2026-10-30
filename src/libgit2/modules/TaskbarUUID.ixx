@@ -95,10 +95,6 @@ void SetTaskIDPerUUID() {
  * const UINT TaskBarButtonCreated = RegisterWindowMessage(L"TaskbarButtonCreated");
  * \endcode
  *
- * The grouping is the caller's: the MFC applications pass their g_sGroupingUUID,
- * g_sGroupingIcon and g_bGroupingRemoveIcon. This used to read those globals
- * itself, behind `#ifdef TGIT_MFC` and `extern "C++"` declarations, which tied the
- * library to whichever application linked it.
  * \param hWnd the "batton"
  * \param uuid the repository uuid; nothing is done when it is empty
  * \param sicon an .ico or image file to use as the overlay, or empty

@@ -20,14 +20,13 @@
 
 #include "stdafx.h"
 #include "std.h"
+#include <version.h>
 
 #include "TortoiseProc.h"
-#include <../libgit2/include/version.h>
 #include "AnimationManager.h"
 #include "ConfigureGitExe.h"
 #include "Hooks.h"
 #include "JumpListHelpers.h"
-import MessageBox;
 #include "ProjectProperties.h"
 #include "VersioncheckParser.h"
 #include "Commands/Command.h"
@@ -36,6 +35,7 @@ import MessageBox;
 #include "Utils/WindowsCredentialsStore.h"
 
 import std;
+import MessageBox;
 import AppUtils.GitEnv;
 import AppUtils.Launch;
 import AppUtils.Window;
@@ -306,7 +306,7 @@ BOOL CTortoiseProcApp::InitInstance()
 		case 4:
 			{
 				std::wstring wcrootStd;
-				if (GitAdminDir::HasAdminDir(tgit::str::StringView(g_Git.m_CurrentDir), true, &wcrootStd))
+				if (GitAdminDir::HasAdminDir(g_Git.m_CurrentDir.wstring(), true, &wcrootStd))
 				{
 					// CString's MakeLower, not tgit::wstr::MakeLower: the hash names the taskbar
 					// group, so the lowercasing must stay byte-for-byte what it was.
@@ -337,30 +337,28 @@ BOOL CTortoiseProcApp::InitInstance()
 		try
 		{
 			// requires CWD to be set
-			TGitH::m_LogEncode = CAppUtils::GetLogOutputEncode();
+			GitCall::m_LogEncode = CAppUtils::GetLogOutputEncode();
 
 			// make sure all config files are read in order to check that none contains an error
 			g_Git.GetConfigValue(L"doesnot.exist");
 		}
 		catch (const char* msg)
 		{
-			err = CUnicodeUtils::Convert2Unicode<CString>(msg);
+			err = CUnicodeUtils::GetUnicode<CString>(msg);
 		}
 
 		if (!err.IsEmpty())
 		{
 			const auto choice = CMessageBox::Show(hWndExplorer, err, IDS_APPNAME, 1, IDI_ERROR, IDS_PROC_EDITLOCALGITCONFIG, IDS_PROC_EDITGLOBALGITCONFIG, IDS_ABORTBUTTON);
-			if (choice == 1)
-			{
+			fs::path theConfig;
+			if (choice == 1) {
 				// open the config file with alternative editor
-				CAppUtils::LaunchAlternativeEditor(g_Git.GetGitLocalConfig());
-			}
-			else if (choice == 2)
-			{
+				theConfig = TGitH::GetGitLocalConfig();
+			} else if (choice == 2) {
 				// open the global config file with alternative editor
-				CAppUtils::LaunchAlternativeEditor(g_Git.GetGitGlobalConfig());
+				theConfig = TGitH::GetGitLocalConfig();
 			}
-			return FALSE;
+			return CAppUtils::LaunchAlternativeEditor(theConfig.c_str());
 		}
 	}
 

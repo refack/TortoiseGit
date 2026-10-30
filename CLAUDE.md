@@ -13,9 +13,9 @@ Do not introduce `CString` in new interfaces.
 **The shim owns the MFC/ATL split.** `CString` exists only through the `str_utils`
 module (`tgit::wstr::CString`, `tgit::zstr::CString`), to carry existing call sites.
 - Never include `afx.h`, `afxstr.h`, or `atlstr.h` outside the shim.
-- Never write `#ifdef TGIT_MFC` outside the shim. If behavior must differ between
+- Never write `#ifdef NO_TGIT_MFC` outside the shim. If behavior must differ between
   the MFC and non-MFC builds, add it to the shim and call that.
-- `TGIT_MFC` is set per target, never per source file: the shim is compiled once
+- `NO_TGIT_MFC` is set per target, never per source file: the shim is compiled once
   and its choice is frozen for every importer.
 
 **Narrow/wide is explicit.** `tgit::wstr` is wide, `tgit::zstr` is narrow.

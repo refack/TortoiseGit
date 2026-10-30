@@ -23,6 +23,8 @@ import git_h;
 import GitRev;
 import str_utils;
 import ShellEnvironment;
+import TGitPath;
+import GitHash;
 
 // For performance reason, turn LIBGIT off by default,
 INSTANTIATE_TEST_SUITE_P(CGit, CBasicGitWithEmptyRepositoryFixture, testing::Values(GIT_CLI, /*LIBGIT,*/ LIBGIT2, LIBGIT2_ALL));
@@ -1304,10 +1306,8 @@ TEST_P(CBasicGitWithTestRepoFixture, GetTagInfo)
 	EXPECT_EQ(-1, m_Git.GetTagInfo(L"refs/tags/normal-tag", output, [](const __time64_t time) { EXPECT_EQ(0, time); return L"DATE"; }));
 }
 
-TEST(CGit, CEnvironment)
-{
+TEST(CGit, CEnvironment) {
 	CEnvironment env;
-	env.clear(); // the constructor copies the process environment; this test starts from an empty one
 	const LPWSTR* basePtr = env.put();
 	ASSERT_TRUE(basePtr);
 	EXPECT_FALSE(*basePtr);
@@ -1369,18 +1369,30 @@ TEST(CGit, CEnvironment)
 	EXPECT_STREQ(L"value1", env.GetEnv(L"key1").c_str());
 	EXPECT_STREQ(L"value4a", env.GetEnv(L"key4").c_str());
 	EXPECT_STREQ(L"value5a", env.GetEnv(L"key5").c_str());
-	env.clear();
+}
+
+
+TEST(CGit, CEnvironment2)
+{
+	CEnvironment env;
+	const LPWSTR* basePtr = env.put();
+
 	EXPECT_FALSE(*basePtr);
 	EXPECT_TRUE(env.empty());
 	EXPECT_STREQ(L"", env.GetEnv(L"key4").c_str());
 	env.CopyProcessEnvironment();
+	CString windir = _wgetenv(L"windir");
 	EXPECT_STREQ(windir, env.GetEnv(L"windir").c_str());
 	EXPECT_TRUE(*basePtr);
 
 	// make sure baseptr always points to current values
 	EXPECT_EQ(env.get(), *basePtr);
+}
 
-	env.clear();
+
+TEST(CGit, CEnvironment3)
+{
+	CEnvironment env;
 	CString path = L"c:\\windows;c:\\windows\\system32";
 	env.SetEnv(L"PATH", tgit::str::StringView(path));
 	env.AddToPath(L"");
@@ -1414,11 +1426,15 @@ TEST(CGit, CEnvironment)
 	// also test copy constructor
 	CEnvironment env2(env);
 	EXPECT_EQ(env2.get(), *env2.put());
-	EXPECT_NE(env2.get(), *basePtr);
+	EXPECT_NE(env2.get(), *env.put());
+}
 
+
+TEST(CGit, CEnvironment4)
+{
 	// also test assignment operation
 	CEnvironment env3a;
-	basePtr = env3a.put();
+	auto basePtr = env3a.put();
 	env3a.SetEnv(L"something", L"else");
 	CEnvironment env3b;
 	env3b = env3a;
@@ -1442,7 +1458,6 @@ TEST(CGit, CEnvironmentBlockLayout)
 	// gitdll, and nothing here used to look at it - the tests above only ever
 	// checked what GetEnv gave back.
 	CEnvironment env;
-	env.clear(); // the constructor copies the process environment; the layout checks start from an empty one
 	// nullptr rather than an empty block. CreateProcess reads nullptr as "inherit
 	// the parent's environment" and an empty block as "the child gets none".
 	EXPECT_EQ(nullptr, env.get());
@@ -1470,10 +1485,8 @@ TEST(CGit, CEnvironmentBlockLayout)
 	env.UnsetEnv(L"mike");
 	entries = SplitEnvironmentBlock(env.get());
 	ASSERT_EQ(2U, entries.size());
-
-	env.clear();
-	EXPECT_EQ(nullptr, env.get());
 }
+
 
 static void GetOneFile(CGit& m_Git)
 {
@@ -1723,7 +1736,7 @@ TEST_P(CBasicGitWithTestRepoFixture, Config)
 	EXPECT_STREQ(L"not-found", g_Git.GetConfigValue(L"test.fromincluded", L"not-found"));
 	EXPECT_EQ(0, m_Git.SetConfigValue(L"include.path", L"~/a-path-that-should-not-exist.gconfig"));
 	EXPECT_STREQ(L"~/a-path-that-should-not-exist.gconfig", g_Git.GetConfigValue(L"include.path", L"not-found"));
-	CString testFile = g_Git.GetHomeDirectory() + L"\\a-path-that-should-not-exist.gconfig";
+	CString testFile = TGitH::GetHomeDirectory() + L"\\a-path-that-should-not-exist.gconfig";
 	ASSERT_FALSE(fs::exists(testFile.GetString())); // make sure we don't override a file by mistake ;)
 	EXPECT_TRUE(StringUtils::WriteStringToTextFile(testFile, L"[test]\nfromincluded=yeah-this-is-included\n"));
 	EXPECT_STREQ(L"yeah-this-is-included", g_Git.GetConfigValue(L"test.fromincluded", L"not-found"));

@@ -45,7 +45,7 @@ CGitMailmap::CGitMailmap()
 			[[maybe_unused]]TGitH::CAutoLocker lock(g_Git.m_critGitDllSec);
 			g_Git.CheckAndInitDll();
 		} catch (const char* msg) {
-			MessageBox(nullptr, L"Could not initialize libgit. Disabling Mailmap support.\nlibgit reports:\n" + CUnicodeUtils::Convert2Unicode<CString>(msg), L"TortoiseGit", MB_ICONERROR);
+			MessageBox(nullptr, L"Could not initialize libgit. Disabling Mailmap support.\nlibgit reports:\n" + CUnicodeUtils::GetUnicode<CString>(msg), L"TortoiseGit", MB_ICONERROR);
 			return;
 		}
 		git_read_mailmap(&m_pMailmap);
@@ -79,9 +79,9 @@ void CGitMailmap::Translate(CString& name, CString& email) const
 	git_lookup_mailmap(m_pMailmap, &email1, &author1, CUnicodeUtils::GetUTF8<tgit::zstr::CString>(email), &payload, lamb);
 	free((void*)payload.authorName);
 	if (email1)
-		email = CUnicodeUtils::Convert2Unicode<CString>(email1);
+		email = CUnicodeUtils::GetUnicode<CString>(email1);
 	if (author1)
-		name = CUnicodeUtils::Convert2Unicode<CString>(author1);
+		name = CUnicodeUtils::GetUnicode<CString>(author1);
 }
 
 std::wstring GetMailmapMapping(GIT_MAILMAP mailmap, std::wstring_view email, std::wstring_view name, bool returnEmail)
@@ -97,11 +97,11 @@ std::wstring GetMailmapMapping(GIT_MAILMAP mailmap, std::wstring_view email, std
 	if (git_lookup_mailmap(mailmap, &email1, &author1, emailA, &name, callback) == -1)
 		return {};
 	if (returnEmail && email1)
-		return CUnicodeUtils::Convert2Unicode<std::wstring>(email1);
+		return CUnicodeUtils::StdGetUnicode(email1);
 	if (returnEmail)
 		return {};
 	if (author1)
-		return CUnicodeUtils::Convert2Unicode<std::wstring>(author1);
+		return CUnicodeUtils::StdGetUnicode(author1);
 	return {};
 }
 

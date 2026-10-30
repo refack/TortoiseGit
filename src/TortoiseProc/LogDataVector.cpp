@@ -86,7 +86,7 @@ int CLogDataVector::ParserFromLog(const CTGitPath* path, DWORD count, DWORD info
 	}
 	catch (const char* msg)
 	{
-		MessageBox(nullptr, L"Could not initialize libgit.\nlibgit reports:\n" + CUnicodeUtils::Convert2Unicode<CString>(msg), L"TortoiseGit", MB_ICONERROR);
+		MessageBox(nullptr, L"Could not initialize libgit.\nlibgit reports:\n" + CUnicodeUtils::GetUnicode<CString>(msg), L"TortoiseGit", MB_ICONERROR);
 		return -1;
 	}
 
@@ -102,7 +102,7 @@ int CLogDataVector::ParserFromLog(const CTGitPath* path, DWORD count, DWORD info
 	{
 		CAutoLocker lock(g_Git.m_critGitDllSec);
 		git_close_log(handle, 0);
-		MessageBox(nullptr, L"Could not open log.\nlibgit reports:\n" + CUnicodeUtils::Convert2Unicode<CString>(msg), L"TortoiseGit", MB_ICONERROR);
+		MessageBox(nullptr, L"Could not open log.\nlibgit reports:\n" + CUnicodeUtils::GetUnicode<CString>(msg), L"TortoiseGit", MB_ICONERROR);
 		return -1;
 	}
 
@@ -118,7 +118,7 @@ int CLogDataVector::ParserFromLog(const CTGitPath* path, DWORD count, DWORD info
 	}
 	catch (const char* msg)
 	{
-		MessageBox(nullptr, L"Could not get first commit.\nlibgit reports:\n" + CUnicodeUtils::Convert2Unicode<CString>(msg), L"TortoiseGit", MB_ICONERROR);
+		MessageBox(nullptr, L"Could not get first commit.\nlibgit reports:\n" + CUnicodeUtils::GetUnicode<CString>(msg), L"TortoiseGit", MB_ICONERROR);
 		return -1;
 	}
 
@@ -140,7 +140,7 @@ int CLogDataVector::ParserFromLog(const CTGitPath* path, DWORD count, DWORD info
 		}
 		catch (const char* msg)
 		{
-			MessageBox(nullptr, L"Could not get next commit.\nlibgit reports:\n" + CUnicodeUtils::Convert2Unicode<CString>(msg), L"TortoiseGit", MB_ICONERROR);
+			MessageBox(nullptr, L"Could not get next commit.\nlibgit reports:\n" + CUnicodeUtils::GetUnicode<CString>(msg), L"TortoiseGit", MB_ICONERROR);
 			break;
 		}
 
@@ -168,7 +168,7 @@ int CLogDataVector::ParserFromLog(const CTGitPath* path, DWORD count, DWORD info
 		}
 		if (pNote)
 		{
-			pRev->m_Notes = CUnicodeUtils::Convert2Unicode<CString>(pNote);
+			pRev->m_Notes = CUnicodeUtils::GetUnicode<CString>(pNote);
 			free(pNote);
 			pNote = nullptr;
 		}
@@ -212,7 +212,7 @@ int CLogDataVector::Fill(const std::unordered_set<CGitHash>& hashes)
 	}
 	catch (const char* msg)
 	{
-		MessageBox(nullptr, L"Could not initialize libgit.\nlibgit reports:\n" + CUnicodeUtils::Convert2Unicode<CString>(msg), L"TortoiseGit", MB_ICONERROR);
+		MessageBox(nullptr, L"Could not initialize libgit.\nlibgit reports:\n" + CUnicodeUtils::GetUnicode<CString>(msg), L"TortoiseGit", MB_ICONERROR);
 		return -1;
 	}
 
@@ -234,7 +234,7 @@ int CLogDataVector::Fill(const std::unordered_set<CGitHash>& hashes)
 		}
 		catch (const char* msg)
 		{
-			MessageBox(nullptr, L"Could not get commit \"" + hash.ToString() + L"\".\nlibgit reports:\n" + CUnicodeUtils::Convert2Unicode<CString>(msg), L"TortoiseGit", MB_ICONERROR);
+			MessageBox(nullptr, L"Could not get commit \"" + hash.ToString() + L"\".\nlibgit reports:\n" + CUnicodeUtils::GetUnicode<CString>(msg), L"TortoiseGit", MB_ICONERROR);
 			return -1;
 		}
 

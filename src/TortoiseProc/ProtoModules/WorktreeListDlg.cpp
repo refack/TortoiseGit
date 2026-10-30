@@ -163,12 +163,12 @@ int CWorktreeListDlg::FillListCtrlWithWorktreeList(CString& error)
 		}
 		CString workDirPath;
 		if (git_repository_is_bare(baseRepo))
-			workDirPath = CUnicodeUtils::Convert2Unicode<CString>(git_repository_commondir(baseRepo));
+			workDirPath = CUnicodeUtils::GetUnicode<CString>(git_repository_commondir(baseRepo));
 		else
-			workDirPath = CUnicodeUtils::Convert2Unicode<CString>(git_repository_workdir(baseRepo));
+			workDirPath = CUnicodeUtils::GetUnicode<CString>(git_repository_workdir(baseRepo));
 		workDirPath.Replace(L'/', L'\\');
 		workDirPath.TrimRight(L'\\');
-		WorktreeDetails worktreeDetails(L"", workDirPath, CGitHash(git_reference_target(nonWorktreeHead.get())),CUnicodeUtils::Convert2Unicode<CString>(git_reference_shorthand(nonWorktreeHead.get())));
+		WorktreeDetails worktreeDetails(L"", workDirPath, CGitHash(git_reference_target(nonWorktreeHead.get())),CUnicodeUtils::GetUnicode<CString>(git_reference_shorthand(nonWorktreeHead.get())));
 		worktreeDetails.m_isBaseRepo = TRUE;
 		m_Worktrees.push_back(worktreeDetails);
 	}
@@ -181,7 +181,7 @@ int CWorktreeListDlg::FillListCtrlWithWorktreeList(CString& error)
 			error = TGitH::GetLibGit2LastErr();
 			return -1;
 		}
-		CString worktreePath = CUnicodeUtils::Convert2Unicode<CString>(git_worktree_path(worktree.get()));
+		CString worktreePath = CUnicodeUtils::GetUnicode<CString>(git_worktree_path(worktree.get()));
 		worktreePath.Replace(L'/', L'\\');
 
 		wil::unique_git_buf reason;
@@ -221,7 +221,7 @@ int CWorktreeListDlg::FillListCtrlWithWorktreeList(CString& error)
 			return -1;
 		}
 
-		CString branch = CUnicodeUtils::Convert2Unicode<CString>(git_reference_shorthand(head.get()));
+		CString branch = CUnicodeUtils::GetUnicode<CString>(git_reference_shorthand(head.get()));
 		if (branch == L"HEAD")
 		{
 			// `git worktree list` command says "detached HEAD", so we should say the same

@@ -63,6 +63,8 @@ namespace GitFormatHolder = tgit::invarients::GitFormatHolder;
 using namespace tgit;
 using namespace GitCall;
 
+using dict_t = std::map<std::wstring, std::wstring>;
+
 
 
 constexpr auto scope_flag(const CONFIG_TYPE t) {
@@ -110,7 +112,7 @@ struct TGitRef {
 // naming it cannot appear in a header both flavors compile. Values, not views -
 // these containers own their strings and outlive whatever produced them.
 // The one-argv, string-map and byte-buffer aliases are gone: those are spelled
-// std::vector<std::wstring>, std::map<std::wstring, std::wstring> and std::string.
+// std::vector<std::wstring>, dict_t and std::string.
 //
 // A list of *commands*, each one an argv vector. Named because the distinction
 // was previously invisible: CProgressDlg's list of whole command lines was also
@@ -135,15 +137,15 @@ constexpr int ConvertVersionToInt(const int major, const int minor, const int pa
 
 // Value names under HKCU\Registry::TortoiseGitKey. Arrays, not views: they go
 // straight to the registry API, so they are NUL-terminated by construction.
-constexpr wchar_t REG_MSYSGIT_PATH[] = L"MSysGit";
-constexpr wchar_t REG_SYSTEM_GITCONFIGPATH[] = L"SystemConfig";
-constexpr wchar_t REG_MSYSGIT_EXTRA_PATH[] = L"MSysGitExtra";
+constexpr auto REG_MSYSGIT_PATH = L"MSysGit"sv;
+constexpr auto REG_SYSTEM_GITCONFIGPATH = L"SystemConfig"sv;
+constexpr auto REG_MSYSGIT_EXTRA_PATH = L"MSysGitExtra"sv;
 
 // The REG_SOFTWARE_ROOT / REG_SOFTWARE32_ROOT / REG_UNINSTALL_TGIT_SUBKEY macros
 // spelled these by literal concatenation; the bytes are the same.
-constexpr auto UNINSTALL_REG_VALUE = L"InstallLocation";
-constexpr wchar_t UNINSTALL_REG_SUBKEY[] = LR"(SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\Git_is1)";
-constexpr wchar_t UNINSTALL_RGSK_WOW64[] = LR"(SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall\Git_is1)";
+constexpr auto UNINSTALL_REG_VALUE = L"InstallLocation"sv;
+constexpr auto UNINSTALL_REG_SUBKEY = LR"(SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\Git_is1)"sv;
+constexpr auto UNINSTALL_RGSK_WOW64 = LR"(SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall\Git_is1)"sv;
 
 
 
@@ -399,7 +401,7 @@ int GetConfigString(const git_config* const config, const std::wstring_view key,
 
 
 /// A CStringW key - the MFC UI's. Constrained, so a literal binds the view one.
-template <tgit::str::IsStupidString TKey, typename TOut>
+template <tgit::str::IsATLCStringDuck TKey, typename TOut>
 int GetConfigString(const git_config* const config, const TKey& key, TOut& value) {
 	return GetConfigString(config, std::wstring_view(tgit::str::StringView{ key }), value);
 }
@@ -408,7 +410,7 @@ int GetConfigString(const git_config* const config, const TKey& key, TOut& value
 /// What CAutoStrArray::AppendTo was.
 void AppendTo(const git_strarray& array, std::vector<std::wstring>& list) {
 	for (size_t i = 0; i < array.count; ++i)
-		list.push_back(CUnicodeUtils::Convert2Unicode<std::wstring>(array.strings[i]));
+		list.push_back(CUnicodeUtils::StdGetUnicode(array.strings[i]));
 }
 
 
@@ -693,6 +695,67 @@ std::wstring AsGitPath(const CStringW& path) {
 	return gitPath;
 }
 
+fs::path GetHomeDirectory() {
+	auto homeDirectory = Environment::g_Environment.GetEnv(L"HOME");
+	if (!homeDirectory.empty())
+		return homeDirectory;
+
+	if (auto tmp = Environment::g_Environment.GetEnv(L"HOMEDRIVE"); !tmp.empty()) {
+		if (const auto tmp2 = Environment::g_Environment.GetEnv(L"HOMEPATH"); !tmp2.empty()) {
+			tmp += tmp2;
+			if (CStringW windowsSysDirectory; GetSystemDirectory(CStrBufW(windowsSysDirectory, 4096), 4096) != FALSE)
+				if (concepts::as_view(windowsSysDirectory) != tmp && fs::is_directory(tmp)) {
+					return tmp;
+				}
+		}
+	}
+
+	if (const auto tmp = Environment::g_Environment.GetEnv(L"USERPROFILE"); !tmp.empty()) {
+		return tmp;
+	}
+
+	return {};
+}
+
+
+fs::path GetGitGlobalConfig() {
+	return GetHomeDirectory() / L".gitconfig";
+}
+
+
+
+fs::path GetGitLocalConfig() {
+	const auto adminDir = GitAdminDir::GetAdminDirPath(m_CurrentDirStorage.native());
+	return (adminDir.value_or(GitAdminDir::AdminDir{}).path + L"config").c_str();
+}
+
+
+fs::path GetGitGlobalXDGConfig() {
+	// TODO: Attention: also see GitWCRev/status.cpp!
+	const fs::path xdgPath = Environment::g_Environment.GetEnv(L"XDG_CONFIG_HOME");
+	const fs::path appData = Environment::g_Environment.GetEnv(L"APPDATA");
+	if (!xdgPath.empty()) {
+		return xdgPath / L"git" / L"config";
+	}
+
+	if (!appData.empty() && !ms_bCygwinGit && !ms_bMsys2Git) {
+		auto appDataPath = fs::path{appData} / L"Git" / L"config";
+		if (fs::exists(appDataPath)) {
+			return appDataPath;
+		}
+	}
+
+	auto xdgInHome = GetHomeDirectory() / L".config" / L"git" / L"config";
+	return xdgInHome;
+}
+
+
+fs::path GetGitSystemConfig() {
+	return wget_msysgit_etc(Environment::g_Environment.put());
+}
+
+
+
 int ms_LastMsysGitVersion = 0;
 
 
@@ -711,12 +774,6 @@ class CGit {
 	std::wstring ReadConfigValue(const CStringW& name, const CStringW& def, bool canonicalizeBool);
 
 public:
-	/// the most common signature
-	int Run(const wil::ArgvData& argv, std::string* out = nullptr, std::string* err = nullptr) {
-		CGitCall call{ argv.SerializeArgv(has_weird_paths()), out, err };
-		return GitCall::Run(call);
-	}
-
 
 	// Public for the unit tests, which force a lazy re-init between fixtures. It used
 	// to be public only where gtest was included first; a module is compiled once, so
@@ -732,7 +789,7 @@ public:
 	std::recursive_mutex m_critGitDllSec; // see TGitH::CAutoLocker
 	bool m_IsUseGitDLL{};
 	bool m_IsUseLibGit2{};
-	DWORD m_IsUseLibGit2_mask;
+	DWORD m_IsUseLibGit2_mask{};
 
 	bool m_bInitialized = false;
 
@@ -766,6 +823,13 @@ public:
 	}
 
 
+	/// the most common signature
+	static int Run(const wil::ArgvData& argv, std::string* out = nullptr, std::string* err = nullptr) {
+		CGitCall call{ argv.SerializeArgv(has_weird_paths()), out, err };
+		return GitCall::Run(call);
+	}
+
+
 	void ForceReInitDll() {
 #ifdef TGITCACHE
 		std::unreachable();
@@ -785,7 +849,7 @@ public:
 		// silently truncate or pad them. There is no valid state in which
 		// m_CurrentDir and the latched format disagree.
 		if (!m_IsGitDllInited || m_formatLatchedFor != m_CurrentDir) {
-			git_init(m_Environment.get());
+			git_init(Environment::g_Environment.get());
 			// latch the repository's object format for the whole process, cf. GitHash.h
 			const auto isSHA1 = static_cast<git_oid_t>(git_get_hash_algo()) == GIT_OID_SHA1;
 			GitFormatHolder::set(isSHA1 ? GIT_OID_SHA1 : GIT_OID_SHA256);
@@ -835,7 +899,7 @@ public:
 	}
 
 
-	BOOL CheckMsysGitDir(BOOL bFallback = TRUE);
+	bool CheckMsysGitDir(bool bFallback = TRUE);
 
 	static_assert(LIBGIT2_CMD::LAST_VALUE < sizeof(DWORD) * 8, "too many flags for storing them in a DWORD bitfield");
 	bool UsingLibGit2(const LIBGIT2_CMD cmd) const { return (1 << cmd) & LIBGIT2_ONLY_MASK ? true : (m_IsUseLibGit2 && (1 << cmd) & m_IsUseLibGit2_mask); }
@@ -844,19 +908,19 @@ public:
 	static void SetGit2CredentialCallback(git_credential_acquire_cb callback) { g_Git2CredCallback = callback; }
 	static void SetGit2CertificateCheckCertificate(git_transport_certificate_check_cb callback) { g_Git2CheckCertificateCallback = callback; }
 
-	[[nodiscard]] CStringW GetHomeDirectory() const;
-	[[nodiscard]] CStringW GetGitLocalConfig() const;
-	[[nodiscard]] CStringW GetGitGlobalConfig() const;
-	[[nodiscard]] CStringW GetGitGlobalXDGConfig(bool returnDirectory = false) const;
-	[[nodiscard]] CStringW GetGitSystemConfig() const;
-	[[nodiscard]] wil::unique_git_repository GetGitRepository() const;
+	wil::unique_git_repository GetGitRepository() const {
+		// Through wil::OpenGitRepository, the chokepoint that latches the object format.
+		return wil::OpenGitRepository(TGitPath::ToGitPathA(m_CurrentDir.native()).c_str());
+	}
 
 	/**
 	 * The configured SSH client, HKCU then HKLM, empty when none is set and the OpenSSH
 	 * default applies. A stale path to the retired TortoiseGitPlink.exe reads as unset,
 	 * so upgrades do not keep exporting a binary that no longer exists.
 	 */
-	[[nodiscard]] CStringW GetNotesRef() const;
+	[[nodiscard]] CStringW GetNotesRef() const {
+		return CUnicodeUtils::GetUnicode<CStringW>(std::string_view{git_default_notes_ref()});
+	}
 	bool IsLocalBranch(const CStringW& shortName);
 	bool IsBranchTagNameUnique(const std::wstring& name);
 	/**
@@ -1074,7 +1138,7 @@ public:
 	int GetRefsCommitIsOn(std::vector<std::wstring>& list, const CGitHash& hash, bool includeTags, bool includeBranches, BRANCH_TYPE type = BRANCH_LOCAL) const;
 	int GetRemoteRefs(const CStringW& remote, REF_VECTOR& list, bool includeTags, bool includeBranches);
 	int DeleteRemoteRefs(const CStringW& remote, const std::vector<std::wstring>& list);
-	int GetBranchDescriptions(std::map<std::wstring, std::wstring>& map) const;
+	int GetBranchDescriptions(dict_t& map) const;
 	int GuessRefForHash(CStringW& ref, const CGitHash& hash);
 	int git_show_ref(MAP_HASH_NAME& map);
 	int GetMapHashToFriendName(MAP_HASH_NAME& map);
@@ -1090,13 +1154,13 @@ public:
 	static std::vector<std::string> GetLogCmd(CStringW range, const TGitPath::CTGitPath* path, int InfoMask, const CFilterData* filter, int logOrderBy);
 	int GetHash(CGitHash& hash, const std::wstring& friendname);
 	/// A CStringW - the MFC UI's. Constrained, so a literal still binds the std one.
-	template <tgit::str::IsStupidString TStr>
+	template <tgit::str::IsATLCStringDuck TStr>
 	int GetHash(CGitHash& hash, const TStr& friendname) { return GetHash(hash, std::wstring(tgit::str::StringView{ friendname })); }
 
 
 	static int GetHash(git_repository* repo, CGitHash& hash, std::wstring_view friendname, bool skipFastCheck = false);
 	/// A CStringW ref - the MFC UI's. Constrained, so a literal binds the view one.
-	template <tgit::str::IsStupidString TStr>
+	template <tgit::str::IsATLCStringDuck TStr>
 	static int GetHash(git_repository* repo, CGitHash& hash, const TStr& friendname, bool skipFastCheck = false) {
 		return GetHash(repo, hash, std::wstring_view(tgit::str::StringView{ friendname }), skipFastCheck);
 	}
@@ -1225,7 +1289,7 @@ public:
 
 
 	// Same reason, and the same constraint, as the CombinePath overload above.
-	template <tgit::str::IsRealString TStr>
+	template <tgit::str::IsStdStringDuck TStr>
 		requires std::same_as<std::remove_cvref_t<TStr>, std::wstring>
 	[[nodiscard]] static CStringW QuoteParameter(const TStr& value, bool relaxed = false) {
 		using SV = str::StringViewTraits<TStr>;
@@ -1243,7 +1307,7 @@ public:
 };
 
 
-CGit g_Git;
+CGit g_Git{};
 
 
 
@@ -1313,16 +1377,7 @@ namespace details {
 	}
 
 
-	void SetLibGit2SearchPath(const int level, const CStringW& value) {
-		const CStringA valueA = CUnicodeUtils::GetUTF8<CStringA>(value);
-		git_libgit2_opts(GIT_OPT_SET_SEARCH_PATH, level, static_cast<LPCSTR>(valueA));
-	}
 
-
-	void SetLibGit2TemplatePath(const CStringW& value) {
-		const auto valueA = CUnicodeUtils::GetUTF8<CStringA>(value);
-		git_libgit2_opts(GIT_OPT_SET_TEMPLATE_PATH, static_cast<LPCSTR>(valueA));
-	}
 
 
 	void UnifiedDiffStatToFile(const git_buf* text, void* payload) {
@@ -1733,7 +1788,7 @@ namespace details {
 		const wil::unique_git_reference ref{ std::move(rawref) };
 		const auto payloadContent = static_cast<map_each_ref_payload*>(payload);
 
-		std::wstring str = CUnicodeUtils::Convert2Unicode<std::wstring>(git_reference_name(ref.get()));
+		std::wstring str = CUnicodeUtils::StdGetUnicode(git_reference_name(ref.get()));
 
 		wil::unique_git_object gitObject;
 		if (git_revparse_single(&gitObject, payloadContent->repo, git_reference_name(ref.get())))
@@ -1770,89 +1825,83 @@ namespace details {
 	}
 
 
-	bool FindGitForWindows(CStringW& sMsysGitPath) // not static: an internal-linkage name cannot be exported (C2294)
+	fs::path FindGitForWindows() // not static: an internal-linkage name cannot be exported (C2294)
 	{
+		fs::path sMsysGitPath;
+
 		// First non-empty InstallLocation wins: per-user install, then machine, then 32-bit machine.
-		const std::pair<HKEY, const wchar_t*> candidates[]{
-			{ HKEY_CURRENT_USER, UNINSTALL_REG_SUBKEY },
-			{ HKEY_LOCAL_MACHINE, UNINSTALL_REG_SUBKEY },
-			{ HKEY_LOCAL_MACHINE, UNINSTALL_RGSK_WOW64 },
+		const auto candidates = std::array<std::pair<HKEY, std::wstring_view>, 3>{
+			std::pair{ HKEY_CURRENT_USER, UNINSTALL_REG_SUBKEY.data() },
+			std::pair{ HKEY_LOCAL_MACHINE, UNINSTALL_REG_SUBKEY.data() },
+			std::pair{ HKEY_LOCAL_MACHINE, UNINSTALL_RGSK_WOW64.data() },
 		};
 		for (const auto& [root, key] : candidates) {
-			sMsysGitPath = wil::reg::try_get_string(root, key, UNINSTALL_REG_VALUE).value_or(std::wstring{}).c_str();
-			sMsysGitPath.TrimRight(L'\\');
-			if (!sMsysGitPath.IsEmpty())
+			sMsysGitPath = wil::reg::try_get_string(root, key.data(), UNINSTALL_REG_VALUE.data()).value_or(std::wstring{}).c_str();
+			if (!sMsysGitPath.empty())
 				break;
 		}
 
-		if (sMsysGitPath.IsEmpty()) {
-			tgit::DebugOutput::TracePrintf(__FUNCTION__ L": Found no git.exe\n");
-			return false;
+		// Check for exsistance
+		if (sMsysGitPath.empty()) {
+			tgit::DebugOutput::Trace(__FUNCTION__ L": Found no git.exe\n");
+			return sMsysGitPath;
 		}
-		if (PathFileExists(sMsysGitPath + L"\\bin\\git.exe")) {
-			sMsysGitPath += L"\\bin";
-			return true;
-		}
-		else if (PathFileExists(sMsysGitPath + L"\\cmd\\git.exe")) {
+		if (auto with_bin = sMsysGitPath / L"bin"; fs::exists(with_bin / L"git.exe")) {
+			return with_bin ;
+		} else if (auto with_cmd = sMsysGitPath / L"bin"; fs::exists(with_cmd / L"git.exe")) {
 			// only needed for older Git for Windows 2.x packages
-			sMsysGitPath += L"\\cmd";
-			return true;
-		}
-		else {
-			tgit::DebugOutput::TracePrintf(
-				__FUNCTION__ L": Git for Windows installation found, but git.exe not exists in %s\n",
-				sMsysGitPath);
-			sMsysGitPath.Empty();
-			return false;
+			return with_cmd;
+		} else {
+			tgit::DebugOutput::Trace(__FUNCTION__ L": Git for Windows installation found, but git.exe not exists in {}\n", sMsysGitPath);
+			return {};
 		}
 	}
 
 
-	int FindAndSetGitExePath(const BOOL bFallback) {
-		const std::wstring str = wil::reg::try_get_string(HKEY_CURRENT_USER, Registry::TortoiseGitKey, REG_MSYSGIT_PATH).value_or(std::wstring{});
-		if (!str.empty() && PathFileExists((str + L"\\git.exe").c_str())) {
+	int FindAndSetGitExePath(const bool bFallback) {
+		const fs::path str = wil::reg::try_get_string(HKEY_CURRENT_USER, Registry::TortoiseGitKey, REG_MSYSGIT_PATH).value_or({});
+		if (!str.empty() && fs::exists(str / L"git.exe")) {
 			ms_LastMsysGitDir = str;
-			return TRUE;
+			return true;
 		}
 
-		TracePrintf(__FUNCTION__ L": git.exe not exists: %s\n", ms_LastMsysGitDir.c_str());
+		Trace(__FUNCTION__ L": git.exe not exists: {}\n", ms_LastMsysGitDir);
 		if (!bFallback)
 			return FALSE;
 
 		// first, search PATH if git/bin directory is already present
 		if (FindGitPath()) {
-			TracePrintf(__FUNCTION__ L": FindGitPath() => %s\n", ms_LastMsysGitDir.c_str());
-			std::ignore = wil::reg::set_value_string_nothrow(HKEY_CURRENT_USER, Registry::TortoiseGitKey, REG_MSYSGIT_PATH, ms_LastMsysGitDir.c_str());
-			return TRUE;
+			Trace(__FUNCTION__ L": FindGitPath() => {}\n", ms_LastMsysGitDir);
+			std::ignore = wil::reg::set_tgit_string(REG_MSYSGIT_PATH, ms_LastMsysGitDir.wstring());
+			return true;
 		}
 
-		if (CStringW found = str.c_str(); FindGitForWindows(found)) {
-			ms_LastMsysGitDir = fs::path{ StringView{ found }.as_view() };
-			std::ignore = wil::reg::set_value_string_nothrow(HKEY_CURRENT_USER, Registry::TortoiseGitKey, REG_MSYSGIT_PATH, found.GetString());
-			return TRUE;
+		if (const auto ms_LastMsysGitDir = FindGitForWindows(); ms_LastMsysGitDir.empty()) {
+			std::ignore = wil::reg::set_tgit_string(REG_MSYSGIT_PATH, ms_LastMsysGitDir.wstring());
+			return true;
 		}
 
-		return FALSE;
+		return false;
 	}
 
-	std::wstring GetConfiguredSshClient() {
-		std::wstring sshclient = wil::reg::try_get_string(HKEY_CURRENT_USER, Registry::TortoiseGitKey, L"SSH").value_or(std::wstring{});
-		if (sshclient.empty())
-			sshclient = wil::reg::try_get_string(HKEY_LOCAL_MACHINE, Registry::TortoiseGitKey, L"SSH").value_or(std::wstring{});
+	fs::path GetConfiguredSshClient() {
+		const auto maybe = wil::reg::try_get_tgit_string(L"SSH");
+		if (!maybe)
+			return {};
+
+		if (fs::exists(*maybe))
+			return *maybe;
 
 		// Installs from before TortoiseGitPlink was retired still point at it, and an upgrade does
 		// not rewrite an existing value. Left alone it would be exported verbatim and every network
 		// operation would fail to spawn. Only *our own* removed binary is cleared, and only when it
 		// is really gone: TortoiseSVN ships a working TortoisePlink.exe, and someone who deliberately
 		// pointed at that must keep it.
-		if (!sshclient.empty() && !PathFileExists(sshclient.c_str())) {
-			std::wstring exe = PathUtils::GetFileNameFromPath(sshclient);
-			tgit::wstr::MakeLower(exe);
-			if (exe == L"tortoisegitplink.exe" || exe == L"tortoiseplink.exe")
-				sshclient.clear();
+		if (wstr::SpaceshipNoCase(fs::path{*maybe}.stem().wstring(), L"tortoisegitplink") == 0) {
+			std::ignore = wil::reg::delete_tgit_value(L"SSH");
 		}
 
-		return sshclient;
+		return {};
 	}
 
 }
@@ -1971,9 +2020,9 @@ std::wstring CGit::ReadConfigValue(const CStringW& name, const CStringW& def_, c
 		try {
 			if (git_get_config(key, CStrBufA(value, 4096), 4096))
 				return def;
-		} catch (const char* msg) {
+		} catch (const std::string_view msg) {
 			::MessageBox(nullptr,
-			             L"Could not get config.\nlibgit reports:\n" + CUnicodeUtils::Convert2Unicode<CStringW>(msg),
+			             L"Could not get config.\nlibgit reports:\n" + CUnicodeUtils::GetUnicode<CStringW>(msg),
 			             L"TortoiseGit",
 			             MB_OK | MB_ICONERROR);
 			return def;
@@ -2301,12 +2350,6 @@ std::vector<std::string> CGit::GetLogCmd(CStringW range, const CTGitPath* path, 
 }
 
 
-wil::unique_git_repository CGit::GetGitRepository() const {
-	// Through wil::OpenGitRepository, the chokepoint that latches the object format.
-	return wil::OpenGitRepository(TGitPath::ToGitPathA(m_CurrentDir.native()).c_str());
-}
-
-
 int CGit::GetHash(git_repository* repo, CGitHash& hash, const std::wstring_view friendname, const bool skipFastCheck /* = false */) {
 	_ASSERTE(repo);
 
@@ -2498,7 +2541,7 @@ int CGit::GetCommitDiffList(
 	std::wstring out;
 	std::wstring err;
 	if (GitCall::Run(argv, &out, &err)) {
-		error = str::to_atl(err);
+		error = str::to_atl<CStringW>(err);
 		return GFail;
 	}
 
@@ -2687,7 +2730,7 @@ int CGit::GetBranchList(std::vector<std::wstring>& list, int* current, const BRA
 				if (git_branch_name(&name, ref.get()))
 					continue;
 
-				std::wstring branchname = CUnicodeUtils::Convert2Unicode<std::wstring>(name);
+				std::wstring branchname = CUnicodeUtils::StdGetUnicode(name);
 				if (branchType & GIT_BRANCH_REMOTE)
 					list.push_back(L"remotes/" + branchname);
 				else {
@@ -2790,7 +2833,7 @@ int CGit::GetRefsCommitIsOn(std::vector<std::wstring>& list,
 			if (!name)
 				return;
 
-			list.push_back(CUnicodeUtils::Convert2Unicode<std::wstring>(name));
+			list.push_back(CUnicodeUtils::StdGetUnicode(name));
 		}
 	};
 
@@ -2906,7 +2949,7 @@ int CGit::GetRemoteRefs(const CStringW& remote, REF_VECTOR& list, const bool inc
 			return -1;
 
 		for (size_t i = 0; i < size; i++) {
-			auto ref = CUnicodeUtils::Convert2Unicode<CStringW>(heads[i]->name);
+			auto ref = CUnicodeUtils::GetUnicode<CStringW>(std::string_view{heads[i]->name});
 			CStringW shortname;
 			if (details::GetShortName(ref, shortname, L"refs/tags/")) {
 				if (!includeTags)
@@ -2983,7 +3026,7 @@ int CGit::GetRefList(std::vector<std::wstring>& list) {
 			auto* _list = static_cast<std::vector<std::wstring>*>(payload);
 
 			const auto multibyte = git_reference_name(ref.get());
-			_list->push_back(CUnicodeUtils::Convert2Unicode<std::wstring>(multibyte));
+			_list->push_back(CUnicodeUtils::StdGetUnicode(multibyte));
 
 			return GIT_OK;
 		};
@@ -3063,278 +3106,192 @@ int CGit::GuessRefForHash(CStringW& ref, const CGitHash& hash) {
 	return 1;
 }
 
-
-int CGit::GetBranchDescriptions(std::map<std::wstring, std::wstring>& map) const {
+int CGit::GetBranchDescriptions(dict_t& map) const {
+	// Get the `config`
 	wil::unique_git_config config;
 	git_config_new(config.put());
-	if (git_config_add_file_ondisk(config.get(), TGitPath::ToGitPathA(StringView(GetGitLocalConfig())).c_str(), GIT_CONFIG_LEVEL_LOCAL, nullptr, FALSE) < 0)
-		return -1;
-	return git_config_foreach_match(config.get(),
-	                                "^branch\\..*\\.description$",
-	                                [](const git_config_entry* entry, void* data) {
-		                                const auto descriptions = static_cast<std::map<std::wstring, std::wstring>*>(data);
-		                                // extract branch name from config key; the match pattern above guarantees
-		                                // both affixes are present, so the length arithmetic cannot underflow
-		                                constexpr size_t prefix = std::size(L"branch.") - 1;
-		                                constexpr size_t suffix = std::size(L".description") - 1;
-		                                const std::wstring key = CUnicodeUtils::Convert2Unicode<std::wstring>(entry->name);
-		                                descriptions->emplace(key.substr(prefix, key.size() - prefix - suffix),
-		                                                      CUnicodeUtils::Convert2Unicode<std::wstring>(entry->value));
-		                                return 0;
-	                                },
-	                                &map);
+	const auto configFilepath = GetGitLocalConfig().string();
+	if (auto&& ret = git_config_add_file_ondisk(config.get(), configFilepath.c_str(), GIT_CONFIG_LEVEL_LOCAL, nullptr, FALSE); ret != GIT_OK)
+		return GFail;
+
+	// Get the branches
+	auto&& ret = git_config_foreach_match(
+		config.get(),
+        "^branch\\..*\\.description$",
+        [](const git_config_entry* entry, void* data) {
+        	const auto value = CUnicodeUtils::StdGetUnicode(entry->value);
+
+        	// extract branch name from config key; the match pattern above guarantees
+            // both affixes are present, so the length arithmetic cannot underflow
+            constexpr size_t prefix = std::size(L"branch.") - 1;
+            constexpr size_t suffix = std::size(L".description") - 1;
+            const std::wstring key_full = CUnicodeUtils::StdGetUnicode(entry->name);
+        	const auto key = key_full.substr(prefix, key_full.size() - prefix - suffix);
+
+        	auto descriptions = *static_cast<dict_t*>(data);
+            descriptions.emplace(key, value);
+            return G_OK;
+        },
+        &map
+	);
+	return ret;
 }
 
 
-BOOL CGit::CheckMsysGitDir(const BOOL bFallback) {
+bool CGit::CheckMsysGitDir(const bool bFallback) {
 	if (m_bInitialized)
 		return TRUE;
 
 	TracePrintf(__FUNCTION__ L": CheckMsysGitDir(%d)\n", bFallback);
-	m_Environment.clear();
-	m_Environment.CopyProcessEnvironment();
+	Environment::g_Environment.CopyProcessEnvironment();
 
-	m_Environment.SetEnv(L"TGIT_INITIATED_CALL", L"1");
+	Environment::g_Environment.SetEnv(L"TGIT_INITIATED_CALL", L"1");
 
 	// Sanitize GIT_* environment variables, cf. https://github.com/git-for-windows/build-extra/pull/529 and git/environment.h
-	m_Environment.UnsetEnv(L"GIT_INDEX_FILE");
-	m_Environment.UnsetEnv(L"GIT_INDEX_VERSION");
-	m_Environment.UnsetEnv(L"GIT_OBJECT_DIRECTORY");
-	m_Environment.UnsetEnv(L"GIT_ALTERNATE_OBJECT_DIRECTORIES");
-	m_Environment.UnsetEnv(L"GIT_DIR");
-	m_Environment.UnsetEnv(L"GIT_WORK_TREE");
-	m_Environment.UnsetEnv(L"GIT_NAMESPACE");
-	m_Environment.UnsetEnv(L"GIT_CEILING_DIRECTORIES");
-	m_Environment.UnsetEnv(L"GIT_DISCOVERY_ACROSS_FILESYSTEM");
-	m_Environment.UnsetEnv(L"GIT_COMMON_DIR");
-	m_Environment.UnsetEnv(L"GIT_DEFAULT_HASH");
-	m_Environment.UnsetEnv(L"GIT_CONFIG");
-	m_Environment.UnsetEnv(L"GIT_CONFIG_GLOBAL");
-	m_Environment.UnsetEnv(L"GIT_CONFIG_SYSTEM");
-	m_Environment.UnsetEnv(L"GIT_CONFIG_NOSYSTEM");
-	m_Environment.UnsetEnv(L"GIT_CONFIG_COUNT");
-	m_Environment.UnsetEnv(L"GIT_ATTR_NOSYSTEM");
-	m_Environment.UnsetEnv(L"GIT_ATTR_SOURCE");
-	m_Environment.UnsetEnv(L"GIT_SHALLOW_FILE");
-	m_Environment.UnsetEnv(L"GIT_GRAFT_FILE");
+	Environment::g_Environment.UnsetEnv(L"GIT_INDEX_FILE");
+	Environment::g_Environment.UnsetEnv(L"GIT_INDEX_VERSION");
+	Environment::g_Environment.UnsetEnv(L"GIT_OBJECT_DIRECTORY");
+	Environment::g_Environment.UnsetEnv(L"GIT_ALTERNATE_OBJECT_DIRECTORIES");
+	Environment::g_Environment.UnsetEnv(L"GIT_DIR");
+	Environment::g_Environment.UnsetEnv(L"GIT_WORK_TREE");
+	Environment::g_Environment.UnsetEnv(L"GIT_NAMESPACE");
+	Environment::g_Environment.UnsetEnv(L"GIT_CEILING_DIRECTORIES");
+	Environment::g_Environment.UnsetEnv(L"GIT_DISCOVERY_ACROSS_FILESYSTEM");
+	Environment::g_Environment.UnsetEnv(L"GIT_COMMON_DIR");
+	Environment::g_Environment.UnsetEnv(L"GIT_DEFAULT_HASH");
+	Environment::g_Environment.UnsetEnv(L"GIT_CONFIG");
+	Environment::g_Environment.UnsetEnv(L"GIT_CONFIG_GLOBAL");
+	Environment::g_Environment.UnsetEnv(L"GIT_CONFIG_SYSTEM");
+	Environment::g_Environment.UnsetEnv(L"GIT_CONFIG_NOSYSTEM");
+	Environment::g_Environment.UnsetEnv(L"GIT_CONFIG_COUNT");
+	Environment::g_Environment.UnsetEnv(L"GIT_ATTR_NOSYSTEM");
+	Environment::g_Environment.UnsetEnv(L"GIT_ATTR_SOURCE");
+	Environment::g_Environment.UnsetEnv(L"GIT_SHALLOW_FILE");
+	Environment::g_Environment.UnsetEnv(L"GIT_GRAFT_FILE");
 
 	// Git for Windows 2.10.1 and 2.10.2 require LC_ALL to be set, see https://tortoisegit.org/issue/2859 and https://github.com/git-for-windows/git/issues/945,
 	// because MSys2 changed the default to "ASCII". SO, make sure we have a proper default set
-	if (m_Environment.GetEnv(L"LC_ALL").empty())
-		m_Environment.SetEnv(L"LC_ALL", L"C");
+	if (Environment::g_Environment.GetEnv(L"LC_ALL").empty())
+		Environment::g_Environment.SetEnv(L"LC_ALL", L"C");
 
 	// set HOME if not set already
-	size_t homesize;
-	_wgetenv_s(&homesize, nullptr, 0, L"HOME");
-	if (!homesize)
-		m_Environment.SetEnv(L"HOME", StringView(GetHomeDirectory()));
+	auto home_env = wil::TryGetEnvironmentVariable(L"HOME");
+	if (!home_env) {
+		Environment::g_Environment.SetEnv(L"HOME", GetHomeDirectory().wstring());
+	}
 
 	//setup ssh client
-	auto sshclient = details::GetConfiguredSshClient();
 
-	if (!sshclient.empty()) {
-		if (ms_bCygwinGit)
-			std::replace(sshclient.begin(), sshclient.end(), L'\\', L'/');
-		m_Environment.SetEnv(L"GIT_SSH", sshclient);
-		m_Environment.SetEnv(L"SVN_SSH", sshclient);
-	}
-	else {
-		// The default is OpenSSH, which ships with Windows and needs no path: git and
-		// ssh-wintunnel both resolve it from PATH. This must name *something* — the libgit2
-		// transport hard-errors with "No GIT_SSH tool configured" when the variable is unset.
-		// It is a console program with no console here, so its prompts reach the user through
-		// SSH_ASKPASS/SshAskPass.exe, set below.
-		m_Environment.SetEnv(L"GIT_SSH", L"ssh.exe");
-		m_Environment.SetEnv(L"SVN_SSH", L"ssh.exe");
-	}
+	// The default is OpenSSH, which ships with Windows and needs no path: git and
+	// ssh-wintunnel both resolve it from PATH. This must name *something* — the libgit2
+	// transport hard-errors with "No GIT_SSH tool configured" when the variable is unset.
+	// It is a console program with no console here, so its prompts reach the user through
+	// SSH_ASKPASS/SshAskPass.exe, set below.
+	auto path_str = L"ssh.exe"s;
+	fs::path sshclient = details::GetConfiguredSshClient();
+	if (!sshclient.empty())
+		 path_str = ms_bCygwinGit ? sshclient.generic_wstring() : sshclient.wstring();
+	Environment::g_Environment.SetEnv(L"GIT_SSH", path_str);
+	Environment::g_Environment.SetEnv(L"SVN_SSH", path_str);
 
 	{
 		// SshAskPass.exe, next to this executable
-		std::wstring sAskPass = PathUtils::GetModuleFileNameString(nullptr);
-		if (const size_t slash = sAskPass.rfind(L'\\'); slash != std::wstring::npos) {
-			sAskPass.resize(slash + 1);
-			sAskPass += L"SshAskPass.exe";
-			if (ms_bCygwinGit)
-				std::ranges::replace(sAskPass, L'\\', L'/');
-			m_Environment.SetEnv(L"DISPLAY", L":9999");
-			m_Environment.SetEnv(L"SSH_ASKPASS", sAskPass.c_str());
-			m_Environment.SetEnv(L"GIT_ASKPASS", sAskPass.c_str());
-			m_Environment.SetEnv(L"GIT_ASK_YESNO", sAskPass.c_str());
-			m_Environment.SetEnv(L"SSH_ASKPASS_REQUIRE", L"force"); // improve compatibility with Win32-OpenSSH, see issue #3996
+		fs::path sAskPass = wil::GetModulePath();
+		if (!sAskPass.empty()) {
+			auto ask_path = sAskPass.parent_path() / L"SshAskPass.exe";
+			auto ask_str = ms_bCygwinGit ? ask_path.generic_wstring() : ask_path.wstring();
+			Environment::g_Environment.SetEnv(L"SSH_ASKPASS", ask_str);
+			Environment::g_Environment.SetEnv(L"GIT_ASKPASS", ask_str);
+			Environment::g_Environment.SetEnv(L"GIT_ASK_YESNO", ask_str);
+			Environment::g_Environment.SetEnv(L"DISPLAY", L":9999");
+			Environment::g_Environment.SetEnv(L"SSH_ASKPASS_REQUIRE", L"force"); // improve compatibility with Win32-OpenSSH, see issue #3996
 		}
 	}
 
 	if (!details::FindAndSetGitExePath(bFallback))
 		return FALSE;
 
-	// PathCanonicalize was a purely lexical "..": lexically_normal is the same
-	// operation on a path. The install root is the directory whose etc\ exists,
-	// trying the mingw64 and mingw32 subtrees first (the x86 build that skipped
-	// mingw64 is gone).
-	auto msysGitDir = (ms_LastMsysGitDir / L"..").lexically_normal();
-	for (const auto sub : { L"mingw64", L"mingw32", L"" }) {
-		if (fs::is_directory(msysGitDir / sub / L"etc")) {
-			msysGitDir /= sub;
-			break;
+	{
+		auto msysGitDir = (ms_LastMsysGitDir / L"..").lexically_normal();
+		for (const auto sub : { L"mingw64"sv, L"mingw32"sv, {} }) {
+			if (fs::is_directory(msysGitDir / sub / L"etc")) {
+				msysGitDir /= sub;
+				break;
+			}
 		}
+		if (ms_bMsys2Git) // in Msys2 git.exe is in usr\bin; this also need to be after the check for etc folder, as Msys2 also has mingw64\etc, but uses etc
+			msysGitDir = ms_LastMsysGitDir.parent_path().parent_path();
+		ms_MsysGitRootDir = msysGitDir;
 	}
-	if (ms_bMsys2Git) // in Msys2 git.exe is in usr\bin; this also need to be after the check for etc folder, as Msys2 also has mingw64\etc, but uses etc
-		msysGitDir = (ms_LastMsysGitDir / L".." / L"..").lexically_normal();
-	ms_MsysGitRootDir = msysGitDir;
 
-	// The CStringW is named: a view of the temporary GetGitSystemConfig() returned
-	// dangled before the comparison read it.
 	if (
-		const CStringW systemConfigOwner = g_Git.GetGitSystemConfig();
-		wil::reg::try_get_string(HKEY_CURRENT_USER, Registry::TortoiseGitKey, REG_SYSTEM_GITCONFIGPATH).value_or(std::wstring{}) != std::wstring_view(
-			StringView(systemConfigOwner))
+		const auto systemConfigOwner = GetGitSystemConfig();
+		wil::reg::try_get_string(HKEY_CURRENT_USER, Registry::TortoiseGitKey, REG_SYSTEM_GITCONFIGPATH).value_or(std::wstring{}) != systemConfigOwner
 	)
-		std::ignore = wil::reg::set_value_string_nothrow(HKEY_CURRENT_USER, Registry::TortoiseGitKey, REG_SYSTEM_GITCONFIGPATH, systemConfigOwner.GetString());
+		std::ignore = wil::reg::set_tgit_string(REG_SYSTEM_GITCONFIGPATH, systemConfigOwner.c_str());
 
-	TracePrintf(__FUNCTION__ L": ms_LastMsysGitDir = %s\n", ms_LastMsysGitDir.c_str());
-	TracePrintf(__FUNCTION__ L": ms_MsysGitRootDir = %s\n", ms_MsysGitRootDir.c_str());
-	TracePrintf(__FUNCTION__ L": System config = %s\n", static_cast<LPCWSTR>(g_Git.GetGitSystemConfig()));
-	details::SetLibGit2SearchPath(GIT_CONFIG_LEVEL_PROGRAMDATA, L"");
+	Trace(__FUNCTION__ L": ms_LastMsysGitDir = {}\n", ms_LastMsysGitDir.wstring());
+	Trace(__FUNCTION__ L": ms_MsysGitRootDir = {}\n", ms_MsysGitRootDir.wstring());
+	Trace(__FUNCTION__ L": System config file = {}\n", GetGitSystemConfig().wstring());
+	libgit2::SetLibGit2SearchPath(GIT_CONFIG_LEVEL_PROGRAMDATA, L"");
 
 	if (ms_bCygwinGit)
-		TracePrintf(__FUNCTION__ L": CygwinHack: true\n");
+		Trace(__FUNCTION__ L": CygwinHack: true\n");
 	if (ms_bMsys2Git)
-		TracePrintf(__FUNCTION__ L": Msys2Hack: true\n");
+		Trace(__FUNCTION__ L": Msys2Hack: true\n");
 
 	ms_LastMsysGitVersion = Registry::CRegDWORD(L"Software\\TortoiseGit\\git_cached_version");
 
 	// Configure libgit2 search paths
-	details::SetLibGit2SearchPath(GIT_CONFIG_LEVEL_SYSTEM,
-	                              (CTGitPath(std::wstring_view{ g_Git.GetGitSystemConfig().GetString() }).GetContainingDirectory().GetWinPathString().c_str()));
-	details::SetLibGit2SearchPath(GIT_CONFIG_LEVEL_GLOBAL, g_Git.GetHomeDirectory());
-	details::SetLibGit2SearchPath(GIT_CONFIG_LEVEL_XDG, g_Git.GetGitGlobalXDGConfig(true));
-	static git_smart_subtransport_definition ssh_wintunnel_subtransport_definition = {
-		.callback{
-			[](git_smart_subtransport** out, git_transport* owner, void*) -> int {
-				const auto sshtoolpath = details::FindExecutableOnPath(m_Environment.GetEnv(L"GIT_SSH").c_str(), m_Environment.GetEnv(L"PATH").c_str());
-				const auto ret = git_smart_subtransport_ssh_wintunnel(out, owner, sshtoolpath, m_Environment.put());
-				return ret;
-			},
-		},
-		.rpc{},
-		.param{},
-	};
-	git_transport_register("ssh", git_transport_smart, &ssh_wintunnel_subtransport_definition);
-	git_transport_register("ssh+git", git_transport_smart, &ssh_wintunnel_subtransport_definition);
-	git_transport_register("git+ssh", git_transport_smart, &ssh_wintunnel_subtransport_definition);
-	git_libgit2_opts(GIT_OPT_SET_USER_AGENT, "TortoiseGit libgit2");
-	if (!(ms_bCygwinGit || ms_bMsys2Git))
-		details::SetLibGit2TemplatePath((ms_MsysGitRootDir / L"share\\git-core\\templates").c_str());
-	else
-		details::SetLibGit2TemplatePath((ms_MsysGitRootDir / L"usr\\share\\git-core\\templates").c_str());
+	libgit2::SetLibGit2SearchPath(GIT_CONFIG_LEVEL_SYSTEM, GetGitSystemConfig().parent_path().string());
+	libgit2::SetLibGit2SearchPath(GIT_CONFIG_LEVEL_GLOBAL, GetHomeDirectory().string());
+	libgit2::SetLibGit2SearchPath(GIT_CONFIG_LEVEL_XDG, GetGitGlobalXDGConfig().parent_path().string());
 
-	m_Environment.AddToPath(ms_LastMsysGitDir.native());
-	m_Environment.AddToPath(wil::reg::try_get_string(HKEY_CURRENT_USER, Registry::TortoiseGitKey, REG_MSYSGIT_EXTRA_PATH).value_or(std::wstring{}));
+	libgit2::SetLibGit2UserAgent();
+	if (!(ms_bCygwinGit || ms_bMsys2Git))
+		libgit2::SetLibGit2TemplatePath((ms_MsysGitRootDir / L"share\\git-core\\templates").c_str());
+	else
+		libgit2::SetLibGit2TemplatePath((ms_MsysGitRootDir / L"usr\\share\\git-core\\templates").c_str());
+
+	auto transportCallback = [](git_smart_subtransport** out, git_transport* owner, void*) -> int {
+		const auto sshtoolpath = details::FindExecutableOnPath(Environment::g_Environment.GetEnv(L"GIT_SSH").c_str(), Environment::g_Environment.GetEnv(L"PATH").c_str());
+		const auto ret = git_smart_subtransport_ssh_wintunnel(out, owner, sshtoolpath, Environment::g_Environment.put());
+		return ret;
+	};
+	libgit2::libgit2_transport_register("ssh", transportCallback);
+	libgit2::libgit2_transport_register("ssh+git", transportCallback);
+	libgit2::libgit2_transport_register("git+ssh", transportCallback);
+
+	Environment::g_Environment.AddToPath(ms_LastMsysGitDir.native());
+	const auto msys_extra = wil::reg::try_get_string(HKEY_CURRENT_USER, Registry::TortoiseGitKey, REG_MSYSGIT_EXTRA_PATH).value_or(std::wstring{});
+	Environment::g_Environment.AddToPath(msys_extra);
 
 #if !defined(TGITCACHE) && !defined(TORTOISESHELL)
 	// register filter only once
 	if (!git_filter_lookup("filter")) {
 		std::wstring sh;
 		for (const auto* const binDirPrefix : { L"..\\usr\\bin", L"..\\bin", L"" }) {
-			const auto possibleShExe = (ms_LastMsysGitDir / binDirPrefix / L"sh.exe").lexically_normal();
+			const auto possibleShExe = (ms_LastMsysGitDir / binDirPrefix / L"sh.exe");
 			if (fs::exists(possibleShExe)) {
 				sh = std::format(L"\"{}\"", possibleShExe.native());
 				// we need to put the usr\bin folder on the path for Git for Windows based on msys2
-				m_Environment.AddToPath(possibleShExe.parent_path().native());
+				Environment::g_Environment.AddToPath(possibleShExe.parent_path().native());
 				break;
 			}
 		}
 
 		// Add %GIT_EXEC_PATH% to %PATH% when launching libgit2 filter executable
 		// It is possible that the filter points to a git subcommand, that is located at libexec\git-core
-		m_Environment.AddToPath((ms_MsysGitRootDir / L"libexec\\git-core").native());
+		Environment::g_Environment.AddToPath((ms_MsysGitRootDir / L"libexec\\git-core").native());
 
-		if (git_filter_register("filter", git_filter_filter_new(sh.c_str(), m_Environment.put()), GIT_FILTER_DRIVER_PRIORITY))
-			return FALSE;
+		auto* filter_p = git_filter_filter_new(sh.c_str(), Environment::g_Environment.put());
+		if (git_filter_register("filter", filter_p, GIT_FILTER_DRIVER_PRIORITY))
+			return false;
 	}
 #endif
 
 	m_bInitialized = true;
 	return true;
-}
-
-
-CStringW CGit::GetHomeDirectory() const {
-	static CStringW homeDirectory;
-
-	if (!homeDirectory.IsEmpty())
-		return homeDirectory;
-
-	homeDirectory = m_Environment.GetEnv(L"HOME").c_str();
-	if (!homeDirectory.IsEmpty())
-		return homeDirectory;
-
-	if (CStringW tmp = m_Environment.GetEnv(L"HOMEDRIVE").c_str(); !tmp.IsEmpty()) {
-		if (const CStringW tmp2 = m_Environment.GetEnv(L"HOMEPATH").c_str(); !tmp2.IsEmpty()) {
-			tmp += tmp2;
-			if (CStringW windowsSysDirectory; GetSystemDirectory(CStrBufW(windowsSysDirectory, 4096), 4096) != FALSE && windowsSysDirectory != tmp &&
-				PathIsDirectory(tmp)) {
-				homeDirectory = tmp;
-				return homeDirectory;
-			}
-		}
-	}
-
-	if (const CStringW tmp = m_Environment.GetEnv(L"USERPROFILE").c_str(); !tmp.IsEmpty()) {
-		homeDirectory = tmp;
-		return homeDirectory;
-	}
-
-	return homeDirectory;
-}
-
-
-CStringW CGit::GetGitLocalConfig() const {
-	const auto adminDir = GitAdminDir::GetAdminDirPath(m_CurrentDir.native());
-	return (adminDir.value_or(GitAdminDir::AdminDir{}).path + L"config").c_str();
-}
-
-
-CStringW CGit::GetGitGlobalConfig() const {
-	return g_Git.GetHomeDirectory() + L"\\.gitconfig";
-}
-
-
-CStringW CGit::GetGitGlobalXDGConfig(const bool returnDirectory) const {
-	// Attention: also see GitWCRev/status.cpp!
-	if (CStringW xdgPath = m_Environment.GetEnv(L"XDG_CONFIG_HOME").c_str(); !xdgPath.IsEmpty()) {
-		xdgPath += L"\\git";
-		if (!returnDirectory)
-			xdgPath += L"\\config";
-		return xdgPath;
-	}
-
-	if (CStringW appData = m_Environment.GetEnv(L"APPDATA").c_str(); !appData.IsEmpty() && !ms_bCygwinGit && !ms_bMsys2Git) {
-		appData += L"\\Git";
-		CStringW appDataConfigFile = appData + L"\\config";
-		if (PathFileExists(appDataConfigFile)) {
-			if (returnDirectory)
-				return appData;
-			return appDataConfigFile;
-		}
-	}
-
-	CStringW xdgInHome = g_Git.GetHomeDirectory();
-	xdgInHome += L"\\.config\\git";
-	if (returnDirectory)
-		return xdgInHome;
-
-	return xdgInHome + L"\\config";
-}
-
-
-CStringW CGit::GetGitSystemConfig() const {
-	return wget_msysgit_etc(static_cast<CEnvironment>(m_Environment).put());
-}
-
-
-CStringW CGit::GetNotesRef() const {
-	return CUnicodeUtils::Convert2Unicode<CStringW>(git_default_notes_ref());
 }
 
 
@@ -3488,8 +3445,8 @@ int CGit::GetOneFile(const CStringW& Refname, const CTGitPath& path, const CStri
 		outa = CUnicodeUtils::GetUTF8<CStringA>(outputfile);
 		::DeleteFile(outputfile);
 		return git_checkout_file(ref, patha, CStrBufA(outa));
-	} catch (const char* msg) {
-		gitLastErr = L"gitdll.dll reports: " + CUnicodeUtils::Convert2Unicode<CStringW>(msg);
+	} catch (const std::string_view msg) {
+		gitLastErr = L"gitdll.dll reports: " + CUnicodeUtils::GetUnicode<CStringW>(msg);
 		return -1;
 	} catch (...) {
 		gitLastErr = L"An unknown gitdll.dll error occurred.";
@@ -3797,6 +3754,7 @@ void CGit::GetBisectTerms(CStringW* good, CStringW* bad) {
 	static fs::path lastDir;
 	static ULONGLONG lastRead = 0;
 
+	// TODO: oy vei zmir
 	[[maybe_unused]] const auto publish = gsl::finally([good, bad] {
 		if (bad)
 			*bad = lastBad;
@@ -3826,18 +3784,16 @@ void CGit::GetBisectTerms(CStringW* good, CStringW* bad) {
 	const wil::unique_file fp{ _wfsopen(termsFile.c_str(), L"rb", SH_DENYWR) };
 	if (!fp)
 		return;
-	char badA[MAX_PATH] = {};
-	fgets(badA, sizeof(badA), fp.get());
-	size_t len = strlen(badA);
-	if (len > 0 && badA[len - 1] == '\n')
-		badA[len - 1] = '\0';
-	char goodA[MAX_PATH] = {};
-	fgets(goodA, sizeof(goodA), fp.get());
-	len = strlen(goodA);
-	if (len > 0 && goodA[len - 1] == '\n')
-		goodA[len - 1] = '\0';
-	lastGood = CUnicodeUtils::Convert2Unicode<CStringW>(goodA);
-	lastBad = CUnicodeUtils::Convert2Unicode<CStringW>(badA);
+	{
+		char badA[MAX_PATH] = {};
+		fgets(badA, sizeof(badA), fp.get());
+		lastBad = CUnicodeUtils::GetUnicode<CStringW>(std::string_view{badA});
+	}
+	{
+		char goodA[MAX_PATH] = {};
+		fgets(goodA, sizeof(goodA), fp.get());
+		lastGood = CUnicodeUtils::GetUnicode<CStringW>(std::string_view{goodA});
+	}
 	lastRead = GetTickCount64();
 }
 
@@ -3893,7 +3849,7 @@ int CGit::GetGitNotes(const CGitHash& hash, CStringW& notes) {
 	}
 	else if (ret)
 		return -1;
-	notes = CUnicodeUtils::Convert2Unicode<CStringW>(git_note_message(note.get()));
+	notes = CUnicodeUtils::GetUnicode<CStringW>(std::string_view{git_note_message(note.get())});
 	return 0;
 }
 
@@ -3935,17 +3891,17 @@ int CGit::GetTagInfo(const CStringW& tagName, CStringW& output, const std::funct
 			output = TGitH::GetLibGit2LastErr();
 			return -1;
 		}
-		output = L"tag " + CUnicodeUtils::Convert2Unicode<CStringW>(git_tag_name(tag.get())) + L"\n";
+		output = L"tag " + CUnicodeUtils::GetUnicode<CStringW>(std::string_view{git_tag_name(tag.get())}) + L"\n";
 		const auto tagger = git_tag_tagger(tag.get());
 		if (tagger) {
 			output += "tagger ";
 			if (tagger->name) {
-				output += CUnicodeUtils::Convert2Unicode<CStringW>(tagger->name);
+				output += CUnicodeUtils::GetUnicode<CStringW>(std::string_view{tagger->name});
 				output += L' ';
 			}
 			if (tagger->email) {
 				output += L'<';
-				output += CUnicodeUtils::Convert2Unicode<CStringW>(tagger->email);
+				output += CUnicodeUtils::GetUnicode<CStringW>(std::string_view{tagger->email});
 				output += L'>';
 				output += L' ';
 			}
@@ -3953,7 +3909,7 @@ int CGit::GetTagInfo(const CStringW& tagName, CStringW& output, const std::funct
 			output += L'\n';
 		}
 		output += L'\n';
-		output += CUnicodeUtils::Convert2Unicode<CStringW>(git_tag_message(tag.get()));
+		output += CUnicodeUtils::GetUnicode<CStringW>(std::string_view{git_tag_message(tag.get())});
 		output.TrimRight().AppendChar(L'\n');
 		return 0;
 	}
@@ -4061,4 +4017,3 @@ int GetSubmodulePointer(CGit::SubmoduleInfo& submoduleinfo) {
 } // namespace TGitH
 
 export using namespace TGitH;
-export using TGitH::g_Git;

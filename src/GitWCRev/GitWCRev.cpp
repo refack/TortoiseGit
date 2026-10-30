@@ -233,7 +233,7 @@ bool InsertRevisionW(const wchar_t* def, wchar_t* pBuf, size_t& index, size_t& f
 			return false;
 		memmove(pBuild + Expansion, pBuild, (filelength - (pBuild - pBuf) * sizeof(wchar_t)));
 	}
-	std::wstring hash = CUnicodeUtils::Convert2Unicode<std::wstring>(GitStat->HeadHashReadable);
+	std::wstring hash = CUnicodeUtils::StdGetUnicode(GitStat->HeadHashReadable);
 	memmove(pBuild, hash.c_str(), hashlen * sizeof(wchar_t));
 	filelength += (Expansion * sizeof(wchar_t));
 	return true;
@@ -926,7 +926,7 @@ int wmain(int argc, wchar_t* argv[])
 
 	if (!bQuiet)
 	{
-		wprintf(L"HEAD is %s\n", CUnicodeUtils::Convert2Unicode<std::wstring>(GitStat.HeadHashReadable).c_str());
+		wprintf(L"HEAD is %s\n", CUnicodeUtils::StdGetUnicode(GitStat.HeadHashReadable).c_str());
 
 		if (GitStat.HasMods)
 			wprintf(L"Uncommitted modifications found\n");

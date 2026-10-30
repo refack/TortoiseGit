@@ -37,6 +37,8 @@
 #define GITDLL_API EXTERN __declspec(dllimport)
 #endif
 
+typedef wchar_t *LPWSTR;
+
 enum {
 	LIBGIT_GIT_HASH_SIZE = 32ull,
 };
@@ -190,7 +192,7 @@ typedef enum
 
 GITDLL_API int git_set_config(const char* key, const char* value, CONFIG_TYPE type);
 
-GITDLL_API const wchar_t* wget_msysgit_etc(wchar_t** env);
+GITDLL_API const wchar_t* wget_msysgit_etc(const LPWSTR* env);
 
 GITDLL_API const char* git_default_notes_ref(void);
 

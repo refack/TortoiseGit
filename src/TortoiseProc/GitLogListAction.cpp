@@ -707,7 +707,7 @@ void CGitLogList::ContextMenuAction(int cmd, int FirstSelect, int LastSelect, CM
 			}
 			catch(std::exception& e)
 			{
-				CMessageBox::Show(GetParentHWND(), CUnicodeUtils::Convert2Unicode<CString>(e.what()), L"TortoiseGit", MB_OK | MB_ICONERROR);
+				CMessageBox::Show(GetParentHWND(), CUnicodeUtils::GetUnicode<CString>(e.what()), L"TortoiseGit", MB_OK | MB_ICONERROR);
 				out.Empty();
 				if (g_Git.Run({ L"git.exe", L"reset", L"--hard", std::wstring(headhash.ToString()), L"--" }, &out, CP_UTF8))
 					MessageBox(CString(MAKEINTRESOURCE(IDS_PROC_COMBINE_ERRORRESETHEAD)) + L"\r\n\r\n" + out, L"TortoiseGit", MB_OK | MB_ICONERROR);

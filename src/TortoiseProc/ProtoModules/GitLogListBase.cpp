@@ -2689,7 +2689,7 @@ std::expected<bool, CString> CGitLogListBase::BeginFetchLog()
 	}
 	catch (const char* msg)
 	{
-		return std::unexpected(L"Could not initialize libgit.\nlibgit reports:\n" + CUnicodeUtils::Convert2Unicode<CString>(msg));
+		return std::unexpected(L"Could not initialize libgit.\nlibgit reports:\n" + CUnicodeUtils::GetUnicode<CString>(msg));
 	}
 
 	// if not all branches, all basic refs, all local refs etc. are selected, check whether the selected branch is unborn
@@ -2713,7 +2713,7 @@ std::expected<bool, CString> CGitLogListBase::BeginFetchLog()
 	{
 		git_close_log(m_DllGitLog, 0);
 		m_DllGitLog = nullptr;
-		return std::unexpected(L"Could not open log.\nlibgit reports:\n" + CUnicodeUtils::Convert2Unicode<CString>(msg));
+		return std::unexpected(L"Could not open log.\nlibgit reports:\n" + CUnicodeUtils::GetUnicode<CString>(msg));
 	}
 
 	return true;
@@ -2885,7 +2885,7 @@ UINT CGitLogListBase::LogThread()
 		}
 		catch (const char* msg)
 		{
-			::MessageBox(nullptr, L"Could not get first commit.\nlibgit reports:\n" + CUnicodeUtils::Convert2Unicode<CString>(msg), L"TortoiseGit", MB_ICONERROR);
+			::MessageBox(nullptr, L"Could not get first commit.\nlibgit reports:\n" + CUnicodeUtils::GetUnicode<CString>(msg), L"TortoiseGit", MB_ICONERROR);
 			ret = -1;
 		}
 		g_Git.m_critGitDllSec.unlock();
@@ -2918,7 +2918,7 @@ UINT CGitLogListBase::LogThread()
 			catch (const char* msg)
 			{
 				g_Git.m_critGitDllSec.unlock();
-				::MessageBox(nullptr, L"Could not get next commit.\nlibgit reports:\n" + CUnicodeUtils::Convert2Unicode<CString>(msg), L"TortoiseGit", MB_ICONERROR);
+				::MessageBox(nullptr, L"Could not get next commit.\nlibgit reports:\n" + CUnicodeUtils::GetUnicode<CString>(msg), L"TortoiseGit", MB_ICONERROR);
 				break;
 			}
 
@@ -2958,13 +2958,13 @@ UINT CGitLogListBase::LogThread()
 			catch (const char* msg)
 			{
 				g_Git.m_critGitDllSec.unlock();
-				::MessageBox(nullptr, L"Could not get commit notes.\nlibgit reports:\n" + CUnicodeUtils::Convert2Unicode<CString>(msg), L"TortoiseGit", MB_ICONERROR);
+				::MessageBox(nullptr, L"Could not get commit notes.\nlibgit reports:\n" + CUnicodeUtils::GetUnicode<CString>(msg), L"TortoiseGit", MB_ICONERROR);
 				break;
 			}
 
 			if(note)
 			{
-				pRev->m_Notes = CUnicodeUtils::Convert2Unicode<CString>(note);
+				pRev->m_Notes = CUnicodeUtils::GetUnicode<CString>(note);
 				free(note);
 				note = nullptr;
 			}

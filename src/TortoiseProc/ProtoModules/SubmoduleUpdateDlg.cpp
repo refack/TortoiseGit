@@ -75,7 +75,7 @@ static int SubmoduleCallback(git_submodule *sm, const char * /*name*/, void *pay
 {
 	auto list = *static_cast<std::vector<std::wstring>**>(payload);
 	auto prefixList = *(static_cast<std::vector<std::wstring>**>(payload) + 1);
-	CString path = CUnicodeUtils::Convert2Unicode<CString>(git_submodule_path(sm));
+	CString path = CUnicodeUtils::GetUnicode<CString>(git_submodule_path(sm));
 	if (prefixList->empty())
 		list->push_back(std::wstring(path));
 	else

@@ -282,7 +282,7 @@ void CPullFetchDlg::Refresh()
 			{
 				auto branch = git_submodule_branch(subModule.get());
 				if (branch)
-					defaultRemoteTrackingBranch = CUnicodeUtils::Convert2Unicode<CString>(branch);
+					defaultRemoteTrackingBranch = CUnicodeUtils::GetUnicode<CString>(branch);
 			}
 		}
 	}

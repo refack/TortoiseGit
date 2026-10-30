@@ -182,7 +182,7 @@ public:
 			int error;
 			while (!(error = git_reference_next(ref.put(), iter.get())))
 			{
-				CString refName = CUnicodeUtils::Convert2Unicode<CString>(git_reference_name(ref.get()));
+				CString refName = CUnicodeUtils::GetUnicode<CString>(git_reference_name(ref.get()));
 				if (filterCallback && !filterCallback(refName))
 					continue;
 
@@ -226,14 +226,14 @@ public:
 					entry.m_objectType = GIT_OBJECT_TAG;
 					const char* msg = git_tag_message(tag.get());
 					if (const char* body = strchr(msg, '\n'); !body)
-						entry.m_Subject = CUnicodeUtils::Convert2Unicode<CString>(msg);
+						entry.m_Subject = CUnicodeUtils::GetUnicode<CString>(msg);
 					else
 						entry.m_Subject = CUnicodeUtils::GetUnicode<CString>(std::string_view(msg, body - msg));
 					auto tagger = git_tag_tagger(tag.get());
 					if (tagger)
 					{
-						entry.m_CommitterName = CUnicodeUtils::Convert2Unicode<CString>(tagger->name);
-						entry.m_CommitterEmail = CUnicodeUtils::Convert2Unicode<CString>(tagger->email);
+						entry.m_CommitterName = CUnicodeUtils::GetUnicode<CString>(tagger->name);
+						entry.m_CommitterEmail = CUnicodeUtils::GetUnicode<CString>(tagger->email);
 						entry.m_CommitterDate = tagger->when.time;
 						if (mailmap)
 							entry.m_CommitterEmail = mailmap.TranslateAuthor(entry.m_CommitterEmail, entry.m_AuthorEmail);
@@ -265,12 +265,12 @@ public:
 				wil::unique_git_commit commit{ reinterpret_cast<git_commit*>(object.release()) };
 				auto author = git_commit_author(commit.get());
 				auto committer = git_commit_committer(commit.get());
-				entry.m_Subject = CUnicodeUtils::Convert2Unicode<CString>(git_commit_summary(commit.get()));
-				entry.m_AuthorName = CUnicodeUtils::Convert2Unicode<CString>(author->name);
-				entry.m_AuthorEmail = CUnicodeUtils::Convert2Unicode<CString>(author->email);
+				entry.m_Subject = CUnicodeUtils::GetUnicode<CString>(git_commit_summary(commit.get()));
+				entry.m_AuthorName = CUnicodeUtils::GetUnicode<CString>(author->name);
+				entry.m_AuthorEmail = CUnicodeUtils::GetUnicode<CString>(author->email);
 				entry.m_AuthorDate = author->when.time;
-				entry.m_CommitterName = CUnicodeUtils::Convert2Unicode<CString>(committer->name);
-				entry.m_CommitterEmail = CUnicodeUtils::Convert2Unicode<CString>(committer->email);
+				entry.m_CommitterName = CUnicodeUtils::GetUnicode<CString>(committer->name);
+				entry.m_CommitterEmail = CUnicodeUtils::GetUnicode<CString>(committer->email);
 				entry.m_CommitterDate = committer->when.time;
 				if (mailmap)
 				{
@@ -487,7 +487,7 @@ int GitRev::ParserFromCommit(const git_commit* commit)
 
 	const char* encodingstr = git_commit_message_encoding(commit);
 	if (encodingstr) {
-		encode = CUnicodeUtils::StdGetCPCode(CUnicodeUtils::Convert2Unicode<std::wstring>(encodingstr));
+		encode = CUnicodeUtils::StdGetCPCode(CUnicodeUtils::StdGetUnicode(encodingstr));
 	}
 
 	m_CommitHash = git_commit_id(commit);
@@ -565,7 +565,7 @@ int GitRev::GetParentFromHash(const CGitHash& hash)
 	}
 	catch (const char* msg)
 	{
-		m_sErr = std::format(L"Could not get parents of commit \"{}\".\nlibgit reports:\n{}", hash.ToString(), CUnicodeUtils::Convert2Unicode<std::wstring>(msg)).c_str();
+		m_sErr = std::format(L"Could not get parents of commit \"{}\".\nlibgit reports:\n{}", hash.ToString(), CUnicodeUtils::StdGetUnicode(msg)).c_str();
 		return -1;
 	}
 
@@ -591,7 +591,7 @@ int GitRev::GetCommitFromHash_withoutLock(const CGitHash& hash)
 	}
 	catch (const char * msg)
 	{
-		m_sErr = std::format(L"Could not get commit \"{}\".\nlibgit reports:\n{}", hash.ToString(), CUnicodeUtils::Convert2Unicode<std::wstring>(msg)).c_str();
+		m_sErr = std::format(L"Could not get commit \"{}\".\nlibgit reports:\n{}", hash.ToString(), CUnicodeUtils::StdGetUnicode(msg)).c_str();
 		return -1;
 	}
 
@@ -644,7 +644,7 @@ int GitRev::GetCommit(const CString& refname, bool allowTree /* false */) {
 	}
 	catch (const char* msg)
 	{
-		m_sErr = L"Could not initiate libgit.\nlibgit reports:\n" + CUnicodeUtils::Convert2Unicode<CString>(msg);
+		m_sErr = L"Could not initiate libgit.\nlibgit reports:\n" + CUnicodeUtils::GetUnicode<CString>(msg);
 		return -1;
 	}
 
@@ -668,7 +668,7 @@ int GitRev::GetCommit(const CString& refname, bool allowTree /* false */) {
 	}
 	catch (const char* msg)
 	{
-		m_sErr = L"Could not get SHA-1 of ref \"" + g_Git.FixBranchName(refname) + L"\".\nlibgit reports:\n" + CUnicodeUtils::Convert2Unicode<CString>(msg);
+		m_sErr = L"Could not get SHA-1 of ref \"" + g_Git.FixBranchName(refname) + L"\".\nlibgit reports:\n" + CUnicodeUtils::GetUnicode<CString>(msg);
 		return -1;
 	}
 
@@ -687,7 +687,7 @@ int GitRev::GetCommit(const CString& refname, bool allowTree /* false */) {
 	}
 	catch (const char* msg)
 	{
-		m_sErr = L"Could not parse ref.\nlibgit reports:\n" + CUnicodeUtils::Convert2Unicode<CString>(msg);
+		m_sErr = L"Could not parse ref.\nlibgit reports:\n" + CUnicodeUtils::GetUnicode<CString>(msg);
 		return -1;
 	}
 

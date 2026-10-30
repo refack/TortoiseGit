@@ -21,9 +21,8 @@ using reg_string_t = std::wstring;
 
 export namespace Registry {
 
-/// HKCU\<this> (and HKLM\<this>) is where TortoiseGit keeps its settings.
-/// NUL-terminated by construction, so it can go straight to a Win32 API.
-constexpr wchar_t TortoiseGitKey[] = L"Software\\TortoiseGit";
+
+using wil::reg::TortoiseGitKey;
 
 /**
  * \ingroup Utils
@@ -801,7 +800,7 @@ public: //methods
 	 */
 	CRegistryKey(const reg_string_t& key, HKEY base = HKEY_CURRENT_USER, REGSAM sam = 0);
 	/// A CString key - the settings pages'. Constrained, so a literal binds the one above.
-	template <tgit::str::IsStupidString TStr>
+	template <tgit::str::IsATLCStringDuck TStr>
 	explicit CRegistryKey(const TStr& key, HKEY base = HKEY_CURRENT_USER, REGSAM sam = 0)
 		: CRegistryKey(reg_string_t(tgit::str::StringView{ key }), base, sam) {}
 	~CRegistryKey();

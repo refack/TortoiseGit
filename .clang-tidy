@@ -40,6 +40,7 @@ Checks:
   - -*-dcl58-cpp                    # Adding stuff to std::
   - -*-else-after-return
   - -bugprone-easily-swappable-parameters
+  - -cppcoreguidelines-non-private-member-variables-in-classes
 
 
 #UseColor: true
@@ -47,6 +48,8 @@ Checks:
 
 CheckOptions:
   performance-unnecessary-copy-initialization.AllowedTypes: 'std::source_location;sloc_t'
+  bugprone-exception-escape:
+    IgnoredExceptions: 'std::system_error'
 
 
 ImplementationFileExtensions:

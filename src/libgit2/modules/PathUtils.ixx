@@ -62,42 +62,16 @@ std::wstring FillFromWinApi(const std::int32_t need, TFill fill)
 		return {};
 
 	std::wstring out;
-	out.resize_and_overwrite(gsl::narrow<size_t>(need), [&fill](wchar_t* buf, const size_t n) -> size_t {
-		return fill(buf, gsl::narrow<DWORD>(n));
-	});
+	out.resize_and_overwrite(
+		gsl::narrow<size_t>(need),
+		[&fill](wchar_t* buf, const size_t n) -> size_t { // NOLINT(*-non-const-parameter)
+			return fill(buf, gsl::narrow<DWORD>(n));
+		}
+	);
 	return out;
 }
 
-/// GetModuleFileName has no size query - it truncates, and reports the
-/// buffer size back rather than the length it wanted - so the only way to
-/// learn the length is to grow until the answer stops filling the buffer.
-///
-/// The old body used one static 64K array shared by every caller: two
-/// threads asking at once overwrote each other's answer, and the pointer
-/// outlived the call that produced it. TGitCache and the shell both call
-/// this from more than one thread.
-std::wstring GetModuleFileNameString(const HMODULE hMod)
-{
-	// \\?\-prefixed paths stop at 32767 characters, so that is the ceiling.
-	constexpr size_t kMaxNtPath = 32768;
 
-	std::wstring path;
-	for (size_t cap = MAX_PATH; cap <= kMaxNtPath; cap *= 2)
-	{
-		DWORD written = 0;
-		path.resize_and_overwrite(cap, [&](wchar_t* buf, const size_t n) -> size_t {
-			written = GetModuleFileName(hMod, buf, gsl::narrow<DWORD>(n));
-			return written;
-		});
-
-		if (written == 0)
-			return {}; // a real failure, not a truncation
-		if (written < cap)
-			return path; // the terminator fit, so the whole path did
-	}
-
-	throw std::runtime_error("module path longer than the NT path limit");
-}
 
 /// SHGetKnownFolderPath allocates the buffer itself, so there is nothing for
 /// resize_and_overwrite to do here - the single copy is the std::wstring
@@ -233,45 +207,6 @@ std::wstring GetVersionFromFile(const LPCWSTR p_strFilename)
 	return {};
 }
 
-/**
- * returns the filename of a full path
- */
-std::wstring GetFileNameFromPath(std::wstring_view sPath);
-
-/**
- * returns the file extension from a full path
- */
-std::wstring GetFileExtFromPath(std::wstring_view sPath);
-
-/**
- * Copies a file or a folder from \a srcPath to \a destpath, creating
- * intermediate folders if necessary. If \a force is TRUE, then files
- * are overwritten if they already exist.
- * Folders are just created at the new location, no files in them get
- * copied.
- */
-bool FileCopy(std::wstring srcPath, std::wstring destPath, bool force = true);
-
-/**
- * parses a string for a path or url. If no path or url is found,
- * an empty string is returned.
- * \remark if more than one path or url is inside the string, only
- * the first one is returned.
- */
-std::wstring ParsePathInString(std::wstring_view Str);
-
-/**
- * Returns the path to the installation folder, in our case the TortoiseSVN/bin folder.
- * \remark the path returned has a trailing backslash
- */
-std::wstring GetAppDirectory(HMODULE hMod = {});
-
-/**
- * Returns the path to the installation parent folder, in our case the TortoiseSVN folder.
- * \remark the path returned has a trailing backslash
- */
-std::wstring GetAppParentDirectory(HMODULE hMod = {});
-
 std::wstring GetDocumentsDirectory();
 std::wstring GetProgramsDirectory();
 
@@ -367,8 +302,6 @@ bool ArePathStringsEqual(gsl::not_null<LPCWSTR> sP1, gsl::not_null<LPCWSTR> sP2,
 bool ArePathStringsEqualWithCase(std::wstring_view sP1, std::wstring_view sP2);
 bool ArePathStringsEqualWithCase(gsl::not_null<LPCWSTR> sP1, gsl::not_null<LPCWSTR> sP2, int length);
 
-std::wstring GetCopyrightForSelf();
-
 /**
  * Sets the last-write-time of the file to the current time
  */
@@ -381,64 +314,27 @@ bool Touch(const std::wstring& path)
 	fs::last_write_time(path, fs::file_time_type::clock::now());
 	return true;
 }
-std::wstring GetFileNameFromPath(const std::wstring_view sPath)
+
+
+/**
+ * Returns the path to the installation folder, in our case the TortoiseSVN/bin folder.
+ * \remark the path returned has a trailing backslash
+ */
+fs::path GetAppDirectory(const HMODULE hMod = {})
 {
-	// This used to normalize every slash to a backslash and then take everything
-	// after the last one. Searching for either separator is the same answer
-	// without the mutable copy a std::wstring_view cannot make anyway.
-	const size_t at = sPath.find_last_of(L"\\/");
-	return std::wstring(at == std::wstring_view::npos ? sPath : sPath.substr(at + 1));
+	const auto path = wil::GetModulePath(hMod);
+	return path.parent_path();
 }
 
-std::wstring GetFileExtFromPath(const std::wstring_view sPath)
-{
-	const int dotPos = tgit::wstr::ReverseFind(sPath, L'.');
-	int slashPos = tgit::wstr::ReverseFind(sPath, L'\\');
-	if (slashPos < 0)
-		slashPos = tgit::wstr::ReverseFind(sPath, L'/');
-	if (dotPos > slashPos)
-		return tgit::wstr::Mid(sPath, dotPos);
-	return {};
-}
 
-bool FileCopy(std::wstring srcPath, std::wstring destPath, const bool force)
+/**
+ * Returns the path to the installation parent folder, in our case the TortoiseSVN folder.
+ * \remark the path returned has a trailing backslash
+ */
+fs::path GetAppParentDirectory(const HMODULE hMod = {})
 {
-	tgit::wstr::Replace(srcPath, L"/"sv, L"\\"sv);
-	tgit::wstr::Replace(destPath, L"/"sv, L"\\"sv);
-	const std::wstring destFolder = tgit::wstr::Left(destPath, tgit::wstr::ReverseFind(destPath, L'\\'));
-	std::ignore = MakeSureDirectoryPathExists(destFolder.c_str());
-	const bool ret = fs::copy_file(srcPath, destPath, force ? fs::copy_options::overwrite_existing : fs::copy_options::skip_existing);
-	return ret;
-}
-
-std::wstring ParsePathInString(const std::wstring_view Str)
-{
-	int curPos = 0;
-	std::wstring sToken = tgit::wstr::Tokenize(Str, L"'\t\r\n", curPos);
-	while (!sToken.empty())
-	{
-		if (sToken.find_first_of(L"/\\") != std::wstring::npos)
-		{
-			tgit::wstr::Trim(sToken, L"'\"");
-			return { sToken };
-		}
-		sToken = tgit::wstr::Tokenize(Str, L"'\t\r\n", curPos);
-	}
-	return {};
-}
-
-std::wstring GetAppDirectory(const HMODULE hMod /* = nullptr */)
-{
-	const std::wstring path = GetModuleFileNameString(hMod);
-	return GetLongPathname(tgit::wstr::Left(path, tgit::wstr::ReverseFind(path, L'\\') + 1));
-}
-
-std::wstring GetAppParentDirectory(const HMODULE hMod /* = nullptr */)
-{
-	std::wstring path = GetAppDirectory(hMod);
-	path = tgit::wstr::Left(path, tgit::wstr::ReverseFind(path, L'\\'));
-	path = tgit::wstr::Left(path, tgit::wstr::ReverseFind(path, L'\\') + 1);
-	return path;
+	const fs::path path = GetAppDirectory(hMod);
+	return path.parent_path();
 }
 
 std::wstring GetAppDataDirectory()
@@ -473,37 +369,14 @@ std::wstring GetProgramsDirectory()
 	return GetKnownFolder(FOLDERID_ProgramFiles);
 }
 
-void DropPathPrefixes(std::wstring& path)
-{
-	constexpr wchar_t dosdevices_prefix[] = L"\\\?\?\\";
-	constexpr wchar_t nt_prefix[] = L"\\\\?\\";
-	constexpr wchar_t unc_prefix[] = L"UNC\\";
-
-	size_t skip = 0;
-	if (tgit::wstr::StartsWith(path, dosdevices_prefix))
-		skip += wcslen(dosdevices_prefix);
-	else if (tgit::wstr::StartsWith(path, nt_prefix))
-		skip += wcslen(nt_prefix);
-
-	if (skip)
-	{
-		if (path.size() - skip > wcslen(unc_prefix) && tgit::wstr::StartsWith(std::wstring_view(path).substr(skip), unc_prefix))
-			skip += wcslen(unc_prefix);
-
-		path.erase(0, skip);
-	}
-}
-
-
 std::wstring GetCopyrightForSelf()
 {
-	const std::wstring path = GetModuleFileNameString(nullptr);
+	const auto path = wil::GetModulePath();
 
-	std::wstring strReturn;
 	DWORD dwReserved = 0;
 	const DWORD dwBufferSize = GetFileVersionInfoSize(path.c_str(), &dwReserved);
 	if (dwBufferSize <= 0) {
-		return L"GetCopyrightForSelf GetFileVersionInfoSize fail " + path;
+		return L"GetCopyrightForSelf GetFileVersionInfoSize fail " + path.wstring();
 	}
 	const auto pBuffer = std::make_unique<BYTE[]>(dwBufferSize);
 	if (!pBuffer) {
@@ -533,9 +406,9 @@ std::wstring GetCopyrightForSelf()
 	LPWSTR lpVersion = nullptr;
 	VerQueryValue(pBuffer.get(), strLangLegalCopyright.c_str(), reinterpret_cast<LPVOID*>(&lpVersion), &nInfoSize);
 	if (nInfoSize && lpVersion)
-		strReturn = lpVersion;
+		return lpVersion;
 
-	return strReturn;
+	return {};
 }
 
 std::wstring BuildPathWithPathDelimiter(const std::wstring_view path)
@@ -681,7 +554,7 @@ using expected_os = std::expected<PathAttributes, std::error_code>;
 expected_os get_path_attributes(const fs::directory_entry& entry)
 {
 	// MSVC's file_clock is FILETIME - 100ns ticks since 1601 - so count() is the raw value callers store
-	static_assert(std::same_as<fs::file_time_type::period, std::ratio<1, 10'000'000>>);
+	static_assert(std::same_as<fs::file_time_type::period, til::clock::period>);
 
 	const auto type = entry.symlink_status().type();      // link itself, no following
 	if (type == fs::file_type::not_found || type == fs::file_type::none) {
@@ -691,7 +564,7 @@ expected_os get_path_attributes(const fs::directory_entry& entry)
 		const auto mtime = entry.last_write_time(ec);
 		if (ec)
 			return std::unexpected(ec);
-		const auto size = type == fs::file_type::regular ? entry.file_size(ec) : std::uintmax_t{ 0 };
+		const auto size = (type == fs::file_type::regular) ? entry.file_size(ec) : std::uintmax_t{ 0 };
 		if (ec)
 			return std::unexpected(ec);
 

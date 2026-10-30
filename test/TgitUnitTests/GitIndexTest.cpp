@@ -303,7 +303,7 @@ TEST(GitIndex, SearchInSortVector)
 	EXPECT_EQ(NPOS, SearchInSortVector(vector, L"one/", 4, false));
 
 	vector.push_back(CGitFileName(L"tWo", 0, 0));
-	DoSortFilenametSortVector(vector, false);
+	std::ranges::sort(vector, GitIndex::NameOrder(-1, false), &CGitFileName::NameView);
 	EXPECT_EQ(NPOS, SearchInSortVector(vector, L"something", 9, false));
 	EXPECT_EQ(0U, SearchInSortVector(vector, L"One", 3, false));
 	EXPECT_EQ(NPOS, SearchInSortVector(vector, L"one", 3, false));
@@ -319,7 +319,7 @@ TEST(GitIndex, SearchInSortVector)
 	vector.push_back(CGitFileName(L"b/3", 0, 0));
 	vector.push_back(CGitFileName(L"b/4", 0, 0));
 	vector.push_back(CGitFileName(L"b/5", 0, 0));
-	DoSortFilenametSortVector(vector, false);
+	std::ranges::sort(vector, GitIndex::NameOrder(-1, false), &CGitFileName::NameView);
 	EXPECT_EQ(0U, SearchInSortVector(vector, L"One", 3, false));
 	EXPECT_EQ(3U, SearchInSortVector(vector, L"b/2", 3, false));
 	EXPECT_EQ(3U, SearchInSortVector(vector, L"b/2", -1, false));
@@ -349,7 +349,7 @@ TEST(GitIndex, SearchInSortVector_IgnoreCase)
 	EXPECT_EQ(NPOS, SearchInSortVector(vector, L"one/", 4, true));
 
 	vector.push_back(CGitFileName(L"tWo", 0, 0));
-	DoSortFilenametSortVector(vector, true);
+	std::ranges::sort(vector, GitIndex::NameOrder(-1, false), &CGitFileName::NameView);
 	EXPECT_EQ(NPOS, SearchInSortVector(vector, L"something", 9, true));
 	EXPECT_EQ(0U, SearchInSortVector(vector, L"One", 3, true));
 	EXPECT_EQ(0U, SearchInSortVector(vector, L"one", 3, true));
@@ -365,7 +365,7 @@ TEST(GitIndex, SearchInSortVector_IgnoreCase)
 	vector.push_back(CGitFileName(L"b/3", 0, 0));
 	vector.push_back(CGitFileName(L"b/4", 0, 0));
 	vector.push_back(CGitFileName(L"b/5", 0, 0));
-	DoSortFilenametSortVector(vector, true);
+	std::ranges::sort(vector, GitIndex::NameOrder(-1, false), &CGitFileName::NameView);
 	EXPECT_EQ(0U, SearchInSortVector(vector, L"a", 1, true));
 	EXPECT_EQ(2U, SearchInSortVector(vector, L"b/2", 3, true));
 	EXPECT_EQ(2U, SearchInSortVector(vector, L"b/2", -1, true));

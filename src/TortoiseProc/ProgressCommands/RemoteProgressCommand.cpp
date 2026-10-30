@@ -102,7 +102,7 @@ int RemoteProgressCommand::RemoteUpdatetipsCallback(const char* refname, const g
 RemoteProgressCommand::RefUpdateNotificationData::RefUpdateNotificationData(const char* refname, const git_oid* oldOid, const git_oid* newOid, const CString& change)
 	: NotificationData()
 {
-	CString str = CUnicodeUtils::Convert2Unicode<CString>(refname);
+	CString str = CUnicodeUtils::GetUnicode<CString>(refname);
 	m_NewHash = newOid;
 	m_OldHash = oldOid;
 	sActionColumnText.LoadString(IDS_GITACTION_UPDATE_REF);

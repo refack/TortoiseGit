@@ -1163,7 +1163,7 @@ void CCommitDlg::PrepareIndexForCommitWithoutStagingSupport(int nListItems, bool
 					}
 				}
 
-				CStringA filePathA = CUnicodeUtils::Convert2Multibyte<CStringA>(entry->GetGitPathString().c_str()).TrimRight(L'/');
+				CStringA filePathA = CUnicodeUtils::GetUTF8<CStringA>(entry->GetGitPathString().c_str()).TrimRight(L'/');
 
 				if (entry->m_Checked && !m_bCommitMessageOnly)
 				{
@@ -1180,7 +1180,7 @@ void CCommitDlg::PrepareIndexForCommitWithoutStagingSupport(int nListItems, bool
 					}
 
 					if ((entry->m_Action & CTGitPath::LOGACTIONS_REPLACED) && !entry->GetGitOldPathString().empty())
-						git_index_remove_bypath(index.get(), CUnicodeUtils::Convert2Multibyte<CStringA>(entry->GetGitOldPathString().c_str())); // ignore error
+						git_index_remove_bypath(index.get(), CUnicodeUtils::GetUTF8<CStringA>(entry->GetGitOldPathString().c_str())); // ignore error
 
 					++nchecked;
 				}
@@ -1194,7 +1194,7 @@ void CCommitDlg::PrepareIndexForCommitWithoutStagingSupport(int nListItems, bool
 						if (entry->m_Action & CTGitPath::LOGACTIONS_REPLACED && !entry->GetGitOldPathString().empty())
 						{
 							const git_index_entry* oldIndexEntry = nullptr;
-							if ((oldIndexEntry = git_index_get_bypath(indexOld.get(), CUnicodeUtils::Convert2Multibyte<CStringA>(entry->GetGitOldPathString().c_str()), 0)) == nullptr || git_index_add(index.get(), oldIndexEntry))
+							if ((oldIndexEntry = git_index_get_bypath(indexOld.get(), CUnicodeUtils::GetUTF8<CStringA>(entry->GetGitOldPathString().c_str()), 0)) == nullptr || git_index_add(index.get(), oldIndexEntry))
 							{
 								bAddSuccess = false;
 								CMessageBox::Show(GetSafeHwnd(), TGitH::GetLibGit2LastErr(std::format(L"Could not reset \"{}\" to old index entry.", entry->GetGitOldPathString()).c_str()), L"TortoiseGit", MB_OK | MB_ICONERROR);

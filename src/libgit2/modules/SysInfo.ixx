@@ -22,7 +22,7 @@ static bool InitializeIsWin11OrLater()
 	const auto sysPath = std::filesystem::path{ {pszPath.get(), size_t_cast(ret)} } / "shell32.dll";
 
 	const auto explorerVersion = PathUtils::GetVersionFromFile(sysPath.c_str());
-	const auto versionParts = tgit::zstr::version_tok(til::WStringToUTF8(explorerVersion));
+	const auto versionParts = tgit::str::version_tok(til::WStringToUTF8(explorerVersion));
 	return versionParts.size() > 3 && versionParts.at(2) >= Windows11_Cutoff;
 }
 

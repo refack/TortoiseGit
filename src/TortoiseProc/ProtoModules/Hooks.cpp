@@ -126,7 +126,7 @@ bool CHooks::Save()
 	// delete all existing local hooks
 	for (const auto& hook : { PROJECTPROPNAME_STARTCOMMITHOOK, PROJECTPROPNAME_PRECOMMITHOOK, PROJECTPROPNAME_POSTCOMMITHOOK, PROJECTPROPNAME_PREPUSHHOOK, PROJECTPROPNAME_POSTPUSHHOOK, PROJECTPROPNAME_PREREBASEHOOK })
 	{
-		CStringA hookA = CUnicodeUtils::Convert2Multibyte<CStringA>(hook);
+		CStringA hookA = CUnicodeUtils::GetUTF8<CStringA>(hook);
 		for (const auto& val : { "cmdline", "wait", "show" })
 		{
 			git_config_delete_entry(gitconfig.get(), hookA + val);
@@ -143,22 +143,22 @@ bool CHooks::Save()
 		switch (hook.first.htype)
 		{
 		case HookType::start_commit_hook:
-			sHookPropName = CUnicodeUtils::Convert2Multibyte<CStringA>(PROJECTPROPNAME_STARTCOMMITHOOK);
+			sHookPropName = CUnicodeUtils::GetUTF8<CStringA>(PROJECTPROPNAME_STARTCOMMITHOOK);
 			break;
 		case HookType::pre_commit_hook:
-			sHookPropName = CUnicodeUtils::Convert2Multibyte<CStringA>(PROJECTPROPNAME_PRECOMMITHOOK);
+			sHookPropName = CUnicodeUtils::GetUTF8<CStringA>(PROJECTPROPNAME_PRECOMMITHOOK);
 			break;
 		case HookType::post_commit_hook:
-			sHookPropName = CUnicodeUtils::Convert2Multibyte<CStringA>(PROJECTPROPNAME_POSTCOMMITHOOK);
+			sHookPropName = CUnicodeUtils::GetUTF8<CStringA>(PROJECTPROPNAME_POSTCOMMITHOOK);
 			break;
 		case HookType::pre_push_hook:
-			sHookPropName = CUnicodeUtils::Convert2Multibyte<CStringA>(PROJECTPROPNAME_PREPUSHHOOK);
+			sHookPropName = CUnicodeUtils::GetUTF8<CStringA>(PROJECTPROPNAME_PREPUSHHOOK);
 			break;
 		case HookType::post_push_hook:
-			sHookPropName = CUnicodeUtils::Convert2Multibyte<CStringA>(PROJECTPROPNAME_POSTPUSHHOOK);
+			sHookPropName = CUnicodeUtils::GetUTF8<CStringA>(PROJECTPROPNAME_POSTPUSHHOOK);
 			break;
 		case HookType::pre_rebase_hook:
-			sHookPropName = CUnicodeUtils::Convert2Multibyte<CStringA>(PROJECTPROPNAME_PREREBASEHOOK);
+			sHookPropName = CUnicodeUtils::GetUTF8<CStringA>(PROJECTPROPNAME_PREREBASEHOOK);
 			break;
 		}
 		git_config_set_string(gitconfig.get(), sHookPropName + "cmdline", CUnicodeUtils::GetUTF8<CStringA>(hook.second.commandline));

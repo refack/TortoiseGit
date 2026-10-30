@@ -34,9 +34,9 @@ export namespace CAppUtils {
 int Git2GetUserPassword(git_credential **out, const char *url, const char *username_from_url, unsigned int /*allowed_types*/, void * /*payload*/)
 {
 	CUserPassword dlg;
-	dlg.m_URL = CUnicodeUtils::Convert2Unicode<CString>(url);
+	dlg.m_URL = CUnicodeUtils::GetUnicode<CString>(url);
 	if (username_from_url)
-		dlg.m_UserName = CUnicodeUtils::Convert2Unicode<CString>(username_from_url);
+		dlg.m_UserName = CUnicodeUtils::GetUnicode<CString>(username_from_url);
 
 	if (dlg.DoModal() == IDOK)
 		return git_credential_userpass_plaintext_new(out, CUnicodeUtils::GetUTF8<CStringA>(dlg.m_UserName), dlg.m_passwordA);
@@ -57,7 +57,7 @@ int Git2CertificateCheck(git_cert* base_cert, int /*valid*/, const char* host, v
 		PCCERT_CONTEXT pServerCert = CertCreateCertificateContext(X509_ASN_ENCODING | PKCS_7_ASN_ENCODING, static_cast<BYTE*>(cert->data), static_cast<DWORD>(cert->len));
 		SCOPE_EXIT { CertFreeCertificateContext(pServerCert); };
 
-		DWORD verificationError = VerifyServerCertificate(pServerCert, CUnicodeUtils::Convert2Unicode<CString>(host).GetBuffer(), 0);
+		DWORD verificationError = VerifyServerCertificate(pServerCert, CUnicodeUtils::GetUnicode<CString>(host).GetBuffer(), 0);
 		if (!verificationError)
 		{
 			cert_t_set(cert);
@@ -74,7 +74,7 @@ int Git2CertificateCheck(git_cert* base_cert, int /*valid*/, const char* host, v
 		dlg.cert = cert;
 		dlg.m_sCertificateCN = servernameInCert;
 		dlg.m_sCertificateIssuer = issuer;
-		dlg.m_sHostname = CUnicodeUtils::Convert2Unicode<CString>(host);
+		dlg.m_sHostname = CUnicodeUtils::GetUnicode<CString>(host);
 		dlg.m_sError = (CFormatMessageWrapper(verificationError)).c_str();
 		if (dlg.DoModal() == IDOK)
 		{

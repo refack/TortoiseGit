@@ -34,7 +34,7 @@ bool InaccessibleCommand ::Execute()
 	}
 	catch (const char* msg)
 	{
-		errorParts = L"libgit reported: " + CUnicodeUtils::Convert2Unicode<CString>(msg) + L"\n";
+		errorParts = L"libgit reported: " + CUnicodeUtils::GetUnicode<CString>(msg) + L"\n";
 	}
 	const std::wstring dotGitPath = std::format(L"{}\\.git", orgCmdLinePath.GetWinPathString());
 	if (!(PathFileExists(dotGitPath.c_str()) && !PathIsDirectory(dotGitPath.c_str())) && !g_Git.GetGitRepository())

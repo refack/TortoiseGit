@@ -63,7 +63,7 @@ bool ResetProgressCommand::Run(CGitProgressList* list, CString& sWindowTitle, in
 	checkout_options.notify_cb = [](git_checkout_notify_t, const char* pPath, const git_diff_file*, const git_diff_file*, const git_diff_file*, void* payload) -> int
 	{
 		auto list = static_cast<CGitProgressList*>(payload);
-		CString path(CUnicodeUtils::Convert2Unicode<CString>(pPath));
+		CString path(CUnicodeUtils::GetUnicode<CString>(pPath));
 		if (DWORD(CRegDWORD(L"Software\\TortoiseGit\\RevertWithRecycleBin", TRUE)))
 		{
 			if (!CTGitPath(g_Git.CombinePath(path).GetString()).Delete(true, true))

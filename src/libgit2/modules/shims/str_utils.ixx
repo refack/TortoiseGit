@@ -1,12 +1,12 @@
 ﻿module;
 // The string shim: the ONLY module whose global module fragment sees afx.h or
-// atlstr.h, and the only one that tests TGIT_MFC (CLAUDE.md, "Strings"). Every
+// atlstr.h, and the only one that tests NO_TGIT_MFC (CLAUDE.md, "Strings"). Every
 // other module gets CString from here, as tgit::wstr::CString / tgit::zstr::CString,
-// and TGIT_MFC is set per target, so the choice below is frozen for each importer.
+// and NO_TGIT_MFC is set per target, so the choice below is frozen for each importer.
 
 // The fork comes first: MFC requires afx.h ahead of anything that includes windows.h.
 #ifdef NO_TGIT_MFC
-	#include <afx.h>
+#include <afx.h>
 #endif
 
 #include <windows.h>
@@ -27,15 +27,17 @@ import gsl;
 import wil;			// wil::unique_hfile, for the text-file helpers
 
 
-#pragma region long constants
+
+namespace codepage_map {
 // Local: the table's row type is a detail of this lookup, not an export.
-struct CodeMap
-{
-	const int code;
-	const std::wstring_view page_name;
+struct CodeMap {
+	int code;
+	std::wstring_view page_name;
 };
 
 // ReSharper disable CppUseDesignatedInitializers
+// clang-format off
+// NOLINTBEGIN(modernize-*)
 constexpr auto codepage_map = std::array<CodeMap, 156>{{
 	{21027, L"21027"sv},			// (deprecated)
 	{710,   L"arabic"sv},			// - Transparent Arabic
@@ -192,11 +194,11 @@ constexpr auto codepage_map = std::array<CodeMap, 156>{{
 	{10021, L"x-mac-thai"sv},		// Thai (Mac)
 	{10081, L"x-mac-turkish"sv},	// Turkish (Mac)
 	{10017, L"x-mac-ukrainian"sv},	// Ukrainian (Mac)
-	{20002, L"x_chinese-eten"sv} 	// Eten Taiwan; Chinese Traditional (Eten)
-}};
+	{20002, L"x_chinese-eten"sv}, 	// Eten Taiwan; Chinese Traditional (Eten)
+},};
+// NOLINTEND(modernize-*)
+// clang-format on
 // ReSharper restore CppUseDesignatedInitializers
-#pragma endregion
-// static_assert(std::ranges::is_sorted(codepage_map, {}, &CodeMap::page_name));
 
 // Read-optimized O(log N) compile-time compatible lookup
 constexpr std::optional<int> find_codepage(const std::wstring_view key) {
@@ -207,63 +209,63 @@ constexpr std::optional<int> find_codepage(const std::wstring_view key) {
 
 	return it->code;
 }
+}
 
 
+export namespace tgit::concepts {
 
-#pragma region Interspersed narrow/wide concepts
-// ---- The shim fork ------------------------------------------------------------
-// CString is not one type: MFC-Dynamic gets CStringT<wchar_t, StrTraitMFC_DLL<...>>,
-// ATL-only gets CStringT<wchar_t, StrTraitATL<...>>, and the two mangle differently
-// (CLAUDE.md, "The CString ABI wall"). Each flavor of this module names its own,
-// explicitly: under _AFX, atlstr.h declares no ATL::CStringW and afxstr.h declares
-// the MFC one globally; without it, ATL::CAtlStringW is what ATL::CStringW names.
-#ifdef TGIT_MFC
-export namespace tgit::wstr { using CString = ::CStringW; }	// CStringT<wchar_t, StrTraitMFC_DLL<wchar_t>>
-export namespace tgit::zstr { using CString = ::CStringA; }	// CStringT<char, StrTraitMFC_DLL<char>>
-#else
-export namespace tgit::wstr { using CString = ATL::CAtlStringW; }	// CStringT<wchar_t, StrTraitATL<wchar_t, ChTraitsCRT<wchar_t>>>
-export namespace tgit::zstr { using CString = ATL::CAtlStringA; }	// CStringT<char, StrTraitATL<char, ChTraitsCRT<char>>>
-#endif
-// ATL::CTime in both flavors, but declared under the same _AFX answer as the
-// CString its Format() returns, so it is the shim's to hand out (GitRev::TimeType).
-export namespace tgit::wstr { using CTime = ::ATL::CTime; }
-#pragma endregion
-
-
-// ---- tgit::str: the kind-generic layer ------------------------------------------
-// Traits and concepts over every string shape a call site hands the converters,
-// std or CStringT. Neither wide nor narrow, which is why this is not tgit::zstr
-// (the narrow side) any more.
-export namespace tgit::str
-{
+template <typename T>
+using strip_all_t = std::remove_cv_t<std::remove_pointer_t<std::decay_t<T>>>;
 
 /// std::basic_string and std::basic_string_view, by shape.
 template <typename TStr>
-concept IsRealString = requires(const TStr& s) {
+concept IsStdStringDuck = requires(const TStr& s) {
 	typename TStr::value_type;
 	typename TStr::const_pointer;
-	// What StringViewTraits<IsRealString> reads. Without these the concept admitted
+	// What StringViewTraits<IsStdStringDuck> reads. Without these the concept admitted
 	// std::array and std::vector, whose traits then failed inside the class body.
 	typename TStr::size_type;
 	{ TStr::npos } -> std::convertible_to<typename TStr::size_type>;
-//	typename TStr::traits_type;
+	//	typename TStr::traits_type;
 	{ s.data() } -> std::convertible_to<typename TStr::const_pointer>;
 	{ s.size() } -> std::convertible_to<size_t>;
 };
 
+
 // The shape of CStringT<XCHAR, StrTraits> and nothing ATL-specific: this module
 template <typename TStr>
-concept IsStupidString = requires(const TStr& s) {
+concept IsATLCStringDuck = requires(const TStr& s) {
 	typename TStr::XCHAR;
 	typename TStr::PCXSTR;
-//	typename TStr::StrTraits;
+	//	typename TStr::StrTraits;
 	{ s.GetString() } -> std::convertible_to<typename TStr::PCXSTR>;
 	{ s.GetLength() } -> std::convertible_to<int>;
 };
 
 
 template <typename TStr>
-concept IsTCompString = IsRealString<TStr> || IsStupidString<TStr>;
+concept IsTCompString = IsStdStringDuck<TStr> || IsATLCStringDuck<TStr>;
+
+
+/// A NUL-terminated char / wchar_t pointer.
+template <typename TStr>
+concept IsRawString =
+std::is_pointer_v<std::decay_t<TStr>> && (
+	std::same_as<strip_all_t<TStr>, char>
+	|| std::same_as<strip_all_t<TStr>, wchar_t>
+);
+
+
+static_assert(std::same_as<std::decay_t<char[2]>, char*>);
+
+
+template <typename TChar>
+concept IsStringPtr = IsRawString<TChar> || IsTCompString<TChar>;
+
+
+
+#pragma region StringViewTraits
+
 
 /// Per-kind access, selected by shape. The primary is left undefined, so a type
 /// that is neither kind fails as "incomplete type", and leaving it unconstrained
@@ -276,62 +278,49 @@ struct StringViewTraits;
 // length in TOut's size_type, so TOut(data(s), size<TOut>(s)) is exact for
 // either output kind. Narrowing, so a std string too long for a CString
 // throws rather than wrapping.
-template <IsRealString TStr>
+template <IsStdStringDuck TStr>
 struct StringViewTraits<TStr> {
-	using char_type     = TStr::value_type;
-	using const_pointer = TStr::const_pointer;
-	using size_type     = TStr::size_type;
+	using string_type = TStr;
+	using char_type = TStr::value_type;
+	using const_pointer = const char_type*;
+	static constexpr const_pointer data(const TStr& s) noexcept { return s.data(); }
+
 	static constexpr auto npos = TStr::npos;
-
-	static constexpr const_pointer	data(const TStr& s) noexcept { return s.data(); }
-	static constexpr size_t			size(const TStr& s) noexcept { return s.size(); }
-
-	template <IsTCompString TOut>
-	static constexpr auto			outsize(const TStr& s) { return gsl::narrow<typename StringViewTraits<TOut>::size_type>(size(s)); }
-};
-
-template <IsStupidString TStr>
-struct StringViewTraits<TStr> {
-	using char_type     = TStr::XCHAR;
-	using const_pointer = TStr::PCXSTR;
-	using size_type     = std::invoke_result_t<decltype(&TStr::GetLength), TStr>;
-	static constexpr auto npos = -1;
-
-	static constexpr const_pointer	data(const TStr& s) noexcept { return s.GetString(); }
-	static constexpr size_t			size(const TStr& s) noexcept { return gsl::narrow_cast<size_t>(s.GetLength()); }
-
-	template <IsTCompString TOut>
-	static constexpr auto			outsize(const TStr& s) { return gsl::narrow<typename StringViewTraits<TOut>::size_type>(size(s)); }
+	using size_type = TStr::size_type;
+	static constexpr auto size(const TStr& s) noexcept { return s.size(); }
+	static constexpr int int_size(const TStr& s) noexcept { return win32_cast(s.size()); }
 
 };
 
-
-/// A NUL-terminated char / wchar_t pointer.
-template <typename TStr>
-concept IsRawString = (std::is_pointer_v<TStr> || std::is_pointer_v<std::decay_t<TStr>>) && (
-	std::same_as<std::remove_cv_t<std::remove_pointer_t<TStr>>, char>
- || std::same_as<std::remove_cv_t<std::remove_pointer_t<TStr>>, wchar_t>
- || std::same_as<std::remove_cv_t<std::remove_pointer_t<std::decay_t<TStr>>>, char>
- || std::same_as<std::remove_cv_t<std::remove_pointer_t<std::decay_t<TStr>>>, wchar_t>
-)
-;
-
-
-template <typename TChar>
-concept IsStringViewLike = IsRawString<TChar> || IsTCompString<TChar>;
-
-
-template <IsTCompString TStr>
-constexpr auto to_atl(const TStr& s)
-{
-	using traits = StringViewTraits<TStr>;
-	if constexpr (std::is_same_v<typename traits::char_type, wchar_t>)
-		return wstr::CString{traits::data(s), traits::template outsize<zstr::CString>(s)};
-	else
-		return zstr::CString{traits::data(s), traits::template outsize<zstr::CString>(s)};
+template <IsATLCStringDuck ATLStr, IsTCompString TStr>
+constexpr auto to_atl(const TStr& s) noexcept {
+	return ATLStr{StringViewTraits<TStr>::data(s), StringViewTraits<TStr>::int_size(s)};
 }
 
 
+
+template <IsATLCStringDuck TStr>
+struct StringViewTraits<TStr> {
+	using string_type = TStr;
+	using char_type = TStr::XCHAR;
+	using const_pointer = const char_type*;
+	static constexpr const_pointer data(const TStr& s) noexcept { return s.GetString(); }
+
+	static constexpr auto npos = -1;
+	using size_type = std::invoke_result_t<decltype(&TStr::GetLength), TStr>;
+	static constexpr size_t size(const TStr& s) noexcept { return size_t_cast(s.GetLength()); }
+	static constexpr int int_size(const TStr& s) noexcept { return s.GetLength(); }
+
+	template <IsATLCStringDuck ATLStr>
+	static constexpr auto to_atl(const TStr& s) noexcept {
+		return ATLStr{s};
+	};
+};
+#pragma endregion
+
+
+
+#pragma region StringTraits
 template <typename TStr>
 struct StringTraits;
 
@@ -342,31 +331,37 @@ struct StringTraits;
 // fill must not throw: resize_and_overwrite makes that a precondition, so a
 // failure is reported by writing nothing and checked once the call returns.
 
-template <IsRealString TStr> requires (!std::ranges::enable_borrowed_range<TStr>)
-// template <IsRealString TStr>
+template <IsStdStringDuck TStr> requires (!std::ranges::enable_borrowed_range<TStr>)
 struct StringTraits<TStr> : StringViewTraits<TStr> {
 	using view_traits	= StringViewTraits<TStr>;
 	using char_type		= view_traits::char_type;
 
-	static constexpr void        resize(TStr& s, size_t l) { s.resize(l); }
+	template <IsTCompString TIn>
+	static constexpr TStr out(const TIn& in) { return {StringViewTraits<TIn>::data(in), StringViewTraits<TIn>::size(in) }; }
+
+	static constexpr void resize(TStr& s, size_t l) { s.resize(l); }
 
 	template <typename TFill>
-	static constexpr void        overwrite(TStr& s, const size_t cap, TFill fill)
-	{ s.resize_and_overwrite(cap, [&fill](auto buf, const size_t n) { return fill(buf, n); }); }
+	static constexpr void overwrite(TStr& s, const size_t cap, TFill fill) {
+		s.resize_and_overwrite(cap, [&fill](auto buf, const size_t n) { return fill(buf, n); });
+	}
 };
 
-template <IsStupidString TStr>
+
+
+template <IsATLCStringDuck TStr>
 struct StringTraits<TStr> : StringViewTraits<TStr> {
-	using view_traits	= StringViewTraits<TStr>;
-	using char_type		= view_traits::char_type;
+	using view_traits = StringViewTraits<TStr>;
+	using char_type = view_traits::char_type;
 
-	static constexpr void        resize(TStr& s, size_t l) { s.Truncate(gsl::narrow_cast<int>(l)); }
+	template <IsTCompString TIn>
+	static constexpr TStr out(const TIn& in) { return { StringViewTraits<TIn>::data(in), StringViewTraits<TIn>::int_size(in) }; }
+
+	static constexpr void resize(TStr& s, size_t l) { s.Truncate(gsl::narrow_cast<int>(l)); }
 
 	template <typename TFill>
-	static void                  overwrite(TStr& s, const size_t cap, TFill fill)
-	{ s.ReleaseBuffer(gsl::narrow<int>(fill(s.GetBuffer(gsl::narrow<int>(cap)), cap)));	}
+	static void overwrite(TStr& s, const size_t cap, TFill fill) { s.ReleaseBuffer(gsl::narrow<int>(fill(s.GetBuffer(gsl::narrow<int>(cap)), cap))); }
 };
-
 
 
 
@@ -380,13 +375,17 @@ struct StringTraits<TStr> : StringViewTraits<TStr> {
 // mode 5 (CCmdLineParser::GetVal handing nullptr to a std::wstring).
 template <IsRawString TStr>
 struct StringTraits<TStr> {
-	using char_type     = std::remove_cv_t<std::remove_pointer_t<TStr>>;
+	using char_type = std::remove_cv_t<std::remove_pointer_t<std::decay<TStr>>>;
 	using const_pointer = const char_type*;
 
 	static constexpr const_pointer data(const TStr s) noexcept { return s; }
 
-	static constexpr size_t        size(const TStr s) noexcept { return s ? std::char_traits<char_type>::length(s) : 0; }
+
+	[[deprecated("O(n) Walking string till NUL")]]
+	static constexpr size_t size(const TStr s) noexcept { return s ? std::char_traits<char_type>::length(s) : 0; }
 };
+#pragma endregion
+
 
 
 // "Has a view of TChar for free" versus "can be read as TChar at all". A
@@ -398,6 +397,7 @@ concept HasViewTraitsOf = requires(const T& s) {
 	{ StringViewTraits<T>::size(s) } -> std::same_as<size_t>;
 } && std::same_as<typename StringViewTraits<T>::char_type, TChar>;
 
+
 template <typename T, typename TChar>
 concept HasStringTraitsOf = requires(const T& s) {
 	{ StringTraits<T>::data(s) } -> std::convertible_to<const TChar*>;
@@ -405,34 +405,39 @@ concept HasStringTraitsOf = requires(const T& s) {
 } && std::same_as<typename StringTraits<T>::char_type, TChar>;
 
 
+#pragma region RawStringTraits
 template <typename Base>
 struct RawStringTraits;
 
+
+
 template <IsRawString TCharP>
 struct RawStringTraits<TCharP> {
-	using char_type				= std::remove_cv_t<std::remove_pointer_t<std::decay_t<TCharP>>>;
-	using const_pointer			= const char_type* const;
+	using char_type = strip_all_t<TCharP>;
+	using const_pointer = const char_type* const;
 
-	static constexpr auto npos	= nullptr;
+	static constexpr auto npos = nullptr;
 
-	static constexpr const_pointer	data(const TCharP s) noexcept { return s; }
+	static constexpr const_pointer data(const TCharP s) noexcept { return s; }
 };
+
 
 
 static_assert(IsRawString<decltype("ffff")>);
 
 
+
 template <IsTCompString TStr>
 struct RawStringTraits<TStr> {
-	using sv_traits				= StringViewTraits<TStr>;
-	using char_type				= sv_traits::char_type;
-	using const_pointer			= sv_traits::const_pointer;
+	using sv_traits = StringViewTraits<TStr>;
+	using char_type = sv_traits::char_type;
+	using const_pointer = sv_traits::const_pointer;
 
-	static constexpr auto npos	= sv_traits::npos;
+	static constexpr auto npos = sv_traits::npos;
 
-	static constexpr auto data  = sv_traits::data;
+	static constexpr auto data = sv_traits::data;
 };
-
+#pragma endregion
 
 
 /// The traits key for an owned input as a template deduces it from `const TIn&`:
@@ -441,7 +446,6 @@ struct RawStringTraits<TStr> {
 template <typename TIn>
 using TOwnedKey = std::decay_t<const TIn>;
 
-
 template <typename TStr>
 concept TStrOfChar = IsTCompString<TStr> && std::same_as<typename StringViewTraits<TStr>::char_type, char>;
 
@@ -449,201 +453,57 @@ template <typename TStr>
 concept TStrOfWide = IsTCompString<TStr> && std::same_as<typename StringViewTraits<TStr>::char_type, wchar_t>;
 
 
+
 /// Non-owning view of either kind of string - a CString, for calling the
 /// std::wstring core from a call site that has not migrated yet, or a std one.
 ///
 /// O(1) for a CString: it knows its length, so this does not walk the string
 /// the way std::wstring_view(cstring) would.
-template <IsTCompString TStr>
-struct StringView : std::basic_string_view<typename StringViewTraits<TStr>::char_type>
-{
-	using cnv_view_t = StringViewTraits<TStr>;
+template <
+	IsTCompString TStr,
+	typename cnv_view_t = StringViewTraits<TStr>,
+	typename std_view_t = std::basic_string_view<typename cnv_view_t::char_type>>
+struct StringView : std_view_t {
 	using char_type = cnv_view_t::char_type;
-	using std_view_t = std::basic_string_view<char_type>;
+	using const_pointer = cnv_view_t::const_pointer;
 
-	constexpr auto    as_view()    noexcept { return std_view_t{this->data(), this->size()}; }
+	constexpr explicit StringView(const TStr& s) noexcept :
+		std_view_t{ this->data(), this->size() } {}
 
-	constexpr static std_view_t    as_view(const TStr& s)    noexcept { return {cnv_view_t::data(s), cnv_view_t::size(s)}; }
-	constexpr explicit             StringView(const TStr& s) noexcept : std_view_t{as_view(s)} {}
-	constexpr explicit             StringView(const cnv_view_t::const_pointer s) noexcept : std_view_t{s} {}
-	constexpr cnv_view_t::const_pointer             begin() noexcept { return this->data(); }
-	constexpr cnv_view_t::const_pointer             end() noexcept { return this->data() + this->size(); }
+
+	constexpr explicit StringView(const cnv_view_t::const_pointer s) noexcept :
+		std_view_t{ s } {}
+
+
+	constexpr std_view_t as_view() noexcept { return *this; }
+	constexpr const_pointer begin() noexcept { return this->data(); }
+	constexpr const_pointer end() noexcept { return this->data() + this->size(); }
 };
 
+template <typename TStr, typename DelimT>
+concept CovariantCharType = std::same_as<typename StringViewTraits<TStr>::char_type, typename RawStringTraits<DelimT>::char_type>;
+
+template <IsTCompString TStr>
+constexpr auto as_view(const TStr& s) noexcept { return StringView{s}.as_view(); }
+
+constexpr auto as_atl(const std::string_view& s) noexcept { return StringView{s}.as_view(); }
+constexpr auto as_atl(const std::wstring_view& s) noexcept { return CStringW{}; }
 
 /// Default predicate: dispatches on character type.
 struct is_space_t {
-	bool operator()(char c)    const noexcept { return std::isspace(static_cast<unsigned char>(c)) != 0; } // negative char is UB
+	bool operator()(char c) const noexcept { return std::isspace(static_cast<unsigned char>(c)) != 0; } // negative char is UB
 	bool operator()(wchar_t c) const noexcept { return std::iswspace(c) != 0; }
 };
 inline constexpr is_space_t is_space{};
 
-template<typename CharT>
-struct generate_random_string_t {
-	using Traits = std::char_traits<CharT>;
 
-	constexpr static auto chars =
-		"abcdefghijklmnopqrstuvwxyz"
-		"ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-		"0123456789"sv;
+static_assert(false == std::same_as<decltype(as_view(std::string_view{})), std::wstring_view>);
+static_assert(false == std::same_as<decltype(as_view(CStringW{})), std:: string_view>);
+static_assert(std::same_as<decltype(as_view(std::string_view{})), std::string_view>);
+static_assert(std::same_as<decltype(as_view(CStringW{})), std::wstring_view>);
 
-	static_assert(std::ranges::all_of(chars, [](const char c) { return static_cast<unsigned char>(c) < 0x80; }));
-
-	auto operator() (const std::size_t length = 12) const {
-		thread_local auto gen = std::mt19937_64{std::random_device{}()};
-		auto dist = std::uniform_int_distribution<std::size_t>{0, chars.size() - 1};
-
-		auto ret = std::basic_string<CharT>{length, CharT{}};
-		std::ranges::generate_n(ret, length, [&] { return static_cast<CharT>(chars[dist(gen)]); });
-		return ret;
-	}
-};
-
-
-using has_const_assert_constexpr_msg  = std::integral_constant<
-	bool,
-#if __cpp_static_assert >= 202306L
-	true
-#endif
-	false
->;
-
-auto fake() -> void{
-	if constexpr(has_const_assert_constexpr_msg::value) {
-		#pragma message("finally P2741: User-generated static_assert messages (C++26)")
-	} else {
-		#pragma message("still waiting for P2741")
-	}
-}
-
-
-// What stringtok accepts, stated in its signature rather than asserted in its body.
-// A body static_assert is a hard error once the body is instantiated, so "this call
-// must not compile" could not even be asked; a constraint fails overload resolution
-// instead, at the caller, and `requires` reads that as a plain false. The parts are
-// named so the diagnostic names the one that failed.
-template <typename DelimT>
-concept TokDelimiters = IsTCompString<DelimT> || IsRawString<DelimT>;
-
-template <typename TStr, typename DelimT>
-concept TokSameChar = std::same_as<typename StringViewTraits<TStr>::char_type, typename RawStringTraits<DelimT>::char_type>;
-
-template <typename TStr, typename DelimT>
-concept Tokenizable = IsTCompString<TStr> && TokDelimiters<DelimT> && TokSameChar<TStr, DelimT>;
-
-// std: std::views::split (+ std::from_chars for numeric containers)
-template<typename TStr, typename DelimT>
-	requires Tokenizable<TStr, DelimT>
-auto stringtok(const TStr& in_nt, const bool trim, const DelimT& delimiters) {
-	using in_traits = StringViewTraits<TStr>;
-
-	auto in = StringView{in_nt}.as_view();
-	auto container = std::vector<TStr>{};
-	for (typename in_traits::size_type i = {}; i < in.size();) {
-		if (trim) {
-			// eat leading empty tok
-			i = in.find_first_not_of(delimiters, i);
-			if (i == in_traits::npos)
-				break; // nothing left but empty toks
-		}
-
-		// find the end of the token
-		const auto j = in.find_first_of(delimiters, i);
-		auto substr = in.substr(i, j - i);
-		container.emplace_back(substr);
-		if (j == in_traits::npos)
-			break;
-
-		// set up for next loop
-		i = j + 1;
-	}
-	return container;
-}
-// Must compile, with this result: decltype of a *call* deduces the auto return type,
-// so each line compiles the body for exactly these argument types.
-static_assert(std::same_as<decltype(stringtok("a,b"s,  true, ","s)),	std::vector<std::string>>);
-static_assert(std::same_as<decltype(stringtok("a,b"sv, true, ","sv)),	std::vector<std::string_view>>);
-static_assert(std::same_as<decltype(stringtok(L"a;b"s, true, L";"sv)),	std::vector<std::wstring>>);
-static_assert(std::same_as<decltype(stringtok("a,b"sv, true, ",")),		std::vector<std::string_view>>);
-
-// Must not compile: asked of overload resolution, which the constraint answers with a
-// clean false. (A requires-expression outside a template is ill-formed when its
-// expression is, so the question goes through a concept.) The delimiter types are
-// what a literal deduces to: "," is char[2].
-template <typename TStr, typename DelimT>
-concept CanStringtok = requires(const TStr& in, const DelimT& delimiters) { stringtok(in, true, delimiters); };
-
-static_assert(!CanStringtok<std::wstring_view, char[2]>);				// wide input, narrow delimiters
-static_assert(!CanStringtok<std::string_view, wchar_t[2]>);				// narrow input, wide delimiters
-static_assert(!CanStringtok<int, wchar_t[2]>);							// not a string
-static_assert(!CanStringtok<std::string_view, std::array<int, 2>>);		// shaped like a string, but of int
-static_assert(!CanStringtok<std::wstring_view, std::array<int, 2>>);
-
-
-
-/// The '\n'-terminated lines of a growing buffer, each with the offset just past its '\n'; an
-/// unterminated tail is not yielded, it stays for the next read. The '\r' of a "\r\n" is dropped:
-/// every receiver reads git's CLI metadata (refs, hashes, paths), none of which can hold a '\r'.
-/// A receiver of file content would need the '\r' kept.
-template <IsRealString SV, typename char_type = SV::value_type>
-std::generator<std::pair<std::basic_string_view<char_type>, std::size_t>> lazy_tokenize_lines(const SV buf, std::size_t next = 0) {
-	constexpr char_type LE = '\n';
-	std::size_t nl;
-	while ((nl = buf.find(LE, next)) != buf.npos) {
-		const auto start = std::exchange(next, nl + 1);
-		const auto back_off = size_t{ nl > start && buf.at(nl - 1) == '\r' };
-		co_yield { buf.substr(start, nl - start - back_off), next };
-	}
-}
 
 }
-
-
-#pragma region in-module name sharing
-// Inside this module only - targeted, not a using-directive, so nothing here
-// pulls a whole namespace into another's lookup.
-using tgit::str::IsRealString;
-using tgit::str::IsStupidString;
-using tgit::str::IsTCompString;
-using tgit::str::StringViewTraits;
-using tgit::str::StringTraits;
-using tgit::str::HasViewTraitsOf;
-using tgit::str::HasStringTraitsOf;
-using tgit::str::TOwnedKey;
-using tgit::str::TStrOfChar;
-using tgit::str::TStrOfWide;
-using tgit::str::StringView;
-using tgit::str::is_space;
-#pragma endregion
-
-
-// The traits classification of every string shape a call site hands the
-// converters, checked here because this module sees CStringT as well as the std
-// types.
-//
-// View traits (GetUnicode / GetUTF8, O(1) on our side): everything that
-// knows its own length. Raw pointers are deliberately left out - a pointer
-// knows no length, so reaching one means walking the string, and that is a
-// conversion, not a cast.
-static_assert(HasViewTraitsOf<std::string, char>,         "std::string");
-static_assert(HasViewTraitsOf<std::wstring, wchar_t>,     "std::wstring");
-static_assert(HasViewTraitsOf<std::string_view, char>,    "std::string_view");
-static_assert(HasViewTraitsOf<std::wstring_view, wchar_t>, "std::wstring_view");
-static_assert(!HasViewTraitsOf<const char*, char>,        "const char* has no O(1) length");
-static_assert(!HasViewTraitsOf<const wchar_t*, wchar_t>,  "const wchar_t* has no O(1) length");
-static_assert(HasViewTraitsOf<tgit::zstr::CString, char>,    "tgit::zstr::CString");
-static_assert(HasViewTraitsOf<tgit::wstr::CString, wchar_t>, "tgit::wstr::CString");
-
-// String traits (Convert2Unicode / Convert2Multibyte): the owners, raw
-// pointers included. The views are the ones left out - they own nothing.
-static_assert(HasStringTraitsOf<std::string, char>,          "std::string");
-static_assert(HasStringTraitsOf<std::wstring, wchar_t>,      "std::wstring");
-static_assert(!HasStringTraitsOf<std::string_view, char>,    "std::string_view owns nothing");
-static_assert(!HasStringTraitsOf<std::wstring_view, wchar_t>, "std::wstring_view owns nothing");
-static_assert(HasStringTraitsOf<const char*, char>,          "const char*");
-static_assert(HasStringTraitsOf<const wchar_t*, wchar_t>,    "const wchar_t*");
-static_assert(HasStringTraitsOf<tgit::zstr::CString, char>,    "tgit::zstr::CString");
-static_assert(HasStringTraitsOf<tgit::wstr::CString, wchar_t>, "tgit::wstr::CString");
 
 
 // Helpers for carrying src\Git and src\Utils from CString to std::wstring.
@@ -677,8 +537,17 @@ static_assert(HasStringTraitsOf<tgit::wstr::CString, wchar_t>, "tgit::wstr::CStr
 // std::u16string: the migration stays mechanical and the compiler checks it.
 // NEW code should prefer std::wstring's own members and npos; these are for
 // carrying existing call sites across without re-deciding each one.
-export namespace tgit::wstr
-{
+export namespace tgit::wstr {
+
+using CTime = ::ATL::CTime;
+
+// ---- The shim fork ------------------------------------------------------------
+#ifdef NO_TGIT_MFC
+using CString = ATL::CAtlStringW;	// CStringT<wchar_t, StrTraitATL<wchar_t, ChTraitsCRT<wchar_t>>>
+#else
+using CString = ::CStringW;	// CStringT<wchar_t, StrTraitMFC_DLL<wchar_t>>
+#endif
+
 // CString itself is declared at the shim fork, at the top of this module.
 
 /// Whitespace CString::Trim() removes, so a converted call site keeps behaving.
@@ -687,53 +556,53 @@ inline constexpr std::wstring_view kDefaultTrimChars = L" \t\r\n";
 
 
 /// CString::Find contract: byte offset, or -1 when absent.
-inline int Find(const std::wstring_view s, const std::wstring_view needle, const int from = 0) noexcept
-{
+inline int Find(const std::wstring_view s, const std::wstring_view needle, const int from = 0) noexcept {
 	if (from < 0 || static_cast<size_t>(from) > s.size())
 		return -1;
 	const size_t at = s.find(needle, static_cast<size_t>(from));
 	return at == std::wstring_view::npos ? -1 : static_cast<int>(at);
 }
+
 
 /// CString::Find contract: byte offset, or -1 when absent.
-inline int Find(const std::wstring_view s, const wchar_t needle, const int from = 0) noexcept
-{
+inline int Find(const std::wstring_view s, const wchar_t needle, const int from = 0) noexcept {
 	if (from < 0 || static_cast<size_t>(from) > s.size())
 		return -1;
 	const size_t at = s.find(needle, static_cast<size_t>(from));
 	return at == std::wstring_view::npos ? -1 : static_cast<int>(at);
 }
 
+
 /// CString::ReverseFind contract: byte offset, or -1 when absent.
-inline int ReverseFind(const std::wstring_view s, const wchar_t needle) noexcept
-{
+inline int ReverseFind(const std::wstring_view s, const wchar_t needle) noexcept {
 	const size_t at = s.rfind(needle);
 	return at == std::wstring_view::npos ? -1 : static_cast<int>(at);
 }
 
+
 /// CString::FindOneOf contract: byte offset, or -1 when absent.
-inline int FindOneOf(const std::wstring_view s, const std::wstring_view chars) noexcept
-{
+inline int FindOneOf(const std::wstring_view s, const std::wstring_view chars) noexcept {
 	const size_t at = s.find_first_of(chars);
 	return at == std::wstring_view::npos ? -1 : static_cast<int>(at);
 }
+
 
 inline std::wstring Left(const std::wstring_view s, const size_t count) {
 	return std::wstring{ s.substr(0, count) };
 }
 
+
 /// CString::Left, including its clamping: substr() would give the full str.
-inline std::wstring Left(const std::wstring_view s, const int _count)
-{
+inline std::wstring Left(const std::wstring_view s, const int _count) {
 	if (_count < 0)
 		return {};
 	const auto count = static_cast<size_t>(_count);
 	return Left(s, count);
 }
 
+
 /// CString::Right, including its clamping.
-inline std::wstring Right(const std::wstring_view s, const long _count)
-{
+inline std::wstring Right(const std::wstring_view s, const long _count) {
 	if (_count < 0)
 		return {};
 	const auto count = static_cast<std::wstring_view::size_type>(_count);
@@ -741,25 +610,26 @@ inline std::wstring Right(const std::wstring_view s, const long _count)
 	return std::wstring(s.substr(s.size() - take));
 }
 
+
 /// substr's contract rather than CString's: unsigned, and npos means "to the
 /// end". This is the overload for a caller that already holds real sizes; the
 /// int ones below are the CString bridge, and they are not the same function.
-inline std::wstring Mid(const std::wstring_view s, const std::wstring_view::size_type from, const std::wstring_view::size_type count)
-{
+inline std::wstring Mid(const std::wstring_view s, const std::wstring_view::size_type from, const std::wstring_view::size_type count) {
 	if (from > s.size())
 		return {};
 	return std::wstring{ s.substr(from, count) };
 }
 
+
 /// CString::Mid(iFirst), including its clamping. CString spells this as
 /// Mid(iFirst, GetLength() - iFirst), so a negative iFirst asks for *more* than
 /// the whole string and clamps back to all of it.
-inline std::wstring Mid(const std::wstring_view s, const int from)
-{
+inline std::wstring Mid(const std::wstring_view s, const int from) {
 	if (from < 0)
 		return std::wstring{ s };
 	return Mid(s, static_cast<std::wstring_view::size_type>(from), std::wstring_view::npos);
 }
+
 
 /// CString::Mid(iFirst, nCount), including its clamping. **A negative nCount is
 /// clamped to zero before anything else**, so Mid(n, -1) is the empty string and
@@ -770,19 +640,18 @@ inline std::wstring Mid(const std::wstring_view s, const int from)
 /// nothing". Defaulting it to npos made Mid(n, -1) return the tail; defaulting
 /// it to 0 makes Mid(n) return nothing. Two overloads, no default, and each one
 /// matches its CString counterpart exactly.
-inline std::wstring Mid(const std::wstring_view s, const int from, const int count)
-{
+inline std::wstring Mid(const std::wstring_view s, const int from, const int count) {
 	if (count <= 0)
 		return {};
 	return Mid(s, static_cast<std::wstring_view::size_type>(std::max(from, 0)), static_cast<std::wstring_view::size_type>(count));
 }
 
+
 /// CString::Replace contract: every non-overlapping occurrence, left to right;
 /// returns how many were replaced, and an empty \a from replaces nothing.
 /// (The generic version this replaces overwrote to.size() characters rather
 /// than from.size(), and never terminated for an empty \a to.)
-inline int Replace(std::wstring& s, const std::wstring_view from, const std::wstring_view to)
-{
+inline int Replace(std::wstring& s, const std::wstring_view from, const std::wstring_view to) {
 	if (from.empty())
 		return 0;
 	int count = 0;
@@ -791,44 +660,49 @@ inline int Replace(std::wstring& s, const std::wstring_view from, const std::wst
 	return count;
 }
 
-inline int Replace(std::wstring& s, const wchar_t from, const wchar_t to) noexcept
-{
+
+inline int Replace(std::wstring& s, const wchar_t from, const wchar_t to) noexcept {
 	int count = 0;
 	for (auto& c : s)
-		if (c == from)
-		{
+		if (c == from) {
 			c = to;
 			++count;
 		}
 	return count;
 }
 
-inline void TrimLeft(std::wstring& s, const std::wstring_view chars = kDefaultTrimChars)
-{
+
+inline void TrimLeft(std::wstring& s, const std::wstring_view chars = kDefaultTrimChars) {
 	s.erase(0, (std::min)(s.find_first_not_of(chars), s.size()));
 }
 
-inline void TrimRight(std::wstring& s, const std::wstring_view chars = kDefaultTrimChars)
-{
+
+inline void TrimRight(std::wstring& s, const std::wstring_view chars = kDefaultTrimChars) {
 	const size_t last = s.find_last_not_of(chars);
 	s.erase(last == std::wstring::npos ? 0 : last + 1);
 }
 
-inline void Trim(std::wstring& s, const std::wstring_view chars = kDefaultTrimChars)
-{
+
+inline void Trim(std::wstring& s, const std::wstring_view chars = kDefaultTrimChars) {
 	TrimRight(s, chars);
 	TrimLeft(s, chars);
 }
 
-inline void MakeLower(std::wstring& s)
-{
+
+inline void MakeLower(std::wstring& s) {
 	std::ranges::transform(s, s.begin(), [](const wchar_t c) { return static_cast<wchar_t>(std::towlower(c)); });
 }
 
-inline void MakeUpper(std::wstring& s)
-{
+
+auto ToLower(const std::wstring_view s) {
+	return std::views::transform(s, [](const wchar_t c) { return static_cast<wchar_t>(std::towlower(c)); }) | std::ranges::to<std::wstring>();;
+}
+
+
+inline void MakeUpper(std::wstring& s) {
 	std::ranges::transform(s, s.begin(), [](const wchar_t c) { return static_cast<wchar_t>(std::towupper(c)); });
 }
+
 
 /// CString::CompareNoCase contract: <0, 0 or >0.
 inline int CompareNoCase(const std::wstring_view lhs, const std::wstring_view rhs) noexcept
@@ -845,15 +719,24 @@ inline int CompareNoCase(const std::wstring_view lhs, const std::wstring_view rh
 	return lhs.size() < rhs.size() ? -1 : 1;
 }
 
-inline bool StartsWith(const std::wstring_view s, const std::wstring_view prefix) noexcept
-{
+inline std::weak_ordering SpaceshipNoCase(const std::wstring_view lhs, const std::wstring_view rhs) noexcept {
+	const size_t common = std::min(lhs.size(), rhs.size());
+	for (const size_t i : std::views::iota(common))
+		if (const auto c = std::towlower(lhs[i]) <=> std::towlower(rhs[i]); c != 0)
+			return c;
+	return lhs.size() <=> rhs.size();
+}
+
+
+inline bool StartsWith(const std::wstring_view s, const std::wstring_view prefix) noexcept {
 	return s.starts_with(prefix);
 }
 
-inline bool EndsWith(const std::wstring_view s, const std::wstring_view suffix) noexcept
-{
+
+inline bool EndsWith(const std::wstring_view s, const std::wstring_view suffix) noexcept {
 	return s.ends_with(suffix);
 }
+
 
 /// CString::Tokenize's contract, which IS strtok-like: leading delimiters are
 /// skipped, so a run of them yields one token and never an empty one, and
@@ -863,16 +746,13 @@ inline bool EndsWith(const std::wstring_view s, const std::wstring_view suffix) 
 /// This is the one helper here whose behaviour I guessed wrong: the
 /// differential test in WideStringTest.cpp caught it, which is the argument
 /// for testing these against CString rather than against an expectation.
-inline std::wstring Tokenize(const std::wstring_view s, const std::wstring_view delimiters, int& pos)
-{
-	if (pos < 0 || delimiters.empty() || static_cast<size_t>(pos) >= s.size())
-	{
+inline std::wstring Tokenize(const std::wstring_view s, const std::wstring_view delimiters, int& pos) {
+	if (pos < 0 || delimiters.empty() || static_cast<size_t>(pos) >= s.size()) {
 		pos = -1;
 		return {};
 	}
 	const size_t start = s.find_first_not_of(delimiters, static_cast<size_t>(pos));
-	if (start == std::wstring_view::npos)
-	{
+	if (start == std::wstring_view::npos) {
 		pos = -1;
 		return {};
 	}
@@ -883,12 +763,12 @@ inline std::wstring Tokenize(const std::wstring_view s, const std::wstring_view 
 	return std::wstring(s.substr(start, end - start));
 }
 
+
 /// Copies \a source into the fixed-size buffer \a dest - a Win32 struct's
 /// `wchar_t sz[MAX_PATH]`, say - truncating to fit and always NUL-terminating.
 /// StringCchCopy's contract, without strsafe: returns false when it truncated.
 /// \a source is a view, so it stops at its size, not at an embedded NUL.
-inline bool CopyTruncating(const std::span<wchar_t> dest, const std::wstring_view source) noexcept
-{
+inline bool CopyTruncating(const std::span<wchar_t> dest, const std::wstring_view source) noexcept {
 	if (dest.empty())
 		return source.empty();
 	const size_t count = (std::min)(source.size(), dest.size() - 1);
@@ -897,26 +777,17 @@ inline bool CopyTruncating(const std::span<wchar_t> dest, const std::wstring_vie
 	return count == source.size();
 }
 
+
 /// The GetBuffer/ReleaseBuffer pair, for the Win32 calls that fill a caller's
 /// buffer. std::wstring guarantees contiguous storage, so this needs no copy;
 /// what it does need is the resize back down, which ReleaseBuffer did.
-inline void ReleaseBuffer(std::wstring& s, const int newLength = -1)
-{
+inline void ReleaseBuffer(std::wstring& s, const int newLength = -1) {
 	if (newLength >= 0)
 		s.resize((std::min)(static_cast<size_t>(newLength), s.size()));
 	else
 		s.resize(wcsnlen(s.c_str(), s.size()));
 }
 
-
-template <TStrOfWide TStr>
-std::filesystem::path to_path(const TStr& sPath)
-{
-	return std::filesystem::path{StringView{sPath}.as_view()};
-}
-
-
-using generate_random_wstring = str::generate_random_string_t<wchar_t>;
 
 template <typename TStr>
 concept WideSink = requires(TStr& t, std::wstring_view sv) {
@@ -925,27 +796,40 @@ concept WideSink = requires(TStr& t, std::wstring_view sv) {
 };
 
 
+
 struct AtlSink {
 	CStringW* the_sink;
 	[[nodiscard]] auto size() const noexcept { return !the_sink ? 0 : size_t_cast(the_sink->GetLength()); }
-	void append(const std::wstring_view sv) { if (the_sink) the_sink->Append(sv.data(), win32_cast(sv.size())); }
+
+
+	void append(const std::wstring_view sv) {
+		if (the_sink)
+			the_sink->Append(sv.data(), win32_cast(sv.size()));
+	}
 };
+
+
 
 // end export
 }
 
 
 // The narrow side. CString is declared at the shim fork, at the top of this module.
-export namespace tgit::zstr
-{
+export namespace tgit::zstr {
+
+// ---- The shim fork ------------------------------------------------------------
+#ifdef NO_TGIT_MFC
+using CString = ATL::CAtlStringA;	// CStringT<char, StrTraitATL<char, ChTraitsCRT<char>>>
+#else
+using CString = ::CStringA;			// CStringT<char, StrTraitMFC_DLL<char>>
+#endif
 
 /// The start of the record after the one at \a start, in a buffer of
 /// NUL-separated records (git's `-z` output): skips to the next NUL, then past
 /// every NUL in the run. npos when no record follows. This was
 /// CGitByteArray::findNextString's loop; '\0', not 0, so the find() below takes
 /// the char overload and cannot be read as find(const char*).
-std::size_t FindNextString(const std::string_view buffer, const std::size_t start = 0) noexcept
-{
+std::size_t FindNextString(const std::string_view buffer, const std::size_t start = 0) noexcept {
 	std::size_t pos = start;
 	const std::size_t end = buffer.size();
 	do {
@@ -969,20 +853,11 @@ std::optional<int> maybe_to_int(const std::string_view s) {
 	else
 		return std::nullopt;
 };
+
+
 std::optional<int> maybe_to_int(const std::ranges::subrange<std::string_view::const_iterator> s) {
-	return maybe_to_int(std::string_view{s});
+	return maybe_to_int(std::string_view{ s });
 }
-
-auto version_tok(const std::string& in_str) {
-	std::vector<std::optional<int>> versionParts;
-	for (const auto& part : str::stringtok(in_str, false, ".")) {
-		versionParts.push_back(tgit::zstr::maybe_to_int(part));
-	}
-	return versionParts;
-}
-
-using generate_random_string = str::generate_random_string_t<char>;
-
 
 
 }
@@ -1000,39 +875,251 @@ using generate_random_string = str::generate_random_string_t<char>;
 // no mixed-type expression to reason about.
 //
 // Explicit specializations for the flavor's CStrings, not the partial one
-// constrained on IsStupidString this used to be. That one was never usable
+// constrained on IsATLCStringDuck this used to be. That one was never usable
 // outside this module: MSVC did not find it from an importer (std::formattable<
 // CString, wchar_t> was false in StringUtils, which imported wstr), and its body
 // built one wchar_t from the whole string, so it had never been instantiated
-// anywhere either. Keyed on the shim's aliases, so the TGIT_MFC build of this
+// anywhere either. Keyed on the shim's aliases, so the NO_TGIT_MFC build of this
 // module specializes for the MFC types and the ATL build for the ATL ones. Not
 // `export`ed: a specialization of a std template is reached through the primary.
 template <>
-struct std::formatter<tgit::wstr::CString, wchar_t> : std::formatter<std::wstring_view, wchar_t>
-{
-	auto format(const tgit::wstr::CString& value, auto& ctx) const
-	{
+struct std::formatter<tgit::wstr::CString, wchar_t> : std::formatter<std::wstring_view, wchar_t> {
+	auto format(const tgit::wstr::CString& value, auto& ctx) const {
 		return std::formatter<std::wstring_view, wchar_t>::format(std::wstring_view(value.GetString(), value.GetLength()), ctx);
 	}
 };
 
 
+
 template <>
-struct std::formatter<tgit::zstr::CString, char> : std::formatter<std::string_view, char>
-{
-	auto format(const tgit::zstr::CString& value, auto& ctx) const
-	{
+struct std::formatter<tgit::zstr::CString, char> : std::formatter<std::string_view, char> {
+	auto format(const tgit::zstr::CString& value, auto& ctx) const {
 		return std::formatter<std::string_view, char>::format(std::string_view(value.GetString(), value.GetLength()), ctx);
 	}
 };
 
 
-export namespace CUnicodeUtils
-{
+// ---- tgit::str: the kind-generic layer ------------------------------------------
+// Traits and concepts over every string shape a call site hands the converters,
+// std or CStringT. Neither wide nor narrow, which is why this is not tgit::zstr
+// (the narrow side) any more.
+export namespace tgit::str {
+using namespace concepts;
+using CStringA = zstr::CString;
+using CStringW = wstr::CString;
+
+
+
+template <typename CharT>
+struct generate_random_string_t {
+	using Traits = std::char_traits<CharT>;
+
+	constexpr static auto chars =
+	"abcdefghijklmnopqrstuvwxyz"
+	"ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+	"0123456789"sv;
+
+	static_assert(std::ranges::all_of(chars, [](const char c) { return static_cast<unsigned char>(c) < 0x80; }));
+
+
+	auto operator()(const std::size_t length = 12) const {
+		thread_local auto gen = std::mt19937_64{ std::random_device{}() };
+		auto dist = std::uniform_int_distribution<std::size_t>{ 0, chars.size() - 1 };
+
+		auto ret = std::basic_string<CharT>{ length, CharT{} };
+		std::ranges::generate_n(ret, length, [&] { return static_cast<CharT>(chars[dist(gen)]); });
+		return ret;
+	}
+};
+
+
+using has_const_assert_constexpr_msg  = std::integral_constant<
+	bool,
+#if __cpp_static_assert >= 202306L
+	true
+#endif
+	false
+>;
+
+static_assert(!has_const_assert_constexpr_msg::value, "\n\n##### finally P2741: User-generated static_assert messages (C++26) #####");
+
+// auto toy_fake() -> void{
+// 	if constexpr(has_const_assert_constexpr_msg::value) {
+// 		#pragma message("finally P2741: User-generated static_assert messages (C++26)")
+// 	} else {
+// 		#pragma message("still waiting for P2741")
+// 	}
+// }
+
+
+// What stringtok accepts, stated in its signature rather than asserted in its body.
+// A body static_assert is a hard error once the body is instantiated, so "this call
+// must not compile" could not even be asked; a constraint fails overload resolution
+// instead, at the caller, and `requires` reads that as a plain false. The parts are
+// named so the diagnostic names the one that failed.
+template <typename DelimT>
+concept TokDelimiters = IsTCompString<DelimT> || IsRawString<DelimT>;
+
+template <typename TStr, typename DelimT>
+concept TokSameChar = std::same_as<typename StringViewTraits<TStr>::char_type, typename RawStringTraits<DelimT>::char_type>;
+
+template <typename TStr, typename DelimT>
+concept Tokenizable = IsTCompString<TStr> && TokDelimiters<DelimT> && TokSameChar<TStr, DelimT>;
+
+
+// std: std::views::split (+ std::from_chars for numeric containers)
+template <IsTCompString TStr, typename DelimT>
+	requires CovariantCharType<TStr, DelimT>
+auto stringtok(const TStr& in_nt, const bool trim, const DelimT& delimiters) {
+	using in_traits = StringViewTraits<TStr>;
+	using out_traits = RawStringTraits<DelimT>;
+	static_assert(std::is_same_v<typename in_traits::char_type, typename out_traits::char_type>, "\n *** mismatched delimiter type\n");
+
+	auto in = StringView{ in_nt }.as_view();
+	auto container = std::vector<TStr>{};
+	for (typename in_traits::size_type i = {}; i < in.size();) {
+		if (trim) {
+			// eat leading empty tok
+			i = in.find_first_not_of(delimiters, i);
+			if (i == in_traits::npos)
+				break; // nothing left but empty toks
+		}
+
+		// find the end of the token
+		const auto j = in.find_first_of(delimiters, i);
+		auto substr = in.substr(i, j - i);
+		container.emplace_back(substr);
+		if (j == in_traits::npos)
+			break;
+
+		// set up for next loop
+		i = j + 1;
+	}
+	return container;
+}
+
+
+// Must compile, with this result: decltype of a *call* deduces the auto return type,
+// so each line compiles the body for exactly these argument types.
+static_assert(std::same_as<decltype(stringtok("a,b"s, true, ","s)), std::vector<std::string>>);
+static_assert(std::same_as<decltype(stringtok("a,b"sv, true, ","sv)), std::vector<std::string_view>>);
+static_assert(std::same_as<decltype(stringtok(L"a;b"s, true, L";"sv)), std::vector<std::wstring>>);
+static_assert(std::same_as<decltype(stringtok("a,b"sv, true, ",")), std::vector<std::string_view>>);
+
+
+// Must not compile: asked of overload resolution, which the constraint answers with a
+// clean false. (A requires-expression outside a template is ill-formed when its
+// expression is, so the question goes through a concept.) The delimiter types are
+// what a literal deduces to: "," is char[2].
+template <typename TStr, typename DelimT>
+concept CanStringtok = requires(const TStr& in, const DelimT& delimiters) { stringtok(in, true, delimiters); };
+
+static_assert(!CanStringtok<std::wstring_view, char[2]>); // wide input, narrow delimiters
+static_assert(!CanStringtok<std::string_view, wchar_t[2]>); // narrow input, wide delimiters
+static_assert(!CanStringtok<int, wchar_t[2]>); // not a string
+static_assert(!CanStringtok<std::string_view, std::array<int, 2>>); // shaped like a string, but of int
+static_assert(!CanStringtok<std::wstring_view, std::array<int, 2>>);
+
+
+
+/// The '\n'-terminated lines of a growing buffer, each with the offset just past its '\n'; an
+/// unterminated tail is not yielded, it stays for the next read. The '\r' of a "\r\n" is dropped:
+/// every receiver reads git's CLI metadata (refs, hashes, paths), none of which can hold a '\r'.
+/// A receiver of file content would need the '\r' kept.
+template <IsStdStringDuck SV, typename char_type = SV::value_type>
+std::generator<std::pair<std::basic_string_view<char_type>, std::size_t>> lazy_tokenize_lines(const SV buf, std::size_t next = 0) {
+	constexpr char_type LE = '\n';
+	std::size_t nl;
+	while ((nl = buf.find(LE, next)) != buf.npos) {
+		const auto start = std::exchange(next, nl + 1);
+		const auto back_off = size_t{ nl > start && buf.at(nl - 1) == '\r' };
+		co_yield { buf.substr(start, nl - start - back_off), next };
+	}
+}
+
+
+template <TStrOfWide TStr>
+std::filesystem::path to_path(const TStr& sPath) {
+	return std::filesystem::path{ StringView{ sPath }.as_view() };
+}
+
+
+auto version_tok(const std::string& in_str) {
+	std::vector<std::optional<int>> versionParts;
+	for (const auto& part : str::stringtok(in_str, false, ".")) {
+		versionParts.push_back(tgit::zstr::maybe_to_int(part));
+	}
+	return versionParts;
+}
+
+
+using generate_random_string = str::generate_random_string_t<char>;
+using generate_random_wstring = str::generate_random_string_t<wchar_t>;
+
+
+}
+
+
+#pragma region intra-module name sharing
+// Inside this module only - targeted, not a using-directive, so nothing here
+// pulls a whole namespace into another's lookup.
+using tgit::str::IsStdStringDuck;
+using tgit::str::IsATLCStringDuck;
+using tgit::str::IsTCompString;
+using tgit::str::StringViewTraits;
+using tgit::str::StringTraits;
+using tgit::str::HasViewTraitsOf;
+using tgit::str::HasStringTraitsOf;
+using tgit::str::TOwnedKey;
+using tgit::str::TStrOfChar;
+using tgit::str::TStrOfWide;
+using tgit::str::StringView;
+using tgit::concepts::is_space;
+#pragma endregion
+
+
+// The traits classification of every string shape a call site hands the
+// converters, checked here because this module sees CStringT as well as the std
+// types.
+//
+// View traits (GetUnicode / GetUTF8, O(1) on our side): everything that
+// knows its own length. Raw pointers are deliberately left out - a pointer
+// knows no length, so reaching one means walking the string, and that is a
+// conversion, not a cast.
+static_assert(HasViewTraitsOf<std::string, char>, "std::string");
+static_assert(HasViewTraitsOf<std::wstring, wchar_t>, "std::wstring");
+static_assert(HasViewTraitsOf<std::string_view, char>, "std::string_view");
+static_assert(HasViewTraitsOf<std::wstring_view, wchar_t>, "std::wstring_view");
+static_assert(!HasViewTraitsOf<const char*, char>, "const char* has no O(1) length");
+static_assert(!HasViewTraitsOf<const wchar_t*, wchar_t>, "const wchar_t* has no O(1) length");
+static_assert(HasViewTraitsOf<CStringA, char>, "tgit::zstr::CString");
+static_assert(HasViewTraitsOf<CStringW, wchar_t>, "tgit::wstr::CString");
+
+// String traits (Convert2Unicode / GetUTF8): the owners, raw
+// pointers included. The views are the ones left out - they own nothing.
+static_assert(HasStringTraitsOf<std::string, char>, "std::string");
+static_assert(HasStringTraitsOf<std::wstring, wchar_t>, "std::wstring");
+static_assert(!HasStringTraitsOf<std::string_view, char>, "std::string_view owns nothing");
+static_assert(!HasStringTraitsOf<std::wstring_view, wchar_t>, "std::wstring_view owns nothing");
+static_assert(!HasStringTraitsOf<const char*, char>, "const char*");
+static_assert(!HasStringTraitsOf<const wchar_t*, wchar_t>, "const wchar_t*");
+static_assert(HasStringTraitsOf<CStringA, char>, "tgit::zstr::CString");
+static_assert(HasStringTraitsOf<CStringW, wchar_t>, "tgit::wstr::CString");
+
+
+
+
+export namespace CUnicodeUtils {
+
+static_assert(HasViewTraitsOf<tgit::zstr::CString, char>, "tgit::zstr::CString");
+static_assert(HasViewTraitsOf<tgit::wstr::CString, wchar_t>, "tgit::wstr::CString");
+static_assert(HasStringTraitsOf<tgit::zstr::CString, char>, "tgit::zstr::CString");
+static_assert(HasStringTraitsOf<tgit::wstr::CString, wchar_t>, "tgit::wstr::CString");
+
+
 // Safely convert from size_t to int.
 // Throws a std::overflow_error exception if the conversion is impossible.
-inline int SafeSizeToInt(const size_t sizeValue)
-{
+inline int SafeSizeToInt(const size_t sizeValue) {
 	// ReSharper disable once CppTooWideScopeInitStatement
 	constexpr int kIntMax = std::numeric_limits<int>::max();
 	if (sizeValue >= static_cast<size_t>(kIntMax))
@@ -1040,6 +1127,7 @@ inline int SafeSizeToInt(const size_t sizeValue)
 
 	return win32_cast(sizeValue);
 }
+
 
 // The conversion core, one body each way. TOut is whichever string the caller
 // wants back - std::string / std::wstring by default, a CStringT on request -
@@ -1059,24 +1147,21 @@ inline int SafeSizeToInt(const size_t sizeValue)
 // lpUsedDefaultChar flag is deliberately not offered: no call site has ever
 // read it.
 template <TStrOfChar TOut, TStrOfWide TIn>
-TOut GetMulti(const TIn& in_string, const int acp = CP_UTF8, const char* const defaultChar = nullptr)
-{
-	auto temp = til::WideCharToMultiByte(StringView<TIn>{in_string}, {.code_page = acp, .replacment = defaultChar});
-	return tgit::str::to_atl(temp);
+TOut GetMulti(const TIn& in_string, const int acp = CP_UTF8, const char* const defaultChar = nullptr) {
+	auto temp = til::WideCharToMultiByte(StringView<TIn>{ in_string }, { .code_page = acp, .replacment = defaultChar });
+	return StringTraits<TOut>::out(temp);
 }
 
 
-std::string StdGetMulti(const std::wstring_view wide, const int acp = CP_UTF8, const char* const defaultChar = nullptr)
-{
-	return til::WideCharToMultiByte(wide, {.code_page = acp, .replacment = defaultChar});
+std::string StdGetMulti(const std::wstring_view wide, const int acp = CP_UTF8, const char* const defaultChar = nullptr) {
+	return til::WideCharToMultiByte(wide, { .code_page = acp, .replacment = defaultChar });
 }
 
 
-int StdGetCPCode(const std::wstring_view codename_arg)
-{
+int StdGetCPCode(const std::wstring_view codename_arg) {
 	std::wstring codename;
 	std::ranges::transform(codename_arg, codename.begin(), ::towlower);
-	auto&& opt_cp = find_codepage(codename_arg);
+	auto&& opt_cp = codepage_map::find_codepage(codename_arg);
 	return opt_cp.value_or(CP_UTF8);
 }
 
@@ -1096,40 +1181,39 @@ int StdGetCPCode(const std::wstring_view codename_arg)
 // same job tgit::wstr::StringView does on the way in.
 //
 // Inputs are taken as std views by the cores above; a CString reaches those
-// through the IsStupidString overloads below, which cost an O(1) View rather
+// through the IsATLCStringDuck overloads below, which cost an O(1) View rather
 // than the O(n) wcslen a std::wstring_view(LPCWSTR) would. A const char* or a
 // std::string lands on the std::string_view core directly - as before, a
 // nullptr there is undefined, exactly as it was through
 // std::string_view(string).
 //
-// The forwarders are constrained to IsStupidString on purpose: a CStringT
+// The forwarders are constrained to IsATLCStringDuck on purpose: a CStringT
 // cannot reach a std view implicitly (that would be two user-defined
 // conversions), so without them it has no overload at all, and a StringView -
 // which is a real string - must keep binding to the core rather than
 // re-entering a forwarder forever.
 template <TStrOfWide TIn>
-std::string StdGetUTF8(const TIn& wide, const int acp = CP_UTF8, const char* const defaultChar = nullptr)
-{
-	return til::WideCharToMultiByte(StringView{wide}, {.code_page = acp, .replacment = defaultChar});
+std::string StdGetUTF8(const TIn& wide, const int acp = CP_UTF8, const char* const defaultChar = nullptr) {
+	return til::WideCharToMultiByte(StringView{ wide }, { .code_page = acp, .replacment = defaultChar });
 }
 
 
 template <TStrOfChar TOut, TStrOfWide TIn>
-TOut GetUTF8(const TIn& string)
-{
+TOut GetUTF8(const TIn& string) {
 	return GetMulti<TOut>(string, CP_UTF8);
 }
 
 
+template <TStrOfWide TOut>
+TOut GetUnicode(const char* inStr) {
+	const auto fromUtf8 = til::UTF8ToWString(std::string_view{ inStr });
+	return StringTraits<TOut>::out(fromUtf8);
+}
+
 template <TStrOfWide TOut, TStrOfChar TIn>
 TOut GetUnicode(const TIn& inStr) {
 	const auto fromUtf8 = til::UTF8ToWString(StringView{ inStr });
-	const auto wide = std::wstring{fromUtf8.data(), fromUtf8.size()};
-	if constexpr (IsStupidString<TOut>)
-		return tgit::str::to_atl(wide);
-	else
-		return wide;
-
+	return StringTraits<TOut>::out(fromUtf8);
 }
 
 
@@ -1137,8 +1221,7 @@ TOut GetUnicode(const TIn& inStr) {
 /// CGitByteArray::Decode did, for a buffer held as a std::string. git's own
 /// output is frequently NUL-separated (`-z`), so this yields only the first
 /// record of such a buffer; that truncation is the contract, and the name says so.
-std::wstring DecodeUtf8UpToNul(const std::string_view bytes)
-{
+std::wstring DecodeUtf8UpToNul(const std::string_view bytes) {
 	return GetUnicode<std::wstring>(bytes.substr(0, bytes.find('\0')));
 }
 
@@ -1149,24 +1232,8 @@ std::wstring DecodeUtf8UpToNul(const std::string_view bytes)
 // fast path, where MultiByteToWideChar / WideCharToMultiByte are the oracle
 // and everything around them is O(1). A std string or CString lands here too,
 // for a call site that would rather not care which kind it holds.
-template <TStrOfWide TOut, typename TIn> requires HasStringTraitsOf<TOwnedKey<TIn>, char>
-TOut Convert2Unicode(const TIn& inStr)
-{
-	using traits = StringTraits<TOwnedKey<TIn>>;
-	return GetUnicode<TOut>(std::string_view{ traits::data(inStr), traits::size(inStr) });
-}
-
-template <TStrOfChar TOut, typename TIn> requires HasStringTraitsOf<TOwnedKey<TIn>, wchar_t>
-TOut Convert2Multibyte(const TIn& inStr)
-{
-	using traits = StringTraits<TOwnedKey<TIn>>;
-	return GetUTF8<TOut>(std::wstring_view{ traits::data(inStr), traits::size(inStr) });
-}
-
-
 template <TStrOfWide TOut = std::wstring>
-TOut StdGetUnicode(const std::string_view multibyte, const int acp = CP_ACP)
-{
+TOut StdGetUnicode(const std::string_view multibyte, const int acp = CP_ACP) {
 	TOut out;
 	if (multibyte.empty())
 		return out;
@@ -1174,9 +1241,11 @@ TOut StdGetUnicode(const std::string_view multibyte, const int acp = CP_ACP)
 	const auto s_len = gsl::narrow<int>(multibyte.length());
 	const int need = MultiByteToWideChar(acp, 0, multibyte.data(), s_len, nullptr, 0);
 	if (need > 0)
-		StringTraits<TOut>::overwrite(out, gsl::narrow<size_t>(need), [&](wchar_t* buf, const size_t cap) {
-			return gsl::narrow<size_t>(MultiByteToWideChar(acp, 0, multibyte.data(), s_len, buf, gsl::narrow<int>(cap)));
-		});
+		StringTraits<TOut>::overwrite(out,
+		                              gsl::narrow<size_t>(need),
+		                              [&](wchar_t* buf, const size_t cap) {
+			                              return gsl::narrow<size_t>(MultiByteToWideChar(acp, 0, multibyte.data(), s_len, buf, gsl::narrow<int>(cap)));
+		                              });
 	if (StringViewTraits<TOut>::size(out) == 0)
 		throw std::exception("MultiByteToWideChar failed");
 	return out;
@@ -1195,13 +1264,12 @@ TOut StdGetUnicode(const std::string_view multibyte, const int acp = CP_ACP)
 // instead, so an ACP that needs more bytes per character truncates here no
 // longer, and a failed conversion throws rather than silently returning a
 // prefix.
-std::string WideToMultibyte(const std::wstring_view wide)
-{
+std::string WideToMultibyte(const std::wstring_view wide) {
 	return StdGetMulti(wide, CP_ACP, ".");
 }
 
-std::wstring MultibyteToWide(const std::string_view multibyte)
-{
+
+std::wstring MultibyteToWide(const std::string_view multibyte) {
 	return StdGetUnicode(multibyte, CP_ACP);
 }
 
@@ -1215,30 +1283,29 @@ std::wstring MultibyteToWide(const std::string_view multibyte)
 // StringUtils::X (or tgit::wstr::X for the CString-contract bridges above).
 //
 // Not exported: the names this namespace uses unqualified.
-namespace StringUtils
-{
+namespace StringUtils {
 using tgit::wstr::CString;
 }
 
 
+
 // Functions std:: already does. Each names its std:: spelling; they stay only
 // until their call sites move to it.
-export namespace StringUtils
-{
+export namespace StringUtils {
 
 // Every line ending - \r\n, a lone \r, a lone \n - becomes \r\n.
 // (It took `const StringTraits<TStr>&`, where TStr cannot be deduced, so no call
 // could reach it.)
-CString EnsureCRLF(const std::wstring_view text)
-{
+CString EnsureCRLF(const std::wstring_view text) {
 	static const std::wregex lineEnd(L"\r\n|\r|\n");
 	const std::wstring out = std::regex_replace(std::wstring(text), lineEnd, L"\r\n");
 	return CString(out.data(), gsl::narrow<int>(out.size()));
 }
+
+
 // this is templated to catch all CString variants
-template <IsStupidString TStr>
-CString EnsureCRLF(const TStr& text)
-{
+template <IsATLCStringDuck TStr>
+CString EnsureCRLF(const TStr& text) {
 	return EnsureCRLF(std::wstring_view(StringView{ text }));
 }
 
@@ -1248,8 +1315,7 @@ CString EnsureCRLF(const TStr& text)
  * \ref lhs and \ref rhs. (max n: lhs.Left(n) == rhs.Left(n))
  */
 // std: std::ranges::mismatch(lhs, rhs).in1 - lhs.begin()
-int GetMatchingLength (const CString& lhs, const CString& rhs)
-{
+int GetMatchingLength(const CString& lhs, const CString& rhs) {
 	const int lhsLength = lhs.GetLength();
 	const int rhsLength = rhs.GetLength();
 	const int maxResult = std::min(lhsLength, rhsLength);
@@ -1266,10 +1332,8 @@ int GetMatchingLength (const CString& lhs, const CString& rhs)
 
 
 // std: std::ranges::all_of(text, [](wchar_t c) { return c >= 32 && c < 127; })
-bool IsPlainReadableASCII(const CString& text)
-{
-	for (int i = 0; i < text.GetLength(); ++i)
-	{
+bool IsPlainReadableASCII(const CString& text) {
+	for (int i = 0; i < text.GetLength(); ++i) {
 		if (text[i] < 32 || text[i] >= 127)
 			return false;
 	}
@@ -1278,18 +1342,17 @@ bool IsPlainReadableASCII(const CString& text)
 
 
 // std: basic_string_view::starts_with / ends_with
-bool StartsWith(const wchar_t* heystack, const CString& needle)
-{
+bool StartsWith(const wchar_t* heystack, const CString& needle) {
 	return wcsncmp(heystack, needle, needle.GetLength()) == 0;
 }
 
-bool StartsWith(const char* heystack, const char* needle)
-{
+
+bool StartsWith(const char* heystack, const char* needle) {
 	return strncmp(heystack, needle, strlen(needle)) == 0;
 }
 
-bool EndsWith(const CString& heystack, const wchar_t* needle)
-{
+
+bool EndsWith(const CString& heystack, const wchar_t* needle) {
 	const auto lenNeedle = wcslen(needle);
 	const auto lenHeystack = static_cast<size_t>(heystack.GetLength());
 	if (lenNeedle > lenHeystack)
@@ -1297,35 +1360,34 @@ bool EndsWith(const CString& heystack, const wchar_t* needle)
 	return wcsncmp(static_cast<LPCWSTR>(heystack) + (lenHeystack - lenNeedle), needle, lenNeedle) == 0;
 }
 
-bool EndsWith(const CString& heystack, const wchar_t needle)
-{
+
+bool EndsWith(const CString& heystack, const wchar_t needle) {
 	const auto lenHeystack = heystack.GetLength();
 	if (!lenHeystack)
 		return false;
 	return *(static_cast<LPCWSTR>(heystack) + (lenHeystack - 1)) == needle;
 }
 
+
 // std::wstring / std::wstring_view variants. Constrained rather than taking a
 // plain std::wstring_view haystack: that would make EndsWith(L"literal", ...)
 // ambiguous against the CString overloads (one user-defined conversion each).
-template <IsRealString TStr>
+template <IsStdStringDuck TStr>
 	requires std::same_as<typename TStr::value_type, wchar_t>
-bool EndsWith(const TStr& heystack, const std::wstring_view needle) noexcept
-{
+bool EndsWith(const TStr& heystack, const std::wstring_view needle) noexcept {
 	return std::wstring_view(heystack).ends_with(needle);
 }
 
-template <IsRealString TStr>
+
+template <IsStdStringDuck TStr>
 	requires std::same_as<typename TStr::value_type, wchar_t>
-bool EndsWith(const TStr& heystack, const wchar_t needle) noexcept
-{
+bool EndsWith(const TStr& heystack, const wchar_t needle) noexcept {
 	return std::wstring_view(heystack).ends_with(needle);
 }
 
 
 // std: std::replace(buffer, buffer + length, L'|', L'\0')
-void PipeToNull(wchar_t* ptr)
-{
+void PipeToNull(wchar_t* ptr) {
 	if (*ptr == '|')
 		*ptr = '\0';
 }
@@ -1335,50 +1397,45 @@ void PipeToNull(wchar_t* ptr)
  * Replace all pipe (|) character in the string with a nullptr character. Used
  * for passing into Win32 functions that require such representation
  */
-void PipesToNulls(wchar_t* buffer, const size_t length)
-{
+void PipesToNulls(wchar_t* buffer, const size_t length) {
 	wchar_t* ptr = buffer + length;
-	while (ptr != buffer)
-	{
+	while (ptr != buffer) {
 		PipeToNull(ptr);
 		ptr--;
 	}
 }
 
+
 /// Up to the terminating NUL. This was a default argument `length = 0` on the
 /// overload above, which made every one-argument call a no-op: that loop starts
 /// at buffer + 0 and stops at buffer. TortoiseSVN had the two as overloads.
-void PipesToNulls(wchar_t* buffer)
-{
+void PipesToNulls(wchar_t* buffer) {
 	std::replace(buffer, buffer + wcslen(buffer), L'|', L'\0');
 }
 
 
 // std: view.substr(view.find_first_not_of(...)) / view.substr(0, view.find_last_not_of(...) + 1)
-void TrimLeft(std::string_view& view)
-{
+void TrimLeft(std::string_view& view) {
 	while (!view.empty() && std::isspace(static_cast<unsigned char>(view.front())))
 		view.remove_prefix(1);
 }
 
 
 template <tgit::str::IsTCompString TStr>
-TStr& TrimRight(TStr& obj, const std::optional<std::basic_string_view<typename StringViewTraits<TStr>::char_type>> sbj = std::nullopt)
-{
+TStr& TrimRight(TStr& obj, const std::optional<std::basic_string_view<typename StringViewTraits<TStr>::char_type>> sbj = std::nullopt) {
 	auto v = StringView<TStr>(obj).as_view();
-	while (!v.empty())
-	{
+	while (!v.empty()) {
 		const auto chr = v.back();
-		const bool is_it_still = sbj ? sbj->find(chr) != sbj->npos
-									 : is_space(chr);
-		if (!is_it_still) break;
+		const bool is_it_still = sbj ? sbj->find(chr) != sbj->npos : is_space(chr);
+		if (!is_it_still)
+			break;
 		v.remove_suffix(1);
 	}
 	if constexpr (requires { StringTraits<TStr>::resize(obj, v.size()); })
-		StringTraits<TStr>::resize(obj, v.size());   // an owning string: shrink it
+		StringTraits<TStr>::resize(obj, v.size()); // an owning string: shrink it
 	else
-		obj = obj.substr(0, v.size());               // a view: narrow it, there is nothing to resize
-	return obj;   // CStringT::TrimRight returns *this; keeps chaining call sites compiling
+		obj = obj.substr(0, v.size()); // a view: narrow it, there is nothing to resize
+	return obj; // CStringT::TrimRight returns *this; keeps chaining call sites compiling
 }
 
 
@@ -1388,8 +1445,7 @@ TStr& TrimRight(TStr& obj, const std::optional<std::basic_string_view<typename S
 // Win32 rather than CStdioFile, which is MFC-only: this module is compiled in
 // both flavors. Bytes are read raw (binary - text mode drops some \r) and
 // decoded as UTF-8.
-bool ReadStringFromTextFile(const CString& path, CString& text)
-{
+bool ReadStringFromTextFile(const CString& path, CString& text) {
 	const wil::unique_hfile hFile{ CreateFile(path, GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr) };
 	if (!hFile)
 		return false;
@@ -1414,33 +1470,29 @@ bool ReadStringFromTextFile(const CString& path, CString& text)
  * depending on the \c bUTF8 param.
  */
 // std: std::ofstream(path, std::ios::binary) + CUnicodeUtils, modulo FILE_SHARE_DELETE
-bool WriteStringToTextFile(const std::wstring_view path, const std::wstring_view text, const bool bUTF8 = true)
-{
+bool WriteStringToTextFile(const std::wstring_view path, const std::wstring_view text, const bool bUTF8 = true) {
 	DWORD dwWritten = 0;
 	const wil::unique_hfile hFile{ CreateFile(path.data(), GENERIC_WRITE, FILE_SHARE_DELETE, nullptr, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr) };
 	if (!hFile)
 		return false;
 
-	if (bUTF8)
-	{
+	if (bUTF8) {
 		const std::string buf = CUnicodeUtils::StdGetUTF8(text);
-		if (!WriteFile(hFile.get(), buf.c_str(), static_cast<DWORD>(buf.length()), &dwWritten, nullptr))
-		{
+		if (!WriteFile(hFile.get(), buf.c_str(), static_cast<DWORD>(buf.length()), &dwWritten, nullptr)) {
 			return false;
 		}
 	}
-	else
-	{
-		if (!WriteFile(hFile.get(), text.data(), static_cast<DWORD>(text.length() * sizeof(wchar_t)), &dwWritten, nullptr))
-		{
+	else {
+		if (!WriteFile(hFile.get(), text.data(), static_cast<DWORD>(text.length() * sizeof(wchar_t)), &dwWritten, nullptr)) {
 			return false;
 		}
 	}
 	return true;
 }
-bool WriteStringToTextFile(const LPCWSTR path, const LPCWSTR text, const bool bUTF8 = true)
-{
-	return WriteStringToTextFile(std::wstring_view{path}, std::wstring_view{text}, bUTF8);
+
+
+bool WriteStringToTextFile(const LPCWSTR path, const LPCWSTR text, const bool bUTF8 = true) {
+	return WriteStringToTextFile(std::wstring_view{ path }, std::wstring_view{ text }, bUTF8);
 }
 
 }
@@ -1450,8 +1502,7 @@ bool WriteStringToTextFile(const LPCWSTR path, const LPCWSTR text, const bool bU
 // The extras: what std:: has no spelling for - Win32 UI text, case-insensitive
 // compare, git's From: convention, and command-line quoting. (The clipboard
 // writers went to wil::SetClipboardText.)
-export namespace StringUtils
-{
+export namespace StringUtils {
 
 /**
  * Removes all '&' chars from a string.
@@ -1467,23 +1518,22 @@ void RemoveAccelerators(CString& text) {
 	}
 }
 
+
 /**
  * Escapes all '&' chars from a string with another '&'.
  */
-CString EscapeAccellerators(CString text)
-{
+CString EscapeAccellerators(CString text) {
 	text.Replace(L"&", L"&&");
 	return text;
 }
 
+
 /**
  * Returns the accellerator used in the string or \0
  */
-wchar_t GetAccellerator(const CString& text)
-{
+wchar_t GetAccellerator(const CString& text) {
 	int pos = 0;
-	while ((pos = text.Find(L'&', pos)) >= 0 && pos + 1 < text.GetLength())
-	{
+	while ((pos = text.Find(L'&', pos)) >= 0 && pos + 1 < text.GetLength()) {
 		if (text.GetAt(pos + 1) == '&')
 			++pos;
 		else if (text.GetAt(pos + 1) != ' ')
@@ -1494,8 +1544,7 @@ wchar_t GetAccellerator(const CString& text)
 }
 
 
-CString WordWrap(const CString& longstring, int limit, const bool bCompactPaths, const bool bForceWrap, const int tabSize)
-{
+CString WordWrap(const CString& longstring, int limit, const bool bCompactPaths, const bool bForceWrap, const int tabSize) {
 	const int nLength = longstring.GetLength();
 	CString retString;
 
@@ -1505,58 +1554,47 @@ CString WordWrap(const CString& longstring, int limit, const bool bCompactPaths,
 	int nLineStart = 0;
 	int nLineEnd = 0;
 	int tabOffset = 0;
-	for (int i = 0; i < nLength; ++i)
-	{
-		if (i-nLineStart+tabOffset >= limit)
-		{
-			if (nLineEnd == nLineStart)
-			{
+	for (int i = 0; i < nLength; ++i) {
+		if (i - nLineStart + tabOffset >= limit) {
+			if (nLineEnd == nLineStart) {
 				if (bForceWrap)
 					nLineEnd = i;
-				else
-				{
+				else {
 					while ((i < nLength) && (longstring[i] != ' ') && (longstring[i] != '\t'))
 						++i;
 					nLineEnd = i;
 				}
 			}
-			if (bCompactPaths)
-			{
-				CString longline = longstring.Mid(nLineStart, nLineEnd-nLineStart).Left(MAX_PATH-1);
-				if (longline.GetLength() < MAX_PATH)
-				{
-					if (((!PathIsFileSpec(longline))&&longline.Find(':')<3)||(PathIsURL(longline)))
-					{
+			if (bCompactPaths) {
+				CString longline = longstring.Mid(nLineStart, nLineEnd - nLineStart).Left(MAX_PATH - 1);
+				if (longline.GetLength() < MAX_PATH) {
+					if (((!PathIsFileSpec(longline)) && longline.Find(':') < 3) || (PathIsURL(longline))) {
 						auto buf = std::array<wchar_t, MAX_PATH>{};
-						PathCompactPathEx(buf.data(), longline, limit+1, 0);
+						PathCompactPathEx(buf.data(), longline, limit + 1, 0);
 						longline = buf.data();
 					}
 				}
 				retString += longline;
 			}
 			else
-				retString += longstring.Mid(nLineStart, nLineEnd-nLineStart);
+				retString += longstring.Mid(nLineStart, nLineEnd - nLineStart);
 			retString += L'\n';
 			tabOffset = 0;
 			nLineStart = nLineEnd;
 		}
 		if (longstring[i] == ' ')
 			nLineEnd = i;
-		if (longstring[i] == '\t')
-		{
+		if (longstring[i] == '\t') {
 			tabOffset += (tabSize - i % tabSize);
 			nLineEnd = i;
 		}
 	}
-	if (bCompactPaths)
-	{
-		CString longline = longstring.Mid(nLineStart).Left(MAX_PATH-1);
-		if (longline.GetLength() < MAX_PATH)
-		{
-			if (((!PathIsFileSpec(longline))&&longline.Find(':')<3)||(PathIsURL(longline)))
-			{
+	if (bCompactPaths) {
+		CString longline = longstring.Mid(nLineStart).Left(MAX_PATH - 1);
+		if (longline.GetLength() < MAX_PATH) {
+			if (((!PathIsFileSpec(longline)) && longline.Find(':') < 3) || (PathIsURL(longline))) {
 				auto buf = std::array<wchar_t, MAX_PATH>{};
-				PathCompactPathEx(buf.data(), longline, limit+1, 0);
+				PathCompactPathEx(buf.data(), longline, limit + 1, 0);
 				longline = buf.data();
 			}
 		}
@@ -1568,8 +1606,8 @@ CString WordWrap(const CString& longstring, int limit, const bool bCompactPaths,
 	return retString;
 }
 
-std::vector<CString> WordWrap(const CString& longstring, int limit, const int tabSize)
-{
+
+std::vector<CString> WordWrap(const CString& longstring, int limit, const int tabSize) {
 	const int nLength = longstring.GetLength();
 	std::vector<CString> retVec;
 
@@ -1579,10 +1617,8 @@ std::vector<CString> WordWrap(const CString& longstring, int limit, const int ta
 	int nLineStart = 0;
 	int nLineEnd = 0;
 	int tabOffset = 0;
-	for (int i = 0; i < nLength; ++i)
-	{
-		if (i - nLineStart + tabOffset >= limit)
-		{
+	for (int i = 0; i < nLength; ++i) {
+		if (i - nLineStart + tabOffset >= limit) {
 			if (nLineEnd == nLineStart)
 				nLineEnd = i;
 
@@ -1594,8 +1630,7 @@ std::vector<CString> WordWrap(const CString& longstring, int limit, const int ta
 		}
 		if (longstring[i] == ' ')
 			nLineEnd = i;
-		if (longstring[i] == '\t')
-		{
+		if (longstring[i] == '\t') {
 			tabOffset += (tabSize - i % tabSize);
 			nLineEnd = i;
 		}
@@ -1608,20 +1643,18 @@ std::vector<CString> WordWrap(const CString& longstring, int limit, const int ta
 }
 
 
-CString LinesWrap(const CString& longstring, const int limit = 80, const bool bCompactPaths = true)
-{
+CString LinesWrap(const CString& longstring, const int limit = 80, const bool bCompactPaths = true) {
 	CString retString;
 	if ((longstring.GetLength() < limit) || (limit == 0))
-		return longstring;  // no wrapping needed.
+		return longstring; // no wrapping needed.
 	// now start breaking the string into lines
 
 	int linepos = 0;
 	int lineposold = 0;
 	CString temp;
-	while ((linepos = longstring.Find('\n', linepos)) >= 0)
-	{
-		temp = longstring.Mid(lineposold, linepos-lineposold);
-		if ((linepos+1)<longstring.GetLength())
+	while ((linepos = longstring.Find('\n', linepos)) >= 0) {
+		temp = longstring.Mid(lineposold, linepos - lineposold);
+		if ((linepos + 1) < longstring.GetLength())
 			++linepos;
 		else
 			break;
@@ -1642,29 +1675,25 @@ CString LinesWrap(const CString& longstring, const int limit = 80, const bool bC
 /**
  * Optimizing wrapper around CompareNoCase.
  */
-int FastCompareNoCase (const CString& lhs, const CString& rhs)
-{
+int FastCompareNoCase(const CString& lhs, const CString& rhs) {
 	// attempt latin-only comparison
 
-	const INT_PTR count = std::min(lhs.GetLength(), rhs.GetLength()+1);
+	const INT_PTR count = std::min(lhs.GetLength(), rhs.GetLength() + 1);
 	const wchar_t* left = lhs;
 	const wchar_t* right = rhs;
-	for (const wchar_t* last = left + count+1; left < last; ++left, ++right)
-	{
+	for (const wchar_t* last = left + count + 1; left < last; ++left, ++right) {
 		int leftChar = *left;
 		int rightChar = *right;
 
-		if (int diff = leftChar - rightChar; diff != 0)
-		{
+		if (int diff = leftChar - rightChar; diff != 0) {
 			// case-sensitive comparison found a difference
 
-			if ((leftChar | rightChar) >= 0x80)
-			{
+			if ((leftChar | rightChar) >= 0x80) {
 				// non-latin char -> fall back to CRT code
 				// (full comparison required as we might have
 				// skipped special chars / UTF plane selectors)
 
-				return _wcsicmp (lhs, rhs);
+				return _wcsicmp(lhs, rhs);
 			}
 
 			// normalize to lower case
@@ -1689,13 +1718,12 @@ int FastCompareNoCase (const CString& lhs, const CString& rhs)
 
 
 // Case-insensitive prefix/suffix tests: std:: has no locale-free spelling.
-bool StartsWithI(const wchar_t* heystack, const CString& needle)
-{
+bool StartsWithI(const wchar_t* heystack, const CString& needle) {
 	return _wcsnicmp(heystack, needle, needle.GetLength()) == 0;
 }
 
-bool EndsWithI(const CString& heystack, const wchar_t* needle)
-{
+
+bool EndsWithI(const CString& heystack, const wchar_t* needle) {
 	const auto lenNeedle = wcslen(needle);
 	const auto lenHeystack = static_cast<size_t>(heystack.GetLength());
 	if (lenNeedle > lenHeystack)
@@ -1703,21 +1731,23 @@ bool EndsWithI(const CString& heystack, const wchar_t* needle)
 	return _wcsnicmp(static_cast<LPCWSTR>(heystack) + (lenHeystack - lenNeedle), needle, lenNeedle) == 0;
 }
 
+
 // Constrained for the same reason as the EndsWith templates above.
-template <IsRealString TStr>
+template <IsStdStringDuck TStr>
 	requires std::same_as<typename TStr::value_type, wchar_t>
-bool EndsWithI(const TStr& heystack, const std::wstring_view needle) noexcept
-{
+bool EndsWithI(const TStr& heystack, const std::wstring_view needle) noexcept {
 	const std::wstring_view h(heystack);
 	return h.size() >= needle.size() && _wcsnicmp(h.data() + (h.size() - needle.size()), needle.data(), needle.size()) == 0;
 }
 
 
-struct EmailAddress
-{
+
+struct EmailAddress {
 	std::wstring address;
 	std::wstring name;
 };
+
+
 
 /**
  * Splits a From:-style string into address and display name, best effort.
@@ -1732,8 +1762,7 @@ struct EmailAddress
  * over 60 characters, or containing @, < or > - which is git's get_sane_name().
  * Not an RFC 5322 parser: no groups, no encoded words, no nested comments.
  */
-EmailAddress ParseEmailAddress(const std::wstring_view input)
-{
+EmailAddress ParseEmailAddress(const std::wstring_view input) {
 	static const std::wregex quotedName(LR"re(^\s*"((?:[^"\\]|\\.)*)"([\s\S]*)$)re");
 	static const std::wregex escapedQuote(LR"(\\")");
 	static const std::wregex atToken(LR"(<?([^\s<]*@[^\s>]*)>?)");
@@ -1756,19 +1785,16 @@ EmailAddress ParseEmailAddress(const std::wstring_view input)
 		return result;
 
 	std::wstring quoted;
-	if (std::wsmatch m; std::regex_match(rest, m, quotedName))
-	{
+	if (std::wsmatch m; std::regex_match(rest, m, quotedName)) {
 		quoted = std::regex_replace(m[1].str(), escapedQuote, L"\"");
 		rest = m[2].str();
 	}
 
-	if (std::wsmatch m; std::regex_search(rest, m, atToken))
-	{
+	if (std::wsmatch m; std::regex_search(rest, m, atToken)) {
 		result.address = m[1].str();
 		rest = m.prefix().str() + L' ' + m.suffix().str();
 	}
-	else if (std::regex_search(rest, m, bracketed))
-	{
+	else if (std::regex_search(rest, m, bracketed)) {
 		// "John Doe <johndoe>": an address without an '@'
 		result.address = m[2].str();
 		rest = m[1].str();
@@ -1776,8 +1802,7 @@ EmailAddress ParseEmailAddress(const std::wstring_view input)
 	else
 		return { .address = {}, .name = quoted };
 
-	if (!quoted.empty())
-	{
+	if (!quoted.empty()) {
 		result.name = std::move(quoted);
 		return result;
 	}
@@ -1795,14 +1820,11 @@ EmailAddress ParseEmailAddress(const std::wstring_view input)
  * Expands placeholders to corresponding values provided in the map replacements.
  * This method makes sure that values cannot contain other placeholders that may be replaced later on.
  */
-CString ExpandPlaceholdersForCmd(const CString& input, const std::map<CString, CString>& values, CString (*escaper)(const CString&))
-{
+CString ExpandPlaceholdersForCmd(const CString& input, const std::map<CString, CString>& values, CString (*escaper)(const CString&)) {
 	CString result;
 	const int len = input.GetLength();
-	for (int i = 0; i < len; ++i)
-	{
-		if (input[i] != L'%')
-		{
+	for (int i = 0; i < len; ++i) {
+		if (input[i] != L'%') {
 			result += input[i];
 			continue;
 		}
@@ -1812,17 +1834,14 @@ CString ExpandPlaceholdersForCmd(const CString& input, const std::map<CString, C
 		while (j < len && std::iswalnum(input[j]))
 			++j;
 
-		if (j == start)
-		{
+		if (j == start) {
 			result += L'%';
 			continue;
 		}
 
 		CString key = input.Mid(start, j - start);
-		if (auto it = values.find(key); it != values.end())
-		{
-			if (i > 0 && input.GetAt(i - 1) == L'"' && j < len && input.GetAt(j) == L'"')
-			{
+		if (auto it = values.find(key); it != values.end()) {
+			if (i > 0 && input.GetAt(i - 1) == L'"' && j < len && input.GetAt(j) == L'"') {
 				result.Truncate(result.GetLength() - 1);
 				++i;
 			}
@@ -1851,28 +1870,24 @@ CString ExpandPlaceholdersForCmd(const CString& input, const std::map<CString, C
  */
 // algorithm based on https://learn.microsoft.com/en-gb/archive/blogs/twistylittlepassagesallalike/everyone-quotes-command-line-arguments-the-wrong-way
 // also cf. https://learn.microsoft.com/en-us/cpp/cpp/main-function-command-line-args
-std::wstring EscapeWindowsCliArgument(const std::wstring_view argument)
-{
+std::wstring EscapeWindowsCliArgument(const std::wstring_view argument) {
 	std::wstring result;
 	result.reserve(argument.size() + 2);
 	result += L'"';
 
 	const size_t length = argument.size();
 
-	for (size_t i = 0;; ++i)
-	{
+	for (size_t i = 0;; ++i) {
 		size_t numberBackslashes = 0;
 
 		// Count consecutive backslashes
-		while (i < length && argument[i] == L'\\')
-		{
+		while (i < length && argument[i] == L'\\') {
 			++i;
 			++numberBackslashes;
 		}
 
 		// End of string
-		if (i >= length)
-		{
+		if (i >= length) {
 			// Escape all backslashes, but let the terminating double quotation mark we add below be interpreted as a metacharacter.
 			result.append(numberBackslashes * 2, L'\\');
 			break;
@@ -1898,17 +1913,15 @@ std::wstring EscapeWindowsCliArgument(const std::wstring_view argument)
  * A lone backslash needs nothing: backslashes are only special immediately
  * before a quote, and there is no quote here to be before.
  */
-bool NeedsWindowsCliQuoting(const std::wstring_view argument)
-{
+bool NeedsWindowsCliQuoting(const std::wstring_view argument) {
 	// An empty element has to be quoted, or it disappears from the round trip.
 	return argument.empty() || argument.find_first_of(L" \t\n\v\"") != std::wstring_view::npos;
 }
 
 
-CString EscapeWindowsCliArguments(const CString& argument)
-{
+CString EscapeWindowsCliArguments(const CString& argument) {
 	const std::wstring escaped = EscapeWindowsCliArgument(std::wstring_view(argument, argument.GetLength()));
-	return {escaped.data(), static_cast<int>(escaped.size())};
+	return { escaped.data(), static_cast<int>(escaped.size()) };
 }
 
 

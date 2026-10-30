@@ -27,10 +27,9 @@ std::wstring GetCompatibleDLLVersion(const std::wstring& appPath) {
 	CSimpleIni hotfixIniFile;
 	if (hotfixIniFile.LoadFile((appPath + L"\\hotfix.ini").data()) == SI_OK) {
 		if (const auto* langpackversion = hotfixIniFile.GetValue(L"tortoisegit", L"versionstringlanguagepacks"); langpackversion) {
-			using namespace std::ranges;
-			auto in_narrow = til::WStringToUTF8(langpackversion);
-			auto versionComponents = tgit::zstr::version_tok(in_narrow);
+			const auto in_narrow = til::WStringToUTF8(langpackversion);
 			if (
+				const auto versionComponents = tgit::str::version_tok(in_narrow);
 				versionComponents.size() == 4 &&
 				versionComponents.at(0).value_or(0) == TGIT_VERMAJOR &&
 				versionComponents.at(1).value_or(0) == TGIT_VERMINOR &&

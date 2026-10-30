@@ -29,8 +29,6 @@ struct EnvNameLess {
 	}
 };
 
-using MAP_ENVIRONMENT = std::map<std::wstring, std::wstring, EnvNameLess>;
-
 
 constexpr auto Z3_EXTREME_BOUND_ON_SIZE = 1U << 23U;
 constexpr auto KEY_VALUE_SEPARATOR = L"="sv;
@@ -67,47 +65,38 @@ constexpr auto PATH_DELIMITER = L";"sv;
  */
 export class CEnvironment {
 
-	MAP_ENVIRONMENT m_vars;
+	mutable std::map<std::wstring, std::wstring, EnvNameLess> m_vars;
 	/// The serialized "name=value\0...\0\0" block, rebuilt on every mutation.
-	std::vector<wchar_t> m_block;
+	mutable std::vector<wchar_t> m_block;
 	/// Repointed at m_block by every Serialize(); its *address* is what is handed out.
-	std::vector<wchar_t>::pointer m_baseptr = {};
+	mutable std::vector<wchar_t>::pointer m_baseptr{};
 
+
+	void Serialize() const {
+		m_block.clear();
+		if (m_vars.empty()) {
+			m_baseptr = nullptr; // an empty environment is nullptr, not an empty block
+			return;
+		}
+
+		for (const auto& [name, value] : m_vars) {
+			m_block.insert(m_block.end(), name.cbegin(), name.cend());
+			m_block.push_back(KEY_VALUE_SEPARATOR.front());
+			m_block.insert(m_block.end(), value.cbegin(), value.cend());
+			m_block.push_back(ENTRY_SEPARATOR.front());
+		}
+		m_block.push_back(ENTRY_SEPARATOR.front()); // the block's own terminator, after the last entry's
+		m_baseptr = m_block.data();
+	}
 
 public:
-	~CEnvironment() = default;
-
-	CEnvironment() {
-		CopyProcessEnvironment();
-	}
-
-	CEnvironment(const CEnvironment& env) : m_vars(env.m_vars) { Serialize(); }
-
-	CEnvironment& operator=(const CEnvironment& env) {
-		if (this != &env) {
-			m_vars = env.m_vars;
-			Serialize();
-		}
-		return *this;
-	}
-
-	// Deleted for the same reason they were before: m_baseptr's address is handed
-	// out and retained, so an object that has been moved from would leave its
-	// consumers pointing at an empty block.
-	CEnvironment(CEnvironment&& env) = delete;
-	CEnvironment& operator=(CEnvironment&& env) = delete;
-
-	void clear() {
-		m_vars.clear();
-		Serialize(); // it cleared m_vars twice and never this, so the block kept the old environment
-	}
 
 	[[nodiscard]] bool empty() const { return m_vars.empty(); }
 	[[nodiscard]] std::wstring GetEnv(const std::wstring_view name) const {
 		const auto it = m_vars.find(name);
 		return it == m_vars.cend() ? std::wstring() : it->second;
 	}
-	void SetEnv(const std::wstring_view name, const std::wstring_view value) {
+	void SetEnv(const std::wstring_view name, const std::wstring_view value) const {
 		// Erase before inserting rather than insert_or_assign, so the *passed* spelling
 		// of the name survives when it differs in case from what is already stored. The
 		// map is case-insensitive, so insert_or_assign would keep the older spelling,
@@ -119,7 +108,7 @@ public:
 	}
 	/// Removes a variable. This used to be SetEnv(name, nullptr) - a deletion
 	/// spelled as an assignment, and invisible at the ~20 call sites that use it.
-	void UnsetEnv(const std::wstring_view name) {
+	void UnsetEnv(const std::wstring_view name) const {
 		if (m_vars.erase(std::wstring(name)) == 0)
 			return; // nothing removed, so the block cannot have changed
 		Serialize();
@@ -136,10 +125,10 @@ public:
 	/// put() used to be reinterpret_cast<wchar_t**>(m_block.data()) - the
 	/// block itself posing as a pointer-to-pointer, so every consumer's *pEnv read
 	/// the first characters of "NAME=value" as an address. It is &m_baseptr.
-	[[nodiscard]] auto* put() noexcept { return &m_baseptr; }
+	[[nodiscard]] const LPWSTR* put() const noexcept { return &m_baseptr; }
 
 
-	void AddToPath(const std::wstring_view value_view) {
+	void AddToPath(const std::wstring_view value_view) const {
 		// PATH entries compare the way Windows reads them: case-insensitively, and
 		// with a trailing separator ignored. fs::path's == does neither - it is
 		// case-sensitive, and "c:\windows\" has one element more than "c:\windows".
@@ -170,7 +159,7 @@ public:
 
 	/// Merges the process's own environment in. Variables already set here win,
 	/// which is what the flat block did by returning the first match on lookup.
-	void CopyProcessEnvironment() {
+	void CopyProcessEnvironment() const {
 		const auto porig = wil::unique_environment_block{ GetEnvironmentStrings() };
 		if (!porig)
 			return;
@@ -202,22 +191,8 @@ public:
 
 		Serialize();
 	}
-
-private:
-	void Serialize() {
-		m_block.clear();
-		if (m_vars.empty()) {
-			m_baseptr = nullptr; // an empty environment is nullptr, not an empty block
-			return;
-		}
-
-		for (const auto& [name, value] : m_vars) {
-			m_block.insert(m_block.end(), name.cbegin(), name.cend());
-			m_block.push_back(KEY_VALUE_SEPARATOR.front());
-			m_block.insert(m_block.end(), value.cbegin(), value.cend());
-			m_block.push_back(ENTRY_SEPARATOR.front());
-		}
-		m_block.push_back(ENTRY_SEPARATOR.front()); // the block's own terminator, after the last entry's
-		m_baseptr = m_block.data();
-	}
 };
+
+export namespace Environment {
+	const CEnvironment g_Environment;
+}

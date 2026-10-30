@@ -59,7 +59,7 @@ bool CatCommand::Execute()
 			wil::unique_git_buf buf;
 			git_blob_filter_options opts = GIT_BLOB_FILTER_OPTIONS_INIT;
 			opts.flags &= ~static_cast<uint32_t>(GIT_BLOB_FILTER_CHECK_FOR_BINARY);
-			if (git_blob_filter(&buf, reinterpret_cast<git_blob*>(obj.get()), CUnicodeUtils::Convert2Multibyte<CStringA>(cmdLinePath.GetGitPathString().c_str()), &opts))
+			if (git_blob_filter(&buf, reinterpret_cast<git_blob*>(obj.get()), CUnicodeUtils::GetUTF8<CStringA>(cmdLinePath.GetGitPathString().c_str()), &opts))
 			{
 				::DeleteFile(savepath);
 				MessageBox(GetExplorerHWND(), TGitH::GetLibGit2LastErr(L"Could not get filtered content."), L"TortoiseGit", MB_ICONERROR);
