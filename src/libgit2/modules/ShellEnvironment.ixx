@@ -64,22 +64,41 @@ constexpr auto PATH_DELIMITER = L";"sv;
  *    Windows is.
  */
 export class CEnvironment {
+	using map_t = std::map<std::wstring, std::wstring, EnvNameLess>;
 
-	mutable std::map<std::wstring, std::wstring, EnvNameLess> m_vars;
-	/// The serialized "name=value\0...\0\0" block, rebuilt on every mutation.
-	mutable std::vector<wchar_t> m_block;
-	/// Repointed at m_block by every Serialize(); its *address* is what is handed out.
+	struct State {
+		map_t vars;
+		/// The serialized "name=value\0...\0\0" block, rebuilt on every mutation.
+		std::vector<wchar_t> block;
+	};
+
+	/// Engaged on first use. MSVC's std::map allocates its sentinel node, and a
+	/// debug std::vector its iterator proxy, in non-constexpr constructors; held
+	/// directly they make g_Environment dynamically initialized - and g_Git's
+	/// constructor, in another module, read it before that ran (a null map head).
+	/// An empty optional is constexpr, so the global is constinit: the compiler
+	/// now rejects any member that would bring the ordering problem back.
+	mutable std::optional<State> m_state;
+	[[nodiscard]] State& state() const {
+		if (!m_state)
+			m_state.emplace();
+		return *m_state;
+	}
+	[[nodiscard]] map_t& vars() const { return state().vars; }
+
+	/// Repointed at the block by every Serialize(); its *address* is what is handed out.
 	mutable std::vector<wchar_t>::pointer m_baseptr{};
 
 
 	void Serialize() const {
+		auto& m_block = state().block;
 		m_block.clear();
-		if (m_vars.empty()) {
+		if (vars().empty()) {
 			m_baseptr = nullptr; // an empty environment is nullptr, not an empty block
 			return;
 		}
 
-		for (const auto& [name, value] : m_vars) {
+		for (const auto& [name, value] : vars()) {
 			m_block.insert(m_block.end(), name.cbegin(), name.cend());
 			m_block.push_back(KEY_VALUE_SEPARATOR.front());
 			m_block.insert(m_block.end(), value.cbegin(), value.cend());
@@ -91,10 +110,10 @@ export class CEnvironment {
 
 public:
 
-	[[nodiscard]] bool empty() const { return m_vars.empty(); }
+	[[nodiscard]] bool empty() const { return vars().empty(); }
 	[[nodiscard]] std::wstring GetEnv(const std::wstring_view name) const {
-		const auto it = m_vars.find(name);
-		return it == m_vars.cend() ? std::wstring() : it->second;
+		const auto it = vars().find(name);
+		return it == vars().cend() ? std::wstring() : it->second;
 	}
 	void SetEnv(const std::wstring_view name, const std::wstring_view value) const {
 		// Erase before inserting rather than insert_or_assign, so the *passed* spelling
@@ -102,14 +121,14 @@ public:
 		// map is case-insensitive, so insert_or_assign would keep the older spelling,
 		// and the cygwin/msys builds hand this block to a shell that is not as relaxed
 		// about that as Windows is.
-		m_vars.erase(name);
-		m_vars.emplace(name, value);
+		vars().erase(name);
+		vars().emplace(name, value);
 		Serialize();
 	}
 	/// Removes a variable. This used to be SetEnv(name, nullptr) - a deletion
 	/// spelled as an assignment, and invisible at the ~20 call sites that use it.
 	void UnsetEnv(const std::wstring_view name) const {
-		if (m_vars.erase(std::wstring(name)) == 0)
+		if (vars().erase(std::wstring(name)) == 0)
 			return; // nothing removed, so the block cannot have changed
 		Serialize();
 	}
@@ -186,7 +205,7 @@ public:
 			Expects(keyval_pair[key_len] == KEY_VALUE_SEPARATOR.front());
 			const auto val_sv = keyval_pair.substr(key_len + KEY_VALUE_SEPARATOR.size());
 			// emplace, not insert_or_assign: what is already set here wins, which is what the flat block did by returning the first match on lookup.
-			m_vars.emplace(key_sv, val_sv);
+			vars().emplace(key_sv, val_sv);
 		}
 
 		Serialize();
@@ -194,5 +213,5 @@ public:
 };
 
 export namespace Environment {
-	const CEnvironment g_Environment;
+	constinit const CEnvironment g_Environment;
 }

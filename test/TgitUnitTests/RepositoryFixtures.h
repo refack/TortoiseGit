@@ -35,9 +35,9 @@ enum config
 
 static bool GetResourcesDir(fs::path& resourcesDir)
 {
-	resourcesDir = (PathUtils::GetAppDirectory() + L"\\resources");
+	resourcesDir = PathUtils::GetAppDirectory() / L"resources";
 	if (!fs::is_directory(resourcesDir))
-		resourcesDir = fs::canonical(PathUtils::GetAppDirectory() + L"\\..\\..\\..\\test\\UnitTests\\resources");
+		resourcesDir = fs::weakly_canonical(PathUtils::GetAppDirectory() / L"..\\..\\..\\test\\UnitTests\\resources");
 #ifdef TGIT_TEST_RESOURCES_DIR
 	// The CMake build says where the sources are, so its binary directory can be
 	// anywhere; the relative probe above only fits the vcxproj's bin\Debug64\bin.
@@ -118,7 +118,9 @@ class CBasicGitWithTestRepoCreatorFixture : public CBasicGitFixture
 {
 protected:
 	CBasicGitWithTestRepoCreatorFixture(const CString& arepo = L"git-repo1")
-	: prefix(L"\\.git")
+	// relative: fs::path's operator/ *replaces* everything after the drive with a
+	// right-hand side that has a root directory, so tmp / L"\\.git" was C:\.git
+	: prefix(L".git")
 	, m_reponame(arepo)
 	{
 	}
@@ -133,7 +135,7 @@ protected:
 			EXPECT_TRUE(fs::create_directory(path / prefix));
 		fs::path repoDir = resourcesDir / m_reponame.GetString();
 		CopyRecursively(repoDir.c_str(), (path / prefix).c_str());
-		fs::path configFile = path / prefix / L"\\config";
+		fs::path configFile = path / prefix / L"config";
 		CString text;
 		ASSERT_TRUE(StringUtils::ReadStringFromTextFile(configFile.c_str(), text));
 		text += L"\n[core]\n  autocrlf = false\n[user]\n  name = User\n  email = user@example.com\n";

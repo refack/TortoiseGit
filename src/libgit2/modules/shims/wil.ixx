@@ -714,30 +714,27 @@ class CFormatMessageWrapper {
 	size_t length = {};
 	std::wstring message;
 
-	// The Dark Art incantation that has lived for over 30 years.
-	static constexpr auto DarkArt(const std::uint32_t err_id_arg, const LPWSTR& buf_ptr = {}, const size_t buf_cap = 0) {
-		auto&& ret = FormatMessageW(
+public:
+	/// The Dark Art incantation that has lived for over 30 years. There is no
+	/// two-call sizing here: with FORMAT_MESSAGE_ALLOCATE_BUFFER, lpBuffer is an
+	/// LPWSTR* that FormatMessage fills with a LocalAlloc'd block. Treated as a
+	/// two-call API, the sizing call failed (0) and the second wrote a pointer
+	/// into a zero-length buffer, then returned more than resize_and_overwrite gave.
+	explicit CFormatMessageWrapper(const std::optional<DWORD> maybe_err_id = std::nullopt)
+	: err_id(maybe_err_id ? *maybe_err_id : ::GetLastError())
+	{
+		wil::unique_hlocal_string buffer;
+		length = size_t_cast(::FormatMessageW(
 			FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
 			nullptr,
-			err_id_arg,
-			MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-			// Default language
-			buf_ptr,
-			win32_cast(buf_cap),
+			err_id,
+			MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), // Default language
+			reinterpret_cast<LPWSTR>(buffer.put()),
+			0,
 			nullptr
-		);
-		return size_t_cast(ret);
-	}
-public:
-	explicit CFormatMessageWrapper(const std::optional<DWORD> maybe_err_id = std::nullopt)
-	: err_id(maybe_err_id.value_or(0))
-	{
-		if (!maybe_err_id)
-			err_id = ::GetLastError();
-		length = DarkArt(err_id, nullptr);
-		message.resize_and_overwrite(length, [&](wchar_t* buf_ptr, const auto buf_cap) -> size_t {
-			return DarkArt(err_id, buf_ptr, buf_cap);
-		});
+		));
+		if (length)
+			message.assign(buffer.get(), length);
 	}
 
 	explicit operator bool() const { return length != 0; }

@@ -65,7 +65,10 @@ void ReplaceAll(std::wstring& s, const std::wstring_view from, const std::wstrin
 
 /// Adds the trailing separator a bare drive needs: "C:" is the current directory
 /// *on* C:, "C:\" is its root.
-constexpr void SanitizeRootPath(const std::wstring& path, const wchar_t separator = {}) {}
+constexpr void SanitizeRootPath(std::wstring& path, const wchar_t separator) {
+	if (path.size() == 2 && path[1] == L':')
+		path += separator;
+}
 
 
 /// The forward-slash (git) form of a path, exactly as CTGitPath stores it.
@@ -641,9 +644,13 @@ bool HasAdminDir(
 	bool* isAdminDirPath = nullptr
 ) {
 	auto path = fs::path{ path_arg };
-	if (!isDirectory || fs::is_directory(path)) {
-		// e.g "C:\"
-		if (path.string().size() <= 3)
+	if (path.empty())
+		return false;
+	// a file is looked up from its directory; the caller says which it is, so
+	// no disk access here (TGitCache asks for paths that no longer exist)
+	if (!isDirectory) {
+		// e.g "C:\" - native(), not string(): that converts through the ACP and can throw
+		if (path.native().size() <= 3)
 			return false;
 		path = path.parent_path();
 	}
@@ -687,8 +694,10 @@ bool HasAdminDir(
 		else if (IsBareRepo(path.c_str()))
 			return false;
 #endif
-		if (fs::is_directory(path))
+		// walk up; a root ("C:\", "\\server\share\") is its own parent_path, so stop there
+		if (!path.has_relative_path())
 			break;
+		path = path.parent_path();
 	}
 
 	return false;
@@ -967,7 +976,7 @@ public:
 	/// As SetFromGit, from the UTF-8 git and libgit2 hand out.
 	void SetFromGit(const std::string_view pPath) {
 		Reset();
-		if (!pPath.empty())
+		if (pPath.empty())
 			return;
 		m_sFwdslashPath = CUnicodeUtils::StdGetUnicode(pPath);
 		detail::SanitizeRootPath(m_sFwdslashPath, L'/');
@@ -1012,15 +1021,16 @@ public:
 	/**
 	 * Returns the path in Windows format, i.e. with backslashes
 	 */
-	const std::wstring& GetWString() const { return m_sBackslashPath; }
+	const std::wstring& GetWString() const { return GetWinPathString(); }
 	/**
 	 * Returns the path in Windows format, i.e. with backslashes
 	 */
-	LPCWSTR GetWinPath() const { return m_sBackslashPath.c_str(); }
+	LPCWSTR GetWinPath() const { return GetWinPathString().c_str(); }
 	/**
-	 * Returns the path in Windows format, i.e. with backslashes
+	 * Returns the path in Windows format, i.e. with backslashes. A path set from
+	 * the git side holds only its forward-slash form until asked for this one.
 	 */
-	const std::wstring& GetWinPathString() const { return m_sBackslashPath; }
+	const std::wstring& GetWinPathString() const { EnsureBackslashPathSet(); return m_sBackslashPath; }
 	/**
 	 * Returns the path with forward slashes.
 	 */
@@ -1101,10 +1111,11 @@ public:
 	/**
 	 * Checks if two paths are equal. The slashes are taken care of.
 	 */
-	auto operator<=>(const CTGitPath& rhs) const {
-		return !m_sBackslashPath.empty() ?
-		m_sBackslashPath <=> rhs.m_sBackslashPath :
-		m_sFwdslashPath <=> rhs.m_sFwdslashPath;
+	/// Windows' order: the backslash forms, case-insensitively. Comparing whichever
+	/// member happened to be set compared a fwd- against a backslash form, and
+	/// case-sensitively, so "c:\a" sorted after "c:/B".
+	std::weak_ordering operator<=>(const CTGitPath& rhs) const {
+		return tgit::wstr::CompareNoCase(GetWinPathString(), rhs.GetWinPathString()) <=> 0;
 	}
 
 
@@ -1486,12 +1497,12 @@ struct CTGitPathList {
 
 		// first entry is common root for itself
 		// (add trailing '\\' to detect partial matches of the last path element)
-		std::wstring root = m_paths[0].GetWinPathString();
+		std::wstring root = m_paths[0].GetWinPathString() + L'\\';
 		int rootLength = static_cast<int>(root.size());
 
 		// determine common path string prefix
 		for (auto it = m_paths.cbegin() + 1; it != m_paths.cend(); ++it) {
-			const std::wstring path = it->GetWinPathString();
+			const std::wstring path = it->GetWinPathString() + L'\\';
 
 			const int newLength = detail::GetMatchingLength(root, path);
 			if (newLength != rootLength) {
@@ -1501,8 +1512,11 @@ struct CTGitPathList {
 		}
 
 		// remove the last (partial) path element
-		if (rootLength > 0)
-			root.resize(std::max(0ull, root.rfind(L'\\')));
+		// (no '\\' at all is npos, which resize would throw on: that root is empty)
+		if (rootLength > 0) {
+			const auto lastSep = root.rfind(L'\\');
+			root.resize(lastSep == std::wstring::npos ? 0 : lastSep);
+		}
 
 		// done
 		return CTGitPath{ root };
@@ -1662,7 +1676,8 @@ void CTGitPath::SetFromUnknown(const std::wstring_view sPath) {
 
 
 const std::wstring& CTGitPath::GetGitPathString() const {
-	return m_sBackslashPath;
+	EnsureFwdslashPathSet();
+	return m_sFwdslashPath;
 }
 
 
@@ -2246,9 +2261,9 @@ bool CTGitPath::IsRegisteredSubmoduleOfParentProject(std::wstring* parentProject
 
 	const wil::unique_git_config config = detail::NewConfig();
 	git_config_add_file_ondisk(config.get(), ToGitPathA(gitmodules).c_str(), GIT_CONFIG_LEVEL_APP, nullptr, FALSE);
-	// std::wstring relativePath = tgit::wstr::Mid(GetWinPathString(), gsl::narrow<int>(topProjectDir.size()));
-	std::unreachable();
-	std::wstring relativePath;
+	// clamped, as CString::Mid was: a path shorter than its top dir yields ""
+	const std::wstring_view fullPath = GetWinPathString();
+	std::wstring relativePath{ fullPath.substr(std::min(fullPath.size(), topProjectDir.size())) };
 	std::ranges::replace(relativePath, L'\\', L'/');
 	tgit::wstr::Trim(relativePath, L"/");
 	std::string submodulePath = CUnicodeUtils::StdGetUTF8(relativePath);

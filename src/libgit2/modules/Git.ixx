@@ -616,8 +616,7 @@ namespace details {
 	const bool g_bSortLogical = !wil::reg::get_bool(HKEY_CURRENT_USER, sw_Explorer, L"NoStrCmpLogical", false) &&
 		!wil::reg::get_bool(HKEY_LOCAL_MACHINE, sw_Explorer, L"NoStrCmpLogical", false);
 	const bool g_bSortLocalBranchesFirst = !wil::reg::get_bool(HKEY_CURRENT_USER, Registry::TortoiseGitKey, L"NoSortLocalBranchesFirst", false) &&
-		!wil::reg::get_bool(HKEY_LOCAL_MACHINE, Registry::TortoiseGitKey, L"NoSortLocalBranchesFirst", false) &&
-		wil::reg::get_bool(HKEY_LOCAL_MACHINE, Registry::TortoiseGitKey, L"SortTagsReversed", false);
+		!wil::reg::get_bool(HKEY_LOCAL_MACHINE, Registry::TortoiseGitKey, L"NoSortLocalBranchesFirst", false);
 
 	const bool g_bSortTagsReversed = wil::reg::get_bool(HKEY_CURRENT_USER, Registry::TortoiseGitKey, L"SortTagsReversed", false);
 
@@ -627,7 +626,9 @@ namespace details {
 		return StrCmpIW(left, right);
 	}
 
-	int LogicalCompareBranchesPredicate(const std::wstring_view left, const std::wstring_view right) {
+	/// A sort predicate, so bool and "less": returning LogicalCompareSz's int read
+	/// as "differs", which the debug STL rejects as an invalid comparator.
+	bool LogicalCompareBranchesPredicate(const std::wstring_view left, const std::wstring_view right) {
 		if (g_bSortLocalBranchesFirst) {
 			const bool leftIsRemote = left.starts_with(L"remotes/");
 			const bool rightIsRemote = right.starts_with(L"remotes/");
@@ -637,16 +638,17 @@ namespace details {
 			else if (!leftIsRemote && rightIsRemote)
 				return true;
 		}
-		return LogicalCompareSz(left.data(), right.data());
+		return LogicalCompareSz(left.data(), right.data()) < 0;
 	}
 
 	struct CustomPred
 	{
 		const bool Reverse = false;
-		const bool Logical = false;
 
 		bool operator()(const std::wstring_view left, const std::wstring_view right) const {
-			const auto comperator = Logical ? &StrCmpLogicalW : &StrCmpIW;
+			// read per call: g_bSortLogical is the user's Explorer setting, which a
+			// constexpr member defaulting to false had silently overridden
+			const auto comperator = g_bSortLogical ? &StrCmpLogicalW : &StrCmpIW;
 			if (!Reverse)
 				return comperator(left.data(), right.data()) < 0;
 			else

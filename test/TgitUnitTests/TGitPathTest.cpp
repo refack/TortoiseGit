@@ -469,8 +469,8 @@ TEST(CTGitPath, ListLoadingTest)
 
 	EXPECT_EQ(3, testList.GetCount());
 	EXPECT_EQ(fs::path(buf) / L"Path1", testList[0].GetWinPathString());
-	EXPECT_EQ(L"c:\\path2 with spaces and stuff", testList[1].GetWinPathString().c_str());
-	EXPECT_EQ(L"\\funnypath", testList[2].GetWinPathString().c_str());
+	EXPECT_STREQ(L"c:\\path2 with spaces and stuff", testList[1].GetWinPathString().c_str());
+	EXPECT_STREQ(L"\\funnypath", testList[2].GetWinPathString().c_str());
 
 	EXPECT_STREQ(L"", testList.GetCommonRoot().GetWinPathString().c_str());
 	testList.Clear();

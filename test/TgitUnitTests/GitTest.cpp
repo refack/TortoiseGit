@@ -1736,11 +1736,11 @@ TEST_P(CBasicGitWithTestRepoFixture, Config)
 	EXPECT_STREQ(L"not-found", g_Git.GetConfigValue(L"test.fromincluded", L"not-found"));
 	EXPECT_EQ(0, m_Git.SetConfigValue(L"include.path", L"~/a-path-that-should-not-exist.gconfig"));
 	EXPECT_STREQ(L"~/a-path-that-should-not-exist.gconfig", g_Git.GetConfigValue(L"include.path", L"not-found"));
-	CString testFile = TGitH::GetHomeDirectory() + L"\\a-path-that-should-not-exist.gconfig";
-	ASSERT_FALSE(fs::exists(testFile.GetString())); // make sure we don't override a file by mistake ;)
-	EXPECT_TRUE(StringUtils::WriteStringToTextFile(testFile, L"[test]\nfromincluded=yeah-this-is-included\n"));
+	const auto testFile = TGitH::GetHomeDirectory() / L"a-path-that-should-not-exist.gconfig";
+	ASSERT_FALSE(fs::exists(testFile)); // make sure we don't override a file by mistake ;)
+	EXPECT_TRUE(StringUtils::WriteStringToTextFile(testFile.c_str(), L"[test]\nfromincluded=yeah-this-is-included\n"));
 	EXPECT_STREQ(L"yeah-this-is-included", g_Git.GetConfigValue(L"test.fromincluded", L"not-found"));
-	EXPECT_TRUE(::DeleteFile(testFile));
+	EXPECT_TRUE(fs::remove(testFile));
 }
 
 TEST_P(CBasicGitWithTestRepoFixture, GetWorkingTreeChanges)

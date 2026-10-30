@@ -467,8 +467,10 @@ struct StringView : std_view_t {
 	using char_type = cnv_view_t::char_type;
 	using const_pointer = cnv_view_t::const_pointer;
 
+	// cnv_view_t's, not this->: the base is what is being initialized, so its
+	// data() and size() would read uninitialized members and ignore s entirely.
 	constexpr explicit StringView(const TStr& s) noexcept :
-		std_view_t{ this->data(), this->size() } {}
+		std_view_t{ cnv_view_t::data(s), cnv_view_t::size(s) } {}
 
 
 	constexpr explicit StringView(const cnv_view_t::const_pointer s) noexcept :
@@ -1159,9 +1161,10 @@ std::string StdGetMulti(const std::wstring_view wide, const int acp = CP_UTF8, c
 
 
 int StdGetCPCode(const std::wstring_view codename_arg) {
-	std::wstring codename;
-	std::ranges::transform(codename_arg, codename.begin(), ::towlower);
-	auto&& opt_cp = codepage_map::find_codepage(codename_arg);
+	// the table is lower-case; transform into an empty string's begin() wrote past its end
+	std::wstring codename{ codename_arg };
+	std::ranges::transform(codename, codename.begin(), ::towlower);
+	auto&& opt_cp = codepage_map::find_codepage(codename);
 	return opt_cp.value_or(CP_UTF8);
 }
 
@@ -1509,12 +1512,12 @@ export namespace StringUtils {
  * isomorph to `s/&(\w)/$1/`
  */
 void RemoveAccelerators(CString& text) {
-	for (auto pos = text.Find('&', 0); pos < text.GetLength(); ++pos) {
-		if (text.GetLength() <= pos - 1)
-			continue;
-		if (text.GetAt(pos + 1) == ' ')
-			continue;
-		text.Delete(pos);
+	// Find again from pos on every turn: stepping pos alone walked every character
+	// past the first '&' (and from -1 when there was none), deleting them.
+	// GetAt(GetLength()) is the terminator, so a trailing '&' is removed too.
+	for (int pos = 0; (pos = text.Find(L'&', pos)) >= 0; ++pos) {
+		if (text.GetAt(pos + 1) != L' ')
+			text.Delete(pos);
 	}
 }
 

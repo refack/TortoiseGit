@@ -1,4 +1,4 @@
-﻿module;
+module;
 #include <sys/stat.h>
 #include <gitdll.h>
 #include <git2.h>
@@ -261,6 +261,14 @@ auto NameOrder(const int len, const bool ignoreCase)
 		}
 		return ignoreCase ? tgit::wstr::CompareNoCase(a, b) : a.compare(b);
 	};
+}
+
+/// NameOrder as the strict weak ordering std::ranges::sort and lower_bound want.
+/// NameOrder itself is three-way: passed to them directly, its int reads as
+/// bool, i.e. "differs" rather than "less", which compiles and is UB.
+auto NameLess(const int len, const bool ignoreCase)
+{
+	return [order = NameOrder(len, ignoreCase)](const std::wstring_view a, const std::wstring_view b) { return order(a, b) < 0; };
 }
 
 
@@ -594,16 +602,20 @@ int GetRangeInSortVector(const T& vector, const TKey& key, const size_t len, con
 /// The index of an entry matching key - whole names when len < 0, otherwise
 /// their first len characters - or NPOS. With several matches it is the first
 /// of them; callers that want all of them pass it to GetRangeInSortVector.
+/// The same search as an iterator: the first matching entry, or end() - never
+/// merely the entry key would sort before.
 template <class Ent>
 auto SearchInSortVectorRaw(const std::vector<Ent>& vector, const std::wstring_view key, const int len, const bool ignoreCase) {
-	const auto& found = std::ranges::lower_bound(vector, key, NameOrder(len, ignoreCase), &Ent::NameView);
+	const auto found = std::ranges::lower_bound(vector, key, NameLess(len, ignoreCase), &Ent::NameView);
+	if (found == vector.cend() || NameOrder(len, ignoreCase)(found->NameView(), key) != 0)
+		return vector.cend();
 	return found;
 }
 template <class Ent>
 size_t SearchInSortVector(const std::vector<Ent>& vector, const std::wstring_view key, const int len, const bool ignoreCase)
 {
-	const auto& found = SearchInSortVectorRaw(vector, key, len, ignoreCase);
-	if (found == vector.cend() || NameOrder(len, ignoreCase)(found->NameView(), key) != 0)
+	const auto found = SearchInSortVectorRaw(vector, key, len, ignoreCase);
+	if (found == vector.cend())
 		return NPOS;
 	return static_cast<size_t>(found - vector.cbegin());
 }
@@ -815,7 +827,7 @@ int CGitIndexList::ReadIndex(const std::wstring& dgitdir)
 		m_bHasConflicts = m_bHasConflicts || GIT_INDEX_ENTRY_STAGE(e) != 0;
 	}
 
-	std::ranges::sort(m_entries, NameOrder(-1, this->IsIgnoreCase()), &CGitIndex::NameView);
+	std::ranges::sort(m_entries, NameLess(-1, this->IsIgnoreCase()), &CGitIndex::NameView);
 
 
 	// best effort: a branch whose upstream state cannot be read does not fail the index
@@ -886,12 +898,7 @@ std::expected<void, int> CGitIndexList::ReadIncomingOutgoing(git_repository* rep
 int CGitIndexList::GetFileStatus_NoRepo(const std::wstring& gitdir, const std::wstring& pathorg, git_wc_status2_t& status, const std::int64_t time, const std::int64_t filesize, const bool isSymlink, CGitHash* pHash) const
 {
 
-	const auto foundEntry = std::ranges::lower_bound(
-		m_entries,
-		pathorg,
-		NameOrder(-1, this->IsIgnoreCase()),
-		&CGitIndex::m_FileName
-	);
+	const auto foundEntry = SearchInSortVectorRaw(m_entries, pathorg, -1, IsIgnoreCase());
 
 	if (foundEntry == m_entries.end())	{
 		status.status = git_wc_status_unversioned;
@@ -1301,7 +1308,7 @@ std::expected<void, int> CGitHeadFileList::ReadTree(const bool ignoreCase)
 		return std::unexpected(-1);
 	}
 
-	std::ranges::sort(m_entries, NameOrder(-1, ignoreCase), &CGitTreeItem::NameView);
+	std::ranges::sort(m_entries, NameLess(-1, ignoreCase), &CGitTreeItem::NameView);
 
 	TracePrintf(__FUNCTIONW__ L": Reloaded HEAD tree (commit is %s) for repo: %s\n", m_Head.ToString().c_str(), m_Gitdir.c_str());
 
@@ -1618,21 +1625,14 @@ int CGitIgnoreList::CheckFileAgainstIgnoreList(const std::wstring& ignorefile, c
 	return item->second.IsPathIgnored(patha, base, type);
 }
 int CGitIgnoreList::CheckIgnore(const std::wstring& path_suf, const std::wstring& projectroot, const bool isDir, const std::wstring& adminDir) {
-	auto temp = str::to_path(projectroot) / path_suf;
+	// what git matches against: relative to projectroot, UTF-8, forward slashes - not the absolute path
+	std::string patha = CUnicodeUtils::StdGetUTF8(path_suf);
+	std::ranges::replace(patha, '\\', '/');
 
-	std::string patha = temp.generic_string();
-
-	auto type = [&] {
-		if (isDir) {
-			// strip directory name
-			// we do not need to check for a .ignore file inside a directory we might ignore
-			temp = temp.parent_path();
-			return DT_DIR;
-		} else {
-			temp = temp.parent_path();
-			return DT_REG;
-		}
-	}();
+	// we do not need to check for a .gitignore inside the entry itself, so the walk
+	// starts at its parent; preferred, because m_Map is keyed on backslashed paths
+	auto temp = (str::to_path(projectroot) / path_suf).make_preferred().parent_path();
+	auto type = isDir ? DT_DIR : DT_REG;
 
 	// base points INTO patha, just past its last '/'
 	const size_t pos = patha.rfind('/');
@@ -1642,14 +1642,10 @@ int CGitIgnoreList::CheckIgnore(const std::wstring& path_suf, const std::wstring
 	[[maybe_unused]]CAutoReadLock lock(m_SharedMutex);
 	while (!temp.empty())
 	{
-		temp += details::GitIgnoreSuffix;
-
-		if (const auto ret = CheckFileAgainstIgnoreList(temp, patha, base, type); ret != pattern_match_result::UNDECIDED)
+		if (const auto ret = CheckFileAgainstIgnoreList((temp / details::GitIgnoreSuffix.substr(1)).native(), patha, base, type); ret != pattern_match_result::UNDECIDED)
 			return ret;
 
-		temp.resize(temp.size() - details::GitIgnoreSuffix.size());
-
-		if (PathUtils::ArePathStringsEqual(temp, projectroot))
+		if (PathUtils::ArePathStringsEqual(temp.native(), projectroot))
 		{
 			const std::wstring wcglobalgitignore = adminDir + L"info\\exclude";
 			if (const auto ret = CheckFileAgainstIgnoreList(wcglobalgitignore, patha, base, type); ret != pattern_match_result::UNDECIDED)
@@ -1662,8 +1658,10 @@ int CGitIgnoreList::CheckIgnore(const std::wstring& path_suf, const std::wstring
 			return -1;
 		}
 
-		const int i = tgit::wstr::ReverseFind(temp, L'\\');
-		temp.resize(static_cast<size_t>(std::max(0, i)));
+		// a root ("C:\", "\\server\share\") is its own parent_path: stop there
+		if (!temp.has_relative_path())
+			break;
+		temp = temp.parent_path();
 	}
 
 	return -1;

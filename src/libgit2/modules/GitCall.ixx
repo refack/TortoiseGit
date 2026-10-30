@@ -4,6 +4,15 @@ module;
 
 #include <gtest/internal/gtest-port.h>
 
+// g_Git's constructor (git_h) runs CheckMsysGitDir, which writes the globals
+// below - ms_LastMsysGitDir, m_CurrentDirStorage, ms_bCygwinGit. When this module
+// and git_h were one Git.cpp, appearance order initialized them first. C++20 says
+// an imported module's variables still come first, but MSVC orders dynamic
+// initializers across objects by link order, so they could run *after* g_Git's
+// constructor and reset what it wrote: Run then launched "\git.exe". The lib
+// segment (.CRT$XCL) runs before every user one (.CRT$XCU), whatever the link order.
+#pragma init_seg(lib)
+
 /**
  * Running git.exe: the process, its pipes, and what is done with its output.
  *

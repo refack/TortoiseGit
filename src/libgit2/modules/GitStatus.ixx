@@ -1,4 +1,4 @@
-﻿module;
+module;
 #include <windows.h>
 #include <shlwapi.h>	// PathFileExists. No ATL header: see Git.ixx
 #pragma comment(lib, "Shlwapi.lib")
@@ -24,7 +24,7 @@ import DebugOutput;
 
 namespace fs = std::filesystem;
 
-using tgit::wstr::to_path;
+using tgit::str::to_path;
 using CString = tgit::wstr::CString;
 using namespace GitIndex;
 
@@ -602,14 +602,14 @@ int GitStatus::GetFileList(const fs::path& path, std::vector<CGitFileName>& list
 		list.push_back(filename);
 	}
 
-	std::ranges::sort(list, NameOrder(-1, ignoreCase), &CGitFileName::NameView);
+	std::ranges::sort(list, NameLess(-1, ignoreCase), &CGitFileName::NameView);
 
 	return 0;
 }
 
 int GitStatus::GetFileList(const CString& path_, std::vector<CGitFileName>& list, bool& isRepoRoot, const bool ignoreCase)
 {
-	return GetFileList(tgit::wstr::to_path(path_), list, isRepoRoot, ignoreCase);
+	return GetFileList(tgit::str::to_path(path_), list, isRepoRoot, ignoreCase);
 }
 
 int GitStatus::EnumDirStatus(const CString& gitdir, const CString& subpath, git_wc_status_kind* dirstatus, FILL_STATUS_CALLBACK callback, void* pData)
