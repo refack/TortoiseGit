@@ -132,7 +132,7 @@ BOOL CSettingsTBlame::OnInitDialog()
 	m_cOldLinesColor.EnableOtherButton(sCustomText);
 
 	m_dwTabSize = m_regTabSize;
-	m_sFontName = m_regFontName;
+	m_sFontName = CRegString::StringT{m_regFontName};
 	m_dwFontSize = m_regFontSize;
 	m_dwDetectMovedOrCopiedLines = m_regDetectMovedOrCopiedLines;
 	m_dwDetectMovedOrCopiedLinesNumCharactersWithinFile = m_regDetectMovedOrCopiedLinesNumCharactersWithinFile;
@@ -222,7 +222,7 @@ BOOL CSettingsTBlame::OnApply()
 	if (m_cFontNames.GetSelFont())
 		m_sFontName = m_cFontNames.GetSelFont()->m_strName;
 	else
-		m_sFontName = m_regFontName;
+		m_sFontName = CRegString::StringT{m_regFontName};
 
 	Store((m_cNewLinesColor.GetColor() == -1 ? m_cNewLinesColor.GetAutomaticColor() : m_cNewLinesColor.GetColor()), m_regNewLinesColor);
 	Store((m_cOldLinesColor.GetColor() == -1 ? m_cOldLinesColor.GetAutomaticColor() : m_cOldLinesColor.GetColor()), m_regOldLinesColor);
@@ -279,15 +279,15 @@ void CSettingsTBlame::UpdateDependencies()
 	GetDlgItem(IDC_FOLLOWRENAMES)->EnableWindow(enableFollowRenames);
 }
 
-void CSettingsTBlame::OnMeasureItem(int nIDCtl, LPMEASUREITEMSTRUCT lpMeasureItemStruct)
+void CSettingsTBlame::OnMeasureItem(const int nIDCtl, LPMEASUREITEMSTRUCT lpMeasureItemStruct)
 {
 	CFont* pFont = GetFont();
 	if (pFont)
 	{
 		CDC* pDC = GetDC();
 		CFont* pFontPrev = pDC->SelectObject(pFont);
-		int iborder = ::GetSystemMetrics(SM_CYBORDER);
-		CSize sz = pDC->GetTextExtent(L"0");
+		const int iborder = ::GetSystemMetrics(SM_CYBORDER);
+		const CSize sz = pDC->GetTextExtent(L"0");
 		lpMeasureItemStruct->itemHeight = sz.cy + 2 * iborder;
 		pDC->SelectObject(pFontPrev);
 		ReleaseDC(pDC);

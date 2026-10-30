@@ -6,7 +6,7 @@ module;
 // strsafe's *static* StringCch* workers. A template instantiated here cannot use the static
 // definitions from module wil's own fragment (internal linkage), so this TU needs its own: C2129.
 #include <strsafe.h>
-#include "sanity.h"
+#include <tgitlib/sanity.h>
 
 
 export module TGitStatus;

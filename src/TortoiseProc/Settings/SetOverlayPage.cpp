@@ -27,17 +27,17 @@
 IMPLEMENT_DYNAMIC(CSetOverlayPage, ISettingsPropPage)
 CSetOverlayPage::CSetOverlayPage()
 	: ISettingsPropPage(CSetOverlayPage::IDD)
+	, m_bOnlyExplorer(FALSE)
+	, m_bOnlyNonElevated(FALSE)
 	, m_bRemovable(FALSE)
+	, m_bFloppy(FALSE)
 	, m_bNetwork(FALSE)
 	, m_bFixed(FALSE)
 	, m_bCDROM(FALSE)
 	, m_bRAM(FALSE)
 	, m_bUnknown(FALSE)
-	, m_bOnlyExplorer(FALSE)
-	, m_bOnlyNonElevated(FALSE)
 	, m_bUnversionedAsModified(FALSE)
 	, m_bRecurseSubmodules(FALSE)
-	, m_bFloppy(FALSE)
 	, m_bShowExcludedAsNormal(TRUE)
 {
 	m_regOnlyExplorer = CRegDWORD(L"Software\\TortoiseGit\\LoadDllOnlyInExplorer", FALSE);
@@ -68,9 +68,9 @@ CSetOverlayPage::CSetOverlayPage()
 	m_bUnversionedAsModified = m_regUnversionedAsModified;
 	m_bRecurseSubmodules = m_regRecurseSubmodules;
 	m_bShowExcludedAsNormal = m_regShowExcludedAsNormal;
-	m_sExcludePaths = m_regExcludePaths;
+	m_sExcludePaths = CRegString::StringT{m_regExcludePaths};
 	m_sExcludePaths.Replace(L"\n", L"\r\n");
-	m_sIncludePaths = m_regIncludePaths;
+	m_sIncludePaths = CRegString::StringT{m_regIncludePaths};
 	m_sIncludePaths.Replace(L"\n", L"\r\n");
 	m_dwCacheType = m_regCacheType;
 }
@@ -176,7 +176,7 @@ BOOL CSetOverlayPage::OnInitDialog()
 void CSetOverlayPage::OnChange()
 {
 	UpdateData();
-	int id = GetCheckedRadioButton(IDC_CACHEDEFAULT, IDC_CACHENONE);
+	const int id = GetCheckedRadioButton(IDC_CACHEDEFAULT, IDC_CACHENONE);
 	switch (id)
 	{
 	default:
@@ -203,35 +203,35 @@ BOOL CSetOverlayPage::OnApply()
 	UpdateData();
 	Store(m_bOnlyExplorer, m_regOnlyExplorer);
 	Store(m_bOnlyNonElevated, m_regOnlyNonElevated);
-	if (DWORD(m_regDriveMaskRemovable) != DWORD(m_bRemovable))
+	if (static_cast<DWORD>(m_regDriveMaskRemovable) != static_cast<DWORD>(m_bRemovable))
 		m_restart = Restart_Cache;
 	Store(m_bRemovable, m_regDriveMaskRemovable);
 
-	if (DWORD(m_regDriveMaskFloppy) != DWORD(m_bFloppy))
+	if (static_cast<DWORD>(m_regDriveMaskFloppy) != static_cast<DWORD>(m_bFloppy))
 		m_restart = Restart_Cache;
 	Store(m_bFloppy, m_regDriveMaskFloppy);
 
-	if (DWORD(m_regDriveMaskRemote) != DWORD(m_bNetwork))
+	if (static_cast<DWORD>(m_regDriveMaskRemote) != static_cast<DWORD>(m_bNetwork))
 		m_restart = Restart_Cache;
 	Store(m_bNetwork, m_regDriveMaskRemote);
 
-	if (DWORD(m_regDriveMaskFixed) != DWORD(m_bFixed))
+	if (static_cast<DWORD>(m_regDriveMaskFixed) != static_cast<DWORD>(m_bFixed))
 		m_restart = Restart_Cache;
 	Store(m_bFixed, m_regDriveMaskFixed);
 
-	if (DWORD(m_regDriveMaskCDROM) != DWORD(m_bCDROM))
+	if (static_cast<DWORD>(m_regDriveMaskCDROM) != static_cast<DWORD>(m_bCDROM))
 		m_restart = Restart_Cache;
 	Store(m_bCDROM, m_regDriveMaskCDROM);
 
-	if (DWORD(m_regDriveMaskRAM) != DWORD(m_bRAM))
+	if (static_cast<DWORD>(m_regDriveMaskRAM) != static_cast<DWORD>(m_bRAM))
 		m_restart = Restart_Cache;
 	Store(m_bRAM, m_regDriveMaskRAM);
 
-	if (DWORD(m_regDriveMaskUnknown) != DWORD(m_bUnknown))
+	if (static_cast<DWORD>(m_regDriveMaskUnknown) != static_cast<DWORD>(m_bUnknown))
 		m_restart = Restart_Cache;
 	Store(m_bUnknown, m_regDriveMaskUnknown);
 
-	if (m_sExcludePaths.Compare(CString(m_regExcludePaths)))
+	if (m_sExcludePaths.Compare(CRegString::StringT(m_regExcludePaths)))
 		m_restart = Restart_Cache;
 	m_sExcludePaths.Remove(L'\r');
 	if (!StringUtils::EndsWith(m_sExcludePaths, L'\n'))
@@ -241,18 +241,18 @@ BOOL CSetOverlayPage::OnApply()
 	m_sIncludePaths.Remove(L'\r');
 	if (!StringUtils::EndsWith(m_sIncludePaths, L'\n'))
 		m_sIncludePaths += L'\n';
-	if (m_sIncludePaths.Compare(CString(m_regIncludePaths)))
+	if (m_sIncludePaths.Compare(CRegString::StringT(m_regIncludePaths)))
 		m_restart = Restart_Cache;
 	Store(m_sIncludePaths, m_regIncludePaths);
 	m_sIncludePaths.Replace(L"\n", L"\r\n");
 
-	if (DWORD(m_regUnversionedAsModified) != DWORD(m_bUnversionedAsModified))
+	if (static_cast<DWORD>(m_regUnversionedAsModified) != static_cast<DWORD>(m_bUnversionedAsModified))
 		m_restart = Restart_Cache;
 	Store(m_bUnversionedAsModified, m_regUnversionedAsModified);
-	if (DWORD(m_regRecurseSubmodules) != DWORD(m_bRecurseSubmodules))
+	if (static_cast<DWORD>(m_regRecurseSubmodules) != static_cast<DWORD>(m_bRecurseSubmodules))
 		m_restart = Restart_Cache;
 	Store(m_bRecurseSubmodules, m_regRecurseSubmodules);
-	if (DWORD(m_regShowExcludedAsNormal) != DWORD(m_bShowExcludedAsNormal))
+	if (static_cast<DWORD>(m_regShowExcludedAsNormal) != static_cast<DWORD>(m_bShowExcludedAsNormal))
 		m_restart = Restart_Cache;
 	Store(m_bShowExcludedAsNormal, m_regShowExcludedAsNormal);
 
@@ -260,7 +260,7 @@ BOOL CSetOverlayPage::OnApply()
 	if (m_dwCacheType != 1)
 	{
 		// close the possible running cache process
-		HWND hWnd = ::FindWindow(TGIT_CACHE_WINDOW_NAME, TGIT_CACHE_WINDOW_NAME);
+		const HWND hWnd = ::FindWindow(TGIT_CACHE_WINDOW_NAME, TGIT_CACHE_WINDOW_NAME);
 		if (hWnd)
 			::PostMessage(hWnd, WM_CLOSE, NULL, NULL);
 		m_restart = Restart_None;

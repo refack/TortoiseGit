@@ -8,7 +8,7 @@ module;
 #pragma comment(lib, "Shlwapi.lib")	// named here, not left to whatever header used to pull it in
 #include <crtdbg.h>			// _ASSERTE: a macro, which no import carries
 #include <strsafe.h>
-#include <sanity.h>			// Expects/SCOPE_EXIT: macros, which no import carries
+#include <tgitlib/sanity.h>			// Expects/SCOPE_EXIT: macros, which no import carries
 #include <gitdll.h>
 #include <git2.h>
 #include <source_location>
@@ -18,8 +18,8 @@ module;
 #include <git2/sys/filter.h>
 #include <git2/sys/transport.h>
 
-#include "../include/ssh-wintunnel.h"
-#include "../include/filter-filter.h"
+#include "tgitlib/ssh-wintunnel.h"
+#include "tgitlib/filter-filter.h"
 
 #define STR2(x) #x
 #define STR(x) STR2(x)
@@ -1063,15 +1063,13 @@ public:
 	 * walk up into the *super*project.
 	 */
 	bool SetCurrentDir(const CStringW& path_s, const bool submodule = false) {
-		auto path = fs::path{ StringView{ path_s }.as_view() };
-		std::wstring topDir;
-		bool b = GitAdminDir::HasAdminDir(path, submodule ? false : fs::is_directory(path), &topDir);
-		m_CurrentDirStorage = topDir.c_str();
-		if (!b && GitAdminDir::IsBareRepo(path.c_str())) {
-			m_CurrentDirStorage = fs::path{ path };
-			b = true;
+		auto path = fs::path{ path_s.GetString() };
+		auto topDir = GitAdminDir::HasAdminDir(path);
+		m_CurrentDirStorage = topDir;
+		if (topDir.empty() && GitAdminDir::IsBareRepo(path)) {
+			m_CurrentDirStorage = path;
 		}
-		return b;
+		return !topDir.empty();
 	}
 
 
@@ -3378,7 +3376,7 @@ bool CGit::IsFastForward(const CStringW& from, const CStringW& to, CGitHash* com
 
 int CGit::RefreshGitIndex() {
 	// HACK: don't use internal update-index if we have a git-lfs enabled repository as the libgit version fails when executing the filter, issue #3220
-	if (g_Git.m_IsUseGitDLL && !TGitPath::CTGitPath{g_Git.m_CurrentDir, true}.HasLFS()) {
+	if (g_Git.m_IsUseGitDLL && !TGitPath::CTGitPath{g_Git.m_CurrentDir}.HasLFS()) {
 		CAutoLocker _(g_Git.m_critGitDllSec);
 		try {
 			g_Git.CheckAndInitDll();
@@ -3975,22 +3973,21 @@ int GetSubmodulePointer(CGit::SubmoduleInfo& submoduleinfo) {
 	const auto& currentDir = g_Git.m_CurrentDir.native();
 	if (GitAdminDir::IsBareRepo(currentDir))
 		return -1;
-	std::wstring superprojectRoot;
-	GitAdminDir::HasAdminDir(currentDir, false, &superprojectRoot);
+	auto superprojectRoot = GitAdminDir::HasAdminDir(currentDir);
 	if (superprojectRoot.empty())
 		return -1;
 
-	const wil::unique_git_repository repo = TGitH::OpenGitRepository(superprojectRoot);
+	const wil::unique_git_repository repo = TGitH::OpenGitRepository(superprojectRoot.c_str());
 	if (!repo)
 		return -1;
 	wil::unique_git_index index;
 	if (git_repository_index(index.put(), repo.get()))
 		return -1;
 
-	const int rootLength = win32_cast(superprojectRoot.size());
+	const int rootLength = win32_cast(superprojectRoot.wstring().size());
 	CStringW submodulePath;
 	// CString::Right(len - n) is the tail after n characters, i.e. substr(n)
-	if (superprojectRoot.back() == L'\\')
+	if (superprojectRoot.wstring().back() == L'\\')
 		submodulePath = currentDir.substr(rootLength).c_str();
 	else
 		submodulePath = currentDir.substr(rootLength + 1).c_str();

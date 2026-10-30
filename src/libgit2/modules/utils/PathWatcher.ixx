@@ -4,7 +4,7 @@
 #include <windows.h>
 #include <process.h>	// _beginthreadex
 #include <tchar.h>		// _T
-#include "sanity.h"
+#include <tgitlib/sanity.h>
 
 
 export module PathWatcher;

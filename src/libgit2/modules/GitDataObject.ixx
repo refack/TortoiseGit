@@ -4,7 +4,7 @@
 #include <Shlwapi.h>	// SHCreateStreamOnFileEx, which atlstr.h used to bring in
 #include <Shldisp.h>
 #include <shlobj_core.h>
-#include <sanity.h>
+#include <tgitlib/sanity.h>
 
 
 export module GitDataObject;

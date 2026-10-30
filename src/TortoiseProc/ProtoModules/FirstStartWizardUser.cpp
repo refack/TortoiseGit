@@ -22,7 +22,7 @@
 #include "TortoiseProc.h"
 #include "FirstStartWizard.h"
 #include "FirstStartWizardUser.h"
-#include "Utils/Theme.h"
+import ThemeAPI;
 
 IMPLEMENT_DYNAMIC(CFirstStartWizardUser, CFirstStartWizardBasePage)
 

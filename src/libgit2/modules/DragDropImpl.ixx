@@ -1,7 +1,7 @@
 ﻿module;
 #include <shlobj_core.h>
 #include <shobjidl.h>
-#include "sanity.h"
+#include <tgitlib/sanity.h>
 
 
 export module DragDrop;

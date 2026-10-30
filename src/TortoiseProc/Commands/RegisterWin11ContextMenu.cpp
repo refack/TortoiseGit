@@ -26,7 +26,6 @@
 #include <winrt/Windows.Management.Deployment.h>
 #include <winrt/Windows.Foundation.Collections.h>
 #include <winrt/Windows.ApplicationModel.h>
-#include <future>
 import SysInfo;
 
 using namespace winrt::Windows::Foundation;
@@ -104,7 +103,7 @@ std::wstring RegisterWin11ContextMenuCommand::ReRegisterPackage()
 			// now register the package
 			auto appDir = PathUtils::GetAppParentDirectory();
 			Uri externalUri(appDir.c_str());
-			auto packagePath = appDir + L"bin\\package.msix";
+			auto packagePath = appDir / L"bin\\package.msix";
 			Uri packageUri(packagePath.c_str());
 			AddPackageOptions options;
 			options.ExternalLocationUri(externalUri);

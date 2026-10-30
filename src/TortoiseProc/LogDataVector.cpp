@@ -46,7 +46,7 @@ void CLogDataVector::ClearAll()
 }
 
 //CLogDataVector Class
-int CLogDataVector::ParserFromLog(const CTGitPath* path, DWORD count, DWORD infomask, const CString* range)
+int CLogDataVector::ParserFromLog(const CTGitPath* path, const DWORD count, DWORD infomask, const CString* range)
 {
 	ATLASSERT(m_pLogCache);
 	ATLASSERT(!(infomask & TGitH::LOG_INFO_FULL_DIFF));
@@ -65,7 +65,10 @@ int CLogDataVector::ParserFromLog(const CTGitPath* path, DWORD count, DWORD info
 		filter.m_NumberOfLogs = count;
 		filter.m_NumberOfLogsScale = CFilterData::SHOW_LAST_N_COMMITS;
 	}
-	std::vector<std::string> cmd = g_Git.GetLogCmd(gitrange, path, infomask, &filter, m_logOrderBy);
+	wil::ArgvData argvData = g_Git.GetLogCmd(gitrange, path, infomask, &filter, m_logOrderBy)
+		| std::views::transform(&CUnicodeUtils::MultibyteToWide)
+		| std::ranges::to<std::vector>();
+
 
 	// if not all branches, all basic refs, all local refs etc. are selected, check whether the selected branch is unborn
 	if (!(infomask & TGitH::LOG_INFO_ALL_BRANCH) && !(infomask & TGitH::LOG_INFO_BASIC_REFS) && !(infomask & TGitH::LOG_INFO_LOCAL_BRANCHES))
@@ -91,42 +94,34 @@ int CLogDataVector::ParserFromLog(const CTGitPath* path, DWORD count, DWORD info
 	}
 
 	GIT_LOG handle = nullptr;
-	try
-	{
+	try {
 		CAutoLocker lock(g_Git.m_critGitDllSec);
-		auto argvData = ArgvData::VectorToARGV(cmd);
-		if (!argvData || CGit::git_open_log_ex(&handle, argvData))
-			return -1;
-	}
-	catch (const char* msg)
-	{
+		if (auto&& ret = CGit::git_open_log_ex(&handle, argvData); ret)
+			return ret;
+	} catch (const char* msg) {
 		CAutoLocker lock(g_Git.m_critGitDllSec);
 		git_close_log(handle, 0);
 		MessageBox(nullptr, L"Could not open log.\nlibgit reports:\n" + CUnicodeUtils::GetUnicode<CString>(msg), L"TortoiseGit", MB_ICONERROR);
 		return -1;
 	}
 
-	try
-	{
+	try {
 		CAutoLocker lock(g_Git.m_critGitDllSec);
-		if (git_get_log_firstcommit(handle) < 0)
-		{
+		if (auto&& ret = git_get_log_firstcommit(handle); ret < 0) {
 			MessageBox(nullptr, L"Getting first commit and preparing the revision walk failed. Broken repository?", L"TortoiseGit", MB_ICONERROR);
 			git_close_log(handle, 0);
-			return -1;
+			return ret;
 		}
-	}
-	catch (const char* msg)
-	{
+	} catch (const char* msg) {
 		MessageBox(nullptr, L"Could not get first commit.\nlibgit reports:\n" + CUnicodeUtils::GetUnicode<CString>(msg), L"TortoiseGit", MB_ICONERROR);
-		return -1;
+		return GitCall::GFail;
 	}
 
 	if (GitMailmap::CGitMailmap::ShouldLoadMailmap())
 		GitRevLoglist::s_Mailmap = std::make_shared<GitMailmap::CGitMailmap>();
 	else if (GitRevLoglist::s_Mailmap.load())
 		GitRevLoglist::s_Mailmap.store(nullptr);
-	auto mailmap{ GitRevLoglist::s_Mailmap.load() };
+	const auto mailmap{ GitRevLoglist::s_Mailmap.load() };
 
 	int ret = 0;
 	while (ret == 0)
@@ -189,15 +184,14 @@ int CLogDataVector::ParserFromLog(const CTGitPath* path, DWORD count, DWORD info
 	return 0;
 }
 
-struct SortByParentDate
-{
+struct SortByParentDate {
 	bool operator()(GitRevLoglist* pLhs, GitRevLoglist* pRhs) const
 	{
 		if (pLhs->m_CommitHash == pRhs->m_CommitHash)
 			return false;
-		if (std::any_of(pLhs->m_ParentHash.cbegin(), pLhs->m_ParentHash.cend(), [&pRhs](auto& hash) { return hash == pRhs->m_CommitHash; }))
+		if (std::ranges::any_of(std::as_const(pLhs->m_ParentHash), [&pRhs](auto& hash) { return hash == pRhs->m_CommitHash; }))
 			return true;
-		if (std::any_of(pRhs->m_ParentHash.cbegin(), pRhs->m_ParentHash.cend(), [&pLhs](auto& hash) { return hash == pLhs->m_CommitHash; }))
+		if (std::ranges::any_of(std::as_const(pRhs->m_ParentHash), [&pLhs](auto& hash) { return hash == pLhs->m_CommitHash; }))
 			return false;
 		return pLhs->GetCommitterDate()>pRhs->GetCommitterDate();
 	}
@@ -220,7 +214,7 @@ int CLogDataVector::Fill(const std::unordered_set<CGitHash>& hashes)
 		GitRevLoglist::s_Mailmap = std::make_shared<GitMailmap::CGitMailmap>();
 	else if (GitRevLoglist::s_Mailmap.load())
 		GitRevLoglist::s_Mailmap.store(nullptr);
-	auto mailmap{ GitRevLoglist::s_Mailmap.load() };
+	const auto mailmap{ GitRevLoglist::s_Mailmap.load() };
 
 	std::set<GitRevLoglist*, SortByParentDate> revs;
 	for (const auto& hash : hashes)
@@ -258,7 +252,7 @@ int CLogDataVector::Fill(const std::unordered_set<CGitHash>& hashes)
 	return 0;
 }
 
-void CLogDataVector::append(const CGitHash& sha, bool storeInVector, bool onlyFirstParent)
+void CLogDataVector::append(const CGitHash& sha, const bool storeInVector, const bool onlyFirstParent)
 {
 	if (storeInVector)
 		this->push_back(sha);
@@ -267,7 +261,7 @@ void CLogDataVector::append(const CGitHash& sha, bool storeInVector, bool onlyFi
 	updateLanes(*r, this->m_Lns, sha, onlyFirstParent);
 }
 
-void CLogDataVector::setLane(const CGitHash& sha, bool onlyFirstParent)
+void CLogDataVector::setLane(const CGitHash& sha, const bool onlyFirstParent)
 {
 	Lanes* l = &(this->m_Lns);
 	int i = m_FirstFreeLane;
@@ -276,7 +270,7 @@ void CLogDataVector::setLane(const CGitHash& sha, bool onlyFirstParent)
 //	const ShaString& ss = toPersistentSha(sha, ba);
 //	const ShaVect& shaVec(fh->revOrder);
 
-	for (int cnt = static_cast<int>(size()); i < cnt; ++i) {
+	for (const int cnt = win32_cast(size()); i < cnt; ++i) {
 		GitRevLoglist* r = &this->GetGitRevAt(i);
 		CGitHash curSha=r->m_CommitHash;
 
@@ -309,8 +303,7 @@ void CLogDataVector::setLane(const CGitHash& sha, bool onlyFirstParent)
 #endif
 }
 
-void CLogDataVector::updateLanes(GitRevLoglist& c, Lanes& lns, const CGitHash& sha, bool onlyFirstParent)
-{
+void CLogDataVector::updateLanes(GitRevLoglist& c, Lanes& lns, const CGitHash& sha, const bool onlyFirstParent) {
 // we could get third argument from c.sha(), but we are in fast path here
 // and c.sha() involves a deep copy, so we accept a little redundancy
 

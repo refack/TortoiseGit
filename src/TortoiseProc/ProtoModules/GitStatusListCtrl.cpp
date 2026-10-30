@@ -38,7 +38,7 @@ import MessageBox;
 #include "ProgressCommands/ResolveProgressCommand.h"
 import BrowseFolder;
 #include "CreateChangelistDlg.h"
-#include "Utils/Theme.h"
+import ThemeAPI;
 #include "LogDataVector.h"		// mix CString + std::wstring
 import AppUtils.Launch;
 import AppUtils.Window;

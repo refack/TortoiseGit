@@ -26,23 +26,23 @@ import Registry;
  * \ingroup TortoiseProc
  * Settings page to configure the overlay icon set to use.
  */
-class CSetOverlayIcons : public ISettingsPropPage
+class CSetOverlayIcons : private ISettingsPropPage
 {
+public:
 	DECLARE_DYNAMIC(CSetOverlayIcons)
 
-public:
 	CSetOverlayIcons();
-	virtual ~CSetOverlayIcons();
+	~CSetOverlayIcons() override;
 
 	UINT GetIconID() override { return IDI_ICONSET; }
+	BOOL OnApply() override;
 
-// Dialog Data
+	// Dialog Data
 	enum { IDD = IDD_SETOVERLAYICONS };
 
 protected:
 	void	DoDataExchange(CDataExchange* pDX) override;    // DDX/DDV support
 	BOOL	OnInitDialog() override;
-	BOOL	OnApply() override;
 	afx_msg void	OnBnClickedListradio();
 	afx_msg void	OnBnClickedSymbolradio();
 	afx_msg void	OnCbnSelchangeIconsetcombo();

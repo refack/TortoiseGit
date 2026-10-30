@@ -256,7 +256,7 @@ TEST(ConjectureTGitPath, SetFromGitCannotTakeAPointerAsTheDirectoryFlag)
 }
 
 // Conjecture: GetActionName must load its string through the host, because the
-// module lives in TGitLibgit2.dll while IDS_PATHACTIONS_* live in the
+// module lives in tgitlib.dll while IDS_PATHACTIONS_* live in the
 // application's (translated) resources - an ATL CString::LoadString from inside
 // the DLL would find neither.
 // Old module: FAILS (no host; loaded via this module's CString). Original: n/a.

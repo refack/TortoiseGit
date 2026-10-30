@@ -42,7 +42,7 @@ using std::min;
 
 // Git stuff
 #include <git2.h>
-#include <sanity.h>		// SCOPE_EXIT; textual includes before the imports
+#include <tgitlib/sanity.h>		// SCOPE_EXIT; textual includes before the imports
 import DebugOutput;
 import RIAA;
 import wil;		// the libgit2 owners (wil::unique_git_*), scope_exit_helper for SCOPE_EXIT

@@ -28,7 +28,7 @@ import AppUtils.Launch;
 import AppUtils.Window;
 #include "LogFile.h"
 #include "LoglistUtils.h"
-#include "Utils/Theme.h"
+import ThemeAPI;
 #include "git2/sys/errors.h"
 
 BOOL	CGitProgressList::m_bAscending = FALSE;

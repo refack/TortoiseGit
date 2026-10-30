@@ -22,11 +22,13 @@
 
 #include <fcntl.h>
 #include <io.h>
-#include <../libgit2/include/version.h>
+#include <tgitlib/version.h>
+#include "status.h"
+
+import std;
 import RIAA;
 import str_utils;
 
-#include "status.h"
 
 // Define the help text as a multi-line macro
 // Every line except the last must be terminated with a backslash

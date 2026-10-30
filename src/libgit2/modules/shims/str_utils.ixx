@@ -4,19 +4,22 @@
 // other module gets CString from here, as tgit::wstr::CString / tgit::zstr::CString,
 // and NO_TGIT_MFC is set per target, so the choice below is frozen for each importer.
 
+#include <windows.h>
+
 // The fork comes first: MFC requires afx.h ahead of anything that includes windows.h.
-#ifdef NO_TGIT_MFC
+#ifndef NO_TGIT_MFC
 #include <afx.h>
+#include <atlstr.h>
+#else
+#include <atlstr.h>
 #endif
 
-#include <windows.h>
-#include <atlstr.h>
 // CTime's Format() returns this flavor's CString, so CTime is a shim type too: afx.h
 // already includes it under MFC; without _AFX it would pull atlstr.h into whichever
 // GMF included it, and that GMF would then speak ATL CString inside the MFC library.
 #include <atltime.h>
 #include <winrt/base.h>		// ::winrt::to_hstring, in CUnicodeUtils::GetUnicode
-#include "sanity.h"
+#include <tgitlib/sanity.h>
 
 
 export module str_utils;
@@ -314,7 +317,7 @@ struct StringViewTraits<TStr> {
 	template <IsATLCStringDuck ATLStr>
 	static constexpr auto to_atl(const TStr& s) noexcept {
 		return ATLStr{s};
-	};
+	}
 };
 #pragma endregion
 
@@ -489,12 +492,12 @@ template <IsTCompString TStr>
 constexpr auto as_view(const TStr& s) noexcept { return StringView{s}.as_view(); }
 
 constexpr auto as_atl(const std::string_view& s) noexcept { return StringView{s}.as_view(); }
-constexpr auto as_atl(const std::wstring_view& s) noexcept { return CStringW{}; }
+constexpr auto as_atl(const std::wstring_view& s) noexcept { return CStringW{s.data()}; }
 
 /// Default predicate: dispatches on character type.
 struct is_space_t {
-	bool operator()(char c) const noexcept { return std::isspace(static_cast<unsigned char>(c)) != 0; } // negative char is UB
-	bool operator()(wchar_t c) const noexcept { return std::iswspace(c) != 0; }
+	bool operator()(const char c) const noexcept { return std::isspace(static_cast<unsigned char>(c)) != 0; } // negative char is UB
+	bool operator()(const wchar_t c) const noexcept { return std::iswspace(c) != 0; }
 };
 inline constexpr is_space_t is_space{};
 
@@ -544,10 +547,10 @@ export namespace tgit::wstr {
 using CTime = ::ATL::CTime;
 
 // ---- The shim fork ------------------------------------------------------------
-#ifdef NO_TGIT_MFC
-using CString = ATL::CAtlStringW;	// CStringT<wchar_t, StrTraitATL<wchar_t, ChTraitsCRT<wchar_t>>>
-#else
+#ifndef NO_TGIT_MFC
 using CString = ::CStringW;	// CStringT<wchar_t, StrTraitMFC_DLL<wchar_t>>
+#else
+using CString = ATL::CAtlStringW;	// CStringT<wchar_t, StrTraitATL<wchar_t, ChTraitsCRT<wchar_t>>>
 #endif
 
 // CString itself is declared at the shim fork, at the top of this module.
@@ -697,7 +700,7 @@ inline void MakeLower(std::wstring& s) {
 
 
 auto ToLower(const std::wstring_view s) {
-	return std::views::transform(s, [](const wchar_t c) { return static_cast<wchar_t>(std::towlower(c)); }) | std::ranges::to<std::wstring>();;
+	return std::views::transform(s, [](const wchar_t c) { return static_cast<wchar_t>(std::towlower(c)); }) | std::ranges::to<std::wstring>();
 }
 
 
@@ -804,7 +807,7 @@ struct AtlSink {
 	[[nodiscard]] auto size() const noexcept { return !the_sink ? 0 : size_t_cast(the_sink->GetLength()); }
 
 
-	void append(const std::wstring_view sv) {
+	void append(const std::wstring_view sv) const {
 		if (the_sink)
 			the_sink->Append(sv.data(), win32_cast(sv.size()));
 	}
@@ -820,10 +823,10 @@ struct AtlSink {
 export namespace tgit::zstr {
 
 // ---- The shim fork ------------------------------------------------------------
-#ifdef NO_TGIT_MFC
-using CString = ATL::CAtlStringA;	// CStringT<char, StrTraitATL<char, ChTraitsCRT<char>>>
-#else
+#ifndef NO_TGIT_MFC
 using CString = ::CStringA;			// CStringT<char, StrTraitMFC_DLL<char>>
+#else
+using CString = ATL::CAtlStringA;	// CStringT<char, StrTraitATL<char, ChTraitsCRT<char>>>
 #endif
 
 /// The start of the record after the one at \a start, in a buffer of
@@ -854,7 +857,7 @@ std::optional<int> maybe_to_int(const std::string_view s) {
 		return value;
 	else
 		return std::nullopt;
-};
+}
 
 
 std::optional<int> maybe_to_int(const std::ranges::subrange<std::string_view::const_iterator> s) {
@@ -894,9 +897,9 @@ struct std::formatter<tgit::wstr::CString, wchar_t> : std::formatter<std::wstrin
 
 
 template <>
-struct std::formatter<tgit::zstr::CString, char> : std::formatter<std::string_view, char> {
+struct std::formatter<tgit::zstr::CString, char> : std::formatter<std::string_view> {
 	auto format(const tgit::zstr::CString& value, auto& ctx) const {
-		return std::formatter<std::string_view, char>::format(std::string_view(value.GetString(), value.GetLength()), ctx);
+		return std::formatter<std::string_view>::format(std::string_view(value.GetString(), value.GetLength()), ctx);
 	}
 };
 
@@ -1201,7 +1204,7 @@ std::string StdGetUTF8(const TIn& wide, const int acp = CP_UTF8, const char* con
 }
 
 
-template <TStrOfChar TOut, TStrOfWide TIn>
+template <TStrOfChar TOut = CStringA, TStrOfWide TIn>
 TOut GetUTF8(const TIn& string) {
 	return GetMulti<TOut>(string, CP_UTF8);
 }
@@ -1823,7 +1826,10 @@ EmailAddress ParseEmailAddress(const std::wstring_view input) {
  * Expands placeholders to corresponding values provided in the map replacements.
  * This method makes sure that values cannot contain other placeholders that may be replaced later on.
  */
-CString ExpandPlaceholdersForCmd(const CString& input, const std::map<CString, CString>& values, CString (*escaper)(const CString&)) {
+using expand_vars_t = std::map<CString, CString>;
+using escaper_t = std::function<CString(CString)>;
+
+CString ExpandPlaceholdersForCmd(const CString& input, const expand_vars_t& values, const escaper_t& escaper) {
 	CString result;
 	const int len = input.GetLength();
 	for (int i = 0; i < len; ++i) {

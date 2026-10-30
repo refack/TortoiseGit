@@ -23,7 +23,7 @@
 #include "FirstStartWizard.h"
 #include "FirstStartWizardAuthentication.h"
 #include "Settings/SettingGitCredential.h"
-#include "Utils/Theme.h"
+import ThemeAPI;
 import AppUtils.Launch;
 import AppUtils.Window;
 

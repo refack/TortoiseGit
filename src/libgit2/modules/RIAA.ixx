@@ -206,14 +206,14 @@ struct CCloseIcon
 
 // Client code (definitions of standard Windows handles).
 using CAutoGeneralHandle	= CSmartHandle<HANDLE,	CCloseHandle>;
-using CAutoRegKey			= CSmartHandle<HKEY,		CCloseRegKey>;
-using CAutoViewOfFile		= CSmartHandle<PVOID,		CCloseViewOfFile>;
+using CAutoRegKey			= CSmartHandle<HKEY,	CCloseRegKey>;
+using CAutoViewOfFile		= CSmartHandle<PVOID,	CCloseViewOfFile>;
 using CAutoLibrary			= CSmartHandle<HMODULE,	CCloseLibrary>;
 using CAutoFile				= CSmartHandle<HANDLE,	CCloseHandle, CDefaultHandleInvalid>;
 using CAutoFindFile			= CSmartHandle<HANDLE,	CCloseFindFile, CDefaultHandleInvalid>;
-using CAutoFILE				= CSmartHandle<FILE*,		CCloseFILE>;
+using CAutoFILE				= CSmartHandle<FILE*,	CCloseFILE>;
 using CAutoThemeData		= CSmartHandle<HTHEME,	CCloseThemeData>;
-using CAutoIcon				= CSmartHandle<HICON,		CCloseIcon>;
+using CAutoIcon				= CSmartHandle<HICON,	CCloseIcon>;
 
 /*
 void CompilerTests()

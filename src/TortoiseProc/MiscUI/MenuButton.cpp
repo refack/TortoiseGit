@@ -25,7 +25,7 @@
 
 
 #include "MiscUI/MenuButton.h"
-#include "Utils/Theme.h"
+import ThemeAPI;
 
 #ifdef _DEBUG
 #undef THIS_FILE

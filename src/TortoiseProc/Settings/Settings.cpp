@@ -25,7 +25,7 @@
 import MessageBox;
 import TGitPath;	// GitAdminDir lives in the TGitPath module
 import AppUtils.Window;
-#include "Utils/Theme.h"
+import ThemeAPI;
 #include "SetMainPage.h"
 #include "SetProxyPage.h"
 #include "SetOverlayPage.h"

@@ -1,7 +1,7 @@
 ﻿module;
 #include <windows.h>
 #include <Shlwapi.h>
-#include "sanity.h"
+#include <tgitlib/sanity.h>
 
 #pragma comment(lib, "Shlwapi.lib")	// SHDeleteKey; was linked via wil.ixx's IsURL until it went
 
@@ -197,7 +197,7 @@ public: //methods
  * Restored: only the std::wstring base survived the module conversion, and
  * TortoiseProc uses CRegString in 123 places, assigning it to and from CString.
  * Which CString this is follows the compile (tgit::wstr::CString, from the
- * str_utils shim): MFC's in TGitLibgit2Mfc, ATL's in TGitLibgit2.
+ * str_utils shim): MFC's in tgitlibMfc, ATL's in tgitlib.
  */
 class CRegCStringBase : public CRegBaseCommon<CString>
 {

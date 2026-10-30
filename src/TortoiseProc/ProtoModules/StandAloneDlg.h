@@ -23,7 +23,7 @@
 #include "Tooltip.h"
 #include "Utils/CommonDialogFunctions.h"
 #include "EditWordBreak.h"
-#include "Utils/Theme.h"
+import ThemeAPI;
 #include "Utils/DPIAware.h"
 import AppUtils.Launch;
 import AppUtils.Window;

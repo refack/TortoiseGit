@@ -25,7 +25,7 @@ using namespace std::literals;
 
 bool CatCommand::Execute()
 {
-	CString savepath = PathUtils::GetLongPathname(parser.GetValStr(L"savepath")).c_str();
+	const CString savepath = PathUtils::GetLongPathname(parser.GetValStr(L"savepath")).c_str();
 	std::wstring revision = parser.GetValStr(L"revision");
 
 	if (g_Git.UsingLibGit2(TGitH::GIT_CMD_GETONEFILE))
@@ -48,7 +48,7 @@ bool CatCommand::Execute()
 
 		if (git_object_type(obj.get()) == GIT_OBJECT_BLOB)
 		{
-			CAutoFILE file = _wfsopen(savepath, L"wb", SH_DENYRW);
+			const CAutoFILE file = _wfsopen(savepath, L"wb", SH_DENYRW);
 			if (file == nullptr)
 			{
 				::DeleteFile(savepath);
@@ -59,7 +59,7 @@ bool CatCommand::Execute()
 			wil::unique_git_buf buf;
 			git_blob_filter_options opts = GIT_BLOB_FILTER_OPTIONS_INIT;
 			opts.flags &= ~static_cast<uint32_t>(GIT_BLOB_FILTER_CHECK_FOR_BINARY);
-			if (git_blob_filter(&buf, reinterpret_cast<git_blob*>(obj.get()), CUnicodeUtils::GetUTF8<CStringA>(cmdLinePath.GetGitPathString().c_str()), &opts))
+			if (git_blob_filter(&buf, reinterpret_cast<git_blob*>(obj.get()), cmdLinePath.GetStdPath().generic_string().c_str(), &opts))
 			{
 				::DeleteFile(savepath);
 				MessageBox(GetExplorerHWND(), TGitH::GetLibGit2LastErr(L"Could not get filtered content."), L"TortoiseGit", MB_ICONERROR);
@@ -68,7 +68,7 @@ bool CatCommand::Execute()
 			if (fwrite(buf.ptr, sizeof(char), buf.size, file) != buf.size)
 			{
 				::DeleteFile(savepath);
-				CString err { (CFormatMessageWrapper()).c_str() };
+				const CString err { (CFormatMessageWrapper()).c_str() };
 				CMessageBox::Show(GetExplorerHWND(), L"Could not write to file: " + err, L"TortoiseGit", MB_ICONERROR);
 				return false;
 			}

@@ -22,10 +22,11 @@
 #include "std.h"
 
 #include "DiffCommand.h"
-import MessageBox;
-import AppUtils.Launch;
 #include "ChangedDlg.h"
 #include "GitDiff.h"
+
+import MessageBox;
+import AppUtils.Launch;
 
 bool DiffCommand::Execute()
 {

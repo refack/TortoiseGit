@@ -116,7 +116,6 @@ int CGitRefCompareList::AddEntry(git_repository* repo, const CString& ref, const
 			size_t ahead = 0, behind = 0;
 			if (!git_graph_ahead_behind(&ahead, &behind, repo, *newHash, *oldHash))
 			{
-				CString change;
 				if (ahead > 0 && behind == 0)
 				{
 					entry.change.Format(IDS_FORWARDN, ahead);
@@ -165,14 +164,14 @@ int CGitRefCompareList::AddEntry(git_repository* repo, const CString& ref, const
 	return static_cast<int>(m_RefList.size()) - 1;
 }
 
-inline static bool StringComparePredicate(bool sortLogical, const CString& e1, const CString& e2)
+inline static bool StringComparePredicate(const bool sortLogical, const CString& e1, const CString& e2)
 {
 	if (sortLogical)
 		return StrCmpLogicalW(e1, e2) < 0;
 	return e1.Compare(e2) < 0;
 }
 
-static CString RefTypeString(TGitH::REF_TYPE reftype)
+static CString RefTypeString(const TGitH::REF_TYPE reftype)
 {
 	CString type;
 	switch (reftype)
@@ -187,6 +186,8 @@ static CString RefTypeString(TGitH::REF_TYPE reftype)
 	case TGitH::REF_TYPE::TAG:
 		type.LoadString(IDS_PROC_TAG);
 		break;
+	default:
+		std::unreachable();
 	}
 	return type;
 }
@@ -221,8 +222,9 @@ void CGitRefCompareList::Show()
 				return e1.newHash.Compare(e2.newHash) < 0;
 			case 6:
 				return StringComparePredicate(sortLogical, e1.newMessage, e2.newMessage);
+			default:
+				std::unreachable();
 			}
-			return false;
 		};
 
 		if (m_bAscending)
@@ -309,7 +311,7 @@ void CGitRefCompareList::OnHdnItemclick(NMHDR *pNMHDR, LRESULT *pResult)
 	Show();
 }
 
-void CGitRefCompareList::OnContextMenu(CWnd *pWnd, CPoint point)
+void CGitRefCompareList::OnContextMenu(CWnd *pWnd, const CPoint point)
 {
 	if (pWnd == this)
 	{
@@ -321,7 +323,7 @@ void CGitRefCompareList::OnContextMenu(CWnd *pWnd, CPoint point)
 	}
 }
 
-void CGitRefCompareList::OnContextMenuList(CWnd * /*pWnd*/, CPoint point)
+void CGitRefCompareList::OnContextMenuList(CWnd * /*pWnd*/, const CPoint point)
 {
 	const int selIndex = GetSelectionMark();
 	if (selIndex < 0)
@@ -339,12 +341,12 @@ void CGitRefCompareList::OnContextMenuList(CWnd * /*pWnd*/, CPoint point)
 	CString logStr;
 	if (!oldHash.IsEmpty())
 	{
-		logStr.Format(IDS_SHOWLOG_OF, static_cast<LPCWSTR>(oldHash));
+		logStr.Format(IDS_SHOWLOG_OF, oldHash);
 		popup.AppendMenuIcon(IDGITRCL_OLDLOG, logStr, IDI_LOG);
 	}
 	if (!newHash.IsEmpty() && oldHash != newHash)
 	{
-		logStr.Format(IDS_SHOWLOG_OF, static_cast<LPCWSTR>(newHash));
+		logStr.Format(IDS_SHOWLOG_OF, newHash);
 		popup.AppendMenuIcon(IDGITRCL_NEWLOG, logStr, IDI_LOG);
 	}
 	if (!oldHash.IsEmpty() && !newHash.IsEmpty() && oldHash != newHash)
@@ -360,14 +362,14 @@ void CGitRefCompareList::OnContextMenuList(CWnd * /*pWnd*/, CPoint point)
 		{
 			CString sCmd;
 			auto revToShow = cmd == IDGITRCL_OLDLOG ? static_cast<LPCWSTR>(TCmdLineParser::EscapeValue(oldHash)) : static_cast<LPCWSTR>(TCmdLineParser::EscapeValue(newHash));
-			sCmd.Format(L"/command:log /path:\"%s\" /endrev:%s /rev:%s", static_cast<LPCWSTR>(g_Git.m_CurrentDir), revToShow, revToShow);
+			sCmd.Format(L"/command:log /path:\"%s\" /endrev:%s /rev:%s", g_Git.m_CurrentDir.c_str(), revToShow, revToShow);
 			CAppUtils::RunTortoiseGitProc(sCmd);
 			break;
 		}
 		case IDGITRCL_COMPARE:
 		{
 			CString sCmd;
-			sCmd.Format(L"/command:showcompare /path:\"%s\" /revision1:%s /revision2:%s", static_cast<LPCWSTR>(g_Git.m_CurrentDir), static_cast<LPCWSTR>(TCmdLineParser::EscapeValue(oldHash)), static_cast<LPCWSTR>(TCmdLineParser::EscapeValue(newHash)));
+			sCmd.Format(L"/command:showcompare /path:\"%s\" /revision1:%s /revision2:%s", g_Git.m_CurrentDir.c_str(), TCmdLineParser::EscapeValue(oldHash), TCmdLineParser::EscapeValue(newHash));
 			if (!!(GetAsyncKeyState(VK_SHIFT) & 0x8000))
 				sCmd += L" /alternative";
 			CAppUtils::RunTortoiseGitProc(sCmd);
@@ -376,22 +378,24 @@ void CGitRefCompareList::OnContextMenuList(CWnd * /*pWnd*/, CPoint point)
 		case IDGITRCL_REFLOG:
 		{
 			CString sCmd;
-			sCmd.Format(L"/command:reflog /path:\"%s\" /ref:%s", static_cast<LPCWSTR>(g_Git.m_CurrentDir), static_cast<LPCWSTR>(TCmdLineParser::EscapeValue(refName)));
+			sCmd.Format(L"/command:reflog /path:\"%s\" /ref:%s", g_Git.m_CurrentDir.c_str(), TCmdLineParser::EscapeValue(refName));
 			CAppUtils::RunTortoiseGitProc(sCmd);
 			break;
 		}
+		default:
+			std::unreachable();
 	}
 	AfxGetApp()->DoWaitCursor(-1);
 }
 
-static void AppendMenuChecked(CMenu &menu, UINT nTextID, UINT_PTR nItemID, BOOL checked = FALSE, BOOL enabled = TRUE)
+static void AppendMenuChecked(CMenu &menu, const UINT nTextID, const UINT_PTR nItemID, const BOOL checked = FALSE, const BOOL enabled = TRUE)
 {
 	CString text;
 	text.LoadString(nTextID);
 	menu.AppendMenu(MF_STRING | (enabled ? MF_ENABLED : MF_DISABLED) | (checked ? MF_CHECKED : MF_UNCHECKED), nItemID, text);
 }
 
-void CGitRefCompareList::OnContextMenuHeader(CWnd * /*pWnd*/, CPoint point)
+void CGitRefCompareList::OnContextMenuHeader(CWnd * /*pWnd*/, const CPoint point)
 {
 	CMenu popup;
 	if (popup.CreatePopupMenu())
@@ -399,17 +403,18 @@ void CGitRefCompareList::OnContextMenuHeader(CWnd * /*pWnd*/, CPoint point)
 		AppendMenuChecked(popup, IDS_HIDEUNCHANGED, IDGITRCLH_HIDEUNCHANGED, m_bHideUnchanged);
 
 		const int selection = popup.TrackPopupMenu(TPM_RETURNCMD | TPM_LEFTALIGN | TPM_NONOTIFY, point.x, point.y, this);
-		switch (selection)
-		{
+		switch (selection) {
 			case IDGITRCLH_HIDEUNCHANGED:
 				m_bHideUnchanged = !m_bHideUnchanged;
 				Show();
 				break;
+			default:
+				std::unreachable();
 		}
 	}
 }
 
-CString CGitRefCompareList::GetCommitMessage(git_commit *commit)
+CString CGitRefCompareList::GetCommitMessage(const git_commit *commit)
 {
 	int encode = CP_UTF8;
 	const char *encodingString = git_commit_message_encoding(commit);

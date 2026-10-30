@@ -3,7 +3,7 @@
 #include <Uxtheme.h>
 #include <minwindef.h>
 #include "detours/detours.h"
-#include "sanity.h"
+#include <tgitlib/sanity.h>
 
 
 export module DarkModeHelper;

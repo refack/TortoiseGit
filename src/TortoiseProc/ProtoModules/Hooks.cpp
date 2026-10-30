@@ -74,8 +74,7 @@ bool CHooks::Create()
 {
 	if (!m_pInstance)
 		m_pInstance = new CHooks();
-	CRegString reghooks(L"Software\\TortoiseGit\\hooks");
-	CString strhooks = reghooks;
+	auto strhooks = CString{CRegString(L"Software\\TortoiseGit\\hooks")};
 	ParseHookString(strhooks, false);
 	return true;
 }
@@ -115,18 +114,18 @@ bool CHooks::Save()
 	if (reghooks.GetLastError())
 		return false;
 
-	if (g_Git.m_CurrentDir.IsEmpty() || GitAdminDir::IsBareRepo(g_Git.m_CurrentDir))
+	if (g_Git.m_CurrentDir.empty() || GitAdminDir::IsBareRepo(g_Git.m_CurrentDir))
 		return true;
 
 	// load the .tgitconfig file
 	wil::unique_git_config gitconfig;
 	git_config_new(gitconfig.put());
-	git_config_add_file_ondisk(gitconfig.get(), CGit::GetGitPathStringA(g_Git.CombinePath(L".tgitconfig")), GIT_CONFIG_LEVEL_LOCAL, nullptr, FALSE); // this needs to have the second highest priority
+	git_config_add_file_ondisk(gitconfig.get(), g_Git.CombinePath(L".tgitconfig").string().c_str(), GIT_CONFIG_LEVEL_LOCAL, nullptr, FALSE); // this needs to have the second highest priority
 
 	// delete all existing local hooks
 	for (const auto& hook : { PROJECTPROPNAME_STARTCOMMITHOOK, PROJECTPROPNAME_PRECOMMITHOOK, PROJECTPROPNAME_POSTCOMMITHOOK, PROJECTPROPNAME_PREPUSHHOOK, PROJECTPROPNAME_POSTPUSHHOOK, PROJECTPROPNAME_PREREBASEHOOK })
 	{
-		CStringA hookA = CUnicodeUtils::GetUTF8<CStringA>(hook);
+		CStringA hookA = CUnicodeUtils::GetUTF8(hook);
 		for (const auto& val : { "cmdline", "wait", "show" })
 		{
 			git_config_delete_entry(gitconfig.get(), hookA + val);
@@ -143,7 +142,7 @@ bool CHooks::Save()
 		switch (hook.first.htype)
 		{
 		case HookType::start_commit_hook:
-			sHookPropName = CUnicodeUtils::GetUTF8<CStringA>(PROJECTPROPNAME_STARTCOMMITHOOK);
+			sHookPropName = CUnicodeUtils::GetUTF8(PROJECTPROPNAME_STARTCOMMITHOOK);
 			break;
 		case HookType::pre_commit_hook:
 			sHookPropName = CUnicodeUtils::GetUTF8<CStringA>(PROJECTPROPNAME_PRECOMMITHOOK);
@@ -160,6 +159,8 @@ bool CHooks::Save()
 		case HookType::pre_rebase_hook:
 			sHookPropName = CUnicodeUtils::GetUTF8<CStringA>(PROJECTPROPNAME_PREREBASEHOOK);
 			break;
+		default:
+			std::unreachable();
 		}
 		git_config_set_string(gitconfig.get(), sHookPropName + "cmdline", CUnicodeUtils::GetUTF8<CStringA>(hook.second.commandline));
 		git_config_set_bool(gitconfig.get(), sHookPropName + "wait", hook.second.bWait);
@@ -554,7 +555,7 @@ void CHooks::ParseHookString(CString strhooks, bool bLocal)
 						if (cmd.bLocal)
 						{
 							CString temp;
-							temp.Format(L"%s|%d%s", m_RootPath.GetWinPath(), static_cast<int>(key.htype), static_cast<LPCWSTR>(cmd.commandline));
+							temp.Format(L"%s|%d%s", m_RootPath.GetWinPath(), key.htype, cmd.commandline);
 
 							cmd.sRegKey = L"Software\\TortoiseGit\\approvedhooks\\" + CalcSHA256(temp);
 							CRegDWORD reg(cmd.sRegKey, 0);
@@ -588,16 +589,14 @@ DWORD CHooks::RunScript(CString cmd, LPCWSTR currentDir, CString& error, bool bW
 	error.Empty();
 
 	// Create Temp File for redirection
-	wchar_t szTempPath[MAX_PATH] = { 0 };
-	wchar_t szOutput[MAX_PATH] = { 0 };
-	wchar_t szErr[MAX_PATH] = { 0 };
-	GetTortoiseGitTempPath(_countof(szTempPath), szTempPath);
-	GetTempFileName(szTempPath, L"git", 0, szErr);
+	auto szTempPath = GitCall::GetTortoiseGitTempPath();
+	if (!szTempPath)
+		return DWORD(-1);
 
 	// setup redirection handles
 	// output handle must be WRITE mode, share READ
 	// redirect handle must be READ mode, share WRITE
-	hErr   = CreateFile(szErr, GENERIC_WRITE, FILE_SHARE_READ, &sa, CREATE_ALWAYS, FILE_ATTRIBUTE_TEMPORARY, nullptr);
+	hErr   = CreateFile(szTempPath->c_str(), GENERIC_WRITE, FILE_SHARE_READ, &sa, CREATE_ALWAYS, FILE_ATTRIBUTE_TEMPORARY, nullptr);
 
 	if (!hErr)
 	{
@@ -605,7 +604,7 @@ DWORD CHooks::RunScript(CString cmd, LPCWSTR currentDir, CString& error, bool bW
 		return DWORD(-1);
 	}
 
-	hRedir = CreateFile(szErr, GENERIC_READ, FILE_SHARE_WRITE, nullptr, OPEN_EXISTING, 0, nullptr);
+	hRedir = CreateFile(szTempPath->c_str(), GENERIC_READ, FILE_SHARE_WRITE, nullptr, OPEN_EXISTING, 0, nullptr);
 
 	if (!hRedir)
 	{
@@ -613,8 +612,8 @@ DWORD CHooks::RunScript(CString cmd, LPCWSTR currentDir, CString& error, bool bW
 		return DWORD(-1);
 	}
 
-	GetTempFileName(szTempPath, L"git", 0, szOutput);
-	hOut   = CreateFile(szOutput, GENERIC_WRITE, FILE_SHARE_READ, &sa, CREATE_ALWAYS, FILE_ATTRIBUTE_TEMPORARY, nullptr);
+	auto szOutput = GitCall::GetTortoiseGitTempPath();
+	hOut   = CreateFile(szOutput->c_str(), GENERIC_WRITE, FILE_SHARE_READ, &sa, CREATE_ALWAYS, FILE_ATTRIBUTE_TEMPORARY, nullptr);
 
 	if (!hOut)
 	{
@@ -673,8 +672,8 @@ DWORD CHooks::RunScript(CString cmd, LPCWSTR currentDir, CString& error, bool bW
 		GetExitCodeProcess(pi.hProcess, &exitcode);
 	}
 	CloseHandle(pi.hProcess);
-	DeleteFile(szOutput);
-	DeleteFile(szErr);
+	fs::remove(*szOutput);
+	fs::remove(*szTempPath);
 
 	return exitcode;
 }
@@ -688,7 +687,7 @@ bool CHooks::ApproveHook(HWND hWnd, hookiterator it, DWORD& exitcode)
 	}
 
 	CString sQuestion;
-	sQuestion.Format(IDS_HOOKS_APPROVE_TASK1, static_cast<LPCWSTR>(it->second.commandline));
+	sQuestion.Format(IDS_HOOKS_APPROVE_TASK1, it->second.commandline);
 	CTaskDialog taskdlg(sQuestion, CString(MAKEINTRESOURCE(IDS_HOOKS_APPROVE_TASK2)), L"TortoiseGit", 0, TDF_USE_COMMAND_LINKS | TDF_ALLOW_DIALOG_CANCELLATION | TDF_POSITION_RELATIVE_TO_WINDOW | TDF_SIZE_TO_CONTENT);
 	taskdlg.AddCommandControl(101, CString(MAKEINTRESOURCE(IDS_HOOKS_APPROVE_TASK3)));
 	taskdlg.AddCommandControl(102, CString(MAKEINTRESOURCE(IDS_HOOKS_APPROVE_TASK4)));

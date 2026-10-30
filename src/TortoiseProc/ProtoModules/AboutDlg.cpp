@@ -24,7 +24,7 @@
 #include "TortoiseProc.h"
 #include "AboutDlg.h"
 #define NEED_SIGNING_KEY
-#include <../libgit2/include/version.h>
+#include <tgitlib/version.h>
 #include "VersioncheckParser.h"
 import AppUtils.Launch;
 import AppUtils.Window;

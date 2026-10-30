@@ -56,7 +56,7 @@ namespace testing::internal
 }
 
 // TGit/Utils
-#include <sanity.h>		// SCOPE_EXIT
+#include <tgitlib/sanity.h>		// SCOPE_EXIT
 #ifndef JUST_TEXT_INCLUDES
 import std;
 import str_utils;		// tgit::wstr, tgit::str::StringView (the CString bridge), CUnicodeUtils, StringUtils

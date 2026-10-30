@@ -65,7 +65,7 @@ public:
 	int AddEntry(git_repository* repo, const CString& ref, const CGitHash* oldHash, const CGitHash* newHash);
 	void Show();
 	void Clear();
-	static CString GetCommitMessage(git_commit *commit);
+	static CString GetCommitMessage(const git_commit *commit);
 
 protected:
 	afx_msg void OnHdnItemclick(NMHDR* pNMHDR, LRESULT* pResult);

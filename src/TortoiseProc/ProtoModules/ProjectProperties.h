@@ -21,33 +21,33 @@
 #pragma once
 #include <regex>
 
-#define BUGTRAQPROPNAME_LABEL				L"bugtraq.label"
-#define BUGTRAQPROPNAME_MESSAGE				L"bugtraq.message"
-#define BUGTRAQPROPNAME_NUMBER				L"bugtraq.number"
-#define BUGTRAQPROPNAME_LOGREGEX			L"bugtraq.logregex"
-#define BUGTRAQPROPNAME_URL					L"bugtraq.url"
-#define BUGTRAQPROPNAME_WARNIFNOISSUE		L"bugtraq.warnifnoissue"
-#define BUGTRAQPROPNAME_APPEND				L"bugtraq.append"
-#define BUGTRAQPROPNAME_PROVIDERUUID		L"bugtraq.provideruuid"
-#define BUGTRAQPROPNAME_PROVIDERUUID64		L"bugtraq.provideruuid64"
-#define BUGTRAQPROPNAME_PROVIDERPARAMS		L"bugtraq.providerparams"
+#define BUGTRAQPROPNAME_LABEL				L"bugtraq.label"sv
+#define BUGTRAQPROPNAME_MESSAGE				L"bugtraq.message"sv
+#define BUGTRAQPROPNAME_NUMBER				L"bugtraq.number"sv
+#define BUGTRAQPROPNAME_LOGREGEX			L"bugtraq.logregex"sv
+#define BUGTRAQPROPNAME_URL					L"bugtraq.url"sv
+#define BUGTRAQPROPNAME_WARNIFNOISSUE		L"bugtraq.warnifnoissue"sv
+#define BUGTRAQPROPNAME_APPEND				L"bugtraq.append"sv
+#define BUGTRAQPROPNAME_PROVIDERUUID		L"bugtraq.provideruuid"sv
+#define BUGTRAQPROPNAME_PROVIDERUUID64		L"bugtraq.provideruuid64"sv
+#define BUGTRAQPROPNAME_PROVIDERPARAMS		L"bugtraq.providerparams"sv
 
-#define PROJECTPROPNAME_LOGWIDTHLINE		L"tgit.logwidthmarker"
-#define PROJECTPROPNAME_LOGMINSIZE			L"tgit.logminsize"
-#define PROJECTPROPNAME_LOGFILELISTLANG		L"tsvn.logfilelistenglish"
-#define PROJECTPROPNAME_PROJECTLANGUAGE		L"tgit.projectlanguage"
-#define PROJECTPROPNAME_WARNNOSIGNEDOFFBY	L"tgit.warnnosignedoffby"
-#define PROJECTPROPNAME_ICON				L"tgit.icon"
+#define PROJECTPROPNAME_LOGWIDTHLINE		L"tgit.logwidthmarker"sv
+#define PROJECTPROPNAME_LOGMINSIZE			L"tgit.logminsize"sv
+#define PROJECTPROPNAME_LOGFILELISTLANG		L"tsvn.logfilelistenglish"sv
+#define PROJECTPROPNAME_PROJECTLANGUAGE		L"tgit.projectlanguage"sv
+#define PROJECTPROPNAME_WARNNOSIGNEDOFFBY	L"tgit.warnnosignedoffby"sv
+#define PROJECTPROPNAME_ICON				L"tgit.icon"sv
 
-#define PROJECTPROPNAME_WEBVIEWER_REV		L"webviewer.revision"
-#define PROJECTPROPNAME_WEBVIEWER_PATHREV	L"webviewer.pathrevision"
+#define PROJECTPROPNAME_WEBVIEWER_REV		L"webviewer.revision"sv
+#define PROJECTPROPNAME_WEBVIEWER_PATHREV	L"webviewer.pathrevision"sv
 
-#define PROJECTPROPNAME_STARTCOMMITHOOK		L"hook.startcommit."
-#define PROJECTPROPNAME_PRECOMMITHOOK		L"hook.precommit."
-#define PROJECTPROPNAME_POSTCOMMITHOOK		L"hook.postcommit."
-#define PROJECTPROPNAME_PREPUSHHOOK			L"hook.prepush."
-#define PROJECTPROPNAME_POSTPUSHHOOK		L"hook.postpush."
-#define PROJECTPROPNAME_PREREBASEHOOK		L"hook.prerebase."
+#define PROJECTPROPNAME_STARTCOMMITHOOK		L"hook.startcommit."sv
+#define PROJECTPROPNAME_PRECOMMITHOOK		L"hook.precommit."sv
+#define PROJECTPROPNAME_POSTCOMMITHOOK		L"hook.postcommit."sv
+#define PROJECTPROPNAME_PREPUSHHOOK			L"hook.prepush."sv
+#define PROJECTPROPNAME_POSTPUSHHOOK		L"hook.postpush."sv
+#define PROJECTPROPNAME_PREREBASEHOOK		L"hook.prerebase."sv
 
 /**
  * \ingroup TortoiseProc

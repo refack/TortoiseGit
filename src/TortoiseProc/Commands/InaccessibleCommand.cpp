@@ -44,7 +44,7 @@ bool InaccessibleCommand ::Execute()
 	errorParts.TrimRight();
 
 	CString error;
-	error.AppendFormat(IDS_INACCESSIBLE, static_cast<LPCWSTR>(errorParts));
+	error.AppendFormat(IDS_INACCESSIBLE, errorParts);
 
 	if (errorParts.Find(L"libgit reported: not a git repository") == -1 && !orgCmdLinePath.GetWinPathString().empty() &&
 		(PathFileExists(dotGitPath.c_str()) && !PathIsDirectory(dotGitPath.c_str())
@@ -57,9 +57,9 @@ bool InaccessibleCommand ::Execute()
 		{
 			wil::unique_git_config config;
 			git_config_new(config.put());
-			int err = git_config_add_file_ondisk(config.get(), CGit::GetGitPathStringA(g_Git.GetGitGlobalXDGConfig()), GIT_CONFIG_LEVEL_XDG, nullptr, FALSE);
-			if (!err && (PathFileExists(g_Git.GetGitGlobalConfig()) || !PathFileExists(g_Git.GetGitGlobalXDGConfig())))
-				err = git_config_add_file_ondisk(config.get(), CGit::GetGitPathStringA(g_Git.GetGitGlobalConfig()), GIT_CONFIG_LEVEL_GLOBAL, nullptr, FALSE);
+			int err = git_config_add_file_ondisk(config.get(), TGitH::GetGitGlobalXDGConfig().string().c_str(), GIT_CONFIG_LEVEL_XDG, nullptr, FALSE);
+			if (!err && (fs::exists(TGitH::GetGitGlobalConfig()) || !fs::exists(TGitH::GetGitGlobalXDGConfig())))
+				err = git_config_add_file_ondisk(config.get(), TGitH::GetGitGlobalConfig().string().c_str(), GIT_CONFIG_LEVEL_GLOBAL, nullptr, FALSE);
 			if (err)
 			{
 				::MessageBox(GetExplorerHWND(), TGitH::GetLibGit2LastErr(), L"TortoiseGit", MB_ICONEXCLAMATION);

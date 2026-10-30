@@ -1,6 +1,6 @@
 module;
 #include <processenv.h>
-#include "sanity.h"
+#include <tgitlib/sanity.h>
 
 //
 // Created by refac on 22/10/2026.

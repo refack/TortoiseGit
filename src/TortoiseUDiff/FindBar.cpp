@@ -23,7 +23,7 @@
 #include "FindBar.h"
 #include <string>
 #include <../libgit2/Utils/LoadIconEx.h>
-#include <Utils/Theme.h>
+import ThemeAPI;
 
 CFindBar::CFindBar()
 {

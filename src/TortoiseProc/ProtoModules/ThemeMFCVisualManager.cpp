@@ -22,7 +22,7 @@
 
 
 #include "ThemeMFCVisualManager.h"
-#include "Theme.h"
+import ThemeAPI;
 
 IMPLEMENT_DYNCREATE(CThemeMFCVisualManager, CMFCVisualManagerOffice2007)
 

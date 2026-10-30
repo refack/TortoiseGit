@@ -33,7 +33,7 @@
 #include <../TortoiseUDiff/UDiffColors.h>
 #include <../../libgit2/Utils/LoadIconEx.h>
 #include <Utils/ScintillaRegistration.h>
-#include <Utils/Theme.h>
+import ThemeAPI;
 #include <Utils/URLFinder.h>
 
 

@@ -28,7 +28,7 @@
 #include <libgit2-private/util/process.h>
 #include <libgit2-private/util/str.h>
 
-#include "system-call.h"
+#include "tgitlib/system-call.h"
 #include <windows.h>
 
 

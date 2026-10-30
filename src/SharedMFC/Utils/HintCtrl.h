@@ -19,7 +19,7 @@
 //
 #pragma once
 #include "MyMemDC.h"
-#include "Theme.h"
+import ThemeAPI;
 
 /**
  * \ingroup Utils

@@ -17,7 +17,7 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 #pragma once
-#include "ColumnManager.h"
+import ColumnManager;
 
 template <typename BaseType> class CResizableColumnsListCtrl : public BaseType
 {

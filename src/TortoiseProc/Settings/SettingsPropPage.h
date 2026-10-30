@@ -21,7 +21,7 @@
 import MessageBox;
 #include "Tooltip.h"
 #include "Utils/CommonDialogFunctions.h"
-#include "Utils/Theme.h"
+import ThemeAPI;
 
 /**
  * \ingroup TortoiseProc

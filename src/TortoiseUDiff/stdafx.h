@@ -37,7 +37,7 @@ using std::min;
 
 #define REGSTRING_DARKTHEME L"Software\\TortoiseGit\\UDiffDarkTheme"
 
-#include <sanity.h>		// SCOPE_EXIT; textual includes before the imports
+#include <tgitlib/sanity.h>		// SCOPE_EXIT; textual includes before the imports
 import RIAA;
 import wil;			// scope_exit_helper, which SCOPE_EXIT expands to
 

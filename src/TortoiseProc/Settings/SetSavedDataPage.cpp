@@ -279,7 +279,7 @@ void CSetSavedDataPage::OnBnClickedRepologclear()
 
 void CSetSavedDataPage::OnBnClickedActionlogshow()
 {
-	CString logfile = (PathUtils::GetLocalAppDataDirectory() + L"logfile.txt").c_str();
+	auto logfile = PathUtils::GetLocalAppDataDirectory() + L"logfile.txt";
 	CAppUtils::StartTextViewer(logfile);
 }
 

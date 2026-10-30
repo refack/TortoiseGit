@@ -21,10 +21,14 @@
 
 #include "GravatarPictureBox.h"
 #include "Picture.h"
-import MessageBox;
 #include "../../libgit2/Resources/LoglistCommonResource.h"
 #include "Resources/resource.h"
 #include <WinCrypt.h>
+
+import MessageBox;
+
+using TCStringW = wstr::CString;
+using TCStringA = zstr::CString;
 
 // Not named CAutoLocker: git_h exports TGitH::CAutoLocker over its own recursive mutex,
 // and the two would make every unqualified use ambiguous.
@@ -32,7 +36,7 @@ using GravatarLocker = CComCritSecLock<CComCriticalSection>;
 
 static UINT WM_GRAVATAR_REFRESH = RegisterWindowMessage(L"TORTOISEGIT_GRAVATAR_REFRESH");
 
-static CString CalcHash(HCRYPTPROV hProv, const CString& text)
+static TCStringW CalcHash(HCRYPTPROV hProv, const TCStringW& text)
 {
 	static bool useMD5 = CRegDWORD(L"Software\\TortoiseGit\\GravatarUseMD5", FALSE) != FALSE;
 
@@ -41,7 +45,7 @@ static CString CalcHash(HCRYPTPROV hProv, const CString& text)
 		return L"";
 	SCOPE_EXIT { CryptDestroyHash(hHash); };
 
-	CStringA textA = CUnicodeUtils::GetUTF8<CStringA>(text);
+	const auto textA = CUnicodeUtils::GetUTF8<TCStringA>(text);
 	if (!CryptHashData(hHash, reinterpret_cast<const BYTE*>(static_cast<LPCSTR>(textA)), textA.GetLength(), 0))
 		return L"";
 
@@ -50,7 +54,7 @@ static CString CalcHash(HCRYPTPROV hProv, const CString& text)
 	if (!CryptGetHashParam(hHash, HP_HASHSIZE, reinterpret_cast<BYTE*>(&hashLen), &hashLenLen, 0))
 		return L"";
 
-	CString hash;
+	TCStringW hash;
 	auto pHash = std::make_unique<BYTE[]>(hashLen);
 	if (!CryptGetHashParam(hHash, HP_HASHVAL, pHash.get(), &hashLen, 0))
 		return L"";
@@ -99,7 +103,7 @@ void CGravatar::Init()
 	}
 }
 
-void CGravatar::LoadGravatar(CString email)
+void CGravatar::LoadGravatar(TCStringW email)
 {
 	if (m_gravatarThread == nullptr)
 		return;
@@ -131,7 +135,7 @@ void CGravatar::LoadGravatar(CString email)
 
 void CGravatar::GravatarThread()
 {
-	CString gravatarBaseUrl = CRegString(L"Software\\TortoiseGit\\GravatarUrl", L"https://gravatar.com/avatar/%HASH%?d=identicon");
+	auto gravatarBaseUrl = CRegString::StringT{CRegString(L"Software\\TortoiseGit\\GravatarUrl", L"https://gravatar.com/avatar/%HASH%?d=identicon")};
 
 	HCRYPTPROV hProv = 0;
 	if (!CryptAcquireContext(&hProv, nullptr, nullptr, PROV_RSA_AES, CRYPT_VERIFYCONTEXT))
@@ -141,8 +145,8 @@ void CGravatar::GravatarThread()
 	}
 	SCOPE_EXIT { CryptReleaseContext(hProv, 0); };
 
-	CString hostname;
-	CString baseUrlPath;
+	TCStringW hostname;
+	TCStringW baseUrlPath;
 	URL_COMPONENTS urlComponents = {0};
 	urlComponents.dwStructSize = sizeof(urlComponents);
 	urlComponents.lpszHostName = hostname.GetBuffer(INTERNET_MAX_HOST_NAME_LENGTH);
@@ -152,7 +156,7 @@ void CGravatar::GravatarThread()
 	if (!InternetCrackUrl(gravatarBaseUrl, gravatarBaseUrl.GetLength(), 0, &urlComponents))
 	{
 		TracePrintf(_T(__FUNCTION__) L": Gravatar URL seems to be invalid\n");
-		GravatarLocker lock(m_gravatarLock);
+		GravatarLocker _(m_gravatarLock);
 		m_filename.Empty();
 		return;
 	}
@@ -166,13 +170,13 @@ void CGravatar::GravatarThread()
 	if (!m_hConnectHandle)
 	{
 		TracePrintf(_T(__FUNCTION__) L": InternetConnect failed\n");
-		GravatarLocker lock(m_gravatarLock);
+		GravatarLocker _(m_gravatarLock);
 		m_filename.Empty();
 		return;
 	}
 	SCOPE_EXIT
 	{
-		GravatarLocker lock(m_gravatarLock);
+		GravatarLocker _(m_gravatarLock);
 		if (m_hConnectHandle)
 			InternetCloseHandle(m_hConnectHandle);
 		m_hConnectHandle = nullptr;
@@ -184,7 +188,7 @@ void CGravatar::GravatarThread()
 		while (!m_gravatarExit)
 		{
 			m_gravatarLock.Lock();
-			CString email = m_email;
+			TCStringW email = m_email;
 			m_gravatarLock.Unlock();
 			if (email.IsEmpty())
 				break;
@@ -198,18 +202,17 @@ void CGravatar::GravatarThread()
 			if (diff)
 				continue;
 
-			CString hash = CalcHash(hProv, email);
+			TCStringW hash = CalcHash(hProv, email);
 			if (hash.IsEmpty())
 				continue;
 
-			CString gravatarUrl = baseUrlPath;
+			TCStringW gravatarUrl = baseUrlPath;
 			gravatarUrl.Replace(L"%HASH%", hash);
-			CString tempFile;
-			GetTempPath(tempFile);
+			auto tempFile = GitCall::GetTempFile();
 			tempFile += hash;
 			if (PathFileExists(tempFile))
 			{
-				GravatarLocker lock(m_gravatarLock);
+				GravatarLocker _(m_gravatarLock);
 				if (m_email == email)
 				{
 					m_filename = tempFile;
@@ -220,19 +223,19 @@ void CGravatar::GravatarThread()
 			}
 			else
 			{
-				const int ret = DownloadToFile([&]() { GravatarLocker lock(m_gravatarLock); return m_hConnectHandle; }(), isHttps, gravatarUrl, tempFile);
+				const int ret = DownloadToFile([&]() { GravatarLocker _(m_gravatarLock); return m_hConnectHandle; }(), isHttps, gravatarUrl, tempFile);
 				if (ret)
 				{
 					TracePrintf(_T(__FUNCTION__) L": Gravatar download for \"%s\" failed: %d\n", static_cast<LPCWSTR>(gravatarUrl), ret);
 					DeleteFile(tempFile);
 					if (m_gravatarExit)
 						break;
-					GravatarLocker lock(m_gravatarLock);
+					GravatarLocker _(m_gravatarLock);
 					m_filename.Empty();
 				}
 				if (m_gravatarExit)
 					break;
-				GravatarLocker lock(m_gravatarLock);
+				GravatarLocker _(m_gravatarLock);
 				if (m_email == email && !ret)
 				{
 					CAutoFile hFile = CreateFile(tempFile, FILE_READ_ATTRIBUTES | FILE_WRITE_ATTRIBUTES, FILE_SHARE_READ, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
@@ -258,7 +261,7 @@ void CGravatar::GravatarThread()
 	}
 }
 
-int CGravatar::DownloadToFile(const HINTERNET hConnectHandle, bool isHttps, const CString& urlpath, const CString& dest) const
+int CGravatar::DownloadToFile(const HINTERNET& hConnectHandle, bool isHttps, const TCStringW& urlpath, const TCStringW& dest) const
 {
 	if (!hConnectHandle)
 		return ERROR_CANCELLED;
@@ -346,7 +349,7 @@ void CGravatar::SafeTerminateGravatarThread()
 		::SetEvent(m_gravatarEvent);
 		if (::WaitForSingleObject(m_gravatarThread->m_hThread, 1500) == WAIT_TIMEOUT && m_hConnectHandle)
 		{
-			GravatarLocker lock(m_gravatarLock);
+			GravatarLocker _(m_gravatarLock);
 			if (m_hConnectHandle)
 				::InternetCloseHandle(m_hConnectHandle);
 			m_hConnectHandle = nullptr;
@@ -371,7 +374,7 @@ void CGravatar::OnPaint()
 	GetClientRect(&rect);
 	dc.FillSolidRect(&rect, GetSysColor(COLOR_BTNFACE));
 	m_gravatarLock.Lock();
-	CString filename = m_filename;
+	TCStringW filename = m_filename;
 	m_gravatarLock.Unlock();
 	if (filename.IsEmpty()) return;
 	CPicture picture;

@@ -23,7 +23,7 @@
 
 
 #include "MiscUI/Tooltip.h"
-#include "Utils/Theme.h"
+import ThemeAPI;
 
 
 BEGIN_MESSAGE_MAP(CToolTips, CToolTipCtrl)
@@ -114,7 +114,7 @@ BOOL CToolTips::ShowBalloon(CWnd *pWnd, UINT nIDText, UINT nIDTitle, UINT icon /
 {
 	CString sTemp = LoadTooltip(nIDText);
 
-	const HWND hwndTT = CreateWindow
+	const HWND& hwndTT = CreateWindow
 		(
 		TOOLTIPS_CLASS,
 		L"",

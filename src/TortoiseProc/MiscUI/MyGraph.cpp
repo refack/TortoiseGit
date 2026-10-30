@@ -6,7 +6,7 @@
 
 #include "MiscUI/MyGraph.h"
 #include "MiscUI/BufferDC.h"
-#include "Utils/Theme.h"
+import ThemeAPI;
 
 #include <cmath>
 #define _USE_MATH_DEFINES

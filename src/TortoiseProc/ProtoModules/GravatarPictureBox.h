@@ -17,7 +17,6 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 #pragma once
-#include <WinInet.h>
 
 class CGravatar : public CStatic
 {
@@ -27,18 +26,18 @@ public:
 	void	Init();
 	bool	IsGravatarEnabled() const { return m_bEnableGravatar; }
 	void	EnableGravatar(bool value) { m_bEnableGravatar = value; }
-	void	LoadGravatar(CString email = L"");
+	void	LoadGravatar(wstr::CString email = L"");
 
 private:
 	void	GravatarThread();
 	void	SafeTerminateGravatarThread();
 	afx_msg void OnPaint();
 	LRESULT	OnGravatarRefresh(WPARAM, LPARAM);
-	int		DownloadToFile(const HINTERNET hConnectHandle, bool isHttps, const CString& urlpath, const CString& dest) const;
+	int		DownloadToFile(const HINTERNET& hConnectHandle, bool isHttps, const wstr::CString& urlpath, const wstr::CString& dest) const;
 
 	bool				m_bEnableGravatar = false;
-	CString				m_filename;
-	CString				m_email;
+	wstr::CString		m_filename;
+	wstr::CString		m_email;
 	HANDLE				m_gravatarEvent = INVALID_HANDLE_VALUE;
 	CWinThread*			m_gravatarThread = nullptr;
 	std::atomic<bool>	m_gravatarExit;

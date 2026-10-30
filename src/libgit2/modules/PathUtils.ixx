@@ -2,7 +2,7 @@
 #include <windows.h>
 #include <strsafe.h>
 #include <ShlObj.h>		// FOLDERID_*, REFKNOWNFOLDERID, KNOWN_FOLDER_FLAG
-// #include "sanity.h"
+// #include <tgitlib/sanity.h>
 
 
 export module PathUtils;

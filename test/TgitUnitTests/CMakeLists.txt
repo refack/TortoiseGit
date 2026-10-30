@@ -80,7 +80,7 @@ target_link_libraries(TGitUnitTests
         gdi32
         crypt32
         gitdll
-        TGitLibgit2
+        tgitlib
 )
 
 # gitdll is a DLL (and must stay one), so it has to sit next to the exe. Copied

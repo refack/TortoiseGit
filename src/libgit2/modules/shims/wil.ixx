@@ -398,6 +398,7 @@ namespace reg {
 	// The stock writers. Each takes the root and subkey explicitly.
 	using wil::reg::set_value_string_nothrow;
 	using wil::reg::set_value_dword_nothrow;
+	using reg_view_tgit = wil::reg::reg_view_details::reg_view_t<err_returncode_policy>;
 
 	static_assert(std::is_convertible_v<PCWSTR, std::wstring_view>);
 	static_assert(std::is_convertible_v<PCWSTR, std::wstring_view>);
@@ -448,6 +449,13 @@ namespace reg {
 
 		if (value.empty())
 			return std::nullopt;
+		return value;
+	}
+	std::optional<DWORD> try_get_tgit_dword(const std::wstring_view name) {
+		auto value = wil::reg::try_get_dword(HKEY_CURRENT_USER, TortoiseGitKey, name);
+		if (!value)
+			value = wil::reg::try_get_dword(HKEY_LOCAL_MACHINE, TortoiseGitKey, name);
+
 		return value;
 	}
 

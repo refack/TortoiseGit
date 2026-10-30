@@ -22,7 +22,7 @@
 
 
 #include "MiscUI/SplitterControl.h"
-#include "Utils/Theme.h"
+import ThemeAPI;
 
 /////////////////////////////////////////////////////////////////////////////
 // CSplitterControl

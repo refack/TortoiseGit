@@ -444,7 +444,7 @@ bool Command::CheckRepo(PathRequirement requirement) const
 {
 	if (requirement >= PathRequirement::WorkingTreeRequired)
 	{
-		if (!GitAdminDir::HasAdminDir(tgit::str::StringView(g_Git.m_CurrentDir)))
+		if (!GitAdminDir::HasAdminDir(g_Git.m_CurrentDir.wstring()))
 		{
 			CMessageBox::Show(GetExplorerHWND(), IDS_NOWORKINGCOPY, IDS_APPNAME, MB_ICONERROR);
 			return false;
@@ -452,7 +452,7 @@ bool Command::CheckRepo(PathRequirement requirement) const
 	}
 	else if (requirement >= PathRequirement::WorkingTreeOrBareRepoRequired)
 	{
-		if (!GitAdminDir::IsWorkingTreeOrBareRepo(tgit::str::StringView(g_Git.m_CurrentDir)))
+		if (!GitAdminDir::IsWorkingTreeOrBareRepo(g_Git.m_CurrentDir.wstring()))
 		{
 			CMessageBox::Show(GetExplorerHWND(), IDS_NOGITREPO, IDS_APPNAME, MB_ICONERROR);
 			return false;
@@ -461,22 +461,17 @@ bool Command::CheckRepo(PathRequirement requirement) const
 	else
 		return true;
 
-	if (!g_Git.m_IsUseLibGit2 || g_Git.m_CurrentDir.IsEmpty())
+	if (!g_Git.m_IsUseLibGit2 || g_Git.m_CurrentDir.empty())
 		return true;
 
 	// Open() returned 0 on success; the owner is non-empty on success.
-	if (const wil::unique_git_repository repo = wil::OpenGitRepository(CGit::GetGitPathStringA(g_Git.m_CurrentDir).GetString()); repo)
+	if (const wil::unique_git_repository repo = wil::OpenGitRepository(g_Git.m_CurrentDir.string().c_str()); repo)
 		return true;
 
 	InaccessibleCommand iac;
 	iac.SetExplorerHwnd(GetExplorerHWND());
-	iac.orgCmdLinePath = CTGitPath(g_Git.m_CurrentDir.GetString());
+	iac.orgCmdLinePath = CTGitPath(g_Git.m_CurrentDir);
 	iac.Execute();
 
 	return false;
-}
-
-bool Command::CheckRepo() const
-{
-	return CheckRepo(m_pathRequirement);
 }

@@ -39,7 +39,7 @@ using namespace ATL;
 #include <functional>
 
 #include <git2.h>
-#include <sanity.h>		// SCOPE_EXIT (CreateProcessHelper.h)
+#include <tgitlib/sanity.h>		// SCOPE_EXIT (CreateProcessHelper.h)
 import wil;				// scope_exit_helper, which SCOPE_EXIT expands to
 import DebugOutput;
 import GitIndex;			// git_wc_status_kind / git_wc_status2_t, which tgittypes held

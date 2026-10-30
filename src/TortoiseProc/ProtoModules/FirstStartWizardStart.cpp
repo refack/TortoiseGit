@@ -22,7 +22,7 @@
 #include "TortoiseProc.h"
 #include "FirstStartWizard.h"
 #include "FirstStartWizardStart.h"
-#include "Utils/Theme.h"
+import ThemeAPI;
 import AppUtils.Window;
 
 #define WM_SETPAGEFOCUS WM_APP+2

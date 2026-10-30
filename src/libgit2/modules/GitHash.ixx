@@ -4,7 +4,7 @@
 // git_oid_fromraw and the GIT_OID_* size macros: macros do not cross the
 // invarients import, so take them from the header.
 #include <git2/oid.h>
-#include "sanity.h"
+#include <tgitlib/sanity.h>
 
 
 

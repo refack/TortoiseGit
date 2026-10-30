@@ -7,7 +7,7 @@
 
 #include <Resources/LoglistCommonResource.h>
 #include <Resources/Globals.h>
-#include "sanity.h"
+#include <tgitlib/sanity.h>
 
 
 export module TGitPath;
@@ -94,12 +94,12 @@ std::wstring ToBackslash(const std::wstring_view path) {
 }
 
 
-bool FileExists(std::wstring_view path) {
+bool FileExists(const std::wstring_view path) {
 	return !!::PathFileExists(path.data());
 }
 
 
-bool IsDirectoryPath(std::wstring_view path) {
+bool IsDirectoryPath(const std::wstring_view path) {
 	return !!::PathIsDirectory(path.data());
 }
 
@@ -233,6 +233,7 @@ std::string ToGitPathA(const std::wstring_view path) {
 
 /**
  * Deletes a double-NUL-terminated list of paths through the shell.
+ * \param doubleNulTerminatedPaths
  * \param useTrashbin if true, the items go to the Windows trash bin.
  * \param showErrorUI if true, the shell may show its own error dialog.
  */
@@ -381,28 +382,28 @@ namespace detail {
 		} payload{ .topDir = topDir, .host = host };
 
 		const auto visit = [](const git_config_entry* entry, void* opaque) -> int {
-			auto& data = *static_cast<Payload*>(opaque);
+			auto& [topDir, host, isSafe] = *static_cast<Payload*>(opaque);
 			if (!entry->value || !entry->value[0]) // reset
 			{
-				data.isSafe = false;
+				isSafe = false;
 				return 0;
 			}
 			const std::string_view value{ entry->value };
 			if (value == "*") {
-				data.isSafe = true;
+				isSafe = true;
 				return 0;
 			}
 
 			auto valueW = CUnicodeUtils::GetUnicode<std::wstring>(value);
 			if (valueW.starts_with(L"~/"))
-				valueW = AskHost(data.host.homeDirectory) + valueW.substr(1);
+				valueW = AskHost(host.homeDirectory) + valueW.substr(1);
 			std::ranges::replace(valueW, L'/', L'\\');
 			if (valueW.ends_with(L"\\*")) {
 				valueW.pop_back();
-				data.isSafe = data.topDir.starts_with(valueW);
+				isSafe = topDir.starts_with(valueW);
 			}
 			else
-				data.isSafe = valueW == data.topDir;
+				isSafe = valueW == topDir;
 			return 0;
 		};
 		return git_config_get_multivar_foreach(config.get(), "safe.directory", nullptr, visit, &payload) >= 0 && payload
@@ -451,9 +452,11 @@ bool IsAdminDirPath(const std::wstring_view path, const wchar_t** found = nullpt
 
 /// Returns true if the path is a bare repository. \a invalidFormat is set when
 /// it looks like one but uses the reftable format, which is not supported.
-bool IsBareRepo(const std::wstring_view path, bool* invalidFormat = nullptr) {
+template <tgit::str::IsTCompString TStr>
+bool IsBareRepo(const TStr& path_poly, bool* const invalidFormat = nullptr) {
 	using TGitPath::detail::FileExists;
 
+	auto path = str::as_view(path_poly);
 	if (path.empty())
 		return false;
 
@@ -481,12 +484,7 @@ bool IsBareRepo(const std::wstring_view path, bool* invalidFormat = nullptr) {
 
 	return true;
 }
-
-/// A CString - the MFC UI's. Constrained, so a literal still binds the view one.
-template <tgit::str::IsATLCStringDuck TStr>
-bool IsBareRepo(const TStr& path, bool* invalidFormat = nullptr) {
-	return IsBareRepo(std::wstring_view(tgit::str::StringView{ path }), invalidFormat);
-}
+bool IsBareRepo(const fs::path& path, bool* const invalidFormat = nullptr) { return IsBareRepo(path.wstring(), invalidFormat); }
 
 
 /**
@@ -637,21 +635,19 @@ bool GetWorktreeAdminDirPath(const TStr& projectTopDir, TStr& adminDir) {
  * of CLAUDE.md's failure mode (3).
  */
 // TODO: std::optional
-bool HasAdminDir(
+fs::path HasAdminDir(
 	const auto& path_arg,
-	const bool isDirectory,
-	std::wstring* const projectTopDir = nullptr,
 	bool* isAdminDirPath = nullptr
 ) {
 	auto path = fs::path{ path_arg };
 	if (path.empty())
-		return false;
+		return {};
 	// a file is looked up from its directory; the caller says which it is, so
 	// no disk access here (TGitCache asks for paths that no longer exist)
-	if (!isDirectory) {
+	if (!fs::is_directory(path)) {
 		// e.g "C:\" - native(), not string(): that converts through the ACP and can throw
 		if (path.native().size() <= 3)
-			return false;
+			return {};
 		path = path.parent_path();
 	}
 
@@ -659,40 +655,37 @@ bool HasAdminDir(
 	if (IsAdminDirPath(path.c_str())) {
 		if (isAdminDirPath)
 			*isAdminDirPath = true;
-		return false;
+		return path;
 	}
 
 	for (;;) {
 		if (fs::exists(path / L".git")) {
-			if (projectTopDir)
-				*projectTopDir = path.c_str();
-
 			/* This code is not necessary in TGitCache as there are further checks for valid repos, however,
 			 * TODO: Optimize for usage in TGitCache
 			 */
 #ifndef TGITCACHE
 			const auto adminDir = GetAdminDirPath(path.c_str());
 			if (!adminDir)
-				return false;
+				return path;
 
 			using TGitPath::detail::FileExists;
 			if (!FileExists(adminDir->path + L"\\HEAD") || !FileExists(adminDir->path + L"\\config"))
-				return false;
+				return path;
 
 			if (!FileExists(adminDir->path + L"\\objects\\") || !FileExists(adminDir->path + L"\\refs\\") || !
 				TGitPath::detail::IsDirectoryPath(adminDir->path + L"\\refs\\heads"))
 				// ".git/refs/heads" is a file when reftable-format is used
-				return false;
+				return path;
 #endif
 
-			return true;
+			return {};
 		}
 #ifndef TGITCACHE
 		// If there is a bare repo inside a regular repo, this needs to return false so that:
 		// - GetAdminDirMask() returns 0 causing the context menu of the outer repo to not be shown
 		// - CShellExt::IsMemberOf shows no overlays inside the bare repo
-		else if (IsBareRepo(path.c_str()))
-			return false;
+		else if (IsBareRepo(path.wstring()))
+			return path;
 #endif
 		// walk up; a root ("C:\", "\\server\share\") is its own parent_path, so stop there
 		if (!path.has_relative_path())
@@ -700,18 +693,18 @@ bool HasAdminDir(
 		path = path.parent_path();
 	}
 
-	return false;
+	return path;
 }
 
 
 /// As above, asking the filesystem whether \a path is a directory.
 bool HasAdminDir(const std::wstring_view path, std::wstring* projectTopDir = nullptr) {
-	return HasAdminDir(path, TGitPath::detail::IsDirectoryPath(std::wstring(path)), projectTopDir);
+	return HasAdminDir(path, projectTopDir);
 }
 
 /// The CString out-parameter form TortoiseProc's settings pages use.
 template <tgit::str::IsATLCStringDuck TStr>
-bool HasAdminDir(const std::wstring_view path, TStr* projectTopDir) {
+bool HasAdminDir(const std::wstring_view path, const TStr* const projectTopDir) {
 	std::wstring top;
 	const bool has = HasAdminDir(path, projectTopDir ? &top : nullptr);
 	if (projectTopDir)
@@ -854,7 +847,7 @@ public:
 	// base pointer - the mocks are stack objects.
 
 	template <tgit::str::TStrOfWide StrT>
-	CTGitPath(const StrT& sUnknownPath = {}, const std::optional<bool> bIsDirectory = std::nullopt) {
+	explicit CTGitPath(const StrT& sUnknownPath, const std::optional<bool> bIsDirectory = std::nullopt) {
 		const auto sv = tgit::str::as_view(sUnknownPath);
 		SetFromUnknown(sv);
 		if (bIsDirectory.has_value()) {
@@ -862,26 +855,8 @@ public:
 			m_bIsDirectory = bIsDirectory.value();
 		}
 	}
-	CTGitPath(const fs::path& path) : CTGitPath{path.string(), fs::is_directory(path)} {}
-
-	/// A wide array - a literal, or a buffer a Win32 call filled. Unlike a pointer
-	/// it carries a bound, so this is a bounded scan rather than a walk; wcsnlen
-	/// rather than N - 1, so a MAX_PATH buffer does not bring its trailing NULs.
-	/// explicit: an implicit one gave every literal a second user-defined route,
-	/// and made CGit::CombinePath(L"...") ambiguous between CString and CTGitPath.
-	template <std::size_t N>
-	explicit CTGitPath(const std::array<wchar_t, N>& sUnknownPath, const std::optional<bool> bIsDirectory = std::nullopt)
-		: CTGitPath(std::wstring_view(sUnknownPath, wcsnlen(sUnknownPath, N)), bIsDirectory) {}
-
-	/// A NUL-terminated pointer - GetString(), an LPCWSTR parameter. explicit, so
-	/// no implicit route competes with CString overloads; and a nullptr is the
-	/// empty path, where std::wstring_view(nullptr) is UB (CLAUDE.md failure mode 5).
-	explicit CTGitPath(const wchar_t* const sUnknownPath, const std::optional<bool> bIsDirectory = std::nullopt)
-		: CTGitPath(std::wstring_view{sUnknownPath}, bIsDirectory) {}
-
-	explicit CTGitPath(const std::filesystem::path& sUnknownPath, const std::optional<bool> bIsDirectory = std::nullopt)
-		: CTGitPath(sUnknownPath.wstring(), bIsDirectory) {}
-
+	explicit CTGitPath(const fs::path& path)
+	: CTGitPath{path.wstring(), fs::is_directory(path)} {}
 
 	auto operator>(const CTGitPath& b) const {
 		return this->m_sUIPath.compare(b.m_sUIPath);
@@ -966,8 +941,7 @@ public:
 	}
 
 
-	void SetFromGit(const std::wstring_view sPath, const std::wstring_view oldPath,
-	                const std::same_as<bool> auto bIsDirectory) {
+	void SetFromGit(const std::wstring_view sPath, const std::wstring_view oldPath, const std::same_as<bool> auto bIsDirectory) {
 		SetFromGit(sPath, bIsDirectory);
 		m_sOldFwdslashPath = oldPath;
 	}
@@ -993,31 +967,30 @@ public:
 	/**
 	 * Set the path as UNICODE with backslashes
 	 */
-	void SetFromWin(const LPCWSTR pPath, const std::optional<bool> bIsDirectory) {
-		SetFromWin(std::wstring_view(pPath), bIsDirectory);
-	}
-
-	/// A CString - the MFC UI's, chiefly. Constrained rather than a CString
-	/// parameter, so a literal never reaches it and stays unambiguous.
-	template <tgit::str::IsATLCStringDuck TStr>
+	template <tgit::str::IsTCompString TStr>
 	void SetFromWin(const TStr& sPath, const std::optional<bool> bIsDirectory = std::nullopt) {
-		SetFromWin(std::wstring_view(tgit::str::StringView{ sPath }), bIsDirectory);
-	}
-
-
-	void SetFromWin(const std::wstring_view sPath, const std::optional<bool> bIsDirectory = std::nullopt) {
 		Reset();
 		m_sBackslashPath = sPath;
-		m_bIsDirectory = bIsDirectory.value_or(false);
 		m_bDirectoryKnown = bIsDirectory.has_value();
+		m_bIsDirectory = bIsDirectory.value_or(false);
 		detail::SanitizeRootPath(m_sBackslashPath, L'\\');
 	}
 
 
+	void SetFromWin(const fs::path& path) {
+		return SetFromWin(path.wstring(), fs::is_directory(path));
+	}
+
+	static_assert(std::is_convertible_v<std::wstring_view, const fs::path&>);
+
 	/**
 	 * Set the path from an unknown source.
 	 */
-	void SetFromUnknown(std::wstring_view sPath);
+	void SetFromUnknown(const std::wstring_view sPath) {
+		Reset();
+		// Just set whichever path we think is most likely to be used
+		SetFwdslashPath(sPath);
+	}
 	/**
 	 * Returns the path in Windows format, i.e. with backslashes
 	 */
@@ -1026,6 +999,7 @@ public:
 	 * Returns the path in Windows format, i.e. with backslashes
 	 */
 	LPCWSTR GetWinPath() const { return GetWinPathString().c_str(); }
+	fs::path GetStdPath() const { return GetWinPathString(); }
 	/**
 	 * Returns the path in Windows format, i.e. with backslashes. A path set from
 	 * the git side holds only its forward-slash form until asked for this one.
@@ -1034,7 +1008,7 @@ public:
 	/**
 	 * Returns the path with forward slashes.
 	 */
-	const std::wstring& GetGitPathString() const;
+	const std::wstring& GetGitPathString() const { EnsureFwdslashPathSet(); return m_sFwdslashPath; }
 
 	const std::wstring& GetGitOldPathString() const { return m_sOldFwdslashPath; }
 
@@ -1044,7 +1018,11 @@ public:
 	 * URL's are returned with forward slashes, unescaped if necessary
 	 * Paths are returned with backward slashes
 	 */
-	const std::wstring& GetUIPathString() const;
+	const std::wstring& GetUIPathString() const  {
+		if (m_sUIPath.empty())
+			m_sUIPath = GetWinPathString();
+		return m_sUIPath;
+	}
 	/**
 	 * Returns true if the path points to a directory
 	 */
@@ -1207,8 +1185,13 @@ public:
 
 		EnsureBackslashPathSet();
 		bool isAdminDir = false;
-		m_sProjectRoot.clear();
-		m_bHasAdminDir = GitAdminDir::HasAdminDir(m_sBackslashPath, IsDirectory(), &m_sProjectRoot, &isAdminDir);
+		auto&& ret = GitAdminDir::HasAdminDir(m_sBackslashPath, &isAdminDir);
+		if (ret) {
+			m_bHasAdminDir = true;
+			m_sProjectRoot = *ret;
+		} else {
+			m_sProjectRoot.clear();
+		}
 		m_bHasAdminDirKnown = true;
 		if ((m_bHasAdminDir || isAdminDir) && !m_bIsAdminDirKnown) {
 			m_bIsAdminDir = isAdminDir;
@@ -1349,7 +1332,7 @@ struct CTGitPathList {
 	// A constructor which allows a path list to be easily built with one initial entry in
 	explicit CTGitPathList(const CTGitPath& firstEntry) { AddPath(firstEntry); }
 	// CTGitPathList{ CTGitPath(L"a"), CTGitPath(L"b") }; m_commonBaseDirectory starts empty
-	CTGitPathList(std::initializer_list<CTGitPath> paths)
+	CTGitPathList(const std::initializer_list<CTGitPath> paths)
 		: m_paths(paths) {}
 	unsigned int m_Action = 0;
 
@@ -1668,26 +1651,6 @@ std::wstring CTGitPath::GetActionName() const {
 // CTGitPath: the two string forms
 
 
-void CTGitPath::SetFromUnknown(const std::wstring_view sPath) {
-	Reset();
-	// Just set whichever path we think is most likely to be used
-	SetFwdslashPath(sPath);
-}
-
-
-const std::wstring& CTGitPath::GetGitPathString() const {
-	EnsureFwdslashPathSet();
-	return m_sFwdslashPath;
-}
-
-
-const std::wstring& CTGitPath::GetUIPathString() const {
-	if (m_sUIPath.empty())
-		m_sUIPath = GetWinPathString();
-	return m_sUIPath;
-}
-
-
 void CTGitPath::EnsureBackslashPathSet() const {
 	if (!m_sBackslashPath.empty())
 		return;
@@ -1738,7 +1701,7 @@ void CTGitPath::Reset() {
 
 void CTGitPath::AppendRawString(const std::wstring_view sAppend) {
 	EnsureFwdslashPathSet();
-	std::wstring strCopy = (m_sFwdslashPath += sAppend);
+	const std::wstring strCopy = (m_sFwdslashPath += sAppend);
 	SetFromUnknown(strCopy);
 }
 
@@ -1760,11 +1723,9 @@ void CTGitPath::AppendPathString(const std::wstring_view sAppend) {
 // CTGitPath: pure path arithmetic
 
 CTGitPath CTGitPath::GetSubPath(const CTGitPath& root) const {
-	CTGitPath path;
-
-	if (auto shared_root = fs::relative(GetWinPathString(), root.GetWinPathString()); shared_root.has_root_directory())
-		return shared_root;
-	return path;
+	if (const auto shared_root = fs::relative(GetWinPathString(), root.GetWinPathString()); shared_root.has_root_directory())
+		return CTGitPath{shared_root};
+	return {};
 }
 
 
@@ -1970,13 +1931,12 @@ bool CTGitPath::IsValidOnWindows() const {
 
 		std::wstring rmatch = sMatch;
 		if (std::regex_match(rmatch, match, rx)) {
-			if (std::wstring(match[0]).compare(sMatch) == 0)
+			if (match[0] == sMatch)
 				m_bIsValidOnWindows = true;
 		}
 		if (m_bIsValidOnWindows) {
 			// now check for illegal filenames
-			std::wregex rx2(L"\\\\(lpt\\d|com\\d|aux|nul|prn|con)(\\\\|$)",
-			                std::regex_constants::icase | std::regex_constants::ECMAScript);
+			std::wregex rx2(L"\\\\(lpt\\d|com\\d|aux|nul|prn|con)(\\\\|$)", std::regex_constants::icase | std::regex_constants::ECMAScript);
 			rmatch = m_sBackslashPath;
 			if (std::regex_search(rmatch, rx2, std::regex_constants::match_default))
 				m_bIsValidOnWindows = false;
@@ -2005,7 +1965,7 @@ std::wstring CTGitPath::GetAbbreviatedRename() const {
 	LPCWSTR newName = m_sFwdslashPath.c_str() + m_sFwdslashPath.size();
 
 	auto suffix_length = 0ull;
-	auto prefix_adjust_for_slash = (prefix_length ? 1ul : 0ul);
+	const auto prefix_adjust_for_slash = (prefix_length ? 1ul : 0ul);
 	while (m_sOldFwdslashPath.c_str() + prefix_length - prefix_adjust_for_slash <= oldName &&
 		m_sFwdslashPath.c_str() + prefix_length - prefix_adjust_for_slash <= newName &&
 		*oldName == *newName) {
@@ -2053,16 +2013,16 @@ std::wstring CTGitPath::GetAbbreviatedRename() const {
 
 void CTGitPath::UpdateAttributes() const {
 	EnsureBackslashPathSet();
-	const detail::FileAttributes attributes = detail::QueryAttributes(m_sBackslashPath);
-	m_bIsDirectory = attributes.isDirectory;
-	m_lastWriteTime = attributes.lastWriteTime;
-	m_fileSize = attributes.fileSize;
-	m_bExists = attributes.exists;
+	const auto [known, exists, isDirectory, isReadOnly, lastWriteTime, fileSize] = detail::QueryAttributes(m_sBackslashPath);
+	m_bIsDirectory = isDirectory;
+	m_lastWriteTime = lastWriteTime;
+	m_fileSize = fileSize;
+	m_bExists = exists;
 	// Only a successful probe says anything about the read-only bit; a failed
 	// one leaves the last answer standing, as it always did.
-	if (attributes.known && attributes.exists)
-		m_bIsReadOnly = attributes.isReadOnly;
-	if (!attributes.known)
+	if (known && exists)
+		m_bIsReadOnly = isReadOnly;
+	if (!known)
 		return;
 	m_bDirectoryKnown = true;
 	m_bLastWriteTimeKnown = true;
@@ -2225,14 +2185,14 @@ int CTGitPath::GetAdminDirMask() const {
 		}
 	}
 
-	const GitAdminDir::AdminDir adminDir = AdminDirOrEmpty();
-	if (GitAdminDir::HasStash(adminDir.path))
+	const auto [path, isWorktree] = AdminDirOrEmpty();
+	if (GitAdminDir::HasStash(path))
 		status |= ITEMIS_STASH;
 
-	if (detail::FileExists(adminDir.path + L"svn\\.metadata"))
+	if (detail::FileExists(path + L"svn\\.metadata"))
 		status |= ITEMIS_GITSVN;
 
-	const std::wstring dotGitPath = adminDir.isWorktree ? WorktreeAdminDirOrEmpty() : adminDir.path;
+	const std::wstring dotGitPath = isWorktree ? WorktreeAdminDirOrEmpty() : path;
 
 	if (detail::FileExists(dotGitPath + L"BISECT_START"))
 		status |= ITEMIS_BISECT;
@@ -2248,10 +2208,10 @@ int CTGitPath::GetAdminDirMask() const {
 
 
 bool CTGitPath::IsRegisteredSubmoduleOfParentProject(std::wstring* parentProjectRoot /* nullptr */) const {
-	std::wstring topProjectDir;
-	if (!GitAdminDir::HasAdminDir(GetWinPathString(), false, &topProjectDir))
+	const auto maybeTopProjectDir = GitAdminDir::HasAdminDir(GetWinPathString());
+	if (!maybeTopProjectDir)
 		return false;
-
+	const std::wstring topProjectDir = *maybeTopProjectDir;
 	if (parentProjectRoot)
 		*parentProjectRoot = topProjectDir;
 

@@ -13,11 +13,13 @@ target_sources(SharedMFC
         ResText/Utils.cpp
         Utils/FileTextLines.cpp
         Utils/SysImageList.cpp
-        Utils/Theme.cpp
 
 )
 
 target_include_directories(SharedMFC
+    PUBLIC
+        gitdll
+        tgitlib
     PRIVATE
         "${CMAKE_CURRENT_SOURCE_DIR}"
 )
@@ -25,7 +27,7 @@ target_include_directories(SharedMFC
 target_link_libraries(SharedMFC
     PUBLIC
         gitdll
-        TGitLibgit2
+        tgitlib
 
     PRIVATE
         imm32
@@ -47,4 +49,5 @@ target_sources(SharedMFC
         BrowseFolder.ixx
         ColumnManager.ixx
         MessageBox.ixx
+        Utils/Theme.ixx
 )

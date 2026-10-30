@@ -68,7 +68,7 @@ public:
 
 		CString GetValue() const override
 		{
-			return CRegString(GetRegistryPath(), m_defaultValue);
+			return CRegString::StringT{CRegString(GetRegistryPath(), m_defaultValue)};
 		}
 		bool IsValid(LPCWSTR /*s*/) const override
 		{
@@ -77,7 +77,7 @@ public:
 		void StoreValue(const CString& sValue) const override
 		{
 			CRegString s(GetRegistryPath(), m_defaultValue);
-			if (sValue.Compare(static_cast<CString>(s)))
+			if (sValue.Compare(static_cast<CRegString::StringT>(s)))
 				s = sValue;
 		}
 

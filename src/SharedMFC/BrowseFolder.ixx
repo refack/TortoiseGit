@@ -1,7 +1,7 @@
 ﻿module;
 #include "stdafx.h"
 #include <strsafe.h>
-#include <sanity.h>
+#include <tgitlib/sanity.h>
 
 
 export module BrowseFolder;

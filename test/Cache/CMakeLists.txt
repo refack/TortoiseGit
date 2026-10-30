@@ -33,5 +33,5 @@ target_link_libraries(Cache
         gdi32
         crypt32
         gitdll
-        TGitLibgit2
+        tgitlib
 )

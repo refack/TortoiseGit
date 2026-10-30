@@ -538,7 +538,7 @@ target_link_libraries(TortoiseProc
         gitdll
 
         AsyncFramework
-        TGitLibgit2   # the MFC flavor: TortoiseProc speaks MFC CString
+        tgitlib   # the MFC flavor: TortoiseProc speaks MFC CString
         ResizableLib
         SharedMFC
 )

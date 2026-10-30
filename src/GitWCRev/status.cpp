@@ -239,7 +239,7 @@ int GetStatusUnCleanPath(const wchar_t* wcPath, GitWCRev_t& GitStat)
 	return GetStatus(wcfullPath.get(), GitStat);
 }
 
-int GetStatus(const wchar_t* path, GitWCRev_t& GitStat)
+int GetStatus(const std::wstring_view path, GitWCRev_t& GitStat)
 {
 	// Configure libgit2 search paths
 	std::wstring systemConfig = GetSystemGitConfig();
@@ -282,7 +282,7 @@ int GetStatus(const wchar_t* path, GitWCRev_t& GitStat)
 			branchName += strlen("refs/");
 		GitStat.CurrentBranch = branchName;
 
-		return RepoStatus(path, pathA, repo.get(), GitStat);
+		return RepoStatus(path.data(), pathA, repo.get(), GitStat);
 	}
 
 	wil::unique_git_reference head;
@@ -355,5 +355,5 @@ int GetStatus(const wchar_t* path, GitWCRev_t& GitStat)
 	while (!git_revwalk_next(&oidlog, walker.get()))
 		++GitStat.NumCommits;
 
-	return RepoStatus(path, pathA, repo.get(), GitStat);
+	return RepoStatus(path.data(), pathA, repo.get(), GitStat);
 }

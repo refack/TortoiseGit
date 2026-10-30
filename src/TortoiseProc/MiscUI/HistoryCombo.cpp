@@ -24,7 +24,7 @@
 
 #include "Utils/HistoryCombo.h"
 #include "Utils/DPIAware.h"
-#include "Utils/Theme.h"
+import ThemeAPI;
 
 #ifdef HISTORYCOMBO_WITH_SYSIMAGELIST
 #include "Utils/SysImageList.h"
@@ -275,8 +275,8 @@ CString CHistoryCombo::LoadHistory(LPCWSTR lpszSection, LPCWSTR lpszKeyPrefix, b
 	{
 		//keys are of form <lpszKeyPrefix><entrynumber>
 		CString sKey;
-		sKey.Format(L"%s\\%s%d", static_cast<LPCWSTR>(m_sSection), static_cast<LPCWSTR>(m_sKeyPrefix), n++);
-		sText = CRegString(sKey);
+		sKey.Format(L"%s\\%s%d", m_sSection, m_sKeyPrefix, n++);
+		sText = CRegString::StringT{CRegString(sKey)};
 		if (!sText.IsEmpty())
 			AddString(sText);
 	} while (!sText.IsEmpty() && n < m_nMaxHistoryItems);
@@ -311,7 +311,7 @@ void CHistoryCombo::SaveHistory()
 	for (int n = 0; n < nMax; n++)
 	{
 		CString sKey;
-		sKey.Format(L"%s\\%s%d", static_cast<LPCWSTR>(m_sSection), static_cast<LPCWSTR>(m_sKeyPrefix), n);
+		sKey.Format(L"%s\\%s%d", m_sSection, m_sKeyPrefix, n);
 		CRegString regkey(sKey);
 		regkey = m_arEntries.GetAt(n);
 	}
@@ -319,9 +319,9 @@ void CHistoryCombo::SaveHistory()
 	for (int n = nMax; ; n++)
 	{
 		CString sKey;
-		sKey.Format(L"%s\\%s%d", static_cast<LPCWSTR>(m_sSection), static_cast<LPCWSTR>(m_sKeyPrefix), n);
+		sKey.Format(L"%s\\%s%d", m_sSection, m_sKeyPrefix, n);
 		CRegString regkey(sKey);
-		CString sText = regkey;
+		CString sText = CRegString::StringT{regkey};
 		if (sText.IsEmpty())
 			break;
 		regkey.removeValue(); // remove entry
@@ -337,9 +337,9 @@ void CHistoryCombo::ClearHistory(BOOL bDeleteRegistryEntries/*=TRUE*/)
 		CString sKey;
 		for (int n = 0; ; n++)
 		{
-			sKey.Format(L"%s\\%s%d", static_cast<LPCWSTR>(m_sSection), static_cast<LPCWSTR>(m_sKeyPrefix), n);
+			sKey.Format(L"%s\\%s%d", m_sSection, m_sKeyPrefix, n);
 			CRegString regkey(sKey);
-			CString sText = regkey;
+			CString sText = CRegString::StringT{regkey};
 			if (sText.IsEmpty())
 				break;
 			regkey.removeValue(); // remove entry
@@ -359,7 +359,7 @@ void CHistoryCombo::RemoveEntryFromHistory(LPCWSTR lpszSection, LPCWSTR lpszKeyP
 		CString sKey;
 		sKey.Format(L"%s\\%s%d", lpszSection, lpszKeyPrefix, ++n);
 		CRegString regkey(sKey);
-		sText = regkey;
+		sText = CRegString::StringT{regkey};
 		if (sText == entryToRemove)
 		{
 			regkey.removeValue();
@@ -375,7 +375,7 @@ void CHistoryCombo::RemoveEntryFromHistory(LPCWSTR lpszSection, LPCWSTR lpszKeyP
 		CString sKey;
 		sKey.Format(L"%s\\%s%d", lpszSection, lpszKeyPrefix, n);
 		CRegString regkey(sKey);
-		sText = regkey;
+		sText = CRegString::StringT{regkey};
 		if (!sText.IsEmpty())
 		{
 			CString sKeyNew;

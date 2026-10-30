@@ -46,7 +46,7 @@ import DarkModeHelper;
 #include <Utils/DPIAware.h>
 #include <Utils/FileTextLines.h>
 import str_utils;
-#include <Utils/Theme.h>
+import ThemeAPI;
 #include <Utils/MiscUI/IconMenu.h>
 
 #ifdef _DEBUG

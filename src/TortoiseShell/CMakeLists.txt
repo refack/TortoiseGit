@@ -62,7 +62,7 @@ target_compile_definitions(TortoiseShell
 target_link_libraries(TortoiseShell
     PUBLIC
         gitdll
-        TGitLibgit2
+        tgitlib
     PRIVATE
         comctl32
         shlwapi

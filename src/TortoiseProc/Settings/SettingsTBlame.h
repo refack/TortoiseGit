@@ -35,6 +35,7 @@ public:
 	virtual ~CSettingsTBlame();
 
 	UINT GetIconID() override { return IDI_TORTOISEBLAME; }
+	BOOL OnApply() override;
 
 // Dialog Data
 	enum { IDD = IDD_SETTINGSTBLAME };
@@ -42,7 +43,6 @@ public:
 protected:
 	void DoDataExchange(CDataExchange* pDX) override;    // DDX/DDV support
 	BOOL OnInitDialog() override;
-	BOOL OnApply() override;
 	afx_msg void OnBnClickedColor();
 	afx_msg void OnChange();
 	afx_msg void OnBnClickedRestore();

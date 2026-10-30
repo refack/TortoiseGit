@@ -157,7 +157,7 @@ BOOL CSettingsUDiff::OnInitDialog()
 	m_cBackRemovedColor.EnableOtherButton(sCustomText);
 
 	m_dwTabSize = m_regTabSize;
-	m_sFontName = m_regFontName;
+	m_sFontName = CRegString::StringT{m_regFontName};
 	m_dwFontSize = m_regFontSize;
 	int count = 0;
 	CString temp;
@@ -219,7 +219,7 @@ BOOL CSettingsUDiff::OnApply()
 	if (m_cFontNames.GetSelFont())
 		m_sFontName = m_cFontNames.GetSelFont()->m_strName;
 	else
-		m_sFontName = m_regFontName;
+		m_sFontName = CRegString::StringT{m_regFontName};
 
 	Store((m_cForeCommandColor.GetColor() == -1 ? m_cForeCommandColor.GetAutomaticColor() : m_cForeCommandColor.GetColor()), m_regForeCommandColor);
 	Store((m_cForePositionColor.GetColor() == -1 ? m_cForePositionColor.GetAutomaticColor() : m_cForePositionColor.GetColor()), m_regForePositionColor);

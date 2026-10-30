@@ -23,7 +23,7 @@
 #include "TortoiseProc.h"
 #include "FirstStartWizard.h"
 #include "FirstStartWizardLanguage.h"
-#include "Utils/Theme.h"
+import ThemeAPI;
 import AppUtils.Launch;
 
 #define DOWNLOAD_URL L"https://tortoisegit.org/download/"

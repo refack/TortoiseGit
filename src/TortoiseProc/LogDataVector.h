@@ -75,7 +75,7 @@ public:
 	// Log order: LOG_ORDER_CHRONOLOGIALREVERSED, LOG_ORDER_TOPOORDER, LOG_ORDER_DATEORDER, LOG_ORDER_AUTHORDATEORDER
 	int m_logOrderBy;
 	MAP_HASH_REV m_HashMap;
-	void updateLanes(GitRevLoglist& c, Lanes& lns, const CGitHash& sha, bool onlyFirstParent);
+	static void updateLanes(GitRevLoglist& c, Lanes& lns, const CGitHash& sha, bool onlyFirstParent);
 	void setLane(const CGitHash& sha, bool onlyFirstParent);
 	void append(const CGitHash& sha, bool storeInVector, bool onlyFirstParent);
 

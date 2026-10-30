@@ -17,7 +17,7 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
-#include "../include/filter-filter.h"
+#include "tgitlib/filter-filter.h"
 #include <git2.h>
 #include <git2/filter.h>
 #include <git2/sys/filter.h>
@@ -37,7 +37,7 @@ extern int git_filter_buffered_stream_new(
 	const git_filter_source *source,
 	git_writestream *target);
 
-#include "system-call.h"
+#include "tgitlib/system-call.h"
 
 struct filter_filter {
 	git_filter	f;

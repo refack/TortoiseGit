@@ -11,7 +11,7 @@
 
 #include "ACListWnd.h"
 #include "Utils/DPIAware.h"
-#include "Utils/Theme.h"
+import ThemeAPI;
 
 #ifdef _DEBUG
 #define new DEBUG_NEW

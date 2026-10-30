@@ -80,7 +80,7 @@ BOOL CSetOverlayIcons::OnInitDialog()
 		m_cIconSet.AddString(file->GetFileName());
 	}
 	CheckRadioButton(IDC_LISTRADIO, IDC_SYMBOLRADIO, IDC_LISTRADIO);
-	CString sModifiedIcon = m_regModified;
+	auto sModifiedIcon = CRegString::StringT{m_regModified};
 	if (sModifiedIcon.IsEmpty())
 	{
 		// no custom icon set, use the default

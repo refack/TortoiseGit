@@ -12,12 +12,12 @@ module;
 #include "TortoiseProc.h"
 
 #ifndef TGIT_TESTS_ONLY
-#include "Utils/Theme.h"
 #include "PropKey.h"
 #endif
 
 export module AppUtils.Window;
 import BrowseFolder;
+import ThemeAPI;
 using namespace BrowseFolder;
 
 /**
@@ -31,12 +31,12 @@ export namespace CAppUtils {
 using ::LoadIconEx;
 
 
-bool SetListCtrlBackgroundImage(HWND hListCtrl, const UINT nID, const int width, const int height)
+bool SetListCtrlBackgroundImage(const HWND& hListCtrl, const UINT nID, const int width, const int height)
 {
 	if (static_cast<DWORD>(CRegStdDWORD(L"Software\\TortoiseGit\\ShowListBackgroundImage", TRUE)) == FALSE)
 		return false;
 	// create a bitmap from the icon
-	CAutoIcon hIcon = ::LoadIconEx(AfxGetResourceHandle(), MAKEINTRESOURCE(nID), width, height);
+	const CAutoIcon hIcon = ::LoadIconEx(AfxGetResourceHandle(), MAKEINTRESOURCE(nID), width, height);
 	if (!hIcon)
 		return false;
 
@@ -49,7 +49,7 @@ bool SetListCtrlBackgroundImage(HWND hListCtrl, const UINT nID, const int width,
 	return true;
 }
 
-bool SetListCtrlBackgroundImage(HWND hListCtrl, const UINT nID)
+bool SetListCtrlBackgroundImage(const HWND& hListCtrl, const UINT nID)
 {
 	return SetListCtrlBackgroundImage(hListCtrl, nID, CDPIAware::Instance().ScaleX(hListCtrl, 128), CDPIAware::Instance().ScaleY(hListCtrl, 128));
 }
@@ -79,7 +79,8 @@ bool FileOpenSave(
 		if (!SUCCEEDED(pfd->SetOptions(dwOptions | FOS_OVERWRITEPROMPT | FOS_FORCEFILESYSTEM | FOS_PATHMUSTEXIST)))
 			return false;
 	}
-	if ((!PathIsDirectory(path) || handleAsFile) && !SUCCEEDED(pfd->SetFileName(PathUtils::GetFileNameFromPath(tgit::str::StringView(path)).c_str())))
+	const auto psz_name = fs::path{path.GetString()}.filename().c_str();
+	if ((!PathIsDirectory(path) || handleAsFile) && !SUCCEEDED(pfd->SetFileName(psz_name)))
 		return false;
 
 	// Set a title
@@ -88,7 +89,7 @@ bool FileOpenSave(
 		CString temp;
 		temp.LoadString(title);
 		StringUtils::RemoveAccelerators(temp);
-		pfd->SetTitle(temp);
+		std::ignore = pfd->SetTitle(temp);
 	}
 	CComPtr<IShellItem> psiDefaultFolder;
 	if (filterId)
@@ -98,9 +99,9 @@ bool FileOpenSave(
 			return false;
 		if (filterId == 1602 || filterId == 2501) // IDS_GITEXEFILEFILTER || IDS_PROGRAMSFILEFILTER
 		{
-			pfd->SetClientGuid({ 0x323ca4b0, 0x62df, 0x4a08, { 0xa5, 0x5, 0x58, 0xde, 0xa2, 0xb9, 0x2d, 0xcd } });
+			std::ignore = pfd->SetClientGuid({ .Data1 = 0x323ca4b0, .Data2 = 0x62df, .Data3 = 0x4a08, .Data4 = { 0xa5, 0x5, 0x58, 0xde, 0xa2, 0xb9, 0x2d, 0xcd } });
 			if (SUCCEEDED(SHCreateItemFromParsingName(PathUtils::GetProgramsDirectory().c_str(), nullptr, IID_PPV_ARGS(&psiDefaultFolder))))
-				pfd->SetDefaultFolder(psiDefaultFolder);
+				std::ignore = pfd->SetDefaultFolder(psiDefaultFolder);
 		}
 	}
 
@@ -120,7 +121,7 @@ bool FileOpenSave(
 				dir.Empty();
 		}
 		if (!dir.IsEmpty() && SUCCEEDED(SHCreateItemFromParsingName(dir, nullptr, IID_PPV_ARGS(&psiFolder))))
-			pfd->SetFolder(psiFolder);
+			std::ignore = pfd->SetFolder(psiFolder);
 	}
 
 	// Show the save/open file dialog
@@ -140,7 +141,7 @@ bool FileOpenSave(
 	if (filterindex)
 	{
 		UINT fi = 0;
-		pfd->GetFileTypeIndex(&fi);
+		std::ignore = pfd->GetFileTypeIndex(&fi);
 		*filterindex = gsl::narrow<int>(fi);
 	}
 	return true;
@@ -170,11 +171,11 @@ DWORD GetLogFontSize()
 /**
  * Create a font which can is used for log messages, etc
  */
-void CreateFontForLogs(HWND hWnd, CFont& fontToCreate)
+void CreateFontForLogs(const HWND& hWnd, CFont& fontToCreate)
 {
 	LOGFONT logFont;
-	HDC hScreenDC = ::GetDC(nullptr);
-	logFont.lfHeight = -CDPIAware::Instance().PointsToPixelsY(hWnd, GetLogFontSize());
+	const auto hScreenDC = ::GetDC(nullptr);
+	logFont.lfHeight = -CDPIAware::Instance().PointsToPixelsY(hWnd, win32_cast(GetLogFontSize()));
 	::ReleaseDC(nullptr, hScreenDC);
 	logFont.lfWidth = 0;
 	logFont.lfEscapement = 0;
@@ -195,13 +196,13 @@ void CreateFontForLogs(HWND hWnd, CFont& fontToCreate)
 const char* GetResourceData(const wchar_t* resName, const int id, DWORD& resLen)
 {
 	resLen = 0;
-	auto hResource = FindResource(nullptr, MAKEINTRESOURCE(id), resName);
+	const auto hResource = FindResource(nullptr, MAKEINTRESOURCE(id), resName);
 	if (!hResource)
 		return nullptr;
-	auto hResourceLoaded = LoadResource(nullptr, hResource);
+	const auto hResourceLoaded = LoadResource(nullptr, hResource);
 	if (!hResourceLoaded)
 		return nullptr;
-	auto lpResLock = static_cast<const char*>(LockResource(hResourceLoaded));
+	const auto lpResLock = static_cast<const char*>(LockResource(hResourceLoaded));
 	resLen = SizeofResource(nullptr, hResource);
 	return lpResLock;
 }
@@ -223,22 +224,22 @@ bool StartHtmlHelp(const DWORD_PTR id, CString page = L"index.html")
 		const char* resData = GetResourceData(L"help", IDR_HELPMAPPING, resSize);
 		if (resData)
 		{
-			auto resString = std::string(resData, resSize);
-			std::vector<std::string> lines;
-			StringUtils::stringtok(lines, resString, true, "\r\n");
+			const auto resString = std::string_view(resData, resSize);
+			const auto lines = str::stringtok(resString, true, "\r\n");
 			for (const auto& line : lines)
 			{
 				if (line.empty())
 					continue;
-				std::vector<std::string> lineParts;
-				StringUtils::stringtok(lineParts, line, true, "=");
-				if (lineParts.size() == 2)
-					idMap[std::stoi(lineParts[0], nullptr, 0)] = CUnicodeUtils::GetUnicode<std::wstring>(lineParts[1]);
+				auto lineParts = str::stringtok(line, true, "=");
+				if (lineParts.size() == 2) {
+					const auto stoi = std::stoi(std::string{lineParts[0]});
+					idMap[stoi] = CUnicodeUtils::StdGetUnicode(lineParts[1]);
+				}
 			}
 		}
 	}
 
-	if (idMap.find(id) != idMap.end())
+	if (idMap.contains(id))
 	{
 		page = idMap[id].c_str();
 		page.Replace(L"@", L"%40");
@@ -267,26 +268,22 @@ bool StartHtmlHelp(const DWORD_PTR id, CString page = L"index.html")
 		}
 	}
 	CString url;
-	url.Format(L"https://tortoisegit.org/docs/%s/%s", static_cast<LPCWSTR>(appName.MakeLower()), static_cast<LPCWSTR>(page));
+	url.Format(L"https://tortoisegit.org/docs/%s/%s", appName.MakeLower(), page);
 	return reinterpret_cast<INT_PTR>(ShellExecute(nullptr, L"open", url, nullptr, nullptr, SW_SHOWNORMAL)) > 32;
 #endif
 }
 
-CString FormatWindowTitle(const CString& urlorpath2, const CString& dialogname, const CString& appname, DWORD format)
+CString FormatWindowTitle(const CString& urlorpath2, const CString& dialogname, const CString& appname, const DWORD format)
 {
 	CString urlorpath{ urlorpath2 };
 	switch (format)
 	{
 	case 1:
 	{
-		const CTGitPath filePath{ g_Git.m_CurrentDir.GetString() };
-		const CString toStrip = filePath.GetContainingDirectory().GetWinPathString().c_str();
-		if (!StringUtils::StartsWith(urlorpath2, g_Git.m_CurrentDir))
-			break;
-		else if (toStrip.IsEmpty() || StringUtils::EndsWith(toStrip, L'\\'))
-			urlorpath = urlorpath2.Right(urlorpath2.GetLength() - toStrip.GetLength());
-		else
-			urlorpath = urlorpath2.Right(urlorpath2.GetLength() - toStrip.GetLength() - 1);
+		if (const auto rel = fs::relative(urlorpath2.GetString(), g_Git.m_CurrentDir); !rel.empty()) {
+			const auto rel_part = rel.filename().empty() ? rel.wstring() : rel.parent_path().wstring();
+			urlorpath = rel_part.c_str();
+		}
 	}
 	break;
 	default:
@@ -312,7 +309,7 @@ CString FormatWindowTitle(const CString& urlorpath2, const CString& dialogname, 
  * for all char ranges given in @a positions to the
  * @a window text.
  */
-void SetCharFormat(CWnd* window, const DWORD mask , const DWORD effects, const std::vector<CHARRANGE>& positions)
+void SetCharFormat(const CWnd* window, const DWORD mask , const DWORD effects, const std::vector<CHARRANGE>& positions)
 {
 	CHARFORMAT2 format = {};
 	format.cbSize = sizeof(CHARFORMAT2);
@@ -327,7 +324,7 @@ void SetCharFormat(CWnd* window, const DWORD mask , const DWORD effects, const s
 	}
 }
 
-void SetCharFormat(CWnd* window, const DWORD mask, const DWORD effects )
+void SetCharFormat(const CWnd* window, const DWORD mask, const DWORD effects )
 {
 	CHARFORMAT2 format = {};
 	format.cbSize = sizeof(CHARFORMAT2);
@@ -336,7 +333,7 @@ void SetCharFormat(CWnd* window, const DWORD mask, const DWORD effects )
 	window->SendMessage(EM_SETCHARFORMAT, SCF_SELECTION, reinterpret_cast<LPARAM>(&format));
 }
 
-bool FindStyleChars(const CString& sText, wchar_t stylechar, int& start, int& end)
+bool FindStyleChars(const CString& sText, const wchar_t stylechar, int& start, int& end)
 {
 	int i=start;
 	const int last = sText.GetLength() - 1;
@@ -347,7 +344,7 @@ bool FindStyleChars(const CString& sText, wchar_t stylechar, int& start, int& en
 	// find a starting marker
 	while (i < last)
 	{
-		wchar_t prevChar = c;
+		const wchar_t prevChar = c;
 		c = nextChar;
 		nextChar = sText[i + 1];
 
@@ -375,7 +372,7 @@ bool FindStyleChars(const CString& sText, wchar_t stylechar, int& start, int& en
 	bFoundMarker = false;
 	while (i <= last)
 	{
-		wchar_t prevChar = c;
+		const wchar_t prevChar = c;
 		c = sText[i];
 		if (c == stylechar)
 		{
@@ -397,14 +394,14 @@ bool FindWarningsErrors(const CString& text, std::vector<CHARRANGE>& rangeErrors
 {
 	if (text.IsEmpty())
 		return FALSE;
-	const auto fnFindMatchAtLineStart = [&](const wchar_t* const needle, int idxStart, std::vector<CHARRANGE>& vRange) -> void {
+	const auto fnFindMatchAtLineStart = [&](const wchar_t* const needle, const int idxStart, std::vector<CHARRANGE>& vRange) -> void {
 		const int idxEnd{ idxStart + static_cast<int>(wcslen(needle)) };
 		if (idxEnd > text.GetLength())
 			return;
 
 		if (StringUtils::StartsWith(static_cast<LPCWSTR>(text) + idxStart, needle))
 		{
-			const CHARRANGE range{ idxStart, idxEnd };
+			const CHARRANGE range{ .cpMin = idxStart, .cpMax = idxEnd };
 			vRange.push_back(range);
 		}
 	};
@@ -427,8 +424,8 @@ std::vector<CHARRANGE> FindURLMatches(const CString& msg)
 {
 	std::vector<CHARRANGE> result;
 
-	::FindURLMatches(msg, [](const CString&, int& i) { ++i; }, [&result](int start, int end) {
-		CHARRANGE range = { start, end };
+	::FindURLMatches(msg, [](const CString&, int& i) { ++i; }, [&result](const int start, const int end) {
+		const CHARRANGE range = { .cpMin = start, .cpMax = end };
 		result.push_back(range); });
 
 	return result;
@@ -441,7 +438,7 @@ std::vector<CHARRANGE> FindURLMatches(const CString& msg)
  * text in between ^ chars is formatted italic
  * text in between _ chars is underlined
  */
-bool FormatTextInRichEditControl(CWnd * pWnd)
+bool FormatTextInRichEditControl(const CWnd* pWnd)
 {
 	CString sText;
 	if (!pWnd)
@@ -464,7 +461,7 @@ bool FormatTextInRichEditControl(CWnd * pWnd)
 		int end = 0;
 		while (FindStyleChars(sLine, '*', start, end))
 		{
-			CHARRANGE range = { static_cast<LONG>(start) + offset, static_cast<LONG>(end) + offset };
+			CHARRANGE range = { .cpMin = static_cast<LONG>(start) + offset, .cpMax = static_cast<LONG>(end) + offset };
 			pWnd->SendMessage(EM_EXSETSEL, reinterpret_cast<WPARAM>(nullptr), reinterpret_cast<LPARAM>(&range));
 			SetCharFormat(pWnd, CFM_BOLD, CFE_BOLD);
 			bStyled = true;
@@ -474,7 +471,7 @@ bool FormatTextInRichEditControl(CWnd * pWnd)
 		end = 0;
 		while (FindStyleChars(sLine, '^', start, end))
 		{
-			CHARRANGE range = { static_cast<LONG>(start) + offset, static_cast<LONG>(end) + offset };
+			CHARRANGE range = { .cpMin = static_cast<LONG>(start) + offset, .cpMax = static_cast<LONG>(end) + offset };
 			pWnd->SendMessage(EM_EXSETSEL, reinterpret_cast<WPARAM>(nullptr), reinterpret_cast<LPARAM>(&range));
 			SetCharFormat(pWnd, CFM_ITALIC, CFE_ITALIC);
 			bStyled = true;
@@ -484,7 +481,7 @@ bool FormatTextInRichEditControl(CWnd * pWnd)
 		end = 0;
 		while (FindStyleChars(sLine, '_', start, end))
 		{
-			CHARRANGE range = { static_cast<LONG>(start) + offset, static_cast<LONG>(end) + offset };
+			CHARRANGE range = { .cpMin = static_cast<LONG>(start) + offset, .cpMax = static_cast<LONG>(end) + offset };
 			pWnd->SendMessage(EM_EXSETSEL, reinterpret_cast<WPARAM>(nullptr), reinterpret_cast<LPARAM>(&range));
 			SetCharFormat(pWnd, CFM_UNDERLINE, CFE_UNDERLINE);
 			bStyled = true;
@@ -498,7 +495,7 @@ bool FormatTextInRichEditControl(CWnd * pWnd)
 /**
 * highlight warnings and errors returned by git command in rich edit control colored in bold
 */
-BOOL StyleWarningsErrors(const CString& text, CRichEditCtrl* edit)
+BOOL StyleWarningsErrors(const CString& text, const CRichEditCtrl* edit)
 {
 	ASSERT(edit);
 
@@ -520,17 +517,17 @@ BOOL StyleWarningsErrors(const CString& text, CRichEditCtrl* edit)
 /**
 * implements URL searching with the same logic as CSciEdit::StyleURLs
 */
-BOOL StyleURLs(const CString& msg, CWnd* pWnd)
+BOOL StyleURLs(const CString& msg, const CWnd* pWnd)
 {
-	std::vector<CHARRANGE> positions = FindURLMatches(msg);
+	const std::vector<CHARRANGE> positions = FindURLMatches(msg);
 	SetCharFormat(pWnd, CFM_LINK, CFE_LINK, positions);
 
 	return positions.empty() ? FALSE : TRUE;
 }
 
-void SetWindowTitle(HWND hWnd, const CString& urlorpath, const CString& dialogname)
+void SetWindowTitle(const HWND& hWnd, const CString& urlorpath, const CString& dialogname)
 {
-	SetWindowText(hWnd, FormatWindowTitle(urlorpath, dialogname, CString(MAKEINTRESOURCE(IDS_APPNAME)), static_cast<DWORD>(CRegStdDWORD(L"Software\\TortoiseGit\\DialogTitles", 0))));
+	SetWindowText(hWnd, FormatWindowTitle(urlorpath, dialogname, CString(MAKEINTRESOURCE(IDS_APPNAME)), CRegStdDWORD(L"Software\\TortoiseGit\\DialogTitles", 0)));
 }
 
 /**
@@ -559,8 +556,8 @@ void MarkWindowAsUnpinnable(HWND hWnd)
 				PROPVARIANT var;
 				var.vt = VT_BOOL;
 				var.boolVal = VARIANT_TRUE;
-				pps->SetValue(PKEY_AppUserModel_PreventPinning, var);
-				pps->Release();
+				std::ignore = pps->SetValue(PKEY_AppUserModel_PreventPinning, var);
+				std::ignore = pps->Release();
 			}
 		}
 	}
@@ -573,15 +570,15 @@ CString GetClipboardLink(const CString& skipGitPrefix = L"", int paramsCount = 0
 		return CString();
 
 	CString sClipboardText;
-	if (HGLOBAL hglb = GetClipboardData(CF_TEXT); hglb)
+	if (const HGLOBAL hglb = GetClipboardData(CF_TEXT); hglb)
 	{
-		auto lpstr = static_cast<LPCSTR>(GlobalLock(hglb));
+		const auto lpstr = static_cast<LPCSTR>(GlobalLock(hglb));
 		sClipboardText = CString(lpstr);
 		GlobalUnlock(hglb);
 	}
-	if (HGLOBAL hglb = GetClipboardData(CF_UNICODETEXT); hglb)
+	if (const HGLOBAL hglb = GetClipboardData(CF_UNICODETEXT); hglb)
 	{
-		auto lpstr = static_cast<LPCWSTR>(GlobalLock(hglb));
+		const auto lpstr = static_cast<LPCWSTR>(GlobalLock(hglb));
 		sClipboardText = lpstr;
 		GlobalUnlock(hglb);
 	}
@@ -591,7 +588,7 @@ CString GetClipboardLink(const CString& skipGitPrefix = L"", int paramsCount = 0
 		if (sClipboardText[0] == L'"' && sClipboardText[sClipboardText.GetLength() - 1] == L'"')
 			sClipboardText=sClipboardText.Mid(1,sClipboardText.GetLength()-2);
 
-		if (int newlinepos = sClipboardText.Find(L"\n"); newlinepos >= 0)
+		if (const int newlinepos = sClipboardText.Find(L"\n"); newlinepos >= 0)
 		{
 			sClipboardText.Truncate(newlinepos);
 			sClipboardText.TrimRight();
@@ -632,10 +629,10 @@ CString GetClipboardLink(const CString& skipGitPrefix = L"", int paramsCount = 0
 	return CString();
 }
 
-CString ChooseRepository(HWND hWnd, const CString* path)
+CString ChooseRepository(const HWND& hWnd, const CString* path)
 {
 	CBrowseFolder browseFolder;
-	CRegString regLastResopitory = CRegString(L"Software\\TortoiseGit\\TortoiseProc\\LastRepo", L"");
+	auto regLastResopitory = CRegString(L"Software\\TortoiseGit\\TortoiseProc\\LastRepo", L"");
 
 	browseFolder.m_style = BIF_EDITBOX | BIF_NEWDIALOGSTYLE | BIF_RETURNFSANCESTORS | BIF_RETURNONLYFSDIRS;
 	CString strCloneDirectory;

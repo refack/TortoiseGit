@@ -9,18 +9,13 @@
 // imports below all import std.
 #include <SDKDDKVer.h>
 
-#define _ATL_CSTRING_EXPLICIT_CONSTRUCTORS	// some CString constructors will be explicit NOLINT(*-reserved-identifier)
-
-// turns off MFC's hiding of some common and often safely ignored warning messages
-#define _AFX_ALL_WARNINGS	// NOLINT(*-reserved-identifier)
-
+#include <afx.h>            // MFC core and standard components
 #include <afxwin.h>         // MFC core and standard components
 #include <afxext.h>         // MFC extensions
 #include <WinSock2.h>
 #include <Ws2tcpip.h>
 #include <Wspiapi.h>
-#include <comdef.h>		// _COM_SMARTPTR_TYPEDEF (AnimationManager.h); the old PCH supplied it
-// #include <vfw.h>		// unused
+#include <comdef.h>			// _COM_SMARTPTR_TYPEDEF (AnimationManager.h); the old PCH supplied it
 #include <shlobj.h>
 #include <Shlwapi.h>
 #include <shlguid.h>
@@ -79,7 +74,6 @@ using std::min;
 #include <chrono>
 #include <condition_variable>
 #include <deque>
-#include <exception>
 #include <expected>
 #include <filesystem>
 #include <fstream>
@@ -124,4 +118,4 @@ using std::min;
 #include <Utils/ProfilingInfo.h>
 
 // Last
-#include <sanity.h>		// SCOPE_EXIT; its scope_exit_helper comes with `import wil` below
+#include <tgitlib/sanity.h>		// SCOPE_EXIT; its scope_exit_helper comes with `import wil` below

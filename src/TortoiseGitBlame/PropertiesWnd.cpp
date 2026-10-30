@@ -26,7 +26,7 @@
 #include "MainFrm.h"
 #include "TortoiseGitBlame.h"
 #include "IconMenu.h"
-#include "Theme.h"
+import ThemeAPI;
 import str_utils;
 
 #ifdef _DEBUG

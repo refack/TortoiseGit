@@ -10,7 +10,7 @@ module;
 
 #include <strsafe.h>	// We need this for linking
 #include <stdexcept>
-#include "sanity.h"
+#include <tgitlib/sanity.h>
 
 export module GitIndex;
 import std;

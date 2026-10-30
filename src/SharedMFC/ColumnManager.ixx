@@ -1,12 +1,14 @@
 ﻿module;
 #include "stdafx.h"
 
-#include "../libgit2/Resources/LoglistCommonResource.h"
+#include <Resources/LoglistCommonResource.h>
 #include "Utils/DPIAware.h"
 
 export module ColumnManager;
 import std;
 import Registry;
+import str_utils;
+using TCStringW = tgit::wstr::CString;
 
 // registry version number of column-settings of both GitLogListBase and GitStatusListCtrl
 #define GITSLC_COL_VERSION 6
@@ -46,7 +48,7 @@ public:
 
 	/// registry access
 
-	void ReadSettings(std::span<const ColumnDefinition> columns, const CString& containerName, DWORD version);
+	void ReadSettings(std::span<const ColumnDefinition> columns, const TCStringW& containerName, DWORD version);
 	void WriteSettings() const;
 
 	/// read column definitions
@@ -55,7 +57,7 @@ public:
 	bool IsVisible(int column) const;
 	int GetInvisibleCount() const;
 	bool IsRelevant(int column) const;
-	CString GetName(int column) const;
+	TCStringW GetName(int column) const;
 	int GetWidth(int column, bool useDefaults = false) const;
 	int GetVisibleWidth(int column, bool useDefaults) const;
 	void SetRightAlign(int column) const;
@@ -173,9 +175,9 @@ private:
 	DWORD m_dwVersion = 0;
 
 	/// initialization utilities
-	void ParseWidths(const CString& widths);
+	void ParseWidths(const TCStringW& widths);
 	void SetStandardColumnVisibility(DWORD visibility);
-	void ParseColumnOrder(const CString& widths);
+	void ParseColumnOrder(const TCStringW& widths);
 
 	/// map internal column order onto visible column order
 	/// (all invisibles in front)
@@ -185,14 +187,14 @@ private:
 
 	/// utilities used when writing data to the registry
 	DWORD GetSelectedStandardColumns() const;
-	CString GetWidthString() const;
-	CString GetColumnOrderString() const;
+	TCStringW GetWidthString() const;
+	TCStringW GetColumnOrderString() const;
 
 	/// our parent control and its data
 	CListCtrl* control = nullptr;
 
 	/// where to store in the registry
-	CString registryPrefix;
+	TCStringW registryPrefix;
 
 	/// all columns in their "natural" order
 	struct ColumnInfo
@@ -210,7 +212,7 @@ private:
 	std::vector<ColumnInfo> columns;
 
 	/// user-defined properties
-	std::set<CString> itemProps{};
+	std::set<TCStringW> itemProps{};
 
 	/// global column ordering including unused user props
 	std::vector<int> columnOrder;
@@ -219,7 +221,7 @@ private:
 
 // registry access
 
-void ColumnManager::ReadSettings(std::span<const ColumnDefinition> definedColumns, const CString& containerName, DWORD version)
+void ColumnManager::ReadSettings(std::span<const ColumnDefinition> definedColumns, const TCStringW& containerName, DWORD version)
 {
 	m_dwVersion = version;
 
@@ -256,7 +258,7 @@ void ColumnManager::ReadSettings(std::span<const ColumnDefinition> definedColumn
 		const DWORD selectedStandardColumns = CRegDWORD(registryPrefix, m_dwDefaultColumns);
 
 		// read column widths
-		const CString colWidths = CRegString(registryPrefix + L"_Width");
+		const TCStringW colWidths = CRegString(registryPrefix + L"_Width");
 
 		ParseWidths(colWidths);
 
@@ -275,9 +277,9 @@ void ColumnManager::ReadSettings(std::span<const ColumnDefinition> definedColumn
 
 	// restore column ordering
 	if (valid)
-		ParseColumnOrder(CRegString(registryPrefix + L"_Order"));
+		ParseColumnOrder(TCStringW{CRegString(registryPrefix + L"_Order")});
 	else
-		ParseColumnOrder(CString());
+		ParseColumnOrder(TCStringW());
 
 	ApplyColumnOrder();
 
@@ -302,11 +304,11 @@ void ColumnManager::WriteSettings() const
 	regStandardColumns = GetSelectedStandardColumns();
 
 	// write column widths
-	CRegString regWidths(registryPrefix + L"_Width", CString(), TRUE);
+	CRegString regWidths(registryPrefix + L"_Width", TCStringW(), TRUE);
 	regWidths = GetWidthString();
 
 	// write column ordering
-	CRegString regColumnOrder(registryPrefix + L"_Order", CString(), TRUE);
+	CRegString regColumnOrder(registryPrefix + L"_Order", TCStringW(), TRUE);
 	regColumnOrder = GetColumnOrderString();
 }
 
@@ -352,13 +354,13 @@ void ColumnManager::SetRightAlign(int column) const
 	control->Invalidate(FALSE);
 }
 
-CString ColumnManager::GetName(int column) const
+TCStringW ColumnManager::GetName(int column) const
 {
 	// standard columns
 	const size_t index = static_cast<size_t>(column);
 	if (index < columns.size())
 	{
-		CString result;
+		TCStringW result;
 		result.LoadString(columns[index].name);
 		return result;
 	}
@@ -369,7 +371,7 @@ CString ColumnManager::GetName(int column) const
 
 	// default: empty
 
-	return CString();
+	return TCStringW();
 }
 
 int ColumnManager::GetWidth(int column, bool useDefaults) const
@@ -549,7 +551,7 @@ void ColumnManager::ResetColumns()
 }
 
 // initialization utilities
-void ColumnManager::ParseWidths(const CString& widths)
+void ColumnManager::ParseWidths(const TCStringW& widths)
 {
 	for (int i = 0, count = widths.GetLength() / 8; i < count; ++i)
 	{
@@ -580,7 +582,7 @@ void ColumnManager::SetStandardColumnVisibility(DWORD visibility)
 	}
 }
 
-void ColumnManager::ParseColumnOrder(const CString& widths)
+void ColumnManager::ParseColumnOrder(const TCStringW& widths)
 {
 	std::set<int> alreadyPlaced;
 	columnOrder.clear();
@@ -664,9 +666,9 @@ DWORD ColumnManager::GetSelectedStandardColumns() const
 	return result;
 }
 
-CString ColumnManager::GetWidthString() const
+TCStringW ColumnManager::GetWidthString() const
 {
-	CString result;
+	TCStringW result;
 
 	// regular columns
 	wchar_t buf[10] = { 0 };
@@ -679,9 +681,9 @@ CString ColumnManager::GetWidthString() const
 	return result;
 }
 
-CString ColumnManager::GetColumnOrderString() const
+TCStringW ColumnManager::GetColumnOrderString() const
 {
-	CString result;
+	TCStringW result;
 
 	wchar_t buf[3] = { 0 };
 	for (size_t i = 0, count = columnOrder.size(); i < count; ++i)
@@ -709,7 +711,7 @@ void ColumnManager::OnContextMenuHeader(CWnd* pWnd, CPoint point, bool isGroundE
 	{
 		const int columnCount = GetColumnCount();
 
-		CString temp;
+		TCStringW temp;
 		constexpr UINT uCheckedFlags = MF_STRING | MF_ENABLED | MF_CHECKED;
 		constexpr UINT uUnCheckedFlags = MF_STRING | MF_ENABLED;
 
@@ -728,7 +730,7 @@ void ColumnManager::OnContextMenuHeader(CWnd* pWnd, CPoint point, bool isGroundE
 		// user-prop columns:
 		// find relevant ones and sort 'em
 
-		std::map<CString, int> sortedProps;
+		std::map<TCStringW, int> sortedProps;
 		for (int i = static_cast<int>(columns.size()); i < columnCount; ++i)
 			if (IsRelevant(i))
 				sortedProps[GetName(i)] = i;

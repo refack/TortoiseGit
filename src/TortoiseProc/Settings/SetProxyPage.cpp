@@ -99,7 +99,7 @@ BOOL CSetProxyPage::OnInitDialog()
 
 	CString proxy = g_Git.GetConfigValue(L"http.proxy");
 
-	m_SSHClient = (CGit::GetConfiguredSshClient()).c_str();
+	m_SSHClient = TGitH::details::GetConfiguredSshClient().c_str();
 	if (m_SSHClient.IsEmpty())
 		m_SSHClient = L"ssh.exe"; // must match CGit::CheckMsysGitDir's default
 	m_serveraddress = m_regServeraddress;

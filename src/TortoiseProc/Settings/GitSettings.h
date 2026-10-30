@@ -58,14 +58,13 @@ protected:
 			tooltips->AddTool(IDC_RADIO_SETTINGS_GLOBAL, IDS_CONFIG_GLOBAL_TT);
 		}
 
-		CString str = g_Git.m_CurrentDir;
-		m_bIsBareRepo = GitAdminDir::IsBareRepo(str);
-		CString proj;
-		if (GitAdminDir::HasAdminDir(tgit::str::StringView(str), &proj) || m_bIsBareRepo)
+		m_bIsBareRepo = GitAdminDir::IsBareRepo(g_Git.m_CurrentDir);
+		std::wstring projTopDir;
+		if (GitAdminDir::HasAdminDir(g_Git.m_CurrentDir, &projTopDir) || m_bIsBareRepo)
 		{
 			CString title;
 			page->GetWindowText(title);
-			page->SetWindowText(title + L" - " + proj);
+			page->SetWindowText(title + L" - " + projTopDir);
 			page->GetDlgItem(IDC_RADIO_SETTINGS_LOCAL)->EnableWindow(TRUE);
 
 			m_cSaveTo.AddString(CString(MAKEINTRESOURCE(IDS_CONFIG_LOCAL)));

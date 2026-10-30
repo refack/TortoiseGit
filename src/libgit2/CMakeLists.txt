@@ -1,11 +1,12 @@
-﻿add_library(TGitLibgit2 STATIC)
+﻿add_library(tgitlib STATIC)
 
-target_sources("TGitLibgit2"
+target_sources("tgitlib"
     PUBLIC
         FILE_SET HEADERS
-        BASE_DIRS .
+        BASE_DIRS
+            .
         FILES
-            include/sanity.h
+            tgitlib/sanity.h
             Resources/LoglistCommonResource.h
     PRIVATE
         patches/filter-filter.c
@@ -13,14 +14,13 @@ target_sources("TGitLibgit2"
         patches/system-call.c
 )
 
-target_include_directories(TGitLibgit2
+target_include_directories(tgitlib
     PRIVATE
-        "${CMAKE_CURRENT_SOURCE_DIR}/include"
         "${CMAKE_SOURCE_DIR}/ext/gitdll"
         "${CMAKE_CURRENT_SOURCE_DIR}"
 )
 
-target_link_libraries(TGitLibgit2
+target_link_libraries(tgitlib
     PUBLIC
         gitdll
     PRIVATE
@@ -35,7 +35,7 @@ target_link_libraries(TGitLibgit2
         crypt32
 )
 
-target_sources(TGitLibgit2
+target_sources(tgitlib
     PUBLIC
         FILE_SET CXX_MODULES
         BASE_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/modules"

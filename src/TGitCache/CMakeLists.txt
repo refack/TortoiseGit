@@ -49,5 +49,5 @@ target_link_libraries(TGitCache
         gdi32
         crypt32
         gitdll
-        TGitLibgit2
+        tgitlib
 )

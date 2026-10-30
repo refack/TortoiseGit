@@ -52,40 +52,28 @@ public:
 	// allow sub-classes to execute code during destruction
 	virtual ~Command() = default;
 
-	void					SetParser(const CCmdLineParser& p) {parser = p;}
-	void					SetPaths(const CTGitPathList& plist, const CTGitPath &path)
-							{
-								orgCmdLinePath = path;
-								CString WinPath = path.GetWinPathString().c_str();
-								if (StringUtils::StartsWith(WinPath, g_Git.m_CurrentDir))
-								{
-									if (g_Git.m_CurrentDir[g_Git.m_CurrentDir.GetLength() - 1] == L'\\')
-										cmdLinePath.SetFromWin( WinPath.Right(WinPath.GetLength()-g_Git.m_CurrentDir.GetLength()));
-									else
-										cmdLinePath.SetFromWin( WinPath.Right(WinPath.GetLength()-g_Git.m_CurrentDir.GetLength()-1));
-								}
-								orgPathList = plist;
-								for (int i = 0; i < plist.GetCount(); ++i)
-								{
-									WinPath = plist[i].GetWinPathString().c_str();
-									CTGitPath p;
-									if (StringUtils::StartsWith(WinPath, g_Git.m_CurrentDir))
-									{
-										if (g_Git.m_CurrentDir[g_Git.m_CurrentDir.GetLength() - 1] == L'\\')
-											p.SetFromWin( WinPath.Right(WinPath.GetLength()-g_Git.m_CurrentDir.GetLength()));
-										else
-											p.SetFromWin( WinPath.Right(WinPath.GetLength()-g_Git.m_CurrentDir.GetLength()-1));
-									}
-									else
-										p=plist[i];
-									pathList.AddPath(p);
+	void SetParser(const CCmdLineParser& p) {parser = p;}
+	void SetExplorerHwnd(HWND hWnd) {hwndExplorer = hWnd;}
+	HWND GetExplorerHWND() const { return ::IsWindow(hwndExplorer) ? hwndExplorer : nullptr; }
 
-								}
-							}
-	void					SetExplorerHwnd(HWND hWnd) {hwndExplorer = hWnd;}
-	HWND					GetExplorerHWND() const { return ::IsWindow(hwndExplorer) ? hwndExplorer : nullptr; }
+	void SetPaths(const CTGitPathList& plist, const CTGitPath &path) {
+		{
+			this->orgCmdLinePath = path;
+			const fs::path rel = path.GetStdPath().lexically_relative(g_Git.m_CurrentDir);
+			if (!rel.empty() && *rel.begin() != L"..")
+				this->cmdLinePath.SetFromWin(rel.c_str());
+		}
 
-	bool					CheckRepo() const;
+		this->orgPathList = plist;
+		for (int i = 0; i < plist.GetCount(); ++i) {
+			const fs::path rel = plist[i].GetStdPath().lexically_relative(g_Git.m_CurrentDir);
+			if (!rel.empty() && *rel.begin() != L"..")
+				this->pathList.AddPath(CTGitPath(rel));
+
+		}
+	}
+
+	bool CheckRepo() const { return CheckRepo(m_pathRequirement); }
 
 protected:
 	CCmdLineParser			parser;

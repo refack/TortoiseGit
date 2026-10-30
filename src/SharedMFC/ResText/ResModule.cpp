@@ -20,7 +20,7 @@
 #include "Utils.h"
 #include "ResModule.h"
 #include <Imagehlp.h>
-#include <sanity.h>		// SCOPE_EXIT, over wil's scope_exit_helper
+#include <tgitlib/sanity.h>		// SCOPE_EXIT, over wil's scope_exit_helper
 
 import std;
 import wil;				// scope_exit_helper, which SCOPE_EXIT expands to

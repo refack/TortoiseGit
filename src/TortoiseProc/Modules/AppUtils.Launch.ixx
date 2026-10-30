@@ -10,6 +10,7 @@ module;
 export module AppUtils.Launch;
 import MessageBox;
 
+
 template <tgit::str::IsATLCStringDuck TStr>
 TStr EscapeAndQuoteParameters(const TStr& input)
 {
@@ -176,7 +177,7 @@ bool LaunchApplication(const CString& sCommandLine, const LaunchApplicationFlags
 			return false;
 		}
 
-		CAutoGeneralHandle piProcess(std::move(shellinfo.hProcess));
+		const CAutoGeneralHandle piProcess(std::move(shellinfo.hProcess));
 		if (piProcess)
 		{
 			if (flags.bWaitForStartup)
@@ -207,8 +208,8 @@ bool LaunchApplication(const CString& sCommandLine, const LaunchApplicationFlags
 		return true;
 	}
 
-	STARTUPINFO startup = { 0 };
-	PROCESS_INFORMATION process = { 0 };
+	STARTUPINFO startup = {};
+	PROCESS_INFORMATION process = {};
 	startup.cb = sizeof(startup);
 
 	CString cleanCommandLine(sCommandLine);
@@ -223,19 +224,19 @@ bool LaunchApplication(const CString& sCommandLine, const LaunchApplicationFlags
 		return false;
 	}
 
-	[[maybe_unused]] const CAutoGeneralHandle piThread(std::move(process.hThread));
-	[[maybe_unused]] const CAutoGeneralHandle piProcess(std::move(process.hProcess));
+	[[maybe_unused]] const auto RAII_pi_thread = wil::unique_handle(std::move(process.hThread));
+	const auto piProcess = wil::unique_handle(std::move(process.hProcess));
 
 	AllowSetForegroundWindow(process.dwProcessId);
 
 	if (flags.bWaitForStartup)
-		WaitForInputIdle(piProcess, 10000);
+		WaitForInputIdle(piProcess.get(), 10000);
 
 	if (flags.bWaitForExit)
 	{
 		DWORD count = 1;
 		HANDLE handles[2];
-		handles[0] = piProcess;
+		handles[0] = piProcess.get();
 		if (flags.hWaitHandle)
 		{
 			count = 2;
@@ -247,7 +248,7 @@ bool LaunchApplication(const CString& sCommandLine, const LaunchApplicationFlags
 
 		if (flags.pdwExitCode)
 		{
-			if (!GetExitCodeProcess(piProcess, flags.pdwExitCode))
+			if (!GetExitCodeProcess(piProcess.get(), flags.pdwExitCode))
 				return false;
 		}
 	}
@@ -257,10 +258,10 @@ bool LaunchApplication(const CString& sCommandLine, const LaunchApplicationFlags
 
 bool RunTortoiseGitProc(const CString& sCommandLine, const bool uac = false, const bool includeGroupingUUID = false)
 {
-	const std::wstring pathToExecutable = PathUtils::GetAppDirectory() + L"TortoiseGitProc.exe";
+	const std::wstring pathToExecutable = PathUtils::GetAppDirectory() / L"TortoiseGitProc.exe";
 	CString sCmd = std::format(L"\"{}\" {}", pathToExecutable, sCommandLine).c_str();
 	if (AfxGetMainWnd()->GetSafeHwnd() && (sCommandLine.Find(L"/hwnd:") < 0))
-		sCmd.AppendFormat(L" /hwnd:%p", static_cast<void*>(AfxGetMainWnd()->GetSafeHwnd()));
+		sCmd.AppendFormat(L" /hwnd:%p", AfxGetMainWnd()->GetSafeHwnd());
 	if (!g_sGroupingUUID.empty() && includeGroupingUUID)
 	{
 		sCmd += L" /groupuuid:\"";
@@ -288,7 +289,7 @@ bool IsAdminLogin()
 	return !!isInAdminGroup;
 }
 
-int ExploreTo(HWND hwnd, CString path)
+int ExploreTo(const HWND& hwnd, CString path)
 {
 	if (PathFileExists(path))
 	{
@@ -296,7 +297,7 @@ int ExploreTo(HWND hwnd, CString path)
 		ITEMIDLIST __unaligned* pidl = ILCreateFromPath(path);
 		if (pidl)
 		{
-			ret = SHOpenFolderAndSelectItems(pidl, 0, 0, 0);
+			ret = SHOpenFolderAndSelectItems(pidl, 0, nullptr, 0);
 			ILFree(pidl);
 		}
 		return SUCCEEDED(ret) ? 0 : -1;
@@ -312,7 +313,7 @@ int ExploreTo(HWND hwnd, CString path)
 	return reinterpret_cast<INT_PTR>(ShellExecute(hwnd, L"explore", path, nullptr, nullptr, SW_SHOW)) > 32 ? 0 : -1;
 }
 
-bool ShowOpenWithDialog(const CString& file, HWND hwnd = nullptr)
+bool ShowOpenWithDialog(const CString& file, const HWND& hwnd = nullptr)
 {
 	OPENASINFO oi = {};
 	oi.pcszFile = file;
@@ -320,7 +321,7 @@ bool ShowOpenWithDialog(const CString& file, HWND hwnd = nullptr)
 	return SUCCEEDED(SHOpenWithDialog(hwnd, &oi));
 }
 
-bool ShellOpen(const CString& file, HWND hwnd = nullptr)
+bool ShellOpen(const CString& file, const HWND& hwnd = nullptr)
 {
 	if (reinterpret_cast<INT_PTR>(ShellExecute(hwnd, nullptr, file, nullptr, nullptr, SW_SHOW)) > HINSTANCE_ERROR)
 		return true;
@@ -333,53 +334,49 @@ bool ShellOpen(const CString& file, HWND hwnd = nullptr)
  * with txt files.
  * \return TRUE if the program could be started.
  */
-BOOL StartTextViewer(CString file)
+BOOL StartTextViewer(const std::wstring_view file)
 {
-	CRegString txt = CRegString(L".txt\\", L"", FALSE, HKEY_CLASSES_ROOT);
-	CString viewer = txt;
-	viewer = viewer + L"\\Shell\\Open\\Command\\";
-	CRegString txtexe = CRegString(viewer, L"", FALSE, HKEY_CLASSES_ROOT);
-	viewer = txtexe;
+	auto viewer = wil::reg::try_get_string(HKEY_CLASSES_ROOT, L"\\Shell\\Open\\Command\\", {}).value_or({});
 
-	DWORD len = ExpandEnvironmentStrings(viewer, nullptr, 0);
-	auto buf = std::make_unique<wchar_t[]>(len + 1);
-	ExpandEnvironmentStrings(viewer, buf.get(), len);
+	DWORD len = ExpandEnvironmentStrings(viewer.c_str(), nullptr, 0);
+	const auto buf = std::make_unique<wchar_t[]>(len + 1);
+	ExpandEnvironmentStrings(viewer.c_str(), buf.get(), len);
 	viewer = buf.get();
-	len = ExpandEnvironmentStrings(file, nullptr, 0);
-	auto buf2 = std::make_unique<wchar_t[]>(len + 1);
-	ExpandEnvironmentStrings(file, buf2.get(), len);
-	file = buf2.get();
-	file = L'"' + file + L'"';
-	if (viewer.IsEmpty())
-		return ShowOpenWithDialog(file) ? TRUE : FALSE;
-	if (viewer.Find(L"\"%1\"") >= 0)
-		viewer.Replace(L"\"%1\"", file);
-	else if (viewer.Find(L"%1") >= 0)
-		viewer.Replace(L"%1", file);
-	else
-		viewer += L' ';
-	viewer += file;
+	len = ExpandEnvironmentStrings(file.data(), nullptr, 0);
+	const auto buf2 = std::make_unique<wchar_t[]>(len + 1);
+	ExpandEnvironmentStrings(file.data(), buf2.get(), len);
 
-	if (!LaunchApplication(viewer, LaunchApplicationFlags().UseSpecificErrorMessage(IDS_ERR_TEXTVIEWSTART)))
+	const auto file_expanded = buf2.get();
+	if (viewer.empty())
+		return ShowOpenWithDialog(file_expanded) ? TRUE : FALSE;
+
+	constexpr auto placeholder = L"%1"sv;
+	if (const auto pos = viewer.find(placeholder); pos != viewer.npos) {
+		viewer.replace(pos, pos + placeholder.size(), file_expanded);
+	} else {
+		viewer += L' ';
+		viewer += file_expanded;
+	}
+
+	if (!LaunchApplication(viewer.c_str(), LaunchApplicationFlags().UseSpecificErrorMessage(IDS_ERR_TEXTVIEWSTART)))
 		return FALSE;
 	return TRUE;
 }
 
 bool LaunchNotepad(const CString& filename, const bool uac = false)
 {
-	CComHeapPtr<WCHAR> pszPath;
-	if (SHGetKnownFolderPath(FOLDERID_System, KF_FLAG_DEFAULT, nullptr, &pszPath) != S_OK)
+	const auto pszPath = wil::GetKnownFolderPath(FOLDERID_System);
+	if (pszPath.empty())
 		return false;
 
-	CString sCmd;
-	sCmd.Format(L"\"%s\\notepad.exe\" %s", static_cast<LPCWSTR>(pszPath), static_cast<LPCWSTR>(StringUtils::EscapeWindowsCliArguments(filename)));
+	const auto sCmd = std::format(LR"("{}" "{}")", pszPath / L"notepad.exe", filename);
 
-	return LaunchApplication(sCmd, LaunchApplicationFlags().UAC(uac).UseSpecificErrorMessage(IDS_ERR_TEXTVIEWSTART));
+	return LaunchApplication(sCmd.c_str(), LaunchApplicationFlags().UAC(uac).UseSpecificErrorMessage(IDS_ERR_TEXTVIEWSTART));
 }
 
 bool IsAlternativeEditorConfigured(CString* editTool = nullptr)
 {
-	CString alternativeEditor = CRegString(L"Software\\TortoiseGit\\AlternativeEditor");
+	const CString alternativeEditor = CRegString(L"Software\\TortoiseGit\\AlternativeEditor");
 	if (editTool)
 		*editTool = alternativeEditor;
 	return !alternativeEditor.IsEmpty() && !StringUtils::StartsWith(alternativeEditor, L"#");
@@ -391,10 +388,9 @@ bool LaunchAlternativeEditor(const CString& filename)
 	if (!IsAlternativeEditorConfigured(&editTool))
 		return LaunchNotepad(filename);
 
-	CString sCmd;
-	sCmd.Format(L"\"%s\" \"%s\"", static_cast<LPCWSTR>(editTool), static_cast<LPCWSTR>(filename));
+	const auto sCmd = std::format(LR"("{}" "{}")", editTool, filename);
 
-	return LaunchApplication(sCmd, LaunchApplicationFlags().UseSpecificErrorMessage(IDS_ERR_TEXTVIEWSTART));
+	return LaunchApplication(sCmd.c_str(), LaunchApplicationFlags().UseSpecificErrorMessage(IDS_ERR_TEXTVIEWSTART));
 }
 
 /**
@@ -402,22 +398,21 @@ bool LaunchAlternativeEditor(const CString& filename)
 */
 bool LaunchTortoiseBlame(const CString& sBlameFile, const CString& Rev, const CString& sParams = CString())
 {
-	CString viewer = (L'"' + PathUtils::GetAppDirectory()).c_str();
-	viewer += L"TortoiseGitBlame.exe";
-	viewer += L"\" /path:";
-	viewer += TCmdLineParser::EscapeValue(sBlameFile);
-	if (!Rev.IsEmpty() && Rev != GitRev::GetWorkingCopyRef())
-		viewer += L" /rev:" + TCmdLineParser::EscapeValue(Rev);
+	auto args = std::vector{
+		std::format(LR"("{}")", (PathUtils::GetAppDirectory() / L"TortoiseGitBlame.exe").native()),
+		std::format(L"/path:{}", TCmdLineParser::EscapeValue(sBlameFile)),
+	};
 	if (!g_sGroupingUUID.empty())
-	{
-		viewer += L" /groupuuid:\"";
-		viewer += g_sGroupingUUID.c_str();
-		viewer += L'"';
-	}
-	viewer += L' ' + sParams;
+		args.push_back(std::format(LR"(/groupuuid:"{}")", g_sGroupingUUID));
+	if (!Rev.IsEmpty() && Rev != GitRev::GetWorkingCopyRef())
+		args.push_back(std::format(LR"(/rev:"{}")", Rev.GetString()));
+	if (!sParams.IsEmpty())
+		args.push_back(sParams.GetString());
 
-	return LaunchApplication(viewer, LaunchApplicationFlags().UseSpecificErrorMessage(IDS_ERR_TGITBLAME));
+	const auto cmd = args | std::views::join_with(L' ') | std::ranges::to<std::wstring>();
+	return LaunchApplication(cmd.c_str(), LaunchApplicationFlags().UseSpecificErrorMessage(IDS_ERR_TGITBLAME));
 }
+
 
 CString PickDiffTool(const CTGitPath& file1, const CTGitPath& file2)
 {
@@ -493,23 +488,20 @@ bool StartExtDiff(
 	if ((viewer.Find(L"%base") < 0) && (viewer.Find(L"%mine") < 0))
 		viewer += L" %base %mine";
 
-	viewer = StringUtils::ExpandPlaceholdersForCmd(
-		viewer,
-		{
-			{ L"base", file1 },
-			{ L"mine", file2 },
-			{ L"bname", sName1.IsEmpty() ? file1 : sName1 },
-			{ L"yname", sName2.IsEmpty() ? file2 : sName2 },
-			{ L"bpath", originalFile1 },
-			{ L"ypath", originalFile2 },
-			{ L"brev", CString(hash1.ToString().c_str()) },
-			{ L"yrev", CString(hash2.ToString().c_str()) },
-			{ L"wtroot", g_Git.m_CurrentDir },
-		},
-		bInternal ?
-		&TCmdLineParser::EscapeValue<CString> :
-		&EscapeAndQuoteParameters<CString>
-	);
+	const auto escaper = bInternal ? &EscapeAndQuoteParameters<wstr::CString> : &TCmdLineParser::EscapeValue<wstr::CString, wstr::CString>;
+
+	const auto values = StringUtils::expand_vars_t{
+		{ L"base", file1 },
+		{ L"mine", file2 },
+		{ L"bname", sName1.IsEmpty() ? file1 : sName1 },
+		{ L"yname", sName2.IsEmpty() ? file2 : sName2 },
+		{ L"bpath", originalFile1 },
+		{ L"ypath", originalFile2 },
+		{ L"brev", hash1.ToString().c_str() },
+		{ L"yrev", hash2.ToString().c_str() },
+		{ L"wtroot", g_Git.m_CurrentDir.c_str() },
+	};
+	viewer = StringUtils::ExpandPlaceholdersForCmd(viewer, values, escaper);
 
 	if (flags.bReadOnly && bInternal)
 		viewer += L" /readonly";
@@ -523,7 +515,7 @@ bool StartExtDiff(
 /**
  * Opens the patch in the configured patch viewer, or notepad.exe if none is set.
  */
-BOOL StartExtPatch(const CTGitPath& patchfile, const CTGitPath& /*dir*/, const CString& /*sOriginalDescription*/ = CString(), const CString& /*sPatchedDescription*/ = CString(), BOOL /*bReversed*/ = FALSE, BOOL bWait = FALSE)
+BOOL StartExtPatch(const CTGitPath& patchfile, const CTGitPath& /*dir*/, const CString& /*sOriginalDescription*/ = CString(), const CString& /*sPatchedDescription*/ = CString(), BOOL /*bReversed*/ = FALSE, const BOOL bWait = FALSE)
 {
 	/*
 	 * A patch file is just a file, so hand it to whatever the user configured and let that
@@ -552,10 +544,9 @@ BOOL StartExtPatch(const CTGitPath& patchfile, const CTGitPath& /*dir*/, const C
  * Starts the external unified diff viewer (the app associated with *.diff or *.patch files).
  * If no app is associated with those file types, the default text editor is used.
  */
-BOOL StartUnifiedDiffViewer(const CString& patchfile, const CString& title, BOOL bWait = FALSE, bool bAlternativeTool = false)
+BOOL StartUnifiedDiffViewer(const CString& patchfile, const CString& title, const BOOL bWait = FALSE, const bool bAlternativeTool = false)
 {
-	auto v = CRegString(L"Software\\TortoiseGit\\DiffViewer");
-	auto viewer = static_cast<CString>(v);
+	auto viewer = static_cast<CRegString::StringT>(CRegString(L"Software\\TortoiseGit\\DiffViewer"));
 
 	bool bInternal = false;
 	// If registry entry for a diff program is commented out, fall back to git's tool.
@@ -597,7 +588,7 @@ BOOL StartUnifiedDiffViewer(const CString& patchfile, const CString& title, BOOL
 			{ L"1", patchfile },
 			{ L"title", title },
 		},
-		bInternal ? TCmdLineParser::EscapeValue<CString> : EscapeAndQuoteParameters<CString>
+		bInternal ? TCmdLineParser::EscapeValue<CString> : EscapeAndQuoteParameters<CString, CString>
 	);
 
 	if (!LaunchApplication(viewer, LaunchApplicationFlags().WaitForStartup(!!bWait).UseSpecificErrorMessage(IDS_ERR_DIFFVIEWSTART)))
@@ -609,21 +600,21 @@ BOOL StartUnifiedDiffViewer(const CString& patchfile, const CString& title, BOOL
  * Replacement for GitDiff::ShowUnifiedDiff(), but started as a separate process.
  */
 bool StartShowUnifiedDiff(
-	HWND hWnd,
+	const HWND& hWnd,
 	const CTGitPath& url1,
 	const CString& rev1,
 	const CTGitPath& url2,
 	const CString& rev2,
-	bool bAlternateDiff = false,
+	const bool bAlternateDiff = false,
 	bool bIgnoreAncestry = false,
 	bool _ = false,
-	bool bMerge = false,
-	bool bCombine = false,
-	bool bNoPrefix = false
+	const bool bMerge = false,
+	const bool bCombine = false,
+	const bool bNoPrefix = false
 )
 {
 	const int diffContext = g_Git.GetConfigValueInt32(L"diff.context", -1);
-	CString tempfile=GetTempFile();
+	const CString tempfile = GitCall::GetTempFile();
 	if (tempfile.IsEmpty())
 	{
 		::MessageBox(hWnd, L"Could not create temp file.", L"TortoiseGit", MB_OK | MB_ICONERROR);
@@ -676,7 +667,7 @@ bool StartShowUnifiedDiff(
  * \param force if true, overwrite all existing entries
  * \param type "Diff", "Merge" or an empty string
  */
-bool SetupDiffScripts(bool force, const CString& type)
+bool SetupDiffScripts(const bool force, const CString& type)
 {
 	CString scriptsdir = PathUtils::GetAppParentDirectory().c_str();
 	scriptsdir += L"Diff-Scripts";
@@ -737,8 +728,8 @@ bool SetupDiffScripts(bool force, const CString& type)
 			{
 				if (StringUtils::StartsWithI(filename, L"diff-"))
 				{
-					CRegString diffreg = CRegString(L"Software\\TortoiseGit\\DiffTools\\" + extension);
-					CString diffregstring = diffreg;
+					auto diffreg = CRegString(L"Software\\TortoiseGit\\DiffTools\\" + extension);
+					auto diffregstring = static_cast<CRegString::StringT>(diffreg);
 					if (force || (diffregstring.IsEmpty()) || (diffregstring.Find(filename) >= 0))
 						diffreg = L"wscript.exe \"" + file + L"\" %base %mine" + kind;
 				}
@@ -747,8 +738,8 @@ bool SetupDiffScripts(bool force, const CString& type)
 			{
 				if (StringUtils::StartsWithI(filename, L"merge-"))
 				{
-					CRegString diffreg = CRegString(L"Software\\TortoiseGit\\MergeTools\\" + extension);
-					CString diffregstring = diffreg;
+					auto diffreg = CRegString(L"Software\\TortoiseGit\\MergeTools\\" + extension);
+					auto diffregstring = static_cast<CRegString::StringT>(diffreg);
 					if (force || (diffregstring.IsEmpty()) || (diffregstring.Find(filename) >= 0))
 						diffreg = L"wscript.exe \"" + file + L"\" %merged %theirs %mine %base" + kind;
 				}
@@ -763,7 +754,7 @@ CString GetMergeTempFile(const CString& type, const CTGitPath& merge, const bool
 {
 	const auto path = std::format(L"{}.{}{}", merge.GetWinPathString(), type, merge.GetFileExtension());
 	if (returnAbsolutePath)
-		return g_Git.CombinePath(path);
+		return g_Git.CombinePath(path).c_str();
 	return path.c_str();
 }
 
@@ -778,27 +769,34 @@ void RemoveTempMergeFile(const CTGitPath& path, const bool pathIsRelative = true
  * Launches the external merge program if there is one.
  * \return TRUE if the program could be started
  */
-BOOL StartExtMerge(bool bAlternative,
-	const CTGitPath& basefile, const CTGitPath& theirfile, const CTGitPath& yourfile, const CTGitPath& mergedfile,
-	const CString& basename = {}, const CString& theirname = {}, const CString& yourname = {}, const CString& mergedname = {},
-	HWND resolveMsgHwnd = {}, bool bDeleteBaseTheirsMineOnClose = {})
-{
-	CRegString regCom = CRegString(L"Software\\TortoiseGit\\Merge");
+BOOL StartExtMerge(
+	const bool bAlternative,
+	const CTGitPath& basefile,
+	const CTGitPath& theirfile,
+	const CTGitPath& yourfile,
+	const CTGitPath& mergedfile,
+	const CString& basename = {},
+	const CString& theirname = {},
+	const CString& yourname = {},
+	const CString& mergedname = {},
+	const HWND& resolveMsgHwnd = {},
+	const bool bDeleteBaseTheirsMineOnClose = {}
+) {
 	CString ext = mergedfile.GetFileExtension().c_str();
-	CString com = regCom;
+	CString com = CRegString(L"Software\\TortoiseGit\\Merge");
 
 	if (!ext.IsEmpty())
 	{
 		// is there an extension specific merge tool?
-		CRegString mergetool(L"Software\\TortoiseGit\\MergeTools\\" + ext.MakeLower());
-		if (!CString(mergetool).IsEmpty())
+		const CString mergetool = CRegString(L"Software\\TortoiseGit\\MergeTools\\" + ext.MakeLower());
+		if (!mergetool.IsEmpty())
 			com = mergetool;
 	}
 	// is there a filename specific merge tool?
 	std::wstring mergedFilename = mergedfile.GetFilename();
 	tgit::wstr::MakeLower(mergedFilename);
 	CRegString mergetool(std::format(L"Software\\TortoiseGit\\MergeTools\\.{}", mergedFilename).c_str());
-	if (!CString(mergetool).IsEmpty())
+	if (!static_cast<CRegString::StringT>(mergetool).IsEmpty())
 		com = mergetool;
 
 	if (bAlternative && !com.IsEmpty())
@@ -854,18 +852,21 @@ BOOL StartExtMerge(bool bAlternative,
 	if ((com.Find(L"%merged") < 0) && (com.Find(L"%base") < 0) && (com.Find(L"%theirs") < 0) && (com.Find(L"%mine") < 0))
 		com += L" %base %theirs %mine %merged";
 
-	com = StringUtils::ExpandPlaceholdersForCmd(com, {
-													  { L"base", basefile.GetWinPathString().c_str() },
-													  { L"theirs", theirfile.GetWinPathString().c_str() },
-													  { L"mine", yourfile.GetWinPathString().c_str() },
-													  { L"merged", mergedfile.GetWinPathString().c_str() },
-													  { L"bname", basename.IsEmpty() ? CString(basefile.GetUIFileOrDirectoryName().c_str()) : basename },
-													  { L"tname", theirname.IsEmpty() ? CString(theirfile.GetUIFileOrDirectoryName().c_str()) : theirname },
-													  { L"yname", yourname.IsEmpty() ? CString(yourfile.GetUIFileOrDirectoryName().c_str()) : yourname },
-													  { L"mname", mergedname.IsEmpty() ? CString(mergedfile.GetUIFileOrDirectoryName().c_str()) : mergedname },
-													  { L"wtroot", g_Git.m_CurrentDir },
-													  },
-												 &EscapeAndQuoteParameters);
+	com = StringUtils::ExpandPlaceholdersForCmd(
+		com,
+		{
+			{ L"base", basefile.GetWinPathString().c_str() },
+			{ L"theirs", theirfile.GetWinPathString().c_str() },
+			{ L"mine", yourfile.GetWinPathString().c_str() },
+			{ L"merged", mergedfile.GetWinPathString().c_str() },
+			{ L"bname", basename.IsEmpty() ? CString(basefile.GetUIFileOrDirectoryName().c_str()) : basename },
+			{ L"tname", theirname.IsEmpty() ? CString(theirfile.GetUIFileOrDirectoryName().c_str()) : theirname },
+			{ L"yname", yourname.IsEmpty() ? CString(yourfile.GetUIFileOrDirectoryName().c_str()) : yourname },
+			{ L"mname", mergedname.IsEmpty() ? CString(mergedfile.GetUIFileOrDirectoryName().c_str()) : mergedname },
+			{ L"wtroot", g_Git.m_CurrentDir.c_str() },
+		},
+		&EscapeAndQuoteParameters<CString>
+	);
 
 	/*
 	 * Every merge tool is external now, so there is no in-process viewer to hand a /readonly
@@ -874,9 +875,9 @@ BOOL StartExtMerge(bool bAlternative,
 	 * with them, so when it asks for that we have to wait and delete them ourselves; the files
 	 * are still open while the tool runs.
 	 */
-	const DWORD blocktrust = CRegDWORD(L"Software\\TortoiseGit\\MergeBlockTrustBehavior");
+	const auto blocktrust = wil::reg::try_get_tgit_dword(L"Software\\TortoiseGit\\MergeBlockTrustBehavior").value_or(0);
 	const bool bWaitForExit = bDeleteBaseTheirsMineOnClose || blocktrust >= 1;
-	DWORD exitCode = DWORD_MAX;
+	auto exitCode = std::numeric_limits<DWORD>::max();
 	const bool bLaunched = LaunchApplication(com, LaunchApplicationFlags().UseSpecificErrorMessage(IDS_ERR_EXTMERGESTART).WaitForExit(bWaitForExit, nullptr, &exitCode));
 
 	if (bDeleteBaseTheirsMineOnClose)
@@ -895,13 +896,13 @@ BOOL StartExtMerge(bool bAlternative,
 	RemoveTempMergeFile(mergedfile, false);
 
 	CString str;
-	str.Format(IDS_MERGESUCCESSFUL, static_cast<LPCWSTR>(mergedfile.GetGitPathString().c_str()));
+	str.Format(IDS_MERGESUCCESSFUL, mergedfile.GetGitPathString().c_str());
 	if ((blocktrust == 2 && exitCode == 0) || (blocktrust == 1 && CMessageBox::Show(GetExplorerHWND(), str, IDS_APPNAME, 2, IDI_QUESTION, IDS_RESOLVEDBUTTON, IDS_MSGBOX_NO) == 1))
 	{
-		CString out;
-		if (g_Git.Run({ L"git.exe", L"add", L"-f", L"--", mergedfile.GetGitPathString() }, &out, CP_UTF8))
+		std::string out;
+		if (g_Git.Run({ L"git.exe", L"add", L"-f", L"--", mergedfile.GetGitPathString() }, &out))
 		{
-			MessageBox(GetExplorerHWND(), out, L"TortoiseGit", MB_OK | MB_ICONERROR);
+			MessageBox(GetExplorerHWND(), CUnicodeUtils::StdGetUnicode(out).c_str(), L"TortoiseGit", MB_OK | MB_ICONERROR);
 			return FALSE;
 		}
 	}

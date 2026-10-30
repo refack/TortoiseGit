@@ -1,7 +1,7 @@
 module;
 #include <windows.h>
 #include <gitdll.h>
-#include "sanity.h"
+#include <tgitlib/sanity.h>
 
 export module GitMailmap;
 import std;

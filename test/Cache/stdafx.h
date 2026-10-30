@@ -42,7 +42,7 @@ using namespace ATL;
 
 #include "git2.h"
 
-#include <sanity.h>		// SCOPE_EXIT
+#include <tgitlib/sanity.h>		// SCOPE_EXIT
 
 import wil;				// scope_exit_helper, which SCOPE_EXIT expands to
 import DebugOutput;

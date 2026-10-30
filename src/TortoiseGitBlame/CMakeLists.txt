@@ -63,7 +63,7 @@ target_link_libraries(TortoiseGitBlame
         gdi32
         crypt32
         gitdll
-        TGitLibgit2
+        tgitlib
         ResizableLib
 )
 

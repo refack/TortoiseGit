@@ -1,6 +1,6 @@
 module;
 #include <windows.h>
-#include <sanity.h>			// Expects: a macro, which no import carries
+#include <tgitlib/sanity.h>			// Expects: a macro, which no import carries
 
 #include <gtest/internal/gtest-port.h>
 
@@ -11,7 +11,6 @@ module;
 // initializers across objects by link order, so they could run *after* g_Git's
 // constructor and reset what it wrote: Run then launched "\git.exe". The lib
 // segment (.CRT$XCL) runs before every user one (.CRT$XCU), whatever the link order.
-#pragma init_seg(lib)
 
 /**
  * Running git.exe: the process, its pipes, and what is done with its output.

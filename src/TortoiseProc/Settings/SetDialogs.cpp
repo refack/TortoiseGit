@@ -166,14 +166,14 @@ BOOL CSetDialogs::OnInitDialog()
 	m_bRelativeTimes = m_regRelativeTimes;
 	m_bAsteriskLogPrefix = m_regAsteriskLogPrefix;
 	m_bUseSystemLocaleForDates = m_regUseSystemLocaleForDates;
-	m_sFontName = m_regFontName;
+	m_sFontName = CRegString::StringT{m_regFontName};
 	m_dwFontSize = m_regFontSize;
 	m_bDiffByDoubleClick = m_regDiffByDoubleClick;
 	m_bAbbreviateRenamings = m_regAbbreviateRenamings;
 	m_bSymbolizeRefNames = m_regSymbolizeRefNames;
 	m_bEnableLogCache = m_regEnableLogCache;
 	m_bEnableGravatar = m_regEnableGravatar;
-	m_GravatarUrl = m_regGravatarUrl;
+	m_GravatarUrl = CRegString::StringT{m_regGravatarUrl};
 	m_bDrawBranchesTagsOnRightSide = m_regDrawBranchesTagsOnRightSide;
 	m_bShowDescribe = m_regShowDescribe;
 	m_bShowBranchRevNo = m_regShowBranchRevNo;
@@ -296,7 +296,7 @@ BOOL CSetDialogs::OnApply()
 	if (m_cFontNames.GetSelFont())
 		m_sFontName = m_cFontNames.GetSelFont()->m_strName;
 	else
-		m_sFontName = m_regFontName;
+		m_sFontName = CRegString::StringT{m_regFontName};
 
 	Store(m_bShortDateFormat, m_regShortDateFormat);
 	Store(m_bRelativeTimes, m_regRelativeTimes);

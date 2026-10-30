@@ -30,5 +30,5 @@ target_link_libraries(GitWCRev
         rpcrt4
         gdi32
         crypt32
-        TGitLibgit2
+        tgitlib
 )

@@ -23,7 +23,7 @@
 #include "TortoiseProc.h"
 #include "FirstStartWizard.h"
 #include "FirstStartWizardGit.h"
-#include "Utils/Theme.h"
+import ThemeAPI;
 import AppUtils.Launch;
 import AppUtils.Window;
 

@@ -34,7 +34,7 @@ import Registry;
 #include <Utils/ScintillaRegistration.h>
 import str_utils;
 import TaskbarUUID;
-#include <Utils/Theme.h>
+import ThemeAPI;
 #include <Utils/MiscUI/BaseWindow.h>
 
 #include "TortoiseUDiff.h"

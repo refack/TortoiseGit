@@ -17,8 +17,9 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 
+#include <intsafe.h>
 #include <libgit2-private/util/str.h>
-#include "system-call.h"
+#include "tgitlib/system-call.h"
 
 static void safeCloseHandle(HANDLE *handle)
 {
@@ -75,7 +76,6 @@ static DWORD WINAPI AsyncReadingThread(LPVOID lpParam)
 static HANDLE commmand_start_reading_thread(HANDLE *handle, git_str *dest)
 {
 	struct ASYNCREADINGTHREADARGS *threadArguments = git__calloc(1, sizeof(struct ASYNCREADINGTHREADARGS));
-	HANDLE thread;
 	if (!threadArguments) {
 		git_error_set_oom();
 		return NULL;
@@ -84,7 +84,7 @@ static HANDLE commmand_start_reading_thread(HANDLE *handle, git_str *dest)
 	threadArguments->handle = handle;
 	threadArguments->dest = dest;
 
-	thread = CreateThread(NULL, 0, AsyncReadingThread, threadArguments, 0, NULL);
+	HANDLE thread = CreateThread(NULL, 0, AsyncReadingThread, threadArguments, 0, NULL);
 	if (!thread) {
 		git__free(threadArguments);
 		git_error_set(GIT_ERROR_OS, "Could not create thread");
@@ -193,10 +193,9 @@ int command_start(wchar_t *cmd, COMMAND_HANDLE *commandHandle, const LPWSTR *pEn
 	CloseHandle(hReadIn);
 	CloseHandle(hWriteOut);
 	if (commandHandle->errBuf) {
-		HANDLE asyncReadErrorThread;
 		CloseHandle(hWriteError);
 		commandHandle->err = hReadError;
-		asyncReadErrorThread = commmand_start_reading_thread(&commandHandle->err, commandHandle->errBuf);
+		HANDLE asyncReadErrorThread = commmand_start_reading_thread(&commandHandle->err, commandHandle->errBuf);
 		if (!asyncReadErrorThread) {
 			CloseHandle(hReadOut);
 			CloseHandle(hWriteIn);

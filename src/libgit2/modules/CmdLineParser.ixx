@@ -370,18 +370,12 @@ export namespace TCmdLineParser
         return (pos == m_valueMap.cend());
     }
 
-	template <tgit::str::TStrOfWide TStr>
-	auto EscapeValue(const TStr& input)
-    {
-    	using SV = tgit::str::StringView<TStr>;
-    	using char_t = SV::char_type;
-
-    	const auto in_sv = SV{input}.as_view();
-        std::basic_string<char_t> result;
+	template <tgit::str::TStrOfWide TStrOut = std::wstring, tgit::str::TStrOfWide TStr>
+	TStrOut EscapeValue(const TStr& input) {
+        TStrOut result;
         result += L'"';
 
-        // result.reserve(in_sv.size());
-        for (const char_t& c : in_sv)
+        for (const auto c : tgit::concepts::as_view(input))
         {
             if (c == L'"')
                 result += L'"';

@@ -8,7 +8,8 @@
 #include <ShObjIdl_core.h>
 #include <shlguid.h>
 #include <shlobj_core.h>
-#include <../../SharedMFC/Resources/resource.h>
+// TODO: figure out this thing
+#include "../../SharedMFC/Resources/resource.h"
 
 #pragma comment(lib, "Shlwapi.lib")	// PathCanonicalize; was linked via wil.ixx's IsURL until it went
 
@@ -49,7 +50,7 @@ DEFINE_GUID(FOLDERTYPEID_GITWC,       0xb118c031, 0xa977, 0x4a67, 0x93, 0x44, 0x
  * Release on the shell item. If the function fails, nullptr is returned from
  * *ppShellItem.
  */
-HRESULT GetShellLibraryItem(const LPWSTR pwszLibraryName, IShellItem2** ppShellItem)
+HRESULT GetShellLibraryItem(const LPWSTR& pwszLibraryName, IShellItem2** ppShellItem)
 {
 	*ppShellItem = nullptr;
 
@@ -73,7 +74,7 @@ HRESULT GetShellLibraryItem(const LPWSTR pwszLibraryName, IShellItem2** ppShellI
  * Release on the shell library. If the function fails, nullptr is returned from
  * *ppShellLib.
  */
-HRESULT OpenShellLibrary(const LPWSTR pwszLibraryName, IShellLibrary** ppShellLib)
+HRESULT OpenShellLibrary(const LPWSTR& pwszLibraryName, IShellLibrary** ppShellLib)
 {
 	*ppShellLib = nullptr;
 

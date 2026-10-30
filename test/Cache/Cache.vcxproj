@@ -60,7 +60,7 @@
     <None Include="res\Cache.rc2" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\src\libgit2\TGitLibgit2.vcxproj">
+    <ProjectReference Include="..\..\src\libgit2\tgitlib.vcxproj">
       <Project>{2f29bedb-4b28-4f53-9d1c-3be0766e738e}</Project>
       <LinkLibraryDependencies>true</LinkLibraryDependencies>
       <UseLibraryDependencyInputs>false</UseLibraryDependencyInputs>

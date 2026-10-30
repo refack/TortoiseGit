@@ -19,8 +19,8 @@
 #pragma once
 
 #include "SettingsPropPage.h"
-import Registry;
 #include "FileDropEdit.h"
+import Registry;
 
 
 /**
@@ -30,19 +30,19 @@ import Registry;
  */
 class CSetProxyPage : public ISettingsPropPage
 {
+
 	DECLARE_DYNAMIC(CSetProxyPage)
 
-public:
 	CSetProxyPage();
-	virtual ~CSetProxyPage();
+	~CSetProxyPage() override;
 
 	UINT GetIconID() override { return IDI_PROXY; }
+	BOOL OnApply() override;
 
 	enum { IDD = IDD_SETTINGSPROXY };
 
 protected:
 	void DoDataExchange(CDataExchange* pDX) override;    // DDX/DDV support
-	BOOL OnApply() override;
 	BOOL OnInitDialog() override;
 	afx_msg void OnChange();
 	afx_msg void OnBnClickedEnable();

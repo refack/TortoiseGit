@@ -3,7 +3,7 @@
 // ReSharper disable CppUnusedIncludeDirective
 #pragma once
 
-// What were src\Git and src\Utils headers, now the TGitLibgit2Mfc modules.
+// What were src\Git and src\Utils headers, now the tgitlibMfc modules.
 import std;
 import gsl;
 
