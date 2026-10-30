@@ -999,8 +999,8 @@ public:
 			const auto valuea = value ? CUnicodeUtils::GetUTF8<CStringA>(*value) : CStringA();
 			try {
 				return git_set_config(keya, value ? static_cast<const char*>(valuea) : nullptr, type);
-			} catch (const char* msg) {
-				TracePrintf(L"%S: could not %s config %s: %S\n", where.function_name(), value ? L"set" : L"unset", static_cast<LPCWSTR>(key), msg);
+			} catch (const std::exception& ex) {
+				TracePrintf(L"%S: could not %s config %s: %S\n", where.function_name(), value ? L"set" : L"unset", static_cast<LPCWSTR>(key), ex.what());
 				return -1;
 			}
 		}
@@ -2027,9 +2027,9 @@ std::wstring CGit::ReadConfigValue(const CStringW& name, const CStringW& def_, c
 		try {
 			if (git_get_config(key, CStrBufA(value, 4096), 4096))
 				return def;
-		} catch (const std::string_view msg) {
+		} catch (const std::exception& ex) {
 			::MessageBox(nullptr,
-			             L"Could not get config.\nlibgit reports:\n" + CUnicodeUtils::GetUnicode<CStringW>(msg),
+			             L"Could not get config.\nlibgit reports:\n" + CUnicodeUtils::GetUnicode<CStringW>(ex.what()),
 			             L"TortoiseGit",
 			             MB_OK | MB_ICONERROR);
 			return def;
@@ -2418,6 +2418,7 @@ int CGit::GetHash(CGitHash& hash, const std::wstring& friendname) {
 		auto&& ret = GitCall::Run({ L"git.exe", L"rev-parse", L"--verify", L"--end-of-options", branch.GetString() }, &gitLastErr, nullptr); // stdout alone: it is parsed as a hash
 
 		bool isHash{};
+		wstr::Trim(gitLastErr); // rev-parse ends its line with '\n', which FromHexStr rejects
 		hash = CGitHash::FromHexStr(gitLastErr, &isHash);
 		if (ret == 0) {
 			gitLastErr.clear();
@@ -2755,47 +2756,43 @@ int CGit::GetBranchList(std::vector<std::wstring>& list, int* current, const BRA
 		}
 	}
 	else {
-		CStringW cmd = L"git.exe branch --no-color";
+		wil::ArgvData argv{ L"git.exe", L"branch", L"--no-color" };
 
 		if ((type & BRANCH_ALL) == BRANCH_ALL)
-			cmd += L" -a";
+			argv << L"-a";
 		else if (type & BRANCH_REMOTE)
-			cmd += L" -r";
+			argv << L"-r";
 
-		// TODO: should be broken
-		// ret = GitCall::Run_reciver(cmd, [&](std::string_view lineA)
-		// {
-		// 	StringUtils::TrimLeft(lineA);
-		// 	if (lineA.empty())
-		// 		return;
-		// 	if (lineA.find(" -> ") != std::string_view::npos)
-		// 		return; // skip something like: refs/origin/HEAD -> refs/origin/master
-		//
-		// 	std::wstring branch = CUnicodeUtils::GetUnicode<std::wstring>(lineA);
-		// 	if (lineA[0] == '*')
-		// 	{
-		// 		if (skipCurrent)
-		// 			return;
-		// 		// tgit::wstr::Mid, not substr: these carry CStringW's clamping, and a
-		// 		// line shorter than the prefix would make substr throw where Mid
-		// 		// returned empty
-		// 		branch = tgit::wstr::Mid(branch, static_cast<int>(wcslen(L"* ")));
-		// 		cur = branch;
-		//
-		// 		// check whether HEAD is detached
-		// 		CStringW currentHead;
-		// 		if (branch[0] == L'(' && GetCurrentBranchFromFile(m_CurrentDir, currentHead) == 1)
-		// 		{
-		// 			headIsDetached = true;
-		// 			return;
-		// 		}
-		// 	}
-		// 	else if (lineA[0] == '+') // since Git 2.23 branches that are checked out in other worktrees connected to the same repository prefixed with '+'
-		// 		branch = tgit::wstr::Mid(branch, static_cast<int>(wcslen(L"+ ")));
-		// 	if ((type & BRANCH_REMOTE) != 0 && (type & BRANCH_LOCAL) == 0)
-		// 		branch = L"remotes/" + branch;
-		// 	list.push_back(std::move(branch));
-		// });
+		ret = GitCall::RunReceiver(argv, [&](std::string_view lineA) {
+			StringUtils::TrimLeft(lineA);
+			if (lineA.empty())
+				return;
+			if (lineA.find(" -> ") != std::string_view::npos)
+				return; // skip something like: refs/origin/HEAD -> refs/origin/master
+
+			std::wstring branch = CUnicodeUtils::GetUnicode<std::wstring>(lineA);
+			if (lineA[0] == '*') {
+				if (skipCurrent)
+					return;
+				// tgit::wstr::Mid, not substr: these carry CStringW's clamping, and a
+				// line shorter than the prefix would make substr throw where Mid
+				// returned empty
+				branch = tgit::wstr::Mid(branch, static_cast<int>(wcslen(L"* ")));
+				cur = branch;
+
+				// check whether HEAD is detached
+				CStringW currentHead;
+				if (!branch.empty() && branch[0] == L'(' && GetCurrentBranchFromFile(m_CurrentDir, currentHead) == 1) {
+					headIsDetached = true;
+					return;
+				}
+			}
+			else if (lineA[0] == '+') // since Git 2.23 branches that are checked out in other worktrees connected to the same repository prefixed with '+'
+				branch = tgit::wstr::Mid(branch, static_cast<int>(wcslen(L"+ ")));
+			if ((type & BRANCH_REMOTE) != 0 && (type & BRANCH_LOCAL) == 0)
+				branch = L"remotes/" + branch;
+			list.push_back(std::move(branch));
+		});
 		if (ret == 1 && IsInitRepos())
 			return 0;
 	}
@@ -3048,8 +3045,10 @@ int CGit::GetRefList(std::vector<std::wstring>& list) {
 	} else {
 		MAP_HASH_NAME map;
 		auto&& ret = git_show_ref(map);
+		// show-ref -d follows each annotated tag with its peeled "name^{}"; those are
+		// the same ref, which upstream skipped and libgit2's foreach never lists
 		for (const auto& val : map | std::views::values) {
-			list.append_range(val);
+			list.append_range(val | std::views::filter([](const auto& name) { return !std::wstring_view{ name }.ends_with(L"^{}"); }));
 		}
 		if (ret != G_OK) {
 			return (ret == 1 && IsInitRepos()) ? G_OK : ret;
@@ -3418,7 +3417,7 @@ int CGit::GetOneFile(const CStringW& Refname, const CTGitPath& path, const CStri
 			return -1;
 
 		wil::unique_git_tree_entry entry;
-		if (const auto ret = git_tree_entry_bypath(&entry, tree.get(), CUnicodeUtils::StdGetUTF8(path.GetWString()).c_str()); ret)
+		if (const auto ret = git_tree_entry_bypath(&entry, tree.get(), CUnicodeUtils::StdGetUTF8(path.GetGitPathString()).c_str()); ret)
 			return ret;
 
 		if (git_tree_entry_filemode(entry.get()) == GIT_FILEMODE_COMMIT) {
@@ -3438,7 +3437,7 @@ int CGit::GetOneFile(const CStringW& Refname, const CTGitPath& path, const CStri
 		wil::unique_git_buf buf;
 		git_blob_filter_options opts = GIT_BLOB_FILTER_OPTIONS_INIT;
 		opts.flags &= ~static_cast<uint32_t>(GIT_BLOB_FILTER_CHECK_FOR_BINARY);
-		if (git_blob_filter(&buf, blob.get(), CUnicodeUtils::StdGetUTF8(path.GetWString()).c_str(), &opts))
+		if (git_blob_filter(&buf, blob.get(), CUnicodeUtils::StdGetUTF8(path.GetGitPathString()).c_str(), &opts))
 			return -1;
 		if (fwrite(buf.ptr, sizeof(char), buf.size, file.get()) != buf.size) {
 			git_error_set_str(GIT_ERROR_OS, "Could not write to file.");
@@ -3453,12 +3452,12 @@ int CGit::GetOneFile(const CStringW& Refname, const CTGitPath& path, const CStri
 		g_Git.CheckAndInitDll();
 		CStringA ref, patha, outa;
 		ref = CUnicodeUtils::GetUTF8<CStringA>(Refname);
-		patha = CUnicodeUtils::StdGetUTF8(path.GetWString()).c_str();
+		patha = CUnicodeUtils::StdGetUTF8(path.GetGitPathString()).c_str();
 		outa = CUnicodeUtils::GetUTF8<CStringA>(outputfile);
 		::DeleteFile(outputfile);
 		return git_checkout_file(ref, patha, CStrBufA(outa));
-	} catch (const std::string_view msg) {
-		gitLastErr = L"gitdll.dll reports: " + CUnicodeUtils::GetUnicode<CStringW>(msg);
+	} catch (const std::exception& ex) {
+		gitLastErr = L"gitdll.dll reports: " + CUnicodeUtils::GetUnicode<CStringW>(ex.what());
 		return -1;
 	} catch (...) {
 		gitLastErr = L"An unknown gitdll.dll error occurred.";

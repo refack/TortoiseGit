@@ -481,18 +481,29 @@ std::expected<fs::path, std::error_code> GetTortoiseGitTempPath() {
 }
 
 
+/// Upstream's two-call contract, which TempFiles, TortoiseShell and the settings
+/// pages size their buffers by: the length *with* the NUL, both when it fits and
+/// when it does not - GetTempPath(0, nullptr) style - and the path ends with "\".
+/// Returning 0 for a short buffer made every sizing call read as a failure.
 DWORD GetTortoiseGitTempPath(const DWORD nBufferLength, LPWSTR lpBuffer) {
-	auto exp_tmp_dir = GetTortoiseGitTempPath();
-	if (!exp_tmp_dir)
+	const auto exp_tmp_dir = GetTortoiseGitTempPath();
+	if (!exp_tmp_dir) {
+		if (lpBuffer && nBufferLength)
+			lpBuffer[0] = L'\0';
 		return 0;
-	auto tmp_dir = exp_tmp_dir.value().wstring();
-	const auto data_len = gsl::narrow_cast<DWORD>(tmp_dir.length() + 1);
-	if (data_len > nBufferLength)
-		return 0;
+	}
+	auto tmp_dir = exp_tmp_dir->native();
+	if (!tmp_dir.ends_with(L'\\'))
+		tmp_dir += L'\\';
+	const auto needed = gsl::narrow<DWORD>(tmp_dir.size() + 1);
+	if (!lpBuffer || needed > nBufferLength) {
+		if (lpBuffer && nBufferLength)
+			lpBuffer[0] = L'\0';
+		return needed;
+	}
 
-	// GetTempPath returned the length without its NUL, and the check above left room for the rest
-	std::ranges::copy_n(tmp_dir.data(), win32_cast(data_len), lpBuffer);
-	return data_len;
+	*std::ranges::copy(tmp_dir, lpBuffer).out = L'\0';
+	return needed;
 }
 
 

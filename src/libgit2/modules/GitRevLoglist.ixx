@@ -1,4 +1,4 @@
-﻿module;
+module;
 #include <windows.h>
 #include <synchapi.h>
 #include <gitdll.h>
@@ -410,9 +410,9 @@ public:
 			else
 				git_do_diff(git->GetGitDiff(), parent, commit.m_hash, &file, &count, 1);
 		}
-		catch (const char* msg)
+		catch (const std::exception& ex)
 		{
-			m_sErr.Format(L"Could do diff for \"%ls\".\nlibgit reports:\n%s", m_CommitHash.ToString().data(), CUnicodeUtils::GetUnicode<CString>(msg));
+			m_sErr.Format(L"Could do diff for \"%ls\".\nlibgit reports:\n%s", m_CommitHash.ToString().data(), CUnicodeUtils::GetUnicode<CString>(ex.what()));
 			tgit::DebugOutput::TraceRaw(std::wstring(__FUNCTION__ L": " + m_sErr + L'\n'));
 			git_free_commit(&commit);
 			return -1;
@@ -530,7 +530,7 @@ public:
 		if (git_get_commit_from_hash(&commit, m_CommitHash.ToRaw()))
 			return -1;
 	}
-	catch (const char*)
+	catch (const std::exception&)
 	{
 		return -1;
 	}
@@ -548,7 +548,7 @@ public:
 			else
 				git_do_diff(git->GetGitSimpleListDiff(), parent, commit.m_hash, &file, &count, 0);
 		}
-		catch (const char*)
+		catch (const std::exception&)
 		{
 			return -1;
 		}
@@ -566,7 +566,7 @@ public:
 			{
 				git_get_diff_file(git->GetGitSimpleListDiff(), file, j, &newname, &oldname, &isDir, &status, &isBin, &inc, &dec);
 			}
-			catch (const char*)
+			catch (const std::exception&)
 			{
 				return -1;
 			}

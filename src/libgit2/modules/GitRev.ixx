@@ -1,4 +1,4 @@
-﻿module;
+module;
 #include <windows.h>
 #include <crtdbg.h>		// _ASSERTE: a macro, which no import carries. No ATL header: see Git.ixx
 #include <gitdll.h>
@@ -563,9 +563,9 @@ int GitRev::GetParentFromHash(const CGitHash& hash)
 			return -1;
 		}
 	}
-	catch (const char* msg)
+	catch (const std::exception& ex)
 	{
-		m_sErr = std::format(L"Could not get parents of commit \"{}\".\nlibgit reports:\n{}", hash.ToString(), CUnicodeUtils::StdGetUnicode(msg)).c_str();
+		m_sErr = std::format(L"Could not get parents of commit \"{}\".\nlibgit reports:\n{}", hash.ToString(), CUnicodeUtils::StdGetUnicode(ex.what())).c_str();
 		return -1;
 	}
 
@@ -589,9 +589,9 @@ int GitRev::GetCommitFromHash_withoutLock(const CGitHash& hash)
 			return -1;
 		}
 	}
-	catch (const char * msg)
+	catch (const std::exception& ex)
 	{
-		m_sErr = std::format(L"Could not get commit \"{}\".\nlibgit reports:\n{}", hash.ToString(), CUnicodeUtils::StdGetUnicode(msg)).c_str();
+		m_sErr = std::format(L"Could not get commit \"{}\".\nlibgit reports:\n{}", hash.ToString(), CUnicodeUtils::StdGetUnicode(ex.what())).c_str();
 		return -1;
 	}
 
@@ -642,9 +642,9 @@ int GitRev::GetCommit(const CString& refname, bool allowTree /* false */) {
 	{
 		g_Git.CheckAndInitDll();
 	}
-	catch (const char* msg)
+	catch (const std::exception& ex)
 	{
-		m_sErr = L"Could not initiate libgit.\nlibgit reports:\n" + CUnicodeUtils::GetUnicode<CString>(msg);
+		m_sErr = L"Could not initiate libgit.\nlibgit reports:\n" + CUnicodeUtils::GetUnicode<CString>(ex.what());
 		return -1;
 	}
 
@@ -666,9 +666,9 @@ int GitRev::GetCommit(const CString& refname, bool allowTree /* false */) {
 			return -1;
 		}
 	}
-	catch (const char* msg)
+	catch (const std::exception& ex)
 	{
-		m_sErr = L"Could not get SHA-1 of ref \"" + g_Git.FixBranchName(refname) + L"\".\nlibgit reports:\n" + CUnicodeUtils::GetUnicode<CString>(msg);
+		m_sErr = L"Could not get SHA-1 of ref \"" + g_Git.FixBranchName(refname) + L"\".\nlibgit reports:\n" + CUnicodeUtils::GetUnicode<CString>(ex.what());
 		return -1;
 	}
 
@@ -685,9 +685,9 @@ int GitRev::GetCommit(const CString& refname, bool allowTree /* false */) {
 			return -1;
 		}
 	}
-	catch (const char* msg)
+	catch (const std::exception& ex)
 	{
-		m_sErr = L"Could not parse ref.\nlibgit reports:\n" + CUnicodeUtils::GetUnicode<CString>(msg);
+		m_sErr = L"Could not parse ref.\nlibgit reports:\n" + CUnicodeUtils::GetUnicode<CString>(ex.what());
 		return -1;
 	}
 

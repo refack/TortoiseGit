@@ -1,4 +1,4 @@
-﻿module;
+module;
 #include <windows.h>
 #include <gitdll.h>
 #include "sanity.h"
@@ -44,8 +44,8 @@ CGitMailmap::CGitMailmap()
 		try {
 			[[maybe_unused]]TGitH::CAutoLocker lock(g_Git.m_critGitDllSec);
 			g_Git.CheckAndInitDll();
-		} catch (const char* msg) {
-			MessageBox(nullptr, L"Could not initialize libgit. Disabling Mailmap support.\nlibgit reports:\n" + CUnicodeUtils::GetUnicode<CString>(msg), L"TortoiseGit", MB_ICONERROR);
+		} catch (const std::exception& ex) {
+			MessageBox(nullptr, L"Could not initialize libgit. Disabling Mailmap support.\nlibgit reports:\n" + CUnicodeUtils::GetUnicode<CString>(ex.what()), L"TortoiseGit", MB_ICONERROR);
 			return;
 		}
 		git_read_mailmap(&m_pMailmap);
