@@ -1258,7 +1258,9 @@ public:
 
 
 	[[nodiscard]] fs::path CombinePath(const auto& path) const {
-		return m_CurrentDir / path;
+		// the directory itself for "": operator/ would append a trailing separator
+		const fs::path sub{ path };
+		return sub.empty() ? m_CurrentDir : m_CurrentDir / sub;
 	}
 	[[nodiscard]] fs::path CombinePath(const CTGitPath& path) const {
 		return m_CurrentDir / path.GetWString();
@@ -1585,21 +1587,24 @@ namespace details {
 
 
 	template <tgit::str::IsTCompString Str>
-	Str GetShortName(const StringView<Str> ref, const StringView<Str> prefix) {
+	/// nullopt when ref does not start with prefix. An empty short name is still a
+	/// match - "refs/stash" under "refs/stash" - which an empty Str could not say.
+	std::optional<Str> GetShortName(const StringView<Str> ref, const StringView<Str> prefix) {
 		constexpr auto weird_tail = L"^{}"sv;
 		if (ref.starts_with(prefix)) {
 			auto shortname = ref.substr(prefix.length());
 			if (shortname.ends_with(weird_tail))
 				shortname.remove_suffix(weird_tail.length());
-			return Str{ shortname.data() };
+			// (data, length): from data() alone it read to the NUL, undoing remove_suffix
+			return Str(shortname.data(), gsl::narrow<int>(shortname.size()));
 		}
-		return {};
+		return std::nullopt;
 	}
 
 
 	BOOL GetShortName(const CStringW& ref, CStringW& shortname, const CStringW& prefix) {
-		if (const auto str = GetShortName(StringView{ ref }, StringView{ prefix }); !str.IsEmpty()) {
-			shortname = str;
+		if (auto str = GetShortName(StringView{ ref }, StringView{ prefix })) {
+			shortname = *str;
 			return TRUE;
 		}
 		return FALSE;
@@ -2040,7 +2045,7 @@ std::wstring CGit::ReadConfigValue(const CStringW& name, const CStringW& def_, c
 		argv << StringView{name};
 
 		std::wstring configValue;
-		if (GitCall::Run(argv, &configValue))
+		if (GitCall::Run(argv, &configValue, nullptr)) // nullptr: the value is stdout alone, never git's warnings
 			return def;
 		if (configValue.empty())
 			return {};
@@ -2154,7 +2159,7 @@ CStringW CGit::GetFullRefName(const CStringW& shortRefName) {
 
 std::wstring CGit::GetFullRefName(const std::wstring& shortRefName) {
 	std::wstring refName;
-	if (GitCall::Run({L"git.exe", L"rev-parse", L"--symbolic-full-name", L"--verify", L"--end-of-options", shortRefName.c_str()}, &refName) != G_OK)
+	if (GitCall::Run({L"git.exe", L"rev-parse", L"--symbolic-full-name", L"--verify", L"--end-of-options", shortRefName.c_str()}, &refName, nullptr) != G_OK) // stdout alone: not "warning: refname is ambiguous"
 		return {}; //Error
 	wstr::TrimRight(refName);
 	return refName;
@@ -2194,7 +2199,10 @@ int CGit::GetCurrentBranchFromFile(const fs::path& sProjectRoot, CStringW& sBran
 			return -1;
 	}
 	else if (fallback) {
-		const std::string_view utf8Hash{ s, std::strlen(s) };
+		std::string_view utf8Hash{ s, std::strlen(s) };
+		// fgets keeps the '\n', which FromHexStr rejects (upstream trimmed it here)
+		while (!utf8Hash.empty() && std::isspace(static_cast<unsigned char>(utf8Hash.back())))
+			utf8Hash.remove_suffix(1);
 		bool ok = false;
 		const CGitHash hash = CGitHash::FromHexStr(utf8Hash, &ok);
 		if (ok)
@@ -2407,7 +2415,7 @@ int CGit::GetHash(CGitHash& hash, const std::wstring& friendname) {
 		if (friendname == L"FETCH_HEAD" && branch.IsEmpty())
 			branch = friendname.c_str();
 		gitLastErr.clear();
-		auto&& ret = GitCall::Run({ L"git.exe", L"rev-parse", L"--verify", L"--end-of-options", branch.GetString() }, &gitLastErr);
+		auto&& ret = GitCall::Run({ L"git.exe", L"rev-parse", L"--verify", L"--end-of-options", branch.GetString() }, &gitLastErr, nullptr); // stdout alone: it is parsed as a hash
 
 		bool isHash{};
 		hash = CGitHash::FromHexStr(gitLastErr, &isHash);
@@ -2441,7 +2449,7 @@ int CGit::GetInitAddList(CTGitPathList& outputlist, const bool getStagingStatus)
 		std::wstring cmdunstagedout;
 		for (int i = 0; i < outputlist.GetCount(); ++i)
 			const_cast<CTGitPath&>(outputlist[i]).m_stagingStatus = CTGitPath::StagingStatus::TotallyStaged;
-		if (GitCall::Run({ L"git.exe", L"diff-files", L"--raw", L"--numstat", L"-C", L"-M", L"-z", L"--" }, &cmdunstagedout))
+		if (GitCall::Run({ L"git.exe", L"diff-files", L"--raw", L"--numstat", L"-C", L"-M", L"-z", L"--" }, &cmdunstagedout, nullptr))
 			return GFail;
 
 		CTGitPathList unstaged;
@@ -3508,7 +3516,7 @@ int CGit::GetUnifiedDiff(const CTGitPath& path,
 		return details::GetUnifiedDiffLibGit2(path, rev1, rev2, UnifiedDiffStatToStringA, UnifiedDiffToStringA, &buffer, bMerge, diffContext, false);
 
 	std::wstring vector;
-	auto&& ret = GitCall::Run(details::GetUnifiedDiffCmd(path, rev1, rev2, bMerge, bCombine, diffContext), &vector);
+	auto&& ret = GitCall::Run(details::GetUnifiedDiffCmd(path, rev1, rev2, bMerge, bCombine, diffContext), &vector, nullptr);
 	buffer.Append(CUnicodeUtils::GetUTF8<CStringA>(vector));
 	return ret;
 }
@@ -3626,7 +3634,7 @@ int CGit::GetWorkingTreeChanges(CTGitPathList& result,
 		// also list staged files which will be in the commit
 		std::wstring cmdout;
 		auto argv1 = wil::ArgvData{ L"git.exe", L"diff-index", L"--cached", L"--raw", head, L"--numstat", L"-C", L"-M", L"-z", L"--" } << pathspec;
-		GitCall::Run(argv1, &cmdout);
+		GitCall::Run(argv1, &cmdout, nullptr);
 
 		auto argv = wil::ArgvData{
 			L"git.exe", L"diff-index", L"--raw", head, L"--numstat",
@@ -3648,13 +3656,13 @@ int CGit::GetWorkingTreeChanges(CTGitPathList& result,
 	if (getStagingStatus) {
 		// This will show staged files regardless of any filterlist, so that it has the same behavior that the commit window has when staging support is disabled
 		std::wstring cmdStagedUnfilteredOut;
-		GitCall::Run({ L"git.exe", L"diff-index", L"--cached", L"--raw", head, L"--numstat", L"-C", L"-M", L"-z", L"--" }, &cmdStagedUnfilteredOut);
+		GitCall::Run({ L"git.exe", L"diff-index", L"--cached", L"--raw", head, L"--numstat", L"-C", L"-M", L"-z", L"--" }, &cmdStagedUnfilteredOut, nullptr);
 
 		CTGitPathList stagedUnfiltered;
 		stagedUnfiltered.ParserFromLog(cmdStagedUnfilteredOut);
 
 		std::wstring cmdUnstagedUnfilteredOut;
-		GitCall::Run({ L"git.exe", L"diff-files", L"--raw", L"--numstat", L"-C", L"-M", L"-z", L"--" }, &cmdUnstagedUnfilteredOut);
+		GitCall::Run({ L"git.exe", L"diff-files", L"--raw", L"--numstat", L"-C", L"-M", L"-z", L"--" }, &cmdUnstagedUnfilteredOut, nullptr);
 
 		CTGitPathList unstagedUnfiltered;
 		unstagedUnfiltered.ParserFromLog(cmdUnstagedUnfilteredOut); // Necessary to detect partially staged files outside the filterlist
@@ -3788,16 +3796,17 @@ void CGit::GetBisectTerms(CStringW* good, CStringW* bad) {
 	const wil::unique_file fp{ _wfsopen(termsFile.c_str(), L"rb", SH_DENYWR) };
 	if (!fp)
 		return;
-	{
-		char badA[MAX_PATH] = {};
-		fgets(badA, sizeof(badA), fp.get());
-		lastBad = CUnicodeUtils::GetUnicode<CStringW>(std::string_view{badA});
-	}
-	{
-		char goodA[MAX_PATH] = {};
-		fgets(goodA, sizeof(goodA), fp.get());
-		lastGood = CUnicodeUtils::GetUnicode<CStringW>(std::string_view{goodA});
-	}
+	// one term per line; fgets keeps the '\n', which is not part of the term
+	const auto readTerm = [&fp] {
+		char termA[MAX_PATH] = {};
+		fgets(termA, sizeof(termA), fp.get());
+		std::string_view term{ termA };
+		if (term.ends_with('\n'))
+			term.remove_suffix(1);
+		return CUnicodeUtils::GetUnicode<CStringW>(term);
+	};
+	lastBad = readTerm();
+	lastGood = readTerm();
 	lastRead = GetTickCount64();
 }
 

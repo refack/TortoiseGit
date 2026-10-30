@@ -49,6 +49,19 @@ static bool GetResourcesDir(fs::path& resourcesDir)
 	return fs::is_directory(resourcesDir) != FALSE;
 }
 
+/// stdout, then stderr, as upstream's Run(cmd, CString* output, int code) handed
+/// them back. CGit::Run's byte overload is stdout alone, and git checkout reports
+/// ("Switched to branch ...") on stderr, so an `EXPECT_NE("", output)` written
+/// against the merged CString form needs this one.
+static int RunMerged(const wil::ArgvData& argv, std::string* out)
+{
+	std::string err;
+	const int ret = CGit::Run(argv, out, &err);
+	if (out)
+		*out += err;
+	return ret;
+}
+
 static void CopyRecursively(const CString& source, const CString& dest)
 {
 	CDirFileEnum finder(source);

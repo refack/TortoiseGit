@@ -109,6 +109,23 @@ export class CEnvironment {
 	}
 
 public:
+	constexpr CEnvironment() = default;	// constexpr: g_Environment is constinit
+
+	// A copy serializes its own block. The defaulted copy took m_baseptr along,
+	// leaving the copy's get() pointing into the *source's* buffer.
+	CEnvironment(const CEnvironment& env) : m_state(env.m_state) { Serialize(); }
+	CEnvironment& operator=(const CEnvironment& env) {
+		if (this != &env) {
+			m_state = env.m_state;
+			Serialize();
+		}
+		return *this;
+	}
+	// m_baseptr's address is handed out and retained (see above), so a moved-from
+	// object would leave its consumers pointing at an empty block.
+	CEnvironment(CEnvironment&&) = delete;
+	CEnvironment& operator=(CEnvironment&&) = delete;
+	~CEnvironment() = default;
 
 	[[nodiscard]] bool empty() const { return vars().empty(); }
 	[[nodiscard]] std::wstring GetEnv(const std::wstring_view name) const {

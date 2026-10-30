@@ -440,7 +440,7 @@ TEST_P(CBasicGitWithTestRepoFixture, HasWorkingTreeConflicts)
 	EXPECT_NE("", output);
 
 	output.clear();
-	EXPECT_EQ(0, m_Git.Run({L"git.exe", L"checkout", L"forconflict"}, &output));
+	EXPECT_EQ(0, RunMerged({L"git.exe", L"checkout", L"forconflict"}, &output));
 	EXPECT_NE("", output);
 
 	output.clear();
@@ -1151,7 +1151,7 @@ TEST_P(CBasicGitWithTestRepoFixture, GetBranchList_orphan)
 TEST_P(CBasicGitWithTestRepoFixture, GetBranchList_utf8)
 {
 	std::string output;
-	EXPECT_EQ(0, m_Git.Run({L"git.exe", L"checkout", L"-b", L"branch_u570Bu7ACB1du043A"}, &output));
+	EXPECT_EQ(0, RunMerged({L"git.exe", L"checkout", L"-b", L"branch_國立1dк"}, &output));
 	EXPECT_NE("", output);
 
 	std::vector<std::wstring> branches;
@@ -3606,7 +3606,7 @@ TEST_P(CBasicGitWithTestRepoFixture, GetWorkingTreeChanges_DeleteModifyConflict_
 	EXPECT_NE("", output);
 
 	output.clear();
-	EXPECT_EQ(0, m_Git.Run({L"git.exe", L"checkout", L"forconflict"}, &output));
+	EXPECT_EQ(0, RunMerged({L"git.exe", L"checkout", L"forconflict"}, &output));
 	EXPECT_NE("", output);
 	output.clear();
 	EXPECT_EQ(0, m_Git.Run({L"git.exe", L"rm", L"ansi.txt"}, &output));
@@ -3615,7 +3615,7 @@ TEST_P(CBasicGitWithTestRepoFixture, GetWorkingTreeChanges_DeleteModifyConflict_
 	EXPECT_EQ(0, m_Git.Run({L"git.exe", L"commit", L"-m", L"Prepare conflict case"}, &output));
 	EXPECT_NE("", output);
 	output.clear();
-	EXPECT_EQ(0, m_Git.Run({L"git.exe", L"checkout", L"simple-conflict"}, &output));
+	EXPECT_EQ(0, RunMerged({L"git.exe", L"checkout", L"simple-conflict"}, &output));
 	EXPECT_NE("", output);
 	output.clear();
 	EXPECT_EQ(1, m_Git.Run({L"git.exe", L"merge", L"forconflict"}, &output));
@@ -3770,7 +3770,7 @@ TEST_P(CBasicGitWithTestRepoFixture, GetWorkingTreeChanges_DeleteModifyConflict_
 	EXPECT_NE("", output);
 
 	output.clear();
-	EXPECT_EQ(0, m_Git.Run({L"git.exe", L"checkout", L"forconflict"}, &output));
+	EXPECT_EQ(0, RunMerged({L"git.exe", L"checkout", L"forconflict"}, &output));
 	EXPECT_NE("", output);
 	output.clear();
 	EXPECT_EQ(0, m_Git.Run({L"git.exe", L"rm", L"ansi.txt"}, &output));
@@ -4072,7 +4072,7 @@ TEST_P(CBasicGitWithSubmoduleRepositoryFixture, GetWorkingTreeChanges_Submodules
 
 	// test for modify-delete conflict (deleted remote)
 	output.clear();
-	EXPECT_EQ(0, m_Git.Run({L"git.exe", L"checkout", L"--force", L"branch1"}, &output));
+	EXPECT_EQ(0, RunMerged({L"git.exe", L"checkout", L"--force", L"branch1"}, &output));
 	EXPECT_NE("", output);
 	output.clear();
 	EXPECT_EQ(1, m_Git.Run({L"git.exe", L"merge", L"deleted"}, &output));
@@ -4097,7 +4097,7 @@ TEST_P(CBasicGitWithSubmoduleRepositoryFixture, GetWorkingTreeChanges_Submodules
 	// test for modify-delete conflict (deleted locally)
 	output.clear();
 	CAutoTempDir::DeleteDirectoryRecursive(submoduleDir);
-	EXPECT_EQ(0, m_Git.Run({L"git.exe", L"checkout", L"--force", L"deleted"}, &output));
+	EXPECT_EQ(0, RunMerged({L"git.exe", L"checkout", L"--force", L"deleted"}, &output));
 	EXPECT_NE("", output);
 	output.clear();
 	EXPECT_EQ(1, m_Git.Run({L"git.exe", L"merge", L"branch1"}, &output));
@@ -4137,7 +4137,7 @@ TEST_P(CBasicGitWithSubmoduleRepositoryFixture, GetWorkingTreeChanges_Submodules
 	output.clear();
 	CAutoTempDir::DeleteDirectoryRecursive(submoduleDir);
 	DeleteFile(submoduleDir.c_str());
-	EXPECT_EQ(0, m_Git.Run({L"git.exe", L"checkout", L"--force", L"branch1"}, &output));
+	EXPECT_EQ(0, RunMerged({L"git.exe", L"checkout", L"--force", L"branch1"}, &output));
 	EXPECT_NE("", output);
 	output.clear();
 	EXPECT_EQ(1, m_Git.Run({L"git.exe", L"merge", L"file"}, &output));
@@ -4177,7 +4177,7 @@ TEST_P(CBasicGitWithSubmoduleRepositoryFixture, GetWorkingTreeChanges_Submodules
 	output.clear();
 	CAutoTempDir::DeleteDirectoryRecursive(submoduleDir);
 	DeleteFile(submoduleDir.c_str());
-	EXPECT_EQ(0, m_Git.Run({L"git.exe", L"checkout", L"--force", L"file"}, &output));
+	EXPECT_EQ(0, RunMerged({L"git.exe", L"checkout", L"--force", L"file"}, &output));
 	EXPECT_NE("", output);
 	output.clear();
 	EXPECT_EQ(1, m_Git.Run({L"git.exe", L"merge", L"branch1"}, &output));
@@ -4207,7 +4207,7 @@ TEST_P(CBasicGitWithSubmoduleRepositoryFixture, GetWorkingTreeChanges_Submodules
 	DeleteFile(submoduleDir.c_str());
 	CAutoTempDir::DeleteDirectoryRecursive(submoduleDir); // delete .git folder so that we get a simple merge conflict!
 	output.clear();
-	EXPECT_EQ(0, m_Git.Run({L"git.exe", L"checkout", L"--force", L"branch1"}, &output));
+	EXPECT_EQ(0, RunMerged({L"git.exe", L"checkout", L"--force", L"branch1"}, &output));
 	EXPECT_NE("", output);
 	output.clear();
 	EXPECT_EQ(1, m_Git.Run({L"git.exe", L"merge", L"branch2"}, &output));
@@ -4224,7 +4224,7 @@ TEST_P(CBasicGitWithSubmoduleRepositoryFixture, GetWorkingTreeChanges_Submodules
 	DeleteFile(submoduleDir.c_str());
 	CAutoTempDir::DeleteDirectoryRecursive(submoduleDir);
 	output.clear();
-	EXPECT_EQ(0, m_Git.Run({L"git.exe", L"checkout", L"--force", L"branch1"}, &output));
+	EXPECT_EQ(0, RunMerged({L"git.exe", L"checkout", L"--force", L"branch1"}, &output));
 	EXPECT_NE("", output);
 	output.clear();
 	EXPECT_EQ(0, m_Git.Run({L"git.exe", L"rm", L"-rf", L"something"}, &output));
@@ -4245,7 +4245,7 @@ TEST_P(CBasicGitWithSubmoduleRepositoryFixture, GetWorkingTreeChanges_Submodules
 	DeleteFile(submoduleDir.c_str());
 	CAutoTempDir::DeleteDirectoryRecursive(submoduleDir);
 	output.clear();
-	EXPECT_EQ(0, m_Git.Run({L"git.exe", L"checkout", L"--force", L"file"}, &output));
+	EXPECT_EQ(0, RunMerged({L"git.exe", L"checkout", L"--force", L"file"}, &output));
 	EXPECT_NE("", output);
 	output.clear();
 	EXPECT_EQ(0, m_Git.Run({L"git.exe", L"rm", L"something"}, &output));

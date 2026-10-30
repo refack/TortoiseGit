@@ -647,10 +647,40 @@ int RunText(const wil::ArgvData& argv, Sink1* out, Sink2* err, const int code = 
 	return ret;
 }
 
-int Run(const wil::ArgvData& argv, std::wstring* const out, std::wstring* const err = nullptr, const int code = CP_UTF8) {
+/// Upstream's Run(cmd, output, code): stderr follows stdout in \a out, after a
+/// '\n' when both have text - the form for showing a command's result to a user.
+template <wstr::WideSink Sink>
+int RunTextMerged(const wil::ArgvData& argv, Sink* out, const int code) {
+	std::string outBytes;
+	std::string errBytes;
+	auto&& ret = Run(argv, &outBytes, &errBytes);
+	if (out) {
+		out->append(til::MultiByteToWideChar(outBytes, { .code_page = code }));
+		if (!errBytes.empty()) {
+			if (!outBytes.empty())
+				out->append(L"\n");
+			out->append(til::MultiByteToWideChar(errBytes, { .code_page = code }));
+		}
+	}
+	return ret;
+}
+
+// Two overloads per string type, as upstream had, because "no err argument" and
+// "err is nullptr" mean different things: the first merges stderr into out, the
+// second keeps them apart and a nullptr err discards stderr (GetFullRefName parses
+// out and must not see "warning: refname is ambiguous"). One overload with a
+// defaulted err made them the same call.
+int Run(const wil::ArgvData& argv, std::wstring* const out, const int code = CP_UTF8) {
+	return RunTextMerged(argv, out, code);
+}
+int Run(const wil::ArgvData& argv, std::wstring* const out, std::wstring* const err, const int code = CP_UTF8) {
 	return RunText(argv, out, err, code);
 }
-int Run(const wil::ArgvData& argv, CStringW* out, CStringW* err = nullptr, const int code = CP_UTF8) {
+int Run(const wil::ArgvData& argv, CStringW* out, const int code = CP_UTF8) {
+	wstr::AtlSink outSink{ out };
+	return RunTextMerged(argv, out ? &outSink : nullptr, code);
+}
+int Run(const wil::ArgvData& argv, CStringW* out, CStringW* err, const int code = CP_UTF8) {
 	wstr::AtlSink outSink{ out };
 	wstr::AtlSink errSink{ err };
 	return RunText(argv, out ? &outSink : nullptr, err ? &errSink : nullptr, code);

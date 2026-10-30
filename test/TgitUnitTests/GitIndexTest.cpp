@@ -266,7 +266,7 @@ TEST_P(GitIndexCBasicGitWithTestRepoFixture, GetFileStatus)
 	EXPECT_EQ(git_wc_status_modified, status.status);
 
 	output.clear();
-	EXPECT_EQ(0, m_Git.Run({L"git.exe", L"checkout", L"--force", L"forconflict"}, &output));
+	EXPECT_EQ(0, RunMerged({L"git.exe", L"checkout", L"--force", L"forconflict"}, &output));
 	EXPECT_NE("", output);
 
 	output.clear();
@@ -303,7 +303,7 @@ TEST(GitIndex, SearchInSortVector)
 	EXPECT_EQ(NPOS, SearchInSortVector(vector, L"one/", 4, false));
 
 	vector.push_back(CGitFileName(L"tWo", 0, 0));
-	std::ranges::sort(vector, GitIndex::NameOrder(-1, false), &CGitFileName::NameView);
+	std::ranges::sort(vector, GitIndex::NameLess(-1, false), &CGitFileName::NameView);
 	EXPECT_EQ(NPOS, SearchInSortVector(vector, L"something", 9, false));
 	EXPECT_EQ(0U, SearchInSortVector(vector, L"One", 3, false));
 	EXPECT_EQ(NPOS, SearchInSortVector(vector, L"one", 3, false));
@@ -319,12 +319,13 @@ TEST(GitIndex, SearchInSortVector)
 	vector.push_back(CGitFileName(L"b/3", 0, 0));
 	vector.push_back(CGitFileName(L"b/4", 0, 0));
 	vector.push_back(CGitFileName(L"b/5", 0, 0));
-	std::ranges::sort(vector, GitIndex::NameOrder(-1, false), &CGitFileName::NameView);
+	std::ranges::sort(vector, GitIndex::NameLess(-1, false), &CGitFileName::NameView);
 	EXPECT_EQ(0U, SearchInSortVector(vector, L"One", 3, false));
 	EXPECT_EQ(3U, SearchInSortVector(vector, L"b/2", 3, false));
 	EXPECT_EQ(3U, SearchInSortVector(vector, L"b/2", -1, false));
-	EXPECT_LT(2U, SearchInSortVector(vector, L"b/", 2, false));
-	EXPECT_GE(6U, SearchInSortVector(vector, L"b/", 2, false));
+	// the first of several matches, as SearchInSortVector documents; the bounds
+	// (2, 6] this asserted were the old midpoint-returning binary search's
+	EXPECT_EQ(2U, SearchInSortVector(vector, L"b/", 2, false));
 	EXPECT_EQ(NPOS, SearchInSortVector(vector, L"b/6", 3, false));
 	EXPECT_EQ(1U, SearchInSortVector(vector, L"a", 1, false));
 	EXPECT_EQ(7U, SearchInSortVector(vector, L"tWo", 3, false));
@@ -349,7 +350,7 @@ TEST(GitIndex, SearchInSortVector_IgnoreCase)
 	EXPECT_EQ(NPOS, SearchInSortVector(vector, L"one/", 4, true));
 
 	vector.push_back(CGitFileName(L"tWo", 0, 0));
-	std::ranges::sort(vector, GitIndex::NameOrder(-1, false), &CGitFileName::NameView);
+	std::ranges::sort(vector, GitIndex::NameLess(-1, true), &CGitFileName::NameView);
 	EXPECT_EQ(NPOS, SearchInSortVector(vector, L"something", 9, true));
 	EXPECT_EQ(0U, SearchInSortVector(vector, L"One", 3, true));
 	EXPECT_EQ(0U, SearchInSortVector(vector, L"one", 3, true));
@@ -365,12 +366,11 @@ TEST(GitIndex, SearchInSortVector_IgnoreCase)
 	vector.push_back(CGitFileName(L"b/3", 0, 0));
 	vector.push_back(CGitFileName(L"b/4", 0, 0));
 	vector.push_back(CGitFileName(L"b/5", 0, 0));
-	std::ranges::sort(vector, GitIndex::NameOrder(-1, false), &CGitFileName::NameView);
+	std::ranges::sort(vector, GitIndex::NameLess(-1, true), &CGitFileName::NameView);
 	EXPECT_EQ(0U, SearchInSortVector(vector, L"a", 1, true));
 	EXPECT_EQ(2U, SearchInSortVector(vector, L"b/2", 3, true));
 	EXPECT_EQ(2U, SearchInSortVector(vector, L"b/2", -1, true));
-	EXPECT_LT(1U, SearchInSortVector(vector, L"b/", 2, true));
-	EXPECT_GE(5U, SearchInSortVector(vector, L"b/", 2, true));
+	EXPECT_EQ(1U, SearchInSortVector(vector, L"b/", 2, true)); // the first match, see above
 	EXPECT_EQ(NPOS, SearchInSortVector(vector, L"b/6", 3, true));
 	EXPECT_EQ(6U, SearchInSortVector(vector, L"One", 3, true));
 	EXPECT_EQ(7U, SearchInSortVector(vector, L"tWo", 3, true));
