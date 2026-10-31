@@ -26,7 +26,7 @@ import Registry;
  * \ingroup TortoiseProc
  * Settings page to configure the overlay icon set to use.
  */
-class CSetOverlayIcons : private ISettingsPropPage
+class CSetOverlayIcons : public ISettingsPropPage
 {
 public:
 	DECLARE_DYNAMIC(CSetOverlayIcons)

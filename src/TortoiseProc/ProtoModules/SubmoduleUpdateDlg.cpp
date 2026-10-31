@@ -143,7 +143,7 @@ BOOL CSubmoduleUpdateDlg::OnInitDialog()
 	AddAnchor(IDC_CHECK_SUBMODULE_MERGE, BOTTOM_RIGHT);
 	AddAnchor(IDC_CHECK_SUBMODULE_REBASE, BOTTOM_RIGHT);
 
-	CString str(GitCall::m_CurrentDirStorage);
+	CString str(GitCall::m_CurrentDirStorage.c_str());
 	str.Replace(L':', L'_');
 	m_regShowWholeProject = CRegDWORD(L"Software\\TortoiseGit\\TortoiseProc\\ShowWholeProject\\" + str, FALSE);
 	m_bWholeProject = m_regShowWholeProject;
@@ -180,11 +180,11 @@ void CSubmoduleUpdateDlg::SetDlgTitle()
 {
 	if (m_sTitle.IsEmpty())
 		GetWindowText(m_sTitle);
-	CString dir = GitCall::m_CurrentDirStorage;
+	CString dir(GitCall::m_CurrentDirStorage.c_str());
 	if (!m_bWholeProject)
 	{
 		if (!m_PathFilterList.empty())
-			dir += std::format(L"{}{}", StringUtils::EndsWith(GitCall::m_CurrentDirStorage, L'\\') ? L"" : L"\\", CTGitPath(m_PathFilterList[0].c_str()).GetWinPathString()).c_str();
+			dir += std::format(L"{}{}", StringUtils::EndsWith(GitCall::m_CurrentDirStorage.native(), L'\\') ? L"" : L"\\", CTGitPath(m_PathFilterList[0].c_str()).GetWinPathString()).c_str();
 		if (m_PathFilterList.size() > 1)
 			dir += L", ...";
 	}
@@ -270,7 +270,7 @@ void CSubmoduleUpdateDlg::Refresh()
 	while (m_PathListBox.GetCount() > 0)
 		m_PathListBox.DeleteString(m_PathListBox.GetCount() - 1);
 
-	CString WorkingDir = GitCall::m_CurrentDirStorage;
+	CString WorkingDir(GitCall::m_CurrentDirStorage.c_str());
 	WorkingDir.Replace(L':', L'_');
 
 	m_regPath = CRegString(L"Software\\TortoiseGit\\History\\SubmoduleUpdatePath\\" + WorkingDir);

@@ -128,7 +128,7 @@ BOOL CSettingGitCredential::OnInitDialog()
 
 	AdjustControlSize(IDC_CHECK_USEHTTPPATH);
 
-	bool hasLocal = GitAdminDir::HasAdminDir(tgit::str::StringView(GitCall::m_CurrentDirStorage));
+	bool hasLocal = !GitAdminDir::HasAdminDir(GitCall::m_CurrentDirStorage).empty();
 
 	m_ctrlUrlList.ResetContent();
 
@@ -336,7 +336,7 @@ void CSettingGitCredential::FillSimpleList(bool anySystem, bool systemWincred, b
 {
 	ATLASSERT(SimpleCredentialType::Advanced == -1);
 
-	bool hasLocal = GitAdminDir::HasAdminDir(tgit::str::StringView(GitCall::m_CurrentDirStorage));
+	bool hasLocal = !GitAdminDir::HasAdminDir(GitCall::m_CurrentDirStorage).empty();
 	bool isAdmin = CAppUtils::IsAdminLogin();
 
 	AddSimpleCredential(SimpleCredentialType::Advanced, CString(MAKEINTRESOURCE(IDS_ADVANCED)));
@@ -366,10 +366,10 @@ void CSettingGitCredential::LoadList()
 	wil::unique_git_config config;
 	git_config_new(config.put());
 	const wil::unique_git_repository repo(g_Git.GetGitRepository());
-	git_config_add_file_ondisk(config.get(), CGit::GetGitPathStringA(g_Git.GetGitLocalConfig()), GIT_CONFIG_LEVEL_LOCAL, repo.get(), FALSE);
-	git_config_add_file_ondisk(config.get(), CGit::GetGitPathStringA(g_Git.GetGitGlobalConfig()), GIT_CONFIG_LEVEL_GLOBAL, repo.get(), FALSE);
-	git_config_add_file_ondisk(config.get(), CGit::GetGitPathStringA(g_Git.GetGitGlobalXDGConfig()), GIT_CONFIG_LEVEL_XDG, repo.get(), FALSE);
-	git_config_add_file_ondisk(config.get(), CGit::GetGitPathStringA(g_Git.GetGitSystemConfig()), GIT_CONFIG_LEVEL_SYSTEM, repo.get(), FALSE);
+	git_config_add_file_ondisk(config.get(), TGitPath::ToGitPathA(TGitH::GetGitLocalConfig().native()).c_str(), GIT_CONFIG_LEVEL_LOCAL, repo.get(), FALSE);
+	git_config_add_file_ondisk(config.get(), TGitPath::ToGitPathA(TGitH::GetGitGlobalConfig().native()).c_str(), GIT_CONFIG_LEVEL_GLOBAL, repo.get(), FALSE);
+	git_config_add_file_ondisk(config.get(), TGitPath::ToGitPathA(TGitH::GetGitGlobalXDGConfig().native()).c_str(), GIT_CONFIG_LEVEL_XDG, repo.get(), FALSE);
+	git_config_add_file_ondisk(config.get(), TGitPath::ToGitPathA(TGitH::GetGitSystemConfig().native()).c_str(), GIT_CONFIG_LEVEL_SYSTEM, repo.get(), FALSE);
 
 	std::vector<std::wstring> defaultList, urlList;
 	git_config_foreach_match(config.get(), "credential\\.helper", GetCredentialDefaultUrlCallback, &defaultList);
@@ -506,14 +506,14 @@ CString CSettingGitCredential::Load(const CString& key)
 	const wil::unique_git_repository repo(g_Git.GetGitRepository());
 	int sel = m_ctrlConfigType.GetCurSel();
 	if (sel == ConfigType::Local)
-		git_config_add_file_ondisk(config.get(), CGit::GetGitPathStringA(g_Git.GetGitLocalConfig()), GIT_CONFIG_LEVEL_LOCAL, repo.get(), FALSE);
+		git_config_add_file_ondisk(config.get(), TGitPath::ToGitPathA(TGitH::GetGitLocalConfig().native()).c_str(), GIT_CONFIG_LEVEL_LOCAL, repo.get(), FALSE);
 	else if (sel == ConfigType::Global)
 	{
-		git_config_add_file_ondisk(config.get(), CGit::GetGitPathStringA(g_Git.GetGitGlobalConfig()), GIT_CONFIG_LEVEL_GLOBAL, repo.get(), FALSE);
-		git_config_add_file_ondisk(config.get(), CGit::GetGitPathStringA(g_Git.GetGitGlobalXDGConfig()), GIT_CONFIG_LEVEL_XDG, repo.get(), FALSE);
+		git_config_add_file_ondisk(config.get(), TGitPath::ToGitPathA(TGitH::GetGitGlobalConfig().native()).c_str(), GIT_CONFIG_LEVEL_GLOBAL, repo.get(), FALSE);
+		git_config_add_file_ondisk(config.get(), TGitPath::ToGitPathA(TGitH::GetGitGlobalXDGConfig().native()).c_str(), GIT_CONFIG_LEVEL_XDG, repo.get(), FALSE);
 	}
 	else if (sel == ConfigType::System)
-		git_config_add_file_ondisk(config.get(), CGit::GetGitPathStringA(g_Git.GetGitSystemConfig()), GIT_CONFIG_LEVEL_SYSTEM, repo.get(), FALSE);
+		git_config_add_file_ondisk(config.get(), TGitPath::ToGitPathA(TGitH::GetGitSystemConfig().native()).c_str(), GIT_CONFIG_LEVEL_SYSTEM, repo.get(), FALSE);
 
 	CStringA cmdA = CUnicodeUtils::GetUTF8<CStringA>(cmd);
 	CStringA valueA;
@@ -588,10 +588,10 @@ int CSettingGitCredential::DeleteOtherKeys(int type)
 	wil::unique_git_config config;
 	git_config_new(config.put());
 	const wil::unique_git_repository repo = g_Git.GetGitRepository();
-	git_config_add_file_ondisk(config.get(), CGit::GetGitPathStringA(g_Git.GetGitLocalConfig()), GIT_CONFIG_LEVEL_LOCAL, repo.get(), FALSE);
-	git_config_add_file_ondisk(config.get(), CGit::GetGitPathStringA(g_Git.GetGitGlobalConfig()), GIT_CONFIG_LEVEL_GLOBAL, repo.get(), FALSE);
-	git_config_add_file_ondisk(config.get(), CGit::GetGitPathStringA(g_Git.GetGitGlobalXDGConfig()), GIT_CONFIG_LEVEL_XDG, repo.get(), FALSE);
-	git_config_add_file_ondisk(config.get(), CGit::GetGitPathStringA(g_Git.GetGitSystemConfig()), GIT_CONFIG_LEVEL_SYSTEM, repo.get(), FALSE);
+	git_config_add_file_ondisk(config.get(), TGitPath::ToGitPathA(TGitH::GetGitLocalConfig().native()).c_str(), GIT_CONFIG_LEVEL_LOCAL, repo.get(), FALSE);
+	git_config_add_file_ondisk(config.get(), TGitPath::ToGitPathA(TGitH::GetGitGlobalConfig().native()).c_str(), GIT_CONFIG_LEVEL_GLOBAL, repo.get(), FALSE);
+	git_config_add_file_ondisk(config.get(), TGitPath::ToGitPathA(TGitH::GetGitGlobalXDGConfig().native()).c_str(), GIT_CONFIG_LEVEL_XDG, repo.get(), FALSE);
+	git_config_add_file_ondisk(config.get(), TGitPath::ToGitPathA(TGitH::GetGitSystemConfig().native()).c_str(), GIT_CONFIG_LEVEL_SYSTEM, repo.get(), FALSE);
 
 	std::vector<std::wstring> list;
 	git_config_foreach_match(config.get(), "credential\\..*", GetCredentialAnyEntryCallback, &list);
@@ -828,15 +828,15 @@ void CSettingGitCredential::OnBnClickedButtonRemove()
 			case L'L':
 				{
 				configLevel = CONFIG_LOCAL;
-				git_config_add_file_ondisk(config.get(), CGit::GetGitPathStringA(g_Git.GetGitLocalConfig()), GIT_CONFIG_LEVEL_LOCAL, repo.get(), FALSE);
+				git_config_add_file_ondisk(config.get(), TGitPath::ToGitPathA(TGitH::GetGitLocalConfig().native()).c_str(), GIT_CONFIG_LEVEL_LOCAL, repo.get(), FALSE);
 				break;
 				}
 			case L'G':
 			case L'X':
 				{
 				configLevel = CONFIG_GLOBAL;
-				git_config_add_file_ondisk(config.get(), CGit::GetGitPathStringA(g_Git.GetGitGlobalConfig()), GIT_CONFIG_LEVEL_GLOBAL, repo.get(), FALSE);
-				git_config_add_file_ondisk(config.get(), CGit::GetGitPathStringA(g_Git.GetGitGlobalXDGConfig()), GIT_CONFIG_LEVEL_XDG, repo.get(), FALSE);
+				git_config_add_file_ondisk(config.get(), TGitPath::ToGitPathA(TGitH::GetGitGlobalConfig().native()).c_str(), GIT_CONFIG_LEVEL_GLOBAL, repo.get(), FALSE);
+				git_config_add_file_ondisk(config.get(), TGitPath::ToGitPathA(TGitH::GetGitGlobalXDGConfig().native()).c_str(), GIT_CONFIG_LEVEL_XDG, repo.get(), FALSE);
 				break;
 				}
 			case L'P':
@@ -848,7 +848,7 @@ void CSettingGitCredential::OnBnClickedButtonRemove()
 					return;
 				}
 				configLevel = CONFIG_SYSTEM;
-				git_config_add_file_ondisk(config.get(), CGit::GetGitPathStringA(g_Git.GetGitSystemConfig()), GIT_CONFIG_LEVEL_SYSTEM, repo.get(), FALSE);
+				git_config_add_file_ondisk(config.get(), TGitPath::ToGitPathA(TGitH::GetGitSystemConfig().native()).c_str(), GIT_CONFIG_LEVEL_SYSTEM, repo.get(), FALSE);
 				break;
 				}
 			}
@@ -868,7 +868,7 @@ void CSettingGitCredential::OnBnClickedButtonRemove()
 void CSettingGitCredential::OnBnClickedOpensettingselevated()
 {
 	CString sCmd;
-	sCmd.Format(L"/command:settings /page:gitcredential /path:\"%s\"", static_cast<LPCWSTR>(GitCall::m_CurrentDirStorage));
+	sCmd.Format(L"/command:settings /page:gitcredential /path:\"%s\"", GitCall::m_CurrentDirStorage.c_str());
 	CAppUtils::RunTortoiseGitProc(sCmd, true);
 }
 

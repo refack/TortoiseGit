@@ -113,8 +113,7 @@ void CSettings::AddPropPages()
 	AddPropPage(new CSettingsProgsAlternativeEditor(), L"alternativeeditor", pMainPage);
 
 	m_pGitConfig = AddPropPage(new CSettingGitConfig(), L"gitconfig");
-	CString repo = GitCall::m_CurrentDirStorage;
-	bool hasLocalRepo = GitAdminDir::IsWorkingTreeOrBareRepo(tgit::str::StringView(repo));
+	bool hasLocalRepo = GitAdminDir::IsWorkingTreeOrBareRepo(GitCall::m_CurrentDirStorage.native());
 	if (hasLocalRepo)
 	{
 		m_pGitRemote = new CSettingGitRemote();
@@ -179,8 +178,8 @@ BOOL CSettings::OnInitDialog()
 	BOOL bResult = __super::OnInitDialog();
 	CAppUtils::MarkWindowAsUnpinnable(m_hWnd);
 
-	if (GitAdminDir::IsWorkingTreeOrBareRepo(tgit::str::StringView(GitCall::m_CurrentDirStorage)))
-		CAppUtils::SetWindowTitle(*this, GitCall::m_CurrentDirStorage);
+	if (GitAdminDir::IsWorkingTreeOrBareRepo(GitCall::m_CurrentDirStorage.native()))
+		CAppUtils::SetWindowTitle(*this, CString(GitCall::m_CurrentDirStorage.c_str()));
 	else
 	{
 		CString title;
@@ -209,7 +208,7 @@ BOOL CSettings::OnInitDialog()
 			}
 		}
 	}
-	if (!foundDefaultPage && GitAdminDir::IsWorkingTreeOrBareRepo(tgit::str::StringView(GitCall::m_CurrentDirStorage)))
+	if (!foundDefaultPage && GitAdminDir::IsWorkingTreeOrBareRepo(GitCall::m_CurrentDirStorage.native()))
 		SetActivePage(m_pGitConfig);
 
 	return bResult;

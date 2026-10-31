@@ -208,7 +208,7 @@ bool CSettingGitRemote::IsRemoteCollideWithRefspec(const CString& remote) const
 	CheckRefspecStruct crs = { CUnicodeUtils::GetUTF8<CStringA>(remote), false };
 	wil::unique_git_config config;
 	git_config_new(config.put());
-	git_config_add_file_ondisk(config.get(), TGitH::GetGitLocalConfig().string().c_str(), GIT_CONFIG_LEVEL_LOCAL, g_Git.GetGitRepository().get(), FALSE);
+	git_config_add_file_ondisk(config.get(), TGitPath::ToGitPathA(TGitH::GetGitLocalConfig().native()).c_str(), GIT_CONFIG_LEVEL_LOCAL, g_Git.GetGitRepository().get(), FALSE);
 	for (const auto pattern : { "remote\\..*\\.fetch", "svn-remote\\..*\\.fetch", "svn-remote\\..*\\.branches", "svn-remote\\..*\\.tags" })
 	{
 		git_config_foreach_match(config.get(), pattern, CheckRemoteCollideWithRefspec, &crs);
@@ -442,10 +442,10 @@ BOOL CSettingGitRemote::OnApply()
 			}
 		}
 
-		std::string out;
-		if (g_Git.Run({ L"git.exe", L"remote", L"add", L"--", m_strRemote.GetString(), m_strUrl.GetString() }, &out))
+		std::wstring out;
+		if (GitCall::Run({ L"git.exe", L"remote", L"add", L"--", m_strRemote.GetString(), m_strUrl.GetString() }, &out)) // stderr merged into out: git reports the failure there
 		{
-			CMessageBox::Show(GetSafeHwnd(), CUnicodeUtils::GetUnicode<CString>(out), L"TorotiseGit", MB_OK | MB_ICONERROR);
+			CMessageBox::Show(GetSafeHwnd(), out.c_str(), L"TorotiseGit", MB_OK | MB_ICONERROR);
 			return FALSE;
 		}
 		m_ChangedMask &= ~REMOTE_URL;
@@ -454,7 +454,7 @@ BOOL CSettingGitRemote::OnApply()
 		GetDlgItem(IDC_BUTTON_ADD)->EnableWindow(TRUE);
 		GetDlgItem(IDC_BUTTON_RENAME_REMOTE)->EnableWindow(TRUE);
 		if (!m_bNoFetch && CMessageBox::Show(GetSafeHwnd(), IDS_SETTINGS_FETCH_ADDEDREMOTE, IDS_APPNAME, MB_ICONQUESTION | MB_YESNO) == IDYES)
-			CAppUtils::RunTortoiseGitProc(L"/command:fetch /path:\""s + GitCall::m_CurrentDirStorage.wstring() + L"\" /remote:"s + TCmdLineParser::EscapeValue<std::wstring>(m_strRemote));
+			CAppUtils::RunTortoiseGitProc(CString((L"/command:fetch /path:\""s + GitCall::m_CurrentDirStorage.wstring() + L"\" /remote:"s + TCmdLineParser::EscapeValue<std::wstring>(m_strRemote)).c_str()));
 	}
 	if(m_ChangedMask & REMOTE_URL)
 	{
@@ -512,10 +512,10 @@ void CSettingGitRemote::OnBnClickedButtonRemove()
 		msg.Format(IDS_WARN_REMOVE, static_cast<LPCWSTR>(str));
 		if (CMessageBox::Show(GetSafeHwnd(), msg, L"TortoiseGit", MB_YESNO | MB_ICONQUESTION) == IDYES)
 		{
-			std::string out;
-			if (g_Git.Run({ L"git.exe", L"remote", L"rm", L"--", std::wstring(str) }, &out))
+			std::wstring out;
+			if (GitCall::Run({ L"git.exe", L"remote", L"rm", L"--", std::wstring(str) }, &out)) // stderr merged into out: git reports the failure there
 			{
-				CMessageBox::Show(GetSafeHwnd(), out, L"TortoiseGit", MB_OK | MB_ICONERROR);
+				CMessageBox::Show(GetSafeHwnd(), out.c_str(), L"TortoiseGit", MB_OK | MB_ICONERROR);
 				return;
 			}
 
@@ -536,7 +536,7 @@ void CSettingGitRemote::OnBnClickedButtonRenameRemote()
 		GetDlgItem(IDC_EDIT_REMOTE)->GetWindowText(newRemote);
 
 		CString out;
-		if (g_Git.Run({ L"git.exe", L"remote", L"rename", L"--", std::wstring(oldRemote), std::wstring(newRemote) }, &out, CP_UTF8))
+		if (GitCall::Run({ L"git.exe", L"remote", L"rename", L"--", std::wstring(oldRemote), std::wstring(newRemote) }, &out, CP_UTF8)) // stderr merged into out, as upstream's Run(cmd, &out, code)
 		{
 			CMessageBox::Show(GetSafeHwnd(), out, L"TortoiseGit", MB_OK | MB_ICONERROR);
 			return;

@@ -1,4 +1,4 @@
-﻿// TortoiseGit - a Windows shell extension for easy version control
+// TortoiseGit - a Windows shell extension for easy version control
 
 // Copyright (C) 2008-2009, 2012-2016, 2018-2019, 2022, 2025-2026 - TortoiseGit
 
@@ -34,11 +34,11 @@ bool SubmoduleAddCommand::Execute()
 	bool bRet = false;
 	CSubmoduleAddDlg dlg;
 	dlg.m_strPath = cmdLinePath.GetDirectory().GetWinPathString().c_str();
-	dlg.m_strProject = GitCall::m_CurrentDirStorage;
+	dlg.m_strProject = GitCall::m_CurrentDirStorage.c_str();
 	if( dlg.DoModal() == IDOK )
 	{
-		if (StringUtils::StartsWith(dlg.m_strPath, GitCall::m_CurrentDirStorage))
-			dlg.m_strPath = dlg.m_strPath.Right(dlg.m_strPath.GetLength()-GitCall::m_CurrentDirStorage.GetLength()-1);
+		if (StringUtils::StartsWith(dlg.m_strPath, CString(GitCall::m_CurrentDirStorage.c_str())))
+			dlg.m_strPath = dlg.m_strPath.Right(dlg.m_strPath.GetLength() - static_cast<int>(GitCall::m_CurrentDirStorage.native().size()) - 1);
 
 		std::vector<std::wstring> cmd{ L"git.exe", L"submodule", L"add" };
 		// Note the "=" rather than "+=" below in the original: --force *replaced*
@@ -62,7 +62,7 @@ bool SubmoduleUpdateCommand::Execute()
 {
 	CString bkpath;
 	if (parser.HasKey(L"bkpath"))
-		bkpath = parser.GetVal(L"bkpath");
+		bkpath = parser.GetValStr(L"bkpath").c_str();
 	else
 	{
 		bkpath = this->orgPathList[0].GetWinPathString().c_str();
@@ -94,7 +94,7 @@ bool SubmoduleUpdateCommand::Execute()
 	submoduleUpdateDlg.m_PathFilterList = pathFilterList;
 	if (parser.HasKey(L"selectedpath"))
 	{
-		CString selectedPath = parser.GetVal(L"selectedpath");
+		CString selectedPath = parser.GetValStr(L"selectedpath").c_str();
 		selectedPath.Replace(L'\\', L'/');
 		submoduleUpdateDlg.m_PathList.push_back(std::wstring(selectedPath));
 	}
@@ -138,7 +138,7 @@ bool SubmoduleUpdateCommand::Execute()
 		if (status)
 			return;
 
-		CTGitPath gitPath(GitCall::m_CurrentDirStorage.GetString());
+		CTGitPath gitPath(GitCall::m_CurrentDirStorage.native());
 		if (gitPath.IsBisectActive())
 		{
 			postCmdList.emplace_back(IDI_THUMB_UP, IDS_MENUBISECTGOOD, [] { CAppUtils::RunTortoiseGitProc(L"/command:bisect /good"); });
@@ -161,7 +161,7 @@ bool SubmoduleSyncCommand::Execute()
 	CString bkpath;
 
 	if (parser.HasKey(L"bkpath"))
-		bkpath=parser.GetVal(L"bkpath");
+		bkpath = parser.GetValStr(L"bkpath").c_str();
 	else
 	{
 		bkpath=this->orgPathList[0].GetWinPathString().c_str();

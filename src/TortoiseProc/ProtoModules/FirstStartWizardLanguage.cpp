@@ -1,4 +1,4 @@
-﻿// TortoiseGit - a Windows shell extension for easy version control
+// TortoiseGit - a Windows shell extension for easy version control
 
 // Copyright (C) 2016-2020, 2024-2025 - TortoiseGit
 
@@ -32,8 +32,8 @@ import AppUtils.Launch;
 IMPLEMENT_DYNAMIC(CFirstStartWizardLanguage, CFirstStartWizardBasePage)
 
 CFirstStartWizardLanguage::CFirstStartWizardLanguage() : CFirstStartWizardBasePage(CFirstStartWizardLanguage::IDD)
-, m_dwLanguage(CLangDll::s_defaultLang)
-, m_regLanguage(L"Software\\TortoiseGit\\LanguageID", CLangDll::s_defaultLang)
+, m_dwLanguage(LangDll::s_defaultLang)
+, m_regLanguage(L"Software\\TortoiseGit\\LanguageID", LangDll::s_defaultLang)
 {
 	m_dwInitialLanguage = m_regLanguage;
 	m_psp.dwFlags |= PSP_DEFAULT | PSP_USEHEADERTITLE;

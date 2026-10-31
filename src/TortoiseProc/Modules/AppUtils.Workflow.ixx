@@ -72,7 +72,7 @@ bool CheckUserData(HWND hWnd)
 	{
 		if (CMessageBox::Show(hWnd, IDS_PROC_NOUSERDATA, IDS_APPNAME, MB_YESNO | MB_ICONERROR) == IDYES)
 		{
-			CTGitPath path{ GitCall::m_CurrentDirStorage.GetString() };
+			CTGitPath path{ GitCall::m_CurrentDirStorage.native() };
 			CSettings dlg(IDS_PROC_SETTINGS_TITLE, &path, CWnd::FromHandle(hWnd));
 			dlg.SetTreeViewMode(TRUE, TRUE, TRUE);
 			dlg.SetTreeWidth(220);
@@ -179,9 +179,10 @@ bool MessageContainsConflictHints(HWND hWnd, const CString& message)
 
 bool IsTGitRebaseActive(HWND hWnd)
 {
-	CString adminDir;
-	if (!GitAdminDir::GetAdminDirPath(GitCall::m_CurrentDirStorage, adminDir))
+	const auto adminDirMaybe = GitAdminDir::GetAdminDirPath(GitCall::m_CurrentDirStorage.native());
+	if (!adminDirMaybe)
 		return false;
+	const CString adminDir{ adminDirMaybe->path.c_str() };
 
 	if (!PathIsDirectory(adminDir + L"tgitrebase.active"))
 		return false;
@@ -196,7 +197,7 @@ bool IsTGitRebaseActive(HWND hWnd)
 
 bool LaunchRemoteSetting()
 {
-	CTGitPath path{ GitCall::m_CurrentDirStorage.GetString() };
+	CTGitPath path{ GitCall::m_CurrentDirStorage.native() };
 	CSettings dlg(IDS_PROC_SETTINGS_TITLE, &path);
 	dlg.SetTreeViewMode(TRUE, TRUE, TRUE);
 	dlg.SetTreeWidth(220);
@@ -284,14 +285,14 @@ bool DeleteRef(CWnd* parent, const CString& ref)
 		if (choose == 1)
 		{
 			CString out;
-			if (g_Git.Run({ L"git.exe", L"stash", L"clear" }, &out, CP_UTF8))
+			if (GitCall::Run({ L"git.exe", L"stash", L"clear" }, &out, CP_UTF8)) // stderr merged into out, as upstream's Run(cmd, &out, code)
 				CMessageBox::Show(safe_h_wnd, out, L"TortoiseGit", MB_OK | MB_ICONERROR);
 			return true;
 		}
 		else if (choose == 2)
 		{
 			CString out;
-			if (g_Git.Run({ L"git.exe", L"stash", L"drop", L"refs/stash@{0}" }, &out, CP_UTF8))
+			if (GitCall::Run({ L"git.exe", L"stash", L"drop", L"refs/stash@{0}" }, &out, CP_UTF8))
 				CMessageBox::Show(safe_h_wnd, out, L"TortoiseGit", MB_OK | MB_ICONERROR);
 			return true;
 		}
@@ -327,7 +328,7 @@ bool Export(const HWND& hWnd, std::wstring&& BashHash, const CTGitPath* orgPath)
 	if (orgPath)
 	{
 		if (PathIsRelative(orgPath->GetWinPath()))
-			dlg.m_orgPath = CTGitPath(g_Git.CombinePath(orgPath).GetString());
+			dlg.m_orgPath = CTGitPath(g_Git.CombinePath(*orgPath).native());
 		else
 			dlg.m_orgPath = *orgPath;
 	}
@@ -393,7 +394,7 @@ bool CreateWorktree(HWND hWnd, const CString& target = {})
 		{
 			postCmdList.emplace_back(IDI_UPDATE, IDS_PROC_SUBMODULESUPDATE, [&] {
 				CString sCmd;
-				sCmd.Format(L"/command:subupdate /bkpath:%s", static_cast<LPCWSTR>(TCmdLineParser::EscapeValue(dlg.m_sWorktreePath)));
+				sCmd.Format(L"/command:subupdate /bkpath:%s", TCmdLineParser::EscapeValue(dlg.m_sWorktreePath).c_str());
 				RunTortoiseGitProc(sCmd);
 			});
 		}
@@ -417,7 +418,7 @@ bool BisectStart(HWND hWnd, const CString& lastGood, const CString& firstBad)
 			sysProgressDlg.ShowModeless(hWnd, true);
 
 			CString out;
-			if (g_Git.Run({ L"git.exe", L"stash" }, &out, CP_UTF8))
+			if (GitCall::Run({ L"git.exe", L"stash" }, &out, CP_UTF8))
 			{
 				sysProgressDlg.Stop();
 				MessageBox(hWnd, out, L"TortoiseGit", MB_OK | MB_ICONERROR);
@@ -450,13 +451,13 @@ bool BisectStart(HWND hWnd, const CString& lastGood, const CString& firstBad)
 			if (status)
 				return;
 
-			CTGitPath path{ GitCall::m_CurrentDirStorage.GetString() };
+			CTGitPath path{ GitCall::m_CurrentDirStorage.native() };
 			if (path.HasSubmodules())
 			{
 				postCmdList.emplace_back(IDI_UPDATE, IDS_PROC_SUBMODULESUPDATE, []
 				{
 					CString sCmd;
-					sCmd.Format(L"/command:subupdate /bkpath:\"%s\"", static_cast<LPCWSTR>(GitCall::m_CurrentDirStorage));
+					sCmd.Format(L"/command:subupdate /bkpath:\"%s\"", GitCall::m_CurrentDirStorage.c_str());
 					RunTortoiseGitProc(sCmd);
 				});
 			}
@@ -487,7 +488,7 @@ bool BisectOperation(HWND hWnd, const CString& op, const CString& ref = L"")
 
 	progress.m_PostCmdCallback = [&](DWORD status, PostCmdList& postCmdList)
 	{
-		CTGitPath path{ GitCall::m_CurrentDirStorage.GetString() };
+		CTGitPath path{ GitCall::m_CurrentDirStorage.native() };
 		if (status)
 		{
 			if (path.IsBisectActive())
@@ -500,7 +501,7 @@ bool BisectOperation(HWND hWnd, const CString& op, const CString& ref = L"")
 			postCmdList.emplace_back(IDI_UPDATE, IDS_PROC_SUBMODULESUPDATE, []
 			{
 				CString sCmd;
-				sCmd.Format(L"/command:subupdate /bkpath:\"%s\"", static_cast<LPCWSTR>(GitCall::m_CurrentDirStorage));
+				sCmd.Format(L"/command:subupdate /bkpath:\"%s\"", GitCall::m_CurrentDirStorage.c_str());
 				RunTortoiseGitProc(sCmd);
 			});
 		}
@@ -601,7 +602,8 @@ bool IgnoreFile(HWND hWnd, const CTGitPathList& path,bool IsMask)
 			break;
 
 		case 2:
-			GitAdminDir::GetAdminDirPath(GitCall::m_CurrentDirStorage, ignorefile);
+			if (const auto adminDir = GitAdminDir::GetAdminDirPath(GitCall::m_CurrentDirStorage.native()))
+				ignorefile = adminDir->path.c_str();
 			ignorefile += L"info";
 			if (!PathFileExists(ignorefile))
 				CreateDirectory(ignorefile, nullptr);
@@ -706,7 +708,8 @@ void GetConflictTitles(CString* baseText, CString& mineText, CString& theirsText
 	if (rebaseActive)
 	{
 		CString adminDir;
-		GitAdminDir::GetAdminDirPath(GitCall::m_CurrentDirStorage, adminDir);
+		if (const auto adminDirMaybe = GitAdminDir::GetAdminDirPath(GitCall::m_CurrentDirStorage.native()))
+			adminDir = adminDirMaybe->path.c_str();
 		mineText = L"Branch being rebased onto";
 		if (!StringUtils::ReadStringFromTextFile(adminDir + L"tgitrebase.active\\onto", mineText))
 		{
@@ -900,7 +903,7 @@ bool ConflictEdit(HWND hWnd, CTGitPath& path, bool bAlternativeTool = false, boo
 
 	auto prepareFile = [&hWnd, &mergeGitPathString](int stage, const CString& outfile) {
 		CString output, err;
-		if (!g_Git.Run({ L"git.exe", L"checkout-index", L"--temp", std::format(L"--stage={}", stage), L"--", mergeGitPathString }, &output, &err, CP_UTF8))
+		if (!GitCall::Run({ L"git.exe", L"checkout-index", L"--temp", std::format(L"--stage={}", stage), L"--", mergeGitPathString }, &output, &err, CP_UTF8))
 		{
 			int start = 0;
 			CString file = output.Tokenize(L"\t", start);
@@ -963,7 +966,7 @@ bool ConflictEdit(HWND hWnd, CTGitPath& path, bool bAlternativeTool = false, boo
 		if(dlg.DoModal() == IDOK)
 		{
 			CString out;
-			if (g_Git.Run({ L"git.exe", dlg.m_bIsDelete ? L"rm" : L"add", L"--", mergeGitPathString }, &out, CP_UTF8))
+			if (GitCall::Run({ L"git.exe", dlg.m_bIsDelete ? L"rm" : L"add", L"--", mergeGitPathString }, &out, CP_UTF8))
 			{
 				MessageBox(hWnd, out, L"TortoiseGit", MB_OK | MB_ICONERROR);
 				return FALSE;
@@ -1018,7 +1021,7 @@ BOOL SVNDCommit(HWND hWnd)
 			sysProgressDlg.ShowModeless(hWnd, true);
 
 			CString out;
-			if (g_Git.Run({ L"git.exe", L"stash" }, &out, CP_UTF8))
+			if (GitCall::Run({ L"git.exe", L"stash" }, &out, CP_UTF8))
 			{
 				sysProgressDlg.Stop();
 				MessageBox(hWnd, out, L"TortoiseGit", MB_OK | MB_ICONERROR);
@@ -1051,7 +1054,7 @@ BOOL SVNDCommit(HWND hWnd)
 				sysProgressDlg.ShowModeless(hWnd, true);
 
 				CString out;
-				if (g_Git.Run({ L"git.exe", L"stash", L"pop" }, &out, CP_UTF8))
+				if (GitCall::Run({ L"git.exe", L"stash", L"pop" }, &out, CP_UTF8))
 				{
 					sysProgressDlg.Stop();
 					MessageBox(hWnd, out, L"TortoiseGit", MB_OK | MB_ICONERROR);
@@ -1069,12 +1072,15 @@ BOOL SVNDCommit(HWND hWnd)
 
 bool StashApply(HWND hWnd, CString ref, bool showChanges = true)
 {
-	CString cmd = L"git.exe stash apply ";
 	if (StringUtils::StartsWith(ref, L"refs/"))
 		ref = ref.Mid(static_cast<int>(wcslen(L"refs/")));
 	if (StringUtils::StartsWith(ref, L"stash{"))
 		ref = L"stash@" + ref.Mid(static_cast<int>(wcslen(L"stash")));
-	cmd += ref;
+	std::vector<std::wstring> argv{ L"git.exe", L"stash", L"apply" };
+	// The ref used to interpolate as nothing when empty; as an element it would
+	// be a real empty argument.
+	if (!ref.IsEmpty())
+		argv.emplace_back(std::wstring(ref));
 
 	CSysProgressDlg sysProgressDlg;
 	sysProgressDlg.SetTitle(CString(MAKEINTRESOURCE(IDS_APPNAME)));
@@ -1085,7 +1091,7 @@ bool StashApply(HWND hWnd, CString ref, bool showChanges = true)
 	sysProgressDlg.ShowModeless(hWnd, true);
 
 	std::string out;
-	const int ret = g_Git.Run(cmd, &out);
+	const int ret = g_Git.Run(argv, &out);
 
 	sysProgressDlg.Stop();
 
@@ -1102,7 +1108,8 @@ bool StashApply(HWND hWnd, CString ref, bool showChanges = true)
 		{
 			if (CMessageBox::Show(hWnd, message + L'\n' + CString(MAKEINTRESOURCE(IDS_SEECHANGES)), L"TortoiseGit", MB_YESNO | (hasConflicts ? MB_ICONEXCLAMATION : MB_ICONINFORMATION)) == IDYES)
 			{
-				cmd.Format(L"/command:repostatus /path:\"%s\"", static_cast<LPCWSTR>(GitCall::m_CurrentDirStorage));
+				CString cmd;
+				cmd.Format(L"/command:repostatus /path:\"%s\"", GitCall::m_CurrentDirStorage.c_str());
 				RunTortoiseGitProc(cmd);
 			}
 			return true;
@@ -1124,8 +1131,6 @@ bool StashApply(HWND hWnd, CString ref, bool showChanges = true)
  */
 bool StashPop(HWND hWnd, int showChanges = 1)
 {
-	CString cmd = L"git.exe stash pop";
-
 	CSysProgressDlg sysProgressDlg;
 	sysProgressDlg.SetTitle(CString(MAKEINTRESOURCE(IDS_APPNAME)));
 	sysProgressDlg.SetLine(1, CString(MAKEINTRESOURCE(IDS_PROC_STASHRUNNING)));
@@ -1135,7 +1140,7 @@ bool StashPop(HWND hWnd, int showChanges = 1)
 	sysProgressDlg.ShowModeless(hWnd, true);
 
 	std::string out;
-	const int ret = g_Git.Run(cmd, &out);
+	const int ret = g_Git.Run({ L"git.exe", L"stash", L"pop" }, &out);
 
 	sysProgressDlg.Stop();
 
@@ -1152,7 +1157,8 @@ bool StashPop(HWND hWnd, int showChanges = 1)
 		{
 			if (CMessageBox::ShowCheck(hWnd, message + L'\n' + CString(MAKEINTRESOURCE(IDS_SEECHANGES)), L"TortoiseGit", MB_YESNO | (hasConflicts ? MB_ICONEXCLAMATION : MB_ICONINFORMATION), hasConflicts ? L"StashPopShowConflictChanges" : L"StashPopShowChanges") == IDYES)
 			{
-				cmd.Format(L"/command:repostatus /path:\"%s\"", static_cast<LPCWSTR>(GitCall::m_CurrentDirStorage));
+				CString cmd;
+				cmd.Format(L"/command:repostatus /path:\"%s\"", GitCall::m_CurrentDirStorage.c_str());
 				RunTortoiseGitProc(cmd);
 			}
 			return true;
@@ -1196,13 +1202,13 @@ bool Reset(HWND hWnd, const CString& resetTo, int resetType)
 				return;
 			}
 
-			CTGitPath gitPath{ GitCall::m_CurrentDirStorage.GetString() };
+			CTGitPath gitPath{ GitCall::m_CurrentDirStorage.native() };
 			if (gitPath.HasSubmodules() && resetType == 2)
 			{
 				postCmdList.emplace_back(IDI_UPDATE, IDS_PROC_SUBMODULESUPDATE, [&]
 				{
 					CString sCmd;
-					sCmd.Format(L"/command:subupdate /bkpath:\"%s\"", static_cast<LPCWSTR>(GitCall::m_CurrentDirStorage));
+					sCmd.Format(L"/command:subupdate /bkpath:\"%s\"", GitCall::m_CurrentDirStorage.c_str());
 					RunTortoiseGitProc(sCmd);
 				});
 			}
@@ -1227,13 +1233,13 @@ bool Reset(HWND hWnd, const CString& resetTo, int resetType)
 			return;
 		}
 
-		CTGitPath gitPath{ GitCall::m_CurrentDirStorage.GetString() };
+		CTGitPath gitPath{ GitCall::m_CurrentDirStorage.native() };
 		if (gitPath.HasSubmodules() && resetType == 2)
 		{
 			postCmdList.emplace_back(IDI_UPDATE, IDS_PROC_SUBMODULESUPDATE, [&]
 			{
 				CString sCmd;
-				sCmd.Format(L"/command:subupdate /bkpath:\"%s\"", static_cast<LPCWSTR>(GitCall::m_CurrentDirStorage));
+				sCmd.Format(L"/command:subupdate /bkpath:\"%s\"", GitCall::m_CurrentDirStorage.c_str());
 				RunTortoiseGitProc(sCmd);
 			});
 		}
@@ -1250,7 +1256,7 @@ bool Reset(HWND hWnd, const CString& resetTo, int resetType)
 		{
 			postCmdList.emplace_back(IDI_CLEANUP, IDS_MENUCLEANUP, [&] {
 				CString sCmd;
-				sCmd.Format(L"/command:cleanup /path:\"%s\"", static_cast<LPCWSTR>(GitCall::m_CurrentDirStorage));
+				sCmd.Format(L"/command:cleanup /path:\"%s\"", GitCall::m_CurrentDirStorage.c_str());
 				RunTortoiseGitProc(sCmd);
 			});
 		}
@@ -1378,14 +1384,14 @@ bool PerformSwitch(
 	const bool hasBranch = CGit::GetCurrentBranchFromFile(GitCall::m_CurrentDirStorage, currentBranch) == 0;
 	progress.m_PostCmdCallback = [&](DWORD status, PostCmdList& postCmdList) {
 		if (!status) {
-			CTGitPath gitPath{ GitCall::m_CurrentDirStorage.GetString() };
+			CTGitPath gitPath{ GitCall::m_CurrentDirStorage.native() };
 			if (gitPath.HasSubmodules()) {
 				postCmdList.emplace_back(IDI_UPDATE,
 				                         IDS_PROC_SUBMODULESUPDATE,
 				                         [&] {
 					                         CString sCmd;
 					                         sCmd.Format(L"/command:subupdate /bkpath:\"%s\"",
-					                                     static_cast<LPCWSTR>(GitCall::m_CurrentDirStorage));
+					                                     GitCall::m_CurrentDirStorage.c_str());
 					                         RunTortoiseGitProc(sCmd);
 				                         });
 			}
@@ -1416,7 +1422,7 @@ bool PerformSwitch(
 				                         [] {
 					                         CString sCmd;
 					                         sCmd.Format(L"/command:commit /path:\"%s\"",
-					                                     static_cast<LPCWSTR>(GitCall::m_CurrentDirStorage));
+					                                     GitCall::m_CurrentDirStorage.c_str());
 					                         RunTortoiseGitProc(sCmd);
 				                         });
 			}
@@ -1571,14 +1577,14 @@ namespace details {
 					postCmdList.emplace_back(IDI_RESOLVE, IDS_PROGRS_CMD_RESOLVE, []
 					{
 						CString sCmd;
-						sCmd.Format(L"/command:resolve /path:\"%s\"", static_cast<LPCWSTR>(GitCall::m_CurrentDirStorage));
+						sCmd.Format(L"/command:resolve /path:\"%s\"", GitCall::m_CurrentDirStorage.c_str());
 						RunTortoiseGitProc(sCmd);
 					});
 
 					postCmdList.emplace_back(IDI_COMMIT, IDS_MENUCOMMIT, []
 					{
 						CString sCmd;
-						sCmd.Format(L"/command:commit /path:\"%s\"", static_cast<LPCWSTR>(GitCall::m_CurrentDirStorage));
+						sCmd.Format(L"/command:commit /path:\"%s\"", GitCall::m_CurrentDirStorage.c_str());
 						RunTortoiseGitProc(sCmd);
 					});
 					return;
@@ -1628,13 +1634,13 @@ namespace details {
 				postCmdList.emplace_back(IDI_DIFF, IDS_PROC_PULL_DIFFS, [&]
 				{
 					CString sCmd;
-					sCmd.Format(L"/command:showcompare /path:\"%s\" /revision1:%s /revision2:%s", static_cast<LPCWSTR>(GitCall::m_CurrentDirStorage), (hashOld.ToString()).c_str(), (hashNew.ToString()).c_str());
+					sCmd.Format(L"/command:showcompare /path:\"%s\" /revision1:%s /revision2:%s", GitCall::m_CurrentDirStorage.c_str(), (hashOld.ToString()).c_str(), (hashNew.ToString()).c_str());
 					RunTortoiseGitProc(sCmd);
 				});
 				postCmdList.emplace_back(IDI_LOG, IDS_PROC_PULL_LOG, [&]
 				{
 					CString sCmd;
-					sCmd.Format(L"/command:log /path:\"%s\" /range:%s", static_cast<LPCWSTR>(GitCall::m_CurrentDirStorage), (hashOld.ToString() + L".." + hashNew.ToString()).c_str());
+					sCmd.Format(L"/command:log /path:\"%s\" /range:%s", GitCall::m_CurrentDirStorage.c_str(), (hashOld.ToString() + L".." + hashNew.ToString()).c_str());
 					RunTortoiseGitProc(sCmd);
 				});
 			}
@@ -1642,13 +1648,13 @@ namespace details {
 			if (showPush)
 				postCmdList.emplace_back(IDI_PUSH, IDS_MENUPUSH, [&hWnd]{ Push(hWnd); });
 
-			CTGitPath gitPath{ GitCall::m_CurrentDirStorage.GetString() };
+			CTGitPath gitPath{ GitCall::m_CurrentDirStorage.native() };
 			if (gitPath.HasSubmodules())
 			{
 				postCmdList.emplace_back(IDI_UPDATE, IDS_PROC_SUBMODULESUPDATE, []
 				{
 					CString sCmd;
-					sCmd.Format(L"/command:subupdate /bkpath:\"%s\"", static_cast<LPCWSTR>(GitCall::m_CurrentDirStorage));
+					sCmd.Format(L"/command:subupdate /bkpath:\"%s\"", GitCall::m_CurrentDirStorage.c_str());
 					RunTortoiseGitProc(sCmd);
 				});
 			}
@@ -1659,7 +1665,7 @@ namespace details {
 		if (ret == IDOK && progress.m_GitStatus == 1 && progress.m_LogText.Find(L"CONFLICT") >= 0 && CMessageBox::Show(hWnd, IDS_SEECHANGES, IDS_APPNAME, MB_YESNO | MB_ICONINFORMATION) == IDYES)
 		{
 			CString cmd;
-			cmd.Format(L"/command:repostatus /path:\"%s\"", static_cast<LPCWSTR>(GitCall::m_CurrentDirStorage));
+			cmd.Format(L"/command:repostatus /path:\"%s\"", GitCall::m_CurrentDirStorage.c_str());
 			RunTortoiseGitProc(cmd);
 
 			return true;
@@ -1826,7 +1832,7 @@ namespace details {
 							postCmdList.emplace_back(IDI_RESOLVE, IDS_PROGRS_CMD_RESOLVE, []
 							{
 								CString sCmd;
-								sCmd.Format(L"/command:commit /path:\"%s\"", static_cast<LPCWSTR>(GitCall::m_CurrentDirStorage));
+								sCmd.Format(L"/command:commit /path:\"%s\"", GitCall::m_CurrentDirStorage.c_str());
 								RunTortoiseGitProc(sCmd);
 							});
 						}
@@ -1911,7 +1917,7 @@ bool RequestPull(HWND hWnd, const CString& endrevision = {}, const CString& repo
 		sysProgressDlg.SetShowProgressBar(false);
 		sysProgressDlg.ShowModeless(hWnd, true);
 
-		CString tempFileName = GetTempFile();
+		CString tempFileName = GitCall::GetTempFile();
 		if (tempFileName.IsEmpty())
 		{
 			sysProgressDlg.Stop();
@@ -1921,7 +1927,7 @@ bool RequestPull(HWND hWnd, const CString& endrevision = {}, const CString& repo
 		DeleteFile(tempFileName);
 		CreateDirectory(tempFileName, nullptr);
 		tempFileName += L"\\pullrequest.txt";
-		if (CString err; g_Git.RunLogFile(cmd, tempFileName, &err))
+		if (CString err; GitCall::RunLogFile(cmd, tempFileName, &err))
 		{
 			sysProgressDlg.Stop();
 			CString msg;
@@ -1951,8 +1957,8 @@ bool DoPush(HWND hWnd, bool tags, bool allRemotes, bool allBranches, bool force,
 	DWORD exitcode = 0xFFFFFFFF;
 	ProjectProperties pp;
 	pp.ReadProps();
-	CHooks::Instance().SetProjectProperties(CTGitPath(GitCall::m_CurrentDirStorage.GetString()), pp);
-	if (CHooks::Instance().PrePush(hWnd, GitCall::m_CurrentDirStorage, exitcode, error))
+	CHooks::Instance().SetProjectProperties(CTGitPath(GitCall::m_CurrentDirStorage.native()), pp);
+	if (CHooks::Instance().PrePush(hWnd, CString(GitCall::m_CurrentDirStorage.c_str()), exitcode, error))
 	{
 		if (exitcode)
 		{
@@ -2040,8 +2046,11 @@ bool DoPush(HWND hWnd, bool tags, bool allRemotes, bool allBranches, bool force,
 			progress.m_GitCmdList.push_back({ L"git.exe", L"rev-list", L"--count", L"--first-parent", L"--end-of-options", std::wstring(localBranch), L"--" });
 	}
 
+	// the working tree *around* this one (the old bDir=false lookup started from the
+	// parent): from the current dir itself it would find its own .git
 	std::wstring superprojectRoot;
-	GitAdminDir::HasAdminDir(tgit::str::StringView(GitCall::m_CurrentDirStorage), false, &superprojectRoot);
+	if (const fs::path& currentDir = GitCall::m_CurrentDirStorage; currentDir.has_relative_path())
+		superprojectRoot = GitAdminDir::HasAdminDir(currentDir.parent_path()).native();
 	progress.m_PostCmdCallback = [&](DWORD status, PostCmdList& postCmdList)
 	{
 		// need to execute hooks as those might be needed by post action commands
@@ -2049,8 +2058,8 @@ bool DoPush(HWND hWnd, bool tags, bool allRemotes, bool allBranches, bool force,
 		CString error_;
 		ProjectProperties pp_;
 		pp_.ReadProps();
-		CHooks::Instance().SetProjectProperties(CTGitPath(GitCall::m_CurrentDirStorage.GetString()), pp_);
-		if (CHooks::Instance().PostPush(hWnd, GitCall::m_CurrentDirStorage, exitcode_, error_))
+		CHooks::Instance().SetProjectProperties(CTGitPath(GitCall::m_CurrentDirStorage.native()), pp_);
+		if (CHooks::Instance().PostPush(hWnd, CString(GitCall::m_CurrentDirStorage.c_str()), exitcode_, error_))
 		{
 			if (exitcode_)
 			{
@@ -2127,7 +2136,7 @@ bool CreateBranchTag(HWND hWnd, const bool isTag = true, const CString* ref = nu
 
 			if (!dlg.m_Message.Trim().IsEmpty())
 			{
-				CString tempfile = ::GetTempFile();
+				CString tempfile = GitCall::GetTempFile();
 				if (tempfile.IsEmpty() || SaveCommitUnicodeFile(tempfile, dlg.m_Message))
 				{
 					MessageBox(hWnd, L"Could not save tag message", L"TortoiseGit", MB_OK | MB_ICONERROR);
@@ -2151,7 +2160,7 @@ bool CreateBranchTag(HWND hWnd, const bool isTag = true, const CString* ref = nu
 		cmd.insert(cmd.cend(), { std::wstring(L"--"), std::wstring(dlg.m_BranchTagName), std::wstring(g_Git.FixBranchName(dlg.m_VersionName)) });
 
 		CString out;
-		if(g_Git.Run(cmd,&out,CP_UTF8))
+		if (GitCall::Run(cmd, &out, CP_UTF8))
 		{
 			MessageBox(hWnd, out, L"TortoiseGit", MB_OK | MB_ICONERROR);
 			return FALSE;
@@ -2291,7 +2300,7 @@ bool DoMerge(HWND hWnd, bool noFF, bool ffOnly, bool squash, bool noCommit, cons
 	if (!logMessage.IsEmpty())
 	{
 		CString logmsg = logMessage;
-		CString tempfile = ::GetTempFile();
+		CString tempfile = GitCall::GetTempFile();
 		if (tempfile.IsEmpty() || SaveCommitUnicodeFile(tempfile, logmsg))
 		{
 			MessageBox(hWnd, L"Could not save merge message", L"TortoiseGit", MB_OK | MB_ICONERROR);
@@ -2320,14 +2329,14 @@ bool DoMerge(HWND hWnd, bool noFF, bool ffOnly, bool squash, bool noCommit, cons
 				postCmdList.emplace_back(IDI_RESOLVE, IDS_PROGRS_CMD_RESOLVE, []
 				{
 					CString sCmd;
-					sCmd.Format(L"/command:resolve /path:\"%s\"", static_cast<LPCWSTR>(GitCall::m_CurrentDirStorage));
+					sCmd.Format(L"/command:resolve /path:\"%s\"", GitCall::m_CurrentDirStorage.c_str());
 					RunTortoiseGitProc(sCmd);
 				});
 
 				postCmdList.emplace_back(IDI_COMMIT, IDS_MENUCOMMIT, []
 				{
 					CString sCmd;
-					sCmd.Format(L"/command:commit /path:\"%s\"", static_cast<LPCWSTR>(GitCall::m_CurrentDirStorage));
+					sCmd.Format(L"/command:commit /path:\"%s\"", GitCall::m_CurrentDirStorage.c_str());
 					RunTortoiseGitProc(sCmd);
 				});
 			}
@@ -2350,7 +2359,7 @@ bool DoMerge(HWND hWnd, bool noFF, bool ffOnly, bool squash, bool noCommit, cons
 			postCmdList.emplace_back(IDI_COMMIT, IDS_MENUCOMMIT, []
 			{
 				CString sCmd;
-				sCmd.Format(L"/command:commit /path:\"%s\"", static_cast<LPCWSTR>(GitCall::m_CurrentDirStorage));
+				sCmd.Format(L"/command:commit /path:\"%s\"", GitCall::m_CurrentDirStorage.c_str());
 				RunTortoiseGitProc(sCmd);
 			});
 			return;
@@ -2365,7 +2374,7 @@ bool DoMerge(HWND hWnd, bool noFF, bool ffOnly, bool squash, bool noCommit, cons
 				if (CMessageBox::Show(hWnd, msg, L"TortoiseGit", 2, IDI_QUESTION, CString(MAKEINTRESOURCE(IDS_DELETEBUTTON)), CString(MAKEINTRESOURCE(IDS_ABORTBUTTON))) == 1)
 				{
 					CString out;
-					if (g_Git.Run({ L"git.exe", L"branch", L"-D", L"--", std::wstring(version) }, &out, CP_UTF8))
+					if (GitCall::Run({ L"git.exe", L"branch", L"-D", L"--", std::wstring(version) }, &out, CP_UTF8))
 						MessageBox(hWnd, out, L"TortoiseGit", MB_OK);
 				}
 			});
@@ -2373,7 +2382,7 @@ bool DoMerge(HWND hWnd, bool noFF, bool ffOnly, bool squash, bool noCommit, cons
 		if (isBranch)
 			postCmdList.emplace_back(IDI_PUSH, IDS_MENUPUSH, [&hWnd]{ Push(hWnd); });
 
-		BOOL hasGitSVN = CTGitPath(GitCall::m_CurrentDirStorage.GetString()).GetAdminDirMask() & ITEMIS_GITSVN;
+		BOOL hasGitSVN = CTGitPath(GitCall::m_CurrentDirStorage.native()).GetAdminDirMask() & ITEMIS_GITSVN;
 		if (hasGitSVN)
 			postCmdList.emplace_back(IDI_COMMIT, IDS_MENUSVNDCOMMIT, [&hWnd]{ SVNDCommit(hWnd); });
 	};

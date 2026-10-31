@@ -33,10 +33,10 @@ RevertProgressCommand::RevertProgressCommand(const CString& revertToRevision)
 
 bool RevertProgressCommand::Run(CGitProgressList* list, CString& sWindowTitle, int& m_itemCountTotal, int& m_itemCount)
 {
-	list->SetWindowTitle(IDS_PROGRS_TITLE_REVERT, g_Git.CombinePath(m_targetPathList.GetCommonRoot().GetUIPathString().c_str()), sWindowTitle);
+	list->SetWindowTitle(IDS_PROGRS_TITLE_REVERT, CString(g_Git.CombinePath(m_targetPathList.GetCommonRoot().GetUIPathString().c_str()).c_str()), sWindowTitle);
 	list->SetBackgroundImage(IDI_REVERT_BKG);
 
-	CBlockCacheForPath _(GitCall::m_CurrentDirStorage);
+	CBlockCacheForPath _(GitCall::m_CurrentDirStorage.c_str());
 
 	m_itemCountTotal = 2 * m_targetPathList.GetCount();
 	CTGitPathList delList;
@@ -147,13 +147,13 @@ bool RevertProgressCommand::Run(CGitProgressList* list, CString& sWindowTitle, i
 		if (tgit::wstr::CompareNoCase(path.GetGitPathString(), path.GetGitOldPathString()) == 0)
 			cmd.emplace_back(L"-f");
 		cmd.insert(cmd.cend(), { L"--", path.GetGitPathString(), path.GetGitOldPathString() });
-		if (CString err; g_Git.Run(cmd, &err, CP_UTF8))
+		if (CString err; GitCall::Run(cmd, &err, CP_UTF8)) // stderr merged into err, as upstream's Run(cmd, &out, code)
 		{
 			list->ReportError(err);
 			return false;
 		}
 
-		if (CString err; g_Git.Run({ L"git.exe", L"checkout", L"-f", L"--end-of-options", std::wstring(m_sRevertToRevision), L"--", path.GetGitOldPathString() }, &err, CP_UTF8))
+		if (CString err; GitCall::Run({ L"git.exe", L"checkout", L"-f", L"--end-of-options", std::wstring(m_sRevertToRevision), L"--", path.GetGitOldPathString() }, &err, CP_UTF8))
 		{
 			list->ReportError(err);
 			return false;

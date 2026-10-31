@@ -70,7 +70,7 @@ BOOL CSubmoduleResolveConflictDlg::OnInitDialog()
 {
 	CHorizontalResizableStandAloneDialog::OnInitDialog();
 
-	CAppUtils::SetWindowTitle(*this, GitCall::m_CurrentDirStorage);
+	CAppUtils::SetWindowTitle(*this, GitCall::m_CurrentDirStorage.c_str());
 
 	AddAnchor(IDC_SUBMODULEDIFFTITLE, TOP_LEFT, TOP_RIGHT);
 	AddAnchor(IDC_STATIC_REVISION, TOP_LEFT);
@@ -202,7 +202,7 @@ void CSubmoduleResolveConflictDlg::SetDiff(const CString& path, bool revertTheir
 void CSubmoduleResolveConflictDlg::ShowLog(const CString& hash)
 {
 	CString sCmd;
-	sCmd.Format(L"/command:log /path:%s /endrev:%s /rev:%s", static_cast<LPCWSTR>(TCmdLineParser::EscapeValue(g_Git.CombinePath(m_sPath))), TCmdLineParser::EscapeValue(hash), TCmdLineParser::EscapeValue(hash));
+	sCmd.Format(L"/command:log /path:%s /endrev:%s /rev:%s", TCmdLineParser::EscapeValue(g_Git.CombinePath(m_sPath).native()).c_str(), TCmdLineParser::EscapeValue(hash).c_str(), TCmdLineParser::EscapeValue(hash).c_str());
 	CAppUtils::RunTortoiseGitProc(sCmd, false, false);
 }
 

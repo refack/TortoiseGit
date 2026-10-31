@@ -38,9 +38,9 @@ CFirstStartWizardGit::CFirstStartWizardGit() : CFirstStartWizardBasePage(CFirstS
 	m_psp.pszHeaderTitle = MAKEINTRESOURCE(IDS_FIRSTSTART_GITTITLE);
 
 	g_Git.CheckMsysGitDir(TRUE);
-	m_regMsysGitPath = CRegString(TGitRegPath(REG_MSYSGIT_PATH));
+	m_regMsysGitPath = CRegString(CString(std::format(L"Software\\TortoiseGit\\{}", REG_MSYSGIT_PATH).c_str()));
 
-	m_regMsysGitExtranPath = CRegString(TGitRegPath(REG_MSYSGIT_EXTRA_PATH));
+	m_regMsysGitExtranPath = CRegString(CString(std::format(L"Software\\TortoiseGit\\{}", REG_MSYSGIT_EXTRA_PATH).c_str()));
 
 	m_sMsysGitPath = m_regMsysGitPath;
 	m_sMsysGitExtranPath = m_regMsysGitExtranPath;
@@ -166,8 +166,9 @@ void CFirstStartWizardGit::OnTimer(UINT_PTR nIDEvent)
 		UpdateData();
 		if (m_sMsysGitPath.IsEmpty())
 		{
-			if (FindGitForWindows(m_sMsysGitPath))
+			if (const auto gitPath = FindGitForWindows(); !gitPath.empty())
 			{
+				m_sMsysGitPath = gitPath.c_str();
 				UpdateData(FALSE);
 				return;
 			}

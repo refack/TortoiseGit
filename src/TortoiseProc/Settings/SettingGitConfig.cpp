@@ -130,7 +130,7 @@ BOOL CSettingGitConfig::OnInitDialog()
 		this->GetDlgItem(IDC_VIEWSYSTEMGITCONFIG)->ShowWindow(SW_SHOW);
 	}
 
-	if (PathIsDirectory(g_Git.GetGitGlobalXDGConfig(true)))
+	if (PathIsDirectory(TGitH::GetGitGlobalXDGConfig().parent_path().c_str()))
 	{
 		GetDlgItem(IDC_EDITGLOBALXDGGITCONFIG)->EnableWindow(TRUE);
 		this->GetDlgItem(IDC_EDITGLOBALXDGGITCONFIG)->ShowWindow(SW_SHOW);
@@ -302,19 +302,19 @@ BOOL CSettingGitConfig::OnApply()
 void CSettingGitConfig::OnBnClickedEditglobalgitconfig()
 {
 	// use alternative editor because of LineEndings
-	CAppUtils::LaunchAlternativeEditor(g_Git.GetGitGlobalConfig());
+	CAppUtils::LaunchAlternativeEditor(CString(TGitH::GetGitGlobalConfig().c_str()));
 }
 
 void CSettingGitConfig::OnBnClickedEditglobalxdggitconfig()
 {
 	// use alternative editor because of LineEndings
-	CAppUtils::LaunchAlternativeEditor(g_Git.GetGitGlobalXDGConfig());
+	CAppUtils::LaunchAlternativeEditor(CString(TGitH::GetGitGlobalXDGConfig().c_str()));
 }
 
 void CSettingGitConfig::OnBnClickedEditlocalgitconfig()
 {
 	// use alternative editor because of LineEndings
-	CAppUtils::LaunchAlternativeEditor(g_Git.GetGitLocalConfig());
+	CAppUtils::LaunchAlternativeEditor(CString(TGitH::GetGitLocalConfig().c_str()));
 }
 
 void CSettingGitConfig::OnBnClickedEdittgitconfig()
@@ -322,7 +322,7 @@ void CSettingGitConfig::OnBnClickedEdittgitconfig()
 	// use alternative editor because of LineEndings
 	if (GitAdminDir::IsBareRepo(GitCall::m_CurrentDirStorage))
 	{
-		CString tmpFile = GetTempFile();
+		CString tmpFile = GitCall::GetTempFile();
 		if (tmpFile.IsEmpty())
 		{
 			MessageBox(L"Could not create temp file.", L"TortoiseGit", MB_OK | MB_ICONERROR);
@@ -337,14 +337,14 @@ void CSettingGitConfig::OnBnClickedEdittgitconfig()
 	}
 	else
 	{
-		CAppUtils::LaunchAlternativeEditor(GitCall::m_CurrentDirStorage + L"\\.tgitconfig");
+		CAppUtils::LaunchAlternativeEditor(CString((GitCall::m_CurrentDirStorage / L".tgitconfig").c_str()));
 	}
 }
 
 void CSettingGitConfig::OnBnClickedVieweffectivegitconfig()
 {
 	CString err;
-	CString tempfile = ::GetTempFile();
+	CString tempfile = GitCall::GetTempFile();
 	if (tempfile.IsEmpty())
 	{
 		MessageBox(L"Could not create temp file.", L"TortoiseGit", MB_OK | MB_ICONERROR);
@@ -352,7 +352,7 @@ void CSettingGitConfig::OnBnClickedVieweffectivegitconfig()
 	}
 
 	CString cmd = L"git config --show-origin -l";
-	if (g_Git.RunLogFile(cmd, tempfile, &err))
+	if (GitCall::RunLogFile(cmd, tempfile, &err))
 	{
 		CMessageBox::Show(GetSafeHwnd(), L"Could not get effective git config:\n" + err, L"TortoiseGit", MB_OK);
 		return;
@@ -363,7 +363,7 @@ void CSettingGitConfig::OnBnClickedVieweffectivegitconfig()
 
 void CSettingGitConfig::OnBnClickedEditsystemgitconfig()
 {
-	CString filename = g_Git.GetGitSystemConfig();
+	CString filename = TGitH::GetGitSystemConfig().c_str();
 	if (filename.IsEmpty())
 	{
 		CMessageBox::Show(GetSafeHwnd(), IDS_PROC_GITCONFIG_NOMSYSGIT, IDS_APPNAME, MB_ICONERROR);
@@ -374,7 +374,7 @@ void CSettingGitConfig::OnBnClickedEditsystemgitconfig()
 
 void CSettingGitConfig::OnBnClickedViewsystemgitconfig()
 {
-	CString filename = g_Git.GetGitSystemConfig();
+	CString filename = TGitH::GetGitSystemConfig().c_str();
 	if (filename.IsEmpty())
 	{
 		CMessageBox::Show(GetSafeHwnd(), IDS_PROC_GITCONFIG_NOMSYSGIT, IDS_APPNAME, MB_ICONERROR);

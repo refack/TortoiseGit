@@ -162,7 +162,7 @@ protected:
 		if (g_Git.CheckMsysGitDir(FALSE))
 		{
 			CString out;
-			int ret = g_Git.Run({ L"git.exe", L"--version" }, &out, CP_UTF8);
+			int ret = GitCall::Run({ L"git.exe", L"--version" }, &out, CP_UTF8); // stderr merged into out, as upstream's Run(cmd, &out, code)
 			SetWindowText(GetDlgItem(hwnd, versionLabelId), out);
 			if (out.IsEmpty())
 			{

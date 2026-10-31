@@ -755,7 +755,7 @@ void CFileDiffDlg::OnContextMenu(CWnd* pWnd, CPoint point)
 						CString filename = m_strExportDir + L'\\' + fd->GetWinPathString().c_str();
 						if (m_rev2.m_CommitHash.IsEmpty())
 						{
-							if(!CopyFile(g_Git.CombinePath(fd).c_str(), filename, false))
+							if(!CopyFile(g_Git.CombinePath(*fd).c_str(), filename, false))
 							{
 								MessageBox((CFormatMessageWrapper()).c_str(), L"TortoiseGit", MB_OK | MB_ICONERROR);
 								return;

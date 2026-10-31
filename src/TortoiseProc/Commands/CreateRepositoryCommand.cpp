@@ -24,6 +24,7 @@
 import MessageBox;
 #include "CreateRepoDlg.h"
 import AppUtils.GitEnv;
+import ShellEnvironment;
 
 static bool CheckSpecialFolder(const CString& folder)
 {
@@ -46,7 +47,7 @@ bool CreateRepositoryCommand::Execute()
 {
 	CString folder = orgCmdLinePath.GetWinPathString().c_str();
 	if (folder.IsEmpty())
-		folder = GitCall::m_CurrentDirStorage;
+		folder = GitCall::m_CurrentDirStorage.c_str();
 	if (folder.IsEmpty())
 		GetCurrentDirectory(MAX_PATH, CStrBuf(folder, MAX_PATH));
 	if (CheckSpecialFolder(folder))
@@ -69,7 +70,7 @@ bool CreateRepositoryCommand::Execute()
 		git_repository_init_options options = GIT_REPOSITORY_INIT_OPTIONS_INIT;
 		options.flags = GIT_REPOSITORY_INIT_MKPATH | GIT_REPOSITORY_INIT_EXTERNAL_TEMPLATE;
 		options.flags |= dlg.m_bBare ? GIT_REPOSITORY_INIT_BARE : 0;
-		CStringA envTemplateDir = CUnicodeUtils::GetUTF8<CStringA>(g_Git.m_Environment.GetEnv(L"GIT_TEMPLATE_DIR").c_str());
+		CStringA envTemplateDir = CUnicodeUtils::GetUTF8<CStringA>(Environment::g_Environment.GetEnv(L"GIT_TEMPLATE_DIR"));
 		if (!envTemplateDir.IsEmpty())
 			options.template_path = envTemplateDir;
 		wil::unique_git_repository repo;

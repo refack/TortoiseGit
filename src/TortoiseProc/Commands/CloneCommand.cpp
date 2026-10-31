@@ -45,7 +45,10 @@ static CString GetExistingDirectoryForClone(auto path)
 		path = path.Left(index);
 		index = path.ReverseFind('\\');
 	}
-	GetTempPath(path);
+	if (const auto tmp = GitCall::GetTortoiseGitTempPath())
+		path = tmp->c_str();
+	else
+		path.Empty();
 	return path;
 }
 
@@ -66,7 +69,7 @@ bool CloneCommand::Execute()
 	dlg.m_Directory = cloneDirectory.GetWinPathString().c_str();
 
 	if (parser.HasKey(L"url"))
-		dlg.m_URL = parser.GetVal(L"url");
+		dlg.m_URL = parser.GetValStr(L"url").c_str();
 	if (parser.HasKey(L"exactpath"))
 		dlg.m_bExactPath = TRUE;
 
@@ -130,7 +133,7 @@ bool CloneCommand::Execute()
 			g_Git.SetCurrentDirExact(dlg.m_Directory);
 
 			postCmdList.emplace_back(IDI_LOG, IDS_MENULOG, [&]{
-				const auto cmd2 = CString{L"/command:log"} + L" /path:" + TCmdLineParser::EscapeValue(dlg.m_Directory);
+				const CString cmd2{ std::format(L"/command:log /path:{}", TCmdLineParser::EscapeValue(dlg.m_Directory)).c_str() };
 				CAppUtils::RunTortoiseGitProc(cmd2);
 			});
 

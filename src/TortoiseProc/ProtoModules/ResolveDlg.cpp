@@ -213,7 +213,7 @@ LRESULT CResolveDlg::OnFileDropped(WPARAM, LPARAM lParam)
 
 	// check whether the dropped file belongs to the very same repository
 	std::wstring projectDir;
-	if (!path.HasAdminDir(&projectDir) || !PathUtils::ArePathStringsEqual(tgit::str::StringView(GitCall::m_CurrentDirStorage), projectDir))
+	if (!path.HasAdminDir(&projectDir) || !PathUtils::ArePathStringsEqual(GitCall::m_CurrentDirStorage.native(), projectDir))
 		return 0;
 
 	if (!m_resolveListCtrl.HasPath(path))

@@ -37,10 +37,10 @@ CSetMainPage::CSetMainPage()
 	, m_dwLanguage(0)
 	, m_dwMsysGitVersion(CRegDWORD(L"Software\\TortoiseGit\\git_cached_version", 0))
 {
-	m_regLanguage = CRegDWORD(L"Software\\TortoiseGit\\LanguageID", CLangDll::s_defaultLang);
+	m_regLanguage = CRegDWORD(L"Software\\TortoiseGit\\LanguageID", LangDll::s_defaultLang);
 
-	m_regMsysGitPath = CRegString(TGitRegPath(REG_MSYSGIT_PATH));
-	m_regMsysGitExtranPath =CRegString(TGitRegPath(REG_MSYSGIT_EXTRA_PATH));
+	m_regMsysGitPath = CRegString(CString(std::format(L"Software\\TortoiseGit\\{}", REG_MSYSGIT_PATH).c_str()));
+	m_regMsysGitExtranPath =CRegString(CString(std::format(L"Software\\TortoiseGit\\{}", REG_MSYSGIT_EXTRA_PATH).c_str()));
 
 	m_sMsysGitPath = m_regMsysGitPath;
 	m_sMsysGitExtranPath = m_regMsysGitExtranPath;
@@ -195,7 +195,7 @@ void CSetMainPage::OnCheck()
 void CSetMainPage::OnBnClickedButtonShowEnv()
 {
 	CString err;
-	CString tempfile=::GetTempFile();
+	CString tempfile = GitCall::GetTempFile();
 	if (tempfile.IsEmpty())
 	{
 		MessageBox(L"Could not create temp file.", L"TortoiseGit", MB_OK | MB_ICONERROR);
@@ -203,7 +203,7 @@ void CSetMainPage::OnBnClickedButtonShowEnv()
 	}
 
 	CString cmd = L"cmd /c set";
-	if (g_Git.RunLogFile(cmd, tempfile, &err))
+	if (GitCall::RunLogFile(cmd, tempfile, &err))
 	{
 		CMessageBox::Show(GetSafeHwnd(), L"Could not get environment variables:\n" + err, L"TortoiseGit", MB_OK);
 		return;

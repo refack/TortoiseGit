@@ -117,11 +117,11 @@ BOOL CFormatPatchDlg::OnInitDialog()
 
 	this->AddOthersToAnchor();
 
-	CAppUtils::SetWindowTitle(*this, GitCall::m_CurrentDirStorage);
+	CAppUtils::SetWindowTitle(*this, GitCall::m_CurrentDirStorage.c_str());
 
 	m_cDir.SetPathHistory(TRUE);
 	m_cDir.LoadHistory(L"Software\\TortoiseGit\\History\\FormatPatchURLS", L"path");
-	m_cDir.AddString(GitCall::m_CurrentDirStorage);
+	m_cDir.AddString(CString(GitCall::m_CurrentDirStorage.c_str()));
 
 	std::vector<std::wstring> list;
 	g_Git.GetBranchList(list, nullptr, TGitH::BRANCH_ALL_F);

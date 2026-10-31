@@ -444,9 +444,9 @@ void CRevisionGraphWnd::CompareRevs(const CString& revTo)
 	CString sCmd;
 
 	sCmd.Format(L"/command:showcompare /path:%s /revision1:%s /revision2:%s",
-				static_cast<LPCWSTR>(TCmdLineParser::EscapeValue(m_sPath)),
-				static_cast<LPCWSTR>(TCmdLineParser::EscapeValue(GetFriendRefName(m_SelectedEntry1))),
-				!revTo.IsEmpty() ? static_cast<LPCWSTR>(TCmdLineParser::EscapeValue(revTo)) : static_cast<LPCWSTR>(TCmdLineParser::EscapeValue(GetFriendRefName(m_SelectedEntry2))));
+				TCmdLineParser::EscapeValue(m_sPath).c_str(),
+				TCmdLineParser::EscapeValue(GetFriendRefName(m_SelectedEntry1)).c_str(),
+				!revTo.IsEmpty() ? TCmdLineParser::EscapeValue(revTo).c_str() : TCmdLineParser::EscapeValue(GetFriendRefName(m_SelectedEntry2)).c_str());
 
 	if (alternativeTool)
 		sCmd += L" /alternative";

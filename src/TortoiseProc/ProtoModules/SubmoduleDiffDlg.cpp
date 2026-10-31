@@ -66,7 +66,7 @@ BOOL CSubmoduleDiffDlg::OnInitDialog()
 {
 	CHorizontalResizableStandAloneDialog::OnInitDialog();
 
-	CAppUtils::SetWindowTitle(*this, GitCall::m_CurrentDirStorage);
+	CAppUtils::SetWindowTitle(*this, CString(GitCall::m_CurrentDirStorage.c_str()));
 
 	AddAnchor(IDC_SUBMODULEDIFFTITLE, TOP_LEFT, TOP_RIGHT);
 	AddAnchor(IDC_STATIC_REVISION, TOP_LEFT);
@@ -235,7 +235,7 @@ void CSubmoduleDiffDlg::SetDiff(const CString& path, bool toIsWorkingCopy, const
 void CSubmoduleDiffDlg::ShowLog(const CGitHash& hash) const
 {
 	CString sCmd;
-	sCmd.Format(L"/command:log /path:%s /endrev:%s /rev:%s", static_cast<LPCWSTR>(TCmdLineParser::EscapeValue(g_Git.CombinePath(m_sPath))), (hash.ToString()).c_str(), (hash.ToString()).c_str());
+	sCmd.Format(L"/command:log /path:%s /endrev:%s /rev:%s", TCmdLineParser::EscapeValue(g_Git.CombinePath(m_sPath).native()).c_str(),(hash.ToString()).c_str(), (hash.ToString()).c_str());
 	CAppUtils::RunTortoiseGitProc(sCmd, false, false);
 }
 
@@ -253,10 +253,10 @@ void CSubmoduleDiffDlg::OnBnClickedShowDiff()
 {
 	CString sCmd;
 	if (m_nChangeType == CGitDiff::ChangeType::Identical)
-		sCmd.Format(L"/command:repostatus /path:%s", static_cast<LPCWSTR>(TCmdLineParser::EscapeValue(g_Git.CombinePath(m_sPath))));
+		sCmd.Format(L"/command:repostatus /path:%s", TCmdLineParser::EscapeValue(g_Git.CombinePath(m_sPath).native()).c_str());
 	else
 	{
-		sCmd.Format(L"/command:showcompare /path:%s /revision1:%s /revision2:%s", static_cast<LPCWSTR>(TCmdLineParser::EscapeValue(g_Git.CombinePath(m_sPath))), (m_sFromHash.ToString()).c_str(), ((m_bDirty && m_nChangeType == CGitDiff::ChangeType::Unknown) || m_ctrlShowDiffBtn.GetCurrentEntry() == 1) ? GitRev::GetWorkingCopyRef() : (m_sToHash.ToString()).c_str());
+		sCmd.Format(L"/command:showcompare /path:%s /revision1:%s /revision2:%s", TCmdLineParser::EscapeValue(g_Git.CombinePath(m_sPath).native()).c_str(),(m_sFromHash.ToString()).c_str(), ((m_bDirty && m_nChangeType == CGitDiff::ChangeType::Unknown) || m_ctrlShowDiffBtn.GetCurrentEntry() == 1) ? GitRev::GetWorkingCopyRef() : (m_sToHash.ToString()).c_str());
 
 		if (!!(GetAsyncKeyState(VK_SHIFT) & 0x8000))
 			sCmd += L" /alternative";
@@ -268,6 +268,6 @@ void CSubmoduleDiffDlg::OnBnClickedShowDiff()
 void CSubmoduleDiffDlg::OnBnClickedButtonUpdate()
 {
 	CString sCmd;
-	sCmd.Format(L"/command:subupdate /bkpath:\"%s\" /selectedpath:%s", GitCall::m_CurrentDirStorage, TCmdLineParser::EscapeValue(m_sPath));
+	sCmd.Format(L"/command:subupdate /bkpath:\"%s\" /selectedpath:%s", GitCall::m_CurrentDirStorage.c_str(), TCmdLineParser::EscapeValue(m_sPath).c_str());
 	CAppUtils::RunTortoiseGitProc(sCmd);
 }

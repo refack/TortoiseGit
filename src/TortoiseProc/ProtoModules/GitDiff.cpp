@@ -42,7 +42,7 @@ int CGitDiff::SubmoduleDiffNull(HWND hWnd, const CTGitPath* pPath, const CGitHas
 		argv = { L"git.exe", L"ls-files", L"-s", L"--", pPath->GetGitPathString() };
 
 	CString output, err;
-	if (g_Git.Run(argv, &output, &err, CP_UTF8))
+	if (g_Git.Run(argv, &output, &err))
 	{
 		CMessageBox::Show(hWnd, output + L'\n' + err, L"TortoiseGit", MB_OK | MB_ICONERROR);
 		return -1;
@@ -56,23 +56,29 @@ int CGitDiff::SubmoduleDiffNull(HWND hWnd, const CTGitPath* pPath, const CGitHas
 		if(start>0)
 			newhash = CGitHash::FromHexStr(output.Mid(start + 1, static_cast<int>(tgit::invarients::GitFormatHolder::GitHashSize()) * 2));
 
+		// CGit's constructor (fs::current_path()) and SetCurrentDirExact both write GitCall::m_CurrentDirStorage, which is
+		// g_Git's directory too: resolve the submodule before the constructor overwrites it, and hand g_Git its directory
+		// back before the dialog, which resolves its paths against the superproject.
+		const auto superprojectDir = GitCall::m_CurrentDirStorage;
+		const auto submoduleDir = g_Git.CombinePath(*pPath);
 		CGit subgit;
 		subgit.m_IsUseGitDLL = false;
-		subgit.SetCurrentDirExact(g_Git.CombinePath(pPath));
+		subgit.SetCurrentDirExact(submoduleDir);
 		const int encode = CAppUtils::GetLogOutputEncode(&subgit);
 
 		// The format used to be spelled --pretty=format:"%s" - the quotes were
 		// there so the flat command line survived being parsed back into argv.
 		// As an argv element it is one string and the quotes would be literal.
-		const bool toOK = !subgit.Run({ L"git.exe", L"log", L"-n1", L"--pretty=format:%s", std::wstring(newhash.ToString()), L"--" }, &newsub, encode);
+		const bool toOK = !GitCall::Run({ L"git.exe", L"log", L"-n1", L"--pretty=format:%s", std::wstring(newhash.ToString()), L"--" }, &newsub, encode); // stderr merged into newsub, as upstream's Run(cmd, &out, code); subgit's directory is GitCall's
 
 		bool dirty = false;
 		if (hash.IsEmpty() && !(pPath->m_Action & CTGitPath::LOGACTIONS_DELETED))
 		{
 			CString dirtyList;
-			subgit.Run({ L"git.exe", L"status", L"--porcelain" }, &dirtyList, encode);
+			GitCall::Run({ L"git.exe", L"status", L"--porcelain" }, &dirtyList, encode); // stderr merged, as upstream's Run(cmd, &out, code)
 			dirty = !dirtyList.IsEmpty();
 		}
+		GitCall::m_CurrentDirStorage = superprojectDir;
 
 		CSubmoduleDiffDlg submoduleDiffDlg(GetParentCWnd(hWnd));
 		if (pPath->m_Action & CTGitPath::LOGACTIONS_DELETED)
@@ -130,7 +136,7 @@ int CGitDiff::DiffNull(HWND hWnd, const CTGitPath* pPath, const CString& rev1, b
 		::SetFileAttributes(file1, FILE_ATTRIBUTE_READONLY);
 	}
 	else
-		file1 = g_Git.CombinePath(pPath);
+		file1 = g_Git.CombinePath(*pPath).c_str();
 
 	CString tempfile = TempFiles::GetTempFilePath(false, *pPath, rev1Hash).GetWinPathString().c_str();
 	::SetFileAttributes(tempfile, FILE_ATTRIBUTE_READONLY);
@@ -140,14 +146,14 @@ int CGitDiff::DiffNull(HWND hWnd, const CTGitPath* pPath, const CString& rev1, b
 		CAppUtils::StartExtDiff(tempfile,file1,
 							pPath->GetGitPathString().c_str(),
 							std::format(L"{}:{}", pPath->GetGitPathString(), rev1Hash.ToString(g_Git.GetShortHASHLength())).c_str(),
-							g_Git.CombinePath(pPath), g_Git.CombinePath(pPath),
+							g_Git.CombinePath(*pPath).c_str(), g_Git.CombinePath(*pPath).c_str(),
 							CGitHash(), rev1Hash
 							, flags, jumpToLine);
 	else
 		CAppUtils::StartExtDiff(file1,tempfile,
 							std::format(L"{}:{}", pPath->GetGitPathString(), rev1Hash.ToString(g_Git.GetShortHASHLength())).c_str(),
 							pPath->GetGitPathString().c_str(),
-							g_Git.CombinePath(pPath), g_Git.CombinePath(pPath),
+							g_Git.CombinePath(*pPath).c_str(), g_Git.CombinePath(*pPath).c_str(),
 							rev1Hash, CGitHash()
 							, flags, jumpToLine);
 
@@ -174,7 +180,7 @@ int CGitDiff::SubmoduleDiff(HWND hWnd, const CTGitPath* pPath, const CTGitPath* 
 		isWorkingCopy = true;
 
 		CString output, err;
-		if (g_Git.Run({ L"git.exe", L"diff", L"--submodule=short", std::wstring(rev.ToString()), L"--", gitPath }, &output, &err, CP_UTF8))
+		if (g_Git.Run({ L"git.exe", L"diff", L"--submodule=short", std::wstring(rev.ToString()), L"--", gitPath }, &output, &err))
 		{
 			CMessageBox::Show(hWnd, output + L'\n' + err, L"TortoiseGit", MB_OK | MB_ICONERROR);
 			return -1;
@@ -185,7 +191,7 @@ int CGitDiff::SubmoduleDiff(HWND hWnd, const CTGitPath* pPath, const CTGitPath* 
 			output.Empty();
 			err.Empty();
 			// also compare against index
-			if (g_Git.Run({ L"git.exe", L"diff", L"--submodule=short", L"--", gitPath }, &output, &err, CP_UTF8))
+			if (g_Git.Run({ L"git.exe", L"diff", L"--submodule=short", L"--", gitPath }, &output, &err))
 			{
 				CMessageBox::Show(hWnd, output + L'\n' + err, L"TortoiseGit", MB_OK | MB_ICONERROR);
 				return -1;
@@ -199,7 +205,7 @@ int CGitDiff::SubmoduleDiff(HWND hWnd, const CTGitPath* pPath, const CTGitPath* 
 			else if (CMessageBox::Show(hWnd, IDS_SUBMODULE_EMPTYDIFF, IDS_APPNAME, 1, IDI_QUESTION, IDS_MSGBOX_YES, IDS_MSGBOX_NO) == 1)
 			{
 				CString sCmd;
-				sCmd.Format(L"/command:subupdate /bkpath:\"%s\"", GitCall::m_CurrentDirStorage);
+				sCmd.Format(L"/command:subupdate /bkpath:\"%s\"", GitCall::m_CurrentDirStorage.c_str());
 				CAppUtils::RunTortoiseGitProc(sCmd);
 			}
 			return -1;
@@ -246,13 +252,17 @@ int CGitDiff::SubmoduleDiff(HWND hWnd, const CTGitPath* pPath, const CTGitPath* 
 	CString newsub;
 	bool oldOK = false, newOK = false;
 
+	// Same shared directory as in SubmoduleDiffNull: resolve before CGit's constructor overwrites it, restore before the dialog.
+	const auto superprojectDir = GitCall::m_CurrentDirStorage;
+	const auto submoduleDir = g_Git.CombinePath(*pPath);
 	CGit subgit;
 	subgit.m_IsUseGitDLL = false;
-	subgit.SetCurrentDirExact(g_Git.CombinePath(pPath));
+	subgit.SetCurrentDirExact(submoduleDir);
 	ChangeType changeType = ChangeType::Unknown;
 
-	if (CTGitPath(subgit.m_CurrentDir.GetString()).HasAdminDir())
+	if (CTGitPath{ subgit.m_CurrentDir }.HasAdminDir())
 		GetSubmoduleChangeType(subgit, oldhash, newhash, oldOK, newOK, changeType, oldsub, newsub);
+	GitCall::m_CurrentDirStorage = superprojectDir;
 
 	CSubmoduleDiffDlg submoduleDiffDlg(GetParentCWnd(hWnd));
 	submoduleDiffDlg.SetDiff(pPath->GetWinPathString().c_str(), isWorkingCopy, oldhash, oldsub, oldOK, newhash, newsub, newOK, dirty, changeType);
@@ -271,7 +281,7 @@ void CGitDiff::GetSubmoduleChangeType(CGit& subgit, const CGitHash& oldhash, con
 	if (!oldhash.IsEmpty())
 	{
 		CString cmdout, cmderr;
-		oldOK = !subgit.Run({ L"git.exe", L"log", L"-n1", L"--pretty=format:%ct %s", std::wstring(oldhash.ToString()), L"--" }, &cmdout, &cmderr, encode);
+		oldOK = !GitCall::Run({ L"git.exe", L"log", L"-n1", L"--pretty=format:%ct %s", std::wstring(oldhash.ToString()), L"--" }, &cmdout, &cmderr, encode); // CGit::Run has no codepage; subgit's directory is GitCall's
 		if (oldOK)
 		{
 			int pos = cmdout.Find(L' ');
@@ -284,7 +294,7 @@ void CGitDiff::GetSubmoduleChangeType(CGit& subgit, const CGitHash& oldhash, con
 	if (!newhash.IsEmpty())
 	{
 		CString cmdout, cmderr;
-		newOK = !subgit.Run({ L"git.exe", L"log", L"-n1", L"--pretty=format:%ct %s", std::wstring(newhash.ToString()), L"--" }, &cmdout, &cmderr, encode);
+		newOK = !GitCall::Run({ L"git.exe", L"log", L"-n1", L"--pretty=format:%ct %s", std::wstring(newhash.ToString()), L"--" }, &cmdout, &cmderr, encode);
 		if (newOK)
 		{
 			int pos = cmdout.Find(L' ');
@@ -391,7 +401,7 @@ int CGitDiff::Diff(HWND hWnd, const CTGitPath* pPath, const CTGitPath* pPath2, c
 	{
 		if (PathIsRelative(pPath->GetWinPath()))
 		{
-			file1 = g_Git.CombinePath(pPath);
+			file1 = g_Git.CombinePath(*pPath).c_str();
 			title1.Format(IDS_DIFF_WCNAME, pPath->GetGitPathString().c_str());
 		}
 		else
@@ -435,7 +445,7 @@ int CGitDiff::Diff(HWND hWnd, const CTGitPath* pPath, const CTGitPath* pPath2, c
 	{
 		if (PathIsRelative(pPath2->GetWinPath()))
 		{
-			file2 = g_Git.CombinePath(pPath2);
+			file2 = g_Git.CombinePath(*pPath2).c_str();
 			title2.Format(IDS_DIFF_WCNAME, pPath2->GetGitPathString().c_str());
 		}
 		else
@@ -448,8 +458,8 @@ int CGitDiff::Diff(HWND hWnd, const CTGitPath* pPath, const CTGitPath* pPath2, c
 	CAppUtils::StartExtDiff(file2,file1,
 							title2,
 							title1,
-							g_Git.CombinePath(pPath2),
-							g_Git.CombinePath(pPath),
+							g_Git.CombinePath(*pPath2).c_str(),
+							g_Git.CombinePath(*pPath).c_str(),
 							rev2Hash,
 							rev1Hash,
 							CAppUtils::DiffFlags().AlternativeTool(bAlternativeTool), jumpToLine);

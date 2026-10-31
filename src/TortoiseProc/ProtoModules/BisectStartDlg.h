@@ -49,7 +49,8 @@ protected:
 	afx_msg void OnBnClickedOk();
 	afx_msg void OnBnClickedButtonGood();
 	afx_msg void OnBnClickedButtonBad();
-	afx_msg void OnChangedRevision() const {
+	// not const: ON_*_CHANGE casts the handler to AFX_PMSG, a non-const member pointer
+	afx_msg void OnChangedRevision() {
 		this->GetDlgItem(IDOK)->EnableWindow(!(m_cLastGoodRevision.GetString().Trim().IsEmpty() || m_cFirstBadRevision.GetString().Trim().IsEmpty()));
 	}
 

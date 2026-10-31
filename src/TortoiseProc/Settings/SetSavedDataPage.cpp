@@ -297,9 +297,9 @@ void CSetSavedDataPage::OnBnClickedTempfileclear()
 		return;
 
 	int count = 0;
-	DWORD len = GetTortoiseGitTempPath(0, nullptr);
+	DWORD len = GitCall::GetTortoiseGitTempPath(0, nullptr);
 	auto path = std::make_unique<wchar_t[]>(len + 100);
-	len = GetTortoiseGitTempPath(len + 100, path.get());
+	len = GitCall::GetTortoiseGitTempPath(len + 100, path.get());
 	if (len != 0)
 	{
 		int lastcount;

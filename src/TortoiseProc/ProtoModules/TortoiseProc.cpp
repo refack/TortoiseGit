@@ -151,7 +151,7 @@ BOOL CTortoiseProcApp::InitInstance()
 #if PREVIEW
 	TracePrintf(_T(__FUNCTION__) L": Preview: %s\n", _T(PREVIEW_INFO));
 #else
-	if (CString hotfix = (PathUtils::GetAppDirectory() + L"hotfix.ini").c_str(); PathFileExists(hotfix))
+	if (CString hotfix = (PathUtils::GetAppDirectory() / L"hotfix.ini").c_str(); PathFileExists(hotfix))
 	{
 		CString err;
 		CVersioncheckParser versionparser;
@@ -170,7 +170,7 @@ BOOL CTortoiseProcApp::InitInstance()
 
 	if (parser.HasKey(L"urlhandler"))
 	{
-		CString url = parser.GetVal(L"urlhandler");
+		CString url = parser.GetValStr(L"urlhandler").c_str();
 		if (StringUtils::StartsWith(url, L"tgit://clone/"))
 			url = url.Mid(static_cast<int>(wcslen(L"tgit://clone/")));
 		else if (StringUtils::StartsWith(url, L"github-windows://openRepo/"))
@@ -197,7 +197,7 @@ BOOL CTortoiseProcApp::InitInstance()
 		parser = CCmdLineParser(newCmd);
 	}
 
-	auto cmd = CommandServer::GetCommand(parser.GetVal(L"command"), hWndExplorer, parser);
+	auto cmd = CommandServer::GetCommand(CString(parser.GetValStr(L"command").c_str()), hWndExplorer, parser);
 	if (!cmd)
 	{
 		cmd->Execute();
@@ -218,7 +218,7 @@ BOOL CTortoiseProcApp::InitInstance()
 		else if (ret == 1)
 		{
 			parser = CCmdLineParser(L"/command:firststart /page:2");
-			cmd = CommandServer::GetCommand(parser.GetVal(L"command"), hWndExplorer, parser);
+			cmd = CommandServer::GetCommand(CString(parser.GetValStr(L"command").c_str()), hWndExplorer, parser);
 			cmd->Execute();
 		}
 		return FALSE;
@@ -242,7 +242,7 @@ BOOL CTortoiseProcApp::InitInstance()
 	CTGitPath cmdLinePath;
 	CTGitPathList pathList;
 	if (CAppUtils::g_sGroupingUUID.empty())
-		CAppUtils::g_sGroupingUUID = parser.GetVal(L"groupuuid");
+		CAppUtils::g_sGroupingUUID = parser.GetValStr(L"groupuuid");
 	if (parser.HasKey(L"pathfile"))
 	{
 		CString sPathfileArgument = PathUtils::GetLongPathname(parser.GetValStr(L"pathfile")).c_str();
@@ -262,7 +262,7 @@ BOOL CTortoiseProcApp::InitInstance()
 	}
 	else
 	{
-		CString sPathArgument = parser.GetVal(L"path");
+		CString sPathArgument = parser.GetValStr(L"path").c_str();
 		if (sPathArgument.IsEmpty() && parser.HasKey(L"path"))
 		{
 			CMessageBox::Show(hWndExplorer, IDS_ERR_INVALIDPATH, IDS_APPNAME, MB_ICONERROR);
@@ -274,7 +274,7 @@ BOOL CTortoiseProcApp::InitInstance()
 	}
 
 	if (pathList.IsEmpty()) {
-		pathList.AddPath(CTGitPath(GitCall::m_CurrentDirStorage.GetString()));
+		pathList.AddPath(CTGitPath(GitCall::m_CurrentDirStorage.native()));
 	}
 
 	[[maybe_unused]]auto _ = ::CreateMutex(nullptr, FALSE, L"TortoiseGitProc.exe");
@@ -287,8 +287,8 @@ BOOL CTortoiseProcApp::InitInstance()
 	if (parser.HasKey(L"pathfile") && parser.HasKey(L"submodule"))
 		g_Git.SetCurrentDir(pathList[0].GetWinPathString().c_str(), true);
 
-	if(!GitCall::m_CurrentDirStorage.IsEmpty())
-		SetCurrentDirectory(GitCall::m_CurrentDirStorage);
+	if(!GitCall::m_CurrentDirStorage.empty())
+		SetCurrentDirectory(GitCall::m_CurrentDirStorage.c_str());
 
 	if (!cmd->CheckRepo())
 		return FALSE;
@@ -305,8 +305,7 @@ BOOL CTortoiseProcApp::InitInstance()
 		case 3:
 		case 4:
 			{
-				std::wstring wcrootStd;
-				if (GitAdminDir::HasAdminDir(GitCall::m_CurrentDirStorage.wstring(), true, &wcrootStd))
+				if (const fs::path wcrootStd = GitAdminDir::HasAdminDir(GitCall::m_CurrentDirStorage); !wcrootStd.empty())
 				{
 					// CString's MakeLower, not tgit::wstr::MakeLower: the hash names the taskbar
 					// group, so the lowercasing must stay byte-for-byte what it was.
@@ -323,8 +322,11 @@ BOOL CTortoiseProcApp::InitInstance()
 					CAppUtils::g_sGroupingIcon = icon;
 				}
 			}
+			break;
 		default:
-			std::unreachable();
+			// 0 ("group by application") is a documented setting, and any other
+			// value is user-editable registry data: a no-op, as upstream had it
+			break;
 		}
 	}
 
@@ -356,9 +358,11 @@ BOOL CTortoiseProcApp::InitInstance()
 				theConfig = TGitH::GetGitLocalConfig();
 			} else if (choice == 2) {
 				// open the global config file with alternative editor
-				theConfig = TGitH::GetGitLocalConfig();
+				theConfig = TGitH::GetGitGlobalConfig();
 			}
-			return CAppUtils::LaunchAlternativeEditor(theConfig.c_str());
+			if (choice == 1 || choice == 2)
+				CAppUtils::LaunchAlternativeEditor(theConfig.c_str());
+			return FALSE;
 		}
 	}
 
@@ -531,14 +535,14 @@ void CTortoiseProcApp::CheckUpgrade() const
 			CRegStdDWORD(L"Software\\TortoiseGit\\LogOrderBy") = 0;
 
 		// smoothly migrate broken msysgit path settings
-		CString oldmsysGitSetting = CRegString(TGitRegPath(REG_MSYSGIT_PATH));
+		CString oldmsysGitSetting = CRegString(CString(std::format(L"Software\\TortoiseGit\\{}", REG_MSYSGIT_PATH).c_str()));
 		oldmsysGitSetting.TrimRight(L'\\');
 		if (oldmsysGitSetting.GetLength() > 4 && StringUtils::EndsWith(oldmsysGitSetting, L"\\cmd"))
 		{
 			CString newPath = oldmsysGitSetting.Left(oldmsysGitSetting.GetLength() - 3) + L"bin";
 			if (PathFileExists(newPath + L"\\git.exe"))
 			{
-				CRegString(TGitRegPath(REG_MSYSGIT_PATH)) = newPath;
+				CRegString(CString(std::format(L"Software\\TortoiseGit\\{}", REG_MSYSGIT_PATH).c_str())) = newPath;
 				g_Git.m_bInitialized = FALSE;
 				g_Git.CheckMsysGitDir();
 			}
