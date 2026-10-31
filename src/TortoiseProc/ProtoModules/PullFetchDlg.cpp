@@ -119,7 +119,7 @@ BOOL CPullFetchDlg::OnInitDialog()
 	AddAnchor(IDC_REMOTE_MANAGE,BOTTOM_LEFT);
 	AddAnchor(IDHELP, BOTTOM_RIGHT);
 
-	CString WorkingDir=GitCall::m_CurrentDirStorage;
+	CString WorkingDir(GitCall::m_CurrentDirStorage.c_str());
 	WorkingDir.Replace(L':', L'_');
 
 	m_RemoteReg = CRegString(L"Software\\TortoiseGit\\History\\PullRemote\\" + WorkingDir);
@@ -246,7 +246,7 @@ BOOL CPullFetchDlg::OnInitDialog()
 	else
 		sWindowTitle.LoadString(IDS_PROGRS_TITLE_FETCH);
 
-	CAppUtils::SetWindowTitle(m_hWnd, GitCall::m_CurrentDirStorage, sWindowTitle);
+	CAppUtils::SetWindowTitle(m_hWnd, GitCall::m_CurrentDirStorage.c_str(), sWindowTitle);
 
 	Refresh();
 
@@ -270,12 +270,12 @@ void CPullFetchDlg::Refresh()
 
 	// determine default remote tracking branch of submodule to remote branch selection
 	CString defaultRemoteTrackingBranch;
-	if (std::wstring parentRepoRoot; CTGitPath(GitCall::m_CurrentDirStorage.GetString()).IsRegisteredSubmoduleOfParentProject(&parentRepoRoot))
+	if (std::wstring parentRepoRoot; CTGitPath(GitCall::m_CurrentDirStorage.c_str()).IsRegisteredSubmoduleOfParentProject(&parentRepoRoot))
 	{
 		const CString parentRepoDir(parentRepoRoot.c_str());
 		if (const wil::unique_git_repository parentRepo = TGitH::OpenGitRepository(tgit::str::StringView{ parentRepoDir }); parentRepo)
 		{
-			auto subModulePath = CUnicodeUtils::GetUTF8<CStringA>(GitCall::m_CurrentDirStorage.Mid(parentRepoDir.GetLength() + 1));
+			auto subModulePath = CUnicodeUtils::GetUTF8<CStringA>(std::wstring_view(GitCall::m_CurrentDirStorage.native()).substr(parentRepoDir.GetLength() + 1));
 			subModulePath.Replace('\\', '/');
 
 			if (wil::unique_git_submodule subModule; !git_submodule_lookup(subModule.put(), parentRepo.get(), subModulePath))

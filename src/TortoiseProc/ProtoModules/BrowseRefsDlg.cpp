@@ -330,7 +330,7 @@ BOOL CBrowseRefsDlg::OnInitDialog()
 	EnableSaveRestore(L"BrowseRefs");
 	SetTheme(CTheme::Instance().IsDarkTheme());
 
-	CAppUtils::SetWindowTitle(*this, GitCall::m_CurrentDirStorage);
+	CAppUtils::SetWindowTitle(*this, CString(GitCall::m_CurrentDirStorage.c_str()));
 
 	m_bHasWC = !GitAdminDir::IsBareRepo(GitCall::m_CurrentDirStorage);
 
@@ -1319,7 +1319,7 @@ void CBrowseRefsDlg::ShowContextMenu(CPoint point, HTREEITEM hTreePos, VectorPSh
 			// --set-upstream-to=<ref> is one argv element; the quotes the old
 			// spelling put around the ref existed only to survive being parsed
 			// back out of the flat command line.
-			if (CString errorMsg; g_Git.Run({ L"git.exe", L"branch", std::format(L"--set-upstream-to={}/{}", remote, branch), L"--", std::wstring(selectedLeafs[0]->GetRefsHeadsName()) }, &errorMsg, CP_UTF8) != 0)
+			if (CString errorMsg; GitCall::Run({ L"git.exe", L"branch", std::format(L"--set-upstream-to={}/{}", remote, branch), L"--", std::wstring(selectedLeafs[0]->GetRefsHeadsName()) }, &errorMsg, CP_UTF8) != 0)
 			{
 				MessageBox(errorMsg + L"\n\nThis is usually caused when the setting \"remote." + remote + L".fetch\" does not include the desired branch.", L"TortoiseGit", MB_ICONERROR);
 				return;
@@ -1578,7 +1578,7 @@ void CBrowseRefsDlg::OnLvnEndlabeleditListRefLeafs(NMHDR *pNMHDR, LRESULT *pResu
 
 	CString newNameTrunced = newName.Mid(static_cast<int>(wcslen(L"refs/heads/")));
 
-	if (CString errorMsg; g_Git.Run({ L"git.exe", L"branch", L"-m", std::wstring(origName), L"--", std::wstring(newNameTrunced) }, &errorMsg, CP_UTF8) != 0)
+	if (CString errorMsg; GitCall::Run({ L"git.exe", L"branch", L"-m", std::wstring(origName), L"--", std::wstring(newNameTrunced) }, &errorMsg, CP_UTF8) != 0)
 	{
 		MessageBox(errorMsg, L"TortoiseGit", MB_OK | MB_ICONERROR);
 		return;

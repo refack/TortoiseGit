@@ -25,7 +25,7 @@ import AppUtils.Workflow;
 
 bool SwitchCommand::Execute()
 {
-	CString base = parser.GetVal(L"rev");
+	CString base = parser.GetValStr(L"rev").c_str();
 
 	return CAppUtils::Switch(GetExplorerHWND(), base);
 }

@@ -45,7 +45,7 @@ bool SVNRebaseCommand::Execute()
 			sysProgressDlg.ShowModeless(static_cast<HWND>(nullptr), true);
 
 			CString out;
-			if (g_Git.Run({ L"git.exe", L"stash" }, &out, CP_UTF8))
+			if (GitCall::Run({ L"git.exe", L"stash" }, &out, CP_UTF8))
 			{
 				sysProgressDlg.Stop();
 				MessageBox(GetExplorerHWND(), out, L"TortoiseGit", MB_OK | MB_ICONERROR);
@@ -65,7 +65,7 @@ bool SVNRebaseCommand::Execute()
 //	dlg.m_PreCmd=L"git.exe svn fetch";
 
 	CString out, err;
-	if (!g_Git.Run({ L"git.exe", L"config", L"svn-remote.svn.fetch" }, &out, &err, CP_UTF8))
+	if (!GitCall::Run({ L"git.exe", L"config", L"svn-remote.svn.fetch" }, &out, &err, CP_UTF8))
 	{
 		int start = out.Find(L':');
 		if( start >=0 )

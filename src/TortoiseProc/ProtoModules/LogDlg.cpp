@@ -49,7 +49,7 @@ CLogDlg::CLogDlg(CWnd* pParent /*=nullptr*/)
 	m_bAsteriskLogPrefix = !!CRegDWORD(L"Software\\TortoiseGit\\AsteriskLogPrefix", TRUE);
 	m_SelectedFilters = CRegDWORD(L"Software\\TortoiseGit\\SelectedLogFilters", LOGFILTER_ALL);
 
-	CString str = GitCall::m_CurrentDirStorage;
+	CString str{ GitCall::m_CurrentDirStorage.c_str() };
 	str.Replace(L':', L'_');
 
 	m_regbAllBranch = CRegDWORD(L"Software\\TortoiseGit\\LogDialog\\AllBranch\\" + str, FALSE);
@@ -472,11 +472,11 @@ BOOL CLogDlg::OnInitDialog()
 
 	m_History.SetMaxHistoryItems(CRegDWORD(L"Software\\TortoiseGit\\MaxRefHistoryItems", 5));
 	CString reg;
-	reg.Format(L"Software\\TortoiseGit\\History\\log-refs\\%s", GitCall::m_CurrentDirStorage);
+	reg.Format(L"Software\\TortoiseGit\\History\\log-refs\\%s", GitCall::m_CurrentDirStorage.c_str());
 	reg.Replace(L':', L'_');
 	m_History.Load(std::wstring(reg), L"ref");
 
-	reg.Format(L"Software\\TortoiseGit\\History\\LogDlg_Limits\\%s\\FromDate", GitCall::m_CurrentDirStorage);
+	reg.Format(L"Software\\TortoiseGit\\History\\LogDlg_Limits\\%s\\FromDate", GitCall::m_CurrentDirStorage.c_str());
 	reg.Replace(L':', L'_');
 	m_regLastSelectedFromDate = CRegString(reg);
 
@@ -615,7 +615,7 @@ void CLogDlg::SetDlgTitle()
 		GetWindowText(m_sTitle);
 
 	if (m_LogList.m_Path.IsEmpty() || m_orgPath.GetWinPathString().empty())
-		CAppUtils::SetWindowTitle(m_hWnd, GitCall::m_CurrentDirStorage, m_sTitle);
+		CAppUtils::SetWindowTitle(m_hWnd, CString(GitCall::m_CurrentDirStorage.c_str()), m_sTitle);
 	else
 		CAppUtils::SetWindowTitle(m_hWnd, m_orgPath.GetWinPathString().c_str(), m_sTitle);
 }
@@ -870,7 +870,7 @@ void CLogDlg::FillLogMessageCtrl(bool bShow /* = true*/)
 				if (isFirstParentCommit)
 				{
 					CString rev_counter, rev_err;
-					if (g_Git.Run({ L"git.exe", L"rev-list", L"--count", L"--first-parent", L"--end-of-options", std::wstring(pLogEntry->m_CommitHash.ToString()), L"--" }, &rev_counter, &rev_err, CP_UTF8))
+					if (GitCall::Run({ L"git.exe", L"rev-list", L"--count", L"--first-parent", L"--end-of-options", std::wstring(pLogEntry->m_CommitHash.ToString()), L"--" }, &rev_counter, &rev_err, CP_UTF8))
 						CMessageBox::Show(GetSafeHwnd(), L"Could not get rev count\n" + rev_counter + L'\n' + rev_err, L"TortoiseGit", MB_ICONERROR);
 					else
 						out_counter = L", " + CString(MAKEINTRESOURCE(IDS_REV_COUNTER)) + L": " + rev_counter.Trim();
@@ -1122,7 +1122,7 @@ void CLogDlg::FillPatchView(bool onlySetTimer)
 				if (!p->GetGitOldPathString().empty())
 					cmd.emplace_back(p->GetGitOldPathString());
 				cmd.emplace_back(p->GetGitPathString());
-				g_Git.Run(cmd, &out, CP_UTF8);
+				GitCall::Run(cmd, &out, CP_UTF8); // stderr merged into out, as upstream's Run(cmd, &out, code)
 			}
 		}
 	}
@@ -3316,7 +3316,7 @@ void CLogDlg::ShowStartRef()
 	{
 		showStartRef.Empty();
 		//Ref name is HEAD
-		if (g_Git.Run({ L"git.exe", L"symbolic-ref", L"HEAD" }, &showStartRef, nullptr, CP_UTF8))
+		if (GitCall::Run({ L"git.exe", L"symbolic-ref", L"HEAD" }, &showStartRef, nullptr, CP_UTF8))
 			showStartRef.LoadString(IDS_PROC_LOG_NOBRANCH);
 		showStartRef.Trim(L"\r\n\t ");
 	}

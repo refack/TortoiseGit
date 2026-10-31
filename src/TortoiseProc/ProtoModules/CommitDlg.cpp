@@ -172,7 +172,7 @@ static int GetCommitTemplate(CString &msg)
 		}
 	}
 	else if (StringUtils::StartsWith(tplFilename, L"~/"))
-		tplFilename = g_Git.GetHomeDirectory() + tplFilename.Mid(static_cast<int>(wcslen(L"~")));
+		tplFilename = CString(TGitH::GetHomeDirectory().c_str()) + tplFilename.Mid(static_cast<int>(wcslen(L"~")));
 
 	tplFilename.Replace(L'/', L'\\');
 
@@ -195,8 +195,7 @@ BOOL CCommitDlg::OnInitDialog()
 		if (!m_bForceCommitAmend)
 			m_sLogMessage = m_sLogTemplate;
 
-		CString dotGitPath;
-		GitAdminDir::GetWorktreeAdminDirPath(GitCall::m_CurrentDirStorage, dotGitPath);
+		CString dotGitPath = GitAdminDir::GetWorktreeAdminDirPath(GitCall::m_CurrentDirStorage.native()).value_or(std::wstring{}).c_str();
 		TGitH::LoadTextFile(dotGitPath + L"SQUASH_MSG", m_sLogMessage);
 		TGitH::LoadTextFile(dotGitPath + L"MERGE_MSG", m_sLogMessage);
 	}
@@ -212,7 +211,7 @@ BOOL CCommitDlg::OnInitDialog()
 	m_regAddBeforeCommit = CRegDWORD(L"Software\\TortoiseGit\\AddBeforeCommit", TRUE);
 	m_bShowUnversioned = m_regAddBeforeCommit;
 
-	CString regPath(GitCall::m_CurrentDirStorage);
+	CString regPath(GitCall::m_CurrentDirStorage.c_str());
 	regPath.Replace(L':', L'_');
 	m_regShowWholeProject = CRegDWORD(L"Software\\TortoiseGit\\TortoiseProc\\ShowWholeProject\\" + regPath, FALSE);
 	m_bWholeProject = m_regShowWholeProject;
@@ -274,7 +273,7 @@ BOOL CCommitDlg::OnInitDialog()
 	CBugTraqAssociations bugtraq_associations;
 	bugtraq_associations.Load(m_ProjectProperties.GetProviderUUID(), m_ProjectProperties.sProviderParams);
 
-	if (bugtraq_associations.FindProvider(GitCall::m_CurrentDirStorage, &m_bugtraq_association))
+	if (bugtraq_associations.FindProvider(CString(GitCall::m_CurrentDirStorage.c_str()), &m_bugtraq_association))
 	{
 		CComPtr<IBugTraqProvider> pProvider;
 		HRESULT hr = pProvider.CoCreateInstance(m_bugtraq_association.GetProviderClass());
@@ -469,7 +468,7 @@ BOOL CCommitDlg::OnInitDialog()
 	}
 	err = FALSE;
 
-	if (CTGitPath(GitCall::m_CurrentDirStorage.GetString()).IsMergeActive())
+	if (CTGitPath(GitCall::m_CurrentDirStorage.native()).IsMergeActive())
 	{
 		DialogEnableWindow(IDC_CHECK_NEWBRANCH, FALSE);
 		m_bCreateNewBranch = FALSE;
@@ -665,14 +664,14 @@ void CCommitDlg::OnOK()
 	if (CAppUtils::MessageContainsConflictHints(GetSafeHwnd(), m_sLogMessage))
 		return;
 
-	CHooks::Instance().SetProjectProperties(CTGitPath(GitCall::m_CurrentDirStorage.GetString()), m_ProjectProperties);
-	if (CHooks::Instance().IsHookPresent(HookType::pre_commit_hook, GitCall::m_CurrentDirStorage))
+	CHooks::Instance().SetProjectProperties(CTGitPath(GitCall::m_CurrentDirStorage.native()), m_ProjectProperties);
+	if (CHooks::Instance().IsHookPresent(HookType::pre_commit_hook, CString(GitCall::m_CurrentDirStorage.c_str())))
 	{
 		DWORD exitcode = 0xFFFFFFFF;
 		CString error;
 		CTGitPathList list;
 		m_ListCtrl.WriteCheckedNamesToPathList(list);
-		if (CHooks::Instance().PreCommit(GetSafeHwnd(), GitCall::m_CurrentDirStorage, list, m_sLogMessage, exitcode, error))
+		if (CHooks::Instance().PreCommit(GetSafeHwnd(), CString(GitCall::m_CurrentDirStorage.c_str()), list, m_sLogMessage, exitcode, error))
 		{
 			if (exitcode)
 			{
@@ -701,15 +700,15 @@ void CCommitDlg::OnOK()
 		{
 			CGit subgit;
 			subgit.m_IsUseGitDLL = false;
-			subgit.SetCurrentDirExact(g_Git.CombinePath(entry));
+			subgit.SetCurrentDirExact(g_Git.CombinePath(*entry));
 			CString subcmdout;
-			subgit.Run({ L"git.exe", L"status", L"--porcelain" }, &subcmdout, CP_UTF8);
+			GitCall::Run({ L"git.exe", L"status", L"--porcelain" }, &subcmdout, CP_UTF8);
 			dirty = !subcmdout.IsEmpty();
 		}
 		else
 		{
 			CString cmdout;
-			g_Git.Run({ L"git.exe", L"diff", L"--", entry->GetGitPathString() }, &cmdout, CP_UTF8);
+			GitCall::Run({ L"git.exe", L"diff", L"--", entry->GetGitPathString() }, &cmdout, CP_UTF8);
 			dirty = StringUtils::EndsWith(cmdout, L"-dirty\n");
 		}
 
@@ -721,7 +720,7 @@ void CCommitDlg::OnOK()
 			if (result == 1)
 			{
 				CString cmdCommit;
-				cmdCommit.Format(L"/command:commit /path:%s", static_cast<LPCWSTR>(TCmdLineParser::EscapeValue(g_Git.CombinePath(entry))));
+				cmdCommit.Format(L"/command:commit /path:%s", TCmdLineParser::EscapeValue(g_Git.CombinePath(*entry).native()).c_str());
 				CAppUtils::RunTortoiseGitProc(cmdCommit);
 				return;
 			}
@@ -748,7 +747,7 @@ void CCommitDlg::OnOK()
 	bool bAddSuccess=true;
 	bool bCloseCommitDlg=false;
 
-	CBlockCacheForPath cacheBlock(GitCall::m_CurrentDirStorage);
+	CBlockCacheForPath cacheBlock(GitCall::m_CurrentDirStorage.c_str());
 
 	if (!m_bStagingSupport)
 	{
@@ -763,12 +762,12 @@ void CCommitDlg::OnOK()
 
 	if (bAddSuccess && m_bCreateNewBranch)
 	{
-		if (g_Git.Run({ L"git.exe", L"branch", L"--", std::wstring(newBranch) }, &out, CP_UTF8))
+		if (GitCall::Run({ L"git.exe", L"branch", L"--", std::wstring(newBranch) }, &out, CP_UTF8))
 		{
 			MessageBox(L"Creating new branch failed:\n" + out, L"TortoiseGit", MB_OK | MB_ICONERROR);
 			bAddSuccess = false;
 		}
-		if (g_Git.Run({ L"git.exe", L"checkout", L"--end-of-options", std::wstring(newBranch), L"--" }, &out, CP_UTF8))
+		if (GitCall::Run({ L"git.exe", L"checkout", L"--end-of-options", std::wstring(newBranch), L"--" }, &out, CP_UTF8))
 		{
 			MessageBox(L"Switching to new branch failed:\n" + out, L"TortoiseGit", MB_OK | MB_ICONERROR);
 			bAddSuccess = false;
@@ -788,7 +787,7 @@ void CCommitDlg::OnOK()
 		if (SUCCEEDED(hr))
 		{
 			ATL::CComBSTR temp;
-			ATL::CComBSTR repositoryRoot(GitCall::m_CurrentDirStorage);
+			ATL::CComBSTR repositoryRoot(GitCall::m_CurrentDirStorage.c_str());
 			ATL::CComBSTR parameters(m_bugtraq_association.GetParameters());
 			ATL::CComBSTR commonRoot(m_pathList.GetCommonRoot().GetDirectory().GetWinPath());
 			ATL::CComBSTR commitMessage(m_sLogMessage);
@@ -817,11 +816,11 @@ void CCommitDlg::OnOK()
 		}
 	}
 
-	if (m_bCommitMessageOnly || bAddSuccess && (nchecked || m_bStagingSupport || m_bCommitAmend || CTGitPath(GitCall::m_CurrentDirStorage.GetString()).IsMergeActive()))
+	if (m_bCommitMessageOnly || bAddSuccess && (nchecked || m_bStagingSupport || m_bCommitAmend || CTGitPath(GitCall::m_CurrentDirStorage.native()).IsMergeActive()))
 	{
 		bCloseCommitDlg = true;
 
-		CString tempfile=::GetTempFile();
+		CString tempfile = GitCall::GetTempFile();
 		if (tempfile.IsEmpty() || CAppUtils::SaveCommitUnicodeFile(tempfile, m_sLogMessage))
 		{
 			CMessageBox::Show(GetSafeHwnd(), L"Could not save commit message", L"TortoiseGit", MB_OK | MB_ICONERROR);
@@ -829,7 +828,7 @@ void CCommitDlg::OnOK()
 			return;
 		}
 
-		CTGitPath path(GitCall::m_CurrentDirStorage.GetString());
+		CTGitPath path(GitCall::m_CurrentDirStorage.native());
 
 		const BOOL IsGitSVN = path.GetAdminDirMask() & ITEMIS_GITSVN;
 
@@ -908,7 +907,7 @@ void CCommitDlg::OnOK()
 			HRESULT hr = m_BugTraqProvider.QueryInterface(&pProvider);
 			if (SUCCEEDED(hr))
 			{
-				ATL::CComBSTR commonRoot(GitCall::m_CurrentDirStorage);
+				ATL::CComBSTR commonRoot(GitCall::m_CurrentDirStorage.c_str());
 				CBstrSafeVector pathList(m_selectedPathList.GetCount());
 
 				for (LONG index = 0; index < m_selectedPathList.GetCount(); ++index)
@@ -957,9 +956,9 @@ void CCommitDlg::OnOK()
 		{
 			DWORD exitcode = 0xFFFFFFFF;
 			CString error;
-			CHooks::Instance().SetProjectProperties(CTGitPath(GitCall::m_CurrentDirStorage.GetString()), m_ProjectProperties);
+			CHooks::Instance().SetProjectProperties(CTGitPath(GitCall::m_CurrentDirStorage.native()), m_ProjectProperties);
 			// was amend.IsEmpty() on the CString that held "--amend" or nothing
-			if (CHooks::Instance().PostCommit(GetSafeHwnd(), GitCall::m_CurrentDirStorage, !m_bCommitAmend, exitcode, error))
+			if (CHooks::Instance().PostCommit(GetSafeHwnd(), CString(GitCall::m_CurrentDirStorage.c_str()), !m_bCommitAmend, exitcode, error))
 			{
 				if (exitcode)
 				{
@@ -1163,7 +1162,7 @@ void CCommitDlg::PrepareIndexForCommitWithoutStagingSupport(int nListItems, bool
 					}
 				}
 
-				CStringA filePathA = CUnicodeUtils::GetUTF8<CStringA>(entry->GetGitPathString().c_str()).TrimRight(L'/');
+				CStringA filePathA = CUnicodeUtils::GetUTF8<CStringA>(entry->GetGitPathString()).TrimRight(L'/');
 
 				if (entry->m_Checked && !m_bCommitMessageOnly)
 				{
@@ -1180,7 +1179,7 @@ void CCommitDlg::PrepareIndexForCommitWithoutStagingSupport(int nListItems, bool
 					}
 
 					if ((entry->m_Action & CTGitPath::LOGACTIONS_REPLACED) && !entry->GetGitOldPathString().empty())
-						git_index_remove_bypath(index.get(), CUnicodeUtils::GetUTF8<CStringA>(entry->GetGitOldPathString().c_str())); // ignore error
+						git_index_remove_bypath(index.get(), CUnicodeUtils::GetUTF8<CStringA>(entry->GetGitOldPathString())); // ignore error
 
 					++nchecked;
 				}
@@ -1194,7 +1193,7 @@ void CCommitDlg::PrepareIndexForCommitWithoutStagingSupport(int nListItems, bool
 						if (entry->m_Action & CTGitPath::LOGACTIONS_REPLACED && !entry->GetGitOldPathString().empty())
 						{
 							const git_index_entry* oldIndexEntry = nullptr;
-							if ((oldIndexEntry = git_index_get_bypath(indexOld.get(), CUnicodeUtils::GetUTF8<CStringA>(entry->GetGitOldPathString().c_str()), 0)) == nullptr || git_index_add(index.get(), oldIndexEntry))
+							if ((oldIndexEntry = git_index_get_bypath(indexOld.get(), CUnicodeUtils::GetUTF8<CStringA>(entry->GetGitOldPathString()), 0)) == nullptr || git_index_add(index.get(), oldIndexEntry))
 							{
 								bAddSuccess = false;
 								CMessageBox::Show(GetSafeHwnd(), TGitH::GetLibGit2LastErr(std::format(L"Could not reset \"{}\" to old index entry.", entry->GetGitOldPathString()).c_str()), L"TortoiseGit", MB_OK | MB_ICONERROR);
@@ -1367,7 +1366,7 @@ UINT CCommitDlg::StatusThread()
 
 	g_Git.RefreshGitIndex();
 
-	CTGitPath repoRoot { GitCall::m_CurrentDirStorage.GetString() };
+	CTGitPath repoRoot { GitCall::m_CurrentDirStorage.native() };
 	if (repoRoot.IsCherryPickActive())
 	{
 		GetDlgItem(IDC_COMMIT_AMENDDIFF)->ShowWindow(SW_HIDE);
@@ -1508,7 +1507,7 @@ UINT CCommitDlg::StatusThread()
 			if (m_bCommitAmend)
 			{
 				GitRev headRevision;
-				if (headRevision.GetCommit(L"HEAD"))
+				if (headRevision.GetCommit(CString(L"HEAD")))
 					MessageBox(headRevision.GetLastErr(), L"TortoiseGit", MB_ICONERROR);
 				else
 					m_sAuthor.Format(L"%s <%s>", headRevision.GetAuthorName(), headRevision.GetAuthorEmail());
@@ -1536,13 +1535,13 @@ void CCommitDlg::SetDlgTitle()
 		GetWindowText(m_sTitle);
 
 	if (m_bWholeProject || m_bWholeProject2)
-		CAppUtils::SetWindowTitle(m_hWnd, GitCall::m_CurrentDirStorage, m_sTitle);
+		CAppUtils::SetWindowTitle(m_hWnd, CString(GitCall::m_CurrentDirStorage.c_str()), m_sTitle);
 	else
 	{
 		if (m_pathList.GetCount() == 1)
-			CAppUtils::SetWindowTitle(m_hWnd, g_Git.CombinePath(m_pathList[0].GetUIPathString().c_str()), m_sTitle);
+			CAppUtils::SetWindowTitle(m_hWnd, CString(g_Git.CombinePath(m_pathList[0].GetUIPathString().c_str()).c_str()), m_sTitle);
 		else
-			CAppUtils::SetWindowTitle(m_hWnd, g_Git.CombinePath(m_ListCtrl.GetCommonDirectory(false)), m_sTitle);
+			CAppUtils::SetWindowTitle(m_hWnd, CString(g_Git.CombinePath(m_ListCtrl.GetCommonDirectory(false)).c_str()), m_sTitle);
 	}
 }
 
@@ -1702,7 +1701,7 @@ void CCommitDlg::StopStatusThread()
 
 	// we gave the thread a chance to quit. Since the thread didn't
 	// listen to us we have to kill it.
-	g_Git.KillRelatedThreads(m_pThread->m_nThreadID, m_pThread->m_hThread);
+	GitCall::KillRelatedThreads(m_pThread->m_nThreadID, m_pThread->m_hThread);
 	InterlockedExchange(&m_bThreadRunning, FALSE);
 }
 
@@ -1778,7 +1777,7 @@ LRESULT CCommitDlg::OnFileDropped(WPARAM, LPARAM lParam)
 
 	// check whether the dropped file belongs to the very same repository
 	std::wstring projectDir;
-	if (!path.HasAdminDir(&projectDir) || !PathUtils::ArePathStringsEqual(tgit::str::StringView(GitCall::m_CurrentDirStorage), projectDir))
+	if (!path.HasAdminDir(&projectDir) || !PathUtils::ArePathStringsEqual(GitCall::m_CurrentDirStorage.native(), projectDir))
 		return 0;
 
 	// just add all the items we get here.
@@ -1788,7 +1787,7 @@ LRESULT CCommitDlg::OnFileDropped(WPARAM, LPARAM lParam)
 	// QuoteParameter(GetWinPathString()), and non-relaxed QuoteParameter turned
 	// the backslashes into slashes on the way past. SerializeArgv does not, so
 	// the conversion has to be asked for.
-	g_Git.Run({ L"git.exe", L"add", L"--", path.GetGitPathString() }, nullptr, CP_UTF8);
+	GitCall::Run({ L"git.exe", L"add", L"--", path.GetGitPathString() }, static_cast<CString*>(nullptr), CP_UTF8);
 
 	if (!m_ListCtrl.HasPath(path))
 	{
@@ -2328,7 +2327,7 @@ void CCommitDlg::OnBnClickedBugtraqbutton()
 	bool bugIdOutSet = false;
 	if (SUCCEEDED(hr))
 	{
-		ATL::CComBSTR repositoryRoot(GitCall::m_CurrentDirStorage);
+		ATL::CComBSTR repositoryRoot(GitCall::m_CurrentDirStorage.c_str());
 		ATL::CComBSTR bugIDOut;
 		GetDlgItemText(IDC_BUGID, m_sBugID);
 		ATL::CComBSTR bugID(m_sBugID);
@@ -2448,7 +2447,7 @@ void CCommitDlg::FillPatchView(bool onlySetTimer)
 				if (!p->GetGitOldPathString().empty())
 					cmd.emplace_back(p->GetGitOldPathString());
 				cmd.emplace_back(p->GetGitPathString());
-				g_Git.Run(cmd, &out, CP_UTF8);
+				GitCall::Run(cmd, &out, CP_UTF8);
 			}
 			else
 				m_patchViewdlg.EnableStaging(EnableStagingTypes::None);
@@ -2507,7 +2506,7 @@ LRESULT CCommitDlg::OnUpdateOKButton(WPARAM, LPARAM)
 
 	CString text = m_cLogMessage.GetText().Trim();
 	const bool bValidLogSize = !text.IsEmpty() && text.GetLength() >= m_ProjectProperties.nMinLogSize;
-	const bool bAmendOrSelectFilesOrMerge = m_ListCtrl.GetSelected() > 0 || (m_bCommitAmend && m_bAmendDiffToLastCommit) || CTGitPath(GitCall::m_CurrentDirStorage.GetString()).IsMergeActive();
+	const bool bAmendOrSelectFilesOrMerge = m_ListCtrl.GetSelected() > 0 || (m_bCommitAmend && m_bAmendDiffToLastCommit) || CTGitPath(GitCall::m_CurrentDirStorage.native()).IsMergeActive();
 
 	DialogEnableWindow(IDOK, bValidLogSize && (m_bCommitMessageOnly || bAmendOrSelectFilesOrMerge));
 
@@ -2723,7 +2722,7 @@ void CCommitDlg::OnBnClickedCommitAmend()
 	if(this->m_bCommitAmend && this->m_AmendStr.IsEmpty())
 	{
 		GitRev rev;
-		if (rev.GetCommit(L"HEAD"))
+		if (rev.GetCommit(CString(L"HEAD")))
 			MessageBox(rev.GetLastErr(), L"TortoiseGit", MB_ICONERROR);
 		m_AmendStr = rev.GetSubject() + L'\n' + rev.GetBody();
 	}
@@ -2966,7 +2965,7 @@ void CCommitDlg::OnBnClickedCommitSetDateTime()
 		if (m_bCommitAmend)
 		{
 			GitRev headRevision;
-			if (headRevision.GetCommit(L"HEAD"))
+			if (headRevision.GetCommit(CString(L"HEAD")))
 				MessageBox(headRevision.GetLastErr(), L"TortoiseGit", MB_ICONERROR);
 			authordate = headRevision.GetAuthorDate();
 			m_AsCommitDateCtrl.EnableWindow(TRUE);
@@ -3029,7 +3028,7 @@ bool CCommitDlg::RestoreFiles(bool doNotAsk, bool allowCancel)
 
 	for (const auto& item : m_ListCtrl.m_restorepaths)
 	{
-		CString dest = g_Git.CombinePath(item.first);
+		CString dest(g_Git.CombinePath(item.first).c_str());
 		CopyFile(item.second, dest, FALSE);
 		PathUtils::Touch(std::wstring(dest));
 	}
@@ -3061,7 +3060,7 @@ void CCommitDlg::OnBnClickedCommitSetauthor()
 	if (m_bCommitAmend)
 	{
 		GitRev headRevision;
-		if (headRevision.GetCommit(L"HEAD"))
+		if (headRevision.GetCommit(CString(L"HEAD")))
 			MessageBox(headRevision.GetLastErr(), L"TortoiseGit", MB_ICONERROR);
 		else
 			m_sAuthor.Format(L"%s <%s>", headRevision.GetAuthorName(), headRevision.GetAuthorEmail());
@@ -3114,8 +3113,8 @@ bool CCommitDlg::RunStartCommitHook()
 {
 	DWORD exitcode = 0xFFFFFFFF;
 	CString error;
-	CHooks::Instance().SetProjectProperties(CTGitPath(GitCall::m_CurrentDirStorage.GetString()), m_ProjectProperties);
-	if (CHooks::Instance().StartCommit(GetSafeHwnd(), GitCall::m_CurrentDirStorage, m_pathList, m_sLogMessage, exitcode, error))
+	CHooks::Instance().SetProjectProperties(CTGitPath(GitCall::m_CurrentDirStorage.native()), m_ProjectProperties);
+	if (CHooks::Instance().StartCommit(GetSafeHwnd(), CString(GitCall::m_CurrentDirStorage.c_str()), m_pathList, m_sLogMessage, exitcode, error))
 	{
 		if (exitcode)
 		{

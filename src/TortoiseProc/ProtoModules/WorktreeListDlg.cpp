@@ -50,7 +50,7 @@ BOOL CWorktreeListDlg::OnInitDialog()
 	CResizableStandAloneDialog::OnInitDialog();
 	CAppUtils::MarkWindowAsUnpinnable(m_hWnd);
 
-	CAppUtils::SetWindowTitle(*this, GitCall::m_CurrentDirStorage);
+	CAppUtils::SetWindowTitle(*this, GitCall::m_CurrentDirStorage.c_str());
 
 	AddAnchor(IDC_WORKTREE_LIST, TOP_LEFT, BOTTOM_RIGHT);
 	AddAnchor(IDC_BUTTON_ADD, BOTTOM_LEFT);

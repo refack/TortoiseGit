@@ -1,4 +1,4 @@
-﻿// TortoiseGit - a Windows shell extension for easy version control
+// TortoiseGit - a Windows shell extension for easy version control
 
 // Copyright (C) 2009-2016, 2019, 2023, 2025-2026 - TortoiseGit
 
@@ -31,7 +31,7 @@ using Git_WC_Notify_Action = CGitProgressList::WC_File_NotificationData::Git_WC_
 
 bool ResolveProgressCommand::Run(CGitProgressList* list, CString& sWindowTitle, int& m_itemCountTotal, int& m_itemCount)
 {
-	list->SetWindowTitle(IDS_PROGRS_TITLE_RESOLVE, g_Git.CombinePath(m_targetPathList.GetCommonRoot().GetUIPathString().c_str()), sWindowTitle);
+	list->SetWindowTitle(IDS_PROGRS_TITLE_RESOLVE, CString(g_Git.CombinePath(m_targetPathList.GetCommonRoot().GetUIPathString().c_str()).c_str()), sWindowTitle);
 	list->SetBackgroundImage(IDI_RESOLVE_BKG);
 
 	m_PostCmdCallback = [](DWORD status, PostCmdList& postCmdList)
@@ -42,12 +42,12 @@ bool ResolveProgressCommand::Run(CGitProgressList* list, CString& sWindowTitle, 
 		postCmdList.emplace_back(IDI_COMMIT, IDS_MENUCOMMIT, []
 		{
 			CString sCmd;
-			sCmd.Format(L"/command:commit /path:\"%s\"", GitCall::m_CurrentDirStorage);
+			sCmd.Format(L"/command:commit /path:\"%s\"", GitCall::m_CurrentDirStorage.c_str());
 			CAppUtils::RunTortoiseGitProc(sCmd);
 		});
 	};
 
-	CBlockCacheForPath block(GitCall::m_CurrentDirStorage);
+	CBlockCacheForPath block(GitCall::m_CurrentDirStorage.c_str());
 
 	if (m_resolveWith == ResolveWith::Current)
 	{
@@ -145,7 +145,7 @@ bool ResolveProgressCommand::Run(CGitProgressList* list, CString& sWindowTitle, 
 
 			CString output; // retest with registered submodule!
 			const std::vector<std::wstring> gitcmd{ L"git.exe", L"rm", L"-f", L"--", path.GetGitPathString() };
-			if (g_Git.Run(gitcmd, &output)))
+			if (GitCall::Run(gitcmd, &output, CP_UTF8))
 			{
 				// a .git folder in a submodule which is not in .gitmodules cannot be deleted using "git rm"
 				if (!PathIsDirectoryEmpty(path.GetGitPathString().c_str()))
@@ -164,7 +164,7 @@ bool ResolveProgressCommand::Run(CGitProgressList* list, CString& sWindowTitle, 
 					}
 					path.Delete(true, true);
 					output.Empty();
-					if (!g_Git.Run(gitcmd, &output)))
+					if (!GitCall::Run(gitcmd, &output, CP_UTF8))
 					{
 						list->AddNotify(new CGitProgressList::WC_File_NotificationData(path, Git_WC_Notify_Action::Resolved));
 						++m_itemCount;
@@ -187,7 +187,7 @@ bool ResolveProgressCommand::Run(CGitProgressList* list, CString& sWindowTitle, 
 				CString output;
 				if (!fullPath.IsDirectory())
 				{
-					if (g_Git.Run({ L"git.exe", L"checkout-index", L"-f", std::format(L"--stage={}", destinationStage), L"--", path.GetGitPathString() }, &output)))
+					if (GitCall::Run({ L"git.exe", L"checkout-index", L"-f", std::format(L"--stage={}", destinationStage), L"--", path.GetGitPathString() }, &output, CP_UTF8))
 					{
 						list->ReportError(output);
 						return false;
@@ -197,7 +197,7 @@ bool ResolveProgressCommand::Run(CGitProgressList* list, CString& sWindowTitle, 
 				// only made sense while the value had to survive being parsed back
 				// out of a flat command line. As a single argv element it carries no
 				// quotes, or git would look for a file whose name begins with one.
-				if (g_Git.Run({ L"git.exe", L"update-index", L"--replace", L"--cacheinfo", std::format(L"0160000,{},{}", destinationHash.ToString(), path.GetGitPathString()) }, &output)))
+				if (GitCall::Run({ L"git.exe", L"update-index", L"--replace", L"--cacheinfo", std::format(L"0160000,{},{}", destinationHash.ToString(), path.GetGitPathString()) }, &output, CP_UTF8))
 				{
 					list->ReportError(output);
 					return false;
@@ -219,18 +219,18 @@ bool ResolveProgressCommand::Run(CGitProgressList* list, CString& sWindowTitle, 
 			}
 			if (submoduleHead != destinationHash)
 			{
-				CString origPath = GitCall::m_CurrentDirStorage;
+				const auto origPath = GitCall::m_CurrentDirStorage;
 				g_Git.SetCurrentDirExact(fullPath.GetWinPathString().c_str());
-				SetCurrentDirectory(GitCall::m_CurrentDirStorage);
+				SetCurrentDirectory(GitCall::m_CurrentDirStorage.c_str());
 				if (!CAppUtils::GitReset(list->GetSafeHwnd(), CString((destinationHash.ToString()).c_str())))
 				{
 					g_Git.SetCurrentDirExact(origPath);
-					SetCurrentDirectory(GitCall::m_CurrentDirStorage);
+					SetCurrentDirectory(GitCall::m_CurrentDirStorage.c_str());
 					list->ReportUserCanceled();
 					return false;
 				}
 				g_Git.SetCurrentDirExact(origPath);
-				SetCurrentDirectory(GitCall::m_CurrentDirStorage);
+				SetCurrentDirectory(GitCall::m_CurrentDirStorage.c_str());
 			}
 			addTask.AddFile(path);
 			CAppUtils::RemoveTempMergeFile(path);

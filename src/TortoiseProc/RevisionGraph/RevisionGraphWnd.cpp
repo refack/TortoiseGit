@@ -807,7 +807,7 @@ CString CRevisionGraphWnd::TooltipText(ogdf::node index)
 
 void CRevisionGraphWnd::SaveGraphAs(CString sSavePath)
 {
-	const std::wstring extension = PathUtils::GetFileExtFromPath(tgit::str::StringView(sSavePath));
+	const std::wstring extension = tgit::str::to_path(sSavePath).extension();
 	if (tgit::wstr::CompareNoCase(extension, L".wmf") == 0)
 	{
 		// save the graph as an enhanced metafile
@@ -931,7 +931,7 @@ void CRevisionGraphWnd::SaveGraphAs(CString sSavePath)
 						bitmap.Save(tfile, &encoderClsid, nullptr);
 					}
 					else
-						sErrormessage.Format(IDS_REVGRAPH_ERR_NOENCODER, PathUtils::GetFileExtFromPath(tgit::str::StringView(sSavePath)).c_str());
+						sErrormessage.Format(IDS_REVGRAPH_ERR_NOENCODER, tgit::str::to_path(sSavePath).extension().c_str());
 				}
 				else
 					sErrormessage.LoadString(IDS_REVGRAPH_ERR_NOBITMAP);
@@ -1066,12 +1066,12 @@ void CRevisionGraphWnd::DoShowLog() const
 
 	if(m_SelectedEntry2)
 		sCmd.Format(L"/command:log /path:%s /startrev:%s /endrev:%s",
-			static_cast<LPCWSTR>(TCmdLineParser::EscapeValue(m_sPath)),
+			TCmdLineParser::EscapeValue(m_sPath).c_str(),
 			(this->m_logEntries[m_SelectedEntry1->index()].ToString()).c_str(),
 			(this->m_logEntries[m_SelectedEntry2->index()].ToString()).c_str());
 	else
 		sCmd.Format(L"/command:log /path:%s /endrev:%s /rev:%s",
-			static_cast<LPCWSTR>(TCmdLineParser::EscapeValue(m_sPath)),
+			TCmdLineParser::EscapeValue(m_sPath).c_str(),
 			(this->m_logEntries[m_SelectedEntry1->index()].ToString()).c_str(),
 			(this->m_logEntries[m_SelectedEntry1->index()].ToString()).c_str());
 
@@ -1090,8 +1090,8 @@ void CRevisionGraphWnd::DoBrowseRepo() const
 
 	CString sCmd;
 	sCmd.Format(L"/command:repobrowser /path:%s /rev:%s",
-		static_cast<LPCWSTR>(TCmdLineParser::EscapeValue(m_sPath)),
-		static_cast<LPCWSTR>(TCmdLineParser::EscapeValue(GetFriendRefName(m_SelectedEntry1))));
+		TCmdLineParser::EscapeValue(m_sPath).c_str(),
+		TCmdLineParser::EscapeValue(GetFriendRefName(m_SelectedEntry1)).c_str());
 
 	CAppUtils::RunTortoiseGitProc(sCmd);
 }

@@ -1,4 +1,4 @@
-﻿// TortoiseGit - a Windows shell extension for easy version control
+// TortoiseGit - a Windows shell extension for easy version control
 
 // Copyright (C) 2008-2013, 2015-2016, 2018-2020, 2026 - TortoiseGit
 
@@ -37,11 +37,11 @@ bool FetchCommand::Execute()
 				continue;
 			}
 			g_Git.SetCurrentDirExact(item.GetWinPathString().c_str());
-			SetCurrentDirectory(GitCall::m_CurrentDirStorage);
-			retVal &= CAppUtils::Fetch(GetExplorerHWND(), parser.GetVal(L"remote"));
+			SetCurrentDirectory(GitCall::m_CurrentDirStorage.c_str());
+			retVal &= CAppUtils::Fetch(GetExplorerHWND(), CString(parser.GetValStr(L"remote").c_str()));
 		}
 		return retVal;
 	}
 
-	return CAppUtils::Fetch(GetExplorerHWND(), parser.GetVal(L"remote"));
+	return CAppUtils::Fetch(GetExplorerHWND(), CString(parser.GetValStr(L"remote").c_str()));
 }

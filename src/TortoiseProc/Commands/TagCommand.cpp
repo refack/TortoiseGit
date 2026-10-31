@@ -25,10 +25,10 @@ import AppUtils.Workflow;
 
 bool TagCommand::Execute()
 {
-	CString base = parser.GetVal(L"rev");
+	CString base = parser.GetValStr(L"rev").c_str();
 	CString *p=&base;
 	if(base.IsEmpty())
 		p = nullptr;
 
-	return CAppUtils::CreateBranchTag(GetExplorerHWND(), true, p, false, parser.HasVal(L"name") ? parser.GetVal(L"name") : nullptr);
+	return CAppUtils::CreateBranchTag(GetExplorerHWND(), true, p, false, parser.HasVal(L"name") ? parser.GetValPtr(L"name") : nullptr);
 }

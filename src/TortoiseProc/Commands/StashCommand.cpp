@@ -26,7 +26,7 @@ bool StashSaveCommand::Execute()
 {
 	CString msg;
 	if (parser.HasKey(L"msg"))
-		msg = parser.GetVal(L"msg");
+		msg = parser.GetValStr(L"msg").c_str();
 	return CAppUtils::StashSave(GetExplorerHWND(), msg);
 }
 

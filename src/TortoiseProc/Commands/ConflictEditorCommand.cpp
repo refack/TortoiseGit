@@ -25,7 +25,7 @@ import AppUtils.Workflow;
 
 bool ConflictEditorCommand::Execute()
 {
-	CTGitPath repo{ GitCall::m_CurrentDirStorage.GetString() };
+	CTGitPath repo{ GitCall::m_CurrentDirStorage.native() };
 	bool bAlternativeTool = !!parser.HasKey(L"alternative");
 	return CAppUtils::ConflictEdit(GetExplorerHWND(), this->cmdLinePath, bAlternativeTool, repo.IsRebaseActive());
 }

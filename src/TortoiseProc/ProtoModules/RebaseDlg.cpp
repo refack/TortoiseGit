@@ -107,7 +107,7 @@ void CRebaseDlg::CleanUpRebaseActiveFolder()
 	if (m_IsCherryPick)
 		return;
 	CString adminDir;
-	if (GitAdminDir::GetAdminDirPath(GitCall::m_CurrentDirStorage, adminDir))
+	if (GitAdminDir::GetAdminDirPath(CString(GitCall::m_CurrentDirStorage.c_str()), adminDir))
 	{
 		CString dir(adminDir + L"tgitrebase.active");
 		::DeleteFile(dir + L"\\head-name");
@@ -245,7 +245,7 @@ BOOL CRebaseDlg::OnInitDialog()
 	m_ctrlTabCtrl.AddTab(&m_LogMessageCtrl, CString(MAKEINTRESOURCE(IDS_PROC_COMMITMESSAGE)), 1);
 	AddRebaseAnchor();
 
-	CAppUtils::SetWindowTitle(*this, GitCall::m_CurrentDirStorage);
+	CAppUtils::SetWindowTitle(*this, CString(GitCall::m_CurrentDirStorage.c_str()));
 
 	EnableSaveRestore(L"RebaseDlg");
 
@@ -302,7 +302,7 @@ BOOL CRebaseDlg::OnInitDialog()
 		GetDlgItem(IDC_BUTTON_ONTO)->EnableWindow(FALSE);
 		this->m_UpstreamCtrl.AddString(L"HEAD");
 		this->m_UpstreamCtrl.EnableWindow(FALSE);
-		CAppUtils::SetWindowTitle(m_hWnd, GitCall::m_CurrentDirStorage, CString(MAKEINTRESOURCE(IDS_PROGS_TITLE_CHERRYPICK)));
+		CAppUtils::SetWindowTitle(m_hWnd, CString(GitCall::m_CurrentDirStorage.c_str()), CString(MAKEINTRESOURCE(IDS_PROGS_TITLE_CHERRYPICK)));
 		m_bAddCherryPickedFrom = CRegDWORD(L"Software\\TortoiseGit\\TortoiseProc\\CherrypickAddCherryPickedFrom", 0) != 0;
 		UpdateData(FALSE);
 		// fill shown list
@@ -620,7 +620,7 @@ void CRebaseDlg::FetchLogList()
 			MessageBox(g_Git.GetGitLastErr(L"Could not get hash of \"" + (m_Onto.IsEmpty() ? m_UpstreamCtrl.GetString() : m_Onto) + L"\"."), L"TortoiseGit", MB_ICONERROR);
 			return;
 		}
-		g_Git.Run({ L"git", L"merge-base", L"--all", std::wstring(head.ToString()), std::wstring(upstreamHash.ToString()) }, [&](const std::string_view line)
+		GitCall::RunReceiver({ L"git", L"merge-base", L"--all", std::wstring(head.ToString()), std::wstring(upstreamHash.ToString()) }, [&](const std::string_view line)
 		{
 			CGitHash hash = CGitHash::FromHexStr(line);
 			if (hash.IsEmpty())
@@ -652,7 +652,7 @@ void CRebaseDlg::FetchLogList()
 		std::vector<CGitHash> nonCherryPicked;
 		// The "A...B" range is one argument; the quotes in the old format string
 		// were there to keep it one after the command line was parsed back.
-		g_Git.Run({ L"git", L"rev-list", std::format(L"{}...{}", refFrom, refTo), L"--left-right", L"--cherry-pick" }, [&](const std::string_view line)
+		GitCall::RunReceiver({ L"git", L"rev-list", std::format(L"{}...{}", refFrom, refTo), L"--left-right", L"--cherry-pick" }, [&](const std::string_view line)
 		{
 			if (line.size() < 1 + 2 * static_cast<int>(tgit::invarients::GitFormatHolder::GitHashSize()))
 				return;
@@ -712,7 +712,7 @@ void CRebaseDlg::FetchLogList()
 		// Default to skip when already in upstream
 		if (!m_Onto.IsEmpty())
 			refFrom = g_Git.FixBranchName(m_Onto);
-		g_Git.Run({ L"git.exe", L"cherry", L"--", std::wstring(refFrom), std::wstring(refTo) }, [&](const std::string_view line)
+		GitCall::RunReceiver({ L"git.exe", L"cherry", L"--", std::wstring(refFrom), std::wstring(refTo) }, [&](const std::string_view line)
 		{
 			if (line.size() < 2 + 2 * static_cast<int>(tgit::invarients::GitFormatHolder::GitHashSize()))
 				return;
@@ -939,8 +939,8 @@ int CRebaseDlg::CheckRebaseCondition()
 		{
 			CString out;
 			const std::vector<std::wstring> argv{ L"git.exe", L"stash" };
-			this->AddLogString(CGit::SerializeArgvStdWString(argv));
-			if (g_Git.Run(argv, &out, CP_UTF8))
+			this->AddLogString(wil::ArgvToCommandLine(argv).c_str());
+			if (GitCall::Run(argv, &out, CP_UTF8))
 			{
 				MessageBox(out, L"TortoiseGit", MB_OK | MB_ICONERROR);
 				return -1;
@@ -960,8 +960,8 @@ int CRebaseDlg::CheckRebaseCondition()
 	{
 		CString error;
 		DWORD exitcode = 0xFFFFFFFF;
-		CHooks::Instance().SetProjectProperties(CTGitPath(GitCall::m_CurrentDirStorage.GetString()), m_ProjectProperties);
-		if (CHooks::Instance().PreRebase(GetSafeHwnd(), GitCall::m_CurrentDirStorage, m_UpstreamCtrl.GetString(), m_BranchCtrl.GetString(), exitcode, error))
+		CHooks::Instance().SetProjectProperties(CTGitPath(GitCall::m_CurrentDirStorage.native()), m_ProjectProperties);
+		if (CHooks::Instance().PreRebase(GetSafeHwnd(), CString(GitCall::m_CurrentDirStorage.c_str()), m_UpstreamCtrl.GetString(), m_BranchCtrl.GetString(), exitcode, error))
 		{
 			if (exitcode)
 			{
@@ -1033,7 +1033,7 @@ int CRebaseDlg::StartRebase()
 	//git symbolic-ref HEAD > "$DOTEST"/head-name 2> /dev/null ||
 	//		echo "detached HEAD" > "$DOTEST"/head-name
 
-	if (g_Git.Run({ L"git.exe", L"update-ref", L"ORIG_HEAD", std::wstring(m_OrigHEADHash.ToString()) }, &out, CP_UTF8))
+	if (GitCall::Run({ L"git.exe", L"update-ref", L"ORIG_HEAD", std::wstring(m_OrigHEADHash.ToString()) }, &out, CP_UTF8))
 	{
 		AddLogString(L"update ORIG_HEAD Fail");
 		return -1;
@@ -1057,7 +1057,7 @@ int CRebaseDlg::StartRebase()
 		if (g_Git.m_IsUseLibGit2)
 			WriteReflog(m_OrigHEADHash, "rebase: start (" + CUnicodeUtils::GetUTF8<CStringA>(m_OrigHEADBranch) + " on " + CUnicodeUtils::GetUTF8<CStringA>(m_OrigUpstreamHash.ToString()) + ")");
 		const std::vector<std::wstring> argv{ L"git.exe", L"checkout", L"-f", std::wstring(m_OrigUpstreamHash.ToString()), L"--" };
-		this->AddLogString(CGit::SerializeArgvStdWString(argv));
+		this->AddLogString(wil::ArgvToCommandLine(argv).c_str());
 		if (RunGitCmdRetryOrAbort(argv))
 			return -1;
 		if (!g_Git.CheckCleanWorkTree())
@@ -1140,13 +1140,13 @@ int CRebaseDlg::FinishRebase()
 	if (g_Git.IsLocalBranch(m_BranchCtrl.GetString()))
 	{
 		const std::vector<std::wstring> checkout{ L"git.exe", L"checkout", L"-f", L"-B", std::wstring(m_BranchCtrl.GetString()), std::wstring(head.ToString()), L"--" };
-		AddLogString(CGit::SerializeArgvStdWString(checkout));
+		AddLogString(wil::ArgvToCommandLine(checkout).c_str());
 		if (RunGitCmdRetryOrAbort(checkout))
 			return -1;
 	}
 
 	const std::vector<std::wstring> reset{ L"git.exe", L"reset", L"--hard", std::wstring(head.ToString()), L"--" };
-	AddLogString(CGit::SerializeArgvStdWString(reset));
+	AddLogString(wil::ArgvToCommandLine(reset).c_str());
 	if (RunGitCmdRetryOrAbort(reset))
 		return -1;
 
@@ -1179,7 +1179,7 @@ void CRebaseDlg::RewriteNotes()
 	}
 	if (rewrites.IsEmpty())
 		return;
-	CString tmpfile = GetTempFile();
+	CString tmpfile = GitCall::GetTempFile();
 	if (tmpfile.IsEmpty())
 	{
 		MessageBox(L"Could not create temp file.", L"TortoiseGit", MB_OK | MB_ICONERROR);
@@ -1189,7 +1189,7 @@ void CRebaseDlg::RewriteNotes()
 	if (!StringUtils::WriteStringToTextFile(tmpfile, rewrites))
 		return;
 	SCOPE_EXIT{ ::DeleteFile(tmpfile); };
-	CString pipefile = GetTempFile();
+	CString pipefile = GitCall::GetTempFile();
 	if (pipefile.IsEmpty())
 	{
 		MessageBox(L"Could not create temp file.", L"TortoiseGit", MB_OK | MB_ICONERROR);
@@ -1204,7 +1204,7 @@ void CRebaseDlg::RewriteNotes()
 	CString out;
 	// Two elements, so a temp path containing a space now survives; the old
 	// concatenation handed bash.exe a split path.
-	g_Git.Run({ L"bash.exe", std::wstring(pipefile) }, &out, CP_UTF8);
+	GitCall::Run({ L"bash.exe", std::wstring(pipefile) }, &out, CP_UTF8);
 }
 
 void CRebaseDlg::OnBnClickedContinue()
@@ -1255,7 +1255,7 @@ void CRebaseDlg::OnBnClickedContinue()
 		if (g_Git.IsLocalBranch(m_BranchCtrl.GetString()))
 		{
 			const std::vector<std::wstring> checkout{ L"git.exe", L"checkout", L"--no-track", L"-f", L"-B", std::wstring(m_BranchCtrl.GetString()), L"--end-of-options", std::wstring(m_UpstreamCtrl.GetString()), L"--" };
-			AddLogString(CGit::SerializeArgvStdWString(checkout));
+			AddLogString(wil::ArgvToCommandLine(checkout).c_str());
 			if (RunGitCmdRetryOrAbort(checkout))
 			{
 				GetDlgItem(IDC_REBASE_CONTINUE)->EnableWindow(TRUE);
@@ -1270,7 +1270,7 @@ void CRebaseDlg::OnBnClickedContinue()
 		log.Format(IDS_PROC_REBASE_FFTO, m_UpstreamCtrl.GetString());
 		this->AddLogString(log);
 
-		AddLogString(CGit::SerializeArgvStdWString(reset));
+		AddLogString(wil::ArgvToCommandLine(reset).c_str());
 		this->m_ctrlTabCtrl.SetActiveTab(REBASE_TAB_LOG);
 		if (RunGitCmdRetryOrAbort(reset))
 		{
@@ -1438,9 +1438,9 @@ void CRebaseDlg::OnBnClickedContinue()
 			argv.emplace_back(L"--allow-empty");
 		argv.insert(argv.cend(), { L"--allow-empty-message", L"-C", std::wstring(curRev->m_CommitHash.ToString()) });
 
-		AddLogString(CGit::SerializeArgvStdWString(argv));
+		AddLogString(wil::ArgvToCommandLine(argv).c_str());
 
-		if (!skipCurrent && g_Git.Run(argv, &out, CP_UTF8))
+		if (!skipCurrent && GitCall::Run(argv, &out, CP_UTF8))
 		{
 			AddLogString(out);
 			CMessageBox::Show(GetSafeHwnd(), out, L"TortoiseGit", MB_OK | MB_ICONERROR);
@@ -1458,7 +1458,7 @@ void CRebaseDlg::OnBnClickedContinue()
 				CMessageBox::Show(GetSafeHwnd(), IDS_PROC_COMMITMESSAGE_EMPTY,IDS_APPNAME, MB_OK | MB_ICONERROR);
 				return;
 			}
-			CString tempfile = ::GetTempFile();
+			CString tempfile = GitCall::GetTempFile();
 			if (tempfile.IsEmpty())
 			{
 				MessageBox(L"Could not create temp file.", L"TortoiseGit", MB_OK | MB_ICONERROR);
@@ -1473,9 +1473,9 @@ void CRebaseDlg::OnBnClickedContinue()
 
 			out.Empty();
 			const std::vector<std::wstring> amend{ L"git.exe", L"commit", L"--amend", L"-F", std::wstring(tempfile) };
-			AddLogString(CGit::SerializeArgvStdWString(amend));
+			AddLogString(wil::ArgvToCommandLine(amend).c_str());
 
-			if (g_Git.Run(amend, &out, CP_UTF8))
+			if (GitCall::Run(amend, &out, CP_UTF8))
 			{
 				AddLogString(out);
 				if (!g_Git.CheckCleanWorkTree())
@@ -1599,7 +1599,7 @@ void CRebaseDlg::OnBnClickedContinue()
 				return;
 		}
 
-		CString tempfile=::GetTempFile();
+		CString tempfile=GitCall::GetTempFile();
 		if (tempfile.IsEmpty())
 		{
 				MessageBox(L"Could not create temp file.", L"TortoiseGit", MB_OK | MB_ICONERROR);
@@ -1647,7 +1647,7 @@ void CRebaseDlg::OnBnClickedContinue()
 		}
 		argv.insert(argv.cend(), { L"-F", std::wstring(tempfile) });
 
-		if (!skipCurrent && g_Git.Run(argv, &out, CP_UTF8))
+		if (!skipCurrent && GitCall::Run(argv, &out, CP_UTF8))
 		{
 			if (!g_Git.CheckCleanWorkTree())
 			{
@@ -1668,7 +1668,7 @@ void CRebaseDlg::OnBnClickedContinue()
 		if (nextIsSquash) // remember commit msg after edit if next commit if squash; but don't do this if ...->squash(reset here)->pick->squash
 		{
 			GitRev latest;
-			if (latest.GetCommit(L"HEAD"))
+			if (latest.GetCommit(std::wstring_view(L"HEAD")))
 			{
 				MessageBox(L"Could not get HEAD commit:" + latest.GetLastErr(), L"TortoiseGit", MB_ICONERROR);
 				return;
@@ -1968,13 +1968,13 @@ int CRebaseDlg::IsCommitEmpty(const CGitHash& hash)
 {
 	CString tree, ptree;
 	const std::vector<std::wstring> argv{ L"git.exe", L"rev-parse", L"-q", L"--verify", std::format(L"{}^{{tree}}", hash.ToString()) };
-	if (g_Git.Run(argv, &tree, CP_UTF8))
+	if (GitCall::Run(argv, &tree, CP_UTF8))
 	{
-		AddLogString(CGit::SerializeArgvStdWString(argv));
+		AddLogString(wil::ArgvToCommandLine(argv).c_str());
 		AddLogString(tree);
 		return -1;
 	}
-	if (g_Git.Run({ L"git.exe", L"rev-parse", L"-q", L"--verify", std::format(L"{}^^{{tree}}", hash.ToString()) }, &ptree, CP_UTF8))
+	if (GitCall::Run({ L"git.exe", L"rev-parse", L"-q", L"--verify", std::format(L"{}^^{{tree}}", hash.ToString()) }, &ptree, CP_UTF8))
 		ptree = L"4b825dc642cb6eb9a060e54bf8d69288fbee4904"; // empty tree
 	return tree == ptree;
 }
@@ -2195,9 +2195,9 @@ int CRebaseDlg::DoRebase()
 						argv.emplace_back(std::wstring(parent.ToString()));
 					if (!noCommit)
 					{
-						if (g_Git.Run(argv, &out, CP_UTF8))
+						if (GitCall::Run(argv, &out, CP_UTF8))
 						{
-							AddLogString(CGit::SerializeArgvStdWString(argv));
+							AddLogString(wil::ArgvToCommandLine(argv).c_str());
 							AddLogString(out);
 							const int hasConflicts = g_Git.HasWorkingTreeConflicts();
 							if (hasConflicts > 0)
@@ -2241,7 +2241,7 @@ int CRebaseDlg::DoRebase()
 			}
 		}
 
-		if (g_Git.Run(argv, &out, CP_UTF8))
+		if (GitCall::Run(argv, &out, CP_UTF8))
 		{
 			AddLogString(out);
 			const int hasConflicts = g_Git.HasWorkingTreeConflicts();
@@ -2270,7 +2270,7 @@ int CRebaseDlg::DoRebase()
 					}
 
 					out.Empty();
-					g_Git.Run({ L"git.exe", L"commit", L"--allow-empty", L"-C", std::wstring(pRev->m_CommitHash.ToString()) }, &out, CP_UTF8);
+					GitCall::Run({ L"git.exe", L"commit", L"--allow-empty", L"-C", std::wstring(pRev->m_CommitHash.ToString()) }, &out, CP_UTF8);
 					m_CurrentCommitEmpty = true;
 				}
 				else if (mode == CGitLogListBase::LOGACTIONS_REBASE_PICK)
@@ -2378,7 +2378,7 @@ BOOL CRebaseDlg::IsEnd()
 
 int CRebaseDlg::RebaseThread()
 {
-	CBlockCacheForPath cacheBlock(GitCall::m_CurrentDirStorage);
+	CBlockCacheForPath cacheBlock(GitCall::m_CurrentDirStorage.c_str());
 
 	int ret=0;
 	while (!m_bAbort)
@@ -2436,7 +2436,7 @@ void CRebaseDlg::ListConflictFile(bool noStoreScrollPosition)
 	if (!m_IsCherryPick)
 	{
 		CString adminDir;
-		if (GitAdminDir::GetAdminDirPath(GitCall::m_CurrentDirStorage, adminDir))
+		if (GitAdminDir::GetAdminDirPath(CString(GitCall::m_CurrentDirStorage.c_str()), adminDir))
 		{
 			CString dir(adminDir + L"tgitrebase.active");
 			::CreateDirectory(dir, nullptr);
@@ -2512,7 +2512,7 @@ LRESULT CRebaseDlg::OnRebaseUpdateUI(WPARAM,LPARAM)
 		if (m_IsCherryPick)
 		{
 			CString dotGitPath;
-			GitAdminDir::GetWorktreeAdminDirPath(GitCall::m_CurrentDirStorage, dotGitPath);
+			GitAdminDir::GetWorktreeAdminDirPath(CString(GitCall::m_CurrentDirStorage.c_str()), dotGitPath);
 			// vanilla git also re-uses MERGE_MSG on conflict (listing all conflicted files)
 			// and it's also needed for cherry-pick in order to get cherry-picked-from included on conflicts
 			TGitH::LoadTextFile(dotGitPath + L"MERGE_MSG", logMessage);
@@ -2533,7 +2533,7 @@ LRESULT CRebaseDlg::OnRebaseUpdateUI(WPARAM,LPARAM)
 			// Since the new commit is done and the HEAD points to it,
 			// just using the new body modified by git self.
 			GitRev headRevision;
-			if (headRevision.GetCommit(L"HEAD"))
+			if (headRevision.GetCommit(std::wstring_view(L"HEAD")))
 				MessageBox(headRevision.GetLastErr(), L"TortoiseGit", MB_ICONERROR);
 
 			m_LogMessageCtrl.SetText(headRevision.GetSubject() + L'\n' + headRevision.GetBody());
@@ -2637,7 +2637,7 @@ void CRebaseDlg::OnBnClickedAbort()
 	if (m_OrigHEADBranch == m_BranchCtrl.GetString())
 	{
 		CString out;
-		if (g_Git.Run(CheckoutForceArgv(g_Git.IsLocalBranch(m_OrigHEADBranch) ? m_BranchCtrl.GetString() : CString(), m_OrigBranchHash), &out, CP_UTF8))
+		if (GitCall::Run(CheckoutForceArgv(g_Git.IsLocalBranch(m_OrigHEADBranch) ? m_BranchCtrl.GetString() : CString(), m_OrigBranchHash), &out, CP_UTF8))
 		{
 			AddLogString(out);
 			::MessageBox(m_hWnd, L"Unrecoverable error on cleanup:\n" + out, L"TortoiseGit", MB_ICONERROR);
@@ -2652,7 +2652,7 @@ void CRebaseDlg::OnBnClickedAbort()
 		CString out;
 		if (m_OrigHEADBranch != g_Git.GetCurrentBranch(true))
 		{
-			if (g_Git.Run(CheckoutForceArgv(g_Git.IsLocalBranch(m_OrigHEADBranch) ? m_OrigHEADBranch : CString(), m_OrigHEADHash), &out, CP_UTF8))
+			if (GitCall::Run(CheckoutForceArgv(g_Git.IsLocalBranch(m_OrigHEADBranch) ? m_OrigHEADBranch : CString(), m_OrigHEADHash), &out, CP_UTF8))
 			{
 				AddLogString(out);
 				::MessageBox(m_hWnd, L"Unrecoverable error on cleanup:\n" + out, L"TortoiseGit", MB_ICONERROR);
@@ -2665,7 +2665,7 @@ void CRebaseDlg::OnBnClickedAbort()
 		// restore moved branch
 		if (g_Git.IsLocalBranch(m_BranchCtrl.GetString()))
 		{
-			if (g_Git.Run({ L"git.exe", L"branch", L"-f", L"--", std::wstring(m_BranchCtrl.GetString()), std::wstring(m_OrigBranchHash.ToString()) }, &out, CP_UTF8))
+			if (GitCall::Run({ L"git.exe", L"branch", L"-f", L"--", std::wstring(m_BranchCtrl.GetString()), std::wstring(m_OrigBranchHash.ToString()) }, &out, CP_UTF8))
 			{
 				AddLogString(out);
 				::MessageBox(m_hWnd, L"Unrecoverable error on cleanup:\n" + out, L"TortoiseGit", MB_ICONERROR);
@@ -3032,9 +3032,9 @@ int	CRebaseDlg::RunGitCmdRetryOrAbort(const std::vector<std::wstring>& argv)
 	while (true)
 	{
 		CString out;
-		if (g_Git.Run(argv, &out, CP_UTF8))
+		if (GitCall::Run(argv, &out, CP_UTF8))
 		{
-			const CString cmd = CGit::SerializeArgvStdWString(argv);
+			const CString cmd = wil::ArgvToCommandLine(argv).c_str();
 			AddLogString(cmd);
 			AddLogString(CString(MAKEINTRESOURCE(IDS_FAIL)));
 			AddLogString(out);

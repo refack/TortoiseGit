@@ -28,9 +28,9 @@ bool RequestPullCommand::Execute()
 	CString endrevision;
 	CString reposirotyurl;
 	if (parser.HasVal(L"endrev"))
-		endrevision = parser.GetVal(L"endrev");
+		endrevision = parser.GetValStr(L"endrev").c_str();
 	if (parser.HasVal(L"url"))
-		reposirotyurl = parser.GetVal(L"url");
+		reposirotyurl = parser.GetValStr(L"url").c_str();
 
 	return CAppUtils::RequestPull(GetExplorerHWND(), endrevision, reposirotyurl);
 }

@@ -444,7 +444,7 @@ bool Command::CheckRepo(PathRequirement requirement) const
 {
 	if (requirement >= PathRequirement::WorkingTreeRequired)
 	{
-		if (!GitAdminDir::HasAdminDir(GitCall::m_CurrentDirStorage.wstring()))
+		if (GitAdminDir::HasAdminDir(GitCall::m_CurrentDirStorage).empty())
 		{
 			CMessageBox::Show(GetExplorerHWND(), IDS_NOWORKINGCOPY, IDS_APPNAME, MB_ICONERROR);
 			return false;

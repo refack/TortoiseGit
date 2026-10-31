@@ -87,7 +87,7 @@ BOOL CChangedDlg::OnInitDialog()
 	m_regAddBeforeCommit = CRegDWORD(L"Software\\TortoiseGit\\AddBeforeCommit", TRUE);
 	m_bShowUnversioned = m_regAddBeforeCommit;
 
-	CString regPath(GitCall::m_CurrentDirStorage);
+	CString regPath(GitCall::m_CurrentDirStorage.c_str());
 	regPath.Replace(L':', L'_');
 	m_regShowWholeProject = CRegDWORD(L"Software\\TortoiseGit\\TortoiseProc\\ShowWholeProject\\" + regPath, FALSE);
 	m_bWholeProject = m_regShowWholeProject;
@@ -255,13 +255,13 @@ void CChangedDlg::SetDlgTitle()
 		GetWindowText(m_sTitle);
 
 	if (m_bWholeProject)
-		CAppUtils::SetWindowTitle(m_hWnd, GitCall::m_CurrentDirStorage, m_sTitle);
+		CAppUtils::SetWindowTitle(m_hWnd, CString(GitCall::m_CurrentDirStorage.c_str()), m_sTitle);
 	else
 	{
 		const auto pathTitle = (m_pathList.GetCount() == 1) ?
 			m_pathList[0].GetUIPathString() :
 			std::wstring{ m_FileListCtrl.GetCommonDirectory(false) };
-		CAppUtils::SetWindowTitle(m_hWnd, g_Git.CombinePath(pathTitle), m_sTitle);
+		CAppUtils::SetWindowTitle(m_hWnd, CString(g_Git.CombinePath(pathTitle).c_str()), m_sTitle);
 	}
 }
 
@@ -397,7 +397,7 @@ void CChangedDlg::OnBnClickedStash()
 	{
 		popup.AppendMenuIcon(ID_STASH_SAVE, IDS_MENUSTASHSAVE, IDI_SHELVE);
 
-		CTGitPath root(GitCall::m_CurrentDirStorage.GetString());
+		CTGitPath root(GitCall::m_CurrentDirStorage.native());
 		if (root.HasStashDir())
 		{
 			popup.AppendMenuIcon(ID_STASH_POP, IDS_MENUSTASHPOP, IDI_UNSHELVE);
@@ -446,7 +446,7 @@ void CChangedDlg::OnBnClickedButtonUnifieddiff()
 	if (bSingleFile)
 		commonDirectory = m_pathList[0];
 	CString sCmd;
-	sCmd.Format(L"/command:showcompare /unified /path:%s /revision1:HEAD /revision2:%s", static_cast<LPCWSTR>(TCmdLineParser::EscapeValue(g_Git.CombinePath(commonDirectory))), GitRev::GetWorkingCopyRef());
+	sCmd.Format(L"/command:showcompare /unified /path:%s /revision1:HEAD /revision2:%s", TCmdLineParser::EscapeValue(g_Git.CombinePath(commonDirectory).native()).c_str(), GitRev::GetWorkingCopyRef());
 	if (!!(GetAsyncKeyState(VK_SHIFT) & 0x8000))
 		sCmd += L" /alternative";
 	CAppUtils::RunTortoiseGitProc(sCmd);

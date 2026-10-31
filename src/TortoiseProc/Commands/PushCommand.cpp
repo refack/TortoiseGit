@@ -28,7 +28,7 @@ bool PushCommand::Execute()
 {
 	CString branch;
 	if (parser.HasVal(L"branch"))
-		branch = parser.GetVal(L"branch");
+		branch = parser.GetValStr(L"branch").c_str();
 
 	if (orgPathList.GetCount() > 1)
 	{
@@ -42,7 +42,7 @@ bool PushCommand::Execute()
 				continue;
 			}
 			g_Git.SetCurrentDirExact(item.GetWinPathString().c_str());
-			SetCurrentDirectory(GitCall::m_CurrentDirStorage);
+			SetCurrentDirectory(GitCall::m_CurrentDirStorage.c_str());
 			retVal &= CAppUtils::Push(GetExplorerHWND(), branch);
 		}
 		return retVal;

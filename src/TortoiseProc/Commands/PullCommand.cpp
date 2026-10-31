@@ -38,7 +38,7 @@ bool PullCommand::Execute()
 				continue;
 			}
 			g_Git.SetCurrentDirExact(item.GetWinPathString().c_str());
-			SetCurrentDirectory(GitCall::m_CurrentDirStorage);
+			SetCurrentDirectory(GitCall::m_CurrentDirStorage.c_str());
 			retVal &= CAppUtils::Pull(GetExplorerHWND(), false);
 		}
 		return retVal;

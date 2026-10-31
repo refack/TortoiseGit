@@ -586,7 +586,7 @@ void CSyncDlg::FetchComplete()
 					postCmdList.emplace_back(IDI_RESOLVE, IDS_PROGRS_CMD_RESOLVE, []
 					{
 						CString sCmd;
-						sCmd.Format(L"/command:commit /path:\"%s\"", GitCall::m_CurrentDirStorage);
+						sCmd.Format(L"/command:commit /path:\"%s\"", GitCall::m_CurrentDirStorage.c_str());
 						CAppUtils::RunTortoiseGitProc(sCmd);
 					});
 				}
@@ -684,8 +684,8 @@ void CSyncDlg::OnBnClickedButtonPush()
 
 	CString error;
 	DWORD exitcode = 0xFFFFFFFF;
-	CHooks::Instance().SetProjectProperties(CTGitPath(GitCall::m_CurrentDirStorage.GetString()), m_ProjectProperties);
-	if (CHooks::Instance().PrePush(GetSafeHwnd(), GitCall::m_CurrentDirStorage, exitcode, error))
+	CHooks::Instance().SetProjectProperties(CTGitPath(GitCall::m_CurrentDirStorage.native()), m_ProjectProperties);
+	if (CHooks::Instance().PrePush(GetSafeHwnd(), CString(GitCall::m_CurrentDirStorage.c_str()), exitcode, error))
 	{
 		if (exitcode)
 		{
@@ -961,7 +961,7 @@ BOOL CSyncDlg::OnInitDialog()
 	AddAnchor(IDC_STATIC_REMOTE_BRANCH, TOP_CENTER);
 	AddAnchor(IDC_PROG_LABEL, TOP_LEFT);
 
-	CString WorkingDir=GitCall::m_CurrentDirStorage;
+	CString WorkingDir(GitCall::m_CurrentDirStorage.c_str());
 	WorkingDir.Replace(L':', L'_');
 	m_RegKeyRemoteBranch = L"Software\\TortoiseGit\\History\\SyncBranch\\" + WorkingDir;
 
@@ -1000,7 +1000,7 @@ BOOL CSyncDlg::OnInitDialog()
 	this->m_ctrlPush.SetCurrentEntry(this->m_regPushButton);
 	this->m_ctrlSubmodule.SetCurrentEntry(this->m_regSubmoduleButton);
 
-	CAppUtils::SetWindowTitle(*this, GitCall::m_CurrentDirStorage);
+	CAppUtils::SetWindowTitle(*this, CString(GitCall::m_CurrentDirStorage.c_str()));
 
 	EnableSaveRestore(L"SyncDlg");
 
@@ -1073,7 +1073,7 @@ void CSyncDlg::Refresh()
 	this->m_ctrlURL.GetWindowText(url);
 
 	this->m_ctrlURL.Reset();
-	CString workingDir = GitCall::m_CurrentDirStorage;
+	CString workingDir(GitCall::m_CurrentDirStorage.c_str());
 	workingDir.Replace(L':', L'_');
 	this->m_ctrlURL.LoadHistory(L"Software\\TortoiseGit\\History\\SyncURL\\" + workingDir, L"url");
 
@@ -1425,8 +1425,8 @@ void CSyncDlg::RunPostAction()
 	{
 		DWORD exitcode = 0xFFFFFFFF;
 		CString error;
-		CHooks::Instance().SetProjectProperties(CTGitPath(GitCall::m_CurrentDirStorage.GetString()), m_ProjectProperties);
-		if (CHooks::Instance().PostPush(GetSafeHwnd(), GitCall::m_CurrentDirStorage, exitcode, error))
+		CHooks::Instance().SetProjectProperties(CTGitPath(GitCall::m_CurrentDirStorage.native()), m_ProjectProperties);
+		if (CHooks::Instance().PostPush(GetSafeHwnd(), CString(GitCall::m_CurrentDirStorage.c_str()), exitcode, error))
 		{
 			if (exitcode)
 			{
@@ -1496,22 +1496,22 @@ void CSyncDlg::OnCancel()
 	if (m_GitProgressList.IsRunning())
 		WaitForSingleObject(m_GitProgressList.m_pThread->m_hThread, 10000);
 
-	if (g_Git.m_CurrentGitPi.hProcess)
+	if (GitCall::m_CurrentGitPi.hProcess)
 	{
 		DWORD dwConfirmKillProcess = CRegDWORD(L"Software\\TortoiseGit\\ConfirmKillProcess");
 		if (dwConfirmKillProcess && CMessageBox::Show(m_hWnd, IDS_PROC_CONFIRMKILLPROCESS, IDS_APPNAME, MB_YESNO | MB_ICONQUESTION) != IDYES)
 			return;
 		if (::GenerateConsoleCtrlEvent(CTRL_C_EVENT, 0))
-			::WaitForSingleObject(g_Git.m_CurrentGitPi.hProcess, 10000);
+			::WaitForSingleObject(GitCall::m_CurrentGitPi.hProcess, 10000);
 
-		CProgressDlg::KillProcessTree(g_Git.m_CurrentGitPi.dwProcessId);
+		CProgressDlg::KillProcessTree(GitCall::m_CurrentGitPi.dwProcessId);
 	}
 
-	::WaitForSingleObject(g_Git.m_CurrentGitPi.hProcess ,10000);
+	::WaitForSingleObject(GitCall::m_CurrentGitPi.hProcess ,10000);
 	if (m_pThread)
 	{
 		if (::WaitForSingleObject(m_pThread->m_hThread, 5000) == WAIT_TIMEOUT)
-			g_Git.KillRelatedThreads(m_pThread->m_nThreadID, m_pThread->m_hThread);
+			GitCall::KillRelatedThreads(m_pThread->m_nThreadID, m_pThread->m_hThread);
 	}
 	m_tooltips.Pop();
 	CResizableStandAloneDialog::OnCancel();

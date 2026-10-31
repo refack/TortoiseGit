@@ -29,15 +29,15 @@ public:
 	 */
 	bool BisectCommand::Execute()
 	{
-		CTGitPath path(GitCall::m_CurrentDirStorage.GetString());
+		CTGitPath path(GitCall::m_CurrentDirStorage.native());
 
 		if (parser.HasKey(L"start") && !path.IsBisectActive())
 		{
 			CString lastGood, firstBad;
 			if (parser.HasKey(L"good"))
-				lastGood = parser.GetVal(L"good");
+				lastGood = parser.GetValStr(L"good").c_str();
 			if (parser.HasKey(L"bad"))
-				firstBad = parser.GetVal(L"bad");
+				firstBad = parser.GetValStr(L"bad").c_str();
 
 			return CAppUtils::BisectStart(GetExplorerHWND(), lastGood, firstBad);
 		}
@@ -56,7 +56,7 @@ public:
 				op = L"reset";
 
 			if (parser.HasKey(L"ref") && !parser.HasKey(L"reset"))
-				ref = parser.GetVal(L"ref");
+				ref = parser.GetValStr(L"ref").c_str();
 
 			return CAppUtils::BisectOperation(GetExplorerHWND(), op, ref);
 		}

@@ -33,10 +33,10 @@ CString CommitCommand::LoadLogMessage()
 {
 	CString msg;
 	if (parser.HasKey(L"logmsg"))
-		msg = parser.GetVal(L"logmsg");
+		msg = parser.GetValStr(L"logmsg").c_str();
 	if (parser.HasKey(L"logmsgfile"))
 	{
-		CString logmsgfile = parser.GetVal(L"logmsgfile");
+		CString logmsgfile = parser.GetValStr(L"logmsgfile").c_str();
 		StringUtils::ReadStringFromTextFile(logmsgfile, msg);
 	}
 	return msg;
@@ -53,7 +53,7 @@ bool CommitCommand::Execute()
 	bool bSelectFilesForCommit = !!DWORD(Registry::CRegStdDWORD(L"Software\\TortoiseGit\\SelectFilesForCommit", TRUE));
 
 	return !!CAppUtils::Commit(GetExplorerHWND(),
-								parser.GetVal(L"bugid"),
+								CString(parser.GetValStr(L"bugid").c_str()),
 								parser.HasKey(L"wholeproject"),
 								sLogMsg,
 								pathList,

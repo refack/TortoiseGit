@@ -26,5 +26,5 @@ import AppUtils.Workflow;
 bool ExportCommand::Execute()
 {
 	auto base = parser.GetValStr(L"rev");
-	return CAppUtils::Export(GetExplorerHWND(), p, &orgCmdLinePath);
+	return CAppUtils::Export(GetExplorerHWND(), std::move(base),&orgCmdLinePath);
 }
