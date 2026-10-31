@@ -44,12 +44,12 @@ bool DropCopyCommand::Execute()
 		CRenameDlg renDlg;
 		renDlg.SetInputValidator([&](const int /*nID*/, const CString& input) -> CString
 		{
-			if (PathFileExists(sDroppath + L'\\' + input))
+			if (fs::exists(sDroppath / input.GetString()))
 				return CString((CFormatMessageWrapper(ERROR_FILE_EXISTS)).c_str());
 
 			return{};
 		});
-		renDlg.m_sBaseDir = sDroppath;
+		renDlg.m_sBaseDir = sDroppath.c_str();
 		renDlg.m_windowtitle.LoadString(IDS_PROC_COPYRENAME);
 		renDlg.m_name = pathList[0].GetFileOrDirectoryName().c_str();
 		if (renDlg.DoModal() != IDOK)
@@ -64,7 +64,7 @@ bool DropCopyCommand::Execute()
 	{
 		const CTGitPath& sourcePath = orgPathList[nPath];
 
-		CTGitPath fullDropPath(sDroppath.GetString());
+		CTGitPath fullDropPath(sDroppath.c_str());
 
 		if (sNewName.IsEmpty())
 			fullDropPath.AppendPathString(sourcePath.GetFileOrDirectoryName().c_str());
@@ -79,7 +79,7 @@ bool DropCopyCommand::Execute()
 			CRenameDlg dlg;
 			dlg.SetInputValidator([&](const int /*nID*/, const CString& input) -> CString
 			{
-				CTGitPath newPath(sDroppath.GetString());
+				CTGitPath newPath(sDroppath.c_str());
 				newPath.AppendPathString(input.GetString());
 				if (newPath.Exists())
 					return CString((CFormatMessageWrapper(ERROR_FILE_EXISTS)).c_str());
@@ -98,7 +98,7 @@ bool DropCopyCommand::Execute()
 			progress.SetProgress(count, pathList.GetCount());
 			progress.ShowModeless(CWnd::FromHandle(GetExplorerHWND()));
 			// Rebuild the destination path, with the new name
-			fullDropPath.SetFromUnknown(sDroppath.GetString());
+			fullDropPath.SetFromUnknown(sDroppath.c_str());
 			fullDropPath.AppendPathString(dlg.m_name.GetString());
 		}
 
@@ -114,9 +114,9 @@ bool DropCopyCommand::Execute()
 				if (!path.IsEmpty() && (path[0] == L'\\' || path[0] == L'/'))
 					path = path.Mid(1);
 
-				CString output;
-				if (g_Git.Run({ L"git.exe", L"add", L"--", std::wstring(path) }, &output)))
-					MessageBox(GetExplorerHWND(), output, L"TortoiseGit", MB_OK | MB_ICONERROR);
+				std::string output;
+				if (g_Git.Run({ L"git.exe", L"add", L"--", std::wstring(path) }, &output))
+					MessageBox(GetExplorerHWND(), CUnicodeUtils::StdGetUnicode(output).c_str(), L"TortoiseGit", MB_OK | MB_ICONERROR);
 				else
 					CShellUpdater::Instance().AddPathForUpdate(fullDropPath);
 			}

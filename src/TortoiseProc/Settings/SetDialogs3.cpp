@@ -128,7 +128,7 @@ void CSetDialogs3::LoadDataImpl(wil::unique_git_config& config)
 			if (longValue == 0)
 			{
 				if (m_iConfigSource == CFG_SRC_EFFECTIVE)
-					SelectLanguage(m_langCombo, CRegDWORD(L"Software\\TortoiseGit\\LanguageID", CLangDll::s_defaultLang));
+					SelectLanguage(m_langCombo, CRegDWORD(L"Software\\TortoiseGit\\LanguageID", LangDll::s_defaultLang));
 				else
 					m_langCombo.SetCurSel(1);
 			}
@@ -136,7 +136,7 @@ void CSetDialogs3::LoadDataImpl(wil::unique_git_config& config)
 				SelectLanguage(m_langCombo, longValue);
 		}
 		else if (m_iConfigSource == CFG_SRC_EFFECTIVE)
-			SelectLanguage(m_langCombo, CRegDWORD(L"Software\\TortoiseGit\\LanguageID", CLangDll::s_defaultLang));
+			SelectLanguage(m_langCombo, CRegDWORD(L"Software\\TortoiseGit\\LanguageID", LangDll::s_defaultLang));
 		else
 			m_langCombo.SetCurSel(1);
 	}
@@ -165,7 +165,7 @@ void CSetDialogs3::LoadDataImpl(wil::unique_git_config& config)
 		}
 	}
 
-	GetBoolConfigValueComboBox(config, PROJECTPROPNAME_WARNNOSIGNEDOFFBY, m_cWarnNoSignedOffBy);
+	GetBoolConfigValueComboBox(config, PROJECTPROPNAME_WARNNOSIGNEDOFFBY.data(), m_cWarnNoSignedOffBy);
 
 	m_bInheritIconFile = (TGitH::GetConfigString(config.get(), PROJECTPROPNAME_ICON, m_iconFile) == GIT_ENOTFOUND);
 
@@ -178,36 +178,36 @@ BOOL CSetDialogs3::SafeDataImpl(wil::unique_git_config& config)
 {
 	if (m_langCombo.GetCurSel() == 2) // disable
 	{
-		if (!Save(config.get(), PROJECTPROPNAME_PROJECTLANGUAGE, L"-1"))
+		if (!Save(config.get(), PROJECTPROPNAME_PROJECTLANGUAGE.data(), L"-1"))
 			return FALSE;
 	}
 	else if (m_langCombo.GetCurSel() == 0) // inherit
 	{
-		if (!Save(config.get(), PROJECTPROPNAME_PROJECTLANGUAGE, L"", true))
+		if (!Save(config.get(), PROJECTPROPNAME_PROJECTLANGUAGE.data(), L"", true))
 			return FALSE;
 	}
 	else
 	{
 		CString value;
 		value.Format(L"%lu", static_cast<DWORD>(m_langCombo.GetItemData(m_langCombo.GetCurSel())));
-		if (!Save(config.get(), PROJECTPROPNAME_PROJECTLANGUAGE, value))
+		if (!Save(config.get(), PROJECTPROPNAME_PROJECTLANGUAGE.data(), value))
 			return FALSE;
 	}
 
-	if (!Save(config.get(), PROJECTPROPNAME_LOGMINSIZE, m_LogMinSize, m_bInheritLogMinSize == TRUE))
+	if (!Save(config.get(), PROJECTPROPNAME_LOGMINSIZE.data(), m_LogMinSize, m_bInheritLogMinSize == TRUE))
 		return FALSE;
 
-	if (!Save(config.get(), PROJECTPROPNAME_LOGWIDTHLINE, m_Border, m_bInheritBorder == TRUE))
+	if (!Save(config.get(), PROJECTPROPNAME_LOGWIDTHLINE.data(), m_Border, m_bInheritBorder == TRUE))
 		return FALSE;
 
 	{
 		CString value;
 		m_cWarnNoSignedOffBy.GetWindowText(value);
-		if (!Save(config.get(), PROJECTPROPNAME_WARNNOSIGNEDOFFBY, value, value.IsEmpty()))
+		if (!Save(config.get(), PROJECTPROPNAME_WARNNOSIGNEDOFFBY.data(), value, value.IsEmpty()))
 			return FALSE;
 	}
 
-	if (!Save(config.get(), PROJECTPROPNAME_ICON, m_iconFile, m_bInheritIconFile == TRUE))
+	if (!Save(config.get(), PROJECTPROPNAME_ICON.data(), m_iconFile, m_bInheritIconFile == TRUE))
 		return FALSE;
 
 	return TRUE;
@@ -243,7 +243,7 @@ void CSetDialogs3::OnChange()
 void CSetDialogs3::OnBnClickedIconfileBrowse()
 {
 	UpdateData(TRUE);
-	CString currentDir = g_Git.m_CurrentDir + (StringUtils::EndsWith(g_Git.m_CurrentDir, L'\\') ? L"" : L"\\");
+	CString currentDir = g_Git.m_CurrentDir.c_str();
 	CString iconFile = m_iconFile;
 	if (!(iconFile.Mid(1, 1) == L":" || StringUtils::StartsWith(iconFile, L"\\")))
 		iconFile = currentDir + iconFile;

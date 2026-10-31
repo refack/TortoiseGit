@@ -484,10 +484,9 @@ BOOL ShellCache::HasGITAdminDir(LPCWSTR path, BOOL bIsDir, CString* ProjectTopDi
 		}
 	}
 
-	std::wstring sProjectRoot;
-	const BOOL hasAdminDir = GitAdminDir::HasAdminDir(folder, true, &sProjectRoot);
-
-	Locker lock(m_critSec);
+	const std::wstring sProjectRoot = GitAdminDir::HasAdminDir(folder);
+	const bool hasAdminDir = !sProjectRoot.empty();
+	Locker _(m_critSec);
 	AdminDir_s& ad = admindircache[folder];
 	ad.bHasAdminDir = hasAdminDir;
 	ad.timeout = now + ADMINDIRTIMEOUT;

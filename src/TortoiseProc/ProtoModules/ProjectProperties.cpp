@@ -45,12 +45,14 @@ int ProjectProperties::ReadProps()
 	wil::unique_git_config gitconfig;
 	git_config_new(gitconfig.put());
 	const wil::unique_git_repository repo(g_Git.GetGitRepository());
-	CString adminDirPath;
-	if (GitAdminDir::GetAdminDirPath(g_Git.m_CurrentDir, adminDirPath))
-		git_config_add_file_ondisk(gitconfig.get(), CGit::GetGitPathStringA(adminDirPath + L"config"), GIT_CONFIG_LEVEL_APP, repo.get(), FALSE); // this needs to have the highest priority in order to override .tgitconfig settings
+	auto myAdminDirPath = GitAdminDir::GetAdminDirPath(g_Git.m_CurrentDir.wstring());
+	if (myAdminDirPath) {
+		auto adminDirPath = fs::path{myAdminDirPath->path} / L"config";
+		git_config_add_file_ondisk(gitconfig.get(), adminDirPath.string().c_str(), GIT_CONFIG_LEVEL_APP, repo.get(), FALSE); // this needs to have the highest priority in order to override .tgitconfig settings
+	}
 
 	if (!GitAdminDir::IsBareRepo(g_Git.m_CurrentDir))
-		git_config_add_file_ondisk(gitconfig.get(), CGit::GetGitPathStringA(g_Git.CombinePath(L".tgitconfig")), GIT_CONFIG_LEVEL_LOCAL, nullptr, FALSE); // this needs to have the second highest priority
+		git_config_add_file_ondisk(gitconfig.get(), g_Git.CombinePath(L".tgitconfig").string().c_str(), GIT_CONFIG_LEVEL_LOCAL, nullptr, FALSE); // this needs to have the second highest priority
 	else
 	{
 		CString tmpFile = TempFiles::GetTempFilePath(true).GetWinPathString().c_str();
@@ -59,9 +61,9 @@ int ProjectProperties::ReadProps()
 			git_config_add_file_ondisk(gitconfig.get(), CGit::GetGitPathStringA(tmpFile), GIT_CONFIG_LEVEL_LOCAL, nullptr, FALSE); // this needs to have the second highest priority
 	}
 
-	git_config_add_file_ondisk(gitconfig.get(), CGit::GetGitPathStringA(g_Git.GetGitGlobalConfig()), GIT_CONFIG_LEVEL_GLOBAL, repo.get(), FALSE);
-	git_config_add_file_ondisk(gitconfig.get(), CGit::GetGitPathStringA(g_Git.GetGitGlobalXDGConfig()), GIT_CONFIG_LEVEL_XDG, repo.get(), FALSE);
-	git_config_add_file_ondisk(gitconfig.get(), CGit::GetGitPathStringA(g_Git.GetGitSystemConfig()), GIT_CONFIG_LEVEL_SYSTEM, repo.get(), FALSE);
+	git_config_add_file_ondisk(gitconfig.get(), TGitH::GetGitGlobalConfig().string().c_str(), GIT_CONFIG_LEVEL_GLOBAL, repo.get(), FALSE);
+	git_config_add_file_ondisk(gitconfig.get(), TGitH::GetGitGlobalXDGConfig().string().c_str(), GIT_CONFIG_LEVEL_XDG, repo.get(), FALSE);
+	git_config_add_file_ondisk(gitconfig.get(), TGitH::GetGitSystemConfig().string().c_str(), GIT_CONFIG_LEVEL_SYSTEM, repo.get(), FALSE);
 	tgit::libgit2::git_error_clear();
 
 	CString sPropVal;
@@ -122,12 +124,12 @@ int ProjectProperties::ReadProps()
 			nMinLogSize = _wtoi(val);
 	}
 
-	FetchHookString(gitconfig, PROJECTPROPNAME_STARTCOMMITHOOK, sStartCommitHook);
-	FetchHookString(gitconfig, PROJECTPROPNAME_PRECOMMITHOOK, sPreCommitHook);
-	FetchHookString(gitconfig, PROJECTPROPNAME_POSTCOMMITHOOK, sPostCommitHook);
-	FetchHookString(gitconfig, PROJECTPROPNAME_PREPUSHHOOK, sPrePushHook);
-	FetchHookString(gitconfig, PROJECTPROPNAME_POSTPUSHHOOK, sPostPushHook);
-	FetchHookString(gitconfig, PROJECTPROPNAME_PREREBASEHOOK, sPreRebaseHook);
+	FetchHookString(gitconfig, PROJECTPROPNAME_STARTCOMMITHOOK.data(), sStartCommitHook);
+	FetchHookString(gitconfig, PROJECTPROPNAME_PRECOMMITHOOK.data(), sPreCommitHook);
+	FetchHookString(gitconfig, PROJECTPROPNAME_POSTCOMMITHOOK.data(), sPostCommitHook);
+	FetchHookString(gitconfig, PROJECTPROPNAME_PREPUSHHOOK.data(), sPrePushHook);
+	FetchHookString(gitconfig, PROJECTPROPNAME_POSTPUSHHOOK.data(), sPostPushHook);
+	FetchHookString(gitconfig, PROJECTPROPNAME_PREREBASEHOOK.data(), sPreRebaseHook);
 
 	return 0;
 }
@@ -219,7 +221,7 @@ void ProjectProperties::AutoUpdateRegex()
 			regCheck = std::wregex(sCheckRe);
 			regBugID = std::wregex(sBugIDRe);
 		}
-		catch (std::exception&)
+		catch (...)
 		{
 		}
 
@@ -280,7 +282,7 @@ std::vector<CHARRANGE> ProjectProperties::FindBugIDPositions(const CString& msg)
 					}
 				}
 			}
-			catch (std::exception&) {}
+			catch (...) {}
 		}
 		else
 		{
@@ -302,7 +304,7 @@ std::vector<CHARRANGE> ProjectProperties::FindBugIDPositions(const CString& msg)
 					}
 				}
 			}
-			catch (std::exception&) {}
+			catch (...) {}
 		}
 	}
 	else if (result.empty() && (!sMessage.IsEmpty()))
@@ -464,7 +466,7 @@ BOOL ProjectProperties::HasBugID(const CString& sMsg)
 			AutoUpdateRegex();
 			return std::regex_search(static_cast<LPCWSTR>(sMsg), regCheck);
 		}
-		catch (std::exception&) {}
+		catch (...) {}
 	}
 	return FALSE;
 }

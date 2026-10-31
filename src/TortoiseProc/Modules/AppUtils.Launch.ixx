@@ -588,7 +588,7 @@ BOOL StartUnifiedDiffViewer(const CString& patchfile, const CString& title, cons
 			{ L"1", patchfile },
 			{ L"title", title },
 		},
-		bInternal ? TCmdLineParser::EscapeValue<CString> : EscapeAndQuoteParameters<CString, CString>
+		bInternal ? TCmdLineParser::EscapeValue<CString, CString> : EscapeAndQuoteParameters<CString>
 	);
 
 	if (!LaunchApplication(viewer, LaunchApplicationFlags().WaitForStartup(!!bWait).UseSpecificErrorMessage(IDS_ERR_DIFFVIEWSTART)))

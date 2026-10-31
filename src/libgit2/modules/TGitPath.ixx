@@ -1185,12 +1185,12 @@ public:
 
 		EnsureBackslashPathSet();
 		bool isAdminDir = false;
-		auto&& ret = GitAdminDir::HasAdminDir(m_sBackslashPath, &isAdminDir);
-		if (ret) {
-			m_bHasAdminDir = true;
-			m_sProjectRoot = *ret;
-		} else {
+		fs::path ret = GitAdminDir::HasAdminDir(m_sBackslashPath, &isAdminDir);
+		if (ret.empty()) {
 			m_sProjectRoot.clear();
+		} else {
+			m_bHasAdminDir = true;
+			m_sProjectRoot = ret.wstring();
 		}
 		m_bHasAdminDirKnown = true;
 		if ((m_bHasAdminDir || isAdminDir) && !m_bIsAdminDirKnown) {
@@ -2208,30 +2208,28 @@ int CTGitPath::GetAdminDirMask() const {
 
 
 bool CTGitPath::IsRegisteredSubmoduleOfParentProject(std::wstring* parentProjectRoot /* nullptr */) const {
-	const auto maybeTopProjectDir = GitAdminDir::HasAdminDir(GetWinPathString());
-	if (!maybeTopProjectDir)
+	const auto topProjectDir = GitAdminDir::HasAdminDir(GetWinPathString());
+	if (topProjectDir.empty())
 		return false;
-	const std::wstring topProjectDir = *maybeTopProjectDir;
 	if (parentProjectRoot)
 		*parentProjectRoot = topProjectDir;
 
-	const std::wstring gitmodules = topProjectDir + L"\\.gitmodules";
+	const std::wstring gitmodules = topProjectDir / L".gitmodules";
 	if (!detail::FileExists(gitmodules))
 		return false;
 
 	const wil::unique_git_config config = detail::NewConfig();
 	git_config_add_file_ondisk(config.get(), ToGitPathA(gitmodules).c_str(), GIT_CONFIG_LEVEL_APP, nullptr, FALSE);
 	// clamped, as CString::Mid was: a path shorter than its top dir yields ""
-	const std::wstring_view fullPath = GetWinPathString();
-	std::wstring relativePath{ fullPath.substr(std::min(fullPath.size(), topProjectDir.size())) };
-	std::ranges::replace(relativePath, L'\\', L'/');
-	tgit::wstr::Trim(relativePath, L"/");
-	std::string submodulePath = CUnicodeUtils::StdGetUTF8(relativePath);
+	const auto fullPath = GetStdPath();
+
+	std::string payload = fs::relative(topProjectDir, fullPath).generic_string();
 	// ReSharper disable once CppParameterMayBeConstPtrOrRef
-	constexpr git_config_foreach_cb matches = [](const git_config_entry* entry, void* data) -> int { // NOLINT(*-misplaced-const)
-		return *static_cast<std::string*>(data) == entry->value ? GIT_EUSER : 0;
+	constexpr git_config_foreach_cb matches = [](const git_config_entry* entry, void* payload_) -> int  { // NOLINT(*-misplaced-const)
+		const auto& submod_relpath = *static_cast<const std::string*>(payload_);
+		return (submod_relpath == entry->value) ? GIT_EUSER : 0;
 	};
-	return git_config_foreach_match(config.get(), "submodule\\..*\\.path", matches, &submodulePath) == GIT_EUSER;
+	return git_config_foreach_match(config.get(), "submodule\\..*\\.path", matches, &payload) == GIT_EUSER;
 }
 
 
