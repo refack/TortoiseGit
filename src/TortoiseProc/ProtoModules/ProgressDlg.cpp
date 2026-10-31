@@ -165,7 +165,7 @@ BOOL CProgressDlg::OnInitDialog()
 		m_pThread->ResumeThread();
 	}
 
-	CAppUtils::SetWindowTitle(*this, m_Git->m_CurrentDir);
+	CAppUtils::SetWindowTitle(*this, m_Git->m_CurrentDir.c_str());
 
 	// Make sure this dialog is shown in foreground (see issue #1536)
 	SetForegroundWindow();
@@ -201,7 +201,7 @@ UINT CProgressDlg::RunCmdList(CWnd* pWnd, ARGV_VECTOR& cmdlist, std::vector<std:
 	std::vector<std::unique_ptr<CBlockCacheForPath>> cacheBlockList;
 	std::vector<std::unique_ptr<CGit>> gitList;
 	if (dirlist.empty())
-		cacheBlockList.push_back(std::make_unique<CBlockCacheForPath>(git->m_CurrentDir));
+		cacheBlockList.push_back(std::make_unique<CBlockCacheForPath>(git->m_CurrentDir.c_str()));
 	else
 	{
 		for (const auto& dir : dirlist)
@@ -227,7 +227,7 @@ UINT CProgressDlg::RunCmdList(CWnd* pWnd, ARGV_VECTOR& cmdlist, std::vector<std:
 		// this replaces existed because the command was assembled by pasting
 		// optional pieces together and could pick up stray spaces; argv elements
 		// have no such seams.
-		const CString command = CGit::SerializeArgvStdWString(cmdlist[i]);
+		const CString command = cmdlist[i].to_cmd().c_str();
 
 		if (bShowCommand)
 		{
@@ -241,12 +241,8 @@ UINT CProgressDlg::RunCmdList(CWnd* pWnd, ARGV_VECTOR& cmdlist, std::vector<std:
 
 		PROCESS_INFORMATION pi;
 		CAutoGeneralHandle hRead;
-		int runAsyncRet = -1;
-		if (gitList.empty())
-			runAsyncRet = git->RunAsync(cmdlist[i], pi, hRead.GetPointer(), nullptr, pfilename);
-		else
-			runAsyncRet = gitList[i]->RunAsync(cmdlist[i], pi, hRead.GetPointer(), nullptr, pfilename);
-		if (runAsyncRet)
+
+		if (const int runAsyncRet = GitCall::RunAsync(cmdlist[i], pi, hRead.GetPointer(), nullptr, pfilename); runAsyncRet)
 		{
 			EnsurePostMessage(pWnd, MSG_PROGRESSDLG_UPDATE_UI, MSG_PROGRESSDLG_FAILED, -1 * runAsyncRet);
 			return runAsyncRet;
@@ -270,7 +266,7 @@ UINT CProgressDlg::RunCmdList(CWnd* pWnd, ARGV_VECTOR& cmdlist, std::vector<std:
 			TracePrintf(_T(__FUNCTION__) L": process %s finished, status code could not be fetched, (error %d; %s), aborted: %d\n", static_cast<LPCWSTR>(command), GetLastError(), (CFormatMessageWrapper()).c_str(), *bAbort);
 
 			EnsurePostMessage(pWnd, MSG_PROGRESSDLG_UPDATE_UI, MSG_PROGRESSDLG_FAILED, status);
-			return TGIT_GIT_ERROR_GET_EXIT_CODE;
+			return GitCall::TGIT_GIT_ERROR_GET_EXIT_CODE;
 		}
 		TracePrintf(_T(__FUNCTION__) L": process %s finished with code %d\n", static_cast<LPCWSTR>(command), status);
 		ret |= status;
@@ -547,7 +543,7 @@ void CProgressDlg::UpdateCmdOutput(CGitCliOutputParser& cliOutputParser, CRichEd
 		log.SetSel(currentLength, currentLength);
 
 	CString str = CUnicodeUtils::GetUnicode<CString>(out.text);
-	if (currentLength == 0 && TGitH::m_LogEncode != CP_UTF8 &&!out.text.empty() && out.text[0] == '[')
+	if (currentLength == 0 && GitCall::m_LogEncode != CP_UTF8 &&!out.text.empty() && out.text[0] == '[')
 	{
 		size_t start = 0;
 		// git.exe commit output begins with "[BRANCH] SUBJECT" whereas SUBJECT is encoded using m_LogEncode
@@ -564,7 +560,7 @@ void CProgressDlg::UpdateCmdOutput(CGitCliOutputParser& cliOutputParser, CRichEd
 
 		std::string_view buff = out.text;
 		// an explicit code page, so StdGetUnicode: GetUnicode is the UTF-8-only path
-		str = CUnicodeUtils::StdGetUnicode<CString>(buff.substr(0, start), TGitH::m_LogEncode);
+		str = CUnicodeUtils::StdGetUnicode<CString>(buff.substr(0, start), GitCall::m_LogEncode);
 		buff.remove_prefix(start);
 		str += CUnicodeUtils::GetUnicode<CStringW>(buff);
 	}
@@ -617,7 +613,7 @@ void CProgressDlg::UpdateProgressFromLine(const CString& str, CProgressCtrl& pro
 
 void CProgressDlg::WriteLog() const
 {
-	CLogFile logfile(g_Git.m_CurrentDir);
+	CLogFile logfile(GitCall::m_CurrentDirStorage.c_str());
 	if (logfile.Open())
 	{
 		logfile.AddTimeLine();
@@ -681,24 +677,24 @@ void CProgressDlg::OnCancel()
 		return;
 	}
 
-	if (m_Git->m_CurrentGitPi.hProcess)
+	if (GitCall::m_CurrentGitPi.hProcess)
 	{
 		DWORD dwConfirmKillProcess = CRegDWORD(L"Software\\TortoiseGit\\ConfirmKillProcess");
 		if (dwConfirmKillProcess && CMessageBox::Show(m_hWnd, IDS_PROC_CONFIRMKILLPROCESS, IDS_APPNAME, MB_YESNO | MB_ICONQUESTION) != IDYES)
 			return;
 		if (::GenerateConsoleCtrlEvent(CTRL_C_EVENT, 0))
 		{
-			::WaitForSingleObject(m_Git->m_CurrentGitPi.hProcess, 10000);
+			::WaitForSingleObject(GitCall::m_CurrentGitPi.hProcess, 10000);
 		}
 
-		KillProcessTree(m_Git->m_CurrentGitPi.dwProcessId);
+		KillProcessTree(GitCall::m_CurrentGitPi.dwProcessId);
 	}
 
-	::WaitForSingleObject(m_Git->m_CurrentGitPi.hProcess, 10000);
+	::WaitForSingleObject(GitCall::m_CurrentGitPi.hProcess, 10000);
 	if (m_pThread)
 	{
 		if (::WaitForSingleObject(m_pThread->m_hThread, 5000) == WAIT_TIMEOUT)
-			g_Git.KillRelatedThreads(m_pThread->m_nThreadID, m_pThread->m_hThread);
+			GitCall::KillRelatedThreads(m_pThread->m_nThreadID, m_pThread->m_hThread);
 	}
 
 	WriteLog();

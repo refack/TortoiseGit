@@ -68,7 +68,7 @@ bool PasteMoveCommand::Execute()
 		std::wstring top;
 		orgPathList[nPath].HasAdminDir(&top);
 		//git_wc_status_kind s = status.GetAllStatus(orgPathList[nPath]);
-		//if (s == git_wc_status_none || s == git_wc_status_unversioned || s == git_wc_status_ignored || top.CompareNoCase(g_Git.m_CurrentDir) != 0)
+		//if (s == git_wc_status_none || s == git_wc_status_unversioned || s == git_wc_status_ignored || top.CompareNoCase(GitCall::m_CurrentDirStorage) != 0)
 		if (false)
 		{
 			// source file is unversioned: move the file to the target, then add it

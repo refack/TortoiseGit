@@ -19,6 +19,7 @@
 // GMF included it, and that GMF would then speak ATL CString inside the MFC library.
 #include <atltime.h>
 #include <winrt/base.h>		// ::winrt::to_hstring, in CUnicodeUtils::GetUnicode
+// ReSharper disable once CppUnusedIncludeDirective
 #include <tgitlib/sanity.h>
 
 
@@ -491,8 +492,9 @@ concept CovariantCharType = std::same_as<typename StringViewTraits<TStr>::char_t
 template <IsTCompString TStr>
 constexpr auto as_view(const TStr& s) noexcept { return StringView{s}.as_view(); }
 
-constexpr auto as_atl(const std::string_view& s) noexcept { return StringView{s}.as_view(); }
-constexpr auto as_atl(const std::wstring_view& s) noexcept { return CStringW{s.data()}; }
+/// these are ununsed
+// constexpr auto as_atl(const std::string_view& s) noexcept { return CStringA{s.data()}; }
+// constexpr auto as_atl(const std::wstring_view& s) noexcept { return CStringW{s.data()}; }
 
 /// Default predicate: dispatches on character type.
 struct is_space_t {
@@ -1046,6 +1048,9 @@ std::generator<std::pair<std::basic_string_view<char_type>, std::size_t>> lazy_t
 template <TStrOfWide TStr>
 std::filesystem::path to_path(const TStr& sPath) {
 	return std::filesystem::path{ StringView{ sPath }.as_view() };
+}
+std::filesystem::path to_path(const std::filesystem::path& sPath) {
+	return sPath;
 }
 
 

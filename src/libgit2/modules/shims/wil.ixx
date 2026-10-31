@@ -938,7 +938,8 @@ public:
 		return *this;
 	}
 
-
+	[[nodiscard]] bool operator!() const noexcept { return _args.empty(); }
+	[[nodiscard]] bool empty() const noexcept { return _args.empty(); }
 	[[nodiscard]] const auto& args() const noexcept { return _args; }
 	[[nodiscard]] std::wstring to_cmd() const { return wil::ArgvToCommandLine(_args); }
 	[[nodiscard]] Utf8Argv utf8() const { return Utf8Argv{ _args }; } // for gitdll

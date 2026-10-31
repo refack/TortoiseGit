@@ -65,9 +65,7 @@ int CLogDataVector::ParserFromLog(const CTGitPath* path, const DWORD count, DWOR
 		filter.m_NumberOfLogs = count;
 		filter.m_NumberOfLogsScale = CFilterData::SHOW_LAST_N_COMMITS;
 	}
-	wil::ArgvData argvData = g_Git.GetLogCmd(gitrange, path, infomask, &filter, m_logOrderBy)
-		| std::views::transform(&CUnicodeUtils::MultibyteToWide)
-		| std::ranges::to<std::vector>();
+	wil::ArgvData argvData = g_Git.GetLogCmd(gitrange, path, infomask, &filter, m_logOrderBy);
 
 
 	// if not all branches, all basic refs, all local refs etc. are selected, check whether the selected branch is unborn

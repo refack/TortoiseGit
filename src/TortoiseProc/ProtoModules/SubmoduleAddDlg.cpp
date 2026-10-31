@@ -88,7 +88,7 @@ BOOL CSubmoduleAddDlg::OnInitDialog()
 	EnableSaveRestore(L"SubmoduleAddDlg");
 	SetTheme(CTheme::Instance().IsDarkTheme());
 
-	CAppUtils::SetWindowTitle(*this, g_Git.CombinePath(m_strPath).TrimRight('\\'));
+	CAppUtils::SetWindowTitle(*this, (g_Git.CombinePath(m_strPath) / L"").parent_path().c_str());
 
 	m_Repository.SetURLHistory(true);
 	m_Repository.SetCaseSensitive(TRUE);
@@ -132,15 +132,17 @@ void CSubmoduleAddDlg::OnPathBrowse()
 	browseFolder.m_style = BIF_EDITBOX | BIF_NEWDIALOGSTYLE | BIF_RETURNFSANCESTORS | BIF_RETURNONLYFSDIRS;
 	CString strDirectory;
 	this->m_PathCtrl.GetWindowTextW(strDirectory);
-	if (browseFolder.Show(GetSafeHwnd(), strDirectory,g_Git.m_CurrentDir) == CBrowseFolder::OK)
+	if (browseFolder.Show(GetSafeHwnd(), strDirectory,GitCall::m_CurrentDirStorage.c_str()) == CBrowseFolder::OK)
 	{
 		CString strUrl;
 		m_Repository.GetWindowTextW(strUrl);
-		if (CString repoName = PathUtils::GetFileNameFromPath(tgit::str::StringView(strUrl)).c_str(); !repoName.IsEmpty())
+		auto path = str::to_path(strUrl);
+		if (auto repoName = path.stem(); !repoName.empty())
 		{
-			if (StringUtils::EndsWith(repoName, L".git"))
-				repoName = repoName.Left(repoName.GetLength() - static_cast<int>(wcslen(L".git")));
-			m_PathCtrl.SetWindowTextW(strDirectory + L'\\' + repoName);
+			constexpr auto dot_git = L".git";
+			if (repoName.extension() == dot_git)
+				repoName = repoName.stem();
+			m_PathCtrl.SetWindowTextW((str::to_path(strDirectory) / repoName).c_str());
 			return;
 		}
 		this->m_PathCtrl.SetWindowTextW(strDirectory);
@@ -197,12 +199,10 @@ BOOL CSubmoduleAddDlg::OnRepoEndEdit(UINT, NMHDR*, LRESULT*)
 {
 	CString strUrl;
 	m_Repository.GetWindowTextW(strUrl);
-	CString repoName = PathUtils::GetFileNameFromPath(tgit::str::StringView(strUrl)).c_str();
-	if (StringUtils::EndsWith(repoName, L".git"))
-		repoName = repoName.Left(repoName.GetLength() - static_cast<int>(wcslen(L".git")));
+	auto repoName = str::to_path(strUrl).stem();
 	if (m_strPath.IsEmpty())
-		m_PathCtrl.SetWindowText(repoName);
+		m_PathCtrl.SetWindowTextW(repoName.c_str());
 	else
-		m_PathCtrl.SetWindowText(m_strPath + L'\\' + repoName);
+		m_PathCtrl.SetWindowTextW((str::to_path(m_strPath) / repoName).c_str());
 	return 0;
 }

@@ -242,7 +242,7 @@ export namespace TCmdLineParser
                             // search for double quotes
                             while (sEndQuote)
                             {
-                                auto nextQuote = sEndQuote + 1;
+                                const auto nextQuote = sEndQuote + 1;
                                 if (nextQuote[0] == L'"')
                                 {
                                     working.erase(working.begin() + (sEndQuote - working.data()));

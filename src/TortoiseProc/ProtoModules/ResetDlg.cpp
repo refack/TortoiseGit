@@ -78,7 +78,7 @@ BOOL CResetDlg::OnInitDialog()
 
 	EnableSaveRestore(L"ResetDlg");
 
-	if (GitAdminDir::IsBareRepo(g_Git.m_CurrentDir))
+	if (GitAdminDir::IsBareRepo(GitCall::m_CurrentDirStorage))
 	{
 		m_ResetType = 0;
 		DialogEnableWindow(IDC_RADIO_RESET_MIXED, FALSE);

@@ -58,8 +58,8 @@ protected:
 			tooltips->AddTool(IDC_RADIO_SETTINGS_GLOBAL, IDS_CONFIG_GLOBAL_TT);
 		}
 
-		m_bIsBareRepo = GitAdminDir::IsBareRepo(g_Git.m_CurrentDir);
-		if (const fs::path projTopDir = GitAdminDir::HasAdminDir(g_Git.m_CurrentDir); !projTopDir.empty() || m_bIsBareRepo)
+		m_bIsBareRepo = GitAdminDir::IsBareRepo(GitCall::m_CurrentDirStorage);
+		if (const fs::path projTopDir = GitAdminDir::HasAdminDir(GitCall::m_CurrentDirStorage); !projTopDir.empty() || m_bIsBareRepo)
 		{
 			CString title;
 			page->GetWindowText(title);

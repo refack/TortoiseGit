@@ -42,12 +42,12 @@ bool ResolveProgressCommand::Run(CGitProgressList* list, CString& sWindowTitle, 
 		postCmdList.emplace_back(IDI_COMMIT, IDS_MENUCOMMIT, []
 		{
 			CString sCmd;
-			sCmd.Format(L"/command:commit /path:\"%s\"", g_Git.m_CurrentDir);
+			sCmd.Format(L"/command:commit /path:\"%s\"", GitCall::m_CurrentDirStorage);
 			CAppUtils::RunTortoiseGitProc(sCmd);
 		});
 	};
 
-	CBlockCacheForPath block(g_Git.m_CurrentDir);
+	CBlockCacheForPath block(GitCall::m_CurrentDirStorage);
 
 	if (m_resolveWith == ResolveWith::Current)
 	{
@@ -219,18 +219,18 @@ bool ResolveProgressCommand::Run(CGitProgressList* list, CString& sWindowTitle, 
 			}
 			if (submoduleHead != destinationHash)
 			{
-				CString origPath = g_Git.m_CurrentDir;
+				CString origPath = GitCall::m_CurrentDirStorage;
 				g_Git.SetCurrentDirExact(fullPath.GetWinPathString().c_str());
-				SetCurrentDirectory(g_Git.m_CurrentDir);
+				SetCurrentDirectory(GitCall::m_CurrentDirStorage);
 				if (!CAppUtils::GitReset(list->GetSafeHwnd(), CString((destinationHash.ToString()).c_str())))
 				{
 					g_Git.SetCurrentDirExact(origPath);
-					SetCurrentDirectory(g_Git.m_CurrentDir);
+					SetCurrentDirectory(GitCall::m_CurrentDirStorage);
 					list->ReportUserCanceled();
 					return false;
 				}
 				g_Git.SetCurrentDirExact(origPath);
-				SetCurrentDirectory(g_Git.m_CurrentDir);
+				SetCurrentDirectory(GitCall::m_CurrentDirStorage);
 			}
 			addTask.AddFile(path);
 			CAppUtils::RemoveTempMergeFile(path);

@@ -45,12 +45,12 @@ int ProjectProperties::ReadProps()
 	wil::unique_git_config gitconfig;
 	git_config_new(gitconfig.put());
 	const wil::unique_git_repository repo(g_Git.GetGitRepository());
-	if (const auto adminDir = GitAdminDir::GetAdminDirPath(g_Git.m_CurrentDir.native())) {
+	if (const auto adminDir = GitAdminDir::GetAdminDirPath(GitCall::m_CurrentDirStorage.native())) {
 		const auto adminConfig = fs::path{ adminDir->path } / L"config";
 		git_config_add_file_ondisk(gitconfig.get(), TGitPath::ToGitPathA(adminConfig.native()).c_str(), GIT_CONFIG_LEVEL_APP, repo.get(), FALSE); // this needs to have the highest priority in order to override .tgitconfig settings
 	}
 
-	if (!GitAdminDir::IsBareRepo(g_Git.m_CurrentDir))
+	if (!GitAdminDir::IsBareRepo(GitCall::m_CurrentDirStorage))
 		git_config_add_file_ondisk(gitconfig.get(), TGitPath::ToGitPathA(g_Git.CombinePath(L".tgitconfig").native()).c_str(), GIT_CONFIG_LEVEL_LOCAL, nullptr, FALSE); // this needs to have the second highest priority
 	else
 	{

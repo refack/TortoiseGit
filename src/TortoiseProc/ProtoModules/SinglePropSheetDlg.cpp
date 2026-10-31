@@ -74,8 +74,8 @@ BOOL CSinglePropSheetDlg::OnInitDialog()
 {
 	BOOL bReturn = CTreePropSheet::OnInitDialog();
 
-	if (GitAdminDir::IsWorkingTreeOrBareRepo(g_Git.m_CurrentDir.wstring()))
-		CAppUtils::SetWindowTitle(*this, g_Git.m_CurrentDir.c_str());
+	if (GitAdminDir::IsWorkingTreeOrBareRepo(GitCall::m_CurrentDirStorage.wstring()))
+		CAppUtils::SetWindowTitle(*this, GitCall::m_CurrentDirStorage.c_str());
 	else
 	{
 		CString title;

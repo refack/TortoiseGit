@@ -32,7 +32,7 @@ bool ResetProgressCommand::Run(CGitProgressList* list, CString& sWindowTitle, in
 		return false;
 	}
 
-	list->SetWindowTitle(IDS_PROGRS_TITLE_RESET, g_Git.m_CurrentDir.c_str(), sWindowTitle);
+	list->SetWindowTitle(IDS_PROGRS_TITLE_RESET, GitCall::m_CurrentDirStorage.c_str(), sWindowTitle);
 	list->SetBackgroundImage(IDI_UPDATE_BKG);
 	constexpr int resetTypesResource[] = { IDS_RESET_SOFT, IDS_RESET_MIXED, IDS_RESET_HARD };
 	list->ReportCmd(CString(MAKEINTRESOURCE(IDS_PROGRS_TITLE_RESET)) + L' ' + CString(MAKEINTRESOURCE(resetTypesResource[m_resetType])) + L' ' + m_revision);
@@ -48,7 +48,7 @@ bool ResetProgressCommand::Run(CGitProgressList* list, CString& sWindowTitle, in
 	CGitProgressList::Payload cbpayload = { list, repo.get() };
 	git_checkout_options checkout_options = GIT_CHECKOUT_OPTIONS_INIT;
 
-	[[maybe_unused]] CBlockCacheForPath block(g_Git.m_CurrentDir.c_str());
+	[[maybe_unused]] CBlockCacheForPath block(GitCall::m_CurrentDirStorage.c_str());
 	wil::unique_git_object target;
 	if (git_revparse_single(target.put(), repo.get(), CUnicodeUtils::GetUTF8<CStringA>(m_revision)))
 		goto error;

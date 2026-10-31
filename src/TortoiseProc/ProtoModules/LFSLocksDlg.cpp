@@ -66,7 +66,7 @@ BOOL CLFSLocksDlg::OnInitDialog()
 	m_LocksList.SetBackgroundImage(IDI_LOCK_BKG);
 	m_LocksList.m_bEnableDblClick = false;
 
-	CAppUtils::SetWindowTitle(*this, g_Git.m_CurrentDir);
+	CAppUtils::SetWindowTitle(*this, GitCall::m_CurrentDirStorage.c_str());
 
 	AdjustControlSize(IDC_SELECTALL);
 

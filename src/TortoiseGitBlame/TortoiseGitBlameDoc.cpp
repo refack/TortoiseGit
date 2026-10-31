@@ -122,15 +122,15 @@ BOOL CTortoiseGitBlameDoc::OnOpenDocument(LPCWSTR lpszPathName, CString Rev)
 
 		CString PathName = m_CurrentFileName;
 		if (topdir[topdir.GetLength() - 1] == L'\\' || topdir[topdir.GetLength() - 1] == L'/')
-			PathName=PathName.Right(PathName.GetLength()-g_Git.m_CurrentDir.GetLength());
+			PathName=PathName.Right(PathName.GetLength()-GitCall::m_CurrentDirStorage.GetLength());
 		else
-			PathName=PathName.Right(PathName.GetLength()-g_Git.m_CurrentDir.GetLength()-1);
+			PathName=PathName.Right(PathName.GetLength()-GitCall::m_CurrentDirStorage.GetLength()-1);
 
 		CTGitPath path;
 		path.SetFromWin(PathName);
 
-		if(!g_Git.m_CurrentDir.IsEmpty())
-			SetCurrentDirectory(g_Git.m_CurrentDir);
+		if(!GitCall::m_CurrentDirStorage.IsEmpty())
+			SetCurrentDirectory(GitCall::m_CurrentDirStorage);
 
 		try
 		{

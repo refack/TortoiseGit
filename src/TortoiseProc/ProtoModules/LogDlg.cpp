@@ -49,7 +49,7 @@ CLogDlg::CLogDlg(CWnd* pParent /*=nullptr*/)
 	m_bAsteriskLogPrefix = !!CRegDWORD(L"Software\\TortoiseGit\\AsteriskLogPrefix", TRUE);
 	m_SelectedFilters = CRegDWORD(L"Software\\TortoiseGit\\SelectedLogFilters", LOGFILTER_ALL);
 
-	CString str = g_Git.m_CurrentDir;
+	CString str = GitCall::m_CurrentDirStorage;
 	str.Replace(L':', L'_');
 
 	m_regbAllBranch = CRegDWORD(L"Software\\TortoiseGit\\LogDialog\\AllBranch\\" + str, FALSE);
@@ -300,7 +300,7 @@ BOOL CLogDlg::OnInitDialog()
 	m_LogList.DeleteAllItems();
 
 	m_LogList.m_Path=m_path;
-	m_LogList.m_hasWC = !GitAdminDir::IsBareRepo(g_Git.m_CurrentDir);
+	m_LogList.m_hasWC = !GitAdminDir::IsBareRepo(GitCall::m_CurrentDirStorage);
 	m_LogList.m_bShowWC = !!CRegDWORD(L"Software\\TortoiseGit\\LogIncludeWorkingTreeChanges", TRUE) && m_LogList.m_hasWC && m_bShowWC;
 	m_LogList.InsertGitColumn();
 
@@ -472,11 +472,11 @@ BOOL CLogDlg::OnInitDialog()
 
 	m_History.SetMaxHistoryItems(CRegDWORD(L"Software\\TortoiseGit\\MaxRefHistoryItems", 5));
 	CString reg;
-	reg.Format(L"Software\\TortoiseGit\\History\\log-refs\\%s", g_Git.m_CurrentDir);
+	reg.Format(L"Software\\TortoiseGit\\History\\log-refs\\%s", GitCall::m_CurrentDirStorage);
 	reg.Replace(L':', L'_');
 	m_History.Load(std::wstring(reg), L"ref");
 
-	reg.Format(L"Software\\TortoiseGit\\History\\LogDlg_Limits\\%s\\FromDate", g_Git.m_CurrentDir);
+	reg.Format(L"Software\\TortoiseGit\\History\\LogDlg_Limits\\%s\\FromDate", GitCall::m_CurrentDirStorage);
 	reg.Replace(L':', L'_');
 	m_regLastSelectedFromDate = CRegString(reg);
 
@@ -615,7 +615,7 @@ void CLogDlg::SetDlgTitle()
 		GetWindowText(m_sTitle);
 
 	if (m_LogList.m_Path.IsEmpty() || m_orgPath.GetWinPathString().empty())
-		CAppUtils::SetWindowTitle(m_hWnd, g_Git.m_CurrentDir, m_sTitle);
+		CAppUtils::SetWindowTitle(m_hWnd, GitCall::m_CurrentDirStorage, m_sTitle);
 	else
 		CAppUtils::SetWindowTitle(m_hWnd, m_orgPath.GetWinPathString().c_str(), m_sTitle);
 }

@@ -76,7 +76,7 @@ bool DaemonCommand::Execute()
 
 	CProgressDlg progDlg;
 	theApp.m_pMainWnd = &progDlg;
-	progDlg.m_GitCmd = { L"git.exe", L"daemon", L"--verbose", L"--export-all", std::format(L"--base-path={}", g_Git.m_CurrentDir) };
+	progDlg.m_GitCmd = { L"git.exe", L"daemon", L"--verbose", L"--export-all", std::format(L"--base-path={}", GitCall::m_CurrentDirStorage) };
 	if (ips.empty())
 		progDlg.m_PreText = L"git://localhost/";
 	else

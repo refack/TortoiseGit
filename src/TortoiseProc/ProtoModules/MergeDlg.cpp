@@ -120,7 +120,7 @@ BOOL CMergeDlg::OnInitDialog()
 	CheckRadioButton(IDC_RADIO_BRANCH,IDC_RADIO_VERSION,IDC_RADIO_BRANCH);
 	this->SetDefaultChoose(IDC_RADIO_BRANCH);
 
-	CAppUtils::SetWindowTitle(*this, g_Git.m_CurrentDir);
+	CAppUtils::SetWindowTitle(*this, GitCall::m_CurrentDirStorage.c_str());
 
 	m_ProjectProperties.ReadProps();
 
@@ -153,10 +153,10 @@ BOOL CMergeDlg::OnInitDialog()
 	EnableSaveRestore(L"MergeDlg");
 	GetDlgItem(IDOK)->SetFocus();
 
-	if (m_initialRefName.IsEmpty())
+	if (m_initialRefName.empty())
 	{
 		CString currentBranch;
-		if (g_Git.GetCurrentBranchFromFile(g_Git.m_CurrentDir, currentBranch))
+		if (g_Git.GetCurrentBranchFromFile(GitCall::m_CurrentDirStorage, currentBranch))
 			currentBranch.Empty();
 
 		CString pr, pb;

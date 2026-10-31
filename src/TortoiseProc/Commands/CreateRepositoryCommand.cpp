@@ -46,7 +46,7 @@ bool CreateRepositoryCommand::Execute()
 {
 	CString folder = orgCmdLinePath.GetWinPathString().c_str();
 	if (folder.IsEmpty())
-		folder = g_Git.m_CurrentDir;
+		folder = GitCall::m_CurrentDirStorage;
 	if (folder.IsEmpty())
 		GetCurrentDirectory(MAX_PATH, CStrBuf(folder, MAX_PATH));
 	if (CheckSpecialFolder(folder))

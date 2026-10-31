@@ -237,7 +237,7 @@ BOOL CRevisionGraphDlg::OnInitDialog()
 	CAppUtils::MarkWindowAsUnpinnable(m_hWnd);
 	EnableToolTips();
 
-	CAppUtils::SetWindowTitle(*this, g_Git.m_CurrentDir);
+	CAppUtils::SetWindowTitle(*this, GitCall::m_CurrentDirStorage);
 
 
 	// set up the status bar

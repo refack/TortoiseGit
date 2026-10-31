@@ -34,11 +34,11 @@ bool SubmoduleAddCommand::Execute()
 	bool bRet = false;
 	CSubmoduleAddDlg dlg;
 	dlg.m_strPath = cmdLinePath.GetDirectory().GetWinPathString().c_str();
-	dlg.m_strProject = g_Git.m_CurrentDir;
+	dlg.m_strProject = GitCall::m_CurrentDirStorage;
 	if( dlg.DoModal() == IDOK )
 	{
-		if (StringUtils::StartsWith(dlg.m_strPath, g_Git.m_CurrentDir))
-			dlg.m_strPath = dlg.m_strPath.Right(dlg.m_strPath.GetLength()-g_Git.m_CurrentDir.GetLength()-1);
+		if (StringUtils::StartsWith(dlg.m_strPath, GitCall::m_CurrentDirStorage))
+			dlg.m_strPath = dlg.m_strPath.Right(dlg.m_strPath.GetLength()-GitCall::m_CurrentDirStorage.GetLength()-1);
 
 		std::vector<std::wstring> cmd{ L"git.exe", L"submodule", L"add" };
 		// Note the "=" rather than "+=" below in the original: --force *replaced*
@@ -138,7 +138,7 @@ bool SubmoduleUpdateCommand::Execute()
 		if (status)
 			return;
 
-		CTGitPath gitPath(g_Git.m_CurrentDir.GetString());
+		CTGitPath gitPath(GitCall::m_CurrentDirStorage.GetString());
 		if (gitPath.IsBisectActive())
 		{
 			postCmdList.emplace_back(IDI_THUMB_UP, IDS_MENUBISECTGOOD, [] { CAppUtils::RunTortoiseGitProc(L"/command:bisect /good"); });

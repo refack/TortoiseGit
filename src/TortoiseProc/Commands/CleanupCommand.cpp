@@ -163,7 +163,7 @@ static bool DoCleanUp(const CTGitPathList& pathList, int cleanType, bool bDir, b
 	if (bSubmodules)
 	{
 		SubmodulePayload payload(submoduleList);
-		payload.basePath = CTGitPath(g_Git.m_CurrentDir).GetGitPathString().c_str();
+		payload.basePath = CTGitPath(GitCall::m_CurrentDirStorage).GetGitPathString().c_str();
 		if (pathList.GetCount() != 1 || pathList.GetCount() == 1 && !pathList[0].IsEmpty())
 		{
 			for (int i = 0; i < pathList.GetCount(); ++i)
@@ -190,7 +190,7 @@ static bool DoCleanUp(const CTGitPathList& pathList, int cleanType, bool bDir, b
 			else
 				path = pathList[i].GetContainingDirectory().GetGitPathString().c_str();
 
-			if (pathList[i].IsWCRoot() && pathList[i].GetStdPath() != g_Git.m_CurrentDir)
+			if (pathList[i].IsWCRoot() && pathList[i].GetStdPath() != GitCall::m_CurrentDirStorage)
 			{
 				if (PathIsRelative(pathList[i].GetWinPathString().c_str()))
 					progress.m_GitDirList.push_back(std::wstring(g_Git.CombinePath(pathList[i].GetWinPathString().c_str())));
@@ -198,7 +198,7 @@ static bool DoCleanUp(const CTGitPathList& pathList, int cleanType, bool bDir, b
 					progress.m_GitDirList.push_back(pathList[i].GetWinPathString().c_str());
 			}
 			else
-				progress.m_GitDirList.push_back(std::wstring(g_Git.m_CurrentDir));
+				progress.m_GitDirList.push_back(std::wstring(GitCall::m_CurrentDirStorage));
 			auto clean = cmd;
 			if (!path.IsEmpty())
 				clean.push_range({ L"--", path.GetString() });
@@ -254,7 +254,7 @@ static bool DoCleanUp(const CTGitPathList& pathList, int cleanType, bool bDir, b
 			else
 				path = pathList[i].GetContainingDirectory().GetGitPathString().c_str();
 
-			if (pathList[i].IsWCRoot() && pathList[i].GetStdPath() != g_Git.m_CurrentDir)
+			if (pathList[i].IsWCRoot() && pathList[i].GetStdPath() != GitCall::m_CurrentDirStorage)
 			{
 				CGit git;
 				if (PathIsRelative(pathList[i].GetWinPathString().c_str()))

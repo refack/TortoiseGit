@@ -36,7 +36,7 @@ bool RevertProgressCommand::Run(CGitProgressList* list, CString& sWindowTitle, i
 	list->SetWindowTitle(IDS_PROGRS_TITLE_REVERT, g_Git.CombinePath(m_targetPathList.GetCommonRoot().GetUIPathString().c_str()), sWindowTitle);
 	list->SetBackgroundImage(IDI_REVERT_BKG);
 
-	CBlockCacheForPath _(g_Git.m_CurrentDir);
+	CBlockCacheForPath _(GitCall::m_CurrentDirStorage);
 
 	m_itemCountTotal = 2 * m_targetPathList.GetCount();
 	CTGitPathList delList;

@@ -66,13 +66,13 @@ int CGitLogList::RevertSelectedCommits(int parent)
 		progress.ShowModeless(this);
 	}
 
-	CBlockCacheForPath cacheBlock(g_Git.m_CurrentDir);
+	CBlockCacheForPath cacheBlock(GitCall::m_CurrentDirStorage);
 
 	POSITION pos = GetFirstSelectedItemPosition();
 	int i=0;
 	CString mergeMsg;
 	CString dotGitPath;
-	GitAdminDir::GetWorktreeAdminDirPath(g_Git.m_CurrentDir, dotGitPath);
+	GitAdminDir::GetWorktreeAdminDirPath(GitCall::m_CurrentDirStorage, dotGitPath);
 	while(pos)
 	{
 		const int index = GetNextSelectedItem(pos);
@@ -130,7 +130,7 @@ int CGitLogList::CherryPickFrom(const CString& from, const CString& to)
 	progress.SetTime(true);
 	progress.ShowModeless(this);
 
-	CBlockCacheForPath cacheBlock(g_Git.m_CurrentDir);
+	CBlockCacheForPath cacheBlock(GitCall::m_CurrentDirStorage);
 
 	for (int i = static_cast<int>(logs.size()) - 1; i >= 0; --i)
 	{
@@ -678,7 +678,7 @@ void CGitLogList::ContextMenuAction(int cmd, int FirstSelect, int LastSelect, CM
 				else
 					dlg.SetTime(m_arShownList.SafeGetAt(LastSelect)->GetAuthorDate());
 				CTGitPathList gpl;
-				gpl.AddPath(CTGitPath(g_Git.m_CurrentDir.GetString()));
+				gpl.AddPath(CTGitPath(GitCall::m_CurrentDirStorage.GetString()));
 				dlg.m_pathList = gpl;
 				if (lastRevision.ParentsCount() != 1)
 				{
@@ -852,7 +852,7 @@ void CGitLogList::ContextMenuAction(int cmd, int FirstSelect, int LastSelect, CM
 		case ID_LOG:
 			{
 				CString sCmd = L"/command:log";
-				sCmd += L" /path:\"" + g_Git.m_CurrentDir + L"\" ";
+				sCmd += L" /path:\"" + GitCall::m_CurrentDirStorage + L"\" ";
 				GitRev* r1 = m_arShownList.SafeGetAt(FirstSelect);
 				sCmd += L" /endrev:" + r1->m_CommitHash.ToString();
 				sCmd += L" /rev:" + r1->m_CommitHash.ToString();
@@ -863,7 +863,7 @@ void CGitLogList::ContextMenuAction(int cmd, int FirstSelect, int LastSelect, CM
 			{
 				const int select = this->GetSelectedCount();
 				CString sCmd = L"/command:formatpatch";
-				sCmd += L" /path:\"" + g_Git.m_CurrentDir + L"\" ";
+				sCmd += L" /path:\"" + GitCall::m_CurrentDirStorage + L"\" ";
 
 				GitRev* r1 = m_arShownList.SafeGetAt(FirstSelect);
 				GitRev* r2 = nullptr;
@@ -946,13 +946,13 @@ void CGitLogList::ContextMenuAction(int cmd, int FirstSelect, int LastSelect, CM
 		case ID_REPOBROWSE:
 			{
 				CString sCmd;
-				sCmd.Format(L"/command:repobrowser /path:\"%s\" /rev:%s", static_cast<LPCWSTR>(g_Git.m_CurrentDir), (pSelLogEntry->m_CommitHash.ToString()).c_str());
+				sCmd.Format(L"/command:repobrowser /path:\"%s\" /rev:%s", static_cast<LPCWSTR>(GitCall::m_CurrentDirStorage), (pSelLogEntry->m_CommitHash.ToString()).c_str());
 				CAppUtils::RunTortoiseGitProc(sCmd);
 			}
 			break;
 		case ID_PUSH:
 			{
-				CString workingDir = g_Git.m_CurrentDir;
+				CString workingDir = GitCall::m_CurrentDirStorage;
 				workingDir.Replace(L':', L'_');
 				bool pushAllBranches = CRegDWORD(L"Software\\TortoiseGit\\TortoiseProc\\Push\\" + workingDir + L"\\AllBranches", FALSE) == TRUE;
 
@@ -997,14 +997,14 @@ void CGitLogList::ContextMenuAction(int cmd, int FirstSelect, int LastSelect, CM
 		case ID_CLEANUP:
 			{
 				CString sCmd;
-				sCmd.Format(L"/command:cleanup /path:\"%s\"", static_cast<LPCWSTR>(g_Git.m_CurrentDir));
+				sCmd.Format(L"/command:cleanup /path:\"%s\"", static_cast<LPCWSTR>(GitCall::m_CurrentDirStorage));
 				CAppUtils::RunTortoiseGitProc(sCmd);
 			}
 			break;
 		case ID_SUBMODULE_UPDATE:
 			{
 				CString sCmd;
-				sCmd.Format(L"/command:subupdate /bkpath:\"%s\"", static_cast<LPCWSTR>(g_Git.m_CurrentDir));
+				sCmd.Format(L"/command:subupdate /bkpath:\"%s\"", static_cast<LPCWSTR>(GitCall::m_CurrentDirStorage));
 				CAppUtils::RunTortoiseGitProc(sCmd);
 			}
 			break;

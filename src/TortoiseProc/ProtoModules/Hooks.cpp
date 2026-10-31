@@ -114,7 +114,7 @@ bool CHooks::Save()
 	if (reghooks.GetLastError())
 		return false;
 
-	if (g_Git.m_CurrentDir.empty() || GitAdminDir::IsBareRepo(g_Git.m_CurrentDir))
+	if (GitCall::m_CurrentDirStorage.empty() || GitAdminDir::IsBareRepo(GitCall::m_CurrentDirStorage))
 		return true;
 
 	// load the .tgitconfig file

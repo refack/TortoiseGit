@@ -114,7 +114,7 @@ void RemoteProgressCommand::RefUpdateNotificationData::GetContextMenu(CIconMenu&
 	actions.push_back([&]()
 	{
 		CString cmd = L"/command:log";
-		cmd += L" /path:\"" + g_Git.m_CurrentDir + L'"';
+		cmd += L" /path:\"" + GitCall::m_CurrentDirStorage + L'"';
 		if (!m_OldHash.IsEmpty())
 			cmd += L" /startrev:" + m_OldHash.ToString();
 		if (!m_NewHash.IsEmpty())

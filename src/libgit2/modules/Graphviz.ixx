@@ -90,13 +90,13 @@ public:
 		if (!hFile)
 			return false;
 
-		std::string header = "digraph G {\r\n\tgraph [rankdir=BT];\r\n\tnode [style=\"filled, rounded\", shape=box, fontname=\"Courier New\", fontsize=9, height=0.26, penwidth=0];\r\n";
+		const std::string header = "digraph G {\r\n\tgraph [rankdir=BT];\r\n\tnode [style=\"filled, rounded\", shape=box, fontname=\"Courier New\", fontsize=9, height=0.26, penwidth=0];\r\n";
 		constexpr auto footer = "\r\n}"sv;
 
 		if (!WriteFile(hFile, header.c_str(), static_cast<DWORD>(header.size()), &dwWritten, nullptr))
 			return false;
 
-		auto contentA = CUnicodeUtils::GetUTF8<tgit::zstr::CString>(m_content);
+		const auto contentA = CUnicodeUtils::GetUTF8<tgit::zstr::CString>(m_content);
 		if (!WriteFile(hFile, contentA, contentA.GetLength(), &dwWritten, nullptr))
 			return false;
 		if (!WriteFile(hFile, footer.data(), win32_cast(footer.size()), &dwWritten, nullptr))

@@ -499,7 +499,7 @@ bool StartExtDiff(
 		{ L"ypath", originalFile2 },
 		{ L"brev", hash1.ToString().c_str() },
 		{ L"yrev", hash2.ToString().c_str() },
-		{ L"wtroot", g_Git.m_CurrentDir.c_str() },
+		{ L"wtroot", GitCall::m_CurrentDirStorage.c_str() },
 	};
 	viewer = StringUtils::ExpandPlaceholdersForCmd(viewer, values, escaper);
 
@@ -863,7 +863,7 @@ BOOL StartExtMerge(
 			{ L"tname", theirname.IsEmpty() ? CString(theirfile.GetUIFileOrDirectoryName().c_str()) : theirname },
 			{ L"yname", yourname.IsEmpty() ? CString(yourfile.GetUIFileOrDirectoryName().c_str()) : yourname },
 			{ L"mname", mergedname.IsEmpty() ? CString(mergedfile.GetUIFileOrDirectoryName().c_str()) : mergedname },
-			{ L"wtroot", g_Git.m_CurrentDir.c_str() },
+			{ L"wtroot", GitCall::m_CurrentDirStorage.c_str() },
 		},
 		&EscapeAndQuoteParameters<CString>
 	);

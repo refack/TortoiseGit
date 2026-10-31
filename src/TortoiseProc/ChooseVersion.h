@@ -153,35 +153,30 @@ protected:
 	void SelectRef(std::wstring refName, bool bRefNameIsPossiblyNotFullName = true) {
 		if (bRefNameIsPossiblyNotFullName) {
 			//Make sure refName is a full ref name first
-			CString fullRefName = g_Git.GetFullRefName(refName);
-			if (!fullRefName.IsEmpty())
+			const auto fullRefName = g_Git.GetFullRefName(refName);
+			if (!fullRefName.empty())
 				refName = fullRefName;
 		}
 
-		if (StringUtils::StartsWith(refName, L"refs/"))
-			refName = refName.Mid(static_cast<int>(wcslen(L"refs/")));
-		if (StringUtils::StartsWith(refName, L"heads/")) {
-			refName = refName.Mid(static_cast<int>(wcslen(L"heads/")));
+		constexpr auto refs_sv = L"refs/"sv;
+		if (refName.starts_with(refs_sv))
+			refName = refName.substr(refs_sv.size());
+
+		if (constexpr auto head_sv = L"heads/"sv; refName.starts_with(head_sv)) {
+			refName = refName.substr(head_sv.size());
 			SetDefaultChoose(IDC_RADIO_BRANCH);
-			m_ChooseVersioinBranch.SetCurSel(
-				m_ChooseVersioinBranch.FindStringExact(-1, refName));
-		}
-		else if (StringUtils::StartsWith(refName, L"remotes/")) {
+			m_ChooseVersioinBranch.SetCurSel(m_ChooseVersioinBranch.FindStringExact(-1, refName.c_str()));
+		} else if (refName.starts_with(L"remotes/")) {
 			SetDefaultChoose(IDC_RADIO_BRANCH);
-			m_ChooseVersioinBranch.SetCurSel(
-				m_ChooseVersioinBranch.FindStringExact(-1, refName));
-		}
-		else if (StringUtils::StartsWith(refName, L"tags/")) {
-			refName = refName.Mid(static_cast<int>(wcslen(L"refs/")));
-			if (StringUtils::EndsWith(refName, L"^{}"))
-				refName.Truncate(refName.GetLength() - static_cast<int>(wcslen(L"^{}")));
+			m_ChooseVersioinBranch.SetCurSel(m_ChooseVersioinBranch.FindStringExact(-1, refName.c_str()));
+		} else if (refName.starts_with(L"tags/")) {
+			refName = refName.substr(refs_sv.size());
+			if (constexpr auto suffix = L"^{}"sv; refName.ends_with(suffix)) refName = refName.substr(0, refName.size() - suffix.size());
 			SetDefaultChoose(IDC_RADIO_TAGS);
-			m_ChooseVersioinTags.SetCurSel(
-				m_ChooseVersioinTags.FindStringExact(-1, refName));
-		}
-		else {
+			m_ChooseVersioinTags.SetCurSel(m_ChooseVersioinTags.FindStringExact(-1, refName.c_str()));
+		} else {
 			SetDefaultChoose(IDC_RADIO_VERSION);
-			m_ChooseVersioinVersion.AddString(refName);
+			m_ChooseVersioinVersion.AddString(refName.c_str());
 		}
 		OnVersionChanged();
 	}
@@ -251,7 +246,7 @@ protected:
 
 		m_bIsFirstTimeToSetFocus = setFocusToBranchComboBox;
 		if (!bReInit) {
-			m_pendingRefName.SetString(m_initialRefName.data(), m_initialRefName.size());
+			m_pendingRefName = m_initialRefName;
 			m_bNotFullName = true;
 		}
 

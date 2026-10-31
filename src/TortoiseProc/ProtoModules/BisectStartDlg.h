@@ -20,6 +20,9 @@
 #pragma once
 
 #include "HorizontalResizableStandAloneDialog.h"
+
+#include "Resources/resource.h"
+
 #include "Utils/HistoryCombo.h"
 
 class CBisectStartDlg : public CHorizontalResizableStandAloneDialog
@@ -46,7 +49,9 @@ protected:
 	afx_msg void OnBnClickedOk();
 	afx_msg void OnBnClickedButtonGood();
 	afx_msg void OnBnClickedButtonBad();
-	afx_msg void OnChangedRevision();
+	afx_msg void OnChangedRevision() const {
+		this->GetDlgItem(IDOK)->EnableWindow(!(m_cLastGoodRevision.GetString().Trim().IsEmpty() || m_cFirstBadRevision.GetString().Trim().IsEmpty()));
+	}
 
 	CHistoryCombo	m_cLastGoodRevision;
 	CHistoryCombo	m_cFirstBadRevision;

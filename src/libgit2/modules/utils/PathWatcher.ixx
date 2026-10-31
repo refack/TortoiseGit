@@ -100,7 +100,7 @@ public:
 										SE_CHANGE_NOTIFY_NAME
 									 };
 
-		for (auto arPrivelegeName : arPrivelegeNames)
+		for (const auto arPrivelegeName : arPrivelegeNames)
 		{
 			CAutoGeneralHandle hToken;
 			if (OpenProcessToken(GetCurrentProcess(), TOKEN_ADJUST_PRIVILEGES, hToken.GetPointer()))
@@ -228,7 +228,7 @@ bool CPathWatcher::AddPath(const CTGitPath& path)
 	{
 		const CString& watched = watchedPaths[i].GetWinPathString().c_str();
 		const CString& sPath   = path.GetWinPathString().c_str();
-		int minLen = std::min(sPath.GetLength(), watched.GetLength());
+		const int minLen = std::min(sPath.GetLength(), watched.GetLength());
 
 		int len = 0;
 		for (; len < minLen; ++len)
@@ -312,7 +312,7 @@ void CPathWatcher::WorkerThread()
 					AutoLocker _(m_critSec);
 					ClearInfoMap();
 				}
-				DWORD lastErr = GetLastError();
+				const DWORD lastErr = GetLastError();
 				if ((m_hCompPort) && (lastErr != ERROR_SUCCESS) && (lastErr != ERROR_INVALID_HANDLE))
 				{
 					m_hCompPort.CloseHandle();

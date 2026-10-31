@@ -29,7 +29,7 @@ public:
 	 */
 	bool BisectCommand::Execute()
 	{
-		CTGitPath path(g_Git.m_CurrentDir.GetString());
+		CTGitPath path(GitCall::m_CurrentDirStorage.GetString());
 
 		if (parser.HasKey(L"start") && !path.IsBisectActive())
 		{

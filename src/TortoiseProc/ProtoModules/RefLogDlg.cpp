@@ -83,11 +83,11 @@ BOOL CRefLogDlg::OnInitDialog()
 	this->EnableSaveRestore(L"RefLogDlg");
 	SetTheme(CTheme::Instance().IsDarkTheme());
 
-	CAppUtils::SetWindowTitle(*this, g_Git.m_CurrentDir);
+	CAppUtils::SetWindowTitle(*this, GitCall::m_CurrentDirStorage.c_str());
 
 	m_ChooseRef.SetMaxHistoryItems(0x7FFFFFFF);
 
-	m_RefList.m_hasWC = !GitAdminDir::IsBareRepo(g_Git.m_CurrentDir);
+	m_RefList.m_hasWC = !GitAdminDir::IsBareRepo(GitCall::m_CurrentDirStorage);
 
 	this->m_RefList.InsertRefLogColumn();
 
@@ -123,7 +123,7 @@ void CRefLogDlg::OnBnClickedClearStash()
 	if (CMessageBox::Show(GetSafeHwnd(), msg, IDS_APPNAME, 2, IDI_QUESTION, IDS_DELETEBUTTON, IDS_ABORTBUTTON) == 1)
 	{
 		CString cmdOut;
-		if (g_Git.Run({ L"git.exe", L"stash", L"clear" }, &cmdOut, CP_UTF8))
+		if (g_Git.Run({ L"git.exe", L"stash", L"clear" }, &cmdOut))
 		{
 			MessageBox(cmdOut, L"TortoiseGit", MB_ICONERROR);
 			return;

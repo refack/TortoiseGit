@@ -68,7 +68,7 @@ CGitLogListBase::CGitLogListBase() : CHintCtrl<CResizableColumnsListCtrl<CListCt
 	if (m_Filter.m_NumberOfLogsScale == CFilterData::SHOW_LAST_SEL_DATE)
 	{
 		CString key;
-		key.Format(L"Software\\TortoiseGit\\History\\LogDlg_Limits\\%s\\FromDate", g_Git.m_CurrentDir);
+		key.Format(L"Software\\TortoiseGit\\History\\LogDlg_Limits\\%s\\FromDate", GitCall::m_CurrentDirStorage);
 		key.Replace(L':', L'_');
 		CString lastSelFromDate = CRegString(key);
 		if (lastSelFromDate.GetLength() == 10)
@@ -315,12 +315,12 @@ void CGitLogListBase::InsertGitColumn()
 	m_boldItalicsFont.CreateFontIndirect(&lf);
 
 	// only load properties if we have a repository
-	if (GitAdminDir::IsWorkingTreeOrBareRepo(tgit::str::StringView(g_Git.m_CurrentDir)))
+	if (GitAdminDir::IsWorkingTreeOrBareRepo(GitCall::m_CurrentDirStorage.wstring()))
 		UpdateProjectProperties();
 
 	const auto iconItemBorder = CDPIAware::Instance().ScaleX(GetSafeHwnd(), ICONITEMBORDER);
 	const auto columnWidth = CDPIAware::Instance().ScaleX(GetSafeHwnd(), ICONITEMBORDER + 16 * 4);
-	const auto hasSVNDir = CTGitPath(g_Git.m_CurrentDir.GetString()).HasGitSVNDir();
+	const auto hasSVNDir = CTGitPath(GitCall::m_CurrentDirStorage).HasGitSVNDir();
 
 	const ColumnDefinition columns[] = {
 		{ LOGLIST_GRAPH, IDS_LOG_GRAPH, true, !m_IsRebaseReplaceGraph, columnWidth },
@@ -1483,7 +1483,7 @@ CString FindSVNRev(const CString& msg)
 			}
 		}
 	}
-	catch (std::exception&) {}
+	catch (...) {}
 
 	return L"";
 }
@@ -1700,7 +1700,7 @@ void CGitLogListBase::OnContextMenu(CWnd* pWnd, CPoint point)
 		const auto& hashMap = *hashMapSharedPtr;
 		const bool isHeadCommit = (pSelLogEntry->m_CommitHash == headHash);
 		CString currentBranch = L"refs/heads/" + g_Git.GetCurrentBranch();
-		CTGitPath workingTree(g_Git.m_CurrentDir.GetString());
+		CTGitPath workingTree(GitCall::m_CurrentDirStorage);
 		const bool isMergeActive = workingTree.IsMergeActive();
 		const bool isBisectActive = workingTree.IsBisectActive();
 		const bool isStash = IsOnStash(FirstSelect);
@@ -2643,7 +2643,7 @@ std::expected<bool, CString> CGitLogListBase::BeginFetchLog()
 
 	this->m_LogCache.ClearAllParent();
 
-	m_LogCache.FetchCacheIndex(g_Git.m_CurrentDir);
+	m_LogCache.FetchCacheIndex(GitCall::m_CurrentDirStorage.c_str());
 
 	CTGitPath *path;
 	if(this->m_Path.IsEmpty())
@@ -2678,7 +2678,7 @@ std::expected<bool, CString> CGitLogListBase::BeginFetchLog()
 	if (mask & TGitH::LOG_INFO_FOLLOW)
 		mask &= ~(TGitH::LOG_INFO_ALL_BRANCH | TGitH::LOG_INFO_BASIC_REFS | TGitH::LOG_INFO_LOCAL_BRANCHES);
 
-	std::vector<std::string> cmd = g_Git.GetLogCmd(range, path, mask, &m_Filter, CRegDWORD(L"Software\\TortoiseGit\\LogOrderBy", TGitH::LOG_ORDER_TOPOORDER));
+	auto cmd = g_Git.GetLogCmd(range, path, mask, &m_Filter, CRegDWORD(L"Software\\TortoiseGit\\LogOrderBy", TGitH::LOG_ORDER_TOPOORDER));
 
 	PostMessage(LVM_SETITEMCOUNT, m_logEntries.size(), LVSICF_NOINVALIDATEALL);
 
@@ -2704,9 +2704,8 @@ std::expected<bool, CString> CGitLogListBase::BeginFetchLog()
 	CAutoLocker lock{ g_Git.m_critGitDllSec };
 	try
 	{
-		auto argvData = ArgvData::VectorToARGV(cmd);
 		m_DllGitLog = nullptr;
-		if (!argvData || CGit::git_open_log_ex(&m_DllGitLog, argvData))
+		if (!cmd || CGit::git_open_log_ex(&m_DllGitLog, cmd))
 			return std::unexpected(L"Could not open log.");
 	}
 	catch (const char* msg)
@@ -3276,15 +3275,16 @@ CString CGitLogListBase::GetTagInfo(GitRev* pLogEntry) const
 CString CGitLogListBase::GetTagInfo(const std::vector<std::wstring>& refs) const
 {
 	CString tagInfo;
-	for (auto it = refs.cbegin(); it != refs.cend(); ++it)
+	for (auto& it : refs)
 	{
-		if (!it->starts_with(L"refs/tags/"))
+		if (!it.starts_with(L"refs/tags/"))
 			continue;
-		if (!it->ends_with(L"^{}"))
+		if (!it.ends_with(L"^{}"))
 			continue;
 
+		TGitH::time_formater_f fmt = [&](const CTime& time) { return CLoglistUtils::FormatDateAndTime(time, m_DateFormat, true, m_bRelativeTimes); };
 		CString output;
-		g_Git.GetTagInfo(tgit::wstr::Left(*it, SafeSizeToInt(it->size()) - static_cast<int>(wcslen(L"^{}"))).c_str(), output, [&](const CTime& time) { return CLoglistUtils::FormatDateAndTime(time, m_DateFormat, true, m_bRelativeTimes); });
+		g_Git.GetTagInfo(it.substr(0, it.size() - L"^{}"sv.size()).c_str(), output, fmt);
 
 		tagInfo += output;
 	}

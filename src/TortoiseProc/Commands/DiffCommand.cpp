@@ -115,7 +115,7 @@ bool DiffCommand::Execute()
 	}
 	else
 	{
-		auto rel = fs::relative(path2, g_Git.m_CurrentDir);
+		auto rel = fs::relative(path2, GitCall::m_CurrentDirStorage);
 		if (parser.HasKey(L"startrev") && parser.HasKey(L"endrev") && rel.empty() == false)
 		{
 			if (!CheckRepo(PathRequirement::WorkingTreeOrBareRepoRequired))

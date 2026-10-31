@@ -102,7 +102,7 @@ BOOL CGitSwitchDlg::OnInitDialog()
 
 	EnableSaveRestore(L"SwitchDlg");
 
-	CAppUtils::SetWindowTitle(*this, g_Git.m_CurrentDir);
+	CAppUtils::SetWindowTitle(*this, GitCall::m_CurrentDirStorage.c_str());
 
 	InitChooseVersion(true);
 

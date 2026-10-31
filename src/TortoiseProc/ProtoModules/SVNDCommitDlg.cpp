@@ -55,7 +55,7 @@ BOOL CSVNDCommitDlg::OnInitDialog()
 	CStandAloneDialog::OnInitDialog();
 	CAppUtils::MarkWindowAsUnpinnable(m_hWnd);
 
-	CAppUtils::SetWindowTitle(*this, g_Git.m_CurrentDir);
+	CAppUtils::SetWindowTitle(*this, GitCall::m_CurrentDirStorage.c_str());
 
 	CheckRadioButton(IDC_RADIO_SVN_COMMIT, IDC_RADIO_GIT_COMMIT, IDC_RADIO_SVN_COMMIT);
 

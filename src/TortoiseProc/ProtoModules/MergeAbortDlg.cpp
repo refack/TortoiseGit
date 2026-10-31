@@ -58,7 +58,7 @@ BOOL CMergeAbortDlg::OnInitDialog()
 	CStateStandAloneDialog::OnInitDialog();
 	CAppUtils::MarkWindowAsUnpinnable(m_hWnd);
 
-	CAppUtils::SetWindowTitle(*this, g_Git.m_CurrentDir);
+	CAppUtils::SetWindowTitle(*this, GitCall::m_CurrentDirStorage.c_str());
 
 	AdjustControlSize(IDC_RADIO_RESET_MERGE);
 	AdjustControlSize(IDC_RADIO_RESET_MIXED);

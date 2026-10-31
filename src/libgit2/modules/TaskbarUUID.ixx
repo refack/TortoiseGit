@@ -42,7 +42,7 @@ std::wstring GetTaskIDPerUUID(const std::wstring_view uuid = {}) {
 			id += uuid;
 		}
 		else {
-			CCmdLineParser parser(GetCommandLine());
+			const CCmdLineParser parser(GetCommandLine());
 			if (parser.HasVal(L"groupuuid")) {
 				id += parser.GetValStr(L"groupuuid");
 			}

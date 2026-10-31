@@ -66,7 +66,7 @@ BOOL CSubmoduleDiffDlg::OnInitDialog()
 {
 	CHorizontalResizableStandAloneDialog::OnInitDialog();
 
-	CAppUtils::SetWindowTitle(*this, g_Git.m_CurrentDir);
+	CAppUtils::SetWindowTitle(*this, GitCall::m_CurrentDirStorage);
 
 	AddAnchor(IDC_SUBMODULEDIFFTITLE, TOP_LEFT, TOP_RIGHT);
 	AddAnchor(IDC_STATIC_REVISION, TOP_LEFT);
@@ -268,6 +268,6 @@ void CSubmoduleDiffDlg::OnBnClickedShowDiff()
 void CSubmoduleDiffDlg::OnBnClickedButtonUpdate()
 {
 	CString sCmd;
-	sCmd.Format(L"/command:subupdate /bkpath:\"%s\" /selectedpath:%s", g_Git.m_CurrentDir, TCmdLineParser::EscapeValue(m_sPath));
+	sCmd.Format(L"/command:subupdate /bkpath:\"%s\" /selectedpath:%s", GitCall::m_CurrentDirStorage, TCmdLineParser::EscapeValue(m_sPath));
 	CAppUtils::RunTortoiseGitProc(sCmd);
 }

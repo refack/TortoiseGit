@@ -1181,7 +1181,7 @@ public:
 
 		EnsureBackslashPathSet();
 		bool isAdminDir = false;
-		fs::path ret = GitAdminDir::HasAdminDir(m_sBackslashPath, &isAdminDir);
+		const fs::path ret = GitAdminDir::HasAdminDir(m_sBackslashPath, &isAdminDir);
 		if (ret.empty()) {
 			m_sProjectRoot.clear();
 		} else {

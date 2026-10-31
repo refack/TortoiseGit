@@ -57,7 +57,7 @@ namespace CControlsBridge
 IMPLEMENT_DYNAMIC(CRenameDlg, CHorizontalResizableStandAloneDialog)
 CRenameDlg::CRenameDlg(CWnd* pParent /*=nullptr*/)
 	: CHorizontalResizableStandAloneDialog(CRenameDlg::IDD, pParent)
-	, m_sBaseDir(g_Git.m_CurrentDir)
+	, m_sBaseDir(GitCall::m_CurrentDirStorage.c_str())
 {
 }
 
@@ -182,7 +182,7 @@ void CRenameDlg::OnBnClickedButtonBrowseRef()
 		GetDlgItem(IDC_NAME)->SetFocus();
 		CTGitPath target(path.GetString());
 		std::wstring targetRoot;
-		if (!target.HasAdminDir(&targetRoot) || g_Git.m_CurrentDir.CompareNoCase(targetRoot.c_str()) != 0)
+		if (!target.HasAdminDir(&targetRoot) || wstr::SpaceshipNoCase(GitCall::m_CurrentDirStorage.wstring(), targetRoot) != 0)
 		{
 			CMessageBox::Show(GetSafeHwnd(), IDS_ERR_MUSTBESAMEWT, IDS_APPNAME, MB_OK | MB_ICONEXCLAMATION);
 			return;

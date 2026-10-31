@@ -542,7 +542,7 @@ UINT CGitProgressList::ProgressThread()
 	if ((count > 0)&&(m_bLastVisible))
 		EnsureVisible(count-1, FALSE);
 
-	CLogFile logfile(g_Git.m_CurrentDir);
+	CLogFile logfile(GitCall::m_CurrentDirStorage.c_str());
 	if (logfile.Open())
 	{
 		logfile.AddTimeLine();
@@ -1010,7 +1010,7 @@ void CGitProgressList::OnClose()
 {
 	if (m_bCancelled)
 	{
-		g_Git.KillRelatedThreads(m_pThread->m_nThreadID, m_pThread->m_hThread);
+		GitCall::KillRelatedThreads(m_pThread->m_nThreadID, m_pThread->m_hThread);
 		InterlockedExchange(&m_bThreadRunning, FALSE);
 	}
 	else
@@ -1152,22 +1152,22 @@ void CGitProgressList::WC_File_NotificationData::GetContextMenu(CIconMenu& popup
 		actions.push_back([&]()
 		{
 			CString cmd = L"/command:log";
-			CString sPath = g_Git.CombinePath(path);
-			cmd += L" /path:" + TCmdLineParser::EscapeValue(sPath);
+			CString sPath = g_Git.CombinePath(path).c_str();
+			cmd += L" /path:";
+			cmd += TCmdLineParser::EscapeValue<CString>(sPath);
 			CAppUtils::RunTortoiseGitProc(cmd);
 		});
 		popup.AppendMenuIcon(actions.size(), IDS_MENULOG, IDI_LOG);
 
 		popup.AppendMenu(MF_SEPARATOR, NULL);
-		if (!PathIsDirectory(g_Git.CombinePath(path)))
-		{
-			actions.push_back([&]{ CAppUtils::ShellOpen(g_Git.CombinePath(path)); });
+		if (!fs::exists(g_Git.CombinePath(path))) {
+			actions.push_back([&]{ CAppUtils::ShellOpen(g_Git.CombinePath(path).c_str()); });
 			popup.AppendMenuIcon(actions.size(), IDS_LOG_POPUP_OPEN, IDI_OPEN);
-			actions.push_back([&]{ CAppUtils::ShowOpenWithDialog(g_Git.CombinePath(path)); });
+			actions.push_back([&]{ CAppUtils::ShowOpenWithDialog(g_Git.CombinePath(path).c_str()); });
 			popup.AppendMenuIcon(actions.size(), IDS_LOG_POPUP_OPENWITH, IDI_OPEN);
 		}
 
-		actions.push_back([&]{ CAppUtils::ExploreTo(nullptr, g_Git.CombinePath(path)); });
+		actions.push_back([&]{ CAppUtils::ExploreTo(nullptr, g_Git.CombinePath(path).c_str()); });
 		popup.AppendMenuIcon(actions.size(), IDS_STATUSLIST_CONTEXT_EXPLORE, IDI_EXPLORER);
 
 		if ((action == Git_WC_Notify_Action::LFS_Lock) ||
@@ -1200,13 +1200,12 @@ void CGitProgressList::WC_File_NotificationData::GetContextMenu(CIconMenu& popup
 
 void CGitProgressList::WC_File_NotificationData::HandleDblClick() const
 {
-	CString sWinPath = g_Git.CombinePath(path);
-	if (PathIsDirectory(sWinPath))
-	{
-		CAppUtils::ExploreTo(nullptr, sWinPath);
+	const auto sWinPath = g_Git.CombinePath(path);
+	if (fs::exists(sWinPath)) {
+		CAppUtils::ExploreTo(nullptr, sWinPath.c_str());
 		return;
 	}
-	CAppUtils::ShellOpen(sWinPath);
+	CAppUtils::ShellOpen(sWinPath.c_str());
 }
 
 void CGitProgressList::OnSysColorChange()

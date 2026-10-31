@@ -398,7 +398,7 @@ bool CReaderWriterLockNonReentrance::_ReaderWait(ULONGLONG dwTimeout) noexcept
 
 void CReaderWriterLockNonReentrance::_ReaderRelease() noexcept
 {
-	INT _iNumOfReaderEntered = --m_iNumOfReaderEntered;
+	const INT _iNumOfReaderEntered = --m_iNumOfReaderEntered;
 	_ASSERT(0 <= _iNumOfReaderEntered);
 
 	if (0 == _iNumOfReaderEntered && m_hSafeToWriteEvent)
@@ -413,7 +413,7 @@ bool CReaderWriterLockNonReentrance::_WriterWaitAndLeaveCSIfSuccess(ULONGLONG dw
 	_ASSERT(0 != dwTimeout);
 
 	// Increase Writer-counter & reset Reader-event if necessary
-	INT _iNumOfWriter = ++m_iNumOfWriter;
+	const INT _iNumOfWriter = ++m_iNumOfWriter;
 	if (_iNumOfWriter == 1 && m_hSafeToReadEvent)
 	{
 		ResetEvent(m_hSafeToReadEvent);
@@ -624,7 +624,7 @@ bool CReaderWriterLock::AcquireReaderLock(DWORD dwTimeout) noexcept
 	const DWORD dwCurrentThreadId = GetCurrentThreadId();
 
 	m_impl.EnterCS();
-	CMapThreadToState::iterator ite = m_map.find(dwCurrentThreadId);
+	const CMapThreadToState::iterator ite = m_map.find(dwCurrentThreadId);
 
 	if(ite != m_map.end())
 	{
@@ -654,7 +654,7 @@ bool CReaderWriterLock::AcquireReaderLock(DWORD dwTimeout) noexcept
 		return FALSE;
 	}
 
-	bool blCanRead = m_impl._ReaderWait(dwTimeout);
+	const bool blCanRead = m_impl._ReaderWait(dwTimeout);
 	if(blCanRead)
 	{
 		m_map.emplace(dwCurrentThreadId, READER_RECURRENCE_UNIT);
@@ -669,7 +669,7 @@ void CReaderWriterLock::ReleaseReaderLock() noexcept
 	const DWORD dwCurrentThreadId = GetCurrentThreadId();
 	m_impl.EnterCS();
 
-	CMapThreadToState::iterator ite = m_map.find(dwCurrentThreadId);
+	const CMapThreadToState::iterator ite = m_map.find(dwCurrentThreadId);
 	_ASSERT( (ite != m_map.end()) && (READER_RECURRENCE_MASK & ite->second));
 
 	const DWORD dwThreadState = (ite->second -= READER_RECURRENCE_UNIT);
@@ -761,7 +761,7 @@ void CReaderWriterLock::ReleaseWriterLock() noexcept
 	const DWORD dwCurrentThreadId = GetCurrentThreadId();
 	m_impl.EnterCS();
 
-	CMapThreadToState::iterator ite = m_map.find(dwCurrentThreadId);
+	const CMapThreadToState::iterator ite = m_map.find(dwCurrentThreadId);
 	_ASSERT( (ite != m_map.end()) && (WRITER_RECURRENCE_UNIT <= ite->second));
 
 	const DWORD dwThreadState = (ite->second -= WRITER_RECURRENCE_UNIT);
@@ -783,7 +783,7 @@ void CReaderWriterLock::ReleaseAllLocks() noexcept
 	const DWORD dwCurrentThreadId = GetCurrentThreadId();
 
 	m_impl.EnterCS();
-	CMapThreadToState::iterator ite = m_map.find(dwCurrentThreadId);
+	const CMapThreadToState::iterator ite = m_map.find(dwCurrentThreadId);
 	if(ite != m_map.end())
 	{
 		const DWORD dwThreadState = ite->second;
@@ -807,7 +807,7 @@ DWORD CReaderWriterLock::GetCurrentThreadStatus() const noexcept
 	const DWORD dwCurrentThreadId = GetCurrentThreadId();
 
 	m_impl.EnterCS();
-	CMapThreadToState::const_iterator ite = m_map.find(dwCurrentThreadId);
+	const CMapThreadToState::const_iterator ite = m_map.find(dwCurrentThreadId);
 	if(ite != m_map.end())
 	{
 		dwThreadState = ite->second;

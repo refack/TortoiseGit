@@ -37,7 +37,7 @@ bool FetchCommand::Execute()
 				continue;
 			}
 			g_Git.SetCurrentDirExact(item.GetWinPathString().c_str());
-			SetCurrentDirectory(g_Git.m_CurrentDir);
+			SetCurrentDirectory(GitCall::m_CurrentDirStorage);
 			retVal &= CAppUtils::Fetch(GetExplorerHWND(), parser.GetVal(L"remote"));
 		}
 		return retVal;

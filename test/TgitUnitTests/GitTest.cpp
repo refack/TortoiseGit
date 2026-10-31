@@ -4391,7 +4391,7 @@ TEST_P(CBasicGitWithTestRepoFixture, GetRefsCommitIsOn)
 	EXPECT_STREQ(L"refs/remotes/origin/master", list[6].c_str());
 
 	// test for symbolic refs
-	const auto admin = GitAdminDir::GetAdminDirPath(g_Git.m_CurrentDir.native());
+	const auto admin = GitAdminDir::GetAdminDirPath(GitCall::m_CurrentDirStorage.native());
 	ASSERT_TRUE(admin);
 	CString adminDir = admin->path.c_str();
 	adminDir += L"refs\\remotes\\origin\\HEAD";

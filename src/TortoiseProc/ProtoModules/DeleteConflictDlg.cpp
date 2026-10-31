@@ -96,7 +96,7 @@ BOOL CDeleteConflictDlg::OnInitDialog()
 		DialogEnableWindow(IDC_LOG2, FALSE);
 	}
 
-	CAppUtils::SetWindowTitle(*this, g_Git.CombinePath(m_File));
+	CAppUtils::SetWindowTitle(*this, g_Git.CombinePath(m_File).c_str());
 
 	GetDlgItem(IDC_INFOLABEL)->SetWindowText(m_File.GetGitPathString().c_str());
 
@@ -133,7 +133,7 @@ void CDeleteConflictDlg::OnBnClickedModify()
 void CDeleteConflictDlg::ShowLog(const CString& hash) const
 {
 	CString sCmd;
-	sCmd.Format(L"/command:log /path:%s /endrev:%s /rev:%s", static_cast<LPCWSTR>(TCmdLineParser::EscapeValue(g_Git.CombinePath(m_File))), hash, hash);
+	sCmd.Format(L"/command:log /path:%s /endrev:%s /rev:%s", TCmdLineParser::EscapeValue(g_Git.CombinePath(m_File).wstring()).c_str(), hash, hash);
 	CAppUtils::RunTortoiseGitProc(sCmd, false, false);
 }
 
@@ -141,12 +141,15 @@ void CDeleteConflictDlg::OnBnClickedShowdiff()
 {
 	CString base;
 	base.LoadString(IDS_PROC_DIFF_BASE);
-	CAppUtils::StartExtDiff(m_FileBaseVersion.GetWinPathString().c_str(), g_Git.CombinePath(m_File),
-		base,
-		CString((m_bDiffMine ? m_LocalHash : m_RemoteHash).ToString().c_str()),
+	CAppUtils::StartExtDiff(
 		m_FileBaseVersion.GetWinPathString().c_str(),
-		g_Git.CombinePath(m_File),
+		g_Git.CombinePath(m_File).c_str(),
+		base,
+		(m_bDiffMine ? m_LocalHash : m_RemoteHash).ToString().c_str(),
+		m_FileBaseVersion.GetWinPathString().c_str(),
+		g_Git.CombinePath(m_File).c_str(),
 		m_bDiffMine ? m_LocalHash : m_RemoteHash,
 		m_bDiffMine ? m_RemoteHash : m_LocalHash,
-		CAppUtils::DiffFlags().AlternativeTool(!!(GetAsyncKeyState(VK_SHIFT) & 0x8000)));
+		CAppUtils::DiffFlags().AlternativeTool(!!(GetAsyncKeyState(VK_SHIFT) & 0x8000))
+	);
 }

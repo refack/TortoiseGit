@@ -454,7 +454,7 @@ BOOL CSettingGitRemote::OnApply()
 		GetDlgItem(IDC_BUTTON_ADD)->EnableWindow(TRUE);
 		GetDlgItem(IDC_BUTTON_RENAME_REMOTE)->EnableWindow(TRUE);
 		if (!m_bNoFetch && CMessageBox::Show(GetSafeHwnd(), IDS_SETTINGS_FETCH_ADDEDREMOTE, IDS_APPNAME, MB_ICONQUESTION | MB_YESNO) == IDYES)
-			CAppUtils::RunTortoiseGitProc(L"/command:fetch /path:\""s + g_Git.m_CurrentDir.wstring() + L"\" /remote:"s + TCmdLineParser::EscapeValue<std::wstring>(m_strRemote));
+			CAppUtils::RunTortoiseGitProc(L"/command:fetch /path:\""s + GitCall::m_CurrentDirStorage.wstring() + L"\" /remote:"s + TCmdLineParser::EscapeValue<std::wstring>(m_strRemote));
 	}
 	if(m_ChangedMask & REMOTE_URL)
 	{
@@ -496,7 +496,7 @@ BOOL CSettingGitRemote::OnApply()
 
 void CleanupSyncRemotes(const CString& remote)
 {
-	CString workingDir = g_Git.m_CurrentDir.c_str();
+	CString workingDir = GitCall::m_CurrentDirStorage.c_str();
 	workingDir.Replace(L':', L'_');
 	CHistoryCombo::RemoveEntryFromHistory(L"Software\\TortoiseGit\\History\\SyncURL\\" + workingDir, L"url", remote);
 }

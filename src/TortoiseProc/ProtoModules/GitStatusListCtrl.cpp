@@ -307,7 +307,7 @@ void CGitStatusListCtrl::Init(DWORD dwColumns, const CString& sColumnInfoContain
 		{ eCol_Del, IDS_STATUSLIST_COLDEL, (dwColumns & GITSLC_COLDEL) != 0, (allowedColumns & GITSLC_COLDEL) != 0, 0 },
 		{ eCol_LastModificationDate, IDS_STATUSLIST_COLLASTMODIFIED, (dwColumns & GITSLC_COLMODIFICATIONDATE) != 0, (allowedColumns & GITSLC_COLMODIFICATIONDATE) != 0, 0 },
 		{ eCol_FileSize, IDS_STATUSLIST_COLSIZE, (dwColumns & GITSLC_COLSIZE) != 0, (allowedColumns & GITSLC_COLSIZE) != 0, 0 },
-		{ eCol_LFSLock, IDS_STATUSLIST_COLLFSLOCK, (dwColumns & GITSLC_COLLFSLOCK) != 0, (allowedColumns & GITSLC_COLLFSLOCK) != 0 && CTGitPath(g_Git.m_CurrentDir.GetString()).HasLFS(), 0 },
+		{ eCol_LFSLock, IDS_STATUSLIST_COLLFSLOCK, (dwColumns & GITSLC_COLLFSLOCK) != 0, (allowedColumns & GITSLC_COLLFSLOCK) != 0 && CTGitPath(GitCall::m_CurrentDirStorage.GetString()).HasLFS(), 0 },
 	};
 	static_assert(_countof(columns) == GITSLC_NUMCOLUMNS);
 
@@ -381,7 +381,7 @@ BOOL CGitStatusListCtrl::GetStatus ( const CTGitPathList* pathList
 	m_bWaitCursor = true;
 	Invalidate();
 
-	CTGitPath repo{ g_Git.m_CurrentDir.GetString() };
+	CTGitPath repo{ GitCall::m_CurrentDirStorage.GetString() };
 	bool hasLFS = repo.HasLFS();
 	m_bIsRevertTheirMy = repo.IsRebaseActive();
 
@@ -2761,7 +2761,7 @@ void CGitStatusListCtrl::OnContextMenuList(CWnd * pWnd, CPoint point)
 
 void CGitStatusListCtrl::AppendLocksMenuItems(CIconMenu& popup)
 {
-	if (!CTGitPath(g_Git.m_CurrentDir.GetString()).HasLFS())
+	if (!CTGitPath(GitCall::m_CurrentDirStorage.GetString()).HasLFS())
 		return;
 
 	if (!m_ColumnManager.IsVisible(eCol_LFSLock))
@@ -3326,7 +3326,7 @@ void CGitStatusListCtrl::OnLvnGetInfoTip(NMHDR *pNMHDR, LRESULT *pResult)
 	auto entry = GetListEntry(pGetInfoTip->iItem);
 
 	if (entry)
-		if (pGetInfoTip->cchTextMax > entry->GetGitPathString().size() + g_Git.m_CurrentDir.GetLength())
+		if (pGetInfoTip->cchTextMax > entry->GetGitPathString().size() + GitCall::m_CurrentDirStorage.GetLength())
 		{
 			CString str = g_Git.CombinePath(entry->GetWinPathString().c_str());
 			wcsncpy_s(pGetInfoTip->pszText, pGetInfoTip->cchTextMax, str.GetBuffer(), pGetInfoTip->cchTextMax - 1);
@@ -3515,10 +3515,10 @@ void CGitStatusListCtrl::ResetChecked(const CTGitPath& entry)
 {
 	CAutoWriteLock locker(m_guard);
 	CTGitPath adjustedEntry;
-	if (g_Git.m_CurrentDir[g_Git.m_CurrentDir.GetLength() - 1] == L'\\')
-		adjustedEntry.SetFromWin(tgit::wstr::Right(entry.GetWinPathString(), static_cast<int>(entry.GetWinPathString().size()) - g_Git.m_CurrentDir.GetLength()));
+	if (GitCall::m_CurrentDirStorage[GitCall::m_CurrentDirStorage.GetLength() - 1] == L'\\')
+		adjustedEntry.SetFromWin(tgit::wstr::Right(entry.GetWinPathString(), static_cast<int>(entry.GetWinPathString().size()) - GitCall::m_CurrentDirStorage.GetLength()));
 	else
-		adjustedEntry.SetFromWin(tgit::wstr::Right(entry.GetWinPathString(), static_cast<int>(entry.GetWinPathString().size()) - g_Git.m_CurrentDir.GetLength() - 1));
+		adjustedEntry.SetFromWin(tgit::wstr::Right(entry.GetWinPathString(), static_cast<int>(entry.GetWinPathString().size()) - GitCall::m_CurrentDirStorage.GetLength() - 1));
 	if (entry.IsDirectory())
 	{
 		// Not a std::vector<std::wstring>: these are keys of a std::map<CString, bool>, not git
@@ -3802,10 +3802,10 @@ bool CGitStatusListCtrl::HasPath(const CTGitPath& path)
 {
 	CAutoReadLock locker(m_guard);
 	CTGitPath adjustedEntry;
-	if (g_Git.m_CurrentDir[g_Git.m_CurrentDir.GetLength() - 1] == L'\\')
-		adjustedEntry.SetFromWin(tgit::wstr::Right(path.GetWinPathString(), static_cast<int>(path.GetWinPathString().size()) - g_Git.m_CurrentDir.GetLength()));
+	if (GitCall::m_CurrentDirStorage[GitCall::m_CurrentDirStorage.GetLength() - 1] == L'\\')
+		adjustedEntry.SetFromWin(tgit::wstr::Right(path.GetWinPathString(), static_cast<int>(path.GetWinPathString().size()) - GitCall::m_CurrentDirStorage.GetLength()));
 	else
-		adjustedEntry.SetFromWin(tgit::wstr::Right(path.GetWinPathString(), static_cast<int>(path.GetWinPathString().size()) - g_Git.m_CurrentDir.GetLength() - 1));
+		adjustedEntry.SetFromWin(tgit::wstr::Right(path.GetWinPathString(), static_cast<int>(path.GetWinPathString().size()) - GitCall::m_CurrentDirStorage.GetLength() - 1));
 	for (size_t i=0; i < m_arStatusArray.size(); ++i)
 	{
 		if (m_arStatusArray[i]->IsEquivalentTo(adjustedEntry))
@@ -4942,7 +4942,7 @@ ULONG CGitStatusListCtrl::GetGestureStatus(CPoint /*ptTouch*/)
 void CGitStatusListCtrl::LoadChangelists()
 {
 	CString tgitChangelistPath;
-	if (!GitAdminDir::GetWorktreeAdminDirPath(g_Git.m_CurrentDir, tgitChangelistPath))
+	if (!GitAdminDir::GetWorktreeAdminDirPath(GitCall::m_CurrentDirStorage, tgitChangelistPath))
 	{
 		CMessageBox::Show(GetSafeHwnd(), IDS_ERR_CHANGELIST_LOAD, IDS_APPNAME, MB_ICONERROR);
 		return;
@@ -4984,7 +4984,7 @@ void CGitStatusListCtrl::LoadChangelists()
 void CGitStatusListCtrl::SaveChangelists()
 {
 	CString tgitChangelistPath;
-	if (!GitAdminDir::GetWorktreeAdminDirPath(g_Git.m_CurrentDir, tgitChangelistPath))
+	if (!GitAdminDir::GetWorktreeAdminDirPath(GitCall::m_CurrentDirStorage, tgitChangelistPath))
 	{
 		CMessageBox::Show(GetSafeHwnd(), IDS_ERR_CHANGELIST_SAVE, IDS_APPNAME, MB_ICONERROR);
 		return;

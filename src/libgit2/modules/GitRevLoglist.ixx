@@ -504,7 +504,7 @@ public:
 			if (git_diff_tree_to_tree(diff.put(), repo.get(), parentTree.get(), commitTree.get(), nullptr) < 0)
 				return -1;
 
-			size_t deltas = git_diff_num_deltas(diff.get());
+			const size_t deltas = git_diff_num_deltas(diff.get());
 			for (size_t i = 0; i < deltas; ++i)
 			{
 				const git_diff_delta* delta = git_diff_get_delta(diff.get(), i);
@@ -636,7 +636,7 @@ int GitRevLoglist::GetRefLog(const CString& ref_, std::vector<GitRevLoglist>& re
 			if (git_reflog_entry_message(entry) != nullptr)
 			{
 				CString one = CUnicodeUtils::GetUnicode<CString>(git_reflog_entry_message(entry));
-				int message = one.Find(L": ");
+				const int message = one.Find(L": ");
 				if (message > 0)
 				{
 					rev.m_RefAction = one.Left(message);
@@ -671,7 +671,7 @@ int GitRevLoglist::GetRefLog(const CString& ref_, std::vector<GitRevLoglist>& re
 			rev.GetCommitterDate() = CTime(time);
 
 			CString one = CUnicodeUtils::GetUnicode<CString>(msg);
-			int message = one.Find(L": ");
+			const int message = one.Find(L": ");
 			if (message > 0)
 			{
 				rev.m_RefAction = one.Left(message);
@@ -695,7 +695,7 @@ int GitRevLoglist::GetRefLog(const CString& ref_, std::vector<GitRevLoglist>& re
 		return 0;
 	}
 
-	const auto dotGitDirMaybe = GitAdminDir::GetAdminDirPath(g_Git.m_CurrentDir.wstring());
+	const auto dotGitDirMaybe = GitAdminDir::GetAdminDirPath(GitCall::m_CurrentDirStorage.wstring());
 	if (!dotGitDirMaybe.has_value())
 	{
 		error = L".git directory not found";
@@ -717,7 +717,7 @@ int GitRevLoglist::GetRefLog(const CString& ref_, std::vector<GitRevLoglist>& re
 		return -1;
 
 	int i = 0;
-	CString prefix = ref_ + L"@{";
+	const CString prefix = ref_ + L"@{";
 	int pos = 0;
 	while (pos >= 0)
 	{
@@ -734,7 +734,7 @@ int GitRevLoglist::GetRefLog(const CString& ref_, std::vector<GitRevLoglist>& re
 		if (prefixPos != refPos + 1)
 			continue;
 
-		int spacePos = one.Find(L' ', prefixPos + prefix.GetLength() + 1);
+		const int spacePos = one.Find(L' ', prefixPos + prefix.GetLength() + 1);
 		if (spacePos < 0)
 			continue;
 
@@ -743,7 +743,7 @@ int GitRevLoglist::GetRefLog(const CString& ref_, std::vector<GitRevLoglist>& re
 		if (int action = one.Find(L"}: ", spacePos + 1); action > 0)
 		{
 			action += 2;
-			int message = one.Find(L": ", action);
+			const int message = one.Find(L": ", action);
 			if (message > 0)
 			{
 				rev.m_RefAction = one.Mid(action + 1, message - action - 1);

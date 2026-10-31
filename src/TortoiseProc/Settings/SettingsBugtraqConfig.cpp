@@ -184,7 +184,7 @@ void CSettingsBugtraqConfig::LoadDataImpl(wil::unique_git_config& config)
 		CBugTraqAssociations bugtraq_associations;
 		bugtraq_associations.Load(props.GetProviderUUID(), props.sProviderParams);
 		CBugTraqAssociation bugtraq_association;
-		if (bugtraq_associations.FindProvider(g_Git.m_CurrentDir, &bugtraq_association))
+		if (bugtraq_associations.FindProvider(GitCall::m_CurrentDirStorage, &bugtraq_association))
 		{
 #if _WIN64
 			m_UUID64 = bugtraq_association.GetProviderClassAsString();

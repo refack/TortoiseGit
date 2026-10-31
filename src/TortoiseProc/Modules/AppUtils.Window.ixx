@@ -280,7 +280,7 @@ CString FormatWindowTitle(const CString& urlorpath2, const CString& dialogname, 
 	{
 	case 1:
 	{
-		if (const auto rel = fs::relative(urlorpath2.GetString(), g_Git.m_CurrentDir); !rel.empty()) {
+		if (const auto rel = fs::relative(urlorpath2.GetString(), GitCall::m_CurrentDirStorage); !rel.empty()) {
 			const auto rel_part = rel.filename().empty() ? rel.wstring() : rel.parent_path().wstring();
 			urlorpath = rel_part.c_str();
 		}

@@ -67,7 +67,7 @@ BOOL CStashSaveDlg::OnInitDialog()
 	AddAnchor(IDC_STASHMESSAGE, TOP_LEFT, TOP_RIGHT);
 	AddAnchor(IDC_GROUP_OPTION, TOP_LEFT, TOP_RIGHT);
 
-	CAppUtils::SetWindowTitle(*this, g_Git.m_CurrentDir);
+	CAppUtils::SetWindowTitle(*this, GitCall::m_CurrentDirStorage.c_str());
 
 	SetTheme(CTheme::Instance().IsDarkTheme());
 

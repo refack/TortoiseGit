@@ -274,7 +274,7 @@ BOOL CTortoiseProcApp::InitInstance()
 	}
 
 	if (pathList.IsEmpty()) {
-		pathList.AddPath(CTGitPath(g_Git.m_CurrentDir.GetString()));
+		pathList.AddPath(CTGitPath(GitCall::m_CurrentDirStorage.GetString()));
 	}
 
 	[[maybe_unused]]auto _ = ::CreateMutex(nullptr, FALSE, L"TortoiseGitProc.exe");
@@ -287,8 +287,8 @@ BOOL CTortoiseProcApp::InitInstance()
 	if (parser.HasKey(L"pathfile") && parser.HasKey(L"submodule"))
 		g_Git.SetCurrentDir(pathList[0].GetWinPathString().c_str(), true);
 
-	if(!g_Git.m_CurrentDir.IsEmpty())
-		SetCurrentDirectory(g_Git.m_CurrentDir);
+	if(!GitCall::m_CurrentDirStorage.IsEmpty())
+		SetCurrentDirectory(GitCall::m_CurrentDirStorage);
 
 	if (!cmd->CheckRepo())
 		return FALSE;
@@ -306,7 +306,7 @@ BOOL CTortoiseProcApp::InitInstance()
 		case 4:
 			{
 				std::wstring wcrootStd;
-				if (GitAdminDir::HasAdminDir(g_Git.m_CurrentDir.wstring(), true, &wcrootStd))
+				if (GitAdminDir::HasAdminDir(GitCall::m_CurrentDirStorage.wstring(), true, &wcrootStd))
 				{
 					// CString's MakeLower, not tgit::wstr::MakeLower: the hash names the taskbar
 					// group, so the lowercasing must stay byte-for-byte what it was.

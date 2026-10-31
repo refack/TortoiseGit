@@ -29,7 +29,7 @@ import AppUtils.Launch;
 
 bool SettingsCommand::Execute()
 {
-	CString defaultpage = parser.GetVal(L"page");
+	CString defaultpage = parser.GetValPtr(L"page");
 
 	if (defaultpage == L"gitcredential" && CAppUtils::IsAdminLogin())
 	{

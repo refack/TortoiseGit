@@ -320,7 +320,7 @@ void CSettingGitConfig::OnBnClickedEditlocalgitconfig()
 void CSettingGitConfig::OnBnClickedEdittgitconfig()
 {
 	// use alternative editor because of LineEndings
-	if (GitAdminDir::IsBareRepo(g_Git.m_CurrentDir))
+	if (GitAdminDir::IsBareRepo(GitCall::m_CurrentDirStorage))
 	{
 		CString tmpFile = GetTempFile();
 		if (tmpFile.IsEmpty())
@@ -337,7 +337,7 @@ void CSettingGitConfig::OnBnClickedEdittgitconfig()
 	}
 	else
 	{
-		CAppUtils::LaunchAlternativeEditor(g_Git.m_CurrentDir + L"\\.tgitconfig");
+		CAppUtils::LaunchAlternativeEditor(GitCall::m_CurrentDirStorage + L"\\.tgitconfig");
 	}
 }
 

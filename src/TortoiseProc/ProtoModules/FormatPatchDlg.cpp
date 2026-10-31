@@ -43,7 +43,7 @@ CFormatPatchDlg::CFormatPatchDlg(CWnd* pParent /*=nullptr*/)
 	this->m_Radio = IDC_RADIO_SINCE;
 	m_bNoPrefix = m_regNoPrefix;
 
-	CString workingDir = g_Git.m_CurrentDir;
+	CString workingDir = GitCall::m_CurrentDirStorage.c_str();
 	workingDir.Replace(L':', L'_');
 	m_regSince = CRegString(L"Software\\TortoiseGit\\History\\FormatPatch\\" + workingDir + L"\\Since");
 }
@@ -117,11 +117,11 @@ BOOL CFormatPatchDlg::OnInitDialog()
 
 	this->AddOthersToAnchor();
 
-	CAppUtils::SetWindowTitle(*this, g_Git.m_CurrentDir);
+	CAppUtils::SetWindowTitle(*this, GitCall::m_CurrentDirStorage);
 
 	m_cDir.SetPathHistory(TRUE);
 	m_cDir.LoadHistory(L"Software\\TortoiseGit\\History\\FormatPatchURLS", L"path");
-	m_cDir.AddString(g_Git.m_CurrentDir);
+	m_cDir.AddString(GitCall::m_CurrentDirStorage);
 
 	std::vector<std::wstring> list;
 	g_Git.GetBranchList(list, nullptr, TGitH::BRANCH_ALL_F);

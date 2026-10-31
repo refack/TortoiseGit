@@ -255,7 +255,7 @@ void DarkModeHelper::RefreshTitleBarThemeColor(HWND hWnd, BOOL dark) const
 
 DarkModeHelper::DarkModeHelper()
 {
-	INITCOMMONCONTROLSEX used = {
+	const INITCOMMONCONTROLSEX used = {
 		sizeof(INITCOMMONCONTROLSEX),
 		ICC_STANDARD_CLASSES | ICC_BAR_CLASSES | ICC_COOL_CLASSES
 	};

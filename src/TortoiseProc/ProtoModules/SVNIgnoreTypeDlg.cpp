@@ -57,7 +57,7 @@ BOOL CSVNIgnoreTypeDlg::OnInitDialog()
 	AdjustControlSize(IDC_RADIO_EXCLUDE);
 	AdjustControlSize(IDC_RADIO_GITIGNORE);
 
-	CAppUtils::SetWindowTitle(*this, g_Git.m_CurrentDir);
+	CAppUtils::SetWindowTitle(*this, GitCall::m_CurrentDirStorage.c_str());
 
 	return TRUE;  // return TRUE unless you set the focus to a control
 	// EXCEPTION: OCX Property Pages should return FALSE

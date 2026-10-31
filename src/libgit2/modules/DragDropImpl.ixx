@@ -50,7 +50,7 @@ public:
 
 	ULONG STDMETHODCALLTYPE Release() override
 	{
-		ULONG ret = InterlockedDecrement(&refCount);
+		const ULONG ret = InterlockedDecrement(&refCount);
 		if (!ret)
 		{
 			delete this;
@@ -172,12 +172,12 @@ public:
 
 	virtual ~CIDataObject()
 	{
-		for (auto i : m_StgMedium)
+		for (const auto i : m_StgMedium)
 		{
 			ReleaseStgMedium(i);
 			delete i;
 		}
-		for (auto j : m_ArrFormatEtc)
+		for (const auto j : m_ArrFormatEtc)
 			delete j;
 	}
 
@@ -448,7 +448,7 @@ STDMETHODIMP_(ULONG) CIDataObject::AddRef()
 
 STDMETHODIMP_(ULONG) CIDataObject::Release()
 {
-	long nTemp = --m_cRefCount;
+	const long nTemp = --m_cRefCount;
 	if (nTemp == 0)
 		delete this;
 	return nTemp;
@@ -495,7 +495,7 @@ STDMETHODIMP CIDataObject::QueryGetData(
 	if (!(DVASPECT_CONTENT & pformatetc->dwAspect))
 		return (DV_E_DVASPECT);
 	HRESULT hr = DV_E_TYMED;
-	for (auto& i : m_ArrFormatEtc)
+	for (const auto& i : m_ArrFormatEtc)
 	{
 		if (pformatetc->tymed & i->tymed)
 		{
@@ -722,7 +722,7 @@ STDMETHODIMP_(ULONG) CIDropSource::AddRef()
 
 STDMETHODIMP_(ULONG) CIDropSource::Release()
 {
-	long nTemp = --m_cRefCount;
+	const long nTemp = --m_cRefCount;
 	Expects(nTemp >= 0);
 	if (nTemp == 0)
 		delete this;
@@ -759,7 +759,7 @@ STDMETHODIMP CIDropSource::GiveFeedback(
 			STGMEDIUM medium;
 			if (m_pIDataObj->GetData(&fetc, &medium) == S_OK)
 			{
-				auto hWndDragWindow = *static_cast<HWND*>(GlobalLock(medium.hGlobal));
+				const auto hWndDragWindow = *static_cast<HWND*>(GlobalLock(medium.hGlobal));
 				GlobalUnlock(medium.hGlobal);
 #define WM_INVALIDATEDRAGIMAGE (WM_USER + 3)
 				SendMessage(hWndDragWindow, WM_INVALIDATEDRAGIMAGE, 0, 0);
@@ -850,7 +850,7 @@ STDMETHODIMP CEnumFormatEtc::Clone(IEnumFORMATETC FAR * FAR* ppCloneEnumFormatEt
 	if (!ppCloneEnumFormatEtc)
 		return E_POINTER;
 
-	auto newEnum = new(std::nothrow) CEnumFormatEtc(m_pFmtEtc);
+	const auto newEnum = new(std::nothrow) CEnumFormatEtc(m_pFmtEtc);
 	if (!newEnum)
 		return E_OUTOFMEMORY;
 	newEnum->AddRef();
@@ -906,7 +906,7 @@ ULONG STDMETHODCALLTYPE CIDropTarget::Release()
 
 bool CIDropTarget::QueryDrop(DWORD grfKeyState, LPDWORD pdwEffect) const
 {
-	DWORD dwOKEffects = *pdwEffect;
+	const DWORD dwOKEffects = *pdwEffect;
 
 	if (!m_bAllowDrop)
 	{

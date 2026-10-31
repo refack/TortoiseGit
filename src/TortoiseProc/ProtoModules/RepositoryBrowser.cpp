@@ -245,9 +245,9 @@ BOOL CRepositoryBrowser::OnInitDialog()
 	}
 	HandleDividerMove(CPoint(CDPIAware::Instance().ScaleX(GetSafeHwnd(), xPos + 20), CDPIAware::Instance().ScaleY(GetSafeHwnd(), 10)), false);
 
-	CAppUtils::SetWindowTitle(*this, g_Git.m_CurrentDir);
+	CAppUtils::SetWindowTitle(*this, GitCall::m_CurrentDirStorage.c_str());
 
-	m_bHasWC = !GitAdminDir::IsBareRepo(g_Git.m_CurrentDir);
+	m_bHasWC = !GitAdminDir::IsBareRepo(GitCall::m_CurrentDirStorage);
 
 	Refresh();
 
@@ -602,9 +602,7 @@ void CRepositoryBrowser::FillListCtrlForShadowTree(CShadowFilesTree* pTree)
 		m_RepoList.SetItemData(indexItem, reinterpret_cast<DWORD_PTR>(&(*itShadowTree).second));
 		if (!(*itShadowTree).second.m_bFolder && !(*itShadowTree).second.m_bSubmodule)
 		{
-			CString temp;
-
-			temp = PathUtils::GetFileExtFromPath(tgit::str::StringView((*itShadowTree).second.m_sName)).c_str();
+			CString temp = str::to_path(itShadowTree->second.m_sName).extension().c_str();
 			m_RepoList.SetItemText(indexItem, eCol_Extension, temp);
 
 			StrFormatByteSize64((*itShadowTree).second.m_iSize, CStrBuf(temp, 20), 20);
@@ -820,7 +818,7 @@ void CRepositoryBrowser::ShowContextMenu(CPoint point, TShadowFilesTreeList &sel
 	case eCmd_ViewLogSubmodule:
 		{
 			CString sCmd;
-			sCmd.Format(L"/command:log /path:%s", static_cast<LPCWSTR>(TCmdLineParser::EscapeValue(g_Git.CombinePath(selectedLeafs.at(0)->GetFullName()))));
+			sCmd.Format(L"/command:log /path:%s", TCmdLineParser::EscapeValue(g_Git.CombinePath(selectedLeafs.at(0)->GetFullName()).wstring()).c_str());
 			if (cmd == eCmd_ViewLog && selectedLeafs.at(0)->m_bSubmodule)
 				sCmd += L" /submodule";
 			if (cmd == eCmd_ViewLog)
@@ -832,7 +830,7 @@ void CRepositoryBrowser::ShowContextMenu(CPoint point, TShadowFilesTreeList &sel
 		break;
 	case eCmd_Blame:
 		{
-			CAppUtils::LaunchTortoiseBlame(g_Git.CombinePath(selectedLeafs.at(0)->GetFullName()), m_sRevision);
+			CAppUtils::LaunchTortoiseBlame(g_Git.CombinePath(selectedLeafs.at(0)->GetFullName()).c_str(), m_sRevision);
 		}
 		break;
 	case eCmd_Open:
@@ -1264,9 +1262,9 @@ void CRepositoryBrowser::OpenFile(const CString path, eOpenType mode, bool isSub
 	CString file = TempFiles::GetTempFilePath(false, gitPath, hash).GetWinPathString().c_str();
 	if (isSubmodule)
 	{
-		if (mode == OPEN && !GitAdminDir::IsBareRepo(g_Git.m_CurrentDir))
+		if (mode == OPEN && !GitAdminDir::IsBareRepo(GitCall::m_CurrentDirStorage))
 		{
-			CTGitPath subPath = CTGitPath(g_Git.m_CurrentDir.GetString());
+			CTGitPath subPath = CTGitPath(GitCall::m_CurrentDirStorage);
 			subPath.AppendPathString(gitPath.GetWinPathString().c_str());
 			const wil::unique_git_repository repo = TGitH::OpenGitRepository(subPath.GetGitPathString());
 			wil::unique_git_commit commit;
@@ -1278,13 +1276,13 @@ void CRepositoryBrowser::OpenFile(const CString path, eOpenType mode, bool isSub
 					return;
 
 				CString sCmd;
-				sCmd.Format(L"/command:subupdate /bkpath:\"%s\" /selectedpath:%s", g_Git.m_CurrentDir, TCmdLineParser::EscapeValue(gitPath.GetGitPathString()).c_str());
+				sCmd.Format(L"/command:subupdate /bkpath:\"%s\" /selectedpath:%s", GitCall::m_CurrentDirStorage.c_str(), TCmdLineParser::EscapeValue(gitPath.GetGitPathString()).c_str());
 				CAppUtils::RunTortoiseGitProc(sCmd);
 				return;
 			}
 
 			CString cmd;
-			cmd.Format(L"/command:repobrowser /path:%s /rev:%s", static_cast<LPCWSTR>(TCmdLineParser::EscapeValue(g_Git.CombinePath(path))), (itemHash.ToString()).c_str());
+			cmd.Format(L"/command:repobrowser /path:%s /rev:%s", TCmdLineParser::EscapeValue(g_Git.CombinePath(path).wstring()).c_str(), (itemHash.ToString()).c_str());
 			CAppUtils::RunTortoiseGitProc(cmd);
 			return;
 		}
@@ -1318,7 +1316,7 @@ void CRepositoryBrowser::OpenFile(const CString path, eOpenType mode, bool isSub
 bool CRepositoryBrowser::RevertItemToVersion(const CString &path)
 {
 	CString out;
-	if (g_Git.Run({ L"git.exe", L"checkout", L"--end-of-options", std::wstring(m_sRevision), L"--", std::wstring(path) }, &out, CP_UTF8))
+	if (g_Git.Run({ L"git.exe", L"checkout", L"--end-of-options", std::wstring(m_sRevision), L"--", std::wstring(path) }, &out))
 	{
 		if (MessageBox(out, L"TortoiseGit", MB_ICONEXCLAMATION | MB_OKCANCEL) == IDCANCEL)
 			return false;

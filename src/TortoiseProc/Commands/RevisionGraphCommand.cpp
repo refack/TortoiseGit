@@ -27,7 +27,7 @@ bool RevisionGraphCommand::Execute()
 {
 	CRevisionGraphDlg dlg;
 	theApp.m_pMainWnd = &dlg;
-	dlg.SetPath(g_Git.m_CurrentDir.c_str());
+	dlg.SetPath(GitCall::m_CurrentDirStorage.c_str());
 	if (parser.HasVal(L"output"))
 	{
 		dlg.SetOutputFile(parser.GetValPtr(L"output"));

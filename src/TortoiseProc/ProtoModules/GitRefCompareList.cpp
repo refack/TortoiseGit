@@ -361,15 +361,15 @@ void CGitRefCompareList::OnContextMenuList(CWnd * /*pWnd*/, const CPoint point)
 		case IDGITRCL_NEWLOG:
 		{
 			CString sCmd;
-			auto revToShow = cmd == IDGITRCL_OLDLOG ? static_cast<LPCWSTR>(TCmdLineParser::EscapeValue(oldHash)) : static_cast<LPCWSTR>(TCmdLineParser::EscapeValue(newHash));
-			sCmd.Format(L"/command:log /path:\"%s\" /endrev:%s /rev:%s", g_Git.m_CurrentDir.c_str(), revToShow, revToShow);
+			auto revToShow = cmd == IDGITRCL_OLDLOG ? TCmdLineParser::EscapeValue(oldHash).c_str() : TCmdLineParser::EscapeValue(newHash).c_str();
+			sCmd.Format(L"/command:log /path:\"%s\" /endrev:%s /rev:%s", GitCall::m_CurrentDirStorage.c_str(), revToShow, revToShow);
 			CAppUtils::RunTortoiseGitProc(sCmd);
 			break;
 		}
 		case IDGITRCL_COMPARE:
 		{
 			CString sCmd;
-			sCmd.Format(L"/command:showcompare /path:\"%s\" /revision1:%s /revision2:%s", g_Git.m_CurrentDir.c_str(), TCmdLineParser::EscapeValue(oldHash), TCmdLineParser::EscapeValue(newHash));
+			sCmd.Format(L"/command:showcompare /path:\"%s\" /revision1:%s /revision2:%s", GitCall::m_CurrentDirStorage.c_str(), TCmdLineParser::EscapeValue(oldHash).c_str(), TCmdLineParser::EscapeValue(newHash).c_str());
 			if (!!(GetAsyncKeyState(VK_SHIFT) & 0x8000))
 				sCmd += L" /alternative";
 			CAppUtils::RunTortoiseGitProc(sCmd);
@@ -378,7 +378,7 @@ void CGitRefCompareList::OnContextMenuList(CWnd * /*pWnd*/, const CPoint point)
 		case IDGITRCL_REFLOG:
 		{
 			CString sCmd;
-			sCmd.Format(L"/command:reflog /path:\"%s\" /ref:%s", g_Git.m_CurrentDir.c_str(), TCmdLineParser::EscapeValue(refName));
+			sCmd.Format(L"/command:reflog /path:\"%s\" /ref:%s", GitCall::m_CurrentDirStorage.c_str(), TCmdLineParser::EscapeValue(refName).c_str());
 			CAppUtils::RunTortoiseGitProc(sCmd);
 			break;
 		}

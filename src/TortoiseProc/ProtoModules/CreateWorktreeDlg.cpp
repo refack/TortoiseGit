@@ -72,13 +72,14 @@ BOOL CCreateWorktreeDlg::OnInitDialog()
 	CResizableStandAloneDialog::OnInitDialog();
 	CAppUtils::MarkWindowAsUnpinnable(m_hWnd);
 
-	CAppUtils::SetWindowTitle(*this, g_Git.m_CurrentDir);
+	const auto curDirPtr = GitCall::m_CurrentDirStorage.wstring();
+	CAppUtils::SetWindowTitle(*this, curDirPtr.c_str());
 
 	SetDefaultChoose(IDC_RADIO_HEAD);
 
 	InitChooseVersion();
 
-	auto pHead = GetDlgItem(IDC_RADIO_HEAD);
+	const auto pHead = GetDlgItem(IDC_RADIO_HEAD);
 	CString HeadText;
 	pHead->GetWindowText(HeadText);
 	pHead->SetWindowText(HeadText + " (" + g_Git.GetCurrentBranch() + ")");
@@ -113,13 +114,13 @@ BOOL CCreateWorktreeDlg::OnInitDialog()
 
 	if (m_sWorktreePath.IsEmpty())
 	{
-		if (StringUtils::EndsWith(g_Git.m_CurrentDir, L".git"))
-			m_sWorktreePath = g_Git.m_CurrentDir.Left(g_Git.m_CurrentDir.GetLength() - static_cast<int>(wcslen(L".git")));
+		if (constexpr auto git_sv = L".git"sv; curDirPtr.ends_with(git_sv))
+			m_sWorktreePath = curDirPtr.substr(0, curDirPtr.size() - git_sv.size()).c_str();
 		else
-			m_sWorktreePath = g_Git.m_CurrentDir + L"-worktree";
+			m_sWorktreePath = (curDirPtr + L"-worktree").c_str();
 	}
 
-	SHAutoComplete(GetDlgItem(IDC_WORKTREE_DIR)->m_hWnd, SHACF_DEFAULT);
+	std::ignore = SHAutoComplete(GetDlgItem(IDC_WORKTREE_DIR)->m_hWnd, SHACF_DEFAULT);
 
 	UpdateData(FALSE);
 
@@ -145,7 +146,7 @@ void CCreateWorktreeDlg::OnBnClickedOk()
 		return;
 	}
 
-	CTGitPath path(m_sWorktreePath.GetString());
+	const CTGitPath path(m_sWorktreePath.GetString());
 	if (!path.IsValidOnWindows())
 	{
 		ShowEditBalloon(IDC_WORKTREE_DIR, IDS_WARN_NOVALIDPATH, IDS_ERR_ERROR, TTI_ERROR);
@@ -173,7 +174,7 @@ void CCreateWorktreeDlg::OnVersionChanged()
 
 	if (radio == IDC_RADIO_HEAD)
 	{
-		if (CString name = CTGitPath(m_sWorktreePath.GetString()).GetUIFileOrDirectoryName().c_str(); !name.IsEmpty())
+		if (const CString name = CTGitPath(m_sWorktreePath.GetString()).GetUIFileOrDirectoryName().c_str(); !name.IsEmpty())
 			m_sNewBranch = name;
 		m_bBranch = FALSE;
 	}
@@ -189,7 +190,7 @@ void CCreateWorktreeDlg::OnVersionChanged()
 		if (StringUtils::StartsWith(m_VersionName, L"refs/heads/"))
 			version = m_VersionName.Mid(static_cast<int>(wcslen(L"refs/heads/")));
 		else if (radio == IDC_RADIO_VERSION)
-			version = version.Left(g_Git.GetShortHASHLength());
+			version = version.Left(CGit::GetShortHASHLength());
 		m_sNewBranch = L"Branch_" + version;
 
 		m_bBranch = FALSE;

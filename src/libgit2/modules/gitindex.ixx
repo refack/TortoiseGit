@@ -1337,7 +1337,7 @@ int CGitIgnoreItem::FetchIgnoreList(const std::wstring& projectroot, const std::
 		return GitCall::GFail;
 
 	// a short read keeps what arrived, as it always has
-	auto bytes = details::ReadSmallFile(file.c_str(), details::ShareAll, 100 * 1024 * 1024, details::ShortRead::Keep);
+	const auto bytes = details::ReadSmallFile(file.c_str(), details::ShareAll, 100 * 1024 * 1024, details::ShortRead::Keep);
 	if (!bytes)
 		return GitCall::GFail;
 

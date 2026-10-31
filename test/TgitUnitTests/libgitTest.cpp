@@ -31,7 +31,7 @@ TEST(libgit, BrokenConfig) {
 	g_Git.m_IsUseLibGit2 = false;
 	g_Git.m_IsUseLibGit2_mask = 0;
 	// libgit relies on CWD being set to working tree
-	SetCurrentDirectory(g_Git.m_CurrentDir.c_str());
+	SetCurrentDirectory(GitCall::m_CurrentDirStorage.c_str());
 
 	std::string output;
 	EXPECT_EQ(0, g_Git.Run({L"git.exe", L"init", L"-b", L"master"}, &output));
@@ -47,7 +47,7 @@ TEST(libgit, Mailmap)
 	CAutoTempDir tempdir;
 	g_Git.SetCurrentDirExact(tempdir.GetTempDir());
 	// libgit relies on CWD being set to working tree
-	SetCurrentDirectory(g_Git.m_CurrentDir.c_str());
+	SetCurrentDirectory(GitCall::m_CurrentDirStorage.c_str());
 
 	std::string output;
 	EXPECT_EQ(0, g_Git.Run({L"git.exe", L"init", L"-b", L"master"}, &output));
@@ -159,7 +159,7 @@ TEST(libgit, RefreshIndex)
 	g_Git.m_IsUseLibGit2_mask = 0;
 
 	// libgit relies on CWD being set to working tree
-	SetCurrentDirectory(g_Git.m_CurrentDir.c_str());
+	SetCurrentDirectory(GitCall::m_CurrentDirStorage.c_str());
 
 	git_repository_init_options options = GIT_REPOSITORY_INIT_OPTIONS_INIT;
 	options.flags = GIT_REPOSITORY_INIT_MKPATH | GIT_REPOSITORY_INIT_EXTERNAL_TEMPLATE;
@@ -168,15 +168,15 @@ TEST(libgit, RefreshIndex)
 	wil::unique_git_config config;
 	git_repository_config(config.put(), repo.get());
 	ASSERT_TRUE(config.is_valid());
-	CStringA path = CUnicodeUtils::GetUTF8<CStringA>(g_Git.m_CurrentDir.wstring());
+	CStringA path = CUnicodeUtils::GetUTF8<CStringA>(GitCall::m_CurrentDirStorage.wstring());
 	path.Replace('\\', '/');
 	EXPECT_EQ(0, git_config_set_string(config.get(), "core.autocrlf", "false")); // newer Git complains for adding 1.enc with a safecrlf warning, especially an issue on AppVeyor where AutoCrLf=input is set
 	EXPECT_EQ(0, git_config_set_string(config.get(), "filter.openssl.clean", path + "/clean_filter_openssl"));
 	EXPECT_EQ(0, git_config_set_string(config.get(), "filter.openssl.smudge", path + "/smudge_filter_openssl"));
 	EXPECT_EQ(0, git_config_set_bool(config.get(), "filter.openssl.required", 1));
-	CString cleanFilterFilename = (g_Git.m_CurrentDir / L"clean_filter_openssl").c_str();
+	CString cleanFilterFilename = (GitCall::m_CurrentDirStorage / L"clean_filter_openssl").c_str();
 	EXPECT_TRUE(StringUtils::WriteStringToTextFile(cleanFilterFilename, L"#!/bin/bash\nopenssl version | grep -q \" 1\\\\.0\\\\.\"\nif [[ $? = 0 ]]; then\n\topenssl enc -base64 -aes-256-ecb -S FEEDDEADBEEF -k PASS_FIXED\nelse\n\topenssl enc -base64 -pbkdf2 -aes-256-ecb -nosalt -k PASS_FIXED\nfi\n"));
-	CString smudgeFilterFilename = (g_Git.m_CurrentDir / L"smudge_filter_openssl").c_str();
+	CString smudgeFilterFilename = (GitCall::m_CurrentDirStorage / L"smudge_filter_openssl").c_str();
 	EXPECT_TRUE(StringUtils::WriteStringToTextFile(smudgeFilterFilename, L"#!/bin/bash\nopenssl version | grep -q \" 1\\\\.0\\\\.\"\nif [[ $? = 0 ]]; then\n\topenssl enc -d -base64 -aes-256-ecb -k PASS_FIXED\nelse\n\topenssl enc -d -base64 -pbkdf2 -aes-256-ecb -nosalt -k PASS_FIXED\nfi\n"));
 	EXPECT_EQ(0, git_config_set_string(config.get(), "filter.test.clean", path + "/clean_filter_openssl"));
 	EXPECT_EQ(0, git_config_set_string(config.get(), "filter.test.smudge", path + "/smudge_filter_openssl"));
@@ -193,7 +193,7 @@ TEST(libgit, RefreshIndex)
 	_wgetenv_s(&size, oldEnv.get(), size, L"PATH");
 	_wputenv_s(L"PATH", Environment::g_Environment.GetEnv(L"PATH").c_str());
 	SCOPE_EXIT { _wputenv_s(L"PATH", oldEnv.get()); };
-	EXPECT_TRUE(StringUtils::WriteStringToTextFile((g_Git.m_CurrentDir / L"somefile.txt").c_str(), L"some content"));
+	EXPECT_TRUE(StringUtils::WriteStringToTextFile((GitCall::m_CurrentDirStorage / L"somefile.txt").c_str(), L"some content"));
 
 	g_Git.RefreshGitIndex();
 
@@ -204,7 +204,7 @@ TEST(libgit, RefreshIndex)
 
 		g_Git.RefreshGitIndex();
 
-		EXPECT_TRUE(StringUtils::WriteStringToTextFile((g_Git.m_CurrentDir / L"somefile.txt").c_str(), L"some other content"));
+		EXPECT_TRUE(StringUtils::WriteStringToTextFile((GitCall::m_CurrentDirStorage / L"somefile.txt").c_str(), L"some other content"));
 
 		g_Git.RefreshGitIndex();
 	}
@@ -217,10 +217,10 @@ TEST(libgit, RefreshIndex)
 		g_Git.RefreshGitIndex();
 
 		// now check with external command filters defined
-		CString attributesFile = (g_Git.m_CurrentDir / L".gitattributes").c_str();
+		CString attributesFile = (GitCall::m_CurrentDirStorage / L".gitattributes").c_str();
 		EXPECT_TRUE(StringUtils::WriteStringToTextFile(attributesFile, L"*.enc filter=openssl\n"));
 
-		CString encryptedFileOne = (g_Git.m_CurrentDir / L"1.enc").c_str();
+		CString encryptedFileOne = (GitCall::m_CurrentDirStorage / L"1.enc").c_str();
 		EXPECT_TRUE(StringUtils::WriteStringToTextFile(encryptedFileOne, L"This should be encrypted...\nAnd decrypted on the fly\n"));
 	}
 
@@ -231,38 +231,38 @@ TEST(libgit, RefreshIndex)
 			EXPECT_STREQ("", output);
 
 		WIN32_FILE_ATTRIBUTE_DATA fdata;
-		GetFileAttributesEx((g_Git.m_CurrentDir / L".git\\index").c_str(), GetFileExInfoStandard, &fdata);
+		GetFileAttributesEx((GitCall::m_CurrentDirStorage / L".git\\index").c_str(), GetFileExInfoStandard, &fdata);
 
 		g_Git.RefreshGitIndex();
 
-		EXPECT_TRUE(StringUtils::WriteStringToTextFile((g_Git.m_CurrentDir / L"1.enc").c_str(), L"some other content"));
+		EXPECT_TRUE(StringUtils::WriteStringToTextFile((GitCall::m_CurrentDirStorage / L"1.enc").c_str(), L"some other content"));
 
 		g_Git.RefreshGitIndex();
 
 		// need racy timestamp
-		EXPECT_TRUE(StringUtils::WriteStringToTextFile((g_Git.m_CurrentDir / L"1.enc").c_str(), L"somE other content"));
+		EXPECT_TRUE(StringUtils::WriteStringToTextFile((GitCall::m_CurrentDirStorage / L"1.enc").c_str(), L"somE other content"));
 		{
-			CAutoGeneralHandle handle = ::CreateFile((g_Git.m_CurrentDir / L"1.enc").c_str(), FILE_WRITE_ATTRIBUTES, 0, nullptr, 0, 0, nullptr);
+			CAutoGeneralHandle handle = ::CreateFile((GitCall::m_CurrentDirStorage / L"1.enc").c_str(), FILE_WRITE_ATTRIBUTES, 0, nullptr, 0, 0, nullptr);
 			SetFileTime(handle, &fdata.ftCreationTime, &fdata.ftLastAccessTime, &fdata.ftLastWriteTime);
 		}
 
 		g_Git.RefreshGitIndex();
 
-		CString attributesFile = (g_Git.m_CurrentDir / L".gitattributes").c_str();
+		CString attributesFile = (GitCall::m_CurrentDirStorage / L".gitattributes").c_str();
 		// now check with external command filters with multi-filter (process) defined
 		EXPECT_TRUE(StringUtils::WriteStringToTextFile(attributesFile, L"*.enc filter=test\n"));
 
 		g_Git.RefreshGitIndex();
 
-		EXPECT_TRUE(StringUtils::WriteStringToTextFile((g_Git.m_CurrentDir / L"1.enc").c_str(), L"somE other conTentsome other conTentsome other conTen"));
+		EXPECT_TRUE(StringUtils::WriteStringToTextFile((GitCall::m_CurrentDirStorage / L"1.enc").c_str(), L"somE other conTentsome other conTentsome other conTen"));
 
 		g_Git.RefreshGitIndex();
 
 		// need racy timestamp
-		GetFileAttributesEx((g_Git.m_CurrentDir / L".git\\index").c_str(), GetFileExInfoStandard, &fdata);
-		EXPECT_TRUE(StringUtils::WriteStringToTextFile((g_Git.m_CurrentDir / L"1.enc").c_str(), L"some other conTentsome other conTentsome other conTen"));
+		GetFileAttributesEx((GitCall::m_CurrentDirStorage / L".git\\index").c_str(), GetFileExInfoStandard, &fdata);
+		EXPECT_TRUE(StringUtils::WriteStringToTextFile((GitCall::m_CurrentDirStorage / L"1.enc").c_str(), L"some other conTentsome other conTentsome other conTen"));
 		{
-			CAutoGeneralHandle handle = ::CreateFile((g_Git.m_CurrentDir / L"1.enc").c_str(), FILE_WRITE_ATTRIBUTES, 0, nullptr, 0, 0, nullptr);
+			CAutoGeneralHandle handle = ::CreateFile((GitCall::m_CurrentDirStorage / L"1.enc").c_str(), FILE_WRITE_ATTRIBUTES, 0, nullptr, 0, 0, nullptr);
 			SetFileTime(handle, &fdata.ftCreationTime, &fdata.ftLastAccessTime, &fdata.ftLastWriteTime);
 		}
 
@@ -324,12 +324,12 @@ TEST(libgit, StoreUninitializedRepositoryConfig)
 	CAutoTempDir tempdir;
 	g_Git.SetCurrentDirExact(tempdir.GetTempDir());
 	g_Git.m_IsGitDllInited = false;
-	g_Git.SetCurrentDirExact(g_Git.m_CurrentDir);
+	g_Git.SetCurrentDirExact(GitCall::m_CurrentDirStorage);
 	g_Git.m_IsUseGitDLL = true;
 	g_Git.m_IsUseLibGit2 = false;
 	g_Git.m_IsUseLibGit2_mask = 0;
 	// libgit relies on CWD being set to working tree
-	SetCurrentDirectory(g_Git.m_CurrentDir.c_str());
+	SetCurrentDirectory(GitCall::m_CurrentDirStorage.c_str());
 
 	// clear any leftovers in caches
 	EXPECT_THROW(g_Git.CheckAndInitDll(), std::exception);

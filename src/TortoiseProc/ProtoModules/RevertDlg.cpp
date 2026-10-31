@@ -68,7 +68,7 @@ BOOL CRevertDlg::OnInitDialog()
 	m_RevertList.SetBackgroundImage(IDI_REVERT_BKG);
 	m_RevertList.EnableFileDrop();
 
-	CAppUtils::SetWindowTitle(*this, g_Git.CombinePath(m_pathList.GetCommonRoot()));
+	CAppUtils::SetWindowTitle(*this, g_Git.CombinePath(m_pathList.GetCommonRoot()).c_str());
 
 	AdjustControlSize(IDC_SELECTALL);
 
@@ -266,7 +266,7 @@ LRESULT CRevertDlg::OnFileDropped(WPARAM, LPARAM lParam)
 
 	// check whether the dropped file belongs to the very same repository
 	std::wstring projectDir;
-	if (!path.HasAdminDir(&projectDir) || !PathUtils::ArePathStringsEqual(tgit::str::StringView(g_Git.m_CurrentDir), projectDir))
+	if (!path.HasAdminDir(&projectDir) || !PathUtils::ArePathStringsEqual(GitCall::m_CurrentDirStorage.wstring(), projectDir))
 		return 0;
 
 	if (!m_RevertList.HasPath(path))

@@ -22,7 +22,6 @@
 #include "stdafx.h"
 #include "std.h"
 
-#include "TortoiseProc.h"
 #include "BisectStartDlg.h"
 #include "LogDlg.h"
 import AppUtils.Window;
@@ -64,7 +63,7 @@ static void uniqueMergeLists(std::vector<std::wstring>& list, const std::vector<
 
 	for (const auto& entry : listToMerge)
 	{
-		if (map.find(entry) == map.end())
+		if (!map.contains(entry))
 			list.push_back(entry);
 	}
 }
@@ -89,7 +88,7 @@ BOOL CBisectStartDlg::OnInitDialog()
 	EnableSaveRestore(L"BisectStartDlg");
 	SetTheme(CTheme::Instance().IsDarkTheme());
 
-	CAppUtils::SetWindowTitle(*this, g_Git.m_CurrentDir);
+	CAppUtils::SetWindowTitle(*this, GitCall::m_CurrentDirStorage.c_str());
 
 	std::vector<std::wstring> list;
 	int current = -1;
@@ -119,10 +118,6 @@ BOOL CBisectStartDlg::OnInitDialog()
 	return TRUE;
 }
 
-void CBisectStartDlg::OnChangedRevision()
-{
-	this->GetDlgItem(IDOK)->EnableWindow(!(m_cLastGoodRevision.GetString().Trim().IsEmpty() || m_cFirstBadRevision.GetString().Trim().IsEmpty()));
-}
 
 void CBisectStartDlg::OnBnClickedOk()
 {

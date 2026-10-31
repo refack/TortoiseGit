@@ -199,7 +199,7 @@ int CGitDiff::SubmoduleDiff(HWND hWnd, const CTGitPath* pPath, const CTGitPath* 
 			else if (CMessageBox::Show(hWnd, IDS_SUBMODULE_EMPTYDIFF, IDS_APPNAME, 1, IDI_QUESTION, IDS_MSGBOX_YES, IDS_MSGBOX_NO) == 1)
 			{
 				CString sCmd;
-				sCmd.Format(L"/command:subupdate /bkpath:\"%s\"", g_Git.m_CurrentDir);
+				sCmd.Format(L"/command:subupdate /bkpath:\"%s\"", GitCall::m_CurrentDirStorage);
 				CAppUtils::RunTortoiseGitProc(sCmd);
 			}
 			return -1;

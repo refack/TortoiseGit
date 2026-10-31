@@ -64,7 +64,7 @@ BOOL CResolveDlg::OnInitDialog()
 	m_resolveListCtrl.SetBackgroundImage(IDI_RESOLVE_BKG);
 	m_resolveListCtrl.EnableFileDrop();
 
-	CAppUtils::SetWindowTitle(*this, g_Git.m_CurrentDir);
+	CAppUtils::SetWindowTitle(*this, GitCall::m_CurrentDirStorage.c_str());
 
 	AdjustControlSize(IDC_SELECTALL);
 
@@ -213,7 +213,7 @@ LRESULT CResolveDlg::OnFileDropped(WPARAM, LPARAM lParam)
 
 	// check whether the dropped file belongs to the very same repository
 	std::wstring projectDir;
-	if (!path.HasAdminDir(&projectDir) || !PathUtils::ArePathStringsEqual(tgit::str::StringView(g_Git.m_CurrentDir), projectDir))
+	if (!path.HasAdminDir(&projectDir) || !PathUtils::ArePathStringsEqual(tgit::str::StringView(GitCall::m_CurrentDirStorage), projectDir))
 		return 0;
 
 	if (!m_resolveListCtrl.HasPath(path))

@@ -61,16 +61,16 @@ BOOL CExportDlg::OnInitDialog()
 	CHorizontalResizableStandAloneDialog::OnInitDialog();
 	CAppUtils::MarkWindowAsUnpinnable(m_hWnd);
 
-	if (g_Git.m_CurrentDir == m_orgPath.GetWinPathString().c_str())
+	if (GitCall::m_CurrentDirStorage == m_orgPath.GetWinPathString().c_str())
 	{
 		GetDlgItem(IDC_WHOLE_PROJECT)->EnableWindow(FALSE);
 		static_cast<CButton*>(GetDlgItem(IDC_WHOLE_PROJECT))->SetCheck(TRUE);
 	}
 
 	InitChooseVersion();
-	if (m_initialRefName.IsEmpty() || m_initialRefName == L"HEAD")
+	if (m_initialRefName.empty() || m_initialRefName == L"HEAD")
 		SetDefaultChoose(IDC_RADIO_HEAD);
-	else if (StringUtils::StartsWith(m_initialRefName, L"refs/tags/"))
+	else if (m_initialRefName.starts_with(L"refs/tags/"))
 		SetDefaultChoose(IDC_RADIO_TAGS);
 
 	CWnd* pHead = GetDlgItem(IDC_RADIO_HEAD);
@@ -195,7 +195,7 @@ void CExportDlg::SetDlgTitle()
 		GetWindowText(m_sTitle);
 
 	if (m_bWholeProject)
-		CAppUtils::SetWindowTitle(m_hWnd, g_Git.m_CurrentDir, m_sTitle);
+		CAppUtils::SetWindowTitle(m_hWnd, GitCall::m_CurrentDirStorage.c_str(), m_sTitle);
 	else
 		CAppUtils::SetWindowTitle(m_hWnd, m_orgPath.GetWinPathString().c_str(), m_sTitle);
 }

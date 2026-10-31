@@ -76,7 +76,7 @@ void CAutoTextTestDlg::OnBnClickedAutotextscan()
 		try
 		{
 			std::set<CString> autolist;
-			std::wstring s = m_sContent;
+			auto s = std::wstring{m_sContent};
 			CHighResClock timer;
 
 			std::wregex regCheck;

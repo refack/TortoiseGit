@@ -166,7 +166,7 @@ BOOL CStatGraphDlg::OnInitDialog()
 
 	// set the dialog title to "Statistics - path/to/whatever/we/show/the/statistics/for"
 	if (m_path.IsEmpty())
-		CAppUtils::SetWindowTitle(*this, g_Git.m_CurrentDir);
+		CAppUtils::SetWindowTitle(*this, GitCall::m_CurrentDirStorage.c_str());
 	else
 		CAppUtils::SetWindowTitle(*this, m_path.GetUIPathString().c_str());
 
@@ -1466,7 +1466,7 @@ void CStatGraphDlg::OnFileSavestatgraphas()
 
 void CStatGraphDlg::SaveGraph(CString sFilename)
 {
-	const std::wstring extension = PathUtils::GetFileExtFromPath(tgit::str::StringView(sFilename));
+	const std::wstring extension = str::to_path(sFilename).extension();
 	if (tgit::wstr::CompareNoCase(extension, L".wmf") == 0)
 	{
 		// save the graph as an enhanced meta file
@@ -1537,7 +1537,7 @@ void CStatGraphDlg::SaveGraph(CString sFilename)
 							bitmap.Save(tfile, &encoderClsid, nullptr);
 						}
 						else
-							sErrormessage.Format(IDS_REVGRAPH_ERR_NOENCODER, PathUtils::GetFileExtFromPath(tgit::str::StringView(sFilename)).c_str());
+							sErrormessage.Format(IDS_REVGRAPH_ERR_NOENCODER, str::to_path(sFilename).extension().c_str());
 					}
 					else
 						sErrormessage.LoadString(IDS_REVGRAPH_ERR_NOBITMAP);

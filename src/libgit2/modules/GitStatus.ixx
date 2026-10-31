@@ -149,7 +149,7 @@ int GetFileStatus_int(const std::wstring& gitdir, CGitRepoLists& repolists, cons
 		}
 
 		//add item
-		size_t start = SearchInSortVector(repolists.pTree->m_entries, path, -1, repolists.pIndex->IsIgnoreCase());
+		const size_t start = SearchInSortVector(repolists.pTree->m_entries, path, -1, repolists.pIndex->IsIgnoreCase());
 		if (start == NPOS)
 		{
 			status.status = git_wc_status_added;

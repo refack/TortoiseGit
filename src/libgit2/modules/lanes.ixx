@@ -110,7 +110,7 @@ void Lanes::setBoundary(bool b, bool initial) {
 }
 
 bool Lanes::isFork(const CGitHash& sha, bool& isDiscontinuity) {
-	int pos = findNextSha(sha, 0);
+	const int pos = findNextSha(sha, 0);
 	isDiscontinuity = (activeLane != pos);
 	if (pos == -1) // new branch case
 		return false;
@@ -129,8 +129,8 @@ bool Lanes::isFork(const CGitHash& sha, bool& isDiscontinuity) {
 }
 
 void Lanes::setFork(const CGitHash& sha) {
-	int rangeStart, rangeEnd, idx;
-	rangeStart = rangeEnd = idx = findNextSha(sha, 0);
+	int rangeEnd, idx;
+	const int rangeStart = rangeEnd = idx = findNextSha(sha, 0);
 
 	while (idx != -1) {
 		rangeEnd = idx;
@@ -172,9 +172,9 @@ void Lanes::setMerge(const CGitHashList& parents, bool onlyFirstParent) {
 		return; // handle as a simple active line
 
 	LaneType& t = typeVec[activeLane];
-	bool wasFork   = (t == NODE);
-	bool wasFork_L = (t == NODE_L);
-	bool wasFork_R = (t == NODE_R);
+	const bool wasFork   = (t == NODE);
+	const bool wasFork_L = (t == NODE_L);
+	const bool wasFork_R = (t == NODE_R);
 	bool startJoinWasACross = false, endJoinWasACross = false;
 	bool endWasEmptyCross = false;
 
@@ -185,7 +185,7 @@ void Lanes::setMerge(const CGitHashList& parents, bool onlyFirstParent) {
 		CGitHashList::const_iterator it(parents.cbegin());
 		for (++it; it != parents.cend(); ++it) { // skip first parent
 
-			int idx = findNextSha(*it, 0);
+			const int idx = findNextSha(*it, 0);
 			if (idx != -1) {
 				if (idx > rangeEnd) {
 					rangeEnd = idx;
@@ -345,8 +345,8 @@ int Lanes::add(LaneType type, const CGitHash& next, int pos, bool& wasEmptyCross
 	// first check empty lanes starting from pos
 	if (pos < static_cast<int>(typeVec.size()))
 	{
-		int posEmpty = findType(LaneType::EMPTY, pos);
-		int posCrossEmpty = findType(LaneType::CROSS_EMPTY, pos);
+		const int posEmpty = findType(LaneType::EMPTY, pos);
+		const int posCrossEmpty = findType(LaneType::CROSS_EMPTY, pos);
 		// Use first "empty" position.
 		if (posEmpty != -1 && posCrossEmpty != -1)
 			pos = (std::min)(posEmpty, posCrossEmpty);

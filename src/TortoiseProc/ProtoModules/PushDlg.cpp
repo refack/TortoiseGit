@@ -146,7 +146,7 @@ BOOL CPushDlg::OnInitDialog()
 
 	AddOthersToAnchor();
 
-	CAppUtils::SetWindowTitle(*this, g_Git.m_CurrentDir);
+	CAppUtils::SetWindowTitle(*this, GitCall::m_CurrentDirStorage);
 
 
 	EnableSaveRestore(L"PushDlg");
@@ -156,7 +156,7 @@ BOOL CPushDlg::OnInitDialog()
 	m_RemoteURL.SetURLHistory(TRUE);
 	m_PushOption.SetCaseSensitive(TRUE);
 
-	CString WorkingDir=g_Git.m_CurrentDir;
+	CString WorkingDir=GitCall::m_CurrentDirStorage;
 	WorkingDir.Replace(L':', L'_');
 	m_regPushAllRemotes = CRegDWORD(L"Software\\TortoiseGit\\TortoiseProc\\Push\\" + WorkingDir + L"\\AllRemotes", FALSE);
 	m_bPushAllRemotes = m_regPushAllRemotes;
@@ -206,7 +206,7 @@ BOOL CPushDlg::OnInitDialog()
 
 void CPushDlg::Refresh()
 {
-	CString WorkingDir=g_Git.m_CurrentDir;
+	CString WorkingDir=GitCall::m_CurrentDirStorage;
 	WorkingDir.Replace(L':', L'_');
 
 	CRegString remote(L"Software\\TortoiseGit\\History\\PushRemote\\" + WorkingDir);
@@ -277,7 +277,7 @@ void CPushDlg::Refresh()
 
 void CPushDlg::GetRemoteBranch(const CString& currentBranch)
 {
-	CString WorkingDir=g_Git.m_CurrentDir;
+	CString WorkingDir=GitCall::m_CurrentDirStorage;
 	WorkingDir.Replace(L':', L'_');
 
 	if (currentBranch.IsEmpty())

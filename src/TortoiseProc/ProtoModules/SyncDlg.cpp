@@ -586,7 +586,7 @@ void CSyncDlg::FetchComplete()
 					postCmdList.emplace_back(IDI_RESOLVE, IDS_PROGRS_CMD_RESOLVE, []
 					{
 						CString sCmd;
-						sCmd.Format(L"/command:commit /path:\"%s\"", g_Git.m_CurrentDir);
+						sCmd.Format(L"/command:commit /path:\"%s\"", GitCall::m_CurrentDirStorage);
 						CAppUtils::RunTortoiseGitProc(sCmd);
 					});
 				}
@@ -684,8 +684,8 @@ void CSyncDlg::OnBnClickedButtonPush()
 
 	CString error;
 	DWORD exitcode = 0xFFFFFFFF;
-	CHooks::Instance().SetProjectProperties(CTGitPath(g_Git.m_CurrentDir.GetString()), m_ProjectProperties);
-	if (CHooks::Instance().PrePush(GetSafeHwnd(), g_Git.m_CurrentDir, exitcode, error))
+	CHooks::Instance().SetProjectProperties(CTGitPath(GitCall::m_CurrentDirStorage.GetString()), m_ProjectProperties);
+	if (CHooks::Instance().PrePush(GetSafeHwnd(), GitCall::m_CurrentDirStorage, exitcode, error))
 	{
 		if (exitcode)
 		{
@@ -961,7 +961,7 @@ BOOL CSyncDlg::OnInitDialog()
 	AddAnchor(IDC_STATIC_REMOTE_BRANCH, TOP_CENTER);
 	AddAnchor(IDC_PROG_LABEL, TOP_LEFT);
 
-	CString WorkingDir=g_Git.m_CurrentDir;
+	CString WorkingDir=GitCall::m_CurrentDirStorage;
 	WorkingDir.Replace(L':', L'_');
 	m_RegKeyRemoteBranch = L"Software\\TortoiseGit\\History\\SyncBranch\\" + WorkingDir;
 
@@ -1000,7 +1000,7 @@ BOOL CSyncDlg::OnInitDialog()
 	this->m_ctrlPush.SetCurrentEntry(this->m_regPushButton);
 	this->m_ctrlSubmodule.SetCurrentEntry(this->m_regSubmoduleButton);
 
-	CAppUtils::SetWindowTitle(*this, g_Git.m_CurrentDir);
+	CAppUtils::SetWindowTitle(*this, GitCall::m_CurrentDirStorage);
 
 	EnableSaveRestore(L"SyncDlg");
 
@@ -1073,7 +1073,7 @@ void CSyncDlg::Refresh()
 	this->m_ctrlURL.GetWindowText(url);
 
 	this->m_ctrlURL.Reset();
-	CString workingDir = g_Git.m_CurrentDir;
+	CString workingDir = GitCall::m_CurrentDirStorage;
 	workingDir.Replace(L':', L'_');
 	this->m_ctrlURL.LoadHistory(L"Software\\TortoiseGit\\History\\SyncURL\\" + workingDir, L"url");
 
@@ -1425,8 +1425,8 @@ void CSyncDlg::RunPostAction()
 	{
 		DWORD exitcode = 0xFFFFFFFF;
 		CString error;
-		CHooks::Instance().SetProjectProperties(CTGitPath(g_Git.m_CurrentDir.GetString()), m_ProjectProperties);
-		if (CHooks::Instance().PostPush(GetSafeHwnd(), g_Git.m_CurrentDir, exitcode, error))
+		CHooks::Instance().SetProjectProperties(CTGitPath(GitCall::m_CurrentDirStorage.GetString()), m_ProjectProperties);
+		if (CHooks::Instance().PostPush(GetSafeHwnd(), GitCall::m_CurrentDirStorage, exitcode, error))
 		{
 			if (exitcode)
 			{
@@ -1468,7 +1468,7 @@ void CSyncDlg::OnBnClickedButtonCommit()
 {
 	CString cmd = L"/command:commit";
 	cmd += L" /path:\"";
-	cmd += g_Git.m_CurrentDir;
+	cmd += GitCall::m_CurrentDirStorage;
 	cmd += L'"';
 
 	CAppUtils::RunTortoiseGitProc(cmd);
@@ -1530,10 +1530,10 @@ void CSyncDlg::OnBnClickedButtonSubmodule()
 		case 0:
 			[[fallthrough]];
 		case 1:
-			CAppUtils::RunTortoiseGitProc(L"/command:subupdate /bkpath:\"" + g_Git.m_CurrentDir + L"\"");
+			CAppUtils::RunTortoiseGitProc(L"/command:subupdate /bkpath:\"" + GitCall::m_CurrentDirStorage + L"\"");
 			break;
 		case 2:
-			CAppUtils::RunTortoiseGitProc(L"/command:subsync /bkpath:\"" + g_Git.m_CurrentDir + L"\"");
+			CAppUtils::RunTortoiseGitProc(L"/command:subsync /bkpath:\"" + GitCall::m_CurrentDirStorage + L"\"");
 			break;
 		}
 		return;
@@ -1652,7 +1652,7 @@ void CSyncDlg::OnBnClickedLog()
 {
 	CString cmd = L"/command:log";
 	cmd += L" /path:\"";
-	cmd += g_Git.m_CurrentDir;
+	cmd += GitCall::m_CurrentDirStorage;
 	cmd += L'"';
 
 	CAppUtils::RunTortoiseGitProc(cmd);

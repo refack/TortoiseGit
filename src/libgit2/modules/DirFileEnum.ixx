@@ -292,10 +292,10 @@ CSimpleFileFind::CSimpleFileFind(const CString& sPath, LPCWSTR pPattern)
 {
 	// Add a trailing \ to m_sPathPrefix if it is missing.
 	// Do not add one to "C:" since "C:" and "C:\" are different.
-	int len = m_sPathPrefix.GetLength();
+	const int len = m_sPathPrefix.GetLength();
 	if (len != 0)
 	{
-		wchar_t ch = sPath[len - 1];
+		const wchar_t ch = sPath[len - 1];
 		if (ch != '\\' && (ch != ':' || len != 2))
 			m_sPathPrefix += L'\\';
 	}
@@ -389,7 +389,7 @@ CDirFileEnum::CDirStackEntry::~CDirStackEntry()
 
 inline void CDirFileEnum::PopStack()
 {
-	CDirStackEntry* seToDelete = m_seStack;
+	const CDirStackEntry* seToDelete = m_seStack;
 	m_seStack = seToDelete->m_seNext;
 	delete seToDelete;
 }

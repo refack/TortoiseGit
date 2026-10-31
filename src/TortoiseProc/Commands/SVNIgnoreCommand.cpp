@@ -36,7 +36,7 @@ bool SVNIgnoreCommand::Execute()
 		case 0:
 			{
 				progress.m_GitCmd = { L"git.exe", L"svn", L"show-ignore" };
-				auto dotGitPath = GitAdminDir::GetAdminDirPath(g_Git.m_CurrentDir.wstring());
+				auto dotGitPath = GitAdminDir::GetAdminDirPath(GitCall::m_CurrentDirStorage.wstring());
 				progress.m_LogFile = (dotGitPath->GetPath() / L"info\\exclude").c_str();
 				progress.m_bShowCommand = false;
 				progress.m_PreText = L"git.exe svn show-ignore > " + progress.m_LogFile;

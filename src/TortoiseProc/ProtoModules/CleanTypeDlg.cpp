@@ -37,7 +37,7 @@ CCleanTypeDlg::CCleanTypeDlg(CWnd* pParent /*=nullptr*/)
 	, m_bDryRun(BST_UNCHECKED)
 	, m_bSubmodules(BST_UNCHECKED)
 {
-	CString WorkingDir = g_Git.m_CurrentDir.c_str();
+	CString WorkingDir = GitCall::m_CurrentDirStorage.c_str();
 	WorkingDir.Replace(L':', L'_');
 	this->m_regDir  = CRegDWORD(L"Software\\TortoiseGit\\History\\CleanDir\\" + WorkingDir, 1);
 	this->m_regType = CRegDWORD(L"Software\\TortoiseGit\\History\\CleanType\\" + WorkingDir, 0);

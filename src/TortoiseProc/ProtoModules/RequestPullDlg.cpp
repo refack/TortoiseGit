@@ -69,14 +69,14 @@ BOOL CRequestPullDlg::OnInitDialog()
 
 	EnableSaveRestore(L"RequestPullDlg");
 
-	CAppUtils::SetWindowTitle(*this, g_Git.m_CurrentDir);
+	CAppUtils::SetWindowTitle(*this, GitCall::m_CurrentDirStorage.c_str());
 
 	std::vector<std::wstring> list;
 	g_Git.GetBranchList(list, nullptr, TGitH::BRANCH_ALL);
 	m_cStartRevision.SetMaxHistoryItems(0x7FFFFFFF);
 	m_cStartRevision.SetList(list);
 
-	CString WorkingDir=g_Git.m_CurrentDir;
+	CString WorkingDir=GitCall::m_CurrentDirStorage.c_str();
 	WorkingDir.Replace(L':', L'_');
 
 	m_RegStartRevision = CRegString(L"Software\\TortoiseGit\\History\\RequestPull\\" + WorkingDir + L"\\startrevision");

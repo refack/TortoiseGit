@@ -102,7 +102,7 @@ BOOL CCommitIsOnRefsDlg::OnInitDialog()
 	AddAnchor(IDC_LOG, TOP_RIGHT);
 	AddOthersToAnchor();
 
-	m_bHasWC = !GitAdminDir::IsBareRepo(g_Git.m_CurrentDir);
+	m_bHasWC = !GitAdminDir::IsBareRepo(GitCall::m_CurrentDirStorage);
 
 	m_cSelRevBtn.m_bRightArrow = TRUE;
 	m_cSelRevBtn.m_bDefaultClick = FALSE;
@@ -333,7 +333,7 @@ void CCommitIsOnRefsDlg::OnContextMenu(CWnd* pWnd, CPoint point)
 		case eCmd_ViewLog:
 		{
 			CString sCmd = L"/command:log";
-			sCmd += L" /path:\"" + g_Git.m_CurrentDir + L"\" ";
+			sCmd += L" /path:\"" + GitCall::m_CurrentDirStorage + L"\" ";
 			sCmd += std::format(L" /endrev:{}", TCmdLineParser::EscapeValue(selectedRefs.at(0))).c_str();
 			CAppUtils::RunTortoiseGitProc(sCmd);
 		}
@@ -341,26 +341,26 @@ void CCommitIsOnRefsDlg::OnContextMenu(CWnd* pWnd, CPoint point)
 		case eCmd_ViewLogRange:
 		{
 			CString sCmd;
-			sCmd.Format(L"/command:log /path:\"%s\" /range:%s", g_Git.m_CurrentDir.c_str(), TCmdLineParser::EscapeValue(GetTwoSelectedRefs(selectedRefs, m_sLastSelected, L"..")).c_str());
+			sCmd.Format(L"/command:log /path:\"%s\" /range:%s", GitCall::m_CurrentDirStorage.c_str(), TCmdLineParser::EscapeValue(GetTwoSelectedRefs(selectedRefs, m_sLastSelected, L"..")).c_str());
 			CAppUtils::RunTortoiseGitProc(sCmd);
 		}
 		break;
 		case eCmd_ViewLogRangeReachableFromOnlyOne:
 		{
 			CString sCmd;
-			sCmd.Format(L"/command:log /path:\"%s\" /range:%s", g_Git.m_CurrentDir.c_str(), TCmdLineParser::EscapeValue(GetTwoSelectedRefs(selectedRefs, m_sLastSelected, L"...")).c_str());
+			sCmd.Format(L"/command:log /path:\"%s\" /range:%s", GitCall::m_CurrentDirStorage.c_str(), TCmdLineParser::EscapeValue(GetTwoSelectedRefs(selectedRefs, m_sLastSelected, L"...")).c_str());
 			CAppUtils::RunTortoiseGitProc(sCmd);
 		}
 		break;
 		case eCmd_RepoBrowser:
-			CAppUtils::RunTortoiseGitProc(std::format(L"/command:repobrowser /path:\"{}\" /rev:{}", g_Git.m_CurrentDir, TCmdLineParser::EscapeValue(selectedRefs[0])).c_str());
+			CAppUtils::RunTortoiseGitProc(std::format(L"/command:repobrowser /path:\"{}\" /rev:{}", GitCall::m_CurrentDirStorage, TCmdLineParser::EscapeValue(selectedRefs[0])).c_str());
 			break;
 		case eCmd_Copy:
 			CopySelectionToClipboard();
 			break;
 		case eCmd_DiffWC:
 		{
-			CString sCmd = std::format(L"/command:showcompare /path:\"{}\" /revision1:{} /revision2:{}", g_Git.m_CurrentDir, TCmdLineParser::EscapeValue(selectedRefs[0]), GitRev::GetWorkingCopyRef()).c_str();
+			CString sCmd = std::format(L"/command:showcompare /path:\"{}\" /revision1:{} /revision2:{}", GitCall::m_CurrentDirStorage, TCmdLineParser::EscapeValue(selectedRefs[0]), GitRev::GetWorkingCopyRef()).c_str();
 			if (!!(GetAsyncKeyState(VK_SHIFT) & 0x8000))
 				sCmd += L" /alternative";
 

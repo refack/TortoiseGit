@@ -41,7 +41,7 @@ bool DropCopyAddCommand::Execute()
 	if (!hasAdminDir)
 		return FALSE;
 
-	const int worktreePathLen = win32_cast(g_Git.m_CurrentDir.wstring().size());
+	const int worktreePathLen = win32_cast(GitCall::m_CurrentDirStorage.wstring().size());
 	orgPathList.RemoveAdminPaths();
 	CTGitPathList copiedFiles;
 	for(int nPath = 0; nPath < orgPathList.GetCount(); ++nPath)

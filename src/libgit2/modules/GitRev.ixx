@@ -437,7 +437,7 @@ int GitRev::ParserFromCommit(const GIT_COMMIT *commit)
 {
 	_ASSERTE(commit);
 	auto get_value1 = [](const char* str, const int len, std::optional<bool> encode = std::nullopt) {
-		std::string_view multibyte{str, gsl::narrow<unsigned long long>(len)};
+		const std::string_view multibyte{str, gsl::narrow<unsigned long long>(len)};
 		if (encode) {
 			return CUnicodeUtils::StdGetUnicode<CString>(multibyte, *encode);
 		} else {
@@ -613,7 +613,7 @@ int GitRev::GetCommit(const CString& refname, bool allowTree /* false */) {
 			m_sErr = TGitH::GetLibGit2LastErr();
 			return -1;
 		}
-		if (int ret = GetCommit(repo.get(), refname); ret == 0 || ret < 0 && !allowTree)
+		if (const int ret = GetCommit(repo.get(), refname); ret == 0 || ret < 0 && !allowTree)
 			return ret;
 
 		CGitHash hash;
@@ -672,11 +672,11 @@ int GitRev::GetCommit(const CString& refname, bool allowTree /* false */) {
 		return -1;
 	}
 
-	CGitHash hash = CGitHash::FromRaw(sha);
-	if (int ret = GetCommitFromHash_withoutLock(hash); ret == 0 || ret < 0 && !allowTree)
+	const CGitHash hash = CGitHash::FromRaw(sha);
+	if (const int ret = GetCommitFromHash_withoutLock(hash); ret == 0 || ret < 0 && !allowTree)
 		return ret;
 
-	tgit::zstr::CString revTree = CUnicodeUtils::GetUTF8<tgit::zstr::CString>(g_Git.FixBranchName(refname + L"^{tree}"));
+	const tgit::zstr::CString revTree = CUnicodeUtils::GetUTF8<tgit::zstr::CString>(g_Git.FixBranchName(refname + L"^{tree}"));
 	try
 	{
 		if (git_get_sha1(revTree, sha))

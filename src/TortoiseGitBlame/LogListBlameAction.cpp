@@ -63,7 +63,7 @@ void CGitBlameLogList::GetParentHashes(GitRevLoglist* pRev, GIT_REV_LIST& parent
 	}
 }
 
-void RunTortoiseGitProcWithCurrentRev(const CString& command, const GitRev* pRev, const CString &path = g_Git.m_CurrentDir)
+void RunTortoiseGitProcWithCurrentRev(const CString& command, const GitRev* pRev, const CString &path = GitCall::m_CurrentDirStorage)
 {
 	ASSERT(pRev);
 	CString  procCmd;

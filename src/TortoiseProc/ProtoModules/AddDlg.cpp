@@ -61,7 +61,7 @@ BOOL CAddDlg::OnInitDialog()
 	m_addListCtrl.SetBackgroundImage(IDI_ADD_BKG);
 	m_addListCtrl.EnableFileDrop();
 
-	CAppUtils::SetWindowTitle(*this, g_Git.CombinePath(m_pathList.GetCommonRoot().GetUIPathString().c_str()));
+	CAppUtils::SetWindowTitle(*this, g_Git.CombinePath(m_pathList.GetCommonRoot().GetUIPathString()).c_str());
 
 	AdjustControlSize(IDC_SELECTALL);
 	AdjustControlSize(IDC_INCLUDE_IGNORED);
@@ -169,6 +169,8 @@ BOOL CAddDlg::PreTranslateMessage(MSG* pMsg)
 				Refresh();
 			}
 			break;
+		default:
+			std::unreachable();
 		}
 	}
 
@@ -206,7 +208,7 @@ LRESULT CAddDlg::OnFileDropped(WPARAM, LPARAM lParam)
 
 	// check whether the dropped file belongs to the very same repository
 	std::wstring projectDir;
-	if (!path.HasAdminDir(&projectDir) || !PathUtils::ArePathStringsEqual(tgit::str::StringView(g_Git.m_CurrentDir), projectDir))
+	if (!path.HasAdminDir(&projectDir) || !PathUtils::ArePathStringsEqual(GitCall::m_CurrentDirStorage.wstring(), projectDir))
 		return 0;
 
 	if (!m_addListCtrl.HasPath(path))
@@ -265,6 +267,8 @@ void CAddDlg::OnTimer(UINT_PTR nIDEvent)
 			OnSVNStatusListCtrlNeedsRefresh(0, 0);
 		}
 		break;
+	default:
+		std::unreachable();
 	}
 	__super::OnTimer(nIDEvent);
 }

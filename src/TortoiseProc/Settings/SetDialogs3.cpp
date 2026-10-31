@@ -245,7 +245,7 @@ void CSetDialogs3::OnBnClickedIconfileBrowse()
 	UpdateData(TRUE);
 	// joined to a relative icon path and stripped off a chosen one, so it needs
 	// its trailing separator; appending an empty path adds one only if missing
-	const CString currentDir = (g_Git.m_CurrentDir / L"").c_str();
+	const CString currentDir = (GitCall::m_CurrentDirStorage / L"").c_str();
 	CString iconFile = m_iconFile;
 	if (!(iconFile.Mid(1, 1) == L":" || StringUtils::StartsWith(iconFile, L"\\")))
 		iconFile = currentDir + iconFile;

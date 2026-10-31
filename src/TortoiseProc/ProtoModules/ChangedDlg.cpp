@@ -87,7 +87,7 @@ BOOL CChangedDlg::OnInitDialog()
 	m_regAddBeforeCommit = CRegDWORD(L"Software\\TortoiseGit\\AddBeforeCommit", TRUE);
 	m_bShowUnversioned = m_regAddBeforeCommit;
 
-	CString regPath(g_Git.m_CurrentDir);
+	CString regPath(GitCall::m_CurrentDirStorage);
 	regPath.Replace(L':', L'_');
 	m_regShowWholeProject = CRegDWORD(L"Software\\TortoiseGit\\TortoiseProc\\ShowWholeProject\\" + regPath, FALSE);
 	m_bWholeProject = m_regShowWholeProject;
@@ -186,7 +186,7 @@ UINT CChangedDlg::ChangedStatusThread()
 	SetDlgTitle();
 	bool bIsDirectory = false;
 	if (m_pathList.GetCount() == 1)
-		bIsDirectory = m_pathList[0].IsDirectory() || m_pathList[0].IsEmpty(); // if it is empty it is g_Git.m_CurrentDir which is a directory
+		bIsDirectory = m_pathList[0].IsDirectory() || m_pathList[0].IsEmpty(); // if it is empty it is GitCall::m_CurrentDirStorage which is a directory
 
 	m_BranchLink.SetWindowText(L"<a>" + g_Git.GetCurrentBranch() + L"</a>");
 	SetDlgItemText(IDOK, CString(MAKEINTRESOURCE(IDS_MSGBOX_OK)));
@@ -255,7 +255,7 @@ void CChangedDlg::SetDlgTitle()
 		GetWindowText(m_sTitle);
 
 	if (m_bWholeProject)
-		CAppUtils::SetWindowTitle(m_hWnd, g_Git.m_CurrentDir, m_sTitle);
+		CAppUtils::SetWindowTitle(m_hWnd, GitCall::m_CurrentDirStorage, m_sTitle);
 	else
 	{
 		const auto pathTitle = (m_pathList.GetCount() == 1) ?
@@ -397,7 +397,7 @@ void CChangedDlg::OnBnClickedStash()
 	{
 		popup.AppendMenuIcon(ID_STASH_SAVE, IDS_MENUSTASHSAVE, IDI_SHELVE);
 
-		CTGitPath root(g_Git.m_CurrentDir.GetString());
+		CTGitPath root(GitCall::m_CurrentDirStorage.GetString());
 		if (root.HasStashDir())
 		{
 			popup.AppendMenuIcon(ID_STASH_POP, IDS_MENUSTASHPOP, IDI_UNSHELVE);

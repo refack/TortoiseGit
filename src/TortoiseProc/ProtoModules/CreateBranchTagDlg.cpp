@@ -111,10 +111,10 @@ BOOL CCreateBranchTagDlg::OnInitDialog()
 		}
 	}
 
-	CAppUtils::SetWindowTitle(m_hWnd, g_Git.m_CurrentDir, sWindowTitle);
+	CAppUtils::SetWindowTitle(m_hWnd, GitCall::m_CurrentDirStorage.c_str(), sWindowTitle);
 
 	// show the switch checkbox if we are a create branch dialog
-	bool canSwitch = !m_bIsTag && !GitAdminDir::IsBareRepo(g_Git.m_CurrentDir);
+	bool canSwitch = !m_bIsTag && !GitAdminDir::IsBareRepo(GitCall::m_CurrentDirStorage);
 	GetDlgItem(IDC_CHECK_SWITCH)->ShowWindow(canSwitch ? SW_SHOW : SW_HIDE);
 	DialogEnableWindow(IDC_CHECK_SWITCH, canSwitch);
 	CWnd* pHead = GetDlgItem(IDC_RADIO_HEAD);

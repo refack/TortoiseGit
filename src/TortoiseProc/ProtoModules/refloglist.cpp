@@ -129,7 +129,7 @@ void CRefLogList::OnNMDblclkLoglist(NMHDR* /*pNMHDR*/, LRESULT* pResult)
 		return;
 
 	CString cmdline;
-	cmdline.Format(L"/command:log /path:%s /endrev:%s /rev:%s", static_cast<LPCWSTR>(TCmdLineParser::EscapeValue(g_Git.CombinePath(m_Path))), (pSelLogEntry->m_CommitHash.ToString()).c_str(), (pSelLogEntry->m_CommitHash.ToString()).c_str());
+	cmdline.Format(L"/command:log /path:%s /endrev:%s /rev:%s", TCmdLineParser::EscapeValue(g_Git.CombinePath(m_Path).wstring()).c_str(), (pSelLogEntry->m_CommitHash.ToString()).c_str(), (pSelLogEntry->m_CommitHash.ToString()).c_str());
 	CAppUtils::RunTortoiseGitProc(cmdline);
 }
 

@@ -59,14 +59,14 @@ public:
 	void SetPaths(const CTGitPathList& plist, const CTGitPath &path) {
 		{
 			this->orgCmdLinePath = path;
-			const fs::path rel = path.GetStdPath().lexically_relative(g_Git.m_CurrentDir);
+			const fs::path rel = path.GetStdPath().lexically_relative(GitCall::m_CurrentDirStorage);
 			if (!rel.empty() && *rel.begin() != L"..")
 				this->cmdLinePath.SetFromWin(rel.c_str());
 		}
 
 		this->orgPathList = plist;
 		for (int i = 0; i < plist.GetCount(); ++i) {
-			const fs::path rel = plist[i].GetStdPath().lexically_relative(g_Git.m_CurrentDir);
+			const fs::path rel = plist[i].GetStdPath().lexically_relative(GitCall::m_CurrentDirStorage);
 			if (!rel.empty() && *rel.begin() != L"..")
 				this->pathList.AddPath(CTGitPath(rel));
 

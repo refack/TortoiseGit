@@ -34,7 +34,7 @@ bool SVNRebaseCommand::Execute()
 
 	if(!g_Git.CheckCleanWorkTree())
 	{
-		if (CMessageBox::Show(GetExplorerHWND(), g_Git.m_CurrentDir + L"\r\n" + CString(MAKEINTRESOURCE(IDS_ERROR_NOCLEAN_STASH)), IDS_APPNAME, 1, IDI_QUESTION, IDS_STASHBUTTON, IDS_ABORTBUTTON) == 1)
+		if (CMessageBox::Show(GetExplorerHWND(), GitCall::m_CurrentDirStorage + L"\r\n" + CString(MAKEINTRESOURCE(IDS_ERROR_NOCLEAN_STASH)), IDS_APPNAME, 1, IDI_QUESTION, IDS_STASHBUTTON, IDS_ABORTBUTTON) == 1)
 		{
 			CSysProgressDlg sysProgressDlg;
 			sysProgressDlg.SetTitle(CString(MAKEINTRESOURCE(IDS_APPNAME)));
@@ -115,7 +115,7 @@ bool SVNRebaseCommand::Execute()
 	//everything updated
 	if(UpStreamNewHash==HeadHash)
 	{
-		MessageBox(GetExplorerHWND(), g_Git.m_CurrentDir + L"\r\n" + CString(MAKEINTRESOURCE(IDS_PROC_EVERYTHINGUPDATED)), L"TortoiseGit", MB_OK | MB_ICONQUESTION);
+		MessageBox(GetExplorerHWND(), GitCall::m_CurrentDirStorage + L"\r\n" + CString(MAKEINTRESOURCE(IDS_PROC_EVERYTHINGUPDATED)), L"TortoiseGit", MB_OK | MB_ICONQUESTION);
 		if(isStash)
 			askIfUserWantsToStashPop();
 
@@ -133,7 +133,7 @@ bool SVNRebaseCommand::Execute()
 			return false;
 		else
 		{
-			MessageBox(GetExplorerHWND(), g_Git.m_CurrentDir + L"\r\n" + CString(MAKEINTRESOURCE(IDS_PROC_FASTFORWARD)) + L":\n" + progressReset.m_LogText, L"TortoiseGit", MB_OK | MB_ICONQUESTION);
+			MessageBox(GetExplorerHWND(), GitCall::m_CurrentDirStorage + L"\r\n" + CString(MAKEINTRESOURCE(IDS_PROC_FASTFORWARD)) + L":\n" + progressReset.m_LogText, L"TortoiseGit", MB_OK | MB_ICONQUESTION);
 			if(isStash)
 				askIfUserWantsToStashPop();
 
@@ -151,7 +151,7 @@ bool SVNRebaseCommand::Execute()
 		if (response == IDC_REBASE_POST_BUTTON)
 		{
 			CString cmd = L"/command:log";
-			cmd += L" /path:\"" + g_Git.m_CurrentDir + L'"';
+			cmd += L" /path:\"" + GitCall::m_CurrentDirStorage + L'"';
 			CAppUtils::RunTortoiseGitProc(cmd);
 		}
 		return true;
@@ -161,6 +161,6 @@ bool SVNRebaseCommand::Execute()
 
 void SVNRebaseCommand::askIfUserWantsToStashPop()
 {
-	if (MessageBox(GetExplorerHWND(), g_Git.m_CurrentDir + L"\r\n" + CString(MAKEINTRESOURCE(IDS_DCOMMIT_STASH_POP)), L"TortoiseGit", MB_YESNO | MB_ICONINFORMATION) == IDYES)
+	if (MessageBox(GetExplorerHWND(), GitCall::m_CurrentDirStorage + L"\r\n" + CString(MAKEINTRESOURCE(IDS_DCOMMIT_STASH_POP)), L"TortoiseGit", MB_YESNO | MB_ICONINFORMATION) == IDYES)
 		CAppUtils::StashPop(GetExplorerHWND());
 }

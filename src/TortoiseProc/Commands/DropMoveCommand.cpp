@@ -33,7 +33,7 @@ bool DropMoveCommand::Execute()
 	if (!CTGitPath(droppath).HasAdminDir(&ProjectTop))
 		return FALSE;
 
-	if (tgit::wstr::CompareNoCase(g_Git.m_CurrentDir.wstring(), ProjectTop) != 0) {
+	if (tgit::wstr::CompareNoCase(GitCall::m_CurrentDirStorage.wstring(), ProjectTop) != 0) {
 		CMessageBox::Show(GetExplorerHWND(), IDS_ERR_MUSTBESAMEWT, IDS_APPNAME, MB_OK | MB_ICONEXCLAMATION);
 		return FALSE;
 	}

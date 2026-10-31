@@ -65,7 +65,7 @@ bool LFSSetLockedProgressCommand::Run(CGitProgressList* list, CString& sWindowTi
 		if (!status && m_bIsLock)
 		{
 			CString sCmd;
-			sCmd.Format(L"/command:pull /path:\"%s\"", g_Git.m_CurrentDir.c_str());
+			sCmd.Format(L"/command:pull /path:\"%s\"", GitCall::m_CurrentDirStorage.c_str());
 			CAppUtils::RunTortoiseGitProc(sCmd);
 		}
 	};

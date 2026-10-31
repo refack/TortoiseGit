@@ -32,7 +32,7 @@ bool FetchProgressCommand::Run(CGitProgressList* list, CString& sWindowTitle, in
 		return false;
 	}
 
-	list->SetWindowTitle(IDS_PROGRS_TITLE_FETCH, g_Git.m_CurrentDir, sWindowTitle);
+	list->SetWindowTitle(IDS_PROGRS_TITLE_FETCH, GitCall::m_CurrentDirStorage, sWindowTitle);
 	list->SetBackgroundImage(IDI_UPDATE_BKG);
 	list->ReportCmd(CString(MAKEINTRESOURCE(IDS_PROGRS_TITLE_FETCH)) + L' ' + m_url.GetGitPathString().c_str() + L' ' + m_RefSpec);
 

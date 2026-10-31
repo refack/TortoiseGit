@@ -107,7 +107,7 @@ void CRebaseDlg::CleanUpRebaseActiveFolder()
 	if (m_IsCherryPick)
 		return;
 	CString adminDir;
-	if (GitAdminDir::GetAdminDirPath(g_Git.m_CurrentDir, adminDir))
+	if (GitAdminDir::GetAdminDirPath(GitCall::m_CurrentDirStorage, adminDir))
 	{
 		CString dir(adminDir + L"tgitrebase.active");
 		::DeleteFile(dir + L"\\head-name");
@@ -245,7 +245,7 @@ BOOL CRebaseDlg::OnInitDialog()
 	m_ctrlTabCtrl.AddTab(&m_LogMessageCtrl, CString(MAKEINTRESOURCE(IDS_PROC_COMMITMESSAGE)), 1);
 	AddRebaseAnchor();
 
-	CAppUtils::SetWindowTitle(*this, g_Git.m_CurrentDir);
+	CAppUtils::SetWindowTitle(*this, GitCall::m_CurrentDirStorage);
 
 	EnableSaveRestore(L"RebaseDlg");
 
@@ -302,7 +302,7 @@ BOOL CRebaseDlg::OnInitDialog()
 		GetDlgItem(IDC_BUTTON_ONTO)->EnableWindow(FALSE);
 		this->m_UpstreamCtrl.AddString(L"HEAD");
 		this->m_UpstreamCtrl.EnableWindow(FALSE);
-		CAppUtils::SetWindowTitle(m_hWnd, g_Git.m_CurrentDir, CString(MAKEINTRESOURCE(IDS_PROGS_TITLE_CHERRYPICK)));
+		CAppUtils::SetWindowTitle(m_hWnd, GitCall::m_CurrentDirStorage, CString(MAKEINTRESOURCE(IDS_PROGS_TITLE_CHERRYPICK)));
 		m_bAddCherryPickedFrom = CRegDWORD(L"Software\\TortoiseGit\\TortoiseProc\\CherrypickAddCherryPickedFrom", 0) != 0;
 		UpdateData(FALSE);
 		// fill shown list
@@ -960,8 +960,8 @@ int CRebaseDlg::CheckRebaseCondition()
 	{
 		CString error;
 		DWORD exitcode = 0xFFFFFFFF;
-		CHooks::Instance().SetProjectProperties(CTGitPath(g_Git.m_CurrentDir.GetString()), m_ProjectProperties);
-		if (CHooks::Instance().PreRebase(GetSafeHwnd(), g_Git.m_CurrentDir, m_UpstreamCtrl.GetString(), m_BranchCtrl.GetString(), exitcode, error))
+		CHooks::Instance().SetProjectProperties(CTGitPath(GitCall::m_CurrentDirStorage.GetString()), m_ProjectProperties);
+		if (CHooks::Instance().PreRebase(GetSafeHwnd(), GitCall::m_CurrentDirStorage, m_UpstreamCtrl.GetString(), m_BranchCtrl.GetString(), exitcode, error))
 		{
 			if (exitcode)
 			{
@@ -2378,7 +2378,7 @@ BOOL CRebaseDlg::IsEnd()
 
 int CRebaseDlg::RebaseThread()
 {
-	CBlockCacheForPath cacheBlock(g_Git.m_CurrentDir);
+	CBlockCacheForPath cacheBlock(GitCall::m_CurrentDirStorage);
 
 	int ret=0;
 	while (!m_bAbort)
@@ -2436,7 +2436,7 @@ void CRebaseDlg::ListConflictFile(bool noStoreScrollPosition)
 	if (!m_IsCherryPick)
 	{
 		CString adminDir;
-		if (GitAdminDir::GetAdminDirPath(g_Git.m_CurrentDir, adminDir))
+		if (GitAdminDir::GetAdminDirPath(GitCall::m_CurrentDirStorage, adminDir))
 		{
 			CString dir(adminDir + L"tgitrebase.active");
 			::CreateDirectory(dir, nullptr);
@@ -2512,7 +2512,7 @@ LRESULT CRebaseDlg::OnRebaseUpdateUI(WPARAM,LPARAM)
 		if (m_IsCherryPick)
 		{
 			CString dotGitPath;
-			GitAdminDir::GetWorktreeAdminDirPath(g_Git.m_CurrentDir, dotGitPath);
+			GitAdminDir::GetWorktreeAdminDirPath(GitCall::m_CurrentDirStorage, dotGitPath);
 			// vanilla git also re-uses MERGE_MSG on conflict (listing all conflicted files)
 			// and it's also needed for cherry-pick in order to get cherry-picked-from included on conflicts
 			TGitH::LoadTextFile(dotGitPath + L"MERGE_MSG", logMessage);

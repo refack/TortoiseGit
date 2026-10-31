@@ -10,6 +10,7 @@
 export module BugTraqProvider;
 import std;
 import gsl;
+import wil;
 import str_utils;
 
 import TGitPath;
@@ -39,20 +40,25 @@ public:
 	CBugTraqAssociation() = default;
 	CBugTraqAssociation(const LPCWSTR& szWorkingCopy, const CLSID& provider_clsid, const LPCWSTR& szProviderName, const LPCWSTR& szParameters, const bool enabled)
 		: m_path(std::wstring_view{szWorkingCopy})
+		, m_provider{.clsid = provider_clsid, .name = szProviderName}
 		, m_parameters(szParameters)
 		, m_enabled(enabled)
-	{
-		m_provider.clsid = provider_clsid;
-		m_provider.name = szProviderName;
-	}
+	{}
 
 	[[nodiscard]] const CTGitPath &GetPath() const { return m_path; }
 	[[nodiscard]] CString GetProviderName() const { return m_provider.name; }
 	[[nodiscard]] CLSID GetProviderClass() const { return m_provider.clsid; }
-	[[nodiscard]] CString GetProviderClassAsString() const;
 	[[nodiscard]] CString GetParameters() const { return m_parameters; }
 	[[nodiscard]] bool IsEnabled() const { return m_enabled; }
-	bool SetEnabled(bool enabled) { if (m_enabled == enabled) { return false; } m_enabled = enabled; return true; }
+	[[nodiscard]] bool SetEnabled(const bool enabled) { if (m_enabled == enabled) { return false; } m_enabled = enabled; return true; }
+
+
+	[[nodiscard]] CString GetProviderClassAsString() const {
+		auto szTemp = std::array<OLECHAR, 40>{};
+		StringFromGUID2(this->m_provider.clsid, szTemp.data(), gsl::narrow<int>(szTemp.size()));
+
+		return szTemp.data();
+	}
 };
 
 class CBugTraqAssociations
@@ -60,6 +66,9 @@ class CBugTraqAssociations
 	using inner_t = std::vector<CBugTraqAssociation*>;
 
 	inner_t m_inner{};
+	CString	providerUUID{};
+	CString	providerParams{};
+	CBugTraqAssociation* pProjectProvider = nullptr;
 
 public:
 	CBugTraqAssociations() = default;
@@ -76,7 +85,7 @@ public:
 	void Add(const CBugTraqAssociation &assoc);
 	void Remove(const CBugTraqAssociation* assoc)
 	{
-		if (auto it = std::ranges::find(m_inner, assoc); it != m_inner.end())
+		if (const auto it = std::ranges::find(m_inner, assoc); it != m_inner.end())
 		{
 			delete *it;
 			m_inner.erase(it);
@@ -91,26 +100,44 @@ public:
 	[[nodiscard]] const_iterator end() const { return m_inner.end(); }
 
 	static std::vector<CBugTraqProvider> GetAvailableProviders();
-	static CString LookupProviderName(const CLSID &provider_clsid);
+	static CString LookupProviderName(const CLSID &provider_clsid){
+		OLECHAR szClsid[40] = {};
+		StringFromGUID2(provider_clsid, szClsid, ARRAYSIZE(szClsid));
+
+		wchar_t szSubKey[MAX_PATH] = {};
+		swprintf_s(szSubKey, L"CLSID\\%ls", szClsid);
+
+		auto provider_name = CString(szClsid);
+
+		HKEY hk;
+		if (RegOpenKeyEx(HKEY_CLASSES_ROOT, szSubKey, 0, KEY_READ, &hk) == ERROR_SUCCESS)
+		{
+			wchar_t szClassName[MAX_PATH] = {};
+			DWORD cbClassName = sizeof(szClassName);
+
+			if (RegQueryValueEx(hk, nullptr, nullptr, nullptr, reinterpret_cast<LPBYTE>(szClassName), &cbClassName) == ERROR_SUCCESS)
+				provider_name = CString(szClassName);
+
+			RegCloseKey(hk);
+		}
+
+		return provider_name;
+	}
 
 private:
 	bool FindProviderForPath(const CTGitPath& path, CBugTraqAssociation *assoc) const;
 
-	struct FindByPathPred
-	{
-		const CTGitPath &m_path;
-
-		FindByPathPred(const CTGitPath &path)
-			: m_path(path) { }
-
-		bool operator() (const CBugTraqAssociation *assoc) const
-		{
-			return (assoc->GetPath().IsEquivalentToWithoutCase(m_path));
-		}
-	};
-	CString	providerUUID;
-	CString	providerParams;
-	CBugTraqAssociation* pProjectProvider = nullptr;
+	// struct FindByPathPred
+	// {
+	// 	const CTGitPath &m_path;
+	//
+	// 	explicit FindByPathPred(const CTGitPath &path) : m_path(path) { }
+	//
+	// 	bool operator() (const CBugTraqAssociation *assoc) const
+	// 	{
+	// 		return (assoc->GetPath().IsEquivalentToWithoutCase(m_path));
+	// 	}
+	// };
 };
 
 // {3494FA92-B139-4730-9591-01135D5E7831}
@@ -120,7 +147,7 @@ DEFINE_GUID(CATID_BugTraqProvider,
 #define BUGTRAQ_ASSOCIATIONS_REGPATH L"Software\\TortoiseGit\\BugTraq Associations"
 
 
-void CBugTraqAssociations::Load(LPCWSTR uuid /* = nullptr */, LPCWSTR params /* = nullptr */)
+void CBugTraqAssociations::Load(const LPCWSTR uuid /* = nullptr */, const LPCWSTR params /* = nullptr */)
 {
 	HKEY hk;
 	if (RegOpenKeyEx(HKEY_CURRENT_USER, BUGTRAQ_ASSOCIATIONS_REGPATH, 0, KEY_READ, &hk) != ERROR_SUCCESS)
@@ -136,23 +163,18 @@ void CBugTraqAssociations::Load(LPCWSTR uuid /* = nullptr */, LPCWSTR params /* 
 	{
 		wchar_t szSubKey[MAX_PATH] = {};
 		DWORD cchSubKey = MAX_PATH;
-		LSTATUS status = RegEnumKeyEx(hk, dwIndex, szSubKey, &cchSubKey, nullptr, nullptr, nullptr, nullptr);
+		const LSTATUS status = RegEnumKeyEx(hk, dwIndex, szSubKey, &cchSubKey, nullptr, nullptr, nullptr, nullptr);
 		if (status != ERROR_SUCCESS)
 			break;
 
 		HKEY hk2;
 		if (RegOpenKeyEx(hk, szSubKey, 0, KEY_READ, &hk2) == ERROR_SUCCESS)
 		{
-			wchar_t szWorkingCopy[MAX_PATH] = {};
-			DWORD cbWorkingCopy = sizeof(szWorkingCopy);
-			RegQueryValueEx(hk2, L"WorkingCopy", nullptr, nullptr, reinterpret_cast<LPBYTE>(szWorkingCopy), &cbWorkingCopy);
-
-			wchar_t szClsid[MAX_PATH] = {};
-			DWORD cbClsid = sizeof(szClsid);
-			RegQueryValueEx(hk2, L"Provider", nullptr, nullptr, reinterpret_cast<LPBYTE>(szClsid), &cbClsid);
+			const auto szWorkingCopy = wil::reg::try_get_string(hk2, {}, L"WorkingCopy").value_or(L"");
+			const auto szClsid = wil::reg::try_get_string(hk2, {}, L"Provider").value_or(L"");
 
 			CLSID provider_clsid;
-			CLSIDFromString(szClsid, &provider_clsid);
+			std::ignore = CLSIDFromString(szClsid.c_str(), &provider_clsid);
 
 			DWORD cbParameters = 0;
 			RegQueryValueEx(hk2, L"Parameters", nullptr, nullptr, nullptr, &cbParameters);
@@ -164,7 +186,7 @@ void CBugTraqAssociations::Load(LPCWSTR uuid /* = nullptr */, LPCWSTR params /* 
 			DWORD size = sizeof(enabled);
 			RegQueryValueEx(hk2, L"Enabled", nullptr, nullptr, reinterpret_cast<BYTE*>(&enabled), &size);
 
-			m_inner.push_back(new CBugTraqAssociation(szWorkingCopy, provider_clsid, LookupProviderName(provider_clsid), szParameters.get(), enabled != FALSE));
+			m_inner.push_back(new CBugTraqAssociation(szWorkingCopy.c_str(), provider_clsid, LookupProviderName(provider_clsid), szParameters.get(), enabled != FALSE));
 
 			RegCloseKey(hk2);
 		}
@@ -200,7 +222,7 @@ bool CBugTraqAssociations::FindProvider(const CString &path, CBugTraqAssociation
 	if (!providerUUID.IsEmpty())
 	{
 		CLSID provider_clsid;
-		CLSIDFromString(static_cast<LPCOLESTR>(static_cast<LPCWSTR>(providerUUID)), &provider_clsid);
+		std::ignore = CLSIDFromString(providerUUID, &provider_clsid);
 		pProjectProvider = new CBugTraqAssociation(L"", provider_clsid, L"bugtraq:provider", static_cast<LPCWSTR>(providerParams), true);
 		if (pProjectProvider)
 		{
@@ -225,36 +247,11 @@ bool CBugTraqAssociations::FindProviderForPath(const CTGitPath &path, CBugTraqAs
 	return false;
 }
 
-/* static */
-CString CBugTraqAssociations::LookupProviderName(const CLSID &provider_clsid)
+
+LSTATUS RegSetValueFromCString(const HKEY hKey, const LPCWSTR lpValueName, const CString& str)
 {
-	OLECHAR szClsid[40] = {};
-	StringFromGUID2(provider_clsid, szClsid, ARRAYSIZE(szClsid));
-
-	wchar_t szSubKey[MAX_PATH] = {};
-	swprintf_s(szSubKey, L"CLSID\\%ls", szClsid);
-
-	CString provider_name = CString(szClsid);
-
-	HKEY hk;
-	if (RegOpenKeyEx(HKEY_CLASSES_ROOT, szSubKey, 0, KEY_READ, &hk) == ERROR_SUCCESS)
-	{
-		wchar_t szClassName[MAX_PATH] = {};
-		DWORD cbClassName = sizeof(szClassName);
-
-		if (RegQueryValueEx(hk, nullptr, nullptr, nullptr, reinterpret_cast<LPBYTE>(szClassName), &cbClassName) == ERROR_SUCCESS)
-			provider_name = CString(szClassName);
-
-		RegCloseKey(hk);
-	}
-
-	return provider_name;
-}
-
-LSTATUS RegSetValueFromCString(HKEY hKey, LPCWSTR lpValueName, const CString& str)
-{
-	LPCWSTR lpsz = str;
-	DWORD cb = (str.GetLength() + 1) * sizeof(wchar_t);
+	const LPCWSTR lpsz = str;
+	const DWORD cb = (str.GetLength() + 1) * sizeof(wchar_t);
 	return RegSetValueEx(hKey, lpValueName, 0, REG_SZ, reinterpret_cast<const BYTE*>(lpsz), cb);
 }
 
@@ -290,14 +287,6 @@ void CBugTraqAssociations::Save() const
 	RegCloseKey(hk);
 }
 
-
-CString CBugTraqAssociation::GetProviderClassAsString() const
-{
-	auto szTemp = std::array<OLECHAR,40>{};
-	StringFromGUID2(m_provider.clsid, szTemp.data(), gsl::narrow<int>(szTemp.size()));
-
-	return szTemp.data();
-}
 
 /* static */
 std::vector<CBugTraqProvider> CBugTraqAssociations::GetAvailableProviders()

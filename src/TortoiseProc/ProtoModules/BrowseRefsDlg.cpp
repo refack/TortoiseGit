@@ -330,9 +330,9 @@ BOOL CBrowseRefsDlg::OnInitDialog()
 	EnableSaveRestore(L"BrowseRefs");
 	SetTheme(CTheme::Instance().IsDarkTheme());
 
-	CAppUtils::SetWindowTitle(*this, g_Git.m_CurrentDir);
+	CAppUtils::SetWindowTitle(*this, GitCall::m_CurrentDirStorage);
 
-	m_bHasWC = !GitAdminDir::IsBareRepo(g_Git.m_CurrentDir);
+	m_bHasWC = !GitAdminDir::IsBareRepo(GitCall::m_CurrentDirStorage);
 
 	if (m_bPickOne)
 		m_ListRefLeafs.ModifyStyle(0, LVS_SINGLESEL);
@@ -442,7 +442,7 @@ void CBrowseRefsDlg::Refresh(CString selectRef)
 	{
 		if (selectRef == L"HEAD")
 		{
-			if (g_Git.GetCurrentBranchFromFile(g_Git.m_CurrentDir, selectRef))
+			if (g_Git.GetCurrentBranchFromFile(GitCall::m_CurrentDirStorage, selectRef))
 				selectRef = L"refs/heads";
 			else
 				selectRef = L"refs/heads/" + selectRef;
@@ -1139,26 +1139,26 @@ void CBrowseRefsDlg::ShowContextMenu(CPoint point, HTREEITEM hTreePos, VectorPSh
 	case eCmd_ViewLog:
 		{
 			CString sCmd;
-			sCmd.Format(L"/command:log /path:\"%s\" /range:%s", g_Git.m_CurrentDir, TCmdLineParser::EscapeValue(g_Git.FixBranchName(selectedLeafs[0]->GetRefName())));
+			sCmd.Format(L"/command:log /path:\"%s\" /range:%s", GitCall::m_CurrentDirStorage, TCmdLineParser::EscapeValue(g_Git.FixBranchName(selectedLeafs[0]->GetRefName())));
 			RunTortoiseGitProc(sCmd);
 		}
 		break;
 	case eCmd_ViewLogRange:
 		{
 			CString sCmd;
-			sCmd.Format(L"/command:log /path:\"%s\" /range:%s", g_Git.m_CurrentDir, TCmdLineParser::EscapeValue(GetTwoSelectedRefs(selectedLeafs, m_sLastSelected, L"..")));
+			sCmd.Format(L"/command:log /path:\"%s\" /range:%s", GitCall::m_CurrentDirStorage, TCmdLineParser::EscapeValue(GetTwoSelectedRefs(selectedLeafs, m_sLastSelected, L"..")));
 			RunTortoiseGitProc(sCmd);
 		}
 		break;
 	case eCmd_ViewLogRangeReachableFromOnlyOne:
 		{
 			CString sCmd;
-			sCmd.Format(L"/command:log /path:\"%s\" /range:%s", g_Git.m_CurrentDir, TCmdLineParser::EscapeValue(GetTwoSelectedRefs(selectedLeafs, m_sLastSelected, L"...")));
+			sCmd.Format(L"/command:log /path:\"%s\" /range:%s", GitCall::m_CurrentDirStorage, TCmdLineParser::EscapeValue(GetTwoSelectedRefs(selectedLeafs, m_sLastSelected, L"...")));
 			RunTortoiseGitProc(sCmd);
 		}
 		break;
 	case eCmd_RepoBrowser:
-		RunTortoiseGitProc(L"/command:repobrowser /path:\"" + g_Git.m_CurrentDir + L"\" /rev:" + TCmdLineParser::EscapeValue(selectedLeafs[0]->GetRefName()));
+		RunTortoiseGitProc(L"/command:repobrowser /path:\"" + GitCall::m_CurrentDirStorage + L"\" /rev:" + TCmdLineParser::EscapeValue(selectedLeafs[0]->GetRefName()));
 		break;
 	case eCmd_DeleteBranch:
 	case eCmd_DeleteRemoteBranch:
@@ -1275,7 +1275,7 @@ void CBrowseRefsDlg::ShowContextMenu(CPoint point, HTREEITEM hTreePos, VectorPSh
 	case eCmd_DiffWC:
 		{
 			CString sCmd;
-			sCmd.Format(L"/command:showcompare /path:\"%s\" /revision1:%s /revision2:%s", g_Git.m_CurrentDir, TCmdLineParser::EscapeValue(selectedLeafs[0]->GetRefName()), GitRev::GetWorkingCopyRef());
+			sCmd.Format(L"/command:showcompare /path:\"%s\" /revision1:%s /revision2:%s", GitCall::m_CurrentDirStorage, TCmdLineParser::EscapeValue(selectedLeafs[0]->GetRefName()), GitRev::GetWorkingCopyRef());
 			if (!!(GetAsyncKeyState(VK_SHIFT) & 0x8000))
 				sCmd += L" /alternative";
 
@@ -1479,9 +1479,9 @@ void CBrowseRefsDlg::OnNMDblclkListRefLeafs(NMHDR * /*pNMHDR*/, LRESULT *pResult
 
 	CString sCmd;
 	if (selectedLeafs[0]->m_objectType == GIT_OBJECT_TREE)
-		sCmd.Format(L"/command:repobrowser /path:\"%s\" /rev:%s", g_Git.m_CurrentDir, TCmdLineParser::EscapeValue(g_Git.FixBranchName(GetSelectedRef(true, false))));
+		sCmd.Format(L"/command:repobrowser /path:\"%s\" /rev:%s", GitCall::m_CurrentDirStorage, TCmdLineParser::EscapeValue(g_Git.FixBranchName(GetSelectedRef(true, false))));
 	else
-		sCmd.Format(L"/command:log /path:\"%s\" /range:%s", g_Git.m_CurrentDir, TCmdLineParser::EscapeValue(g_Git.FixBranchName(GetSelectedRef(true, false))));
+		sCmd.Format(L"/command:log /path:\"%s\" /range:%s", GitCall::m_CurrentDirStorage, TCmdLineParser::EscapeValue(g_Git.FixBranchName(GetSelectedRef(true, false))));
 	RunTortoiseGitProc(sCmd);
 }
 

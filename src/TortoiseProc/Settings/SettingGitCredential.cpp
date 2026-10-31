@@ -128,7 +128,7 @@ BOOL CSettingGitCredential::OnInitDialog()
 
 	AdjustControlSize(IDC_CHECK_USEHTTPPATH);
 
-	bool hasLocal = GitAdminDir::HasAdminDir(tgit::str::StringView(g_Git.m_CurrentDir));
+	bool hasLocal = GitAdminDir::HasAdminDir(tgit::str::StringView(GitCall::m_CurrentDirStorage));
 
 	m_ctrlUrlList.ResetContent();
 
@@ -336,7 +336,7 @@ void CSettingGitCredential::FillSimpleList(bool anySystem, bool systemWincred, b
 {
 	ATLASSERT(SimpleCredentialType::Advanced == -1);
 
-	bool hasLocal = GitAdminDir::HasAdminDir(tgit::str::StringView(g_Git.m_CurrentDir));
+	bool hasLocal = GitAdminDir::HasAdminDir(tgit::str::StringView(GitCall::m_CurrentDirStorage));
 	bool isAdmin = CAppUtils::IsAdminLogin();
 
 	AddSimpleCredential(SimpleCredentialType::Advanced, CString(MAKEINTRESOURCE(IDS_ADVANCED)));
@@ -868,7 +868,7 @@ void CSettingGitCredential::OnBnClickedButtonRemove()
 void CSettingGitCredential::OnBnClickedOpensettingselevated()
 {
 	CString sCmd;
-	sCmd.Format(L"/command:settings /page:gitcredential /path:\"%s\"", static_cast<LPCWSTR>(g_Git.m_CurrentDir));
+	sCmd.Format(L"/command:settings /page:gitcredential /path:\"%s\"", static_cast<LPCWSTR>(GitCall::m_CurrentDirStorage));
 	CAppUtils::RunTortoiseGitProc(sCmd, true);
 }
 
