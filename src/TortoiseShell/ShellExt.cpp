@@ -175,9 +175,8 @@ UINT __stdcall CShellExt::CopyCallback(HWND /*hWnd*/, UINT wFunc, UINT /*wFlags*
 			case ShellCache::dll:
 			case ShellCache::dllFull:
 			{
-				CString topDir;
-				if (GitAdminDir::HasAdminDir(pszSrcFile, &topDir))
-					m_CachedStatus.m_GitStatus.ReleasePath(topDir);
+				if (const auto topDir = GitAdminDir::HasAdminDir(pszSrcFile); !topDir.empty())
+					m_CachedStatus.m_GitStatus.ReleasePath(CString(topDir.c_str()));
 				break;
 			}
 			default:

@@ -59,8 +59,7 @@ protected:
 		}
 
 		m_bIsBareRepo = GitAdminDir::IsBareRepo(g_Git.m_CurrentDir);
-		;
-		if (fs::path projTopDir = GitAdminDir::HasAdminDir(g_Git.m_CurrentDir); !projTopDir.empty() || m_bIsBareRepo)
+		if (const fs::path projTopDir = GitAdminDir::HasAdminDir(g_Git.m_CurrentDir); !projTopDir.empty() || m_bIsBareRepo)
 		{
 			CString title;
 			page->GetWindowText(title);
@@ -127,14 +126,14 @@ protected:
 		git_config_new(config.put());
 		if (!m_bGlobal && (m_iConfigSource == CFG_SRC_EFFECTIVE || m_iConfigSource == CFG_SRC_LOCAL))
 		{
-			if (git_config_add_file_ondisk(config.get(), TGitH::GetGitLocalConfig().string().c_str(), GIT_CONFIG_LEVEL_APP, repo.get(), FALSE)) // this needs to have the highest priority in order to override .tgitconfig settings
+			if (git_config_add_file_ondisk(config.get(), TGitPath::ToGitPathA(TGitH::GetGitLocalConfig().native()).c_str(), GIT_CONFIG_LEVEL_APP, repo.get(), FALSE)) // this needs to have the highest priority in order to override .tgitconfig settings
 				MessageBox(nullptr, TGitH::GetLibGit2LastErr(), L"TortoiseGit", MB_ICONEXCLAMATION);
 		}
 		if ((m_iConfigSource == CFG_SRC_EFFECTIVE && m_bHonorProjectConfig) || m_iConfigSource == CFG_SRC_PROJECT)
 		{
 			if (!m_bIsBareRepo)
 			{
-				if (git_config_add_file_ondisk(config.get(), g_Git.CombinePath(L".tgitconfig").string().c_str(), GIT_CONFIG_LEVEL_LOCAL, nullptr, FALSE)) // this needs to have the second highest priority
+				if (git_config_add_file_ondisk(config.get(), TGitPath::ToGitPathA(g_Git.CombinePath(L".tgitconfig").native()).c_str(), GIT_CONFIG_LEVEL_LOCAL, nullptr, FALSE)) // this needs to have the second highest priority
 					MessageBox(nullptr, TGitH::GetLibGit2LastErr(), L"TortoiseGit", MB_ICONEXCLAMATION);
 			}
 			else
@@ -150,17 +149,17 @@ protected:
 		}
 		if (m_iConfigSource == CFG_SRC_EFFECTIVE || m_iConfigSource == CFG_SRC_GLOBAL)
 		{
-			if (git_config_add_file_ondisk(config.get(), TGitH::GetGitGlobalConfig().string().c_str(), GIT_CONFIG_LEVEL_GLOBAL, repo.get(), FALSE))
+			if (git_config_add_file_ondisk(config.get(), TGitPath::ToGitPathA(TGitH::GetGitGlobalConfig().native()).c_str(), GIT_CONFIG_LEVEL_GLOBAL, repo.get(), FALSE))
 				MessageBox(nullptr, TGitH::GetLibGit2LastErr(), L"TortoiseGit", MB_ICONEXCLAMATION);
 			else
 			{
-				if (git_config_add_file_ondisk(config.get(), TGitH::GetGitGlobalXDGConfig().string().c_str(), GIT_CONFIG_LEVEL_XDG, repo.get(), FALSE))
+				if (git_config_add_file_ondisk(config.get(), TGitPath::ToGitPathA(TGitH::GetGitGlobalXDGConfig().native()).c_str(), GIT_CONFIG_LEVEL_XDG, repo.get(), FALSE))
 					MessageBox(nullptr, TGitH::GetLibGit2LastErr(), L"TortoiseGit", MB_ICONEXCLAMATION);
 			}
 		}
 		if (m_iConfigSource == CFG_SRC_EFFECTIVE || m_iConfigSource == CFG_SRC_SYSTEM)
 		{
-			if (git_config_add_file_ondisk(config.get(), TGitH::GetGitSystemConfig().string().c_str(), GIT_CONFIG_LEVEL_SYSTEM, repo.get(), FALSE))
+			if (git_config_add_file_ondisk(config.get(), TGitPath::ToGitPathA(TGitH::GetGitSystemConfig().native()).c_str(), GIT_CONFIG_LEVEL_SYSTEM, repo.get(), FALSE))
 				MessageBox(nullptr, TGitH::GetLibGit2LastErr(), L"TortoiseGit", MB_ICONEXCLAMATION);
 		}
 
@@ -191,18 +190,21 @@ protected:
 		if (m_bGlobal || (m_cSaveTo.GetCurSel() == 1 && (!m_bHonorProjectConfig || m_bIsBareRepo)) || m_cSaveTo.GetCurSel() == 2) {
 			if (!WarnUserSafeToDifferentDestination(IDS_CONFIG_GLOBAL))
 				return FALSE;
-			err = git_config_add_file_ondisk(config.get(), TGitH::GetGitGlobalXDGConfig().string().c_str(), GIT_CONFIG_LEVEL_XDG, nullptr, FALSE);
-			if (!err && (!fs::exists(TGitH::GetGitGlobalConfig()) || !fs::exists(TGitH::GetGitGlobalXDGConfig())))
-				err = git_config_add_file_ondisk(config.get(), TGitH::GetGitGlobalConfig().string().c_str(), GIT_CONFIG_LEVEL_GLOBAL, nullptr, FALSE);
+			err = git_config_add_file_ondisk(config.get(), TGitPath::ToGitPathA(TGitH::GetGitGlobalXDGConfig().native()).c_str(), GIT_CONFIG_LEVEL_XDG, nullptr, FALSE);
+			// write to ~/.gitconfig unless only the XDG file exists, as git does
+			std::error_code ec;
+			if (!err && (fs::exists(TGitH::GetGitGlobalConfig(), ec) || !fs::exists(TGitH::GetGitGlobalXDGConfig(), ec)))
+				err = git_config_add_file_ondisk(config.get(), TGitPath::ToGitPathA(TGitH::GetGitGlobalConfig().native()).c_str(), GIT_CONFIG_LEVEL_GLOBAL, nullptr, FALSE);
 		} else if (m_cSaveTo.GetCurSel() == 1 && !m_bIsBareRepo && m_bHonorProjectConfig) {
 			if (!WarnUserSafeToDifferentDestination(IDS_CONFIG_PROJECT))
 				return FALSE;
-			err = git_config_add_file_ondisk(config.get(), g_Git.CombinePath(L".tgitconfig").string().c_str(), GIT_CONFIG_LEVEL_APP, nullptr, FALSE);
+			err = git_config_add_file_ondisk(config.get(), TGitPath::ToGitPathA(g_Git.CombinePath(L".tgitconfig").native()).c_str(), GIT_CONFIG_LEVEL_APP, nullptr, FALSE);
 		} else {
 			if (!WarnUserSafeToDifferentDestination(IDS_CONFIG_LOCAL))
 				return FALSE;
-			err = git_config_add_file_ondisk(config.get(), TGitH::GetGitLocalConfig().string().c_str(), GIT_CONFIG_LEVEL_LOCAL, nullptr, FALSE);
-		} if (err) {
+			err = git_config_add_file_ondisk(config.get(), TGitPath::ToGitPathA(TGitH::GetGitLocalConfig().native()).c_str(), GIT_CONFIG_LEVEL_LOCAL, nullptr, FALSE);
+		}
+		if (err) {
 			MessageBox(nullptr, TGitH::GetLibGit2LastErr(), L"TortoiseGit", MB_ICONEXCLAMATION);
 			return FALSE;
 		}

@@ -45,14 +45,13 @@ int ProjectProperties::ReadProps()
 	wil::unique_git_config gitconfig;
 	git_config_new(gitconfig.put());
 	const wil::unique_git_repository repo(g_Git.GetGitRepository());
-	auto myAdminDirPath = GitAdminDir::GetAdminDirPath(g_Git.m_CurrentDir.wstring());
-	if (myAdminDirPath) {
-		auto adminDirPath = fs::path{myAdminDirPath->path} / L"config";
-		git_config_add_file_ondisk(gitconfig.get(), adminDirPath.string().c_str(), GIT_CONFIG_LEVEL_APP, repo.get(), FALSE); // this needs to have the highest priority in order to override .tgitconfig settings
+	if (const auto adminDir = GitAdminDir::GetAdminDirPath(g_Git.m_CurrentDir.native())) {
+		const auto adminConfig = fs::path{ adminDir->path } / L"config";
+		git_config_add_file_ondisk(gitconfig.get(), TGitPath::ToGitPathA(adminConfig.native()).c_str(), GIT_CONFIG_LEVEL_APP, repo.get(), FALSE); // this needs to have the highest priority in order to override .tgitconfig settings
 	}
 
 	if (!GitAdminDir::IsBareRepo(g_Git.m_CurrentDir))
-		git_config_add_file_ondisk(gitconfig.get(), g_Git.CombinePath(L".tgitconfig").string().c_str(), GIT_CONFIG_LEVEL_LOCAL, nullptr, FALSE); // this needs to have the second highest priority
+		git_config_add_file_ondisk(gitconfig.get(), TGitPath::ToGitPathA(g_Git.CombinePath(L".tgitconfig").native()).c_str(), GIT_CONFIG_LEVEL_LOCAL, nullptr, FALSE); // this needs to have the second highest priority
 	else
 	{
 		CString tmpFile = TempFiles::GetTempFilePath(true).GetWinPathString().c_str();
@@ -61,9 +60,9 @@ int ProjectProperties::ReadProps()
 			git_config_add_file_ondisk(gitconfig.get(), CGit::GetGitPathStringA(tmpFile), GIT_CONFIG_LEVEL_LOCAL, nullptr, FALSE); // this needs to have the second highest priority
 	}
 
-	git_config_add_file_ondisk(gitconfig.get(), TGitH::GetGitGlobalConfig().string().c_str(), GIT_CONFIG_LEVEL_GLOBAL, repo.get(), FALSE);
-	git_config_add_file_ondisk(gitconfig.get(), TGitH::GetGitGlobalXDGConfig().string().c_str(), GIT_CONFIG_LEVEL_XDG, repo.get(), FALSE);
-	git_config_add_file_ondisk(gitconfig.get(), TGitH::GetGitSystemConfig().string().c_str(), GIT_CONFIG_LEVEL_SYSTEM, repo.get(), FALSE);
+	git_config_add_file_ondisk(gitconfig.get(), TGitPath::ToGitPathA(TGitH::GetGitGlobalConfig().native()).c_str(), GIT_CONFIG_LEVEL_GLOBAL, repo.get(), FALSE);
+	git_config_add_file_ondisk(gitconfig.get(), TGitPath::ToGitPathA(TGitH::GetGitGlobalXDGConfig().native()).c_str(), GIT_CONFIG_LEVEL_XDG, repo.get(), FALSE);
+	git_config_add_file_ondisk(gitconfig.get(), TGitPath::ToGitPathA(TGitH::GetGitSystemConfig().native()).c_str(), GIT_CONFIG_LEVEL_SYSTEM, repo.get(), FALSE);
 	tgit::libgit2::git_error_clear();
 
 	CString sPropVal;

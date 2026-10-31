@@ -99,6 +99,17 @@ bool FileExists(const std::wstring_view path) {
 }
 
 
+/// fs::is_directory without the throw: empty (unknown) when the filesystem
+/// cannot say, so a CTGitPath asks again later instead of latching false.
+std::optional<bool> TryIsDirectory(const fs::path& path) {
+	std::error_code ec;
+	const bool isDirectory = fs::is_directory(path, ec);
+	if (ec)
+		return std::nullopt;
+	return isDirectory;
+}
+
+
 bool IsDirectoryPath(const std::wstring_view path) {
 	return !!::PathIsDirectory(path.data());
 }
@@ -623,16 +634,13 @@ bool GetWorktreeAdminDirPath(const TStr& projectTopDir, TStr& adminDir) {
 }
 
 /**
- * Whether \a path is inside a working tree, walking up from it (from its parent,
- * when it is a file). \a projectTopDir receives the working tree's root, and
- * \a isAdminDirPath is set - and only ever set, never cleared - when \a path is
- * itself on or below a .git directory.
+ * The root of the working tree \a path is in, walking up from it (from its
+ * parent, when it is not a directory); empty when it is in none. \a
+ * isAdminDirPath is set - and only ever set, never cleared - when \a path is
+ * itself on or below a .git directory, which is not a working tree either.
  *
- * isDirectory accepts a bool and nothing else. A plain `bool` parameter would
- * also take a pointer, by a standard conversion that outranks every
- * user-defined one, so HasAdminDir(path, &topDir) with a mistyped topDir would
- * compile and read the out-parameter as "this is a directory" - the exact shape
- * of CLAUDE.md's failure mode (3).
+ * To find the working tree *around* a directory that is a root itself (the
+ * superproject of a submodule), pass its parent_path().
  */
 // TODO: std::optional
 fs::path HasAdminDir(
@@ -642,9 +650,11 @@ fs::path HasAdminDir(
 	auto path = fs::path{ path_arg };
 	if (path.empty())
 		return {};
-	// a file is looked up from its directory; the caller says which it is, so
-	// no disk access here (TGitCache asks for paths that no longer exist)
-	if (!fs::is_directory(path)) {
+	// anything but an existing directory - a file, or a path that no longer
+	// exists (TGitCache asks for those) - is looked up from its parent. The
+	// error_code overload: PathIsDirectory never threw, and this runs in Explorer.
+	std::error_code ec;
+	if (!fs::is_directory(path, ec)) {
 		// e.g "C:\" - native(), not string(): that converts through the ACP and can throw
 		if (path.native().size() <= 3)
 			return {};
@@ -655,37 +665,37 @@ fs::path HasAdminDir(
 	if (IsAdminDirPath(path.c_str())) {
 		if (isAdminDirPath)
 			*isAdminDirPath = true;
-		return path;
+		return {};
 	}
 
 	for (;;) {
-		if (fs::exists(path / L".git")) {
+		if (fs::exists(path / L".git", ec)) {
 			/* This code is not necessary in TGitCache as there are further checks for valid repos, however,
 			 * TODO: Optimize for usage in TGitCache
 			 */
 #ifndef TGITCACHE
 			const auto adminDir = GetAdminDirPath(path.c_str());
 			if (!adminDir)
-				return path;
+				return {};
 
 			using TGitPath::detail::FileExists;
 			if (!FileExists(adminDir->path + L"\\HEAD") || !FileExists(adminDir->path + L"\\config"))
-				return path;
+				return {};
 
 			if (!FileExists(adminDir->path + L"\\objects\\") || !FileExists(adminDir->path + L"\\refs\\") || !
 				TGitPath::detail::IsDirectoryPath(adminDir->path + L"\\refs\\heads"))
 				// ".git/refs/heads" is a file when reftable-format is used
-				return path;
+				return {};
 #endif
 
-			return {};
+			return path;
 		}
 #ifndef TGITCACHE
-		// If there is a bare repo inside a regular repo, this needs to return false so that:
+		// If there is a bare repo inside a regular repo, this needs to return empty so that:
 		// - GetAdminDirMask() returns 0 causing the context menu of the outer repo to not be shown
 		// - CShellExt::IsMemberOf shows no overlays inside the bare repo
-		else if (IsBareRepo(path.wstring()))
-			return path;
+		else if (IsBareRepo(path.native()))
+			return {};
 #endif
 		// walk up; a root ("C:\", "\\server\share\") is its own parent_path, so stop there
 		if (!path.has_relative_path())
@@ -693,28 +703,12 @@ fs::path HasAdminDir(
 		path = path.parent_path();
 	}
 
-	return path;
-}
-
-
-/// As above, asking the filesystem whether \a path is a directory.
-bool HasAdminDir(const std::wstring_view path, std::wstring* projectTopDir = nullptr) {
-	return HasAdminDir(path, projectTopDir);
-}
-
-/// The CString out-parameter form TortoiseProc's settings pages use.
-template <tgit::str::IsATLCStringDuck TStr>
-bool HasAdminDir(const std::wstring_view path, const TStr* const projectTopDir) {
-	std::wstring top;
-	const bool has = HasAdminDir(path, projectTopDir ? &top : nullptr);
-	if (projectTopDir)
-		*projectTopDir = top.c_str();
-	return has;
+	return {};
 }
 
 
 bool IsWorkingTreeOrBareRepo(const std::wstring_view path) {
-	return HasAdminDir(path) || IsBareRepo(path);
+	return !HasAdminDir(path).empty() || IsBareRepo(path);
 }
 
 
@@ -856,7 +850,7 @@ public:
 		}
 	}
 	explicit CTGitPath(const fs::path& path)
-	: CTGitPath{path.wstring(), fs::is_directory(path)} {}
+	: CTGitPath{path.native(), detail::TryIsDirectory(path)} {}
 
 	auto operator>(const CTGitPath& b) const {
 		return this->m_sUIPath.compare(b.m_sUIPath);
@@ -978,7 +972,7 @@ public:
 
 
 	void SetFromWin(const fs::path& path) {
-		return SetFromWin(path.wstring(), fs::is_directory(path));
+		return SetFromWin(path.native(), detail::TryIsDirectory(path));
 	}
 
 	static_assert(std::is_convertible_v<std::wstring_view, const fs::path&>);
@@ -2208,7 +2202,12 @@ int CTGitPath::GetAdminDirMask() const {
 
 
 bool CTGitPath::IsRegisteredSubmoduleOfParentProject(std::wstring* parentProjectRoot /* nullptr */) const {
-	const auto topProjectDir = GitAdminDir::HasAdminDir(GetWinPathString());
+	// the working tree *around* this one: start from the parent, or a submodule
+	// root finds its own .git. A root ("C:\") has no parent to be a submodule of.
+	const fs::path fullPath = GetStdPath();
+	if (!fullPath.has_relative_path())
+		return false;
+	const auto topProjectDir = GitAdminDir::HasAdminDir(fullPath.parent_path());
 	if (topProjectDir.empty())
 		return false;
 	if (parentProjectRoot)
@@ -2220,10 +2219,9 @@ bool CTGitPath::IsRegisteredSubmoduleOfParentProject(std::wstring* parentProject
 
 	const wil::unique_git_config config = detail::NewConfig();
 	git_config_add_file_ondisk(config.get(), ToGitPathA(gitmodules).c_str(), GIT_CONFIG_LEVEL_APP, nullptr, FALSE);
-	// clamped, as CString::Mid was: a path shorter than its top dir yields ""
-	const auto fullPath = GetStdPath();
-
-	std::string payload = fs::relative(topProjectDir, fullPath).generic_string();
+	// lexically: fs::relative canonicalizes on disk and can throw. UTF-8 with
+	// forward slashes, as .gitmodules spells it - generic_string() is the ACP.
+	std::string payload = ToGitPathA(fullPath.lexically_relative(topProjectDir).native());
 	// ReSharper disable once CppParameterMayBeConstPtrOrRef
 	constexpr git_config_foreach_cb matches = [](const git_config_entry* entry, void* payload_) -> int  { // NOLINT(*-misplaced-const)
 		const auto& submod_relpath = *static_cast<const std::string*>(payload_);

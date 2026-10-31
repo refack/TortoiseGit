@@ -44,7 +44,9 @@ bool DropCopyCommand::Execute()
 		CRenameDlg renDlg;
 		renDlg.SetInputValidator([&](const int /*nID*/, const CString& input) -> CString
 		{
-			if (fs::exists(sDroppath / input.GetString()))
+			// error_code: this checks whatever the user is typing, and must not throw
+			std::error_code ec;
+			if (fs::exists(sDroppath / input.GetString(), ec))
 				return CString((CFormatMessageWrapper(ERROR_FILE_EXISTS)).c_str());
 
 			return{};

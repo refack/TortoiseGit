@@ -108,8 +108,8 @@ BOOL CTortoiseGitBlameDoc::OnOpenDocument(LPCWSTR lpszPathName, CString Rev)
 		CAppUtils::RunTortoiseGitProc(L" /command:settings");
 		return FALSE;
 	}
-	CString topdir;
-	if (!GitAdminDir::HasAdminDir(m_CurrentFileName, &topdir))
+	const CString topdir = GitAdminDir::HasAdminDir(m_CurrentFileName.GetString()).c_str();
+	if (topdir.IsEmpty())
 	{
 		CString temp;
 		temp.Format(IDS_CANNOTBLAMENOGIT, static_cast<LPCWSTR>(m_CurrentFileName));
