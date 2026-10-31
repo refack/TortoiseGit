@@ -95,7 +95,7 @@ int GetMsysgitVersion(HWND hWnd)
 	CRegDWORD regTime		= CRegDWORD(L"Software\\TortoiseGit\\git_file_time");
 	CRegDWORD regVersion	= CRegDWORD(L"Software\\TortoiseGit\\git_cached_version");
 
-	CString gitpath = TGitH::ms_LastMsysGitDir + L"\\git.exe";
+	const fs::path gitpath = GitCall::ms_LastMsysGitDir / L"git.exe";
 
 	__int64 time=0;
 	if (!TGitH::GetFileModifyTime(gitpath, &time))

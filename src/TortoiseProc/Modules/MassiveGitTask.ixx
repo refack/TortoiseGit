@@ -9,7 +9,22 @@
 export module TortoiseProc.MassiveGitTask;
 import std;
 import TGitPath;
+import TempFile;
 import git_h;
+
+
+/// "git.exe " + \a params as argv. Callers build their parameter string with
+/// CGit::QuoteParameter, the quoting CommandLineToArgvW reads back, so the split
+/// is exact. git.exe goes in front because argv[0] is parsed by other rules, and
+/// an empty line would come back as this process's own path. Empty on failure.
+inline std::vector<std::wstring> GitArgv(const std::wstring_view params) {
+	const std::wstring line = std::format(L"git.exe {}", params);
+	int argc = 0;
+	const std::unique_ptr<LPWSTR, decltype(&::LocalFree)> argv{ ::CommandLineToArgvW(line.c_str(), &argc), &::LocalFree };
+	if (!argv)
+		return {};
+	return { argv.get(), argv.get() + argc };
+}
 
 
 template <typename... T>
@@ -109,27 +124,28 @@ inline bool CMassiveGitTaskBase::ExecuteCommands(const bool cancel) {
 		return true;
 
 	if (m_bIsPath && startsWithOrIsParam(m_sParams, L"add", L"rm", L"reset", L"checkout", L"restore", L"stash")) {
-		CString tempFilename = GetTempFile();
-		if (tempFilename.IsEmpty()) {
+		const std::wstring tempFilename = TempFiles::GetTempFilePath(false).GetWinPathString();
+		if (tempFilename.empty()) {
 			ReportError(L"Error creating temp file", -1);
 			return false;
 		}
-		SCOPE_EXIT{ ::DeleteFile(tempFilename); };
+		SCOPE_EXIT{ ::DeleteFile(tempFilename.c_str()); };
 
-		if (!m_pathList.WriteToPathSpecFile(tempFilename.GetString())) {
+		if (!m_pathList.WriteToPathSpecFile(tempFilename)) {
 			ReportError(L"Error writing to temp file", -1);
 			return false;
 		}
 
-		std::wstring pathSpecFileParam = std::format(L" --pathspec-from-file={} --pathspec-file-nul", CGit::QuoteParameter(tempFilename));
-		const auto endOfParamsPosition = m_sParams.find(L" --end-of-options", 0);
-		const std::wstring params =
-			endOfParamsPosition == std::wstring::npos ?
-			m_sParams + pathSpecFileParam :
-			tgit::wstr::Mid(m_sParams, 0ul, endOfParamsPosition) + pathSpecFileParam + tgit::wstr::Mid(m_sParams, gsl::narrow<int>(endOfParamsPosition));
-		CString cmd, out;
-		cmd.Format(L"git.exe %s", params.c_str());
-		const int exitCode = g_Git.Run(cmd, &out, CP_UTF8);
+		std::vector<std::wstring> argv = GitArgv(m_sParams);
+		if (argv.empty()) {
+			ReportError(L"Error parsing git parameters", -1);
+			return false;
+		}
+		// the pathspec file stands in for the paths, so it goes before any --end-of-options
+		argv.insert(std::ranges::find(argv, L"--end-of-options"),
+			{ std::format(L"--pathspec-from-file={}", tempFilename), L"--pathspec-file-nul" });
+		CString out;
+		const int exitCode = g_Git.Run(argv, &out);
 		if (exitCode && !m_bIgnoreErrors) {
 			ReportError(out, exitCode);
 			return false;
@@ -157,19 +173,19 @@ inline bool CMassiveGitTaskBase::ExecuteCommands(const bool cancel) {
 	int firstCombine = 0;
 	for (int i = 0; i < GetListCount(); ++i) {
 		if (maxLength + GetListItem(i).GetLength() > max_command_line_length || i == GetListCount() - 1 || cancel) {
-			// CString, not `auto add = L""`: that was a const wchar_t*, so += L' ' was
-			// pointer arithmetic and the assignment kept a pointer into a temporary.
-			// No try/catch: QuoteParameter quotes any value now (illegal_git_parameter is gone).
-			CString add;
-			for (int j = firstCombine; j <= i; ++j) {
-				add += L' ';
-				add += CGit::QuoteParameter(GetListItem(j));
+			// argv elements need no quoting: each item is one element, whatever it holds
+			std::vector<std::wstring> argv = GitArgv(m_sParams);
+			if (argv.empty()) {
+				ReportError(L"Error parsing git parameters", -1);
+				return false;
 			}
+			if (m_bIsPath)
+				argv.emplace_back(L"--");
+			for (int j = firstCombine; j <= i; ++j)
+				argv.emplace_back(GetListItem(j).GetString());
 
-			CString cmd, out;
-			auto sep = m_bIsPath ? L"--" : L"";
-			cmd.Format(L"git.exe %s %s%s", m_sParams.c_str(), sep, add);
-			int exitCode = g_Git.Run(cmd, &out, CP_UTF8);
+			CString out;
+			const int exitCode = g_Git.Run(argv, &out);
 			if (exitCode && !m_bIgnoreErrors) {
 				ReportError(out, exitCode);
 				return false;
@@ -217,7 +233,7 @@ inline void CMassiveGitTaskBase::ConvertToCmdList(const std::vector<std::wstring
 		}
 
 		// update last commmand of list
-		cmdList.back().push_back(filename);
+		cmdList.back() << filename;
 		currentLength += 1 + quotes_length + filename.size();
 	}
 }
