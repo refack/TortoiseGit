@@ -373,12 +373,12 @@ void CStatGraphDlg::UpdateWeekCount()
 		return;
 
 	// Determine first and last date in dates array
-	__time64_t min_date = static_cast<__time64_t>(m_parDates.GetAt(0));
+	__time64_t min_date = m_parDates.GetAt(0);
 	__time64_t max_date = min_date;
 	INT_PTR count = m_parDates.GetCount();
 	for (INT_PTR i=0; i<count; ++i)
 	{
-		__time64_t d = static_cast<__time64_t>(m_parDates.GetAt(i));
+		__time64_t d = m_parDates.GetAt(i);
 		if (d < min_date)		min_date = d;
 		else if (d > max_date)	max_date = d;
 	}
@@ -631,7 +631,7 @@ int CStatGraphDlg::GatherData(BOOL fetchdiff, BOOL keepFetchedData)
 
 		if (progress.IsVisible() && (GetTickCount64() - starttime > 100UL))
 		{
-			progress.FormatNonPathLine(2, L"%s: %s", (pLogEntry->m_CommitHash.ToString(g_Git.GetShortHASHLength())).c_str(), static_cast<LPCWSTR>(pLogEntry->GetSubject()));
+			progress.FormatNonPathLine(2, L"%s: %s", (pLogEntry->m_CommitHash.ToString(g_Git.GetShortHASHLength())).c_str(), pLogEntry->GetSubject());
 			progress.SetProgress64(i, m_ShowList.size());
 			starttime = GetTickCount64();
 		}
@@ -662,7 +662,7 @@ int CStatGraphDlg::GatherData(BOOL fetchdiff, BOOL keepFetchedData)
 	m_LinesWOPerUnitAndAuthor.clear();
 
 	int interval = 0;
-	__time64_t d = static_cast<__time64_t>(m_parDates.GetAt(0));
+	__time64_t d = m_parDates.GetAt(0);
 	int nLastUnit = GetUnit(d);
 	double AllContributionAuthor = 0;
 
@@ -672,7 +672,7 @@ int CStatGraphDlg::GatherData(BOOL fetchdiff, BOOL keepFetchedData)
 	for (LONG i=0; i<m_nTotalCommits; ++i)
 	{
 		// Find the interval number
-		__time64_t commitDate = static_cast<__time64_t>(m_parDates.GetAt(i));
+		__time64_t commitDate = m_parDates.GetAt(i);
 		int u = GetUnit(commitDate);
 		if (nLastUnit != u)
 			interval++;
@@ -919,7 +919,7 @@ void CStatGraphDlg::ShowByDate(int stringx, int title, IntervalDataMap &data)
 	if (!others.empty())
 	{
 		sOthers.AppendFormat(L" (%Iu)", others.size());
-		othersName = static_cast<LPCWSTR>(sOthers);
+		othersName = sOthers;
 		authorGraphMap[othersName] = m_graph.AppendGroup(sOthers);
 	}
 
@@ -1070,12 +1070,12 @@ void CStatGraphDlg::ShowStats()
 		nWeeks = 1;
 	// Adjust the labels with the unit type (week, month, ...)
 	CString labelText;
-	labelText.Format(IDS_STATGRAPH_NUMBEROFUNIT, static_cast<LPCWSTR>(GetUnitString()));
+	labelText.Format(IDS_STATGRAPH_NUMBEROFUNIT, GetUnitString());
 	SetDlgItemText(IDC_NUMWEEK, labelText);
-	labelText.Format(IDS_STATGRAPH_COMMITSBYUNIT, static_cast<LPCWSTR>(GetUnitString()));
+	labelText.Format(IDS_STATGRAPH_COMMITSBYUNIT, GetUnitString());
 	SetDlgItemText(IDC_COMMITSEACHWEEK, labelText);
-	labelText.Format(IDS_STATGRAPH_FILECHANGESBYUNIT, static_cast<LPCWSTR>(GetUnitString()));
-	SetDlgItemText(IDC_FILECHANGESEACHWEEK, static_cast<LPCWSTR>(labelText));
+	labelText.Format(IDS_STATGRAPH_FILECHANGESBYUNIT, GetUnitString());
+	SetDlgItemText(IDC_FILECHANGESEACHWEEK, labelText);
 	// We have now all data we want and we can fill in the labels...
 	CString number;
 	number.Format(L"%d", nWeeks);
@@ -1321,7 +1321,7 @@ void CStatGraphDlg::OnNeedText(NMHDR *pnmh, LRESULT * /*pResult*/)
 		CString string;
 		int percentage = int(min_commits*100.0/(m_nTotalCommits ? m_nTotalCommits : 1));
 		string.FormatMessage(IDS_STATGRAPH_AUTHORSLIDER_TT, m_Skipper.GetPos(), min_commits, percentage);
-		StringCchCopy(pttt->szText, _countof(pttt->szText), static_cast<LPCWSTR>(string));
+		StringCchCopy(pttt->szText, _countof(pttt->szText), string);
 	}
 }
 
@@ -1680,7 +1680,7 @@ void CStatGraphDlg::DrawOthers(const std::list<std::wstring>& others, MyGraphSer
 	CString sOthers(MAKEINTRESOURCE(IDS_STATGRAPH_OTHERGROUP));
 	sOthers.AppendFormat(L" (%Iu)", others.size());
 	int group = m_graph.AppendGroup(sOthers);
-	graphData->SetData(group, static_cast<int>(nCommits));
+	graphData->SetData(group, nCommits);
 }
 
 

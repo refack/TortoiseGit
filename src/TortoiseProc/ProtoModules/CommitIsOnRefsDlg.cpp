@@ -287,9 +287,9 @@ void CCommitIsOnRefsDlg::OnContextMenu(CWnd* pWnd, CPoint point)
 			popup.AppendMenuIcon(eCmd_UnifiedDiff, IDS_LOG_POPUP_GNUDIFF, IDI_DIFF);
 			popup.AppendMenu(MF_SEPARATOR, NULL);
 			CString menu;
-			menu.Format(IDS_SHOWLOG_OF, static_cast<LPCWSTR>(GetTwoSelectedRefs(selectedRefs, m_sLastSelected, L"..")));
+			menu.Format(IDS_SHOWLOG_OF, GetTwoSelectedRefs(selectedRefs, m_sLastSelected, L".."));
 			popup.AppendMenuIcon(eCmd_ViewLogRange, menu, IDI_LOG);
-			menu.Format(IDS_SHOWLOG_OF, static_cast<LPCWSTR>(GetTwoSelectedRefs(selectedRefs, m_sLastSelected, L"...")));
+			menu.Format(IDS_SHOWLOG_OF, GetTwoSelectedRefs(selectedRefs, m_sLastSelected, L"..."));
 			popup.AppendMenuIcon(eCmd_ViewLogRangeReachableFromOnlyOne, menu, IDI_LOG);
 			needSep = true;
 		}
@@ -341,14 +341,14 @@ void CCommitIsOnRefsDlg::OnContextMenu(CWnd* pWnd, CPoint point)
 		case eCmd_ViewLogRange:
 		{
 			CString sCmd;
-			sCmd.Format(L"/command:log /path:\"%s\" /range:%s", static_cast<LPCWSTR>(g_Git.m_CurrentDir), static_cast<LPCWSTR>(TCmdLineParser::EscapeValue(GetTwoSelectedRefs(selectedRefs, m_sLastSelected, L".."))));
+			sCmd.Format(L"/command:log /path:\"%s\" /range:%s", g_Git.m_CurrentDir.c_str(), TCmdLineParser::EscapeValue(GetTwoSelectedRefs(selectedRefs, m_sLastSelected, L"..")).c_str());
 			CAppUtils::RunTortoiseGitProc(sCmd);
 		}
 		break;
 		case eCmd_ViewLogRangeReachableFromOnlyOne:
 		{
 			CString sCmd;
-			sCmd.Format(L"/command:log /path:\"%s\" /range:%s", static_cast<LPCWSTR>(g_Git.m_CurrentDir), static_cast<LPCWSTR>(TCmdLineParser::EscapeValue(GetTwoSelectedRefs(selectedRefs, m_sLastSelected, L"..."))));
+			sCmd.Format(L"/command:log /path:\"%s\" /range:%s", g_Git.m_CurrentDir.c_str(), TCmdLineParser::EscapeValue(GetTwoSelectedRefs(selectedRefs, m_sLastSelected, L"...")).c_str());
 			CAppUtils::RunTortoiseGitProc(sCmd);
 		}
 		break;
@@ -360,14 +360,15 @@ void CCommitIsOnRefsDlg::OnContextMenu(CWnd* pWnd, CPoint point)
 			break;
 		case eCmd_DiffWC:
 		{
-			CString sCmd;
-			sCmd = std::format(L"/command:showcompare /path:\"{}\" /revision1:{} /revision2:{}", g_Git.m_CurrentDir, TCmdLineParser::EscapeValue(selectedRefs[0]), GitRev::GetWorkingCopyRef()).c_str();
+			CString sCmd = std::format(L"/command:showcompare /path:\"{}\" /revision1:{} /revision2:{}", g_Git.m_CurrentDir, TCmdLineParser::EscapeValue(selectedRefs[0]), GitRev::GetWorkingCopyRef()).c_str();
 			if (!!(GetAsyncKeyState(VK_SHIFT) & 0x8000))
 				sCmd += L" /alternative";
 
 			CAppUtils::RunTortoiseGitProc(sCmd);
 		}
 		break;
+		default:
+			std::unreachable();
 		}
 	}
 }
@@ -450,7 +451,7 @@ UINT CCommitIsOnRefsDlg::GetRefsThread()
 
 	if (m_Rev.IsEmpty() || m_gitrev.GetCommit(m_Rev))
 	{
-		SendMessage(WM_GETTINGREFSFINISHED);
+		std::ignore = SendMessage(WM_GETTINGREFSFINISHED);
 
 		InterlockedExchange(&m_bThreadRunning, FALSE);
 		return 0;
@@ -462,7 +463,7 @@ UINT CCommitIsOnRefsDlg::GetRefsThread()
 		MessageBox(g_Git.GetGitLastErr(L"Could not get all refs."), L"TortoiseGit", MB_ICONERROR);
 		return 0;
 	}
-	SendMessage(WM_GETTINGREFSFINISHED);
+	std::ignore = SendMessage(WM_GETTINGREFSFINISHED);
 
 	InterlockedExchange(&m_bThreadRunning, FALSE);
 	return 0;
@@ -498,7 +499,7 @@ LRESULT CCommitIsOnRefsDlg::OnGettingRefsFinished(WPARAM, LPARAM)
 	if (!m_gitrev.GetLastErr().IsEmpty())
 	{
 		CString msg;
-		msg.Format(IDS_PROC_REFINVALID, static_cast<LPCWSTR>(m_Rev));
+		msg.Format(IDS_PROC_REFINVALID, m_Rev);
 		m_cRefList.ShowText(msg + L'\n' + m_gitrev.GetLastErr());
 
 		InvalidateRect(nullptr);
@@ -564,6 +565,8 @@ BOOL CCommitIsOnRefsDlg::PreTranslateMessage(MSG* pMsg)
 				return TRUE;
 			}
 			break;
+		default:
+			std::unreachable();
 		}
 	}
 	return __super::PreTranslateMessage(pMsg);

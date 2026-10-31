@@ -19,7 +19,6 @@
 #include "stdafx.h"
 #include "std.h"
 
-#include "TortoiseProc.h"
 #include "ResetProgressCommand.h"
 
 using Git_WC_Notify_Action = CGitProgressList::WC_File_NotificationData::Git_WC_Notify_Action;
@@ -33,7 +32,7 @@ bool ResetProgressCommand::Run(CGitProgressList* list, CString& sWindowTitle, in
 		return false;
 	}
 
-	list->SetWindowTitle(IDS_PROGRS_TITLE_RESET, g_Git.m_CurrentDir, sWindowTitle);
+	list->SetWindowTitle(IDS_PROGRS_TITLE_RESET, g_Git.m_CurrentDir.c_str(), sWindowTitle);
 	list->SetBackgroundImage(IDI_UPDATE_BKG);
 	constexpr int resetTypesResource[] = { IDS_RESET_SOFT, IDS_RESET_MIXED, IDS_RESET_HARD };
 	list->ReportCmd(CString(MAKEINTRESOURCE(IDS_PROGRS_TITLE_RESET)) + L' ' + CString(MAKEINTRESOURCE(resetTypesResource[m_resetType])) + L' ' + m_revision);
@@ -49,24 +48,24 @@ bool ResetProgressCommand::Run(CGitProgressList* list, CString& sWindowTitle, in
 	CGitProgressList::Payload cbpayload = { list, repo.get() };
 	git_checkout_options checkout_options = GIT_CHECKOUT_OPTIONS_INIT;
 
-	CBlockCacheForPath block(g_Git.m_CurrentDir);
+	[[maybe_unused]] CBlockCacheForPath block(g_Git.m_CurrentDir.c_str());
 	wil::unique_git_object target;
 	if (git_revparse_single(target.put(), repo.get(), CUnicodeUtils::GetUTF8<CStringA>(m_revision)))
 		goto error;
 	checkout_options.progress_payload = &cbpayload;
 	checkout_options.progress_cb = [](const char*, size_t completed_steps, size_t total_steps, void* payload)
 	{
-		auto cbpayload = static_cast<CGitProgressList::Payload*>(payload);
+		const auto cbpayload = static_cast<CGitProgressList::Payload*>(payload);
 		cbpayload->list->m_itemCountTotal = static_cast<int>(total_steps);
 		cbpayload->list->m_itemCount = static_cast<int>(completed_steps);
 	};
 	checkout_options.notify_cb = [](git_checkout_notify_t, const char* pPath, const git_diff_file*, const git_diff_file*, const git_diff_file*, void* payload) -> int
 	{
-		auto list = static_cast<CGitProgressList*>(payload);
-		CString path(CUnicodeUtils::GetUnicode<CString>(pPath));
+		const auto list = static_cast<CGitProgressList*>(payload);
+		const CString path(CUnicodeUtils::GetUnicode<CString>(pPath));
 		if (DWORD(CRegDWORD(L"Software\\TortoiseGit\\RevertWithRecycleBin", TRUE)))
 		{
-			if (!CTGitPath(g_Git.CombinePath(path).GetString()).Delete(true, true))
+			if (!CTGitPath(g_Git.CombinePath(path)).Delete(true, true))
 			{
 				list->ReportError(L"Could move \"" + path + L"\" to recycle bin");
 				return GIT_EUSER;

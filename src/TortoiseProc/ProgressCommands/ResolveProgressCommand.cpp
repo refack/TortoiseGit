@@ -42,7 +42,7 @@ bool ResolveProgressCommand::Run(CGitProgressList* list, CString& sWindowTitle, 
 		postCmdList.emplace_back(IDI_COMMIT, IDS_MENUCOMMIT, []
 		{
 			CString sCmd;
-			sCmd.Format(L"/command:commit /path:\"%s\"", static_cast<LPCWSTR>(g_Git.m_CurrentDir));
+			sCmd.Format(L"/command:commit /path:\"%s\"", g_Git.m_CurrentDir);
 			CAppUtils::RunTortoiseGitProc(sCmd);
 		});
 	};

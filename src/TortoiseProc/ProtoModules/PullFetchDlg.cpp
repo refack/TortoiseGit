@@ -124,9 +124,9 @@ BOOL CPullFetchDlg::OnInitDialog()
 
 	m_RemoteReg = CRegString(L"Software\\TortoiseGit\\History\\PullRemote\\" + WorkingDir);
 	CString regkey;
-	regkey.Format(L"Software\\TortoiseGit\\TortoiseProc\\PullFetch\\%s_%d\\rebase", static_cast<LPCWSTR>(WorkingDir), m_IsPull);
+	regkey.Format(L"Software\\TortoiseGit\\TortoiseProc\\PullFetch\\%s_%d\\rebase", WorkingDir, m_IsPull);
 	m_regRebase=CRegDWORD(regkey,false);
-	regkey.Format(L"Software\\TortoiseGit\\TortoiseProc\\PullFetch\\%s_%d\\ffonly", static_cast<LPCWSTR>(WorkingDir), m_IsPull);
+	regkey.Format(L"Software\\TortoiseGit\\TortoiseProc\\PullFetch\\%s_%d\\ffonly", WorkingDir, m_IsPull);
 	m_regFFonly = CRegDWORD(regkey, false);
 	m_bRebase = m_regRebase;
 
@@ -334,7 +334,7 @@ void CPullFetchDlg::OnCbnSelchangeRemote()
 	}
 
 	CString key;
-	key.Format(L"remote.%s.tagopt", static_cast<LPCWSTR>(remote));
+	key.Format(L"remote.%s.tagopt", remote);
 	CString tagopt = g_Git.GetConfigValue(key);
 	if (tagopt == L"--no-tags")
 		tagopt.LoadString(IDS_NONE);
@@ -343,16 +343,16 @@ void CPullFetchDlg::OnCbnSelchangeRemote()
 	else
 		tagopt.LoadString(IDS_FETCH_REACHABLE);
 	CString value;
-	value.Format(L"%s: %s", static_cast<LPCWSTR>(CString(MAKEINTRESOURCE(IDS_DEFAULT))), static_cast<LPCWSTR>(tagopt));
+	value.Format(L"%s: %s", CString(MAKEINTRESOURCE(IDS_DEFAULT)), tagopt);
 	GetDlgItem(IDC_STATIC_TAGOPT)->SetWindowText(value);
 
-	key.Format(L"remote.%s.prune", static_cast<LPCWSTR>(remote));
+	key.Format(L"remote.%s.prune", remote);
 	CString prune = g_Git.GetConfigValue(key);
 	if (prune.IsEmpty())
 		prune = g_Git.GetConfigValue(L"fetch.prune");
 	if (!prune.IsEmpty())
 	{
-		value.Format(L"%s: %s", static_cast<LPCWSTR>(CString(MAKEINTRESOURCE(IDS_DEFAULT))), static_cast<LPCWSTR>(prune));
+		value.Format(L"%s: %s", CString(MAKEINTRESOURCE(IDS_DEFAULT)), prune);
 		GetDlgItem(IDC_STATIC_PRUNE)->SetWindowText(value);
 	}
 	else

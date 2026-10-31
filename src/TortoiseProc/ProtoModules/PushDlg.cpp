@@ -457,7 +457,7 @@ void CPushDlg::OnBnClickedOk()
 				CString configName;
 				if (m_bSetPushBranch)
 				{
-					configName.Format(L"branch.%s.pushbranch", static_cast<LPCWSTR>(m_BranchSourceName));
+					configName.Format(L"branch.%s.pushbranch", m_BranchSourceName);
 					if (!m_BranchRemoteName.IsEmpty())
 						g_Git.SetConfigValue(configName, m_BranchRemoteName);
 					else
@@ -465,7 +465,7 @@ void CPushDlg::OnBnClickedOk()
 				}
 				if (m_bSetPushRemote)
 				{
-					configName.Format(L"branch.%s.pushremote", static_cast<LPCWSTR>(m_BranchSourceName));
+					configName.Format(L"branch.%s.pushremote", m_BranchSourceName);
 					if (!m_URL.IsEmpty())
 						g_Git.SetConfigValue(configName, m_URL);
 					else

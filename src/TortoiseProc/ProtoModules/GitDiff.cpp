@@ -123,7 +123,7 @@ int CGitDiff::DiffNull(HWND hWnd, const CTGitPath* pPath, const CString& rev1, b
 		if (g_Git.GetOneFile(CString((rev1Hash.ToString()).c_str()), *pPath, file1))
 		{
 			CString out;
-			out.FormatMessage(IDS_STATUSLIST_CHECKOUTFILEFAILED, static_cast<LPCWSTR>(pPath->GetGitPathString().c_str()), (rev1Hash.ToString()).c_str(), static_cast<LPCWSTR>(file1));
+			out.FormatMessage(IDS_STATUSLIST_CHECKOUTFILEFAILED, pPath->GetGitPathString().c_str(), (rev1Hash.ToString()).c_str(), file1);
 			CMessageBox::Show(hWnd, g_Git.GetGitLastErr(out, TGitH::GIT_CMD_GETONEFILE), L"TortoiseGit", MB_OK);
 			return -1;
 		}
@@ -199,7 +199,7 @@ int CGitDiff::SubmoduleDiff(HWND hWnd, const CTGitPath* pPath, const CTGitPath* 
 			else if (CMessageBox::Show(hWnd, IDS_SUBMODULE_EMPTYDIFF, IDS_APPNAME, 1, IDI_QUESTION, IDS_MSGBOX_YES, IDS_MSGBOX_NO) == 1)
 			{
 				CString sCmd;
-				sCmd.Format(L"/command:subupdate /bkpath:\"%s\"", static_cast<LPCWSTR>(g_Git.m_CurrentDir));
+				sCmd.Format(L"/command:subupdate /bkpath:\"%s\"", g_Git.m_CurrentDir);
 				CAppUtils::RunTortoiseGitProc(sCmd);
 			}
 			return -1;
@@ -381,7 +381,7 @@ int CGitDiff::Diff(HWND hWnd, const CTGitPath* pPath, const CTGitPath* pPath2, c
 		if (ret && !(!mustExist && ret == GIT_ENOTFOUND))
 		{
 			CString out;
-			out.FormatMessage(IDS_STATUSLIST_CHECKOUTFILEFAILED, static_cast<LPCWSTR>(pPath->GetGitPathString().c_str()), (rev1Hash.ToString()).c_str(), static_cast<LPCWSTR>(file1));
+			out.FormatMessage(IDS_STATUSLIST_CHECKOUTFILEFAILED, pPath->GetGitPathString().c_str(), (rev1Hash.ToString()).c_str(), file1);
 			CMessageBox::Show(hWnd, g_Git.GetGitLastErr(out, TGitH::GIT_CMD_GETONEFILE), L"TortoiseGit", MB_OK);
 			return -1;
 		}
@@ -392,7 +392,7 @@ int CGitDiff::Diff(HWND hWnd, const CTGitPath* pPath, const CTGitPath* pPath2, c
 		if (PathIsRelative(pPath->GetWinPath()))
 		{
 			file1 = g_Git.CombinePath(pPath);
-			title1.Format(IDS_DIFF_WCNAME, static_cast<LPCWSTR>(pPath->GetGitPathString().c_str()));
+			title1.Format(IDS_DIFF_WCNAME, pPath->GetGitPathString().c_str());
 		}
 		else
 		{
@@ -402,7 +402,7 @@ int CGitDiff::Diff(HWND hWnd, const CTGitPath* pPath, const CTGitPath* pPath2, c
 		if (!PathFileExists(file1))
 		{
 			CString sMsg;
-			sMsg.Format(IDS_PROC_DIFFERROR_FILENOTINWORKINGTREE, static_cast<LPCWSTR>(file1));
+			sMsg.Format(IDS_PROC_DIFFERROR_FILENOTINWORKINGTREE, file1);
 			if (MessageBox(hWnd, sMsg, L"TortoiseGit", MB_ICONEXCLAMATION | MB_YESNO) != IDYES)
 				return 1;
 			if (!CAppUtils::FileOpenSave(file1, nullptr, IDS_SELECTFILE, IDS_COMMONFILEFILTER, true))
@@ -425,7 +425,7 @@ int CGitDiff::Diff(HWND hWnd, const CTGitPath* pPath, const CTGitPath* pPath2, c
 		if (ret && !(!mustExist && ret == GIT_ENOTFOUND))
 		{
 			CString out;
-			out.FormatMessage(IDS_STATUSLIST_CHECKOUTFILEFAILED, static_cast<LPCWSTR>(pPath2->GetGitPathString().c_str()), (rev2Hash.ToString()).c_str(), static_cast<LPCWSTR>(file2));
+			out.FormatMessage(IDS_STATUSLIST_CHECKOUTFILEFAILED, pPath2->GetGitPathString().c_str(), (rev2Hash.ToString()).c_str(), file2);
 			CMessageBox::Show(hWnd, g_Git.GetGitLastErr(out, TGitH::GIT_CMD_GETONEFILE), L"TortoiseGit", MB_OK);
 			return -1;
 		}
@@ -436,7 +436,7 @@ int CGitDiff::Diff(HWND hWnd, const CTGitPath* pPath, const CTGitPath* pPath2, c
 		if (PathIsRelative(pPath2->GetWinPath()))
 		{
 			file2 = g_Git.CombinePath(pPath2);
-			title2.Format(IDS_DIFF_WCNAME, static_cast<LPCWSTR>(pPath2->GetGitPathString().c_str()));
+			title2.Format(IDS_DIFF_WCNAME, pPath2->GetGitPathString().c_str());
 		}
 		else
 		{

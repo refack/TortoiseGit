@@ -117,7 +117,7 @@ struct TGitRef {
 // A list of *commands*, each one an argv vector. Named because the distinction
 // was previously invisible: CProgressDlg's list of whole command lines was also
 // spelled as a single argv, one alias away from a single command's arguments.
-using ARGV_VECTOR = std::vector<std::vector<std::wstring>>;
+using ARGV_VECTOR = std::vector<wil::ArgvData>;
 using MAP_HASH_NAME = std::unordered_map<CGitHash, std::vector<std::wstring>>;
 using REF_VECTOR = std::vector<TGitRef>;
 
@@ -831,6 +831,18 @@ public:
 		return GitCall::Run(call);
 	}
 
+	static int Run(const wil::ArgvData& argv, wstr::CString* out = nullptr, wstr::CString* err = nullptr) { // NOLINT(*-non-const-parameter)
+		auto sOut = std::string{};
+		auto sErr = std::string{};
+		CGitCall call{ argv.SerializeArgv(has_weird_paths()), &sOut, &sErr };
+		auto&& ret = GitCall::Run(call);
+		if (out)
+			*out = CUnicodeUtils::GetUnicode<wstr::CString>(sOut);
+		if (err)
+			*err = CUnicodeUtils::GetUnicode<wstr::CString>(sErr);
+		return ret;
+	}
+
 
 	void ForceReInitDll() {
 #ifdef TGITCACHE
@@ -1167,8 +1179,6 @@ public:
 
 
 	int GetSubmoduleHash(const CStringW& pathOfSubmodule, const CGitHash& revision, CGitHash& submoduleRevision, CStringW& err);
-
-	static void StringAppend(CStringW& str, std::string_view, int code = CP_UTF8);
 
 	int IsUnbornBranch(const CStringW& ref);
 	/**
@@ -1919,21 +1929,6 @@ using details::GetShortName;
 using details::FindGitForWindows;
 using details::GetMapHashToFriendName;
 
-
-
-//Must use sperate function to convert ANSI str to union code string
-//Because A2W use stack as internal convert buffer.
-void CGit::StringAppend(CStringW& str, const std::string_view append, const int code) {
-	if (append.empty())
-		return;
-	const int currentContentLen = str.GetLength();
-	if (2 * append.length() >= gsl::narrow<size_t>(INT_MAX - currentContentLen))
-		throw std::overflow_error("CStringW would become too long");
-	const int len = static_cast<int>(append.length()); // len is guaranteed to fit into an int, as checked above
-	auto* buf = str.GetBuffer(len * 2 + currentContentLen) + currentContentLen; // maximum buffer size is less than INT_MAX as checked above
-	const int appendedLen = MultiByteToWideChar(code, 0, append.data(), len, buf, len * 2);
-	str.ReleaseBuffer(currentContentLen + appendedLen); // no - 1 because MultiByteToWideChar is called with a fixed length (thus no nul char included)
-}
 
 
 // Checkes whether ref is an unborn branch

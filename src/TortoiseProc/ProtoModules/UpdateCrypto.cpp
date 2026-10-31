@@ -569,7 +569,7 @@ static int LoadSignature(const CString &signatureFilename, signature_packet_t *p
 		return -1;
 
 	// is unpacking needed?
-	if (static_cast<uint8_t>(buffer[0]) < 0x80)
+	if (buffer[0] < 0x80)
 	{
 		auto unpacked = std::make_unique<unsigned char[]>(size);
 		size = pgp_unarmor(reinterpret_cast<const char*>(buffer.get()), length, unpacked.get(), length);
@@ -589,11 +589,11 @@ static int LoadSignature(const CString &signatureFilename, signature_packet_t *p
 	if ((i_header_len != 1 && i_header_len != 2 && i_header_len != 4) || i_header_len + 1 > static_cast<DWORD>(size))
 		return -1;
 
-	DWORD i_len = scalar_number(static_cast<uint8_t*>(buffer.get() + 1), i_header_len);
+	DWORD i_len = scalar_number(buffer.get() + 1, i_header_len);
 	if (i_len + i_header_len + 1 != static_cast<DWORD>(size))
 		return -1;
 
-	if (parse_signature_packet(p_sig, static_cast<uint8_t*>(buffer.get() + 1 + i_header_len), i_len))
+	if (parse_signature_packet(p_sig, buffer.get() + 1 + i_header_len, i_len))
 		return -1;
 
 	if (p_sig->type != BINARY_SIGNATURE && p_sig->type != TEXT_SIGNATURE)

@@ -266,7 +266,7 @@ std::vector<CHARRANGE> ProjectProperties::FindBugIDPositions(const CString& msg)
 			{
 				AutoUpdateRegex();
 				const std::wsregex_iterator end;
-				std::wstring s { static_cast<LPCWSTR>(msg) };
+				std::wstring s { msg };
 				for (std::wsregex_iterator it(s.cbegin(), s.cend(), regCheck); it != end; ++it)
 				{
 					// (*it)[0] is the matched string
@@ -289,7 +289,7 @@ std::vector<CHARRANGE> ProjectProperties::FindBugIDPositions(const CString& msg)
 			{
 				AutoUpdateRegex();
 				const std::wsregex_iterator end;
-				std::wstring s { static_cast<LPCWSTR>(msg) };
+				std::wstring s { msg };
 				for (std::wsregex_iterator it(s.cbegin(), s.cend(), regCheck); it != end; ++it)
 				{
 					const std::wsmatch match = *it;

@@ -43,8 +43,8 @@ COMError::COMError(HRESULT hr)
 		if (ptrIErrorInfo)
 		{
 			// IErrorInfo Interface located
-			description = static_cast<WCHAR*>(e.Description());
-			source = static_cast<WCHAR*>(e.Source());
+			description = e.Description();
+			source = e.Source();
 			GUID tmpGuid = e.GUID();
 			RPC_WSTR guidStr = nullptr;
 			// must link in Rpcrt4.lib for UuidToString

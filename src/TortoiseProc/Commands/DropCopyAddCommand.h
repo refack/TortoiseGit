@@ -32,7 +32,7 @@ public:
 	bool			Execute() override;
 
 private:
-	void ShowErrorMessage();
+	void ShowErrorMessage() const;
 };
 
 

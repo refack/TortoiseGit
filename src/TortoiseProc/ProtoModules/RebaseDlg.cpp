@@ -497,7 +497,7 @@ void CRebaseDlg::LoadBranchInfo()
 		g_Git.GetRemoteTrackedBranchForHEAD(pullRemote, pullBranch);
 
 		CString defaultUpstream;
-		defaultUpstream.Format(L"remotes/%s/%s", static_cast<LPCWSTR>(pullRemote), static_cast<LPCWSTR>(pullBranch));
+		defaultUpstream.Format(L"remotes/%s/%s", pullRemote, pullBranch);
 		const int found = m_UpstreamCtrl.FindStringExact(0, defaultUpstream);
 		if(found >= 0)
 			m_UpstreamCtrl.SetCurSel(found);
@@ -554,7 +554,7 @@ void CRebaseDlg::FetchLogList()
 	{
 		m_CommitList.Clear();
 		CString text;
-		text.FormatMessage(IDS_REBASE_EQUAL_FMT, static_cast<LPCWSTR>(m_BranchCtrl.GetString()), static_cast<LPCWSTR>(this->m_UpstreamCtrl.GetString()));
+		text.FormatMessage(IDS_REBASE_EQUAL_FMT, m_BranchCtrl.GetString(), this->m_UpstreamCtrl.GetString());
 
 		m_CommitList.ShowText(text);
 		this->GetDlgItem(IDC_REBASE_CONTINUE)->EnableWindow(false);
@@ -569,8 +569,8 @@ void CRebaseDlg::FetchLogList()
 
 		m_CommitList.Clear();
 		CString text;
-		text.FormatMessage(IDS_REBASE_FASTFORWARD_FMT, static_cast<LPCWSTR>(m_BranchCtrl.GetString()), static_cast<LPCWSTR>(this->m_UpstreamCtrl.GetString()),
-						static_cast<LPCWSTR>(m_BranchCtrl.GetString()), static_cast<LPCWSTR>(this->m_UpstreamCtrl.GetString()));
+		text.FormatMessage(IDS_REBASE_FASTFORWARD_FMT, m_BranchCtrl.GetString(), this->m_UpstreamCtrl.GetString(),
+						m_BranchCtrl.GetString(), this->m_UpstreamCtrl.GetString());
 
 		m_CommitList.ShowText(text);
 		this->GetDlgItem(IDC_REBASE_CONTINUE)->EnableWindow(true);
@@ -585,7 +585,7 @@ void CRebaseDlg::FetchLogList()
 		{
 			m_CommitList.Clear();
 			CString text;
-			text.Format(IDS_REBASE_UPTODATE_FMT, static_cast<LPCWSTR>(m_BranchCtrl.GetString()));
+			text.Format(IDS_REBASE_UPTODATE_FMT, m_BranchCtrl.GetString());
 			m_CommitList.ShowText(text);
 			this->GetDlgItem(IDC_REBASE_CONTINUE)->EnableWindow(FALSE);
 			SetContinueButtonText();
@@ -599,7 +599,7 @@ void CRebaseDlg::FetchLogList()
 	CString refFrom = g_Git.FixBranchName(m_UpstreamCtrl.GetString());
 	CString refTo   = g_Git.FixBranchName(m_BranchCtrl.GetString());
 	CString range;
-	range.Format(L"%s..%s", static_cast<LPCWSTR>(refFrom), static_cast<LPCWSTR>(refTo));
+	range.Format(L"%s..%s", refFrom, refTo);
 	this->m_CommitList.FillGitLog(nullptr, &range, (m_bPreserveMerges ? 0 : TGitH::LOG_INFO_NO_MERGE) | TGitH::LOG_ORDER_TOPOORDER);
 
 	if( m_CommitList.GetItemCount() == 0 )
@@ -768,16 +768,16 @@ void CRebaseDlg::AddBranchToolTips(CHistoryCombo& pBranch)
 
 	CString tooltip;
 	tooltip.Format(L"%s: %s\n%s: %s <%s>\n%s: %s\n%s:\n%s\n%s",
-					static_cast<LPCWSTR>(CString(MAKEINTRESOURCE(IDS_LOG_REVISION))),
+					CString(MAKEINTRESOURCE(IDS_LOG_REVISION)),
 					(rev.m_CommitHash.ToString()).c_str(),
-					static_cast<LPCWSTR>(CString(MAKEINTRESOURCE(IDS_LOG_AUTHOR))),
-					static_cast<LPCWSTR>(rev.GetAuthorName()),
-					static_cast<LPCWSTR>(rev.GetAuthorEmail()),
-					static_cast<LPCWSTR>(CString(MAKEINTRESOURCE(IDS_LOG_DATE))),
-					static_cast<LPCWSTR>(CLoglistUtils::FormatDateAndTime(rev.GetAuthorDate(), DATE_LONGDATE)),
-					static_cast<LPCWSTR>(CString(MAKEINTRESOURCE(IDS_LOG_MESSAGE))),
-					static_cast<LPCWSTR>(rev.GetSubject()),
-					static_cast<LPCWSTR>(rev.GetBody()));
+					CString(MAKEINTRESOURCE(IDS_LOG_AUTHOR)),
+					rev.GetAuthorName(),
+					rev.GetAuthorEmail(),
+					CString(MAKEINTRESOURCE(IDS_LOG_DATE)),
+					CLoglistUtils::FormatDateAndTime(rev.GetAuthorDate(), DATE_LONGDATE),
+					CString(MAKEINTRESOURCE(IDS_LOG_MESSAGE)),
+					rev.GetSubject(),
+					rev.GetBody());
 
 	if (tooltip.GetLength() > 8000)
 	{
@@ -966,7 +966,7 @@ int CRebaseDlg::CheckRebaseCondition()
 			if (exitcode)
 			{
 				CString sErrorMsg;
-				sErrorMsg.Format(IDS_HOOK_ERRORMSG, static_cast<LPCWSTR>(error));
+				sErrorMsg.Format(IDS_HOOK_ERRORMSG, error);
 				CTaskDialog taskdlg(sErrorMsg, CString(MAKEINTRESOURCE(IDS_HOOKFAILED_TASK2)), L"TortoiseGit", 0, TDF_ENABLE_HYPERLINKS | TDF_USE_COMMAND_LINKS | TDF_ALLOW_DIALOG_CANCELLATION | TDF_POSITION_RELATIVE_TO_WINDOW | TDF_SIZE_TO_CONTENT);
 				taskdlg.AddCommandControl(101, CString(MAKEINTRESOURCE(IDS_HOOKFAILED_TASK3)));
 				taskdlg.AddCommandControl(102, CString(MAKEINTRESOURCE(IDS_HOOKFAILED_TASK4)));
@@ -1071,9 +1071,9 @@ int CRebaseDlg::StartRebase()
 
 	CString log;
 	if( !this->m_IsCherryPick )
-		log.Format(L"%s\r\n", static_cast<LPCWSTR>(CString(MAKEINTRESOURCE(IDS_PROC_REBASE_STARTREBASE))));
+		log.Format(L"%s\r\n", CString(MAKEINTRESOURCE(IDS_PROC_REBASE_STARTREBASE)));
 	else
-		log.Format(L"%s\r\n", static_cast<LPCWSTR>(CString(MAKEINTRESOURCE(IDS_PROC_REBASE_STARTCHERRYPICK))));
+		log.Format(L"%s\r\n", CString(MAKEINTRESOURCE(IDS_PROC_REBASE_STARTCHERRYPICK)));
 
 	this->AddLogString(log);
 	return 0;
@@ -1197,7 +1197,7 @@ void CRebaseDlg::RewriteNotes()
 	}
 	pipefile.Replace(L'\\', L'/');
 	CString pipecmd;
-	pipecmd.Format(L"git notes copy --for-rewrite=rebase < %s", static_cast<LPCWSTR>(tmpfile));
+	pipecmd.Format(L"git notes copy --for-rewrite=rebase < %s", tmpfile);
 	if (!StringUtils::WriteStringToTextFile(pipefile, pipecmd))
 		return;
 	SCOPE_EXIT{ ::DeleteFile(pipefile); };
@@ -1267,7 +1267,7 @@ void CRebaseDlg::OnBnClickedContinue()
 
 		const std::vector<std::wstring> reset{ L"git.exe", L"reset", L"--hard", L"--end-of-options", std::wstring(g_Git.FixBranchName(m_UpstreamCtrl.GetString())), L"--" };
 		CString log;
-		log.Format(IDS_PROC_REBASE_FFTO, static_cast<LPCWSTR>(m_UpstreamCtrl.GetString()));
+		log.Format(IDS_PROC_REBASE_FFTO, m_UpstreamCtrl.GetString());
 		this->AddLogString(log);
 
 		AddLogString(CGit::SerializeArgvStdWString(reset));
@@ -1991,7 +1991,7 @@ static CString GetCommitTitle(const CGitHash& parentHash)
 			commitTitle.Truncate(20);
 			commitTitle += L"...";
 		}
-		str.AppendFormat(L"\n%s (%s)", static_cast<LPCWSTR>(StringUtils::EscapeAccellerators(commitTitle)), (parentHash.ToString(g_Git.GetShortHASHLength())).c_str());
+		str.AppendFormat(L"\n%s (%s)", StringUtils::EscapeAccellerators(commitTitle), (parentHash.ToString(g_Git.GetShortHASHLength())).c_str());
 	}
 	else
 		str.AppendFormat(L"\n(%s)", (parentHash.ToString(g_Git.GetShortHASHLength())).c_str());
@@ -2053,7 +2053,7 @@ int CRebaseDlg::DoRebase()
 	}
 
 	CString log;
-	log.Format(L"%s %d: %s", static_cast<LPCWSTR>(CGitLogListBase::GetRebaseActionName(mode)), GetCurrentCommitID(), (pRev->m_CommitHash.ToString()).c_str());
+	log.Format(L"%s %d: %s", CGitLogListBase::GetRebaseActionName(mode), GetCurrentCommitID(), (pRev->m_CommitHash.ToString()).c_str());
 	AddLogString(log);
 	AddLogString(pRev->GetSubject());
 	if (pRev->GetSubject().IsEmpty())
@@ -2083,7 +2083,7 @@ int CRebaseDlg::DoRebase()
 	if (m_IsCherryPick && pRev->m_ParentHash.size() > 1)
 	{
 		CString msg;
-		msg.FormatMessage(IDS_CHERRYPICK_MERGECOMMIT, (pRev->m_CommitHash.ToString()).c_str(), static_cast<LPCWSTR>(pRev->GetSubject()));
+		msg.FormatMessage(IDS_CHERRYPICK_MERGECOMMIT, (pRev->m_CommitHash.ToString()).c_str(), pRev->GetSubject());
 		CString parent1;
 		parent1.Format(IDS_PARENT, 1);
 		parent1 += GetCommitTitle(pRev->m_ParentHash.at(0));

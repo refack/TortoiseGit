@@ -90,7 +90,7 @@ public:
 
 	static bool WincredExists()
 	{
-		CString path = TGitH::ms_MsysGitRootDir;
+		CString path = GitCall::ms_MsysGitRootDir.c_str();
 		path.Append(L"libexec\\git-core\\git-credential-wincred.exe");
 		return !!PathFileExists(path);
 	}
@@ -102,7 +102,7 @@ public:
 
 	static bool GCMExists()
 	{
-		CString path = TGitH::ms_MsysGitRootDir;
+		CString path = GitCall::ms_MsysGitRootDir.c_str();
 		path.Append(L"libexec\\git-core\\git-credential-manager.exe");
 		if (!PathFileExists(path))
 			return false;
@@ -113,7 +113,7 @@ public:
 
 	static bool GCMCoreExists()
 	{
-		CString path = TGitH::ms_MsysGitRootDir;
+		CString path = GitCall::ms_MsysGitRootDir.c_str();
 		path.Append(L"libexec\\git-core\\git-credential-manager-core.exe");
 		return !!PathFileExists(path);
 	}

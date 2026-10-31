@@ -304,7 +304,7 @@ int CLogCache::LoadOneItem(GitRevLoglist& Rev, ULONGLONG ullOffset) const
 	if (ullOffset >= m_DataFileLength || ullOffset < sizeof(SLogCacheDataFileHeader))
 		return -2;
 
-	auto offset = static_cast<size_t>(ullOffset);
+	auto offset = ullOffset;
 	SLogCacheRevItemHeader* header = reinterpret_cast<SLogCacheRevItemHeader*>(m_pCacheData + offset);
 	if (SizeTAdd(offset, sizeof(SLogCacheRevItemHeader), &offset) != S_OK || offset > m_DataFileLength)
 		return -2;

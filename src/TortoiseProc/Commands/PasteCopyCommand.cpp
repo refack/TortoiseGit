@@ -28,8 +28,8 @@ import MessageBox;
 
 bool PasteCopyCommand::Execute()
 {
-	CString sDroppath = parser.GetVal(L"droptarget");
-	CTGitPath dropPath(sDroppath.GetString());
+	const CString sDroppath = parser.GetValPtr(L"droptarget");
+	const CTGitPath dropPath(sDroppath.GetString());
 	if (dropPath.IsAdminDir())
 		return FALSE;
 
@@ -41,12 +41,12 @@ bool PasteCopyCommand::Execute()
 	//SVN svn;
 	//SVNStatus status;
 	unsigned long count = 0;
-	CString sNewName;
+	const CString sNewName;
 	orgPathList.RemoveAdminPaths();
 	CSysProgressDlg progress;
 	progress.SetTitle(IDS_PROC_COPYING);
 	progress.SetTime(true);
-	progress.ShowModeless(CWnd::FromHandle(GetExplorerHWND()));
+	std::ignore = progress.ShowModeless(CWnd::FromHandle(GetExplorerHWND()));
 	for (int nPath = 0; nPath < orgPathList.GetCount(); ++nPath)
 	{
 		const CTGitPath& sourcePath = orgPathList[nPath];
@@ -63,7 +63,7 @@ bool PasteCopyCommand::Execute()
 			// Offer a rename
 			progress.Stop();
 			CRenameDlg dlg;
-			dlg.m_windowtitle.Format(IDS_PROC_NEWNAMECOPY, static_cast<LPCWSTR>(sourcePath.GetUIFileOrDirectoryName().c_str()));
+			dlg.m_windowtitle.Format(IDS_PROC_NEWNAMECOPY, sourcePath.GetUIFileOrDirectoryName().c_str());
 			if (dlg.DoModal() != IDOK)
 				return FALSE;
 			// rebuild the progress dialog
@@ -71,7 +71,7 @@ bool PasteCopyCommand::Execute()
 			progress.SetTitle(IDS_PROC_COPYING);
 			progress.SetTime(true);
 			progress.SetProgress(count, orgPathList.GetCount());
-			progress.ShowModeless(CWnd::FromHandle(GetExplorerHWND()));
+			std::ignore = progress.ShowModeless(CWnd::FromHandle(GetExplorerHWND()));
 			// Rebuild the destination path, with the new name
 			fullDropPath.SetFromUnknown(sDroppath.GetString());
 			fullDropPath.AppendPathString(dlg.m_name.GetString());
@@ -85,9 +85,9 @@ bool PasteCopyCommand::Execute()
 			// GetGitPathString(), not GetWinPathString(): non-relaxed
 			// QuoteParameter used to convert the backslashes here.
 			CString output;
-			if (g_Git.Run({ L"git.exe", L"add", L"--", fullDropPath.GetGitPathString() }, &output)))
+			if (g_Git.Run({ L"git.exe", L"add", L"--", fullDropPath.GetGitPathString() }, &output))
 			{
-				TRACE(L"%s\n", static_cast<LPCWSTR>(output));
+				TRACE(L"%s\n", output);
 				CMessageBox::Show(GetExplorerHWND(), output, L"TortoiseGit", MB_ICONERROR);
 				return FALSE;		//get out of here
 			}

@@ -27,8 +27,8 @@
 bool FormatPatchCommand::Execute()
 {
 	CFormatPatchDlg dlg;
-	CString startval = parser.GetVal(L"startrev");
-	CString endval = parser.GetVal(L"endrev");
+	const CString startval = parser.GetValPtr(L"startrev");
+	const CString endval = parser.GetValPtr(L"endrev");
 
 	if( endval.IsEmpty() && (!startval.IsEmpty()))
 	{
@@ -62,6 +62,8 @@ bool FormatPatchCommand::Execute()
 		case IDC_RADIO_RANGE:
 			cmd.insert(cmd.cend(), { L"--end-of-options", std::format(L"{}..{}", dlg.m_From, dlg.m_To) });
 			break;
+		default:
+			std::unreachable();
 		}
 		cmd.emplace_back(L"--");
 

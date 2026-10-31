@@ -157,7 +157,7 @@ protected:
 			if (!set)
 				return CString();
 			CString temp;
-			temp.Format(L"%s <%s>", static_cast<LPCWSTR>(name), static_cast<LPCWSTR>(email));
+			temp.Format(L"%s <%s>", name, email);
 			return temp;
 		}
 

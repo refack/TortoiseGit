@@ -26,15 +26,15 @@ import AppUtils.Launch;
 
 bool RebaseCommand::Execute()
 {
-	CString upstream = parser.GetVal(L"upstream");
-	while(1)
+	CString upstream = parser.GetValPtr(L"upstream");
+	while(true)
 	{
 		CRebaseDlg dlg;
 		dlg.m_Upstream = upstream;
 		dlg.m_bForce = parser.HasKey(L"force");
 		dlg.m_PostButtonTexts.Add(CString(MAKEINTRESOURCE(IDS_MENULOG)));
 		dlg.m_PostButtonTexts.Add(CString(MAKEINTRESOURCE(IDS_PROC_RESTARTREBASE)));
-		INT_PTR ret = dlg.DoModal();
+		const INT_PTR ret = dlg.DoModal();
 		upstream.Empty();
 		if (ret == IDOK)
 			return true;

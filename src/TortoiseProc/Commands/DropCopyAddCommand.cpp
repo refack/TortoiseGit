@@ -41,7 +41,7 @@ bool DropCopyAddCommand::Execute()
 	if (!hasAdminDir)
 		return FALSE;
 
-	const int worktreePathLen = g_Git.m_CurrentDir.GetLength();
+	const int worktreePathLen = win32_cast(g_Git.m_CurrentDir.wstring().size());
 	orgPathList.RemoveAdminPaths();
 	CTGitPathList copiedFiles;
 	for(int nPath = 0; nPath < orgPathList.GetCount(); ++nPath)
@@ -92,7 +92,7 @@ bool DropCopyAddCommand::Execute()
 				StringUtils::PipesToNulls(fromBuf.get(), fromPath.GetLength());
 				StringUtils::PipesToNulls(toBuf.get(), toPath.length());
 
-				SHFILEOPSTRUCT fileop = {0};
+				SHFILEOPSTRUCT fileop = {};
 				fileop.wFunc = FO_COPY;
 				fileop.pFrom = fromBuf.get();
 				fileop.pTo = toBuf.get();
@@ -119,9 +119,9 @@ bool DropCopyAddCommand::Execute()
 							lastRepo = filepath.Left(filepath.GetLength() - static_cast<int>(wcslen(L".git")));
 							CString msg;
 							if (!file->IsDirectory())
-								msg.Format(IDS_PROC_COPY_SUBMODULE, static_cast<LPCWSTR>(lastRepo));
+								msg.Format(IDS_PROC_COPY_SUBMODULE, lastRepo);
 							else
-								msg.Format(IDS_PROC_COPY_REPOSITORY, static_cast<LPCWSTR>(lastRepo));
+								msg.Format(IDS_PROC_COPY_REPOSITORY, lastRepo);
 							const auto ret = CMessageBox::Show(GetExplorerHWND(), msg, IDS_APPNAME, 1, IDI_QUESTION, IDS_DELETEBUTTON, IDS_IGNOREBUTTON, IDS_ABORTBUTTON);
 							if (ret == 3)
 								return FALSE;
@@ -160,9 +160,8 @@ bool DropCopyAddCommand::Execute()
 	return bRet;
 }
 
-void DropCopyAddCommand::ShowErrorMessage()
-{
-	CFormatMessageWrapper errorDetails;
+void DropCopyAddCommand::ShowErrorMessage() const {
+	const CFormatMessageWrapper errorDetails;
 	CString strMessage;
 	strMessage.Format(IDS_ERR_COPYFILES, (errorDetails).c_str());
 	MessageBox(GetExplorerHWND(), strMessage, L"TortoiseGit", MB_OK | MB_ICONINFORMATION);

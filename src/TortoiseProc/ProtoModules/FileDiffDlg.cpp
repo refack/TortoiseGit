@@ -282,7 +282,7 @@ int CFileDiffDlg::FillRevFromString(GitRev* rev, const CString& str)
 	if (gitrev.GetCommit(str, true))
 	{
 		CString msg;
-		msg.Format(IDS_PROC_REFINVALID, static_cast<LPCWSTR>(str));
+		msg.Format(IDS_PROC_REFINVALID, str);
 		m_cFileList.ShowText(msg + L'\n' + gitrev.GetLastErr());
 		m_cFileList.DeleteAllItems();
 		return -1;
@@ -372,7 +372,7 @@ static CString GetFilename(const CTGitPath* entry)
 		CString entryname = entry->GetGitPathString().c_str();
 		entryname += L' ';
 		// relative path
-		entryname.AppendFormat(from, static_cast<LPCWSTR>(entry->GetGitOldPathString().c_str()));
+		entryname.AppendFormat(from, entry->GetGitOldPathString().c_str());
 		return entryname;
 	}
 
@@ -542,7 +542,7 @@ static CString GetCommitTitle(const GitRev& rev)
 		commitTitle.Truncate(20);
 		commitTitle += L"...";
 	}
-	str.AppendFormat(L"%s (%s)", (rev.m_CommitHash.ToString(g_Git.GetShortHASHLength())).c_str(), static_cast<LPCWSTR>(StringUtils::EscapeAccellerators(commitTitle)));
+	str.AppendFormat(L"%s (%s)", (rev.m_CommitHash.ToString(g_Git.GetShortHASHLength())).c_str(), StringUtils::EscapeAccellerators(commitTitle));
 	return str;
 }
 
@@ -578,12 +578,12 @@ void CFileDiffDlg::OnContextMenu(CWnd* pWnd, CPoint point)
 		{
 			if (!m_rev1.m_CommitHash.IsEmpty() && (m_rev2.m_CommitHash.IsEmpty() || (!m_rev2.m_CommitHash.IsEmpty())))
 			{
-				menuText.Format(IDS_FILEDIFF_POPREVERTTOREV, static_cast<LPCWSTR>(GetCommitTitle(m_rev1)));
+				menuText.Format(IDS_FILEDIFF_POPREVERTTOREV, GetCommitTitle(m_rev1));
 				popup.AppendMenuIcon(ID_REVERT1, menuText, IDI_REVERT);
 			}
 			if (!m_rev2.m_CommitHash.IsEmpty() && (m_rev1.m_CommitHash.IsEmpty() || (!m_rev1.m_CommitHash.IsEmpty() && !(m_arFilteredList[firstEntry]->m_Action & CTGitPath::LOGACTIONS_DELETED))))
 			{
-				menuText.Format(IDS_FILEDIFF_POPREVERTTOREV, static_cast<LPCWSTR>(GetCommitTitle(m_rev2)));
+				menuText.Format(IDS_FILEDIFF_POPREVERTTOREV, GetCommitTitle(m_rev2));
 				popup.AppendMenuIcon(ID_REVERT2, menuText, IDI_REVERT);
 			}
 			popup.AppendMenu(MF_SEPARATOR, NULL);
@@ -770,7 +770,7 @@ void CFileDiffDlg::OnContextMenu(CWnd* pWnd, CPoint point)
 							if (g_Git.GetOneFile(CString((m_rev2.m_CommitHash.ToString()).c_str()), *fd, filename))
 							{
 								CString out;
-								out.FormatMessage(IDS_STATUSLIST_CHECKOUTFILEFAILED, static_cast<LPCWSTR>(fd->GetGitPathString().c_str()), (m_rev2.m_CommitHash.ToString()).c_str(), static_cast<LPCWSTR>(filename));
+								out.FormatMessage(IDS_STATUSLIST_CHECKOUTFILEFAILED, fd->GetGitPathString().c_str(), (m_rev2.m_CommitHash.ToString()).c_str(), filename);
 								if (CMessageBox::Show(GetSafeHwnd(), g_Git.GetGitLastErr(out, TGitH::GIT_CMD_GETONEFILE), IDS_APPNAME, 2, IDI_WARNING, IDS_IGNOREBUTTON, IDS_ABORTBUTTON) == 2)
 									return;
 							}
@@ -911,7 +911,7 @@ BOOL CFileDiffDlg::PreTranslateMessage(MSG* pMsg)
 				{
 					// Return pressed in file list. Show diff, as for double click
 					const int selIndex = m_cFileList.GetSelectionMark();
-					if (selIndex >= 0 && selIndex < static_cast<int>(m_arFileList.GetCount()))
+					if (selIndex >= 0 && selIndex < m_arFileList.GetCount())
 						DoDiff(selIndex, m_bBlame);
 					return TRUE;
 				}
@@ -1415,7 +1415,7 @@ void CFileDiffDlg::OnBnClickedCommit()
 		return;
 
 	CString cmd;
-	cmd.Format(L"/command:commit /path:\"%s\"", static_cast<LPCWSTR>(g_Git.GetCurrentDir()));
+	cmd.Format(L"/command:commit /path:\"%s\"", g_Git.GetCurrentDir());
 	CAppUtils::RunTortoiseGitProc(cmd);
 }
 

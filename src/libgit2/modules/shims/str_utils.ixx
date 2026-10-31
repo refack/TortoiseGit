@@ -1062,6 +1062,27 @@ using generate_random_string = str::generate_random_string_t<char>;
 using generate_random_wstring = str::generate_random_string_t<wchar_t>;
 
 
+template <typename char_type, typename... Args>
+std::basic_string<char_type> printf_to_string(const std::basic_string_view<char_type> fmt, Args... args) {
+	const int n = [&] {
+		if constexpr (std::is_same_v<char_type, char>)
+			return _vscprintf(fmt.data(), args...);
+		else
+			return _vscwprintf(fmt.data(), args...);
+	}();
+	if (n < 0) return {};
+
+	std::basic_string<char_type> out;
+	out.resize_and_overwrite(n, [&](char_type* buf, const size_t cap) {
+		if constexpr (std::is_same_v<char_type, char>)
+			return vsnprintf(buf, cap + 1, fmt.data(), args...);
+		else
+			return _vsnwprintf_s(buf, cap + 1, _TRUNCATE, fmt.data(), args...);
+	});
+	return out;
+}
+
+
 }
 
 

@@ -30,22 +30,22 @@ bool LogCommand::Execute()
 
 	CString range;
 
-	CString revstart = parser.GetVal(L"startrev");
+	CString revstart = parser.GetValPtr(L"startrev");
 	if (revstart.IsEmpty())
 	{
 		// support deprecated parameter prior 1.5.0
-		revstart = parser.GetVal(L"revstart");
+		revstart = parser.GetValPtr(L"revstart");
 	}
 	if (revstart == GitRev::GetWorkingCopyRef())
 		revstart.Empty();
 	if (!revstart.IsEmpty())
-		range.Format(L"%s..", static_cast<LPCWSTR>(g_Git.FixBranchName(revstart)));
+		range.Format(L"%s..", g_Git.FixBranchName(revstart));
 
-	CString revend = parser.GetVal(L"endrev");
+	CString revend = parser.GetValPtr(L"endrev");
 	if (revend.IsEmpty())
 	{
 		// support deprecated parameter prior 1.5.0
-		revend = parser.GetVal(L"revend");
+		revend = parser.GetValPtr(L"revend");
 	}
 	if (revend == GitRev::GetWorkingCopyRef())
 		revend.Empty();
@@ -53,10 +53,10 @@ bool LogCommand::Execute()
 		range += g_Git.FixBranchName(revend);
 
 	if (parser.HasVal(L"range"))
-		range = parser.GetVal(L"range");
+		range = parser.GetValPtr(L"range");
 
-	CString val = parser.GetVal(L"limit");
-	int limit = _wtoi(val);
+	CString val = parser.GetValPtr(L"limit");
+	const int limit = _wtoi(val);
 
 	int scale = -1;
 	val.MakeLower();
@@ -71,10 +71,10 @@ bool LogCommand::Execute()
 	else if (val == L"0")
 		scale = CFilterData::SHOW_NO_LIMIT;
 
-	CString rev = parser.GetVal(L"rev");
+	const CString rev = parser.GetValPtr(L"rev");
 
-	CString findStr = parser.GetVal(L"findstring");
-	LONG findType = parser.GetLongVal(L"findtype");
+	const CString findStr = parser.GetValPtr(L"findstring");
+	const LONG findType = parser.GetLongVal(L"findtype");
 	bool findRegex = !!CRegDWORD(L"Software\\TortoiseGit\\UseRegexFilter", FALSE);
 	if (parser.HasKey(L"findtext"))
 		findRegex = false;
@@ -96,7 +96,7 @@ bool LogCommand::Execute()
 		CString sText;
 		if (!dlg.GetSelectedHash().empty())
 			sText = (dlg.GetSelectedHash().at(0).ToString()).c_str();
-		StringUtils::WriteStringToTextFile(parser.GetVal(L"outfile"), static_cast<LPCWSTR>(sText), true);
+		StringUtils::WriteStringToTextFile(parser.GetValPtr(L"outfile"), sText, true);
 	}
 	return true;
 }

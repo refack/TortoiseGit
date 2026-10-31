@@ -472,11 +472,11 @@ BOOL CLogDlg::OnInitDialog()
 
 	m_History.SetMaxHistoryItems(CRegDWORD(L"Software\\TortoiseGit\\MaxRefHistoryItems", 5));
 	CString reg;
-	reg.Format(L"Software\\TortoiseGit\\History\\log-refs\\%s", static_cast<LPCWSTR>(g_Git.m_CurrentDir));
+	reg.Format(L"Software\\TortoiseGit\\History\\log-refs\\%s", g_Git.m_CurrentDir);
 	reg.Replace(L':', L'_');
 	m_History.Load(std::wstring(reg), L"ref");
 
-	reg.Format(L"Software\\TortoiseGit\\History\\LogDlg_Limits\\%s\\FromDate", static_cast<LPCWSTR>(g_Git.m_CurrentDir));
+	reg.Format(L"Software\\TortoiseGit\\History\\LogDlg_Limits\\%s\\FromDate", g_Git.m_CurrentDir);
 	reg.Replace(L':', L'_');
 	m_regLastSelectedFromDate = CRegString(reg);
 
@@ -1373,7 +1373,7 @@ void CLogDlg::OnContextMenu(CWnd* pWnd, CPoint point)
 		CString head = L"HEAD";
 		CString curBranch = g_Git.GetCurrentBranch();
 		if (!curBranch.IsEmpty())
-			head.AppendFormat(L" -> \"%s\"", static_cast<LPCWSTR>(curBranch));
+			head.AppendFormat(L" -> \"%s\"", curBranch);
 		popup.AppendMenuIcon(++cnt, head);
 		CGitHash fetchHead;
 		g_Git.GetHash(fetchHead, g_Git.FixBranchName(L"FETCH_HEAD"));
@@ -1484,7 +1484,7 @@ void CLogDlg::OnContextMenu(CWnd* pWnd, CPoint point)
 			CString number;
 			number.Format(L"%ld", m_LogList.m_Filter.m_NumberOfLogs);
 			CString item;
-			item.Format(strScale, static_cast<LPCWSTR>(number));
+			item.Format(strScale, number);
 			popup.AppendMenuIcon(++cnt, item);
 		}
 
@@ -3095,7 +3095,7 @@ CString CLogDlg::GetAbsoluteUrlFromRelativeUrl(const CString& url)
 		CString url1 = m_sRepositoryRoot + url.Mid(1);
 		wchar_t buf[INTERNET_MAX_URL_LENGTH] = { 0 };
 		DWORD len = url.GetLength();
-		if (UrlCanonicalize(static_cast<LPCWSTR>(url1), buf, &len, 0) == S_OK)
+		if (UrlCanonicalize(url1, buf, &len, 0) == S_OK)
 			return CString(buf, len);
 		return url1;
 	}
@@ -3111,7 +3111,7 @@ CString CLogDlg::GetAbsoluteUrlFromRelativeUrl(const CString& url)
 			CString url1 = sHost + url;
 			wchar_t buf[INTERNET_MAX_URL_LENGTH] = { 0 };
 			DWORD len = url.GetLength();
-			if (UrlCanonicalize(static_cast<LPCWSTR>(url), buf, &len, 0) == S_OK)
+			if (UrlCanonicalize(url, buf, &len, 0) == S_OK)
 				return CString(buf, len);
 			return url1;
 		}
@@ -3438,7 +3438,7 @@ void CLogDlg::OnBnClickedView()
 			AppendMenuChecked(showLabelsMenu, IDS_VIEW_SHOWLOCALBRANCHLABELS, VIEW_SHOWLOCALBRANCHES, m_bShowLocalBranches);
 			AppendMenuChecked(showLabelsMenu, IDS_VIEW_SHOWREMOTEBRANCHLABELS, VIEW_SHOWREMOTEBRANCHES, m_bShowRemoteBranches);
 			AppendMenuChecked(showLabelsMenu, IDS_VIEW_SHOWROTHERLABELS, VIEW_SHOWOTHERREFS, m_bShowOtherRefs);
-			popup.AppendMenu(MF_STRING | MF_POPUP, reinterpret_cast<UINT_PTR>(showLabelsMenu.m_hMenu), static_cast<CString>(MAKEINTRESOURCE(IDS_VIEW_LABELS)));
+			popup.AppendMenu(MF_STRING | MF_POPUP, reinterpret_cast<UINT_PTR>(showLabelsMenu.m_hMenu), MAKEINTRESOURCE(IDS_VIEW_LABELS));
 		}
 		popup.AppendMenu(MF_SEPARATOR, NULL);
 		AppendMenuChecked(popup, IDS_VIEW_SHOWGRAVATAR, VIEW_SHOWGRAVATAR, m_bShowGravatar);

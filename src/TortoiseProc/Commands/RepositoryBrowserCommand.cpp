@@ -25,7 +25,7 @@
 bool RepositoryBrowserCommand::Execute()
 {
 	CString rev = L"HEAD";
-	CString val = parser.GetVal(L"rev");
+	const CString val = parser.GetValPtr(L"rev");
 	if (!val.IsEmpty())
 		rev = val;
 	CRepositoryBrowser dlg(rev);

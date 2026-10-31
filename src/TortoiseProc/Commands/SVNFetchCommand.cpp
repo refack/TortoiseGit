@@ -27,7 +27,7 @@ import AppUtils.Launch;
 bool SVNFetchCommand::Execute()
 {
 	CString out, err;
-	if (!g_Git.Run({ L"git.exe", L"config", L"svn-remote.svn.fetch" }, &out, &err, CP_UTF8))
+	if (!g_Git.Run({ L"git.exe", L"config", L"svn-remote.svn.fetch" }, &out, &err))
 	{
 		int start = out.Find(L':');
 		if( start >=0 )
@@ -56,7 +56,7 @@ bool SVNFetchCommand::Execute()
 	progress.m_GitCmd = { L"git.exe", L"svn", L"fetch" };
 
 	CGitHash upstreamNewHash; // declare outside lambda, because it is captured by reference
-	progress.m_PostCmdCallback = [&](DWORD status, PostCmdList& postCmdList)
+	progress.m_PostCmdCallback = [&](const DWORD status, PostCmdList& postCmdList)
 	{
 		if (status)
 			return;
@@ -72,14 +72,14 @@ bool SVNFetchCommand::Execute()
 		postCmdList.emplace_back(IDI_DIFF, IDS_PROC_PULL_DIFFS, [&]
 		{
 			CString sCmd;
-			sCmd.Format(L"/command:showcompare /path:\"%s\" /revision1:%s /revision2:%s", static_cast<LPCWSTR>(g_Git.m_CurrentDir), (upstreamOldHash.ToString()).c_str(), (upstreamNewHash.ToString()).c_str());
+			sCmd.Format(L"/command:showcompare /path:\"%s\" /revision1:%s /revision2:%s", g_Git.m_CurrentDir.c_str(), (upstreamOldHash.ToString()).c_str(), (upstreamNewHash.ToString()).c_str());
 			CAppUtils::RunTortoiseGitProc(sCmd);
 		});
 
 		postCmdList.emplace_back(IDI_LOG, IDS_PROC_PULL_LOG, [&]
 		{
 			CString sCmd;
-			sCmd.Format(L"/command:log /path:\"%s\" /range:%s", static_cast<LPCWSTR>(g_Git.m_CurrentDir), (upstreamOldHash.ToString() + L".." + upstreamNewHash.ToString()).c_str());
+			sCmd.Format(L"/command:log /path:\"%s\" /range:%s", g_Git.m_CurrentDir.c_str(), (upstreamOldHash.ToString() + L".." + upstreamNewHash.ToString()).c_str());
 			CAppUtils::RunTortoiseGitProc(sCmd);
 		});
 	};

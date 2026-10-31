@@ -28,8 +28,8 @@ import MessageBox;
 bool RenameCommand::Execute()
 {
 	bool bRet = true;
-	CString filename = cmdLinePath.GetFileOrDirectoryName().c_str();
-	CString basePath = cmdLinePath.GetContainingDirectory().GetGitPathString().c_str();
+	const CString filename = cmdLinePath.GetFileOrDirectoryName().c_str();
+	const CString basePath = cmdLinePath.GetContainingDirectory().GetGitPathString().c_str();
 
 	// show the rename dialog until the user either cancels or enters a new
 	// name (one that's different to the original name
@@ -43,12 +43,13 @@ bool RenameCommand::Execute()
 		else
 			newName = input;
 
-		if (newName.CompareNoCase(cmdLinePath.GetGitPathString().c_str()) != 0 && PathFileExists(g_Git.CombinePath(newName)))
+		if (newName.CompareNoCase(cmdLinePath.GetGitPathString().c_str()) != 0 && fs::exists(g_Git.CombinePath(newName)))
 			return CString((CFormatMessageWrapper(ERROR_FILE_EXISTS)).c_str());
 
 		return{};
 	});
-	dlg.m_sBaseDir = g_Git.CombinePath(basePath);
+	dlg.m_sBaseDir = g_Git.CombinePath(basePath).c_str();
+
 	dlg.m_name = filename;
 	if (dlg.DoModal() != IDOK)
 		return FALSE;
@@ -64,8 +65,7 @@ bool RenameCommand::Execute()
 	cmd.insert(cmd.cend(), { std::wstring(L"--"), cmdLinePath.GetGitPathString(), std::wstring(sNewName) });
 
 	CString output;
-	if (g_Git.Run(cmd, &output)))
-	{
+	if (g_Git.Run(cmd, &output)) {
 		CMessageBox::Show(GetExplorerHWND(), output, L"TortoiseGit", MB_OK);
 		bRet = false;
 	}

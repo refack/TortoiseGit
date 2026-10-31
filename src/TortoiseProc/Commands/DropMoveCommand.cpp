@@ -28,24 +28,17 @@ import MessageBox;
 
 bool DropMoveCommand::Execute()
 {
-	CString droppath = parser.GetVal(L"droptarget");
+	fs::path droppath = parser.GetValStr(L"droptarget");
 	std::wstring ProjectTop;
-	if (!CTGitPath(droppath.GetString()).HasAdminDir(&ProjectTop))
+	if (!CTGitPath(droppath).HasAdminDir(&ProjectTop))
 		return FALSE;
 
-	if (g_Git.m_CurrentDir.CompareNoCase(ProjectTop.c_str()) != 0)
-	{
+	if (tgit::wstr::CompareNoCase(g_Git.m_CurrentDir.wstring(), ProjectTop) != 0) {
 		CMessageBox::Show(GetExplorerHWND(), IDS_ERR_MUSTBESAMEWT, IDS_APPNAME, MB_OK | MB_ICONEXCLAMATION);
 		return FALSE;
 	}
 
-	const int projectTopLen = static_cast<int>(ProjectTop.size());
-	if (projectTopLen == 3 && tgit::wstr::Mid(ProjectTop, 1, 2) == L":\\") // working tree root is directly on a drive
-		droppath = droppath.Right(droppath.GetLength() - projectTopLen);
-	else
-		droppath = droppath.Right(droppath.GetLength() - projectTopLen - 1);
-	if (!droppath.IsEmpty())
-		droppath += L'\\';
+	droppath = fs::relative(droppath, ProjectTop) / "";
 
 	unsigned long count = 0;
 	pathList.RemoveAdminPaths();
@@ -55,15 +48,15 @@ bool DropMoveCommand::Execute()
 	{
 		// ask for a new name of the source item
 		CRenameDlg renDlg;
-		renDlg.SetRenameRequired(pathList[0].GetContainingDirectory().IsEquivalentToWithoutCase(CTGitPath(droppath.GetString())));
+		renDlg.SetRenameRequired(pathList[0].GetContainingDirectory().IsEquivalentToWithoutCase(CTGitPath(droppath)));
 		renDlg.SetInputValidator([&](const int /*nID*/, const CString& input) -> CString
 		{
-			if (PathFileExists(g_Git.CombinePath(droppath + L'\\' + input)))
+			if (fs::exists(g_Git.CombinePath(droppath / input.GetString())))
 				return CString((CFormatMessageWrapper(ERROR_FILE_EXISTS)).c_str());
 
 			return{};
 		});
-		renDlg.m_sBaseDir = g_Git.CombinePath(droppath);
+		renDlg.m_sBaseDir = g_Git.CombinePath(droppath).c_str();
 		renDlg.m_windowtitle.LoadString(IDS_PROC_MOVERENAME);
 		renDlg.m_name = pathList[0].GetFileOrDirectoryName().c_str();
 		if (renDlg.DoModal() != IDOK)
@@ -75,7 +68,7 @@ bool DropMoveCommand::Execute()
 	{
 		progress.SetTitle(IDS_PROC_MOVING);
 		progress.SetTime(true);
-		progress.ShowModeless(CWnd::FromHandle(GetExplorerHWND()));
+		std::ignore = progress.ShowModeless(CWnd::FromHandle(GetExplorerHWND()));
 	}
 	for (int nPath = 0; nPath < pathList.GetCount(); ++nPath)
 	{
@@ -88,19 +81,19 @@ bool DropMoveCommand::Execute()
 		{
 			progress.Stop();
 
-			CString name = destPath.GetFileOrDirectoryName().c_str();
+			const CString name = destPath.GetFileOrDirectoryName().c_str();
 			progress.Stop();
 			CRenameDlg dlg;
 			dlg.SetInputValidator([&](const int /*nID*/, const CString& input) -> CString
 			{
-				if (PathFileExists(g_Git.CombinePath(droppath + L'\\' + input)))
+				if (fs::exists(g_Git.CombinePath(droppath / input.GetString())))
 					return CString((CFormatMessageWrapper(ERROR_FILE_EXISTS)).c_str());
 
 				return{};
 			});
-			dlg.m_sBaseDir = g_Git.CombinePath(destPath);
+			dlg.m_sBaseDir = g_Git.CombinePath(destPath).c_str();
 			dlg.m_name = name;
-			dlg.m_windowtitle.Format(IDS_PROC_NEWNAMEMOVE, static_cast<LPCWSTR>(name));
+			dlg.m_windowtitle.Format(IDS_PROC_NEWNAMEMOVE, name);
 			if (dlg.DoModal() != IDOK)
 				return FALSE;
 
@@ -109,15 +102,15 @@ bool DropMoveCommand::Execute()
 			progress.SetTitle(IDS_PROC_MOVING);
 			progress.SetTime(true);
 			progress.SetProgress(count, pathList.GetCount());
-			progress.ShowModeless(CWnd::FromHandle(GetExplorerHWND()));
+			std::ignore = progress.ShowModeless(CWnd::FromHandle(GetExplorerHWND()));
 
 			// Rebuild the destination path, with the new name
-			destPath.SetFromUnknown(droppath.GetString());
+			destPath.SetFromUnknown(droppath.wstring());
 			destPath.AppendPathString(dlg.m_name.GetString());
 		}
 
 		CString out;
-		if (g_Git.Run({ L"git.exe", L"mv", L"--", pathList[nPath].GetGitPathString(), destPath.GetGitPathString() }, &out, CP_UTF8))
+		if (g_Git.Run({ L"git.exe", L"mv", L"--", pathList[nPath].GetGitPathString(), destPath.GetGitPathString() }, &out))
 		{
 			if (CMessageBox::Show(GetExplorerHWND(), out, IDS_APPNAME, 2, IDI_EXCLAMATION, IDS_IGNOREBUTTON, IDS_ABORTBUTTON) == 1)
 			{

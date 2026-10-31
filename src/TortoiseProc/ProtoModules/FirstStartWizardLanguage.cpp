@@ -142,7 +142,7 @@ void CFirstStartWizardLanguage::OnBnClickedRefresh()
 	m_LanguageCombo.ResetContent();
 
 	// set up the language selecting combobox
-	auto installed = CLangDll::GetInstalledLanguages(true);
+	auto installed = LangDll::GetInstalledLanguages(true);
 	std::for_each(installed.cbegin(), installed.cend(), [&](auto& item) {
 		const int pos = m_LanguageCombo.AddString(item.first);
 		m_LanguageCombo.SetItemData(pos, item.second);

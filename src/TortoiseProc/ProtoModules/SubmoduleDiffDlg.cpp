@@ -268,6 +268,6 @@ void CSubmoduleDiffDlg::OnBnClickedShowDiff()
 void CSubmoduleDiffDlg::OnBnClickedButtonUpdate()
 {
 	CString sCmd;
-	sCmd.Format(L"/command:subupdate /bkpath:\"%s\" /selectedpath:%s", static_cast<LPCWSTR>(g_Git.m_CurrentDir), static_cast<LPCWSTR>(TCmdLineParser::EscapeValue(m_sPath)));
+	sCmd.Format(L"/command:subupdate /bkpath:\"%s\" /selectedpath:%s", g_Git.m_CurrentDir, TCmdLineParser::EscapeValue(m_sPath));
 	CAppUtils::RunTortoiseGitProc(sCmd);
 }

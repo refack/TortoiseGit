@@ -226,7 +226,7 @@ void CGravatar::GravatarThread()
 				const int ret = DownloadToFile([&]() { GravatarLocker _(m_gravatarLock); return m_hConnectHandle; }(), isHttps, gravatarUrl, tempFile);
 				if (ret)
 				{
-					TracePrintf(_T(__FUNCTION__) L": Gravatar download for \"%s\" failed: %d\n", static_cast<LPCWSTR>(gravatarUrl), ret);
+					TracePrintf(_T(__FUNCTION__) L": Gravatar download for \"%s\" failed: %d\n", gravatarUrl, ret);
 					DeleteFile(tempFile);
 					if (m_gravatarExit)
 						break;

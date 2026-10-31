@@ -92,7 +92,7 @@ BOOL CRenameDlg::OnInitDialog()
 	if (!m_name.IsEmpty())
 	{
 		CString sTmp;
-		sTmp.Format(IDS_RENAME_INFO, static_cast<LPCWSTR>(m_name));
+		sTmp.Format(IDS_RENAME_INFO, m_name);
 		SetDlgItemText(IDC_RENINFOLABEL, sTmp);
 	}
 

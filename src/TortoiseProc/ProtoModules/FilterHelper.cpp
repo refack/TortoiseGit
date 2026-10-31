@@ -120,7 +120,7 @@ void CFilterHelper::GetMatchRanges(std::vector<CHARRANGE>& ranges, CString textU
 		for (auto it = m_patterns.cbegin(); it != m_patterns.cend(); ++it)
 		{
 			const std::wcregex_iterator end;
-			for (std::wcregex_iterator it2(static_cast<LPCWSTR>(textUTF16), static_cast<LPCWSTR>(textUTF16) + textUTF16.GetLength(), *it); it2 != end; ++it2)
+			for (std::wcregex_iterator it2(textUTF16, static_cast<LPCWSTR>(textUTF16) + textUTF16.GetLength(), *it); it2 != end; ++it2)
 			{
 				const ptrdiff_t matchposID = it2->position(0);
 				CHARRANGE range = { static_cast<LONG>(matchposID) + offset, static_cast<LONG>(matchposID + (*it2)[0].str().size()) + offset };

@@ -160,7 +160,7 @@ BOOL CTortoiseProcApp::InitInstance()
 			auto version = versionparser.GetTortoiseGitVersion();
 			if (version.major == TGIT_VERMAJOR && version.minor == TGIT_VERMINOR && (version.micro > TGIT_VERMICRO || version.micro == TGIT_VERMICRO && version.build > TGIT_VERBUILD))
 			{
-				TracePrintf(_T(__FUNCTION__) L": Hotfix: %s\n", static_cast<LPCWSTR>(versionparser.GetTortoiseGitVersion().version));
+				TracePrintf(_T(__FUNCTION__) L": Hotfix: %s\n", versionparser.GetTortoiseGitVersion().version);
 			}
 		}
 	}
@@ -193,7 +193,7 @@ BOOL CTortoiseProcApp::InitInstance()
 			return FALSE;
 		}
 		CString newCmd;
-		newCmd.Format(L"/command:clone /url:%s /hasurlhandler", static_cast<LPCWSTR>(TCmdLineParser::EscapeValue(url)));
+		newCmd.Format(L"/command:clone /url:%s /hasurlhandler", TCmdLineParser::EscapeValue(url));
 		parser = CCmdLineParser(newCmd);
 	}
 
@@ -230,7 +230,7 @@ BOOL CTortoiseProcApp::InitInstance()
 	{
 		CString versionString;
 		versionString.Format(L"%X", TGitH::ms_LastMsysGitVersion);
-		TracePrintf(_T(__FUNCTION__) L": msysGitVersion: %s\n", static_cast<LPCWSTR>(versionString));
+		TracePrintf(_T(__FUNCTION__) L": msysGitVersion: %s\n", versionString);
 	}
 
 	if (parser.HasKey(L"path") && parser.HasKey(L"pathfile"))
@@ -380,7 +380,7 @@ void CTortoiseProcApp::CheckUpgrade() const
 {
 	CRegString regVersion = CRegString(L"Software\\TortoiseGit\\CurrentVersion");
 	CString sVersion = regVersion;
-	TracePrintf(_T(__FUNCTION__) L": Current TGit Version %s vs. last used version %s\n", _T(STRPRODUCTVER), static_cast<LPCWSTR>(sVersion));
+	TracePrintf(_T(__FUNCTION__) L": Current TGit Version %s vs. last used version %s\n", _T(STRPRODUCTVER), sVersion);
 	if (sVersion.Compare(_T(STRPRODUCTVER))==0)
 		return;
 	// we're starting the first time with a new version!
@@ -605,14 +605,14 @@ void CTortoiseProcApp::DoInitializeJumpList(const CString& appid) const
 	StringUtils::RemoveAccelerators(sTemp);
 
 	ATL::CComPtr<IShellLink> psl;
-	hr = CreateShellLink(L"/command:settings", static_cast<LPCWSTR>(sTemp), 18, &psl);
+	hr = CreateShellLink(L"/command:settings", sTemp, 18, &psl);
 	if (SUCCEEDED(hr)) {
 		poc->AddObject(psl);
 	}
 	sTemp = CString(MAKEINTRESOURCE(IDS_MENUHELP));
 	StringUtils::RemoveAccelerators(sTemp);
 	psl.Release(); // Need to release the object before calling operator&()
-	hr = CreateShellLink(L"/command:help", static_cast<LPCWSTR>(sTemp), 17, &psl);
+	hr = CreateShellLink(L"/command:help", sTemp, 17, &psl);
 	if (SUCCEEDED(hr)) {
 		poc->AddObject(psl);
 	}
@@ -620,7 +620,7 @@ void CTortoiseProcApp::DoInitializeJumpList(const CString& appid) const
 	ATL::CComPtr<IObjectArray> poa;
 	hr = poc.QueryInterface(&poa);
 	if (SUCCEEDED(hr)) {
-		pcdl->AppendCategory(static_cast<LPCWSTR>(CString(MAKEINTRESOURCE(IDS_PROC_TASKS))), poa);
+		pcdl->AppendCategory(CString(MAKEINTRESOURCE(IDS_PROC_TASKS)), poa);
 		pcdl->CommitList();
 	}
 }

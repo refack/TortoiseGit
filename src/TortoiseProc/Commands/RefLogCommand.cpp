@@ -24,11 +24,11 @@
 
 bool RefLogCommand::Execute()
 {
-	bool bRet = false;
+	const bool bRet = false;
 	CRefLogDlg dlg;
 	theApp.m_pMainWnd = &dlg;
 
-	CString branch = parser.GetVal(L"ref");
+	const CString branch = parser.GetValPtr(L"ref");
 	if ( !branch.IsEmpty() )
 		dlg.m_CurrentBranch = branch;
 

@@ -200,7 +200,7 @@ protected:
 private:
 	HCURSOR OnQueryDragIcon()
 	{
-		return static_cast<HCURSOR>(m_hIcon);
+		return m_hIcon;
 	}
 
 protected:

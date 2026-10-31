@@ -27,8 +27,8 @@ import MessageBox;
 
 bool PasteMoveCommand::Execute()
 {
-	CString sDroppath = parser.GetVal(L"droptarget");
-	CTGitPath dropPath(sDroppath.GetString());
+	CString sDroppath = parser.GetValPtr(L"droptarget");
+	const CTGitPath dropPath(sDroppath.GetString());
 	if (dropPath.IsAdminDir())
 		return FALSE;
 
@@ -44,7 +44,7 @@ bool PasteMoveCommand::Execute()
 	CSysProgressDlg progress;
 	progress.SetTitle(IDS_PROC_MOVING);
 	progress.SetTime(true);
-	progress.ShowModeless(CWnd::FromHandle(GetExplorerHWND()));
+	std::ignore = progress.ShowModeless(CWnd::FromHandle(GetExplorerHWND()));
 	for (int nPath = 0; nPath < orgPathList.GetCount(); ++nPath)
 	{
 		CTGitPath destPath;
@@ -60,7 +60,7 @@ bool PasteMoveCommand::Execute()
 			progress.Stop();
 			CRenameDlg dlg;
 			dlg.m_name = name;
-			dlg.m_windowtitle.Format(IDS_PROC_NEWNAMEMOVE, static_cast<LPCWSTR>(name));
+			dlg.m_windowtitle.Format(IDS_PROC_NEWNAMEMOVE, name);
 			if (dlg.DoModal() != IDOK)
 				return FALSE;
 			destPath.SetFromWin(sDroppath + L'\\' + dlg.m_name);
@@ -76,10 +76,10 @@ bool PasteMoveCommand::Execute()
 			// GetGitPathString(), not GetWinPathString(): non-relaxed
 			// QuoteParameter used to convert the backslashes here.
 			CString output;
-			if (g_Git.Run({ L"git.exe", L"add", L"--", destPath.GetGitPathString() }, &output)))
+			if (g_Git.Run({ L"git.exe", L"add", L"--", destPath.GetGitPathString() }, &output))
 			//if (!Git.Add(CTGitorgPathList(destPath), &props, Git_depth_infinity, true, false, true))
 			{
-				TRACE(L"%s\n", static_cast<LPCWSTR>(output));
+				TRACE(L"%s\n", output);
 				CMessageBox::Show(GetExplorerHWND(), output, L"TortoiseGit", MB_ICONERROR);
 				return FALSE;		//get out of here
 			}
@@ -88,7 +88,7 @@ bool PasteMoveCommand::Execute()
 		else
 		{
 			CString output;
-			if (g_Git.Run({ L"git.exe", L"mv", orgPathList[nPath].GetGitPathString(), destPath.GetGitPathString() }, &output)))
+			if (g_Git.Run({ L"git.exe", L"mv", orgPathList[nPath].GetGitPathString(), destPath.GetGitPathString() }, &output))
 			//if (!Git.Move(CTGitorgPathList(orgPathList[nPath]), destPath, FALSE))
 			{
 #if 0
@@ -113,7 +113,7 @@ bool PasteMoveCommand::Execute()
 				else
 #endif
 				{
-					TRACE(L"%s\n", static_cast<LPCWSTR>(output));
+					TRACE(L"%s\n", output);
 					CMessageBox::Show(GetExplorerHWND(), output, L"TortoiseGit", MB_ICONERROR);
 					return FALSE;		//get out of here
 				}

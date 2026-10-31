@@ -21,10 +21,12 @@
 #include "std.h"
 
 #include "CleanupCommand.h"
-import MessageBox;
 #include "ProgressDlg.h"
 #include "CleanTypeDlg.h"
 #include "SysProgressDlg.h"
+import MessageBox;
+
+
 
 struct SubmodulePayload
 {
@@ -94,15 +96,16 @@ static bool GetSubmodulePathList(SubmodulePayload &payload)
 	return true;
 }
 
-static bool GetFilesToCleanUp(CTGitPathList& delList, const std::vector<std::wstring>& baseCmd, CGit *pGit, const CString& path, const boolean quotepath, CSysProgressDlg& sysProgressDlg)
+static bool GetFilesToCleanUp(CTGitPathList& delList, wil::ArgvData& baseCmd, const CGit* pGit, const CString& path, const boolean quotepath, CSysProgressDlg& sysProgressDlg)
 {
-	std::vector<std::wstring> cmd(baseCmd);
+	auto cmd = baseCmd;
 	if (!path.IsEmpty())
-		cmd.insert(cmd.cend(), { L"--", std::wstring(path) });
+		cmd.push_range({ L"--"s, std::wstring{path} });
 
 	tgit::wstr::CString cmdouterr;
-	if (pGit->Run(cmd, [&](std::string_view line)
-		{
+	if (GitCall::RunReceiver(
+		cmd,
+		[&](std::string_view line) {
 			if (!line.starts_with("Would remove "))
 				return;
 
@@ -113,11 +116,12 @@ static bool GetFilesToCleanUp(CTGitPathList& delList, const std::vector<std::wst
 			const auto pathString = (quotepath && line[0] == '"') ?
 				CTGitPath{TGitH::UnescapeGitQuotePathA(line.substr(1))} :
 				CTGitPath{CUnicodeUtils::GetUnicode<::CStringW>(line)};
-			delList.AddPath(CTGitPath(pGit->CombinePath(pathString).GetString()));
-		}, &cmdouterr))
-	{
+			delList.AddPath(CTGitPath(pGit->CombinePath(pathString)));
+		},
+		&cmdouterr
+	)) {
 		if (cmdouterr.IsEmpty())
-			cmdouterr.Format(IDS_GITEXEERROR_NOMESSAGE, CGit::SerializeArgvStdWString(cmd));
+			cmdouterr.Format(IDS_GITEXEERROR_NOMESSAGE, cmd.SerializeArgv(false).c_str());
 		MessageBox(GetExplorerHWND(), cmdouterr, L"TortoiseGit", MB_ICONERROR);
 		return false;
 	}
@@ -133,7 +137,7 @@ static bool GetFilesToCleanUp(CTGitPathList& delList, const std::vector<std::wst
 
 static bool DoCleanUp(const CTGitPathList& pathList, int cleanType, bool bDir, bool bDirUnmanagedRepos, bool bSubmodules, bool bDryRun, bool bNoRecycleBin)
 {
-	std::vector<std::wstring> cmd{ L"git.exe", L"clean" };
+	wil::ArgvData cmd{ L"git.exe", L"clean" };
 	if (bDryRun || !bNoRecycleBin)
 		cmd.emplace_back(L"-n");
 	if (bDir)
@@ -149,6 +153,8 @@ static bool DoCleanUp(const CTGitPathList& pathList, int cleanType, bool bDir, b
 	case 2:
 		cmd.emplace_back(L"-fX");
 		break;
+	default:
+		std::unreachable();
 	}
 	if (bDirUnmanagedRepos)
 		cmd.emplace_back(L"-f");
@@ -157,12 +163,11 @@ static bool DoCleanUp(const CTGitPathList& pathList, int cleanType, bool bDir, b
 	if (bSubmodules)
 	{
 		SubmodulePayload payload(submoduleList);
-		payload.basePath = CTGitPath(g_Git.m_CurrentDir.GetString()).GetGitPathString().c_str();
+		payload.basePath = CTGitPath(g_Git.m_CurrentDir).GetGitPathString().c_str();
 		if (pathList.GetCount() != 1 || pathList.GetCount() == 1 && !pathList[0].IsEmpty())
 		{
 			for (int i = 0; i < pathList.GetCount(); ++i)
 			{
-				CString path;
 				if (pathList[i].IsDirectory())
 					payload.prefixList.push_back(pathList[i].GetGitPathString().c_str());
 				else
@@ -185,7 +190,7 @@ static bool DoCleanUp(const CTGitPathList& pathList, int cleanType, bool bDir, b
 			else
 				path = pathList[i].GetContainingDirectory().GetGitPathString().c_str();
 
-			if (pathList[i].IsWCRoot() && pathList[i].GetWinPathString() != g_Git.m_CurrentDir.GetString())
+			if (pathList[i].IsWCRoot() && pathList[i].GetStdPath() != g_Git.m_CurrentDir)
 			{
 				if (PathIsRelative(pathList[i].GetWinPathString().c_str()))
 					progress.m_GitDirList.push_back(std::wstring(g_Git.CombinePath(pathList[i].GetWinPathString().c_str())));
@@ -194,9 +199,9 @@ static bool DoCleanUp(const CTGitPathList& pathList, int cleanType, bool bDir, b
 			}
 			else
 				progress.m_GitDirList.push_back(std::wstring(g_Git.m_CurrentDir));
-			std::vector<std::wstring> clean = cmd;
+			auto clean = cmd;
 			if (!path.IsEmpty())
-				clean.insert(clean.cend(), { L"--", std::wstring(path) });
+				clean.push_range({ L"--", path.GetString() });
 			progress.m_GitCmdList.push_back(std::move(clean));
 		}
 
@@ -249,7 +254,7 @@ static bool DoCleanUp(const CTGitPathList& pathList, int cleanType, bool bDir, b
 			else
 				path = pathList[i].GetContainingDirectory().GetGitPathString().c_str();
 
-			if (pathList[i].IsWCRoot() && pathList[i].GetWinPathString() != g_Git.m_CurrentDir.GetString())
+			if (pathList[i].IsWCRoot() && pathList[i].GetStdPath() != g_Git.m_CurrentDir)
 			{
 				CGit git;
 				if (PathIsRelative(pathList[i].GetWinPathString().c_str()))

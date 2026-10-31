@@ -32,12 +32,12 @@ IMPLEMENT_DYNAMIC(CCleanTypeDlg, CStateStandAloneDialog)
 
 CCleanTypeDlg::CCleanTypeDlg(CWnd* pParent /*=nullptr*/)
 	: CStateStandAloneDialog(CCleanTypeDlg::IDD, pParent)
+	, m_bDirUnmanagedRepo(BST_UNCHECKED)
+	, m_bNoRecycleBin(!CRegDWORD(L"Software\\TortoiseGit\\RevertWithRecycleBin", TRUE))
 	, m_bDryRun(BST_UNCHECKED)
 	, m_bSubmodules(BST_UNCHECKED)
-	, m_bNoRecycleBin(!CRegDWORD(L"Software\\TortoiseGit\\RevertWithRecycleBin", TRUE))
-	, m_bDirUnmanagedRepo(BST_UNCHECKED)
 {
-	CString WorkingDir=g_Git.m_CurrentDir;
+	CString WorkingDir = g_Git.m_CurrentDir.c_str();
 	WorkingDir.Replace(L':', L'_');
 	this->m_regDir  = CRegDWORD(L"Software\\TortoiseGit\\History\\CleanDir\\" + WorkingDir, 1);
 	this->m_regType = CRegDWORD(L"Software\\TortoiseGit\\History\\CleanType\\" + WorkingDir, 0);
@@ -110,9 +110,9 @@ void CCleanTypeDlg::SetDlgTitle()
 		GetWindowText(m_sTitle);
 
 	if (m_pathList.GetCount() == 1)
-		CAppUtils::SetWindowTitle(m_hWnd, g_Git.CombinePath(m_pathList[0].GetUIPathString().c_str()), m_sTitle);
+		CAppUtils::SetWindowTitle(m_hWnd, g_Git.CombinePath(m_pathList[0].GetUIPathString()).c_str(), m_sTitle);
 	else
-		CAppUtils::SetWindowTitle(m_hWnd, g_Git.CombinePath(m_pathList.GetCommonRoot().GetDirectory()), m_sTitle);
+		CAppUtils::SetWindowTitle(m_hWnd, g_Git.CombinePath(m_pathList.GetCommonRoot().GetDirectory()).c_str(), m_sTitle);
 }
 
 void CCleanTypeDlg::OnBnClickedCheckDir()

@@ -27,10 +27,10 @@ bool RevisionGraphCommand::Execute()
 {
 	CRevisionGraphDlg dlg;
 	theApp.m_pMainWnd = &dlg;
-	dlg.SetPath(g_Git.m_CurrentDir);
+	dlg.SetPath(g_Git.m_CurrentDir.c_str());
 	if (parser.HasVal(L"output"))
 	{
-		dlg.SetOutputFile(parser.GetVal(L"output"));
+		dlg.SetOutputFile(parser.GetValPtr(L"output"));
 		dlg.StartHidden();
 	}
 	dlg.DoModal();

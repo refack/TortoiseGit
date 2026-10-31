@@ -158,7 +158,7 @@ CString CVersioncheckParser::GetTortoiseGitBaseURL()
 {
 	CString baseurl = GetStringValue(L"tortoisegit", L"baseurl");
 	if (baseurl.IsEmpty())
-		baseurl.Format(L"http://updater.download.tortoisegit.org/tgit/%s/", static_cast<LPCWSTR>(m_version.version_for_filename));
+		baseurl.Format(L"http://updater.download.tortoisegit.org/tgit/%s/", m_version.version_for_filename);
 	return baseurl;
 }
 
@@ -195,7 +195,7 @@ CString CVersioncheckParser::GetTortoiseGitMainfilename()
 		mainfilenametemplate = L"TortoiseGit-%1!s!-%2!s!bit.msi";
 	mainfilenametemplate.Replace(L"%2!s!bit", L"%2!s!");
 	CString mainfilename;
-	mainfilename.FormatMessage(mainfilenametemplate, static_cast<LPCWSTR>(m_version.version_for_filename), static_cast<LPCWSTR>(architecture()));
+	mainfilename.FormatMessage(mainfilenametemplate, m_version.version_for_filename, architecture());
 	return mainfilename;
 }
 
@@ -238,7 +238,7 @@ CVersioncheckParser::LANGPACK_VECTOR CVersioncheckParser::GetTortoiseGitLanguage
 			pack.m_LangName += L')';
 		}
 
-		pack.m_filename.FormatMessage(languagepackfilenametemplate, static_cast<LPCWSTR>(m_version.version_languagepacks), static_cast<LPCWSTR>(architecture()), static_cast<LPCWSTR>(pack.m_LangCode), pack.m_LocaleID);
+		pack.m_filename.FormatMessage(languagepackfilenametemplate, m_version.version_languagepacks, architecture(), pack.m_LangCode, pack.m_LocaleID);
 
 		vec.push_back(pack);
 	}

@@ -40,6 +40,8 @@ export namespace TCmdLineParser
     public:
         using CValsMap = map<std::wstring, std::wstring>;
         using ITERPOS = CValsMap::const_iterator;
+    	using key_ptr_t = CValsMap::key_type::const_pointer;
+    	using val_ptr_t = CValsMap::mapped_type::const_pointer;
 
         /**
          * Creates a CCmdLineParser object and parses the parameters in.
@@ -86,14 +88,14 @@ export namespace TCmdLineParser
          * \param sKey the key to check for
          * \return TRUE if the key exists, FALSE if the key is not in command line
          */
-        bool HasKey(const wchar_t* sKey) const;
+        bool HasKey(key_ptr_t sKey) const;
 
         /**
          * Checks if a key also has a value or not.
          * \param sKey the key to check for a value
          * \return TRUE if the key has a value, FALSE if no value (or no key) was found
          */
-        bool HasVal(const wchar_t* sKey) const;
+        bool HasVal(key_ptr_t sKey) const;
 
         /**
          * Reads the value for a key. If the key has no value then nullptr is returned.
@@ -115,7 +117,8 @@ export namespace TCmdLineParser
          * \param sKey the key to get the value from
          * \return the value of the key, or an empty string if it has none
          */
-        [[nodiscard]] std::wstring GetValStr(const wchar_t* sKey) const;
+        [[nodiscard]] std::wstring GetValStr(key_ptr_t sKey) const;
+        [[nodiscard]] val_ptr_t GetValPtr(key_ptr_t sKey) const;
 
         /**
          * Reads the value for a key as a long. If the value is a string which can't be
@@ -123,13 +126,13 @@ export namespace TCmdLineParser
          * \param sKey the key to get the value from
          * \return the value converted to a long
          */
-        long GetLongVal(const wchar_t* sKey) const;
+        long GetLongVal(key_ptr_t sKey) const;
 
-        __int64 GetLongLongVal(const wchar_t* sKey) const;
+        __int64 GetLongLongVal(key_ptr_t sKey) const;
 
     private:
         bool Parse(const wchar_t* sCmdLine);
-        ITERPOS findKey(const wchar_t* sKey) const;
+        ITERPOS findKey(const key_ptr_t& sKey) const;
         [[nodiscard]] const CValsMap& getVals() const { return m_valueMap; }
 
         std::wstring m_sCmdLine;
@@ -284,14 +287,14 @@ export namespace TCmdLineParser
         return !m_valueMap.empty(); //TRUE if arguments were found
     }
 
-    CCmdLineParser::ITERPOS CCmdLineParser::findKey(const wchar_t* sKey) const
+    CCmdLineParser::ITERPOS CCmdLineParser::findKey(const key_ptr_t& sKey) const
     {
         std::wstring s(sKey);
         std::ranges::transform(s, s.begin(), std::towlower);
         return m_valueMap.find(s);
     }
 
-    bool CCmdLineParser::HasKey(const wchar_t* sKey) const
+    bool CCmdLineParser::HasKey(key_ptr_t sKey) const
     {
         const auto it = findKey(sKey);
         if (it == m_valueMap.cend())
@@ -300,7 +303,7 @@ export namespace TCmdLineParser
     }
 
 
-    bool CCmdLineParser::HasVal(const wchar_t* sKey) const
+    bool CCmdLineParser::HasVal(key_ptr_t sKey) const
     {
         const auto it = findKey(sKey);
         if (it == m_valueMap.cend())
@@ -310,15 +313,15 @@ export namespace TCmdLineParser
         return true;
     }
 
-    // const wchar_t* CCmdLineParser::GetVal(const wchar_t* sKey) const
-    // {
-    //     const auto it = findKey(sKey);
-    //     if (it == m_valueMap.cend())
-    //         return nullptr;
-    //     return it->second.c_str();
-    // }
+    std::wstring::const_pointer CCmdLineParser::GetValPtr(key_ptr_t sKey) const
+    {
+        const auto it = findKey(sKey);
+        if (it == m_valueMap.cend())
+            return nullptr;
+        return it->second.c_str();
+    }
 
-    std::wstring CCmdLineParser::GetValStr(const wchar_t* sKey) const
+    std::wstring CCmdLineParser::GetValStr(key_ptr_t sKey) const
     {
         const auto it = findKey(sKey);
         if (it == m_valueMap.cend())
@@ -326,7 +329,7 @@ export namespace TCmdLineParser
         return it->second;
     }
 
-    long CCmdLineParser::GetLongVal(const wchar_t* sKey) const
+    long CCmdLineParser::GetLongVal(key_ptr_t sKey) const
     {
         const auto it = findKey(sKey);
         if (it == m_valueMap.cend())
@@ -337,7 +340,7 @@ export namespace TCmdLineParser
         return std::wcstol(it->second.c_str(), nullptr, 10);
     }
 
-    __int64 CCmdLineParser::GetLongLongVal(const wchar_t* sKey) const
+    __int64 CCmdLineParser::GetLongLongVal(key_ptr_t sKey) const
     {
         const auto it = findKey(sKey);
         if (it == m_valueMap.cend())

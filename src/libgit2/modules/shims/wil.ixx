@@ -28,6 +28,8 @@ using sloc_t = std::source_location;
 /// it picks. That is a behaviour decision with its own commit, not a trim.
 export namespace til {
 
+using ::winrt::clock;
+
 // Win32
 using RWND = std::remove_pointer_t<HWND>;
 using RKEY = std::remove_pointer_t<HKEY>;
@@ -223,7 +225,7 @@ std::wstring MultiByteToWideChar(const std::string_view narrow, const ConvOpts o
 
 std::wstring UTF8ToWString(const std::string_view narrow) { return til::MultiByteToWideChar(narrow); }
 
-using ::winrt::clock;
+
 }
 
 
@@ -920,7 +922,7 @@ public:
 		return *this;
 	}
 
-	ArgvData& operator<<(const std::initializer_list<std::wstring> args) {
+	ArgvData& push_range(const std::initializer_list<std::wstring> args) {
 		_args.append_range(args);
 		return *this;
 	}

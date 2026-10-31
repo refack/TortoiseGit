@@ -86,11 +86,14 @@ BOOL CAboutDlg::OnInitDialog()
 		out = L"git not found (" + err + L')';
 	out.Trim();
 
-	if (!TGitH::ms_LastMsysGitDir.IsEmpty())
+	if (!GitCall::ms_LastMsysGitDir.empty())
 	{
-		out += L" (" + TGitH::ms_LastMsysGitDir;
-		out += L"; " + TGitH::ms_MsysGitRootDir;
-		out += L"; " + g_Git.GetGitSystemConfig();
+		out += L" (";
+		out += GitCall::ms_LastMsysGitDir.c_str();
+		out += L"; ";
+		out += GitCall::ms_MsysGitRootDir.c_str();
+		out += L"; ";
+		out += TGitH::GetGitSystemConfig().c_str();
 		if (GitCall::ms_bMsys2Git)
 			out += L"; with msys2 hack";
 		else if (GitCall::ms_bCygwinGit)
@@ -103,10 +106,10 @@ BOOL CAboutDlg::OnInitDialog()
 #if PREVIEW
 	additionalVersionInformation = _T(PREVIEW_INFO);
 #else
-	if (CString hotfix = (PathUtils::GetAppDirectory() + L"hotfix.ini").c_str(); PathFileExists(hotfix))
+	if (auto hotfix = PathUtils::GetAppDirectory() / L"hotfix.ini"; fs::exists(hotfix))
 	{
 		CVersioncheckParser parser;
-		if (parser.Load(hotfix, err))
+		if (parser.Load(hotfix.c_str(), err))
 		{
 			auto version = parser.GetTortoiseGitVersion();
 			if (version.major == TGIT_VERMAJOR && version.minor == TGIT_VERMINOR && (version.micro > TGIT_VERMICRO || version.micro == TGIT_VERMICRO && version.build > TGIT_VERBUILD))
@@ -120,7 +123,7 @@ BOOL CAboutDlg::OnInitDialog()
 		tortoisegitprocpath = std::format(L"({}; {})", additionalVersionInformation, appDirectory).c_str();
 	else
 		tortoisegitprocpath = std::format(L"({})", appDirectory).c_str();
-	temp.Format(IDS_ABOUTVERSION, TGIT_VERMAJOR, TGIT_VERMINOR, TGIT_VERMICRO, TGIT_VERBUILD, static_cast<LPCWSTR>(tortoisegitprocpath), static_cast<LPCWSTR>(out));
+	temp.Format(IDS_ABOUTVERSION, TGIT_VERMAJOR, TGIT_VERMINOR, TGIT_VERMICRO, TGIT_VERBUILD, tortoisegitprocpath, out);
 	SetDlgItemText(IDC_VERSIONABOUT, Lf2Crlf(temp));
 
 	this->SetWindowText(L"TortoiseGit");

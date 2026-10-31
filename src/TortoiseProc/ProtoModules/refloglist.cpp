@@ -98,15 +98,15 @@ void CRefLogList::OnLvnGetdispinfoLoglist(NMHDR *pNMHDR, LRESULT *pResult)
 		break;
 	case REFLOG_ACTION:
 		if (pLogEntry)
-			lstrcpyn(pItem->pszText, static_cast<LPCWSTR>(pLogEntry->m_RefAction), pItem->cchTextMax - 1);
+			lstrcpyn(pItem->pszText, pLogEntry->m_RefAction, pItem->cchTextMax - 1);
 		break;
 	case REFLOG_MESSAGE:
 		if (pLogEntry)
-			lstrcpyn(pItem->pszText, static_cast<LPCWSTR>(pLogEntry->GetSubject().Trim()), pItem->cchTextMax - 1);
+			lstrcpyn(pItem->pszText, pLogEntry->GetSubject().Trim(), pItem->cchTextMax - 1);
 		break;
 	case REFLOG_DATE:
 		if (pLogEntry)
-			lstrcpyn(pItem->pszText, static_cast<LPCWSTR>(CLoglistUtils::FormatDateAndTime(pLogEntry->GetCommitterDate(), m_DateFormat, true, m_bRelativeTimes)), pItem->cchTextMax - 1);
+			lstrcpyn(pItem->pszText, CLoglistUtils::FormatDateAndTime(pLogEntry->GetCommitterDate(), m_DateFormat, true, m_bRelativeTimes), pItem->cchTextMax - 1);
 		break;
 
 	default:
@@ -164,9 +164,9 @@ void CRefLogList::CopySelectionToClipBoard(int toCopy)
 			if (toCopy == ID_COPYCLIPBOARDFULL)
 			{
 				sClipdata.AppendFormat(L"%s: %s\r\n%s: %s\r\n%s: %s%s%s\r\n",
-									static_cast<LPCWSTR>(sRev), (pLogEntry->m_CommitHash.ToString()).c_str(),
-									static_cast<LPCWSTR>(sDate), static_cast<LPCWSTR>(CLoglistUtils::FormatDateAndTime(pLogEntry->GetCommitterDate(), m_DateFormat, true, m_bRelativeTimes)),
-									static_cast<LPCWSTR>(sMessage), static_cast<LPCWSTR>(pLogEntry->m_RefAction), pLogEntry->m_RefAction.IsEmpty() ? L"" : L": ", static_cast<LPCWSTR>(pLogEntry->GetSubjectBody(true)));
+									sRev, (pLogEntry->m_CommitHash.ToString()).c_str(),
+									sDate, CLoglistUtils::FormatDateAndTime(pLogEntry->GetCommitterDate(), m_DateFormat, true, m_bRelativeTimes),
+									sMessage, pLogEntry->m_RefAction, pLogEntry->m_RefAction.IsEmpty() ? L"" : L": ", pLogEntry->GetSubjectBody(true));
 			}
 			else if (toCopy == ID_COPYCLIPBOARDMESSAGES)
 			{

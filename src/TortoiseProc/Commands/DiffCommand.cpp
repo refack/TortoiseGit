@@ -34,10 +34,10 @@ bool DiffCommand::Execute()
 	// GetValStr, not std::wstring(GetVal(..)): /path2 is optional, GetVal returns
 	// nullptr when it is absent, and constructing a std::wstring from that is
 	// undefined behaviour rather than the empty string CString used to give.
-	CString path2 = PathUtils::GetLongPathname(parser.GetValStr(L"path2")).c_str();
+	const auto path2 = fs::path(parser.GetValStr(L"path2"));
 	bool bAlternativeTool = !!parser.HasKey(L"alternative");
 //	bool bBlame = !!parser.HasKey(L"blame");
-	if (path2.IsEmpty())
+	if (path2.empty())
 	{
 		if (!CheckRepo(PathRequirement::WorkingTreeOrBareRepoRequired))
 			return FALSE;
@@ -56,13 +56,13 @@ bool DiffCommand::Execute()
 			if (parser.HasKey(L"startrev") && parser.HasKey(L"endrev"))
 			{
 				if (parser.HasKey(L"unified"))
-					bRet = !!CAppUtils::StartShowUnifiedDiff(nullptr, cmdLinePath, parser.GetVal(L"startrev"), cmdLinePath, parser.GetVal(L"endrev"), bAlternativeTool);
+					bRet = !!CAppUtils::StartShowUnifiedDiff(nullptr, cmdLinePath, parser.GetValPtr(L"startrev"), cmdLinePath, parser.GetValPtr(L"endrev"), bAlternativeTool);
 				else
 					// CGitDiff::Diff returns 0 for success, -1 for an error and 1 when
 					// the user declined to locate a missing file, so `!!` reported
 					// success as failure: ExitInstance turns a false here into an exit
 					// code of -1, and a *failed* diff into 0.
-					bRet = CGitDiff::Diff(GetExplorerHWND(), &cmdLinePath, &cmdLinePath, parser.GetVal(L"endrev"), parser.GetVal(L"startrev"), false, parser.HasKey(L"unified") == TRUE, parser.GetLongVal(L"line"), bAlternativeTool, false) == 0;
+					bRet = CGitDiff::Diff(GetExplorerHWND(), &cmdLinePath, &cmdLinePath, parser.GetValPtr(L"endrev"), parser.GetValPtr(L"startrev"), false, parser.HasKey(L"unified") == TRUE, parser.GetLongVal(L"line"), bAlternativeTool, false) == 0;
 			}
 			else
 			{
@@ -70,7 +70,7 @@ bool DiffCommand::Execute()
 				unsigned int status_flags = 0;
 				const wil::unique_git_repository repo(g_Git.GetGitRepository());
 				if (repo)
-					git_status_file(&status_flags, repo.get(), CUnicodeUtils::GetUTF8<CStringA>(cmdLinePath.GetWinPathString().c_str()));
+					git_status_file(&status_flags, repo.get(), cmdLinePath.GetStdPath().string().c_str());
 				if (status_flags == GIT_STATUS_INDEX_NEW)
 				{
 					if (!g_Git.IsInitRepos())
@@ -79,7 +79,7 @@ bool DiffCommand::Execute()
 						// %% was a literal percent in the format string; in std::format
 						// the percent is ordinary and the placeholder is {}.
 						std::string cmdout;
-						g_Git.Run({ L"git.exe", L"diff-index", L"--raw", L"HEAD", std::format(L"-M{}%", TGitH::ms_iSimilarityIndexThreshold), std::format(L"-C{}%", TGitH::ms_iSimilarityIndexThreshold), L"-z", L"--" }, &cmdout);
+						g_Git.Run({ L"git.exe", L"diff-index", L"--raw", L"HEAD", std::format(L"-M{}%", GitCall::ms_iSimilarityIndexThreshold), std::format(L"-C{}%", GitCall::ms_iSimilarityIndexThreshold), L"-z", L"--" }, &cmdout);
 						CTGitPathList changedFiles;
 						changedFiles.ParserFromLog(cmdout);
 						for (int i = 0; i < changedFiles.GetCount(); ++i)
@@ -115,17 +115,18 @@ bool DiffCommand::Execute()
 	}
 	else
 	{
-		if (parser.HasKey(L"startrev") && parser.HasKey(L"endrev") && StringUtils::StartsWith(path2, g_Git.m_CurrentDir + L"\\"))
+		auto rel = fs::relative(path2, g_Git.m_CurrentDir);
+		if (parser.HasKey(L"startrev") && parser.HasKey(L"endrev") && rel.empty() == false)
 		{
 			if (!CheckRepo(PathRequirement::WorkingTreeOrBareRepoRequired))
 				return FALSE;
-			CTGitPath tgitPath2(path2.Mid(g_Git.m_CurrentDir.GetLength() + 1).GetString());
-			bRet = CGitDiff::Diff(GetExplorerHWND(), &tgitPath2, &cmdLinePath, parser.GetVal(L"endrev"), parser.GetVal(L"startrev"), false, parser.HasKey(L"unified") == TRUE, parser.GetLongVal(L"line"), bAlternativeTool) == 0;
+			auto tgitPath2 = CTGitPath{rel};
+			bRet = CGitDiff::Diff(GetExplorerHWND(), &tgitPath2, &cmdLinePath, parser.GetValPtr(L"endrev"), parser.GetValPtr(L"startrev"), false, parser.HasKey(L"unified") == TRUE, parser.GetLongVal(L"line"), bAlternativeTool) == 0;
 		}
 		else
 		{
 			bRet = CAppUtils::StartExtDiff(
-				path2, orgCmdLinePath.GetWinPathString().c_str(), CString(), CString(),
+				path2.c_str(), orgCmdLinePath.GetWinPathString().c_str(), CString(), CString(),
 				CString(), CString(), CGitHash(), CGitHash(),
 				CAppUtils::DiffFlags().AlternativeTool(bAlternativeTool), parser.GetLongVal(L"line"));
 		}

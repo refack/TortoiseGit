@@ -74,7 +74,7 @@ bool RevertProgressCommand::Run(CGitProgressList* list, CString& sWindowTitle, i
 			if (CTGitPath(path.GetGitOldPathString().c_str()).IsDirectory())
 			{
 				CString err;
-				err.Format(L"Revert failed:\nCannot revert renaming of \"%s\". A directory with the old name \"%s\" exists.", static_cast<LPCWSTR>(path.GetGitPathString().c_str()), static_cast<LPCWSTR>(path.GetGitOldPathString().c_str()));
+				err.Format(L"Revert failed:\nCannot revert renaming of \"%s\". A directory with the old name \"%s\" exists.", path.GetGitPathString().c_str(), path.GetGitOldPathString().c_str());
 				list->ReportError(err);
 				return false;
 			}
@@ -185,7 +185,7 @@ bool RevertProgressCommand::Run(CGitProgressList* list, CString& sWindowTitle, i
 						pathString = path.GetGitOldPathString().c_str();
 
 					CString sCmd;
-					sCmd.Format(L"/command:diff /submodule /startrev:%s /endrev:%s /path:%s", static_cast<LPCWSTR>(TCmdLineParser::EscapeValue(m_sRevertToRevision)), GitRev::GetWorkingCopyRef(), static_cast<LPCWSTR>(TCmdLineParser::EscapeValue(pathString)));
+					sCmd.Format(L"/command:diff /submodule /startrev:%s /endrev:%s /path:%s", TCmdLineParser::EscapeValue(m_sRevertToRevision), GitRev::GetWorkingCopyRef(), TCmdLineParser::EscapeValue(pathString));
 					CAppUtils::RunTortoiseGitProc(sCmd);
 				}
 			});

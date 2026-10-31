@@ -584,6 +584,8 @@ struct AdminDir {
 	/// True when \a path came from the worktree's commondir, i.e. the admin
 	/// directory is shared and the per-worktree one is somewhere else.
 	bool isWorktree = false;
+
+	auto GetPath() const { return fs::path{path}; };
 };
 
 
@@ -1339,6 +1341,12 @@ struct CTGitPathList {
 
 	void AddPath(const CTGitPath& newPath) {
 		m_paths.push_back(newPath);
+		m_commonBaseDirectory.Reset();
+	}
+
+
+	void AddPath(const fs::path& newPath) {
+		m_paths.emplace_back(newPath);
 		m_commonBaseDirectory.Reset();
 	}
 

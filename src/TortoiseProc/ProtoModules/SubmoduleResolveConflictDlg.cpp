@@ -202,7 +202,7 @@ void CSubmoduleResolveConflictDlg::SetDiff(const CString& path, bool revertTheir
 void CSubmoduleResolveConflictDlg::ShowLog(const CString& hash)
 {
 	CString sCmd;
-	sCmd.Format(L"/command:log /path:%s /endrev:%s /rev:%s", static_cast<LPCWSTR>(TCmdLineParser::EscapeValue(g_Git.CombinePath(m_sPath))), static_cast<LPCWSTR>(TCmdLineParser::EscapeValue(hash)), static_cast<LPCWSTR>(TCmdLineParser::EscapeValue(hash)));
+	sCmd.Format(L"/command:log /path:%s /endrev:%s /rev:%s", static_cast<LPCWSTR>(TCmdLineParser::EscapeValue(g_Git.CombinePath(m_sPath))), TCmdLineParser::EscapeValue(hash), TCmdLineParser::EscapeValue(hash));
 	CAppUtils::RunTortoiseGitProc(sCmd, false, false);
 }
 

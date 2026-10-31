@@ -80,7 +80,7 @@ BOOL CCheckForUpdatesDlg::OnInitDialog()
 	CResizableStandAloneDialog::OnInitDialog();
 	CAppUtils::MarkWindowAsUnpinnable(m_hWnd);
 
-	if (CString hotfix = (PathUtils::GetAppDirectory() + L"hotfix.ini").c_str(); PathFileExists(hotfix))
+	if (CString hotfix = (PathUtils::GetAppDirectory() / L"hotfix.ini").c_str(); PathFileExists(hotfix))
 	{
 		CString err;
 		CVersioncheckParser parser;
@@ -276,10 +276,10 @@ UINT CCheckForUpdatesDlg::CheckThread()
 		if (m_sNewVersionNumber != version.version_for_filename)
 		{
 			CString versionstr = m_sNewVersionNumber + L" (" + version.version_for_filename + L")";
-			temp.Format(IDS_CHECKNEWER_CURRENTVERSION, static_cast<LPCWSTR>(versionstr));
+			temp.Format(IDS_CHECKNEWER_CURRENTVERSION, versionstr);
 		}
 		else
-			temp.Format(IDS_CHECKNEWER_CURRENTVERSION, static_cast<LPCWSTR>(m_sNewVersionNumber));
+			temp.Format(IDS_CHECKNEWER_CURRENTVERSION, m_sNewVersionNumber);
 		SetDlgItemText(IDC_CURRENTVERSION, temp);
 
 		if (bNewer)
@@ -352,7 +352,7 @@ void CCheckForUpdatesDlg::FillDownloads(CVersioncheckParser& versioncheck)
 	std::vector<LangPack> availableLangs;
 	std::vector<DWORD> installedLangs;
 	{
-		auto installed = CLangDll::GetInstalledLanguages();
+		auto installed = LangDll::GetInstalledLanguages();
 		std::ranges::for_each(
 			std::as_const(installed),
 			[&installedLangs](auto& item) { installedLangs.push_back(item.second); }
@@ -398,7 +398,7 @@ void CCheckForUpdatesDlg::FillChangelog(CVersioncheckParser& versioncheck, bool 
 	}
 
 	CString sChangelogURL;
-	sChangelogURL.FormatMessage(versioncheck.GetTortoiseGitChangelogURL(), m_myVersion.major, m_myVersion.minor, m_myVersion.micro, static_cast<LPCWSTR>(m_updateDownloader->m_sWindowsPlatform), static_cast<LPCWSTR>(m_updateDownloader->m_sWindowsVersion), static_cast<LPCWSTR>(m_updateDownloader->m_sWindowsServicePack));
+	sChangelogURL.FormatMessage(versioncheck.GetTortoiseGitChangelogURL(), m_myVersion.major, m_myVersion.minor, m_myVersion.micro, m_updateDownloader->m_sWindowsPlatform, m_updateDownloader->m_sWindowsVersion, m_updateDownloader->m_sWindowsServicePack);
 
 	CString tempchangelogfile = TempFiles::GetTempFilePath(true).GetWinPathString().c_str();
 	if (DWORD err = m_updateDownloader->DownloadFile(sChangelogURL, tempchangelogfile, false); err != ERROR_SUCCESS)
@@ -547,14 +547,14 @@ bool CCheckForUpdatesDlg::VerifyUpdateFile(const CString& filename, const CStrin
 		sFileVer.Trim();
 		if (sFileVer.IsEmpty())
 		{
-			m_sErrors.AppendFormat(L"%s: Invalid filetype found (neither executable nor MSI).\r\n", static_cast<LPCWSTR>(reportingFilename));
+			m_sErrors.AppendFormat(L"%s: Invalid filetype found (neither executable nor MSI).\r\n", reportingFilename);
 			TracePrintf(_T(__FUNCTION__) L": MsiGetSummaryInformation reported: %s\n", (CFormatMessageWrapper(ret)).c_str());
 			return false;
 		}
 		else if (sFileVer == versionnumber)
 			return true;
 
-		m_sErrors.AppendFormat(L"%s: Version number of downloaded file doesn't match (expected: \"%s\", got: \"%s\").\r\n", static_cast<LPCWSTR>(reportingFilename), static_cast<LPCWSTR>(versionnumber), static_cast<LPCWSTR>(sFileVer));
+		m_sErrors.AppendFormat(L"%s: Version number of downloaded file doesn't match (expected: \"%s\", got: \"%s\").\r\n", reportingFilename, versionnumber, sFileVer);
 		return false;
 	}
 	SCOPE_EXIT{ MsiCloseHandle(hSummary); };
@@ -565,20 +565,20 @@ bool CCheckForUpdatesDlg::VerifyUpdateFile(const CString& filename, const CStrin
 	int intValue;
 	if (MsiSummaryInfoGetProperty(hSummary, PID_SUBJECT, &uiDataType, &intValue, nullptr, CStrBuf(buffer, gsl::narrow<int>(cchValue + 1)), &cchValue))
 	{
-		m_sErrors.AppendFormat(L"%s: Error obtaining version of MSI file (%s).\r\n", static_cast<LPCWSTR>(reportingFilename), (CFormatMessageWrapper(ret)).c_str());
+		m_sErrors.AppendFormat(L"%s: Error obtaining version of MSI file (%s).\r\n", reportingFilename, (CFormatMessageWrapper(ret)).c_str());
 		return false;
 	}
 
 	if (VT_LPSTR != uiDataType)
 	{
-		m_sErrors.AppendFormat(L"%s: Error obtaining version of MSI file (invalid data type returned).\r\n", static_cast<LPCWSTR>(reportingFilename));
+		m_sErrors.AppendFormat(L"%s: Error obtaining version of MSI file (invalid data type returned).\r\n", reportingFilename);
 		return false;
 	}
 
 	CString sFileVer = buffer.Right(versionnumber.GetLength() + 1);
 	if (sFileVer != L"v" + versionnumber)
 	{
-		m_sErrors.AppendFormat(L"%s: Version number of downloaded file doesn't match (expected: \"v%s\", got: \"%s\").\r\n", static_cast<LPCWSTR>(reportingFilename), static_cast<LPCWSTR>(versionnumber), static_cast<LPCWSTR>(sFileVer));
+		m_sErrors.AppendFormat(L"%s: Version number of downloaded file doesn't match (expected: \"v%s\", got: \"%s\").\r\n", reportingFilename, versionnumber, sFileVer);
 		return false;
 	}
 
@@ -605,10 +605,9 @@ bool CCheckForUpdatesDlg::Download(const CString& filename, const CString& versi
 	m_progress.SetRange32(0, 1);
 	m_progress.SetPos(0);
 	m_progress.ShowWindow(SW_SHOW);
-	if (m_pTaskbarList)
-	{
-		m_pTaskbarList->SetProgressState(m_hWnd, TBPF_NORMAL);
-		m_pTaskbarList->SetProgressValue(m_hWnd, 0, 1);
+	if (m_pTaskbarList) {
+		std::ignore = m_pTaskbarList->SetProgressState(m_hWnd, TBPF_NORMAL);
+		std::ignore = m_pTaskbarList->SetProgressValue(m_hWnd, 0, 1);
 	}
 
 	CString tempfile = TempFiles::GetTempFilePath(true).GetWinPathString().c_str();
@@ -622,10 +621,10 @@ bool CCheckForUpdatesDlg::Download(const CString& filename, const CString& versi
 		m_progress.SetPos(m_progress.GetPos() + 1);
 		if (m_pTaskbarList)
 		{
-			m_pTaskbarList->SetProgressState(m_hWnd, TBPF_NORMAL);
+			std::ignore = m_pTaskbarList->SetProgressState(m_hWnd, TBPF_NORMAL);
 			int minValue, maxValue;
 			m_progress.GetRange(minValue, maxValue);
-			m_pTaskbarList->SetProgressValue(m_hWnd, m_progress.GetPos(), maxValue);
+			std::ignore = m_pTaskbarList->SetProgressValue(m_hWnd, m_progress.GetPos(), maxValue);
 		}
 	}
 	else
@@ -638,12 +637,12 @@ bool CCheckForUpdatesDlg::Download(const CString& filename, const CString& versi
 			DeleteFile(destFilename + SIGNATURE_FILE_ENDING);
 			if (!MoveFile(tempfile, destFilename))
 			{
-				m_sErrors.AppendFormat(L"Could not move \"%s\" to \"%s\".\r\n", static_cast<LPCWSTR>(tempfile), static_cast<LPCWSTR>(destFilename));
+				m_sErrors.AppendFormat(L"Could not move \"%s\" to \"%s\".\r\n", tempfile, destFilename);
 				return false;
 			}
 			if (!MoveFile(signatureTempfile, destFilename + SIGNATURE_FILE_ENDING))
 			{
-				m_sErrors.AppendFormat(L"Could not move \"%s\" to \"%s\".\r\n", static_cast<LPCWSTR>(signatureTempfile), static_cast<LPCWSTR>(destFilename + SIGNATURE_FILE_ENDING));
+				m_sErrors.AppendFormat(L"Could not move \"%s\" to \"%s\".\r\n", signatureTempfile, destFilename + SIGNATURE_FILE_ENDING);
 				return false;
 			}
 			return true;
@@ -710,20 +709,20 @@ LRESULT CCheckForUpdatesDlg::OnEndDownload(WPARAM, LPARAM)
 		m_ctrlUpdate.AddEntry(CString(MAKEINTRESOURCE(IDS_CHECKUPDATE_DESTFOLDER)));
 		m_ctrlUpdate.Invalidate();
 		if (m_pTaskbarList)
-			m_pTaskbarList->SetProgressState(m_hWnd, TBPF_NOPROGRESS);
+			std::ignore = m_pTaskbarList->SetProgressState(m_hWnd, TBPF_NOPROGRESS);
 	}
 	else
 	{
 		m_ctrlUpdate.SetWindowText(CString(MAKEINTRESOURCE(IDS_PROC_DOWNLOAD)));
 		if (m_pTaskbarList)
-			m_pTaskbarList->SetProgressState(m_hWnd, TBPF_ERROR);
+			std::ignore = m_pTaskbarList->SetProgressState(m_hWnd, TBPF_ERROR);
 		CString tmp;
 		tmp.LoadString(IDS_ERR_FAILEDUPDATEDOWNLOAD);
 		if (!m_sErrors.IsEmpty())
 			tmp += L"\r\n\r\nErrors:\r\n" + m_sErrors;
 		CMessageBox::Show(GetSafeHwnd(), tmp, L"TortoiseGit", MB_ICONERROR);
 		if (m_pTaskbarList)
-			m_pTaskbarList->SetProgressState(m_hWnd, TBPF_NOPROGRESS);
+			std::ignore = m_pTaskbarList->SetProgressState(m_hWnd, TBPF_NOPROGRESS);
 	}
 
 	return 0;
@@ -765,8 +764,8 @@ LRESULT CCheckForUpdatesDlg::OnDisplayStatus(WPARAM, LPARAM lParam)
 		m_progress.SetPos(gsl::narrow<int>(pDownloadStatus->ulProgress));
 		if (m_pTaskbarList)
 		{
-			m_pTaskbarList->SetProgressState(m_hWnd, TBPF_NORMAL);
-			m_pTaskbarList->SetProgressValue(m_hWnd, pDownloadStatus->ulProgress, pDownloadStatus->ulProgressMax);
+			std::ignore = m_pTaskbarList->SetProgressState(m_hWnd, TBPF_NORMAL);
+			std::ignore = m_pTaskbarList->SetProgressValue(m_hWnd, pDownloadStatus->ulProgress, pDownloadStatus->ulProgressMax);
 		}
 	}
 
@@ -776,7 +775,7 @@ LRESULT CCheckForUpdatesDlg::OnDisplayStatus(WPARAM, LPARAM lParam)
 LRESULT CCheckForUpdatesDlg::OnTaskbarBtnCreated(WPARAM /*wParam*/, LPARAM /*lParam*/)
 {
 	m_pTaskbarList.Release();
-	m_pTaskbarList.CoCreateInstance(CLSID_TaskbarList);
+	std::ignore = m_pTaskbarList.CoCreateInstance(CLSID_TaskbarList);
 	return 0;
 }
 

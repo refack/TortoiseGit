@@ -246,7 +246,7 @@ void CPatchViewDlg::ShowAndAlignToParent()
 	int adjust = GetBorderAjustment(m_ParentDlg->GetPatchViewParentWnd()->GetSafeHwnd(), rect);
 	rect.left = rect.right - adjust;
 	rect.right = rect.left;
-	int xPos = CDPIAware::Instance().ScaleX(GetSafeHwnd(), static_cast<DWORD>(CRegDWORD(L"Software\\TortoiseGit\\TortoiseProc\\ResizableState\\PatchDlgWidth")));
+	int xPos = CDPIAware::Instance().ScaleX(GetSafeHwnd(), CRegDWORD(L"Software\\TortoiseGit\\TortoiseProc\\ResizableState\\PatchDlgWidth"));
 	if (xPos)
 		rect.right += xPos;
 	else
@@ -304,7 +304,7 @@ void CPatchViewDlg::OnShowFindBar()
 	GetClientRect(&rect);
 	::SetWindowPos(m_ctrlPatchView.GetSafeHwnd(), HWND_TOP, rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top - CDPIAware::Instance().ScaleX(GetSafeHwnd(), SEARCHBARHEIGHT), SWP_SHOWWINDOW);
 	::SetWindowPos(m_FindBar, HWND_TOP, rect.left, rect.bottom - CDPIAware::Instance().ScaleX(GetSafeHwnd(), SEARCHBARHEIGHT + 2), rect.right - rect.left, CDPIAware::Instance().ScaleX(GetSafeHwnd(), SEARCHBARHEIGHT), SWP_SHOWWINDOW);
-	if (auto selstart = static_cast<Sci_Position>(m_ctrlPatchView.Call(SCI_GETSELECTIONSTART)), selend = static_cast<Sci_Position>(m_ctrlPatchView.Call(SCI_GETSELECTIONEND)); selstart != selend && selend - selstart < INT_MAX)
+	if (auto selstart = m_ctrlPatchView.Call(SCI_GETSELECTIONSTART), selend = m_ctrlPatchView.Call(SCI_GETSELECTIONEND); selstart != selend && selend - selstart < INT_MAX)
 	{
 		CStringA selText;
 		Sci_TextRangeFull range = { selstart, selend, selText.GetBuffer(SafeSizeToInt(selend - selstart)) };
@@ -437,7 +437,7 @@ int CPatchViewDlg::GetLastLineNumberSelected()
 
 void CPatchViewDlg::StageOrUnstageSelectedLinesOrHunks(StagingType stagingType)
 {
-	auto documentLength = static_cast<Sci_Position>(m_ctrlPatchView.Call(SCI_GETLENGTH));
+	auto documentLength = m_ctrlPatchView.Call(SCI_GETLENGTH);
 	auto wholePatchBuf = std::make_unique<char[]>(documentLength + 1);
 	m_ctrlPatchView.Call(SCI_GETTEXT, documentLength + 1, reinterpret_cast<LPARAM>(wholePatchBuf.get()));
 

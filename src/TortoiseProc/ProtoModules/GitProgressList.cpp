@@ -501,7 +501,7 @@ UINT CGitProgressList::ProgressThread()
 	if (!m_sTotalBytesTransferred.IsEmpty())
 	{
 		temp.FormatMessage(IDS_PROGRS_TIME, static_cast<DWORD>(time / 1000) / 60, static_cast<DWORD>(time / 1000) % 60);
-		sFinalInfo.FormatMessage(IDS_PROGRS_FINALINFO, static_cast<LPCWSTR>(m_sTotalBytesTransferred), static_cast<LPCWSTR>(temp));
+		sFinalInfo.FormatMessage(IDS_PROGRS_FINALINFO, m_sTotalBytesTransferred, temp);
 		if (m_pProgressLabelCtrl)
 			m_pProgressLabelCtrl->SetWindowText(sFinalInfo);
 	}
@@ -531,7 +531,7 @@ UINT CGitProgressList::ProgressThread()
 			str.LoadString(IDS_FAIL);
 			color = CTheme::Instance().IsDarkTheme() ? RGB(207, 47, 47) : RGB(255, 0, 0);
 		}
-		log.Format(L"%s (%I64u ms @ %s)", static_cast<LPCWSTR>(str), time, static_cast<LPCWSTR>(CLoglistUtils::FormatDateAndTime(CTime::GetCurrentTime(), DATE_SHORTDATE, true, false)));
+		log.Format(L"%s (%I64u ms @ %s)", str, time, CLoglistUtils::FormatDateAndTime(CTime::GetCurrentTime(), DATE_SHORTDATE, true, false));
 
 		// there's no "finished: xxx" line at the end. We add one here to make
 		// sure the user sees that the command is actually finished.
@@ -549,7 +549,7 @@ UINT CGitProgressList::ProgressThread()
 		for (size_t i = 0; i < m_arData.size(); ++i)
 		{
 			NotificationData * data = m_arData[i];
-			temp.Format(L"%-20s : %s", static_cast<LPCWSTR>(data->sActionColumnText), static_cast<LPCWSTR>(data->sPathColumnText));
+			temp.Format(L"%-20s : %s", data->sActionColumnText, data->sPathColumnText);
 			logfile.AddLine(temp);
 		}
 		if (!sFinalInfo.IsEmpty())
@@ -783,7 +783,7 @@ int CGitProgressList::UpdateProgress(const git_indexer_progress* stat)
 	else
 		str.Format(L"%.2f MiB/s", speed / 1048576.0);
 
-	progText.FormatMessage(IDS_SVN_PROGRESS_TOTALANDSPEED, static_cast<LPCWSTR>(m_sTotalBytesTransferred), static_cast<LPCWSTR>(str));
+	progText.FormatMessage(IDS_SVN_PROGRESS_TOTALANDSPEED, m_sTotalBytesTransferred, str);
 	if (m_pProgressLabelCtrl)
 		m_pProgressLabelCtrl->SetWindowText(progText);
 
@@ -798,7 +798,7 @@ void CGitProgressList::OnTimer(UINT_PTR nIDEvent)
 	{
 		CString progText;
 		CString progSpeed = L"0 B/s";
-		progText.FormatMessage(IDS_SVN_PROGRESS_TOTALANDSPEED, static_cast<LPCWSTR>(m_sTotalBytesTransferred), static_cast<LPCWSTR>(progSpeed));
+		progText.FormatMessage(IDS_SVN_PROGRESS_TOTALANDSPEED, m_sTotalBytesTransferred, progSpeed);
 		if (m_pProgressLabelCtrl)
 			m_pProgressLabelCtrl->SetWindowText(progText);
 
@@ -1053,7 +1053,7 @@ BOOL CGitProgressList::PreTranslateMessage(MSG* pMsg)
 							CString sAction = GetItemText(nItem, 0);
 							CString sPath = GetItemText(nItem, 1);
 							CString sMime = GetItemText(nItem, 2);
-							sClipdata.AppendFormat(L"%s: %s  %s\r\n", static_cast<LPCWSTR>(sAction), static_cast<LPCWSTR>(sPath), static_cast<LPCWSTR>(sMime));
+							sClipdata.AppendFormat(L"%s: %s  %s\r\n", sAction, sPath, sMime);
 						}
 						wil::SetClipboardText(tgit::str::StringView{ sClipdata });
 					}
@@ -1181,7 +1181,7 @@ void CGitProgressList::WC_File_NotificationData::GetContextMenu(CIconMenu& popup
 				CString tempfilename = TempFiles::GetTempFilePath(false).GetWinPathString().c_str();
 				VERIFY(pathList.WriteToFile(tempfilename.GetString()));
 				CString sCmd;
-				sCmd.Format(L"/command:lfslock /pathfile:\"%s\" /deletepathfile", static_cast<LPCWSTR>(tempfilename));
+				sCmd.Format(L"/command:lfslock /pathfile:\"%s\" /deletepathfile", tempfilename);
 				CAppUtils::RunTortoiseGitProc(sCmd);
 			});
 			popup.AppendMenuIcon(actions.size(), IDS_PROGRS_TITLE_LFS_LOCK, IDI_LFSLOCK);
@@ -1190,7 +1190,7 @@ void CGitProgressList::WC_File_NotificationData::GetContextMenu(CIconMenu& popup
 				CString tempfilename = TempFiles::GetTempFilePath(false).GetWinPathString().c_str();
 				VERIFY(pathList.WriteToFile(tempfilename.GetString()));
 				CString sCmd;
-				sCmd.Format(L"/command:lfsunlock /pathfile:\"%s\" /deletepathfile", static_cast<LPCWSTR>(tempfilename));
+				sCmd.Format(L"/command:lfsunlock /pathfile:\"%s\" /deletepathfile", tempfilename);
 				CAppUtils::RunTortoiseGitProc(sCmd);
 			});
 			popup.AppendMenuIcon(actions.size(), IDS_PROGRS_TITLE_LFS_UNLOCK, IDI_LFSUNLOCK);

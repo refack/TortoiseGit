@@ -378,7 +378,7 @@ void CGitTagCompareList::OnContextMenuList(CWnd * /*pWnd*/, CPoint point)
 	CString logStr;
 	if (!myHash.IsEmpty())
 	{
-		logStr.Format(IDS_SHOWLOG_OF, static_cast<LPCWSTR>(myHash));
+		logStr.Format(IDS_SHOWLOG_OF, myHash);
 		popup.AppendMenuIcon(IDGITRCL_MYLOG, logStr, IDI_LOG);
 	}
 
@@ -386,7 +386,7 @@ void CGitTagCompareList::OnContextMenuList(CWnd * /*pWnd*/, CPoint point)
 	{
 		if (!theirHash.IsEmpty())
 		{
-			logStr.Format(IDS_SHOWLOG_OF, static_cast<LPCWSTR>(theirHash));
+			logStr.Format(IDS_SHOWLOG_OF, theirHash);
 			popup.AppendMenuIcon(IDGITRCL_THEIRLOG, logStr, IDI_LOG);
 		}
 
@@ -418,14 +418,14 @@ void CGitTagCompareList::OnContextMenuList(CWnd * /*pWnd*/, CPoint point)
 		{
 			CString sCmd;
 			auto revToShow = cmd == IDGITRCL_MYLOG ? static_cast<LPCWSTR>(TCmdLineParser::EscapeValue(myHash)) : static_cast<LPCWSTR>(TCmdLineParser::EscapeValue(theirHash));
-			sCmd.Format(L"/command:log /path:\"%s\" /endrev:%s /rev:%s", static_cast<LPCWSTR>(g_Git.m_CurrentDir), revToShow, revToShow);
+			sCmd.Format(L"/command:log /path:\"%s\" /endrev:%s /rev:%s", g_Git.m_CurrentDir, revToShow, revToShow);
 			CAppUtils::RunTortoiseGitProc(sCmd);
 			break;
 		}
 		case IDGITRCL_COMPARE:
 		{
 			CString sCmd;
-			sCmd.Format(L"/command:showcompare /path:\"%s\" /revision1:%s /revision2:%s", static_cast<LPCWSTR>(g_Git.m_CurrentDir), static_cast<LPCWSTR>(TCmdLineParser::EscapeValue(myHash)), static_cast<LPCWSTR>(TCmdLineParser::EscapeValue(theirHash)));
+			sCmd.Format(L"/command:showcompare /path:\"%s\" /revision1:%s /revision2:%s", g_Git.m_CurrentDir, TCmdLineParser::EscapeValue(myHash), TCmdLineParser::EscapeValue(theirHash));
 			if (!!(GetAsyncKeyState(VK_SHIFT) & 0x8000))
 				sCmd += L" /alternative";
 			CAppUtils::RunTortoiseGitProc(sCmd);
@@ -434,7 +434,7 @@ void CGitTagCompareList::OnContextMenuList(CWnd * /*pWnd*/, CPoint point)
 		case IDGITRCL_DELETELOCAL:
 		{
 			CString csMessage;
-			csMessage.Format(IDS_PROC_DELETEBRANCHTAG, static_cast<LPCWSTR>(tag));
+			csMessage.Format(IDS_PROC_DELETEBRANCHTAG, tag);
 			if (MessageBox(csMessage, L"TortoiseGit", MB_YESNO | MB_ICONQUESTION) != IDYES)
 				return;
 
@@ -447,7 +447,7 @@ void CGitTagCompareList::OnContextMenuList(CWnd * /*pWnd*/, CPoint point)
 		case IDGITRCL_DELETEREMOTE:
 		{
 			CString csMessage;
-			csMessage.Format(IDS_PROC_DELETEBRANCHTAG, static_cast<LPCWSTR>(tag));
+			csMessage.Format(IDS_PROC_DELETEBRANCHTAG, tag);
 			if (MessageBox(csMessage, L"TortoiseGit", MB_YESNO | MB_ICONQUESTION) != IDYES)
 				return;
 			CSysProgressDlg sysProgressDlg;

@@ -64,7 +64,7 @@ bool CLogFile::Close()
 	try
 	{
 		// limit log file growth
-		const size_t maxLines = static_cast<DWORD>(m_maxLines);
+		const size_t maxLines = m_maxLines;
 		const size_t newLines = m_newLines.size();
 		TrimFile(static_cast<DWORD>(max(maxLines, newLines) - newLines));
 

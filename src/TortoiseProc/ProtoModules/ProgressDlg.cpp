@@ -380,9 +380,9 @@ LRESULT CProgressDlg::OnProgressUpdateUI(WPARAM wParam, LPARAM lParam)
 			m_CurrentWork.SetWindowText(log);
 			CString err;
 			if (CRegDWORD(L"Software\\TortoiseGit\\ShowGitexeTimings", TRUE))
-				err.Format(L"\r\n\r\n%s (%I64u ms @ %s)\r\n", static_cast<LPCWSTR>(log), tickSpent, static_cast<LPCWSTR>(strEndTime));
+				err.Format(L"\r\n\r\n%s (%I64u ms @ %s)\r\n", log, tickSpent, strEndTime);
 			else
-				err.Format(L"\r\n\r\n%s\r\n", static_cast<LPCWSTR>(log));
+				err.Format(L"\r\n\r\n%s\r\n", log);
 			if (!m_GitCmd.empty() || !m_GitCmdList.empty())
 				InsertColorText(this->m_Log, err, CTheme::Instance().IsDarkTheme() ? RGB(207, 47, 47) : RGB(255, 0, 0));
 			if (CRegDWORD(L"Software\\TortoiseGit\\NoSounds", FALSE) == FALSE)
@@ -396,9 +396,9 @@ LRESULT CProgressDlg::OnProgressUpdateUI(WPARAM wParam, LPARAM lParam)
 			m_CurrentWork.SetWindowText(temp);
 			CString log;
 			if (CRegDWORD(L"Software\\TortoiseGit\\ShowGitexeTimings", TRUE))
-				log.Format(L"\r\n%s (%I64u ms @ %s)\r\n", static_cast<LPCWSTR>(temp), tickSpent, static_cast<LPCWSTR>(strEndTime));
+				log.Format(L"\r\n%s (%I64u ms @ %s)\r\n", temp, tickSpent, strEndTime);
 			else
-				log.Format(L"\r\n%s\r\n", static_cast<LPCWSTR>(temp));
+				log.Format(L"\r\n%s\r\n", temp);
 			if (CTheme::Instance().IsHighContrastMode())
 				InsertColorText(this->m_Log, log, ::GetSysColor(COLOR_WINDOWTEXT));
 			else
@@ -782,7 +782,7 @@ BOOL CProgressDlg::PreTranslateMessage(MSG* pMsg)
 	}
 	else if (pMsg->message == WM_CONTEXTMENU || pMsg->message == WM_RBUTTONDOWN)
 	{
-		auto pWnd = static_cast<CWnd*>(GetDlgItem(IDC_LOG));
+		auto pWnd = GetDlgItem(IDC_LOG);
 		if (pWnd == GetFocus())
 		{
 			CIconMenu popup;

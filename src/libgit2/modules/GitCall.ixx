@@ -627,10 +627,7 @@ int RunReceiver(const wil::ArgvData& argv, Receiver&& recv, ErrStr* outputErr = 
 	CGitCall call{ argv.SerializeArgv(has_weird_paths()), CGitCall::LineReceiver{ std::forward<Receiver>(recv) }, &err };
 	auto&& ret = Run(call);
 	if (outputErr)
-		if constexpr (std::is_convertible_v<ErrStr, CStringW>)
-			StringAppend(*outputErr, err, CP_UTF8);
-		else
-			*outputErr = CUnicodeUtils::StdGetUnicode(err);
+		*outputErr = CUnicodeUtils::GetUnicode<ErrStr>(err);
 	else
 		gitLastErr = CUnicodeUtils::StdGetUnicode(err);
 

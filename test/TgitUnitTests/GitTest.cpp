@@ -137,33 +137,6 @@ TEST(CGit, RunLogFile_Error)
 	EXPECT_EQ(0, size);
 }
 
-TEST(CGit, StringAppend)
-{
-	CString string = L"something";
-	CGit::StringAppend(string, std::string_view());
-	EXPECT_STREQ(L"something", string);
-	CGit::StringAppend(string, std::string_view(nullptr, 0));
-	EXPECT_STREQ(L"something", string);
-	constexpr char somebytes[1] = { 0 };
-	CGit::StringAppend(string, somebytes, 0);
-	EXPECT_STREQ(L"something", string);
-	CGit::StringAppend(string, somebytes);
-	EXPECT_STREQ(L"something", string);
-	constexpr char moreBytesUTFEight[] = { 0x68, 0x65, 0x6C, 0x6C, '\xC3', '\xB6', 0x0A, 0x00 };
-	CGit::StringAppend(string, std::string_view(moreBytesUTFEight, 3));
-	EXPECT_STREQ(L"somethinghel", string);
-	CGit::StringAppend(string, std::string_view(moreBytesUTFEight + 3, 1), CP_ACP);
-	EXPECT_STREQ(L"somethinghell", string);
-	CGit::StringAppend(string, moreBytesUTFEight);
-	EXPECT_STREQ(L"somethinghellhellö\n", string);
-	CGit::StringAppend(string, std::string_view(moreBytesUTFEight, sizeof(moreBytesUTFEight)));
-	EXPECT_STREQ(L"somethinghellhellö\nhellö\n\0", string);
-	CGit::StringAppend(string, std::string_view(moreBytesUTFEight, 3));
-	EXPECT_STREQ(L"somethinghellhellö\nhellö\n\0hel", string);
-	CGit::StringAppend(string, "\xf0\xa0\x9c\x8e");
-	EXPECT_STREQ(L"somethinghellhellö\nhellö\n\0hel\U0002070e", string);
-}
-
 TEST(CGit, GetFileModifyTime)
 {
 	__int64 time = -1;

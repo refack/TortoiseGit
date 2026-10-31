@@ -31,7 +31,7 @@ bool LFSSetLockedProgressCommand::Run(CGitProgressList* list, CString& sWindowTi
 	m_itemCountTotal = m_targetPathList.GetCount();
 	m_itemCount = 0;
 
-	list->SetWindowTitle(m_bIsLock ? IDS_PROGRS_TITLE_LFS_LOCK : IDS_PROGRS_TITLE_LFS_UNLOCK, g_Git.CombinePath(m_targetPathList.GetCommonRoot().GetUIPathString().c_str()), sWindowTitle);
+	list->SetWindowTitle(m_bIsLock ? IDS_PROGRS_TITLE_LFS_LOCK : IDS_PROGRS_TITLE_LFS_UNLOCK, g_Git.CombinePath(m_targetPathList.GetCommonRoot().GetStdPath()).c_str(), sWindowTitle);
 	list->SetBackgroundImage(m_bIsLock ? IDI_LOCK_BKG : IDI_UNLOCK_BKG);
 	list->ReportCmd(CString(MAKEINTRESOURCE(m_bIsLock ? IDS_PROGRS_CMD_LFS_LOCK : IDS_PROGRS_CMD_LFS_UNLOCK)));
 
@@ -49,25 +49,23 @@ bool LFSSetLockedProgressCommand::Run(CGitProgressList* list, CString& sWindowTi
 	// is the window title, which says "finished" after a partly failed run.
 	// "return !hasError" looks like the intent, but it is a behaviour change and
 	// does not belong in an argv conversion.
-	bool hasError = false;
-
 	m_PostCmdCallback = [this](DWORD status, PostCmdList& postCmdList)
 	{
 		if (status && !m_bIsLock)
 		{
-			postCmdList.emplace_back(IDI_LFSUNLOCK, IDS_PROGS_LFS_FORCEUNLOCK, [this]()
+			postCmdList.emplace_back(IDI_LFSUNLOCK, IDS_PROGS_LFS_FORCEUNLOCK, [this]
 			{
 				CString tempfilename = TempFiles::GetTempFilePath(false).GetWinPathString().c_str();
 				VERIFY(m_targetPathList.WriteToFile(tempfilename.GetString()));
 				CString sCmd;
-				sCmd.Format(L"/command:lfsunlock /force /pathfile:\"%s\" /deletepathfile", static_cast<LPCWSTR>(tempfilename));
+				sCmd.Format(L"/command:lfsunlock /force /pathfile:\"%s\" /deletepathfile", tempfilename);
 				CAppUtils::RunTortoiseGitProc(sCmd);
 			});
 		}
 		if (!status && m_bIsLock)
 		{
 			CString sCmd;
-			sCmd.Format(L"/command:pull /path:\"%s\"", static_cast<LPCWSTR>(g_Git.m_CurrentDir));
+			sCmd.Format(L"/command:pull /path:\"%s\"", g_Git.m_CurrentDir.c_str());
 			CAppUtils::RunTortoiseGitProc(sCmd);
 		}
 	};
@@ -79,9 +77,8 @@ bool LFSSetLockedProgressCommand::Run(CGitProgressList* list, CString& sWindowTi
 
 		list->AddNotify(new CGitProgressList::WC_File_NotificationData(m_targetPathList[i], notifyAction));
 
-		if (CString out; g_Git.Run(cmd, &out, CP_UTF8))
+		if (CString out; g_Git.Run(cmd, &out))
 		{
-			hasError = true;
 			list->ReportError(out);
 		}
 
