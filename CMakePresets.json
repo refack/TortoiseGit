@@ -30,6 +30,18 @@
     },
     {
       "inherits": "base",
+      "name": "release",
+      "displayName": "release - msvc - ninja",
+      "description": "No cl-shim (SARIF/logging is a dev-loop tool, and its /showIncludes filter makes header deps inexact); manifest install ON because a fresh tree has no vcpkg_installed of its own.",
+      "binaryDir": "build/release",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "VCPKG_MANIFEST_INSTALL": "ON",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+      }
+    },
+    {
+      "inherits": "base",
       "name": "clang-cl",
       "displayName": "debug - clang-cl - ninja",
       "binaryDir": "build/clang-cl",
