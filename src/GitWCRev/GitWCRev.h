@@ -18,6 +18,11 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #pragma once
 
+#include <windows.h>	// BOOL
+#include <string>
+#include <set>
+#include "git2.h"		// GIT_OID_MAX_HEXSIZE
+
 /**
  * \ingroup GitWCRev
  * This structure is used as the status baton for WC crawling

@@ -25,6 +25,9 @@
 
 #include <atlbase.h>
 #include <intsafe.h>
+#include <time.h>		// _localtime64_s
+#include <memory>		// std::make_unique
+#include "git2.h"		// git_libgit2_init
 
 #include "../GitWCRev/Register.h"
 #include "../GitWCRev/status.h"

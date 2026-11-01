@@ -17,6 +17,7 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 #pragma once
+#include <string_view>
 #include "GitWCRev.h"
 
 // Internal error codes
@@ -33,5 +34,5 @@
 #define ERR_NOWC		10	// the path is not a working copy or part of one
 #define ERR_GIT_UNVER	11	// Unversioned items found (-uU)
 
-int GetStatus(const wchar_t* wc, GitWCRev_t& GitStat);
+int GetStatus(std::wstring_view wc, GitWCRev_t& GitStat);
 int GetStatusUnCleanPath(const wchar_t* wc, GitWCRev_t& GitStat);
