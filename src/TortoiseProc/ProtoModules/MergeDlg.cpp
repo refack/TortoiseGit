@@ -197,7 +197,7 @@ void CMergeDlg::OnBnClickedOk()
 	{
 		ReloadHistoryEntries();
 		m_History.AddEntry(tgit::str::StringView(m_strLogMesage));
-		m_History.Save();
+		std::ignore = m_History.Save();
 	}
 
 	if (m_MergeStrategy != L"recursive")
@@ -216,7 +216,7 @@ void CMergeDlg::OnCancel()
 	{
 		ReloadHistoryEntries();
 		m_History.AddEntry(tgit::str::StringView(m_strLogMesage));
-		m_History.Save();
+		std::ignore = m_History.Save();
 	}
 	CResizableStandAloneDialog::OnCancel();
 }

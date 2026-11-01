@@ -118,7 +118,7 @@ BOOL CHistoryDlg::PreTranslateMessage(MSG* pMsg)
 			m_List.DeleteString(pos);
 			m_List.SetCurSel(min(pos, m_List.GetCount() - 1));
 			m_history->RemoveEntry(pos);
-			m_history->Save();
+			std::ignore = m_history->Save();
 			return TRUE;
 		}
 	}

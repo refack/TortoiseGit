@@ -996,13 +996,13 @@ void CCommitDlg::OnOK()
 				{
 					ReloadHistoryEntries();
 					m_History.AddEntry(tgit::str::StringView(m_sLogMessage));
-					m_History.Save();
+					std::ignore = m_History.Save();
 				}
 				if (m_bCommitAmend && !m_NoAmendStr.IsEmpty() && (m_sLogTemplate.Compare(m_NoAmendStr) != 0))
 				{
 					ReloadHistoryEntries();
 					m_History.AddEntry(tgit::str::StringView(m_NoAmendStr));
-					m_History.Save();
+					std::ignore = m_History.Save();
 				}
 
 				GetCommitTemplate(m_sLogTemplate);
@@ -1051,13 +1051,13 @@ void CCommitDlg::OnOK()
 	{
 		ReloadHistoryEntries();
 		m_History.AddEntry(tgit::str::StringView(m_sLogMessage));
-		m_History.Save();
+std::ignore = m_History.Save();
 	}
 	if (m_bCommitAmend && !m_NoAmendStr.IsEmpty() && (m_sLogTemplate.Compare(m_NoAmendStr) != 0))
 	{
 		ReloadHistoryEntries();
 		m_History.AddEntry(tgit::str::StringView(m_NoAmendStr));
-		m_History.Save();
+		std::ignore = m_History.Save();
 	}
 
 	SaveSplitterPos();
@@ -1583,13 +1583,13 @@ void CCommitDlg::OnCancel()
 	{
 		ReloadHistoryEntries();
 		m_History.AddEntry(tgit::str::StringView(m_sLogMessage));
-		m_History.Save();
+		std::ignore = m_History.Save();
 	}
 	if (m_bCommitAmend && !m_NoAmendStr.IsEmpty() && (m_sLogTemplate.Compare(m_NoAmendStr) != 0))
 	{
 		ReloadHistoryEntries();
 		m_History.AddEntry(tgit::str::StringView(m_NoAmendStr));
-		m_History.Save();
+		std::ignore = m_History.Save();
 	}
 	SaveSplitterPos();
 	CResizableStandAloneDialog::OnCancel();
@@ -2207,9 +2207,9 @@ bool CCommitDlg::HandleMenuItemClick(int cmd, CSciEdit * pSciEdit)
 					status = CTGitPath::GetActionName(CTGitPath::LOGACTIONS_ADDED).c_str();
 
 				//git_wc_status_kind status = entry->status;
-				WORD langID = CRegStdDWORD(L"Software\\TortoiseGit\\LanguageID", GetUserDefaultLangID());
-				if (m_ProjectProperties.bFileListInEnglish)
-					langID = 1033;
+				// WORD langID = CRegStdDWORD(L"Software\\TortoiseGit\\LanguageID", GetUserDefaultLangID());
+				// if (m_ProjectProperties.bFileListInEnglish)
+					// langID = 1033;
 
 				logmsg.AppendFormat(L"%-10s %s\r\n", status, m_ListCtrl.GetItemText(i, 0));
 			}

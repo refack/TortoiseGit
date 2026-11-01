@@ -1,5 +1,6 @@
 ﻿module;
 #include "stdafx.h"
+#include <cassert>
 
 #include <Resources/LoglistCommonResource.h>
 #include "Utils/DPIAware.h"

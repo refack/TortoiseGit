@@ -72,7 +72,9 @@ add_compile_definitions(
     _UNICODE
     _WINDOWS
     WINDOWS
+    WINVER=0x0A00
     _WIN32_WINNT=0x0A00
+    _WIN32_IE=0x0A00
     NOMINMAX            # make Windows.h sane
     _AFXDLL             # the shared MFC DLLs, matching the triplet's dynamic CRT
     GIT_DEPRECATE_HARD

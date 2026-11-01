@@ -1440,7 +1440,7 @@ void CLogDlg::OnContextMenu(CWnd* pWnd, CPoint point)
 		{
 			SetRange(CString{ m_History.GetEntry(cmd - offset).c_str() });
 			m_History.AddEntry(tgit::str::StringView(m_LogList.m_sRange));
-			m_History.Save();
+			std::ignore = m_History.Save();
 		}
 
 		UpdateData(FALSE);
@@ -3271,7 +3271,7 @@ void CLogDlg::OnBnClickedBrowseRef()
 		return;
 
 	m_History.AddEntry(tgit::str::StringView(newRef));
-	m_History.Save();
+	std::ignore = m_History.Save();
 
 	SetRange(newRef);
 

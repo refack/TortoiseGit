@@ -23,10 +23,9 @@
 #include <Resources/resource.h>
 
 
-#include <../../libgit2/Resources/LoglistCommonResource.h>
+#include <Resources/LoglistCommonResource.h>
 #include <../TortoiseShell/resource.h>
 #include "GitStatusListCtrl.h"
-import MessageBox;
 #include "Utils/MyMemDC.h"
 #include "LoglistUtils.h"
 #include "GitDiff.h"
@@ -36,10 +35,11 @@ import MessageBox;
 #include "ProgressCommands/LFSSetLockedProgressCommand.h"
 #include "ProgressCommands/RevertProgressCommand.h"
 #include "ProgressCommands/ResolveProgressCommand.h"
-import BrowseFolder;
 #include "CreateChangelistDlg.h"
-import ThemeAPI;
 #include "LogDataVector.h"		// mix CString + std::wstring
+import MessageBox;
+import BrowseFolder;
+import ThemeAPI;
 import AppUtils.Launch;
 import AppUtils.Window;
 import AppUtils.Workflow;
@@ -607,7 +607,7 @@ void CGitStatusListCtrl::Show(unsigned int dwShow, unsigned int dwCheck /*=0*/, 
 	m_bEmpty = false;
 	Invalidate();
 
-	WORD langID = CRegStdDWORD(L"Software\\TortoiseGit\\LanguageID", GetUserDefaultLangID());
+	auto langID = wil::reg::try_get_tgit_dword(L"LanguageID").value_or(GetUserDefaultLangID());
 	SetRedraw(FALSE);
 	{
 		CAutoWriteLock locker(m_guard);
@@ -705,7 +705,7 @@ void CGitStatusListCtrl::Show(unsigned int dwShow, unsigned int dwCheck /*=0*/, 
 
 			if (entry->m_Action & dwShow)
 			{
-				AddEntry(i, entry, langID, index);
+				AddEntry(i, entry, gsl::narrow_cast<WORD>(langID), index);
 				index++;
 			}
 		}
