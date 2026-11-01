@@ -501,7 +501,6 @@ target_include_directories(TortoiseProc
         "${CMAKE_SOURCE_DIR}/src/SharedMFC"
         "${CMAKE_SOURCE_DIR}/src/SharedMFC/Utils"
         "${CMAKE_SOURCE_DIR}/src/SharedMFC/Resources"
-        "${CMAKE_SOURCE_DIR}/src/IBugTraqProvider"
 #        "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/include/scintilla2"
 #        "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/include/lexilla"
         "$<TARGET_FILE_DIR:TortoiseProc>"
@@ -536,6 +535,7 @@ target_link_libraries(TortoiseProc
         gdi32
         crypt32
         gitdll
+        IBugTraqProvider # MIDL header; also orders the MIDL step before our compiles
 
         AsyncFramework
         tgitlib   # the MFC flavor: TortoiseProc speaks MFC CString

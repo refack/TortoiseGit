@@ -119,6 +119,42 @@ function(tgit_app_manifests target)
 endfunction()
 set(TGIT_SYSTEM_DPI_MANIFEST "${CMAKE_SOURCE_DIR}/src/systemDpiAware.manifest")
 
+# MIDL, which the Ninja generator (unlike the Visual Studio one) does not run on
+# its own. Everything it writes goes to the calling directory's binary dir: the
+# vcxproj era left _h.h/_i.c/_p.c/dlldata.c in the source tree, and a build that
+# listed those as sources configured only on machines that still had them.
+# midl.exe ships beside rc.exe in the SDK's bin dir; /cpp_cmd hands it the
+# configured C compiler instead of whichever cl.exe PATH happens to hold.
+# PROXY and TLB declare the outputs an IDL actually produces - a declared output
+# MIDL never writes would leave the command permanently dirty.
+cmake_path(GET CMAKE_RC_COMPILER PARENT_PATH TGIT_SDK_BIN_DIR)
+find_program(TGIT_MIDL midl HINTS "${TGIT_SDK_BIN_DIR}" REQUIRED)
+function(tgit_midl target idl)
+    cmake_parse_arguments(PARSE_ARGV 2 arg "PROXY;TLB" "" "")
+    cmake_path(GET idl STEM name)
+    set(dir "${CMAKE_CURRENT_BINARY_DIR}")
+    set(outputs "${dir}/${name}_h.h" "${dir}/${name}_i.c")
+    if(arg_PROXY)
+        list(APPEND outputs "${dir}/${name}_p.c" "${dir}/dlldata.c")
+    endif()
+    if(arg_TLB)
+        list(APPEND outputs "${dir}/${name}.tlb")
+    endif()
+    add_custom_command(
+        OUTPUT ${outputs}
+        COMMAND "${TGIT_MIDL}" /nologo /W1 /char signed /env x64
+                /cpp_cmd "${CMAKE_C_COMPILER}" /out "${dir}"
+                /h "${name}_h.h" /iid "${name}_i.c" /proxy "${name}_p.c" /dlldata dlldata.c /tlb "${name}.tlb"
+                "${CMAKE_CURRENT_SOURCE_DIR}/${idl}"
+        DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/${idl}"
+        COMMENT "MIDL ${idl}"
+        VERBATIM)
+    # The header makes this target - and, through the order-only chain, anything
+    # linking it - wait for MIDL. The .c outputs are the caller's to compile or #include.
+    target_sources(${target} PRIVATE "${dir}/${name}_h.h")
+    target_include_directories(${target} PUBLIC "${dir}")
+endfunction()
+
 
 add_subdirectory(ext/gitdll)
 add_subdirectory(ext/AsyncFramework)

@@ -1,11 +1,14 @@
-add_executable(IBugTraqProvider)
+# The bug-tracker COM interface, a static library as its vcxproj was: TortoiseProc
+# links it for the MIDL-generated header; the IIDs and proxy/stub code ride along.
+add_library(IBugTraqProvider STATIC)
+
+tgit_midl(IBugTraqProvider IBugTraqProvider.idl PROXY)
 
 target_sources(IBugTraqProvider
     PRIVATE
-        dlldata.c
-        IBugTraqProvider_h.h
-        IBugTraqProvider_i.c
-        IBugTraqProvider_p.c
+        "${CMAKE_CURRENT_BINARY_DIR}/dlldata.c"
+        "${CMAKE_CURRENT_BINARY_DIR}/IBugTraqProvider_i.c"
+        "${CMAKE_CURRENT_BINARY_DIR}/IBugTraqProvider_p.c"
 )
 
 set_target_properties(IBugTraqProvider PROPERTIES

@@ -22,7 +22,7 @@
 
 #include "SetBugTraqAdv.h"
 import BrowseFolder;
-#include <../IBugTraqProvider/IBugTraqProvider_h.h>
+#include <IBugTraqProvider_h.h>
 
 IMPLEMENT_DYNAMIC(CSetBugTraqAdv, CResizableStandAloneDialog)
 

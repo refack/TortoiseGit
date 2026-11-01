@@ -1,4 +1,4 @@
-﻿// TortoiseGit - a Windows shell extension for easy version control
+// TortoiseGit - a Windows shell extension for easy version control
 
 // Copyright (C) 2017-2019, 2021-2023, 2025 - TortoiseGit
 // Copyright (C) 2007-2015 - TortoiseSVN
@@ -19,9 +19,9 @@
 
 
 #include <objbase.h>
-#include "../GitWCRev/GitWCRevCOM_h.h"
-#include "../GitWCRev/GitWCRevCOM_i.c"
-#include "../GitWCRev/GitWCRevCOM.h"
+#include "GitWCRevCOM_h.h" // MIDL output, in this target's binary dir
+#include "GitWCRevCOM_i.c"
+#include "GitWCRevCOM.h"
 
 #include <atlbase.h>
 #include <intsafe.h>

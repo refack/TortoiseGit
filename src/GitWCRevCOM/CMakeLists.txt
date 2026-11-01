@@ -1,13 +1,19 @@
 add_executable(GitWCRevCOM)
 
+tgit_midl(GitWCRevCOM GitWCRevCOM.idl TLB)
+
 target_sources(GitWCRevCOM
     PRIVATE
-        GitWCRevCOM_h.h
-        GitWCRevCOM_i.c
+        # GitWCRevCOM_i.c is #included by GitWCRevCOM.cpp, so it is not compiled on its own
         GitWCRevCOM.cpp
         GitWCRevCOM.h
         GitWCRevCOM.rc
 )
+
+# the .rc embeds the type library (1 TYPELIB "GitWCRevCOM.tlb"); rc's dependency
+# scan does not see binary resources, so the edge is declared here
+set_source_files_properties(GitWCRevCOM.rc PROPERTIES
+    OBJECT_DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/GitWCRevCOM.tlb")
 
 target_include_directories(GitWCRevCOM
     PRIVATE
