@@ -129,8 +129,9 @@ static bool WantRealVersion()
 	if (_wcsicmp(PathFindFileNameW(moduleName), L"verclsid.exe") == 0)
 		return true;
 
+	// %SystemRoot%; GetWindowsDirectory can be a per-user directory under Terminal Services
 	wchar_t explorerPath[MAX_PATH] = {};
-	const UINT len = GetWindowsDirectoryW(explorerPath, _countof(explorerPath));
+	const UINT len = GetSystemWindowsDirectoryW(explorerPath, _countof(explorerPath));
 	if (!len || len >= _countof(explorerPath) || wcscat_s(explorerPath, L"\\explorer.exe") != 0)
 		return true;
 	return _wcsicmp(moduleName, explorerPath) == 0;
