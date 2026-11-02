@@ -105,11 +105,49 @@ STDAPI DllCanUnloadNow()
 	return (g_cRefThisDll == 0 ? S_OK : S_FALSE);
 }
 
+/**
+ * \ingroup TortoiseShell
+ * Whether this process gets TortoiseGit objects at all. With the
+ * "LoadDllOnlyInExplorer" setting on, only explorer.exe does - and
+ * verclsid.exe, which the shell runs to vet an extension before trusting it.
+ *
+ * This was TortoiseGitStub.dll's job (WantRealVersion), done there so that a
+ * "no" never loaded this DLL. Here the DLL is loaded, but a "no" hands out no
+ * object: g_cRefThisDll stays 0, DllCanUnloadNow answers S_OK, COM unloads us,
+ * and ShellState (built by the first CShellExt) is never built.
+ */
+static bool WantRealVersion()
+{
+	if (!CRegStdDWORD(L"Software\\TortoiseGit\\LoadDllOnlyInExplorer", FALSE, false, HKEY_CURRENT_USER, KEY_WOW64_64KEY))
+		return true;
+
+	// MAX_PATH ok: a truncated name is not explorer.exe or verclsid.exe either
+	wchar_t moduleName[MAX_PATH] = {};
+	if (!GetModuleFileNameW(nullptr, moduleName, _countof(moduleName)))
+		return true; // can't tell, so behave as if the setting were off
+
+	if (_wcsicmp(PathFindFileNameW(moduleName), L"verclsid.exe") == 0)
+		return true;
+
+	wchar_t explorerPath[MAX_PATH] = {};
+	const UINT len = GetWindowsDirectoryW(explorerPath, _countof(explorerPath));
+	if (!len || len >= _countof(explorerPath) || wcscat_s(explorerPath, L"\\explorer.exe") != 0)
+		return true;
+	return _wcsicmp(moduleName, explorerPath) == 0;
+}
+
 STDAPI DllGetClassObject(REFCLSID rclsid, REFIID riid, LPVOID *ppvOut)
 {
 	if (!ppvOut)
 		return E_POINTER;
 	*ppvOut = nullptr;
+
+	// Asked once per load: a changed setting takes effect the next time COM
+	// loads us. (The stub re-asked after every DllCanUnloadNow, which COM
+	// follows with an unload anyway when it calls it at all.)
+	static const bool wanted = WantRealVersion();
+	if (!wanted)
+		return CLASS_E_CLASSNOTAVAILABLE;
 
 	FileState state = FileStateInvalid;
 	if (IsEqualIID(rclsid, CLSID_Tortoisegit_UPTODATE))
