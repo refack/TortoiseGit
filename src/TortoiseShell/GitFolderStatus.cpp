@@ -20,11 +20,10 @@
 #include <optional>
 #include "TortoiseShell/ShellCache.h"
 #include "GitFolderStatus.h"
+#include "ShellState.h"
 
 import DebugOutput;
 #include "Git.h"
-
-extern ShellCache g_ShellCache;
 
 GitFolderStatus::GitFolderStatus()
 {
@@ -38,7 +37,7 @@ GitFolderStatus::~GitFolderStatus()
 {
 }
 
-std::optional<const FileStatusCacheEntry *> GitFolderStatus::BuildCache(const CTGitPath& filepath, const CString& /*sProjectRoot*/, BOOL bIsFolder, BOOL bDirectFolder)
+std::optional<const FileStatusCacheEntry *> GitFolderStatus::BuildCache(const CTGitPath& filepath, const std::wstring& /*sProjectRoot*/, BOOL bIsFolder, BOOL bDirectFolder)
 {
 	//don't build the cache if an instance of TortoiseGitProc is running
 	//since this could interfere with svn commands running (concurrent
@@ -125,8 +124,8 @@ std::optional<const FileStatusCacheEntry *> GitFolderStatus::BuildCache(const CT
 
 const FileStatusCacheEntry * GitFolderStatus::GetFullStatus(const CTGitPath& filepath, BOOL bIsFolder)
 {
-	CString sProjectRoot;
-	BOOL bHasAdminDir = g_ShellCache.HasGITAdminDir(filepath.GetWinPath(), bIsFolder, &sProjectRoot);
+	std::wstring sProjectRoot;
+	const bool bHasAdminDir = GetShellState().worktree.adminDirs.HasAdminDir(filepath.GetWinPath(), bIsFolder, &sProjectRoot);
 
 	//no overlay for unversioned folders
 	if (!bHasAdminDir)

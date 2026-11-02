@@ -27,7 +27,6 @@
 #include "GitFolderStatus.h"
 #include "MenuInfo.h"
 #include "ExplorerCommand.h"
-#include "LangDll.h"
 
 import Registry;
 import GitIndex;	// git_wc_status_kind
@@ -54,19 +53,12 @@ enum FileState {
 };
 
 class CExplorerCommand;
+// Process-wide and small. The runtime state (live objects, the language DLL,
+// worktree caches) is in ShellState.h, built on first use.
 extern	volatile LONG		g_cRefThisDll;			// Reference count of this DLL.
 extern	HINSTANCE			g_hmodThisDll;			// Instance handle for this DLL
-extern	ShellCache			g_ShellCache;			// caching of registry entries, ...
-extern	DWORD				g_langid;
-extern	ULONGLONG			g_langTimeout;
-extern	HINSTANCE			g_hResInst;
-extern	CLangDll			g_langDll;
-
-extern	std::wstring		g_filepath;
-extern	git_wc_status_kind	g_filestatus;			///< holds the corresponding status to the file/dir above
-extern	bool				g_readonlyoverlay;		///< whether to show the read only overlay or not
-extern	bool				g_lockedoverlay;		///< whether to show the locked overlay or not
-extern	FileState			g_filestate;			///< filestate for which this status was initially calculated
+extern	ShellCache			g_ShellCache;			// the user's settings, read from the registry
+extern	HINSTANCE			g_hResInst;				// resources: the language DLL, or g_hmodThisDll
 
 extern bool					g_normalovlloaded;
 extern bool					g_modifiedovlloaded;

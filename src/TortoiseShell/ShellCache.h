@@ -112,7 +112,7 @@ public:
 	BOOL IsContextPathAllowed(const std::wstring& path);
 	BOOL IsPathAllowed(LPCWSTR path);
 	DWORD GetLangID();
-	BOOL HasGITAdminDir(LPCWSTR path, BOOL bIsDir, CString* ProjectTopDir = nullptr);
+	// "is this folder in a worktree" is not a setting: see AdminDirCache.h
 
 private:
 	void ExcludeContextValid();
@@ -197,13 +197,6 @@ private:
 	friend bool operator< (const CPathFilter::SEntry& rhs, const std::pair<LPCWSTR, size_t>& lhs);
 	friend bool operator< (const std::pair<LPCWSTR, size_t>& lhs, const CPathFilter::SEntry& rhs);
 
-	struct AdminDir_s
-	{
-		BOOL bHasAdminDir = false;
-		std::wstring sProjectRoot;
-		ULONGLONG timeout = 0;
-	};
-
 public:
 	CRegStdDWORD cachetype;
 	CRegStdDWORD blockstatus;
@@ -242,8 +235,6 @@ public:
 	ULONGLONG menumaskticker = 0;
 	UINT  drivetypecache[27];
 	wchar_t drivetypepathcache[MAX_PATH]{}; // MAX_PATH ok.
-	std::map<std::wstring, AdminDir_s> admindircache;
-	ULONGLONG nextAdmindircacheCleanupTime = 0;
 	CRegStdString nocontextpaths;
 	std::wstring excludecontextstr;
 	std::vector<std::wstring> excontextvector;

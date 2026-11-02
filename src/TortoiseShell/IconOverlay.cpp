@@ -20,6 +20,7 @@
 
 #include "stdafx.h"
 #include "ShellExt.h"
+#include "ShellState.h"
 #include "PreserveChdir.h"
 #include "GitStatus.h"
 #include <TGitCache/CacheInterface.h>
@@ -129,15 +130,17 @@ STDMETHODIMP CShellExt::IsMemberOf(LPCWSTR pwszPath, DWORD dwAttrib)
 	// since the shell calls each and every overlay handler with the same filepath
 	// we use a small 'fast' cache of just one path here.
 	// To make sure that cache expires, clear it as soon as one handler is used.
-	// g_filepath isn't cleared when the status is none, but in that case we clear
+	// last.path isn't cleared when the status is none, but in that case we clear
 	// the cache when this is called with the same filestate again.
 
 	AutoLocker lock(g_csGlobalCOMGuard);
-	if (wcscmp(pPath, g_filepath.c_str()) == 0 && g_filestate != m_State)
+	auto& worktree = GetShellState().worktree;
+	auto& last = worktree.lastOverlay;
+	if (wcscmp(pPath, last.path.c_str()) == 0 && last.state != m_State)
 	{
-		status = g_filestatus;
-		readonlyoverlay = g_readonlyoverlay;
-		lockedoverlay = g_lockedoverlay;
+		status = last.status;
+		readonlyoverlay = last.readonly;
+		lockedoverlay = last.locked;
 	}
 	else
 	{
@@ -145,7 +148,7 @@ STDMETHODIMP CShellExt::IsMemberOf(LPCWSTR pwszPath, DWORD dwAttrib)
 		{
 			if ((m_State == FileStateVersioned) && g_ShellCache.ShowExcludedAsNormal() &&
 				(PathGetDriveNumber(pPath)>1) &&
-				pathIsDir && g_ShellCache.HasGITAdminDir(pPath, true))
+				pathIsDir && worktree.adminDirs.HasAdminDir(pPath, true))
 			{
 				return S_OK;
 			}
@@ -163,7 +166,7 @@ STDMETHODIMP CShellExt::IsMemberOf(LPCWSTR pwszPath, DWORD dwAttrib)
 		case ShellCache::exe:
 			{
 				// the following check is only needed because TGitCache does not specially handle bare repositories
-				if (!g_ShellCache.HasGITAdminDir(pPath, pathIsDir))
+				if (!worktree.adminDirs.HasAdminDir(pPath, pathIsDir))
 				{
 					status = git_wc_status_none;
 					break;
@@ -197,7 +200,7 @@ STDMETHODIMP CShellExt::IsMemberOf(LPCWSTR pwszPath, DWORD dwAttrib)
 					// No cached status available
 					if (pathIsDir)
 					{
-						if (g_ShellCache.HasGITAdminDir(pPath, TRUE))
+						if (worktree.adminDirs.HasAdminDir(pPath, true))
 						{
 							s = m_CachedStatus.GetFullStatus(CTGitPath(pPath), TRUE);
 							status = s->status;
@@ -227,7 +230,7 @@ STDMETHODIMP CShellExt::IsMemberOf(LPCWSTR pwszPath, DWORD dwAttrib)
 				// with an admin directory
 				if (pathIsDir)
 				{
-					if (g_ShellCache.HasGITAdminDir(pPath, TRUE))
+					if (worktree.adminDirs.HasAdminDir(pPath, true))
 						status = git_wc_status_normal;
 					else
 						status = git_wc_status_none;
@@ -237,14 +240,13 @@ STDMETHODIMP CShellExt::IsMemberOf(LPCWSTR pwszPath, DWORD dwAttrib)
 			}
 			break;
 		}
-		g_filestate = m_State;
+		last.state = m_State;
 		TracePrintf(_T(__FUNCTION__) L": Status %d for file %s\n", status, pwszPath);
 	}
-	g_filepath.clear();
-	g_filepath = pPath;
-	g_filestatus = status;
-	g_readonlyoverlay = readonlyoverlay;
-	g_lockedoverlay = lockedoverlay;
+	last.path = pPath;
+	last.status = status;
+	last.readonly = readonlyoverlay;
+	last.locked = lockedoverlay;
 
 	//the priority system of the shell doesn't seem to work as expected (or as I expected):
 	//as it seems that if one handler returns S_OK then that handler is used, no matter
@@ -263,14 +265,14 @@ STDMETHODIMP CShellExt::IsMemberOf(LPCWSTR pwszPath, DWORD dwAttrib)
 		case git_wc_status_unversioned:
 			if (g_ShellCache.ShowUnversionedOverlay() && g_unversionedovlloaded && (m_State == FileStateUnversionedOverlay))
 			{
-				g_filepath.clear();
+				last.path.clear();
 				return S_OK;
 			}
 			return S_FALSE;
 		case git_wc_status_ignored:
 			if (g_ShellCache.ShowIgnoredOverlay() && g_ignoredovlloaded && (m_State == FileStateIgnoredOverlay))
 			{
-				g_filepath.clear();
+				last.path.clear();
 				return S_OK;
 			}
 			return S_FALSE;
@@ -280,7 +282,7 @@ STDMETHODIMP CShellExt::IsMemberOf(LPCWSTR pwszPath, DWORD dwAttrib)
 			{
 				if (m_State == FileStateLockedOverlay)
 				{
-					g_filepath.clear();
+					last.path.clear();
 					return S_OK;
 				}
 				else
@@ -290,7 +292,7 @@ STDMETHODIMP CShellExt::IsMemberOf(LPCWSTR pwszPath, DWORD dwAttrib)
 			{
 				if (m_State == FileStateReadOnly)
 				{
-					g_filepath.clear();
+					last.path.clear();
 					return S_OK;
 				}
 				else
@@ -298,7 +300,7 @@ STDMETHODIMP CShellExt::IsMemberOf(LPCWSTR pwszPath, DWORD dwAttrib)
 			}
 			else if (m_State == FileStateVersioned)
 			{
-				g_filepath.clear();
+				last.path.clear();
 				return S_OK;
 			}
 			else
@@ -308,7 +310,7 @@ STDMETHODIMP CShellExt::IsMemberOf(LPCWSTR pwszPath, DWORD dwAttrib)
 			{
 				if (m_State == FileStateDeleted)
 				{
-					g_filepath.clear();
+					last.path.clear();
 					return S_OK;
 				}
 				else
@@ -320,7 +322,7 @@ STDMETHODIMP CShellExt::IsMemberOf(LPCWSTR pwszPath, DWORD dwAttrib)
 				// overlay slots). So just show the 'modified' overlay instead.
 				if (m_State == FileStateModified)
 				{
-					g_filepath.clear();
+					last.path.clear();
 					return S_OK;
 				}
 				else
@@ -331,7 +333,7 @@ STDMETHODIMP CShellExt::IsMemberOf(LPCWSTR pwszPath, DWORD dwAttrib)
 			{
 				if (m_State == FileStateModified)
 				{
-					g_filepath.clear();
+					last.path.clear();
 					return S_OK;
 				}
 				else
@@ -341,7 +343,7 @@ STDMETHODIMP CShellExt::IsMemberOf(LPCWSTR pwszPath, DWORD dwAttrib)
 			{
 				if (m_State == FileStateVersioned)
 				{
-					g_filepath.clear();
+					last.path.clear();
 					return S_OK;
 				}
 				else
@@ -352,7 +354,7 @@ STDMETHODIMP CShellExt::IsMemberOf(LPCWSTR pwszPath, DWORD dwAttrib)
 			{
 				if (m_State== FileStateAddedOverlay)
 				{
-					g_filepath.clear();
+					last.path.clear();
 					return S_OK;
 				}
 				else
@@ -364,7 +366,7 @@ STDMETHODIMP CShellExt::IsMemberOf(LPCWSTR pwszPath, DWORD dwAttrib)
 				// overlay slots). So just show the 'modified' overlay instead.
 				if (m_State == FileStateModified)
 				{
-					g_filepath.clear();
+					last.path.clear();
 					return S_OK;
 				}
 				else
@@ -375,7 +377,7 @@ STDMETHODIMP CShellExt::IsMemberOf(LPCWSTR pwszPath, DWORD dwAttrib)
 			{
 				if (m_State == FileStateConflict)
 				{
-					g_filepath.clear();
+					last.path.clear();
 					return S_OK;
 				}
 				else
@@ -387,7 +389,7 @@ STDMETHODIMP CShellExt::IsMemberOf(LPCWSTR pwszPath, DWORD dwAttrib)
 				// overlay slots). So just show the 'modified' overlay instead.
 				if (m_State == FileStateModified)
 				{
-					g_filepath.clear();
+					last.path.clear();
 					return S_OK;
 				}
 				else

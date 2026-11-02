@@ -22,7 +22,6 @@
 // (/FI, set in its CMakeLists.txt). A quoted "stdafx.h" here would always find
 // TortoiseShell's, the file's own directory being searched first.
 #include "ShellCache.h"
-import TGitPath;	// GitAdminDir lives in the TGitPath module
 import LangDll;
 import DebugOutput;
 
@@ -425,79 +424,6 @@ DWORD ShellCache::GetLangID()
 {
 	RefreshIfNeeded();
 	return (langid);
-}
-
-BOOL ShellCache::HasGITAdminDir(LPCWSTR path, BOOL bIsDir, CString* ProjectTopDir /*= nullptr*/)
-{
-	const ULONGLONG now = GetTickCount64();
-	if (now >= nextAdmindircacheCleanupTime)
-	{
-		// Clear stale elements in admindircache every now and then
-		nextAdmindircacheCleanupTime = now + 10 * 60 * 1000; // 10 minutes
-		std::erase_if(admindircache, [now](const auto& pair) { return now >= pair.second.timeout; });
-	}
-
-	std::wstring folder(path);
-	if (!bIsDir)
-	{
-		size_t pos = folder.rfind(L'\\');
-		if (pos != std::wstring::npos)
-			folder.erase(pos);
-	}
-	{
-		Locker lock(m_critSec);
-		if (const auto iter = admindircache.find(folder); iter != admindircache.cend())
-		{
-			if (now < iter->second.timeout)
-			{
-				if (ProjectTopDir && iter->second.bHasAdminDir)
-					*ProjectTopDir = iter->second.sProjectRoot.c_str();
-				return iter->second.bHasAdminDir;
-			}
-		}
-	}
-
-	// When explorer calls CShellExt::IsMemberOf for a lot of subfolders, the cache above won't be
-	// effective because folders can be their own repository. But most of the time they are not and
-	// we don't want to waste time searching for ".git" in all our parent folders in that common case.
-	// So, for subfolders that are not bare and with no ".git" inside them, we check the cache again for their parent folder.
-	// This way, all CShellExt::IsMemberOf calls for a given folder will check the cache for that folder
-	// and GitAdminDir::HasAdminDir has to be called at most once.
-	if (bIsDir)
-	{
-		if (size_t pos = folder.rfind(L'\\'); pos != std::wstring::npos)
-		{
-			if (!GitAdminDir::GitPathFileExists(folder + L"\\.git") && !GitAdminDir::IsBareRepo(folder))
-			{
-				folder.erase(pos);
-				Locker lock(m_critSec);
-				if (const auto iter = admindircache.find(folder); iter != admindircache.cend())
-				{
-					if (now < iter->second.timeout)
-					{
-						if (ProjectTopDir && iter->second.bHasAdminDir)
-							*ProjectTopDir = iter->second.sProjectRoot.c_str();
-						return iter->second.bHasAdminDir;
-					}
-				}
-			}
-		}
-	}
-
-	const std::wstring sProjectRoot = GitAdminDir::HasAdminDir(folder);
-	const bool hasAdminDir = !sProjectRoot.empty();
-	Locker _(m_critSec);
-	AdminDir_s& ad = admindircache[folder];
-	ad.bHasAdminDir = hasAdminDir;
-	ad.timeout = now + ADMINDIRTIMEOUT;
-	if (hasAdminDir)
-	{
-		ad.sProjectRoot = sProjectRoot;
-		if (ProjectTopDir)
-			*ProjectTopDir = sProjectRoot.c_str();
-	}
-
-	return hasAdminDir;
 }
 
 void ShellCache::ExcludeContextValid()

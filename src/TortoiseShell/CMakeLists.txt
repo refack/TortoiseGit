@@ -2,6 +2,7 @@ add_library(TortoiseShell SHARED)
 
 target_sources(TortoiseShell
     PRIVATE
+        AdminDirCache.h
         ContextMenu.cpp
         ExplorerCommand.cpp
         ExplorerCommand.h
@@ -32,6 +33,8 @@ target_sources(TortoiseShell
         ShellExtClassFactory.h
         ShellObjects.cpp
         ShellObjects.h
+        ShellState.cpp
+        ShellState.h
         stdafx.cpp
         stdafx.h
         TortoiseGIT.cpp

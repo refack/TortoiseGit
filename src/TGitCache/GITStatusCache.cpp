@@ -547,7 +547,7 @@ CStatusCacheEntry CGitStatusCache::GetStatusForPathInternal(const CTGitPath& pat
 	}
 	TracePrintf(_T(__FUNCTION__) L": ignored no good path %s\n", path.GetWinPath());
 	CStatusCacheEntry status;
-	if (m_shellCache.ShowExcludedAsNormal() && path.IsDirectory() && m_shellCache.HasGITAdminDir(path.GetWinPath(), true))
+	if (m_shellCache.ShowExcludedAsNormal() && path.IsDirectory() && m_adminDirs.HasAdminDir(path.GetWinPath(), true))
 	{
 		TracePrintf(_T(__FUNCTION__) L": force status %s\n", path.GetWinPath());
 		status.ForceStatus(git_wc_status_normal);

@@ -26,6 +26,7 @@ import TGitPath;
 #include "DirectoryWatcher.h"
 #include "ShellUpdater.h"
 #include "ReaderWriterLock.h"
+#include "AdminDirCache.h"
 #include <atlcoll.h>
 //////////////////////////////////////////////////////////////////////////
 
@@ -114,7 +115,8 @@ private:
 	CCachedDirectory::CachedDirMap m_directoryCache;
 	CComAutoCriticalSection m_NoWatchPathCritSec;
 	std::map<CTGitPath, ULONGLONG> m_NoWatchPaths;	///< paths to block from getting crawled, and the time in ms until they're unblocked
-	ShellCache	m_shellCache;
+	ShellCache	m_shellCache;		///< the user's settings
+	AdminDirCache	m_adminDirs;	///< which folders are in a worktree
 
 	static CGitStatusCache* m_pInstance;
 

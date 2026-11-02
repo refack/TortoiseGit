@@ -27,12 +27,9 @@
 
 #include <shellapi.h>
 
-#include "ShellObjects.h"
+#include "ShellState.h"
 import TGitPath;	// GitAdminDir lives in the TGitPath module
-#include "LangDll.h"
 #undef swprintf
-
-extern ShellObjects g_shellObjects;
 
 // *********************** CShellExt *************************
 CShellExt::CShellExt(FileState state)
@@ -43,7 +40,7 @@ CShellExt::CShellExt(FileState state)
 
 	{
 		AutoLocker lock(g_csGlobalCOMGuard);
-		g_shellObjects.Insert(this);
+		GetShellState().objects.Insert(this);
 	}
 
 	INITCOMMONCONTROLSEX used = {
@@ -58,32 +55,7 @@ CShellExt::~CShellExt()
 {
 	AutoLocker lock(g_csGlobalCOMGuard);
 	InterlockedDecrement(&g_cRefThisDll);
-	g_shellObjects.Erase(this);
-}
-
-void LoadLangDll()
-{
-	if (g_langid != g_ShellCache.GetLangID() && (g_langTimeout == 0 || g_langTimeout < GetTickCount64()))
-	{
-		g_hResInst = g_hmodThisDll; // reset to English defaults, because CLangDll.Init() unloads the DLL
-		if (HINSTANCE hInst = g_langDll.Init(L"TortoiseProc", g_hmodThisDll, g_ShellCache.GetLangID()); hInst)
-		{
-			g_hResInst = hInst;
-			g_langid = g_langDll.GetLoadedLangId();
-			g_langTimeout = 0;
-			return;
-		}
-
-		// either the dll for the selected language is not present, or
-		// it is the wrong version.
-		// fall back to English and set a timeout so we don't retry
-		// to load the language dll too often
-		g_hResInst = g_hmodThisDll;
-		g_langid = CLangDll::s_defaultLang;
-		// set a timeout of 10 seconds
-		if (g_ShellCache.GetLangID() != CLangDll::s_defaultLang)
-			g_langTimeout = GetTickCount64() + 10000;
-	} // if (g_langid != g_ShellCache.GetLangID())
+	GetShellState().objects.Erase(this);
 }
 
 STDMETHODIMP CShellExt::QueryInterface(REFIID riid, LPVOID FAR *ppv)

@@ -23,6 +23,7 @@
 #include <wrl/client.h>
 #include <windowsx.h>
 #include "ShellExt.h"
+#include "ShellState.h"
 #include "ItemIDList.h"
 #include "PreserveChdir.h"
 #include "UnicodeUtils.h"
@@ -331,7 +332,7 @@ STDMETHODIMP CShellExt::Initialize(LPCITEMIDLIST pIDFolder, LPDATAOBJECT pDataOb
 						itemStates |= ITEMIS_DELETED;
 				} // for (int i = 0; i < count; ++i)
 				ItemIDList child (GetPIDLItem (cida, 0), &parent);
-				if (g_ShellCache.HasGITAdminDir(child.toString().c_str(), FALSE))
+				if (GetShellState().worktree.adminDirs.HasAdminDir(child.toString(), false))
 					itemStates |= ITEMIS_INVERSIONEDFOLDER;
 
 				if (GitAdminDir::IsBareRepo(child.toString().c_str()))

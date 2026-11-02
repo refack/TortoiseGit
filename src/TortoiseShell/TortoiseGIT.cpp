@@ -21,22 +21,13 @@
 #include "ShellExt.h"
 #include "Guids.h"
 #include "ShellExtClassFactory.h"
-#include "ShellObjects.h"
-#include "LangDll.h"
 
+// Constructed when the DLL loads, in every process that loads it, so only what
+// is small belongs here. The rest is ShellState (ShellState.h), built on first use.
 volatile LONG		g_cRefThisDll = 0;				///< reference count of this DLL.
 HINSTANCE			g_hmodThisDll = nullptr;		///< handle to this DLL itself.
-ShellCache			g_ShellCache;					///< caching of registry entries, ...
-DWORD				g_langid;
-CLangDll			g_langDll;
-ULONGLONG			g_langTimeout = 0;
+ShellCache			g_ShellCache;					///< the user's settings; a few registry reads to construct
 HINSTANCE			g_hResInst = nullptr;
-
-std::wstring		g_filepath;
-git_wc_status_kind	g_filestatus = git_wc_status_none;	///< holds the corresponding status to the file/dir above
-bool				g_readonlyoverlay = false;
-bool				g_lockedoverlay = false;
-FileState			g_filestate;
 
 bool				g_normalovlloaded = false;
 bool				g_modifiedovlloaded = false;
@@ -50,8 +41,6 @@ bool				g_unversionedovlloaded = false;
 CComCriticalSection	g_csGlobalCOMGuard;
 
 LPCWSTR				g_MenuIDString = L"TortoiseGit";
-
-ShellObjects		g_shellObjects;
 
 #pragma comment(linker, "\"/manifestdependency:type='win32' name='Microsoft.Windows.Common-Controls' version='6.0.0.0' processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'\"")
 

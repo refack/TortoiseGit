@@ -68,7 +68,7 @@ public:
 	GitStatus	m_GitStatus;
 
 private:
-	std::optional<const FileStatusCacheEntry*> BuildCache(const CTGitPath& filepath, const CString& sProjectRoot, BOOL bIsFolder, BOOL bDirectFolder = FALSE);
+	std::optional<const FileStatusCacheEntry*> BuildCache(const CTGitPath& filepath, const std::wstring& sProjectRoot, BOOL bIsFolder, BOOL bDirectFolder = FALSE);
 	ULONGLONG			GetTimeoutValue() const
 	{
 		ULONGLONG timeout = GITFOLDERSTATUS_CACHETIMEOUT;
