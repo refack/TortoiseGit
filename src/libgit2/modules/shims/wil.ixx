@@ -322,10 +322,10 @@ template <class CharT>
 unique_hglobal make_moveable_text(const std::basic_string_view<CharT> text, const sloc_t loc = sloc_t::current()) {
 	const auto bytes = std::as_bytes(std::span(text.data(), text.size()));
 	auto block = unique_hglobal{ ::GlobalAlloc(GMEM_MOVEABLE, bytes.size() + sizeof(CharT)) };
-	til::THROW_LIVE_ERROR_IF(!!block, "WIN32::GlobalAlloc(GMEM_MOVEABLE) failed", loc);
+	til::THROW_LIVE_ERROR_IF(!block, "WIN32::GlobalAlloc(GMEM_MOVEABLE) failed", loc);
 
 	auto* const target = static_cast<std::byte*>(::GlobalLock(block.get()));
-	til::THROW_LIVE_ERROR_IF(!!target, "WIN32::GlobalLock failed", loc);
+	til::THROW_LIVE_ERROR_IF(!target, "WIN32::GlobalLock failed", loc);
 
 	std::ranges::fill_n(std::ranges::copy(bytes, target).out, sizeof(CharT), std::byte{ 0 });
 	::GlobalUnlock(block.get());
@@ -677,17 +677,24 @@ unique_hglobal make_moveable_hglobal(const std::string_view text) {
 /// Puts \a text on the clipboard as CF_UNICODETEXT; the OS synthesizes CF_TEXT
 /// from it. What StringUtils::WriteAsciiStringToClipboard(const CStringW&, HWND)
 /// did, without the CString. A CString caller bridges visibly with a view.
+///
+/// The clipboard is one lock for the whole session: while it is open, every
+/// other process's OpenClipboard fails. So everything that can fail or throw
+/// (the allocation and copy) happens before it is opened, and EmptyClipboard
+/// sits right beside SetClipboardData - a failure leaves the user's clipboard
+/// as it was, and never leaves it locked.
 bool SetClipboardText(const std::wstring_view text, const HWND& owner = nullptr) {
-	// An if-init-statement for truth: `clipboard` is a RAII so we spell out a nested scope for it.
-	if (const auto clipboard = open_clipboard_retrying(owner); clipboard) {
-		::EmptyClipboard();
-		auto block = make_moveable_hglobal(text);
-		if (!block || !::SetClipboardData(CF_UNICODETEXT, block.get()))
-			return false;
-		block.release(); // the clipboard owns it now
-		return true;
-	}
-	return false;
+	auto block = make_moveable_hglobal(text);
+	if (!block)
+		return false;
+
+	const auto clipboard = open_clipboard_retrying(owner);
+	if (!clipboard)
+		return false;
+	if (!::EmptyClipboard() || !::SetClipboardData(CF_UNICODETEXT, block.get()))
+		return false;
+	block.release(); // the clipboard owns it now
+	return true;
 }
 
 
