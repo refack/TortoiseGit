@@ -28,13 +28,12 @@
 #include "TortoiseGitBlame.h"
 #include "TortoiseGitBlameView.h"
 
-#include <Git/Git.h>
+import std;
 import TGitPath;	// GitAdminDir lives in the TGitPath module
-#include <Git/GitMailmap.h>
-#include <Git/TGitPath.h>
-#include <Utils/CmdLineParser.h>
-#include <Utils/CommonAppUtils.h>
-#include <Utils/TempFile.h>
+import CmdLineParser;
+import TempFile;
+import AppUtils.Launch;
+import GitCall;
 
 
 #ifdef _DEBUG
@@ -65,10 +64,10 @@ BOOL CTortoiseGitBlameDoc::OnNewDocument()
 }
 BOOL CTortoiseGitBlameDoc::OnOpenDocument(LPCWSTR lpszPathName)
 {
-	CCmdLineParser parser(AfxGetApp()->m_lpCmdLine);
+	TCmdLineParser::CCmdLineParser parser(AfxGetApp()->m_lpCmdLine);
 	if (m_bFirstStartup)
 	{
-		m_Rev = parser.GetVal(L"rev");
+		m_Rev = parser.GetValPtr(L"rev");
 		m_lLine = static_cast<int>(parser.GetLongVal(L"line"));
 		m_bFirstStartup = false;
 	}
@@ -89,7 +88,7 @@ BOOL CTortoiseGitBlameDoc::OnOpenDocument(LPCWSTR lpszPathName, CString Rev)
 	// enable blame for files which do not exist in current working tree
 	if (!PathFileExists(lpszPathName) && Rev != L"HEAD")
 	{
-		if (!CDocument::OnOpenDocument(CTempFiles::Instance().GetTempFilePath(true).GetWinPathString().c_str()))
+		if (!CDocument::OnOpenDocument(TempFiles::GetTempFilePath(true).GetWinPathString().c_str()))
 			return FALSE;
 	}
 	else
@@ -103,47 +102,43 @@ BOOL CTortoiseGitBlameDoc::OnOpenDocument(LPCWSTR lpszPathName, CString Rev)
 	m_Rev=Rev;
 
 	// (SDI documents will reuse this document)
-	if(!g_Git.CheckMsysGitDir())
+	if(!TGitH::g_Git.CheckMsysGitDir())
 	{
 		CAppUtils::RunTortoiseGitProc(L" /command:settings");
 		return FALSE;
 	}
-	const CString topdir = GitAdminDir::HasAdminDir(m_CurrentFileName.GetString()).c_str();
-	if (topdir.IsEmpty())
+	const auto topdir = GitAdminDir::HasAdminDir(m_CurrentFileName.GetString());
+	if (topdir.empty())
 	{
 		CString temp;
-		temp.Format(IDS_CANNOTBLAMENOGIT, static_cast<LPCWSTR>(m_CurrentFileName));
+		temp.Format(IDS_CANNOTBLAMENOGIT, m_CurrentFileName);
 		MessageBox(nullptr, temp, L"TortoiseGitBlame", MB_OK | MB_ICONERROR);
 		return FALSE;
 	}
 	else
 	{
-		g_Git.SetCurrentDirExact(topdir);
+		TGitH::g_Git.SetCurrentDirExact(topdir);
 
-		CString PathName = m_CurrentFileName;
-		if (topdir[topdir.GetLength() - 1] == L'\\' || topdir[topdir.GetLength() - 1] == L'/')
-			PathName=PathName.Right(PathName.GetLength()-GitCall::m_CurrentDirStorage.GetLength());
-		else
-			PathName=PathName.Right(PathName.GetLength()-GitCall::m_CurrentDirStorage.GetLength()-1);
+		auto PathName = fs::relative(m_CurrentFileName.GetString(), topdir);
 
 		CTGitPath path;
 		path.SetFromWin(PathName);
 
-		if(!GitCall::m_CurrentDirStorage.IsEmpty())
-			SetCurrentDirectory(GitCall::m_CurrentDirStorage);
+		if(!GitCall::m_CurrentDirStorage.empty())
+			SetCurrentDirectory(GitCall::m_CurrentDirStorage.c_str());
 
 		try
 		{
 			// make sure all config files are read in order to check that none contains an error
-			g_Git.GetConfigValue(L"doesnot.exist");
+			TGitH::g_Git.GetConfigValue(L"doesnot.exist");
 
 			// make sure git_init() works and that .git-dir is ok, even if we open a file from another working tree
-			CAutoLocker lock(g_Git.m_critGitDllSec);
-			g_Git.ForceReInitDll();
+			TGitH::CAutoLocker lock(TGitH::g_Git.m_critGitDllSec);
+			TGitH::g_Git.ForceReInitDll();
 		}
 		catch (const char* libgiterr)
 		{
-			MessageBox(nullptr, CUnicodeUtils::GetUnicode(libgiterr), L"TortoiseGitBlame", MB_ICONERROR);
+			MessageBox(nullptr, CUnicodeUtils::GetUnicode<CStringW>(libgiterr), L"TortoiseGitBlame", MB_ICONERROR);
 			return FALSE;
 		}
 
@@ -179,10 +174,9 @@ BOOL CTortoiseGitBlameDoc::OnOpenDocument(LPCWSTR lpszPathName, CString Rev)
 		bool onlyFirstParent = theApp.GetInt(L"OnlyFirstParent", 0) == 1;
 		if (onlyFirstParent)
 		{
-			const CTGitPath tmpfilePath = CTempFiles::Instance().GetTempFilePath(true);
+			const CTGitPath tmpfilePath = TempFiles::GetTempFilePath(true);
 			CString tmpfile = tmpfilePath.GetWinPathString().c_str();
 			cmd = { L"git.exe", L"rev-list", L"--first-parent", L"--end-of-options", std::wstring(Rev), L"--" };
-			CString err;
 			CAutoFILE file = _wfsopen(tmpfile, L"wb", SH_DENYWR);
 			if (!file)
 			{
@@ -191,16 +185,18 @@ BOOL CTortoiseGitBlameDoc::OnOpenDocument(LPCWSTR lpszPathName, CString Rev)
 			}
 
 			std::string lastline;
-			if (g_Git.Run(cmd, [&](const std::string_view line)
-			{
-				fwrite(lastline.data(), sizeof(char), lastline.size(), file);
-				fwrite(" ", sizeof(char), 1, file);
-				fwrite(line.data(), sizeof(char), line.size(), file);
-				fwrite("\n", sizeof(char), 1, file);
-				lastline = line;
-			}
-			, &err))
-			{
+			CString err;
+			if (auto&& ret = GitCall::RunReceiver(
+				cmd,
+				[&](const std::string_view line) {
+					fwrite(lastline.data(), sizeof(char), lastline.size(), file);
+					fwrite(" ", sizeof(char), 1, file);
+					fwrite(line.data(), sizeof(char), line.size(), file);
+					fwrite("\n", sizeof(char), 1, file);
+					lastline = line;
+				},
+				&err
+			); ret) {
 				MessageBox(nullptr, CString(MAKEINTRESOURCE(IDS_BLAMEERROR)) + L"\n\n" + err, L"TortoiseGitBlame", MB_OK | MB_ICONERROR);
 				return FALSE;
 			}
@@ -215,7 +211,7 @@ BOOL CTortoiseGitBlameDoc::OnOpenDocument(LPCWSTR lpszPathName, CString Rev)
 		cmd.insert(cmd.cend(), { std::wstring(Rev), std::wstring(L"--"), path.GetGitPathString() });
 		m_BlameData.clear();
 		std::string err;
-		if(g_Git.Run(cmd, &m_BlameData, &err))
+		if(TGitH::g_Git.Run(cmd, &m_BlameData, &err))
 		{
 			MessageBox(nullptr, std::format(L"{}\n\n{}", CString(MAKEINTRESOURCE(IDS_BLAMEERROR)), CUnicodeUtils::DecodeUtf8UpToNul(err)).c_str(), L"TortoiseGitBlame", MB_OK | MB_ICONERROR);
 			return FALSE;
@@ -229,7 +225,7 @@ BOOL CTortoiseGitBlameDoc::OnOpenDocument(LPCWSTR lpszPathName, CString Rev)
 		// is one argv element, and it carries no quotes.
 		cmd = { L"git.exe", L"cat-file", L"blob", L"--", std::format(L"{}:{}", Rev, path.GetGitPathString()) };
 
-		if(g_Git.RunLogFile(cmd, m_TempFileName))
+		if(TGitH::g_Git.RunLogFile(cmd, m_TempFileName))
 		{
 			CString str;
 			str.Format(IDS_CHECKOUTFAILED, static_cast<LPCWSTR>(path.GetGitPathString().c_str()));
@@ -239,8 +235,8 @@ BOOL CTortoiseGitBlameDoc::OnOpenDocument(LPCWSTR lpszPathName, CString Rev)
 #endif
 		m_GitPath = path;
 
-		if (CGitMailmap::ShouldLoadMailmap())
-			GitRevLoglist::s_Mailmap = std::make_shared<CGitMailmap>();
+		if (GitMailmap::CGitMailmap::ShouldLoadMailmap())
+			GitRevLoglist::s_Mailmap = std::make_shared<GitMailmap::CGitMailmap>();
 		else if (GitRevLoglist::s_Mailmap.load())
 			GitRevLoglist::s_Mailmap.store(nullptr);
 

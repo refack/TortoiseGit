@@ -33,7 +33,7 @@ import RIAA;
 import str_utils;
 #include <wrl/client.h>
 
-#include "CacheInterface.h"
+import TGitCache.CacheInterface;
 #include "GitStatusCache.h"
 #include "resource.h"
 

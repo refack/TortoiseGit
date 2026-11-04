@@ -28,7 +28,7 @@
 #include "VersioncheckParser.h"
 import AppUtils.Launch;
 import AppUtils.Window;
-#include "Utils/DPIAware.h"
+#include "../../libgit2/Utils/DPIAware.h"
 using namespace std::literals;
 
 //IMPLEMENT_DYNAMIC(CAboutDlg, CStandAloneDialog)

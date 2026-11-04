@@ -36,7 +36,7 @@
       "binaryDir": "build/release",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release",
-        "VCPKG_MANIFEST_INSTALL": "ON",
+        "VCPKG_MANIFEST_INSTALL": "OFF",
         "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
       }
     },

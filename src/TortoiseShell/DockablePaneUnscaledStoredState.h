@@ -27,7 +27,7 @@ using std::operator""sv;
 #include <afxregpath.h>
 #include <afxsettingsstore.h>
 
-#include "DPIAware.h"
+#include "Utils/DPIAware.h"
 
 constexpr auto AFX_REG_SECTION_FMT = L"{}Pane-{}"sv;
 constexpr auto AFX_REG_SECTION_FMT_EX = L"{}Pane-{}{}"sv;

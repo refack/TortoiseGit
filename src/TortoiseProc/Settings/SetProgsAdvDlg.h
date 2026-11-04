@@ -20,7 +20,7 @@
 #pragma once
 
 import Registry;
-#include "StandAloneDlg.h"
+import StandAloneDlg;
 
 /**
  * \ingroup TortoiseProc

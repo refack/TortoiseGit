@@ -55,13 +55,12 @@ target_sources(tgitlib
         modules/GitHash.ixx
         modules/GitMailmap.ixx
         modules/GitRev.ixx
-        modules/GitRevLoglist.ixx
         modules/Graphviz.ixx
         modules/Libraries.ixx
         modules/PathUtils.ixx
         modules/PersonalDictionary.ixx
         modules/RIAA.ixx
-        modules/Registry.ixx
+        modules/RegistryDep.ixx
         modules/RollingFile.ixx
         modules/ShellUpdater.ixx
         modules/TGitPath.ixx

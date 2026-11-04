@@ -20,7 +20,7 @@
 #include "stdafx.h"
 #include "Cache.h"
 #include "DirFileEnum.h"
-#include "CacheInterface.h"
+import TGitCache.CacheInterface;
 #include "CacheDlg.h"
 #include <random>
 

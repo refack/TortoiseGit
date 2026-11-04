@@ -19,10 +19,8 @@ using QWORD = std::uint64_t;
 #endif
 using reg_string_t = std::wstring;
 
-export namespace Registry {
+export namespace RegistryDep {
 
-
-using wil::reg::TortoiseGitKey;
 
 /**
  * \ingroup Utils
@@ -58,7 +56,7 @@ public:
 	 * \param base a predefined base key like HKEY_LOCAL_MACHINE. see the SDK documentation for more information.
 	 * \param sam
 	 */
-	CRegBaseCommon(const S& key, bool force, HKEY base = HKEY_CURRENT_USER, REGSAM sam = 0);
+	CRegBaseCommon(const S& key, bool force, const HKEY& base = HKEY_CURRENT_USER, REGSAM sam = 0);
 
 	/**
 	 * Removes the whole registry key including all values. So if you set the registry
@@ -123,7 +121,7 @@ CRegBaseCommon<S>::CRegBaseCommon()
 }
 
 template<class S>
-CRegBaseCommon<S>::CRegBaseCommon(const S& key, const bool force, const HKEY base, const REGSAM sam)
+CRegBaseCommon<S>::CRegBaseCommon(const S& key, const bool force, const HKEY& base, const REGSAM sam)
 	: m_base(base)
 	, m_key(key)
 	, m_path()
@@ -181,7 +179,7 @@ public: //methods
 
 	CRegBase() {}
 
-	CRegBase(const reg_string_t& key, const bool force, const HKEY base, const REGSAM sam)
+	CRegBase(const reg_string_t& key, const bool force, const HKEY& base, const REGSAM sam)
 		: CRegBaseCommon(key, force, base, sam)
 	{
 		const size_type pos = key.find_last_of(L'\\');
@@ -208,7 +206,7 @@ protected:
 public:
 	CRegCStringBase() {}
 
-	CRegCStringBase(const CString& key, const bool force, const HKEY base, const REGSAM sam)
+	CRegCStringBase(const CString& key, const bool force, const HKEY& base, const REGSAM sam)
 		: CRegBaseCommon(key, force, base, sam)
 	{
 		const int pos = key.ReverseFind(L'\\');
@@ -258,7 +256,6 @@ public:
 template<class T, class Base>
 class CRegTypedBase : public Base
 {
-private:
 	T m_value;                  ///< the cached value of the registry
 	T m_defaultvalue;           ///< the default value to use
 
@@ -342,7 +339,7 @@ public:
 	 */
 
 	operator const T&();
-	virtual CRegTypedBase<T, Base>& operator=(const T& d);
+	virtual CRegTypedBase& operator=(const T& d);
 };
 
 // implement CRegTypedBase<> members
@@ -798,12 +795,26 @@ public: //methods
 	 * \param base a predefined base key like HKEY_LOCAL_MACHINE. see the SDK documentation for more information.
 	 * \param sam
 	 */
-	CRegistryKey(const reg_string_t& key, HKEY base = HKEY_CURRENT_USER, REGSAM sam = 0);
+	CRegistryKey(const reg_string_t& key, HKEY base = HKEY_CURRENT_USER, REGSAM sam = 0)
+	: m_base(base)
+	, m_sam(sam)
+	, m_path(key)
+	{
+		// CString::TrimLeft(L'\\'): an all-backslash path trims to nothing
+		if (const auto first = m_path.find_first_not_of(L'\\'); first != reg_string_t::npos)
+			m_path.erase(0, first);
+		else
+			m_path.clear();
+	}
 	/// A CString key - the settings pages'. Constrained, so a literal binds the one above.
 	template <tgit::str::IsATLCStringDuck TStr>
 	explicit CRegistryKey(const TStr& key, HKEY base = HKEY_CURRENT_USER, REGSAM sam = 0)
 		: CRegistryKey(reg_string_t(tgit::str::StringView{ key }), base, sam) {}
-	~CRegistryKey();
+	~CRegistryKey()
+	{
+		if (m_hKey)
+			RegCloseKey(m_hKey);
+	}
 
 	/**
 	 * Creates the registry key if it does not already exist.
@@ -828,27 +839,6 @@ public: //members
 	reg_string_t m_path;     ///< the path to the key
 };
 
-// The definitions src\Utils\Registry.cpp held for the CString/CStringList
-// interface (behind __AFXCOLL_H__), never brought into the module: the class was
-// declared here and defined nowhere, so the settings pages that use it
-// (SetProgsAdvDlg, SetSavedDataPage) failed to link. Same bodies, std types.
-CRegistryKey::CRegistryKey(const reg_string_t& key, const HKEY base, const REGSAM sam)
-	: m_base(base)
-	, m_sam(sam)
-	, m_path(key)
-{
-	// CString::TrimLeft(L'\\'): an all-backslash path trims to nothing
-	if (const auto first = m_path.find_first_not_of(L'\\'); first != reg_string_t::npos)
-		m_path.erase(0, first);
-	else
-		m_path.clear();
-}
-
-CRegistryKey::~CRegistryKey()
-{
-	if (m_hKey)
-		RegCloseKey(m_hKey);
-}
 
 DWORD CRegistryKey::createKey()
 {
@@ -873,8 +863,8 @@ bool CRegistryKey::getValues(std::vector<reg_string_t>& values)
 	{
 		for (DWORD i = 0, rc = ERROR_SUCCESS; rc == ERROR_SUCCESS; ++i)
 		{
-			wchar_t value[255] = { 0 };
-			DWORD size = static_cast<DWORD>(std::size(value));
+			wchar_t value[255] = {};
+			DWORD size = std::ssize(value);
 			rc = RegEnumValue(m_hKey, i, value, &size, nullptr, nullptr, nullptr, nullptr);
 			if (rc == ERROR_SUCCESS)
 				values.emplace_back(value, size);
@@ -892,8 +882,8 @@ bool CRegistryKey::getSubKeys(std::vector<reg_string_t>& subkeys)
 	{
 		for (DWORD i = 0, rc = ERROR_SUCCESS; rc == ERROR_SUCCESS; ++i)
 		{
-			wchar_t value[1024] = { 0 };
-			DWORD size = static_cast<DWORD>(std::size(value));
+			wchar_t value[1024] = {};
+			DWORD size = std::size(value);
 			FILETIME lastWriteTime{};
 			rc = RegEnumKeyEx(m_hKey, i, value, &size, nullptr, nullptr, nullptr, &lastWriteTime);
 			if (rc == ERROR_SUCCESS)
@@ -931,7 +921,7 @@ class CKeyList
 public:
 	/// construction
 
-	CKeyList(const T::StringT& key, const T::ValueT& defaultValue, const HKEY base = HKEY_CURRENT_USER)
+	CKeyList(const T::StringT& key, const T::ValueT& defaultValue, const HKEY& base = HKEY_CURRENT_USER)
 		: key(key)
 		, defaultValue(defaultValue)
 		, base(base)
@@ -1006,24 +996,25 @@ T& CKeyList<T>::GetAt(int index) const
  * Instantiate templates for common (data type, string type) combinations.
  */
 
-// CString-keyed, as upstream's were; the std::wstring-keyed family is CRegStd*.
-// Every module use passes a literal key, which converts either way.
-using CRegDWORD = CRegDWORDCommon<CRegCStringBase>;
-using CRegQWORD = CRegQWORDCommon<CRegCStringBase>;
-using CRegString = CRegStringCommon<CRegCStringBase>;
-
-using CRegStdDWORD = CRegDWORDCommon<CRegBase>;
-using CRegStdQWORD = CRegQWORDCommon<CRegBase>;
-using CRegStdString = CRegStringCommon<CRegBase>;
-
-using CRegDWORDList = CKeyList<CRegDWORD>;
-using CRegQWORDList = CKeyList<CRegQWORD>;
-using CRegStringList = CKeyList<CRegString>;
-
-using CRegStdDWORDList = CKeyList<CRegStdDWORD>;
-using CRegStdQWORDList = CKeyList<CRegStdQWORD>;
-using CRegStdStringList = CKeyList<CRegStdString>;
 
 }
 
-export using namespace Registry;
+export using namespace RegistryDep;
+
+// CString-keyed, as upstream's were; the std::wstring-keyed family is CRegStd*.
+// Every module use passes a literal key, which converts either way.
+export using CRegDWORD = CRegDWORDCommon<CRegCStringBase>;
+export using CRegQWORD = CRegQWORDCommon<CRegCStringBase>;
+export using CRegString = CRegStringCommon<CRegCStringBase>;
+
+export using CRegStdDWORD = CRegDWORDCommon<CRegBase>;
+export using CRegStdQWORD = CRegQWORDCommon<CRegBase>;
+export using CRegStdString = CRegStringCommon<CRegBase>;
+
+export using CRegDWORDList = CKeyList<CRegDWORD>;
+export using CRegQWORDList = CKeyList<CRegQWORD>;
+export using CRegStringList = CKeyList<CRegString>;
+
+export using CRegStdDWORDList = CKeyList<CRegStdDWORD>;
+export using CRegStdQWORDList = CKeyList<CRegStdQWORD>;
+export using CRegStdStringList = CKeyList<CRegStdString>;

@@ -22,12 +22,15 @@
 #include "stdafx.h"
 
 #include "PropertiesWnd.h"
-#include "Resource.h"
 #include "MainFrm.h"
 #include "TortoiseGitBlame.h"
-#include "IconMenu.h"
-import ThemeAPI;
+#include "MiscUI/IconMenu.h"
+
+#include "Resources/LoglistCommonResource.h"
+
 import str_utils;
+import ThemeAPI;
+using namespace ThemeAPI;
 
 #ifdef _DEBUG
 #undef THIS_FILE
@@ -277,7 +280,7 @@ void CPropertiesWnd::UpdateProperties(GitRevLoglist* pRev)
 			if (it != hashMap.end())
 				parentsubject = it->second.GetSubject();
 
-			str.Format(L"%u - %s\n%s", i, static_cast<LPCWSTR>(pRev->m_ParentHash[i].ToString()), static_cast<LPCWSTR>(parentsubject));
+			str.Format(L"%u - %s\n%s", i, pRev->m_ParentHash[i].ToString(), parentsubject);
 
 			auto pProperty = new CMFCPropertyGridProperty(pRev->m_ParentHash[i].ToString(g_Git.GetShortHASHLength()), parentsubject, str);
 			pProperty->AllowEdit(FALSE);

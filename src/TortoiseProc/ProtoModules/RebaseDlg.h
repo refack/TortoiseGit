@@ -18,14 +18,14 @@
 //
 
 #pragma once
-#include "StandAloneDlg.h"
+import StandAloneDlg;
 #include "GitStatusListCtrl.h"
 #include "SciEdit.h"
 #include "SplitterControl.h"
 #include "Utils/HistoryCombo.h"
 #include "GitLogList.h"
 #include "MenuButton.h"
-#include "ProjectProperties.h"
+#include "../../SharedMFC/Utils/ProjectProperties.h"
 
 // CRebaseDlg dialog
 #define IDC_REBASE_TAB 0x1000000

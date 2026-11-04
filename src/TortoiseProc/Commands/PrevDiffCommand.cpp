@@ -24,7 +24,7 @@
 #include "PrevDiffCommand.h"
 #include "GitDiff.h"
 import MessageBox;
-#include "LogDataVector.h"
+#include "../../SharedMFC/Utils/LogDataVector.h"
 #include "FileDiffDlg.h"
 
 bool PrevDiffCommand::Execute()

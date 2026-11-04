@@ -23,34 +23,30 @@
 #include "stdafx.h"
 #include "TortoiseGitBlameData.h"
 #include "LoglistUtils.h"
-#include "FileTextLines.h"
+#include <Utils/FileTextLines.h>
+
+import gsl;
 import str_utils;
 import git_h;	// TGitH::UnescapeGitQuotePathA, which moved out of StringUtils
+import GitHash;
+import invarients;
+import GitMailmap;
 
-constexpr wchar_t WideCharSwap2(wchar_t nValue) noexcept
-{
-	return (((nValue>> 8)) | (nValue << 8));
+
+constexpr wchar_t WideCharSwap2(wchar_t nValue) noexcept {
+	return (((nValue >> 8)) | (nValue << 8));
 }
+
 
 // CTortoiseGitBlameData construction/destruction
 
-CTortoiseGitBlameData::CTortoiseGitBlameData()
-{
-}
-
-CTortoiseGitBlameData::~CTortoiseGitBlameData()
-{
-}
-
-int CTortoiseGitBlameData::GetEncode(const char* buff, int size, int* bomoffset) const
-{
+int CTortoiseGitBlameData::GetEncode(const char* buff, int size, int* bomoffset) const {
 	ATLASSERT(bomoffset);
 
 	CFileTextLines textlines;
 	CFileTextLines::UnicodeType type = textlines.CheckUnicodeType(buff, size);
 
-	if (type == CFileTextLines::UnicodeType::UTF8BOM)
-	{
+	if (type == CFileTextLines::UnicodeType::UTF8BOM) {
 		*bomoffset = 3;
 		return CP_UTF8;
 	}
@@ -59,16 +55,14 @@ int CTortoiseGitBlameData::GetEncode(const char* buff, int size, int* bomoffset)
 
 	if (type == CFileTextLines::UnicodeType::UTF16_LE)
 		return 1200;
-	if (type == CFileTextLines::UnicodeType::UTF16_LEBOM)
-	{
+	if (type == CFileTextLines::UnicodeType::UTF16_LEBOM) {
 		*bomoffset = 2;
 		return 1200;
 	}
 
 	if (type == CFileTextLines::UnicodeType::UTF16_BE)
 		return 1201;
-	if (type == CFileTextLines::UnicodeType::UTF16_BEBOM)
-	{
+	if (type == CFileTextLines::UnicodeType::UTF16_BEBOM) {
 		*bomoffset = 2;
 		return 1201;
 	}
@@ -76,16 +70,16 @@ int CTortoiseGitBlameData::GetEncode(const char* buff, int size, int* bomoffset)
 	return GetACP();
 }
 
-void CTortoiseGitBlameData::ParseBlameOutput(const std::string& data, CGitHashMap& HashToRev, DWORD dateFormat, bool bRelativeTimes, CString* errors)
-{
+
+void CTortoiseGitBlameData::ParseBlameOutput(const std::string& data, CGitHashMap& HashToRev, DWORD dateFormat, bool bRelativeTimes, CString* errors) {
 	std::unordered_map<CGitHash, CString> hashToFilename;
 
-	std::vector<CGitHash>		hashes;
-	std::vector<int>			originalLineNumbers;
-	std::vector<CString>		filenames;
-	std::vector<std::string>	rawLines;
-	std::vector<CString>		authors;
-	std::vector<CString>		dates;
+	std::vector<CGitHash> hashes;
+	std::vector<int> originalLineNumbers;
+	std::vector<CString> filenames;
+	std::vector<std::string> rawLines;
+	std::vector<CString> authors;
+	std::vector<CString> dates;
 
 	CGitHash hash;
 	int originalLineNumber = 0;
@@ -94,10 +88,8 @@ void CTortoiseGitBlameData::ParseBlameOutput(const std::string& data, CGitHashMa
 
 	size_t pos = 0;
 	bool expectHash = true;
-	while (pos < data.size())
-	{
-		if (data[pos] == 0)
-		{
+	while (pos < data.size()) {
+		if (data[pos] == 0) {
 			++pos;
 			continue;
 		}
@@ -107,42 +99,33 @@ void CTortoiseGitBlameData::ParseBlameOutput(const std::string& data, CGitHashMa
 		if (lineEnd == std::string::npos)
 			lineEnd = data.size();
 
-		if (lineEnd > lineBegin)
-		{
-			if (data[lineBegin] != '\t')
-			{
-				if (expectHash)
-				{
+		if (lineEnd > lineBegin) {
+			if (data[lineBegin] != '\t') {
+				if (expectHash) {
 					expectHash = false;
-					if (lineEnd - lineBegin > 2 * GIT_HASH_SIZE)
-					{
-						hash = CGitHash::FromHexStr(std::string_view(&data[lineBegin], 2 * GIT_HASH_SIZE));
+					if (lineEnd - lineBegin > 2 * tgit::invarients::HashSize()) {
+						hash = CGitHash::FromHexStr(std::string_view(&data[lineBegin], 2 * tgit::invarients::HashSize()));
 
-						size_t hashEnd = lineBegin + 2 * GIT_HASH_SIZE;
+						size_t hashEnd = lineBegin + 2 * tgit::invarients::HashSize();
 						size_t originalLineNumberBegin = hashEnd + 1;
 						size_t originalLineNumberEnd = data.find(' ', originalLineNumberBegin);
-						if (originalLineNumberEnd != std::string::npos)
-						{
-							originalLineNumber = atoi(CStringA(reinterpret_cast<LPCSTR>(&data[originalLineNumberBegin]), SafeSizeToInt(originalLineNumberEnd - originalLineNumberBegin)));
+						if (originalLineNumberEnd != std::string::npos) {
+							originalLineNumber = atoi(CStringA(&data[originalLineNumberBegin],
+							                                   win32_cast(originalLineNumberEnd - originalLineNumberBegin)));
 							size_t finalLineNumberBegin = originalLineNumberEnd + 1;
 							size_t finalLineNumberEnd = (numberOfSubsequentLines == 0) ? data.find(' ', finalLineNumberBegin) : lineEnd;
-							if (finalLineNumberEnd != std::string::npos)
-							{
-								if (numberOfSubsequentLines == 0)
-								{
+							if (finalLineNumberEnd != std::string::npos) {
+								if (numberOfSubsequentLines == 0) {
 									size_t numberOfSubsequentLinesBegin = finalLineNumberEnd + 1;
 									size_t numberOfSubsequentLinesEnd = lineEnd;
-									numberOfSubsequentLines = atoi(CStringA(reinterpret_cast<LPCSTR>(&data[numberOfSubsequentLinesBegin]), SafeSizeToInt(numberOfSubsequentLinesEnd - numberOfSubsequentLinesBegin)));
+									numberOfSubsequentLines = atoi(CStringA(&data[numberOfSubsequentLinesBegin],
+									                                        win32_cast(numberOfSubsequentLinesEnd - numberOfSubsequentLinesBegin)));
 								}
-							}
-							else
-							{
+							} else {
 								// parse error
 								numberOfSubsequentLines = 0;
 							}
-						}
-						else
-						{
+						} else {
 							// parse error
 							numberOfSubsequentLines = 0;
 						}
@@ -152,35 +135,26 @@ void CTortoiseGitBlameData::ParseBlameOutput(const std::string& data, CGitHashMa
 							filename = it->second;
 						else
 							filename.Empty();
-					}
-					else
-					{
+					} else {
 						// parse error
 						numberOfSubsequentLines = 0;
 					}
-				}
-				else
-				{
+				} else {
 					size_t tokenBegin = lineBegin;
 					size_t tokenEnd = data.find(' ', tokenBegin);
-					if (tokenEnd != std::string::npos)
-					{
-						if (!strncmp("filename", &data[tokenBegin], tokenEnd - tokenBegin))
-						{
+					if (tokenEnd != std::string::npos) {
+						if (!strncmp("filename", &data[tokenBegin], tokenEnd - tokenBegin)) {
 							size_t filenameBegin = tokenEnd + 1;
 							size_t filenameEnd = lineEnd;
 							filename = UnquoteFilename(std::string_view(&data[filenameBegin], filenameEnd - filenameBegin));
 							auto r = hashToFilename.emplace(hash, filename);
-							if (!r.second)
-							{
+							if (!r.second) {
 								r.first->second = filename;
 							}
 						}
 					}
 				}
-			}
-			else
-			{
+			} else {
 				expectHash = true;
 				// remove <TAB> at start
 				std::string line;
@@ -201,23 +175,18 @@ void CTortoiseGitBlameData::ParseBlameOutput(const std::string& data, CGitHashMa
 	}
 
 	auto mailmap{ GitRevLoglist::s_Mailmap.load() };
-	for (const auto& hash2 : hashes)
-	{
+	for (const auto& hash2 : hashes) {
 		CString err;
 		auto pRev = GetRevForHash(HashToRev, hash2, mailmap.get(), &err);
-		if (pRev)
-		{
+		if (pRev) {
 			authors.push_back(pRev->GetAuthorName());
 			dates.push_back(CLoglistUtils::FormatDateAndTime(pRev->GetAuthorDate(), dateFormat, true, bRelativeTimes));
-		}
-		else
-		{
+		} else {
 			// Hand the failure back to the caller instead of showing it. Parsing blame
 			// output is also done by the unit tests, and a parser that can open a modal
 			// dialog cannot run unattended. Deduplicated because GetRevForHash does not
 			// cache failures, so every line sharing an unresolvable commit repeats it.
-			if (errors && !err.IsEmpty() && errors->Find(err) < 0)
-			{
+			if (errors && !err.IsEmpty() && errors->Find(err) < 0) {
 				if (!errors->IsEmpty())
 					*errors += L'\n';
 				*errors += err;
@@ -239,18 +208,16 @@ void CTortoiseGitBlameData::ParseBlameOutput(const std::string& data, CGitHashMa
 	m_Utf8Lines.clear();
 }
 
-int CTortoiseGitBlameData::UpdateEncoding(int encoding)
-{
+
+int CTortoiseGitBlameData::UpdateEncoding(int encoding) {
 	int bomoffset = 0;
-	if (encoding==0)
-	{
+	if (encoding == 0) {
 		std::string all;
-		for (const auto& rawLine : m_RawLines)
-		{
+		for (const auto& rawLine : m_RawLines) {
 			if (!rawLine.empty())
 				all.append(rawLine);
 		}
-		encoding = GetEncode(all.data(), SafeSizeToInt(all.size()), &bomoffset);
+		encoding = GetEncode(all.data(), win32_cast(all.size()), &bomoffset);
 	}
 
 	if (encoding == m_encode)
@@ -259,16 +226,14 @@ int CTortoiseGitBlameData::UpdateEncoding(int encoding)
 	m_encode = encoding;
 
 	m_Utf8Lines.resize(m_RawLines.size());
-	for (size_t i_Lines = 0; i_Lines < m_RawLines.size(); ++i_Lines)
-	{
+	for (size_t i_Lines = 0; i_Lines < m_RawLines.size(); ++i_Lines) {
 		const std::string& rawLine = m_RawLines[i_Lines];
 		if (rawLine.empty())
 			continue;
 
-		if (encoding == 1201)
-		{
+		if (encoding == 1201) {
 			const int linebomoffset = (i_Lines == 0) ? bomoffset : 0;
-			const int size = SafeSizeToInt((rawLine.size() - linebomoffset) / 2);
+			const int size = win32_cast((rawLine.size() - linebomoffset) / 2);
 			if (size == 0)
 				continue;
 
@@ -277,8 +242,7 @@ int CTortoiseGitBlameData::UpdateEncoding(int encoding)
 			memcpy(buffer, &rawLine[linebomoffset], sizeof(wchar_t) * size);
 			// swap the bytes to little-endian order to get proper strings in wchar_t format
 			wchar_t* pSwapBuf = buffer;
-			for (int i = 0; i < size; ++i)
-			{
+			for (int i = 0; i < size; ++i) {
 				*pSwapBuf = WideCharSwap2(*pSwapBuf);
 				++pSwapBuf;
 			}
@@ -286,11 +250,10 @@ int CTortoiseGitBlameData::UpdateEncoding(int encoding)
 			line.TrimRight('\r');
 
 			m_Utf8Lines[i_Lines] = CUnicodeUtils::GetUTF8(line);
-		}
-		else if (encoding == 1200)
-		{
-			const int linebomoffset = (i_Lines == 0) ? bomoffset : 1; // the first linebomoffset depends whether there is a BOM, after that it's 1 (see issue #920)
-			const int size = SafeSizeToInt((rawLine.size() - linebomoffset) / 2);
+		} else if (encoding == 1200) {
+			const int linebomoffset = (i_Lines == 0) ? bomoffset : 1;
+			// the first linebomoffset depends whether there is a BOM, after that it's 1 (see issue #920)
+			const int size = win32_cast((rawLine.size() - linebomoffset) / 2);
 			if (size == 0)
 				continue;
 
@@ -299,38 +262,32 @@ int CTortoiseGitBlameData::UpdateEncoding(int encoding)
 			line.TrimRight('\r');
 
 			m_Utf8Lines[i_Lines] = CUnicodeUtils::GetUTF8(line);
-		}
-		else if (encoding == CP_UTF8)
-		{
+		} else if (encoding == CP_UTF8) {
 			const int linebomoffset = (i_Lines == 0) ? bomoffset : 0;
-			const int len = SafeSizeToInt(rawLine.size() - linebomoffset);
+			const int len = win32_cast(rawLine.size() - linebomoffset);
 			if (len == 0)
 				continue;
 
-			m_Utf8Lines[i_Lines] = CStringA(reinterpret_cast<LPCSTR>(&rawLine[linebomoffset]), len);
-		}
-		else
-			m_Utf8Lines[i_Lines] = CUnicodeUtils::GetUTF8(CUnicodeUtils::GetUnicode(std::string_view(rawLine.data(), rawLine.size()), encoding));
+			m_Utf8Lines[i_Lines] = CStringA(&rawLine[linebomoffset], len);
+		} else
+			m_Utf8Lines[i_Lines] = CUnicodeUtils::GetUTF8<CStringA>(CUnicodeUtils::StdGetUnicode(rawLine, encoding));
 	}
 	return encoding;
 }
 
-int CTortoiseGitBlameData::FindNextLine(const std::unordered_set<CGitHash>& commitHashes, int line, bool bUpOrDown) const
-{
+
+int CTortoiseGitBlameData::FindNextLine(const std::unordered_set<CGitHash>& commitHashes, int line, bool bUpOrDown) const {
 	int startline = line;
 	bool findNoMatch = false;
-	while (line >= 0 && line < static_cast<int>(m_Hash.size()))
-	{
+	while (line >= 0 && line < static_cast<int>(m_Hash.size())) {
 		bool matches = commitHashes.contains(m_Hash[line]);
 		if (!matches)
 			findNoMatch = true;
 
-		if (matches && findNoMatch)
-		{
+		if (matches && findNoMatch) {
 			if (line == startline + 2)
 				findNoMatch = false;
-			else
-			{
+			else {
 				if (bUpOrDown)
 					line = FindFirstLineInBlock(m_Hash[line], line);
 				return line;
@@ -344,25 +301,21 @@ int CTortoiseGitBlameData::FindNextLine(const std::unordered_set<CGitHash>& comm
 	return -1;
 }
 
-static int FindAsciiLower(const CStringA &str, const CStringA &find)
-{
+
+static int FindAsciiLower(const CStringA& str, const CStringA& find) {
 	if (find.IsEmpty())
 		return 0;
 
-	for (int i = 0; i < str.GetLength(); ++i)
-	{
+	for (int i = 0; i < str.GetLength(); ++i) {
 		char c = str[i];
 		c += (c >= 'A' && c <= 'Z') ? 32 : 0;
-		if (c == find[0])
-		{
+		if (c == find[0]) {
 			bool diff = false;
 			int k = 1;
-			for (int j = i + 1; j < str.GetLength() && k < find.GetLength(); ++j, ++k)
-			{
+			for (int j = i + 1; j < str.GetLength() && k < find.GetLength(); ++j, ++k) {
 				char d = str[j];
 				d += (d >= 'A' && d <= 'Z') ? 32 : 0;
-				if (d != find[k])
-				{
+				if (d != find[k]) {
 					diff = true;
 					break;
 				}
@@ -376,22 +329,26 @@ static int FindAsciiLower(const CStringA &str, const CStringA &find)
 	return -1;
 }
 
-static int FindUtf8Lower(const CStringA& strA, bool allAscii, const CString &findW, const CStringA &findA)
-{
+
+static int FindUtf8Lower(const CStringA& strA, bool allAscii, const CString& findW, const CStringA& findA) {
 	if (allAscii)
 		return FindAsciiLower(strA, findA);
 
-	CString strW = CUnicodeUtils::GetUnicode(strA);
+	auto strW = CUnicodeUtils::GetUnicode<CString>(strA);
 	return strW.MakeLower().Find(findW);
 }
 
-int CTortoiseGitBlameData::FindFirstLineWrapAround(SearchDirection direction, const CString& what, int line, bool bCaseSensitive, std::function<void()> wraparound) const
-{
+
+int CTortoiseGitBlameData::FindFirstLineWrapAround(
+	SearchDirection direction,
+   const CString& what,
+   int line,
+   bool bCaseSensitive,
+   std::function<void()> wraparound
+) const {
 	bool allAscii = true;
-	for (int i = 0; i < what.GetLength(); ++i)
-	{
-		if (what[i] > 0x7f)
-		{
+	for (int i = 0; i < what.GetLength(); ++i) {
+		if (what[i] > 0x7f) {
 			allAscii = false;
 			break;
 		}
@@ -406,70 +363,58 @@ int CTortoiseGitBlameData::FindFirstLineWrapAround(SearchDirection direction, co
 	if (numberOfLines == 0)
 		return -1;
 	int i = line;
-	if (direction == SearchPrevious)
-	{
+	if (direction == SearchPrevious) {
 		i -= 2;
 		if (i < 0)
 			i = numberOfLines - 1;
-	}
-	else if (line < 0 || line + 1 >= numberOfLines)
+	} else if (line < 0 || line + 1 >= numberOfLines)
 		i = 0;
 
-	do
-	{
-		if (bCaseSensitive)
-		{
+	do {
+		if (bCaseSensitive) {
 			if (m_Authors[i].Find(whatNormalized) >= 0)
 				return i;
-			else if (m_Utf8Lines[i].Find(whatNormalizedUtf8) >=0)
+			else if (m_Utf8Lines[i].Find(whatNormalizedUtf8) >= 0)
 				return i;
-		}
-		else
-		{
+		} else {
 			if (CString(m_Authors[i]).MakeLower().Find(whatNormalized) >= 0)
 				return i;
 			else if (FindUtf8Lower(m_Utf8Lines[i], allAscii, whatNormalized, whatNormalizedUtf8) >= 0)
 				return i;
 		}
 
-		if (direction == SearchNext)
-		{
+		if (direction == SearchNext) {
 			++i;
-			if (i >= numberOfLines)
-			{
+			if (i >= numberOfLines) {
 				i = 0;
 				if (wraparound)
 					wraparound();
 			}
-		}
-		else if (direction == SearchPrevious)
-		{
+		} else if (direction == SearchPrevious) {
 			--i;
-			if (i < 0)
-			{
+			if (i < 0) {
 				i = numberOfLines - 2;
 				if (wraparound)
 					wraparound();
 			}
 		}
-	} while (i != line);
+	}
+	while (i != line);
 
 	return -1;
 }
 
-bool CTortoiseGitBlameData::ContainsOnlyFilename(const CString &filename) const
-{
+
+bool CTortoiseGitBlameData::ContainsOnlyFilename(const CString& filename) const {
 	return std::all_of(m_Filenames.cbegin(), m_Filenames.cend(), [&filename](const auto& name) { return filename == name; });
 }
 
-GitRevLoglist* CTortoiseGitBlameData::GetRevForHash(CGitHashMap& HashToRev, const CGitHash& hash, const CGitMailmap* mailmap, CString* err)
-{
+
+GitRevLoglist* CTortoiseGitBlameData::GetRevForHash(CGitHashMap& HashToRev, const CGitHash& hash, const GitMailmap::CGitMailmap* mailmap, CString* err) {
 	auto it = HashToRev.find(hash);
-	if (it == HashToRev.end())
-	{
+	if (it == HashToRev.end()) {
 		GitRevLoglist rev;
-		if (rev.GetCommitFromHash(hash))
-		{
+		if (rev.GetCommitFromHash(hash)) {
 			*err = rev.GetLastErr();
 			return nullptr;
 		}
@@ -480,10 +425,10 @@ GitRevLoglist* CTortoiseGitBlameData::GetRevForHash(CGitHashMap& HashToRev, cons
 	return &(it->second);
 }
 
-CString CTortoiseGitBlameData::UnquoteFilename(const std::string_view s)
-{
+
+CString CTortoiseGitBlameData::UnquoteFilename(const std::string_view s) {
 	if (s[0] == '"')
 		return TGitH::UnescapeGitQuotePathA(s.substr(1));
 	else
-		return CUnicodeUtils::GetUnicode(s);
+		return CUnicodeUtils::GetUnicode<CString>(s);
 }

@@ -22,7 +22,7 @@
 #include "RemoteProgressCommand.h"
 #include <../TortoiseShell/resource.h>
 #include "git2/sys/errors.h"
-#include "LogDataVector.h"		// mix CString + std::wstring
+#include "../../SharedMFC/Utils/LogDataVector.h"
 
 import AppUtils.Launch;
 

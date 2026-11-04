@@ -25,7 +25,7 @@
 #include "TortoiseProc.h"
 #include "FormatPatchDlg.h"
 import BrowseFolder;
-#include "LogDlg.h"
+#include "../../SharedMFC/Utils/LogDlg.h"
 #include "BrowseRefsDlg.h"
 import AppUtils.Launch;
 import AppUtils.Window;

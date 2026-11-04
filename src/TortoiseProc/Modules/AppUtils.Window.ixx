@@ -4,7 +4,7 @@ module;
 
 #include <shlobj_core.h>
 #include <Utils/SelectFileFilter.h>
-#include <Utils/DPIAware.h>
+#include <../../libgit2/Utils/DPIAware.h>
 #include <../../libgit2/Utils/LoadIconEx.h>
 #include <Utils/CreateProcessHelper.h>
 #include "MiscUI/IconBitmapUtils.h"

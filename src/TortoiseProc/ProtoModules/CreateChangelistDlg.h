@@ -19,7 +19,7 @@
 //
 #pragma once
 #include <../SharedMFC/Resources/resource.h>
-#include "StandAloneDlg.h"
+import StandAloneDlg;
 
 /**
  * \ingroup TortoiseProc

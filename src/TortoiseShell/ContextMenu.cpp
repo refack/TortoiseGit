@@ -25,19 +25,17 @@
 #include "ShellExt.h"
 #include "ShellState.h"
 #include "ItemIDList.h"
-#include "PreserveChdir.h"
-#include "UnicodeUtils.h"
-#include "Git.h"
-#include "GitStatus.h"
-import PathUtils;
-#include "CreateProcessHelper.h"
-#include "FormatMessageWrapper.h"
-#include <TGitCache/CacheInterface.h>
+import PreserveChdir;
+#include <Utils/CreateProcessHelper.h>
 #include "resource.h"
-#include "LoadIconEx.h"
-#include "ClipboardHelper.h"
-#include "IconBitmapUtils.h"
-#include "CmdLineParser.h"
+#include "Utils/LoadIconEx.h"
+
+import PathUtils;
+import CmdLineParser;
+import wil;
+import TGitPath;
+import TGitCache.CacheInterface;
+import IconBitmapUtils;
 
 #pragma comment(lib, "comsupp.lib")
 
@@ -541,11 +539,11 @@ void CShellExt::InsertGitMenu(BOOL istop, HMENU menu, UINT pos, UINT_PTR id, UIN
 
 		if (path.HasAdminDir(&sProjectRoot) && !CGit::GetCurrentBranchFromFile(sProjectRoot.c_str(), sBranchName))
 		{
-			if (sBranchName.GetLength() == 2 * GIT_HASH_SIZE)
+			if (sBranchName.GetLength() == 2 * tgit::invarients::HashSize())
 			{
 				// if SHA1 only show 4 first bytes
 				BOOL bIsSha1 = TRUE;
-				for (int i = 0; i < 2 * GIT_HASH_SIZE; ++i)
+				for (int i = 0; i < 2 * tgit::invarients::HashSize(); ++i)
 					if ( !iswxdigit(sBranchName[i]) )
 					{
 						bIsSha1 = FALSE;

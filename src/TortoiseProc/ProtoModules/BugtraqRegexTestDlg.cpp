@@ -23,7 +23,7 @@
 #include "TortoiseProc.h"
 #include "BugtraqRegexTestDlg.h"
 import AppUtils.Window;
-#include "ProjectProperties.h"
+#include "../../SharedMFC/Utils/ProjectProperties.h"
 
 // CBugtraqRegexTestDlg dialog
 

@@ -23,7 +23,7 @@
 #include "std.h"
 
 #include "BisectStartDlg.h"
-#include "LogDlg.h"
+#include "../../SharedMFC/Utils/LogDlg.h"
 import AppUtils.Window;
 import MessageBox;
 

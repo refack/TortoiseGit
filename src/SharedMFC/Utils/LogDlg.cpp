@@ -18,22 +18,25 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 #include "stdafx.h"
-#include "std.h"
 
 #include <Mmsystem.h>
 
-#include "TortoiseProc.h"
-#include "StatGraphDlg.h"
+#include "../../TortoiseProc/ProtoModules/StatGraphDlg.h"
 #include "LogDlg.h"
+#include "../../TortoiseProc/MiscUI/IconMenu.h"
+#include "../../TortoiseProc/ProtoModules/BrowseRefsDlg.h"
+#include "../../TortoiseProc/ProtoModules/LogOrdering.h"
+// #include "../../TortoiseProc/ProtoModules/Stan.h"
+#include "Utils/DPIAware.h"
+#include "LogDlgFileFilter.h"
+
+
 import MessageBox;
 import AppUtils.Launch;
 import AppUtils.Window;
 import AppUtils.Workflow;
-#include "IconMenu.h"
-#include "BrowseRefsDlg.h"
-#include "LogOrdering.h"
-#include "Utils/DPIAware.h"
-#include "LogDlgFileFilter.h"
+import StandAloneDlg;
+
 
 #define MIN_CTRL_HEIGHT (CDPIAware::Instance().ScaleY(GetSafeHwnd(), 20))
 #define MIN_SPLITTER_HEIGHT (CDPIAware::Instance().ScaleY(GetSafeHwnd(), 10))

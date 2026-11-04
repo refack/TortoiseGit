@@ -22,7 +22,7 @@
 
 
 #include "../SharedMFC/Resources/resource.h"
-#include "StandAloneDlg.h"
+import StandAloneDlg;
 
 #pragma comment(lib, "Dwmapi.lib")
 

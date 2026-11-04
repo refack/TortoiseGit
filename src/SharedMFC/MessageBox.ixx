@@ -5,7 +5,7 @@
 #include "Resources/resource.h"
 #include "Utils/dlgtemplate.h"
 #include "Utils/cursor.h"
-#include "Utils/DPIAware.h"
+#include "../libgit2/Utils/DPIAware.h"
 #include "../libgit2/Utils/LoadIconEx.h"
 
 #define BTN_OFFSET 100 // use an offset in order to not interfere with IDYES and so on...

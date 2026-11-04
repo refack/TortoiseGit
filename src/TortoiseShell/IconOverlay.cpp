@@ -21,11 +21,9 @@
 #include "stdafx.h"
 #include "ShellExt.h"
 #include "ShellState.h"
-#include "PreserveChdir.h"
-#include "GitStatus.h"
-#include <TGitCache/CacheInterface.h>
+import PreserveChdir;
+import TGitCache.CacheInterface;
 import TGitPath;	// GitAdminDir lives in the TGitPath module
-#include "StringUtils.h"
 
 // "The Shell calls IShellIconOverlayIdentifier::GetOverlayInfo to request the
 //  location of the handler's icon overlay. The icon overlay handler returns
@@ -116,7 +114,7 @@ STDMETHODIMP CShellExt::IsMemberOf(LPCWSTR pwszPath, DWORD dwAttrib)
 {
 	if (!pwszPath)
 		return E_INVALIDARG;
-	const wchar_t* pPath = pwszPath;
+	const auto pPath = fs::path(pwszPath);
 	const bool pathIsDir = (dwAttrib & FILE_ATTRIBUTE_DIRECTORY) != 0;
 	// the shell sometimes asks overlays for invalid paths, e.g. for network
 	// printers (in that case the path is "0", at least for me here).

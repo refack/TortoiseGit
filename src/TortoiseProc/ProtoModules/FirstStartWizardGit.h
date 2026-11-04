@@ -18,7 +18,7 @@
 //
 #pragma once
 #include "FirstStartWizardBasePage.h"
-#include "MiscUI/Tooltip.h"
+#include "../../SharedMFC/MiscUI/Tooltip.h"
 #include "ConfigureGitExe.h"
 #include "HyperLink.h"
 

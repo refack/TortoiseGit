@@ -21,7 +21,7 @@
 #pragma once
 #include "Colors.h"
 import Graphviz;
-#include "LogDataVector.h"
+#include "../../SharedMFC/Utils/LogDataVector.h"
 #include "ProgressDlg.h"
 #include "SVG.h"
 #include <Future.h>

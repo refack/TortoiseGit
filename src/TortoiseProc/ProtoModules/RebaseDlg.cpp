@@ -33,7 +33,7 @@ import MessageBox;
 import TortoiseProc.MassiveGitTask;
 #include "CommitDlg.h"
 #include "Hooks.h"
-#include "LogDlg.h"
+#include "../../SharedMFC/Utils/LogDlg.h"
 #include "ThemeMFCVisualManager.h"
 
 // CRebaseDlg dialog

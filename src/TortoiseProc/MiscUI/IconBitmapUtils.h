@@ -28,16 +28,4 @@
  * \ingroup utils
  * provides helper functions for converting icons to bitmaps
  */
-class IconBitmapUtils
-{
-public:
-	IconBitmapUtils() = delete;
 
-	static HBITMAP IconToBitmap(HINSTANCE hInst, UINT uIcon);
-	static HBITMAP IconToBitmapPARGB32(HICON hIcon, int width, int height);
-	static HBITMAP IconToBitmapPARGB32(HINSTANCE hInst, UINT uIcon);
-	static HRESULT Create32BitHBITMAP(HDC hdc, const SIZE* psize, __deref_opt_out void** ppvBits, __out HBITMAP* phBmp);
-	static HRESULT ConvertBufferToPARGB32(HPAINTBUFFER hPaintBuffer, HDC hdc, HICON hIcon, const SIZE& sizIcon);
-	static bool HasAlpha(__in Gdiplus::ARGB* pargb, const SIZE& sizImage, int cxRow);
-	static HRESULT ConvertToPARGB32(HDC hdc, __inout Gdiplus::ARGB* pargb, HBITMAP hbmp, const SIZE& sizImage, int cxRow);
-};

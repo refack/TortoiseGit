@@ -17,8 +17,7 @@
 // along with this program; if not, write to the Free Software Foundation,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
-#include <ATLMem.h>
-#include <ATLComMem.h>
+#include <afx.h>
 #include <SDKDDKVer.h>
 #include <Windows.h>
 
@@ -32,7 +31,7 @@ static LPFNCANUNLOADNOW pDllCanUnloadNow = nullptr;
 
 static wchar_t DebugDllPath[MAX_PATH] = { 0 };
 
-static BOOL DebugActive()
+static bool DebugActive()
 {
 	static constexpr WCHAR TGitRootKey[] = L"Software\\TortoiseGit";
 	static constexpr WCHAR DebugShellValue[] = L"DebugShell";
@@ -45,7 +44,7 @@ static BOOL DebugActive()
 	DWORD Type = REG_DWORD;
 	DWORD Len = sizeof(DWORD);
 
-	BOOL bDebugActive = FALSE;
+	bool bDebugActive = FALSE;
 
 
 	TRACE(L"DebugActive() - Enter\n");
@@ -92,7 +91,7 @@ static BOOL DebugActive()
  * \ingroup TortoiseShell
  * Check whether to load the full TortoiseGit.dll or not.
  */
-static BOOL WantRealVersion()
+static bool WantRealVersion()
 {
 	static constexpr WCHAR TGitRootKey[] = L"Software\\TortoiseGit";
 	static constexpr WCHAR ExplorerOnlyValue[] = L"LoadDllOnlyInExplorer";
@@ -107,7 +106,7 @@ static BOOL WantRealVersion()
 	DWORD Type = REG_DWORD;
 	DWORD Len = sizeof(DWORD);
 
-	BOOL bWantReal = TRUE;
+	bool bWantReal = TRUE;
 
 	TRACE(L"WantRealVersion() - Enter\n");
 
@@ -247,14 +246,14 @@ static void UnloadRealLibrary()
 	pDllCanUnloadNow = nullptr;
 }
 
-BOOL WINAPI DllMain(HINSTANCE hInstance, DWORD Reason, LPVOID /*Reserved*/)
+bool WINAPI DllMain(HINSTANCE hInstance, DWORD Reason, LPVOID /*Reserved*/)
 {
 #ifdef _DEBUG
 	// if no debugger is present, then don't load the dll.
 	// this prevents other apps from loading the dll and locking
 	// it.
 
-	BOOL bInShellTest = FALSE;
+	bool bInShellTest = FALSE;
 	wchar_t buf[MAX_PATH + 1] = {0}; // MAX_PATH ok, the test really is for debugging anyway.
 	DWORD pathLength = GetModuleFileName(nullptr, buf, _countof(buf) - 1);
 

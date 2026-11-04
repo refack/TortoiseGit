@@ -30,7 +30,7 @@ import AppUtils.Window;
 #include "UpdateCrypto.h"
 #include <MsiDefs.h>
 #include <MsiQuery.h>
-#include "Utils/DPIAware.h"
+#include "../../libgit2/Utils/DPIAware.h"
 import gsl;
 
 #pragma comment(lib, "msi.lib")

@@ -19,7 +19,7 @@
 //
 #pragma once
 import MessageBox;
-#include "Tooltip.h"
+#include "../../SharedMFC/MiscUI/Tooltip.h"
 #include "Utils/CommonDialogFunctions.h"
 import ThemeAPI;
 

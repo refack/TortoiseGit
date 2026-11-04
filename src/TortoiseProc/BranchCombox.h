@@ -21,7 +21,7 @@
 #include "BrowseRefsDlg.h"
 #include "Utils/HistoryCombo.h"
 #include "LoglistUtils.h"
-#include "Tooltip.h"
+#include "../SharedMFC/MiscUI/Tooltip.h"
 import GitRev;
 #include <../libgit2/Resources/LoglistCommonResource.h>
 

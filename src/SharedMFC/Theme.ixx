@@ -1,7 +1,7 @@
 ﻿// ReSharper disable CppParameterMayBeConst
 // ReSharper disable CppFunctionResultShouldBeUsed
 module;
-#include "Utils/DPIAware.h"
+#include "../libgit2/Utils/DPIAware.h"
 #include <Uxtheme.h>
 #include <vssym32.h>
 #include <richedit.h>

@@ -31,23 +31,26 @@
 #include "LoglistUtils.h"
 #include "MainFrm.h"
 #include "MenuEncode.h"
-#include "ScintillaRegistration.h"
 #include "TortoiseGitBlame.h"
 #include "TortoiseGitBlameDoc.h"
 
-#include <Git/TGitPath.h>
 // Needed for lexilla
 #include <scintilla/ILexer.h>
 #include <lexilla/Lexilla.h>
 #include <lexilla/SciLexer.h>
-#include <Utils/CmdLineParser.h>
-#include <Utils/CommonAppUtils.h>
-import DarkModeHelper;
 #include <Utils/DPIAware.h>
 #include <Utils/FileTextLines.h>
+#include "Utils/ScintillaRegistration.h"
+#include <MiscUI/IconMenu.h>
+
+#include "Resources/LoglistCommonResource.h"
+
 import str_utils;
 import ThemeAPI;
-#include <Utils/MiscUI/IconMenu.h>
+import DarkModeHelper;
+import AppUtils.Launch;
+import CmdLineParser;
+import GitRevLoglist;
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -344,9 +347,8 @@ void CTortoiseGitBlameView::OnRButtonUp(UINT /*nFlags*/, CPoint point)
 		ClientToScreen(&point);
 
 		CGitHash hash = m_data.GetHash(line);
-		CString hashStr = hash.ToString();
 
-		GitRevLoglist* pRev = nullptr;
+		GitLogList::GitRevLoglist* pRev{};
 		int logIndex = m_lineToLogIndex[line];
 		if (logIndex >= 0)
 			pRev = &GetLogData()->GetGitRevAt(logIndex);
@@ -383,14 +385,14 @@ void CTortoiseGitBlameView::OnRButtonUp(UINT /*nFlags*/, CPoint point)
 				const CTGitPath &file =  files[j];
 				if (file.IsEquivalentTo(path))
 				{
-					if (!(file.m_ParentNo & MERGE_MASK))
+					if (!(file.m_ParentNo & TGitPath::MERGE_MASK))
 					{
 						auto action = file.m_Action;
 						// ignore (action & CTGitPath::LOGACTIONS_ADDED), as then there is nothing to blame/diff
 						// ignore (action & CTGitPath::LOGACTIONS_DELETED), should never happen as the file must exist
 						if (action & (CTGitPath::LOGACTIONS_MODIFIED | CTGitPath::LOGACTIONS_REPLACED))
 						{
-							int parentNo = file.m_ParentNo & PARENT_MASK;
+							int parentNo = file.m_ParentNo & TGitPath::PARENT_MASK;
 							if (parentNo >= 0 && static_cast<size_t>(parentNo) < pRev->m_ParentHash.size())
 							{
 								parentHashWithFile.push_back(pRev->m_ParentHash[parentNo]);
@@ -404,7 +406,7 @@ void CTortoiseGitBlameView::OnRButtonUp(UINT /*nFlags*/, CPoint point)
 		}
 		catch (const char* msg)
 		{
-			MessageBox(L"Could not get files of parents.\nlibgit reports:\n" + CUnicodeUtils::GetUnicode(msg), L"TortoiseGit", MB_ICONERROR);
+			MessageBox(L"Could not get files of parents.\nlibgit reports:\n" + CUnicodeUtils::GetUnicode<CStringW>(msg), L"TortoiseGit", MB_ICONERROR);
 		}
 
 		// blame previous
@@ -478,7 +480,7 @@ void CTortoiseGitBlameView::ContextMenuAction(int cmd, GitRev *pRev, GIT_REV_LIS
 				index -= 1;
 
 			CString path = ResolveCommitFile(parentFilename[index]);
-			CString endrev = parentHashWithFile[index].ToString();
+			CString endrev = parentHashWithFile[index].c_str();
 			int line = m_data.GetOriginalLineNumber(selectedLine);
 
 			CString procCmd = L"/command:blame";
@@ -498,8 +500,8 @@ void CTortoiseGitBlameView::ContextMenuAction(int cmd, GitRev *pRev, GIT_REV_LIS
 				index -= 1;
 
 			CString path = ResolveCommitFile(parentFilename[index]);
-			CString startrev = parentHashWithFile[index].ToString();
-			CString endrev = pRev->m_CommitHash.ToString();
+			CString startrev = parentHashWithFile[index].c_str();
+			CString endrev = pRev->m_CommitHash.c_str();
 
 			CString procCmd = L"/command:diff";
 			procCmd += L" /path:" + TCmdLineParser::EscapeValue(path);
@@ -515,7 +517,7 @@ void CTortoiseGitBlameView::ContextMenuAction(int cmd, GitRev *pRev, GIT_REV_LIS
 	case ID_SHOWLOG:
 		{
 			CString path = ResolveCommitFile(selectedLine);
-			CString rev = m_data.GetHash(selectedLine).ToString();
+			CString rev = m_data.GetHash(selectedLine).c_str();
 
 			CString procCmd = L"/command:log";
 			procCmd += L" /path:" + TCmdLineParser::EscapeValue(path);
@@ -1960,8 +1962,8 @@ void CTortoiseGitBlameView::OnEditFind()
 	if (auto selstart = static_cast<Sci_Position>(m_TextView.Call(SCI_GETSELECTIONSTART)), selend = static_cast<Sci_Position>(m_TextView.Call(SCI_GETSELECTIONEND)); selstart != selend && selend - selstart < INT_MAX)
 	{
 		CStringA selText;
-		Sci_TextRangeFull range = { selstart, selend, selText.GetBuffer(SafeSizeToInt(selend - selstart)) };
-		selText.ReleaseBufferSetLength(SafeSizeToInt(m_TextView.Call(SCI_GETTEXTRANGEFULL, 0, reinterpret_cast<LPARAM>(&range))));
+		Sci_TextRangeFull range = { selstart, selend, selText.GetBuffer(win32_cast(selend - selstart)) };
+		selText.ReleaseBufferSetLength(win32_cast(m_TextView.Call(SCI_GETTEXTRANGEFULL, 0, reinterpret_cast<LPARAM>(&range))));
 		if (!selText.IsEmpty())
 			oneline = m_TextView.StringFromControl(selText);
 	}

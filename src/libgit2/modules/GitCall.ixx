@@ -428,8 +428,8 @@ constexpr wchar_t DiffSimilarityIndexThreshold[] = L"DiffSimilarityIndexThreshol
 
 
 
-bool ms_bCygwinGit = wil::reg::get_bool(HKEY_CURRENT_USER, Registry::TortoiseGitKey, CygwinHack.data(), false);
-bool ms_bMsys2Git = wil::reg::get_bool(HKEY_CURRENT_USER, Registry::TortoiseGitKey, Msys2Hack.data(), false);
+bool ms_bCygwinGit = wil::reg::get_bool(HKEY_CURRENT_USER, wil::reg::TortoiseGitKey, CygwinHack.data(), false);
+bool ms_bMsys2Git = wil::reg::get_bool(HKEY_CURRENT_USER, wil::reg::TortoiseGitKey, Msys2Hack.data(), false);
 std::wstring gitLastErr;
 StdErrReaders m_stdErrReaders;
 // this is a HACK to protect again excessive input from remote servers
@@ -452,7 +452,7 @@ fs::path ms_LastMsysGitDir{}; // the last msysgitdir added to the path, blank if
 fs::path ms_MsysGitRootDir{};
 size_t ms_iSimilarityIndexThreshold = []{
 	// absent is 50, as upstream's CRegDWORD default was: 0 switched rename detection off
-	const size_t index = wil::reg::try_get_dword(HKEY_CURRENT_USER, Registry::TortoiseGitKey, DiffSimilarityIndexThreshold).value_or(50);
+	const size_t index = wil::reg::try_get_dword(HKEY_CURRENT_USER, wil::reg::TortoiseGitKey, DiffSimilarityIndexThreshold).value_or(50);
 	return (index <= 100) ? index : 50;
 }();
 // Only the two setters above may name this. Everything else - some 400 read

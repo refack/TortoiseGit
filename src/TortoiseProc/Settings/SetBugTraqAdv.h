@@ -20,7 +20,7 @@
 #pragma once
 #include <../../SharedMFC/Resources/resource.h>
 #include "../../SharedMFC/Resources/resource.h"
-#include "StandAloneDlg.h"
+import StandAloneDlg;
 
 import BugTraqProvider;	// not a forward declaration: that would name a different, global-module class
 

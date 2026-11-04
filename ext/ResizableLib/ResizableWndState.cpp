@@ -22,7 +22,8 @@
 
 #include "stdafx.h"
 #include "ResizableWndState.h"
-#include "Utils/DPIAware.h"
+
+#include "libgit2/Utils/DPIAware.h"
 
 //////////////////////////////////////////////////////////////////////
 // Construction/Destruction

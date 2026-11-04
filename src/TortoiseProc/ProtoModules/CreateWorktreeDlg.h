@@ -18,7 +18,7 @@
 //
 #pragma once
 
-#include "StandAloneDlg.h"
+import StandAloneDlg;
 #include "ChooseVersion.h"
 
 // CCreateWorktreeDlg dialog

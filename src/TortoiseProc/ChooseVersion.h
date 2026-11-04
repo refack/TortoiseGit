@@ -1,6 +1,6 @@
 ﻿#pragma once
 #include "afxwin.h"
-#include "LogDlg.h"
+#include "../SharedMFC/Utils/LogDlg.h"
 #include "BrowseRefsDlg.h"
 import MessageBox;
 import Registry;

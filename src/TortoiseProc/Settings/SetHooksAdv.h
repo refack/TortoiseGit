@@ -19,7 +19,7 @@
 //
 #pragma once
 #include "Hooks.h"
-#include "StandAloneDlg.h"
+import StandAloneDlg;
 
 /**
  * \ingroup TortoiseProc

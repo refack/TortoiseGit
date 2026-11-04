@@ -19,7 +19,7 @@
 //
 #pragma once
 #include "MiscUI/SciEdit.h"
-#include "StandAloneDlg.h"
+import StandAloneDlg;
 #include <afxcmn.h>
 
 // CAutoTextTestDlg dialog

@@ -25,7 +25,7 @@
 #include "TreePropSheet/TreePropSheet.h"
 #include "TreePropSheet/PropPageFrameDefault.h"
 #include "MiscUI/HighColorTab.hpp"
-#include "Utils/DPIAware.h"
+#include "../../libgit2/Utils/DPIAware.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW

@@ -1294,7 +1294,7 @@ BOOL CSciEdit::MarkEnteredBugID(Sci_Position startstylepos, Sci_Position endstyl
 	}
 
 	CStringA msg;
-	const auto len = SafeSizeToInt(end_pos - start_pos);
+	const auto len = win32_cast(end_pos - start_pos);
 	Sci_TextRange textrange;
 	textrange.lpstrText = msg.GetBuffer(len);
 	textrange.chrg.cpMin = static_cast<Sci_PositionCR>(start_pos);
@@ -1388,7 +1388,7 @@ void CSciEdit::StyleURLs(Sci_Position startstylepos, Sci_Position endstylepos)
 	const auto line_number = static_cast<int>(Call(SCI_LINEFROMPOSITION, startstylepos));
 	startstylepos = static_cast<Sci_Position>(Call(SCI_POSITIONFROMLINE, line_number));
 
-	const auto len = SafeSizeToInt(endstylepos - startstylepos);
+	const auto len = win32_cast(endstylepos - startstylepos);
 	CStringA msg;
 	Sci_TextRange textrange;
 	textrange.lpstrText = msg.GetBuffer(len);

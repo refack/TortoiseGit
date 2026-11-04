@@ -18,12 +18,13 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 #pragma once
-#include "GitLogCache.h"
+
 
 import std;
 import lanes;
 import GitHash;
 import git_h;
+import GitRevLoglist;
 
 class CLogDlg;
 

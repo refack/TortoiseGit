@@ -19,7 +19,7 @@
 //
 
 #pragma once
-#include "StandAloneDlg.h"
+import StandAloneDlg;
 #include "MiscUI/WaterEffect.h"
 #include "DIB.h"
 #include "HyperLink.h"

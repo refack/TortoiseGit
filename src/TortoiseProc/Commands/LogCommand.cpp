@@ -21,7 +21,7 @@
 #include "std.h"
 
 #include "LogCommand.h"
-#include "LogDlg.h"
+#include "../../SharedMFC/Utils/LogDlg.h"
 
 bool LogCommand::Execute()
 {

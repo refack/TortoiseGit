@@ -4,6 +4,7 @@ module;
 #include <wil/filesystem.h>
 #include <wil/registry.h>
 #include <wil/com.h>			// com_ptr_nothrow: what CComPtr was, with no ATL header
+#include <wil/stl.h>			// make_range
 #include <winrt/base.h>
 #include <ShlObj.h>			// SHGetKnownFolderPath, FOLDERID_*, REFKNOWNFOLDERID
 #include <git2.h>			// the libgit2 owners and OpenGitRepository
@@ -385,6 +386,7 @@ using wil::unique_hglobal;
 using wil::open_file;
 using wil::GetFileInfo;
 using wil::ResultException;
+using wil::make_range;
 
 // Registry. There is no TortoiseGit default here any more: the get_value_* /
 // set_value_string wrappers that silently read HKCU\Software\TortoiseGit are gone,
@@ -400,6 +402,9 @@ namespace reg {
 	// The stock writers. Each takes the root and subkey explicitly.
 	using wil::reg::set_value_string_nothrow;
 	using wil::reg::set_value_dword_nothrow;
+	using wil::reg::open_unique_key;
+	using wil::reg::key_iterator;
+	using wil::reg::value_iterator;
 	using reg_view_tgit = wil::reg::reg_view_details::reg_view_t<err_returncode_policy>;
 
 	static_assert(std::is_convertible_v<PCWSTR, std::wstring_view>);
@@ -473,7 +478,7 @@ namespace reg {
 
 	til::expect_no_hres delete_tgit_value(const std::wstring_view name) {
 		{
-			const auto regview = reg_view_details::reg_view_t<err_returncode_policy>{HKEY_CURRENT_USER};
+			const auto regview = reg_view_tgit{HKEY_CURRENT_USER};
 			const auto maybe_user = regview.try_get_value<PCWSTR>(TortoiseGitKey.data(), name.data());
 			if (maybe_user.has_value()) {
 				auto ret = regview.delete_value(TortoiseGitKey.data(), name.data());
@@ -483,7 +488,7 @@ namespace reg {
 		}
 
 		{
-			const auto regview = reg_view_details::reg_view_t<err_returncode_policy>{HKEY_LOCAL_MACHINE};
+			const auto regview = reg_view_tgit{HKEY_LOCAL_MACHINE};
 			const auto maybe_user = regview.try_get_value<PCWSTR>(TortoiseGitKey.data(), name.data());
 			if (maybe_user.has_value()) {
 				auto ret = regview.delete_value(TortoiseGitKey.data(), name.data());
@@ -495,6 +500,37 @@ namespace reg {
 		return {};
 	}
 
+
+	// std::vector<std::wstring> getValues(const HKEY& m_base, std::wstring sub) {
+	// 	auto ret = std::vector<std::wstring>{};
+	// 	auto k = wil::reg::open_unique_key(m_base, sub.c_str());
+	// 	for (const auto& val : wil::make_range(wil::reg::value_iterator{k}, wil::reg::value_iterator{}))
+	// 	{
+	// 		// val is wil::reg::value_iterator_data<std::wstring>
+	// 		const std::wstring& name = val.name; // Value name (sized automatically)
+	// 		const DWORD type = val.type;         // e.g., REG_SZ, REG_DWORD
+	//
+	// 		if (type == REG_SZ)
+	// 		{
+	// 			auto data = wil::reg::try_get_value_string(hKey, name.c_str());
+	// 		}
+	// 	}
+	// 	{
+	//
+	// 	}
+	// }
+	//
+	// bool CRegistryKey::getValues(std::vector<reg_string_t>& values)
+	// {
+	// 	values.clear();
+	//
+	// 	auto k = wil::reg::open_unique_key(m_base, m_path.c_str());
+	// 	for (const auto& [value, type] : wil::make_range(wil::reg::value_iterator{k.get()}, {})) {
+	// 		values.emplace_back(value);
+	// 	}
+	//
+	// 	return !values.empty();
+	// }
 #pragma endregion
 }
 

@@ -20,10 +20,12 @@
 #include "stdafx.h"
 #include "RemoteCacheLink.h"
 #include "ShellExt.h"
-#include <TGitCache/CacheInterface.h>
+#include <Utils/CreateProcessHelper.h>
+
+import TGitCache.CacheInterface;
 import TGitPath;
 import PathUtils;
-#include "CreateProcessHelper.h"
+
 
 CRemoteCacheLink::CRemoteCacheLink()
 {
@@ -309,6 +311,6 @@ bool CRemoteCacheLink::RunTGitCacheProcess()
 
 CString CRemoteCacheLink::GetTGitCachePath() const
 {
-	CString sCachePath = (CPathUtils::GetAppDirectory(g_hmodThisDll) + L"TGitCache.exe").c_str();
+	CString sCachePath = (PathUtils::GetAppDirectory(g_hmodThisDll) / L"TGitCache.exe").c_str();
 	return sCachePath;
 }

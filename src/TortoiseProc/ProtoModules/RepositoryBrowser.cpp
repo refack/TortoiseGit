@@ -25,13 +25,13 @@
 
 #include "TortoiseProc.h"
 #include "RepositoryBrowser.h"
-#include "LogDlg.h"
+#include "../../SharedMFC/Utils/LogDlg.h"
 import AppUtils.Launch;
 import AppUtils.Window;
 #include "IconMenu.h"
 #include "Utils/SysImageList.h"
 #include "GitDiff.h"
-#include "Utils/DPIAware.h"
+#include "../../libgit2/Utils/DPIAware.h"
 import MessageBox;
 
 #define OVERLAY_EXTERNAL	1

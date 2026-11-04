@@ -125,13 +125,13 @@ export class GitRevRefBrowser : public GitRev
 {
 public:
 	using MAP_REF_GITREVREFBROWSER = std::map<CString, GitRevRefBrowser>;
+	using GitRev::m_objectType;
 
 	GitRevRefBrowser() : GitRev()
 	{}
 
-	CString m_Description;
-	CString m_UpstreamRef;
-	using GitRev::m_objectType;
+	CString m_Description{};
+	CString m_UpstreamRef{};
 
 
 	void Clear() override

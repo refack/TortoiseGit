@@ -19,7 +19,7 @@
 //
 #pragma once
 
-#include "StandAloneDlg.h"
+import StandAloneDlg;
 #include "UpdateListCtrl.h"
 #include "UpdateDownloader.h"
 #include "VersioncheckParser.h"

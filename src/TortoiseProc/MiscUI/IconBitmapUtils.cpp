@@ -1,30 +1,26 @@
-﻿// TortoiseGit - a Windows shell extension for easy version control
-
-// Copyright (C) 2009-2012, 2014-2015, 2018, 2020-2021, 2025 - TortoiseSVN
-// Copyright (C) 2016, 2019-2020, 2025 - TortoiseGit
-
-// This program is free software; you can redistribute it and/or
-// modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; either version 2
-// of the License, or (at your option) any later version.
-
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-
-// You should have received a copy of the GNU General Public License
-// along with this program; if not, write to the Free Software Foundation,
-// 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-//
+﻿module;
 #include "../stdafx.h"
 #include "../std.h"
+#include <Utils/LoadIconEx.h>
 
+export module IconBitmapUtils;
+export class IconBitmapUtils
+{
+public:
+	IconBitmapUtils() = delete;
 
-#include "MiscUI/IconBitmapUtils.h"
-#include "../../libgit2/Utils/LoadIconEx.h"
+	static HBITMAP IconToBitmap(HINSTANCE hInst, UINT uIcon);
+	static HBITMAP IconToBitmapPARGB32(HICON hIcon, int width, int height);
+	static HBITMAP IconToBitmapPARGB32(HINSTANCE hInst, UINT uIcon);
+	static HRESULT Create32BitHBITMAP(HDC hdc, const SIZE* psize, __deref_opt_out void** ppvBits, __out HBITMAP* phBmp);
+	static HRESULT ConvertBufferToPARGB32(HPAINTBUFFER hPaintBuffer, HDC hdc, HICON hIcon, const SIZE& sizIcon);
+	static bool HasAlpha(__in Gdiplus::ARGB* pargb, const SIZE& sizImage, int cxRow);
+	static HRESULT ConvertToPARGB32(HDC hdc, __inout Gdiplus::ARGB* pargb, HBITMAP hbmp, const SIZE& sizImage, int cxRow);
+};
+
 
 #pragma comment(lib, "UxTheme.lib")
+
 
 HBITMAP IconBitmapUtils::IconToBitmap(HINSTANCE hInst, UINT uIcon)
 {

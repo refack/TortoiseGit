@@ -1,6 +1,11 @@
 ﻿add_library(ResizableLib STATIC)
 
 target_sources(ResizableLib
+    PUBLIC
+        FILE_SET HEADERS
+        BASE_DIRS
+            .
+
     PRIVATE
         ResizableComboBox.cpp
         ResizableComboBox.h
@@ -49,7 +54,6 @@ target_sources(ResizableLib
 target_include_directories(ResizableLib
     PRIVATE
         "${CMAKE_SOURCE_DIR}/src"
-        "${CMAKE_SOURCE_DIR}/src/SharedMFC"       # Utils/DPIAware.h
         "${CMAKE_CURRENT_SOURCE_DIR}"
 )
 

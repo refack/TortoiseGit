@@ -616,10 +616,10 @@ namespace details {
 
 	const bool g_bSortLogical = !wil::reg::get_bool(HKEY_CURRENT_USER, sw_Explorer, L"NoStrCmpLogical", false) &&
 		!wil::reg::get_bool(HKEY_LOCAL_MACHINE, sw_Explorer, L"NoStrCmpLogical", false);
-	const bool g_bSortLocalBranchesFirst = !wil::reg::get_bool(HKEY_CURRENT_USER, Registry::TortoiseGitKey, L"NoSortLocalBranchesFirst", false) &&
-		!wil::reg::get_bool(HKEY_LOCAL_MACHINE, Registry::TortoiseGitKey, L"NoSortLocalBranchesFirst", false);
+	const bool g_bSortLocalBranchesFirst = !wil::reg::get_bool(HKEY_CURRENT_USER, wil::reg::TortoiseGitKey, L"NoSortLocalBranchesFirst", false) &&
+		!wil::reg::get_bool(HKEY_LOCAL_MACHINE, wil::reg::TortoiseGitKey, L"NoSortLocalBranchesFirst", false);
 
-	const bool g_bSortTagsReversed = wil::reg::get_bool(HKEY_CURRENT_USER, Registry::TortoiseGitKey, L"SortTagsReversed", false);
+	const bool g_bSortTagsReversed = wil::reg::get_bool(HKEY_CURRENT_USER, wil::reg::TortoiseGitKey, L"SortTagsReversed", false);
 
 	int LogicalCompareSz(const LPCWSTR left, const LPCWSTR right) {
 		if (g_bSortLogical)
@@ -684,7 +684,7 @@ namespace details {
 void UnifiedDiffStatToStringA(const git_buf* text, void* payload) {
 	_ASSERTE(payload && text);
 	const auto str = static_cast<CStringA*>(payload);
-	str->Append(text->ptr, CUnicodeUtils::SafeSizeToInt(text->size));
+	str->Append(text->ptr, CUnicodeUtils::win32_cast(text->size));
 	str->AppendChar('\n');
 }
 
@@ -694,7 +694,7 @@ int UnifiedDiffToStringA(const git_diff_delta* /*delta*/, const git_diff_hunk* /
 	const auto str = static_cast<CStringA*>(payload);
 	if (line->origin == GIT_DIFF_LINE_CONTEXT || line->origin == GIT_DIFF_LINE_ADDITION || line->origin == GIT_DIFF_LINE_DELETION)
 		str->Append(&line->origin, 1);
-	str->Append(line->content, CUnicodeUtils::SafeSizeToInt(line->content_len));
+	str->Append(line->content, CUnicodeUtils::win32_cast(line->content_len));
 	return 0;
 }
 
@@ -807,9 +807,9 @@ public:
 		// const rather than merely documenting that it should not be assigned. It writes the storage rather than a setter because CStrBuf fills a buffer
 		// inplace, and because this write is not choosing a repository.
 		m_CurrentDirStorage = fs::current_path();
-		m_IsUseGitDLL = wil::reg::get_bool(HKEY_CURRENT_USER, Registry::TortoiseGitKey, L"UsingGitDLL", false);
-		m_IsUseLibGit2 = wil::reg::get_bool(HKEY_CURRENT_USER, Registry::TortoiseGitKey, L"UseLibgit2", true);
-		m_IsUseLibGit2_mask = wil::reg::try_get_dword(HKEY_CURRENT_USER, Registry::TortoiseGitKey, L"UseLibgit2_mask").value_or(DEFAULT_USE_LIBGIT2_MASK);
+		m_IsUseGitDLL = wil::reg::get_bool(HKEY_CURRENT_USER, wil::reg::TortoiseGitKey, L"UsingGitDLL", false);
+		m_IsUseLibGit2 = wil::reg::get_bool(HKEY_CURRENT_USER, wil::reg::TortoiseGitKey, L"UseLibgit2", true);
+		m_IsUseLibGit2_mask = wil::reg::try_get_dword(HKEY_CURRENT_USER, wil::reg::TortoiseGitKey, L"UseLibgit2_mask").value_or(DEFAULT_USE_LIBGIT2_MASK);
 
 		CheckMsysGitDir();
 	}
@@ -1904,7 +1904,7 @@ namespace details {
 
 
 	int FindAndSetGitExePath(const bool bFallback) {
-		const fs::path str = wil::reg::try_get_string(HKEY_CURRENT_USER, Registry::TortoiseGitKey, REG_MSYSGIT_PATH).value_or({});
+		const fs::path str = wil::reg::try_get_string(HKEY_CURRENT_USER, wil::reg::TortoiseGitKey, REG_MSYSGIT_PATH).value_or({});
 		if (!str.empty() && fs::exists(str / L"git.exe")) {
 			ms_LastMsysGitDir = str;
 			return true;
@@ -3202,7 +3202,7 @@ bool CGit::CheckMsysGitDir(const bool bFallback) {
 
 	if (
 		const auto systemConfigOwner = GetGitSystemConfig();
-		wil::reg::try_get_string(HKEY_CURRENT_USER, Registry::TortoiseGitKey, REG_SYSTEM_GITCONFIGPATH).value_or(std::wstring{}) != systemConfigOwner
+		wil::reg::try_get_string(HKEY_CURRENT_USER, wil::reg::TortoiseGitKey, REG_SYSTEM_GITCONFIGPATH).value_or(std::wstring{}) != systemConfigOwner
 	)
 		std::ignore = wil::reg::set_tgit_string(REG_SYSTEM_GITCONFIGPATH, systemConfigOwner.c_str());
 
@@ -3216,7 +3216,7 @@ bool CGit::CheckMsysGitDir(const bool bFallback) {
 	if (ms_bMsys2Git)
 		Trace(__FUNCTION__ L": Msys2Hack: true\n");
 
-	ms_LastMsysGitVersion = Registry::CRegDWORD(L"Software\\TortoiseGit\\git_cached_version");
+	ms_LastMsysGitVersion = CRegDWORD(L"Software\\TortoiseGit\\git_cached_version");
 
 	// Configure libgit2 search paths
 	libgit2::SetLibGit2SearchPath(GIT_CONFIG_LEVEL_SYSTEM, GetGitSystemConfig().parent_path().string());
@@ -3239,7 +3239,7 @@ bool CGit::CheckMsysGitDir(const bool bFallback) {
 	libgit2::libgit2_transport_register("git+ssh", transportCallback);
 
 	Environment::g_Environment.AddToPath(ms_LastMsysGitDir.native());
-	const auto msys_extra = wil::reg::try_get_string(HKEY_CURRENT_USER, Registry::TortoiseGitKey, REG_MSYSGIT_EXTRA_PATH).value_or(std::wstring{});
+	const auto msys_extra = wil::reg::try_get_string(HKEY_CURRENT_USER, wil::reg::TortoiseGitKey, REG_MSYSGIT_EXTRA_PATH).value_or(std::wstring{});
 	Environment::g_Environment.AddToPath(msys_extra);
 
 #if !defined(TGITCACHE) && !defined(TORTOISESHELL)
@@ -3663,7 +3663,7 @@ int CGit::GetWorkingTreeChanges(CTGitPathList& result,
 		}
 	}
 
-	static bool useOldLSFilesDBehaviorKS = Registry::CRegDWORD(L"Software\\TortoiseGit\\OldLSFilesDBehaviorKS", FALSE, false, HKEY_LOCAL_MACHINE) == TRUE;
+	static bool useOldLSFilesDBehaviorKS = CRegDWORD(L"Software\\TortoiseGit\\OldLSFilesDBehaviorKS", FALSE, false, HKEY_LOCAL_MACHINE) == TRUE;
 	// TODO: remove kill-switch
 	// handle source files of file renames/moves (issue #860)
 	// if a file gets renamed and the new file "git add"ed, diff-index doesn't list the source file anymore
@@ -3910,7 +3910,7 @@ int CGit::GetTagInfo(const CStringW& tagName, CStringW& output, const time_forma
 int GetSubmodulePointer(CGit::SubmoduleInfo& submoduleinfo) {
 	submoduleinfo.Empty();
 
-	if (wil::reg::try_get_dword(HKEY_CURRENT_USER, Registry::TortoiseGitKey, L"LogShowSuperProjectSubmodulePointer").value_or(1u) != 1u)
+	if (wil::reg::try_get_dword(HKEY_CURRENT_USER, wil::reg::TortoiseGitKey, L"LogShowSuperProjectSubmodulePointer").value_or(1u) != 1u)
 		return 0;
 
 	const auto& currentDir = GitCall::m_CurrentDirStorage.native();

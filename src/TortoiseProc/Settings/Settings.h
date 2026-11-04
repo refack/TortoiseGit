@@ -19,7 +19,7 @@
 //
 #pragma once
 
-#include "StandAloneDlg.h"
+import StandAloneDlg;
 #include "TreePropSheet/TreePropSheet.h"
 import TGitPath;
 #include "SettingsPropPage.h"

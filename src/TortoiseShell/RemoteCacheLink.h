@@ -20,9 +20,8 @@
 
 #pragma once
 import RIAA;
-
-struct TGITCacheResponse;
-class CTGitPath;
+import TGitPath;
+import TGitCache.CacheInterface;
 
 /**
  * \ingroup TortoiseShell

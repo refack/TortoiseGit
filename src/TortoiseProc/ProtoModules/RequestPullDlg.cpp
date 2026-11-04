@@ -24,7 +24,7 @@
 
 #include "TortoiseProc.h"
 #include "RequestPullDlg.h"
-#include "LogDlg.h"
+#include "../../SharedMFC/Utils/LogDlg.h"
 import MessageBox;
 import AppUtils.Window;
 

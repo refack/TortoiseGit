@@ -26,8 +26,6 @@
 
 */
 
-#include "stdafx.h"
-#include "std.h"
 
 #include "LogDataVector.h"
 import GitMailmap;

@@ -19,21 +19,24 @@
 //
 
 #pragma once
-#include "../SharedMFC/Resources/resource.h"
-#include "StandAloneDlg.h"
+#include "Resources/resource.h"
+#include "SplitterControl.h"
+#include "FilterEdit.h"
+#include "../../TortoiseProc/GitLogList.h"
+#include "ProtoModules/Colors.h"
+#include "ProtoModules/GitStatusListCtrl.h"
+#include "ProtoModules/HyperLink.h"
+#include "ProtoModules/GravatarPictureBox.h"
+#include "ProtoModules/PatchViewDlg.h"
+#include "MenuButton.h"
+#include "Utils/GestureEnabledControl.h"
+
 import TGitPath;
 import Registry;
 import wil;
-#include "SplitterControl.h"
-#include "Colors.h"
-#include "FilterEdit.h"
-#include "GitLogList.h"
-#include "GitStatusListCtrl.h"
-#include "HyperLink.h"
-#include "GravatarPictureBox.h"
-#include "PatchViewDlg.h"
-#include "MenuButton.h"
-#include "Utils/GestureEnabledControl.h"
+import StandAloneDlg;
+
+
 
 #define LOGFILTER_TIMER	101
 #define LOGFTIME_TIMER	102

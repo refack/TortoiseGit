@@ -22,7 +22,7 @@
 
 #include "SettingsCommand.h"
 #include <Settings/Settings.h>
-#include "Utils/DPIAware.h"
+#include "../../libgit2/Utils/DPIAware.h"
 #include "SinglePropSheetDlg.h"
 #include "Settings/SettingGitCredential.h"
 import AppUtils.Launch;

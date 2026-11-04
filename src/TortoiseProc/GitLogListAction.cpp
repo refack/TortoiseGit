@@ -493,7 +493,7 @@ void CGitLogList::ContextMenuAction(int cmd, int FirstSelect, int LastSelect, CM
 					if (selectedBranch->starts_with(L"refs/tags/"))
 					{
 						if (selectedBranch->ends_with(L"^{}"))
-							sClipboard = tgit::wstr::Mid(*selectedBranch, static_cast<int>(wcslen(L"refs/tags/")), SafeSizeToInt(selectedBranch->size()) - static_cast<int>(wcslen(L"refs/tags/")) - static_cast<int>(wcslen(L"^{}"))).c_str();
+							sClipboard = tgit::wstr::Mid(*selectedBranch, static_cast<int>(wcslen(L"refs/tags/")), win32_cast(selectedBranch->size()) - static_cast<int>(wcslen(L"refs/tags/")) - static_cast<int>(wcslen(L"^{}"))).c_str();
 						else
 							sClipboard = tgit::wstr::Mid(*selectedBranch, static_cast<int>(wcslen(L"refs/tags/"))).c_str();
 					}
@@ -505,7 +505,7 @@ void CGitLogList::ContextMenuAction(int cmd, int FirstSelect, int LastSelect, CM
 					for (const auto& ref : refList->second)
 					{
 						if (ref.starts_with(L"refs/tags/") && ref.ends_with(L"^{}"))
-							sClipboard += tgit::wstr::Left(ref, SafeSizeToInt(ref.size()) - static_cast<int>(wcslen(L"^{}"))).c_str();
+							sClipboard += tgit::wstr::Left(ref, win32_cast(ref.size()) - static_cast<int>(wcslen(L"^{}"))).c_str();
 						else
 							sClipboard += ref.c_str();
 						sClipboard += L"\r\n";

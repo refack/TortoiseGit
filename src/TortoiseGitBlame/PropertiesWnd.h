@@ -19,51 +19,51 @@
 
 
 #pragma once
+#include <Utils/GestureEnabledControl.h>
+#include "../TortoiseShell/DockablePaneUnscaledStoredState.h"
 
-#include "GitRevLoglist.h"
-#include "GestureEnabledControl.h"
-#include "DockablePaneUnscaledStoredState.h"
+import GitRevLoglist;
 
-class CPropertiesToolBar : public CMFCToolBar
-{
+
+
+class CPropertiesToolBar : public CMFCToolBar {
 public:
-	virtual void OnUpdateCmdUI(CFrameWnd* /*pTarget*/, BOOL bDisableIfNoHndler) override
-	{
-		CMFCToolBar::OnUpdateCmdUI(static_cast<CFrameWnd*>(GetOwner()), bDisableIfNoHndler);
+	void OnUpdateCmdUI(CFrameWnd* /*pTarget*/, BOOL bDisableIfNoHndler) override {
+		CMFCToolBar::OnUpdateCmdUI(dynamic_cast<CFrameWnd*>(GetOwner()), bDisableIfNoHndler);
 	}
 
-	virtual BOOL AllowShowOnList() const override { return FALSE; }
+protected:
+	BOOL AllowShowOnList() const override { return FALSE; }
 };
 
-class CPropertiesWnd : public CDockablePaneUnscaledStoredState
-{
-// Construction
+
+
+class CPropertiesWnd : public CDockablePaneUnscaledStoredState {
+	// Construction
 public:
 	CPropertiesWnd();
 
-	void AdjustLayout();
+	void AdjustLayout() override;
 
-// Attributes
-public:
-	void SetVSDotNetLook(BOOL bSet)
-	{
+
+	void SetVSDotNetLook(BOOL bSet) {
 		m_wndPropList.SetVSDotNetLook(bSet);
 		m_wndPropList.SetGroupNameFullWidth(bSet);
 	}
 
+
 	// rev=nullptr, means clear properties info;
 	void UpdateProperties(GitRevLoglist* rev = nullptr);
+
+	// Implementation
+	~CPropertiesWnd() override;
 
 protected:
 	CFont m_fntPropList;
 	CGestureEnabledControlTmpl<CMFCPropertyGridCtrl> m_wndPropList;
 
 	void RemoveParent();
-// Implementation
-public:
-	virtual ~CPropertiesWnd();
 
-protected:
 	afx_msg int OnCreate(LPCREATESTRUCT lpCreateStruct);
 	afx_msg void OnSize(UINT nType, int cx, int cy);
 	afx_msg void OnSetFocus(CWnd* pOldWnd);

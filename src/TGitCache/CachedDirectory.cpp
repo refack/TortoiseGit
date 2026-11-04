@@ -26,7 +26,7 @@
 import TGitPath;	// GitAdminDir lives in the TGitPath module
 #include "GitStatusCache.h"
 import PathUtils;
-#include "GitStatus.h"
+import TGitStatus;
 import str_utils;	// StringUtils::EndsWith, tgit::wstr::Mid/TrimLeft (were StringUtils.h, WideString.h)
 
 CCachedDirectory::CCachedDirectory()

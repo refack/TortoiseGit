@@ -19,10 +19,17 @@
 
 #pragma once
 
-#include "GitStatus.h"
+import std;
+import wil;
 import TGitPath;
 import RIAA;
 import GitIndex;	// git_wc_status_kind / git_wc_status2_t
+import TGitStatus;
+import std;
+import DebugOutput;
+import git_h;
+
+using namespace GitIndex;
 
 struct FileStatusCacheEntry
 {
@@ -50,9 +57,11 @@ struct FileStatusCacheEntry
  * the cache is only fetched for versioned files and
  * not for folders.
  */
-class GitFolderStatus
-{
+class GitFolderStatus {
 public:
+
+	using FileStatusMap = std::map<std::wstring, FileStatusCacheEntry>;
+
 	GitFolderStatus();
 	~GitFolderStatus();
 
@@ -60,39 +69,38 @@ public:
 	GitFolderStatus(const GitFolderStatus&) = delete;
 	GitFolderStatus& operator=(const GitFolderStatus&) = delete;
 
-	const FileStatusCacheEntry *	GetFullStatus(const CTGitPath& filepath, BOOL bIsFolder);
+	const FileStatusCacheEntry *	GetFullStatus(const CTGitPath& filepath, bool bIsFolder);
 	const FileStatusCacheEntry *	GetCachedItem(const CTGitPath& filepath);
 
-	FileStatusCacheEntry		invalidstatus;
+	FileStatusCacheEntry			invalidstatus;
 
-	GitStatus	m_GitStatus;
+	GitStatus::GitStatus			m_GitStatus;
 
 private:
-	std::optional<const FileStatusCacheEntry*> BuildCache(const CTGitPath& filepath, const std::wstring& sProjectRoot, BOOL bIsFolder, BOOL bDirectFolder = FALSE);
-	ULONGLONG			GetTimeoutValue() const
+	std::optional<const FileStatusCacheEntry*>	BuildCache(const CTGitPath& filepath, const std::wstring& sProjectRoot, bool bIsFolder, bool bDirectFolder = false);
+	void										ClearCache();
+	size_t										GetTimeoutValue() const
 	{
-		ULONGLONG timeout = GITFOLDERSTATUS_CACHETIMEOUT;
-		ULONGLONG factor = static_cast<ULONGLONG>(m_cache.size()) / 200UL;
+		constexpr size_t timeout = GITFOLDERSTATUS_CACHETIMEOUT;
+		size_t factor = m_cache.size() / 200UL;
 		if (factor == 0)
 			factor = 1;
 		return factor * timeout;
 	}
 
 
-	void				ClearCache();
 
-	using FileStatusMap = std::map<std::wstring, FileStatusCacheEntry>;
-	FileStatusMap			m_cache;
-	ULONGLONG				m_TimeStamp = 0;
-	FileStatusCacheEntry	dirstat;
-	git_wc_status2_t*		dirstatus = nullptr;
+	FileStatusMap				m_cache;
+	size_t						m_TimeStamp = 0;
+	FileStatusCacheEntry		dirstat;
+	git_wc_status2_t*			dirstatus = nullptr;
 
-	std::wstring			sCacheKey;
+	std::wstring				sCacheKey;
 
-	CAutoGeneralHandle	m_hInvalidationEvent;
+	wil::unique_handle			m_hInvalidationEvent{};
 
 	// The item we most recently supplied status for
-	CTGitPath		m_mostRecentPath;
+	CTGitPath					m_mostRecentPath;
 	const FileStatusCacheEntry* m_mostRecentStatus = nullptr;
 };
 

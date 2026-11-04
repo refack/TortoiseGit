@@ -27,7 +27,7 @@
 #include "PushDlg.h"
 import AppUtils.Window;
 import AppUtils.Workflow;
-#include "LogDlg.h"
+#include "../../SharedMFC/Utils/LogDlg.h"
 #include "BrowseRefsDlg.h"
 #include "RefLogDlg.h"
 import MessageBox;

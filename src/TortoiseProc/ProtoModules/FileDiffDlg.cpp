@@ -28,7 +28,7 @@
 #include "GitDiff.h"
 #include "LoglistUtils.h"
 #include "BrowseRefsDlg.h"
-#include "LogDlg.h"
+#include "../../SharedMFC/Utils/LogDlg.h"
 #include "RefLogDlg.h"
 #include "GitStatusListCtrl.h"
 #include "LogDlgFileFilter.h"

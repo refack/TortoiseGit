@@ -18,7 +18,7 @@
 //
 
 #pragma once
-#include "StandAloneDlg.h"
+import StandAloneDlg;
 import Registry;
 import git_h;
 

@@ -50,7 +50,7 @@ bool CommitCommand::Execute()
 		return false;
 	}
 	CString sLogMsg = LoadLogMessage();
-	bool bSelectFilesForCommit = !!DWORD(Registry::CRegStdDWORD(L"Software\\TortoiseGit\\SelectFilesForCommit", TRUE));
+	bool bSelectFilesForCommit = !!DWORD(CRegStdDWORD(L"Software\\TortoiseGit\\SelectFilesForCommit", TRUE));
 
 	return !!CAppUtils::Commit(GetExplorerHWND(),
 								CString(parser.GetValStr(L"bugid").c_str()),

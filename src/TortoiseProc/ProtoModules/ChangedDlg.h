@@ -19,7 +19,7 @@
 //
 #pragma once
 
-#include "StandAloneDlg.h"
+import StandAloneDlg;
 import Registry;
 #include "MenuButton.h"
 import TGitPath;

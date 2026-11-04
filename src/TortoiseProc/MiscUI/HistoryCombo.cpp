@@ -23,7 +23,7 @@
 
 
 #include "Utils/HistoryCombo.h"
-#include "Utils/DPIAware.h"
+#include "../../libgit2/Utils/DPIAware.h"
 import ThemeAPI;
 
 #ifdef HISTORYCOMBO_WITH_SYSIMAGELIST

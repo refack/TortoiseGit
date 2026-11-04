@@ -23,7 +23,7 @@
 import git_h;
 #include "Utils/GestureEnabledControl.h"
 #include "MiscUI/MenuButton.h"
-#include "StandAloneDlg.h"
+import StandAloneDlg;
 
 #include "GitCliOutputParser.h"
 

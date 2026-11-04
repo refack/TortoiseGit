@@ -24,8 +24,8 @@
 #include "RevisionGraphDlg.h"
 import AppUtils.Window;
 #include "RevGraphFilterDlg.h"
-#include "Utils/DPIAware.h"
-#include "LogDlgFilter.h"
+#include "../../libgit2/Utils/DPIAware.h"
+#include "../../SharedMFC/Utils/LogDlgFilter.h"
 #include "GitLogListBase.h"
 
 #ifdef _DEBUG

@@ -36,7 +36,7 @@
 #include "ProgressCommands/RevertProgressCommand.h"
 #include "ProgressCommands/ResolveProgressCommand.h"
 #include "CreateChangelistDlg.h"
-#include "LogDataVector.h"		// mix CString + std::wstring
+#include "../../SharedMFC/Utils/LogDataVector.h"
 import MessageBox;
 import BrowseFolder;
 import ThemeAPI;

@@ -4,6 +4,14 @@
 
 // ReSharper disable CppUnusedIncludeDirective
 #pragma once
+
+#include <algorithm>
+#include <string>
+#include <string_view>
+#include <atomic>
+#include <system_error>
+
+
 // Every textual include first, every import last: a textual std header after an
 // `import std;` redefines what the import brought (C2011/C2995), and the module
 // imports below all import std.

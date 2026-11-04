@@ -126,8 +126,6 @@ target_sources(TortoiseProc
         GitLogList.h
         GitLogListAction.cpp
         GitStatusListCtrlHelpers.cpp
-        LogDataVector.cpp
-        LogDataVector.h
         ProgressCommands/AddProgressCommand.cpp
         ProgressCommands/AddProgressCommand.h
         ProgressCommands/CloneProgressCommand.cpp
@@ -198,8 +196,6 @@ target_sources(TortoiseProc
         ProtoModules/FilterHelper.h
         ProtoModules/FindBar.cpp
         ProtoModules/FindBar.h
-        ProtoModules/FindDlg.cpp
-        ProtoModules/FindDlg.h
         ProtoModules/FirstStartWizard.cpp
         ProtoModules/FirstStartWizard.h
         ProtoModules/FirstStartWizardAuthentication.cpp
@@ -220,10 +216,6 @@ target_sources(TortoiseProc
         ProtoModules/GitCliOutputParser.h
         ProtoModules/GitDiff.cpp
         ProtoModules/GitDiff.h
-        ProtoModules/GitLogCache.cpp
-        ProtoModules/GitLogCache.h
-        ProtoModules/GitLogListBase.cpp
-        ProtoModules/GitLogListBase.h
         ProtoModules/GitProgressDlg.cpp
         ProtoModules/GitProgressDlg.h
         ProtoModules/GitProgressList.cpp
@@ -244,12 +236,6 @@ target_sources(TortoiseProc
         ProtoModules/InputDlg.h
         ProtoModules/LFSLocksDlg.cpp
         ProtoModules/LFSLocksDlg.h
-        ProtoModules/LogDlg.cpp
-        ProtoModules/LogDlg.h
-        ProtoModules/LogDlgFileFilter.cpp
-        ProtoModules/LogDlgFileFilter.h
-        ProtoModules/LogDlgFilter.cpp
-        ProtoModules/LogDlgFilter.h
         ProtoModules/LogFile.cpp
         ProtoModules/LogFile.h
         ProtoModules/LogOrdering.cpp
@@ -264,8 +250,6 @@ target_sources(TortoiseProc
         ProtoModules/PatchViewDlg.h
         ProtoModules/ProgressDlg.cpp
         ProtoModules/ProgressDlg.h
-        ProtoModules/ProjectProperties.cpp
-        ProtoModules/ProjectProperties.h
         ProtoModules/PromptDlg.cpp
         ProtoModules/PromptDlg.h
         ProtoModules/PullFetchDlg.cpp
@@ -432,7 +416,6 @@ target_sources(TortoiseProc
         MiscUI/SplitterControl.cpp
         MiscUI/SysProgressDlg.cpp
         MiscUI/ThemeControls.cpp
-        MiscUI/Tooltip.cpp
         MiscUI/WaterEffect.cpp
         ProtoModules/COMError.cpp
         ProtoModules/COMError.h
@@ -448,8 +431,6 @@ target_sources(TortoiseProc
         ProtoModules/HyperLink.h
         ProtoModules/IconExtractor.cpp
         ProtoModules/IconExtractor.h
-        ProtoModules/StandAloneDlg.cpp
-        ProtoModules/StandAloneDlg.h
         ProtoModules/ThemeMFCVisualManager.cpp
         ProtoModules/ThemeMFCVisualManager.h
         TreePropSheet/PropPageFrame.cpp

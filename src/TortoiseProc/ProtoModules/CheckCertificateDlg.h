@@ -18,7 +18,7 @@
 //
 
 #pragma once
-#include "StandAloneDlg.h"
+import StandAloneDlg;
 
 class CCheckCertificateDlg : public CStandAloneDialog
 {

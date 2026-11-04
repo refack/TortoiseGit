@@ -33,15 +33,8 @@ target_include_directories(TortoiseGitBlame
         "${CMAKE_CURRENT_SOURCE_DIR}"
         "${VCPKG_INSTALLED_DIR}/include/scintilla"
         "${VCPKG_INSTALLED_DIR}/include/lexilla"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../../ext/gitdll"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../Git"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../TortoiseProc"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../Utils"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../Utils/MiscUI"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../ResizableLib"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../Resources"
-        "${CMAKE_SOURCE_DIR}/src"
-        "${CMAKE_SOURCE_DIR}/src/libgit2/include"   # sanity.h
+        "${CMAKE_SOURCE_DIR}/src/TortoiseProc"
+        "${CMAKE_SOURCE_DIR}/src/TortoiseProc/ProtoModules"
 )
 
 target_link_libraries(TortoiseGitBlame
@@ -62,9 +55,12 @@ target_link_libraries(TortoiseGitBlame
         rpcrt4
         gdi32
         crypt32
+
+        # local
         gitdll
         tgitlib
         ResizableLib
+        SharedMFC
 )
 
 target_link_options(TortoiseGitBlame

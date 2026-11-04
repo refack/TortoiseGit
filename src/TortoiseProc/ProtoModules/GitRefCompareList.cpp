@@ -26,7 +26,7 @@
 #include "IconMenu.h"
 #include <../TortoiseShell/resource.h>
 #include "../../libgit2/Resources/LoglistCommonResource.h"
-#include "Utils/DPIAware.h"
+#include "../../libgit2/Utils/DPIAware.h"
 import AppUtils.Launch;
 
 IMPLEMENT_DYNAMIC(CGitRefCompareList, CHintCtrl<CListCtrl>)

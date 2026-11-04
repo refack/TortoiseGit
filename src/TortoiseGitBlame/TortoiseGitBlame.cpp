@@ -27,7 +27,7 @@
 #include "MainFrm.h"
 #include "TortoiseGitBlameDoc.h"
 #include "TortoiseGitBlameView.h"
-#include "DPIAware.h"
+#include "Utils/DPIAware.h"
 import PathUtils;
 import AppUtils.Launch;
 import TaskbarUUID;
@@ -162,7 +162,7 @@ BOOL CTortoiseGitBlameApp::InitInstance()
 
 BOOL CTortoiseGitBlameApp::LoadWindowPlacement(CRect& rectNormalPosition, int& nFlags, int& nShowCmd)
 {
-	auto placement = Registry::CRegString(CString(L"Software\\TortoiseGitBlame\\WindowPos_") + GetMonitorSetupHash().c_str());
+	auto placement = CRegString(CString(L"Software\\TortoiseGitBlame\\WindowPos_") + GetMonitorSetupHash().c_str());
 	CString sPlacement = placement;
 	if (sPlacement.IsEmpty())
 		return FALSE;
@@ -188,7 +188,7 @@ BOOL CTortoiseGitBlameApp::LoadWindowPlacement(CRect& rectNormalPosition, int& n
 
 BOOL CTortoiseGitBlameApp::StoreWindowPlacement(const CRect& rectNormalPosition, int nFlags, int nShowCmd)
 {
-	Registry::CRegString placement(CString(L"Software\\TortoiseGitBlame\\WindowPos_") + GetMonitorSetupHash().c_str());
+	CRegString placement(CString(L"Software\\TortoiseGitBlame\\WindowPos_") + GetMonitorSetupHash().c_str());
 
 	WINDOWPLACEMENT wp = { 0 };
 	wp.length = sizeof(wp);

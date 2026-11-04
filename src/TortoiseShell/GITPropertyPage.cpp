@@ -21,12 +21,6 @@
 #include "stdafx.h"
 #include "ShellExt.h"
 #include "gitpropertypage.h"
-#include "UnicodeUtils.h"
-import PathUtils;
-#include "CreateProcessHelper.h"
-#include "FormatMessageWrapper.h"
-#include "StringUtils.h"
-import git_h;		// was "Git.h"; also TGitH::OpenGitRepository and the config readers
 
 #define MAX_STRING_LENGTH	4096	//should be big enough
 

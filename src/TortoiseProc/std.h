@@ -30,16 +30,19 @@ import TGitCache.CacheInterface;
 using namespace TGitCache;
 
 import Registry;
-using namespace Registry;
+using namespace RegistryDep;
 
 import DirFileEnum;
 using namespace DirFileEnum;
 
 import GitDataObject;
 
+using namespace RIAA;
+
 // Names that were global in the header era and live in a namespace now.
 using wil::CFormatMessageWrapper;
 using CUnicodeUtils::SafeSizeToInt;
 namespace fs = std::filesystem;
 using namespace tgit;
+
 

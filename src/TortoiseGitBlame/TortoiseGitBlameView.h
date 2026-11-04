@@ -25,12 +25,16 @@
 
 #pragma once
 #include <Scintilla/Scintilla.h>
-import Registry;
-#include <Utils/MiscUI/SciEdit.h>
-#include "Utils/MiscUI/Tooltip.h"
+#include <MiscUI/SciEdit.h>
+import Tooltip;
 #include "GitBlameLogList.h"
+#include "../SharedMFC/Utils/LogDataVector.h"
 #include "TortoiseGitBlameData.h"
 #include "TortoiseGitBlameDoc.h"
+
+import GitRev;
+import Registry;
+using namespace RegistryDep;
 
 constexpr COLORREF black = RGB(0,0,0);
 constexpr COLORREF white = RGB(0xff,0xff,0xff);

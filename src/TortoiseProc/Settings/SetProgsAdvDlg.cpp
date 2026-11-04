@@ -23,7 +23,7 @@
 #include "TortoiseProc.h"
 #include "ToolAssocDlg.h"
 #include "SetProgsAdvDlg.h"
-#include "LogDataVector.h"		// mix CString + std::wstring
+#include "../../SharedMFC/Utils/LogDataVector.h"
 import AppUtils.Launch;
 
 // CRegistryKey reports into std::vector<std::wstring> now; this page keeps its

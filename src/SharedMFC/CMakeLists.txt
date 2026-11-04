@@ -13,6 +13,17 @@ target_sources(SharedMFC
         ResText/Utils.cpp
         Utils/FileTextLines.cpp
         Utils/SysImageList.cpp
+        Utils/LogDlg.cpp
+        Utils/LogDlg.h
+        Utils/LogDlgFileFilter.cpp
+        Utils/LogDlgFileFilter.h
+)
+
+target_sources(SharedMFC
+    PUBLIC
+        FILE_SET HEADERS
+        BASE_DIRS .
+        FILES
 
 )
 
@@ -20,14 +31,19 @@ target_include_directories(SharedMFC
     PUBLIC
         gitdll
         tgitlib
+        ResizableLib
     PRIVATE
         "${CMAKE_CURRENT_SOURCE_DIR}"
+        "${CMAKE_SOURCE_DIR}/src/TortoiseProc/ProtoModules"
+        "${CMAKE_SOURCE_DIR}/src/TortoiseProc/MiscUI"
+        "${CMAKE_SOURCE_DIR}/src/TortoiseProc"
 )
 
 target_link_libraries(SharedMFC
     PUBLIC
         gitdll
         tgitlib
+        ResizableLib
 
     PRIVATE
         imm32
@@ -49,5 +65,10 @@ target_sources(SharedMFC
         BrowseFolder.ixx
         ColumnManager.ixx
         MessageBox.ixx
-        Utils/Theme.ixx
+        Theme.ixx
+        GitRevLoglist.ixx
+        StandAloneDlg.ixx
+        GitLogListBase.ixx
+        Tooltip.ixx
+        LogDlgFilter.ixx
 )

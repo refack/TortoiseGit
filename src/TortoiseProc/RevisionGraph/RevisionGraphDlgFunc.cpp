@@ -24,7 +24,7 @@
 #include <gdiplus.h>
 #include <regex>
 #include "RevisionGraphWnd.h"
-#include "Utils/DPIAware.h"
+#include "../../libgit2/Utils/DPIAware.h"
 import AppUtils.Launch;
 import AppUtils.Window;
 

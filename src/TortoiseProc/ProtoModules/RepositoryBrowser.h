@@ -19,7 +19,7 @@
 
 #pragma once
 #include <map>
-#include "StandAloneDlg.h"
+import StandAloneDlg;
 #include "Utils/GestureEnabledControl.h"
 #include "Utils/ResizableColumnsListCtrl.h"
 

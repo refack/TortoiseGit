@@ -20,15 +20,18 @@
 
 #include "stdafx.h"
 #include "GitBlameLogList.h"
-#include "GitRev.h"
-#include "GitRevLoglist.h"
 #include "TortoiseGitBlameDoc.h"
 #include "TortoiseGitBlameView.h"
 #include "MainFrm.h"
+#include <Utils/HintCtrl.h>
+
 import AppUtils.Launch;
-#include "CmdLineParser.h"
+import GitRev;
+import GitRevLoglist;
+import TGitPath;
 
 IMPLEMENT_DYNAMIC(CGitBlameLogList, CHintCtrl<CListCtrl>)
+
 
 void CGitBlameLogList::hideUnimplementedCommands()
 {

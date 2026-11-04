@@ -24,7 +24,7 @@
 
 #include "TortoiseProc.h"
 #include "BrowseRefsDlg.h"
-#include "LogDlg.h"
+#include "../../SharedMFC/Utils/LogDlg.h"
 #include "AddRemoteDlg.h"
 #include "Settings/SettingGitRemote.h"
 #include "SinglePropSheetDlg.h"
@@ -37,7 +37,7 @@ import MessageBox;
 #include "SysProgressDlg.h"
 #include "LoglistUtils.h"
 #include "BrowseRefsDlgFilter.h"
-#include "Utils/DPIAware.h"
+#include "../../libgit2/Utils/DPIAware.h"
 import AppUtils.Launch;
 import AppUtils.Window;
 import AppUtils.Workflow;
@@ -61,7 +61,7 @@ static int SplitRemoteBranchName(CString ref, CString &remote, CString &branch)
 		if (StringUtils::StartsWith(ref, (list[i] + L"/").c_str()))
 		{
 			remote = list[i].c_str();
-			branch = ref.Mid(SafeSizeToInt(list[i].size()) + 1);
+			branch = ref.Mid(win32_cast(list[i].size()) + 1);
 			return 0;
 		}
 		if (ref == list[i].c_str())

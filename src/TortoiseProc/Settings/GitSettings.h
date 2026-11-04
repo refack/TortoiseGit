@@ -18,7 +18,7 @@
 //
 
 #pragma once
-#include "Tooltip.h"
+#include "../../SharedMFC/MiscUI/Tooltip.h"
 
 import git_h;
 import str_utils;

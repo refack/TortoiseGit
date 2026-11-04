@@ -23,7 +23,7 @@
 #include "refloglist.h"
 #include "LoglistUtils.h"
 import AppUtils.Launch;
-#include "Utils/DPIAware.h"
+#include "../../libgit2/Utils/DPIAware.h"
 
 IMPLEMENT_DYNAMIC(CRefLogList, CGitLogList)
 

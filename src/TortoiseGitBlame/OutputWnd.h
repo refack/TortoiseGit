@@ -21,10 +21,14 @@
 #include "GitBlameLogList.h"
 #include "GravatarPictureBox.h"
 #include <unordered_set>
-#include "DockablePaneUnscaledStoredState.h"
+#include "../TortoiseShell/DockablePaneUnscaledStoredState.h"
+import GitHash;
 
 /////////////////////////////////////////////////////////////////////////////
 // COutputList window
+
+
+
 
 class COutputList : public CListBox
 {
@@ -62,7 +66,7 @@ public:
 	virtual ~COutputWnd();
 	afx_msg void OnLvnItemchangedLoglist(NMHDR *pNMHDR, LRESULT *pResult);
 	int LoadHistory(const CString& filename, const CString& revision, bool follow);
-	int	LoadHistory(std::unordered_set<CGitHash>& hashes);
+	int	LoadHistory(std::unordered_set<TGitHash::CGitHash>& hashes);
 	afx_msg BOOL OnEraseBkgnd(CDC* pDC);
 
 protected:

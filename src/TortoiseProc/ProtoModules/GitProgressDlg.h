@@ -20,7 +20,7 @@
 #pragma once
 #include <../SharedMFC/Resources/resource.h>
 
-#include "StandAloneDlg.h"
+import StandAloneDlg;
 #include "GitProgressList.h"
 #include "MenuButton.h"
 

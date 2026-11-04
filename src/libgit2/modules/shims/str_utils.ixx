@@ -1150,7 +1150,7 @@ static_assert(HasStringTraitsOf<tgit::wstr::CString, wchar_t>, "tgit::wstr::CStr
 
 // Safely convert from size_t to int.
 // Throws a std::overflow_error exception if the conversion is impossible.
-inline int SafeSizeToInt(const size_t sizeValue) {
+inline int win32_cast(const size_t sizeValue) {
 	// ReSharper disable once CppTooWideScopeInitStatement
 	constexpr int kIntMax = std::numeric_limits<int>::max();
 	if (sizeValue >= static_cast<size_t>(kIntMax))

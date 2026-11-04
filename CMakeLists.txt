@@ -171,9 +171,9 @@ add_subdirectory(src/TGitCache)
 add_subdirectory(src/TortoiseProc)
 add_subdirectory(src/TortoiseStub)
 
-#add_subdirectory(src/TortoiseGitBlame)
-#add_subdirectory(src/TortoiseShell)
-#add_subdirectory(src/TortoiseUDiff)
+add_subdirectory(src/TortoiseGitBlame)
+add_subdirectory(src/TortoiseShell)
+add_subdirectory(src/TortoiseUDiff)
 
 
 string(APPEND CMAKE_RUNTIME_OUTPUT_DIRECTORY "/tests")

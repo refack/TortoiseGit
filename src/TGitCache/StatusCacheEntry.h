@@ -22,7 +22,7 @@
 struct TGITCacheResponse;
 extern ULONGLONG cachetimeout;
 
-#include "CacheInterface.h"
+import TGitCache.CacheInterface;
 import GitIndex;	// git_wc_status_kind / git_wc_status2_t
 /**
  * \ingroup TGitCache

@@ -25,7 +25,7 @@
 #include "TortoiseProc.h"
 import MessageBox;
 #include "PatchViewDlg.h"
-#include "Utils/DPIAware.h"
+#include "../../libgit2/Utils/DPIAware.h"
 #include "StagingOperations.h"
 #include "EnableStagingTypes.h"
 import AppUtils.Window;
@@ -307,8 +307,8 @@ void CPatchViewDlg::OnShowFindBar()
 	if (auto selstart = m_ctrlPatchView.Call(SCI_GETSELECTIONSTART), selend = m_ctrlPatchView.Call(SCI_GETSELECTIONEND); selstart != selend && selend - selstart < INT_MAX)
 	{
 		CStringA selText;
-		Sci_TextRangeFull range = { selstart, selend, selText.GetBuffer(SafeSizeToInt(selend - selstart)) };
-		selText.ReleaseBufferSetLength(SafeSizeToInt(m_ctrlPatchView.Call(SCI_GETTEXTRANGEFULL, 0, reinterpret_cast<LPARAM>(&range))));
+		Sci_TextRangeFull range = { selstart, selend, selText.GetBuffer(win32_cast(selend - selstart)) };
+		selText.ReleaseBufferSetLength(win32_cast(m_ctrlPatchView.Call(SCI_GETTEXTRANGEFULL, 0, reinterpret_cast<LPARAM>(&range))));
 		if (!selText.IsEmpty())
 			m_FindBar.SetFindText(m_ctrlPatchView.StringFromControl(selText));
 	}

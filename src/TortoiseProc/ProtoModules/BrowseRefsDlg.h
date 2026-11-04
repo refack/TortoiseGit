@@ -18,7 +18,7 @@
 //
 #pragma once
 #include "../SharedMFC/Resources/resource.h"
-#include "StandAloneDlg.h"
+import StandAloneDlg;
 #include "MiscUI/FilterEdit.h"
 #include "Utils/ResizableColumnsListCtrl.h"
 import git_h;

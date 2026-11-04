@@ -10,7 +10,7 @@
 #include "stdafx.h"
 
 #include "ACListWnd.h"
-#include "Utils/DPIAware.h"
+#include "../../libgit2/Utils/DPIAware.h"
 import ThemeAPI;
 
 #ifdef _DEBUG

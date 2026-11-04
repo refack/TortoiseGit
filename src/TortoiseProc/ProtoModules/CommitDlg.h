@@ -19,7 +19,7 @@
 //
 
 #pragma once
-#include "StandAloneDlg.h"
+import StandAloneDlg;
 #include "GitStatusListCtrl.h"
 #include "MiscUI/SciEdit.h"
 #include "MiscUI/SplitterControl.h"

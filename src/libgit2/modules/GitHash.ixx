@@ -159,13 +159,9 @@ public:
 			str.append_range(std::format(L"{:02x}", m_oid.id[i]));
 		return str;
 	}
+	[[nodiscard]] auto c_str() const { return ToString().c_str(); }
 
-	[[nodiscard]] std::wstring ToString(const int len) const
-	{
-		std::wstring str { ToString() };
-		str.resize(len);
-		return str;
-	}
+	[[nodiscard]] std::wstring ToString(const size_t len) const { return ToString().substr(0, len); };
 
 	operator const git_oid*() const
 	{

@@ -19,7 +19,7 @@
 //
 
 #pragma once
-#include "StandAloneDlg.h"
+import StandAloneDlg;
 #include "RevisionGraphWnd.h"
 #include "FindDlg.h"
 

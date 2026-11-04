@@ -21,8 +21,10 @@
 #include <set>
 #include <string>
 #include <vector>
+#include <filesystem>
 using std::max;
 using std::min;
+namespace fs = std::filesystem;
 
 // some CString constructors will be explicit
 #define _ATL_CSTRING_EXPLICIT_CONSTRUCTORS

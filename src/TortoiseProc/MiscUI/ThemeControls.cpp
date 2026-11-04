@@ -23,7 +23,7 @@
 
 #include "MiscUI/ThemeControls.h"
 import ThemeAPI;
-#include "Utils/DPIAware.h"
+#include "../../libgit2/Utils/DPIAware.h"
 
 static const int nImageHorzMargin = 10;
 static const int nVertMargin = 5;

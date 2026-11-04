@@ -18,7 +18,6 @@
 //
 
 #include "stdafx.h"
-#include "std.h"
 
 #include "LogDlgFileFilter.h"
 

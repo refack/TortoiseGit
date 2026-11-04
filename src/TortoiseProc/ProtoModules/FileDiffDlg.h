@@ -20,14 +20,14 @@
 
 #pragma once
 #include "afxcmn.h"
-#include "StandAloneDlg.h"
+import StandAloneDlg;
 #include "Utils/HintCtrl.h"
 #include "Colors.h"
 #include "FilterEdit.h"
 #include "MenuButton.h"
 #include "../SharedMFC/ACEdir/ACEdit.h"
 #include "Utils/GestureEnabledControl.h"
-#include "LogDlgFileFilter.h"
+#include "../../SharedMFC/Utils/LogDlgFileFilter.h"
 #include "PatchViewDlg.h"
 #include "HyperLink.h"
 #include "ThemeControls.h"

@@ -20,7 +20,7 @@
 #pragma once
 import GitRev;
 
-#include "StandAloneDlg.h"
+import StandAloneDlg;
 #include "../SharedMFC/ACEdir/ACEdit.h"
 #include "MiscUI/MenuButton.h"
 #include "MiscUI/FilterEdit.h"

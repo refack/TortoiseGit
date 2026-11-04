@@ -19,12 +19,15 @@
 //
 
 #include "stdafx.h"
-import TGitPath;	// GitAdminDir lives in the TGitPath module
-#include "GitStatus.h"
 #include "GitStatusCache.h"
-#include "CacheInterface.h"
 #include <ShlObj.h>
+import TGitPath;	// GitAdminDir lives in the TGitPath module
+import TGitStatus;
+import TGitCache.CacheInterface;
 import PathUtils;
+
+using namespace RegistryDep;
+using namespace RIAA;
 
 //////////////////////////////////////////////////////////////////////////
 

@@ -21,18 +21,20 @@
 
 #pragma once
 
-#include "GitHash.h"
-#include "gitlogcache.h"
+
 #include <unordered_set>
+
+import GitHash;
+import GitMailmap;
+import GitRevLoglist;
 
 class CTortoiseGitBlameData
 {
 // Implementation
 public:
-	CTortoiseGitBlameData();
-	~CTortoiseGitBlameData();
+	CTortoiseGitBlameData() = default;
+	~CTortoiseGitBlameData() = default;
 
-public:
 	int GetEncode(const char* buffer, int size, int* bomoffset) const;
 	/**
 	 * Parses `git blame -p` output. Commits that cannot be resolved are reported through
@@ -126,10 +128,10 @@ public:
 	}
 
 private:
-	static GitRevLoglist* GetRevForHash(CGitHashMap& HashToRev, const CGitHash& hash, const CGitMailmap* mailmap, CString* err = nullptr);
+	static GitRevLoglist* GetRevForHash(CGitHashMap& HashToRev, const CGitHash& hash, const GitMailmap::CGitMailmap* mailmap, CString* err = nullptr);
 	static CString UnquoteFilename(const std::string_view s);
 
-	std::vector<CGitHash>		m_Hash;
+	std::vector<CGitHash>		m_Hash{};
 	std::vector<CString>		m_Dates;
 	std::vector<CString>		m_Authors;
 	std::vector<CString>		m_Filenames;

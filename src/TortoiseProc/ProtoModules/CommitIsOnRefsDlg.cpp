@@ -23,7 +23,7 @@
 #include "CommitIsOnRefsDlg.h"
 #include "BrowseRefsDlg.h"
 #include "RefLogDlg.h"
-#include "LogDlg.h"
+#include "../../SharedMFC/Utils/LogDlg.h"
 #include "LoglistUtils.h"
 import AppUtils.Launch;
 #include "FileDiffDlg.h"

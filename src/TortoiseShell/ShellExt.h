@@ -19,17 +19,16 @@
 //
 #pragma once
 #include <wrl/client.h>
-#include "../libgit2/Resources/Globals.h"
-#include "resource.h"
+#include <Resources/Globals.h>
 #include "ShellCache.h"
 #include "RemoteCacheLink.h"
-#include "GitStatus.h"
 #include "GitFolderStatus.h"
 #include "MenuInfo.h"
 #include "ExplorerCommand.h"
 
 import Registry;
 import GitIndex;	// git_wc_status_kind
+import TGitStatus;
 
 /**
  * \ingroup TortoiseShell

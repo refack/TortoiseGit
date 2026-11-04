@@ -29,7 +29,7 @@ import TGitPath;
 import git_h;
 import invarients;
 
-using namespace Registry;
+using namespace RegistryDep;
 using namespace PathUtils;
 using namespace tgit::DebugOutput;
 using namespace tgit;
@@ -757,7 +757,7 @@ int CGitIndexList::ReadIndex(const std::wstring& dgitdir)
 	const std::wstring projectConfig = g_AdminDirMap.GetAdminDir(dgitdir) + L"config";
 	const std::wstring globalConfig(TGitH::GetGitGlobalConfig());
 	const std::wstring globalXDGConfig(TGitH::GetGitGlobalXDGConfig());
-	Registry::CRegStdString systemConfigValue(std::wstring(REG_SYSTEM_GITCONFIGPATH), L"", false);
+	CRegStdString systemConfigValue(std::wstring(REG_SYSTEM_GITCONFIGPATH), L"", false);
 	const std::wstring& systemConfigW = systemConfigValue; // operator const T& is non-const, hence the named object
 	const std::wstring systemConfig(systemConfigW.c_str()); // up to the first NUL, as the CString(c_str()) it replaces kept
 
@@ -1525,7 +1525,7 @@ bool CGitIgnoreList::CheckAndUpdateGitSystemConfigPath(const bool force)
 	if (GetTickCount64() - m_dGitSystemConfigPathLastChecked > 30000UL || force)
 	{
 		m_dGitSystemConfigPathLastChecked = GetTickCount64();
-		Registry::CRegStdString gitSystemConfigValue(std::wstring(REG_SYSTEM_GITCONFIGPATH), L"", false);
+		CRegStdString gitSystemConfigValue(std::wstring(REG_SYSTEM_GITCONFIGPATH), L"", false);
 		const std::wstring& gitSystemConfigW = gitSystemConfigValue;
 		const std::wstring gitSystemConfigPath{ gitSystemConfigW.c_str() }; // up to the first NUL, as the CString(c_str()) it replaces kept
 		if (gitSystemConfigPath != m_sGitSystemConfigPath)

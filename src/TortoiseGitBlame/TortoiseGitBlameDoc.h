@@ -22,7 +22,7 @@
 
 
 #pragma once
-#include <Git/TGitPath.h>
+import TGitPath;
 
 class CMainFrame ;
 
@@ -53,12 +53,12 @@ public:
 	void SetPathName(LPCWSTR lpszPathName, BOOL bAddToMRU = TRUE) override;
 
 // Implementation
-	virtual ~CTortoiseGitBlameDoc();
+	~CTortoiseGitBlameDoc() override;
 #ifdef _DEBUG
 	void AssertValid() const override;
 	void Dump(CDumpContext& dc) const override;
 #endif
-	CMainFrame *GetMainFrame()
+	static CMainFrame *GetMainFrame()
 	{
 		return reinterpret_cast<CMainFrame*>(AfxGetApp()->GetMainWnd());
 	}

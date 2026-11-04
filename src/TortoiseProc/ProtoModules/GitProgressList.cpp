@@ -24,12 +24,14 @@
 
 #include "TortoiseProc.h"
 #include "GitProgressList.h"
-import AppUtils.Launch;
-import AppUtils.Window;
 #include "LogFile.h"
 #include "LoglistUtils.h"
-import ThemeAPI;
 #include "git2/sys/errors.h"
+#include "Utils/DPIAware.h"
+
+import AppUtils.Launch;
+import AppUtils.Window;
+import ThemeAPI;
 
 BOOL	CGitProgressList::m_bAscending = FALSE;
 int		CGitProgressList::m_nSortedColumn = -1;
@@ -521,21 +523,21 @@ UINT CGitProgressList::ProgressThread()
 		if (bSuccess)
 		{
 			str.LoadString(IDS_SUCCESS);
-			if (CTheme::Instance().IsHighContrastMode())
+			if (ThemeAPI::CTheme::Instance().IsHighContrastMode())
 				color = ::GetSysColor(COLOR_WINDOWTEXT);
 			else
-				color = CTheme::Instance().IsDarkTheme() ? RGB(0, 178, 255) : RGB(0, 0, 255);
+				color = ThemeAPI::CTheme::Instance().IsDarkTheme() ? RGB(0, 178, 255) : RGB(0, 0, 255);
 		}
 		else
 		{
 			str.LoadString(IDS_FAIL);
-			color = CTheme::Instance().IsDarkTheme() ? RGB(207, 47, 47) : RGB(255, 0, 0);
+			color = ThemeAPI::CTheme::Instance().IsDarkTheme() ? RGB(207, 47, 47) : RGB(255, 0, 0);
 		}
 		log.Format(L"%s (%I64u ms @ %s)", str, time, CLoglistUtils::FormatDateAndTime(CTime::GetCurrentTime(), DATE_SHORTDATE, true, false));
 
 		// there's no "finished: xxx" line at the end. We add one here to make
 		// sure the user sees that the command is actually finished.
-		ReportString(log, CString(MAKEINTRESOURCE(IDS_PROGRS_FINISHED)), !(CTheme::Instance().IsHighContrastMode() && bSuccess), color);
+		ReportString(log, CString(MAKEINTRESOURCE(IDS_PROGRS_FINISHED)), !(ThemeAPI::CTheme::Instance().IsHighContrastMode() && bSuccess), color);
 	}
 
 	const int count = GetItemCount();
@@ -646,7 +648,7 @@ void CGitProgressList::OnNMCustomdrawSvnprogress(NMHDR *pNMHDR, LRESULT *pResult
 			return;
 
 		// Store the color back in the NMLVCUSTOMDRAW struct.
-		pLVCD->clrText = CTheme::Instance().GetThemeColor(data->color, data->colorIsDirect);
+		pLVCD->clrText = ThemeAPI::CTheme::Instance().GetThemeColor(data->color, data->colorIsDirect);
 	}
 }
 
@@ -1211,7 +1213,7 @@ void CGitProgressList::WC_File_NotificationData::HandleDblClick() const
 void CGitProgressList::OnSysColorChange()
 {
 	__super::OnSysColorChange();
-	CTheme::Instance().OnSysColorChanged();
+	ThemeAPI::CTheme::Instance().OnSysColorChanged();
 }
 
 ULONG CGitProgressList::GetGestureStatus(CPoint /*ptTouch*/)

@@ -20,7 +20,7 @@
 
 #pragma once
 import TGitPath;
-#include "ProjectProperties.h"
+#include "../../SharedMFC/Utils/ProjectProperties.h"
 
 /**
  * \ingroup TortoiseProc

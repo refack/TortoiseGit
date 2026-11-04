@@ -1,27 +1,29 @@
-﻿// TortoiseGit - a Windows shell extension for easy version control
+﻿module;
+#include "FilterHelper.h"
 
-// Copyright (C) 2018-2020, 2025 - TortoiseGit
+export module LogDlgFilter;
+import git_h;
+import GitRevLoglist;
 
-// This program is free software; you can redistribute it and/or
-// modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; either version 2
-// of the License, or (at your option) any later version.
+struct GitRevLoglist;
 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
+class CGitLogListBase;
 
-// You should have received a copy of the GNU General Public License
-// along with this program; if not, write to the Free Software Foundation,
-// 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-//
+class CLogDlgFilter : public CFilterHelper {
+public:
+	/// construction
+	using CFilterHelper::CFilterHelper;
 
-#include "stdafx.h"
-#include "std.h"
+	/// apply filter
+	bool operator()(GitRevLoglist* pRev, CGitLogListBase* loglist, const MAP_HASH_NAME& hashMapRefs) const;
 
-#include "LogDlgFilter.h"
-#include "GitLogListBase.h"
+	/// assignment operator
+	using CFilterHelper::operator=;
+
+	/// compare filter specs
+	using CFilterHelper::operator==;
+	using CFilterHelper::operator!=;
+};
 
 bool CLogDlgFilter::operator()(GitRevLoglist* pRev, CGitLogListBase* loglist, const MAP_HASH_NAME& hashMapRefs) const
 {

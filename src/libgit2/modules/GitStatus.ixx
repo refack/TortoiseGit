@@ -469,7 +469,7 @@ public:
 
 		const bool isfull = (
 			static_cast<DWORD>(
-				Registry::CRegStdDWORD(L"Software\\TortoiseGit\\CacheType", GetSystemMetrics(SM_REMOTESESSION)) ?
+				CRegStdDWORD(L"Software\\TortoiseGit\\CacheType", GetSystemMetrics(SM_REMOTESESSION)) ?
 				    CacheType::dll :
 				    CacheType::exe
 			) == CacheType::dllFull
@@ -531,7 +531,7 @@ public:
 			return;
 
 		const bool isfull = (
-			static_cast<DWORD>(Registry::CRegStdDWORD(L"Software\\TortoiseGit\\CacheType", GetSystemMetrics(SM_REMOTESESSION)) ?
+			static_cast<DWORD>(CRegStdDWORD(L"Software\\TortoiseGit\\CacheType", GetSystemMetrics(SM_REMOTESESSION)) ?
 				CacheType::dll : CacheType::exe
 			) == CacheType::dllFull);
 

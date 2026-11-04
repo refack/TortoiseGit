@@ -34,10 +34,10 @@ import AppUtils.Workflow;
 #include "../../libgit2/Resources/Globals.h"
 #include "SysProgressDlg.h"
 import TortoiseProc.MassiveGitTask;
-#include "LogDlg.h"
+#include "../../SharedMFC/Utils/LogDlg.h"
 #include "BstrSafeVector.h"
 #include "Utils/FileTextLines.h"
-#include "Utils/DPIAware.h"
+#include "../../libgit2/Utils/DPIAware.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW

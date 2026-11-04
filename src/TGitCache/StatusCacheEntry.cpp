@@ -19,8 +19,8 @@
 //
 #include "stdafx.h"
 #include "StatusCacheEntry.h"
-#include "GitStatus.h"
-#include "CacheInterface.h"
+import TGitStatus;
+import TGitCache.CacheInterface;
 #include "registry.h"
 
 #define CACHEVERION 8

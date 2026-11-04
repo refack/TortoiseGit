@@ -17,36 +17,32 @@
 // along with this program; if not, write to the Free Software Foundation,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-#include <optional>
-#include "TortoiseShell/ShellCache.h"
 #include "GitFolderStatus.h"
+#include "ShellCache.h"
 #include "ShellState.h"
-
-import DebugOutput;
-#include "Git.h"
 
 GitFolderStatus::GitFolderStatus()
 {
 	sCacheKey.reserve(MAX_PATH);
 
-	g_Git.SetCurrentDir(L"");
-	m_hInvalidationEvent = CreateEvent(nullptr, FALSE, FALSE, L"TortoiseGitCacheInvalidationEvent"); // no need to explicitly close m_hInvalidationEvent in ~GitFolderStatus as it is CAutoGeneralHandle
+	TGitH::g_Git.SetCurrentDir(L"");
+	// no need to explicitly close m_hInvalidationEvent in ~GitFolderStatus as it is CAutoGeneralHandle
+	m_hInvalidationEvent = wil::unique_handle(CreateEvent(nullptr, false, false, L"TortoiseGitCacheInvalidationEvent"));
 }
 
 GitFolderStatus::~GitFolderStatus()
 {
 }
 
-std::optional<const FileStatusCacheEntry *> GitFolderStatus::BuildCache(const CTGitPath& filepath, const std::wstring& /*sProjectRoot*/, BOOL bIsFolder, BOOL bDirectFolder)
+std::optional<const FileStatusCacheEntry *> GitFolderStatus::BuildCache(const CTGitPath& filepath, const std::wstring& /*sProjectRoot*/, bool bIsFolder, bool bDirectFolder)
 {
 	//don't build the cache if an instance of TortoiseGitProc is running
 	//since this could interfere with svn commands running (concurrent
 	//access of the .git directory).
 	if (g_ShellCache.BlockStatus())
 	{
-		CAutoGeneralHandle TGitMutex = ::CreateMutex(nullptr, FALSE, L"TortoiseGitProc.exe");
-		if (TGitMutex != nullptr)
-		{
+		auto TGitMutex = wil::unique_handle(::CreateMutex(nullptr, false, L"TortoiseGitProc.exe"));
+		if (TGitMutex) {
 			if (::GetLastError() == ERROR_ALREADY_EXISTS)
 				return &invalidstatus;
 		}
@@ -64,8 +60,8 @@ std::optional<const FileStatusCacheEntry *> GitFolderStatus::BuildCache(const CT
 			// initialize record members
 			dirstat.status = git_wc_status_none;
 			dirstat.askedcounter = GITFOLDERSTATUS_CACHETIMES;
-			dirstat.assumeValid = FALSE;
-			dirstat.skipWorktree = FALSE;
+			dirstat.assumeValid = false;
+			dirstat.skipWorktree = false;
 
 			dirstatus = nullptr;
 //			rev.kind = git_opt_revision_unspecified;
@@ -99,12 +95,12 @@ std::optional<const FileStatusCacheEntry *> GitFolderStatus::BuildCache(const CT
 		status = { git_wc_status_none, false, false };
 	}
 
-	TracePrintf(_T(__FUNCTION__) L": building cache for %s - time %d\n", filepath.GetWinPath(), t2 - t1);
+	tgit::DebugOutput::TracePrintf(__FUNCTION__ L": building cache for %s - time %d\n", filepath.GetWinPath(), t2 - t1);
 
 	m_TimeStamp = GetTickCount64();
 
 	 FileStatusCacheEntry* ret = (filepath.GetWinPathString().size() == 3U) ?
-		ret = &m_cache[tgit::wstr::Left(filepath.GetWinPathString(), 2)] :
+		ret = &m_cache[filepath.GetWinPathString().substr(2)] :
 		ret = &m_cache[filepath.GetWinPath()];
 
 	if (ret)
@@ -122,7 +118,7 @@ std::optional<const FileStatusCacheEntry *> GitFolderStatus::BuildCache(const CT
 	return &invalidstatus;
 }
 
-const FileStatusCacheEntry * GitFolderStatus::GetFullStatus(const CTGitPath& filepath, BOOL bIsFolder)
+const FileStatusCacheEntry* GitFolderStatus::GetFullStatus(const CTGitPath& filepath, bool bIsFolder)
 {
 	std::wstring sProjectRoot;
 	const bool bHasAdminDir = GetShellState().worktree.adminDirs.HasAdminDir(filepath.GetWinPath(), bIsFolder, &sProjectRoot);
@@ -158,12 +154,12 @@ const FileStatusCacheEntry * GitFolderStatus::GetCachedItem(const CTGitPath& fil
 	if(m_mostRecentPath.IsEquivalentTo(CTGitPath(sCacheKey.c_str())))
 	{
 		// We've hit the same result as we were asked for last time
-		TracePrintf(_T(__FUNCTION__) L": fast cache hit for %s\n", filepath.GetWinPath());
+		tgit::DebugOutput::TracePrintf(_T(__FUNCTION__) L": fast cache hit for %s\n", filepath.GetWinPath());
 		retVal = m_mostRecentStatus;
 	}
 	else if ((iter = m_cache.find(sCacheKey)) != m_cache.end())
 	{
-		TracePrintf(_T(__FUNCTION__) L": cache found for %s\n", filepath.GetWinPath());
+		tgit::DebugOutput::TracePrintf(_T(__FUNCTION__) L": cache found for %s\n", filepath.GetWinPath());
 		retVal = &iter->second;
 		m_mostRecentStatus = retVal;
 		m_mostRecentPath = CTGitPath(sCacheKey.c_str());
@@ -173,19 +169,16 @@ const FileStatusCacheEntry * GitFolderStatus::GetCachedItem(const CTGitPath& fil
 		return nullptr;
 
 	// We found something in a cache - check that the cache is not timed-out or force-invalidated
-	ULONGLONG now = GetTickCount64();
+	size_t now = GetTickCount64();
 
-	if ((now >= m_TimeStamp) && ((now - m_TimeStamp) > GetTimeoutValue()))
-	{
+	if ((now >= m_TimeStamp) && ((now - m_TimeStamp) > GetTimeoutValue())) {
 		// Cache is timed-out
-		TracePrintf(__FUNCTION__ ": Cache timed-out\n");
+		tgit::DebugOutput::TracePrintf(__FUNCTION__ ": Cache timed-out\n");
 		ClearCache();
 		return nullptr;
-	}
-	else if (WaitForSingleObject(m_hInvalidationEvent, 0) == WAIT_OBJECT_0)
-	{
+	} else if (WaitForSingleObject(m_hInvalidationEvent.get(), 0) == WAIT_OBJECT_0)	{
 		// TortoiseGitProc has just done something which has invalidated the cache
-		TracePrintf(__FUNCTION__ ": Cache invalidated\n");
+		tgit::DebugOutput::TracePrintf(__FUNCTION__ ": Cache invalidated\n");
 		ClearCache();
 		return nullptr;
 	}
@@ -199,5 +192,5 @@ void GitFolderStatus::ClearCache()
 	m_mostRecentPath.Reset();
 	// If we're about to rebuild the cache, there's no point hanging on to
 	// an event which tells us that it's invalid
-	ResetEvent(m_hInvalidationEvent);
+	ResetEvent(m_hInvalidationEvent.get());
 }

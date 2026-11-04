@@ -27,7 +27,7 @@
 #include "ConfigureGitExe.h"
 #include "Hooks.h"
 #include "JumpListHelpers.h"
-#include "ProjectProperties.h"
+#include "../../SharedMFC/Utils/ProjectProperties.h"
 #include "VersioncheckParser.h"
 #include "Commands/Command.h"
 #include "Utils/HistoryCombo.h"

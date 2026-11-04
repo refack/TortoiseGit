@@ -1,7 +1,6 @@
-// TortoiseGit - a Windows shell extension for easy version control
+﻿// TortoiseGit - a Windows shell extension for easy version control
 
-// Copyright (C) 2016 - TortoiseGit
-// Copyright (C) 2003-2006,2008 - Stefan Kueng
+// Copyright (C) 2019 - TortoiseGit
 
 // This program is free software; you can redistribute it and/or
 // modify it under the terms of the GNU General Public License
@@ -18,24 +17,21 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 #pragma once
+#include "../../TortoiseProc/ProtoModules/FilterHelper.h"
+import TGitPath;
 
-/**
- * \ingroup TortoiseShell
- * Helper class to keep the current directory.
- * When created, the current directory is saved and restored
- * as soon as the object is destroyed.
- * Since some of the SVN functions change the current directory
- * which when in the explorer process space causes problems / crashes,
- * this class is used to reset the current directory after calling
- * those functions.
- */
-class PreserveChdir
-{
+class CLogDlgFileFilter : public CFilterHelper {
 public:
-	PreserveChdir();
-	~PreserveChdir();
+	/// construction
+	using CFilterHelper::CFilterHelper;
 
-private:
-	std::unique_ptr<wchar_t[]> m_originalCurrentDirectory;
+	/// apply filter
+	bool operator()(const CTGitPath& path) const;
+
+	/// assignment operator
+	using CFilterHelper::operator=;
+
+	/// compare filter specs
+	using CFilterHelper::operator==;
+	using CFilterHelper::operator!=;
 };
-

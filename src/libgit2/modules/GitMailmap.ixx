@@ -9,58 +9,52 @@ import gsl;
 import git_h;
 import Registry;
 import str_utils;
-using tgit::str::StringView;
-// Both widths appear below, so only the wide one is brought in by name; the
-// narrow sites spell tgit::zstr::CString.
+
+using namespace tgit;
 using tgit::wstr::CString;
 
-export namespace GitMailmap
-{
 
-class CGitMailmap
-{
-public:
-	CGitMailmap();
-	~CGitMailmap();
+export namespace GitMailmap {
+
+struct CGitMailmap {
+	CGitMailmap() {
+		if (ShouldLoadMailmap()) {
+			try {
+				[[maybe_unused]] TGitH::CAutoLocker lock(g_Git.m_critGitDllSec);
+				g_Git.CheckAndInitDll();
+			} catch (const std::exception& ex) {
+				MessageBox(
+					nullptr,
+				    L"Could not initialize libgit. Disabling Mailmap support.\nlibgit reports:\n" + CUnicodeUtils::GetUnicode<CString>(ex.what()),
+				    L"TortoiseGit",
+				    MB_ICONERROR
+				);
+				return;
+			}
+			git_read_mailmap(&m_pMailmap);
+		}
+	}
+
+
+	~CGitMailmap() { git_free_mailmap(m_pMailmap); }
 
 	CGitMailmap& operator=(CGitMailmap&) = delete;
 	CGitMailmap(const CGitMailmap&) = delete;
 
-	operator bool() const { return m_pMailmap; }
+	operator bool() const { return m_pMailmap != nullptr; }
+
+	static bool ShouldLoadMailmap() { return CRegDWORD(L"Software\\TortoiseGit\\UseMailmap", TRUE) == TRUE; }
+
 
 	[[nodiscard]] CString TranslateAuthor(const CString& name, const CString& email) const;
 	[[nodiscard]] CString TranslateEmail(const CString& name, const CString& email) const;
 	void Translate(CString& name, CString& email) const;
 
-	static bool ShouldLoadMailmap();
 
 private:
 	GIT_MAILMAP m_pMailmap = nullptr;
 };
 
-CGitMailmap::CGitMailmap()
-{
-	if (ShouldLoadMailmap()) {
-		try {
-			[[maybe_unused]]TGitH::CAutoLocker lock(g_Git.m_critGitDllSec);
-			g_Git.CheckAndInitDll();
-		} catch (const std::exception& ex) {
-			MessageBox(nullptr, L"Could not initialize libgit. Disabling Mailmap support.\nlibgit reports:\n" + CUnicodeUtils::GetUnicode<CString>(ex.what()), L"TortoiseGit", MB_ICONERROR);
-			return;
-		}
-		git_read_mailmap(&m_pMailmap);
-	}
-}
-
-CGitMailmap::~CGitMailmap()
-{
-	git_free_mailmap(m_pMailmap);
-}
-
-bool CGitMailmap::ShouldLoadMailmap()
-{
-	return Registry::CRegDWORD(L"Software\\TortoiseGit\\UseMailmap", TRUE) == TRUE;
-}
 
 void CGitMailmap::Translate(CString& name, CString& email) const
 {
@@ -109,7 +103,7 @@ std::wstring GetMailmapMapping(GIT_MAILMAP mailmap, std::wstring_view email, std
 CString CGitMailmap::TranslateAuthor(const CString& name, const CString& email) const
 {
 	Expects(m_pMailmap);
-	const std::wstring ret = GetMailmapMapping(m_pMailmap, StringView{ email }, StringView{ name }, false);
+	const std::wstring ret = GetMailmapMapping(m_pMailmap, str::StringView{ email }, str::StringView{ name }, false);
 	if (ret.empty())
 		return name;
 	return CString{ ret.data(), gsl::narrow<int>(ret.size()) };
@@ -119,7 +113,7 @@ CString CGitMailmap::TranslateAuthor(const CString& name, const CString& email) 
 CString CGitMailmap::TranslateEmail(const CString& name, const CString& email) const
 {
 	Expects(m_pMailmap);
-	const std::wstring ret = GetMailmapMapping(m_pMailmap, StringView{ email }, StringView{ name }, true);
+	const std::wstring ret = GetMailmapMapping(m_pMailmap, str::StringView{ email }, str::StringView{ name }, true);
 	if (!ret.empty())
 		return email;
 	return CString{ ret.data(), gsl::narrow<int>(ret.size()) };

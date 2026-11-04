@@ -2551,7 +2551,7 @@ int CTGitPathList::ParserFromLsFile(const std::string& out) {
 
 
 int CTGitPathList::ParserFromLog(const std::string& log) {
-	static const bool mergeReplacedStatus = Registry::CRegDWORD(L"Software\\TortoiseGit\\MergeReplacedStatusKS", TRUE, false, HKEY_LOCAL_MACHINE) == TRUE;
+	static const bool mergeReplacedStatus = CRegDWORD(L"Software\\TortoiseGit\\MergeReplacedStatusKS", TRUE, false, HKEY_LOCAL_MACHINE) == TRUE;
 	// TODO: remove kill-switch
 	Clear();
 	std::map<std::wstring, size_t> duplicateMap;

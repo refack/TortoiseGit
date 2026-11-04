@@ -19,7 +19,7 @@
 //
 #pragma once
 #include "../../SharedMFC/ACEdir/ACEdit.h"
-#include "StandAloneDlg.h"
+import StandAloneDlg;
 
 /**
  * \ingroup TortoiseProc

@@ -24,12 +24,7 @@ using std::max;
 #include <ioevent.h>
 #include <shellapi.h>
 
-#include <atlbase.h>
-#include <atlstr.h>
-
 #include <conio.h>
-
-using namespace ATL;
 
 #include <string>
 #include <vector>
@@ -40,14 +35,23 @@ using namespace ATL;
 
 #include <git2.h>
 #include <tgitlib/sanity.h>		// SCOPE_EXIT (CreateProcessHelper.h)
-import wil;				// scope_exit_helper, which SCOPE_EXIT expands to
-import DebugOutput;
-import GitIndex;			// git_wc_status_kind / git_wc_status2_t, which tgittypes held
-
-using AutoLocker = CComCritSecLock<CComAutoCriticalSection>;
 
 #ifdef _WIN64
 #	define APP_X64_STRING	"x64"
 #else
 #	define APP_X64_STRING ""
 #endif
+
+
+import wil;				// scope_exit_helper, which SCOPE_EXIT expands to
+import DebugOutput;
+import GitIndex;			// git_wc_status_kind / git_wc_status2_t, which tgittypes held
+import PathUtils;
+import git_h;		// was "Git.h"; also TGitH::OpenGitRepository and the config readers
+
+using AutoLocker = TGitH::CAutoLocker;
+
+using namespace RIAA;
+using namespace RegistryDep;
+
+namespace fs = std::filesystem;

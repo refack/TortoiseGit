@@ -18,7 +18,7 @@
 //
 #pragma once
 
-#include "StandAloneDlg.h"
+import StandAloneDlg;
 // CIgnoreDlg dialog
 
 class CIgnoreDlg : public CStateStandAloneDialog
