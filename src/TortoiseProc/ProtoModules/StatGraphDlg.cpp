@@ -21,14 +21,15 @@
 #include "stdafx.h"
 #include "std.h"
 
+#include <ResizableLayout.h>
+
 #include "TortoiseProc.h"
 #include "StatGraphDlg.h"
-import AppUtils.Window;
 #include "SysProgressDlg.h"
-#include <cmath>
-#include <utility>
-#include <strsafe.h>
-#include <iterator>
+
+import std;
+import AppUtils.Window;
+import ThemeAPI;
 
 using namespace Gdiplus;
 
@@ -249,7 +250,7 @@ BOOL CStatGraphDlg::OnInitDialog()
 	AddAnchor(IDC_SKIPPERLABEL, BOTTOM_LEFT);
 	AddAnchor(IDOK, BOTTOM_RIGHT);
 	EnableSaveRestore(L"StatGraphDlg");
-	SetTheme(CTheme::Instance().IsDarkTheme());
+	SetTheme(ThemeAPI::CTheme::Instance().IsDarkTheme());
 
 	// set the min/max values on the skipper
 	SetSkipper (true);
@@ -1319,9 +1320,9 @@ void CStatGraphDlg::OnNeedText(NMHDR *pnmh, LRESULT * /*pResult*/)
 			min_commits = m_commitsPerAuthor[ *(--author_it) ];
 
 		CString string;
-		int percentage = int(min_commits*100.0/(m_nTotalCommits ? m_nTotalCommits : 1));
+		const auto percentage = static_cast<int>(min_commits * 100.0 / (m_nTotalCommits ? m_nTotalCommits : 1));
 		string.FormatMessage(IDS_STATGRAPH_AUTHORSLIDER_TT, m_Skipper.GetPos(), min_commits, percentage);
-		StringCchCopy(pttt->szText, _countof(pttt->szText), string);
+		wcsncpy_s(pttt->szText, _countof(pttt->szText), string.GetString(), string.GetLength());
 	}
 }
 

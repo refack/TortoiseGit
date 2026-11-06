@@ -6,8 +6,9 @@
 #include <git2.h>
 
 #include <Resources/LoglistCommonResource.h>
-#include <Resources/Globals.h>
 #include <tgitlib/sanity.h>
+
+#include <utility>
 
 
 export module TGitPath;
@@ -21,6 +22,7 @@ import PathUtils;
 import RIAA;
 import Registry;
 import DebugOutput;
+import Constants;
 
 #pragma comment(lib, "Shlwapi.lib")
 #pragma comment(lib, "Shell32.lib")
@@ -28,7 +30,7 @@ import DebugOutput;
 using std::operator""sv;
 namespace fs = std::filesystem;
 using namespace tgit;
-using tgit::str::StringView;
+using str::StringView;
 
 // This module is layered, and each layer uses only the ones above it:
 //
@@ -843,7 +845,7 @@ public:
 	// base pointer - the mocks are stack objects.
 
 	template <tgit::str::TStrOfWide StrT>
-	explicit CTGitPath(const StrT& sUnknownPath, const std::optional<bool> bIsDirectory = std::nullopt) {
+	explicit CTGitPath(const StrT& sUnknownPath, const std::optional<bool> bIsDirectory = std::nullopt) noexcept {
 		const auto sv = tgit::str::as_view(sUnknownPath);
 		SetFromUnknown(sv);
 		if (bIsDirectory.has_value()) {
@@ -851,7 +853,7 @@ public:
 			m_bIsDirectory = bIsDirectory.value();
 		}
 	}
-	explicit CTGitPath(const fs::path& path)
+	explicit CTGitPath(const fs::path& path) noexcept
 	: CTGitPath{path.native(), detail::TryIsDirectory(path)} {}
 
 	auto operator>(const CTGitPath& b) const {
@@ -863,16 +865,16 @@ public:
 
 
 
-	enum class StagingStatus {
+	enum class StagingStatus : std::uint8_t {
 		DontCare,
 		TotallyStaged,
 		PartiallyStaged,
-		TotallyUnstaged
+		TotallyUnstaged,
 	};
 
 
 
-	enum Actions : unsigned int {
+	enum Actions : std::uint32_t {
 		LOGACTIONS_ADDED = 0x00000001,
 		LOGACTIONS_MODIFIED = 0x00000002,
 		LOGACTIONS_REPLACED = 0x00000004,
@@ -893,8 +895,8 @@ public:
 
 
 
-	std::wstring m_StatAdd{};
-	std::wstring m_StatDel{};
+	std::wstring m_StatAdd;
+	std::wstring m_StatDel;
 	StagingStatus m_stagingStatus = StagingStatus::DontCare;
 
 	// TGIT_LFS
@@ -1229,7 +1231,7 @@ public:
 
 	bool IsWCRoot() const;
 
-	int GetAdminDirMask() const;
+	size_t GetAdminDirMask() const;
 
 	bool IsRegisteredSubmoduleOfParentProject(std::wstring* parentProjectRoot = nullptr) const;
 
@@ -2169,8 +2171,10 @@ bool CTGitPath::IsWCRoot() const {
 }
 
 
-int CTGitPath::GetAdminDirMask() const {
-	int status = 0;
+size_t CTGitPath::GetAdminDirMask() const {
+	using namespace Constants;
+
+	size_t status = 0;
 	if (!HasAdminDir())
 		return status;
 
@@ -2386,8 +2390,8 @@ bool CTGitPathList::LoadFromFile(const CTGitPath& filename) {
 	const RIAA::CAutoFile file = ::CreateFile(filename.GetWinPath(), GENERIC_READ, FILE_SHARE_READ, nullptr,
 	                                          OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
 	LARGE_INTEGER size{};
-	if (!file || !::GetFileSizeEx(file, &size) || size.QuadPart > std::numeric_limits<DWORD>::max()) {
-		tgit::DebugOutput::TracePrintf(__FUNCTION__ ": could not open target file list\n");
+	if (!file || !::GetFileSizeEx(file, &size) || std::cmp_greater(size.QuadPart , std::numeric_limits<DWORD>::max())) {
+		DebugOutput::Trace(L"could not open target file list");
 		return false;
 	}
 
@@ -2395,7 +2399,7 @@ bool CTGitPathList::LoadFromFile(const CTGitPath& filename) {
 	DWORD read = 0;
 	if (!content.empty() && !::ReadFile(file, content.data(), static_cast<DWORD>(content.size() * sizeof(wchar_t)),
 	                                    &read, nullptr)) {
-		tgit::DebugOutput::TracePrintf(__FUNCTION__ ": could not read target file list\n");
+		DebugOutput::Trace(L"could not read target file list\n");
 		return false;
 	}
 	content.resize(read / sizeof(wchar_t));
@@ -2410,10 +2414,9 @@ bool CTGitPathList::LoadFromFile(const CTGitPath& filename) {
 
 
 bool CTGitPathList::WriteToFile(const std::wstring_view sFilename, const bool bUTF8 /* = false */) const {
-	const RIAA::CAutoFile file = ::CreateFile(std::wstring(sFilename).c_str(), GENERIC_READ | GENERIC_WRITE, 0, nullptr,
-	                                          CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
+	const RIAA::CAutoFile file = ::CreateFileW(sFilename.data(), GENERIC_READ | GENERIC_WRITE, 0, nullptr, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
 	if (!file) {
-		tgit::DebugOutput::TracePrintf(__FUNCTION__ ": could not create temp file\n");
+		DebugOutput::Trace(L"could not create temp file\n");
 		return false;
 	}
 
@@ -2432,7 +2435,7 @@ bool CTGitPathList::WriteToFile(const std::wstring_view sFilename, const bool bU
 			return write(line.data(), line.size() * sizeof(wchar_t));
 		}();
 		if (!ok) {
-			tgit::DebugOutput::TracePrintf(__FUNCTION__ ": could not write temp file\n");
+			DebugOutput::Trace(L"could not write temp file\n");
 			return false;
 		}
 	}
@@ -2441,8 +2444,7 @@ bool CTGitPathList::WriteToFile(const std::wstring_view sFilename, const bool bU
 
 
 bool CTGitPathList::WriteToPathSpecFile(const std::wstring_view sFilename) const {
-	const RIAA::CAutoFile hFile = ::CreateFile(std::wstring(sFilename).c_str(), GENERIC_WRITE, FILE_SHARE_READ, nullptr,
-	                                           CREATE_ALWAYS, FILE_ATTRIBUTE_TEMPORARY, nullptr);
+	const RIAA::CAutoFile hFile = ::CreateFileW(sFilename.data(), GENERIC_WRITE, FILE_SHARE_READ, nullptr, CREATE_ALWAYS, FILE_ATTRIBUTE_TEMPORARY, nullptr);
 	if (!hFile)
 		return false;
 
@@ -2479,9 +2481,9 @@ int CTGitPathList::ParserFromLsFileSimple(const std::string& out, const unsigned
 		if (pathstring.ends_with(L'/')) {
 			pathstring.pop_back();
 			path.SetFromGit(pathstring, true);
-		}
-		else
+		} else {
 			path.SetFromGit(pathstring);
+		}
 
 		path.m_Action = action;
 		AddPath(path);
@@ -2494,6 +2496,11 @@ int CTGitPathList::ParserFromLsFileSimple(const std::string& out, const unsigned
 
 // similar code in CGit::ParseConflictHashesFromLsFile
 int CTGitPathList::ParserFromLsFile(const std::string& out) {
+	constexpr auto line_prefix = L"H 100644 "sv;
+	constexpr auto line_suffix = L" 0\t"sv;
+	// `<tag> <mode> <object> <stage>\t<file>` the object as wide as the repository's hashes
+	const auto expected_line_width = line_prefix.size() + invarients::ZeroRevSV().size() + line_suffix.size();
+
 	size_t pos = 0;
 	const size_t end = out.size();
 	CTGitPath path;
@@ -2526,11 +2533,9 @@ int CTGitPathList::ParserFromLsFile(const std::string& out) {
 
 		++pos;
 		const size_t fileNameEnd = out.find('\0', pos);
-		// <tag> <mode> <object> <stage>\t<file>, the object as wide as the repository's hashes
-		if (fileNameEnd == std::string::npos || fileNameEnd == pos || pos - lineStart != "H 100644 "sv.size() + 2 *
-			tgit::invarients::HashSize() + " 0\t"sv.size())
+		if (fileNameEnd == std::string::npos || fileNameEnd == pos || pos - lineStart != expected_line_width)
 			return -1;
-		const std::wstring pathstring = CUnicodeUtils::GetUnicode<std::wstring>(std::string_view(&out[pos], fileNameEnd - pos));
+		const auto pathstring = CUnicodeUtils::GetUnicode<std::wstring>(std::string_view(&out[pos], fileNameEnd - pos));
 		const bool isDir = (strtol(&out[modestart], nullptr, 8) & GIT_FILEMODE_TREE) == GIT_FILEMODE_TREE;
 		// SetFromGit resets the path
 		path.SetFromGit(pathstring, isDir);
@@ -2744,7 +2749,8 @@ int CTGitPathList::FillUnRev(const GitRunner& git, const unsigned int action, co
 			cmd.insert(cmd.cend(), { L"--", (*filterlist)[i].GetGitPathString() });
 		}
 
-		std::string out, errb;
+		std::string out;
+		std::string errb;
 		if (git(cmd, &out, &errb)) {
 			if (err)
 				*err = CUnicodeUtils::DecodeUtf8UpToNul(errb);
@@ -2761,7 +2767,8 @@ int CTGitPathList::FillUnRev(const GitRunner& git, const unsigned int action, co
 int CTGitPathList::FillLFSLocks(const GitRunner& git, const unsigned int action, std::wstring* const err) {
 	Clear();
 
-	std::string out, errb;
+	std::string out;
+	std::string errb;
 	if (git({ L"git.exe", L"lfs", L"locks", L"--json" }, &out, &errb) != 0) {
 		if (err)
 			err->append(CUnicodeUtils::GetUnicode<std::wstring>(std::string_view(errb.data(), errb.size())));
@@ -2773,9 +2780,12 @@ int CTGitPathList::FillLFSLocks(const GitRunner& git, const unsigned int action,
 
 
 
-int CTGitPathList::FillBasedOnIndexFlags(git_repository* const repository, const unsigned short flag,
-                                         const unsigned short flagextended,
-                                         const CTGitPathList* filterlist /*nullptr*/) {
+int CTGitPathList::FillBasedOnIndexFlags(
+	git_repository* const repository,
+	const unsigned short flag,
+	const unsigned short flagextended,
+	const CTGitPathList* filterlist /*nullptr*/
+) {
 	Clear();
 	CTGitPath path;
 

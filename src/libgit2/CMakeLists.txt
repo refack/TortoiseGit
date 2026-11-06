@@ -64,7 +64,6 @@ target_sources(tgitlib
         modules/RollingFile.ixx
         modules/ShellUpdater.ixx
         modules/TGitPath.ixx
-        modules/TaskbarUUID.ixx
         modules/TempFile.ixx
         modules/gitindex.ixx
         modules/invarients.ixx
@@ -78,4 +77,5 @@ target_sources(tgitlib
         modules/CacheInterface.ixx
         modules/SysInfo.ixx
         modules/ShellEnvironment.ixx
+        modules/TGitConstants.ixx
 )

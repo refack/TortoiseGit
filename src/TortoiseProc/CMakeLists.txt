@@ -192,8 +192,6 @@ target_sources(TortoiseProc
         ProtoModules/ExportDlg.h
         ProtoModules/FileDiffDlg.cpp
         ProtoModules/FileDiffDlg.h
-        ProtoModules/FilterHelper.cpp
-        ProtoModules/FilterHelper.h
         ProtoModules/FindBar.cpp
         ProtoModules/FindBar.h
         ProtoModules/FirstStartWizard.cpp
@@ -302,8 +300,6 @@ target_sources(TortoiseProc
         ProtoModules/SyncDlg.h
         ProtoModules/SyncTabCtrl.cpp
         ProtoModules/SyncTabCtrl.h
-        ProtoModules/TortoiseProc.cpp
-        ProtoModules/TortoiseProc.h
         ProtoModules/URLDlg.cpp
         ProtoModules/URLDlg.h
         ProtoModules/UpdateCrypto.cpp
@@ -404,7 +400,6 @@ target_sources(TortoiseProc
         MiscUI/FileDropEdit.cpp
         MiscUI/FilterEdit.cpp
         MiscUI/HistoryCombo.cpp
-        MiscUI/IconBitmapUtils.cpp
         MiscUI/IconMenu.cpp
         MiscUI/LinkControl.cpp
         MiscUI/MenuButton.cpp
@@ -423,8 +418,6 @@ target_sources(TortoiseProc
         ProtoModules/EditWordBreak.h
         ProtoModules/GitStatusListCtrl.cpp
         ProtoModules/GitStatusListCtrl.h
-        ProtoModules/Hooks.cpp
-        ProtoModules/Hooks.h
         ProtoModules/HorizontalResizableStandAloneDialog.cpp
         ProtoModules/HorizontalResizableStandAloneDialog.h
         ProtoModules/HyperLink.cpp

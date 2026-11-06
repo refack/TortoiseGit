@@ -22,19 +22,20 @@
 #include "Resources/resource.h"
 #include "SplitterControl.h"
 #include "FilterEdit.h"
-#include "../../TortoiseProc/GitLogList.h"
-#include "ProtoModules/Colors.h"
+#include "GestureEnabledControl.h"
+#include "GitLogList.h"
 #include "ProtoModules/GitStatusListCtrl.h"
 #include "ProtoModules/HyperLink.h"
 #include "ProtoModules/GravatarPictureBox.h"
 #include "ProtoModules/PatchViewDlg.h"
 #include "MenuButton.h"
-#include "Utils/GestureEnabledControl.h"
 
 import TGitPath;
+import GitHash;
 import Registry;
 import wil;
 import StandAloneDlg;
+import misc_constants;
 
 
 
@@ -213,11 +214,12 @@ private:
 
 	CString				m_sRelativeRoot;
 	CString				m_sRepositoryRoot;
+	CString				m_sDirSlug;
 	CGitLogList			m_LogList;
 	CGitStatusListCtrl  m_ChangedFileListCtrl;
 	CFilterEdit			m_cFilter;
 	CString				m_sFilterText;
-	DWORD				m_SelectedFilters = LOGFILTER_ALL;
+	DWORD				m_SelectedFilters = misc_constants::LOGFILTER_ALL;
 	CGestureEnabledControlTmpl<CHyperLink> m_staticRef;
 	CProgressCtrl		m_LogProgress;
 	CTGitPath			m_path;

@@ -134,7 +134,7 @@ BOOL CTortoiseGitBlameApp::InitInstance()
 	AddDocTemplate(pDocTemplate);
 
 	TCmdLineParser::CCmdLineParser parser(m_lpCmdLine);
-	CAppUtils::g_sGroupingUUID = parser.GetVal(L"groupuuid");
+	TortoiseProc::g_sGroupingUUID = parser.GetVal(L"groupuuid");
 
 	// Parse command line for standard shell commands, DDE, file open
 	CCommandLineInfo cmdInfo;

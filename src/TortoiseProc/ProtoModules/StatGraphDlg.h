@@ -19,7 +19,10 @@
 //
 
 #pragma once
-#include "../MiscUI/MyGraph.h"
+#include "MiscUI/MyGraph.h"
+#include "Resources/resource.h"
+
+
 import TGitPath;
 import GitRevLoglist;
 import StandAloneDlg;

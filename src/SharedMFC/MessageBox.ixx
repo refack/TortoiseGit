@@ -5,8 +5,7 @@
 #include "Resources/resource.h"
 #include "Utils/dlgtemplate.h"
 #include "Utils/cursor.h"
-#include "../libgit2/Utils/DPIAware.h"
-#include "../libgit2/Utils/LoadIconEx.h"
+#include <Utils/DPIAware.h>
 
 #define BTN_OFFSET 100 // use an offset in order to not interfere with IDYES and so on...
 
@@ -28,6 +27,7 @@
 export module MessageBox;
 import DebugOutput;
 import wil;
+import wil.MFC;
 import str_utils;
 
 /**
@@ -610,9 +610,9 @@ UINT CMessageBox::ShowCheck(HWND hWnd, LPCWSTR lpMessage, LPCWSTR lpCaption, int
 	box.m_sButton1 = lpButton1;
 	box.m_sButton2 = lpButton2;
 	box.m_sButton3 = lpButton3;
-	box.m_hIcon = LoadIconEx(AfxGetResourceHandle(), icon, GetSystemMetrics(SM_CXICON), GetSystemMetrics(SM_CYICON));
+	box.m_hIcon = wil::MFC::LoadIconEx(AfxGetResourceHandle(), icon, GetSystemMetrics(SM_CXICON), GetSystemMetrics(SM_CYICON));
 	if (!box.m_hIcon)
-		box.m_hIcon = LoadIconEx(nullptr, icon, GetSystemMetrics(SM_CXICON), GetSystemMetrics(SM_CYICON));
+		box.m_hIcon = wil::MFC::LoadIconEx(nullptr, icon, GetSystemMetrics(SM_CXICON), GetSystemMetrics(SM_CYICON));
 	else
 		box.m_bDestroyIcon = TRUE;
 	if (!IsWindow(hWnd))
@@ -641,9 +641,9 @@ UINT CMessageBox::Show(HWND hWnd, LPCWSTR lpMessage, LPCWSTR lpCaption, int nDef
 	box.m_sButton1 = lpButton1;
 	box.m_sButton2 = lpButton2;
 	box.m_sButton3 = lpButton3;
-	box.m_hIcon = LoadIconEx(AfxGetResourceHandle(), icon, GetSystemMetrics(SM_CXICON), GetSystemMetrics(SM_CYICON));
+	box.m_hIcon = wil::MFC::LoadIconEx(AfxGetResourceHandle(), icon, GetSystemMetrics(SM_CXICON), GetSystemMetrics(SM_CYICON));
 	if (!box.m_hIcon)
-		box.m_hIcon = LoadIconEx(nullptr, icon, GetSystemMetrics(SM_CXICON), GetSystemMetrics(SM_CYICON));
+		box.m_hIcon = wil::MFC::LoadIconEx(nullptr, icon, GetSystemMetrics(SM_CXICON), GetSystemMetrics(SM_CYICON));
 	else
 		box.m_bDestroyIcon = TRUE;
 	if (!IsWindow(hWnd))
@@ -903,19 +903,19 @@ int CMessageBox::FillBoxStandard(UINT uType)
 	switch (uType & 0xf0)
 	{
 	case MB_ICONEXCLAMATION:
-		m_hIcon = LoadIconEx(nullptr, IDI_EXCLAMATION, GetSystemMetrics(SM_CXICON), GetSystemMetrics(SM_CYICON));
+		m_hIcon = wil::MFC::LoadIconEx(nullptr, IDI_EXCLAMATION, GetSystemMetrics(SM_CXICON), GetSystemMetrics(SM_CYICON));
 		::MessageBeep(MB_ICONEXCLAMATION);
 		break;
 	case MB_ICONASTERISK:
-		m_hIcon = LoadIconEx(nullptr, IDI_ASTERISK, GetSystemMetrics(SM_CXICON), GetSystemMetrics(SM_CYICON));
+		m_hIcon = wil::MFC::LoadIconEx(nullptr, IDI_ASTERISK, GetSystemMetrics(SM_CXICON), GetSystemMetrics(SM_CYICON));
 		::MessageBeep(MB_ICONASTERISK);
 		break;
 	case MB_ICONQUESTION:
-		m_hIcon = LoadIconEx(nullptr, IDI_QUESTION, GetSystemMetrics(SM_CXICON), GetSystemMetrics(SM_CYICON));
+		m_hIcon = wil::MFC::LoadIconEx(nullptr, IDI_QUESTION, GetSystemMetrics(SM_CXICON), GetSystemMetrics(SM_CYICON));
 		::MessageBeep(MB_ICONQUESTION);
 		break;
 	case MB_ICONHAND:
-		m_hIcon = LoadIconEx(nullptr, IDI_HAND, GetSystemMetrics(SM_CXICON), GetSystemMetrics(SM_CYICON));
+		m_hIcon = wil::MFC::LoadIconEx(nullptr, IDI_HAND, GetSystemMetrics(SM_CXICON), GetSystemMetrics(SM_CYICON));
 		::MessageBeep(MB_ICONHAND);
 		break;
 	}

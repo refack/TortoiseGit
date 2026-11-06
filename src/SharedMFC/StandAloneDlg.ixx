@@ -18,8 +18,6 @@ import std;
 import gsl;
 import Registry;
 import ThemeAPI;
-import AppUtils.Launch;
-import AppUtils.Window;
 import TaskbarUUID;
 import DarkModeHelper;
 import GitHash;
@@ -278,13 +276,15 @@ protected:
 
 	void HtmlHelp(DWORD_PTR dwData, UINT nCmd = 0x000F) override {
 		UNREFERENCED_PARAMETER(nCmd);
-		if (!CAppUtils::StartHtmlHelp(dwData))
-			AfxMessageBox(AFX_IDP_FAILED_TO_LAUNCH_HELP);
+		std::unreachable();
+		// if (!CAppUtils::StartHtmlHelp(dwData))
+		// 	AfxMessageBox(AFX_IDP_FAILED_TO_LAUNCH_HELP);
 	}
 
 
 	afx_msg LRESULT OnTaskbarButtonCreated(WPARAM /*wParam*/, LPARAM /*lParam*/) {
-		SetUUIDOverlayIcon(BaseType::m_hWnd, CAppUtils::g_sGroupingUUID, CAppUtils::g_sGroupingIcon, CAppUtils::g_bGroupingRemoveIcon);
+		std::unreachable();
+		// SetUUIDOverlayIcon(BaseType::m_hWnd, TortoiseProc::g_sGroupingUUID, CAppUtils::g_sGroupingIcon, CAppUtils::g_bGroupingRemoveIcon);
 		return 0;
 	}
 

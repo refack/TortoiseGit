@@ -25,6 +25,7 @@ import lanes;
 import GitHash;
 import git_h;
 import GitRevLoglist;
+import TGitPath;
 
 class CLogDlg;
 

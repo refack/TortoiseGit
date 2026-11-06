@@ -296,12 +296,6 @@ struct StringViewTraits<TStr> {
 
 };
 
-template <IsATLCStringDuck ATLStr, IsTCompString TStr>
-constexpr auto to_atl(const TStr& s) noexcept {
-	return ATLStr{StringViewTraits<TStr>::data(s), StringViewTraits<TStr>::int_size(s)};
-}
-
-
 
 template <IsATLCStringDuck TStr>
 struct StringViewTraits<TStr> {
@@ -491,6 +485,16 @@ concept CovariantCharType = std::same_as<typename StringViewTraits<TStr>::char_t
 
 template <IsTCompString TStr>
 constexpr auto as_view(const TStr& s) noexcept { return StringView{s}.as_view(); }
+
+
+template <IsTCompString TStr>
+constexpr auto to_atl(const TStr& s) noexcept {
+	if constexpr (std::is_same_v<typename StringViewTraits<TStr>::char_type, char>) {
+		return CStringW{StringViewTraits<TStr>::data(s), StringViewTraits<TStr>::int_size(s)};
+	} else {
+		return CStringW{StringViewTraits<TStr>::data(s), StringViewTraits<TStr>::int_size(s)};
+	}
+}
 
 /// these are ununsed
 // constexpr auto as_atl(const std::string_view& s) noexcept { return CStringA{s.data()}; }
@@ -1086,6 +1090,52 @@ std::basic_string<char_type> printf_to_string(const std::basic_string_view<char_
 	});
 	return out;
 }
+
+
+
+template <tgit::str::IsATLCStringDuck TStr>
+TStr EscapeAndQuoteParameters(const TStr& input)
+{
+	TStr parameter = input;
+	parameter.Replace(L"\"", L"%22");
+	parameter.TrimRight(L'\\'); // should never occurr
+	return L'"' + parameter + L'"';
+}
+
+template <tgit::str::IsStdStringDuck TStr>
+TStr EscapeAndQuoteParameters(const TStr& input) {
+	constexpr auto URL_ESCAPED_QOUTE = L"%22"sv;
+	auto esc_range = std::views::split(input, L'\"') | std::views::join_with(URL_ESCAPED_QOUTE);
+	return L'"' + std::ranges::to<TStr>(esc_range) + L'"';
+}
+
+/////////////////////////////////////////////////////////////////////////////////
+// Regex Adapters
+/////////////////////////////////////////////////////////////////////////////////
+
+
+template <typename CharT>
+struct regex_match_fn {
+	const std::basic_regex<CharT>& re;
+
+	template <std::ranges::contiguous_range R>
+	constexpr auto operator()(R&& r) const {
+		using Iter = std::regex_iterator<std::ranges::iterator_t<R>>;
+		return std::ranges::subrange(Iter(std::ranges::begin(r), std::ranges::end(r), re), Iter());
+	}
+};
+
+
+// template <typename CharT>
+// struct regex_matches : std::ranges::range_adaptor_closure<regex_matches<CharT>>, regex_match_fn<CharT> {
+// 	// explicit regex_matches(const std::basic_regex<CharT>& re) : regex_match_fn<CharT>{re} {}
+// 	// explicit regex_matches(const std::basic_string_view<CharT> re) : regex_match_fn<CharT>{re.data()} {}
+// 	explicit regex_matches(const std::wstring_view re) : regex_match_fn<std::wstring_view::value_type>{std::wregex{re.data()}} {}
+// };
+
+struct regex_matches : std::ranges::range_adaptor_closure<regex_matches>, regex_match_fn<wchar_t> {
+	explicit regex_matches(const std::wstring_view re) : regex_match_fn{std::wregex{re.data()}} {}
+};
 
 
 }
@@ -1963,6 +2013,46 @@ CString EscapeWindowsCliArguments(const CString& argument) {
 
 }
 
+
+
+export namespace tgit::wstr {
+
+
+namespace fs = std::filesystem;
+
+
+std::optional<std::wstring> LoadTextFile(const fs::path& filename) {
+	if (!fs::exists(filename))
+		return std::nullopt;
+
+	auto f = std::ifstream{filename, std::ios::binary, _SH_DENYWR};
+	if (!f.is_open()) {
+		::MessageBox(nullptr, wstr::CString(L"Could not open ") + filename.c_str(), L"TortoiseGit", MB_ICONERROR);
+		return {};
+	}
+	auto bytes = std::string{ std::istreambuf_iterator(f), {} };
+	auto str = CUnicodeUtils::StdGetUnicode(bytes);
+	wstr::Replace(str, L"\r\n", L"\n");
+
+	// Exactly one trailing newline. rfind(L'\n') cut at the last newline anywhere,
+	// so a file without a trailing one lost its last line.
+	str.erase(str.find_last_not_of(L'\n') + 1);
+	str += L'\n';
+
+	return str;
+}
+
+
+bool LoadTextFile(const CStringW& filename, CStringW& msg) {
+	auto&& ret = LoadTextFile(fs::path{ StringView{ filename }.as_view() });
+	if (!ret)
+		return false;
+	// Appends: callers assemble one message from several files.
+	msg += str::to_atl(*ret);
+	return true;
+}
+
+}
 
 // UnescapeGitQuotePath(A), EscapePosixShellArgument and NeedsPosixShellQuoting
 // were parked here unexported; git_h (TGitH) owns them now.

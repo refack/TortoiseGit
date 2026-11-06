@@ -1,27 +1,63 @@
 ﻿module;
 #include <afxwin.h>
+#include <ResizableLayout.h>
 
 #include "Utils/HistoryCombo.h"
 #include <Resources/LoglistCommonResource.h>
+
+#include "Resources/resource.h"
+
 #include "Utils/GestureEnabledControl.h"
 
 
 export module FindDlg;
 
 import std;
+import gsl;
 import StandAloneDlg;
 import Registry;
+import ThemeAPI;
+using ThemeAPI::CTheme;
 
 // CFindDlg dialog
 
-#define IDT_FILTER		101
+export namespace FindDlg {
 
-export class CFindDlg : public CResizableStandAloneDialog
+constexpr auto IDT_FILTER = 101;
+
+//! Anchor to the top-left corner
+using ::TOP_LEFT;
+//! Anchor to the top edge and center horizontally
+using ::TOP_CENTER;
+//! Anchor to the top-right corner
+using ::TOP_RIGHT;
+//! Anchor to the left edge and center vertically
+using ::MIDDLE_LEFT;
+//! Anchor to the center
+using ::MIDDLE_CENTER;
+//! Anchor to the right edge and center vertically
+using ::MIDDLE_RIGHT;
+//! Anchor to the bottom-left corner
+using ::BOTTOM_LEFT;
+//! Anchor to the bottom edge and center horizontally
+using ::BOTTOM_CENTER;
+//! Anchor to the bottom-right corner
+using ::BOTTOM_RIGHT;
+
+
+class CFindDlg : public CResizableStandAloneDialog
 {
 	DECLARE_DYNAMIC(CFindDlg)
 
-	CFindDlg(CWnd* pParent = nullptr);   // standard constructor
-	virtual ~CFindDlg();
+	explicit CFindDlg(CWnd* pParent =nullptr)
+		: CResizableStandAloneDialog(CFindDlg::IDD, pParent)
+		, m_pParent(pParent)
+		, m_regMatchCase(L"Software\\TortoiseGit\\LogDialog\\FindMatchCase", FALSE)
+		, m_regRegex(L"Software\\TortoiseGit\\LogDialog\\FindRegex", FALSE)
+	{}
+
+	~CFindDlg() override = default;
+
 	void Create(CWnd* pParent = nullptr) { m_pParent = pParent; CDialog::Create(IDD, pParent); ShowWindow(SW_SHOW); UpdateWindow(); }
 
 	bool IsTerminating() const { return m_bTerminating; }
@@ -42,13 +78,15 @@ protected:
 	void PostNcDestroy() override;
 	void OnOK() override;
 	BOOL OnInitDialog() override;
+
+	void AddToList();
+
 	afx_msg void OnCbnEditchangeFindcombo();
 	afx_msg void OnNMClickListRef(NMHDR* pNMHDR, LRESULT* pResult);
 
 	afx_msg void OnEnChangeEditFilter() { SetTimer(IDT_FILTER, 1000, nullptr); }
 
-	afx_msg void OnTimer(UINT_PTR nIDEvent)
-	{
+	afx_msg void OnTimer(UINT_PTR nIDEvent) {
 		if( nIDEvent == IDT_FILTER)
 		{
 			KillTimer(IDT_FILTER);
@@ -58,22 +96,22 @@ protected:
 		CResizableStandAloneDialog::OnTimer(nIDEvent);
 	}
 
+
 	DECLARE_MESSAGE_MAP()
 
-	UINT			m_FindMsg = 0;
-	bool			m_bTerminating = false;
-	bool			m_bFindNext;
-	BOOL			m_bMatchCase;
-	BOOL			m_bRegex;
-	bool			m_bIsRef;
+	UINT			m_FindMsg{};
+	bool			m_bTerminating{};
+	bool			m_bFindNext{};
+	BOOL			m_bMatchCase{};
+	BOOL			m_bRegex{};
+	bool			m_bIsRef{};
 	CHistoryCombo	m_FindCombo;
 	CString			m_FindString;
-	CWnd*			m_pParent = nullptr;
+	CWnd*			m_pParent{};
 	std::vector<std::wstring>	m_RefList;
 	CRegDWORD		m_regMatchCase;
 	CRegDWORD		m_regRegex;
 
-	void AddToList();
 
 public:
 	CGestureEnabledControlTmpl<CListCtrl> m_ctrlRefList;
@@ -83,21 +121,6 @@ public:
 
 IMPLEMENT_DYNAMIC(CFindDlg, CResizableStandAloneDialog)
 
-CFindDlg::CFindDlg(CWnd* pParent /*=nullptr*/)
-	: CResizableStandAloneDialog(CFindDlg::IDD, pParent)
-	, m_bFindNext(false)
-	, m_bMatchCase(FALSE)
-	, m_bRegex(FALSE)
-	, m_bIsRef(false)
-	, m_regMatchCase(L"Software\\TortoiseGit\\LogDialog\\FindMatchCase", FALSE)
-	, m_regRegex(L"Software\\TortoiseGit\\LogDialog\\FindRegex", FALSE)
-	, m_pParent(pParent)
-{
-}
-
-CFindDlg::~CFindDlg()
-{
-}
 
 void CFindDlg::DoDataExchange(CDataExchange* pDX)
 {
@@ -129,7 +152,7 @@ void CFindDlg::OnCancel()
 		parent = GetParent();
 
 	if (parent)
-		parent->SendMessage(m_FindMsg);
+		std::ignore = parent->SendMessage(m_FindMsg);
 
 	DestroyWindow();
 }
@@ -157,7 +180,7 @@ void CFindDlg::OnOK()
 		parent = GetParent();
 
 	if (parent)
-		parent->SendMessage(m_FindMsg);
+		std::ignore = parent->SendMessage(m_FindMsg);
 	m_bFindNext = false;
 }
 
@@ -188,7 +211,7 @@ BOOL CFindDlg::OnInitDialog()
 	EnableSaveRestore(L"FindDlg");
 	SetTheme(CTheme::Instance().IsDarkTheme());
 
-	CImageList *imagelist = new CImageList();
+	auto imagelist = gsl::owner(new CImageList());
 	imagelist->Create(IDB_BITMAP_REFTYPE,16,3,RGB(255,255,255));
 	this->m_ctrlRefList.SetImageList(imagelist,LVSIL_SMALL);
 
@@ -223,25 +246,23 @@ void CFindDlg::AddToList()
 	this->m_ctrlFilter.GetWindowText(filter);
 
 	int item =0;
-	for (size_t i = 0; i < m_RefList.size(); ++i)
-	{
+	for (const auto & ref : m_RefList) {
 		int nImage = -1;
-		CString ref = m_RefList[i].c_str();
-		if (StringUtils::StartsWith(ref, L"refs/tags/"))
+		if (ref.starts_with(L"refs/tags/"))
 			nImage = 0;
-		else if (StringUtils::StartsWith(ref, L"refs/remotes/"))
+		else if (ref.starts_with(L"refs/remotes/"))
 			nImage = 2;
-		else if (StringUtils::StartsWith(ref, L"refs/heads/"))
+		else if (ref.starts_with(L"refs/heads/"))
 			nImage = 1;
 
-		if(ref.Find(filter)>=0)
-			m_ctrlRefList.InsertItem(item++,ref,nImage);
+		if(ref.contains(filter))
+			m_ctrlRefList.InsertItem(item++, ref.data(), nImage);
 	}
 }
 
 void CFindDlg::OnNMClickListRef(NMHDR *pNMHDR, LRESULT *pResult)
 {
-	LPNMITEMACTIVATE pNMItemActivate = reinterpret_cast<LPNMITEMACTIVATE>(pNMHDR);
+	auto *pNMItemActivate = reinterpret_cast<LPNMITEMACTIVATE>(pNMHDR);
 
 	this->m_FindString = this->m_ctrlRefList.GetItemText(pNMItemActivate->iItem,0);
 	this->m_bIsRef =true;
@@ -251,10 +272,12 @@ void CFindDlg::OnNMClickListRef(NMHDR *pNMHDR, LRESULT *pResult)
 		parent = GetParent();
 
 	if (parent)
-		parent->SendMessage(m_FindMsg);
+		std::ignore = parent->SendMessage(m_FindMsg);
 
 	this->m_bIsRef =false;
 
 	*pResult = 0;
 }
 
+}
+export using namespace FindDlg;

@@ -22,6 +22,9 @@
 #include <string>
 #include <vector>
 #include <filesystem>
+#include <regex>
+#include <deque>
+#include <cmath>
 using std::max;
 using std::min;
 namespace fs = std::filesystem;

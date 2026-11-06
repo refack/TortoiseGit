@@ -19,6 +19,7 @@
 //
 
 #pragma once
+import RIAA;
 
 /**
  * \ingroup Utils
@@ -156,7 +157,6 @@ protected:
 	HICON			LoadDpiScaledIcon(UINT resourceId, int cx96dpi, int cy96dpi);
 	void SetTheme(bool bDark);
 
-protected:
 	CAutoIcon m_hIconCancelNormal;
 	CAutoIcon m_hIconCancelPressed;
 	CAutoIcon m_hIconInfo;

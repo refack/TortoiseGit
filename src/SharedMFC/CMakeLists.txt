@@ -64,11 +64,19 @@ target_sources(SharedMFC
     FILES
         BrowseFolder.ixx
         ColumnManager.ixx
-        MessageBox.ixx
-        Theme.ixx
-        GitRevLoglist.ixx
-        StandAloneDlg.ixx
+        FilterHelper.ixx
+        FindDlg.ixx
         GitLogListBase.ixx
-        Tooltip.ixx
+        GitRevLoglist.ixx
+        IconBitmapUtils.ixx
         LogDlgFilter.ixx
+        MessageBox.ixx
+        StandAloneDlg.ixx
+        Theme.ixx
+        Tooltip.ixx
+        misc_constants.ixx
+        wil_MFC.ixx
+        TaskbarUUID.ixx
+        TortoiseProc.ixx
+        Hooks.ixx
 )

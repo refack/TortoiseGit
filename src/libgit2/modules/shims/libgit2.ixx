@@ -1,8 +1,10 @@
 module;
+#include <git2/config.h>
 #include <git2/errors.h>
 #include <git2/index.h>
 #include <git2/sys/errors.h>
 #include <git2/sys/transport.h>
+#include <git2.h>
 
 
 
@@ -51,6 +53,13 @@ void SetLibGit2UserAgent() {
 	git_libgit2_opts(GIT_OPT_SET_USER_AGENT, "TortoiseGit libgit2");
 }
 
+
+using ::git_config_new;
+using ::git_config_add_file_ondisk;
+using ::git_config_level_t;
+using ::git_config_delete_entry;
+using ::git_config_set_string;
+using ::git_config_set_bool;
 
 }
 // NOLINTEND(*-pro-type-vararg, bugprone-suspicious-stringview-data-usage)

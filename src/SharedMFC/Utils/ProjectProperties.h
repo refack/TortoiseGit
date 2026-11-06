@@ -20,6 +20,8 @@
 
 #pragma once
 #include <regex>
+#include <set>
+import wil;
 
 #define BUGTRAQPROPNAME_LABEL				L"bugtraq.label"sv
 #define BUGTRAQPROPNAME_MESSAGE				L"bugtraq.message"sv

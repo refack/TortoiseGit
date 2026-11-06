@@ -3,8 +3,6 @@
 #include <Shobjidl.h>
 #include <GdiPlus.h>
 
-#include "Utils/LoadIconEx.h"
-
 
 export module TaskbarUUID;
 
@@ -14,6 +12,7 @@ import Registry;
 import RIAA;
 import CmdLineParser;
 import wil;		// com_ptr_nothrow, what CComPtr was
+import wil.MFC;
 
 #pragma comment(lib, "gdiplus.lib")
 constexpr auto APPID = L"TGIT.TGIT.1";
@@ -150,7 +149,7 @@ void SetUUIDOverlayIcon(const HWND& hWnd, std::wstring uuid, std::wstring sicon,
 	CAutoIcon icon;
 	if (!sicon.empty()) {
 		if (sicon.size() >= 4 && !_wcsicmp(sicon.substr(sicon.size() - 4).c_str(), L".ico"))
-			icon = LoadIconEx(nullptr, sicon.c_str(), iconWidth, iconHeight);
+			icon = wil::MFC::LoadIconEx(nullptr, sicon.c_str(), iconWidth, iconHeight);
 		else {
 			ULONG_PTR gdiplusToken = 0;
 			Gdiplus::GdiplusStartupInput gdiplusStartupInput;

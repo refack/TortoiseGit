@@ -31,7 +31,6 @@ import gsl;
 import wil;
 import str_utils;
 
-import Registry;
 import DebugOutput;
 import ShellEnvironment;
 
@@ -68,6 +67,7 @@ enum : std::uint8_t {
 
 constexpr auto G_OK = 0;
 constexpr auto GFail = -1;
+constexpr auto UnexFail = std::unexpected{GFail};
 
 constexpr auto KB_2_10 = 1024UZ;
 
@@ -459,6 +459,12 @@ size_t ms_iSimilarityIndexThreshold = []{
 // sites - goes through the reference below.
 fs::path m_CurrentDirStorage{};
 
+
+auto get_curdir_slug() {
+	auto ret = GitCall::m_CurrentDirStorage.wstring();
+	std::ranges::replace(ret, L':', L'_');
+	return ret;
+}
 
 bool has_weird_paths() { return ms_bMsys2Git || ms_bCygwinGit; }
 

@@ -51,16 +51,12 @@ export import GitCall;	// CGitCall, the TGIT_GIT_* codes and G_OK/GFail are part
 using namespace TGitPath;
 using TGitHash::CGitHash;
 using tgit::str::StringView;
-using CStringW = tgit::wstr::CString;
-using CStringA = tgit::zstr::CString;
-// CSimpleStringT's own buffer-helper typedefs: right in both flavors, where
-// atlsimpstr.h's global CStrBuf is CStrBufT<TCHAR, false> even under MFC.
-using CStrBufW = CStringW::CStrBuf;
-using CStrBufA = CStringA::CStrBuf;
+using namespace tgit;
+using CStringW = wstr::CString;
+using CStringA = zstr::CString;
 using wil::CFormatMessageWrapper;
 using tgit::DebugOutput::TracePrintf;
 namespace GitFormatHolder = tgit::invarients::GitFormatHolder;
-using namespace tgit;
 using namespace GitCall;
 
 
@@ -469,42 +465,7 @@ CStringW StripRefName(CStringW refName) {
 }
 
 
-std::optional<std::wstring> LoadTextFile(const fs::path& filename) {
-	if (!fs::exists(filename))
-		return std::nullopt;
 
-	const wil::unique_file pFile{ _wfsopen(filename.c_str(), L"rb", SH_DENYWR) };
-	if (!pFile) {
-		::MessageBox(nullptr, wstr::CString(L"Could not open ") + filename.c_str(), L"TortoiseGit", MB_ICONERROR);
-		return {}; // load no further files
-	}
-
-	// Bytes, through the handle that holds the SH_DENYWR lock. The file is UTF-8;
-	// a wifstream in the default locale widened it byte by byte.
-	std::string bytes;
-	std::array<char, 4096> buf{};
-	for (size_t n; (n = std::fread(buf.data(), 1, buf.size(), pFile.get())) > 0;)
-		bytes.append(buf.data(), n);
-
-	auto str = CUnicodeUtils::GetUnicode<std::wstring>(std::string_view{ bytes });
-	wstr::Replace(str, L"\r\n", L"\n");
-	// Exactly one trailing newline. rfind(L'\n') cut at the last newline anywhere,
-	// so a file without a trailing one lost its last line.
-	str.erase(str.find_last_not_of(L'\n') + 1);
-	str += L'\n';
-
-	return str;
-}
-
-
-bool LoadTextFile(const CStringW& filename, CStringW& msg) {
-	auto&& ret = LoadTextFile(fs::path{ StringView{ filename }.as_view() });
-	if (!ret)
-		return false;
-	// Appends: callers assemble one message from several files.
-	msg.Append(ret->data(), gsl::narrow<int>(ret->size()));
-	return true;
-}
 
 
 // similar code in CTGitPath::ParserFromLsFile
@@ -707,7 +668,7 @@ fs::path GetHomeDirectory() {
 	if (auto tmp = Environment::g_Environment.GetEnv(L"HOMEDRIVE"); !tmp.empty()) {
 		if (const auto tmp2 = Environment::g_Environment.GetEnv(L"HOMEPATH"); !tmp2.empty()) {
 			tmp += tmp2;
-			if (CStringW windowsSysDirectory; GetSystemDirectory(CStrBufW(windowsSysDirectory, 4096), 4096) != FALSE)
+			if (CStringW windowsSysDirectory; GetSystemDirectory(CStringW::CStrBuf(windowsSysDirectory, 4096), 4096) != FALSE)
 				if (concepts::as_view(windowsSysDirectory) != tmp && fs::is_directory(tmp)) {
 					return tmp;
 				}
@@ -765,6 +726,8 @@ int ms_LastMsysGitVersion = 0;
 
 
 class CGit {
+	til::libgit2_token libgit2Token;
+
 	GIT_DIFF m_GitDiff{};
 	GIT_DIFF m_GitSimpleListDiff{};
 
@@ -929,6 +892,8 @@ public:
 		// Through wil::OpenGitRepository, the chokepoint that latches the object format.
 		return wil::OpenGitRepository(TGitPath::ToGitPathA(m_CurrentDir.native()).c_str());
 	}
+
+	std::expected<std::wstring, int> DescribeCommit(const CGitHash& hash) const;
 
 	/**
 	 * The configured SSH client, HKCU then HKLM, empty when none is set and the OpenSSH
@@ -1283,6 +1248,7 @@ public:
 	int GetGitNotes(const CGitHash& hash, CStringW& notes) const;
 	int SetGitNotes(const CGitHash& hash, const CStringW& notes) const;
 
+	int get_value_libgit2(const CStringW& tagName, CStringW& output, const time_formater_f& timeformatter) const;
 	int GetTagInfo(const CStringW& tagName, CStringW& output, const time_formater_f& timeformatter) const;
 
 	int GetUnifiedDiff(const CTGitPath& path,
@@ -1329,7 +1295,7 @@ public:
 		// ForceQuotes keeps the old always-quoted shape ("" for an empty value);
 		// FirstArgumentIsNotPath, because this one element is never argv[0].
 		const auto quoted = wil::ArgvToCommandLine(std::vector{ std::wstring(value) }, wil::ArgvToCommandLineFlags::ForceQuotes | wil::ArgvToCommandLineFlags::FirstArgumentIsNotPath);
-		return str::to_atl<CStringW>(quoted);
+		return str::to_atl(quoted);
 	}
 
 
@@ -1761,7 +1727,7 @@ namespace details {
 			ms_LastMsysGitDir = fs::path{ gitExeDirectory.as_view() };
 
 			// check for (broken) scoop shim, cf. issue #4033
-			if (const auto contents = LoadTextFile(ms_LastMsysGitDir / L"git.shim")) {
+			if (const auto contents = wstr::LoadTextFile(ms_LastMsysGitDir / L"git.shim")) {
 				tgit::DebugOutput::TracePrintf(__FUNCTION__ L": found git.shim\n");
 				int start = 0;
 				while (start >= 0) {
@@ -2048,7 +2014,7 @@ std::wstring CGit::ReadConfigValue(const CStringW& name, const CStringW& def_, c
 		const CStringA key = CUnicodeUtils::GetUTF8<CStringA>(name);
 
 		try {
-			if (git_get_config(key, CStrBufA(value, 4096), 4096))
+			if (git_get_config(key, CStringA::CStrBuf(value, 4096), 4096))
 				return def;
 		} catch (const std::exception& ex) {
 			::MessageBox(nullptr,
@@ -2541,7 +2507,7 @@ int CGit::GetCommitDiffList(
 	std::wstring out;
 	std::wstring err;
 	if (GitCall::Run(argv, &out, &err)) {
-		error = str::to_atl<CStringW>(err);
+		error = str::to_atl(err);
 		return GFail;
 	}
 
@@ -2621,19 +2587,17 @@ bool CGit::BranchTagExists(const CStringW& name, const bool isBranch /*= true*/)
 		if (!repo)
 			return false; // TODO: optimize error reporting
 
-		const auto prefix = isBranch ? L"refs/heads/" : L"refs/tags/";
+		const auto *const prefix = isBranch ? L"refs/heads/" : L"refs/tags/";
 
 		wil::unique_git_reference ref;
-		if (git_reference_lookup(ref.put(), repo.get(), CUnicodeUtils::StdGetUTF8(StringView(prefix + name)).c_str()))
-			return false;
-
-		return true;
+		auto&& ret = git_reference_lookup(ref.put(), repo.get(), CUnicodeUtils::StdGetUTF8(StringView(prefix + name)).c_str());
+		return !ret;
 	}
 	// else
 	// Note that both refs are always passed, whichever of --heads/--tags is
 	// asked for; that predates the argv rewrite and is left as it was.
 	const std::vector<std::wstring> argv{ L"git.exe", L"show-ref", isBranch ? L"--heads" : L"--tags", L"--", StringView(L"refs/heads/" + name).data(),
-	                                      StringView(L"refs/tags/" + name).data() };
+	                                      StringView(L"refs/tags/" + name).data(), };
 
 	CStringW output;
 	if (!GitCall::Run(argv, &output, nullptr, CP_UTF8)) {
@@ -3401,7 +3365,7 @@ int CGit::GetOneFile(const CStringW& Refname, const CTGitPath& path, const CStri
 		const CStringA patha = CUnicodeUtils::StdGetUTF8(path.GetGitPathString()).c_str();
 		auto outa = CUnicodeUtils::GetUTF8<CStringA>(outputfile);
 		::DeleteFile(outputfile);
-		return git_checkout_file(ref, patha, CStrBufA(outa));
+		return git_checkout_file(ref, patha, CStringA::CStrBuf(outa));
 	} catch (const std::exception& ex) {
 		gitLastErr = L"gitdll.dll reports: " + CUnicodeUtils::GetUnicode<CStringW>(ex.what());
 		return -1;
@@ -3731,22 +3695,16 @@ void CGit::GetBisectTerms(CStringW* good, CStringW* bad) const {
 	if (!adminDir)
 		return;
 
-	const std::wstring termsFile = adminDir->path + L"BISECT_TERMS";
+	const auto termsFile = adminDir->GetPath() / L"BISECT_TERMS";
 	// _wfsopen, like the other readers here; _wfopen_s would need a FILE** out of the owner.
 	const wil::unique_file fp{ _wfsopen(termsFile.c_str(), L"rb", SH_DENYWR) };
 	if (!fp)
 		return;
-	// one term per line; fgets keeps the '\n', which is not part of the term
-	const auto readTerm = [&fp] {
-		char termA[MAX_PATH] = {};
-		fgets(termA, sizeof(termA), fp.get());
-		std::string_view term{ termA };
-		if (term.ends_with('\n'))
-			term.remove_suffix(1);
-		return CUnicodeUtils::GetUnicode<CStringW>(term);
-	};
-	lastBad = readTerm();
-	lastGood = readTerm();
+
+	const auto content = wstr::LoadTextFile(termsFile).value();
+	const auto line_gen = str::stringtok(content, true, L"\r\n");
+	lastBad = line_gen[0].c_str();
+	lastGood = line_gen[1].c_str();
 	lastRead = GetTickCount64();
 }
 
@@ -3757,7 +3715,7 @@ int CGit::GetGitVersion(CStringW* versiondebug, CStringW* errStr) {
 		return GFail;
 	}
 
-	int ver = 0;
+	size_t ver = 0;
 	if (versiondebug)
 		*versiondebug = version;
 
@@ -3767,7 +3725,7 @@ int CGit::GetGitVersion(CStringW* versiondebug, CStringW* errStr) {
 		const int space = str.ReverseFind(L' ');
 		str = str.Mid(space + 1, start);
 		ver = _wtol(str);
-		ver <<= 24;
+		ver <<= 24U;
 
 		version = version.Mid(start);
 		start = 0;
@@ -3785,7 +3743,7 @@ int CGit::GetGitVersion(CStringW* versiondebug, CStringW* errStr) {
 			return GFail;
 	}
 
-	return ver;
+	return win32_cast(ver);
 }
 
 
@@ -3824,47 +3782,52 @@ int CGit::SetGitNotes(const CGitHash& hash, const CStringW& notes) const {
 }
 
 
+int CGit::get_value_libgit2(const CStringW& tagName, CStringW& output, const time_formater_f& timeformatter) const {
+	const auto repo = this->GetGitRepository();
+	if (!repo)
+		return -1;
+	wil::unique_git_reference ref;
+	if (git_reference_lookup(&ref, repo.get(), CUnicodeUtils::GetUTF8<CStringA>(tagName)) < 0) {
+		output = TGitH::GetLibGit2LastErr();
+		return -1;
+	}
+	wil::unique_git_object obj;
+	if (git_object_lookup(&obj, repo.get(), git_reference_target(ref.get()), GIT_OBJECT_TAG)) {
+		output = TGitH::GetLibGit2LastErr();
+		return -1;
+	}
+	wil::unique_git_tag tag;
+	if (git_tag_lookup(&tag, repo.get(), git_reference_target(ref.get())) < 0) {
+		output = TGitH::GetLibGit2LastErr();
+		return -1;
+	}
+	output = L"tag " + CUnicodeUtils::GetUnicode<CStringW>(std::string_view{git_tag_name(tag.get())}) + L"\n";
+	const auto tagger = git_tag_tagger(tag.get());
+	if (tagger) {
+		output += "tagger ";
+		if (tagger->name) {
+			output += CUnicodeUtils::GetUnicode<CStringW>(std::string_view{tagger->name});
+			output += L' ';
+		}
+		if (tagger->email) {
+			output += L'<';
+			output += CUnicodeUtils::GetUnicode<CStringW>(std::string_view{tagger->email});
+			output += L'>';
+			output += L' ';
+		}
+		output += timeformatter(tagger->when.time);
+		output += L'\n';
+	}
+	output += L'\n';
+	output += CUnicodeUtils::GetUnicode<CStringW>(std::string_view{git_tag_message(tag.get())});
+	output.TrimRight().AppendChar(L'\n');
+	return 0;
+}
+
+
 int CGit::GetTagInfo(const CStringW& tagName, CStringW& output, const time_formater_f& timeformatter) const {
 	if (m_IsUseLibGit2) {
-		const wil::unique_git_repository repo{ g_Git.GetGitRepository() };
-		if (!repo)
-			return -1;
-		wil::unique_git_reference ref;
-		if (git_reference_lookup(&ref, repo.get(), CUnicodeUtils::GetUTF8<CStringA>(tagName)) < 0) {
-			output = TGitH::GetLibGit2LastErr();
-			return -1;
-		}
-		wil::unique_git_object obj;
-		if (git_object_lookup(&obj, repo.get(), git_reference_target(ref.get()), GIT_OBJECT_TAG)) {
-			output = TGitH::GetLibGit2LastErr();
-			return -1;
-		}
-		wil::unique_git_tag tag;
-		if (git_tag_lookup(&tag, repo.get(), git_reference_target(ref.get())) < 0) {
-			output = TGitH::GetLibGit2LastErr();
-			return -1;
-		}
-		output = L"tag " + CUnicodeUtils::GetUnicode<CStringW>(std::string_view{git_tag_name(tag.get())}) + L"\n";
-		const auto tagger = git_tag_tagger(tag.get());
-		if (tagger) {
-			output += "tagger ";
-			if (tagger->name) {
-				output += CUnicodeUtils::GetUnicode<CStringW>(std::string_view{tagger->name});
-				output += L' ';
-			}
-			if (tagger->email) {
-				output += L'<';
-				output += CUnicodeUtils::GetUnicode<CStringW>(std::string_view{tagger->email});
-				output += L'>';
-				output += L' ';
-			}
-			output += timeformatter(tagger->when.time);
-			output += L'\n';
-		}
-		output += L'\n';
-		output += CUnicodeUtils::GetUnicode<CStringW>(std::string_view{git_tag_message(tag.get())});
-		output.TrimRight().AppendChar(L'\n');
-		return 0;
+		return get_value_libgit2(tagName, output, timeformatter);
 	}
 
 	output.Empty();
@@ -3904,6 +3867,34 @@ int CGit::GetTagInfo(const CStringW& tagName, CStringW& output, const time_forma
 
 	output.Trim().AppendChar(L'\n');
 	return 0;
+}
+
+
+std::expected<std::wstring, int> CGit::DescribeCommit(const CGitHash& hash) const {
+	const wil::unique_git_repository repo(this->GetGitRepository());
+	if (!repo)
+		return UnexFail;
+	wil::unique_git_object commit;
+	if (git_object_lookup(commit.put(), repo.get(), hash, GIT_OBJECT_COMMIT))
+		return UnexFail;
+
+	wil::unique_git_describe_result describe;
+	git_describe_options describe_options = GIT_DESCRIBE_OPTIONS_INIT;
+	describe_options.describe_strategy = CRegDWORD(L"Software\\TortoiseGit\\DescribeStrategy", GIT_DESCRIBE_DEFAULT);
+	describe_options.only_follow_first_parent = CRegDWORD(L"Software\\TortoiseGit\\DescribeOnlyFollowFirstParent", 0);
+	if (git_describe_commit(describe.put(), commit.get(), &describe_options))
+		return UnexFail;
+
+	wil::unique_git_buf describe_buf;
+	git_describe_format_options format_options = GIT_DESCRIBE_FORMAT_OPTIONS_INIT;
+	format_options.abbreviated_size = CRegDWORD(L"Software\\TortoiseGit\\DescribeAbbreviatedSize", GIT_DESCRIBE_DEFAULT_ABBREVIATED_SIZE);
+	format_options.always_use_long_format = CRegDWORD(L"Software\\TortoiseGit\\DescribeAlwaysLong");
+	if (git_describe_format(&describe_buf, describe.get(), &format_options))
+		return UnexFail;
+
+	// what CAutoBuf::ToString() was: the buffer's bytes, UTF-8 decoded
+	auto&& result = CUnicodeUtils::StdGetUnicode({describe_buf.ptr, describe_buf.size});
+	return result;
 }
 
 
@@ -3966,6 +3957,9 @@ int GetSubmodulePointer(CGit::SubmoduleInfo& submoduleinfo) {
 	submoduleinfo.superProjectHash = entry->id;
 	return 0;
 }
+
+
+
 } // namespace TGitH
 
 export using namespace TGitH;

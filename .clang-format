@@ -18,13 +18,19 @@ AccessModifierOffset: -4
 BinPackArguments: false
 BinPackParameters: false
 # By default don't allow putting parameters onto the next line
-# myFunction(foo, bar, baz);
+# ~~myFunction(
+#   foo, bar, baz
+# )~~;
 AllowAllParametersOfDeclarationOnNextLine: false
 
 # Align parameters on the open bracket
-# someLongFunction(argument1,
-#                  argument2);
+# someLongFunction(
+#   argument1,
+#   argument2
+# );
 AlignAfterOpenBracket: true
+BreakAfterOpenBracketFunction: true
+BreakBeforeCloseBracketFunction: true
 
 # Don't align consecutive assignments
 # int aaaa = 12;

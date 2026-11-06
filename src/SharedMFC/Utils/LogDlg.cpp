@@ -17,25 +17,57 @@
 // along with this program; if not, write to the Free Software Foundation,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
+#include <regex>
+#include <xtree>
+#include <map>
+#include <set>
+#include <unordered_set>
+#include <xiosbase>
+#include <xlocbuf>
+#include <iterator>
+#include <memory>
+#include <xfacet>
+#include <xlocinfo>
+#include <xlocale>
 #include "stdafx.h"
+
+#include <Colors.h>
+#include <ProtoModules/GravatarPictureBox.h>
+#include <Utils/ProjectProperties.h>
 
 #include <Mmsystem.h>
 
-#include "../../TortoiseProc/ProtoModules/StatGraphDlg.h"
+#include "ProtoModules/StatGraphDlg.h"
 #include "LogDlg.h"
-#include "../../TortoiseProc/MiscUI/IconMenu.h"
-#include "../../TortoiseProc/ProtoModules/BrowseRefsDlg.h"
-#include "../../TortoiseProc/ProtoModules/LogOrdering.h"
-// #include "../../TortoiseProc/ProtoModules/Stan.h"
+#include "MiscUI/IconMenu.h"
+#include "ProtoModules/BrowseRefsDlg.h"
+#include "ProtoModules/LogOrdering.h"
+// #include "ProtoModules/Stan.h"
 #include "Utils/DPIAware.h"
 #include "LogDlgFileFilter.h"
 
+#include "../TortoiseShell/resource.h"
+#include "Resources/LoglistCommonResource.h"
 
+import std;
+import git_h;
+import RIAA;
+import str_utils;
 import MessageBox;
-import AppUtils.Launch;
-import AppUtils.Window;
-import AppUtils.Workflow;
+import FindDlg;
 import StandAloneDlg;
+import wil.MFC;
+import GitRev;
+import misc_constants;
+import ThemeAPI;
+import invarients;
+import lanes;
+import TortoiseProc;
+using namespace RIAA;
+using namespace TGitH;
+using namespace tgit;
+using namespace ThemeAPI;
+using namespace misc_constants;
 
 
 #define MIN_CTRL_HEIGHT (CDPIAware::Instance().ScaleY(GetSafeHwnd(), 20))
@@ -46,16 +78,14 @@ import StandAloneDlg;
 IMPLEMENT_DYNAMIC(CLogDlg, CResizableStandAloneDialog)
 CLogDlg::CLogDlg(CWnd* pParent /*=nullptr*/)
 	: CResizableStandAloneDialog(CLogDlg::IDD, pParent)
+	, m_sDirSlug{GitCall::get_curdir_slug().c_str()}
+	, m_SelectedFilters{wil::reg::try_get_tgit_dword(L"SelectedLogFilters").value_or(LOGFILTER_ALL)}
+	, m_bShowGravatar{wil::reg::try_get_tgit_bool(L"EnableGravatar").value_or(false)}
+	, m_bAsteriskLogPrefix{wil::reg::try_get_tgit_bool(L"AsteriskLogPrefix").value_or(true)}
+	, m_bFilterWithRegex{wil::reg::try_get_tgit_bool(L"UseRegexFilter").value_or(false)}
+	, m_bFilterCaseSensitively{wil::reg::try_get_tgit_bool(L"FilterCaseSensitively").value_or(false)}
 {
-	m_bFilterWithRegex = !!CRegDWORD(L"Software\\TortoiseGit\\UseRegexFilter", FALSE);
-	m_bFilterCaseSensitively = !!CRegDWORD(L"Software\\TortoiseGit\\FilterCaseSensitively", FALSE);
-	m_bAsteriskLogPrefix = !!CRegDWORD(L"Software\\TortoiseGit\\AsteriskLogPrefix", TRUE);
-	m_SelectedFilters = CRegDWORD(L"Software\\TortoiseGit\\SelectedLogFilters", LOGFILTER_ALL);
-
-	CString str{ GitCall::m_CurrentDirStorage.c_str() };
-	str.Replace(L':', L'_');
-
-	m_regbAllBranch = CRegDWORD(L"Software\\TortoiseGit\\LogDialog\\AllBranch\\" + str, FALSE);
+	m_regbAllBranch = CRegDWORD(L"Software\\TortoiseGit\\LogDialog\\AllBranch\\" + m_sDirSlug, FALSE);
 	m_AllBranchType = static_cast<AllBranchType>(static_cast<DWORD>(m_regbAllBranch));
 	switch (m_AllBranchType)
 	{
@@ -69,23 +99,27 @@ CLogDlg::CLogDlg(CWnd* pParent /*=nullptr*/)
 		m_bAllBranch = BST_INDETERMINATE;
 	}
 
-	m_regShowWholeProject = CRegDWORD(L"Software\\TortoiseGit\\TortoiseProc\\ShowWholeProject\\" + str, FALSE);
-	m_bWholeProject = m_regShowWholeProject;
-	m_regbShowTags = CRegDWORD(L"Software\\TortoiseGit\\LogDialog\\ShowTags\\" + str, TRUE);
+	m_regShowWholeProject = CRegDWORD(L"Software\\TortoiseGit\\TortoiseProc\\ShowWholeProject\\" + m_sDirSlug, FALSE);
+	m_bWholeProject = !!m_regShowWholeProject;
+
+	m_regbShowTags = CRegDWORD(L"Software\\TortoiseGit\\LogDialog\\ShowTags\\" + m_sDirSlug, TRUE);
 	m_bShowTags = !!m_regbShowTags;
-	m_regbShowLocalBranches = CRegDWORD(L"Software\\TortoiseGit\\LogDialog\\ShowLocalBranches\\" + str, TRUE);
+
+	m_regbShowLocalBranches = CRegDWORD(L"Software\\TortoiseGit\\LogDialog\\ShowLocalBranches\\" + m_sDirSlug, TRUE);
 	m_bShowLocalBranches = !!m_regbShowLocalBranches;
-	m_regbShowRemoteBranches = CRegDWORD(L"Software\\TortoiseGit\\LogDialog\\ShowRemoteBranches\\" + str, TRUE);
+
+	m_regbShowRemoteBranches = CRegDWORD(L"Software\\TortoiseGit\\LogDialog\\ShowRemoteBranches\\" + m_sDirSlug, TRUE);
 	m_bShowRemoteBranches = !!m_regbShowRemoteBranches;
-	m_regbShowOtherRefs = CRegDWORD(L"Software\\TortoiseGit\\LogDialog\\ShowOtherRefs\\" + str, TRUE);
+
+	m_regbShowOtherRefs = CRegDWORD(L"Software\\TortoiseGit\\LogDialog\\ShowOtherRefs\\" + m_sDirSlug, TRUE);
 	m_bShowOtherRefs = !!m_regbShowOtherRefs;
+
+	m_regbShowGravatar = CRegDWORD(L"Software\\TortoiseGit\\LogDialog\\ShowGravatar\\" + m_sDirSlug, m_bShowGravatar);
+	m_bShowGravatar = !!m_regbShowGravatar;
 
 	m_regAddBeforeCommit = CRegDWORD(L"Software\\TortoiseGit\\AddBeforeCommit", TRUE);
 	m_bShowUnversioned = !!m_regAddBeforeCommit;
 
-	m_bShowGravatar = !!CRegDWORD(L"Software\\TortoiseGit\\EnableGravatar", FALSE);
-	m_regbShowGravatar = CRegDWORD(L"Software\\TortoiseGit\\LogDialog\\ShowGravatar\\" + str, m_bShowGravatar);
-	m_bShowGravatar = !!m_regbShowGravatar;
 	m_bShowDescribe = !!CRegDWORD(L"Software\\TortoiseGit\\ShowDescribe");
 	m_bShowBranchRevNo = !!CRegDWORD(L"Software\\TortoiseGit\\ShowBranchRevisionNumber", FALSE);
 }
@@ -268,7 +302,7 @@ BOOL CLogDlg::OnInitDialog()
 {
 	CString temp;
 	CResizableStandAloneDialog::OnInitDialog();
-	CAppUtils::MarkWindowAsUnpinnable(m_hWnd);
+	wil::MFC::MarkWindowAsUnpinnable(m_hWnd);
 
 	// Let the TaskbarButtonCreated message through the UIPI filter. If we don't
 	// do this, Explorer would be unable to send that message to our window if we
@@ -293,7 +327,7 @@ BOOL CLogDlg::OnInitDialog()
 	UpdateData(FALSE);
 
 	// set the font to use in the log message view, configured in the settings dialog
-	CAppUtils::CreateFontForLogs(GetSafeHwnd(), m_logFont);
+	wil::MFC::CreateFontForLogs(GetSafeHwnd(), m_logFont);
 	SetupLogMessageViewControl();
 
 	// "unrelated paths" should be in gray color
@@ -380,11 +414,11 @@ BOOL CLogDlg::OnInitDialog()
 	m_JumpType.SetCurSel(0);
 	const int iconWidth = GetSystemMetrics(SM_CXSMICON);
 	const int iconHeight = GetSystemMetrics(SM_CYSMICON);
-	m_JumpUp.SetIcon(CAppUtils::LoadIconEx(IDI_JUMPUP, iconWidth, iconHeight));
-	m_JumpDown.SetIcon(CAppUtils::LoadIconEx(IDI_JUMPDOWN, iconWidth, iconHeight));
+	m_JumpUp.SetIcon(wil::MFC::LoadIconEx(IDI_JUMPUP, iconWidth, iconHeight));
+	m_JumpDown.SetIcon(wil::MFC::LoadIconEx(IDI_JUMPDOWN, iconWidth, iconHeight));
 
-	if (GetExplorerHWND())
-		CenterWindow(CWnd::FromHandle(GetExplorerHWND()));
+	// if (wil::MFC::GetExplorerHWND())
+	// 	CenterWindow(CWnd::FromHandle(wil::MFC::GetExplorerHWND()));
 	EnableSaveRestore(L"LogDlg");
 	SetTheme(CTheme::Instance().IsDarkTheme());
 
@@ -617,10 +651,10 @@ void CLogDlg::SetDlgTitle()
 	if (m_sTitle.IsEmpty())
 		GetWindowText(m_sTitle);
 
-	if (m_LogList.m_Path.IsEmpty() || m_orgPath.GetWinPathString().empty())
-		CAppUtils::SetWindowTitle(m_hWnd, CString(GitCall::m_CurrentDirStorage.c_str()), m_sTitle);
-	else
-		CAppUtils::SetWindowTitle(m_hWnd, m_orgPath.GetWinPathString().c_str(), m_sTitle);
+	auto&& val = (m_LogList.m_Path.IsEmpty() || m_orgPath.GetWinPathString().empty())
+		? CString(GitCall::m_CurrentDirStorage.c_str())
+		: CString(m_orgPath.GetWinPathString().c_str());
+	wil::MFC::SetWindowTitle(m_hWnd, val, m_sTitle);
 }
 
 void CLogDlg::CheckRegexpTooltip()
@@ -727,38 +761,11 @@ std::vector<CHARRANGE> FindGitHashPositions(const CString& msg, int offset)
 BOOL FindGitHash(const CString& msg, int offset, CWnd *pWnd)
 {
 	std::vector<CHARRANGE> positions = FindGitHashPositions(msg, offset);
-	CAppUtils::SetCharFormat(pWnd, CFM_LINK, CFE_LINK, positions);
+	wil::MFC::SetCharFormat(pWnd, CFM_LINK, CFE_LINK, positions);
 
 	return positions.empty() ? FALSE : TRUE;
 }
 
-static int DescribeCommit(const CGitHash& hash, CString& result)
-{
-	const wil::unique_git_repository repo(g_Git.GetGitRepository());
-	if (!repo)
-		return -1;
-	wil::unique_git_object commit;
-	if (git_object_lookup(commit.put(), repo.get(), hash, GIT_OBJECT_COMMIT))
-		return -1;
-
-	wil::unique_git_describe_result describe;
-	git_describe_options describe_options = GIT_DESCRIBE_OPTIONS_INIT;
-	describe_options.describe_strategy = CRegDWORD(L"Software\\TortoiseGit\\DescribeStrategy", GIT_DESCRIBE_DEFAULT);
-	describe_options.only_follow_first_parent = CRegDWORD(L"Software\\TortoiseGit\\DescribeOnlyFollowFirstParent", 0);
-	if (git_describe_commit(describe.put(), commit.get(), &describe_options))
-		return -1;
-
-	wil::unique_git_buf describe_buf;
-	git_describe_format_options format_options = GIT_DESCRIBE_FORMAT_OPTIONS_INIT;
-	format_options.abbreviated_size = CRegDWORD(L"Software\\TortoiseGit\\DescribeAbbreviatedSize", GIT_DESCRIBE_DEFAULT_ABBREVIATED_SIZE);
-	format_options.always_use_long_format = CRegDWORD(L"Software\\TortoiseGit\\DescribeAlwaysLong");
-	if (git_describe_format(&describe_buf, describe.get(), &format_options))
-		return -1;
-
-	// what CAutoBuf::ToString() was: the buffer's bytes, UTF-8 decoded
-	result = CUnicodeUtils::GetUnicode<CString>(std::string_view(describe_buf.ptr, describe_buf.size));
-	return 0;
-}
 
 namespace
 {
@@ -857,12 +864,12 @@ void CLogDlg::FillLogMessageCtrl(bool bShow /* = true*/)
 		{
 			m_gravatar.LoadGravatar(pLogEntry->GetAuthorEmail());
 
-			CString out_describe;
+			std::wstring out_describe;
 			if (m_bShowDescribe)
 			{
-				CString result;
-				if (!DescribeCommit(pLogEntry->m_CommitHash, result))
-					out_describe = L"Describe: " + result + L"\n";
+				auto result = g_Git.DescribeCommit(pLogEntry->m_CommitHash);
+				if (result)
+					out_describe = L"Describe: " + *result + L"\n";
 			}
 
 			CString out_counter;
@@ -887,10 +894,10 @@ void CLogDlg::FillLogMessageCtrl(bool bShow /* = true*/)
 			// set the log message text
 			CString msg = std::format(L"{}: ", tgit::invarients::ObjectFormatName()).c_str();
 			int offset = msg.GetLength();
-			msg += pLogEntry->m_CommitHash.ToString();
+			msg += pLogEntry->m_CommitHash.c_str();
 			if ((m_SelectedFilters & LOGFILTER_REVS) && filter->IsFilterActive())
 				filter->GetMatchRanges(hightlightRanges, msg.Mid(offset), offset);
-			msg += out_counter + L"\n" + out_describe + L"\n";
+			msg += out_counter + L"\n" + out_describe.c_str() + L"\n";
 
 			if (m_bAsteriskLogPrefix)
 				msg += L"* ";
@@ -939,23 +946,23 @@ void CLogDlg::FillLogMessageCtrl(bool bShow /* = true*/)
 
 			pMsgView->SetWindowText(msg);
 
-			CAppUtils::SetCharFormat(pMsgView, CFM_BOLD, CFE_BOLD, boldRanges);
+			wil::MFC::SetCharFormat(pMsgView, CFM_BOLD, CFE_BOLD, boldRanges);
 			if (!hightlightRanges.empty())
 			{
 				ReduceRanges(hightlightRanges, msg);
-				CAppUtils::SetCharFormat(pMsgView, CFM_COLOR, m_Colors.GetColor(CColors::FilterMatch), hightlightRanges);
+				wil::MFC::SetCharFormat(pMsgView, CFM_COLOR, m_Colors.GetColor(CColors::FilterMatch), hightlightRanges);
 			}
 
 			// turn bug ID's into links if the bugtraq: properties have been set
 			// and we can find a match of those in the log message
 			int findHashStart = msg.Find(L'\n');
-			if (!out_describe.IsEmpty())
+			if (!out_describe.empty())
 				findHashStart = msg.Find(L'\n', findHashStart + 1);
 			FindGitHash(msg, findHashStart, pMsgView);
 			m_LogList.m_ProjectProperties.FindBugID(msg, pMsgView);
-			CAppUtils::StyleURLs(msg, pMsgView);
+			wil::MFC::StyleURLs(msg, pMsgView);
 			if (static_cast<DWORD>(CRegStdDWORD(L"Software\\TortoiseGit\\StyleCommitMessages", TRUE)) == TRUE)
-				CAppUtils::FormatTextInRichEditControl(pMsgView);
+				wil::MFC::FormatTextInRichEditControl(pMsgView);
 
 			auto files = pLogEntry->GetFiles(&m_LogList); // either load the diff from disk cache and sets m_IsDiffFiles (then we safe a reload) or it enqueues it in the AsyncDiffThread
 			if (!pLogEntry->m_IsDiffFiles || pLogEntry->m_IsDiffFiles == 2)
@@ -1495,21 +1502,20 @@ void CLogDlg::OnContextMenu(CWnd* pWnd, CPoint point)
 		popup.AppendMenuIcon(++cnt, IDS_CONFIGUREDEFAULT);
 
 		const int cmd = popup.TrackPopupMenu(TPM_RETURNCMD | TPM_LEFTALIGN | TPM_NONOTIFY, point.x, point.y, this);
-		if (cmd <= 0)
+		if (cmd <= 0) {
 			return;
-		else if (cmd == 1)
-		{
+		} else if (cmd == 1) {
 			m_LogList.m_Filter.m_NumberOfLogsScale = CFilterData::SHOW_NO_LIMIT;
 			// reset last selected date
 			m_regLastSelectedFromDate.removeValue();
-		}
-		else if (cmd == cnt) // last entry, must be before cmd >= 2
-		{
-			CAppUtils::RunTortoiseGitProc(L"/command:settings /page:dialog");
+		} else if (cmd == cnt) { // last entry, must be before cmd >= 2
+			std::unreachable();
+			// TODO: fix this
+			// GitCall::RunTortoiseGitProc(L"/command:settings /page:dialog");
 			return;
-		}
-		else if (cmd == 2)
+		} else if (cmd == 2) {
 			m_LogList.m_Filter.m_NumberOfLogsScale = scale;
+		}
 
 		UpdateData(FALSE);
 		OnRefresh();
@@ -1581,7 +1587,7 @@ void CLogDlg::OnContextMenu(CWnd* pWnd, CPoint point)
 				wil::SetClipboardText(tgit::str::StringView{ pEdit->GetSelText() }, m_hWnd); // manually copy text, to detach it from process (cf. issue #3909)
 				break;
 			case CGitLogList::ID_EDITNOTE:
-				CAppUtils::EditNote(GetSafeHwnd(), pRev, &m_LogList.m_ProjectProperties);
+				wil::MFC::EditNote(GetSafeHwnd(), pRev, &m_LogList.m_ProjectProperties);
 				this->FillLogMessageCtrl(true);
 				break;
 			}
@@ -2037,7 +2043,7 @@ void CLogDlg::DoSizeV1(int delta)
 	CRect messageViewRect;
 	GetDlgItem(IDC_MSGVIEW)->GetClientRect(messageViewRect);
 
-	int messageViewDelta = max(-delta, CDPIAware::Instance().ScaleY(GetSafeHwnd(), 20) - messageViewRect.Height());
+	int messageViewDelta = std::max(-delta, CDPIAware::Instance().ScaleY(GetSafeHwnd(), 20) - messageViewRect.Height());
 	int changeFileListDelta = -delta - messageViewDelta;
 
 	// set new sizes & positions
@@ -2070,7 +2076,7 @@ void CLogDlg::DoSizeV2(int delta)
 	CRect messageViewRect;
 	GetDlgItem(IDC_MSGVIEW)->GetClientRect(messageViewRect);
 
-	int messageViewDelta = max(delta, CDPIAware::Instance().ScaleY(GetSafeHwnd(), 20) - messageViewRect.Height());
+	int messageViewDelta = std::max(delta, CDPIAware::Instance().ScaleY(GetSafeHwnd(), 20) - messageViewRect.Height());
 	int logListDelta = delta - messageViewDelta;
 
 	// set new sizes & positions
@@ -2092,6 +2098,7 @@ void CLogDlg::DoSizeV2(int delta)
 
 void CLogDlg::AddMainAnchors()
 {
+	using namespace FindDlg;
 	AddAnchor(IDC_STATIC_REF, TOP_LEFT);
 	AddAnchor(IDC_FROMLABEL, TOP_LEFT);
 	AddAnchor(IDC_DATEFROM, TOP_LEFT);
@@ -2322,12 +2329,12 @@ LRESULT CLogDlg::OnClickedCancelFilter(WPARAM wParam, LPARAM /*lParam*/)
 
 	m_sFilterText.Empty();
 	UpdateData(FALSE);
-	theApp.DoWaitCursor(1);
+	TortoiseProc::theApp.DoWaitCursor(1);
 	FillLogMessageCtrl(false);
 
 	Refresh(true);
 
-	theApp.DoWaitCursor(-1);
+	TortoiseProc::theApp.DoWaitCursor(-1);
 	GetDlgItem(IDC_SEARCHEDIT)->ShowWindow(SW_HIDE);
 	GetDlgItem(IDC_SEARCHEDIT)->ShowWindow(SW_SHOW);
 	GetDlgItem(IDC_SEARCHEDIT)->SetFocus();
@@ -2992,7 +2999,7 @@ void CLogDlg::OnSize(UINT nType, int cx, int cy)
 				// below the point it should get, so move it upwards.
 				// or the control is too small and needs extending.
 				rcBottom.bottom = rcBottomLimit.top + dlgUnitRect.bottom;
-				rcBottom.top = min(rcBottom.top, rcBottom.bottom - minCtrlHeight);
+				rcBottom.top = std::min(rcBottom.top, rcBottom.bottom - minCtrlHeight);
 				DeferWindowPos(hdwp, m_ChangedFileListCtrl.GetSafeHwnd(), nullptr, rcBottom.left, rcBottom.top, rcBottom.Width(), rcBottom.Height(), hdwpflags);
 				if (rcBottom.top < rcMiddle.bottom + splitterHeight)
 				{
@@ -3011,14 +3018,14 @@ void CLogDlg::OnSize(UINT nType, int cx, int cy)
 						CRect rcSplitter1;
 						m_wndSplitter1.GetWindowRect(rcSplitter1);
 						ScreenToClient(rcSplitter1);
-						rcMiddle.top = min(rcMiddle.top, rcMiddle.bottom - minCtrlHeight);
+						rcMiddle.top = std::min(rcMiddle.top, rcMiddle.bottom - minCtrlHeight);
 						rcSplitter1.top = rcMiddle.top - splitterHeight;
 						rcSplitter1.bottom = rcMiddle.top;
 						DeferWindowPos(hdwp, m_wndSplitter1.GetSafeHwnd(), nullptr, rcSplitter1.left, rcSplitter1.top, rcSplitter1.Width(), rcSplitter1.Height(), hdwpflags);
 						rcTop.bottom = rcSplitter1.top;
 						DeferWindowPos(hdwp, m_LogList.GetSafeHwnd(), nullptr, rcTop.left, rcTop.top, rcTop.Width(), rcTop.Height(), hdwpflags);
 					}
-					rcMiddle.top = min(rcMiddle.top, rcMiddle.bottom - minCtrlHeight);
+					rcMiddle.top = std::min(rcMiddle.top, rcMiddle.bottom - minCtrlHeight);
 					DeferWindowPos(hdwp, GetDlgItem(IDC_MSGVIEW)->GetSafeHwnd(), nullptr, rcMiddle.left, rcMiddle.top, rcMiddle.Width(), rcMiddle.Height(), hdwpflags);
 				}
 			}
@@ -3148,7 +3155,7 @@ void CLogDlg::ShowGravatar()
 		GetDlgItem(IDC_MSGVIEW)->MoveWindow(&rect);
 		m_gravatar.ShowWindow(SW_HIDE);
 	}
-	AddAnchor(IDC_MSGVIEW, MIDDLE_LEFT, MIDDLE_RIGHT); // keep in sync with AddMainAnchors
+	AddAnchor(IDC_MSGVIEW, FindDlg::MIDDLE_LEFT, FindDlg::MIDDLE_RIGHT); // keep in sync with AddMainAnchors
 }
 
 

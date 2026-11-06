@@ -2,7 +2,6 @@ module;
 #include "stdafx.h"
 #include "std.h"
 
-#include "TortoiseProc.h"
 #include "ExportDlg.h"
 #include "ProgressDlg.h"
 #include "CreateBranchTagDlg.h"
@@ -15,7 +14,6 @@ module;
 #include "CommitDlg.h"
 #include "MergeDlg.h"
 #include "MergeAbortDlg.h"
-#include "Hooks.h"
 #include "Settings/Settings.h"
 #include "InputDlg.h"
 #include "SVNDCommitDlg.h"
@@ -26,7 +24,6 @@ module;
 #include "IgnoreDlg.h"
 #include "BisectStartDlg.h"
 #include "SysProgressDlg.h"
-#include "../../libgit2/Resources/Globals.h"
 #include "ProgressCommands/ResetProgressCommand.h"
 #include "ProgressCommands/FetchProgressCommand.h"
 #include "SubmoduleResolveConflictDlg.h"
@@ -34,9 +31,13 @@ module;
 
 
 export module AppUtils.Workflow;
-import AppUtils.Launch;
+import TortoiseProc;
 import GitRevLoglist;
 import MessageBox;
+import tgit.Hooks;
+import Constants;
+
+using namespace GitLogList;
 
 /**
  * \ingroup TortoiseProc
@@ -54,7 +55,7 @@ bool UpdateBranchDescription(const CString& branch, CString description)
 		return false;
 
 	CString key;
-	key.Format(L"branch.%s.description", static_cast<LPCWSTR>(branch));
+	key.Format(L"branch.%s.description", branch);
 	description.Remove(L'\r');
 	description.Trim();
 	if (description.IsEmpty())
@@ -66,7 +67,7 @@ bool UpdateBranchDescription(const CString& branch, CString description)
 }
 
 
-bool CheckUserData(HWND hWnd)
+bool CheckUserData(const HWND hWnd)
 {
 	while (g_Git.GetUserNameW().IsEmpty() || g_Git.GetUserEmail().IsEmpty() || g_Git.GetCommitterName().IsEmpty() || g_Git.GetCommitterEmail().IsEmpty())
 	{
@@ -105,7 +106,7 @@ int SaveCommitUnicodeFile(const CString& filename, CString &message)
 				commentCharValue = L"#";
 		}
 
-		bool sanitize = (CRegDWORD(L"Software\\TortoiseGit\\SanitizeCommitMsg", TRUE) == TRUE);
+		const bool sanitize = (CRegDWORD(L"Software\\TortoiseGit\\SanitizeCommitMsg", TRUE) == TRUE);
 		if (sanitize)
 			message.Trim(L" \r\n");
 
@@ -114,7 +115,7 @@ int SaveCommitUnicodeFile(const CString& filename, CString &message)
 		int emptyLineCnt = 0;
 		while (start >= 0 && start < len)
 		{
-			int oldStart = start;
+			const int oldStart = start;
 			start = message.Find(L'\n', oldStart);
 			CString line = message.Mid(oldStart);
 			if (start != -1)
@@ -136,8 +137,8 @@ int SaveCommitUnicodeFile(const CString& filename, CString &message)
 					file.Write("\n", 1);
 				emptyLineCnt = 0;
 			}
-			CStringA lineA = CUnicodeUtils::GetMulti<CStringA>(line + L'\n', cp);
-			file.Write(static_cast<LPCSTR>(lineA), lineA.GetLength());
+			auto lineA = CUnicodeUtils::GetMulti<CStringA>(line + L'\n', cp);
+			file.Write(lineA, lineA.GetLength());
 		}
 		file.Close();
 		return 0;
@@ -148,12 +149,12 @@ int SaveCommitUnicodeFile(const CString& filename, CString &message)
 	}
 }
 
-bool MessageContainsConflictHints(HWND hWnd, const CString& message)
+bool MessageContainsConflictHints(const HWND hWnd, const CString& message)
 {
-	bool stripComments = (CRegDWORD(L"Software\\TortoiseGit\\StripCommentedLines", FALSE) == TRUE);
+	const bool stripComments = (CRegDWORD(L"Software\\TortoiseGit\\StripCommentedLines", FALSE) == TRUE);
 	if (stripComments)
 		return false;
-	CString cleanupMode = g_Git.GetConfigValue(L"core.cleanup", L"default");
+	const CString cleanupMode = g_Git.GetConfigValue(L"core.cleanup", L"default");
 	if (cleanupMode == L"verbatim" || cleanupMode == L"whitespace" || cleanupMode == L"scissors")
 		return false;
 
@@ -162,7 +163,7 @@ bool MessageContainsConflictHints(HWND hWnd, const CString& message)
 		commentCharValue = L"#";
 
 	CString conflictsHint;
-	conflictsHint.Format(L"\n%s Conflicts:\n%s\t", static_cast<LPCWSTR>(commentCharValue), static_cast<LPCWSTR>(commentCharValue));
+	conflictsHint.Format(L"\n%s Conflicts:\n%s\t", commentCharValue, commentCharValue);
 
 	if (message.Find(conflictsHint) <= 0)
 		return false;
@@ -177,7 +178,7 @@ bool MessageContainsConflictHints(HWND hWnd, const CString& message)
 	return false;
 }
 
-bool IsTGitRebaseActive(HWND hWnd)
+bool IsTGitRebaseActive(const HWND hWnd)
 {
 	const auto adminDirMaybe = GitAdminDir::GetAdminDirPath(GitCall::m_CurrentDirStorage.native());
 	if (!adminDirMaybe)
@@ -208,7 +209,7 @@ bool LaunchRemoteSetting()
 	return true;
 }
 
-void EditNote(HWND hWnd, GitRevLoglist* rev, ProjectProperties* projectProperties)
+void EditNote(const HWND hWnd, GitRevLoglist* rev, ProjectProperties* projectProperties)
 {
 	if (!CheckUserData(hWnd))
 		return;
@@ -216,7 +217,7 @@ void EditNote(HWND hWnd, GitRevLoglist* rev, ProjectProperties* projectPropertie
 	if (g_Git.GetGitNotes(rev->m_CommitHash, rev->m_Notes))
 		MessageBox(hWnd, TGitH::GetLibGit2LastErr(CString((L"Could not load notes for commit " + rev->m_CommitHash.ToString() + L'.').c_str())), L"TortoiseGit", MB_OK | MB_ICONERROR);
 
-	CInputDlg dlg(GetParentCWnd(hWnd));
+	CInputDlg dlg(TortoiseProc::GetParentCWnd(hWnd));
 	dlg.m_sHintText = CString(MAKEINTRESOURCE(IDS_PROGS_TITLE_EDITNOTES));
 	dlg.m_sInputText = rev->m_Notes;
 	dlg.m_sTitle = CString(MAKEINTRESOURCE(IDS_PROGS_TITLE_EDITNOTES));
@@ -244,18 +245,18 @@ bool DeleteRef(CWnd* parent, const CString& ref)
 	if (TGitH::GetShortName(ref, shortname, L"refs/remotes/"))
 	{
 		CString msg;
-		msg.Format(IDS_PROC_DELETEREMOTEBRANCH, static_cast<LPCWSTR>(ref));
+		msg.Format(IDS_PROC_DELETEREMOTEBRANCH, ref);
 		[[maybe_unused]]auto&& result = CMessageBox::Show(safe_h_wnd, msg, L"TortoiseGit", 3, IDI_QUESTION, CString(MAKEINTRESOURCE(IDS_PROC_DELETEREMOTEBRANCH_LOCALREMOTE)), CString(MAKEINTRESOURCE(IDS_PROC_DELETEREMOTEBRANCH_LOCAL)), CString(MAKEINTRESOURCE(IDS_ABORTBUTTON)));
 		if (result == 1)
 		{
-			CString remoteName = shortname.Left(shortname.Find(L'/'));
+			const CString remoteName = shortname.Left(shortname.Find(L'/'));
 			shortname = shortname.Mid(shortname.Find(L'/') + 1);
 			CSysProgressDlg sysProgressDlg;
 			sysProgressDlg.SetTitle(CString(MAKEINTRESOURCE(IDS_APPNAME)));
 			sysProgressDlg.SetLine(1, CString(MAKEINTRESOURCE(IDS_DELETING_REMOTE_REFS)));
 			sysProgressDlg.SetLine(2, CString(MAKEINTRESOURCE(IDS_PROGRESSWAIT)));
 			sysProgressDlg.SetShowProgressBar(false);
-			sysProgressDlg.ShowModal(parent, true);
+			std::ignore = sysProgressDlg.ShowModal(parent, true);
 			std::vector<std::wstring> list;
 			list.push_back(std::format(L"refs/heads/{}", shortname));
 			if (g_Git.DeleteRemoteRefs(remoteName, list))
@@ -300,7 +301,7 @@ bool DeleteRef(CWnd* parent, const CString& ref)
 	}
 
 	CString msg;
-	msg.Format(IDS_PROC_DELETEBRANCHTAG, static_cast<LPCWSTR>(ref));
+	msg.Format(IDS_PROC_DELETEBRANCHTAG, ref);
 	// Check if branch is fully merged in HEAD
 	if (TGitH::GetShortName(ref, shortname, L"refs/heads/") && !g_Git.IsFastForward(ref, L"HEAD"))
 	{
@@ -339,7 +340,7 @@ bool Export(const HWND& hWnd, std::wstring&& BashHash, const CTGitPath* orgPath)
 		if (GetExplorerHWND() == hWnd)
 			theApp.m_pMainWnd = &pro;
 		pro.m_GitCmd = { L"git.exe", L"archive", std::format(L"--output={}", dlg.m_strFile), L"--verbose", L"--end-of-options", std::wstring(g_Git.FixBranchName(dlg.m_VersionName)) };
-		pro.m_PostCmdCallback = [&](DWORD status, PostCmdList& postCmdList)
+		pro.m_PostCmdCallback = [&](const DWORD status, PostCmdList& postCmdList)
 		{
 			if (status)
 				return;
@@ -358,7 +359,7 @@ bool Export(const HWND& hWnd, std::wstring&& BashHash, const CTGitPath* orgPath)
 	return false;
 }
 
-bool CreateWorktree(HWND hWnd, const CString& target = {})
+bool CreateWorktree(const HWND hWnd, const CString& target = {})
 {
 	CCreateWorktreeDlg dlg(GetParentCWnd(hWnd));
 	if (!target.IsEmpty())
@@ -386,11 +387,11 @@ bool CreateWorktree(HWND hWnd, const CString& target = {})
 
 	CProgressDlg progress(GetParentCWnd(hWnd));
 	progress.m_GitCmd = cmd;
-	progress.m_PostCmdCallback = [&](DWORD status, PostCmdList& postCmdList) {
+	progress.m_PostCmdCallback = [&](const DWORD status, PostCmdList& postCmdList) {
 		if (status)
 			return;
 
-		if (CTGitPath path{ dlg.m_sWorktreePath.GetString() }; path.HasSubmodules())
+		if (const CTGitPath path{ dlg.m_sWorktreePath.GetString() }; path.HasSubmodules())
 		{
 			postCmdList.emplace_back(IDI_UPDATE, IDS_PROC_SUBMODULESUPDATE, [&] {
 				CString sCmd;
@@ -403,7 +404,7 @@ bool CreateWorktree(HWND hWnd, const CString& target = {})
 	return progress.DoModal() == IDOK;
 }
 
-bool BisectStart(HWND hWnd, const CString& lastGood, const CString& firstBad)
+bool BisectStart(const HWND hWnd, const CString& lastGood, const CString& firstBad)
 {
 	if (!g_Git.CheckCleanWorkTree())
 	{
@@ -415,7 +416,7 @@ bool BisectStart(HWND hWnd, const CString& lastGood, const CString& firstBad)
 			sysProgressDlg.SetLine(2, CString(MAKEINTRESOURCE(IDS_PROGRESSWAIT)));
 			sysProgressDlg.SetShowProgressBar(false);
 			sysProgressDlg.SetCancelMsg(IDS_PROGRS_INFOFAILED);
-			sysProgressDlg.ShowModeless(hWnd, true);
+			std::ignore = sysProgressDlg.ShowModeless(hWnd, true);
 
 			CString out;
 			if (GitCall::Run({ L"git.exe", L"stash" }, &out, CP_UTF8))
@@ -446,12 +447,12 @@ bool BisectStart(HWND hWnd, const CString& lastGood, const CString& firstBad)
 		progress.m_GitCmdList.push_back({ L"git.exe", L"bisect", L"good", std::wstring(bisectStartDlg.m_LastGoodRevision) });
 		progress.m_GitCmdList.push_back({ L"git.exe", L"bisect", L"bad", std::wstring(bisectStartDlg.m_FirstBadRevision) });
 
-		progress.m_PostCmdCallback = [&](DWORD status, PostCmdList& postCmdList)
+		progress.m_PostCmdCallback = [&](const DWORD status, PostCmdList& postCmdList)
 		{
 			if (status)
 				return;
 
-			CTGitPath path{ GitCall::m_CurrentDirStorage.native() };
+			const CTGitPath path{ GitCall::m_CurrentDirStorage.native() };
 			if (path.HasSubmodules())
 			{
 				postCmdList.emplace_back(IDI_UPDATE, IDS_PROC_SUBMODULESUPDATE, []
@@ -468,14 +469,14 @@ bool BisectStart(HWND hWnd, const CString& lastGood, const CString& firstBad)
 			postCmdList.emplace_back(IDI_BISECT_RESET, IDS_MENUBISECTRESET, [] { RunTortoiseGitProc(L"/command:bisect /reset"); });
 		};
 
-		INT_PTR ret = progress.DoModal();
+		const INT_PTR ret = progress.DoModal();
 		return ret == IDOK;
 	}
 
 	return false;
 }
 
-bool BisectOperation(HWND hWnd, const CString& op, const CString& ref = L"")
+bool BisectOperation(const HWND hWnd, const CString& op, const CString& ref = L"")
 {
 	std::vector<std::wstring> cmd{ L"git.exe", L"bisect", std::wstring(op) };
 	if (!ref.IsEmpty())
@@ -486,9 +487,9 @@ bool BisectOperation(HWND hWnd, const CString& op, const CString& ref = L"")
 		theApp.m_pMainWnd = &progress;
 	progress.m_GitCmd = cmd;
 
-	progress.m_PostCmdCallback = [&](DWORD status, PostCmdList& postCmdList)
+	progress.m_PostCmdCallback = [&](const DWORD status, PostCmdList& postCmdList)
 	{
-		CTGitPath path{ GitCall::m_CurrentDirStorage.native() };
+		const CTGitPath path{ GitCall::m_CurrentDirStorage.native() };
 		if (status)
 		{
 			if (path.IsBisectActive())
@@ -561,7 +562,7 @@ public:
 	}
 };
 
-bool OpenIgnoreFile(HWND hWnd, CIgnoreFile &file, const CString& filename)
+bool OpenIgnoreFile(const HWND hWnd, CIgnoreFile &file, const CString& filename)
 {
 	file.ResetState();
 	if (!file.Open(filename, CFile::modeCreate | CFile::modeReadWrite | CFile::modeNoTruncate | CFile::typeBinary))
@@ -588,12 +589,12 @@ bool OpenIgnoreFile(HWND hWnd, CIgnoreFile &file, const CString& filename)
 	return true;
 }
 
-bool IgnoreFile(HWND hWnd, const CTGitPathList& path,bool IsMask)
+bool IgnoreFile(const HWND hWnd, const CTGitPathList& path, const bool IsMask)
 {
 	CIgnoreDlg ignoreDlg(GetParentCWnd(hWnd));
 	if (ignoreDlg.DoModal() == IDOK)
 	{
-		CString ignorefile = GitCall::m_CurrentDirStorage + L'\\';
+		CString ignorefile = (GitCall::m_CurrentDirStorage / L"").c_str();
 
 		switch (ignoreDlg.m_IgnoreFile)
 		{
@@ -624,7 +625,7 @@ bool IgnoreFile(HWND hWnd, const CTGitPathList& path,bool IsMask)
 			{
 				if (ignoreDlg.m_IgnoreFile == 1)
 				{
-					ignorefile = g_Git.CombinePath(path[i].GetContainingDirectory()) + L"\\.gitignore";
+					ignorefile = (g_Git.CombinePath(path[i].GetContainingDirectory()) / L".gitignore").c_str();
 					if (!OpenIgnoreFile(hWnd, file, ignorefile))
 						return false;
 				}
@@ -662,7 +663,7 @@ bool IgnoreFile(HWND hWnd, const CTGitPathList& path,bool IsMask)
 				if (!found)
 				{
 					file.m_Items.push_back(std::wstring(ignorePattern));
-					CStringA ignorePatternA = CUnicodeUtils::GetUTF8<CStringA>(ignorePattern);
+					auto ignorePatternA = CUnicodeUtils::GetUTF8<CStringA>(ignorePattern);
 					ignorePatternA += file.m_eol.c_str();
 					file.Write(ignorePatternA, ignorePatternA.GetLength());
 				}
@@ -685,7 +686,7 @@ bool IgnoreFile(HWND hWnd, const CTGitPathList& path,bool IsMask)
 	return false;
 }
 
-void DescribeConflictFile(bool mode, bool base,CString &descript)
+void DescribeConflictFile(const bool mode, const bool base,CString &descript)
 {
 	if(mode == FALSE)
 	{
@@ -700,7 +701,7 @@ void DescribeConflictFile(bool mode, bool base,CString &descript)
 	descript.LoadString(IDS_PROC_CREATED);
 }
 
-void GetConflictTitles(CString* baseText, CString& mineText, CString& theirsText, bool rebaseActive)
+void GetConflictTitles(CString* baseText, CString& mineText, CString& theirsText, const bool rebaseActive)
 {
 	if (baseText)
 		baseText->LoadString(IDS_PROC_DIFF_BASE);
@@ -732,23 +733,26 @@ void GetConflictTitles(CString* baseText, CString& mineText, CString& theirsText
 		const wchar_t*	headref;
 		bool			guessRef;
 		UINT			theirstext;
-	} infotexts[] = { { L"MERGE_HEAD", true, IDS_CONFLICT_INFOTEXT }, { L"CHERRY_PICK_HEAD", false, IDS_CONFLICT_INFOTEXT }, { L"REVERT_HEAD", false, IDS_CONFLICT_REVERT } };
+	} infotexts[] = {
+		{ .headref = L"MERGE_HEAD", .guessRef = true, .theirstext = IDS_CONFLICT_INFOTEXT },
+		{ .headref = L"CHERRY_PICK_HEAD", .guessRef = false, .theirstext = IDS_CONFLICT_INFOTEXT },
+		{ .headref = L"REVERT_HEAD", .guessRef = false, .theirstext = IDS_CONFLICT_REVERT },
+	};
 	mineText = L"HEAD";
 	theirsText.LoadString(IDS_CONFLICT_REFTOBEMERGED);
-	for (const auto& infotext : infotexts)
-	{
+	for (const auto& [headref, guessRef, theirstext] : infotexts) {
 		CGitHash hash;
-		if (!g_Git.GetHash(hash, infotext.headref))
+		if (!g_Git.GetHash(hash, headref))
 		{
 			CString guessedRef;
-			if (!guessBranch || !infotext.guessRef)
+			if (!guessBranch || !guessRef)
 				guessedRef = (hash.ToString(TGitH::CGit::GetShortHASHLength())).c_str();
 			else
 			{
 				if (g_Git.GuessRefForHash(guessedRef, hash) == 0)
 					guessedRef.AppendFormat(L", %s", (hash.ToString(TGitH::CGit::GetShortHASHLength())).c_str());
 			}
-			theirsText.FormatMessage(infotext.theirstext, infotext.headref, static_cast<LPCWSTR>(guessedRef));
+			theirsText.FormatMessage(theirstext, headref, guessedRef);
 			break;
 		}
 	}
@@ -785,8 +789,8 @@ bool ConflictEdit(HWND hWnd, CTGitPath& path, bool bAlternativeTool = false, boo
 			subgit.GetHash(baseHash, L"HEAD");
 		}
 
-		CGitDiff::ChangeType changeTypeMine = CGitDiff::ChangeType::Unknown;
-		CGitDiff::ChangeType changeTypeTheirs = CGitDiff::ChangeType::Unknown;
+		auto changeTypeMine = CGitDiff::ChangeType::Unknown;
+		auto changeTypeTheirs = CGitDiff::ChangeType::Unknown;
 
 		bool baseOK = false, mineOK = false, theirsOK = false;
 		CString baseSubject, mineSubject, theirsSubject;
@@ -906,7 +910,7 @@ bool ConflictEdit(HWND hWnd, CTGitPath& path, bool bAlternativeTool = false, boo
 		if (!GitCall::Run({ L"git.exe", L"checkout-index", L"--temp", std::format(L"--stage={}", stage), L"--", mergeGitPathString }, &output, &err, CP_UTF8))
 		{
 			int start = 0;
-			CString file = output.Tokenize(L"\t", start);
+			const CString file = output.Tokenize(L"\t", start);
 			::MoveFileEx(file, outfile, MOVEFILE_REPLACE_EXISTING | MOVEFILE_COPY_ALLOWED);
 		}
 		else
@@ -982,7 +986,7 @@ bool ConflictEdit(HWND hWnd, CTGitPath& path, bool bAlternativeTool = false, boo
 	}
 }
 
-BOOL SVNDCommit(HWND hWnd)
+BOOL SVNDCommit(const HWND hWnd)
 {
 	CSVNDCommitDlg dcommitdlg(GetParentCWnd(hWnd));
 	CString gitSetting = g_Git.GetConfigValue(L"svn.rmdir");
@@ -1000,7 +1004,7 @@ BOOL SVNDCommit(HWND hWnd)
 				if (g_Git.SetConfigValue(L"svn.rmdir", gitSetting))
 				{
 					CString msg;
-					msg.FormatMessage(IDS_PROC_SAVECONFIGFAILED, L"svn.rmdir", static_cast<LPCWSTR>(gitSetting));
+					msg.FormatMessage(IDS_PROC_SAVECONFIGFAILED, L"svn.rmdir", gitSetting);
 					MessageBox(hWnd, msg, L"TortoiseGit", MB_OK | MB_ICONERROR);
 				}
 			}
@@ -1018,7 +1022,7 @@ BOOL SVNDCommit(HWND hWnd)
 			sysProgressDlg.SetLine(2, CString(MAKEINTRESOURCE(IDS_PROGRESSWAIT)));
 			sysProgressDlg.SetShowProgressBar(false);
 			sysProgressDlg.SetCancelMsg(IDS_PROGRS_INFOFAILED);
-			sysProgressDlg.ShowModeless(hWnd, true);
+			std::ignore = sysProgressDlg.ShowModeless(hWnd, true);
 
 			CString out;
 			if (GitCall::Run({ L"git.exe", L"stash" }, &out, CP_UTF8))
@@ -1051,7 +1055,7 @@ BOOL SVNDCommit(HWND hWnd)
 				sysProgressDlg.SetLine(2, CString(MAKEINTRESOURCE(IDS_PROGRESSWAIT)));
 				sysProgressDlg.SetShowProgressBar(false);
 				sysProgressDlg.SetCancelMsg(IDS_PROGRS_INFOFAILED);
-				sysProgressDlg.ShowModeless(hWnd, true);
+				std::ignore = sysProgressDlg.ShowModeless(hWnd, true);
 
 				CString out;
 				if (GitCall::Run({ L"git.exe", L"stash", L"pop" }, &out, CP_UTF8))
@@ -1070,7 +1074,7 @@ BOOL SVNDCommit(HWND hWnd)
 	return FALSE;
 }
 
-bool StashApply(HWND hWnd, CString ref, bool showChanges = true)
+bool StashApply(const HWND hWnd, CString ref, const bool showChanges = true)
 {
 	if (StringUtils::StartsWith(ref, L"refs/"))
 		ref = ref.Mid(static_cast<int>(wcslen(L"refs/")));
@@ -1088,7 +1092,7 @@ bool StashApply(HWND hWnd, CString ref, bool showChanges = true)
 	sysProgressDlg.SetLine(2, CString(MAKEINTRESOURCE(IDS_PROGRESSWAIT)));
 	sysProgressDlg.SetShowProgressBar(false);
 	sysProgressDlg.SetCancelMsg(IDS_PROGRS_INFOFAILED);
-	sysProgressDlg.ShowModeless(hWnd, true);
+	std::ignore = sysProgressDlg.ShowModeless(hWnd, true);
 
 	std::string out;
 	const int ret = g_Git.Run(argv, &out);
@@ -1129,7 +1133,7 @@ bool StashApply(HWND hWnd, CString ref, bool showChanges = true)
  *              1: allow to open diff dialog on error or success
  *              2: only show error or success message
  */
-bool StashPop(HWND hWnd, int showChanges = 1)
+bool StashPop(const HWND hWnd, const int showChanges = 1)
 {
 	CSysProgressDlg sysProgressDlg;
 	sysProgressDlg.SetTitle(CString(MAKEINTRESOURCE(IDS_APPNAME)));
@@ -1137,7 +1141,7 @@ bool StashPop(HWND hWnd, int showChanges = 1)
 	sysProgressDlg.SetLine(2, CString(MAKEINTRESOURCE(IDS_PROGRESSWAIT)));
 	sysProgressDlg.SetShowProgressBar(false);
 	sysProgressDlg.SetCancelMsg(IDS_PROGRS_INFOFAILED);
-	sysProgressDlg.ShowModeless(hWnd, true);
+	std::ignore = sysProgressDlg.ShowModeless(hWnd, true);
 
 	std::string out;
 	const int ret = g_Git.Run({ L"git.exe", L"stash", L"pop" }, &out);
@@ -1194,7 +1198,7 @@ bool Reset(HWND hWnd, const CString& resetTo, int resetType)
 	{
 		CProgressDlg progress(GetParentCWnd(hWnd));
 		progress.m_GitCmd = { L"git.exe", L"reset", L"--merge" };
-		progress.m_PostCmdCallback = [&](DWORD status, PostCmdList& postCmdList)
+		progress.m_PostCmdCallback = [&](const DWORD status, PostCmdList& postCmdList)
 		{
 			if (status)
 			{
@@ -1202,7 +1206,7 @@ bool Reset(HWND hWnd, const CString& resetTo, int resetType)
 				return;
 			}
 
-			CTGitPath gitPath{ GitCall::m_CurrentDirStorage.native() };
+			const CTGitPath gitPath{ GitCall::m_CurrentDirStorage.native() };
 			if (gitPath.HasSubmodules() && resetType == 2)
 			{
 				postCmdList.emplace_back(IDI_UPDATE, IDS_PROC_SUBMODULESUPDATE, [&]
@@ -1225,7 +1229,7 @@ bool Reset(HWND hWnd, const CString& resetTo, int resetType)
 	CProgressDlg progress(GetParentCWnd(hWnd));
 	progress.m_GitCmd = { L"git.exe", L"reset", std::wstring(type), L"--end-of-options", std::wstring(resetTo), L"--" };
 
-	progress.m_PostCmdCallback = [&](DWORD status, PostCmdList& postCmdList)
+	progress.m_PostCmdCallback = [&](const DWORD status, PostCmdList& postCmdList)
 	{
 		if (status)
 		{
@@ -1233,7 +1237,7 @@ bool Reset(HWND hWnd, const CString& resetTo, int resetType)
 			return;
 		}
 
-		CTGitPath gitPath{ GitCall::m_CurrentDirStorage.native() };
+		const CTGitPath gitPath{ GitCall::m_CurrentDirStorage.native() };
 		if (gitPath.HasSubmodules() && resetType == 2)
 		{
 			postCmdList.emplace_back(IDI_UPDATE, IDS_PROC_SUBMODULESUPDATE, [&]
@@ -1279,7 +1283,7 @@ bool Reset(HWND hWnd, const CString& resetTo, int resetType)
 	return ret == IDOK;
 }
 
-BOOL MergeAbort(HWND hWnd)
+BOOL MergeAbort(const HWND hWnd)
 {
 	CMergeAbortDlg dlg(GetParentCWnd(hWnd));
 	if (dlg.DoModal() == IDOK)
@@ -1288,7 +1292,7 @@ BOOL MergeAbort(HWND hWnd)
 	return FALSE;
 }
 
-bool GitReset(HWND hWnd, const CString& ref, const int type = 1)
+bool GitReset(const HWND hWnd, const CString& ref, const int type = 1)
 {
 	CResetDlg dlg(GetParentCWnd(hWnd));
 	dlg.m_ResetType=type;
@@ -1307,7 +1311,7 @@ bool Push(HWND hWnd, const CString& selectLocalBranch = {}, int pushAll = BST_IN
 BOOL Merge(HWND hWnd, const CString* commit = nullptr, bool showStashPop = false);
 BOOL Commit(HWND hWnd, const CString& bugid, BOOL bWholeProject, CString& sLogMsg, const CTGitPathList& pathList, bool bSelectFilesForCommit);
 
-bool StashSave(HWND hWnd, const CString& msg = CString(), bool showPull = false, bool pullShowPush = false, bool showMerge = false, const CString& mergeRev = CString())
+bool StashSave(HWND hWnd, const CString& msg = CString(), const bool showPull = false, const bool pullShowPush = false, const bool showMerge = false, const CString& mergeRev = CString())
 {
 	if (!CheckUserData(hWnd))
 		return false;
@@ -1331,7 +1335,7 @@ bool StashSave(HWND hWnd, const CString& msg = CString(), bool showPull = false,
 
 		CProgressDlg progress(GetParentCWnd(hWnd));
 		progress.m_GitCmd = cmd;
-		progress.m_PostCmdCallback = [&](DWORD status, PostCmdList& postCmdList)
+		progress.m_PostCmdCallback = [&](const DWORD status, PostCmdList& postCmdList)
 		{
 			if (status)
 				return;
@@ -1355,11 +1359,11 @@ bool StashSave(HWND hWnd, const CString& msg = CString(), bool showPull = false,
 bool PerformSwitch(
 	HWND hWnd,
 	const CString& ref,
-	bool bForce = false,
+	const bool bForce = false,
 	const CString& sNewBranch = {},
-	bool bBranchOverride = false,
-	BOOL bTrack = 2,
-	bool bMerge = false
+	const bool bBranchOverride = false,
+	const BOOL bTrack = 2,
+	const bool bMerge = false
 ) {
 	CProgressDlg progress(GetParentCWnd(hWnd));
 	{
@@ -1382,9 +1386,9 @@ bool PerformSwitch(
 
 	CString currentBranch;
 	const bool hasBranch = CGit::GetCurrentBranchFromFile(GitCall::m_CurrentDirStorage, currentBranch) == 0;
-	progress.m_PostCmdCallback = [&](DWORD status, PostCmdList& postCmdList) {
+	progress.m_PostCmdCallback = [&](const DWORD status, PostCmdList& postCmdList) {
 		if (!status) {
-			CTGitPath gitPath{ GitCall::m_CurrentDirStorage.native() };
+			const CTGitPath gitPath{ GitCall::m_CurrentDirStorage.native() };
 			if (gitPath.HasSubmodules()) {
 				postCmdList.emplace_back(IDI_UPDATE,
 				                         IDS_PROC_SUBMODULESUPDATE,
@@ -1457,7 +1461,7 @@ bool PerformSwitch(
 	return progress.DoModal() == IDOK;
 }
 
-bool Switch(HWND hWnd, const CString& initialRefName = {})
+bool Switch(const HWND hWnd, const CString& initialRefName = {})
 {
 	CGitSwitchDlg dlg(GetParentCWnd(hWnd));
 	if(!initialRefName.IsEmpty())
@@ -1480,7 +1484,7 @@ bool Switch(HWND hWnd, const CString& initialRefName = {})
 }
 
 // rebase = 1: ask user what to do, rebase = 2: run autorebase
-bool RebaseAfterFetch(HWND hWnd, const CString& upstream = L"", int rebase = 0, bool preserveMerges = false)
+bool RebaseAfterFetch(const HWND hWnd, const CString& upstream = L"", const int rebase = 0, const bool preserveMerges = false)
 {
 	while (true)
 	{
@@ -1498,7 +1502,7 @@ bool RebaseAfterFetch(HWND hWnd, const CString& upstream = L"", int rebase = 0, 
 		else if (response == IDC_REBASE_POST_BUTTON)
 		{
 			CString cmd = L"/command:log";
-			cmd += L" /path:\"" + GitCall::m_CurrentDirStorage + L'"';
+			cmd += std::format(L" /path:\"{}\"", GitCall::m_CurrentDirStorage).c_str();
 			RunTortoiseGitProc(cmd);
 			return true;
 		}
@@ -1516,7 +1520,7 @@ bool RebaseAfterFetch(HWND hWnd, const CString& upstream = L"", int rebase = 0, 
 }
 
 namespace details {
-	bool DoPull(HWND hWnd, const CString& url, BOOL bFetchTags, bool bNoFF, bool bFFonly, bool bSquash, bool bNoCommit, int* nDepth, BOOL bPrune, const CString& remoteBranchName, bool showPush, bool showStashPop, bool bUnrelated)
+	bool DoPull(HWND hWnd, const CString& url, const BOOL bFetchTags, const bool bNoFF, const bool bFFonly, const bool bSquash, const bool bNoCommit, int* nDepth, const BOOL bPrune, const CString& remoteBranchName, const bool showPush, const bool showStashPop, const bool bUnrelated)
 	{
 		CGitHash hashOld;
 		if (g_Git.GetHash(hashOld, L"HEAD"))
@@ -1564,11 +1568,11 @@ namespace details {
 			progress.m_GitCmd = std::move(cmd);
 		}
 		CGitHash hashNew; // declare outside lambda, because it is captured by reference
-		progress.m_PostCmdCallback = [&](DWORD status, PostCmdList& postCmdList)
+		progress.m_PostCmdCallback = [&](const DWORD status, PostCmdList& postCmdList)
 		{
 			if (status)
 			{
-				int hasConflicts = g_Git.HasWorkingTreeConflicts();
+				const int hasConflicts = g_Git.HasWorkingTreeConflicts();
 				if (hasConflicts < 0)
 					CMessageBox::Show(hWnd, g_Git.GetGitLastErr(L"Checking for conflicts failed.", TGitH::GIT_CMD_CHECKCONFLICTS), L"TortoiseGit", MB_ICONEXCLAMATION);
 				else if (hasConflicts)
@@ -1618,7 +1622,7 @@ namespace details {
 					g_Git.GetRemoteTrackedBranchForHEAD(pullRemote, pullBranch);
 					CString defaultUpstream;
 					if (!pullRemote.IsEmpty() && !pullBranch.IsEmpty())
-						defaultUpstream.Format(L"remotes/%s/%s", static_cast<LPCWSTR>(pullRemote), static_cast<LPCWSTR>(pullBranch));
+						defaultUpstream.Format(L"remotes/%s/%s", pullRemote, pullBranch);
 					GitReset(hWnd, defaultUpstream, 2);
 				});
 				return;
@@ -1648,7 +1652,7 @@ namespace details {
 			if (showPush)
 				postCmdList.emplace_back(IDI_PUSH, IDS_MENUPUSH, [&hWnd]{ Push(hWnd); });
 
-			CTGitPath gitPath{ GitCall::m_CurrentDirStorage.native() };
+			const CTGitPath gitPath{ GitCall::m_CurrentDirStorage.native() };
 			if (gitPath.HasSubmodules())
 			{
 				postCmdList.emplace_back(IDI_UPDATE, IDS_PROC_SUBMODULESUPDATE, []
@@ -1739,27 +1743,20 @@ namespace details {
 		}
 
 		CProgressDlg progress(GetParentCWnd(hWnd));
-		progress.m_PostCmdCallback = [&](DWORD status, PostCmdList& postCmdList)
-		{
+		progress.m_PostCmdCallback = [&](const DWORD status, PostCmdList& postCmdList) {
+			const auto log_path_cmd = std::format(L"/command:log /path:\"{}\"", GitCall::m_CurrentDirStorage);
 			if (status)
 			{
-				postCmdList.emplace_back(IDI_REFRESH, IDS_MSGBOX_RETRY, [&]{ DoFetch(hWnd, url, fetchAllRemotes, prune, bDepth, nDepth, fetchTags, remoteBranch, runRebase, rebasePreserveMerges); });
+				postCmdList.emplace_back(
+					IDI_REFRESH, IDS_MSGBOX_RETRY,
+					[&]{ DoFetch(hWnd, url, fetchAllRemotes, prune, bDepth, nDepth, fetchTags, remoteBranch, runRebase, rebasePreserveMerges); }
+				);
 				if (fetchAllRemotes)
-					postCmdList.emplace_back(IDI_LOG, IDS_MENULOG, []
-					{
-						CString cmd = L"/command:log";
-						cmd += L" /path:\"" + GitCall::m_CurrentDirStorage + L'"';
-						RunTortoiseGitProc(cmd);
-					});
+					postCmdList.emplace_back(IDI_LOG, IDS_MENULOG, [&log_path_cmd] { RunTortoiseGitProc(log_path_cmd.c_str()); });
 				return;
 			}
 
-			postCmdList.emplace_back(IDI_LOG, IDS_MENULOG, []
-			{
-				CString cmd = L"/command:log";
-				cmd += L" /path:\"" + GitCall::m_CurrentDirStorage + L'"';
-				RunTortoiseGitProc(cmd);
-			});
+			postCmdList.emplace_back(IDI_LOG, IDS_MENULOG, [&log_path_cmd] { RunTortoiseGitProc(log_path_cmd.c_str()); });
 
 			postCmdList.emplace_back(IDI_RESET, IDS_PROC_RESET, [&hWnd]
 			{
@@ -1767,7 +1764,7 @@ namespace details {
 				g_Git.GetRemoteTrackedBranchForHEAD(pullRemote, pullBranch);
 				CString defaultUpstream;
 				if (!pullRemote.IsEmpty() && !pullBranch.IsEmpty())
-					defaultUpstream.Format(L"remotes/%s/%s", static_cast<LPCWSTR>(pullRemote), static_cast<LPCWSTR>(pullBranch));
+					defaultUpstream.Format(L"remotes/%s/%s", pullRemote, pullBranch);
 				GitReset(hWnd, defaultUpstream, 2);
 			});
 
@@ -1796,7 +1793,7 @@ namespace details {
 			return gitdlg.DoModal() == IDOK;
 		}
 
-		progress.m_PostExecCallback = [&upstream, &runRebase, &oldUpstreamHash, &rebasePreserveMerges](HWND hWnd_lam, const DWORD& exitCode, CString&)
+		progress.m_PostExecCallback = [&upstream, &runRebase, &oldUpstreamHash, &rebasePreserveMerges](const HWND hWnd_lam, const DWORD& exitCode, CString&)
 		{
 			if (exitCode || !runRebase)
 				return;
@@ -1816,7 +1813,7 @@ namespace details {
 
 			if (runRebase == 1 && g_Git.IsFastForward(L"HEAD", upstream))
 			{
-				UINT ret = CMessageBox::ShowCheck(hWnd_lam, IDS_REBASE_BRANCH_FF, IDS_APPNAME, 2, IDI_QUESTION, IDS_MERGEBUTTON, IDS_REBASEBUTTON, IDS_ABORTBUTTON, L"OpenRebaseRemoteBranchFastForwards", IDS_MSGBOX_DONOTSHOWAGAIN);
+				const UINT ret = CMessageBox::ShowCheck(hWnd_lam, IDS_REBASE_BRANCH_FF, IDS_APPNAME, 2, IDI_QUESTION, IDS_MERGEBUTTON, IDS_REBASEBUTTON, IDS_ABORTBUTTON, L"OpenRebaseRemoteBranchFastForwards", IDS_MSGBOX_DONOTSHOWAGAIN);
 				if (ret == 3)
 					return;
 				if (ret == 1)
@@ -1824,7 +1821,7 @@ namespace details {
 					CProgressDlg mergeProgress(CWnd::FromHandle(hWnd_lam));
 					mergeProgress.m_GitCmd = { L"git.exe", L"merge", L"--ff-only", L"--", std::wstring(upstream) };
 					mergeProgress.m_AutoClose = GitProgressAutoClose::AUTOCLOSE_IF_NO_ERRORS;
-					mergeProgress.m_PostCmdCallback = [](DWORD status, PostCmdList& postCmdList)
+					mergeProgress.m_PostCmdCallback = [](const DWORD status, PostCmdList& postCmdList)
 					{
 						if (status && g_Git.HasWorkingTreeConflicts())
 						{
@@ -1849,7 +1846,7 @@ namespace details {
 	}
 }
 
-bool Pull(HWND hWnd, bool showPush, bool showStashPop)
+bool Pull(const HWND hWnd, const bool showPush, const bool showStashPop)
 {
 	if (IsTGitRebaseActive(hWnd))
 		return false;
@@ -1877,7 +1874,7 @@ bool Pull(HWND hWnd, bool showPush, bool showStashPop)
 	return false;
 }
 
-bool Fetch(HWND hWnd, const CString& remoteName /* = {} */, const bool allRemotes /* = false */)
+bool Fetch(const HWND hWnd, const CString& remoteName /* = {} */, const bool allRemotes /* = false */)
 {
 	CPullFetchDlg dlg(GetParentCWnd(hWnd));
 	dlg.m_PreSelectRemote = remoteName;
@@ -1901,7 +1898,7 @@ bool Fetch(HWND hWnd, const CString& remoteName /* = {} */, const bool allRemote
 	return false;
 }
 
-bool RequestPull(HWND hWnd, const CString& endrevision = {}, const CString& repositoryUrl = {})
+bool RequestPull(const HWND hWnd, const CString& endrevision = {}, const CString& repositoryUrl = {})
 {
 	CRequestPullDlg dlg(GetParentCWnd(hWnd));
 	dlg.m_RepositoryURL = repositoryUrl;
@@ -1915,7 +1912,7 @@ bool RequestPull(HWND hWnd, const CString& endrevision = {}, const CString& repo
 		sysProgressDlg.SetLine(1, CString(MAKEINTRESOURCE(IDS_PROC_CREATINGPULLREUQEST)));
 		sysProgressDlg.SetLine(2, CString(MAKEINTRESOURCE(IDS_PROGRESSWAIT)));
 		sysProgressDlg.SetShowProgressBar(false);
-		sysProgressDlg.ShowModeless(hWnd, true);
+		std::ignore = sysProgressDlg.ShowModeless(hWnd, true);
 
 		CString tempFileName = GitCall::GetTempFile();
 		if (tempFileName.IsEmpty())
@@ -1963,7 +1960,7 @@ bool DoPush(HWND hWnd, bool tags, bool allRemotes, bool allBranches, bool force,
 		if (exitcode)
 		{
 			CString sErrorMsg;
-			sErrorMsg.Format(IDS_HOOK_ERRORMSG, static_cast<LPCWSTR>(error));
+			sErrorMsg.Format(IDS_HOOK_ERRORMSG, error);
 			CTaskDialog taskdlg(sErrorMsg, CString(MAKEINTRESOURCE(IDS_HOOKFAILED_TASK2)), L"TortoiseGit", 0, TDF_ENABLE_HYPERLINKS | TDF_USE_COMMAND_LINKS | TDF_ALLOW_DIALOG_CANCELLATION | TDF_POSITION_RELATIVE_TO_WINDOW | TDF_SIZE_TO_CONTENT);
 			taskdlg.AddCommandControl(101, CString(MAKEINTRESOURCE(IDS_HOOKFAILED_TASK3)));
 			taskdlg.AddCommandControl(102, CString(MAKEINTRESOURCE(IDS_HOOKFAILED_TASK4)));
@@ -2051,7 +2048,7 @@ bool DoPush(HWND hWnd, bool tags, bool allRemotes, bool allBranches, bool force,
 	std::wstring superprojectRoot;
 	if (const fs::path& currentDir = GitCall::m_CurrentDirStorage; currentDir.has_relative_path())
 		superprojectRoot = GitAdminDir::HasAdminDir(currentDir.parent_path()).native();
-	progress.m_PostCmdCallback = [&](DWORD status, PostCmdList& postCmdList)
+	progress.m_PostCmdCallback = [&](const DWORD status, PostCmdList& postCmdList)
 	{
 		// need to execute hooks as those might be needed by post action commands
 		DWORD exitcode_ = 0xFFFFFFFF;
@@ -2064,14 +2061,14 @@ bool DoPush(HWND hWnd, bool tags, bool allRemotes, bool allBranches, bool force,
 			if (exitcode_)
 			{
 				CString temp;
-				temp.Format(IDS_ERR_HOOKFAILED, static_cast<LPCWSTR>(error_));
+				temp.Format(IDS_ERR_HOOKFAILED, error_);
 				MessageBox(hWnd, temp, L"TortoiseGit", MB_OK | MB_ICONERROR);
 			}
 		}
 
 		if (status)
 		{
-			bool rejected = progress.GetLogText().Find(L"! [rejected]") > 0;
+			const bool rejected = progress.GetLogText().Find(L"! [rejected]") > 0;
 			if (rejected)
 			{
 				postCmdList.emplace_back(IDI_PULL, IDS_MENUPULL, [&hWnd]{ Pull(hWnd, true); });
@@ -2098,7 +2095,7 @@ bool DoPush(HWND hWnd, bool tags, bool allRemotes, bool allBranches, bool force,
 	return progress.DoModal() == IDOK;
 }
 
-bool Push(HWND hWnd, const CString& selectLocalBranch /* = {} */, const int pushAll /* = BST_INDETERMINATE */)
+bool Push(const HWND hWnd, const CString& selectLocalBranch /* = {} */, const int pushAll /* = BST_INDETERMINATE */)
 {
 	CPushDlg dlg(GetParentCWnd(hWnd));
 	dlg.m_BranchSourceName = selectLocalBranch;
@@ -2111,7 +2108,7 @@ bool Push(HWND hWnd, const CString& selectLocalBranch /* = {} */, const int push
 	return FALSE;
 }
 
-bool CreateBranchTag(HWND hWnd, const bool isTag = true, const CString* ref = nullptr, const bool switchNewBranch = false, const LPCWSTR& name = nullptr)
+bool CreateBranchTag(const HWND hWnd, const bool isTag = true, const CString* ref = nullptr, const bool switchNewBranch = false, const LPCWSTR& name = nullptr)
 {
 	CCreateBranchTagDlg dlg(GetParentCWnd(hWnd));
 	dlg.m_bIsTag = isTag;
@@ -2136,7 +2133,7 @@ bool CreateBranchTag(HWND hWnd, const bool isTag = true, const CString* ref = nu
 
 			if (!dlg.m_Message.Trim().IsEmpty())
 			{
-				CString tempfile = GitCall::GetTempFile();
+				const CString tempfile = GitCall::GetTempFile();
 				if (tempfile.IsEmpty() || SaveCommitUnicodeFile(tempfile, dlg.m_Message))
 				{
 					MessageBox(hWnd, L"Could not save tag message", L"TortoiseGit", MB_OK | MB_ICONERROR);
@@ -2183,7 +2180,7 @@ bool CreateBranchTag(HWND hWnd, const bool isTag = true, const CString* ref = nu
 BOOL Commit(
 	HWND hWnd,
 	const CString& bugid,
-	BOOL bWholeProject,
+	const BOOL bWholeProject,
 	CString& sLogMsg,
 	const CTGitPathList& pathList,
 	bool bSelectFilesForCommit
@@ -2264,7 +2261,7 @@ BOOL Commit(
 	return true;
 }
 
-bool DoMerge(HWND hWnd, bool noFF, bool ffOnly, bool squash, bool noCommit, const int* log, bool unrelated, const CString& mergeStrategy, const CString& strategyOption, const CString& strategyParam, const CString& logMessage, const CString& version, bool isBranch, bool showStashPop)
+bool DoMerge(HWND hWnd, const bool noFF, const bool ffOnly, const bool squash, const bool noCommit, const int* log, const bool unrelated, const CString& mergeStrategy, const CString& strategyOption, const CString& strategyParam, const CString& logMessage, const CString& version, const bool isBranch, const bool showStashPop)
 {
 	std::vector<std::wstring> cmd{ L"git.exe", L"merge" };
 	if (noFF)
@@ -2300,7 +2297,7 @@ bool DoMerge(HWND hWnd, bool noFF, bool ffOnly, bool squash, bool noCommit, cons
 	if (!logMessage.IsEmpty())
 	{
 		CString logmsg = logMessage;
-		CString tempfile = GitCall::GetTempFile();
+		const CString tempfile = GitCall::GetTempFile();
 		if (tempfile.IsEmpty() || SaveCommitUnicodeFile(tempfile, logmsg))
 		{
 			MessageBox(hWnd, L"Could not save merge message", L"TortoiseGit", MB_OK | MB_ICONERROR);
@@ -2315,11 +2312,11 @@ bool DoMerge(HWND hWnd, bool noFF, bool ffOnly, bool squash, bool noCommit, cons
 	CProgressDlg Prodlg(GetParentCWnd(hWnd));
 	Prodlg.m_GitCmd = cmd;
 
-	Prodlg.m_PostCmdCallback = [&](DWORD status, PostCmdList& postCmdList)
+	Prodlg.m_PostCmdCallback = [&](const DWORD status, PostCmdList& postCmdList)
 	{
 		if (status)
 		{
-			int hasConflicts = g_Git.HasWorkingTreeConflicts();
+			const int hasConflicts = g_Git.HasWorkingTreeConflicts();
 			if (hasConflicts < 0)
 				CMessageBox::Show(hWnd, g_Git.GetGitLastErr(L"Checking for conflicts failed.", TGitH::GIT_CMD_CHECKCONFLICTS), L"TortoiseGit", MB_ICONEXCLAMATION);
 			else if (hasConflicts)
@@ -2370,7 +2367,7 @@ bool DoMerge(HWND hWnd, bool noFF, bool ffOnly, bool squash, bool noCommit, cons
 			postCmdList.emplace_back(IDI_DELETE, IDS_PROC_REMOVEBRANCH, [&]
 			{
 				CString msg;
-				msg.Format(IDS_PROC_DELETEBRANCHTAG, static_cast<LPCWSTR>(version));
+				msg.Format(IDS_PROC_DELETEBRANCHTAG, version);
 				if (CMessageBox::Show(hWnd, msg, L"TortoiseGit", 2, IDI_QUESTION, CString(MAKEINTRESOURCE(IDS_DELETEBUTTON)), CString(MAKEINTRESOURCE(IDS_ABORTBUTTON))) == 1)
 				{
 					CString out;
@@ -2382,7 +2379,7 @@ bool DoMerge(HWND hWnd, bool noFF, bool ffOnly, bool squash, bool noCommit, cons
 		if (isBranch)
 			postCmdList.emplace_back(IDI_PUSH, IDS_MENUPUSH, [&hWnd]{ Push(hWnd); });
 
-		BOOL hasGitSVN = CTGitPath(GitCall::m_CurrentDirStorage.native()).GetAdminDirMask() & ITEMIS_GITSVN;
+		const BOOL hasGitSVN = CTGitPath(GitCall::m_CurrentDirStorage.native()).GetAdminDirMask() & ITEMIS_GITSVN;
 		if (hasGitSVN)
 			postCmdList.emplace_back(IDI_COMMIT, IDS_MENUSVNDCOMMIT, [&hWnd]{ SVNDCommit(hWnd); });
 	};
@@ -2396,7 +2393,7 @@ bool DoMerge(HWND hWnd, bool noFF, bool ffOnly, bool squash, bool noCommit, cons
 }
 
 
-BOOL Merge(HWND hWnd, const CString* commit, bool showStashPop)
+BOOL Merge(const HWND hWnd, const CString* commit, const bool showStashPop)
 {
 	if (!CheckUserData(hWnd))
 		return FALSE;

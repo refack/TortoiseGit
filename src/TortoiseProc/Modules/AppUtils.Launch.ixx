@@ -3,23 +3,18 @@ module;
 #include "std.h"
 
 #include <shlobj_core.h>
-#include "TortoiseProc.h"
 
+#include "Resources/resource.h"
 
 
 export module AppUtils.Launch;
+
+import TortoiseProc;
 import MessageBox;
 
+// export names from TortoiseProc for low-churn migration
+using namespace TortoiseProc;
 
-template <tgit::str::IsATLCStringDuck TStr>
-TStr EscapeAndQuoteParameters(const TStr& input)
-{
-	// let's go the safe way as there is no standard on Windows (cf. https://www.daviddeley.com/autohotkey/parameters/parameters.htm#WINNOSTANDARD)
-	TStr parameter = input;
-	parameter.Replace(L"\"", L"%22");
-	parameter.TrimRight(L'\\'); // should never occurr
-	return L'"' + parameter + L'"';
-}
 
 /**
  * \ingroup TortoiseProc
@@ -29,70 +24,14 @@ TStr EscapeAndQuoteParameters(const TStr& input)
  */
 export namespace CAppUtils {
 
-/////////////////// some hacky GLOBALS //////////////////
-// Defined by each MFC application. Declared in the global module fragment so it
-// names the same variable as StandAloneDlg.h's, not one attached to this module.
-std::wstring g_sGroupingUUID{};
-std::wstring g_sGroupingIcon{};
-bool g_bGroupingRemoveIcon{};
-/////////////////////////////////////////////////////////
-
-struct LaunchApplicationFlags {
-	bool bWaitForStartup = false;
-	bool bWaitForExit = false;
-	HANDLE hWaitHandle = nullptr;
-	bool bUAC = false;
-	LPCWSTR psCWD = nullptr;
-	UINT uiIDErrMessageFormat = 0;
-	DWORD* pdwExitCode = nullptr;
-
-	LaunchApplicationFlags() {}
-
-
-	LaunchApplicationFlags& UseSpecificErrorMessage(const UINT idErrMessageFormat) {
-		uiIDErrMessageFormat = idErrMessageFormat;
-		return *this;
-	}
-
-
-	LaunchApplicationFlags& WaitForStartup(const bool b = true) {
-		bWaitForStartup = b;
-		return *this;
-	}
-
-
-	LaunchApplicationFlags& WaitForExit(const bool b = true, const HANDLE& h = nullptr, DWORD* pExitCode = nullptr) {
-		Implies(h, b);
-		bWaitForExit = b;
-		hWaitHandle = h;
-		pdwExitCode = pExitCode;
-		return *this;
-	}
-
-
-	LaunchApplicationFlags& UAC(const bool b = true) {
-		bUAC = b;
-		return *this;
-	}
-
-
-	LaunchApplicationFlags& UseCWD(const LPCWSTR pCwd) {
-		psCWD = pCwd;
-		return *this;
-	}
-};
 
 /**
 * Flags for StartExtDiff function.
 */
 struct DiffFlags {
-	bool bWait;
-	bool bReadOnly;
-	bool bAlternativeTool; // If true, invert selection of git's tool vs. the configured external diff tool
-
-	DiffFlags() :
-		bWait(false), bReadOnly(false), bAlternativeTool(false) {}
-
+	bool bWait{};
+	bool bReadOnly{};
+	bool bAlternativeTool{}; // If true, invert selection of git's tool vs. the configured external diff tool
 
 	DiffFlags& Wait(const bool b = true) {
 		bWait = b;
@@ -112,286 +51,6 @@ struct DiffFlags {
 	}
 };
 
-/**
-* Launch an external application (usually the diff viewer)
-*/
-bool LaunchApplication(const CString& sCommandLine, const LaunchApplicationFlags& flags)
-{
-	LPCWSTR theCWD = nullptr;
-	if (flags.psCWD)
-		theCWD = flags.psCWD;
-
-	if (flags.bUAC)
-	{
-		CString file, param;
-		SHELLEXECUTEINFO shellinfo{};
-		shellinfo.cbSize = sizeof(shellinfo);
-		shellinfo.lpVerb = L"runas";
-		shellinfo.nShow = SW_SHOWNORMAL;
-		shellinfo.fMask = SEE_MASK_NOCLOSEPROCESS;
-		shellinfo.lpDirectory = theCWD;
-
-		int pos = sCommandLine.Find('"');
-		if (pos == 0)
-		{
-			pos = sCommandLine.Find('"', 2);
-			if (pos > 1)
-			{
-				file = sCommandLine.Mid(1, pos - 1);
-				param = sCommandLine.Mid(pos + 1);
-			}
-			else
-			{
-				if (flags.uiIDErrMessageFormat != 0)
-				{
-					CString temp;
-					temp.Format(flags.uiIDErrMessageFormat, (CFormatMessageWrapper()).c_str());
-					MessageBox(nullptr, temp, L"TortoiseGit", MB_OK | MB_ICONINFORMATION);
-				}
-				return false;
-			}
-		}
-		else
-		{
-			pos = sCommandLine.Find(' ', 1);
-			if (pos > 0)
-			{
-				file = sCommandLine.Left(pos);
-				param = sCommandLine.Mid(pos + 1);
-			}
-			else
-				file = sCommandLine;
-		}
-
-		shellinfo.lpFile = file;
-		shellinfo.lpParameters = param;
-
-		if (!ShellExecuteEx(&shellinfo))
-		{
-			if (flags.uiIDErrMessageFormat != 0)
-			{
-				CString temp;
-				temp.Format(flags.uiIDErrMessageFormat, (CFormatMessageWrapper()).c_str());
-				MessageBox(nullptr, temp, L"TortoiseGit", MB_OK | MB_ICONINFORMATION);
-			}
-			return false;
-		}
-
-		const CAutoGeneralHandle piProcess(std::move(shellinfo.hProcess));
-		if (piProcess)
-		{
-			if (flags.bWaitForStartup)
-				WaitForInputIdle(piProcess, 10000);
-
-			if (flags.bWaitForExit)
-			{
-				DWORD count = 1;
-				HANDLE handles[2];
-				handles[0] = piProcess;
-				if (flags.hWaitHandle)
-				{
-					count = 2;
-					handles[1] = flags.hWaitHandle;
-				}
-				WaitForMultipleObjects(count, handles, FALSE, INFINITE);
-				if (flags.hWaitHandle)
-					CloseHandle(flags.hWaitHandle);
-
-				if (flags.pdwExitCode)
-				{
-					if (!GetExitCodeProcess(piProcess, flags.pdwExitCode))
-						return false;
-				}
-			}
-		}
-
-		return true;
-	}
-
-	STARTUPINFO startup = {};
-	PROCESS_INFORMATION process = {};
-	startup.cb = sizeof(startup);
-
-	CString cleanCommandLine(sCommandLine);
-	if (CreateProcess(nullptr, cleanCommandLine.GetBuffer(), nullptr, nullptr, FALSE, CREATE_UNICODE_ENVIRONMENT, nullptr, theCWD, &startup, &process) == 0)
-	{
-		if (flags.uiIDErrMessageFormat)
-		{
-			CString temp;
-			temp.Format(flags.uiIDErrMessageFormat, (CFormatMessageWrapper()).c_str());
-			MessageBox(nullptr, temp, L"TortoiseGit", MB_OK | MB_ICONINFORMATION);
-		}
-		return false;
-	}
-
-	[[maybe_unused]] const auto RAII_pi_thread = wil::unique_handle(std::move(process.hThread));
-	const auto piProcess = wil::unique_handle(std::move(process.hProcess));
-
-	AllowSetForegroundWindow(process.dwProcessId);
-
-	if (flags.bWaitForStartup)
-		WaitForInputIdle(piProcess.get(), 10000);
-
-	if (flags.bWaitForExit)
-	{
-		DWORD count = 1;
-		HANDLE handles[2];
-		handles[0] = piProcess.get();
-		if (flags.hWaitHandle)
-		{
-			count = 2;
-			handles[1] = flags.hWaitHandle;
-		}
-		WaitForMultipleObjects(count, handles, FALSE, INFINITE);
-		if (flags.hWaitHandle)
-			CloseHandle(flags.hWaitHandle);
-
-		if (flags.pdwExitCode)
-		{
-			if (!GetExitCodeProcess(piProcess.get(), flags.pdwExitCode))
-				return false;
-		}
-	}
-
-	return true;
-}
-
-bool RunTortoiseGitProc(const CString& sCommandLine, const bool uac = false, const bool includeGroupingUUID = false)
-{
-	const std::wstring pathToExecutable = PathUtils::GetAppDirectory() / L"TortoiseGitProc.exe";
-	CString sCmd = std::format(L"\"{}\" {}", pathToExecutable, sCommandLine).c_str();
-	if (AfxGetMainWnd()->GetSafeHwnd() && (sCommandLine.Find(L"/hwnd:") < 0))
-		sCmd.AppendFormat(L" /hwnd:%p", AfxGetMainWnd()->GetSafeHwnd());
-	if (!g_sGroupingUUID.empty() && includeGroupingUUID)
-	{
-		sCmd += L" /groupuuid:\"";
-		sCmd += g_sGroupingUUID.c_str();
-		sCmd += L'"';
-	}
-
-	return LaunchApplication(sCmd, LaunchApplicationFlags().UAC(uac));
-}
-
-bool IsAdminLogin()
-{
-	SID_IDENTIFIER_AUTHORITY ntAuthority = SECURITY_NT_AUTHORITY;
-	PSID administratorsGroup;
-	// Initialize SID.
-	if (!AllocateAndInitializeSid(&ntAuthority, 2, SECURITY_BUILTIN_DOMAIN_RID, DOMAIN_ALIAS_RID_ADMINS, 0, 0, 0, 0, 0, 0, &administratorsGroup))
-		return false;
-	SCOPE_EXIT { FreeSid(administratorsGroup); };
-
-	// Check whether the token is present in admin group.
-	BOOL isInAdminGroup = FALSE;
-	if (!CheckTokenMembership(nullptr, administratorsGroup, &isInAdminGroup))
-		return false;
-
-	return !!isInAdminGroup;
-}
-
-int ExploreTo(const HWND& hwnd, CString path)
-{
-	if (PathFileExists(path))
-	{
-		HRESULT ret = E_FAIL;
-		ITEMIDLIST __unaligned* pidl = ILCreateFromPath(path);
-		if (pidl)
-		{
-			ret = SHOpenFolderAndSelectItems(pidl, 0, nullptr, 0);
-			ILFree(pidl);
-		}
-		return SUCCEEDED(ret) ? 0 : -1;
-	}
-	// if filepath does not exist any more, navigate to closest matching folder
-	do
-	{
-		const int pos = path.ReverseFind(L'\\');
-		if (pos <= 3)
-			break;
-		path.Truncate(pos);
-	} while (!PathFileExists(path));
-	return reinterpret_cast<INT_PTR>(ShellExecute(hwnd, L"explore", path, nullptr, nullptr, SW_SHOW)) > 32 ? 0 : -1;
-}
-
-bool ShowOpenWithDialog(const CString& file, const HWND& hwnd = nullptr)
-{
-	OPENASINFO oi = {};
-	oi.pcszFile = file;
-	oi.oaifInFlags = OAIF_EXEC;
-	return SUCCEEDED(SHOpenWithDialog(hwnd, &oi));
-}
-
-bool ShellOpen(const CString& file, const HWND& hwnd = nullptr)
-{
-	if (reinterpret_cast<INT_PTR>(ShellExecute(hwnd, nullptr, file, nullptr, nullptr, SW_SHOW)) > HINSTANCE_ERROR)
-		return true;
-
-	return ShowOpenWithDialog(file, hwnd);
-}
-
-/**
- * Launches the standard text viewer/editor application which is associated
- * with txt files.
- * \return TRUE if the program could be started.
- */
-BOOL StartTextViewer(const std::wstring_view file)
-{
-	auto viewer = wil::reg::try_get_string(HKEY_CLASSES_ROOT, L"\\Shell\\Open\\Command\\", {}).value_or({});
-
-	DWORD len = ExpandEnvironmentStrings(viewer.c_str(), nullptr, 0);
-	const auto buf = std::make_unique<wchar_t[]>(len + 1);
-	ExpandEnvironmentStrings(viewer.c_str(), buf.get(), len);
-	viewer = buf.get();
-	len = ExpandEnvironmentStrings(file.data(), nullptr, 0);
-	const auto buf2 = std::make_unique<wchar_t[]>(len + 1);
-	ExpandEnvironmentStrings(file.data(), buf2.get(), len);
-
-	const auto file_expanded = buf2.get();
-	if (viewer.empty())
-		return ShowOpenWithDialog(file_expanded) ? TRUE : FALSE;
-
-	constexpr auto placeholder = L"%1"sv;
-	if (const auto pos = viewer.find(placeholder); pos != viewer.npos) {
-		viewer.replace(pos, pos + placeholder.size(), file_expanded);
-	} else {
-		viewer += L' ';
-		viewer += file_expanded;
-	}
-
-	if (!LaunchApplication(viewer.c_str(), LaunchApplicationFlags().UseSpecificErrorMessage(IDS_ERR_TEXTVIEWSTART)))
-		return FALSE;
-	return TRUE;
-}
-
-bool LaunchNotepad(const CString& filename, const bool uac = false)
-{
-	const auto pszPath = wil::GetKnownFolderPath(FOLDERID_System);
-	if (pszPath.empty())
-		return false;
-
-	const auto sCmd = std::format(LR"("{}" "{}")", pszPath / L"notepad.exe", filename);
-
-	return LaunchApplication(sCmd.c_str(), LaunchApplicationFlags().UAC(uac).UseSpecificErrorMessage(IDS_ERR_TEXTVIEWSTART));
-}
-
-bool IsAlternativeEditorConfigured(CString* editTool = nullptr)
-{
-	const CString alternativeEditor = CRegString(L"Software\\TortoiseGit\\AlternativeEditor");
-	if (editTool)
-		*editTool = alternativeEditor;
-	return !alternativeEditor.IsEmpty() && !StringUtils::StartsWith(alternativeEditor, L"#");
-}
-
-bool LaunchAlternativeEditor(const CString& filename)
-{
-	CString editTool;
-	if (!IsAlternativeEditorConfigured(&editTool))
-		return LaunchNotepad(filename);
-
-	const auto sCmd = std::format(LR"("{}" "{}")", editTool, filename);
-
-	return LaunchApplication(sCmd.c_str(), LaunchApplicationFlags().UseSpecificErrorMessage(IDS_ERR_TEXTVIEWSTART));
-}
 
 /**
 * Launch the external blame viewer
@@ -464,9 +123,9 @@ bool StartExtDiff(
 			viewer.Delete(0); // uncomment
 		else
 			viewer.Empty();
-	}
-	else if (bCommentedOut)
+	} else if (bCommentedOut) {
 		viewer.Empty();
+	}
 
 	const bool bInternal = viewer.IsEmpty();
 	if (bInternal)
@@ -662,93 +321,6 @@ bool StartShowUnifiedDiff(
 	return TRUE;
 }
 
-/**
- * Sets up all the default diff and merge scripts.
- * \param force if true, overwrite all existing entries
- * \param type "Diff", "Merge" or an empty string
- */
-bool SetupDiffScripts(const bool force, const CString& type)
-{
-	CString scriptsdir = PathUtils::GetAppParentDirectory().c_str();
-	scriptsdir += L"Diff-Scripts";
-	CSimpleFileFind files(scriptsdir);
-	while (files.FindNextFileNoDirectories())
-	{
-		CString file = files.GetFilePath();
-		CString filename = files.GetFileName();
-		CString ext = file.Mid(file.ReverseFind('-') + 1);
-		ext = L"." + ext.Left(ext.ReverseFind(L'.'));
-		std::set<CString> extensions;
-		extensions.insert(ext);
-		CString kind;
-		if (StringUtils::EndsWithI(file, L"vbs"))
-			kind = L" //E:vbscript";
-		if (StringUtils::EndsWithI(file, L"js"))
-			kind = L" //E:javascript";
-		// open the file, read the first line and find possible extensions
-		// this script can handle
-		try
-		{
-			CStdioFile f(file, CFile::modeRead | CFile::shareDenyNone);
-			CString extline;
-			if (f.ReadString(extline))
-			{
-				if ((extline.GetLength() > 15 ) &&
-					(StringUtils::StartsWith(extline, L"// extensions: ") ||
-					StringUtils::StartsWith(extline, L"' extensions: ")))
-				{
-					if (extline[0] == '/')
-						extline = extline.Mid(static_cast<int>(wcslen(L"// extensions: ")));
-					else
-						extline = extline.Mid(static_cast<int>(wcslen(L"' extensions: ")));
-					CString sToken;
-					int curPos = 0;
-					sToken = extline.Tokenize(L";", curPos);
-					while (!sToken.IsEmpty())
-					{
-						if (!sToken.IsEmpty())
-						{
-							if (sToken[0] != '.')
-								sToken = L"." + sToken;
-							extensions.insert(sToken);
-						}
-						sToken = extline.Tokenize(L";", curPos);
-					}
-				}
-			}
-			f.Close();
-		} catch (CFileException& e) {
-			tgit::DebugOutput::Trace(L"[SetupDiffScripts] file issues {}", e.m_cause);
-			e.Delete();
-		}
-
-		for (const auto& extension : extensions)
-		{
-			if (type.IsEmpty() || (type.Compare(L"Diff") == 0))
-			{
-				if (StringUtils::StartsWithI(filename, L"diff-"))
-				{
-					auto diffreg = CRegString(L"Software\\TortoiseGit\\DiffTools\\" + extension);
-					auto diffregstring = static_cast<CRegString::StringT>(diffreg);
-					if (force || (diffregstring.IsEmpty()) || (diffregstring.Find(filename) >= 0))
-						diffreg = L"wscript.exe \"" + file + L"\" %base %mine" + kind;
-				}
-			}
-			if (type.IsEmpty() || (type.Compare(L"Merge") == 0))
-			{
-				if (StringUtils::StartsWithI(filename, L"merge-"))
-				{
-					auto diffreg = CRegString(L"Software\\TortoiseGit\\MergeTools\\" + extension);
-					auto diffregstring = static_cast<CRegString::StringT>(diffreg);
-					if (force || (diffregstring.IsEmpty()) || (diffregstring.Find(filename) >= 0))
-						diffreg = L"wscript.exe \"" + file + L"\" %merged %theirs %mine %base" + kind;
-				}
-			}
-		}
-	}
-
-	return true;
-}
 
 CString GetMergeTempFile(const CString& type, const CTGitPath& merge, const bool returnAbsolutePath = true)
 {

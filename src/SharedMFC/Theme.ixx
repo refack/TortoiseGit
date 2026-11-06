@@ -1,14 +1,14 @@
 ﻿// ReSharper disable CppParameterMayBeConst
 // ReSharper disable CppFunctionResultShouldBeUsed
+// ReSharper disable CppDeclaratorNeverUsed
+// NOLINTBEGIN(bugprone-branch-clone, modernize-use-nodiscard, *-pro-type-reinterpret-cast, *-magic-numbers)
 module;
-#include "../libgit2/Utils/DPIAware.h"
+#include <Utils/DPIAware.h>
 #include <Uxtheme.h>
+#include <math.h>
 #include <vssym32.h>
 #include <richedit.h>
-#pragma warning(push)
-#pragma warning(disable : 4458) // declaration of 'xxx' hides class member
 #include <gdiplus.h>
-#pragma warning(pop)
 #include <tgitlib/sanity.h>
 
 #include <windows.h>
@@ -26,12 +26,25 @@ import str_utils;
 import RIAA;
 import DarkModeHelper;
 
+using std::uint32_t;
+
 using namespace RIAA;
 
-export namespace ThemeAPI {
-using ThemeChangeCallback = std::function<void()>;
 
-// NOLINTBEGIN(bugprone-branch-clone)
+
+export namespace ThemeAPI {
+
+using ThemeChangeCallback = std::function<void()>;
+// The module exports both a namespace and a class named DarkModeHelper, plus a
+// using-directive for the namespace, so an unqualified `DarkModeHelper::` finds
+// both and is ambiguous (C2872). `::DarkModeHelper` finds the namespace directly,
+// and qualified lookup does not follow using-directives when it has a direct hit.
+using DarkMode = ::TGitDarkMode::DarkModeHelper;
+
+constexpr auto WM_MENUBAR_DRAWMENU = 0x0091;		// lParam is MENUBAR_MENU
+constexpr auto WM_MENUBAR_DRAWMENUITEM = 0x0092;	// lParam is MENUBAR_DRAWMENUITEM
+
+
 
 /**
  * Singleton to handle Theme related methods.
@@ -40,8 +53,16 @@ using ThemeChangeCallback = std::function<void()>;
  */
 class CTheme
 {
-	CTheme();
-	~CTheme();
+	// compiled once, in the library: an app-level REGSTRING_DARKTHEME macro no longer reaches this TU
+	CTheme()
+	: m_regDarkTheme(tgit::invarients::REGSTRING_DARKTHEME, 0)
+	{}
+	~CTheme() {
+		if (s_backBrush)
+			DeleteObject(s_backBrush);
+		if (s_backHotBrush)
+			DeleteObject(s_backHotBrush);
+	}
 
 public:
 	static CTheme& Instance();
@@ -109,63 +130,46 @@ private:
 };
 
 
-// The module exports both a namespace and a class named DarkModeHelper, plus a
-// using-directive for the namespace, so an unqualified `DarkModeHelper::` finds
-// both and is ambiguous (C2872). `::DarkModeHelper` finds the namespace directly,
-// and qualified lookup does not follow using-directives when it has a direct hit.
-using DarkMode = ::TGitDarkMode::DarkModeHelper;
-
-#define WM_MENUBAR_DRAWMENU 0x0091 // lParam is MENUBAR_MENU
-#define WM_MENUBAR_DRAWMENUITEM 0x0092 // lParam is MENUBAR_DRAWMENUITEM
+struct t_point_t { uint32_t cx; uint32_t cy; };
 
 // describes the sizes of the menu bar or menu item
-// ReSharper disable CppDeclaratorNeverUsed
-union MenubarMenuitemmetrics
-{
-	struct
-	{
-		DWORD cx;
-		DWORD cy;
-	} rgSizeBar[2];
-	struct
-	{
-		DWORD cx;
-		DWORD cy;
-	} rgSizePopup[4];
+union MenubarMenuitemmetrics {
+	std::array<t_point_t,2> rgSizeBar;
+	std::array<t_point_t,4> rgSizePopup;
 };
 
 struct MenubarMenupopupmetrics
 {
-	DWORD rgCx[4];
-	DWORD fUpdateMaxWidths : 2;
+	std::array<uint32_t,4> rgCx;
+	uint32_t fUpdateMaxWidths : 2;
 };
 
 struct MenubarMenu
 {
 	HMENU hMenu; // main window menu
 	HDC hdc;
-	DWORD dwFlags;
+	uint32_t dwFlags;
 };
 
 struct MenubarMenuitem
 {
-	int iPosition; // 0-based position
-	MenubarMenuitemmetrics umIm;
-	MenubarMenupopupmetrics umpm;
+	int iPosition{}; // 0-based position
+	MenubarMenuitemmetrics umIm{};
+	MenubarMenupopupmetrics umpm{};
 };
 
 struct MenubarDrawmenuitem
 {
-	DRAWITEMSTRUCT dis; // itemID looks uninitialized
-	MenubarMenu um;
-	MenubarMenuitem umi;
+	DRAWITEMSTRUCT dis{}; // itemID looks uninitialized
+	MenubarMenu um{};
+	MenubarMenuitem umi{};
 };
 
 struct [[maybe_unused]] MenubarMeasuremenuitem
 {
-	MEASUREITEMSTRUCT mis;
-	MenubarMenu um;
-	MenubarMenuitem umi;
+	MEASUREITEMSTRUCT mis{};
+	MenubarMenu um{};
+	MenubarMenuitem umi{};
 };
 
 constexpr auto SubclassID = 1234;
@@ -175,21 +179,6 @@ void GetRoundRectPath(Gdiplus::GraphicsPath* pPath, const Gdiplus::Rect& r, int 
 BOOL DetermineGlowSize(int* piSize, LPCWSTR pszClassIdList = nullptr);
 
 
-HBRUSH CTheme::s_backBrush = nullptr;
-HBRUSH CTheme::s_backHotBrush = nullptr;
-
-CTheme::CTheme()
-	: m_regDarkTheme(tgit::invarients::REGSTRING_DARKTHEME, 0) // compiled once, in the library: an app-level REGSTRING_DARKTHEME macro no longer reaches this TU
-{}
-
-CTheme::~CTheme()
-{
-	if (s_backBrush)
-		DeleteObject(s_backBrush);
-	if (s_backHotBrush)
-		DeleteObject(s_backHotBrush);
-}
-
 CTheme& CTheme::Instance()
 {
 	static CTheme instance;
@@ -198,15 +187,6 @@ CTheme& CTheme::Instance()
 
 	return instance;
 }
-
-void CTheme::Load()
-{
-	std::ignore = IsDarkModeAllowed();
-	OnSysColorChanged();
-	m_dark = !!m_regDarkTheme && IsDarkModeAllowed() && !IsHighContrastMode() && DarkMode::Instance().ShouldAppsUseDarkMode();
-	m_bLoaded = true;
-}
-
 bool CTheme::IsHighContrastMode() const
 {
 	return m_isHighContrastMode;
@@ -221,9 +201,11 @@ COLORREF CTheme::GetThemeColor(const COLORREF clr, const bool fixed /*= false*/)
 {
 	if (m_dark || (fixed && m_isHighContrastModeDark))
 	{
-		float h, s, l;
+		float h = NAN;
+		float s = NAN;
+		float l = NAN;
 		CTheme::RGBtoHSL(clr, h, s, l);
-		l = 100.0f - l;
+		l = 100.0F - l;
 		if (!m_isHighContrastModeDark)
 		{
 			// to avoid too much contrast, prevent
@@ -268,7 +250,6 @@ bool CTheme::RemoveRegisteredCallback(const int id)
 	return false;
 }
 
-
 bool CTheme::SetThemeForDialog(HWND hWnd, const bool bDark)
 {
 	Expects(hWnd);
@@ -286,6 +267,13 @@ bool CTheme::SetThemeForDialog(HWND hWnd, const bool bDark)
 	return true;
 }
 
+void CTheme::Load()
+{
+	std::ignore = IsDarkModeAllowed();
+	OnSysColorChanged();
+	m_dark = !!m_regDarkTheme && IsDarkModeAllowed() && !IsHighContrastMode() && DarkMode::Instance().ShouldAppsUseDarkMode();
+	m_bLoaded = true;
+}
 
 BOOL CTheme::AdjustThemeForChildrenProc(HWND hWnd, const LPARAM lParam)
 {
@@ -300,13 +288,13 @@ BOOL CTheme::AdjustThemeForChildrenProc(HWND hWnd, const LPARAM lParam)
 			// but with the Detours lib we can intercept opening the theme and force
 			// "explorer" for the scrollbars, which then will be drawn in dark mode
 			SetWindowTheme(hWnd, L"ItemsView", nullptr);
-			const auto header = ListView_GetHeader(hWnd);
+			auto* const header = ListView_GetHeader(hWnd);
 			DarkMode::Instance().AllowDarkModeForWindow(header, static_cast<BOOL>(lParam));
 			SetWindowTheme(header, L"Explorer", nullptr);
 			ListView_SetTextColor(hWnd, darkTextColor);
 			ListView_SetTextBkColor(hWnd, darkBkColor);
 			ListView_SetBkColor(hWnd, darkBkColor);
-			if (const auto hTT = ListView_GetToolTips(hWnd))
+			if (auto* const hTT = ListView_GetToolTips(hWnd))
 			{
 				DarkMode::Instance().AllowDarkModeForWindow(hTT, static_cast<BOOL>(lParam));
 				SetWindowTheme(hTT, L"Explorer", nullptr);
@@ -329,8 +317,8 @@ BOOL CTheme::AdjustThemeForChildrenProc(HWND hWnd, const LPARAM lParam)
 		else if (wcscmp(szWndClassName, L"SysDateTimePick32") == 0)
 			SetWindowTheme(hWnd, L"Explorer", nullptr);
 		else if ((wcscmp(szWndClassName, WC_COMBOBOXEX) == 0) ||
-				 (wcscmp(szWndClassName, L"ComboLBox") == 0) ||
-				 (wcscmp(szWndClassName, WC_COMBOBOX) == 0))
+			(wcscmp(szWndClassName, L"ComboLBox") == 0) ||
+			(wcscmp(szWndClassName, WC_COMBOBOX) == 0))
 		{
 			SetWindowTheme(hWnd, L"Explorer", nullptr);
 			HWND hCombo = hWnd;
@@ -424,7 +412,7 @@ BOOL CTheme::AdjustThemeForChildrenProc(HWND hWnd, const LPARAM lParam)
 			RemoveWindowSubclass(hWnd, ButtonSubclassProc, SubclassID);
 		}
 		else if ((wcscmp(szWndClassName, WC_COMBOBOXEX) == 0) ||
-				 (wcscmp(szWndClassName, WC_COMBOBOX) == 0))
+			(wcscmp(szWndClassName, WC_COMBOBOX) == 0))
 		{
 			SetWindowTheme(hWnd, L"DarkMode_Explorer", nullptr);
 			HWND hCombo = hWnd;
@@ -508,6 +496,7 @@ BOOL CTheme::AdjustThemeForChildrenProc(HWND hWnd, const LPARAM lParam)
 	return TRUE;
 }
 
+
 LRESULT CTheme::ListViewSubclassProc(HWND hWnd, const UINT uMsg, const WPARAM wParam, const LPARAM lParam, UINT_PTR /*uIdSubclass*/, DWORD_PTR /*dwRefData*/)
 {
 	switch (uMsg)
@@ -541,6 +530,7 @@ LRESULT CTheme::ListViewSubclassProc(HWND hWnd, const UINT uMsg, const WPARAM wP
 	}
 	return DefSubclassProc(hWnd, uMsg, wParam, lParam);
 }
+
 
 LRESULT CTheme::ComboBoxSubclassProc(HWND hWnd, const UINT uMsg, const WPARAM wParam, const LPARAM lParam, UINT_PTR /*uIdSubclass*/, const DWORD_PTR dwRefData)
 {
@@ -671,7 +661,7 @@ LRESULT CTheme::AutoSuggestSubclassProc(HWND hWnd, const UINT uMsg, const WPARAM
 		SetBkMode(hDC, TRANSPARENT);
 		DrawText(hDC, itemText, -1, &rc, DT_SINGLELINE | DT_VCENTER | DT_NOPREFIX | DT_END_ELLIPSIS);
 	}
-	return TRUE;
+		return TRUE;
 	case WM_DESTROY:
 	case WM_NCDESTROY:
 		RemoveWindowSubclass(hWnd, AutoSuggestSubclassProc, SubclassID);
@@ -681,6 +671,10 @@ LRESULT CTheme::AutoSuggestSubclassProc(HWND hWnd, const UINT uMsg, const WPARAM
 	}
 	return DefSubclassProc(hWnd, uMsg, wParam, lParam);
 }
+
+HBRUSH CTheme::s_backBrush = nullptr;
+
+HBRUSH CTheme::s_backHotBrush = nullptr;
 
 #ifndef RECTWIDTH
 #define RECTWIDTH(rc) ((rc).right - (rc).left)
@@ -1548,6 +1542,6 @@ BOOL DetermineGlowSize(int* piSize, LPCWSTR pszClassIdList /*= nullptr*/)
 }
 
 }
-// NOLINTEND(bugprone-branch-clone)
+// NOLINTEND(bugprone-branch-clone, modernize-use-nodiscard, *-pro-type-reinterpret-cast, *-magic-numbers)
 
 export using namespace ThemeAPI;

@@ -1,30 +1,38 @@
 ﻿module;
-#include "../stdafx.h"
-#include "../std.h"
-#include <Utils/LoadIconEx.h>
+#include "stdafx.h"
+#include <tgitlib/sanity.h>
+
+
 
 export module IconBitmapUtils;
+import std;
+import wil;
+import wil.MFC;
+import RIAA;
+
+
+
 export class IconBitmapUtils
 {
 public:
 	IconBitmapUtils() = delete;
 
-	static HBITMAP IconToBitmap(HINSTANCE hInst, UINT uIcon);
-	static HBITMAP IconToBitmapPARGB32(HICON hIcon, int width, int height);
-	static HBITMAP IconToBitmapPARGB32(HINSTANCE hInst, UINT uIcon);
-	static HRESULT Create32BitHBITMAP(HDC hdc, const SIZE* psize, __deref_opt_out void** ppvBits, __out HBITMAP* phBmp);
-	static HRESULT ConvertBufferToPARGB32(HPAINTBUFFER hPaintBuffer, HDC hdc, HICON hIcon, const SIZE& sizIcon);
-	static bool HasAlpha(__in Gdiplus::ARGB* pargb, const SIZE& sizImage, int cxRow);
-	static HRESULT ConvertToPARGB32(HDC hdc, __inout Gdiplus::ARGB* pargb, HBITMAP hbmp, const SIZE& sizImage, int cxRow);
+	static HBITMAP IconToBitmap(const HINSTANCE& hInst, UINT uIcon);
+	static HBITMAP IconToBitmapPARGB32(const HICON& hIcon, int width, int height);
+	static HBITMAP IconToBitmapPARGB32(const HINSTANCE& hInst, UINT uIcon);
+	static HRESULT Create32BitHBITMAP(const HDC& hdc, const SIZE* psize, __deref_opt_out void** ppvBits, __out HBITMAP* phBmp);
+	static HRESULT ConvertBufferToPARGB32(const HPAINTBUFFER& hPaintBuffer, HDC hdc, HICON hIcon, const SIZE& sizIcon);
+	static bool HasAlpha(__in const Gdiplus::ARGB* pargb, const SIZE& sizImage, int cxRow);
+	static HRESULT ConvertToPARGB32(const HDC& hdc, __inout Gdiplus::ARGB* pargb, HBITMAP hbmp, const SIZE& sizImage, int cxRow);
 };
 
 
 #pragma comment(lib, "UxTheme.lib")
 
 
-HBITMAP IconBitmapUtils::IconToBitmap(HINSTANCE hInst, UINT uIcon)
+HBITMAP IconBitmapUtils::IconToBitmap(const HINSTANCE& hInst, const UINT uIcon)
 {
-	CAutoIcon hIcon = LoadIconEx(hInst, MAKEINTRESOURCE(uIcon), 12, 12);
+	const CAutoIcon hIcon = wil::MFC::LoadIconEx(hInst, MAKEINTRESOURCE(uIcon), 12, 12);
 	if (!hIcon)
 		return nullptr;
 
@@ -33,28 +41,28 @@ HBITMAP IconBitmapUtils::IconToBitmap(HINSTANCE hInst, UINT uIcon)
 	rect.right = ::GetSystemMetrics(SM_CXMENUCHECK);
 	rect.bottom = ::GetSystemMetrics(SM_CYMENUCHECK);
 
-	HWND desktop = ::GetDesktopWindow();
+	const HWND desktop = ::GetDesktopWindow();
 	if (!desktop)
 		return nullptr;
 
-	HDC screenDev = ::GetDC(desktop);
+	const HDC screenDev = ::GetDC(desktop);
 	if (!screenDev)
 		return nullptr;
 	SCOPE_EXIT { ::ReleaseDC(desktop, screenDev); };
 
 	// Create a compatible DC
-	HDC dstHdc = ::CreateCompatibleDC(screenDev);
+	const HDC dstHdc = ::CreateCompatibleDC(screenDev);
 	if (!dstHdc)
 		return nullptr;
 	SCOPE_EXIT { ::DeleteDC(dstHdc); };
 
 	// Create a new bitmap of icon size
-	HBITMAP bmp = ::CreateCompatibleBitmap(screenDev, rect.right, rect.bottom);
+	const HBITMAP bmp = ::CreateCompatibleBitmap(screenDev, rect.right, rect.bottom);
 	if (!bmp)
 		return nullptr;
 
 	// Select it into the compatible DC
-	auto oldDstBmp = static_cast<HBITMAP>(::SelectObject(dstHdc, bmp));
+	auto* oldDstBmp = static_cast<HBITMAP>(::SelectObject(dstHdc, bmp));
 	if (!oldDstBmp)
 		return nullptr;
 
@@ -72,16 +80,16 @@ HBITMAP IconBitmapUtils::IconToBitmap(HINSTANCE hInst, UINT uIcon)
 	return bmp;
 }
 
-HBITMAP IconBitmapUtils::IconToBitmapPARGB32(HINSTANCE hInst, UINT uIcon)
+HBITMAP IconBitmapUtils::IconToBitmapPARGB32(const HINSTANCE& hInst, const UINT uIcon)
 {
-	int iconWidth = GetSystemMetrics(SM_CXSMICON);
-	int iconHeight = GetSystemMetrics(SM_CYSMICON);
-	CAutoIcon hIcon = LoadIconEx(hInst, MAKEINTRESOURCE(uIcon), iconWidth, iconHeight);
+	const int iconWidth = GetSystemMetrics(SM_CXSMICON);
+	const int iconHeight = GetSystemMetrics(SM_CYSMICON);
+	const CAutoIcon hIcon = wil::MFC::LoadIconEx(hInst, MAKEINTRESOURCE(uIcon), iconWidth, iconHeight);
 
 	return IconToBitmapPARGB32(hIcon, iconWidth, iconHeight);
 }
 
-HBITMAP IconBitmapUtils::IconToBitmapPARGB32(HICON hIcon, int width, int height)
+HBITMAP IconBitmapUtils::IconToBitmapPARGB32(const HICON& hIcon, const int width, const int height)
 {
 	if (!hIcon)
 		return nullptr;
@@ -93,7 +101,7 @@ HBITMAP IconBitmapUtils::IconToBitmapPARGB32(HICON hIcon, int width, int height)
 	RECT rcIcon;
 	SetRect(&rcIcon, 0, 0, sizIcon.cx, sizIcon.cy);
 
-	HDC hdcDest = CreateCompatibleDC(nullptr);
+	const HDC hdcDest = CreateCompatibleDC(nullptr);
 	if (!hdcDest)
 		return nullptr;
 	SCOPE_EXIT { DeleteDC(hdcDest); };
@@ -102,31 +110,31 @@ HBITMAP IconBitmapUtils::IconToBitmapPARGB32(HICON hIcon, int width, int height)
 	if (FAILED(Create32BitHBITMAP(hdcDest, &sizIcon, nullptr, &hBmp)))
 		return nullptr;
 
-	auto hBmpOld = static_cast<HBITMAP>(SelectObject(hdcDest, hBmp));
+	auto* hBmpOld = static_cast<HBITMAP>(SelectObject(hdcDest, hBmp));
 	if (!hBmpOld)
 	{
 		::DeleteObject(hBmp);
 		return nullptr;
 	}
 
-	BLENDFUNCTION bfAlpha = { AC_SRC_OVER, 0, 255, AC_SRC_ALPHA };
-	BP_PAINTPARAMS paintParams = { 0 };
+	constexpr BLENDFUNCTION bfAlpha = { .BlendOp=AC_SRC_OVER, .BlendFlags=0, .SourceConstantAlpha=255, .AlphaFormat=AC_SRC_ALPHA };
+	BP_PAINTPARAMS paintParams = {};
 	paintParams.cbSize = sizeof(paintParams);
 	paintParams.dwFlags = BPPF_ERASE;
 	paintParams.pBlendFunction = &bfAlpha;
 
-	HDC hdcBuffer;
-	HPAINTBUFFER hPaintBuffer = BeginBufferedPaint(hdcDest, &rcIcon, BPBF_DIB, &paintParams, &hdcBuffer);
+	HDC hdcBuffer = nullptr;
+	const HPAINTBUFFER hPaintBuffer = BeginBufferedPaint(hdcDest, &rcIcon, BPBF_DIB, &paintParams, &hdcBuffer);
 	if (hPaintBuffer)
 	{
 		if (DrawIconEx(hdcBuffer, 0, 0, hIcon, sizIcon.cx, sizIcon.cy, 0, nullptr, DI_NORMAL))
 		{
 			// If icon did not have an alpha channel we need to convert buffer to PARGB
-			ConvertBufferToPARGB32(hPaintBuffer, hdcDest, hIcon, sizIcon);
+			std::ignore = ConvertBufferToPARGB32(hPaintBuffer, hdcDest, hIcon, sizIcon);
 		}
 
 		// This will write the buffer contents to the destination bitmap
-		EndBufferedPaint(hPaintBuffer, TRUE);
+		std::ignore = EndBufferedPaint(hPaintBuffer, TRUE);
 	}
 
 	SelectObject(hdcDest, hBmpOld);
@@ -134,7 +142,7 @@ HBITMAP IconBitmapUtils::IconToBitmapPARGB32(HICON hIcon, int width, int height)
 	return hBmp;
 }
 
-HRESULT IconBitmapUtils::Create32BitHBITMAP(HDC hdc, const SIZE* psize, __deref_opt_out void** ppvBits, __out HBITMAP* phBmp)
+HRESULT IconBitmapUtils::Create32BitHBITMAP(const HDC& hdc, const SIZE* psize, __deref_opt_out void** ppvBits, __out HBITMAP* phBmp)
 {
 	if (!psize)
 		return E_INVALIDARG;
@@ -144,7 +152,7 @@ HRESULT IconBitmapUtils::Create32BitHBITMAP(HDC hdc, const SIZE* psize, __deref_
 
 	*phBmp = nullptr;
 
-	BITMAPINFO bmi = { 0 };
+	BITMAPINFO bmi = {};
 	bmi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
 	bmi.bmiHeader.biPlanes = 1;
 	bmi.bmiHeader.biCompression = BI_RGB;
@@ -153,7 +161,7 @@ HRESULT IconBitmapUtils::Create32BitHBITMAP(HDC hdc, const SIZE* psize, __deref_
 	bmi.bmiHeader.biHeight = psize->cy;
 	bmi.bmiHeader.biBitCount = 32;
 
-	HDC hdcUsed = hdc ? hdc : GetDC(nullptr);
+	const HDC hdcUsed = hdc ? hdc : GetDC(nullptr);
 	if (hdcUsed)
 	{
 		*phBmp = CreateDIBSection(hdcUsed, &bmi, DIB_RGB_COLORS, ppvBits, nullptr, 0);
@@ -163,14 +171,14 @@ HRESULT IconBitmapUtils::Create32BitHBITMAP(HDC hdc, const SIZE* psize, __deref_
 	return (!*phBmp) ? E_OUTOFMEMORY : S_OK;
 }
 
-HRESULT IconBitmapUtils::ConvertBufferToPARGB32(HPAINTBUFFER hPaintBuffer, HDC hdc, HICON hIcon, const SIZE& sizIcon)
+HRESULT IconBitmapUtils::ConvertBufferToPARGB32(const HPAINTBUFFER& hPaintBuffer, const HDC hdc, const HICON hIcon, const SIZE& sizIcon)
 {
 	RGBQUAD* prgbQuad = nullptr;
-	int cxRow;
-	if (HRESULT hr = GetBufferedPaintBits(hPaintBuffer, &prgbQuad, &cxRow); FAILED(hr))
+	int cxRow = 0;
+	if (const HRESULT hr = GetBufferedPaintBits(hPaintBuffer, &prgbQuad, &cxRow); FAILED(hr))
 		return hr;
 
-	auto pArgb = reinterpret_cast<Gdiplus::ARGB*>(prgbQuad);
+	auto* pArgb = reinterpret_cast<Gdiplus::ARGB*>(prgbQuad);
 	if (HasAlpha(pArgb, sizIcon, cxRow))
 		return S_OK;
 
@@ -190,9 +198,9 @@ HRESULT IconBitmapUtils::ConvertBufferToPARGB32(HPAINTBUFFER hPaintBuffer, HDC h
 	return S_OK;
 }
 
-bool IconBitmapUtils::HasAlpha(__in Gdiplus::ARGB* pargb, const SIZE& sizImage, int cxRow)
+bool IconBitmapUtils::HasAlpha(__in const Gdiplus::ARGB* pargb, const SIZE& sizImage, const int cxRow)
 {
-	ULONG cxDelta = cxRow - sizImage.cx;
+	const ULONG cxDelta = cxRow - sizImage.cx;
 	for (ULONG y = sizImage.cy; y; --y)
 	{
 		for (ULONG x = sizImage.cx; x; --x)
@@ -207,9 +215,9 @@ bool IconBitmapUtils::HasAlpha(__in Gdiplus::ARGB* pargb, const SIZE& sizImage, 
 	return false;
 }
 
-HRESULT IconBitmapUtils::ConvertToPARGB32(HDC hdc, __inout Gdiplus::ARGB* pargb, HBITMAP hbmp, const SIZE& sizImage, int cxRow)
+HRESULT IconBitmapUtils::ConvertToPARGB32(const HDC& hdc, __inout Gdiplus::ARGB* pargb, const HBITMAP hbmp, const SIZE& sizImage, const int cxRow)
 {
-	BITMAPINFO bmi = { 0 };
+	BITMAPINFO bmi = {};
 	bmi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
 	bmi.bmiHeader.biPlanes = 1;
 	bmi.bmiHeader.biCompression = BI_RGB;
@@ -218,8 +226,8 @@ HRESULT IconBitmapUtils::ConvertToPARGB32(HDC hdc, __inout Gdiplus::ARGB* pargb,
 	bmi.bmiHeader.biHeight = sizImage.cy;
 	bmi.bmiHeader.biBitCount = 32;
 
-	HANDLE hHeap = GetProcessHeap();
-	auto pvBits = HeapAlloc(hHeap, 0, bmi.bmiHeader.biWidth * 4 * bmi.bmiHeader.biHeight);
+	const HANDLE hHeap = GetProcessHeap();
+	auto* pvBits = HeapAlloc(hHeap, 0, bmi.bmiHeader.biWidth * 4 * bmi.bmiHeader.biHeight);
 	if (!pvBits)
 		return E_OUTOFMEMORY;
 	SCOPE_EXIT { HeapFree(hHeap, 0, pvBits); };
@@ -227,8 +235,8 @@ HRESULT IconBitmapUtils::ConvertToPARGB32(HDC hdc, __inout Gdiplus::ARGB* pargb,
 	if (GetDIBits(hdc, hbmp, 0, bmi.bmiHeader.biHeight, pvBits, &bmi, DIB_RGB_COLORS) != bmi.bmiHeader.biHeight)
 		return E_UNEXPECTED;
 
-	ULONG cxDelta = cxRow - bmi.bmiHeader.biWidth;
-	auto pargbMask = static_cast<Gdiplus::ARGB *>(pvBits);
+	const ULONG cxDelta = cxRow - bmi.bmiHeader.biWidth;
+	const auto* pargbMask = static_cast<Gdiplus::ARGB *>(pvBits);
 
 	for (ULONG y = bmi.bmiHeader.biHeight; y; --y)
 	{

@@ -8,6 +8,7 @@ module;
 export module DebugOutput;
 
 import std;
+import wil;
 import Registry;
 import RollingFile;
 
@@ -115,6 +116,12 @@ void Trace(std::wformat_string<Args...> fmt, Args&&... args) {
 	if (IsTraceActive())
 		TraceRaw(std::format(fmt, std::forward<Args>(args)...));
 }
+
+void Trace(std::wstring_view msg, std::source_location sloc = {}) {
+	if (IsTraceActive())
+		TraceRaw(std::format(L"[{}] {}", sloc, msg));
+}
+
 }
 
 export using namespace tgit::DebugOutput;

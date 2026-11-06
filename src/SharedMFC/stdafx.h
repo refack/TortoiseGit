@@ -10,6 +10,13 @@
 #include <string_view>
 #include <atomic>
 #include <system_error>
+#include <cmath>
+#include <list>
+#include <typeinfo>
+#include <vector>
+#include <unordered_map>
+#include <unordered_set>
+#include <functional>
 
 
 // Every textual include first, every import last: a textual std header after an

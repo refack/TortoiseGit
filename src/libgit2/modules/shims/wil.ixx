@@ -7,7 +7,11 @@ module;
 #include <wil/stl.h>			// make_range
 #include <winrt/base.h>
 #include <ShlObj.h>			// SHGetKnownFolderPath, FOLDERID_*, REFKNOWNFOLDERID
+#include <Shlwapi.h>		// PathCompactPathEx, for the fs::path formatter's "{:>N}"
 #include <git2.h>			// the libgit2 owners and OpenGitRepository
+#pragma comment(lib, "Shlwapi.lib")	// PathCompactPathEx
+
+
 
 export module wil;
 import std;
@@ -109,7 +113,7 @@ CopyTerminated(const std::span<wchar_t> dest, const std::wstring_view source) no
 }
 
 
-std::wstring_view get_string_resource(const std::optional<HINSTANCE> oInstance,	const UINT uID,	const WORD wLanguage = LANG_USER_DEFAULT) {
+std::wstring_view get_string_resource(const UINT uID, const std::optional<HINSTANCE> oInstance = std::nullopt, const WORD wLanguage = LANG_USER_DEFAULT) {
 	auto pCurrentStr = [&] -> std::wstring_view {
 		// A string table is stored in blocks of 16: block (uID / 16) + 1, slot uID % 16.
 		const auto* const blockResId = MAKEINTRESOURCE((uID >> 4U) + 1);
@@ -161,7 +165,7 @@ size_t LoadStringEx(const HINSTANCE& hInstance, const UINT uID, const std::span<
 		return 0;
 	*lpBuffer.begin() = L'\0';
 
-	auto&& resView = get_string_resource(hInstance, uID, wLanguage);
+	auto&& resView = get_string_resource(uID, hInstance, wLanguage);
 	// ReSharper disable once CppTooWideScopeInitStatement
 	auto&& r = CopyTerminated(lpBuffer, resView);
 	if (!r)
@@ -227,6 +231,19 @@ std::wstring MultiByteToWideChar(const std::string_view narrow, const ConvOpts o
 std::wstring UTF8ToWString(const std::string_view narrow) { return til::MultiByteToWideChar(narrow); }
 
 
+template <auto InitFn, auto FreeFn>
+class scoped_lib {
+	bool m_active;
+public:
+	scoped_lib() : m_active(InitFn() >= 0) {}
+	~scoped_lib() { if (m_active) FreeFn(); }
+	scoped_lib(scoped_lib&& o) noexcept : m_active(std::exchange(o.m_active, false)) {}
+	scoped_lib& operator=(scoped_lib&&) = delete;
+	scoped_lib(const scoped_lib&) = delete;
+};
+using libgit2_token = scoped_lib<git_libgit2_init, git_libgit2_shutdown>;
+
+
 }
 
 
@@ -282,25 +299,59 @@ static_assert(std::same_as<decltype(std::format(L"{:f}", sloc_t{})), std::wstrin
 #ifndef __cpp_lib_format_path
 template <>
 struct formatter<fs::path, wchar_t> {
-	bool generic = false;
+	bool generic = false;					// "{:g}" prints generic (P2845 spells it the same)
+	size_t max_width = 0;					// "{:>N}" compacts via PathCompactPathEx to fit N columns; 0 compacts nothing
+	size_t width_arg = std::variant_npos;	// "{:>{}}" takes N from the next format argument
+											// NB: P2845's '>' is right-align padding, the opposite job; revisit the call sites when this block dies.
 
 	constexpr auto parse(std::wformat_parse_context& ctx) {
 		auto it = ctx.begin();
 		if (it != ctx.end() && *it == L'g') { generic = true; ++it; }   // "{:g}" prints generic
-		if (it != ctx.end() && *it != L'}') throw std::format_error("bad source_location spec");
+		if (it != ctx.end() && *it == L'>') {
+			++it;
+			if (it != ctx.end() && *it == L'{') {
+				++it;
+				width_arg = ctx.next_arg_id();	// this MSVC predates P2757's check_dynamic_spec_integral; the type check is at runtime below
+				if (it == ctx.end() || *it != L'}') throw std::format_error("bad path spec");
+				++it;
+			}
+			else {
+				if (it == ctx.end() || *it < L'0' || L'9' < *it) throw std::format_error("bad path spec");
+				for (; it != ctx.end() && L'0' <= *it && *it <= L'9'; ++it)
+					max_width = (max_width * 10) + static_cast<size_t>(*it - L'0');
+			}
+		}
+		if (it != ctx.end() && *it != L'}') throw std::format_error("bad path spec");
 		return it;
 	}
 
 	auto format(const fs::path& path, auto& ctx) const {
-		if (generic)
-			return std::format_to(ctx.out(), L"{}", path.generic_wstring());
-		else
-			return std::format_to(ctx.out(), L"{}", path.wstring());
+		auto pathstr = generic ? path.generic_wstring() : path.wstring();
+		auto cch_max = max_width;
+		if (width_arg != std::variant_npos)
+			cch_max = visit_format_arg([]<class T>(const T& n) -> size_t {
+				if constexpr (std::integral<T> && !std::same_as<T, bool> && !std::same_as<T, wchar_t>)
+					return n > 0 ? static_cast<size_t>(n) : 0;
+				else
+					throw std::format_error("path width is not an integer");
+			},
+			ctx.arg(width_arg)
+		);
+		if (cch_max && cch_max <= pathstr.size()) {	// cch_max counts the NUL, so exactly cch_max chars don't fit either
+			std::wstring compacted;
+			compacted.resize_and_overwrite(cch_max, [&pathstr](const std::wstring::pointer buf_data, const size_t buf_size) {
+				return PathCompactPathEx(buf_data, pathstr.c_str(), win32_cast(buf_size), 0) ? std::wstring_view{buf_data}.size() : 0;
+			});
+			pathstr = std::move(compacted);
+		}
+		return std::format_to(ctx.out(), L"{}", pathstr);
 	}
 };
 static_assert(std::formattable<fs::path, wchar_t>);
 static_assert(std::same_as<decltype(std::format(L"{}", fs::path{".."})), std::wstring>);
 static_assert(std::same_as<decltype(std::format(L"{}", fs::path{L".."})), std::wstring>);
+static_assert(std::same_as<decltype(std::format(L"{:g>40}", fs::path{L".."})), std::wstring>);
+static_assert(std::same_as<decltype(std::format(L"{:>{}}", fs::path{L".."}, 40)), std::wstring>);
 static_assert(!std::same_as<decltype(std::format("{}", fs::path{L".."})), std::wstring>);
 #endif
 
@@ -464,6 +515,11 @@ namespace reg {
 			value = wil::reg::try_get_dword(HKEY_LOCAL_MACHINE, TortoiseGitKey, name);
 
 		return value;
+	}
+
+	std::optional<bool> try_get_tgit_bool(const std::wstring_view name) {
+		auto&& temp = try_get_tgit_dword(name);
+		return temp;
 	}
 
 	til::expect_no_hres set_tgit_string(const HKEY& root, const std::wstring_view name, const std::wstring_view data) {

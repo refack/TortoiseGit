@@ -1,31 +1,51 @@
 module;
 #include <afxcmn.h>
 
+#include <gitdll.h>
+#include <Utils/DPIAware.h>
+
 #include "Utils/ProjectProperties.h"
-
 #include "Resources/LoglistCommonResource.h"
-
 #include "Utils/HintCtrl.h"
 #include "Utils/LogDataVector.h"
 #include "Utils/ResizableColumnsListCtrl.h"
+#include "IconMenu.h"
+#include "LoglistUtils.h"
 
+#include "Resources/resource.h"
+#include "../TortoiseShell/resource.h"
+
+#include "Colors.h"
 
 
 export module GitLogListBase;
 
 import std;
 import git_h;
+import str_utils;
+import DebugOutput;
 import TGitPath;
 import GitHash;
 import GitRev;
 import GitRevLoglist;
 import FindDlg;
 import LogDlgFilter;
+import FilterHelper;
+import RIAA;
+import misc_constants;
+import wil.MFC;
+import GitMailmap;
+import MessageBox;
 
-
+using namespace tgit;
+using namespace misc_constants;
 using namespace TGitH;
 using namespace GitLogList;
+using namespace DebugOutput;
+using namespace RIAA;
 
+export class CLogDlgFilter;
+using Locker = CComCritSecLock<CComCriticalSection>;
 
 export class CGitLogListBase : public CHintCtrl<CResizableColumnsListCtrl<CListCtrl>>, public IAsyncDiffCB {
 	DECLARE_DYNAMIC(CGitLogListBase)
@@ -460,7 +480,7 @@ protected:
 	                                    CString* pShortname = nullptr,
 	                                    size_t* pIndex = nullptr);
 
-	void FillBackGround(HDC hdc, std::int32_t_PTR Index, CRect& rect);
+	void FillBackGround(HDC hdc, DWORD_PTR Index, CRect& rect);
 	void DrawTagBranchMessage(NMLVCUSTOMDRAW* pLVCD, const CRect& rect, INT_PTR index, const std::vector<REFLABEL>& refList);
 	void DrawTagBranch(HDC hdc,
 	                   CDC& W_Dc,
@@ -575,7 +595,7 @@ protected:
 	CFont m_FontItalics;
 	CFont m_boldItalicsFont;
 
-	CRegstd::int32_t m_regMaxBugIDColWidth;
+	CRegDWORD m_regMaxBugIDColWidth;
 
 	CColors m_Colors;
 
@@ -617,6 +637,101 @@ public:
 	void EnableDragnDrop(bool enable) { m_bDragndropEnabled = enable; }
 };
 
+export class CLogDlgFilter : public CFilterHelper {
+public:
+	/// construction
+	using CFilterHelper::CFilterHelper;
+
+	/// apply filter
+	bool operator()(GitRevLoglist* pRev, CGitLogListBase* loglist, const MAP_HASH_NAME& hashMapRefs) const {
+		if (!IsFilterActive())
+			return CalculateFinalResult(true);
+
+		// we need to perform expensive string / pattern matching
+		scratch.clear();
+		if (GetSelectedFilters() & (LOGFILTER_SUBJECT | LOGFILTER_MESSAGES)) {
+			scratch += pRev->GetSubject();
+			scratch += L'\n';
+		}
+		if (GetSelectedFilters() & LOGFILTER_MESSAGES) {
+			scratch += pRev->GetBody();
+			scratch += L'\n';
+		}
+		if (GetSelectedFilters() & LOGFILTER_BUGID) {
+			scratch += loglist->m_ProjectProperties.FindBugID(pRev->GetSubjectBody());
+			scratch += L'\n';
+		}
+		if (GetSelectedFilters() & LOGFILTER_AUTHORS) {
+			scratch += pRev->GetAuthorName();
+			scratch += L'\n';
+			scratch += pRev->GetCommitterName();
+			scratch += L'\n';
+		}
+		if (GetSelectedFilters() & LOGFILTER_EMAILS) {
+			scratch += pRev->GetAuthorEmail();
+			scratch += L'\n';
+			scratch += pRev->GetCommitterEmail();
+			scratch += L'\n';
+		}
+		if (GetSelectedFilters() & LOGFILTER_REVS) {
+			scratch += pRev->m_CommitHash.ToString();
+			scratch += L'\n';
+		}
+		if (GetSelectedFilters() & LOGFILTER_NOTES) {
+			scratch += pRev->m_Notes;
+			scratch += L'\n';
+		}
+		if (GetSelectedFilters() & (LOGFILTER_REFNAME | LOGFILTER_ANNOTATEDTAG)) {
+			auto refList = hashMapRefs.find(pRev->m_CommitHash);
+			if (refList != hashMapRefs.cend()) {
+				if (GetSelectedFilters() & LOGFILTER_REFNAME) {
+					for (const auto& ref : (*refList).second) {
+						scratch += ref;
+						scratch += L'\n';
+					}
+				}
+				if (GetSelectedFilters() & LOGFILTER_ANNOTATEDTAG) {
+					scratch += loglist->GetTagInfo((*refList).second);
+					scratch += L'\n';
+				}
+			}
+		}
+		if (GetSelectedFilters() & LOGFILTER_PATHS) {
+			/* Because changed files list is loaded on demand when gui show, files will empty when files have not fetched.
+			   we can add it back by using one-way diff(with outnumber changed and rename detect.
+			   here just need changed filename list. one-way is much quicker.
+			 */
+			if (pRev->m_IsDiffFiles || loglist->IsCached(pRev)) {
+				auto pathList = pRev->GetFiles(loglist);
+				for (int i = 0; i < pathList.GetCount(); ++i) {
+					scratch += pathList[i].GetGitPathString().c_str();
+					scratch += L'|';
+					scratch += pathList[i].GetGitOldPathString().c_str();
+					scratch += L'\n';
+				}
+			} else {
+				if (!pRev->m_IsSimpleListReady)
+					pRev->SafeGetSimpleList(&g_Git);
+
+				for (size_t i = 0; i < pRev->m_SimpleFileList.size(); ++i) {
+					scratch += pRev->m_SimpleFileList[i];
+					scratch += L'\n';
+				}
+			}
+		}
+
+		return CalculateFinalResult(Match(scratch));
+	}
+
+
+	/// assignment operator
+	using CFilterHelper::operator=;
+
+	/// compare filter specs
+	using CFilterHelper::operator==;
+	using CFilterHelper::operator!=;
+};
+
 
 const UINT CGitLogListBase::m_FindDialogMessage = RegisterWindowMessage(FINDMSGSTRING);
 const UINT CGitLogListBase::m_ScrollToMessage = RegisterWindowMessage(L"TORTOISEGIT_LOG_SCROLLTO");
@@ -642,15 +757,15 @@ CGitLogListBase::CGitLogListBase() :
 
 	const int cx = GetSystemMetrics(SM_CXSMICON);
 	const int cy = GetSystemMetrics(SM_CYSMICON);
-	m_hModifiedIcon = CAppUtils::LoadIconEx(IDI_ACTIONMODIFIED, cx, cy);
-	m_hReplacedIcon = CAppUtils::LoadIconEx(IDI_ACTIONREPLACED, cx, cy);
-	m_hConflictedIcon = CAppUtils::LoadIconEx(IDI_ACTIONCONFLICTED, cx, cy);
-	m_hAddedIcon = CAppUtils::LoadIconEx(IDI_ACTIONADDED, cx, cy);
-	m_hDeletedIcon = CAppUtils::LoadIconEx(IDI_ACTIONDELETED, cx, cy);
-	m_hFetchIcon = CAppUtils::LoadIconEx(IDI_ACTIONFETCHING, cx, cy);
-	m_hErrorIcon = CAppUtils::LoadIconEx(IDI_ACTIONERROR, cx, cy);
+	m_hModifiedIcon = wil::MFC::LoadIconEx(IDI_ACTIONMODIFIED, cx, cy);
+	m_hReplacedIcon = wil::MFC::LoadIconEx(IDI_ACTIONREPLACED, cx, cy);
+	m_hConflictedIcon = wil::MFC::LoadIconEx(IDI_ACTIONCONFLICTED, cx, cy);
+	m_hAddedIcon = wil::MFC::LoadIconEx(IDI_ACTIONADDED, cx, cy);
+	m_hDeletedIcon = wil::MFC::LoadIconEx(IDI_ACTIONDELETED, cx, cy);
+	m_hFetchIcon = wil::MFC::LoadIconEx(IDI_ACTIONFETCHING, cx, cy);
+	m_hErrorIcon = wil::MFC::LoadIconEx(IDI_ACTIONERROR, cx, cy);
 
-	m_Filter.m_NumberOfLogsScale = CRegstd::int32_t(L"Software\\TortoiseGit\\LogDialog\\NumberOfLogsScale", CFilterData::SHOW_NO_LIMIT);
+	m_Filter.m_NumberOfLogsScale = CRegDWORD(L"Software\\TortoiseGit\\LogDialog\\NumberOfLogsScale", CFilterData::SHOW_NO_LIMIT);
 	if (m_Filter.m_NumberOfLogsScale == CFilterData::SHOW_LAST_SEL_DATE) {
 		CString key;
 		key.Format(L"Software\\TortoiseGit\\History\\LogDlg_Limits\\%s\\FromDate", GitCall::m_CurrentDirStorage);
@@ -661,17 +776,17 @@ CGitLogListBase::CGitLogListBase() :
 			m_Filter.m_From = static_cast<std::int32_t>(time.GetTime());
 		}
 	}
-	m_Filter.m_NumberOfLogs = CRegstd::int32_t(L"Software\\TortoiseGit\\LogDialog\\NumberOfLogs", 1);
+	m_Filter.m_NumberOfLogs = CRegDWORD(L"Software\\TortoiseGit\\LogDialog\\NumberOfLogs", 1);
 
 	// get short/long datetime setting from registry
-	std::int32_t RegUseShortDateFormat = CRegstd::int32_t(L"Software\\TortoiseGit\\LogDateFormat", TRUE);
+	std::int32_t RegUseShortDateFormat = CRegDWORD(L"Software\\TortoiseGit\\LogDateFormat", TRUE);
 	if (RegUseShortDateFormat) {
 		m_DateFormat = DATE_SHORTDATE;
 	} else {
 		m_DateFormat = DATE_LONGDATE;
 	}
 	// get relative time display setting from registry
-	std::int32_t regRelativeTimes = CRegstd::int32_t(L"Software\\TortoiseGit\\RelativeTimes", FALSE);
+	std::int32_t regRelativeTimes = CRegDWORD(L"Software\\TortoiseGit\\RelativeTimes", FALSE);
 	m_bRelativeTimes = (regRelativeTimes != 0);
 
 	m_ContextMenuMask &= ~GetContextMenuBit(ID_REBASE_PICK);
@@ -684,13 +799,13 @@ CGitLogListBase::CGitLogListBase() :
 
 	m_ColumnRegKey = L"log";
 
-	m_bTagsBranchesOnRightSide = !!CRegstd::int32_t(L"Software\\TortoiseGit\\DrawTagsBranchesOnRightSide", FALSE);
-	m_bSymbolizeRefNames = !!CRegstd::int32_t(L"Software\\TortoiseGit\\SymbolizeRefNames", FALSE);
-	m_bIncludeBoundaryCommits = !!CRegstd::int32_t(L"Software\\TortoiseGit\\LogIncludeBoundaryCommits", FALSE);
-	m_bFullCommitMessageOnLogLine = !!CRegstd::int32_t(L"Software\\TortoiseGit\\FullCommitMessageOnLogLine", FALSE);
+	m_bTagsBranchesOnRightSide = !!CRegDWORD(L"Software\\TortoiseGit\\DrawTagsBranchesOnRightSide", FALSE);
+	m_bSymbolizeRefNames = !!CRegDWORD(L"Software\\TortoiseGit\\SymbolizeRefNames", FALSE);
+	m_bIncludeBoundaryCommits = !!CRegDWORD(L"Software\\TortoiseGit\\LogIncludeBoundaryCommits", FALSE);
+	m_bFullCommitMessageOnLogLine = !!CRegDWORD(L"Software\\TortoiseGit\\FullCommitMessageOnLogLine", FALSE);
 
-	m_LineWidth = max(1, static_cast<int>(CRegstd::int32_t(L"Software\\TortoiseGit\\TortoiseProc\\Graph\\LogLineWidth", 2)));
-	m_NodeSize = max(1, static_cast<int>(CRegstd::int32_t(L"Software\\TortoiseGit\\TortoiseProc\\Graph\\LogNodeSize", 10)));
+	m_LineWidth = std::max(1, static_cast<int>(CRegDWORD(L"Software\\TortoiseGit\\TortoiseProc\\Graph\\LogLineWidth", 2)));
+	m_NodeSize = std::max(1, static_cast<int>(CRegDWORD(L"Software\\TortoiseGit\\TortoiseProc\\Graph\\LogNodeSize", 10)));
 
 	m_AsyncDiffEvent = ::CreateEvent(nullptr, FALSE, TRUE, nullptr);
 	StartAsyncDiffThread();
@@ -873,8 +988,8 @@ void CGitLogListBase::InsertGitColumn() {
 	CString temp;
 
 	Init();
-	if (CRegstd::int32_t(L"Software\\TortoiseGit\\LogFontForLogCtrl", FALSE)) {
-		CAppUtils::CreateFontForLogs(GetSafeHwnd(), m_Font);
+	if (CRegDWORD(L"Software\\TortoiseGit\\LogFontForLogCtrl", FALSE)) {
+		wil::MFC::CreateFontForLogs(GetSafeHwnd(), m_Font);
 		SetFont(&m_Font);
 	}
 
@@ -935,7 +1050,7 @@ void CGitLogListBase::InsertGitColumn() {
 }
 
 
-void CGitLogListBase::FillBackGround(HDC hdc, std::int32_t_PTR Index, CRect& rect) {
+void CGitLogListBase::FillBackGround(HDC hdc, DWORD_PTR Index, CRect& rect) {
 	LVITEM rItem = { 0 };
 	rItem.mask = LVIF_STATE;
 	rItem.iItem = static_cast<int>(Index);
@@ -1726,7 +1841,7 @@ void CGitLogListBase::OnNMCustomdrawLoglist(NMHDR* pNMHDR, LRESULT* pResult) {
 								if (m_ShowRefMask & LOGLIST_SHOWREMOTEBRANCHES) {
 									bool found = false;
 									for (auto it2 = refListIt + 1; it2 != refListItEnd; ++it2) {
-										if (*it2 == tgit::str::StringView(defaultUpstream)) {
+										if (*it2 == str::StringView(defaultUpstream)) {
 											found = true;
 											break;
 										}
@@ -2286,7 +2401,7 @@ void CGitLogListBase::OnContextMenu(CWnd* pWnd, CPoint point) {
 				if (m_ContextMenuMask& GetContextMenuBit(ID_COMPAREWITHPREVIOUS)) {
 					if (parentHash.size() == 1) {
 						popup.AppendMenuIcon(ID_COMPAREWITHPREVIOUS, IDS_LOG_POPUP_COMPAREWITHPREVIOUS, IDI_DIFF);
-						if (CRegstd::int32_t(L"Software\\TortoiseGit\\DiffByDoubleClickInLog", FALSE) && m_ColumnRegKey != L"reflog")
+						if (CRegDWORD(L"Software\\TortoiseGit\\DiffByDoubleClickInLog", FALSE) && m_ColumnRegKey != L"reflog")
 							popup.SetDefaultItem(ID_COMPAREWITHPREVIOUS, FALSE);
 						requiresSeparator = true;
 					} else if (parentHash.size() > 1) {
@@ -2294,7 +2409,7 @@ void CGitLogListBase::OnContextMenu(CWnd* pWnd, CPoint point) {
 						popup.AppendMenuIcon(ID_COMPAREWITHPREVIOUS, IDS_LOG_POPUP_COMPAREWITHPREVIOUS, IDI_DIFF, diffmenu.m_hMenu);
 						for (size_t i = 0; i < parentInfo.size(); ++i) {
 							diffmenu.AppendMenuIcon(ID_COMPAREWITHPREVIOUS + ((i + 1) << 16), parentInfo[i].c_str());
-							if (i == 0 && CRegstd::int32_t(L"Software\\TortoiseGit\\DiffByDoubleClickInLog", FALSE) && m_ColumnRegKey != L"reflog") {
+							if (i == 0 && CRegDWORD(L"Software\\TortoiseGit\\DiffByDoubleClickInLog", FALSE) && m_ColumnRegKey != L"reflog") {
 								popup.SetDefaultItem(ID_COMPAREWITHPREVIOUS, FALSE);
 								diffmenu.SetDefaultItem(static_cast<UINT>(ID_COMPAREWITHPREVIOUS + ((i + 1) << 16)), FALSE);
 							}
@@ -3083,7 +3198,7 @@ std::expected<bool, CString> CGitLogListBase::BeginFetchLog() {
 	if (mask & TGitH::LOG_INFO_FOLLOW)
 		mask &= ~(TGitH::LOG_INFO_ALL_BRANCH | TGitH::LOG_INFO_BASIC_REFS | TGitH::LOG_INFO_LOCAL_BRANCHES);
 
-	auto cmd = g_Git.GetLogCmd(range, path, mask, &m_Filter, CRegstd::int32_t(L"Software\\TortoiseGit\\LogOrderBy", TGitH::LOG_ORDER_TOPOORDER));
+	auto cmd = g_Git.GetLogCmd(range, path, mask, &m_Filter, CRegDWORD(L"Software\\TortoiseGit\\LogOrderBy", TGitH::LOG_ORDER_TOPOORDER));
 
 	PostMessage(LVM_SETITEMCOUNT, m_logEntries.size(), LVSICF_NOINVALIDATEALL);
 
@@ -3121,7 +3236,7 @@ BOOL CGitLogListBase::PreTranslateMessage(MSG* pMsg) {
 	if (pMsg->message == WM_KEYDOWN && pMsg->wParam == '\r' && !(GetAsyncKeyState(VK_CONTROL) & 0x8000)) {
 		//if (GetFocus()==GetDlgItem(IDC_LOGLIST))
 		{
-			if (CRegstd::int32_t(L"Software\\TortoiseGit\\DiffByDoubleClickInLog", FALSE)) {
+			if (CRegDWORD(L"Software\\TortoiseGit\\DiffByDoubleClickInLog", FALSE)) {
 				DiffSelectedRevWithPrevious();
 				return TRUE;
 			}
@@ -3156,7 +3271,7 @@ void CGitLogListBase::OnNMDblclkLoglist(NMHDR* /*pNMHDR*/, LRESULT* pResult) {
 	// a double click on an entry in the revision list has happened
 	*pResult = 0;
 
-	if (CRegstd::int32_t(L"Software\\TortoiseGit\\DiffByDoubleClickInLog", FALSE))
+	if (CRegDWORD(L"Software\\TortoiseGit\\DiffByDoubleClickInLog", FALSE))
 		DiffSelectedRevWithPrevious();
 }
 
@@ -3733,8 +3848,8 @@ LRESULT CGitLogListBase::OnScrollToMessage(WPARAM itemToSelect, LPARAM /*lParam*
 	m_lastSelectedHash = theSelectedHash;
 
 	const int countPerPage = GetCountPerPage();
-	EnsureVisible(max(0, static_cast<int>(itemToSelect) - countPerPage / 2), FALSE);
-	EnsureVisible(min(GetItemCount(), static_cast<int>(itemToSelect) + countPerPage / 2), FALSE);
+	EnsureVisible(std::max(0, static_cast<int>(itemToSelect) - countPerPage / 2), FALSE);
+	EnsureVisible(std::min(GetItemCount(), static_cast<int>(itemToSelect) + countPerPage / 2), FALSE);
 	EnsureVisible(static_cast<int>(itemToSelect), FALSE);
 	return 0;
 }

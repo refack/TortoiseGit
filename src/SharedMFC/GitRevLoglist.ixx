@@ -16,7 +16,6 @@ import wil;			// scope_exit_helper, which SCOPE_EXIT expands to; the libgit2 own
 import gsl;			// win32_cast
 import str_utils;
 
-import AppUtils.Window;
 import DebugOutput;
 import GitHash;
 import GitMailmap;
@@ -27,11 +26,17 @@ import TGitPath;	// GitAdminDir lives in the TGitPath module
 import invarients;
 import lanes;
 import LogDlgFilter;
+import misc_constants;
 
-using namespace RegistryDep;
+
+class CLogDataVector;
+
 
 namespace fs = std::filesystem;
 
+using namespace misc_constants;
+using namespace RegistryDep;
+using namespace tgit;
 using namespace TGitH;
 using TGitPath::CTGitPath;
 using TGitPath::CTGitPathList;
@@ -43,68 +48,14 @@ using tgit::wstr::CTime;
 using Locker = CComCritSecLock<CComCriticalSection>;
 
 
-
+// NOLINTBEGIN(*-throw-by-value-catch-by-reference)
 export namespace GitLogList {
-
-
-#pragma region Resources
-constexpr auto ICONITEMBORDER = 5;
-
-constexpr auto GITLOG_START = 0;
-constexpr auto GITLOG_END = 100;
-constexpr auto GITLOG_FAILED = 101;
-
-constexpr auto LOGFILTER_ALL = 0xFFFF;
-constexpr auto LOGFILTER_TOGGLE = 0x8000;
-constexpr auto LOGFILTER_MESSAGES = 0x0001;
-constexpr auto LOGFILTER_PATHS = 0x0002;
-constexpr auto LOGFILTER_AUTHORS = 0x0004;
-constexpr auto LOGFILTER_REVS = 0x0008;
-constexpr auto LOGFILTER_REGEX = 0x0010;
-constexpr auto LOGFILTER_BUGID = 0x0020;
-constexpr auto LOGFILTER_SUBJECT = 0x0040;
-constexpr auto LOGFILTER_REFNAME = 0x0080;
-constexpr auto LOGFILTER_EMAILS = 0x0100;
-constexpr auto LOGFILTER_NOTES = 0x0200;
-constexpr auto LOGFILTER_ANNOTATEDTAG = 0x0400;
-constexpr auto LOGFILTER_CASE = 0x0800;
-
-constexpr auto LOGLIST_SHOWNOTHING = 0x0000;
-constexpr auto LOGLIST_SHOWLOCALBRANCHES = 0x0001;
-constexpr auto LOGLIST_SHOWREMOTEBRANCHES = 0x0002;
-constexpr auto LOGLIST_SHOWTAGS = 0x0004;
-constexpr auto LOGLIST_SHOWSTASH = 0x0008;
-constexpr auto LOGLIST_SHOWBISECT = 0x0010;
-constexpr auto LOGLIST_SHOWOTHERREFS = 0x0020;
-constexpr auto LOGLIST_SHOWALLREFS = 0xFFFF;
-
-//typedef void CALLBACK_PROCESS(void * data, int progress);
-constexpr auto MSG_LOADED = (WM_USER+110);
-constexpr auto MSG_LOAD_PERCENTAGE = (WM_USER+111);
-constexpr auto MSG_REFLOG_CHANGED = (WM_USER+112);
-constexpr auto MSG_FETCHED_DIFF = (WM_USER+113);
-constexpr auto MSG_COMMITS_REORDERED = (WM_USER+114);
-
-
-constexpr auto LOG_INDEX_MAGIC = 0x88AA5566;
-constexpr auto LOG_DATA_MAGIC = 0x99BB0FFF;
-constexpr auto LOG_DATA_ITEM_MAGIC = 0x0FCC9ACC;
-constexpr auto LOG_DATA_FILE_MAGIC = 0x19EE9DFF;
-// bump whenever SLogCacheIndexItem's on-disk layout changes size, e.g. CGitHash/git_oid
-// growing under GIT_EXPERIMENTAL_SHA256 (33 bytes vs. 20) even while static_cast<int>(tgit::invarients::GitFormatHolder::GitHashSize()) stays 20
-constexpr auto LOG_INDEX_VERSION = 0x12;
-constexpr auto INDEX_FILE_NAME = L"tortoisegit.index";
-constexpr auto DATA_FILE_NAME = L"tortoisegit.data";
-constexpr auto HISTORYLENGTH = 50;
-
-#pragma endregion
-
 
 
 #pragma pack (1)
 struct SLogCacheIndexHeader {
-	std::int32_t m_Magic;
-	std::int32_t m_Version;
+	std::uint32_t m_Magic;
+	std::uint32_t m_Version;
 	std::int32_t m_ItemCount;
 };
 
@@ -112,7 +63,7 @@ struct SLogCacheIndexHeader {
 
 struct SLogCacheIndexItem {
 	CGitHash m_Hash{};
-	ULONGLONG m_Offset{};
+	std::uint64_t m_Offset{};
 };
 
 
@@ -125,13 +76,13 @@ struct SLogCacheIndexFile {
 
 
 struct SLogCacheRevFileHeader {
-	std::int32_t m_Magic;
-	std::int32_t m_Action;
-	std::int32_t m_Stage; // TODO: unused, can be removed
-	std::int32_t m_ParentNo;
-	std::int32_t m_Add;
-	std::int32_t m_Del;
-	std::int32_t m_IsSubmodule;
+	std::uint32_t m_Magic;
+	std::uint32_t m_Action;
+	std::uint32_t m_Stage; // TODO: unused, can be removed
+	std::uint32_t m_ParentNo;
+	std::uint32_t m_Add;
+	std::uint32_t m_Del;
+	std::uint32_t m_IsSubmodule;
 	std::int32_t m_FileNameSize;
 	std::int32_t m_OldFileNameSize;
 	wchar_t m_FileName[1];
@@ -140,15 +91,15 @@ struct SLogCacheRevFileHeader {
 
 
 struct SLogCacheRevItemHeader {
-	std::int32_t m_Magic;
+	std::uint32_t m_Magic;
 	std::int32_t m_FileCount;
 };
 
 
 
 struct SLogCacheDataFileHeader {
-	std::int32_t m_Magic;
-	std::int32_t m_Version;
+	std::uint32_t m_Magic;
+	std::uint32_t m_Version;
 };
 # pragma pack ()
 
@@ -171,9 +122,7 @@ auto any_of(Cont& c, Pred&& p) {
 class SelectionHistory {
 
 public:
-	SelectionHistory() {
-		lastselected.reserve(HISTORYLENGTH);
-	}
+	SelectionHistory() : lastselected{HISTORYLENGTH} {}
 
 
 	void Add(const CGitHash& hash) {
@@ -218,44 +167,46 @@ public:
 		if (location < 1)
 			return FALSE;
 
-		historyEntry = lastselected[--location];
+		this->location -= 1;
+		historyEntry = this->lastselected[this->location];
 
 		return TRUE;
 	}
 
 
 	BOOL GoForward(CGitHash& historyEntry) {
-		if (location >= lastselected.size() - 1)
+		if (this->location >= this->lastselected.size() - 1)
 			return FALSE;
 
-		historyEntry = lastselected[++location];
+		this->location += 1;
+		historyEntry = this->lastselected[this->location];
 
 		return TRUE;
 	}
 
 private:
-	std::vector<CGitHash> lastselected;
+	std::vector<CGitHash> lastselected{};
 	size_t location = 0;
 };
 
 
 
-int static Compare(const void* p1, const void* p2) {
+int Compare(const void* p1, const void* p2) {
 	return memcmp(p1, p2, static_cast<int>(tgit::invarients::GitFormatHolder::GitHashSize()));
 }
 
 
 
-void DrawTrackingRoundRect(HDC hdc, CRect rect, HBRUSH brush, COLORREF darkColor) {
-	POINT point = { 4, 4 };
+void DrawTrackingRoundRect(const HDC& hdc, const CRect rect, const HBRUSH& brush, const COLORREF& darkColor) {
+	constexpr POINT point = { 4, 4 };
 	CRect rt2 = rect;
 	rt2.DeflateRect(1, 1);
 	rt2.OffsetRect(2, 2);
 
-	HPEN nullPen = ::CreatePen(PS_NULL, 0, 0);
-	HPEN oldpen = static_cast<HPEN>(::SelectObject(hdc, nullPen));
-	HBRUSH darkBrush = ::CreateSolidBrush(darkColor);
-	HBRUSH oldbrush = static_cast<HBRUSH>(::SelectObject(hdc, darkBrush));
+	const HPEN& nullPen = ::CreatePen(PS_NULL, 0, 0);
+	const HPEN& oldpen = static_cast<HPEN>(::SelectObject(hdc, nullPen));
+	const HBRUSH& darkBrush = ::CreateSolidBrush(darkColor);
+	const HBRUSH& oldbrush = static_cast<HBRUSH>(::SelectObject(hdc, darkBrush));
 	::RoundRect(hdc, rt2.left, rt2.top, rt2.right, rt2.bottom, point.x, point.y);
 
 	::SelectObject(hdc, brush);
@@ -268,9 +219,9 @@ void DrawTrackingRoundRect(HDC hdc, CRect rect, HBRUSH brush, COLORREF darkColor
 }
 
 
-void DrawUpstream(HDC hdc, CRect rect, COLORREF color, int bold) {
-	HPEN pen = ::CreatePen(PS_SOLID, bold, color);
-	HPEN oldpen = static_cast<HPEN>(::SelectObject(hdc, pen));
+void DrawUpstream(const HDC& hdc, const CRect rect, const COLORREF& color, const int bold) {
+	const HPEN& pen = ::CreatePen(PS_SOLID, bold, color);
+	const HPEN& oldpen = static_cast<HPEN>(::SelectObject(hdc, pen));
 	::MoveToEx(hdc, rect.left + 2 + bold, rect.top + 2 - bold, nullptr);
 	::LineTo(hdc, rect.left + 2 + bold, rect.bottom + 1 - bold);
 	::MoveToEx(hdc, rect.left + 3, rect.top + 1, nullptr);
@@ -284,26 +235,23 @@ void DrawUpstream(HDC hdc, CRect rect, COLORREF color, int bold) {
 }
 
 
-Gdiplus::Color GetGdiColor(COLORREF col) {
+Gdiplus::Color GetGdiColor(const COLORREF col) {
 	return Gdiplus::Color(GetRValue(col),GetGValue(col),GetBValue(col));
 }
 
 
 CString FindSVNRev(const CString& msg) {
 	try {
-		const std::wsregex_iterator end;
-		std::wstring s{ msg };
-		std::wregex regex1(L"^\\s*git-svn-id:\\s+(.*)\\@(\\d+)\\s([a-f\\d\\-]+)$");
-		for (std::wsregex_iterator it(s.cbegin(), s.cend(), regex1); it != end; ++it) {
-			const std::wsmatch match = *it;
+		const std::wstring s{ msg };
+		const auto regex1 = str::regex_matches{L"^\\s*git-svn-id:\\s+(.*)\\@(\\d+)\\s([a-f\\d\\-]+)$"};
+		for (const auto& match : regex1(s)) {
 			if (match.size() == 4) {
 				ATLTRACE(L"matched rev: %s\n", std::wstring(match[2]).c_str());
 				return std::wstring(match[2]).c_str();
 			}
 		}
-		std::wregex regex2(L"^\\s*git-svn-id:\\s(\\d+)\\@([a-f\\d\\-]+)$");
-		for (std::wsregex_iterator it(s.cbegin(), s.cend(), regex2); it != end; ++it) {
-			const std::wsmatch match = *it;
+		const auto regex2 = str::regex_matches(L"^\\s*git-svn-id:\\s(\\d+)\\@([a-f\\d\\-]+)$");
+		for (const auto& match : regex2(s)) {
 			if (match.size() == 3) {
 				ATLTRACE(L"matched rev: %s\n", std::wstring(match[1]).c_str());
 				return std::wstring(match[1]).c_str();
@@ -322,9 +270,9 @@ class IAsyncDiffCB {};
 
 class GitRevLoglistSharedFiles {
 public:
-	GitRevLoglistSharedFiles(PSRWLOCK lock, const TGitPath::CTGitPathList& files) :
-		m_lock(lock)
-		, m_files(files) {
+	GitRevLoglistSharedFiles(const PSRWLOCK& lock, const TGitPath::CTGitPathList& files)
+		: m_files(files)
+		, m_lock(lock) {
 		AcquireSRWLockShared(m_lock);
 	}
 
@@ -332,7 +280,7 @@ public:
 	~GitRevLoglistSharedFiles() { ReleaseSRWLockShared(m_lock); }
 
 	inline int GetCount() const { return m_files.GetCount(); }
-	inline const CTGitPath& operator[](INT_PTR index) const { return m_files[index]; }
+	inline const CTGitPath& operator[](const INT_PTR index) const { return m_files[index]; }
 
 	const CTGitPathList& m_files;
 
@@ -344,10 +292,10 @@ private:
 
 class GitRevLoglistSharedFilesWriter {
 public:
-	GitRevLoglistSharedFilesWriter(PSRWLOCK lock, CTGitPathList& files, CTGitPathList& unrevfiles) :
-		m_lock(lock)
-		, m_files(files)
-		, m_UnRevFiles(unrevfiles) {
+	GitRevLoglistSharedFilesWriter(const PSRWLOCK& lock, CTGitPathList& files, CTGitPathList& unrevfiles)
+		: m_files(files)
+		, m_UnRevFiles(unrevfiles)
+		, m_lock(lock) {
 		AcquireSRWLockExclusive(m_lock);
 	}
 
@@ -464,7 +412,7 @@ public:
 	}
 
 
-	void Parse(GIT_COMMIT* commit, const GitMailmap::CGitMailmap* mailmap) {
+	void Parse(const GIT_COMMIT* commit, const GitMailmap::CGitMailmap* mailmap) {
 		ParserParentFromCommit(commit);
 		ParserFromCommit(commit);
 		// no caching here, because mailmap might have changed
@@ -473,15 +421,15 @@ public:
 	}
 
 
-	[[nodiscard]] CString GetSubjectBody(bool crlf = false) const {
-		CString ret(m_Subject);
+	[[nodiscard]] CString GetSubjectBody(const bool crlf = false) const {
+		CString ret(this->m_Subject);
 		if (!crlf) {
 			ret += L"\n";
-			ret += m_Body;
+			ret += this->m_Body;
 		} else {
 			ret.TrimRight();
 			ret += L"\r\n";
-			CString body(m_Body);
+			CString body(this->m_Body);
 			body.Replace(L"\n", L"\r\n");
 			ret += body.TrimRight();
 		}
@@ -605,7 +553,7 @@ public:
 					}
 					oldAction = win32_cast(m_Action);
 					m_Action |= path.ParseAndUpdateStatus(delta->status);
-					path.m_ParentNo = parentId;
+					path.m_ParentNo = win32_cast(parentId);
 
 					if (delta->flags & GIT_DIFF_FLAG_BINARY) {
 						path.m_StatAdd = L"-";
@@ -629,7 +577,7 @@ public:
 		GIT_COMMIT_LIST list;
 		GIT_HASH parent;
 
-		[[maybe_unused]] CAutoLocker lock(g_Git.m_critGitDllSec);
+		[[maybe_unused]] CAutoLocker _(g_Git.m_critGitDllSec);
 		git->CheckAndInitDll();
 
 		try {
@@ -694,13 +642,8 @@ public:
 
 				m_Action |= path.m_Action;
 
-				if (isBin) {
-					path.m_StatAdd = L"-";
-					path.m_StatDel = L"-";
-				} else {
-					path.m_StatAdd = std::format(L"{}", inc);
-					path.m_StatDel = std::format(L"{}", dec);
-				}
+				path.m_StatAdd = isBin ? L"-" : std::to_wstring(inc);
+				path.m_StatDel = isBin ? L"-" : std::to_wstring(dec);
 				m_Files.AddPath(path);
 			}
 			git_diff_flush(git->GetGitDiff());
@@ -762,7 +705,7 @@ public:
 		GIT_COMMIT_LIST list;
 		GIT_HASH parent;
 
-		[[maybe_unused]] CAutoLocker lock(g_Git.m_critGitDllSec);
+		[[maybe_unused]] CAutoLocker _(g_Git.m_critGitDllSec);
 		git->CheckAndInitDll();
 
 		try {
@@ -824,7 +767,7 @@ public:
 
 	// Just for the namespace
 	static int GetRefLog(const CString& ref_, std::vector<GitRevLoglist>& refloglist, CString& error) {
-		const auto ref = StringView{ ref_ };
+		const auto ref = str::as_view(ref_);
 		refloglist.clear();
 		if (g_Git.m_IsUseLibGit2) {
 			const wil::unique_git_repository repo(g_Git.GetGitRepository());
@@ -861,23 +804,24 @@ public:
 			}
 			return 0;
 		} else if (g_Git.m_IsUseGitDLL) {
-			[[maybe_unused]] CAutoLocker lock(g_Git.m_critGitDllSec);
+			[[maybe_unused]] CAutoLocker _(g_Git.m_critGitDllSec);
 			g_Git.CheckAndInitDll();
 			std::vector<GitRevLoglist> tmp;
-			const auto callback = [](
-				const char* /*refname*/,
-				struct GIT_OBJECT_OID* /*old_oid*/,
-				struct GIT_OBJECT_OID* new_oid,
-				const char* /*committer*/,
-				unsigned long long time,
-				int /*sz*/,
+			const auto callback = static_cast<each_reflog_ent_fn*>([](
+				const char*,						// refname
+				GIT_OBJECT_OID*,					// old_oid
+				// ReSharper disable once CppParameterMayBeConstPtrOrRef
+				GIT_OBJECT_OID* new_oid,
+				const char*,						// committer
+				const std::uint64_t time,
+				const int,							// sz
 				const char* msg,
 				void* data
 			) {
-				auto& vector = *static_cast<std::vector<GitRevLoglist>*>(data); // a reference: `auto` filled a copy
+				auto& vector = *static_cast<std::vector<GitRevLoglist>*>(data); // a reference!
 				GitRevLoglist rev;
 				rev.m_CommitHash = CGitHash::FromRaw(new_oid->hash);
-				rev.GetCommitterDate() = CTime(time);
+				rev.GetCommitterDate() = CTime(win32_cast(time));
 
 				CString one = CUnicodeUtils::GetUnicode<CString>(msg);
 				const int message = one.Find(L": ");
@@ -889,9 +833,9 @@ public:
 				vector.push_back(rev);
 
 				return 0;
-			};
+			});
 			// no error checking, because the only error which could occur is file not found
-			git_for_each_reflog_ent(CUnicodeUtils::StdGetUTF8(StringView{ ref }).c_str(), callback, &tmp);
+			git_for_each_reflog_ent(CUnicodeUtils::StdGetUTF8(ref).c_str(), callback, &tmp);
 
 			for (size_t i = tmp.size(), id = 0; i > 0; --i, ++id) {
 				GitRevLoglist rev = tmp[i - 1];
@@ -969,11 +913,6 @@ std::atomic<std::shared_ptr<GitMailmap::CGitMailmap>> GitRevLoglist::s_Mailmap =
 
 class CGitHashMap : private std::unordered_map<CGitHash, GitRevLoglist> {
 public:
-	bool IsExist(const CGitHash& hash) {
-		return find(hash) != end();
-	}
-
-
 	using std::unordered_map<CGitHash, GitRevLoglist>::begin;
 	using std::unordered_map<CGitHash, GitRevLoglist>::end;
 	using std::unordered_map<CGitHash, GitRevLoglist>::cbegin;
@@ -984,6 +923,7 @@ public:
 	using std::unordered_map<CGitHash, GitRevLoglist>::find;
 	using std::unordered_map<CGitHash, GitRevLoglist>::size;
 	using std::unordered_map<CGitHash, GitRevLoglist>::operator[];
+	using std::unordered_map<CGitHash, GitRevLoglist>::contains;
 };
 
 
@@ -998,8 +938,8 @@ public:
 	}
 
 
-	GitRevLoglist* SafeGetAt(size_t i) {
-		Locker lock(*m_critSec);
+	GitRevLoglist* SafeGetAt(const size_t i) {
+		Locker _(*m_critSec);
 		if (i >= size())
 			return nullptr;
 
@@ -1008,14 +948,14 @@ public:
 
 
 	void SafeAdd(GitRevLoglist* newElement) {
-		Locker lock(*m_critSec);
+		Locker _(*m_critSec);
 		push_back(newElement);
 	}
 
 
-	void SafeRemoveAt(size_t i) {
-		Locker lock(*m_critSec);
-		if (i >= size())
+	void SafeRemoveAt(const difference_type i) {
+		Locker _(*m_critSec);
+		if (i >= std::ssize(*this))
 			return;
 
 		erase(begin() + i);
@@ -1023,13 +963,13 @@ public:
 
 
 	void SafeAddFront(GitRevLoglist* newElement) {
-		Locker lock(*m_critSec);
+		Locker _(*m_critSec);
 		insert(cbegin(), newElement);
 	}
 
 
 	void SafeRemoveAll() {
-		Locker lock(*m_critSec);
+		Locker _(*m_critSec);
 		clear();
 	}
 
@@ -1049,11 +989,7 @@ public:
 
 
 class CLogCache {
-
 	CString m_GitDir;
-
-	GitLogList::CGitHashMap m_HashMap;
-
 
 	BOOL m_bEnabled = TRUE;
 
@@ -1061,7 +997,7 @@ class CLogCache {
 	HANDLE m_IndexFileMap = nullptr;
 	SLogCacheIndexFile* m_pCacheIndex = nullptr;
 
-	std::set<CGitHash> m_shallowAnchors;
+	std::set<CGitHash> m_shallowAnchors{};
 
 	HANDLE m_DataFile = INVALID_HANDLE_VALUE;
 	HANDLE m_DataFileMap = nullptr;
@@ -1103,7 +1039,7 @@ class CLogCache {
 	}
 
 
-	BOOL CheckHeader(const SLogCacheIndexHeader* header) const {
+	static BOOL CheckHeader(const SLogCacheIndexHeader* header) {
 		if (header->m_Magic != LOG_INDEX_MAGIC)
 			return FALSE;
 
@@ -1114,7 +1050,7 @@ class CLogCache {
 	}
 
 
-	BOOL CheckHeader(const SLogCacheRevFileHeader* header) const {
+	static BOOL CheckHeader(const SLogCacheRevFileHeader* header) {
 		if (header->m_Magic != LOG_DATA_FILE_MAGIC)
 			return FALSE;
 
@@ -1122,7 +1058,7 @@ class CLogCache {
 	}
 
 
-	BOOL CheckHeader(const SLogCacheRevItemHeader* header) const {
+	static BOOL CheckHeader(const SLogCacheRevItemHeader* header) {
 		if (header->m_Magic != LOG_DATA_ITEM_MAGIC)
 			return FALSE;
 
@@ -1130,7 +1066,7 @@ class CLogCache {
 	}
 
 
-	BOOL CheckHeader(const SLogCacheDataFileHeader* header) const {
+	static BOOL CheckHeader(const SLogCacheDataFileHeader* header) {
 		if (header->m_Magic != LOG_DATA_MAGIC)
 			return FALSE;
 
@@ -1141,49 +1077,47 @@ class CLogCache {
 	}
 
 
-	int SaveOneItem(const GitRevLoglist& Rev, LARGE_INTEGER offset) {
+	int SaveOneItem(const GitRevLoglist& Rev, const LARGE_INTEGER offset) {
 		if (!Rev.m_IsDiffFiles || Rev.m_IsDiffFiles == 2)
 			return -1;
 
 		if (!SetFilePointerEx(m_DataFile, offset, nullptr, FILE_BEGIN))
 			return -1;
 
-		SLogCacheRevItemHeader header;
-
-		header.m_Magic = LOG_DATA_ITEM_MAGIC;
-		header.m_FileCount = Rev.m_Files.GetCount();
+		SLogCacheRevItemHeader header{
+			.m_Magic = LOG_DATA_ITEM_MAGIC,
+			.m_FileCount = Rev.m_Files.GetCount(),
+		};
 
 		DWORD dwWritten = 0;
-		if (!WriteFile(this->m_DataFile, &header, sizeof(header), &dwWritten, 0))
+		if (!WriteFile(this->m_DataFile, &header, sizeof(header), &dwWritten, nullptr))
 			return -1;
 
-		CString stat;
-		CString name, oldname;
 		for (int i = 0; i < Rev.m_Files.GetCount(); ++i) {
-			SLogCacheRevFileHeader revfileheader;
+			SLogCacheRevFileHeader revfileheader{};
 			revfileheader.m_Magic = LOG_DATA_FILE_MAGIC;
 			revfileheader.m_IsSubmodule = Rev.m_Files[i].IsDirectory() ? 1 : 0;
 			revfileheader.m_Action = Rev.m_Files[i].m_Action;
 			revfileheader.m_ParentNo = Rev.m_Files[i].m_ParentNo;
-			name = Rev.m_Files[i].GetGitPathString().c_str();
+			CString name = Rev.m_Files[i].GetGitPathString().c_str();
 			revfileheader.m_FileNameSize = name.GetLength();
-			oldname = Rev.m_Files[i].GetGitOldPathString().c_str();
+			CString oldname = Rev.m_Files[i].GetGitOldPathString().c_str();
 			revfileheader.m_OldFileNameSize = oldname.GetLength();
 
-			stat = Rev.m_Files[i].m_StatAdd.c_str();
+			CString stat = Rev.m_Files[i].m_StatAdd.c_str();
 			revfileheader.m_Add = (stat == L"-") ? 0xFFFFFFFF : _wtol(stat);
 			stat = Rev.m_Files[i].m_StatDel.c_str();
 			revfileheader.m_Del = (stat == L"-") ? 0xFFFFFFFF : _wtol(stat);
 
-			if (!WriteFile(this->m_DataFile, &revfileheader, sizeof(revfileheader) - sizeof(wchar_t), &dwWritten, 0))
+			if (!WriteFile(this->m_DataFile, &revfileheader, sizeof(revfileheader) - sizeof(wchar_t), &dwWritten, nullptr))
 				return -1;
 
 			if (!name.IsEmpty()) {
-				if (!WriteFile(this->m_DataFile, name, name.GetLength() * sizeof(wchar_t), &dwWritten, 0))
+				if (!WriteFile(this->m_DataFile, name, name.GetLength() * sizeof(wchar_t), &dwWritten, nullptr))
 					return -1;
 			}
 			if (!oldname.IsEmpty()) {
-				if (!WriteFile(this->m_DataFile, oldname, oldname.GetLength() * sizeof(wchar_t), &dwWritten, 0))
+				if (!WriteFile(this->m_DataFile, oldname, oldname.GetLength() * sizeof(wchar_t), &dwWritten, nullptr))
 					return -1;
 			}
 
@@ -1193,30 +1127,33 @@ class CLogCache {
 
 
 	int RebuildCacheFile() {
-		SLogCacheIndexHeader Indexheader;
+		constexpr SLogCacheIndexHeader Indexheader{
+			.m_Magic = LOG_INDEX_MAGIC,
+			.m_Version = LOG_INDEX_VERSION,
+			.m_ItemCount = 0,
+		};
 
-		Indexheader.m_Magic = LOG_INDEX_MAGIC;
-		Indexheader.m_Version = LOG_INDEX_VERSION;
-		Indexheader.m_ItemCount = 0;
+		constexpr SLogCacheDataFileHeader dataheader{
+			.m_Magic = LOG_DATA_MAGIC,
+			.m_Version = LOG_INDEX_VERSION,
+		};
 
-		SLogCacheDataFileHeader dataheader;
-
-		dataheader.m_Magic = LOG_DATA_MAGIC;
-		dataheader.m_Version = LOG_INDEX_VERSION;
-
-		LARGE_INTEGER start{};
+		constexpr LARGE_INTEGER start{};
 		SetFilePointerEx(m_DataFile, start, nullptr, FILE_BEGIN);
 		SetFilePointerEx(m_IndexFile, start, nullptr, FILE_BEGIN);
 
 		DWORD dwWritten = 0;
-		WriteFile(m_IndexFile, &Indexheader, sizeof(SLogCacheIndexHeader), &dwWritten, 0);
+		WriteFile(m_IndexFile, &Indexheader, sizeof(SLogCacheIndexHeader), &dwWritten, nullptr);
 		SetEndOfFile(this->m_IndexFile);
-		WriteFile(m_DataFile, &dataheader, sizeof(SLogCacheDataFileHeader), &dwWritten, 0);
+		WriteFile(m_DataFile, &dataheader, sizeof(SLogCacheDataFileHeader), &dwWritten, nullptr);
 		SetEndOfFile(this->m_DataFile);
 		return 0;
 	}
 
 public:
+	GitLogList::CGitHashMap m_HashMap;
+
+
 	CLogCache() { m_bEnabled = CRegDWORD(L"Software\\TortoiseGit\\EnableLogCache", TRUE); }
 
 
@@ -1232,18 +1169,16 @@ public:
 	}
 
 
-	ULONGLONG GetOffset(const CGitHash& hash, SLogCacheIndexFile* pData = nullptr) const {
+	ULONGLONG GetOffset(const CGitHash& hash, const SLogCacheIndexFile* pData = nullptr) const {
 		if (!pData)
 			pData = m_pCacheIndex;
 
 		if (!pData)
 			return 0;
 
-		SLogCacheIndexItem* p = reinterpret_cast<SLogCacheIndexItem*>(bsearch(hash.ToRaw(),
-		                                                                      pData->m_Item,
-		                                                                      pData->m_Header.m_ItemCount,
-		                                                                      sizeof(SLogCacheIndexItem),
-		                                                                      Compare));
+		const SLogCacheIndexItem* p = reinterpret_cast<SLogCacheIndexItem*>(
+			bsearch(hash.ToRaw(), pData->m_Item, pData->m_Header.m_ItemCount, sizeof(SLogCacheIndexItem), Compare)
+		);
 
 		if (p)
 			return p->m_Offset;
@@ -1279,7 +1214,7 @@ public:
 		int ret = -1;
 		do {
 			if (m_IndexFile == INVALID_HANDLE_VALUE) {
-				CString file = m_GitDir + INDEX_FILE_NAME;
+				const CString file = m_GitDir + INDEX_FILE_NAME;
 				m_IndexFile = CreateFile(file,
 				                         GENERIC_READ,
 				                         FILE_SHARE_READ | FILE_SHARE_DELETE,
@@ -1299,7 +1234,7 @@ public:
 			}
 
 			if (!m_pCacheIndex) {
-				m_pCacheIndex = reinterpret_cast<SLogCacheIndexFile*>(MapViewOfFile(m_IndexFileMap, FILE_MAP_READ, 0, 0, 0));
+				m_pCacheIndex = static_cast<SLogCacheIndexFile*>(MapViewOfFile(m_IndexFileMap, FILE_MAP_READ, 0, 0, 0));
 				if (!m_pCacheIndex)
 					break;
 			}
@@ -1323,7 +1258,7 @@ public:
 				break;
 
 			if (m_DataFile == INVALID_HANDLE_VALUE) {
-				CString file = m_GitDir + DATA_FILE_NAME;
+				const CString file = m_GitDir + DATA_FILE_NAME;
 				m_DataFile = CreateFile(file,
 				                        GENERIC_READ,
 				                        FILE_SHARE_READ | FILE_SHARE_DELETE,
@@ -1367,7 +1302,7 @@ public:
 
 			ret = 0;
 		}
-		while (0);
+		while (false);
 
 		if (ret) {
 			CloseIndexHandles();
@@ -1379,7 +1314,7 @@ public:
 	}
 
 
-	int LoadOneItem(GitRevLoglist& Rev, ULONGLONG ullOffset) const {
+	int LoadOneItem(GitRevLoglist& Rev, const ULONGLONG ullOffset) const {
 		if (!m_pCacheData)
 			return -1;
 
@@ -1396,8 +1331,8 @@ public:
 
 		Rev.m_Action = 0;
 
-		for (DWORD i = 0; i < header->m_FileCount; ++i) {
-			auto fileheader = reinterpret_cast<SLogCacheRevFileHeader*>(m_pCacheData + offset);
+		for (const auto _: std::views::iota(header->m_FileCount)) {
+			const auto fileheader = reinterpret_cast<SLogCacheRevFileHeader*>(m_pCacheData + offset);
 			if (SizeTAdd(offset, sizeof(SLogCacheRevFileHeader) - sizeof(wchar_t), &offset) != S_OK || offset >= m_DataFileLength) {
 				Rev.m_Action = 0;
 				Rev.m_Files.Clear();
@@ -1453,7 +1388,7 @@ public:
 
 		BOOL bIsRebuild = false;
 
-		if (m_HashMap.empty() || (m_HashMap.size() == 1 && m_HashMap.find(CGitHash()) != m_HashMap.cend()))
+		if (m_HashMap.empty() || (m_HashMap.size() == 1 && m_HashMap.contains({})))
 			return 0;
 
 		if (this->m_GitDir.IsEmpty())
@@ -1465,7 +1400,7 @@ public:
 			if (SizeTMult(sizeof(SLogCacheIndexItem), m_pCacheIndex->m_Header.m_ItemCount - 1, &len) != S_OK || SizeTAdd(len, sizeof(SLogCacheIndexFile), &len)
 				!= S_OK)
 				return -1;
-			pIndex = reinterpret_cast<SLogCacheIndexFile*>(malloc(len));
+			pIndex = static_cast<SLogCacheIndexFile*>(malloc(len));
 			if (!pIndex)
 				return -1;
 
@@ -1475,7 +1410,7 @@ public:
 		this->CloseDataHandles();
 		this->CloseIndexHandles();
 
-		SLogCacheIndexHeader header;
+		SLogCacheIndexHeader header{};
 		CString file = this->m_GitDir + INDEX_FILE_NAME;
 		int ret = -1;
 		do {
@@ -1506,7 +1441,7 @@ public:
 			{
 				memset(&header, 0, sizeof(SLogCacheIndexHeader));
 				DWORD num = 0;
-				if ((!ReadFile(m_IndexFile, &header, sizeof(SLogCacheIndexHeader), &num, 0)) || num != sizeof(SLogCacheIndexHeader) ||
+				if ((!ReadFile(m_IndexFile, &header, sizeof(SLogCacheIndexHeader), &num, nullptr)) || num != sizeof(SLogCacheIndexHeader) ||
 					!CheckHeader(&header)
 				) {
 					RebuildCacheFile();
@@ -1514,9 +1449,9 @@ public:
 				}
 			}
 			if (!bIsRebuild) {
-				SLogCacheDataFileHeader datafileheader;
+				SLogCacheDataFileHeader datafileheader{};
 				DWORD num = 0;
-				if ((!ReadFile(m_DataFile, &datafileheader, sizeof(SLogCacheDataFileHeader), &num, 0) || num != sizeof(SLogCacheDataFileHeader) ||
+				if ((!ReadFile(m_DataFile, &datafileheader, sizeof(SLogCacheDataFileHeader), &num, nullptr) || num != sizeof(SLogCacheDataFileHeader) ||
 					!CheckHeader(&datafileheader))) {
 					RebuildCacheFile();
 					bIsRebuild = true;
@@ -1527,24 +1462,24 @@ public:
 				header.m_ItemCount = 0;
 
 			{
-				LARGE_INTEGER start{};
+				constexpr LARGE_INTEGER start{};
 				SetFilePointerEx(m_DataFile, start, nullptr, FILE_END);
 				SetFilePointerEx(m_IndexFile, start, nullptr, FILE_END);
 			}
 
-			bool isShallow = !m_shallowAnchors.empty();
-			for (auto i = m_HashMap.cbegin(); i != m_HashMap.cend(); ++i) {
-				if (!bIsRebuild && GetOffset((*i).second.m_CommitHash, pIndex) != 0)
+			const bool isShallow = !m_shallowAnchors.empty();
+			for (auto& val : m_HashMap | std::views::values) {
+				if (!bIsRebuild && GetOffset(val.m_CommitHash, pIndex) != 0)
 					continue;
 
-				if (!(*i).second.m_IsDiffFiles || (*i).second.m_IsDiffFiles == 2 || (*i).second.m_CommitHash.IsEmpty() || (isShallow && m_shallowAnchors.
-					contains((*i).second.m_CommitHash)))
+				if (!val.m_IsDiffFiles || val.m_IsDiffFiles == 2 || val.m_CommitHash.IsEmpty() || (isShallow && m_shallowAnchors.
+					contains(val.m_CommitHash)))
 					continue;
 
 				LARGE_INTEGER offset{};
-				LARGE_INTEGER start{};
+				constexpr LARGE_INTEGER start{};
 				SetFilePointerEx(m_DataFile, start, &offset, FILE_CURRENT);
-				if (SaveOneItem((*i).second, offset)) {
+				if (SaveOneItem(val, offset)) {
 					tgit::DebugOutput::TracePrintf(__FUNCTION__ ": Save one item error\n");
 					if (!SetFilePointerEx(m_DataFile, offset, &offset, FILE_BEGIN))
 						break;
@@ -1552,11 +1487,11 @@ public:
 				}
 
 				SLogCacheIndexItem item;
-				item.m_Hash = (*i).second.m_CommitHash;
+				item.m_Hash = val.m_CommitHash;
 				item.m_Offset = offset.QuadPart;
 
 				DWORD dwWritten = 0;
-				if (!WriteFile(m_IndexFile, &item, sizeof(SLogCacheIndexItem), &dwWritten, 0))
+				if (!WriteFile(m_IndexFile, &item, sizeof(SLogCacheIndexItem), &dwWritten, nullptr))
 					break;
 				++header.m_ItemCount;
 			}
@@ -1566,7 +1501,7 @@ public:
 			if (!m_IndexFileMap)
 				break;
 
-			m_pCacheIndex = reinterpret_cast<SLogCacheIndexFile*>(MapViewOfFile(m_IndexFileMap, FILE_MAP_WRITE, 0, 0, 0));
+			m_pCacheIndex = static_cast<SLogCacheIndexFile*>(MapViewOfFile(m_IndexFileMap, FILE_MAP_WRITE, 0, 0, 0));
 			if (!m_pCacheIndex)
 				break;
 
@@ -1577,7 +1512,7 @@ public:
 			FlushViewOfFile(m_pCacheIndex, 0);
 			ret = 0;
 		}
-		while (0);
+		while (false);
 
 		this->CloseDataHandles();
 		this->CloseIndexHandles();
@@ -1592,20 +1527,21 @@ public:
 
 
 	int ClearAllParent() {
-		for (auto i = m_HashMap.begin(); i != m_HashMap.end(); ++i) {
-			(*i).second.m_ParentHash.clear();
-			(*i).second.m_Lanes.clear();
+		for (auto& [_, val] : this->m_HashMap) {
+			val.m_ParentHash.clear();
+			val.m_Lanes.clear();
 		}
 		return 0;
 	}
 
 
 	void ClearAllLanes() {
-		for (auto i = m_HashMap.begin(); i != m_HashMap.end(); ++i)
-			(*i).second.m_Lanes.clear();
+		for (auto& val : this->m_HashMap | std::views::values)
+			val.m_Lanes.clear();
 	}
 };
 
 }
+// NOLINTEND(*-throw-by-value-catch-by-reference)
 
 export using namespace GitLogList;

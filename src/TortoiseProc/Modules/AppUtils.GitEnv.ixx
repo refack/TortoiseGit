@@ -108,7 +108,7 @@ int GetMsysgitVersion(HWND hWnd)
 	}
 
 	CString err;
-	const int ver = g_Git.GetGitVersion(&versiondebug, &err);
+	const auto ver = g_Git.GetGitVersion(&versiondebug, &err);
 	if (ver < 0)
 	{
 		MessageBox(hWnd, L"git.exe not correctly set up (" + err + L")\nCheck TortoiseGit settings and consult help file for \"Git.exe Path\".", L"TortoiseGit", MB_OK | MB_ICONERROR);
