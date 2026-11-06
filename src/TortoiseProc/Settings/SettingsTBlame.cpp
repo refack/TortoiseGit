@@ -20,7 +20,7 @@
 #include "stdafx.h"
 #include "std.h"
 
-#include "TortoiseProc.h"
+import TortoiseProc;
 #include "SettingsTBlame.h"
 #include <../TortoiseGitBlame/BlameIndexColors.h>
 #include <../TortoiseGitBlame/BlameDetectMovedOrCopiedLines.h>

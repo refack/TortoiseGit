@@ -24,7 +24,7 @@
 
 #include <Mmsystem.h>
 
-#include "TortoiseProc.h"
+import TortoiseProc;
 #include "ProgressDlg.h"
 #include "IconMenu.h"
 #include "../../libgit2/Resources/LoglistCommonResource.h"

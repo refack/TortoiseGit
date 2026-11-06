@@ -20,7 +20,7 @@
 #include "stdafx.h"
 #include "std.h"
 
-#include "TortoiseProc.h"
+import TortoiseProc;
 #include "AutoTextTestDlg.h"
 #include "Utils/HighResClock.h"
 import AppUtils.Window;

@@ -18,12 +18,11 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 #pragma once
-#include "TortoiseProc.h"
 import CmdLineParser;
 import TGitPath;
 import git_h;
 
-enum class PathRequirement
+enum class PathRequirement : std::uint8_t
 {
 	NoPathRequired,
 	MayTakePath,
@@ -94,10 +93,9 @@ private:
  * Factory for the different commands which TortoiseProc executes from the
  * command line.
  */
-class CommandServer
-{
+class CommandServer {
 public:
-	static inline std::unique_ptr<Command> GetCommand(const CString& sCmd, HWND explorerhWnd, const CCmdLineParser& p)
+	static std::unique_ptr<Command> GetCommand(const CString& sCmd, const HWND& explorerhWnd, const CCmdLineParser& p)
 	{
 		auto cmd = std::unique_ptr<Command>(CreateRawCommand(sCmd));
 		cmd->SetExplorerHwnd(explorerhWnd);
@@ -105,8 +103,8 @@ public:
 		return cmd;
 	}
 
-private:
 	CommandServer() = delete;
 
+private:
 	static Command* CreateRawCommand(const CString& sCmd);
 };

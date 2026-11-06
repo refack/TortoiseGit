@@ -20,7 +20,7 @@
 #include "std.h"
 
 
-#include "TortoiseProc.h"
+import TortoiseProc;
 #include "URLDlg.h"
 
 IMPLEMENT_DYNAMIC(CURLDlg, CResizableStandAloneDialog)

@@ -21,7 +21,7 @@
 #include "stdafx.h"
 #include "std.h"
 
-#include "TortoiseProc.h"
+import TortoiseProc;
 #include "SetOverlayIcons.h"
 #include "../../libgit2/Utils/LoadIconEx.h"
 

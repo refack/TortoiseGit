@@ -22,7 +22,7 @@
 #include "stdafx.h"
 #include "std.h"
 
-#include "TortoiseProc.h"
+import TortoiseProc;
 #include "BrowseRefsDlg.h"
 #include "../../SharedMFC/Utils/LogDlg.h"
 #include "AddRemoteDlg.h"

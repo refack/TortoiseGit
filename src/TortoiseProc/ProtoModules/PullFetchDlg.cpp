@@ -23,7 +23,7 @@
 #include "stdafx.h"
 #include "std.h"
 
-#include "TortoiseProc.h"
+import TortoiseProc;
 #include "PullFetchDlg.h"
 import AppUtils.Window;
 import AppUtils.Workflow;

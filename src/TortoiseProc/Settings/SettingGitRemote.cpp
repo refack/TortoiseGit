@@ -22,7 +22,7 @@
 #include "stdafx.h"
 #include "std.h"
 
-#include "TortoiseProc.h"
+import TortoiseProc;
 #include "SettingGitRemote.h"
 import MessageBox;
 import AppUtils.Launch;

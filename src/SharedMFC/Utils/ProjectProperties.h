@@ -19,9 +19,10 @@
 //
 
 #pragma once
+#include <git2/config.h>
 #include <regex>
 #include <set>
-import wil;
+
 
 #define BUGTRAQPROPNAME_LABEL				L"bugtraq.label"sv
 #define BUGTRAQPROPNAME_MESSAGE				L"bugtraq.message"sv
@@ -228,7 +229,7 @@ private:
 	 */
 	void AutoUpdateRegex();
 
-	void FetchHookString(const wil::unique_git_config& gitconfig, const CString& sBase, CString& sHook);
+	static void FetchHookString(const git_config* gitconfig, const CString& sBase, CString& sHook);
 
 	bool regExNeedUpdate = true;
 	std::wregex regCheck;

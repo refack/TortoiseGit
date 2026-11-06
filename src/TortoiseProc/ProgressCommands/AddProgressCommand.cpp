@@ -19,7 +19,7 @@
 #include "stdafx.h"
 #include "std.h"
 
-#include "TortoiseProc.h"
+import TortoiseProc;
 #include "AddProgressCommand.h"
 import TortoiseProc.MassiveGitTask;
 import AppUtils.Launch;

@@ -20,7 +20,7 @@
 #include "stdafx.h"
 #include "std.h"
 
-#include "TortoiseProc.h"
+import TortoiseProc;
 #include "FirstStartWizard.h"
 #include "FirstStartWizardGit.h"
 import ThemeAPI;

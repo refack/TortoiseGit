@@ -21,7 +21,7 @@
 #include "std.h"
 
 import AppUtils.Window;
-#include "TortoiseProc.h"
+import TortoiseProc;
 #include "DeleteRemoteTagDlg.h"
 import MessageBox;
 #include "SysProgressDlg.h"

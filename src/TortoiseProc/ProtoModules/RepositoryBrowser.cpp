@@ -23,7 +23,7 @@
 #include "stdafx.h"
 #include "std.h"
 
-#include "TortoiseProc.h"
+import TortoiseProc;
 #include "RepositoryBrowser.h"
 #include "../../SharedMFC/Utils/LogDlg.h"
 import AppUtils.Launch;

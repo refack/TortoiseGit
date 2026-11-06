@@ -22,7 +22,7 @@
 #include "stdafx.h"
 #include "std.h"
 
-#include "TortoiseProc.h"
+import TortoiseProc;
 #include "CleanTypeDlg.h"
 import AppUtils.Window;
 

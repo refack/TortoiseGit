@@ -18,10 +18,10 @@
 //
 #pragma once
 import StandAloneDlg;
-#include "SciEdit.h"
+#include "../MiscUI/SciEdit.h"
 #include "FindBar.h"
 #include "StagingOperations.h"
-#include "EnableStagingTypes.h"
+#include "../EnableStagingTypes.h"
 
 class IHasPatchView
 {

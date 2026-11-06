@@ -20,7 +20,7 @@
 #include "stdafx.h"
 #include "std.h"
 
-#include "TortoiseProc.h"
+import TortoiseProc;
 #include "RenameDlg.h"
 import AppUtils.Window;
 import MessageBox;

@@ -20,7 +20,7 @@
 #include "stdafx.h"
 #include "std.h"
 
-#include "TortoiseProc.h"
+import TortoiseProc;
 #include "BugtraqRegexTestDlg.h"
 import AppUtils.Window;
 #include "../../SharedMFC/Utils/ProjectProperties.h"

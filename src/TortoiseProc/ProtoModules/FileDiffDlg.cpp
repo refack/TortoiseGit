@@ -21,7 +21,7 @@
 #include "stdafx.h"
 #include "std.h"
 
-#include "TortoiseProc.h"
+import TortoiseProc;
 #include "Utils/SysImageList.h"
 #include "IconMenu.h"
 #include "FileDiffDlg.h"

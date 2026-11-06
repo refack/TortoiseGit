@@ -19,7 +19,7 @@
 #include "stdafx.h"
 #include "std.h"
 
-#include "TortoiseProc.h"
+import TortoiseProc;
 import AppUtils.Launch;
 import AppUtils.Window;
 #include "SubmoduleDiffDlg.h"

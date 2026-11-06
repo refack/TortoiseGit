@@ -18,21 +18,20 @@
 //
 #pragma once
 
-import RIAA;
-#include "JumpListHelpers.h"
-#include "propvarutil.h"
-#include "propsys.h"
+#include <propvarutil.h>
+#include <propsys.h>
 #include <propkey.h>
 
 inline HRESULT SetAppID(LPCWSTR appID) {
 	HRESULT hRes = S_FALSE;
 	using SetCurrentProcessExplicitAppUserModelIDFN = HRESULT(PCWSTR AppID);
-	CAutoLibrary hShell = AtlLoadSystemLibraryUsingFullPath(L"shell32.dll");
+	auto *hShell = AtlLoadSystemLibraryUsingFullPath(L"shell32.dll");
 	if (hShell) {
 		auto pfnSetCurrentProcessExplicitAppUserModelID = reinterpret_cast<SetCurrentProcessExplicitAppUserModelIDFN*>(GetProcAddress(hShell, "SetCurrentProcessExplicitAppUserModelID"));
 		if (pfnSetCurrentProcessExplicitAppUserModelID)
 			hRes = pfnSetCurrentProcessExplicitAppUserModelID(appID);
 	}
+	::FreeLibrary(hShell);
 	return hRes;
 }
 

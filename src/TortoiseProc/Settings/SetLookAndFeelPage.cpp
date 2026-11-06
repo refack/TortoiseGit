@@ -21,7 +21,7 @@
 #include "stdafx.h"
 #include "std.h"
 
-#include "TortoiseProc.h"
+import TortoiseProc;
 import AppUtils.Window;
 #include "SetLookAndFeelPage.h"
 #include "../TortoiseShell/MenuInfo.h"

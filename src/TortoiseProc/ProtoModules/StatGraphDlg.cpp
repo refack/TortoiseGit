@@ -23,7 +23,7 @@
 
 #include <ResizableLayout.h>
 
-#include "TortoiseProc.h"
+import TortoiseProc;
 #include "StatGraphDlg.h"
 #include "SysProgressDlg.h"
 

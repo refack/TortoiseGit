@@ -21,7 +21,7 @@
 #include "std.h"
 
 import AppUtils.Window;
-#include "TortoiseProc.h"
+import TortoiseProc;
 #include "SelectRemoteRefDlg.h"
 #include "SysProgressDlg.h"
 

@@ -211,9 +211,9 @@ BOOL CFindDlg::OnInitDialog()
 	EnableSaveRestore(L"FindDlg");
 	SetTheme(CTheme::Instance().IsDarkTheme());
 
-	auto imagelist = gsl::owner(new CImageList());
-	imagelist->Create(IDB_BITMAP_REFTYPE,16,3,RGB(255,255,255));
-	this->m_ctrlRefList.SetImageList(imagelist,LVSIL_SMALL);
+	auto imagelist = CImageList{};
+	imagelist.Create(IDB_BITMAP_REFTYPE,16,3,RGB(255,255,255));
+	this->m_ctrlRefList.SetImageList(&imagelist, LVSIL_SMALL);
 
 	CRect rect;
 	m_ctrlRefList.GetClientRect(&rect);

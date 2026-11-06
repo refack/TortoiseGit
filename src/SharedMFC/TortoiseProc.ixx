@@ -4,11 +4,10 @@
 #include <version.h>
 
 #include "../TortoiseProc/MiscUI/AnimationManager.h"
-#include "ConfigureGitExe.h"
-#include "JumpListHelpers.h"
+#include "../TortoiseProc/JumpListHelpers.h"
 #include "Utils/ProjectProperties.h"
 #include "../TortoiseProc/ProtoModules/VersioncheckParser.h"
-#include "Commands/Command.h"
+#include "../TortoiseProc/Commands/Command.h"
 
 #include "Resources/resource.h"
 #include "../TortoiseShell/resource.h"
@@ -33,15 +32,11 @@ import invarients;
 import str_utils;		// UnicodeUtils.h, WideString.h, StringUtils.h
 import wil;				// also the libgit2 owners, wil::unique_git_* (SmartLibgit2Ref.h's CAuto
 
+import ConfigureGitExe;
+
 import git_h;			// Git.h, and what gittype.h/tgittypes held for git
-using namespace tgit;
-
 import DebugOutput;
-using namespace DebugOutput;
-
 import RIAA;			// SmartHandle.h
-using namespace RIAA;
-
 import DirFileEnum;
 import PathUtils;
 import TGitPath;		// TGitPath.h, and GitAdminDir

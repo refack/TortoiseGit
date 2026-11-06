@@ -20,7 +20,7 @@
 #include "stdafx.h"
 #include "std.h"
 
-#include "TortoiseProc.h"
+import TortoiseProc;
 #include "SetHooks.h"
 #include "SetHooksAdv.h"
 #include "Hooks.h"

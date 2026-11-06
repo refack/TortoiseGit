@@ -121,7 +121,6 @@ target_sources(TortoiseProc
         Commands/UpdateCheckCommand.h
         Commands/WorktreeCommand.cpp
         Commands/WorktreeCommand.h
-        ConfigureGitExe.h
         EnableStagingTypes.h
         GitLogList.h
         GitLogListAction.cpp

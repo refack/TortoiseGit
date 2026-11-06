@@ -9,13 +9,13 @@ module;
 #include "Utils/HintCtrl.h"
 #include "Utils/LogDataVector.h"
 #include "Utils/ResizableColumnsListCtrl.h"
-#include "IconMenu.h"
-#include "LoglistUtils.h"
+#include "../../TortoiseProc/MiscUI/IconMenu.h"
+#include "../../TortoiseProc/ProtoModules/LoglistUtils.h"
 
 #include "Resources/resource.h"
 #include "../TortoiseShell/resource.h"
 
-#include "Colors.h"
+#include "../../TortoiseProc/ProtoModules/Colors.h"
 
 
 export module GitLogListBase;

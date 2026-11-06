@@ -22,7 +22,7 @@
 #include "stdafx.h"
 #include "std.h"
 
-#include "TortoiseProc.h"
+import TortoiseProc;
 #include "WorktreeListDlg.h"
 #include "ProgressDlg.h"
 import AppUtils.Launch;

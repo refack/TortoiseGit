@@ -25,7 +25,7 @@
 
 #include <Mmsystem.h>
 
-#include "TortoiseProc.h"
+import TortoiseProc;
 #include "SyncDlg.h"
 import AppUtils.Launch;
 import AppUtils.Window;

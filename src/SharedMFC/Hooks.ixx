@@ -1,24 +1,29 @@
 ﻿module;
-#include "std.h"
-
 #include <afxtaskdialog.h>
 #include <WinCrypt.h>
-
 #include "Resources/resource.h"
-
 #include <Utils/ProjectProperties.h>
-
 #include <tgitlib/sanity.h>
+
 
 
 export module tgit.Hooks;
 
-
-export namespace tgit::Hooks {
-
-
+import std;
+import wil;
+import gsl;
+import str_utils;
+import GitCall;
 import TGitPath;
 import libgit2;
+import Registry;
+import RIAA;
+import TempFile;
+
+namespace fs = std::filesystem;
+
+
+export namespace tgit::Hooks {
 
 using namespace tgit;
 using namespace libgit2;
@@ -88,11 +93,11 @@ auto m_RootPath = CTGitPath{};
 
 namespace CHooks {
 
-	static void AddPathParam(CString& sCmd, const CTGitPathList& pathList);
-	static void AddCWDParam(CString& sCmd, const CString& workingTree);
-	static void AddErrorParam(CString& sCmd, const CString& error);
-	static void AddParam(CString& sCmd, const CString& param);
-	static CTGitPath AddMessageFileParam(CString& sCmd, const CString& message);
+	void AddPathParam(CString& sCmd, const CTGitPathList& pathList);
+	void AddCWDParam(CString& sCmd, const CString& workingTree);
+	void AddErrorParam(CString& sCmd, const CString& error);
+	void AddParam(CString& sCmd, const CString& param);
+	CTGitPath AddMessageFileParam(CString& sCmd, const CString& message);
 
 	/// Saves the hook script information to the registry.
 	bool				Save();
@@ -114,12 +119,12 @@ namespace CHooks {
 	bool				SetEnabled(const hookkey& key, bool bEnabled);
 
 	/// returns the string representation of the hook type.
-	static CString		GetHookTypeString(HookType t);
+	CString		GetHookTypeString(HookType t);
 	/// returns the hooktype from a string representation of the same.
-	static HookType		GetHookType(const CString& s);
+	HookType		GetHookType(const CString& s);
 
 	/// Add hook script data from project properties
-	static void			SetProjectProperties(const CTGitPath& Path, const ProjectProperties& pp);
+	void			SetProjectProperties(const CTGitPath& Path, const ProjectProperties& pp);
 
 	/**
 	 * Executes the Start-Commit-Hook that first matches the path in
@@ -216,7 +221,7 @@ namespace CHooks {
 };
 
 
-static CString CalcSHA256(const CString& text)
+CString CalcSHA256(const CString& text)
 {
 	HCRYPTPROV hProv = 0;
 	if (!CryptAcquireContext(&hProv, nullptr, nullptr, PROV_RSA_AES, CRYPT_VERIFYCONTEXT))
@@ -234,7 +239,7 @@ static CString CalcSHA256(const CString& text)
 
 	CString hash;
 	auto rgbHash = std::array<BYTE, 32>{};
-	DWORD cbHash = rgbHash.size();
+	DWORD cbHash = win32_cast(rgbHash.size());
 	if (!CryptGetHashParam(hHash, HP_HASHVAL, rgbHash.data(), &cbHash, 0))
 		return L"";
 
@@ -280,7 +285,7 @@ bool CHooks::Save()
 	// load the .tgitconfig file
 	wil::unique_git_config gitconfig;
 	git_config_new(gitconfig.put());
-	git_config_add_file_ondisk(gitconfig.get(), g_Git.CombinePath(L".tgitconfig").string().c_str(), git_config_level_t::GIT_CONFIG_LEVEL_LOCAL, nullptr, FALSE); // this needs to have the second highest priority
+	git_config_add_file_ondisk(gitconfig.get(), (GitCall::m_CurrentDirStorage / L".tgitconfig"), git_config_level_t::GIT_CONFIG_LEVEL_LOCAL, nullptr, FALSE); // this needs to have the second highest priority
 
 	// delete all existing local hooks
 	for (const auto& hook : { PROJECTPROPNAME_STARTCOMMITHOOK, PROJECTPROPNAME_PRECOMMITHOOK, PROJECTPROPNAME_POSTCOMMITHOOK, PROJECTPROPNAME_PREPUSHHOOK, PROJECTPROPNAME_POSTPUSHHOOK, PROJECTPROPNAME_PREREBASEHOOK })
@@ -755,7 +760,7 @@ DWORD CHooks::RunScript(CString cmd, LPCWSTR currentDir, CString& error, bool bW
 
 	if (!hErr)
 	{
-		error = (CFormatMessageWrapper()).c_str();
+		error = (wil::CFormatMessageWrapper()).c_str();
 		return FailCode;
 	}
 
@@ -763,7 +768,7 @@ DWORD CHooks::RunScript(CString cmd, LPCWSTR currentDir, CString& error, bool bW
 
 	if (!hRedir)
 	{
-		error = (CFormatMessageWrapper()).c_str();
+		error = (wil::CFormatMessageWrapper()).c_str();
 		return FailCode;
 	}
 
@@ -772,7 +777,7 @@ DWORD CHooks::RunScript(CString cmd, LPCWSTR currentDir, CString& error, bool bW
 
 	if (!hOut)
 	{
-		error = (CFormatMessageWrapper()).c_str();
+		error = (wil::CFormatMessageWrapper()).c_str();
 		return FailCode;
 	}
 
@@ -789,7 +794,7 @@ DWORD CHooks::RunScript(CString cmd, LPCWSTR currentDir, CString& error, bool bW
 	if (!CreateProcess(nullptr, cmd.GetBuffer(), nullptr, nullptr, TRUE, CREATE_UNICODE_ENVIRONMENT, nullptr, currentDir, &si, &pi))
 	{
 		const DWORD err = GetLastError();  // preserve the CreateProcess error
-		error = (CFormatMessageWrapper(err)).c_str();
+		error = (wil::CFormatMessageWrapper(err)).c_str();
 		SetLastError(err);
 		cmd.ReleaseBuffer();
 		return FailCode;
@@ -806,7 +811,7 @@ DWORD CHooks::RunScript(CString cmd, LPCWSTR currentDir, CString& error, bool bW
 		DWORD dw;
 		do
 		{
-			while (ReadFile(hRedir, &buf, buf.size() - 1, &dw, nullptr))
+			while (ReadFile(hRedir, &buf, win32_cast(buf.size() - 1), &dw, nullptr))
 			{
 				if (dw == 0)
 					break;

@@ -20,7 +20,7 @@
 #include "stdafx.h"
 #include "std.h"
 
-#include "TortoiseProc.h"
+import TortoiseProc;
 #include "Settings.h"
 import MessageBox;
 import TGitPath;	// GitAdminDir lives in the TGitPath module

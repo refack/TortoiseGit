@@ -7,7 +7,7 @@ module;
 #include <Utils/DPIAware.h>
 #include <Utils/CreateProcessHelper.h>
 #include "Utils/URLFinder.h"
-#include "TortoiseProc.h"
+
 
 
 export module AppUtils.Window;
@@ -15,6 +15,7 @@ import wil.MFC;
 import BrowseFolder;
 import ThemeAPI;
 import IconBitmapUtils;
+import TortoiseProc;
 
 /**
  * \ingroup TortoiseProc

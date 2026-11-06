@@ -22,7 +22,7 @@
 #include "stdafx.h"
 #include "std.h"
 
-#include "TortoiseProc.h"
+import TortoiseProc;
 #include "RequestPullDlg.h"
 #include "../../SharedMFC/Utils/LogDlg.h"
 import MessageBox;

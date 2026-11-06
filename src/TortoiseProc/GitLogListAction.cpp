@@ -21,7 +21,7 @@
 #include "stdafx.h"
 #include "std.h"
 
-#include "TortoiseProc.h"
+import TortoiseProc;
 #include "GitLogList.h"
 #include "IconMenu.h"
 #include "SysProgressDlg.h"

@@ -19,7 +19,7 @@
 #pragma once
 #include "../SharedMFC/Resources/resource.h"
 import StandAloneDlg;
-#include "MiscUI/FilterEdit.h"
+#include "../MiscUI/FilterEdit.h"
 #include "Utils/ResizableColumnsListCtrl.h"
 import git_h;
 #include "Utils/HistoryCombo.h"

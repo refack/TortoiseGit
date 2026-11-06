@@ -23,7 +23,7 @@
 #include "stdafx.h"
 #include "std.h"
 
-#include "TortoiseProc.h"
+import TortoiseProc;
 #include "MergeDlg.h"
 import AppUtils.Window;
 #include "HistoryDlg.h"

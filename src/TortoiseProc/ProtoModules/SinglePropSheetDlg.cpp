@@ -23,7 +23,7 @@
 #include "stdafx.h"
 #include "std.h"
 
-#include "TortoiseProc.h"
+import TortoiseProc;
 #include "SinglePropSheetDlg.h"
 import AppUtils.Window;
 #include "../../libgit2/Utils/DPIAware.h"

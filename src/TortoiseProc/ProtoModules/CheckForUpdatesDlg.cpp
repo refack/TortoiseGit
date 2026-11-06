@@ -21,7 +21,7 @@
 #include "stdafx.h"
 #include "std.h"
 
-#include "TortoiseProc.h"
+import TortoiseProc;
 #include "../../libgit2/Resources/LoglistCommonResource.h"
 #include <version.h>
 import MessageBox;

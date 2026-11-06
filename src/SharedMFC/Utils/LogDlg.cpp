@@ -1,22 +1,4 @@
-﻿// TortoiseGit - a Windows shell extension for easy version control
-
-// Copyright (C) 2003-2009, 2015 - TortoiseSVN
-// Copyright (C) 2008-2026 - TortoiseGit
-
-// This program is free software; you can redistribute it and/or
-// modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; either version 2
-// of the License, or (at your option) any later version.
-
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-
-// You should have received a copy of the GNU General Public License
-// along with this program; if not, write to the Free Software Foundation,
-// 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-
+﻿#include "stdafx.h"
 #include <regex>
 #include <xtree>
 #include <map>
@@ -29,20 +11,12 @@
 #include <xfacet>
 #include <xlocinfo>
 #include <xlocale>
-#include "stdafx.h"
-
-#include <Colors.h>
-#include <ProtoModules/GravatarPictureBox.h>
-#include <Utils/ProjectProperties.h>
-
 #include <Mmsystem.h>
 
-#include "ProtoModules/StatGraphDlg.h"
+
+
+#include <Utils/ProjectProperties.h>
 #include "LogDlg.h"
-#include "MiscUI/IconMenu.h"
-#include "ProtoModules/BrowseRefsDlg.h"
-#include "ProtoModules/LogOrdering.h"
-// #include "ProtoModules/Stan.h"
 #include "Utils/DPIAware.h"
 #include "LogDlgFileFilter.h"
 
@@ -56,6 +30,7 @@ import str_utils;
 import MessageBox;
 import FindDlg;
 import StandAloneDlg;
+import GitLogListBase;
 import wil.MFC;
 import GitRev;
 import misc_constants;
@@ -1587,7 +1562,9 @@ void CLogDlg::OnContextMenu(CWnd* pWnd, CPoint point)
 				wil::SetClipboardText(tgit::str::StringView{ pEdit->GetSelText() }, m_hWnd); // manually copy text, to detach it from process (cf. issue #3909)
 				break;
 			case CGitLogList::ID_EDITNOTE:
-				wil::MFC::EditNote(GetSafeHwnd(), pRev, &m_LogList.m_ProjectProperties);
+				std::unreachable();
+				// TODO: resolve wil::MFC::EditNote
+				//wil::MFC::EditNote(GetSafeHwnd(), pRev, &m_LogList.m_ProjectProperties);
 				this->FillLogMessageCtrl(true);
 				break;
 			}

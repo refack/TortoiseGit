@@ -2,7 +2,7 @@ module;
 #include "stdafx.h"
 #include "std.h"
 
-#include "TortoiseProc.h"
+import TortoiseProc;
 #include "git2/sys/errors.h"
 #include "UserPassword.h"
 #include "Utils/CertificateValidationHelper.h"

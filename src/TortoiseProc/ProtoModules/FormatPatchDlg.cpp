@@ -22,7 +22,7 @@
 #include "stdafx.h"
 #include "std.h"
 
-#include "TortoiseProc.h"
+import TortoiseProc;
 #include "FormatPatchDlg.h"
 import BrowseFolder;
 #include "../../SharedMFC/Utils/LogDlg.h"

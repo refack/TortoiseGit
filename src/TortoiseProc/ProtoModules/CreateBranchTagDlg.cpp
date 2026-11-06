@@ -21,7 +21,7 @@
 #include "stdafx.h"
 #include "std.h"
 
-#include "TortoiseProc.h"
+import TortoiseProc;
 #include "CreateBranchTagDlg.h"
 import AppUtils.Window;
 import MessageBox;

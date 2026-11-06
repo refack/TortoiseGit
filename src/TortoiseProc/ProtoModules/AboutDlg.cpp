@@ -21,7 +21,7 @@
 #include "stdafx.h"
 #include "std.h"
 
-#include "TortoiseProc.h"
+import TortoiseProc;
 #include "AboutDlg.h"
 #define NEED_SIGNING_KEY
 #include <tgitlib/version.h>

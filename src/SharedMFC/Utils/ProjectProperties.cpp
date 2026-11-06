@@ -18,14 +18,18 @@
 //
 
 #include "stdafx.h"
-#include "std.h"
 
 #include "ProjectProperties.h"
 #include <WinInet.h>
 
-import AppUtils.Window;
+import std;
+import wil;
+import git_h;
+import str_utils;
+import wil.MFC;
 import libgit2;
-
+import TGitPath;
+import TempFile;
 
 
 struct num_compare
@@ -54,8 +58,8 @@ int ProjectProperties::ReadProps()
 		git_config_add_file_ondisk(gitconfig.get(), TGitPath::ToGitPathA(g_Git.CombinePath(L".tgitconfig").native()).c_str(), GIT_CONFIG_LEVEL_LOCAL, nullptr, FALSE); // this needs to have the second highest priority
 	else
 	{
-		CString tmpFile = TempFiles::GetTempFilePath(true).GetWinPathString().c_str();
-		CTGitPath path(L".tgitconfig");
+		const CString tmpFile = TempFiles::GetTempFilePath(true).GetWinPathString().c_str();
+		const CTGitPath path(L".tgitconfig");
 		if (g_Git.GetOneFile(L"HEAD", path, tmpFile) == 0)
 			git_config_add_file_ondisk(gitconfig.get(), CGit::GetGitPathStringA(tmpFile), GIT_CONFIG_LEVEL_LOCAL, nullptr, FALSE); // this needs to have the second highest priority
 	}
@@ -96,16 +100,14 @@ int ProjectProperties::ReadProps()
 
 	if (TGitH::GetConfigString(gitconfig.get(), PROJECTPROPNAME_LOGWIDTHLINE, sPropVal) == 0)
 	{
-		CString val;
-		val = sPropVal;
+		const CString val = sPropVal;
 		if (!val.IsEmpty())
 			nLogWidthMarker = _wtoi(val);
 	}
 
 	if (TGitH::GetConfigString(gitconfig.get(), PROJECTPROPNAME_PROJECTLANGUAGE, sPropVal) == 0)
 	{
-		CString val;
-		val = sPropVal;
+		const CString val = sPropVal;
 		if (val == L"-1")
 			lProjectLanguage = -1;
 		if (!val.IsEmpty())
@@ -117,18 +119,17 @@ int ProjectProperties::ReadProps()
 
 	if (TGitH::GetConfigString(gitconfig.get(), PROJECTPROPNAME_LOGMINSIZE, sPropVal) == 0)
 	{
-		CString val;
-		val = sPropVal;
+		const CString val = sPropVal;
 		if (!val.IsEmpty())
 			nMinLogSize = _wtoi(val);
 	}
 
-	FetchHookString(gitconfig, PROJECTPROPNAME_STARTCOMMITHOOK.data(), sStartCommitHook);
-	FetchHookString(gitconfig, PROJECTPROPNAME_PRECOMMITHOOK.data(), sPreCommitHook);
-	FetchHookString(gitconfig, PROJECTPROPNAME_POSTCOMMITHOOK.data(), sPostCommitHook);
-	FetchHookString(gitconfig, PROJECTPROPNAME_PREPUSHHOOK.data(), sPrePushHook);
-	FetchHookString(gitconfig, PROJECTPROPNAME_POSTPUSHHOOK.data(), sPostPushHook);
-	FetchHookString(gitconfig, PROJECTPROPNAME_PREREBASEHOOK.data(), sPreRebaseHook);
+	FetchHookString(gitconfig.get(), PROJECTPROPNAME_STARTCOMMITHOOK.data(), sStartCommitHook);
+	FetchHookString(gitconfig.get(), PROJECTPROPNAME_PRECOMMITHOOK.data(), sPreCommitHook);
+	FetchHookString(gitconfig.get(), PROJECTPROPNAME_POSTCOMMITHOOK.data(), sPostCommitHook);
+	FetchHookString(gitconfig.get(), PROJECTPROPNAME_PREPUSHHOOK.data(), sPrePushHook);
+	FetchHookString(gitconfig.get(), PROJECTPROPNAME_POSTPUSHHOOK.data(), sPostPushHook);
+	FetchHookString(gitconfig.get(), PROJECTPROPNAME_PREREBASEHOOK.data(), sPreRebaseHook);
 
 	return 0;
 }
@@ -140,13 +141,11 @@ CString ProjectProperties::GetBugIDFromLog(CString& msg)
 	if (!sMessage.IsEmpty())
 	{
 		CString sBugLine;
-		CString sFirstPart;
-		CString sLastPart;
 		BOOL bTop = FALSE;
 		if (nBugIdPos < 0)
 			return sBugID;
-		sFirstPart = sMessage.Left(nBugIdPos);
-		sLastPart = sMessage.Mid(nBugIdPos + 7);
+		const CString sFirstPart = sMessage.Left(nBugIdPos);
+		const CString sLastPart = sMessage.Mid(nBugIdPos + 7);
 		msg.TrimRight('\n');
 		if (msg.ReverseFind('\n')>=0)
 		{
@@ -228,22 +227,21 @@ void ProjectProperties::AutoUpdateRegex()
 	}
 }
 
-void ProjectProperties::FetchHookString(const wil::unique_git_config& gitconfig, const CString& sBase, CString& sHook)
-{
+void ProjectProperties::FetchHookString(const git_config* gitconfig, const CString& sBase, CString& sHook) {
 	sHook.Empty();
 	CString sVal;
-	TGitH::GetConfigString(gitconfig.get(), sBase + L"cmdline", sVal);
+	TGitH::GetConfigString(gitconfig, sBase + L"cmdline", sVal);
 	if (sVal.IsEmpty())
 		return;
 	sHook += sVal + L'\n';
 	bool boolval = false;
-	TGitH::GetConfigBool(gitconfig.get(), tgit::str::StringView(sBase + L"wait"), boolval);
+	TGitH::GetConfigBool(gitconfig, tgit::str::StringView(sBase + L"wait"), boolval);
 	if (boolval)
 		sHook += L"true\n";
 	else
 		sHook += L"false\n";
 	boolval = false;
-	TGitH::GetConfigBool(gitconfig.get(), tgit::str::StringView(sBase + L"show"), boolval);
+	TGitH::GetConfigBool(gitconfig, tgit::str::StringView(sBase + L"show"), boolval);
 	if (boolval)
 		sHook += L"show";
 	else
@@ -276,7 +274,7 @@ std::vector<CHARRANGE> ProjectProperties::FindBugIDPositions(const CString& msg)
 					{
 						//ATLTRACE(L"matched id : %s\n", (*it2)[0].str().c_str());
 						ptrdiff_t matchposID = it2->position(0);
-						CHARRANGE range = { static_cast<LONG>(matchpos + matchposID), static_cast<LONG>(matchpos+matchposID + (*it2)[0].str().size()) };
+						CHARRANGE range = { .cpMin = static_cast<LONG>(matchpos + matchposID), .cpMax = static_cast<LONG>(matchpos+matchposID + (*it2)[0].str().size()) };
 						result.push_back(range);
 					}
 				}
@@ -298,7 +296,7 @@ std::vector<CHARRANGE> ProjectProperties::FindBugIDPositions(const CString& msg)
 					if (match.size() >= 2)
 					{
 						//ATLTRACE(L"matched id : %s\n", std::wstring(match[1]).c_str());
-						CHARRANGE range = { static_cast<LONG>(match[1].first - s.cbegin()), static_cast<LONG>(match[1].second - s.cbegin()) };
+						CHARRANGE range = { .cpMin = static_cast<LONG>(match[1].first - s.cbegin()), .cpMax = static_cast<LONG>(match[1].second - s.cbegin()) };
 						result.push_back(range);
 					}
 				}
@@ -361,13 +359,13 @@ std::vector<CHARRANGE> ProjectProperties::FindBugIDPositions(const CString& msg)
 		while (sBugIDPart.Find(',')>=0)
 		{
 			offset2 = offset1 + sBugIDPart.Find(',');
-			CHARRANGE range = { static_cast<LONG>(offset1), static_cast<LONG>(offset2) };
+			CHARRANGE range = { .cpMin = static_cast<LONG>(offset1), .cpMax = static_cast<LONG>(offset2) };
 			result.push_back(range);
 			sBugIDPart = sBugIDPart.Mid(sBugIDPart.Find(',')+1);
 			offset1 = offset2 + 1;
 		}
 		offset2 = offset1 + sBugIDPart.GetLength();
-		CHARRANGE range = { static_cast<LONG>(offset1), static_cast<LONG>(offset2) };
+		CHARRANGE range = { .cpMin = static_cast<LONG>(offset1), .cpMax = static_cast<LONG>(offset2) };
 		result.push_back(range);
 	}
 
@@ -376,15 +374,15 @@ std::vector<CHARRANGE> ProjectProperties::FindBugIDPositions(const CString& msg)
 
 BOOL ProjectProperties::FindBugID(const CString& msg, CWnd * pWnd)
 {
-	std::vector<CHARRANGE> positions = FindBugIDPositions(msg);
-	CAppUtils::SetCharFormat(pWnd, CFM_LINK, CFE_LINK, positions);
+	const std::vector<CHARRANGE> positions = FindBugIDPositions(msg);
+	wil::MFC::SetCharFormat(pWnd, CFM_LINK, CFE_LINK, positions);
 
 	return positions.empty() ? FALSE : TRUE;
 }
 
 std::set<CString> ProjectProperties::FindBugIDs (const CString& msg)
 {
-	std::vector<CHARRANGE> positions = FindBugIDPositions(msg);
+	const std::vector<CHARRANGE> positions = FindBugIDPositions(msg);
 	std::set<CString> bugIDs;
 
 	for (const auto& pos : positions)
@@ -398,7 +396,7 @@ CString ProjectProperties::FindBugID(const CString& msg)
 	CString sRet;
 	if (!sCheckRe.IsEmpty() || (nBugIdPos >= 0))
 	{
-		std::vector<CHARRANGE> positions = FindBugIDPositions(msg);
+		const std::vector<CHARRANGE> positions = FindBugIDPositions(msg);
 		std::set<CString, num_compare> bugIDs;
 		for (const auto& pos : positions)
 			bugIDs.insert(msg.Mid(pos.cpMin, pos.cpMax - pos.cpMin));
@@ -433,7 +431,7 @@ void ProjectProperties::ReplaceBugIDPlaceholder(CString& url, const CString& sBu
 {
 	CString parameter;
 	DWORD size = INTERNET_MAX_URL_LENGTH;
-	UrlEscape(sBugID, CStrBuf(parameter, size + 1), &size, URL_ESCAPE_SEGMENT_ONLY | URL_ESCAPE_PERCENT | URL_ESCAPE_AS_UTF8 | URL_ESCAPE_ASCII_URI_COMPONENT);
+	std::ignore = UrlEscape(sBugID, CStrBuf(parameter, size + 1), &size, URL_ESCAPE_SEGMENT_ONLY | URL_ESCAPE_PERCENT | URL_ESCAPE_AS_UTF8 | URL_ESCAPE_ASCII_URI_COMPONENT);
 	url.Replace(L"%BUGID%", parameter);
 }
 
@@ -443,10 +441,10 @@ BOOL ProjectProperties::CheckBugID(const CString& sID)
 	{
 		// check if the revision actually _is_ a number
 		// or a list of numbers separated by colons
-		int len = sID.GetLength();
+		const int len = sID.GetLength();
 		for (int i=0; i<len; ++i)
 		{
-			wchar_t c = sID.GetAt(i);
+			const wchar_t c = sID.GetAt(i);
 			if ((c < '0')&&(c != ',')&&(c != ' '))
 				return FALSE;
 			if (c > '9')

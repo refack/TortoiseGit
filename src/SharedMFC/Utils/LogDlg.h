@@ -19,16 +19,18 @@
 //
 
 #pragma once
-#include "Resources/resource.h"
-#include "SplitterControl.h"
-#include "FilterEdit.h"
-#include "GestureEnabledControl.h"
-#include "GitLogList.h"
-#include "ProtoModules/GitStatusListCtrl.h"
-#include "ProtoModules/HyperLink.h"
-#include "ProtoModules/GravatarPictureBox.h"
-#include "ProtoModules/PatchViewDlg.h"
-#include "MenuButton.h"
+#include <../../TortoiseProc/ProtoModules/Colors.h>
+#include <../../TortoiseProc/ProtoModules/GravatarPictureBox.h>
+
+#include "../../TortoiseProc/ProtoModules/StatGraphDlg.h"
+#include "../../TortoiseProc/MiscUI/SplitterControl.h"
+#include "../../TortoiseProc/ProtoModules/BrowseRefsDlg.h"
+#include "../../TortoiseProc/ProtoModules/LogOrdering.h"
+#include "../../TortoiseProc/ProtoModules/GitStatusListCtrl.h"
+#include "../../TortoiseProc/ProtoModules/PatchViewDlg.h"
+#include "../../TortoiseProc/ProtoModules/HyperLink.h"
+#include "../../TortoiseProc/MiscUI/MenuButton.h"
+#include "../../TortoiseProc/GitLogList.h"
 
 import TGitPath;
 import GitHash;

@@ -20,7 +20,7 @@
 #include "stdafx.h"
 #include "std.h"
 
-#include "TortoiseProc.h"
+import TortoiseProc;
 #include "../../SharedMFC/Utils/ProjectProperties.h"
 #include "SetDialogs3.h"
 import AppUtils.Window;

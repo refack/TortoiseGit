@@ -22,7 +22,7 @@
 
 #include <Mmsystem.h>
 
-#include "TortoiseProc.h"
+import TortoiseProc;
 #include "GitProgressList.h"
 #include "LogFile.h"
 #include "LoglistUtils.h"

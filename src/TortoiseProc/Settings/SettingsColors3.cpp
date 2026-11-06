@@ -20,7 +20,7 @@
 #include "stdafx.h"
 #include "std.h"
 
-#include "TortoiseProc.h"
+import TortoiseProc;
 #include "SettingsColors3.h"
 
 IMPLEMENT_DYNAMIC(CSettingsColors3, ISettingsPropPage)

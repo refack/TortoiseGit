@@ -20,7 +20,7 @@
 #include "stdafx.h"
 #include "std.h"
 
-#include "TortoiseProc.h"
+import TortoiseProc;
 #include "ToolAssocDlg.h"
 #include "SetProgsAdvDlg.h"
 #include "../../SharedMFC/Utils/LogDataVector.h"

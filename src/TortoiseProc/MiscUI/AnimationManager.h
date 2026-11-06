@@ -60,6 +60,7 @@
 #pragma once
 #include <UIAnimation.h>
 #include <functional>
+#include <memory>
 
 _COM_SMARTPTR_TYPEDEF(IUIAnimationStoryboard, __uuidof(IUIAnimationStoryboard));
 _COM_SMARTPTR_TYPEDEF(IUIAnimationVariable, __uuidof(IUIAnimationVariable));

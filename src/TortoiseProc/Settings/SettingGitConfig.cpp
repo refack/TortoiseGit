@@ -22,7 +22,7 @@
 #include "stdafx.h"
 #include "std.h"
 
-#include "TortoiseProc.h"
+import TortoiseProc;
 #include "SettingGitConfig.h"
 import TGitPath;	// GitAdminDir lives in the TGitPath module
 import AppUtils.Launch;

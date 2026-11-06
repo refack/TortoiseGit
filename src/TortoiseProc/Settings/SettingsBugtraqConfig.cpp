@@ -22,7 +22,7 @@
 #include "stdafx.h"
 #include "std.h"
 
-#include "TortoiseProc.h"
+import TortoiseProc;
 #include "SettingsBugtraqConfig.h"
 #include "../../SharedMFC/Utils/ProjectProperties.h"
 #include "BugtraqRegexTestDlg.h"

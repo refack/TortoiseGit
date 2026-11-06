@@ -19,7 +19,7 @@
 #include "stdafx.h"
 #include "std.h"
 
-#include "TortoiseProc.h"
+import TortoiseProc;
 #include "RevertProgressCommand.h"
 import TortoiseProc.MassiveGitTask;
 using MassiveGitTask::CMassiveGitTask;

@@ -21,7 +21,7 @@
 #include "stdafx.h"
 #include "std.h"
 
-#include "TortoiseProc.h"
+import TortoiseProc;
 #include "RevisionGraphWnd.h"
 import MessageBox;
 import AppUtils.Launch;

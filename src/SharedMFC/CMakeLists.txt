@@ -17,6 +17,9 @@ target_sources(SharedMFC
         Utils/LogDlg.h
         Utils/LogDlgFileFilter.cpp
         Utils/LogDlgFileFilter.h
+        Utils/ProjectProperties.h
+        Utils/ProjectProperties.cpp
+
 )
 
 target_sources(SharedMFC
@@ -34,9 +37,6 @@ target_include_directories(SharedMFC
         ResizableLib
     PRIVATE
         "${CMAKE_CURRENT_SOURCE_DIR}"
-        "${CMAKE_SOURCE_DIR}/src/TortoiseProc/ProtoModules"
-        "${CMAKE_SOURCE_DIR}/src/TortoiseProc/MiscUI"
-        "${CMAKE_SOURCE_DIR}/src/TortoiseProc"
 )
 
 target_link_libraries(SharedMFC
@@ -79,4 +79,5 @@ target_sources(SharedMFC
         TaskbarUUID.ixx
         TortoiseProc.ixx
         Hooks.ixx
+        ConfigureGitExe.ixx
 )

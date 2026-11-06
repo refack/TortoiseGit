@@ -20,7 +20,7 @@
 #include "stdafx.h"
 #include "std.h"
 
-#include "TortoiseProc.h"
+import TortoiseProc;
 #include "SetHooksAdv.h"
 import BrowseFolder;
 import AppUtils.Window;

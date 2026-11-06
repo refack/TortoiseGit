@@ -21,7 +21,7 @@
 #include "std.h"
 
 #include "GitDiff.h"
-#include "TortoiseProc.h"
+import TortoiseProc;
 import AppUtils.GitEnv;
 import AppUtils.Launch;
 import AppUtils.Window;

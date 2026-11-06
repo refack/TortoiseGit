@@ -55,11 +55,22 @@ void SetLibGit2UserAgent() {
 
 
 using ::git_config_new;
-using ::git_config_add_file_ondisk;
 using ::git_config_level_t;
 using ::git_config_delete_entry;
 using ::git_config_set_string;
 using ::git_config_set_bool;
+
+using ::git_config_add_file_ondisk;
+int git_config_add_file_ondisk(
+	git_config *cfg,
+	const std::filesystem::path& path,
+	const git_config_level_t level,
+	const git_repository *repo,
+	const int force
+) {
+	return ::git_config_add_file_ondisk(cfg, path.string().c_str(), level, repo, force);
+}
+
 
 }
 // NOLINTEND(*-pro-type-vararg, bugprone-suspicious-stringview-data-usage)
