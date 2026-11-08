@@ -28,13 +28,8 @@ target_sources(SharedMFC
 )
 
 target_include_directories(SharedMFC
-    PUBLIC
-        gitdll
-        tgitlib
-        ResizableLib
     PRIVATE
         "${CMAKE_CURRENT_SOURCE_DIR}"
-        "$<TARGET_FILE_DIR:SharedMFC>"
 )
 
 target_link_libraries(SharedMFC

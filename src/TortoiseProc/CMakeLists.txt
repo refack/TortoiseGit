@@ -289,7 +289,6 @@ target_include_directories(TortoiseProc
         "${CMAKE_SOURCE_DIR}/src/SharedMFC/Resources"
 #        "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/include/scintilla2"
 #        "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/include/lexilla"
-        "$<TARGET_FILE_DIR:TortoiseProc>"
 )
 
 target_compile_definitions(TortoiseProc

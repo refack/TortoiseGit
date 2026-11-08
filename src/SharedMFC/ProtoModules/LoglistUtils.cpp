@@ -20,7 +20,7 @@
 #include "stdafx.h"
 import tgit;
 
-#include <../../libgit2/Resources/LoglistCommonResource.h>
+#include <Resources/LoglistCommonResource.h>
 #include "LoglistUtils.h"
 
 CLoglistUtils::CLoglistUtils()

@@ -6,7 +6,7 @@ module;
 #include "Utils/HintCtrl.h"
 #include "Utils/LogDataVector.h"
 #include "Utils/ResizableColumnsListCtrl.h"
-#include "../../TortoiseProc/MiscUI/IconMenu.h"
+#include "../TortoiseProc/MiscUI/IconMenu.h"
 #include "ProtoModules/LoglistUtils.h"
 
 #include "Resources/resource.h"
