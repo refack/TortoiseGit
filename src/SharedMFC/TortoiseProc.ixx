@@ -34,6 +34,8 @@ import str_utils;		// UnicodeUtils.h, WideString.h, StringUtils.h
 import wil;				// also the libgit2 owners, wil::unique_git_* (SmartLibgit2Ref.h's CAuto
 
 import ConfigureGitExe;
+// cannot `import AppUtils.GitEnv;` for CAppUtils::Git2GetUserPassword - every
+// AppUtils.* module imports TortoiseProc, so the edge back is a module cycle.
 
 import git_h;			// Git.h, and what gittype.h/tgittypes held for git
 import DebugOutput;

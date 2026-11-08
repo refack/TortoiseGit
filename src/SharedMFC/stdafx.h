@@ -35,6 +35,7 @@
 #include <Ws2tcpip.h>
 #include <Wspiapi.h>
 #include <comdef.h>		// _COM_SMARTPTR_TYPEDEF (AnimationManager.h); the old PCH supplied it
+#include <tgitlib/sanity.h>	// SCOPE_EXIT - a macro, so no module can carry it
 #include <shlobj.h>
 #include <Shlwapi.h>
 #include <shlguid.h>

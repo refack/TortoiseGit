@@ -184,7 +184,7 @@ public:
 
 
 	static bool CheckGitVersion(HWND hwnd) {
-		if (CAppUtils::IsGitVersionNewerOrEqual(hwnd, 2, 47))
+		if (IsGitVersionNewerOrEqual(hwnd, 2, 47))	// git_h's, exported at namespace scope
 			return true;
 
 		CString tmp;
@@ -271,7 +271,7 @@ protected:
 		dir = gitpath;
 		if (!dir.IsEmpty())
 			dir += L"\\git.exe";
-		if (!CAppUtils::FileOpenSave(dir, nullptr, 0, IDS_GITEXEFILEFILTER, true, hwnd))
+		if (!FileOpenSave(dir, nullptr, 0, IDS_GITEXEFILEFILTER, true, hwnd))	// this module's own, above
 			return false;
 
 		gitpath = dir;

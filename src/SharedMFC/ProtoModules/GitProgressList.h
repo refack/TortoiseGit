@@ -23,6 +23,7 @@
 #include "ProgressDlg.h"
 #include "../../TortoiseProc/MiscUI/IconMenu.h"
 import TGitPath;
+import ThemeAPI;	// CTheme, for ReportString's default color
 
 /**
  * \ingroup TortoiseProc

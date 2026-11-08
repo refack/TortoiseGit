@@ -3959,7 +3959,7 @@ int GetSubmodulePointer(CGit::SubmoduleInfo& submoduleinfo) {
 }
 
 
-int GetMsysgitVersion(HWND hWnd)
+export int GetMsysgitVersion(HWND hWnd)
 {
 	if (TGitH::ms_LastMsysGitVersion)
 		return TGitH::ms_LastMsysGitVersion;
@@ -4014,7 +4014,7 @@ int GetMsysgitVersion(HWND hWnd)
 }
 
 
-bool IsGitVersionNewerOrEqual(HWND hWnd, unsigned __int8 major, unsigned __int8 minor, unsigned __int8 patchlevel = 0, unsigned __int8 build = 0) {
+export bool IsGitVersionNewerOrEqual(HWND hWnd, unsigned __int8 major, unsigned __int8 minor, unsigned __int8 patchlevel = 0, unsigned __int8 build = 0) {
 	auto ver = GetMsysgitVersion(hWnd);
 	return ver >= ConvertVersionToInt(major, minor, patchlevel, build);
 }

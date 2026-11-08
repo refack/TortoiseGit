@@ -18,6 +18,7 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 #pragma once
+#include <map>	// textual, not `import std`: module TUs include this in their global fragment, where imports don't reach
 
 
 /**

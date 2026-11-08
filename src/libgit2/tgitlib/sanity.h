@@ -4,6 +4,11 @@
 
 #include <gsl/assert>
 
+// gsl/assert has latched its kernel-mode (fastfail) contract behavior behind its
+// header guard; leaving _KERNEL_MODE defined makes every LATER header that reads
+// it (wil/result.h refuses outright) treat a Win32 app as kernel code.
+#undef _KERNEL_MODE
+
 #define Implies(A,B) (Ensures(!(A) || (B)), (A))
 
 
