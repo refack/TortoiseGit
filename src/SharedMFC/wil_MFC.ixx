@@ -6,6 +6,7 @@ module;
 #include <Windows.h>
 
 #include <wil/win32_helpers.h>
+#include <tgitlib/LoadIconEx.h>
 
 #include "Resources/resource.h"
 
@@ -31,31 +32,9 @@ using namespace tgit;
 export namespace wil::MFC {
 
 
-inline HICON LoadIconEx(const HINSTANCE& hInstance, const LPCWSTR& lpIconName) {
-	HICON hIcon = nullptr;
-	if (FAILED(LoadIconWithScaleDown(hInstance, lpIconName, GetSystemMetrics(SM_CXSMICON), GetSystemMetrics(SM_CYSMICON), &hIcon))) {
-		// fallback, just in case
-		hIcon = LoadIcon(hInstance, lpIconName);
-	}
-	return hIcon;
-}
-
-
-inline HICON LoadIconEx(const HINSTANCE& hInstance, const LPCWSTR& lpIconName, int iconWidth, int iconHeight) {
-	// the docs for LoadIconWithScaleDown don't mention that a size of 0 will
-	// use the default system icon size like for e.g. LoadImage or LoadIcon.
-	// So we don't assume that this works but do it ourselves.
-	if (iconWidth == 0)
-		iconWidth = GetSystemMetrics(SM_CXSMICON);
-	if (iconHeight == 0)
-		iconHeight = GetSystemMetrics(SM_CYSMICON);
-	HICON hIcon = nullptr;
-	if (FAILED(LoadIconWithScaleDown(hInstance, lpIconName, iconWidth, iconHeight, &hIcon))) {
-		// fallback, just in case
-		hIcon = static_cast<HICON>(LoadImage(hInstance, lpIconName, IMAGE_ICON, iconWidth, iconHeight, LR_DEFAULTCOLOR));
-	}
-	return hIcon;
-}
+// The HINSTANCE overloads live in tgitlib/LoadIconEx.h (TGitCache and
+// TortoiseUDiff use them without MFC); re-exported here for module importers.
+using ::LoadIconEx;
 
 
 inline HICON LoadIconEx(const UINT resourceId, const UINT cx, const UINT cy) {

@@ -18,6 +18,7 @@ target_include_directories(SshAskPass
 
 target_link_libraries(SshAskPass
     PRIVATE
+        tgitlib   # DarkModeHelper, DPIAware, RIAA, Registry; -I for <tgitlib/version.h> in the .rc2
         UxTheme
         detours
         winhttp

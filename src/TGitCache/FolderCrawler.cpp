@@ -21,7 +21,7 @@
 #include "stdafx.h"
 #include "FolderCrawler.h"
 #include "GitStatusCache.h"
-#include "registry.h"
+import Registry;
 #include "TGitCache.h"
 import str_utils;	// StringUtils::EndsWith
 

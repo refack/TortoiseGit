@@ -21,7 +21,8 @@
 
 #include "SettingsPropPage.h"
 import Registry;
-#include <../../libgit2/Resources/Globals.h>
+import Constants;
+using namespace tgit::Constants;	// TGitContextMenuEntries, was libgit2/Resources/Globals.h
 
 #include "../../SharedMFC/Resources/resource.h"
 

@@ -18,12 +18,13 @@ target_sources(TortoiseUDiff
 target_include_directories(TortoiseUDiff
     PRIVATE
         "${CMAKE_SOURCE_DIR}/src"
-        "${CMAKE_SOURCE_DIR}/src/libgit2/include"   # sanity.h
+        "${CMAKE_SOURCE_DIR}/src/libgit2"   # <tgitlib/sanity.h>, <tgitlib/LoadIconEx.h>, the .rc2's <tgitlib/version.h>
         "${CMAKE_CURRENT_SOURCE_DIR}"
 )
 
 target_link_libraries(TortoiseUDiff
     PRIVATE
+        tgitlib   # the imports in MainWindow.cpp/FindBar.cpp
         uxtheme
         detours
         Scintilla

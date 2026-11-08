@@ -39,7 +39,7 @@
 #include <lexilla/Lexilla.h>
 #include <lexilla/SciLexer.h>
 #include <Utils/FileTextLines.h>
-#include "Utils/ScintillaRegistration.h"
+#include <tgitlib/ScintillaRegistration.h>
 #include <MiscUI/IconMenu.h>
 
 #include "Resources/LoglistCommonResource.h"

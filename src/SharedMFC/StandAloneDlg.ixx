@@ -20,6 +20,7 @@ import ThemeAPI;
 import TaskbarUUID;
 import DarkModeHelper;
 import GitHash;
+import SysInfo;		// GetMonitorSetupHash
 import Tooltip;
 import DPIAware;
 
@@ -33,33 +34,7 @@ using namespace ThemeAPI;
 
 
 export namespace StandAloneDlg {
-// inline, not static: the inline GetMonitorSetupHash below names it, and an inline
-// function with external linkage must not refer to a different entity per TU.
-inline BOOL CALLBACK MonitorEnum(HMONITOR hMon, HDC /*hdc*/, LPRECT lprcMonitor, LPARAM pData) {
-	MONITORINFOEX miex = {};
-	miex.cbSize = sizeof(MONITORINFOEX);
-	GetMonitorInfo(hMon, &miex);
-
-	if (miex.dwFlags == DISPLAY_DEVICE_MIRRORING_DRIVER)
-		return TRUE;
-
-	auto* pMonRects = reinterpret_cast<std::vector<RECT>*>(pData);
-	pMonRects->push_back(*lprcMonitor);
-	return TRUE;
-}
-
-
-inline std::wstring GetMonitorSetupHash() {
-	std::vector<RECT> monRects;
-	EnumDisplayMonitors(nullptr, nullptr, MonitorEnum, reinterpret_cast<LPARAM>(&monRects));
-	std::ranges::sort(monRects,
-					  [](const RECT& a, const RECT& b) -> bool {
-						  if (a.left == b.left)
-						  	return a.top < b.top;
-						  return a.left < b.left;
-					  });
-	return TGitHash::GetHashText(monRects.data(), monRects.size() * sizeof(RECT), TGitHash::HashType::HashMd5);
-}
+using SysInfo::GetMonitorSetupHash;	// kept here for existing importers; the body lives in SysInfo
 
 
 /**

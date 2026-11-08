@@ -21,7 +21,7 @@
 #include "StatusCacheEntry.h"
 import TGitStatus;
 import TGitCache.CacheInterface;
-#include "registry.h"
+import Registry;
 
 #define CACHEVERION 8
 

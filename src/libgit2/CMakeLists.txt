@@ -20,6 +20,16 @@ target_include_directories(tgitlib
         "${CMAKE_CURRENT_SOURCE_DIR}"
 )
 
+# Pure-Win32 window bases: TortoiseUDiff derives from them, TortoiseProc's
+# MiscUI widgets may again; no MFC, so they live below the CString wall.
+target_sources(tgitlib
+    PRIVATE
+        tgitlib/BaseDialog.cpp
+        tgitlib/BaseDialog.h
+        tgitlib/BaseWindow.cpp
+        tgitlib/BaseWindow.h
+)
+
 target_link_libraries(tgitlib
     PUBLIC
         gitdll
@@ -62,6 +72,7 @@ target_sources(tgitlib
         modules/RIAA.ixx
         modules/RegistryDep.ixx
         modules/RollingFile.ixx
+        modules/CacheInterface.ixx
         modules/ShellUpdater.ixx
         modules/TGitPath.ixx
         modules/TempFile.ixx
@@ -75,6 +86,7 @@ target_sources(tgitlib
         modules/utils/ReaderWriterLock.ixx
         modules/utils/PathWatcher.ixx
         modules/SysInfo.ixx
+        modules/Theme.ixx
         modules/ShellEnvironment.ixx
         modules/TGitConstants.ixx
         modules/DPIAware.ixx

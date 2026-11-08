@@ -24,11 +24,11 @@
 // regulars
 #include "TGITCache.h"
 
-#include <CreateProcessHelper.h>
+#include <tgitlib/CreateProcessHelper.h>
 #include <dbt.h>
 import GitIndex;
-#include <LoadIconEx.h>
-#include <registry.h>
+#include <tgitlib/LoadIconEx.h>
+import Registry;
 import RIAA;
 import str_utils;
 #include <wrl/client.h>

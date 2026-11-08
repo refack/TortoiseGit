@@ -32,7 +32,7 @@
 #include <../../libgit2/Resources/LoglistCommonResource.h>
 #include <../TortoiseUDiff/UDiffColors.h>
 #include <../../libgit2/Utils/LoadIconEx.h>
-#include <Utils/ScintillaRegistration.h>
+#include <tgitlib/ScintillaRegistration.h>
 import ThemeAPI;
 #include <Utils/URLFinder.h>
 

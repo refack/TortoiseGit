@@ -19,7 +19,8 @@
 //
 #pragma once
 #include <wrl/client.h>
-#include <Resources/Globals.h>
+import Constants;
+using namespace tgit::Constants;	// TGitContextMenuEntries, was libgit2/Resources/Globals.h
 #include "ShellCache.h"
 #include "RemoteCacheLink.h"
 #include "GitFolderStatus.h"

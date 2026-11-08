@@ -26,9 +26,9 @@
 #include "ShellState.h"
 #include "ItemIDList.h"
 import PreserveChdir;
-#include <Utils/CreateProcessHelper.h>
+#include <tgitlib/CreateProcessHelper.h>
 #include "resource.h"
-#include "Utils/LoadIconEx.h"
+#include <tgitlib/LoadIconEx.h>
 
 import PathUtils;
 import CmdLineParser;

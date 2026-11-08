@@ -23,6 +23,8 @@
 /**
  * Loads a string from the application resources.
  */
+import std;	// std::make_unique; like CreateProcessHelper.h, this header is for non-module TUs
+
 class ResString
 {
 public:

@@ -20,11 +20,11 @@
 #include "stdafx.h"
 #include "TortoiseUDiff.h"
 #include "MainWindow.h"
-#include <Utils/CmdLineParser.h>
+import CmdLineParser;
 import TaskbarUUID;
 import Registry;
-#include <Utils/LangDll.h>
-#include <Utils/Monitor.h>
+import LangDll;
+import SysInfo;
 #include <GdiPlus.h>
 #include <commctrl.h>
 
@@ -73,7 +73,7 @@ int APIENTRY wWinMain(HINSTANCE hInstance,
 	SCOPE_EXIT { Gdiplus::GdiplusShutdown(gdiplusToken); };
 
 	CMainWindow mainWindow(hResource);
-	mainWindow.SetRegistryPath(L"Software\\TortoiseGit\\UDiffViewerWindowPos_" + GetMonitorSetupHash());
+	mainWindow.SetRegistryPath(L"Software\\TortoiseGit\\UDiffViewerWindowPos_" + SysInfo::GetMonitorSetupHash());
 	if (parser.HasVal(L"title"))
 		mainWindow.SetTitle(parser.GetVal(L"title"));
 	else if (parser.HasVal(L"patchfile"))

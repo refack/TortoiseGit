@@ -21,7 +21,6 @@
 // force-includes its own (/FI); see ShellCache.cpp.
 #include "menuinfo.h"
 #include "resource.h"
-#include "../libgit2/Resources/Globals.h"
 
 // defaults are specified in ShellCache.h
 

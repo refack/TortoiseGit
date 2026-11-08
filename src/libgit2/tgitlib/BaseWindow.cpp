@@ -17,13 +17,10 @@
 // along with this program; if not, write to the Free Software Foundation,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
-#include "../stdafx.h"
-#include "../std.h"
-
-
-
-#include "MiscUI/BaseWindow.h"
+#include <windows.h>
 #include <Shlwapi.h>
+#include "BaseWindow.h"
+import std;
 import DPIAware;
 
 #pragma comment(lib, "shlwapi.lib")

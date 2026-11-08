@@ -26,16 +26,16 @@
 #include <scintilla/Scintilla.h>
 #include <lexilla/Lexilla.h>
 #include <lexilla/SciLexer.h>
-#include <Utils/CreateProcessHelper.h>
+#include <tgitlib/CreateProcessHelper.h>
 import DarkModeHelper;
 import DPIAware;
-#include <../libgit2/Utils/LoadIconEx.h>
+#include <tgitlib/LoadIconEx.h>
 import Registry;
-#include <Utils/ScintillaRegistration.h>
+#include <tgitlib/ScintillaRegistration.h>
 import str_utils;
 import TaskbarUUID;
 import ThemeAPI;
-#include <Utils/MiscUI/BaseWindow.h>
+#include <tgitlib/BaseWindow.h>
 
 #include "TortoiseUDiff.h"
 #include "UDiffColors.h"

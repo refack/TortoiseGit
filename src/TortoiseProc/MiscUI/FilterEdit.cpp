@@ -23,7 +23,7 @@
 
 
 #include "MiscUI/FilterEdit.h"
-#include <Utils/LoadIconEx.h>
+#include <tgitlib/LoadIconEx.h>
 import ThemeAPI;
 
 const UINT CFilterEdit::WM_FILTEREDIT_INFOCLICKED = ::RegisterWindowMessage(L"TGITWM_FILTEREDIT_INFOCLICKED");

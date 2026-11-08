@@ -19,7 +19,7 @@
 //
 
 #pragma once
-#include <Utils/MiscUI/BaseWindow.h>
+#include <tgitlib/BaseWindow.h>
 #include <string>
 #include "FindBar.h"
 

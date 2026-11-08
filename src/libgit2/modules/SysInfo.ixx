@@ -7,6 +7,7 @@ import std;
 import wil;
 import gsl;
 
+import GitHash;		// TGitHash::GetHashText, for GetMonitorSetupHash
 import PathUtils;
 import str_utils;
 
@@ -27,12 +28,42 @@ static bool InitializeIsWin11OrLater()
 }
 
 
+static BOOL CALLBACK MonitorEnum(HMONITOR hMon, HDC /*hdc*/, LPRECT lprcMonitor, LPARAM pData)
+{
+	MONITORINFOEX miex = {};
+	miex.cbSize = sizeof(MONITORINFOEX);
+	GetMonitorInfo(hMon, &miex);
+
+	if (miex.dwFlags == DISPLAY_DEVICE_MIRRORING_DRIVER)
+		return TRUE;
+
+	auto* pMonRects = reinterpret_cast<std::vector<RECT>*>(pData);
+	pMonRects->push_back(*lprcMonitor);
+	return TRUE;
+}
+
+
 export namespace SysInfo
 {
 	bool IsWin11OrLater()
 	{
 		static const bool value = InitializeIsWin11OrLater();
 		return value;
+	}
+
+	/// A stable fingerprint of the monitor layout, so per-setup window
+	/// placements (docked vs. on-the-road) land in distinct registry keys.
+	std::wstring GetMonitorSetupHash()
+	{
+		std::vector<RECT> monRects;
+		EnumDisplayMonitors(nullptr, nullptr, MonitorEnum, reinterpret_cast<LPARAM>(&monRects));
+		std::ranges::sort(monRects,
+						  [](const RECT& a, const RECT& b) -> bool {
+							  if (a.left == b.left)
+								  return a.top < b.top;
+							  return a.left < b.left;
+						  });
+		return TGitHash::GetHashText(monRects.data(), monRects.size() * sizeof(RECT), TGitHash::HashType::HashMd5);
 	}
 }
 

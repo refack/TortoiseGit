@@ -3,14 +3,15 @@
 // ReSharper disable CppDeclaratorNeverUsed
 // NOLINTBEGIN(bugprone-branch-clone, modernize-use-nodiscard, *-pro-type-reinterpret-cast, *-magic-numbers)
 module;
+// windows.h first: in SharedMFC the PCH used to supply it before these; tgitlib
+// has no PCH, and Uxtheme.h/commctrl.h parse only with the base headers in.
+#include <windows.h>
 #include <Uxtheme.h>
 #include <math.h>
 #include <vssym32.h>
 #include <richedit.h>
 #include <gdiplus.h>
 #include <tgitlib/sanity.h>
-
-#include <windows.h>
 
 
 export module ThemeAPI;

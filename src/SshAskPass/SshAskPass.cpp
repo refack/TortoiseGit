@@ -30,7 +30,7 @@
 
 import DarkModeHelper;
 import DPIAware;
-#include "registry.h"
+import Registry;
 #include "resource.h"
 import RIAA;
 #pragma comment(lib, "comctl32.lib")

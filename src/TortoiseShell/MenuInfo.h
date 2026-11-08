@@ -18,7 +18,8 @@
 //
 #pragma once
 #include <span>
-#include "../libgit2/Resources/Globals.h"
+import Constants;
+using namespace tgit::Constants;	// TGitContextMenuEntries, was libgit2/Resources/Globals.h
 
 enum class TGitShellCommand
 {

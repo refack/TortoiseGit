@@ -25,7 +25,7 @@ import TGitPath;
 #include "FolderCrawler.h"
 #include "DirectoryWatcher.h"
 #include "ShellUpdater.h"
-#include "ReaderWriterLock.h"
+import ReaderWriterLock;
 #include "AdminDirCache.h"
 #include <atlcoll.h>
 //////////////////////////////////////////////////////////////////////////

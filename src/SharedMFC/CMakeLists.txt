@@ -67,7 +67,6 @@ target_sources(SharedMFC
         LogDlgFilter.ixx
         MessageBox.ixx
         StandAloneDlg.ixx
-        Theme.ixx
         Tooltip.ixx
         misc_constants.ixx
         wil_MFC.ixx
@@ -82,13 +81,14 @@ target_sources(SharedMFC
         AppUtils.Workflow.ixx
         AppUtils.GitEnv.ixx
         MassiveGitTask.ixx
-        CacheInterface.ixx
 )
 
 
 # Moved from TortoiseProc
+# PRIVATE: PUBLIC plain sources would make every consumer (TortoiseShell,
+# TortoiseProc, TortoiseGitBlame) compile all of these again itself.
 target_sources(SharedMFC
-    PUBLIC
+    PRIVATE
         ProtoModules/AboutDlg.cpp
         ProtoModules/AboutDlg.h
         ProtoModules/AddDlg.cpp

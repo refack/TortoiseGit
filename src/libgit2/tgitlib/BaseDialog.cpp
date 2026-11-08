@@ -17,12 +17,10 @@
 // along with this program; if not, write to the Free Software Foundation,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
-#include "../stdafx.h"
-#include "../std.h"
-
-
-#include "MiscUI/BaseDialog.h"
-#include <Utils/LoadIconEx.h>
+#include <windows.h>
+#include "BaseDialog.h"
+#include "LoadIconEx.h"
+import std;
 
 INT_PTR CDialog::DoModal(HINSTANCE hInstance, int resID, HWND hWndParent)
 {

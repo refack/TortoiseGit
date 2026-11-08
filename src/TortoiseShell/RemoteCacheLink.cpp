@@ -20,7 +20,7 @@
 #include "stdafx.h"
 #include "RemoteCacheLink.h"
 #include "ShellExt.h"
-#include <Utils/CreateProcessHelper.h>
+#include <tgitlib/CreateProcessHelper.h>
 
 import TGitCache.CacheInterface;
 import TGitPath;
