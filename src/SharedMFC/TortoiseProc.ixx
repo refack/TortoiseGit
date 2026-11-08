@@ -5,8 +5,7 @@
 
 #include "../TortoiseProc/MiscUI/AnimationManager.h"
 #include "../TortoiseProc/JumpListHelpers.h"
-#include "Utils/ProjectProperties.h"
-#include "../TortoiseProc/ProtoModules/VersioncheckParser.h"
+#include "ProtoModules/VersioncheckParser.h"
 #include "../TortoiseProc/Commands/Command.h"
 
 #include "Resources/resource.h"
@@ -23,6 +22,8 @@
 
 
 export module TortoiseProc;
+
+
 import std;
 using namespace std::literals;
 namespace fs = std::filesystem;
@@ -44,6 +45,7 @@ import GitIndex;		// git_wc_status_kind / git_wc_status2_t, which tgittypes held
 import Registry;		// CRegDWORD ...
 import GitHash; 		// GetHashText
 import TempFile; 		// DeleteOldTempFiles
+import ProjectProperties;
 
 import MessageBox;
 import TaskbarUUID;

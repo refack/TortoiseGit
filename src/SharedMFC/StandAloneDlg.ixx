@@ -2,9 +2,8 @@
 #include "stdafx.h"
 
 #include <ResizableDialog.h>
-#include <Utils/DPIAware.h>
 #include <Utils/CommonDialogFunctions.h>
-#include "../TortoiseProc/ProtoModules/EditWordBreak.h"
+#include "ProtoModules/EditWordBreak.h"
 
 #pragma comment(lib, "Dwmapi.lib")
 
@@ -22,6 +21,7 @@ import TaskbarUUID;
 import DarkModeHelper;
 import GitHash;
 import Tooltip;
+import DPIAware;
 
 
 using namespace TGitDarkMode;

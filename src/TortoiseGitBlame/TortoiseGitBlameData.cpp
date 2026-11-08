@@ -22,7 +22,7 @@
 
 #include "stdafx.h"
 #include "TortoiseGitBlameData.h"
-#include "LoglistUtils.h"
+#include "ProtoModules/LoglistUtils.h"
 #include <Utils/FileTextLines.h>
 
 import gsl;

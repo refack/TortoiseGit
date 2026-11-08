@@ -1075,7 +1075,7 @@ void CRevisionGraphWnd::DoShowLog() const
 			(this->m_logEntries[m_SelectedEntry1->index()].ToString()).c_str(),
 			(this->m_logEntries[m_SelectedEntry1->index()].ToString()).c_str());
 
-	CAppUtils::RunTortoiseGitProc(sCmd);
+	TortoiseProc::RunTortoiseGitProc(sCmd);
 }
 
 void CRevisionGraphWnd::DoSwitch(const CString& rev) const
@@ -1093,7 +1093,7 @@ void CRevisionGraphWnd::DoBrowseRepo() const
 		TCmdLineParser::EscapeValue(m_sPath).c_str(),
 		TCmdLineParser::EscapeValue(GetFriendRefName(m_SelectedEntry1)).c_str());
 
-	CAppUtils::RunTortoiseGitProc(sCmd);
+	TortoiseProc::RunTortoiseGitProc(sCmd);
 }
 
 void CRevisionGraphWnd::DoCopyRefs() const

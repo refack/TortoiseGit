@@ -21,9 +21,11 @@
 #include "BrowseRefsDlg.h"
 #include "Utils/HistoryCombo.h"
 #include "LoglistUtils.h"
-#include "../SharedMFC/MiscUI/Tooltip.h"
+#include <Resources/LoglistCommonResource.h>
+import Tooltip;
 import GitRev;
-#include <../libgit2/Resources/LoglistCommonResource.h>
+
+
 
 class CBranchCombox
 {

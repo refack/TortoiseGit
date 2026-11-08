@@ -28,7 +28,7 @@
 #include "BlameDetectMovedOrCopiedLines.h"
 #include "BlameIndexColors.h"
 #include "EditGotoDlg.h"
-#include "LoglistUtils.h"
+#include "ProtoModules/LoglistUtils.h"
 #include "MainFrm.h"
 #include "MenuEncode.h"
 #include "TortoiseGitBlame.h"
@@ -38,7 +38,6 @@
 #include <scintilla/ILexer.h>
 #include <lexilla/Lexilla.h>
 #include <lexilla/SciLexer.h>
-#include <Utils/DPIAware.h>
 #include <Utils/FileTextLines.h>
 #include "Utils/ScintillaRegistration.h"
 #include <MiscUI/IconMenu.h>
@@ -48,9 +47,10 @@
 import str_utils;
 import ThemeAPI;
 import DarkModeHelper;
-import AppUtils.Launch;
 import CmdLineParser;
 import GitRevLoglist;
+import DPIAware;
+import TortoiseProc;
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -484,12 +484,13 @@ void CTortoiseGitBlameView::ContextMenuAction(int cmd, GitRev *pRev, GIT_REV_LIS
 			int line = m_data.GetOriginalLineNumber(selectedLine);
 
 			CString procCmd = L"/command:blame";
-			procCmd += L" /path:" + TCmdLineParser::EscapeValue(path);
+			procCmd += L" /path:";
+			procCmd += TCmdLineParser::EscapeValue(path);
 			procCmd += L" /endrev:" + endrev;
 			procCmd += L" /line:";
 			procCmd.AppendFormat(L"%d", line);
 
-			CAppUtils::RunTortoiseGitProc(procCmd);
+			TortoiseProc::RunTortoiseGitProc(procCmd);
 		}
 		break;
 
@@ -510,7 +511,7 @@ void CTortoiseGitBlameView::ContextMenuAction(int cmd, GitRev *pRev, GIT_REV_LIS
 			if (!!(GetAsyncKeyState(VK_SHIFT) & 0x8000))
 				procCmd += L" /alternative";
 
-			CAppUtils::RunTortoiseGitProc(procCmd);
+			TortoiseProc::RunTortoiseGitProc(procCmd);
 		}
 		break;
 
@@ -524,7 +525,7 @@ void CTortoiseGitBlameView::ContextMenuAction(int cmd, GitRev *pRev, GIT_REV_LIS
 			procCmd += L" /rev:" + rev;
 			procCmd += L" /endrev:" + rev;
 
-			CAppUtils::RunTortoiseGitProc(procCmd);
+			TortoiseProc::RunTortoiseGitProc(procCmd);
 		}
 		break;
 

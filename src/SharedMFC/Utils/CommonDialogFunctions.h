@@ -18,7 +18,7 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 #pragma once
-#include "../../libgit2/Utils/DPIAware.h"
+import DPIAware;
 
 template <typename BaseType> class CommonDialogFunctions
 {

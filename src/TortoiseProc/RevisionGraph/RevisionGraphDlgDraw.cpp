@@ -22,7 +22,7 @@
 #include "std.h"
 
 #include "Utils/MyMemDC.h"
-#include "../../libgit2/Utils/DPIAware.h"
+import DPIAware;
 import ThemeAPI;
 #include "RevisionGraphWnd.h"
 import AppUtils.Window;

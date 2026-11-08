@@ -186,7 +186,7 @@ bool RevertProgressCommand::Run(CGitProgressList* list, CString& sWindowTitle, i
 
 					CString sCmd;
 					sCmd.Format(L"/command:diff /submodule /startrev:%s /endrev:%s /path:%s", TCmdLineParser::EscapeValue(m_sRevertToRevision), GitRev::GetWorkingCopyRef(), TCmdLineParser::EscapeValue(pathString));
-					CAppUtils::RunTortoiseGitProc(sCmd);
+					TortoiseProc::RunTortoiseGitProc(sCmd);
 				}
 			});
 		};

@@ -5,8 +5,6 @@ module;
 #include <CommCtrl.h>
 #include <Windows.h>
 
-#include <Utils/DPIAware.h>
-
 #include <wil/win32_helpers.h>
 
 #include "Resources/resource.h"
@@ -25,6 +23,7 @@ import gsl;
 import wil;
 import GitCall;
 import ThemeAPI;
+import DPIAware;
 
 namespace fs = std::filesystem;
 using namespace tgit;

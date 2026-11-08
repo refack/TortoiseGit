@@ -29,7 +29,7 @@
 #include <propsys.h>
 
 import DarkModeHelper;
-#include "DPIAware.h"
+import DPIAware;
 #include "registry.h"
 #include "resource.h"
 import RIAA;

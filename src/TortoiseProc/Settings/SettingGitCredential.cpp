@@ -869,7 +869,7 @@ void CSettingGitCredential::OnBnClickedOpensettingselevated()
 {
 	CString sCmd;
 	sCmd.Format(L"/command:settings /page:gitcredential /path:\"%s\"", GitCall::m_CurrentDirStorage.c_str());
-	CAppUtils::RunTortoiseGitProc(sCmd, true);
+	TortoiseProc::RunTortoiseGitProc(sCmd, true);
 }
 
 void CSettingGitCredential::OnBnClickedWindowscredmgr()

@@ -134,7 +134,7 @@ bool CloneCommand::Execute()
 
 			postCmdList.emplace_back(IDI_LOG, IDS_MENULOG, [&]{
 				const CString cmd2{ std::format(L"/command:log /path:{}", TCmdLineParser::EscapeValue(dlg.m_Directory)).c_str() };
-				CAppUtils::RunTortoiseGitProc(cmd2);
+				TortoiseProc::RunTortoiseGitProc(cmd2);
 			});
 
 			postCmdList.emplace_back(IDI_EXPLORER, IDS_STATUSLIST_CONTEXT_EXPLORE, [&]{ CAppUtils::ExploreTo(GetExplorerHWND(), dlg.m_Directory); });

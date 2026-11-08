@@ -853,7 +853,7 @@ public:
 			m_bIsDirectory = bIsDirectory.value();
 		}
 	}
-	explicit CTGitPath(const fs::path& path) noexcept
+	CTGitPath(const fs::path& path) noexcept
 	: CTGitPath{path.native(), detail::TryIsDirectory(path)} {}
 
 	auto operator>(const CTGitPath& b) const {
@@ -984,7 +984,7 @@ public:
 	/**
 	 * Set the path from an unknown source.
 	 */
-	void SetFromUnknown(const std::wstring_view sPath) {
+	void SetFromUnknown(const std::wstring_view sPath) noexcept {
 		Reset();
 		// Just set whichever path we think is most likely to be used
 		SetFwdslashPath(sPath);

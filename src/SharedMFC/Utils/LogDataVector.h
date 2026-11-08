@@ -26,6 +26,7 @@ import GitHash;
 import git_h;
 import GitRevLoglist;
 import TGitPath;
+import Registry;
 
 class CLogDlg;
 

@@ -20,7 +20,7 @@
 
 #pragma once
 #include <scintilla/scintilla.h>
-#include "../../SharedMFC/Utils/ProjectProperties.h"
+import ProjectProperties;
 import PersonalDictionary;
 #include <Utils/LruCache.h>
 #include <spellcheck.h>

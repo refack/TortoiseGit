@@ -28,6 +28,7 @@
 
 #include "Resources/LoglistCommonResource.h"
 
+import git_h;
 import str_utils;
 import ThemeAPI;
 using namespace ThemeAPI;
@@ -251,7 +252,7 @@ void CPropertiesWnd::UpdateProperties(GitRevLoglist* pRev)
 			if (pRev->GetParentFromHash(pRev->m_CommitHash))
 				MessageBox(pRev->GetLastErr(), L"TortoiseGit", MB_ICONERROR);
 		}
-		CString hash = pRev->m_CommitHash.ToString();
+		CString hash = pRev->m_CommitHash.c_str();
 		m_CommitHash->SetValue(hash);
 		m_AuthorName->SetValue(pRev->GetAuthorName());
 		CString authorDate = pRev->GetAuthorDate().Format(L"%Y-%m-%d %H:%M");
@@ -280,9 +281,9 @@ void CPropertiesWnd::UpdateProperties(GitRevLoglist* pRev)
 			if (it != hashMap.end())
 				parentsubject = it->second.GetSubject();
 
-			str.Format(L"%u - %s\n%s", i, pRev->m_ParentHash[i].ToString(), parentsubject);
+			str.Format(L"%llu - %s\n%s", i, pRev->m_ParentHash[i].c_str(), parentsubject);
 
-			auto pProperty = new CMFCPropertyGridProperty(pRev->m_ParentHash[i].ToString(g_Git.GetShortHASHLength()), parentsubject, str);
+			auto pProperty = new CMFCPropertyGridProperty(pRev->m_ParentHash[i].ToString(TGitH::g_Git.GetShortHASHLength()).c_str(), parentsubject, str);
 			pProperty->AllowEdit(FALSE);
 			m_ParentGroup->AddSubItem(pProperty);
 		}

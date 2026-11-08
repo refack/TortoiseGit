@@ -3959,6 +3959,66 @@ int GetSubmodulePointer(CGit::SubmoduleInfo& submoduleinfo) {
 }
 
 
+int GetMsysgitVersion(HWND hWnd)
+{
+	if (TGitH::ms_LastMsysGitVersion)
+		return TGitH::ms_LastMsysGitVersion;
+
+	wstr::CString versiondebug;
+
+	CRegDWORD regTime		= CRegDWORD(L"Software\\TortoiseGit\\git_file_time");
+	CRegDWORD regVersion	= CRegDWORD(L"Software\\TortoiseGit\\git_cached_version");
+
+	const fs::path gitpath = GitCall::ms_LastMsysGitDir / L"git.exe";
+
+	__int64 time=0;
+	if (!TGitH::GetFileModifyTime(gitpath, &time))
+	{
+		if (static_cast<DWORD>(TGitH::filetime_to_time_t(time)) == regTime)
+		{
+			TGitH::ms_LastMsysGitVersion = regVersion;
+			return regVersion;
+		}
+	}
+
+	wstr::CString err;
+	const auto ver = g_Git.GetGitVersion(&versiondebug, &err);
+	if (ver < 0)
+	{
+		MessageBox(hWnd, L"git.exe not correctly set up (" + err + L")\nCheck TortoiseGit settings and consult help file for \"Git.exe Path\".", L"TortoiseGit", MB_OK | MB_ICONERROR);
+		return -1;
+	}
+
+	{
+		if (!ver)
+		{
+			MessageBox(hWnd, L"Could not parse git.exe version number: \"" + versiondebug + L'"', L"TortoiseGit", MB_OK | MB_ICONERROR);
+			return -1;
+		}
+	}
+
+	regTime = static_cast<DWORD>(TGitH::filetime_to_time_t(time));
+	regVersion = ver;
+	TGitH::ms_LastMsysGitVersion = ver;
+
+	// reinitialize everything (especially libgit2 config search paths), only needed because APPDATA is a Git config dir since 2.46
+	g_Git.m_bInitialized = false;
+	g_Git.CheckMsysGitDir();
+
+	// tell the cache to refresh everything and restart
+	SendCacheCommand(TGITCACHECOMMAND_REFRESHALL);
+	SendCacheCommand(TGITCACHECOMMAND_END);
+
+	return ver;
+}
+
+
+bool IsGitVersionNewerOrEqual(HWND hWnd, unsigned __int8 major, unsigned __int8 minor, unsigned __int8 patchlevel = 0, unsigned __int8 build = 0) {
+	auto ver = GetMsysgitVersion(hWnd);
+	return ver >= ConvertVersionToInt(major, minor, patchlevel, build);
+}
+
+
 
 } // namespace TGitH
 

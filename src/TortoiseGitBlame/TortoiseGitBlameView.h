@@ -26,12 +26,11 @@
 #pragma once
 #include <Scintilla/Scintilla.h>
 #include <MiscUI/SciEdit.h>
-import Tooltip;
 #include "GitBlameLogList.h"
-#include "../SharedMFC/Utils/LogDataVector.h"
 #include "TortoiseGitBlameData.h"
 #include "TortoiseGitBlameDoc.h"
 
+import Tooltip;
 import GitRev;
 import Registry;
 using namespace RegistryDep;

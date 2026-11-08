@@ -3,7 +3,6 @@
 // ReSharper disable CppDeclaratorNeverUsed
 // NOLINTBEGIN(bugprone-branch-clone, modernize-use-nodiscard, *-pro-type-reinterpret-cast, *-magic-numbers)
 module;
-#include <Utils/DPIAware.h>
 #include <Uxtheme.h>
 #include <math.h>
 #include <vssym32.h>
@@ -25,6 +24,7 @@ import PathUtils;
 import str_utils;
 import RIAA;
 import DarkModeHelper;
+import DPIAware;
 
 using std::uint32_t;
 

@@ -119,7 +119,7 @@ void RemoteProgressCommand::RefUpdateNotificationData::GetContextMenu(CIconMenu&
 			cmd += L" /startrev:" + m_OldHash.ToString();
 		if (!m_NewHash.IsEmpty())
 			cmd += L" /endrev:" + m_NewHash.ToString();
-		CAppUtils::RunTortoiseGitProc(cmd);
+		TortoiseProc::RunTortoiseGitProc(cmd);
 	});
 	popup.AppendMenuIcon(actions.size(), IDS_MENULOG, IDI_LOG);
 }

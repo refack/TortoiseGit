@@ -19,16 +19,16 @@
 //
 
 #pragma once
-#include <../../TortoiseProc/ProtoModules/Colors.h>
-#include <../../TortoiseProc/ProtoModules/GravatarPictureBox.h>
+#include <ProtoModules/Colors.h>
+#include <ProtoModules/GravatarPictureBox.h>
 
-#include "../../TortoiseProc/ProtoModules/StatGraphDlg.h"
+#include "ProtoModules/StatGraphDlg.h"
 #include "../../TortoiseProc/MiscUI/SplitterControl.h"
-#include "../../TortoiseProc/ProtoModules/BrowseRefsDlg.h"
-#include "../../TortoiseProc/ProtoModules/LogOrdering.h"
-#include "../../TortoiseProc/ProtoModules/GitStatusListCtrl.h"
-#include "../../TortoiseProc/ProtoModules/PatchViewDlg.h"
-#include "../../TortoiseProc/ProtoModules/HyperLink.h"
+#include "ProtoModules/BrowseRefsDlg.h"
+#include "ProtoModules/LogOrdering.h"
+#include "ProtoModules/GitStatusListCtrl.h"
+#include "ProtoModules/PatchViewDlg.h"
+#include "ProtoModules/HyperLink.h"
 #include "../../TortoiseProc/MiscUI/MenuButton.h"
 #include "../../TortoiseProc/GitLogList.h"
 

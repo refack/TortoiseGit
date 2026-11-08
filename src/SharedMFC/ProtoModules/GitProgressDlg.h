@@ -1,0 +1,102 @@
+﻿// TortoiseGit - a Windows shell extension for easy version control
+
+// Copyright (C) 2008-2017, 2020, 2023 - TortoiseGit
+// Copyright (C) 2003-2008 - TortoiseSVN
+
+// This program is free software; you can redistribute it and/or
+// modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; either version 2
+// of the License, or (at your option) any later version.
+
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+
+// You should have received a copy of the GNU General Public License
+// along with this program; if not, write to the Free Software Foundation,
+// 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+//
+#pragma once
+#include <../SharedMFC/Resources/resource.h>
+
+import StandAloneDlg;
+#include "GitProgressList.h"
+#include "../../TortoiseProc/MiscUI/MenuButton.h"
+
+/**
+ * \ingroup TortoiseProc
+ * Handles different git commands and shows the notify messages
+ * in a listbox. Since several git commands have similar notify
+ * messages they are grouped together in this single class.
+ */
+class CGitProgressDlg : public CResizableStandAloneDialog
+{
+public:
+
+	DECLARE_DYNAMIC(CGitProgressDlg)
+
+public:
+
+	CGitProgressDlg(CWnd* pParent = nullptr);
+	virtual ~CGitProgressDlg();
+
+
+	void SetCommand(ProgressCommand* cmd) { m_ProgList.SetCommand(cmd); }
+	void SetOptions(DWORD opts) {m_ProgList.SetOptions(opts);}
+	void SetAutoClose(GitProgressAutoClose autoClose) { m_AutoClose = autoClose; }
+
+	/**
+	 * If the number of items for which the operation is done on is known
+	 * beforehand, that number can be set here. It is then used to show a more
+	 * accurate progress bar during the operation.
+	 */
+	void SetItemCount(long count) {if(count) m_ProgList.SetItemCountTotal(count);}
+
+	bool DidErrorsOccur() const { return m_ProgList.m_bErrorsOccurred; }
+
+	enum { IDD = IDD_SVNPROGRESS };
+
+
+protected:
+
+	BOOL						OnInitDialog() override;
+	void						OnCancel() override;
+	BOOL						PreTranslateMessage(MSG* pMsg) override;
+	void						DoDataExchange(CDataExchange* pDX) override;
+
+	afx_msg void	OnBnClickedLogbutton();
+	afx_msg BOOL	OnSetCursor(CWnd* pWnd, UINT nHitTest, UINT message);
+	afx_msg void	OnClose();
+	afx_msg void	OnEnSetfocusInfotext();
+	afx_msg LRESULT	OnCtlColorStatic(WPARAM wParam, LPARAM lParam);
+	afx_msg HBRUSH	OnCtlColor(CDC* pDC, CWnd* pWnd, UINT nCtlColor);
+	afx_msg LRESULT	OnTaskbarBtnCreated(WPARAM wParam, LPARAM lParam);
+	LRESULT			OnCmdEnd(WPARAM wParam, LPARAM lParam);
+	LRESULT			OnCmdStart(WPARAM wParam, LPARAM lParam);
+
+	DECLARE_MESSAGE_MAP()
+
+private:
+	void OnOK() override;
+
+	CAnimateCtrl			m_Animate;
+	CProgressCtrl			m_ProgCtrl;
+	CGitProgressList		m_ProgList;
+	CEdit					m_InfoCtrl;
+	CStatic					m_ProgLableCtrl;
+	CMenuButton				m_cMenuButton;
+	PostCmdList				m_PostCmdList;
+
+	CBrush					m_background_brush;
+	GitProgressAutoClose	m_AutoClose;
+
+	struct ACCELLERATOR {
+		int id;
+		int cnt;
+		int wmid;
+	};
+	std::map<wchar_t, ACCELLERATOR>	m_accellerators;
+	HACCEL							m_hAccel = nullptr;
+	LRESULT DefWindowProc(UINT message, WPARAM wParam, LPARAM lParam) override;
+};

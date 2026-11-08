@@ -27,11 +27,12 @@
 #include "MainFrm.h"
 #include "TortoiseGitBlameDoc.h"
 #include "TortoiseGitBlameView.h"
-#include "Utils/DPIAware.h"
+import DPIAware;
 import PathUtils;
 import AppUtils.Launch;
 import TaskbarUUID;
 import CmdLineParser;
+import TortoiseProc;
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -264,7 +265,7 @@ void CTortoiseGitBlameApp::OnAppAbout()
 
 void CTortoiseGitBlameApp::OnFileSettings()
 {
-	CAppUtils::RunTortoiseGitProc(L" /command:settings /page:blame");
+	TortoiseProc::RunTortoiseGitProc(L" /command:settings /page:blame");
 }
 
 // CTortoiseGitBlameApp message handlers

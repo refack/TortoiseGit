@@ -59,14 +59,14 @@ bool LFSSetLockedProgressCommand::Run(CGitProgressList* list, CString& sWindowTi
 				VERIFY(m_targetPathList.WriteToFile(tempfilename.GetString()));
 				CString sCmd;
 				sCmd.Format(L"/command:lfsunlock /force /pathfile:\"%s\" /deletepathfile", tempfilename);
-				CAppUtils::RunTortoiseGitProc(sCmd);
+				TortoiseProc::RunTortoiseGitProc(sCmd);
 			});
 		}
 		if (!status && m_bIsLock)
 		{
 			CString sCmd;
 			sCmd.Format(L"/command:pull /path:\"%s\"", GitCall::m_CurrentDirStorage.c_str());
-			CAppUtils::RunTortoiseGitProc(sCmd);
+			TortoiseProc::RunTortoiseGitProc(sCmd);
 		}
 	};
 

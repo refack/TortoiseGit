@@ -23,8 +23,6 @@
 #include "stdafx.h"
 #include "ResizableWndState.h"
 
-#include "libgit2/Utils/DPIAware.h"
-
 //////////////////////////////////////////////////////////////////////
 // Construction/Destruction
 //////////////////////////////////////////////////////////////////////
@@ -69,7 +67,8 @@ BOOL CResizableWndState::SaveWindowRect(LPCTSTR pszName, BOOL bRectOnly)
 	if (!GetResizableWnd()->GetWindowPlacement(&wp))
 		return FALSE;
 
-	CDPIAware::Instance().UnscaleWindowPlacement(GetResizableWnd()->GetSafeHwnd(), &wp);
+	// TODO: Restore CDPIAware
+	// CDPIAware::Instance().UnscaleWindowPlacement(GetResizableWnd()->GetSafeHwnd(), &wp);
 
 	// use workspace coordinates
 	const RECT& rc = wp.rcNormalPosition;
@@ -127,7 +126,9 @@ BOOL CResizableWndState::LoadWindowRect(LPCTSTR pszName, BOOL bRectOnly, BOOL bH
 		&rc.right, &rc.bottom, &wp.showCmd, &wp.flags,
 		&wp.ptMinPosition.x, &wp.ptMinPosition.y) == 8)
 	{
-		CDPIAware::Instance().ScaleWindowPlacement(GetResizableWnd()->GetSafeHwnd(), &wp);
+		// TODO: Restore CDPIAware
+		// CDPIAware::Instance().ScaleWindowPlacement(GetResizableWnd()->GetSafeHwnd(), &wp);
+
 		if ((!bVertResize) || (rc.bottom - rc.top < min_height))
 			rc.bottom = rc.top + min_height;
 		if ((!bHorzResize) || (rc.right - rc.left < min_width))

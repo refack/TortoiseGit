@@ -23,8 +23,8 @@
 #include "OutputWnd.h"
 #include "Resource.h"
 #include "MainFrm.h"
-#include "TortoiseGitBlameDoc.h"
 #include "TortoiseGitBlameView.h"
+import ThemeAPI;
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -124,7 +124,7 @@ int COutputWnd::LoadHistory(const CString& filename, const CString& revision, bo
 
 	m_LogList.Clear();
 	m_LogList.ShowGraphColumn(!follow);
-	if (m_LogList.FillGitLog(&path, &revision, follow ? CGit::LOG_INFO_FOLLOW : 0))
+	if (m_LogList.FillGitLog(&path, &revision, follow ? TGitH::LOG_INFO_MASK::LOG_INFO_FOLLOW : 0))
 		return -1;
 	m_LogList.UpdateProjectProperties();
 	return 0;

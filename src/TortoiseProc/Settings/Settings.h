@@ -20,7 +20,7 @@
 #pragma once
 
 import StandAloneDlg;
-#include "TreePropSheet/TreePropSheet.h"
+#include "../../TortoiseProc/TreePropSheet/TreePropSheet.h"
 import TGitPath;
 #include "SettingsPropPage.h"
 #include "SettingGitRemote.h"

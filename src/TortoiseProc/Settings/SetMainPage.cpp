@@ -169,7 +169,7 @@ BOOL CSetMainPage::OnApply()
 
 void CSetMainPage::OnBnClickedChecknewerbutton()
 {
-	CAppUtils::RunTortoiseGitProc(L"/command:updatecheck /visible", false, false);
+	TortoiseProc::RunTortoiseGitProc(L"/command:updatecheck /visible", false, false);
 }
 
 void CSetMainPage::OnBrowseDir()
@@ -221,5 +221,5 @@ void CSetMainPage::OnBnClickedCreatelib()
 
 void CSetMainPage::OnBnClickedRunfirststartwizard()
 {
-	CAppUtils::RunTortoiseGitProc(L"/command:firststart", false, false);
+	TortoiseProc::RunTortoiseGitProc(L"/command:firststart", false, false);
 }

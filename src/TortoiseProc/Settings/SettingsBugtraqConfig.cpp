@@ -24,7 +24,7 @@
 
 import TortoiseProc;
 #include "SettingsBugtraqConfig.h"
-#include "../../SharedMFC/Utils/ProjectProperties.h"
+import ProjectProperties;
 #include "BugtraqRegexTestDlg.h"
 import BugTraqProvider;
 

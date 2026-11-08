@@ -613,6 +613,15 @@ expected_os get_path_attributes(const fs::path& path)
 }
 
 
+// int GetLogOutputEncode(CGit* pGit = &g_Git) {
+// 	CString output = pGit->GetConfigValue(L"i18n.logOutputEncoding");
+// 	if(output.IsEmpty())
+// 		return CUnicodeUtils::StdGetCPCode(tgit::str::StringView(pGit->GetConfigValue(L"i18n.commitencoding")));
+// 	else
+// 		return CUnicodeUtils::StdGetCPCode(tgit::str::StringView(output));
+// }
+
+
 } // namespace PathUtils
 
 export using namespace PathUtils;

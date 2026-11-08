@@ -2280,7 +2280,7 @@ TEST(CTGitPath, HashStashDir)
 {
 	CAutoTempDir tmpDir;
 
-	CTGitPath path = tmpDir.GetTempDir();
+	auto path = CTGitPath{tmpDir.GetTempDir()};
 	// no repository -> no stash
 	EXPECT_FALSE(path.HasStashDir());
 

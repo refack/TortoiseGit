@@ -24,7 +24,7 @@
 
 #include "MiscUI/BaseWindow.h"
 #include <Shlwapi.h>
-#include <Utils/DPIAware.h>
+import DPIAware;
 
 #pragma comment(lib, "shlwapi.lib")
 

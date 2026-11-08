@@ -15,9 +15,9 @@
 
 
 
-#include <Utils/ProjectProperties.h>
+import ProjectProperties;
 #include "LogDlg.h"
-#include "Utils/DPIAware.h"
+import DPIAware;
 #include "LogDlgFileFilter.h"
 
 #include "../TortoiseShell/resource.h"

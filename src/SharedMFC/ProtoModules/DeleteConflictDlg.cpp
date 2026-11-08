@@ -1,0 +1,155 @@
+﻿// TortoiseGit - a Windows shell extension for easy version control
+
+// Copyright (C) 2009-2020, 2024-2026 - TortoiseGit
+
+// This program is free software; you can redistribute it and/or
+// modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; either version 2
+// of the License, or (at your option) any later version.
+
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+
+// You should have received a copy of the GNU General Public License
+// along with this program; if not, write to the Free Software Foundation,
+// 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+//
+// DeleteConflictDlg.cpp : implementation file
+//
+
+#include "stdafx.h"
+import tgit;
+
+#include "../SharedMFC/Resources/resource.h"
+#include "DeleteConflictDlg.h"
+import AppUtils.Launch;
+import AppUtils.Window;
+
+// CDeleteConflictDlg dialog
+
+IMPLEMENT_DYNAMIC(CDeleteConflictDlg, CStandAloneDialog)
+
+CDeleteConflictDlg::CDeleteConflictDlg(CWnd* pParent /*=nullptr*/)
+	: CStandAloneDialog(CDeleteConflictDlg::IDD, pParent)
+	, m_bShowModifiedButton(FALSE)
+	, m_bIsDelete(FALSE)
+	, m_bDiffMine(true)
+{
+}
+
+CDeleteConflictDlg::~CDeleteConflictDlg()
+{
+}
+
+void CDeleteConflictDlg::DoDataExchange(CDataExchange* pDX)
+{
+	CDialog::DoDataExchange(pDX);
+
+	DDX_Text(pDX, IDC_LOCAL_STATUS, m_LocalStatus);
+	DDX_Text(pDX, IDC_REMOTE_STATUS, m_RemoteStatus);
+	GetDlgItem(IDC_FROMHASH)->SetWindowText(m_LocalRef);
+	GetDlgItem(IDC_TOHASH)->SetWindowText(m_RemoteRef);
+}
+
+
+BEGIN_MESSAGE_MAP(CDeleteConflictDlg, CStandAloneDialog)
+	ON_BN_CLICKED(IDC_LOG, OnBnClickedLog)
+	ON_BN_CLICKED(IDC_LOG2, OnBnClickedLog2)
+	ON_BN_CLICKED(IDC_DELETE, &CDeleteConflictDlg::OnBnClickedDelete)
+	ON_BN_CLICKED(IDC_MODIFY, &CDeleteConflictDlg::OnBnClickedModify)
+	ON_BN_CLICKED(IDHELP, &OnHelp)
+	ON_BN_CLICKED(IDC_SHOWDIFF, &CDeleteConflictDlg::OnBnClickedShowdiff)
+	ON_BN_CLICKED(IDC_SHOWDIFF2, &CDeleteConflictDlg::OnBnClickedShowdiff)
+END_MESSAGE_MAP()
+
+
+BOOL CDeleteConflictDlg::OnInitDialog()
+{
+	CStandAloneDialog::OnInitDialog();
+
+	if(this->m_bShowModifiedButton )
+	{
+		this->GetDlgItem(IDC_MODIFY)->SetWindowText(CString(MAKEINTRESOURCE(IDS_SVNACTION_MODIFIED)));
+		if (m_bDiffMine)
+		{
+			DialogEnableWindow(IDC_SHOWDIFF, TRUE);
+			GetDlgItem(IDC_SHOWDIFF)->ShowWindow(SW_SHOW);
+		}
+		else
+		{
+			DialogEnableWindow(IDC_SHOWDIFF2, TRUE);
+			GetDlgItem(IDC_SHOWDIFF2)->ShowWindow(SW_SHOW);
+		}
+	}
+	else
+		this->GetDlgItem(IDC_MODIFY)->SetWindowText(CString(MAKEINTRESOURCE(IDS_PROC_CREATED)));
+	if (m_LocalRef.IsEmpty())
+	{
+		GetDlgItem(IDC_LOG)->ShowWindow(SW_HIDE);
+		DialogEnableWindow(IDC_LOG, FALSE);
+	}
+	if (m_RemoteRef.IsEmpty())
+	{
+		GetDlgItem(IDC_LOG2)->ShowWindow(SW_HIDE);
+		DialogEnableWindow(IDC_LOG2, FALSE);
+	}
+
+	CAppUtils::SetWindowTitle(*this, g_Git.CombinePath(m_File).c_str());
+
+	GetDlgItem(IDC_INFOLABEL)->SetWindowText(m_File.GetGitPathString().c_str());
+
+	SetTheme(CTheme::Instance().IsDarkTheme());
+
+	GetDlgItem(IDCANCEL)->SetFocus();
+
+	return FALSE;
+}
+// CDeleteConflictDlg message handlers
+
+void CDeleteConflictDlg::OnBnClickedLog()
+{
+	ShowLog(CString((m_LocalHash.ToString()).c_str()));
+}
+
+void CDeleteConflictDlg::OnBnClickedLog2()
+{
+	ShowLog(CString((m_RemoteHash.ToString()).c_str()));
+}
+
+void CDeleteConflictDlg::OnBnClickedDelete()
+{
+	m_bIsDelete = TRUE;
+	OnOK();
+}
+
+void CDeleteConflictDlg::OnBnClickedModify()
+{
+	m_bIsDelete = FALSE;
+	OnOK();
+}
+
+void CDeleteConflictDlg::ShowLog(const CString& hash) const
+{
+	CString sCmd;
+	sCmd.Format(L"/command:log /path:%s /endrev:%s /rev:%s", TCmdLineParser::EscapeValue(g_Git.CombinePath(m_File).wstring()).c_str(), hash, hash);
+	TortoiseProc::RunTortoiseGitProc(sCmd, false, false);
+}
+
+void CDeleteConflictDlg::OnBnClickedShowdiff()
+{
+	CString base;
+	base.LoadString(IDS_PROC_DIFF_BASE);
+	CAppUtils::StartExtDiff(
+		m_FileBaseVersion.GetWinPathString().c_str(),
+		g_Git.CombinePath(m_File).c_str(),
+		base,
+		(m_bDiffMine ? m_LocalHash : m_RemoteHash).ToString().c_str(),
+		m_FileBaseVersion.GetWinPathString().c_str(),
+		g_Git.CombinePath(m_File).c_str(),
+		m_bDiffMine ? m_LocalHash : m_RemoteHash,
+		m_bDiffMine ? m_RemoteHash : m_LocalHash,
+		CAppUtils::DiffFlags().AlternativeTool(!!(GetAsyncKeyState(VK_SHIFT) & 0x8000))
+	);
+}

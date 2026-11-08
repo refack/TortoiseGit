@@ -5,7 +5,6 @@
 #include "Resources/resource.h"
 #include "Utils/dlgtemplate.h"
 #include "Utils/cursor.h"
-#include <Utils/DPIAware.h>
 
 #define BTN_OFFSET 100 // use an offset in order to not interfere with IDYES and so on...
 
@@ -29,6 +28,8 @@ import DebugOutput;
 import wil;
 import wil.MFC;
 import str_utils;
+import DPIAware;
+
 
 /**
  * \ingroup Utils

@@ -467,7 +467,7 @@ void CGitLogList::ContextMenuAction(int cmd, int FirstSelect, int LastSelect, CM
 					cmdline.Format(L"/command:log /path:%s /range:%s",
 								   static_cast<LPCWSTR>(TCmdLineParser::EscapeValue<CString>(g_Git.CombinePath(m_Path.GetWinPathString()).native())),
 								   static_cast<LPCWSTR>(pLastEntry->m_CommitHash.ToString() + sep + pSelLogEntry->m_CommitHash.ToString()));
-				CAppUtils::RunTortoiseGitProc(cmdline);
+				TortoiseProc::RunTortoiseGitProc(cmdline);
 			}
 			break;
 		case ID_COPYCLIPBOARDFULL:
@@ -787,7 +787,7 @@ void CGitLogList::ContextMenuAction(int cmd, int FirstSelect, int LastSelect, CM
 			break;
 
 		case ID_STASH_LIST:
-			CAppUtils::RunTortoiseGitProc(L"/command:reflog /ref:refs/stash");
+			TortoiseProc::RunTortoiseGitProc(L"/command:reflog /ref:refs/stash");
 			break;
 
 		case ID_REFLOG_STASH_APPLY:
@@ -856,7 +856,7 @@ void CGitLogList::ContextMenuAction(int cmd, int FirstSelect, int LastSelect, CM
 				GitRev* r1 = m_arShownList.SafeGetAt(FirstSelect);
 				sCmd += L" /endrev:" + r1->m_CommitHash.ToString();
 				sCmd += L" /rev:" + r1->m_CommitHash.ToString();
-				CAppUtils::RunTortoiseGitProc(sCmd);
+				TortoiseProc::RunTortoiseGitProc(sCmd);
 			}
 			break;
 		case ID_CREATE_PATCH:
@@ -888,7 +888,7 @@ void CGitLogList::ContextMenuAction(int cmd, int FirstSelect, int LastSelect, CM
 
 				}
 
-				CAppUtils::RunTortoiseGitProc(sCmd);
+				TortoiseProc::RunTortoiseGitProc(sCmd);
 			}
 			break;
 		case ID_BISECTSTART:
@@ -947,7 +947,7 @@ void CGitLogList::ContextMenuAction(int cmd, int FirstSelect, int LastSelect, CM
 			{
 				CString sCmd;
 				sCmd.Format(L"/command:repobrowser /path:\"%s\" /rev:%s", GitCall::m_CurrentDirStorage.c_str(), (pSelLogEntry->m_CommitHash.ToString()).c_str());
-				CAppUtils::RunTortoiseGitProc(sCmd);
+				TortoiseProc::RunTortoiseGitProc(sCmd);
 			}
 			break;
 		case ID_PUSH:
@@ -998,14 +998,14 @@ void CGitLogList::ContextMenuAction(int cmd, int FirstSelect, int LastSelect, CM
 			{
 				CString sCmd;
 				sCmd.Format(L"/command:cleanup /path:\"%s\"", GitCall::m_CurrentDirStorage.c_str());
-				CAppUtils::RunTortoiseGitProc(sCmd);
+				TortoiseProc::RunTortoiseGitProc(sCmd);
 			}
 			break;
 		case ID_SUBMODULE_UPDATE:
 			{
 				CString sCmd;
 				sCmd.Format(L"/command:subupdate /bkpath:\"%s\"", GitCall::m_CurrentDirStorage.c_str());
-				CAppUtils::RunTortoiseGitProc(sCmd);
+				TortoiseProc::RunTortoiseGitProc(sCmd);
 			}
 			break;
 		case ID_SHOWBRANCHES:

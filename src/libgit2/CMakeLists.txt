@@ -74,8 +74,8 @@ target_sources(tgitlib
         modules/DragDropImpl.ixx
         modules/utils/ReaderWriterLock.ixx
         modules/utils/PathWatcher.ixx
-        modules/CacheInterface.ixx
         modules/SysInfo.ixx
         modules/ShellEnvironment.ixx
         modules/TGitConstants.ixx
+        modules/DPIAware.ixx
 )

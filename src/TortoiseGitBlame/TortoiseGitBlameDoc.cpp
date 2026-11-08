@@ -32,8 +32,9 @@ import std;
 import TGitPath;	// GitAdminDir lives in the TGitPath module
 import CmdLineParser;
 import TempFile;
-import AppUtils.Launch;
 import GitCall;
+import git_h;
+import TortoiseProc;
 
 
 #ifdef _DEBUG
@@ -104,7 +105,7 @@ BOOL CTortoiseGitBlameDoc::OnOpenDocument(LPCWSTR lpszPathName, CString Rev)
 	// (SDI documents will reuse this document)
 	if(!TGitH::g_Git.CheckMsysGitDir())
 	{
-		CAppUtils::RunTortoiseGitProc(L" /command:settings");
+		TortoiseProc::RunTortoiseGitProc(L" /command:settings");
 		return FALSE;
 	}
 	const auto topdir = GitAdminDir::HasAdminDir(m_CurrentFileName.GetString());

@@ -25,10 +25,11 @@
 #include "MainFrm.h"
 #include <Utils/HintCtrl.h>
 
-import AppUtils.Launch;
 import GitRev;
 import GitRevLoglist;
 import TGitPath;
+import TortoiseProc;
+import CmdLineParser;
 
 IMPLEMENT_DYNAMIC(CGitBlameLogList, CHintCtrl<CListCtrl>)
 
@@ -71,7 +72,7 @@ void RunTortoiseGitProcWithCurrentRev(const CString& command, const GitRev* pRev
 	ASSERT(pRev);
 	CString  procCmd;
 	procCmd.Format(L"/command:%s /path:%s /rev:%s", static_cast<LPCWSTR>(command), static_cast<LPCWSTR>(TCmdLineParser::EscapeValue(path)), static_cast<LPCWSTR>(pRev->m_CommitHash.ToString()));
-	CAppUtils::RunTortoiseGitProc(procCmd);
+	TortoiseProc::RunTortoiseGitProc(procCmd);
 }
 
 void CGitBlameLogList::ContextMenuAction(int cmd, int /*FirstSelect*/, int /*LastSelect*/, CMenu* /*menu*/, const MAP_HASH_NAME&)
@@ -101,7 +102,7 @@ void CGitBlameLogList::ContextMenuAction(int cmd, int /*FirstSelect*/, int /*Las
 					procCmd += L" /path:" + TCmdLineParser::EscapeValue(pView->ResolveCommitFile(parentFilenames[i]));
 					procCmd += L" /endrev:" + parentHash.ToString();
 
-					CAppUtils::RunTortoiseGitProc(procCmd);
+					TortoiseProc::RunTortoiseGitProc(procCmd);
 				}
 			}
 			break;
@@ -127,7 +128,7 @@ void CGitBlameLogList::ContextMenuAction(int cmd, int /*FirstSelect*/, int /*Las
 					if (!!(GetAsyncKeyState(VK_SHIFT) & 0x8000))
 						procCmd += L" /alternative";
 
-					CAppUtils::RunTortoiseGitProc(procCmd);
+					TortoiseProc::RunTortoiseGitProc(procCmd);
 				}
 			}
 			break;
@@ -157,7 +158,7 @@ void CGitBlameLogList::ContextMenuAction(int cmd, int /*FirstSelect*/, int /*Las
 			{
 				CString procCmd;
 				procCmd.Format(L"/command:log /path:%s /endrev:%s /rev:%s", static_cast<LPCWSTR>(TCmdLineParser::EscapeValue(static_cast<CMainFrame*>(::AfxGetApp()->GetMainWnd())->GetActiveView()->GetDocument()->GetPathName())), static_cast<LPCWSTR>(pRev->m_CommitHash.ToString()), static_cast<LPCWSTR>(pRev->m_CommitHash.ToString()));
-				CAppUtils::RunTortoiseGitProc(procCmd);
+				TortoiseProc::RunTortoiseGitProc(procCmd);
 			}
 			break;
 		case ID_REPOBROWSE:

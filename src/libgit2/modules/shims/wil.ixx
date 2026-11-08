@@ -412,6 +412,7 @@ using wil::unique_hfile;
 using wil::unique_cotaskmem_string;
 using wil::unique_hlocal_string;
 using wil::unique_file;
+using wil::unique_hicon;
 using wil::unique_handle;
 using wil::unique_hmodule;
 using wil::unique_struct;

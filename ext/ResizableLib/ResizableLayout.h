@@ -41,40 +41,37 @@
  *  Control corners are always kept at a fixed distance from their anchor points,
  *  thus allowing a control to resize proportionally as the parent window is resized.
  */
-typedef struct tagANCHOR
+struct tagANCHOR
 {
 	int cx = 0; //!< horizontal component, in percent
 	int cy = 0; //!< vertical component, in percent
-
-	tagANCHOR() = default;
-
-	tagANCHOR(int x, int y) : cx(x), cy(y)
-	{
-	}
-} ANCHOR, *PANCHOR, *LPANCHOR;
+};
+using ANCHOR = tagANCHOR;
+using PANCHOR = tagANCHOR*;
+using LPANCHOR = tagANCHOR*;
 
 /*! @defgroup ConstAnchors Alignment Constants
  *  Define common layout alignment constants for anchor points.
  *  @{
  */
-	//! Anchor to the top-left corner
-	const ANCHOR TOP_LEFT(0, 0);
-	//! Anchor to the top edge and center horizontally
-	const ANCHOR TOP_CENTER(50, 0);
-	//! Anchor to the top-right corner
-	const ANCHOR TOP_RIGHT(100, 0);
-	//! Anchor to the left edge and center vertically
-	const ANCHOR MIDDLE_LEFT(0, 50);
-	//! Anchor to the center
-	const ANCHOR MIDDLE_CENTER(50, 50);
-	//! Anchor to the right edge and center vertically
-	const ANCHOR MIDDLE_RIGHT(100, 50);
-	//! Anchor to the bottom-left corner
-	const ANCHOR BOTTOM_LEFT(0, 100);
-	//! Anchor to the bottom edge and center horizontally
-	const ANCHOR BOTTOM_CENTER(50, 100);
-	//! Anchor to the bottom-right corner
-	const ANCHOR BOTTOM_RIGHT(100, 100);
+//! Anchor to the top-left corner
+inline constexpr ANCHOR TOP_LEFT(0, 0);
+//! Anchor to the top edge and center horizontally
+inline constexpr ANCHOR TOP_CENTER(50, 0);
+//! Anchor to the top-right corner
+inline constexpr ANCHOR TOP_RIGHT(100, 0);
+//! Anchor to the left edge and center vertically
+inline constexpr ANCHOR MIDDLE_LEFT(0, 50);
+//! Anchor to the center
+inline constexpr ANCHOR MIDDLE_CENTER(50, 50);
+//! Anchor to the right edge and center vertically
+inline constexpr ANCHOR MIDDLE_RIGHT(100, 50);
+//! Anchor to the bottom-left corner
+inline constexpr ANCHOR BOTTOM_LEFT(0, 100);
+//! Anchor to the bottom edge and center horizontally
+inline constexpr ANCHOR BOTTOM_CENTER(50, 100);
+//! Anchor to the bottom-right corner
+inline constexpr ANCHOR BOTTOM_RIGHT(100, 100);
 // @}
 
 //! @brief Holds a control layout settings
@@ -83,7 +80,7 @@ typedef struct tagANCHOR
  *  the parent window and how it reacts to dynamic changes to its size when painting
  *  its client area, with special care for flickering.
  */
-typedef struct tagLAYOUTINFO
+struct tagLAYOUTINFO
 {
 	//! Handle of the window the layout of which is being defined
 	HWND hWnd = nullptr;
@@ -91,13 +88,13 @@ typedef struct tagLAYOUTINFO
 	UINT_PTR nCallbackID = 0;
 
 	//! Window class name to identify standard controls
-	TCHAR sWndClass[MAX_PATH];
+	TCHAR sWndClass[MAX_PATH] = {};
 
 	//! Anchor point for the top-left corner
 	ANCHOR anchorTopLeft;
 	//! Fixed distance for the top-left corner
 	SIZE marginTopLeft{};
-	
+
 	//! Anchor point for the bottom-right corner
 	ANCHOR anchorBottomRight;
 	//! Fixed distance for the bottom-right corner
@@ -108,12 +105,9 @@ typedef struct tagLAYOUTINFO
 	//! Redraw settings for anti-flickering and proper painting
 	RESIZEPROPERTIES properties;
 
-	tagLAYOUTINFO()
-	{
-		sWndClass[0] = 0;
-	}
+	tagLAYOUTINFO() = default;
 
-	tagLAYOUTINFO(HWND hwnd, ANCHOR tl_type, SIZE tl_margin, 
+	tagLAYOUTINFO(HWND hwnd, ANCHOR tl_type, SIZE tl_margin,
 		ANCHOR br_type, SIZE br_margin)
 		:
 		hWnd(hwnd),
@@ -123,7 +117,10 @@ typedef struct tagLAYOUTINFO
 		sWndClass[0] = 0;
 	}
 
-} LAYOUTINFO, *PLAYOUTINFO, *LPLAYOUTINFO;
+};
+using LAYOUTINFO = tagLAYOUTINFO;
+using PLAYOUTINFO = tagLAYOUTINFO*;
+using LPLAYOUTINFO = tagLAYOUTINFO*;
 
 //! @brief Layout manager implementation
 /*!

@@ -21,7 +21,7 @@
 #include "std.h"
 
 import TortoiseProc;
-#include "../../SharedMFC/Utils/ProjectProperties.h"
+import ProjectProperties;
 #include "SetDialogs3.h"
 import AppUtils.Window;
 

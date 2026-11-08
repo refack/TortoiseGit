@@ -24,8 +24,12 @@
 #include "stdafx.h"
 #include "TortoiseGitBlame.h"
 #include "MainFrm.h"
+#include "ProtoModules/ThemeMFCVisualManager.h"
+import StandAloneDlg;
 import TaskbarUUID;
-#include "ThemeMFCVisualManager.h"
+import ThemeAPI;
+import DarkModeHelper;
+import TortoiseProc;
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -148,8 +152,8 @@ int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	// enable quick (Alt+drag) toolbar customization
 	CMFCToolBar::EnableQuickCustomization();
 
-	m_themeCallbackId = CTheme::Instance().RegisterThemeChangeCallback([this]() { SetTheme(CTheme::Instance().IsDarkTheme()); });
-	SetTheme(theApp.GetInt(L"DarkMode") && CTheme::Instance().IsDarkModeAllowed() && DarkModeHelper::Instance().ShouldAppsUseDarkMode());
+	m_themeCallbackId = ThemeAPI::CTheme::Instance().RegisterThemeChangeCallback([this]() { SetTheme(CTheme::Instance().IsDarkTheme()); });
+	SetTheme(theApp.GetInt(L"DarkMode") && CTheme::Instance().IsDarkModeAllowed() && TGitDarkMode::DarkModeHelper::Instance().ShouldAppsUseDarkMode());
 	return 0;
 }
 
@@ -202,7 +206,7 @@ void CMainFrame::OnDestroy()
 
 LRESULT CMainFrame::OnTaskbarButtonCreated(WPARAM /*wParam*/, LPARAM /*lParam*/)
 {
-	SetUUIDOverlayIcon(m_hWnd, std::wstring(g_sGroupingUUID), std::wstring(g_sGroupingIcon), g_bGroupingRemoveIcon);
+	TaskbarUUID::SetUUIDOverlayIcon(m_hWnd, std::wstring(g_sGroupingUUID), std::wstring(g_sGroupingIcon), g_bGroupingRemoveIcon);
 	return 0;
 }
 

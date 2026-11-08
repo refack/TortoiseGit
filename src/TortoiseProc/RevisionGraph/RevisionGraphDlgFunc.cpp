@@ -24,7 +24,7 @@
 #include <gdiplus.h>
 #include <regex>
 #include "RevisionGraphWnd.h"
-#include "../../libgit2/Utils/DPIAware.h"
+import DPIAware;
 import AppUtils.Launch;
 import AppUtils.Window;
 
@@ -451,7 +451,7 @@ void CRevisionGraphWnd::CompareRevs(const CString& revTo)
 	if (alternativeTool)
 		sCmd += L" /alternative";
 
-	CAppUtils::RunTortoiseGitProc(sCmd);
+	TortoiseProc::RunTortoiseGitProc(sCmd);
 }
 
 void CRevisionGraphWnd::UnifiedDiffRevs(bool bHead)

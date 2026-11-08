@@ -3,12 +3,12 @@
 #include <cassert>
 
 #include <Resources/LoglistCommonResource.h>
-#include "../libgit2/Utils/DPIAware.h"
 
 export module ColumnManager;
 import std;
 import Registry;
 import str_utils;
+import DPIAware;
 using TCStringW = tgit::wstr::CString;
 
 // registry version number of column-settings of both GitLogListBase and GitStatusListCtrl

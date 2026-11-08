@@ -1,0 +1,252 @@
+// TortoiseGit - a Windows shell extension for easy version control
+
+// Copyright (C) 2016-2017, 2019-2021, 2024 - TortoiseGit
+
+// This program is free software; you can redistribute it and/or
+// modify it under the terms of the GNU General Public License
+// as published by the Free Software Foundation; either version 2
+// of the License, or (at your option) any later version.
+
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+
+// You should have received a copy of the GNU General Public License
+// along with this program; if not, write to the Free Software Foundation,
+// 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+//
+#include "stdafx.h"
+import tgit;
+
+import TortoiseProc;
+#include "FirstStartWizard.h"
+#include "FirstStartWizardAuthentication.h"
+#include "../../TortoiseProc/Settings/SettingGitCredential.h"
+import ThemeAPI;
+import AppUtils.Launch;
+import AppUtils.Window;
+
+#define WM_SETPAGEFOCUS WM_APP+2
+
+IMPLEMENT_DYNAMIC(CFirstStartWizardAuthentication, CFirstStartWizardBasePage)
+
+CFirstStartWizardAuthentication::CFirstStartWizardAuthentication() : CFirstStartWizardBasePage(CFirstStartWizardAuthentication::IDD)
+, m_bNoSave(FALSE)
+{
+	m_psp.dwFlags |= PSP_DEFAULT | PSP_USEHEADERTITLE;
+	m_psp.pszHeaderTitle = MAKEINTRESOURCE(IDS_FIRSTSTART_AUTHENTICATIONTITLE);
+}
+
+CFirstStartWizardAuthentication::~CFirstStartWizardAuthentication()
+{
+}
+
+void CFirstStartWizardAuthentication::DoDataExchange(CDataExchange* pDX)
+{
+	CFirstStartWizardBasePage::DoDataExchange(pDX);
+	DDX_Check(pDX, IDC_DONTSAVE, m_bNoSave);
+	DDX_Control(pDX, IDC_COMBO_SIMPLECREDENTIAL, m_ctrlSimpleCredential);
+	DDX_Control(pDX, IDC_COMBO_SSHCLIENT, m_ctrlSSHClient);
+}
+
+BEGIN_MESSAGE_MAP(CFirstStartWizardAuthentication, CFirstStartWizardBasePage)
+	ON_BN_CLICKED(IDC_ADVANCEDCONFIGURATION, &CFirstStartWizardAuthentication::OnBnClickedAdvancedconfiguration)
+	ON_BN_CLICKED(IDC_DONTSAVE, OnClickedNoSave)
+	ON_MESSAGE(WM_SETPAGEFOCUS, OnDialogDisplayed)
+	ON_NOTIFY(NM_CLICK, IDC_FIRSTSTART_SSHHINT, OnClickedLink)
+END_MESSAGE_MAP()
+
+void CFirstStartWizardAuthentication::OnClickedNoSave()
+{
+	UpdateData();
+	m_ctrlSimpleCredential.EnableWindow(!m_bNoSave);
+}
+
+static bool IsToolBasename(const CString& toolname, LPCWSTR setting)
+{
+	if (toolname.CompareNoCase(setting) == 0)
+		return true;
+
+	if ((toolname + L".exe").CompareNoCase(setting) == 0)
+		return true;
+
+	return false;
+}
+
+static bool IsTool(const CString& toolname, LPCWSTR setting)
+{
+	if (IsToolBasename(toolname, setting))
+		return true;
+
+	if (!IsToolBasename(toolname, PathFindFileName(setting)))
+		return false;
+
+	if (PathIsRelative(setting) || !PathFileExists(setting))
+		return false;
+
+	return true;
+}
+
+BOOL CFirstStartWizardAuthentication::OnWizardFinish()
+{
+	UpdateData();
+
+	CString sshclient = TGitH::details::GetConfiguredSshClient().c_str();
+	if (m_ctrlSSHClient.GetCurSel() == 0 && !IsTool(L"ssh", sshclient))
+		CRegString(L"Software\\TortoiseGit\\SSH") = L"ssh.exe";
+
+	if (m_ctrlSimpleCredential.IsWindowEnabled() && !m_bNoSave && m_ctrlSimpleCredential.GetCurSel() != -1)
+	{
+		wil::unique_git_config config;
+		git_config_new(config.put());
+		int err = git_config_add_file_ondisk(config.get(), TGitPath::ToGitPathA(TGitH::GetGitGlobalXDGConfig().native()).c_str(), GIT_CONFIG_LEVEL_XDG, nullptr, FALSE);
+		std::error_code ec;
+		if (!err && (fs::exists(TGitH::GetGitGlobalConfig(), ec) || !fs::exists(TGitH::GetGitGlobalXDGConfig(), ec)))
+			err = git_config_add_file_ondisk(config.get(), TGitPath::ToGitPathA(TGitH::GetGitGlobalConfig().native()).c_str(), GIT_CONFIG_LEVEL_GLOBAL, nullptr, FALSE);
+		if (err)
+		{
+			MessageBox(TGitH::GetLibGit2LastErr(), L"TortoiseGit", MB_ICONEXCLAMATION);
+			return FALSE;
+		}
+
+		if (m_ctrlSimpleCredential.GetCurSel() == 0 && m_availableHelpers.at(0) == tgit::str::StringView(CString(MAKEINTRESOURCE(IDS_NONE))))
+		{
+			int ret = git_config_delete_entry(config.get(), "credential.helper");
+			if (ret != 0 && ret != GIT_ENOTFOUND)
+			{
+				MessageBox(TGitH::GetLibGit2LastErr(), L"TortoiseGit", MB_ICONEXCLAMATION);
+				return FALSE;
+			}
+		}
+		else if (git_config_set_string(config.get(), "credential.helper", CUnicodeUtils::StdGetUTF8(m_availableHelpers.at(m_ctrlSimpleCredential.GetCurSel())).c_str()))
+		{
+			MessageBox(TGitH::GetLibGit2LastErr(), L"TortoiseGit", MB_ICONEXCLAMATION);
+			return FALSE;
+		}
+	}
+
+	return __super::OnWizardFinish();
+}
+
+static void AddHelper(CComboBox& combobox, std::vector<std::wstring>& availableHelpers, const CString& helper, const CString& selected = L"")
+{
+	availableHelpers.push_back(std::wstring(helper));
+	int idx = combobox.AddString(helper);
+	if (selected == helper)
+		combobox.SetCurSel(idx);
+}
+
+BOOL CFirstStartWizardAuthentication::OnInitDialog()
+{
+	CFirstStartWizardBasePage::OnInitDialog();
+
+	CString tmp;
+	tmp.LoadString(IDS_FIRSTSTART_SSHHINT);
+	GetDlgItem(IDC_FIRSTSTART_SSHHINT)->SetWindowText(tmp);
+
+	wil::unique_git_config config;
+	git_config_new(config.put());
+	if (git_config_add_file_ondisk(config.get(), TGitPath::ToGitPathA(TGitH::GetGitGlobalConfig().native()).c_str(), GIT_CONFIG_LEVEL_GLOBAL, nullptr, FALSE))
+		MessageBox(TGitH::GetLibGit2LastErr(), L"TortoiseGit", MB_ICONEXCLAMATION);
+	else
+	{
+		if (git_config_add_file_ondisk(config.get(), TGitPath::ToGitPathA(TGitH::GetGitGlobalXDGConfig().native()).c_str(), GIT_CONFIG_LEVEL_XDG, nullptr, FALSE))
+			MessageBox(TGitH::GetLibGit2LastErr(), L"TortoiseGit", MB_ICONEXCLAMATION);
+	}
+	if (git_config_add_file_ondisk(config.get(), TGitPath::ToGitPathA(TGitH::GetGitSystemConfig().native()).c_str(), GIT_CONFIG_LEVEL_SYSTEM, nullptr, FALSE))
+		MessageBox(TGitH::GetLibGit2LastErr(), L"TortoiseGit", MB_ICONEXCLAMATION);
+
+	std::vector<std::wstring> defaultList;
+	git_config_foreach_match(config.get(), "credential\\.helper", CSettingGitCredential::GetCredentialDefaultUrlCallback, &defaultList);
+
+	if (defaultList.size() <= 1 && (defaultList.empty() || defaultList.at(0)[0] == 'X' || defaultList.at(0)[0] == 'G'))
+		AddHelper(m_ctrlSimpleCredential, m_availableHelpers, MAKEINTRESOURCE(IDS_NONE));
+	CString selectedHelper;
+	if (TGitH::GetConfigString(config.get(), L"credential.helper", selectedHelper) == GIT_ENOTFOUND)
+		m_ctrlSimpleCredential.SetCurSel(0);
+
+	if (CSettingGitCredential::GCMCoreExists())
+		AddHelper(m_ctrlSimpleCredential, m_availableHelpers, L"manager-core", selectedHelper);
+	if (CSettingGitCredential::GCMExists())
+		AddHelper(m_ctrlSimpleCredential, m_availableHelpers, L"manager", selectedHelper);
+	if (CSettingGitCredential::WincredExists())
+		AddHelper(m_ctrlSimpleCredential, m_availableHelpers, L"wincred", selectedHelper);
+	if (CSettingGitCredential::WinstoreExists())
+		AddHelper(m_ctrlSimpleCredential, m_availableHelpers, CSettingGitCredential::GetWinstorePath(), selectedHelper);
+
+	std::vector<std::wstring> urlList;
+	git_config_foreach_match(config.get(), "credential\\..*\\.helper", CSettingGitCredential::GetCredentialUrlCallback, &urlList);
+	if (!urlList.empty() || m_ctrlSimpleCredential.GetCurSel() == -1)
+	{
+		m_ctrlSimpleCredential.EnableWindow(FALSE);
+		m_availableHelpers.clear();
+		m_ctrlSimpleCredential.ResetContent();
+		AddHelper(m_ctrlSimpleCredential, m_availableHelpers, MAKEINTRESOURCE(IDS_ADVANCED));
+		m_ctrlSimpleCredential.SetCurSel(0);
+		GetDlgItem(IDC_DONTSAVE)->EnableWindow(FALSE);
+	}
+
+	AdjustControlSize(IDC_DONTSAVE);
+
+	CString sshclient = TGitH::details::GetConfiguredSshClient().c_str();
+
+	int idx = m_ctrlSSHClient.AddString(L"OpenSSH");
+	if (sshclient.IsEmpty() || IsTool(L"ssh", sshclient))
+		m_ctrlSSHClient.SetCurSel(idx);
+	if (m_ctrlSSHClient.GetCurSel() == -1)
+	{
+		idx = m_ctrlSSHClient.AddString(sshclient);
+		m_ctrlSSHClient.SetCurSel(idx);
+	}
+
+	UpdateData(FALSE);
+
+	CTheme::Instance().SetThemeForDialog(GetSafeHwnd(), CTheme::Instance().IsDarkTheme());
+
+	return TRUE;
+}
+
+BOOL CFirstStartWizardAuthentication::OnSetActive()
+{
+	auto wiz = static_cast<CFirstStartWizard*>(GetParent());
+
+	wiz->SetWizardButtons(PSWIZB_FINISH | PSWIZB_BACK);
+
+	PostMessage(WM_SETPAGEFOCUS, 0, 0);
+
+	return CFirstStartWizardBasePage::OnSetActive();
+}
+
+void CFirstStartWizardAuthentication::OnBnClickedAdvancedconfiguration()
+{
+	UpdateData();
+	m_bNoSave = TRUE;
+	UpdateData(FALSE);
+	OnClickedNoSave();
+	TortoiseProc::RunTortoiseGitProc(L"/command:settings /page:gitcredential", false, false);
+}
+
+LRESULT CFirstStartWizardAuthentication::OnDialogDisplayed(WPARAM /*wParam*/, LPARAM /*lParam*/)
+{
+	GetDlgItem(IDC_COMBO_SSHCLIENT)->SetFocus();
+
+	return 0;
+}
+
+void CFirstStartWizardAuthentication::OnClickedLink(NMHDR* pNMHDR, LRESULT* pResult)
+{
+	ATLASSERT(pNMHDR && pResult);
+	auto pNMLink = reinterpret_cast<PNMLINK>(pNMHDR);
+	if (wcscmp(pNMLink->item.szID, L"manual") == 0)
+	{
+		if (!CAppUtils::StartHtmlHelp(0x20000 + IDD_FIRSTSTARTWIZARD_AUTHENTICATION))
+			AfxMessageBox(AFX_IDP_FAILED_TO_LAUNCH_HELP);
+	}
+	else if (wcscmp(pNMLink->item.szID, L"sshfaq") == 0)
+	{
+		if (!CAppUtils::StartHtmlHelp(0, L"tgit-ssh-howto.html"))
+			AfxMessageBox(AFX_IDP_FAILED_TO_LAUNCH_HELP);
+	}
+	*pResult = 0;
+}

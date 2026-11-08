@@ -28,7 +28,7 @@
 #include <lexilla/SciLexer.h>
 #include <Utils/CreateProcessHelper.h>
 import DarkModeHelper;
-#include <Utils/DPIAware.h>
+import DPIAware;
 #include <../libgit2/Utils/LoadIconEx.h>
 import Registry;
 #include <Utils/ScintillaRegistration.h>

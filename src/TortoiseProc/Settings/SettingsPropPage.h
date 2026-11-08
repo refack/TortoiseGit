@@ -18,10 +18,11 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 #pragma once
-import MessageBox;
-#include "../../SharedMFC/MiscUI/Tooltip.h"
 #include "Utils/CommonDialogFunctions.h"
+
+import MessageBox;
 import ThemeAPI;
+import Tooltip;
 
 /**
  * \ingroup TortoiseProc

@@ -2,20 +2,17 @@ module;
 #include <afxcmn.h>
 
 #include <gitdll.h>
-#include <Utils/DPIAware.h>
-
-#include "Utils/ProjectProperties.h"
 #include "Resources/LoglistCommonResource.h"
 #include "Utils/HintCtrl.h"
 #include "Utils/LogDataVector.h"
 #include "Utils/ResizableColumnsListCtrl.h"
 #include "../../TortoiseProc/MiscUI/IconMenu.h"
-#include "../../TortoiseProc/ProtoModules/LoglistUtils.h"
+#include "ProtoModules/LoglistUtils.h"
 
 #include "Resources/resource.h"
 #include "../TortoiseShell/resource.h"
 
-#include "../../TortoiseProc/ProtoModules/Colors.h"
+#include "ProtoModules/Colors.h"
 
 
 export module GitLogListBase;
@@ -36,6 +33,9 @@ import misc_constants;
 import wil.MFC;
 import GitMailmap;
 import MessageBox;
+import DPIAware;
+import ProjectProperties;
+
 
 using namespace tgit;
 using namespace misc_constants;

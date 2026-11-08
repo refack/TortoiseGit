@@ -141,10 +141,10 @@ bool SubmoduleUpdateCommand::Execute()
 		CTGitPath gitPath(GitCall::m_CurrentDirStorage.native());
 		if (gitPath.IsBisectActive())
 		{
-			postCmdList.emplace_back(IDI_THUMB_UP, IDS_MENUBISECTGOOD, [] { CAppUtils::RunTortoiseGitProc(L"/command:bisect /good"); });
-			postCmdList.emplace_back(IDI_THUMB_DOWN, IDS_MENUBISECTBAD, [] { CAppUtils::RunTortoiseGitProc(L"/command:bisect /bad"); });
-			postCmdList.emplace_back(IDI_BISECT, IDS_MENUBISECTSKIP, [] { CAppUtils::RunTortoiseGitProc(L"/command:bisect /skip"); });
-			postCmdList.emplace_back(IDI_BISECT_RESET, IDS_MENUBISECTRESET, [] { CAppUtils::RunTortoiseGitProc(L"/command:bisect /reset"); });
+			postCmdList.emplace_back(IDI_THUMB_UP, IDS_MENUBISECTGOOD, [] { TortoiseProc::RunTortoiseGitProc(L"/command:bisect /good"); });
+			postCmdList.emplace_back(IDI_THUMB_DOWN, IDS_MENUBISECTBAD, [] { TortoiseProc::RunTortoiseGitProc(L"/command:bisect /bad"); });
+			postCmdList.emplace_back(IDI_BISECT, IDS_MENUBISECTSKIP, [] { TortoiseProc::RunTortoiseGitProc(L"/command:bisect /skip"); });
+			postCmdList.emplace_back(IDI_BISECT_RESET, IDS_MENUBISECTRESET, [] { TortoiseProc::RunTortoiseGitProc(L"/command:bisect /reset"); });
 		}
 	};
 

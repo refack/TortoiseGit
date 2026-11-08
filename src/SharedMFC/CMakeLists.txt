@@ -17,9 +17,6 @@ target_sources(SharedMFC
         Utils/LogDlg.h
         Utils/LogDlgFileFilter.cpp
         Utils/LogDlgFileFilter.h
-        Utils/ProjectProperties.h
-        Utils/ProjectProperties.cpp
-
 )
 
 target_sources(SharedMFC
@@ -37,6 +34,7 @@ target_include_directories(SharedMFC
         ResizableLib
     PRIVATE
         "${CMAKE_CURRENT_SOURCE_DIR}"
+        "$<TARGET_FILE_DIR:SharedMFC>"
 )
 
 target_link_libraries(SharedMFC
@@ -55,6 +53,8 @@ target_link_libraries(SharedMFC
         rpcrt4
         gdi32
         crypt32
+
+        IBugTraqProvider # MIDL header; also orders the MIDL step before our compiles
 )
 
 target_sources(SharedMFC
@@ -80,4 +80,204 @@ target_sources(SharedMFC
         TortoiseProc.ixx
         Hooks.ixx
         ConfigureGitExe.ixx
+        ProjectProperties.ixx
+        tgit.ixx
+        AppUtils.Launch.ixx
+        AppUtils.Window.ixx
+        AppUtils.Workflow.ixx
+        AppUtils.GitEnv.ixx
+        MassiveGitTask.ixx
+        CacheInterface.ixx
+)
+
+
+# Moved from TortoiseProc
+target_sources(SharedMFC
+    PUBLIC
+        ProtoModules/AboutDlg.cpp
+        ProtoModules/AboutDlg.h
+        ProtoModules/AddDlg.cpp
+        ProtoModules/AddDlg.h
+        ProtoModules/AddRemoteDlg.cpp
+        ProtoModules/AddRemoteDlg.h
+        ProtoModules/AutoTextTestDlg.cpp
+        ProtoModules/AutoTextTestDlg.h
+        ProtoModules/BisectStartDlg.cpp
+        ProtoModules/BisectStartDlg.h
+        ProtoModules/BrowseRefsDlg.cpp
+        ProtoModules/BrowseRefsDlg.h
+        ProtoModules/BrowseRefsDlgFilter.cpp
+        ProtoModules/BrowseRefsDlgFilter.h
+        ProtoModules/BugtraqRegexTestDlg.cpp
+        ProtoModules/BugtraqRegexTestDlg.h
+        ProtoModules/COMError.cpp
+        ProtoModules/COMError.h
+        ProtoModules/ChangedDlg.cpp
+        ProtoModules/ChangedDlg.h
+        ProtoModules/CheckCertificateDlg.cpp
+        ProtoModules/CheckCertificateDlg.h
+        ProtoModules/CheckForUpdatesDlg.cpp
+        ProtoModules/CheckForUpdatesDlg.h
+        ProtoModules/CleanTypeDlg.cpp
+        ProtoModules/CleanTypeDlg.h
+        ProtoModules/CloneDlg.cpp
+        ProtoModules/CloneDlg.h
+        ProtoModules/Colors.cpp
+        ProtoModules/Colors.h
+        ProtoModules/CommitDlg.cpp
+        ProtoModules/CommitDlg.h
+        ProtoModules/CommitIsOnRefsDlg.cpp
+        ProtoModules/CommitIsOnRefsDlg.h
+        ProtoModules/CreateBranchTagDlg.cpp
+        ProtoModules/CreateBranchTagDlg.h
+        ProtoModules/CreateChangelistDlg.cpp
+        ProtoModules/CreateChangelistDlg.h
+        ProtoModules/CreateRepoDlg.cpp
+        ProtoModules/CreateRepoDlg.h
+        ProtoModules/CreateWorktreeDlg.cpp
+        ProtoModules/CreateWorktreeDlg.h
+        ProtoModules/DeleteConflictDlg.cpp
+        ProtoModules/DeleteConflictDlg.h
+        ProtoModules/DeleteRemoteTagDlg.cpp
+        ProtoModules/DeleteRemoteTagDlg.h
+        ProtoModules/DiffLinesForStaging.cpp
+        ProtoModules/DiffLinesForStaging.h
+        ProtoModules/EditWordBreak.cpp
+        ProtoModules/EditWordBreak.h
+        ProtoModules/ExportDlg.cpp
+        ProtoModules/ExportDlg.h
+        ProtoModules/FileDiffDlg.cpp
+        ProtoModules/FileDiffDlg.h
+        ProtoModules/FindBar.cpp
+        ProtoModules/FindBar.h
+        ProtoModules/FirstStartWizard.cpp
+        ProtoModules/FirstStartWizard.h
+        ProtoModules/FirstStartWizardAuthentication.cpp
+        ProtoModules/FirstStartWizardAuthentication.h
+        ProtoModules/FirstStartWizardBasePage.cpp
+        ProtoModules/FirstStartWizardBasePage.h
+        ProtoModules/FirstStartWizardGit.cpp
+        ProtoModules/FirstStartWizardGit.h
+        ProtoModules/FirstStartWizardLanguage.cpp
+        ProtoModules/FirstStartWizardLanguage.h
+        ProtoModules/FirstStartWizardStart.cpp
+        ProtoModules/FirstStartWizardStart.h
+        ProtoModules/FirstStartWizardUser.cpp
+        ProtoModules/FirstStartWizardUser.h
+        ProtoModules/FormatPatchDlg.cpp
+        ProtoModules/FormatPatchDlg.h
+        ProtoModules/GitCliOutputParser.cpp
+        ProtoModules/GitCliOutputParser.h
+        ProtoModules/GitDiff.cpp
+        ProtoModules/GitDiff.h
+        ProtoModules/GitProgressDlg.cpp
+        ProtoModules/GitProgressDlg.h
+        ProtoModules/GitProgressList.cpp
+        ProtoModules/GitProgressList.h
+        ProtoModules/GitRefCompareList.cpp
+        ProtoModules/GitRefCompareList.h
+        ProtoModules/GitStatusListCtrl.cpp
+        ProtoModules/GitStatusListCtrl.h
+        ProtoModules/GitSwitchDlg.cpp
+        ProtoModules/GitSwitchDlg.h
+        ProtoModules/GitTagCompareList.cpp
+        ProtoModules/GitTagCompareList.h
+        ProtoModules/GravatarPictureBox.cpp
+        ProtoModules/GravatarPictureBox.h
+        ProtoModules/HistoryDlg.cpp
+        ProtoModules/HistoryDlg.h
+        ProtoModules/HorizontalResizableStandAloneDialog.cpp
+        ProtoModules/HorizontalResizableStandAloneDialog.h
+        ProtoModules/HyperLink.cpp
+        ProtoModules/HyperLink.h
+        ProtoModules/IconExtractor.cpp
+        ProtoModules/IconExtractor.h
+        ProtoModules/IgnoreDlg.cpp
+        ProtoModules/IgnoreDlg.h
+        ProtoModules/InputDlg.cpp
+        ProtoModules/InputDlg.h
+        ProtoModules/LFSLocksDlg.cpp
+        ProtoModules/LFSLocksDlg.h
+        ProtoModules/LogFile.cpp
+        ProtoModules/LogFile.h
+        ProtoModules/LogOrdering.cpp
+        ProtoModules/LogOrdering.h
+        ProtoModules/LoglistUtils.cpp
+        ProtoModules/LoglistUtils.h
+        ProtoModules/MergeAbortDlg.cpp
+        ProtoModules/MergeAbortDlg.h
+        ProtoModules/MergeDlg.cpp
+        ProtoModules/MergeDlg.h
+        ProtoModules/PatchViewDlg.cpp
+        ProtoModules/PatchViewDlg.h
+        ProtoModules/ProgressDlg.cpp
+        ProtoModules/ProgressDlg.h
+        ProtoModules/PromptDlg.cpp
+        ProtoModules/PromptDlg.h
+        ProtoModules/PullFetchDlg.cpp
+        ProtoModules/PullFetchDlg.h
+        ProtoModules/PushDlg.cpp
+        ProtoModules/PushDlg.h
+        ProtoModules/RebaseDlg.cpp
+        ProtoModules/RebaseDlg.h
+        ProtoModules/RefLogDlg.cpp
+        ProtoModules/RefLogDlg.h
+        ProtoModules/RefLoglist.cpp
+        ProtoModules/RefLoglist.h
+        ProtoModules/RenameDlg.cpp
+        ProtoModules/RenameDlg.h
+        ProtoModules/RepositoryBrowser.cpp
+        ProtoModules/RepositoryBrowser.h
+        ProtoModules/RequestPullDlg.cpp
+        ProtoModules/RequestPullDlg.h
+        ProtoModules/ResetDlg.cpp
+        ProtoModules/ResetDlg.h
+        ProtoModules/ResolveDlg.cpp
+        ProtoModules/ResolveDlg.h
+        ProtoModules/RevertDlg.cpp
+        ProtoModules/RevertDlg.h
+        ProtoModules/SVNDCommitDlg.cpp
+        ProtoModules/SVNDCommitDlg.h
+        ProtoModules/SVNIgnoreTypeDlg.cpp
+        ProtoModules/SVNIgnoreTypeDlg.h
+        ProtoModules/SelectRemoteRefDlg.cpp
+        ProtoModules/SelectRemoteRefDlg.h
+        ProtoModules/SimplePrompt.cpp
+        ProtoModules/SimplePrompt.h
+        ProtoModules/SinglePropSheetDlg.cpp
+        ProtoModules/SinglePropSheetDlg.h
+        ProtoModules/StagingOperations.cpp
+        ProtoModules/StagingOperations.h
+        ProtoModules/StashSave.cpp
+        ProtoModules/StashSave.h
+        ProtoModules/StatGraphDlg.cpp
+        ProtoModules/StatGraphDlg.h
+        ProtoModules/SubmoduleAddDlg.cpp
+        ProtoModules/SubmoduleAddDlg.h
+        ProtoModules/SubmoduleDiffDlg.cpp
+        ProtoModules/SubmoduleDiffDlg.h
+        ProtoModules/SubmoduleResolveConflictDlg.cpp
+        ProtoModules/SubmoduleResolveConflictDlg.h
+        ProtoModules/SubmoduleUpdateDlg.cpp
+        ProtoModules/SubmoduleUpdateDlg.h
+        ProtoModules/SyncDlg.cpp
+        ProtoModules/SyncDlg.h
+        ProtoModules/SyncTabCtrl.cpp
+        ProtoModules/SyncTabCtrl.h
+        ProtoModules/ThemeMFCVisualManager.cpp
+        ProtoModules/ThemeMFCVisualManager.h
+        ProtoModules/URLDlg.cpp
+        ProtoModules/URLDlg.h
+        ProtoModules/UpdateCrypto.cpp
+        ProtoModules/UpdateCrypto.h
+        ProtoModules/UpdateDownloader.cpp
+        ProtoModules/UpdateDownloader.h
+        ProtoModules/UpdateListCtrl.cpp
+        ProtoModules/UpdateListCtrl.h
+        ProtoModules/UserPassword.cpp
+        ProtoModules/UserPassword.h
+        ProtoModules/VersioncheckParser.cpp
+        ProtoModules/VersioncheckParser.h
+        ProtoModules/WorktreeListDlg.cpp
+        ProtoModules/WorktreeListDlg.h
 )

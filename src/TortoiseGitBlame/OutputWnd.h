@@ -19,7 +19,7 @@
 
 #pragma once
 #include "GitBlameLogList.h"
-#include "GravatarPictureBox.h"
+#include "ProtoModules/GravatarPictureBox.h"
 #include <unordered_set>
 #include "../TortoiseShell/DockablePaneUnscaledStoredState.h"
 import GitHash;

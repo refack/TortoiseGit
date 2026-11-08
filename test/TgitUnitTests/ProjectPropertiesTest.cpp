@@ -19,7 +19,7 @@
 //
 
 #include "stdafx.h"
-#include "ProjectProperties.h"
+import ProjectProperties;
 
 TEST(ProjectPropertiesTest, ParseBugIDs)
 {

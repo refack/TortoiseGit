@@ -2,9 +2,7 @@
 #include <afxtaskdialog.h>
 #include <WinCrypt.h>
 #include "Resources/resource.h"
-#include <Utils/ProjectProperties.h>
 #include <tgitlib/sanity.h>
-
 
 
 export module tgit.Hooks;
@@ -19,6 +17,7 @@ import libgit2;
 import Registry;
 import RIAA;
 import TempFile;
+import ProjectProperties;
 
 namespace fs = std::filesystem;
 

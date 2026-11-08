@@ -43,7 +43,7 @@ bool ResolveProgressCommand::Run(CGitProgressList* list, CString& sWindowTitle, 
 		{
 			CString sCmd;
 			sCmd.Format(L"/command:commit /path:\"%s\"", GitCall::m_CurrentDirStorage.c_str());
-			CAppUtils::RunTortoiseGitProc(sCmd);
+			TortoiseProc::RunTortoiseGitProc(sCmd);
 		});
 	};
 

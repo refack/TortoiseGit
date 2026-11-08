@@ -152,7 +152,7 @@ bool SVNRebaseCommand::Execute()
 		{
 			CString cmd = L"/command:log";
 			cmd += L" /path:\"" + GitCall::m_CurrentDirStorage + L'"';
-			CAppUtils::RunTortoiseGitProc(cmd);
+			TortoiseProc::RunTortoiseGitProc(cmd);
 		}
 		return true;
 	}
