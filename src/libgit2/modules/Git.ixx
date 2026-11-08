@@ -4006,8 +4006,9 @@ int GetMsysgitVersion(HWND hWnd)
 	g_Git.CheckMsysGitDir();
 
 	// tell the cache to refresh everything and restart
-	SendCacheCommand(TGITCACHECOMMAND_REFRESHALL);
-	SendCacheCommand(TGITCACHECOMMAND_END);
+	// TODO: restore this
+	// SendCacheCommand(TGITCACHECOMMAND_REFRESHALL);
+	// SendCacheCommand(TGITCACHECOMMAND_END);
 
 	return ver;
 }
