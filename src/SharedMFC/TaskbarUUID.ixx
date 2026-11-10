@@ -84,6 +84,24 @@ void SetTaskIDPerUUID() {
 }
 
 
+
+struct GroupEntry { std::wstring_view uuid, icon; };
+
+std::vector<GroupEntry> LoadGroupEntries(const int foundUUIDIndex) {
+	// read 0..N until empty, split on ';'
+	const auto tsr = std::format(L"{}{}", L"LastUsedUUIDsForGrouping\\", foundUUIDIndex);
+	auto value = wil::reg::try_get_tgit_string(tsr).value_or({});
+	auto ret = std::views::split(value, L';')
+	| std::views::transform([](auto pair_str) {
+		auto sv = std::wstring_view{pair_str};
+		const auto split_pos = sv.find(L';');
+		return GroupEntry{.uuid = sv.substr(0, split_pos), .icon = sv.substr(split_pos + 1)};
+	})
+	| std::ranges::to<std::vector>();
+	return ret;
+}
+void SaveGroupEntry(size_t index, const GroupEntry& e);        // join with ';' iff icon non-empty
+
 /**
  * Sets a different overlay icon for the taskbar icon on Win7 for each
  * repository uuid. This allows to 'mark' the uuid-grouped icons on the
@@ -96,17 +114,17 @@ void SetTaskIDPerUUID() {
  *
  * \param hWnd the "batton"
  * \param uuid the repository uuid; nothing is done when it is empty
- * \param sicon an .ico or image file to use as the overlay, or empty
+ * \param sicon_arg an .ico or image file to use as the overlay, or empty
  * \param bRemoveicon reset the icon remembered for \a uuid
  */
-void SetUUIDOverlayIcon(const HWND& hWnd, std::wstring uuid, std::wstring sicon, const bool bRemoveicon) {
+void SetUUIDOverlayIcon(const HWND& hWnd, const std::wstring& uuid, const std::wstring& sicon_arg, const bool bRemoveicon) {
+	if (uuid.empty())
+		return;
+
 	if (!CRegStdDWORD(L"Software\\TortoiseGit\\GroupTaskbarIconsPerRepo", 3))
 		return;
 
 	if (!CRegStdDWORD(L"Software\\TortoiseGit\\GroupTaskbarIconsPerRepoOverlay", TRUE))
-		return;
-
-	if (uuid.empty())
 		return;
 
 	wil::com_ptr_nothrow<ITaskbarList3> pTaskbarInterface;
@@ -114,8 +132,23 @@ void SetUUIDOverlayIcon(const HWND& hWnd, std::wstring uuid, std::wstring sicon,
 		::CoCreateInstance(CLSID_TaskbarList, nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(pTaskbarInterface.put()))))
 		return;
 
+	auto sicon = std::wstring{sicon_arg};
 	int foundUUIDIndex = 0;
 	do {
+		// auto entries = LoadGroupEntries();
+		// auto it = std::ranges::find(entries, uuid, &GroupEntry::uuid);
+		// auto thing = (it == entries.end()) ? entries.emplace_back(uuid, sicon_arg) : *it;
+		//
+		// auto sicon = sicon_arg;
+		// if (bRemoveicon)
+		// 	thing.icon.clear();
+		// else if (!sicon_arg.empty())
+		// 	thing.icon = sicon_arg;
+		// else
+		// 	sicon = thing.icon;                       // read back
+		//
+		// SaveGroupEntry(it - entries.begin(), *it);
+
 		const auto tsr = std::format(L"{}{}", L"Software\\TortoiseGit\\LastUsedUUIDsForGrouping\\", foundUUIDIndex);
 		auto r = CRegStdString(tsr);
 		std::wstring sr = r;
@@ -190,7 +223,7 @@ void SetUUIDOverlayIcon(const HWND& hWnd, std::wstring uuid, std::wstring sicon,
 void SetUUIDOverlayIconFromCommandLine(const HWND& hWnd) {
 	const auto parser = CCmdLineParser{ GetCommandLine() };
 	// GetValStr, not GetVal - std::wstring(nullptr) is UB (CLAUDE.md failure mode 5)
-	SetUUIDOverlayIcon(hWnd, parser.GetValStr(L"groupuuid"), std::wstring{}, false);
+	SetUUIDOverlayIcon(hWnd, parser.GetValPtr(L"groupuuid"), std::wstring{}, false);
 }
 }
 

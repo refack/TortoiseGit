@@ -19,13 +19,14 @@
 //
 #pragma once
 
-import StandAloneDlg;
 #include "UpdateListCtrl.h"
-#include "UpdateDownloader.h"
 #include "VersioncheckParser.h"
 #include "HyperLink.h"
-#include "../../TortoiseProc/MiscUI/MenuButton.h"
+#include "Resources/resource.h"
+import MenuButton;
 #include "../../TortoiseProc/MiscUI/SciEdit.h"
+import StandAloneDlg;
+import UpdateDownloader;
 
 /**
  * \ingroup TortoiseProc
@@ -36,7 +37,6 @@ class CCheckForUpdatesDlg : public CResizableStandAloneDialog
 {
 	DECLARE_DYNAMIC(CCheckForUpdatesDlg)
 
-public:
 	CCheckForUpdatesDlg(CWnd* pParent = nullptr);   // standard constructor
 	virtual ~CCheckForUpdatesDlg();
 

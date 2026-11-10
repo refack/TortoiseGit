@@ -21,9 +21,9 @@
 
 import StandAloneDlg;
 import Registry;
-#include "../../TortoiseProc/MiscUI/MenuButton.h"
+import MenuButton;
 import TGitPath;
-#include "GitStatusListCtrl.h"
+import GitStatusListCtrl;
 
 /**
  * \ingroup TortoiseProc

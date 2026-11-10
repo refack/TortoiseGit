@@ -78,7 +78,7 @@ END_MESSAGE_MAP()
 BOOL CGitSwitchDlg::OnInitDialog()
 {
 	CHorizontalResizableStandAloneDialog::OnInitDialog();
-	CAppUtils::MarkWindowAsUnpinnable(m_hWnd);
+	wil::MFC::MarkWindowAsUnpinnable(m_hWnd);
 
 	AdjustControlSize(IDC_RADIO_BRANCH);
 	AdjustControlSize(IDC_RADIO_TAGS);
@@ -102,7 +102,7 @@ BOOL CGitSwitchDlg::OnInitDialog()
 
 	EnableSaveRestore(L"SwitchDlg");
 
-	CAppUtils::SetWindowTitle(*this, GitCall::m_CurrentDirStorage.c_str());
+	wil::MFC::SetWindowTitle(*this, GitCall::m_CurrentDirStorage.c_str());
 
 	InitChooseVersion(true);
 

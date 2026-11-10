@@ -52,12 +52,12 @@ END_MESSAGE_MAP()
 BOOL CSVNIgnoreTypeDlg::OnInitDialog()
 {
 	CStandAloneDialog::OnInitDialog();
-	CAppUtils::MarkWindowAsUnpinnable(m_hWnd);
+	wil::MFC::MarkWindowAsUnpinnable(m_hWnd);
 
 	AdjustControlSize(IDC_RADIO_EXCLUDE);
 	AdjustControlSize(IDC_RADIO_GITIGNORE);
 
-	CAppUtils::SetWindowTitle(*this, GitCall::m_CurrentDirStorage.c_str());
+	wil::MFC::SetWindowTitle(*this, GitCall::m_CurrentDirStorage.c_str());
 
 	return TRUE;  // return TRUE unless you set the focus to a control
 	// EXCEPTION: OCX Property Pages should return FALSE

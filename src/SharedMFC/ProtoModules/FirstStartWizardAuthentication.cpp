@@ -17,30 +17,21 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 #include "stdafx.h"
-import tgit;
-
-import TortoiseProc;
 #include "FirstStartWizard.h"
 #include "FirstStartWizardAuthentication.h"
-#include "../../TortoiseProc/Settings/SettingGitCredential.h"
+
+import tgit;
+import TortoiseProc;
 import ThemeAPI;
 import AppUtils.Launch;
 import AppUtils.Window;
+import SettingGitCredential;
 
-#define WM_SETPAGEFOCUS WM_APP+2
+using namespace libgit2;
+
+#define WM_SETPAGEFOCUS WM_APP + 2
 
 IMPLEMENT_DYNAMIC(CFirstStartWizardAuthentication, CFirstStartWizardBasePage)
-
-CFirstStartWizardAuthentication::CFirstStartWizardAuthentication() : CFirstStartWizardBasePage(CFirstStartWizardAuthentication::IDD)
-, m_bNoSave(FALSE)
-{
-	m_psp.dwFlags |= PSP_DEFAULT | PSP_USEHEADERTITLE;
-	m_psp.pszHeaderTitle = MAKEINTRESOURCE(IDS_FIRSTSTART_AUTHENTICATIONTITLE);
-}
-
-CFirstStartWizardAuthentication::~CFirstStartWizardAuthentication()
-{
-}
 
 void CFirstStartWizardAuthentication::DoDataExchange(CDataExchange* pDX)
 {
@@ -100,10 +91,10 @@ BOOL CFirstStartWizardAuthentication::OnWizardFinish()
 	{
 		wil::unique_git_config config;
 		git_config_new(config.put());
-		int err = git_config_add_file_ondisk(config.get(), TGitPath::ToGitPathA(TGitH::GetGitGlobalXDGConfig().native()).c_str(), GIT_CONFIG_LEVEL_XDG, nullptr, FALSE);
+		int err = git_config_add_file_ondisk(config.get(), TGitPath::ToGitPathA(TGitH::GetGitGlobalXDGConfig().native()).c_str(), git_config_level_t::GIT_CONFIG_LEVEL_XDG, nullptr, FALSE);
 		std::error_code ec;
 		if (!err && (fs::exists(TGitH::GetGitGlobalConfig(), ec) || !fs::exists(TGitH::GetGitGlobalXDGConfig(), ec)))
-			err = git_config_add_file_ondisk(config.get(), TGitPath::ToGitPathA(TGitH::GetGitGlobalConfig().native()).c_str(), GIT_CONFIG_LEVEL_GLOBAL, nullptr, FALSE);
+			err = git_config_add_file_ondisk(config.get(), TGitPath::ToGitPathA(TGitH::GetGitGlobalConfig().native()).c_str(), git_config_level_t::GIT_CONFIG_LEVEL_GLOBAL, nullptr, FALSE);
 		if (err)
 		{
 			MessageBox(TGitH::GetLibGit2LastErr(), L"TortoiseGit", MB_ICONEXCLAMATION);
@@ -113,7 +104,7 @@ BOOL CFirstStartWizardAuthentication::OnWizardFinish()
 		if (m_ctrlSimpleCredential.GetCurSel() == 0 && m_availableHelpers.at(0) == tgit::str::StringView(CString(MAKEINTRESOURCE(IDS_NONE))))
 		{
 			int ret = git_config_delete_entry(config.get(), "credential.helper");
-			if (ret != 0 && ret != GIT_ENOTFOUND)
+			if (ret != 0 && ret != git_error_code::GIT_ENOTFOUND)
 			{
 				MessageBox(TGitH::GetLibGit2LastErr(), L"TortoiseGit", MB_ICONEXCLAMATION);
 				return FALSE;
@@ -147,14 +138,14 @@ BOOL CFirstStartWizardAuthentication::OnInitDialog()
 
 	wil::unique_git_config config;
 	git_config_new(config.put());
-	if (git_config_add_file_ondisk(config.get(), TGitPath::ToGitPathA(TGitH::GetGitGlobalConfig().native()).c_str(), GIT_CONFIG_LEVEL_GLOBAL, nullptr, FALSE))
+	if (git_config_add_file_ondisk(config.get(), TGitPath::ToGitPathA(TGitH::GetGitGlobalConfig().native()).c_str(), git_config_level_t::GIT_CONFIG_LEVEL_GLOBAL, nullptr, FALSE)) {
 		MessageBox(TGitH::GetLibGit2LastErr(), L"TortoiseGit", MB_ICONEXCLAMATION);
-	else
+	} else
 	{
-		if (git_config_add_file_ondisk(config.get(), TGitPath::ToGitPathA(TGitH::GetGitGlobalXDGConfig().native()).c_str(), GIT_CONFIG_LEVEL_XDG, nullptr, FALSE))
+		if (git_config_add_file_ondisk(config.get(), TGitPath::ToGitPathA(TGitH::GetGitGlobalXDGConfig().native()).c_str(), git_config_level_t::GIT_CONFIG_LEVEL_XDG, nullptr, FALSE))
 			MessageBox(TGitH::GetLibGit2LastErr(), L"TortoiseGit", MB_ICONEXCLAMATION);
 	}
-	if (git_config_add_file_ondisk(config.get(), TGitPath::ToGitPathA(TGitH::GetGitSystemConfig().native()).c_str(), GIT_CONFIG_LEVEL_SYSTEM, nullptr, FALSE))
+	if (git_config_add_file_ondisk(config.get(), TGitPath::ToGitPathA(TGitH::GetGitSystemConfig().native()).c_str(), git_config_level_t::GIT_CONFIG_LEVEL_SYSTEM, nullptr, FALSE))
 		MessageBox(TGitH::GetLibGit2LastErr(), L"TortoiseGit", MB_ICONEXCLAMATION);
 
 	std::vector<std::wstring> defaultList;
@@ -163,7 +154,7 @@ BOOL CFirstStartWizardAuthentication::OnInitDialog()
 	if (defaultList.size() <= 1 && (defaultList.empty() || defaultList.at(0)[0] == 'X' || defaultList.at(0)[0] == 'G'))
 		AddHelper(m_ctrlSimpleCredential, m_availableHelpers, MAKEINTRESOURCE(IDS_NONE));
 	CString selectedHelper;
-	if (TGitH::GetConfigString(config.get(), L"credential.helper", selectedHelper) == GIT_ENOTFOUND)
+	if (TGitH::GetConfigString(config.get(), L"credential.helper", selectedHelper) == git_error_code::GIT_ENOTFOUND)
 		m_ctrlSimpleCredential.SetCurSel(0);
 
 	if (CSettingGitCredential::GCMCoreExists())
@@ -224,7 +215,7 @@ void CFirstStartWizardAuthentication::OnBnClickedAdvancedconfiguration()
 	m_bNoSave = TRUE;
 	UpdateData(FALSE);
 	OnClickedNoSave();
-	TortoiseProc::RunTortoiseGitProc(L"/command:settings /page:gitcredential", false, false);
+	TortoiseProc::RunTortoiseGitProc(L"/command:settings /page:gitcredential"sv, false, false);
 }
 
 LRESULT CFirstStartWizardAuthentication::OnDialogDisplayed(WPARAM /*wParam*/, LPARAM /*lParam*/)
@@ -234,19 +225,14 @@ LRESULT CFirstStartWizardAuthentication::OnDialogDisplayed(WPARAM /*wParam*/, LP
 	return 0;
 }
 
-void CFirstStartWizardAuthentication::OnClickedLink(NMHDR* pNMHDR, LRESULT* pResult)
-{
+void CFirstStartWizardAuthentication::OnClickedLink(NMHDR* pNMHDR, LRESULT* pResult) {
 	ATLASSERT(pNMHDR && pResult);
-	auto pNMLink = reinterpret_cast<PNMLINK>(pNMHDR);
-	if (wcscmp(pNMLink->item.szID, L"manual") == 0)
-	{
-		if (!CAppUtils::StartHtmlHelp(0x20000 + IDD_FIRSTSTARTWIZARD_AUTHENTICATION))
-			AfxMessageBox(AFX_IDP_FAILED_TO_LAUNCH_HELP);
-	}
-	else if (wcscmp(pNMLink->item.szID, L"sshfaq") == 0)
-	{
-		if (!CAppUtils::StartHtmlHelp(0, L"tgit-ssh-howto.html"))
-			AfxMessageBox(AFX_IDP_FAILED_TO_LAUNCH_HELP);
-	}
+	auto *pNMLink = reinterpret_cast<PNMLINK>(pNMHDR);
+	const auto id_sv = std::wstring_view(pNMLink->item.szID, std::size(pNMLink->item.szID));
+	const bool start_html_help = (id_sv == L"manual")
+		? CAppUtils::StartHtmlHelp(0x20000 + IDD_FIRSTSTARTWIZARD_AUTHENTICATION)
+		: (id_sv == L"sshfaq") ? CAppUtils::StartHtmlHelp(0, L"tgit-ssh-howto.html") : true;
+	if (!start_html_help)
+		AfxMessageBox(AFX_IDP_FAILED_TO_LAUNCH_HELP);
 	*pResult = 0;
 }

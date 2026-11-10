@@ -21,7 +21,7 @@
 
 #include "HorizontalResizableStandAloneDialog.h"
 #include "Utils/HistoryCombo.h"
-#include "../../TortoiseProc/MiscUI/MenuButton.h"
+import MenuButton;
 import Registry;
 
 // CPushDlg dialog

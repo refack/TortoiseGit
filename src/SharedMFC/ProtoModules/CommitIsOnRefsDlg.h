@@ -22,9 +22,9 @@ import GitRev;
 
 import StandAloneDlg;
 #include "../SharedMFC/ACEdir/ACEdit.h"
-#include "../../TortoiseProc/MiscUI/MenuButton.h"
+import MenuButton;
 #include "../../TortoiseProc/MiscUI/FilterEdit.h"
-#include "Utils/HintCtrl.h"
+import HintCtrl;
 #include "Utils/GestureEnabledControl.h"
 
 // CCommitIsOnRefsDlg dialog

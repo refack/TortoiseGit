@@ -361,13 +361,13 @@ void CRevisionGraphWnd::OnHScroll(UINT nSBCode, UINT nPos, CScrollBar* pScrollBa
 	case SB_PAGELEFT:	// Scroll one page left.
 		{
 			if (sinfo.nPos > sinfo.nMin)
-				sinfo.nPos = max(sinfo.nMin, sinfo.nPos - static_cast<int>(sinfo.nPage));
+				sinfo.nPos = std::max(sinfo.nMin, sinfo.nPos - static_cast<int>(sinfo.nPage));
 		}
 		break;
 	case SB_PAGERIGHT:	  // Scroll one page right.
 		{
 			if (sinfo.nPos < sinfo.nMax)
-				sinfo.nPos = min(sinfo.nMax, sinfo.nPos + static_cast<int>(sinfo.nPage));
+				sinfo.nPos = std::min(sinfo.nMax, sinfo.nPos + static_cast<int>(sinfo.nPage));
 		}
 		break;
 	case SB_THUMBPOSITION: // Scroll to absolute position. nPos is the position
@@ -410,13 +410,13 @@ void CRevisionGraphWnd::OnVScroll(UINT nSBCode, UINT nPos, CScrollBar* pScrollBa
 	case SB_PAGELEFT:	// Scroll one page left.
 		{
 			if (sinfo.nPos > sinfo.nMin)
-				sinfo.nPos = max(sinfo.nMin, sinfo.nPos - static_cast<int>(sinfo.nPage));
+				sinfo.nPos = std::max(sinfo.nMin, sinfo.nPos - static_cast<int>(sinfo.nPage));
 		}
 		break;
 	case SB_PAGERIGHT:	  // Scroll one page right.
 		{
 			if (sinfo.nPos < sinfo.nMax)
-				sinfo.nPos = min(sinfo.nMax, sinfo.nPos + static_cast<int>(sinfo.nPage));
+				sinfo.nPos = std::min(sinfo.nMax, sinfo.nPos + static_cast<int>(sinfo.nPage));
 		}
 		break;
 	case SB_THUMBPOSITION: // Scroll to absolute position. nPos is the position
@@ -561,11 +561,11 @@ void CRevisionGraphWnd::OnLButtonUp(UINT nFlags, CPoint point)
 
 	float xfact = float(rect.Width())/float(x);
 	float yfact = float(rect.Height())/float(y);
-	float fact = max(yfact, xfact);
+	float fact = std::max(yfact, xfact);
 
 	// find out where to scroll to
-	x = min(m_ptMoveCanvas.x, point.x) + GetScrollPos(SB_HORZ);
-	y = min(m_ptMoveCanvas.y, point.y) + GetScrollPos(SB_VERT);
+	x = std::min(m_ptMoveCanvas.x, point.x) + GetScrollPos(SB_HORZ);
+	y = std::min(m_ptMoveCanvas.y, point.y) + GetScrollPos(SB_VERT);
 
 	float fZoomfactor = m_fZoomFactor*fact;
 	if (fZoomfactor > 10 * MAX_ZOOM)
@@ -1066,12 +1066,12 @@ void CRevisionGraphWnd::DoShowLog() const
 
 	if(m_SelectedEntry2)
 		sCmd.Format(L"/command:log /path:%s /startrev:%s /endrev:%s",
-			TCmdLineParser::EscapeValue(m_sPath).c_str(),
+			str::EscapeCmdValue(m_sPath).c_str(),
 			(this->m_logEntries[m_SelectedEntry1->index()].ToString()).c_str(),
 			(this->m_logEntries[m_SelectedEntry2->index()].ToString()).c_str());
 	else
 		sCmd.Format(L"/command:log /path:%s /endrev:%s /rev:%s",
-			TCmdLineParser::EscapeValue(m_sPath).c_str(),
+			str::EscapeCmdValue(m_sPath).c_str(),
 			(this->m_logEntries[m_SelectedEntry1->index()].ToString()).c_str(),
 			(this->m_logEntries[m_SelectedEntry1->index()].ToString()).c_str());
 
@@ -1090,8 +1090,8 @@ void CRevisionGraphWnd::DoBrowseRepo() const
 
 	CString sCmd;
 	sCmd.Format(L"/command:repobrowser /path:%s /rev:%s",
-		TCmdLineParser::EscapeValue(m_sPath).c_str(),
-		TCmdLineParser::EscapeValue(GetFriendRefName(m_SelectedEntry1)).c_str());
+		str::EscapeCmdValue(m_sPath).c_str(),
+		str::EscapeCmdValue(GetFriendRefName(m_SelectedEntry1)).c_str());
 
 	TortoiseProc::RunTortoiseGitProc(sCmd);
 }
@@ -1322,8 +1322,8 @@ void CRevisionGraphWnd::OnMouseMove(UINT nFlags, CPoint point)
 			// scrolling
 			int x = static_cast<int>((point.x - m_OverviewRect.left - (m_OverviewPosRect.Width() / 2)) / m_previewZoom  * m_fZoomFactor);
 			int y = static_cast<int>((point.y - m_OverviewRect.top - (m_OverviewPosRect.Height() / 2)) / m_previewZoom  * m_fZoomFactor);
-			x = max(0, x);
-			y = max(0, y);
+			x = std::max(0, x);
+			y = std::max(0, y);
 			SetScrollbars(y, x);
 			Invalidate(FALSE);
 			return __super::OnMouseMove(nFlags, point);
@@ -1417,12 +1417,12 @@ LRESULT CRevisionGraphWnd::OnWorkerThreadDone(WPARAM, LPARAM)
 		sinfo.cbSize = sizeof(SCROLLINFO);
 		if (GetScrollInfo(SB_HORZ, &sinfo))
 		{
-			sinfo.nPos = min(max(sinfo.nMin, static_cast<int>(m_GraphAttr.x(m_HeadNode) - m_GraphAttr.width(m_HeadNode) / 2)), sinfo.nMax);
+			sinfo.nPos = std::min(std::max(sinfo.nMin, static_cast<int>(m_GraphAttr.x(m_HeadNode) - m_GraphAttr.width(m_HeadNode) / 2)), sinfo.nMax);
 			SetScrollInfo(SB_HORZ, &sinfo);
 		}
 		if (GetScrollInfo(SB_VERT, &sinfo))
 		{
-			sinfo.nPos = min(max(sinfo.nMin, static_cast<int>(m_GraphAttr.y(m_HeadNode) - m_GraphAttr.height(m_HeadNode) / 2)), sinfo.nMax);
+			sinfo.nPos = std::min(std::max(sinfo.nMin, static_cast<int>(m_GraphAttr.y(m_HeadNode) - m_GraphAttr.height(m_HeadNode) / 2)), sinfo.nMax);
 			SetScrollInfo(SB_VERT, &sinfo);
 		}
 	}
@@ -1461,12 +1461,12 @@ void CRevisionGraphWnd::ScrollTo(int i, bool select)
 	sinfo.cbSize = sizeof(SCROLLINFO);
 	if (GetScrollInfo(SB_HORZ, &sinfo))
 	{
-		sinfo.nPos = min(max(sinfo.nMin, static_cast<int>(m_GraphAttr.x(v) - m_GraphAttr.width(v) / 2)), sinfo.nMax);
+		sinfo.nPos = std::min(std::max(sinfo.nMin, static_cast<int>(m_GraphAttr.x(v) - m_GraphAttr.width(v) / 2)), sinfo.nMax);
 		SetScrollInfo(SB_HORZ, &sinfo);
 	}
 	if (GetScrollInfo(SB_VERT, &sinfo))
 	{
-		sinfo.nPos = min(max(sinfo.nMin, static_cast<int>(m_GraphAttr.y(v) - m_GraphAttr.height(v) / 2 - max(1.0f, 25 * m_fZoomFactor))), sinfo.nMax);
+		sinfo.nPos = std::min(std::max(sinfo.nMin, static_cast<int>(m_GraphAttr.y(v) - m_GraphAttr.height(v) / 2 - std::max(1.0f, 25 * m_fZoomFactor))), sinfo.nMax);
 		SetScrollInfo(SB_VERT, &sinfo);
 	}
 

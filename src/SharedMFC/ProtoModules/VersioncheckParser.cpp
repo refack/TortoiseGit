@@ -18,9 +18,9 @@
 //
 
 #include "stdafx.h"
-import tgit;
-
 #include "VersioncheckParser.h"
+
+import tgit;
 
 CVersioncheckParser::CVersioncheckParser()
 	: m_versioncheckfile(true, true)
@@ -40,7 +40,7 @@ static CString GetConfigValue(const wchar_t* ptr)
 
 	CString value;
 	{
-		CStrBuf working(value, static_cast<int>(min(wcslen(ptr), static_cast<size_t>(UINT16_MAX))));
+		CStrBuf working(value, static_cast<int>(std::min(wcslen(ptr), static_cast<size_t>(UINT16_MAX))));
 		wchar_t* fixed = working;
 		bool quoted = false;
 

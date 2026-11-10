@@ -18,14 +18,11 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 #pragma once
-#include <string>
 #include <ocidl.h>
-#pragma warning(push)
-#pragma warning(disable: 4458) // declaration of 'xxx' hides class member
 #include <GdiPlus.h>
-#pragma warning(pop)
+
+import tgit;
 import RIAA;
-#include <vector>
 
 using namespace Gdiplus;
 

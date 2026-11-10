@@ -269,7 +269,7 @@ void CSetProxyPage::OnBnClickedSshbrowse()
 	CString filename = m_SSHClient;
 	if (!PathFileExists(filename))
 		filename.Empty();
-	if (CAppUtils::FileOpenSave(filename, nullptr, IDS_SETTINGS_SELECTSSH, IDS_PROGRAMSFILEFILTER, true, m_hWnd))
+	if (ConfigureGitExe::FileOpenSave(filename, nullptr, IDS_SETTINGS_SELECTSSH, IDS_PROGRAMSFILEFILTER, true, m_hWnd))
 	{
 		m_SSHClient = filename;
 		UpdateData(FALSE);

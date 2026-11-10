@@ -18,31 +18,19 @@
 //
 
 #include "stdafx.h"
-import tgit;
-
-import TortoiseProc;
 #include "FirstStartWizard.h"
 #include "FirstStartWizardLanguage.h"
+
+import tgit;
+import TortoiseProc;
 import ThemeAPI;
 import AppUtils.Launch;
+import LangDll;
 
-#define DOWNLOAD_URL L"https://tortoisegit.org/download/"
-#define WM_SETPAGEFOCUS WM_APP+2
+constexpr auto DOWNLOAD_URL = L"https://tortoisegit.org/download/"sv;
+constexpr auto WM_SETPAGEFOCUS = WM_APP+2;
 
 IMPLEMENT_DYNAMIC(CFirstStartWizardLanguage, CFirstStartWizardBasePage)
-
-CFirstStartWizardLanguage::CFirstStartWizardLanguage() : CFirstStartWizardBasePage(CFirstStartWizardLanguage::IDD)
-, m_dwLanguage(LangDll::s_defaultLang)
-, m_regLanguage(L"Software\\TortoiseGit\\LanguageID", LangDll::s_defaultLang)
-{
-	m_dwInitialLanguage = m_regLanguage;
-	m_psp.dwFlags |= PSP_DEFAULT | PSP_USEHEADERTITLE;
-	m_psp.pszHeaderTitle = MAKEINTRESOURCE(IDS_FIRSTSTART_STARTTITLE);
-}
-
-CFirstStartWizardLanguage::~CFirstStartWizardLanguage()
-{
-}
 
 void CFirstStartWizardLanguage::DoDataExchange(CDataExchange* pDX)
 {
@@ -80,8 +68,8 @@ BOOL CFirstStartWizardLanguage::OnInitDialog()
 	AppendStringResource(hinttext, IDS_FIRSTSTART_LANGUAGEHINT3);
 	GetDlgItem(IDC_FIRSTSTART_HINT)->SetWindowText(hinttext);
 
-	GetDlgItem(IDC_LINK)->SetWindowText(DOWNLOAD_URL);
-	m_link.SetURL(DOWNLOAD_URL);
+	GetDlgItem(IDC_LINK)->SetWindowText(DOWNLOAD_URL.data());
+	m_link.SetURL(DOWNLOAD_URL.data());
 	AdjustControlSize(IDC_LINK, false);
 
 	OnBnClickedRefresh();
@@ -115,7 +103,7 @@ LRESULT CFirstStartWizardLanguage::OnWizardNext()
 	{
 		m_regLanguage = m_dwLanguage;
 
-		TortoiseProc::RunTortoiseGitProc(L"/command:firststart /page:1", false, false);
+		TortoiseProc::RunTortoiseGitProc(L"/command:firststart /page:1"sv, false, false);
 
 		EndDialog(0);
 
@@ -129,9 +117,9 @@ LRESULT CFirstStartWizardLanguage::OnWizardNext()
 void CFirstStartWizardLanguage::OnClickedLink(NMHDR* pNMHDR, LRESULT* pResult)
 {
 	ATLASSERT(pNMHDR && pResult);
-	auto pNMLink = reinterpret_cast<PNMLINK>(pNMHDR);
+	auto *pNMLink = reinterpret_cast<PNMLINK>(pNMHDR);
 	if (wcscmp(pNMLink->item.szID, L"download") == 0)
-		ShellExecute(GetSafeHwnd(), L"open", DOWNLOAD_URL, nullptr, nullptr, SW_SHOWNORMAL);
+		ShellExecute(GetSafeHwnd(), L"open", DOWNLOAD_URL.data(), nullptr, nullptr, SW_SHOWNORMAL);
 	*pResult = 0;
 }
 

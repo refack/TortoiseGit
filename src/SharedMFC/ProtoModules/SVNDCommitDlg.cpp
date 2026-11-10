@@ -53,9 +53,9 @@ END_MESSAGE_MAP()
 BOOL CSVNDCommitDlg::OnInitDialog()
 {
 	CStandAloneDialog::OnInitDialog();
-	CAppUtils::MarkWindowAsUnpinnable(m_hWnd);
+	wil::MFC::MarkWindowAsUnpinnable(m_hWnd);
 
-	CAppUtils::SetWindowTitle(*this, GitCall::m_CurrentDirStorage.c_str());
+	wil::MFC::SetWindowTitle(*this, GitCall::m_CurrentDirStorage.c_str());
 
 	CheckRadioButton(IDC_RADIO_SVN_COMMIT, IDC_RADIO_GIT_COMMIT, IDC_RADIO_SVN_COMMIT);
 

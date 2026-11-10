@@ -40,7 +40,6 @@ import TGitPath;
 import GitHash;
 import GitDataObject;
 
-using namespace std::literals;
 
 namespace
 {

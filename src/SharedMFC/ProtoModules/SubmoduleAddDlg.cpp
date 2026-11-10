@@ -67,7 +67,7 @@ END_MESSAGE_MAP()
 BOOL CSubmoduleAddDlg::OnInitDialog()
 {
 	CHorizontalResizableStandAloneDialog::OnInitDialog();
-	CAppUtils::MarkWindowAsUnpinnable(m_hWnd);
+	wil::MFC::MarkWindowAsUnpinnable(m_hWnd);
 
 	AdjustControlSize(IDC_BRANCH_CHECK);
 	AdjustControlSize(IDC_FORCE);
@@ -88,7 +88,7 @@ BOOL CSubmoduleAddDlg::OnInitDialog()
 	EnableSaveRestore(L"SubmoduleAddDlg");
 	SetTheme(CTheme::Instance().IsDarkTheme());
 
-	CAppUtils::SetWindowTitle(*this, (g_Git.CombinePath(m_strPath) / L"").parent_path().c_str());
+	wil::MFC::SetWindowTitle(*this, (g_Git.CombinePath(m_strPath) / L"").parent_path().c_str());
 
 	m_Repository.SetURLHistory(true);
 	m_Repository.SetCaseSensitive(TRUE);
@@ -98,7 +98,7 @@ BOOL CSubmoduleAddDlg::OnInitDialog()
 	m_PathCtrl.LoadHistory(L"Software\\TortoiseGit\\History\\SubModulePath", L"url");
 	m_PathCtrl.SetWindowText(m_strPath);
 
-	CString str = CAppUtils::GetClipboardLink(L"git clone ");
+	CString str = wil::MFC::GetClipboardLink(L"git clone ");
 	str.Trim();
 	if (str.GetLength() > 2 && (str[0] == L'"' && str[str.GetLength() - 1] == L'"' || str[0] == L'\'' && str[str.GetLength() - 1] == L'\''))
 		str = str.Mid(1, str.GetLength() - 2);

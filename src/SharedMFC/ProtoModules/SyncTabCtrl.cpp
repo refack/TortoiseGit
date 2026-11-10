@@ -18,20 +18,11 @@
 //
 
 #include "stdafx.h"
-import tgit;
-
 #include "SyncDlg.h"
 #include "SyncTabCtrl.h"
+import tgit;
 
 IMPLEMENT_DYNAMIC(CSyncTabCtrl, CMFCTabCtrl)
-
-CSyncTabCtrl::CSyncTabCtrl()
-{
-}
-
-CSyncTabCtrl::~CSyncTabCtrl()
-{
-}
 
 BEGIN_MESSAGE_MAP(CSyncTabCtrl, CMFCTabCtrl)
 	ON_NOTIFY(EN_LINK, IDC_CMD_LOG, OnEnLinkLog)

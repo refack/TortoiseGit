@@ -21,8 +21,8 @@
 #include <../SharedMFC/Resources/resource.h>
 
 import StandAloneDlg;
-#include "GitProgressList.h"
-#include "../../TortoiseProc/MiscUI/MenuButton.h"
+#include "ProtoModules/GitProgressList.h"
+import MenuButton;
 
 /**
  * \ingroup TortoiseProc

@@ -13,7 +13,6 @@ import RIAA;
 import Registry;
 import PathUtils;
 import str_utils;
-using namespace std::literals;
 namespace fs = std::filesystem;
 using tgit::wstr::CString;
 
@@ -53,7 +52,7 @@ std::vector<lang_buf_pair> GetInstalledLanguages(bool includeNative = false, boo
 		GetLocaleInfo(s_defaultLang, LOCALE_SNATIVELANGNAME, buf.data(), win32_cast(buf.size()));
 		langs.emplace_back(lang_buf_pair{ buf.data(), s_defaultLang });
 	}
-	const std::wstring sVer{ GetCompatibleDLLVersion(PathUtils::GetAppDirectory().c_str()) };
+	const std::wstring sVer{ GetCompatibleDLLVersion(til::GetAppDirectory().c_str()) };
 	CString path = PathUtils::GetAppParentDirectory().c_str();
 	path += s_languagesfolder.data();
 	CSimpleFileFind finder(path, L"*.dll");

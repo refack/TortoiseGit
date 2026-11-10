@@ -23,12 +23,16 @@
 #include "PatchViewDlg.h"
 #include "StagingOperations.h"
 #include "../../TortoiseProc/EnableStagingTypes.h"
+#include "../../TortoiseShell/resource.h"
 
 import tgit;
 import TortoiseProc;
 import MessageBox;
 import DPIAware;
 import AppUtils.Window;
+import Registry;
+import TGitPath;
+import ConfigureGitExe;
 
 #pragma comment(lib, "Dwmapi.lib")
 
@@ -267,7 +271,7 @@ void CPatchViewDlg::ShowAndAlignToParent()
 		MONITORINFO monitorinfo;
 		monitorinfo.cbSize = sizeof(MONITORINFO);
 		GetMonitorInfo(monitor, &monitorinfo);
-		SetWindowPos(nullptr, monitorinfo.rcWork.left, monitorinfo.rcWork.top, min(rect.Width(), static_cast<int>(monitorinfo.rcWork.right - monitorinfo.rcWork.left)), min(rect.Height(), static_cast<int>(monitorinfo.rcWork.bottom - monitorinfo.rcWork.top)), SWP_SHOWWINDOW | SWP_NOACTIVATE | SWP_NOOWNERZORDER | SWP_NOZORDER);
+		SetWindowPos(nullptr, monitorinfo.rcWork.left, monitorinfo.rcWork.top, std::min(rect.Width(), static_cast<int>(monitorinfo.rcWork.right - monitorinfo.rcWork.left)), std::min(rect.Height(), static_cast<int>(monitorinfo.rcWork.bottom - monitorinfo.rcWork.top)), SWP_SHOWWINDOW | SWP_NOACTIVATE | SWP_NOOWNERZORDER | SWP_NOZORDER);
 	}
 }
 
@@ -539,7 +543,7 @@ bool CPatchViewDlg::HandleMenuItemClick(const int cmd, CSciEdit*)
 	if (cmd == m_nPopupSave)
 	{
 		CString filename;
-		if (CAppUtils::FileOpenSave(filename, nullptr, 0, IDS_PATCHFILEFILTER, false, GetSafeHwnd(), L"diff"))
+		if (ConfigureGitExe::FileOpenSave(filename, nullptr, 0, IDS_PATCHFILEFILTER, false, GetSafeHwnd(), L"diff"))
 			StringUtils::WriteStringToTextFile(filename, m_ctrlPatchView.GetText());
 		return true;
 	}

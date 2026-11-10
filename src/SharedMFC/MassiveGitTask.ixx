@@ -1,5 +1,5 @@
 ﻿module;
-#include "ProtoModules/ProgressDlg.h"
+import ProgressDlg;
 #include "ProtoModules/GitProgressList.h"
 
 

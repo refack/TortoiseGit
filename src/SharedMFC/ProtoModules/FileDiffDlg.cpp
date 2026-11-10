@@ -23,14 +23,14 @@ import tgit;
 
 import TortoiseProc;
 #include "Utils/SysImageList.h"
-#include "../../TortoiseProc/MiscUI/IconMenu.h"
+import IconMenu;
 #include "FileDiffDlg.h"
 #include "GitDiff.h"
 #include "LoglistUtils.h"
 #include "BrowseRefsDlg.h"
 #include "../../SharedMFC/Utils/LogDlg.h"
 #include "RefLogDlg.h"
-#include "GitStatusListCtrl.h"
+import GitStatusListCtrl;
 
 import GitLogListBase;
 import BrowseFolder;
@@ -134,7 +134,7 @@ BOOL CFileDiffDlg::OnInitDialog()
 	CResizableStandAloneDialog::OnInitDialog();
 	CString temp;
 
-	CAppUtils::SetWindowTitle(*this, GitCall::m_CurrentDirStorage.c_str());
+	wil::MFC::SetWindowTitle(*this, GitCall::m_CurrentDirStorage.c_str());
 
 	this->m_ctrRev1Edit.Init();
 	this->m_ctrRev2Edit.Init();
@@ -492,16 +492,16 @@ void CFileDiffDlg::OnNMCustomdrawFilelist(NMHDR *pNMHDR, LRESULT *pResult)
 			switch (fd->m_Action)
 			{
 			case CTGitPath::LOGACTIONS_ADDED:
-				crText = CTheme::Instance().GetThemeColor(m_colors.GetColor(CColors::Added));
+				crText = CTheme::Instance().GetThemeColor(g_Colors.GetColor(CColors::Added));
 				break;
 			case CTGitPath::LOGACTIONS_DELETED:
-				crText = CTheme::Instance().GetThemeColor(m_colors.GetColor(CColors::Deleted));
+				crText = CTheme::Instance().GetThemeColor(g_Colors.GetColor(CColors::Deleted));
 				break;
 			case CTGitPath::LOGACTIONS_MODIFIED:
-				crText = CTheme::Instance().GetThemeColor(m_colors.GetColor(CColors::Modified));
+				crText = CTheme::Instance().GetThemeColor(g_Colors.GetColor(CColors::Modified));
 				break;
 			default:
-				crText = CTheme::Instance().GetThemeColor(m_colors.GetColor(CColors::PropertyChanged));
+				crText = CTheme::Instance().GetThemeColor(g_Colors.GetColor(CColors::PropertyChanged));
 				break;
 			}
 		}
@@ -515,7 +515,7 @@ void CFileDiffDlg::OnNMCustomdrawFilelist(NMHDR *pNMHDR, LRESULT *pResult)
 
 		auto filter{ m_filter.load() };
 		if (filter->IsFilterActive())
-			*pResult = CGitLogListBase::DrawListItemWithMatches(filter.get(), m_cFileList, pLVCD, m_colors);
+			*pResult = CGitLogListBase::DrawListItemWithMatches(filter.get(), m_cFileList, pLVCD);
 	}
 }
 
@@ -684,7 +684,7 @@ void CFileDiffDlg::OnContextMenu(CWnd* pWnd, CPoint point)
 						else
 							MessageBox(error, L"TortoiseGit", MB_ICONERROR);
 					}
-					sCmd += L" /path:" + TCmdLineParser::EscapeValue(g_Git.CombinePath(m_arFilteredList[index]->GetStdPath()).wstring());
+					sCmd += L" /path:" + str::EscapeCmdValue(g_Git.CombinePath(m_arFilteredList[index]->GetStdPath()).wstring());
 					if (cmd == ID_LOG)
 						sCmd += L" /endrev:" + m_rev2.m_CommitHash.ToString() + L" /rev:" + m_rev2.m_CommitHash.ToString();
 					TortoiseProc::RunTortoiseGitProc(sCmd);
@@ -697,7 +697,7 @@ void CFileDiffDlg::OnContextMenu(CWnd* pWnd, CPoint point)
 				{
 					CTGitPath savePath;
 					CString pathSave;
-					if (!CAppUtils::FileOpenSave(pathSave, nullptr, IDS_FILEDIFF_POPSAVELIST, IDS_TEXTFILEFILTER, false, m_hWnd, L"txt"))
+					if (!ConfigureGitExe::FileOpenSave(pathSave, nullptr, IDS_FILEDIFF_POPSAVELIST, IDS_TEXTFILEFILTER, false, m_hWnd, L"txt"))
 						break;
 					savePath = CTGitPath(pathSave.GetString());
 
@@ -1436,7 +1436,7 @@ void CFileDiffDlg::ShowCommitButton()
 bool CFileDiffDlg::CheckMultipleDiffs()
 {
 	const UINT selCount = m_cFileList.GetSelectedCount();
-	if (selCount > max(DWORD(3), static_cast<DWORD>(CRegDWORD(L"Software\\TortoiseGit\\NumDiffWarning", 10))))
+	if (selCount > std::max(DWORD(3), static_cast<DWORD>(CRegDWORD(L"Software\\TortoiseGit\\NumDiffWarning", 10))))
 	{
 		CString message;
 		message.Format(IDS_STATUSLIST_WARN_MAXDIFF, selCount);

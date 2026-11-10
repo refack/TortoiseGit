@@ -18,22 +18,20 @@
 //
 
 #include "stdafx.h"
-import tgit;
-
-import TortoiseProc;
 #include "CheckCertificateDlg.h"
-import AppUtils.Launch;
-import AppUtils.Window;
 #include <WinCrypt.h>
 
-IMPLEMENT_DYNAMIC(CCheckCertificateDlg, CStandAloneDialog)
-CCheckCertificateDlg::CCheckCertificateDlg(CWnd* pParent /*=nullptr*/)
-: CStandAloneDialog(CCheckCertificateDlg::IDD, pParent)
-{
-}
+import tgit;
+import TortoiseProc;
+import AppUtils.Launch;
+import AppUtils.Window;
+import TGitPath;
+import TempFile;
 
-void CCheckCertificateDlg::DoDataExchange(CDataExchange* pDX)
-{
+IMPLEMENT_DYNAMIC(CCheckCertificateDlg, CStandAloneDialog)
+
+
+void CCheckCertificateDlg::DoDataExchange(CDataExchange* pDX) {
 	CStandAloneDialog::DoDataExchange(pDX);
 	DDX_Text(pDX, IDC_ERROR, m_sError);
 	DDX_Text(pDX, IDC_COMMONNAME, m_sCertificateCN);
@@ -42,18 +40,19 @@ void CCheckCertificateDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Text(pDX, IDC_SHA256, m_sSHA256);
 }
 
+
 BEGIN_MESSAGE_MAP(CCheckCertificateDlg, CStandAloneDialog)
 	ON_BN_CLICKED(IDOK, OnBnClickedOk)
 	ON_BN_CLICKED(IDC_OPENCERT, &CCheckCertificateDlg::OnBnClickedOpencert)
 END_MESSAGE_MAP()
 
-void CCheckCertificateDlg::OnBnClickedOk()
-{
+
+void CCheckCertificateDlg::OnBnClickedOk() {
 	OnOK();
 }
 
-static CString getCertificateHash(HCRYPTPROV hCryptProv, ALG_ID algId, BYTE* certificate, size_t len)
-{
+
+static CString getCertificateHash(HCRYPTPROV hCryptProv, ALG_ID algId, BYTE* certificate, size_t len) {
 	CString readable = L"unknown";
 
 	if (!hCryptProv)
@@ -65,20 +64,20 @@ static CString getCertificateHash(HCRYPTPROV hCryptProv, ALG_ID algId, BYTE* cer
 	SCOPE_EXIT { CryptDestroyHash(hHash); };
 
 	size_t offset = 0;
-	do
-	{
-		DWORD buffLength = static_cast<DWORD>(min(static_cast<size_t>(DWORD_MAX), len - offset));
+	do {
+		const auto buffLength = static_cast<DWORD>(std::min(static_cast<size_t>(DWORD_MAX), len - offset));
 		if (!CryptHashData(hHash, certificate + offset, buffLength, 0))
 			return readable;
 		offset += buffLength;
-	} while (offset < len);
+	}
+	while (offset < len);
 
-	DWORD hashLen;
+	DWORD hashLen{};
 	DWORD hashLenLen = sizeof(DWORD);
 	if (!CryptGetHashParam(hHash, HP_HASHSIZE, reinterpret_cast<BYTE*>(&hashLen), &hashLenLen, 0))
 		return readable;
 
-	auto pHash = std::make_unique<BYTE[]>(hashLen);
+	const auto pHash = std::make_unique<BYTE[]>(hashLen);
 	if (!CryptGetHashParam(hHash, HP_HASHVAL, pHash.get(), &hashLen, 0))
 		return readable;
 
@@ -89,15 +88,14 @@ static CString getCertificateHash(HCRYPTPROV hCryptProv, ALG_ID algId, BYTE* cer
 	return readable.TrimRight(L":");
 }
 
-BOOL CCheckCertificateDlg::OnInitDialog()
-{
+
+BOOL CCheckCertificateDlg::OnInitDialog() {
 	CStandAloneDialog::OnInitDialog();
-	CAppUtils::MarkWindowAsUnpinnable(m_hWnd);
+	wil::MFC::MarkWindowAsUnpinnable(m_hWnd);
 
 	HCRYPTPROV hCryptProv = NULL;
 	CryptAcquireContext(&hCryptProv, nullptr, nullptr, PROV_RSA_AES, CRYPT_VERIFYCONTEXT);
-	SCOPE_EXIT
-	{
+	SCOPE_EXIT {
 		if (hCryptProv)
 			CryptReleaseContext(hCryptProv, 0);
 	};
@@ -120,26 +118,23 @@ BOOL CCheckCertificateDlg::OnInitDialog()
 	return FALSE;
 }
 
-void CCheckCertificateDlg::OnBnClickedOpencert()
-{
-	CTGitPath tempFile = TempFiles::GetTempFilePath(true, CTGitPath(L"certificate.der"));
 
-	try
-	{
+void CCheckCertificateDlg::OnBnClickedOpencert() {
+	const CTGitPath tempFile = TempFiles::GetTempFilePath(true, CTGitPath(L"certificate.der"));
+
+	try {
 		CFile file(tempFile.GetWinPathString().c_str(), CFile::modeReadWrite);
 
 		size_t offset = 0;
-		do
-		{
-			UINT buffLength = static_cast<UINT>(min(static_cast<size_t>(UINT_MAX), cert->len - offset));
+		do {
+			const UINT buffLength = static_cast<UINT>(std::min(static_cast<size_t>(UINT_MAX), cert->len - offset));
 			file.Write(static_cast<BYTE*>(cert->data) + offset, buffLength);
 			offset += buffLength;
-		} while (offset < cert->len);
+		}
+		while (offset < cert->len);
 
 		file.Close();
-	}
-	catch (CFileException* e)
-	{
+	} catch (CFileException* e) {
 		CString error;
 		e->GetErrorMessage(CStrBuf(error, 1024), 1024);
 		MessageBox(L"Could not write to file:\n" + error, L"TortoiseGit", MB_ICONERROR);
@@ -147,5 +142,5 @@ void CCheckCertificateDlg::OnBnClickedOpencert()
 		return;
 	}
 
-	CAppUtils::ShellOpen(tempFile.GetWinPathString().c_str(), GetSafeHwnd());
+	TortoiseProc::ShellOpen(tempFile.GetWinPathString().c_str(), GetSafeHwnd());
 }

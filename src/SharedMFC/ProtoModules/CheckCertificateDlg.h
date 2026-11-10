@@ -18,13 +18,20 @@
 //
 
 #pragma once
+#include "Resources/resource.h"
 import StandAloneDlg;
+import libgit2;
 
-class CCheckCertificateDlg : public CStandAloneDialog
-{
+
+class CCheckCertificateDlg : public CStandAloneDialog {
 	DECLARE_DYNAMIC(CCheckCertificateDlg)
-public:
-	CCheckCertificateDlg(CWnd* pParent = nullptr);   // standard constructor
+
+
+	explicit CCheckCertificateDlg(CWnd* pParent = nullptr)
+	: CStandAloneDialog(CCheckCertificateDlg::IDD, pParent)
+	{}
+
+	~CCheckCertificateDlg() override = default;
 
 	// Dialog Data
 	enum { IDD = IDD_CERTCHECK };
@@ -35,7 +42,7 @@ public:
 	CString m_sCertificateCN;
 	CString m_sCertificateIssuer;
 
-	git_cert_x509* cert = nullptr;
+	tgit::libgit2::git_cert_x509* cert = nullptr;
 
 protected:
 	void DoDataExchange(CDataExchange* pDX) override;    // DDX/DDV support

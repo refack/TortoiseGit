@@ -24,8 +24,7 @@ class CSyncTabCtrl : public CMFCTabCtrl
 	DECLARE_DYNAMIC(CSyncTabCtrl)
 
 public:
-	CSyncTabCtrl();
-	virtual ~CSyncTabCtrl();
+	CSyncTabCtrl() = default;
 
 protected:
 	DECLARE_MESSAGE_MAP()

@@ -30,7 +30,6 @@ import str_utils;
 import PathUtils;
 import invarients;
 
-using namespace std::literals;
 
 // ---------------------------------------------------------------------------
 // wstr

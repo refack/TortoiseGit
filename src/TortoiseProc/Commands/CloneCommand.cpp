@@ -24,10 +24,12 @@
 #include "CloneCommand.h"
 #include "GitProgressDlg.h"
 #include "CloneDlg.h"
-#include "ProgressDlg.h"
-import AppUtils.GitEnv;
-import AppUtils.Launch;
+import ProgressDlg;
 #include "ProgressCommands/CloneProgressCommand.h"
+
+import tgit;
+import AppUtils.Launch;
+
 
 static CString GetExistingDirectoryForClone(auto path)
 {
@@ -127,17 +129,17 @@ bool CloneCommand::Execute()
 			}
 
 			if (dlg.m_bBare)
-				CAppUtils::SetupBareRepoIcon(dir);
+				TGitH::SetupBareRepoIcon(dir);
 
 			// After cloning, change current directory to the cloned directory
 			g_Git.SetCurrentDirExact(dlg.m_Directory);
 
 			postCmdList.emplace_back(IDI_LOG, IDS_MENULOG, [&]{
-				const CString cmd2{ std::format(L"/command:log /path:{}", TCmdLineParser::EscapeValue(dlg.m_Directory)).c_str() };
+				const CString cmd2{ std::format(L"/command:log /path:{}", str::EscapeCmdValue(dlg.m_Directory)).c_str() };
 				TortoiseProc::RunTortoiseGitProc(cmd2);
 			});
 
-			postCmdList.emplace_back(IDI_EXPLORER, IDS_STATUSLIST_CONTEXT_EXPLORE, [&]{ CAppUtils::ExploreTo(GetExplorerHWND(), dlg.m_Directory); });
+			postCmdList.emplace_back(IDI_EXPLORER, IDS_STATUSLIST_CONTEXT_EXPLORE, [&]{ TortoiseProc::ExploreTo(GetExplorerHWND(), dlg.m_Directory); });
 		};
 
 		// Handle Git SVN-clone

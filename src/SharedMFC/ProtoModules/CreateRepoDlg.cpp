@@ -20,11 +20,11 @@
 //
 
 #include "stdafx.h"
-import tgit;
-
-import TortoiseProc;
 #include "CreateRepoDlg.h"
+import tgit;
+import TortoiseProc;
 import AppUtils.Window;
+import StandAloneDlg;
 
 // CCreateRepoDlg dialog
 
@@ -50,13 +50,13 @@ void CCreateRepoDlg::DoDataExchange(CDataExchange* pDX)
 BOOL CCreateRepoDlg::OnInitDialog()
 {
 	CStandAloneDialog::OnInitDialog();
-	CAppUtils::MarkWindowAsUnpinnable(m_hWnd);
+	wil::MFC::MarkWindowAsUnpinnable(m_hWnd);
 
 	SetTheme(CTheme::Instance().IsDarkTheme());
 
 	AdjustControlSize(IDC_CHECK_BARE);
 
-	CAppUtils::SetWindowTitle(*this, m_folder);
+	wil::MFC::SetWindowTitle(*this, m_folder);
 
 	// Check if the folder ends with .git this indicates the use probably want this to be a bare repository
 	if (StringUtils::EndsWith(m_folder, L".git"))

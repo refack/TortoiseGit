@@ -18,9 +18,9 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 #include "stdafx.h"
-import tgit;
-
 #include "LogFile.h"
+import tgit;
+import PathUtils;
 
 CLogFile::CLogFile(const CString& repo, DWORD maxLines)
 	: m_maxLines(maxLines)
@@ -66,7 +66,7 @@ bool CLogFile::Close()
 		// limit log file growth
 		const size_t maxLines = m_maxLines;
 		const size_t newLines = m_newLines.size();
-		TrimFile(static_cast<DWORD>(max(maxLines, newLines) - newLines));
+		TrimFile(static_cast<DWORD>(std::max(maxLines, newLines) - newLines));
 
 		// append new info
 		CStdioFile file;
@@ -121,13 +121,13 @@ void CLogFile::TrimFile(DWORD maxLines) const
 {
 	// find the start of the maxLines-th last line
 	// (\n is always a new line - regardless of the encoding)
-	CAutoFile file = ::CreateFile(m_logFile.GetWinPath(), GENERIC_READ | GENERIC_WRITE, 0, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
+	auto file = wil::unique_handle{::CreateFile(m_logFile.GetWinPath(), GENERIC_READ | GENERIC_WRITE, 0, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr)};
 	if (!file)
 		return;
 
 	size_t newSize = 0;
 	{
-		HANDLE mapping = ::CreateFileMapping(file, nullptr, PAGE_READWRITE, 0, 0, nullptr);
+		HANDLE mapping = ::CreateFileMapping(file.get(), nullptr, PAGE_READWRITE, 0, 0, nullptr);
 		if (!mapping)
 			return;
 		SCOPE_EXIT
@@ -142,14 +142,14 @@ void CLogFile::TrimFile(DWORD maxLines) const
 			// special case, just truncate the file (e.g., on x86 file is too big)
 			CloseHandle(mapping);
 			mapping = nullptr;
-			SetFilePointer(file, 0, nullptr, FILE_BEGIN);
-			SetEndOfFile(file);
+			SetFilePointer(file.get(), 0, nullptr, FILE_BEGIN);
+			SetEndOfFile(file.get());
 			return;
 		}
 		SCOPE_EXIT { UnmapViewOfFile(begin); };
 
 		LARGE_INTEGER fileSize;
-		if (!GetFileSizeEx(file, &fileSize))
+		if (!GetFileSizeEx(file.get(), &fileSize))
 			return;
 		unsigned char* end = begin + fileSize.QuadPart; // should be safe as the whole file is locked and could be mapped into memory
 		if (begin >= end - 2)
@@ -182,6 +182,6 @@ void CLogFile::TrimFile(DWORD maxLines) const
 	// truncate file
 	LARGE_INTEGER fileSize;
 	fileSize.QuadPart = newSize;
-	SetFilePointerEx(file, fileSize, nullptr, FILE_BEGIN);
-	SetEndOfFile(file);
+	SetFilePointerEx(file.get(), fileSize, nullptr, FILE_BEGIN);
+	SetEndOfFile(file.get());
 }

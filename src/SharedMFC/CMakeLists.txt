@@ -79,8 +79,20 @@ target_sources(SharedMFC
         AppUtils.Launch.ixx
         AppUtils.Window.ixx
         AppUtils.Workflow.ixx
-        AppUtils.GitEnv.ixx
         MassiveGitTask.ixx
+        UpdateDownloader.ixx
+        IconExtractor.ixx
+        ResizableColumnsListCtrl.ixx
+        Colors.ixx
+        GitStatusListCtrl.ixx
+        GitRefCompareList.ixx
+        GitTagCompareList.ixx
+        HintCtrl.ixx
+        MenuButton.ixx
+        ThemeControls.ixx
+        IconMenu.ixx
+        SettingGitCredential.ixx
+        ProgressDlg.ixx
 )
 
 
@@ -117,8 +129,6 @@ target_sources(SharedMFC
         ProtoModules/CleanTypeDlg.h
         ProtoModules/CloneDlg.cpp
         ProtoModules/CloneDlg.h
-        ProtoModules/Colors.cpp
-        ProtoModules/Colors.h
         ProtoModules/CommitDlg.cpp
         ProtoModules/CommitDlg.h
         ProtoModules/CommitIsOnRefsDlg.cpp
@@ -169,14 +179,8 @@ target_sources(SharedMFC
         ProtoModules/GitProgressDlg.h
         ProtoModules/GitProgressList.cpp
         ProtoModules/GitProgressList.h
-        ProtoModules/GitRefCompareList.cpp
-        ProtoModules/GitRefCompareList.h
-        ProtoModules/GitStatusListCtrl.cpp
-        ProtoModules/GitStatusListCtrl.h
         ProtoModules/GitSwitchDlg.cpp
         ProtoModules/GitSwitchDlg.h
-        ProtoModules/GitTagCompareList.cpp
-        ProtoModules/GitTagCompareList.h
         ProtoModules/GravatarPictureBox.cpp
         ProtoModules/GravatarPictureBox.h
         ProtoModules/HistoryDlg.cpp
@@ -185,8 +189,6 @@ target_sources(SharedMFC
         ProtoModules/HorizontalResizableStandAloneDialog.h
         ProtoModules/HyperLink.cpp
         ProtoModules/HyperLink.h
-        ProtoModules/IconExtractor.cpp
-        ProtoModules/IconExtractor.h
         ProtoModules/IgnoreDlg.cpp
         ProtoModules/IgnoreDlg.h
         ProtoModules/InputDlg.cpp
@@ -205,8 +207,6 @@ target_sources(SharedMFC
         ProtoModules/MergeDlg.h
         ProtoModules/PatchViewDlg.cpp
         ProtoModules/PatchViewDlg.h
-        ProtoModules/ProgressDlg.cpp
-        ProtoModules/ProgressDlg.h
         ProtoModules/PromptDlg.cpp
         ProtoModules/PromptDlg.h
         ProtoModules/PullFetchDlg.cpp
@@ -265,8 +265,6 @@ target_sources(SharedMFC
         ProtoModules/URLDlg.h
         ProtoModules/UpdateCrypto.cpp
         ProtoModules/UpdateCrypto.h
-        ProtoModules/UpdateDownloader.cpp
-        ProtoModules/UpdateDownloader.h
         ProtoModules/UpdateListCtrl.cpp
         ProtoModules/UpdateListCtrl.h
         ProtoModules/UserPassword.cpp

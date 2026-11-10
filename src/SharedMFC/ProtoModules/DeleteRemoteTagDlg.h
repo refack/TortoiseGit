@@ -21,27 +21,33 @@
 
 #include "HorizontalResizableStandAloneDialog.h"
 
-class CDeleteRemoteTagDlg : public CResizableStandAloneDialog
-{
+
+
+class CDeleteRemoteTagDlg : public CResizableStandAloneDialog {
+public:
 	DECLARE_DYNAMIC(CDeleteRemoteTagDlg)
 
-public:
-	CDeleteRemoteTagDlg(CWnd* pParent = nullptr);   // standard constructor
-	virtual ~CDeleteRemoteTagDlg();
 
-// Dialog Data
+	CDeleteRemoteTagDlg(CWnd* pParent = nullptr) :
+		CResizableStandAloneDialog(CDeleteRemoteTagDlg::IDD, pParent) {}
+
+
+
+	// Dialog Data
 	enum { IDD = IDD_DELETEREMOTETAG };
+
+
 
 	CString m_sRemote;
 
 protected:
-	void DoDataExchange(CDataExchange* pDX) override;    // DDX/DDV support
+	void DoDataExchange(CDataExchange* pDX) override; // DDX/DDV support
 	BOOL OnInitDialog() override;
 
 	DECLARE_MESSAGE_MAP()
 
 	CListCtrl m_ctrlTags;
-	CButton	m_SelectAll;
+	CButton m_SelectAll;
 
 	void Refresh();
 

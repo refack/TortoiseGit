@@ -53,7 +53,7 @@ BOOL CLogOrdering::OnInitDialog()
 	ind = m_cLogOrdering.AddString(L"--author-date-order");
 	m_cLogOrdering.SetItemData(ind, TGitH::LOG_ORDER_AUTHORDATEORDER);
 
-	DWORD curOrder = CRegDWORD(L"Software\\TortoiseGit\\LogOrderBy", TGitH::LOG_ORDER_TOPOORDER);
+	const auto curOrder = wil::reg::try_get_tgit_dword(L"LogOrderBy").value_or(TGitH::LOG_ORDER_TOPOORDER);
 	for (int i = 0; i < m_cLogOrdering.GetCount(); ++i)
 		if (m_cLogOrdering.GetItemData(i) == curOrder)
 			m_cLogOrdering.SetCurSel(i);
@@ -63,8 +63,10 @@ BOOL CLogOrdering::OnInitDialog()
 
 void CLogOrdering::OnOK()
 {
-	if (m_cLogOrdering.GetCurSel() != CB_ERR)
-		CRegDWORD(L"Software\\TortoiseGit\\LogOrderBy") = static_cast<DWORD>(m_cLogOrdering.GetItemData(m_cLogOrdering.GetCurSel()));
+	if (m_cLogOrdering.GetCurSel() != CB_ERR) {
+		auto item_data = static_cast<DWORD>(m_cLogOrdering.GetItemData(m_cLogOrdering.GetCurSel()));
+		std::ignore = wil::reg::set_tgit_dword(L"LogOrderBy", item_data);
+	}
 
 	__super::OnOK();
 }

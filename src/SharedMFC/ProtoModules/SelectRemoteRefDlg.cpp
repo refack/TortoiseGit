@@ -18,12 +18,11 @@
 //
 
 #include "stdafx.h"
-import tgit;
+#include "SelectRemoteRefDlg.h"
 
+import tgit;
 import AppUtils.Window;
 import TortoiseProc;
-#include "SelectRemoteRefDlg.h"
-#include "../../TortoiseProc/MiscUI/SysProgressDlg.h"
 
 IMPLEMENT_DYNAMIC(CSelectRemoteRefDlg, CHorizontalResizableStandAloneDialog)
 
@@ -49,7 +48,7 @@ END_MESSAGE_MAP()
 BOOL CSelectRemoteRefDlg::OnInitDialog()
 {
 	CHorizontalResizableStandAloneDialog::OnInitDialog();
-	CAppUtils::MarkWindowAsUnpinnable(m_hWnd);
+	wil::MFC::MarkWindowAsUnpinnable(m_hWnd);
 
 	AdjustControlSize(static_cast<UINT>(IDC_STATIC));
 

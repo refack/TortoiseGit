@@ -20,7 +20,6 @@
 #include "stdafx.h"
 import CmdLineParser;
 import str_utils;
-using namespace std::literals;
 
 TEST(CCmdLineParser, Null)
 {
@@ -703,12 +702,12 @@ static void CheckEscapeValue(const CString& escaped, LPCWSTR expected)
 
 TEST(CCmdLineParser, EscapeValue)
 {
-	EXPECT_STREQ(L"\"\"", TCmdLineParser::EscapeValue(L""s));
+	EXPECT_STREQ(L"\"\"", str::EscapeCmdValue(L""s));
 
 	constexpr auto args = std::array<std::wstring_view, 14>{ L"", L" ", L"\"", L"\"\"", L"\" \"", L"\"\"\\", L"ascii", L"something\\", L"C:\\Test", L"some\\\"thing", L"something\\\"", L"some\"thing", L"some\"\"thing", L"something\"\\\""};
 	for (const auto arg : args)
 	{
-		CheckEscapeValue(TCmdLineParser::EscapeValue(tgit::str::StringView(CString(arg.data()))).data(), arg.data());
-		CheckEscapeValue(TCmdLineParser::EscapeValue(std::wstring_view(arg)).data(), arg.data());
+		CheckEscapeValue(str::EscapeCmdValue(tgit::str::StringView(CString(arg.data()))).data(), arg.data());
+		CheckEscapeValue(str::EscapeCmdValue(std::wstring_view(arg)).data(), arg.data());
 	}
 }

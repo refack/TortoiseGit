@@ -452,10 +452,10 @@ LRESULT CMainWindow::DoCommand(int id)
 				}
 
 				// Don't reduce margins below the minimum printable area
-				rectMargins.left    = max(rectPhysMargins.left, rectSetup.left);
-				rectMargins.top     = max(rectPhysMargins.top, rectSetup.top);
-				rectMargins.right   = max(rectPhysMargins.right, rectSetup.right);
-				rectMargins.bottom  = max(rectPhysMargins.bottom, rectSetup.bottom);
+				rectMargins.left    = std::max(rectPhysMargins.left, rectSetup.left);
+				rectMargins.top     = std::max(rectPhysMargins.top, rectSetup.top);
+				rectMargins.right   = std::max(rectPhysMargins.right, rectSetup.right);
+				rectMargins.bottom  = std::max(rectPhysMargins.bottom, rectSetup.bottom);
 			}
 			else
 			{

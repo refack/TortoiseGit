@@ -19,7 +19,7 @@
 
 #pragma once
 #include "HorizontalResizableStandAloneDialog.h"
-#include "../../TortoiseProc/MiscUI/MenuButton.h"
+import MenuButton;
 #include "GitDiff.h"
 
 class CSubmoduleDiffDlg : public CHorizontalResizableStandAloneDialog

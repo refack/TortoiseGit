@@ -338,9 +338,9 @@ void CFilterEdit::Validate()
 			int g = GetGValue(m_backColor);
 			int b = GetBValue(m_backColor);
 
-			r = min(r * (100 + SHIFT_PERCENTAGE) / 100, 255);
+			r = std::min(r * (100 + SHIFT_PERCENTAGE) / 100, 255);
 			// Ensure that there is at least some redness.
-			r = max(r, 255 * SHIFT_PERCENTAGE / 100);
+			r = std::max(r, 255 * SHIFT_PERCENTAGE / 100);
 			g = g * (100 - SHIFT_PERCENTAGE) / 100;
 			b = b * (100 - SHIFT_PERCENTAGE) / 100;
 			m_backColor = RGB(r, g, b);

@@ -74,35 +74,35 @@ BOOL CSettingsColors::OnInitDialog()
 	m_chkUseDarkMode.SetCheck(DWORD(m_regUseDarkMode) != 0 ? BST_CHECKED : BST_UNCHECKED);
 	m_tooltips.AddTool(IDC_DARKTHEME, IDS_DARKTHEME_TT);
 
-	m_cAdded.SetColor(m_Colors.GetColor(CColors::Added));
-	m_cDeleted.SetColor(m_Colors.GetColor(CColors::Deleted));
-	m_cMerged.SetColor(m_Colors.GetColor(CColors::Merged));
-	m_cModified.SetColor(m_Colors.GetColor(CColors::Modified));
-	m_cConflict.SetColor(m_Colors.GetColor(CColors::Conflict));
-	m_cNoteNode.SetColor(m_Colors.GetColor(CColors::NoteNode));
-	m_cOtherRefs.SetColor(m_Colors.GetColor(CColors::OtherRef));
-	m_cRenamed.SetColor(m_Colors.GetColor(CColors::Renamed));
+	m_cAdded.SetColor(g_Colors.GetColor(CColors::Added));
+	m_cDeleted.SetColor(g_Colors.GetColor(CColors::Deleted));
+	m_cMerged.SetColor(g_Colors.GetColor(CColors::Merged));
+	m_cModified.SetColor(g_Colors.GetColor(CColors::Modified));
+	m_cConflict.SetColor(g_Colors.GetColor(CColors::Conflict));
+	m_cNoteNode.SetColor(g_Colors.GetColor(CColors::NoteNode));
+	m_cOtherRefs.SetColor(g_Colors.GetColor(CColors::OtherRef));
+	m_cRenamed.SetColor(g_Colors.GetColor(CColors::Renamed));
 	DWORD revGraphUseLocalForCur = m_regRevGraphUseLocalForCur;
 	m_RevGraphUseLocalForCur.SetCheck(!!revGraphUseLocalForCur);
 
 	CString sDefaultText, sCustomText;
 	sDefaultText.LoadString(IDS_COLOURPICKER_DEFAULTTEXT);
 	sCustomText.LoadString(IDS_COLOURPICKER_CUSTOMTEXT);
-	m_cAdded.EnableAutomaticButton(sDefaultText, m_Colors.GetColor(CColors::Added, true));
+	m_cAdded.EnableAutomaticButton(sDefaultText, g_Colors.GetColor(CColors::Added, true));
 	m_cAdded.EnableOtherButton(sCustomText);
-	m_cDeleted.EnableAutomaticButton(sDefaultText, m_Colors.GetColor(CColors::Deleted, true));
+	m_cDeleted.EnableAutomaticButton(sDefaultText, g_Colors.GetColor(CColors::Deleted, true));
 	m_cDeleted.EnableOtherButton(sCustomText);
-	m_cMerged.EnableAutomaticButton(sDefaultText, m_Colors.GetColor(CColors::Merged, true));
+	m_cMerged.EnableAutomaticButton(sDefaultText, g_Colors.GetColor(CColors::Merged, true));
 	m_cMerged.EnableOtherButton(sCustomText);
-	m_cModified.EnableAutomaticButton(sDefaultText, m_Colors.GetColor(CColors::Modified, true));
+	m_cModified.EnableAutomaticButton(sDefaultText, g_Colors.GetColor(CColors::Modified, true));
 	m_cModified.EnableOtherButton(sCustomText);
-	m_cConflict.EnableAutomaticButton(sDefaultText, m_Colors.GetColor(CColors::Conflict, true));
+	m_cConflict.EnableAutomaticButton(sDefaultText, g_Colors.GetColor(CColors::Conflict, true));
 	m_cConflict.EnableOtherButton(sCustomText);
-	m_cNoteNode.EnableAutomaticButton(sDefaultText, m_Colors.GetColor(CColors::NoteNode, true));
+	m_cNoteNode.EnableAutomaticButton(sDefaultText, g_Colors.GetColor(CColors::NoteNode, true));
 	m_cNoteNode.EnableOtherButton(sCustomText);
-	m_cOtherRefs.EnableAutomaticButton(sDefaultText, m_Colors.GetColor(CColors::OtherRef, true));
+	m_cOtherRefs.EnableAutomaticButton(sDefaultText, g_Colors.GetColor(CColors::OtherRef, true));
 	m_cOtherRefs.EnableOtherButton(sCustomText);
-	m_cRenamed.EnableAutomaticButton(sDefaultText, m_Colors.GetColor(CColors::Renamed, true));
+	m_cRenamed.EnableAutomaticButton(sDefaultText, g_Colors.GetColor(CColors::Renamed, true));
 	m_cRenamed.EnableOtherButton(sCustomText);
 
 	return TRUE;
@@ -110,29 +110,29 @@ BOOL CSettingsColors::OnInitDialog()
 
 void CSettingsColors::OnBnClickedRestore()
 {
-	m_cAdded.SetColor(m_Colors.GetColor(CColors::Added, true));
-	m_cDeleted.SetColor(m_Colors.GetColor(CColors::Deleted, true));
-	m_cMerged.SetColor(m_Colors.GetColor(CColors::Merged, true));
-	m_cModified.SetColor(m_Colors.GetColor(CColors::Modified, true));
-	m_cConflict.SetColor(m_Colors.GetColor(CColors::Conflict, true));
-	m_cNoteNode.SetColor(m_Colors.GetColor(CColors::NoteNode, true));
-	m_cOtherRefs.SetColor(m_Colors.GetColor(CColors::OtherRef, true));
-	m_cRenamed.SetColor(m_Colors.GetColor(CColors::Renamed, true));
+	m_cAdded.SetColor(g_Colors.GetColor(CColors::Added, true));
+	m_cDeleted.SetColor(g_Colors.GetColor(CColors::Deleted, true));
+	m_cMerged.SetColor(g_Colors.GetColor(CColors::Merged, true));
+	m_cModified.SetColor(g_Colors.GetColor(CColors::Modified, true));
+	m_cConflict.SetColor(g_Colors.GetColor(CColors::Conflict, true));
+	m_cNoteNode.SetColor(g_Colors.GetColor(CColors::NoteNode, true));
+	m_cOtherRefs.SetColor(g_Colors.GetColor(CColors::OtherRef, true));
+	m_cRenamed.SetColor(g_Colors.GetColor(CColors::Renamed, true));
 	m_RevGraphUseLocalForCur.SetCheck(FALSE);
 	SetModified(TRUE);
 }
 
 BOOL CSettingsColors::OnApply()
 {
-	m_Colors.SetColor(CColors::Added, m_cAdded.GetColor() == -1 ? m_cAdded.GetAutomaticColor() : m_cAdded.GetColor());
-	m_Colors.SetColor(CColors::Deleted, m_cDeleted.GetColor() == -1 ? m_cDeleted.GetAutomaticColor() : m_cDeleted.GetColor());
-	m_Colors.SetColor(CColors::Merged, m_cMerged.GetColor() == -1 ? m_cMerged.GetAutomaticColor() : m_cMerged.GetColor());
-	m_Colors.SetColor(CColors::Modified, m_cModified.GetColor() == -1 ? m_cModified.GetAutomaticColor() : m_cModified.GetColor());
-	m_Colors.SetColor(CColors::Conflict, m_cConflict.GetColor() == -1 ? m_cConflict.GetAutomaticColor() : m_cConflict.GetColor());
-	m_Colors.SetColor(CColors::NoteNode, m_cNoteNode.GetColor() == -1 ? m_cNoteNode.GetAutomaticColor() : m_cNoteNode.GetColor());
-	m_Colors.SetColor(CColors::OtherRef, m_cOtherRefs.GetColor() == -1 ? m_cOtherRefs.GetAutomaticColor() : m_cOtherRefs.GetColor());
-	m_Colors.SetColor(CColors::Renamed, m_cRenamed.GetColor() == -1 ? m_cRenamed.GetAutomaticColor() : m_cRenamed.GetColor());
-	m_Colors.SetColor(CColors::PropertyChanged, m_cModified.GetColor() == -1 ? m_cModified.GetAutomaticColor() : m_cModified.GetColor());
+	g_Colors.SetColor(CColors::Added, m_cAdded.GetColor() == -1 ? m_cAdded.GetAutomaticColor() : m_cAdded.GetColor());
+	g_Colors.SetColor(CColors::Deleted, m_cDeleted.GetColor() == -1 ? m_cDeleted.GetAutomaticColor() : m_cDeleted.GetColor());
+	g_Colors.SetColor(CColors::Merged, m_cMerged.GetColor() == -1 ? m_cMerged.GetAutomaticColor() : m_cMerged.GetColor());
+	g_Colors.SetColor(CColors::Modified, m_cModified.GetColor() == -1 ? m_cModified.GetAutomaticColor() : m_cModified.GetColor());
+	g_Colors.SetColor(CColors::Conflict, m_cConflict.GetColor() == -1 ? m_cConflict.GetAutomaticColor() : m_cConflict.GetColor());
+	g_Colors.SetColor(CColors::NoteNode, m_cNoteNode.GetColor() == -1 ? m_cNoteNode.GetAutomaticColor() : m_cNoteNode.GetColor());
+	g_Colors.SetColor(CColors::OtherRef, m_cOtherRefs.GetColor() == -1 ? m_cOtherRefs.GetAutomaticColor() : m_cOtherRefs.GetColor());
+	g_Colors.SetColor(CColors::Renamed, m_cRenamed.GetColor() == -1 ? m_cRenamed.GetAutomaticColor() : m_cRenamed.GetColor());
+	g_Colors.SetColor(CColors::PropertyChanged, m_cModified.GetColor() == -1 ? m_cModified.GetAutomaticColor() : m_cModified.GetColor());
 	DWORD revGraphUseLocalForCur = m_RevGraphUseLocalForCur.GetCheck();
 	m_regRevGraphUseLocalForCur = revGraphUseLocalForCur;
 

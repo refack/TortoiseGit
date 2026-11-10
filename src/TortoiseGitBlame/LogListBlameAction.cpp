@@ -23,13 +23,15 @@
 #include "TortoiseGitBlameDoc.h"
 #include "TortoiseGitBlameView.h"
 #include "MainFrm.h"
-#include <Utils/HintCtrl.h>
+
 
 import GitRev;
 import GitRevLoglist;
 import TGitPath;
 import TortoiseProc;
 import CmdLineParser;
+import HintCtrl;
+
 
 IMPLEMENT_DYNAMIC(CGitBlameLogList, CHintCtrl<CListCtrl>)
 
@@ -71,7 +73,7 @@ void RunTortoiseGitProcWithCurrentRev(const CString& command, const GitRev* pRev
 {
 	ASSERT(pRev);
 	CString  procCmd;
-	procCmd.Format(L"/command:%s /path:%s /rev:%s", static_cast<LPCWSTR>(command), static_cast<LPCWSTR>(TCmdLineParser::EscapeValue(path)), static_cast<LPCWSTR>(pRev->m_CommitHash.ToString()));
+	procCmd.Format(L"/command:%s /path:%s /rev:%s", static_cast<LPCWSTR>(command), static_cast<LPCWSTR>(str::EscapeCmdValue(path)), static_cast<LPCWSTR>(pRev->m_CommitHash.ToString()));
 	TortoiseProc::RunTortoiseGitProc(procCmd);
 }
 
@@ -99,7 +101,7 @@ void CGitBlameLogList::ContextMenuAction(int cmd, int /*FirstSelect*/, int /*Las
 				for (size_t i = 0; i < parentFilenames.size(); ++i)
 				{
 					CString procCmd = L"/command:blame";
-					procCmd += L" /path:" + TCmdLineParser::EscapeValue(pView->ResolveCommitFile(parentFilenames[i]));
+					procCmd += L" /path:" + str::EscapeCmdValue(pView->ResolveCommitFile(parentFilenames[i]));
 					procCmd += L" /endrev:" + parentHash.ToString();
 
 					TortoiseProc::RunTortoiseGitProc(procCmd);
@@ -120,7 +122,7 @@ void CGitBlameLogList::ContextMenuAction(int cmd, int /*FirstSelect*/, int /*Las
 				for (size_t i = 0; i < parentFilenames.size(); ++i)
 				{
 					CString procCmd = L"/command:diff";
-					procCmd += L" /path:" + TCmdLineParser::EscapeValue(pView->ResolveCommitFile(parentFilenames[i]));
+					procCmd += L" /path:" + str::EscapeCmdValue(pView->ResolveCommitFile(parentFilenames[i]));
 					procCmd += L" /startrev:" + parentHash.ToString();
 					procCmd += L" /endrev:" + pRev->m_CommitHash.ToString();
 					if ((cmd & 0xFFFF) == ID_GNUDIFF1)
@@ -157,7 +159,7 @@ void CGitBlameLogList::ContextMenuAction(int cmd, int /*FirstSelect*/, int /*Las
 		case ID_LOG:
 			{
 				CString procCmd;
-				procCmd.Format(L"/command:log /path:%s /endrev:%s /rev:%s", static_cast<LPCWSTR>(TCmdLineParser::EscapeValue(static_cast<CMainFrame*>(::AfxGetApp()->GetMainWnd())->GetActiveView()->GetDocument()->GetPathName())), static_cast<LPCWSTR>(pRev->m_CommitHash.ToString()), static_cast<LPCWSTR>(pRev->m_CommitHash.ToString()));
+				procCmd.Format(L"/command:log /path:%s /endrev:%s /rev:%s", static_cast<LPCWSTR>(str::EscapeCmdValue(static_cast<CMainFrame*>(::AfxGetApp()->GetMainWnd())->GetActiveView()->GetDocument()->GetPathName())), static_cast<LPCWSTR>(pRev->m_CommitHash.ToString()), static_cast<LPCWSTR>(pRev->m_CommitHash.ToString()));
 				TortoiseProc::RunTortoiseGitProc(procCmd);
 			}
 			break;

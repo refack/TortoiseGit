@@ -30,7 +30,7 @@ import TortoiseProc;
 #include "SinglePropSheetDlg.h"
 import MessageBox;
 #include "RefLogDlg.h"
-#include "../../TortoiseProc/MiscUI/IconMenu.h"
+import IconMenu;
 #include "FileDiffDlg.h"
 #include "DeleteRemoteTagDlg.h"
 #include "InputDlg.h"
@@ -184,11 +184,6 @@ CBrowseRefsDlg::CBrowseRefsDlg(CString cmdPath, CWnd* pParent /*=nullptr*/)
 	m_currSortDesc = m_regCurrSortDesc == TRUE;
 }
 
-CBrowseRefsDlg::~CBrowseRefsDlg()
-{
-	m_regCurrSortCol = m_currSortCol;
-	m_regCurrSortDesc = m_currSortDesc;
-}
 
 void CBrowseRefsDlg::DoDataExchange(CDataExchange* pDX)
 {
@@ -283,7 +278,7 @@ void CBrowseRefsDlg::OnBnClickedOk()
 BOOL CBrowseRefsDlg::OnInitDialog()
 {
 	CResizableStandAloneDialog::OnInitDialog();
-	CAppUtils::MarkWindowAsUnpinnable(m_hWnd);
+	wil::MFC::MarkWindowAsUnpinnable(m_hWnd);
 
 	// the filter control has a 'cancel' button (the red 'X'), we need to load its bitmap
 	m_ctrlFilter.SetCancelBitmaps(IDI_CANCELNORMAL, IDI_CANCELPRESSED, 14, 14);
@@ -330,7 +325,7 @@ BOOL CBrowseRefsDlg::OnInitDialog()
 	EnableSaveRestore(L"BrowseRefs");
 	SetTheme(CTheme::Instance().IsDarkTheme());
 
-	CAppUtils::SetWindowTitle(*this, CString(GitCall::m_CurrentDirStorage.c_str()));
+	wil::MFC::SetWindowTitle(*this, CString(GitCall::m_CurrentDirStorage.c_str()));
 
 	m_bHasWC = !GitAdminDir::IsBareRepo(GitCall::m_CurrentDirStorage);
 
@@ -1139,26 +1134,26 @@ void CBrowseRefsDlg::ShowContextMenu(CPoint point, HTREEITEM hTreePos, VectorPSh
 	case eCmd_ViewLog:
 		{
 			CString sCmd;
-			sCmd.Format(L"/command:log /path:\"%s\" /range:%s", GitCall::m_CurrentDirStorage, TCmdLineParser::EscapeValue(g_Git.FixBranchName(selectedLeafs[0]->GetRefName())));
+			sCmd.Format(L"/command:log /path:\"%s\" /range:%s", GitCall::m_CurrentDirStorage, str::EscapeCmdValue(g_Git.FixBranchName(selectedLeafs[0]->GetRefName())));
 			RunTortoiseGitProc(sCmd);
 		}
 		break;
 	case eCmd_ViewLogRange:
 		{
 			CString sCmd;
-			sCmd.Format(L"/command:log /path:\"%s\" /range:%s", GitCall::m_CurrentDirStorage, TCmdLineParser::EscapeValue(GetTwoSelectedRefs(selectedLeafs, m_sLastSelected, L"..")));
+			sCmd.Format(L"/command:log /path:\"%s\" /range:%s", GitCall::m_CurrentDirStorage, str::EscapeCmdValue(GetTwoSelectedRefs(selectedLeafs, m_sLastSelected, L"..")));
 			RunTortoiseGitProc(sCmd);
 		}
 		break;
 	case eCmd_ViewLogRangeReachableFromOnlyOne:
 		{
 			CString sCmd;
-			sCmd.Format(L"/command:log /path:\"%s\" /range:%s", GitCall::m_CurrentDirStorage, TCmdLineParser::EscapeValue(GetTwoSelectedRefs(selectedLeafs, m_sLastSelected, L"...")));
+			sCmd.Format(L"/command:log /path:\"%s\" /range:%s", GitCall::m_CurrentDirStorage, str::EscapeCmdValue(GetTwoSelectedRefs(selectedLeafs, m_sLastSelected, L"...")));
 			RunTortoiseGitProc(sCmd);
 		}
 		break;
 	case eCmd_RepoBrowser:
-		RunTortoiseGitProc(L"/command:repobrowser /path:\"" + GitCall::m_CurrentDirStorage + L"\" /rev:" + TCmdLineParser::EscapeValue(selectedLeafs[0]->GetRefName()));
+		RunTortoiseGitProc(L"/command:repobrowser /path:\"" + GitCall::m_CurrentDirStorage + L"\" /rev:" + str::EscapeCmdValue(selectedLeafs[0]->GetRefName()));
 		break;
 	case eCmd_DeleteBranch:
 	case eCmd_DeleteRemoteBranch:
@@ -1275,7 +1270,7 @@ void CBrowseRefsDlg::ShowContextMenu(CPoint point, HTREEITEM hTreePos, VectorPSh
 	case eCmd_DiffWC:
 		{
 			CString sCmd;
-			sCmd.Format(L"/command:showcompare /path:\"%s\" /revision1:%s /revision2:%s", GitCall::m_CurrentDirStorage, TCmdLineParser::EscapeValue(selectedLeafs[0]->GetRefName()), GitRev::GetWorkingCopyRef());
+			sCmd.Format(L"/command:showcompare /path:\"%s\" /revision1:%s /revision2:%s", GitCall::m_CurrentDirStorage, str::EscapeCmdValue(selectedLeafs[0]->GetRefName()), GitRev::GetWorkingCopyRef());
 			if (!!(GetAsyncKeyState(VK_SHIFT) & 0x8000))
 				sCmd += L" /alternative";
 
@@ -1479,9 +1474,9 @@ void CBrowseRefsDlg::OnNMDblclkListRefLeafs(NMHDR * /*pNMHDR*/, LRESULT *pResult
 
 	CString sCmd;
 	if (selectedLeafs[0]->m_objectType == GIT_OBJECT_TREE)
-		sCmd.Format(L"/command:repobrowser /path:\"%s\" /rev:%s", GitCall::m_CurrentDirStorage, TCmdLineParser::EscapeValue(g_Git.FixBranchName(GetSelectedRef(true, false))));
+		sCmd.Format(L"/command:repobrowser /path:\"%s\" /rev:%s", GitCall::m_CurrentDirStorage, str::EscapeCmdValue(g_Git.FixBranchName(GetSelectedRef(true, false))));
 	else
-		sCmd.Format(L"/command:log /path:\"%s\" /range:%s", GitCall::m_CurrentDirStorage, TCmdLineParser::EscapeValue(g_Git.FixBranchName(GetSelectedRef(true, false))));
+		sCmd.Format(L"/command:log /path:\"%s\" /range:%s", GitCall::m_CurrentDirStorage, str::EscapeCmdValue(g_Git.FixBranchName(GetSelectedRef(true, false))));
 	RunTortoiseGitProc(sCmd);
 }
 

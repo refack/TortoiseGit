@@ -20,50 +20,23 @@
 //
 
 #include "stdafx.h"
-import tgit;
-
-import TortoiseProc;
 #include "CloneDlg.h"
+
+#include <algorithm>
+
+import tgit;
+import TortoiseProc;
 import MessageBox;
-import BrowseFolder;
-using namespace BrowseFolder;
 import AppUtils.Launch;
 import AppUtils.Window;
+import BrowseFolder;
+using namespace BrowseFolder;
 
 // CCloneDlg dialog
 
 IMPLEMENT_DYNCREATE(CCloneDlg, CHorizontalResizableStandAloneDialog)
 
-CCloneDlg::CCloneDlg(CWnd* pParent /*=nullptr*/)
-: CHorizontalResizableStandAloneDialog(CCloneDlg::IDD, pParent)
-, m_bRecursive(BST_UNCHECKED)
-, m_bBare(BST_UNCHECKED)
-, m_bBranch(BST_UNCHECKED)
-, m_bOrigin(BST_UNCHECKED)
-, m_bNoCheckout(BST_UNCHECKED)
-, m_bSVN(BST_UNCHECKED)
-, m_bSVNTrunk(BST_UNCHECKED)
-, m_bSVNTags(BST_UNCHECKED)
-, m_bSVNBranch(BST_UNCHECKED)
-, m_bSVNFrom(BST_UNCHECKED)
-, m_bSVNUserName(BST_UNCHECKED)
-, m_bExactPath(FALSE)
-, m_strSVNTrunk(L"trunk")
-, m_strSVNTags(L"tags")
-, m_strSVNBranchs(L"branches")
-, m_nDepth(1)
-, m_bDepth(BST_UNCHECKED)
-, m_bSaving(false)
-, m_nSVNFrom(0)
-, m_regBrowseUrl(L"Software\\TortoiseGit\\TortoiseProc\\CloneBrowse", 0)
-, m_regCloneDir(L"Software\\TortoiseGit\\TortoiseProc\\CloneDir")
-, m_regCloneRecursive(L"Software\\TortoiseGit\\TortoiseProc\\CloneRecursive", FALSE)
-{
-}
 
-CCloneDlg::~CCloneDlg()
-{
-}
 
 void CCloneDlg::DoDataExchange(CDataExchange* pDX)
 {
@@ -99,7 +72,7 @@ void CCloneDlg::DoDataExchange(CDataExchange* pDX)
 BOOL CCloneDlg::OnInitDialog()
 {
 	CHorizontalResizableStandAloneDialog::OnInitDialog();
-	CAppUtils::MarkWindowAsUnpinnable(m_hWnd);
+	wil::MFC::MarkWindowAsUnpinnable(m_hWnd);
 
 	AdjustControlSize(IDC_CHECK_DEPTH);
 	AdjustControlSize(IDC_CHECK_RECURSIVE);
@@ -157,7 +130,7 @@ BOOL CCloneDlg::OnInitDialog()
 	m_URLCombo.LoadHistory(L"Software\\TortoiseGit\\History\\repoURLS", L"url");
 	if(m_URL.IsEmpty())
 	{
-		CString str = CAppUtils::GetClipboardLink(L"git clone ");
+		CString str = wil::MFC::GetClipboardLink(L"git clone ");
 		str.Trim();
 		if (str.GetLength() > 2 && (str[0] == L'"' && str[str.GetLength() - 1] == L'"' || str[0] == L'\'' && str[str.GetLength() - 1] == L'\''))
 			str = str.Mid(1, str.GetLength() - 2);
@@ -165,13 +138,13 @@ BOOL CCloneDlg::OnInitDialog()
 			m_URLCombo.SetCurSel(0);
 		else
 			m_URLCombo.SetWindowText(str);
-	}
-	else
+	} else {
 		m_URLCombo.SetWindowText(m_URL);
+	}
 
 	CWnd *window=this->GetDlgItem(IDC_CLONE_DIR);
 	if(window)
-		SHAutoComplete(window->m_hWnd, SHACF_FILESYSTEM);
+		std::ignore = SHAutoComplete(window->m_hWnd, SHACF_FILESYSTEM);
 
 	this->m_BrowseUrl.AddEntry(CString(MAKEINTRESOURCE(IDS_PROC_CLONE_DIR)));
 	this->m_BrowseUrl.AddEntry(CString(MAKEINTRESOURCE(IDS_REPOBROWSE_OPEN)));
@@ -266,8 +239,8 @@ void CCloneDlg::OnBnClickedCloneBrowseUrl()
 			CMessageBox::Show(GetSafeHwnd(), IDS_PROC_CLONE_URLDIREMPTY, IDS_APPNAME, MB_ICONEXCLAMATION);
 			return;
 		}
-		if (CAppUtils::ExploreTo(GetSafeHwnd(), str) && reinterpret_cast<INT_PTR>(ShellExecute(nullptr, L"open", str, nullptr, nullptr, SW_SHOW)) <= 32)
-			MessageBox((CFormatMessageWrapper()).c_str(), L"TortoiseGit", MB_ICONERROR);
+		if (TortoiseProc::ExploreTo(GetSafeHwnd(), str) && reinterpret_cast<INT_PTR>(ShellExecute(nullptr, L"open", str, nullptr, nullptr, SW_SHOW)) <= 32)
+			MessageBox((wil::CFormatMessageWrapper()).c_str(), L"TortoiseGit", MB_ICONERROR);
 		return;
 	}
 
@@ -325,8 +298,7 @@ void CCloneDlg::OnCbnEditchangeUrlcombo()
 		if(start <0)
 			start = url.ReverseFind(L'@');
 
-		if(start<0)
-			start = 0;
+		start = std::max(start, 0);
 	}
 	CString temp;
 	temp=url.Mid(start+1);
@@ -334,7 +306,7 @@ void CCloneDlg::OnCbnEditchangeUrlcombo()
 	temp=temp.MakeLower();
 
 	// we've to check whether the URL ends with .git (instead of using the first .git)
-	int end = StringUtils::EndsWith(temp, L".git") ? (temp.GetLength() - 4) : temp.GetLength();
+	const auto end = StringUtils::EndsWith(temp, L".git") ? (temp.GetLength() - 4) : temp.GetLength();
 
 	//CString modulename;
 	m_ModuleName=url.Mid(start+1,end);
@@ -342,8 +314,7 @@ void CCloneDlg::OnCbnEditchangeUrlcombo()
 	start = m_Directory.ReverseFind(L'\\');
 	if(start <0 )
 		start = m_Directory.ReverseFind(L'/');
-	if(start <0 )
-		start =0;
+	start = std::max(start, 0);
 
 	int dirstart=m_Directory.Find(old,start);
 	if(dirstart>=0 && (dirstart+old.GetLength() == m_Directory.GetLength()) )
@@ -427,9 +398,9 @@ void CCloneDlg::OnBnClickedCheckRecursive()
 		m_bBare = FALSE;
 		GetDlgItem(IDC_CHECK_BARE)->EnableWindow(FALSE);
 		UpdateData(FALSE);
-	}
-	else
+	} else {
 		GetDlgItem(IDC_CHECK_BARE)->EnableWindow(TRUE);
+	}
 }
 
 void CCloneDlg::OnBnClickedCheckBare()

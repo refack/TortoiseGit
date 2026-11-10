@@ -44,6 +44,12 @@ Checks:
   - -cppcoreguidelines-avoid-magic-numbers
   - -readability-magic-numbers
   - -cppcoreguidelines-special-member-functions
+  - -*-enum-size
+  - -*-pro-type-vararg
+  - -*-pro-bounds-pointer-arithmetic
+  - -*-avoid-do-while
+  - -*-pro-type-reinterpret-cast
+  - -*-pro-bounds-avoid-unchecked-container-access
 
 
 #UseColor: true

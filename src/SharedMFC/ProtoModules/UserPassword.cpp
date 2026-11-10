@@ -19,10 +19,11 @@
 // UserPassword.cpp : implementation file
 //
 #include "stdafx.h"
-import tgit;
 
 #include "../SharedMFC/Resources/resource.h"
 #include "UserPassword.h"
+import tgit;
+import ThemeAPI;
 
 // CUserPassword dialog
 
@@ -64,7 +65,7 @@ BOOL CUserPassword::OnInitDialog()
 		this->SetWindowText(title);
 	}
 	SetTheme(CTheme::Instance().IsDarkTheme());
-	GetDlgItem(IDC_USER_PASSWORD)->SendMessage(EM_SETLIMITTEXT, MAX_LENGTH_PASSWORD - 1, 0);
+	std::ignore = GetDlgItem(IDC_USER_PASSWORD)->SendMessage(EM_SETLIMITTEXT, MAX_LENGTH_PASSWORD - 1, 0);
 	if (GetDlgItem(IDC_USER_NAME)->GetWindowTextLength())
 		GetDlgItem(IDC_USER_PASSWORD)->SetFocus();
 	else

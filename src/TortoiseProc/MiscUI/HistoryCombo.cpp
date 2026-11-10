@@ -307,7 +307,7 @@ void CHistoryCombo::SaveHistory()
 	if (!sCurItem.IsEmpty())
 		AddString(sCurItem, 0);
 	//save history to registry/inifile
-	int nMax = min(GetCount(), m_nMaxHistoryItems + 1);
+	int nMax = std::min(GetCount(), m_nMaxHistoryItems + 1);
 	for (int n = 0; n < nMax; n++)
 	{
 		CString sKey;
@@ -740,7 +740,7 @@ int CHistoryCombo::OnCreate(LPCREATESTRUCT lpCreateStruct)
 
 int CHistoryCombo::FindStringExactCaseSensitive(int nIndexStart, LPCWSTR lpszFind)
 {
-	nIndexStart = max(0, nIndexStart);
+	nIndexStart = std::max(0, nIndexStart);
 	for (int i = nIndexStart; i < GetCount(); i++)
 	{
 		CString exactString;

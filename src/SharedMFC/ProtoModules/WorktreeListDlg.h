@@ -18,11 +18,13 @@
 //
 
 #pragma once
-import StandAloneDlg;
+#include "Utils/GestureEnabledControl.h"
 import git_h;
 import GitHash;
-#include "Utils/GestureEnabledControl.h"
-#include "Utils/ResizableColumnsListCtrl.h"
+import StandAloneDlg;
+import ResizableColumnsListCtrl;
+
+
 
 class WorktreeDetails
 {

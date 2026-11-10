@@ -185,7 +185,7 @@ void CPropPageFrameDefault::DrawCaption(CDC* pDc, CRect rect, LPCWSTR lpszCaptio
 		SIZE sz;
 		sz.cx = rcImage.right - rcImage.left;
 		sz.cy = rcImage.bottom - rcImage.top;
-		hScale = vScale = max(1.0, rect.Height() / sz.cy * 0.7);
+		hScale = vScale = std::max(1.0, rect.Height() / sz.cy * 0.7);
 		sz.cx = static_cast<LONG>(sz.cx * hScale + 0.5);
 		sz.cy = static_cast<LONG>(sz.cy * vScale + 0.5);
 		LONG xOffset = static_cast<LONG>(6 * hScale + 0.5);

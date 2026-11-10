@@ -166,7 +166,7 @@ bool CDirectoryWatcher::AddPath(const CTGitPath& path, bool bCloseInfoMap)
 	{
 		const CString& watched = watchedPaths[i].GetWinPathString().c_str();
 		const CString& sPath = path.GetWinPathString().c_str();
-		const int minlen = min(sPath.GetLength(), watched.GetLength());
+		const int minlen = std::min(sPath.GetLength(), watched.GetLength());
 		int len = 0;
 		for (len = 0; len < minlen; ++len)
 		{
@@ -426,7 +426,7 @@ void CDirectoryWatcher::WorkerThread()
 
 							SecureZeroMemory(buf, READ_DIR_CHANGE_BUFFER_SIZE * sizeof(wchar_t));
 							wcsncpy_s(buf, pdi->m_DirPath, _countof(buf) - 1);
-							errno_t err = wcsncat_s(buf + pdi->m_DirPath.GetLength(), READ_DIR_CHANGE_BUFFER_SIZE - pdi->m_DirPath.GetLength(), pnotify->FileName, min(READ_DIR_CHANGE_BUFFER_SIZE - pdi->m_DirPath.GetLength(), int(pnotify->FileNameLength / sizeof(wchar_t))));
+							errno_t err = wcsncat_s(buf + pdi->m_DirPath.GetLength(), READ_DIR_CHANGE_BUFFER_SIZE - pdi->m_DirPath.GetLength(), pnotify->FileName, std::min(READ_DIR_CHANGE_BUFFER_SIZE - pdi->m_DirPath.GetLength(), int(pnotify->FileNameLength / sizeof(wchar_t))));
 							if (err == STRUNCATE)
 								continue;
 							buf[(pnotify->FileNameLength / sizeof(wchar_t)) + pdi->m_DirPath.GetLength()] = L'\0';

@@ -57,7 +57,7 @@ public:
 		}
 		wchar_t path[MAX_PATH] = { 0 };
 		SHGetFolderPath(GetExplorerHWND(), CSIDL_PERSONAL, nullptr, SHGFP_TYPE_CURRENT, path);
-		CAppUtils::ExploreTo(GetExplorerHWND(), path);
+		TortoiseProc::ExploreTo(GetExplorerHWND(), path);
 		return true;
 	}
 };

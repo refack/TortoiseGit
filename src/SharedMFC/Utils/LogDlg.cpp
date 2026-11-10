@@ -16,12 +16,13 @@
 
 
 import ProjectProperties;
+import Colors;
 #include "LogDlg.h"
 import DPIAware;
 #include "LogDlgFileFilter.h"
 
 #include "../TortoiseShell/resource.h"
-#include "Resources/LoglistCommonResource.h"
+#include <Resources/LoglistCommonResource.h>
 
 import std;
 import git_h;
@@ -925,7 +926,7 @@ void CLogDlg::FillLogMessageCtrl(bool bShow /* = true*/)
 			if (!hightlightRanges.empty())
 			{
 				ReduceRanges(hightlightRanges, msg);
-				wil::MFC::SetCharFormat(pMsgView, CFM_COLOR, m_Colors.GetColor(CColors::FilterMatch), hightlightRanges);
+				wil::MFC::SetCharFormat(pMsgView, CFM_COLOR, g_Colors.GetColor(CColors::FilterMatch), hightlightRanges);
 			}
 
 			// turn bug ID's into links if the bugtraq: properties have been set
@@ -3591,7 +3592,7 @@ void CLogDlg::OnNMCustomdrawChangedFileList(NMHDR* pNMHDR, LRESULT* pResult)
 
 	auto filter{ m_LogList.m_LogFilter.load() };
 	if ((m_SelectedFilters & LOGFILTER_PATHS) && (filter->IsFilterActive()))
-		*pResult = CGitLogListBase::DrawListItemWithMatches(filter.get(), m_ChangedFileListCtrl, pLVCD, m_Colors);
+		*pResult = CGitLogListBase::DrawListItemWithMatches(filter.get(), m_ChangedFileListCtrl, pLVCD);
 }
 
 void CLogDlg::OnSysColorChange()

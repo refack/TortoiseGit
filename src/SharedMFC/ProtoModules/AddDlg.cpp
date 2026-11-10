@@ -18,12 +18,14 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 #include "stdafx.h"
-import tgit;
+#include "AddDlg.h"
+#include <Resources/LoglistCommonResource.h>
 
+import tgit;
 import TortoiseProc;
 import MessageBox;
-#include "AddDlg.h"
 import AppUtils.Window;
+import PathUtils;
 
 #define REFRESHTIMER   100
 
@@ -49,7 +51,7 @@ END_MESSAGE_MAP()
 BOOL CAddDlg::OnInitDialog()
 {
 	CResizableStandAloneDialog::OnInitDialog();
-	CAppUtils::MarkWindowAsUnpinnable(m_hWnd);
+	wil::MFC::MarkWindowAsUnpinnable(m_hWnd);
 
 	// initialize the svn status list control
 	m_addListCtrl.Init(GITSLC_COLEXT, L"AddDlg", GITSLC_POPALL ^ (GITSLC_POPADD | GITSLC_POPCOMMIT | GITSLC_POPCHANGELISTS | GITSLC_POPPREPAREDIFF | GITSLC_POPCHANGELISTS), true, true, GITSLC_COLEXT | GITSLC_COLMODIFICATIONDATE | GITSLC_COLSIZE); // adding and committing is useless in the add dialog
@@ -61,7 +63,7 @@ BOOL CAddDlg::OnInitDialog()
 	m_addListCtrl.SetBackgroundImage(IDI_ADD_BKG);
 	m_addListCtrl.EnableFileDrop();
 
-	CAppUtils::SetWindowTitle(*this, g_Git.CombinePath(m_pathList.GetCommonRoot().GetUIPathString()).c_str());
+	wil::MFC::SetWindowTitle(*this, g_Git.CombinePath(m_pathList.GetCommonRoot().GetUIPathString()).c_str());
 
 	AdjustControlSize(IDC_SELECTALL);
 	AdjustControlSize(IDC_INCLUDE_IGNORED);

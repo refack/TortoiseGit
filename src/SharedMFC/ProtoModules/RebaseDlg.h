@@ -19,12 +19,12 @@
 
 #pragma once
 import StandAloneDlg;
-#include "GitStatusListCtrl.h"
+import GitStatusListCtrl;
 #include "../../TortoiseProc/MiscUI/SciEdit.h"
 #include "../../TortoiseProc/MiscUI/SplitterControl.h"
 #include "Utils/HistoryCombo.h"
 #include "../../TortoiseProc/GitLogList.h"
-#include "../../TortoiseProc/MiscUI/MenuButton.h"
+import MenuButton;
 import ProjectProperties;
 
 // CRebaseDlg dialog

@@ -40,9 +40,8 @@
 #include <lexilla/SciLexer.h>
 #include <Utils/FileTextLines.h>
 #include <tgitlib/ScintillaRegistration.h>
-#include <MiscUI/IconMenu.h>
 
-#include "Resources/LoglistCommonResource.h"
+#include <Resources/LoglistCommonResource.h>
 
 import str_utils;
 import ThemeAPI;
@@ -51,6 +50,7 @@ import CmdLineParser;
 import GitRevLoglist;
 import DPIAware;
 import TortoiseProc;
+import IconMenu;
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -485,7 +485,7 @@ void CTortoiseGitBlameView::ContextMenuAction(int cmd, GitRev *pRev, GIT_REV_LIS
 
 			CString procCmd = L"/command:blame";
 			procCmd += L" /path:";
-			procCmd += TCmdLineParser::EscapeValue(path);
+			procCmd += str::EscapeCmdValue(path);
 			procCmd += L" /endrev:" + endrev;
 			procCmd += L" /line:";
 			procCmd.AppendFormat(L"%d", line);
@@ -505,7 +505,7 @@ void CTortoiseGitBlameView::ContextMenuAction(int cmd, GitRev *pRev, GIT_REV_LIS
 			CString endrev = pRev->m_CommitHash.c_str();
 
 			CString procCmd = L"/command:diff";
-			procCmd += L" /path:" + TCmdLineParser::EscapeValue(path);
+			procCmd += L" /path:" + str::EscapeCmdValue(path);
 			procCmd += L" /startrev:" + startrev;
 			procCmd += L" /endrev:" + endrev;
 			if (!!(GetAsyncKeyState(VK_SHIFT) & 0x8000))
@@ -521,7 +521,7 @@ void CTortoiseGitBlameView::ContextMenuAction(int cmd, GitRev *pRev, GIT_REV_LIS
 			CString rev = m_data.GetHash(selectedLine).c_str();
 
 			CString procCmd = L"/command:log";
-			procCmd += L" /path:" + TCmdLineParser::EscapeValue(path);
+			procCmd += L" /path:" + str::EscapeCmdValue(path);
 			procCmd += L" /rev:" + rev;
 			procCmd += L" /endrev:" + rev;
 

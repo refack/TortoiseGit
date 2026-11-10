@@ -17,10 +17,10 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 #include "stdafx.h"
-import tgit;
 
 #include "Resources/resource.h"
 #include "ProtoModules/FindBar.h"
+import tgit;
 import wil.MFC;
 
 UINT CFindBar::WM_FINDEXIT = RegisterWindowMessage(L"TORTOISEGIT_PATCHVIEW_FINDEXIT_MSG");
@@ -44,7 +44,7 @@ BOOL CFindBar::OnInitDialog()
 {
 	CStandAloneDialog::OnInitDialog();
 
-	m_hCancelIcon = LoadIconEx(AfxGetResourceHandle(), MAKEINTRESOURCE(IDI_CANCELNORMAL));
+	m_hCancelIcon = wil::MFC::LoadIconEx(AfxGetResourceHandle(), MAKEINTRESOURCE(IDI_CANCELNORMAL));
 	GetDlgItem(IDC_FINDEXIT)->SendMessage(BM_SETIMAGE, IMAGE_ICON, reinterpret_cast<LPARAM>(static_cast<HICON>(m_hCancelIcon)));
 
 	return TRUE;  // return TRUE unless you set the focus to a control

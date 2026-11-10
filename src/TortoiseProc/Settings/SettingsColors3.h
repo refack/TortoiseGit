@@ -18,7 +18,7 @@
 //
 #pragma once
 #include "SettingsPropPage.h"
-#include "Colors.h"
+import Colors;
 
 /**
  * \ingroup TortoiseProc
@@ -48,7 +48,6 @@ protected:
 
 private:
 	CMFCColorButton	m_cLine[8];
-	CColors			m_Colors;
 	CComboBox		m_LogGraphLineWidth;
 	CComboBox		m_LogGraphNodeSize;
 	CRegDWORD		m_regLogGraphLineWidth;

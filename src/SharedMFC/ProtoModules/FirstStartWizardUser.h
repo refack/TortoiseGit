@@ -24,11 +24,10 @@
  */
 class CFirstStartWizardUser : public CFirstStartWizardBasePage
 {
+public:
 	DECLARE_DYNAMIC(CFirstStartWizardUser)
 
-public:
 	CFirstStartWizardUser();
-	virtual ~CFirstStartWizardUser();
 
 	enum { IDD = IDD_FIRSTSTARTWIZARD_USER };
 
@@ -36,12 +35,13 @@ public:
 	CString	m_sUseremail;
 	BOOL	m_bNoSave;
 
-protected:
-	void	DoDataExchange(CDataExchange* pDX) override;
+
 	LRESULT	OnWizardNext() override;
 	BOOL	OnInitDialog() override;
 	BOOL	OnSetActive() override;
 
+protected:
+	void	DoDataExchange(CDataExchange* pDX) override;
 	afx_msg void	OnClickedNoSave();
 
 	DECLARE_MESSAGE_MAP()

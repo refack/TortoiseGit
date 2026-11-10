@@ -18,6 +18,7 @@
 //
 #include "stdafx.h"
 import tgit;
+import StandAloneDlg;
 
 
 

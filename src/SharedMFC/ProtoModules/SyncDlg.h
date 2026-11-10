@@ -18,18 +18,19 @@
 //
 
 #pragma once
-import StandAloneDlg;
 #include "Utils/HistoryCombo.h"
 #include "Utils/GestureEnabledControl.h"
-#include "../../TortoiseProc/MiscUI/MenuButton.h"
+import MenuButton;
 #include "../../TortoiseProc/BranchCombox.h"
 #include "../../TortoiseProc/GitLoglist.h"
-#include "GitProgressList.h"
-#include "GitRefCompareList.h"
-#include "GitTagCompareList.h"
+#include "ProtoModules/GitProgressList.h"
 #include "SyncTabCtrl.h"
-#include "GitStatusListCtrl.h"
 #include "GitCliOutputParser.h"
+
+import StandAloneDlg;
+import GitRefCompareList;
+import GitTagCompareList;
+import GitStatusListCtrl;
 import Registry;
 
 // CSyncDlg dialog

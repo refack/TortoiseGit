@@ -723,7 +723,7 @@ BOOL CPatch::StripPrefixes(const CString& path)
 		CString filename = GetFilename(i);
 		filename.Replace('/','\\');
 		int nSlashes = filename.Replace('\\','/');
-		nSlashesMax = max(nSlashesMax,nSlashes);
+		nSlashesMax = std::max(nSlashesMax,nSlashes);
 	}
 
 	for (int nStrip = 1; nStrip < nSlashesMax; ++nStrip)

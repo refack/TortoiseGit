@@ -234,10 +234,10 @@ BOOL CRevisionGraphDlg::InitializeToolbar()
 BOOL CRevisionGraphDlg::OnInitDialog()
 {
 	CResizableStandAloneDialog::OnInitDialog();
-	CAppUtils::MarkWindowAsUnpinnable(m_hWnd);
+	wil::MFC::MarkWindowAsUnpinnable(m_hWnd);
 	EnableToolTips();
 
-	CAppUtils::SetWindowTitle(*this, GitCall::m_CurrentDirStorage.c_str());
+	wil::MFC::SetWindowTitle(*this, GitCall::m_CurrentDirStorage.c_str());
 
 
 	// set up the status bar
@@ -509,7 +509,7 @@ void CRevisionGraphDlg::OnViewZoomAll()
 	float horzfact = (windowRect.Width() - 4.0f)/(4.0f + graphRect.Width());
 	float vertfact = (windowRect.Height() - 4.0f)/(4.0f + graphRect.Height());
 
-	DoZoom (min (MAX_ZOOM, min(horzfact, vertfact)));
+	DoZoom (min (MAX_ZOOM, std::min(horzfact, vertfact)));
 }
 
 void CRevisionGraphDlg::OnFind()
@@ -671,7 +671,7 @@ void CRevisionGraphDlg::OnFileSavegraphas()
 {
 	CString tempfile;
 	int filterindex = 0;
-	if (CAppUtils::FileOpenSave(tempfile, &filterindex, IDS_REVGRAPH_SAVEPIC, IDS_PICTUREFILEFILTER, false, m_hWnd))
+	if (ConfigureGitExe::FileOpenSave(tempfile, &filterindex, IDS_REVGRAPH_SAVEPIC, IDS_PICTUREFILEFILTER, false, m_hWnd))
 	{
 		// if the user doesn't specify a file extension, default to
 		// svg and add that extension to the filename. But only if the

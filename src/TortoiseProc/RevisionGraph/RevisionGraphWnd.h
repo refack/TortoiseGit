@@ -19,10 +19,10 @@
 //
 
 #pragma once
-#include "Colors.h"
+import Colors;
 import Graphviz;
 #include "../../SharedMFC/Utils/LogDataVector.h"
-#include "ProgressDlg.h"
+import ProgressDlg;
 #include "SVG.h"
 #include <Future.h>
 
@@ -102,7 +102,7 @@ public:
 	MAP_HASH_NAME		m_HashMap;
 	CString				m_CurrentBranch;
 	CGitHash			m_HeadHash;
-	CGit::SubmoduleInfo	m_submoduleInfo;
+	TGitH::SubmoduleInfo	m_submoduleInfo;
 
 	BOOL		m_bCurrentBranch;
 	BOOL		m_bLocalBranches;
@@ -172,7 +172,6 @@ protected:
 	CString			m_sTitle;
 
 	float			m_fZoomFactor;
-	CColors			m_Colors;
 	bool			m_bTweakTrunkColors;
 	bool			m_bTweakTagsColors;
 	bool			m_bIsCanvasMove;

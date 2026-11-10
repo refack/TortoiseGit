@@ -20,12 +20,14 @@
 //
 
 #include "stdafx.h"
+#include <memory>
 
 #include "BisectStartDlg.h"
 #include "Utils/LogDlg.h"
 import tgit;
 import AppUtils.Window;
 import MessageBox;
+import ThemeAPI;
 
 IMPLEMENT_DYNAMIC(CBisectStartDlg, CHorizontalResizableStandAloneDialog)
 
@@ -71,7 +73,7 @@ static void uniqueMergeLists(std::vector<std::wstring>& list, const std::vector<
 BOOL CBisectStartDlg::OnInitDialog()
 {
 	CHorizontalResizableStandAloneDialog::OnInitDialog();
-	CAppUtils::MarkWindowAsUnpinnable(m_hWnd);
+	wil::MFC::MarkWindowAsUnpinnable(m_hWnd);
 
 	AddAnchor(IDOK, BOTTOM_RIGHT);
 	AddAnchor(IDCANCEL, BOTTOM_RIGHT);
@@ -88,7 +90,7 @@ BOOL CBisectStartDlg::OnInitDialog()
 	EnableSaveRestore(L"BisectStartDlg");
 	SetTheme(CTheme::Instance().IsDarkTheme());
 
-	CAppUtils::SetWindowTitle(*this, GitCall::m_CurrentDirStorage.c_str());
+	wil::MFC::SetWindowTitle(*this, GitCall::m_CurrentDirStorage.c_str());
 
 	std::vector<std::wstring> list;
 	int current = -1;

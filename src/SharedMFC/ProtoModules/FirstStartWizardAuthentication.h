@@ -24,11 +24,17 @@
  */
 class CFirstStartWizardAuthentication : public CFirstStartWizardBasePage
 {
+public:
 	DECLARE_DYNAMIC(CFirstStartWizardAuthentication)
 
-public:
-	CFirstStartWizardAuthentication();
-	virtual ~CFirstStartWizardAuthentication();
+	CFirstStartWizardAuthentication()
+	: CFirstStartWizardBasePage(CFirstStartWizardAuthentication::IDD)
+	, m_bNoSave(FALSE)
+	{
+		m_psp.dwFlags |= PSP_DEFAULT | PSP_USEHEADERTITLE;
+		m_psp.pszHeaderTitle = MAKEINTRESOURCE(IDS_FIRSTSTART_AUTHENTICATIONTITLE);
+	}
+	~CFirstStartWizardAuthentication() override = default;
 
 	enum { IDD = IDD_FIRSTSTARTWIZARD_AUTHENTICATION };
 

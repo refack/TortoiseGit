@@ -85,7 +85,7 @@ void CToolAssocDlg::OnBnClickedToolbrowse()
 	CString filename = m_sTool;
 	if (!PathFileExists(filename))
 		filename.Empty();
-	if (!CAppUtils::FileOpenSave(filename, nullptr, IDS_SETTINGS_SELECTDIFF, IDS_PROGRAMSFILEFILTER, true, m_hWnd))
+	if (!ConfigureGitExe::FileOpenSave(filename, nullptr, IDS_SETTINGS_SELECTDIFF, IDS_PROGRAMSFILEFILTER, true, m_hWnd))
 		return;
 
 	m_sTool = filename;

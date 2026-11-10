@@ -58,19 +58,19 @@ void CRevisionGraphWnd::BuildPreview()
 	float origZoom = m_fZoomFactor;
 
 	CRect clientRect = GetClientRect();
-	CSize preViewSize(max(CDPIAware::Instance().ScaleX(GetSafeHwnd(), REVGRAPH_PREVIEW_WIDTH), clientRect.Width() / 4),
-					  max(CDPIAware::Instance().ScaleY(GetSafeHwnd(), REVGRAPH_PREVIEW_HEIGHT), clientRect.Height() / 4));
+	CSize preViewSize(std::max(CDPIAware::Instance().ScaleX(GetSafeHwnd(), REVGRAPH_PREVIEW_WIDTH), clientRect.Width() / 4),
+					  std::max(CDPIAware::Instance().ScaleY(GetSafeHwnd(), REVGRAPH_PREVIEW_HEIGHT), clientRect.Height() / 4));
 
 	// zoom the graph so that it is completely visible in the window
 	CRect graphRect = GetGraphRect();
 	float horzfact = float(graphRect.Width())/float(preViewSize.cx);
 	float vertfact = float(graphRect.Height())/float(preViewSize.cy);
-	m_previewZoom = min (DEFAULT_ZOOM, 1.0f/(max(horzfact, vertfact)));
+	m_previewZoom = min (DEFAULT_ZOOM, 1.0f/(std::max(horzfact, vertfact)));
 
 	// make sure the preview window has a minimal size
 
-	m_previewWidth = min(static_cast<LONG>(max(graphRect.Width() * m_previewZoom, 30.0f)), preViewSize.cx);
-	m_previewHeight = min(static_cast<LONG>(max(graphRect.Height() * m_previewZoom, 30.0f)), preViewSize.cy);
+	m_previewWidth = std::min(static_cast<LONG>(std::max(graphRect.Width() * m_previewZoom, 30.0f)), preViewSize.cx);
+	m_previewHeight = std::min(static_cast<LONG>(std::max(graphRect.Height() * m_previewZoom, 30.0f)), preViewSize.cy);
 
 	CClientDC ddc(this);
 	CDC dc;
@@ -99,7 +99,7 @@ void CRevisionGraphWnd::SetScrollbar (int bar, int newPos, int clientMax, int gr
 	SCROLLINFO ScrollInfo = {sizeof(SCROLLINFO), SIF_ALL};
 	GetScrollInfo (bar, &ScrollInfo);
 
-	clientMax = max(1, clientMax);
+	clientMax = std::max(1, clientMax);
 	int oldHeight = ScrollInfo.nMax <= 0 ? clientMax : ScrollInfo.nMax;
 	int newHeight = static_cast<int>(graphMax * m_fZoomFactor);
 	int maxPos = max (0, newHeight - clientMax);
@@ -318,7 +318,7 @@ bool CRevisionGraphWnd::FetchRevisionData
 	dev.graphics = Graphics::FromHDC(dev.pDC->m_hDC);
 	dev.graphics->SetPageUnit (UnitPixel);
 
-	Gdiplus::Font font(CAppUtils::GetLogFontName(), static_cast<REAL>(m_nFontSize), FontStyleRegular);
+	Gdiplus::Font font(wil::MFC::GetLogFontName(), static_cast<REAL>(m_nFontSize), FontStyleRegular);
 	Rect commitString;
 	MeasureTextLength(dev, font, CString(L'8', g_Git.GetShortHASHLength()), commitString.Width, commitString.Height);
 
@@ -444,9 +444,9 @@ void CRevisionGraphWnd::CompareRevs(const CString& revTo)
 	CString sCmd;
 
 	sCmd.Format(L"/command:showcompare /path:%s /revision1:%s /revision2:%s",
-				TCmdLineParser::EscapeValue(m_sPath).c_str(),
-				TCmdLineParser::EscapeValue(GetFriendRefName(m_SelectedEntry1)).c_str(),
-				!revTo.IsEmpty() ? TCmdLineParser::EscapeValue(revTo).c_str() : TCmdLineParser::EscapeValue(GetFriendRefName(m_SelectedEntry2)).c_str());
+				str::EscapeCmdValue(m_sPath).c_str(),
+				str::EscapeCmdValue(GetFriendRefName(m_SelectedEntry1)).c_str(),
+				!revTo.IsEmpty() ? str::EscapeCmdValue(revTo).c_str() : str::EscapeCmdValue(GetFriendRefName(m_SelectedEntry2)).c_str());
 
 	if (alternativeTool)
 		sCmd += L" /alternative";
@@ -470,9 +470,9 @@ void CRevisionGraphWnd::DoZoom (float fZoomFactor, bool updateScrollbars)
 	float oldzoom = m_fZoomFactor;
 	m_fZoomFactor = fZoomFactor;
 
-	m_nFontSize = max(1, int(DEFAULT_ZOOM_FONT * fZoomFactor));
+	m_nFontSize = std::max(1, int(DEFAULT_ZOOM_FONT * fZoomFactor));
 	if (m_nFontSize < SMALL_ZOOM_FONT_THRESHOLD)
-		m_nFontSize = min(static_cast<int>(SMALL_ZOOM_FONT_THRESHOLD), int(SMALL_ZOOM_FONT * fZoomFactor));
+		m_nFontSize = std::min(static_cast<int>(SMALL_ZOOM_FONT_THRESHOLD), int(SMALL_ZOOM_FONT * fZoomFactor));
 
 	if (updateScrollbars)
 	{

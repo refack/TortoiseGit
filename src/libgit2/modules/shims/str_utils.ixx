@@ -22,9 +22,13 @@
 // ReSharper disable once CppUnusedIncludeDirective
 #include <tgitlib/sanity.h>
 
+#include <algorithm>
+
 
 export module str_utils;
 import std;
+namespace fs = std::filesystem;
+
 export using namespace std::literals;
 
 import gsl;
@@ -485,6 +489,13 @@ concept CovariantCharType = std::same_as<typename StringViewTraits<TStr>::char_t
 
 template <IsTCompString TStr>
 constexpr auto as_view(const TStr& s) noexcept { return StringView{s}.as_view(); }
+
+template <IsTCompString TStr>
+constexpr auto to_std(const TStr& s) noexcept {
+	return std::basic_string<typename StringViewTraits<TStr>::char_type>(
+		StringViewTraits<TStr>::data(s), StringViewTraits<TStr>::int_size(s)
+	);
+}
 
 
 template <IsTCompString TStr>
@@ -1109,6 +1120,24 @@ TStr EscapeAndQuoteParameters(const TStr& input) {
 	return L'"' + std::ranges::to<TStr>(esc_range) + L'"';
 }
 
+
+template <tgit::str::TStrOfWide TStr>
+TStr EscapeCmdValue(const TStr& input) {
+	TStr result;
+	result += L'"';
+
+	for (const auto c : tgit::concepts::as_view(input))
+	{
+		if (c == L'"')
+			result += L'"';
+
+		result += c;
+	}
+	result += L'"';
+
+	return result;
+}
+
 /////////////////////////////////////////////////////////////////////////////////
 // Regex Adapters
 /////////////////////////////////////////////////////////////////////////////////
@@ -1116,12 +1145,12 @@ TStr EscapeAndQuoteParameters(const TStr& input) {
 
 template <typename CharT>
 struct regex_match_fn {
-	const std::basic_regex<CharT>& re;
+	const std::basic_regex<CharT> re;
 
-	template <std::ranges::contiguous_range R>
-	constexpr auto operator()(R&& r) const {
-		using Iter = std::regex_iterator<std::ranges::iterator_t<R>>;
-		return std::ranges::subrange(Iter(std::ranges::begin(r), std::ranges::end(r), re), Iter());
+	template <std::ranges::contiguous_range Range>
+	constexpr auto operator()(const Range& char_range) const {
+		using Iter = std::regex_iterator<std::ranges::iterator_t<Range>>;
+		return std::ranges::subrange(Iter(std::ranges::begin(char_range), std::ranges::end(char_range), re), Iter());
 	}
 };
 
@@ -1134,9 +1163,25 @@ struct regex_match_fn {
 // };
 
 struct regex_matches : std::ranges::range_adaptor_closure<regex_matches>, regex_match_fn<wchar_t> {
-	explicit regex_matches(const std::wstring_view re) : regex_match_fn{std::wregex{re.data()}} {}
+	regex_matches(const std::wregex& arg_re)
+	: regex_match_fn{arg_re}
+	{}
+	regex_matches(const std::wstring& arg_re)
+	: regex_match_fn{std::wregex{arg_re}}
+	{}
 };
 
+
+struct escaperoid {
+	const bool isInternal;
+	explicit escaperoid(const bool arg) : isInternal{arg} {}
+	CString operator() (const CString& in) const {
+		if (isInternal)
+			return tgit::str::EscapeAndQuoteParameters(in);
+		else
+			return tgit::str::EscapeCmdValue(in);
+	}
+};
 
 }
 
@@ -1630,8 +1675,7 @@ CString WordWrap(const CString& longstring, int limit, const bool bCompactPaths,
 	const int nLength = longstring.GetLength();
 	CString retString;
 
-	if (limit < 0)
-		limit = 0;
+	limit = std::max(limit, 0);
 
 	int nLineStart = 0;
 	int nLineEnd = 0;
@@ -1639,9 +1683,9 @@ CString WordWrap(const CString& longstring, int limit, const bool bCompactPaths,
 	for (int i = 0; i < nLength; ++i) {
 		if (i - nLineStart + tabOffset >= limit) {
 			if (nLineEnd == nLineStart) {
-				if (bForceWrap)
+				if (bForceWrap) {
 					nLineEnd = i;
-				else {
+				} else {
 					while ((i < nLength) && (longstring[i] != ' ') && (longstring[i] != '\t'))
 						++i;
 					nLineEnd = i;
@@ -1658,8 +1702,9 @@ CString WordWrap(const CString& longstring, int limit, const bool bCompactPaths,
 				}
 				retString += longline;
 			}
-			else
+			else {
 				retString += longstring.Mid(nLineStart, nLineEnd - nLineStart);
+			}
 			retString += L'\n';
 			tabOffset = 0;
 			nLineStart = nLineEnd;
@@ -1667,7 +1712,7 @@ CString WordWrap(const CString& longstring, int limit, const bool bCompactPaths,
 		if (longstring[i] == ' ')
 			nLineEnd = i;
 		if (longstring[i] == '\t') {
-			tabOffset += (tabSize - i % tabSize);
+			tabOffset += (tabSize - (i % tabSize));
 			nLineEnd = i;
 		}
 	}
@@ -1682,8 +1727,9 @@ CString WordWrap(const CString& longstring, int limit, const bool bCompactPaths,
 		}
 		retString += longline;
 	}
-	else
+	else {
 		retString += longstring.Mid(nLineStart);
+	}
 
 	return retString;
 }
@@ -1693,8 +1739,7 @@ std::vector<CString> WordWrap(const CString& longstring, int limit, const int ta
 	const int nLength = longstring.GetLength();
 	std::vector<CString> retVec;
 
-	if (limit < 0)
-		limit = 0;
+	limit = std::max(limit, 0);
 
 	int nLineStart = 0;
 	int nLineEnd = 0;
@@ -1713,7 +1758,7 @@ std::vector<CString> WordWrap(const CString& longstring, int limit, const int ta
 		if (longstring[i] == ' ')
 			nLineEnd = i;
 		if (longstring[i] == '\t') {
-			tabOffset += (tabSize - i % tabSize);
+			tabOffset += (tabSize - (i % tabSize));
 			nLineEnd = i;
 		}
 	}
@@ -1977,10 +2022,11 @@ std::wstring EscapeWindowsCliArgument(const std::wstring_view argument) {
 			result.append(numberBackslashes * 2, L'\\');
 			break;
 		}
-		else if (argument[i] == L'"') // Escape all backslashes and the following double quotation mark.
-			result.append(numberBackslashes * 2 + 1, L'\\');
-		else // Backslashes aren't special here.
+		else if (argument[i] == L'"') { // Escape all backslashes and the following double quotation mark.
+			result.append((numberBackslashes * 2) + 1, L'\\');
+		} else { // Backslashes aren't special here.
 			result.append(numberBackslashes, L'\\');
+		}
 		result += argument[i];
 	}
 
@@ -2016,9 +2062,6 @@ CString EscapeWindowsCliArguments(const CString& argument) {
 
 
 export namespace tgit::wstr {
-
-
-namespace fs = std::filesystem;
 
 
 std::optional<std::wstring> LoadTextFile(const fs::path& filename) {

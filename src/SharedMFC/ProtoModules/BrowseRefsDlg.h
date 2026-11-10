@@ -19,24 +19,26 @@
 #pragma once
 #include "Resources/resource.h"
 #include "../../TortoiseProc/MiscUI/FilterEdit.h"
-#include "Utils/ResizableColumnsListCtrl.h"
 #include "Utils/HistoryCombo.h"
 #include "Utils/GestureEnabledControl.h"
 
-import git_h;
+
+// NOLINTBEGIN(*-use-nodiscard,*-use-enum-class,*-pro-bounds-pointer-arithmetic)
+import tgit;
 import StandAloneDlg;
+import ResizableColumnsListCtrl;
+import Registry;
 
 
-const int gPickRef_Head		= 1;
-const int gPickRef_Tag		= 2;
-const int gPickRef_Remote	= 4;
-const int gPickRef_All		= gPickRef_Head | gPickRef_Tag | gPickRef_Remote;
-const int gPickRef_NoTag	= gPickRef_All & ~gPickRef_Tag;
+constexpr auto gPickRef_Head	= 1U;
+constexpr auto gPickRef_Tag		= 2U;
+constexpr auto gPickRef_Remote	= 4U;
+constexpr auto gPickRef_All		= gPickRef_Head | gPickRef_Tag | gPickRef_Remote;
+constexpr auto gPickRef_NoTag	= gPickRef_All & ~gPickRef_Tag;
 
 class CBrowseRefsDlgFilter;
 
-class CShadowTree
-{
+class CShadowTree {
 public:
 	using TShadowTreeMap = std::map<CString, CShadowTree>;
 
@@ -61,8 +63,8 @@ public:
 	 */
 	bool			IsFrom(const wchar_t* from)const
 	{
-		CString name = GetRefName();
-		int len = static_cast<int>(wcslen(from));
+		const CString name = GetRefName();
+		const int len = static_cast<int>(wcslen(from));
 		if (from[len - 1] != '/' && wcsncmp(name, from, len) == 0)
 		{
 			if (len == name.GetLength())
@@ -91,22 +93,25 @@ public:
 	CString			m_csAuthor;
 	CString			m_csSubject;
 	CString			m_csDescription;
-	git_object_t	m_objectType;
+
+	libgit2::git_object_t	m_objectType{};
 
 	HTREEITEM		m_hTree = nullptr;
 
-	TShadowTreeMap	m_ShadowTree;
+	TShadowTreeMap	m_ShadowTree{};
 	CShadowTree*	m_pParent = nullptr;
 };
 using VectorPShadowTree = std::vector<const CShadowTree*>;
 
-class CBrowseRefsDlg : public CResizableStandAloneDialog
+class CBrowseRefsDlg : public StandAloneDlg::CResizableStandAloneDialog
 {
 	DECLARE_DYNAMIC(CBrowseRefsDlg)
 
-public:
-	CBrowseRefsDlg(CString cmdPath, CWnd* pParent = nullptr);   // standard constructor
-	virtual ~CBrowseRefsDlg();
+	explicit CBrowseRefsDlg(CString cmdPath, CWnd* pParent = nullptr);
+	~CBrowseRefsDlg() override {
+		m_regCurrSortCol = m_currSortCol;
+		m_regCurrSortDesc = m_currSortDesc;
+	}
 
 	enum eCmd
 	{
@@ -183,6 +188,8 @@ protected:
 	const CShadowTree* GetListEntry(int index) const;
 	const CShadowTree* GetTreeEntry(HTREEITEM treeItem) const;
 
+	BOOL			PreTranslateMessage(MSG* pMsg) override;
+
 private:
 	bool			m_bHasWC = true;
 
@@ -219,7 +226,6 @@ private:
 
 	bool		AreAllFrom(VectorPShadowTree& leafs, const wchar_t* from);
 	void		ShowContextMenu(CPoint point, HTREEITEM hTreePos, VectorPShadowTree& selectedLeafs);
-	BOOL		PreTranslateMessage(MSG* pMsg) override;
 	afx_msg void OnLvnColumnclickListRefLeafs(NMHDR *pNMHDR, LRESULT *pResult);
 	afx_msg void OnDestroy();
 	afx_msg void OnNMDblclkListRefLeafs(NMHDR *pNMHDR, LRESULT *pResult);
@@ -249,3 +255,4 @@ public:
 	static CString	PickRef(bool returnAsHash = false, CString initialRef = CString(), int pickRef_Kind = gPickRef_All, bool pickMultipleRefs = false, bool showRangeOptionWithTwoRefs = true);
 	static bool		PickRefForCombo(CHistoryCombo& refComboBox, int pickRef_Kind = gPickRef_All, int useShortName = gPickRef_Head);
 };
+// NOLINTEND(*-use-nodiscard,*-use-enum-class,*-pro-bounds-pointer-arithmetic)

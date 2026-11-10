@@ -19,6 +19,8 @@
 #pragma once
 #include "FirstStartWizardBasePage.h"
 #include "HyperLink.h"
+import Registry;
+import LangDll;
 
 /**
  * First page in the first start wizard
@@ -27,9 +29,15 @@ class CFirstStartWizardLanguage : public CFirstStartWizardBasePage
 {
 	DECLARE_DYNAMIC(CFirstStartWizardLanguage)
 
-public:
-	CFirstStartWizardLanguage();
-	virtual ~CFirstStartWizardLanguage();
+	CFirstStartWizardLanguage()
+	: CFirstStartWizardBasePage(CFirstStartWizardLanguage::IDD)
+	, m_dwLanguage(LangDll::s_defaultLang)
+	, m_regLanguage(L"Software\\TortoiseGit\\LanguageID", LangDll::s_defaultLang)
+	{
+		m_dwInitialLanguage = m_regLanguage;
+		m_psp.dwFlags |= PSP_DEFAULT | PSP_USEHEADERTITLE;
+		m_psp.pszHeaderTitle = MAKEINTRESOURCE(IDS_FIRSTSTART_STARTTITLE);
+	}
 
 	enum { IDD = IDD_FIRSTSTARTWIZARD_LANGUAGE };
 
@@ -45,9 +53,9 @@ protected:
 	DECLARE_MESSAGE_MAP()
 
 	CComboBox		m_LanguageCombo;
-	CRegDWORD		m_regLanguage;
-	DWORD			m_dwLanguage;
-	DWORD			m_dwInitialLanguage;
+	CRegDWORD		m_regLanguage{};
+	DWORD			m_dwLanguage{};
+	DWORD			m_dwInitialLanguage{};
 
 	CHyperLink		m_link;
 };

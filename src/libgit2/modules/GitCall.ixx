@@ -34,7 +34,6 @@ import str_utils;
 import DebugOutput;
 import ShellEnvironment;
 
-using namespace std::literals;
 namespace fs = std::filesystem;
 using namespace tgit;
 using DebugOutput::Trace;
@@ -733,3 +732,4 @@ void KillRelatedThreads(const DWORD threadId, const HANDLE threadHandle) {
 #pragma endregion
 
 }
+export using namespace GitCall;

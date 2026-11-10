@@ -18,10 +18,12 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 #include "stdafx.h"
-import tgit;
 
 #include "DiffLinesForStaging.h"
-#include <regex>
+
+import std;
+import tgit;
+
 
 enum class PatchState
 {

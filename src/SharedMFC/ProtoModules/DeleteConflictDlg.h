@@ -20,6 +20,9 @@
 
 import StandAloneDlg;
 import TGitPath;
+import Registry;
+import GitHash;
+
 // CDeleteConflictDlg dialog
 
 class CDeleteConflictDlg : public CStandAloneDialog

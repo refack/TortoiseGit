@@ -2,7 +2,7 @@
 import std;
 import str_utils;
 
-using std::map;
+using namespace tgit;
 
 
 export namespace TCmdLineParser
@@ -38,7 +38,7 @@ export namespace TCmdLineParser
     class CCmdLineParser
     {
     public:
-        using CValsMap = map<std::wstring, std::wstring>;
+        using CValsMap = std::map<std::wstring, std::wstring>;
         using ITERPOS = CValsMap::const_iterator;
     	using key_ptr_t = CValsMap::key_type::const_pointer;
     	using val_ptr_t = CValsMap::mapped_type::const_pointer;
@@ -47,7 +47,8 @@ export namespace TCmdLineParser
          * Creates a CCmdLineParser object and parses the parameters in.
          * \param sCmdLine the command line
          */
-        CCmdLineParser(const wchar_t* sCmdLine = nullptr);
+        explicit CCmdLineParser(const wchar_t* sCmdLine = nullptr);
+        explicit CCmdLineParser(const std::wstring& sCmdLine = {}) : CCmdLineParser{sCmdLine.c_str()} { }
 
         CCmdLineParser(const CCmdLineParser&) = default;
         CCmdLineParser& operator=(const CCmdLineParser&) = default;
@@ -88,7 +89,7 @@ export namespace TCmdLineParser
          * \param sKey the key to check for
          * \return TRUE if the key exists, FALSE if the key is not in command line
          */
-        bool HasKey(key_ptr_t sKey) const;
+    	bool HasKey(const key_ptr_t sKey) const { return findKey(sKey) != m_valueMap.cend(); }
 
         /**
          * Checks if a key also has a value or not.
@@ -117,8 +118,19 @@ export namespace TCmdLineParser
          * \param sKey the key to get the value from
          * \return the value of the key, or an empty string if it has none
          */
-        [[nodiscard]] std::wstring GetValStr(key_ptr_t sKey) const;
-        [[nodiscard]] val_ptr_t GetValPtr(key_ptr_t sKey) const;
+        [[nodiscard]] const std::wstring& GetValStr(const key_ptr_t sKey) const {
+        	static auto emptystring = L""s;
+
+	        const auto it = findKey(sKey);
+	        if (it == this->m_valueMap.cend())
+		        return emptystring;
+	        return it->second;
+        }
+
+
+        [[nodiscard]] val_ptr_t GetValPtr(const key_ptr_t sKey) const {
+	        return GetValStr(sKey).c_str();
+        }
 
         /**
          * Reads the value for a key as a long. If the value is a string which can't be
@@ -126,27 +138,52 @@ export namespace TCmdLineParser
          * \param sKey the key to get the value from
          * \return the value converted to a long
          */
-        long GetLongVal(key_ptr_t sKey) const;
+        [[nodiscard]] long GetLongVal(key_ptr_t sKey) const;
 
-        __int64 GetLongLongVal(key_ptr_t sKey) const;
+        [[nodiscard]] __int64 GetLongLongVal(key_ptr_t sKey) const;
+
+    	[[nodiscard]] std::expected<std::wstring, std::wstring_view> GetUrl(const key_ptr_t key) const {
+    		constexpr auto strip = [](std::wstring_view& s, const std::wstring_view prefix) {
+    			if (!s.starts_with(prefix))
+    				return false;
+    			s.remove_prefix(prefix.size());
+    			return true;
+    		};
+
+    		// A view into the parser's own stored value, so the error path hands the
+    		// caller something that outlives this call. (The CString version copied
+    		// into a local and returned a view of that - a dangling error value.)
+    		const val_ptr_t val = this->GetValPtr(key);
+    		std::wstring_view url = val ? std::wstring_view{ val } : std::wstring_view{};
+
+    		if (strip(url, L"tgit://clone/") || strip(url, L"smartgit://cloneRepo/")) {
+    			// scheme prefix gone, nothing else to trim
+    		} else if (strip(url, L"github-windows://openRepo/") || strip(url, L"x-github-client://openRepo/")) {
+    			if (const auto questionMark = url.find(L'?'); questionMark != std::wstring_view::npos && questionMark > 0)
+    				url = url.substr(0, questionMark);
+    		} else if (!url.starts_with(L"git://")) {
+    			return std::unexpected{url};
+    		}
+			return std::wstring{url};
+    	}
 
     private:
         bool Parse(const wchar_t* sCmdLine);
-        ITERPOS findKey(const key_ptr_t& sKey) const;
+    	[[nodiscard]] ITERPOS findKey(const key_ptr_t& sKey) const {
+    		std::wstring s(sKey);
+    		std::ranges::transform(s, s.begin(), std::towlower);
+    		return m_valueMap.find(s);
+    	}
+
         [[nodiscard]] const CValsMap& getVals() const { return m_valueMap; }
 
         std::wstring m_sCmdLine;
         CValsMap m_valueMap;
 
-        static const wchar_t m_sDelims[];
-        static const wchar_t m_sValueSep[];
-        static const wchar_t m_sQuotes[];
+    	static constexpr auto m_sDelims = L"-/"sv;
+    	static constexpr auto m_sQuotes = L"\""sv;
+    	static constexpr auto m_sValueSep = L" :"sv; // don't forget space!!
     };
-
-
-    constexpr wchar_t CCmdLineParser::m_sDelims[] = L"-/";
-    constexpr wchar_t CCmdLineParser::m_sQuotes[] = L"\"";
-    constexpr wchar_t CCmdLineParser::m_sValueSep[] = L" :"; // don't forget space!!
 
 
     CCmdLineParser::CCmdLineParser(const wchar_t* sCmdLine)
@@ -180,7 +217,7 @@ export namespace TCmdLineParser
             if (!sCurrent[0])
                 break; // no more data, leave loop
 
-            const wchar_t* sArg = std::wcspbrk(sCurrent, m_sDelims);
+            const wchar_t* sArg = std::wcspbrk(sCurrent, m_sDelims.data());
             if (!sArg)
                 break; // no (more) delimiters found
             ++sArg;
@@ -188,7 +225,7 @@ export namespace TCmdLineParser
             if (!sArg[0])
                 break; // ends with delim
 
-            const wchar_t* sVal = std::wcspbrk(sArg, m_sValueSep);
+            const wchar_t* sVal = std::wcspbrk(sArg, m_sValueSep.data());
             if (!sVal)
             {
 	            const std::wstring sEmpty;
@@ -214,9 +251,9 @@ export namespace TCmdLineParser
                             ++sVal;
                     }
 
-                    const wchar_t* nextArg = std::wcspbrk(sVal, m_sDelims);
+                    const wchar_t* nextArg = std::wcspbrk(sVal, m_sDelims.data());
 
-                    sQuote = std::wcspbrk(sVal, m_sQuotes);
+                    sQuote = std::wcspbrk(sVal, m_sQuotes.data());
 
                     if (nextArg == sVal)
                     {
@@ -237,16 +274,16 @@ export namespace TCmdLineParser
                         {
                             // string with quotes (defined in m_sQuotes, e.g. '")
                             sQuote = sVal + 1;
-                            sEndQuote = std::wcspbrk(sQuote, m_sQuotes);
+                            sEndQuote = std::wcspbrk(sQuote, m_sQuotes.data());
 
                             // search for double quotes
                             while (sEndQuote)
                             {
-                                const auto nextQuote = sEndQuote + 1;
+                                const auto *const nextQuote = sEndQuote + 1;
                                 if (nextQuote[0] == L'"')
                                 {
                                     working.erase(working.begin() + (sEndQuote - working.data()));
-                                    sEndQuote = std::wcspbrk(nextQuote, m_sQuotes);
+                                    sEndQuote = std::wcspbrk(nextQuote, m_sQuotes.data());
                                     continue;
                                 }
                                 break;
@@ -287,22 +324,6 @@ export namespace TCmdLineParser
         return !m_valueMap.empty(); //TRUE if arguments were found
     }
 
-    CCmdLineParser::ITERPOS CCmdLineParser::findKey(const key_ptr_t& sKey) const
-    {
-        std::wstring s(sKey);
-        std::ranges::transform(s, s.begin(), std::towlower);
-        return m_valueMap.find(s);
-    }
-
-    bool CCmdLineParser::HasKey(key_ptr_t sKey) const
-    {
-        const auto it = findKey(sKey);
-        if (it == m_valueMap.cend())
-            return false;
-        return true;
-    }
-
-
     bool CCmdLineParser::HasVal(key_ptr_t sKey) const
     {
         const auto it = findKey(sKey);
@@ -311,22 +332,6 @@ export namespace TCmdLineParser
         if (it->second.empty())
             return false;
         return true;
-    }
-
-    std::wstring::const_pointer CCmdLineParser::GetValPtr(key_ptr_t sKey) const
-    {
-        const auto it = findKey(sKey);
-        if (it == m_valueMap.cend())
-            return nullptr;
-        return it->second.c_str();
-    }
-
-    std::wstring CCmdLineParser::GetValStr(key_ptr_t sKey) const
-    {
-        const auto it = findKey(sKey);
-        if (it == m_valueMap.cend())
-            return {};
-        return it->second;
     }
 
     long CCmdLineParser::GetLongVal(key_ptr_t sKey) const
@@ -372,24 +377,6 @@ export namespace TCmdLineParser
     {
         return (pos == m_valueMap.cend());
     }
-
-	template <tgit::str::TStrOfWide TStrOut = std::wstring, tgit::str::TStrOfWide TStr>
-	TStrOut EscapeValue(const TStr& input) {
-        TStrOut result;
-        result += L'"';
-
-        for (const auto c : tgit::concepts::as_view(input))
-        {
-            if (c == L'"')
-                result += L'"';
-
-            result += c;
-        }
-        result += L'"';
-
-        return result;
-    }
-
 }
 
 export using namespace TCmdLineParser;

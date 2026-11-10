@@ -18,14 +18,16 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 #include "stdafx.h"
-import tgit;
-
-import TortoiseProc;
-import MessageBox;
 #include "LFSLocksDlg.h"
-import AppUtils.Window;
 #include "GitProgressDlg.h"
 #include "../../TortoiseProc/ProgressCommands/LFSSetLockedProgressCommand.h"
+
+#include "Resources/LoglistCommonResource.h"
+
+import tgit;
+import TortoiseProc;
+import MessageBox;
+import AppUtils.Window;
 
 #define REFRESHTIMER    100
 
@@ -57,7 +59,7 @@ END_MESSAGE_MAP()
 BOOL CLFSLocksDlg::OnInitDialog()
 {
 	CResizableStandAloneDialog::OnInitDialog();
-	CAppUtils::MarkWindowAsUnpinnable(m_hWnd);
+	wil::MFC::MarkWindowAsUnpinnable(m_hWnd);
 
 	m_LocksList.Init(GITSLC_COLEXT | GITSLC_COLLFSLOCK, L"LFSLocksDlg", GITSLC_POPLFSLOCK | GITSLC_POPLFSUNLOCK, true, true, GITSLC_COLEXT | GITSLC_COLFILENAME | GITSLC_COLSIZE | GITSLC_COLMODIFICATIONDATE | GITSLC_COLLFSLOCK);
 	m_LocksList.SetSelectButton(&m_SelectAll);
@@ -66,7 +68,7 @@ BOOL CLFSLocksDlg::OnInitDialog()
 	m_LocksList.SetBackgroundImage(IDI_LOCK_BKG);
 	m_LocksList.m_bEnableDblClick = false;
 
-	CAppUtils::SetWindowTitle(*this, GitCall::m_CurrentDirStorage.c_str());
+	wil::MFC::SetWindowTitle(*this, GitCall::m_CurrentDirStorage.c_str());
 
 	AdjustControlSize(IDC_SELECTALL);
 

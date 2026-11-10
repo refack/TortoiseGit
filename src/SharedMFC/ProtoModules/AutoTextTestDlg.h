@@ -29,8 +29,7 @@ class CAutoTextTestDlg : public CStandAloneDialog
 	DECLARE_DYNAMIC(CAutoTextTestDlg)
 
 public:
-	CAutoTextTestDlg(CWnd* pParent = nullptr);		// standard constructor
-	virtual ~CAutoTextTestDlg();
+	CAutoTextTestDlg(CWnd* pParent = nullptr) : CStandAloneDialog(CAutoTextTestDlg::IDD, pParent) {}
 
 // Dialog Data
 	enum { IDD = IDD_AUTOTEXTTESTDLG };
@@ -43,9 +42,9 @@ protected:
 	DECLARE_MESSAGE_MAP()
 
 private:
-	CString m_sContent;
-	CString m_sRegex;
-	CString m_sResult;
-	CString m_sTimingLabel;
+	std::wstring m_sContent;
+	std::wstring m_sRegex;
+	std::wstring m_sResult;
+	std::wstring m_sTimingLabel;
 	CRichEditCtrl m_cContent;
 };

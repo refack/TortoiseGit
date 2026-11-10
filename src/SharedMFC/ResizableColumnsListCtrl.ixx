@@ -1,35 +1,29 @@
-﻿// TortoiseGit - a Windows shell extension for easy version control
+﻿module;
+#include "stdafx.h"
 
-// Copyright (C) 2016, 2021, 2023, 2025-2026 - TortoiseGit
 
-// This program is free software; you can redistribute it and/or
-// modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; either version 2
-// of the License, or (at your option) any later version.
 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-
-// You should have received a copy of the GNU General Public License
-// along with this program; if not, write to the Free Software Foundation,
-// 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-//
-#pragma once
+export module ResizableColumnsListCtrl;
 import ColumnManager;
+import Registry;
 
-template <typename BaseType> class CResizableColumnsListCtrl : public BaseType
+
+export template <typename BaseType> class CResizableColumnsListCtrl : public BaseType
 {
+protected:
+	bool			m_bAllowHiding{};
+	ColumnManager	m_ColumnManager;
+
 public:
 	CResizableColumnsListCtrl()
 		: BaseType()
+		, m_bAllowHiding(true)
 		, m_ColumnManager(this)
 	{}
 
+protected:
 	DECLARE_MESSAGE_MAP()
 
-protected:
 	void OnDestroy()
 	{
 		SaveColumnWidths();
@@ -53,12 +47,12 @@ protected:
 		BaseType::Invalidate(FALSE);
 	}
 
-	void OnContextMenuHeader(CWnd* pWnd, CPoint point)
+	void OnContextMenuHeader(CWnd* pWnd, const CPoint point)
 	{
 		m_ColumnManager.OnContextMenuHeader(pWnd, point, !!BaseType::IsGroupViewEnabled());
 	}
 
-	void OnContextMenu(CWnd* pWnd, CPoint point)
+	void OnContextMenu(CWnd* pWnd, const CPoint point)
 	{
 		if (pWnd == BaseType::GetHeaderCtrl() && m_bAllowHiding)
 			OnContextMenuHeader(pWnd, point);
@@ -87,7 +81,7 @@ public:
 	{
 		CRegDWORD regFullRowSelect(L"Software\\TortoiseGit\\FullRowSelect", TRUE);
 		DWORD exStyle = LVS_EX_HEADERDRAGDROP;
-		if (DWORD(regFullRowSelect))
+		if (static_cast<DWORD>(regFullRowSelect))
 			exStyle |= LVS_EX_FULLROWSELECT;
 		BaseType::SetExtendedStyle(BaseType::GetExtendedStyle() | exStyle);
 	}
@@ -102,7 +96,7 @@ public:
 		auto header = BaseType::GetHeaderCtrl();
 		if (!header)
 			return;
-		int maxcol = header->GetItemCount() - 1;
+		const int maxcol = header->GetItemCount() - 1;
 		for (int col = 0; col <= maxcol; col++)
 			BaseType::SetColumnWidth(col, m_ColumnManager.IsRelevant(col) ? m_ColumnManager.GetWidth(col, true) : 0);
 	}
@@ -111,16 +105,13 @@ public:
 		auto header = BaseType::GetHeaderCtrl();
 		if (!header)
 			return;
-		int maxcol = header->GetItemCount() - 1;
+		const int maxcol = header->GetItemCount() - 1;
 		for (int col = 0; col <= maxcol; col++)
 			if (m_ColumnManager.IsVisible(col))
 				m_ColumnManager.ColumnResized(col);
 
 		m_ColumnManager.WriteSettings();
 	}
-
-	bool			m_bAllowHiding = true;
-	ColumnManager	m_ColumnManager;
 };
 
 BEGIN_TEMPLATE_MESSAGE_MAP(CResizableColumnsListCtrl, BaseType, BaseType)

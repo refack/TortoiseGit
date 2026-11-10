@@ -20,20 +20,20 @@
 
 #pragma once
 #include "afxcmn.h"
-import StandAloneDlg;
-#include "Utils/HintCtrl.h"
-#include "Colors.h"
+import HintCtrl;
 #include "../../TortoiseProc/MiscUI/FilterEdit.h"
-#include "../../TortoiseProc/MiscUI/MenuButton.h"
+import MenuButton;
 #include "../SharedMFC/ACEdir/ACEdit.h"
 #include "Utils/GestureEnabledControl.h"
 #include "../../SharedMFC/Utils/LogDlgFileFilter.h"
 #include "PatchViewDlg.h"
 #include "HyperLink.h"
-#include "../../TortoiseProc/MiscUI/ThemeControls.h"
 
 import GitRev;
 import TGitPath;
+import GitHash;
+import StandAloneDlg;
+import ThemeControls;
 
 #define IDT_FILTER		101
 #define IDT_INPUT		102
@@ -47,7 +47,7 @@ import TGitPath;
  */
 #define MSG_REF_LOADED	(WM_USER+120)
 
-class CFileDiffDlg : public CResizableStandAloneDialog, IHasPatchView
+class CFileDiffDlg : public StandAloneDlg::CResizableStandAloneDialog, IHasPatchView
 {
 	DECLARE_DYNAMIC(CFileDiffDlg)
 public:
@@ -139,7 +139,6 @@ private:
 	CMenuButton			m_cDiffOptionsBtn;
 
 	CThemeMFCButton		m_SwitchButton;
-	CColors				m_colors;
 	CFont				m_font;
 	CGestureEnabledControlTmpl<CHintCtrl<CListCtrl>>	m_cFileList;
 	bool				m_bBlame = false;

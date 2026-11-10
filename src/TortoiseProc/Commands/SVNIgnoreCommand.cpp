@@ -21,7 +21,7 @@
 
 #include "SVNIgnoreCommand.h"
 
-#include "ProgressDlg.h"
+import ProgressDlg;
 #include "SVNIgnoreTypeDlg.h"
 
 bool SVNIgnoreCommand::Execute()

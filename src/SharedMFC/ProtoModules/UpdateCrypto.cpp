@@ -29,6 +29,7 @@ import tgit;
 #include <atlenc.h>
 #define NEED_SIGNING_KEY
 #include <tgitlib/version.h>
+import TempFile;
 
 constexpr auto packet_type(uint8_t c) { return (c & 0x3c) >> 2; } /* 0x3C = 00111100 */
 constexpr auto packet_header_len(uint8_t c) { return (c & 0x03) + 1; } /* number of bytes in a packet header */
@@ -729,14 +730,14 @@ static int hash_from_public_key(HCRYPTHASH hHash, const public_key_t* p_pkey)
 
 static int hash_from_file(HCRYPTHASH hHash, const CString& filename, const signature_packet_t* p_sig)
 {
-	CAutoFILE pFile = _wfsopen(filename, L"rb", SH_DENYWR);
+	auto pFile = wil::unique_file{_wfsopen(filename, L"rb", SH_DENYWR)};
 	if (!pFile)
 		return -1;
 
 	char buf[4097] = { 0 };
 	int read = 0;
 	int nlHandling = 0;
-	while ((read = static_cast<int>(fread(buf, sizeof(char), sizeof(buf) - 1, pFile))) > 0)
+	while ((read = static_cast<int>(fread(buf, sizeof(char), sizeof(buf) - 1, pFile.get()))) > 0)
 	{
 		if (p_sig->type == TEXT_SIGNATURE)
 		{
@@ -822,8 +823,8 @@ static int check_hash(HCRYPTHASH hHash, const signature_packet_t *p_sig)
 */
 static int verify_signature_rsa(HCRYPTPROV hCryptProv, HCRYPTHASH hHash, const public_key_t& p_pkey, const signature_packet_t& p_sig)
 {
-	uint32_t i_n_len = min(mpi_len(p_pkey.key.sig.rsa.n), static_cast<uint32_t>(sizeof(p_pkey.key.sig.rsa.n)) - 2);
-	uint32_t i_s_len = min(mpi_len(p_sig.algo_specific.rsa.s), static_cast<uint32_t>(sizeof(p_sig.algo_specific.rsa.s)) - 2);
+	uint32_t i_n_len = std::min(mpi_len(p_pkey.key.sig.rsa.n), static_cast<uint32_t>(sizeof(p_pkey.key.sig.rsa.n)) - 2);
+	uint32_t i_s_len = std::min(mpi_len(p_sig.algo_specific.rsa.s), static_cast<uint32_t>(sizeof(p_sig.algo_specific.rsa.s)) - 2);
 
 	if (i_s_len > i_n_len)
 		return -1;
@@ -867,12 +868,12 @@ static int verify_signature_dsa(HCRYPTPROV hCryptProv, HCRYPTHASH hHash, const p
 	if (p_sig.digest_algo != DIGEST_ALGO_SHA1) // PROV_DSS only supports SHA1 signatures, see http://msdn.microsoft.com/en-us/library/windows/desktop/aa387434%28v=vs.85%29.aspx
 		return -1;
 
-	uint32_t i_p_len = min(mpi_len(p_pkey.key.sig.dsa.p), static_cast<uint32_t>(sizeof(p_pkey.key.sig.dsa.p)) - 2);
-	uint32_t i_q_len = min(mpi_len(p_pkey.key.sig.dsa.q), static_cast<uint32_t>(sizeof(p_pkey.key.sig.dsa.q)) - 2);
-	uint32_t i_g_len = min(mpi_len(p_pkey.key.sig.dsa.g), static_cast<uint32_t>(sizeof(p_pkey.key.sig.dsa.g)) - 2);
-	uint32_t i_y_len = min(mpi_len(p_pkey.key.sig.dsa.y), static_cast<uint32_t>(sizeof(p_pkey.key.sig.dsa.y)) - 2);
-	uint32_t i_r_len = min(mpi_len(p_sig.algo_specific.dsa.r), static_cast<uint32_t>(sizeof(p_sig.algo_specific.dsa.r)) - 2);
-	uint32_t i_s_len = min(mpi_len(p_sig.algo_specific.dsa.s), static_cast<uint32_t>(sizeof(p_sig.algo_specific.dsa.s)) - 2);
+	uint32_t i_p_len = std::min(mpi_len(p_pkey.key.sig.dsa.p), static_cast<uint32_t>(sizeof(p_pkey.key.sig.dsa.p)) - 2);
+	uint32_t i_q_len = std::min(mpi_len(p_pkey.key.sig.dsa.q), static_cast<uint32_t>(sizeof(p_pkey.key.sig.dsa.q)) - 2);
+	uint32_t i_g_len = std::min(mpi_len(p_pkey.key.sig.dsa.g), static_cast<uint32_t>(sizeof(p_pkey.key.sig.dsa.g)) - 2);
+	uint32_t i_y_len = std::min(mpi_len(p_pkey.key.sig.dsa.y), static_cast<uint32_t>(sizeof(p_pkey.key.sig.dsa.y)) - 2);
+	uint32_t i_r_len = std::min(mpi_len(p_sig.algo_specific.dsa.r), static_cast<uint32_t>(sizeof(p_sig.algo_specific.dsa.r)) - 2);
+	uint32_t i_s_len = std::min(mpi_len(p_sig.algo_specific.dsa.s), static_cast<uint32_t>(sizeof(p_sig.algo_specific.dsa.s)) - 2);
 
 	// CryptoAPI only supports 1024-bit DSA keys and SHA1 signatures
 	if (i_p_len > 128 || i_q_len > 20 && i_g_len > 128 || i_y_len > 128 || i_r_len > 20 || i_s_len > 20)

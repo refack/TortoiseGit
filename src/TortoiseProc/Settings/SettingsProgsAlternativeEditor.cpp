@@ -86,7 +86,7 @@ void CSettingsProgsAlternativeEditor::OnBnClickedAlternativeEditorBrowse()
 	CString filename = m_sAlternativeEditorPath;
 	if (!PathFileExists(filename))
 		filename.Empty();
-	if (CAppUtils::FileOpenSave(filename, nullptr, IDS_SETTINGS_SELECTDIFFVIEWER, IDS_PROGRAMSFILEFILTER, true, m_hWnd))
+	if (ConfigureGitExe::FileOpenSave(filename, nullptr, IDS_SETTINGS_SELECTDIFFVIEWER, IDS_PROGRAMSFILEFILTER, true, m_hWnd))
 	{
 		m_sAlternativeEditorPath = filename;
 		UpdateData(FALSE);

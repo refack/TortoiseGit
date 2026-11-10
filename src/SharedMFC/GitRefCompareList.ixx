@@ -1,33 +1,237 @@
-﻿// TortoiseGit - a Windows shell extension for easy version control
-
-// Copyright (C) 2013-2026 - TortoiseGit
-
-// This program is free software; you can redistribute it and/or
-// modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; either version 2
-// of the License, or (at your option) any later version.
-
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-
-// You should have received a copy of the GNU General Public License
-// along with this program; if not, write to the Free Software Foundation,
-// 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-//
-// GitRefCompareList.cpp : implementation file
-//
+﻿module;
 #include "stdafx.h"
-import tgit;
 
+import IconMenu;
+import HintCtrl;
 #include "Resources/resource.h"
-#include "GitRefCompareList.h"
-#include "../../TortoiseProc/MiscUI/IconMenu.h"
 #include <../TortoiseShell/resource.h>
-#include "../../libgit2/Resources/LoglistCommonResource.h"
+#include <Resources/LoglistCommonResource.h>
+
+
+export module GitRefCompareList;
+import tgit;
 import DPIAware;
 import AppUtils.Launch;
+import TortoiseProc;
+import GitHash;
+
+using namespace tgit::libgit2;
+
+
+export class CGitRefCompareList : public CHintCtrl<CListCtrl> {
+	DECLARE_DYNAMIC(CGitRefCompareList);
+
+
+
+	enum IDGITRCL {
+		IDGITRCL_OLDLOG = 1,
+		IDGITRCL_NEWLOG,
+		IDGITRCL_COMPARE,
+		IDGITRCL_REFLOG,
+	};
+
+
+
+	enum IDGITRCLH {
+		IDGITRCLH_HIDEUNCHANGED = 1,
+	};
+
+
+
+	enum class ChangeType {
+		Unknown,
+		New,
+		Deleted,
+		FastForward,
+		NewerTime,
+		Rewind,
+		OlderTime,
+		SameTime,
+		Same
+	};
+
+
+
+	struct RefEntry {
+		CString fullName;
+		TGitH::REF_TYPE refType = TGitH::REF_TYPE::UNKNOWN;
+		CString shortName;
+		CString change;
+		ChangeType changeType = ChangeType::Unknown;
+		CString oldHash;
+		CString oldMessage;
+		CString newHash;
+		CString newMessage;
+	};
+
+
+
+	static void AppendMenuChecked(CMenu& menu, const UINT nTextID, const UINT_PTR nItemID, const BOOL checked = FALSE, const BOOL enabled = TRUE) {
+		CString text;
+		text.LoadString(nTextID);
+		menu.AppendMenu(MF_STRING | (enabled ? MF_ENABLED : MF_DISABLED) | (checked ? MF_CHECKED : MF_UNCHECKED), nItemID, text);
+	}
+
+
+	static bool StringComparePredicate(const bool sortLogical, const CString& e1, const CString& e2) {
+		if (sortLogical)
+			return StrCmpLogicalW(e1, e2) < 0;
+		return e1.Compare(e2) < 0;
+	}
+
+
+	static CString RefTypeString(const TGitH::REF_TYPE reftype) {
+		CString type;
+		switch (reftype) {
+		case TGitH::REF_TYPE::LOCAL_BRANCH:
+			type.LoadString(IDS_PROC_BRANCH);
+			break;
+		case TGitH::REF_TYPE::REMOTE_BRANCH:
+			type.LoadString(IDS_PROC_REMOTEBRANCH);
+			break;
+		case TGitH::REF_TYPE::ANNOTATED_TAG:
+		case TGitH::REF_TYPE::TAG:
+			type.LoadString(IDS_PROC_TAG);
+			break;
+		default:
+			std::unreachable();
+		}
+		return type;
+	}
+
+public:
+	CGitRefCompareList() :
+		CHintCtrl<CListCtrl>() {
+		m_bSortLogical = !wil::reg::try_get_dword(HKEY_CURRENT_USER, L"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\Explorer", L"NoStrCmpLogical").
+		value_or(false);
+		if (m_bSortLogical)
+			m_bSortLogical = !wil::reg::try_get_dword(HKEY_LOCAL_MACHINE,
+			                                          L"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\Explorer",
+			                                          L"NoStrCmpLogical").value_or(false);
+		m_bHideUnchanged = wil::reg::try_get_tgit_bool(L"RefCompareHideUnchanged").value_or(false);
+	}
+
+
+	~CGitRefCompareList() override = default;
+
+	void Init();
+
+	int AddEntry(git_repository* repo, const CString& ref, const CGitHash* oldHash, const CGitHash* newHash);
+	void Show();
+	void Clear();
+	static CString GetCommitMessage(const git_commit* commit);
+
+protected:
+	afx_msg void OnHdnItemclick(NMHDR* pNMHDR, LRESULT* pResult);
+	afx_msg void OnContextMenu(CWnd* pWnd, CPoint point);
+
+
+	void OnContextMenuList(CWnd* pWnd, CPoint point) {
+		const int selIndex = GetSelectionMark();
+		if (selIndex < 0)
+			return;
+
+		const int index = static_cast<int>(GetItemData(selIndex));
+		if (index < 0 || static_cast<size_t>(index) >= m_RefList.size())
+			return;
+
+		CString refName = m_RefList[index].fullName;
+		CString oldHash = m_RefList[index].oldHash;
+		CString newHash = m_RefList[index].newHash;
+		CIconMenu popup;
+		popup.CreatePopupMenu();
+		CString logStr;
+		if (!oldHash.IsEmpty()) {
+			logStr.Format(IDS_SHOWLOG_OF, oldHash);
+			popup.AppendMenuIcon(IDGITRCL_OLDLOG, logStr, IDI_LOG);
+		}
+		if (!newHash.IsEmpty() && oldHash != newHash) {
+			logStr.Format(IDS_SHOWLOG_OF, newHash);
+			popup.AppendMenuIcon(IDGITRCL_NEWLOG, logStr, IDI_LOG);
+		}
+		if (!oldHash.IsEmpty() && !newHash.IsEmpty() && oldHash != newHash)
+			popup.AppendMenuIcon(IDGITRCL_COMPARE, IDS_LOG_POPUP_COMPAREWITHPREVIOUS, IDI_DIFF);
+		popup.AppendMenuIcon(IDGITRCL_REFLOG, IDS_MENUREFLOG, IDI_LOG);
+
+		const int cmd = popup.TrackPopupMenu(TPM_RETURNCMD | TPM_LEFTALIGN | TPM_NONOTIFY, point.x, point.y, this);
+		AfxGetApp()->DoWaitCursor(1);
+		switch (cmd) {
+		case IDGITRCL_OLDLOG:
+		case IDGITRCL_NEWLOG: {
+			CString sCmd;
+			auto revToShow = cmd == IDGITRCL_OLDLOG ? str::EscapeCmdValue(oldHash) : str::EscapeCmdValue(newHash);
+			sCmd.Format(L"/command:log /path:\"%s\" /endrev:%s /rev:%s", GitCall::m_CurrentDirStorage.c_str(), revToShow, revToShow);
+			TortoiseProc::RunTortoiseGitProc(sCmd);
+			break;
+		}
+		case IDGITRCL_COMPARE: {
+			CString sCmd;
+			sCmd.Format(L"/command:showcompare /path:\"%s\" /revision1:%s /revision2:%s",
+			            GitCall::m_CurrentDirStorage.c_str(),
+			            str::EscapeCmdValue(oldHash),
+			            str::EscapeCmdValue(newHash));
+			if (!!(GetAsyncKeyState(VK_SHIFT) & 0x8000))
+				sCmd += L" /alternative";
+			TortoiseProc::RunTortoiseGitProc(sCmd);
+			break;
+		}
+		case IDGITRCL_REFLOG: {
+			CString sCmd;
+			sCmd.Format(L"/command:reflog /path:\"%s\" /ref:%s", GitCall::m_CurrentDirStorage.c_str(), str::EscapeCmdValue(refName));
+			TortoiseProc::RunTortoiseGitProc(sCmd);
+			break;
+		}
+		default:
+			std::unreachable();
+		}
+		AfxGetApp()->DoWaitCursor(-1);
+	}
+
+
+	void OnContextMenuHeader(CWnd* pWnd, CPoint point) {
+		CMenu popup;
+		if (popup.CreatePopupMenu()) {
+			AppendMenuChecked(popup, IDS_HIDEUNCHANGED, IDGITRCLH_HIDEUNCHANGED, m_bHideUnchanged);
+
+			const int selection = popup.TrackPopupMenu(TPM_RETURNCMD | TPM_LEFTALIGN | TPM_NONOTIFY, point.x, point.y, this);
+			switch (selection) {
+			case IDGITRCLH_HIDEUNCHANGED:
+				m_bHideUnchanged = !m_bHideUnchanged;
+				Show();
+				break;
+			default:
+				std::unreachable();
+			}
+		}
+	}
+
+
+	ULONG GetGestureStatus(CPoint ptTouch) override {
+		return 0;
+	}
+
+
+	DECLARE_MESSAGE_MAP()
+
+private:
+	static bool SortPredicate(const RefEntry& e1, const RefEntry& e2);
+
+	std::vector<RefEntry> m_RefList;
+	BOOL m_bHideUnchanged;
+	static BOOL m_bSortLogical;
+
+	int colRef = 0;
+	int colRefType = 0;
+	int colChange = 0;
+	int colOldHash = 0;
+	int colOldMessage = 0;
+	int colNewHash = 0;
+	int colNewMessage = 0;
+
+	bool m_bAscending = false; ///< sort direction
+	int m_nSortedColumn = -1; ///< which column to sort
+};
+
 
 IMPLEMENT_DYNAMIC(CGitRefCompareList, CHintCtrl<CListCtrl>)
 
@@ -38,28 +242,6 @@ BEGIN_MESSAGE_MAP(CGitRefCompareList, CHintCtrl<CListCtrl>)
 END_MESSAGE_MAP()
 
 BOOL CGitRefCompareList::m_bSortLogical = FALSE;
-
-enum IDGITRCL
-{
-	IDGITRCL_OLDLOG = 1,
-	IDGITRCL_NEWLOG,
-	IDGITRCL_COMPARE,
-	IDGITRCL_REFLOG,
-};
-
-enum IDGITRCLH
-{
-	IDGITRCLH_HIDEUNCHANGED = 1,
-};
-
-CGitRefCompareList::CGitRefCompareList()
-	: CHintCtrl<CListCtrl>()
-{
-	m_bSortLogical = !CRegDWORD(L"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\Explorer\\NoStrCmpLogical", 0, false, HKEY_CURRENT_USER);
-	if (m_bSortLogical)
-		m_bSortLogical = !CRegDWORD(L"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\Explorer\\NoStrCmpLogical", 0, false, HKEY_LOCAL_MACHINE);
-	m_bHideUnchanged = CRegDWORD(L"Software\\TortoiseGit\\RefCompareHideUnchanged", FALSE);
-}
 
 void CGitRefCompareList::Init()
 {
@@ -162,34 +344,6 @@ int CGitRefCompareList::AddEntry(git_repository* repo, const CString& ref, const
 
 	m_RefList.push_back(entry);
 	return static_cast<int>(m_RefList.size()) - 1;
-}
-
-inline static bool StringComparePredicate(const bool sortLogical, const CString& e1, const CString& e2)
-{
-	if (sortLogical)
-		return StrCmpLogicalW(e1, e2) < 0;
-	return e1.Compare(e2) < 0;
-}
-
-static CString RefTypeString(const TGitH::REF_TYPE reftype)
-{
-	CString type;
-	switch (reftype)
-	{
-	case TGitH::REF_TYPE::LOCAL_BRANCH:
-		type.LoadString(IDS_PROC_BRANCH);
-		break;
-	case TGitH::REF_TYPE::REMOTE_BRANCH:
-		type.LoadString(IDS_PROC_REMOTEBRANCH);
-		break;
-	case TGitH::REF_TYPE::ANNOTATED_TAG:
-	case TGitH::REF_TYPE::TAG:
-		type.LoadString(IDS_PROC_TAG);
-		break;
-	default:
-		std::unreachable();
-	}
-	return type;
 }
 
 void CGitRefCompareList::Show()
@@ -323,97 +477,6 @@ void CGitRefCompareList::OnContextMenu(CWnd *pWnd, const CPoint point)
 	}
 }
 
-void CGitRefCompareList::OnContextMenuList(CWnd * /*pWnd*/, const CPoint point)
-{
-	const int selIndex = GetSelectionMark();
-	if (selIndex < 0)
-		return;
-
-	const int index = static_cast<int>(GetItemData(selIndex));
-	if (index < 0 || static_cast<size_t>(index) >= m_RefList.size())
-		return;
-
-	CString refName = m_RefList[index].fullName;
-	CString oldHash = m_RefList[index].oldHash;
-	CString newHash = m_RefList[index].newHash;
-	CIconMenu popup;
-	popup.CreatePopupMenu();
-	CString logStr;
-	if (!oldHash.IsEmpty())
-	{
-		logStr.Format(IDS_SHOWLOG_OF, oldHash);
-		popup.AppendMenuIcon(IDGITRCL_OLDLOG, logStr, IDI_LOG);
-	}
-	if (!newHash.IsEmpty() && oldHash != newHash)
-	{
-		logStr.Format(IDS_SHOWLOG_OF, newHash);
-		popup.AppendMenuIcon(IDGITRCL_NEWLOG, logStr, IDI_LOG);
-	}
-	if (!oldHash.IsEmpty() && !newHash.IsEmpty() && oldHash != newHash)
-		popup.AppendMenuIcon(IDGITRCL_COMPARE, IDS_LOG_POPUP_COMPAREWITHPREVIOUS, IDI_DIFF);
-	popup.AppendMenuIcon(IDGITRCL_REFLOG, IDS_MENUREFLOG, IDI_LOG);
-
-	const int cmd = popup.TrackPopupMenu(TPM_RETURNCMD | TPM_LEFTALIGN | TPM_NONOTIFY, point.x, point.y, this);
-	AfxGetApp()->DoWaitCursor(1);
-	switch (cmd)
-	{
-		case IDGITRCL_OLDLOG:
-		case IDGITRCL_NEWLOG:
-		{
-			CString sCmd;
-			auto revToShow = cmd == IDGITRCL_OLDLOG ? TCmdLineParser::EscapeValue(oldHash).c_str() : TCmdLineParser::EscapeValue(newHash).c_str();
-			sCmd.Format(L"/command:log /path:\"%s\" /endrev:%s /rev:%s", GitCall::m_CurrentDirStorage.c_str(), revToShow, revToShow);
-			TortoiseProc::RunTortoiseGitProc(sCmd);
-			break;
-		}
-		case IDGITRCL_COMPARE:
-		{
-			CString sCmd;
-			sCmd.Format(L"/command:showcompare /path:\"%s\" /revision1:%s /revision2:%s", GitCall::m_CurrentDirStorage.c_str(), TCmdLineParser::EscapeValue(oldHash).c_str(), TCmdLineParser::EscapeValue(newHash).c_str());
-			if (!!(GetAsyncKeyState(VK_SHIFT) & 0x8000))
-				sCmd += L" /alternative";
-			TortoiseProc::RunTortoiseGitProc(sCmd);
-			break;
-		}
-		case IDGITRCL_REFLOG:
-		{
-			CString sCmd;
-			sCmd.Format(L"/command:reflog /path:\"%s\" /ref:%s", GitCall::m_CurrentDirStorage.c_str(), TCmdLineParser::EscapeValue(refName).c_str());
-			TortoiseProc::RunTortoiseGitProc(sCmd);
-			break;
-		}
-		default:
-			std::unreachable();
-	}
-	AfxGetApp()->DoWaitCursor(-1);
-}
-
-static void AppendMenuChecked(CMenu &menu, const UINT nTextID, const UINT_PTR nItemID, const BOOL checked = FALSE, const BOOL enabled = TRUE)
-{
-	CString text;
-	text.LoadString(nTextID);
-	menu.AppendMenu(MF_STRING | (enabled ? MF_ENABLED : MF_DISABLED) | (checked ? MF_CHECKED : MF_UNCHECKED), nItemID, text);
-}
-
-void CGitRefCompareList::OnContextMenuHeader(CWnd * /*pWnd*/, const CPoint point)
-{
-	CMenu popup;
-	if (popup.CreatePopupMenu())
-	{
-		AppendMenuChecked(popup, IDS_HIDEUNCHANGED, IDGITRCLH_HIDEUNCHANGED, m_bHideUnchanged);
-
-		const int selection = popup.TrackPopupMenu(TPM_RETURNCMD | TPM_LEFTALIGN | TPM_NONOTIFY, point.x, point.y, this);
-		switch (selection) {
-			case IDGITRCLH_HIDEUNCHANGED:
-				m_bHideUnchanged = !m_bHideUnchanged;
-				Show();
-				break;
-			default:
-				std::unreachable();
-		}
-	}
-}
-
 CString CGitRefCompareList::GetCommitMessage(const git_commit *commit)
 {
 	int encode = CP_UTF8;
@@ -436,9 +499,4 @@ bool CGitRefCompareList::SortPredicate(const RefEntry &e1, const RefEntry &e2)
 	if (m_bSortLogical)
 		return StrCmpLogicalW(e1.fullName, e2.fullName) < 0;
 	return e1.fullName.Compare(e2.fullName) < 0;
-}
-
-ULONG CGitRefCompareList::GetGestureStatus(CPoint /*ptTouch*/)
-{
-	return 0;
 }

@@ -1,4 +1,5 @@
 module;
+#include <exception>
 #include <windows.h>
 #include <crtdbg.h>		// _ASSERTE: a macro, which no import carries. No ATL header: see Git.ixx
 #include <gitdll.h>
@@ -39,7 +40,10 @@ using tgit::wstr::CString;
 #define LOG_REV_ITEM_BEGIN L'B'
 #define LOG_REV_ITEM_END L'C'
 
-export struct GitRev {
+export namespace TGitRev {
+
+
+struct GitRev {
 using TimeType = tgit::wstr::CTime;
 
 protected:
@@ -111,7 +115,7 @@ public:
 	{
 		[[maybe_unused]] CAutoLocker lock(g_Git.m_critGitDllSec);
 		g_Git.CheckAndInitDll();
-		return GetCommitFromHash_withoutLock(hash);
+		return this->GetCommitFromHash_withoutLock(hash);
 	}
 
 	void ApplyMailmap(const GitMailmap::CGitMailmap& mailmap = CGitMailmap());
@@ -121,14 +125,13 @@ private:
 	int GetCommitFromHash_withoutLock(const CGitHash& hash);
 };
 
-export class GitRevRefBrowser : public GitRev
+class GitRevRefBrowser : public GitRev
 {
 public:
 	using MAP_REF_GITREVREFBROWSER = std::map<CString, GitRevRefBrowser>;
 	using GitRev::m_objectType;
 
-	GitRevRefBrowser() : GitRev()
-	{}
+	GitRevRefBrowser() = default;
 
 	CString m_Description{};
 	CString m_UpstreamRef{};
@@ -283,10 +286,9 @@ public:
 					entry.m_Description = descriptions[std::wstring(refName.Mid(static_cast<int>(wcslen(L"refs/heads/"))))].c_str();
 
 					wil::unique_git_buf buf;
-					if (const auto ret = git_branch_upstream_name(&buf, repo.get(), git_reference_name(ref.get())); ret == 0)
+					if (const auto ret = git_branch_upstream_name(&buf, repo.get(), git_reference_name(ref.get())); ret == 0) {
 						entry.m_UpstreamRef = CUnicodeUtils::GetUnicode<CString>(std::string{buf.ptr, buf.ptr + buf.size});
-					else if (ret != GIT_ENOTFOUND)
-					{
+					} else if (ret != GIT_ENOTFOUND) {
 						err = TGitH::GetLibGit2LastErr();
 						return -1;
 					}
@@ -400,7 +402,7 @@ public:
 	}
 };
 // TortoiseProc spells it unqualified, as the header-era typedef was
-export using MAP_REF_GITREVREFBROWSER = GitRevRefBrowser::MAP_REF_GITREVREFBROWSER;
+using MAP_REF_GITREVREFBROWSER = GitRevRefBrowser::MAP_REF_GITREVREFBROWSER;
 
 void GitRev::Clear()
 {
@@ -422,7 +424,7 @@ int GitRev::ParserParentFromCommit(const GIT_COMMIT* commit)
 {
 	_ASSERTE(commit);
 	this->m_ParentHash.clear();
-	GIT_COMMIT_LIST list;
+	GIT_COMMIT_LIST list{};
 	GIT_HASH   parent;
 
 	git_get_commit_first_parent(commit,&list);
@@ -706,3 +708,5 @@ void GitRev::ApplyMailmap(const CGitMailmap& mailmap)
 	mailmap.Translate(m_CommitterName, m_CommitterEmail);
 }
 
+}
+export using namespace TGitRev;

@@ -95,7 +95,7 @@ void CMergeDlg::ReloadHistoryEntries()
 BOOL CMergeDlg::OnInitDialog()
 {
 	CResizableStandAloneDialog::OnInitDialog();
-	CAppUtils::MarkWindowAsUnpinnable(m_hWnd);
+	wil::MFC::MarkWindowAsUnpinnable(m_hWnd);
 
 	AdjustControlSize(IDC_RADIO_BRANCH);
 	AdjustControlSize(IDC_RADIO_TAGS);
@@ -120,12 +120,12 @@ BOOL CMergeDlg::OnInitDialog()
 	CheckRadioButton(IDC_RADIO_BRANCH,IDC_RADIO_VERSION,IDC_RADIO_BRANCH);
 	this->SetDefaultChoose(IDC_RADIO_BRANCH);
 
-	CAppUtils::SetWindowTitle(*this, GitCall::m_CurrentDirStorage.c_str());
+	wil::MFC::SetWindowTitle(*this, GitCall::m_CurrentDirStorage.c_str());
 
 	m_ProjectProperties.ReadProps();
 
 	m_cLogMessage.Init(m_ProjectProperties);
-	m_cLogMessage.SetFont(CAppUtils::GetLogFontName(), CAppUtils::GetLogFontSize());
+	m_cLogMessage.SetFont(wil::MFC::GetLogFontName(), wil::MFC::GetLogFontSize());
 	m_cLogMessage.RegisterContextMenuHandler(this);
 
 	m_cLogMessage.SetText(m_pDefaultText);

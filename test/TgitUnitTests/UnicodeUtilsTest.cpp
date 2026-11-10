@@ -18,7 +18,6 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 #include "stdafx.h"
-using namespace std::literals;
 using tgit::wstr::CString;
 using CStringW = tgit::wstr::CString;
 

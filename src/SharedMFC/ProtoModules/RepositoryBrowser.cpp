@@ -28,7 +28,7 @@ import TortoiseProc;
 #include "../../SharedMFC/Utils/LogDlg.h"
 import AppUtils.Launch;
 import AppUtils.Window;
-#include "../../TortoiseProc/MiscUI/IconMenu.h"
+import IconMenu;
 #include "Utils/SysImageList.h"
 #include "GitDiff.h"
 import DPIAware;
@@ -175,7 +175,7 @@ END_MESSAGE_MAP()
 BOOL CRepositoryBrowser::OnInitDialog()
 {
 	CResizableStandAloneDialog::OnInitDialog();
-	CAppUtils::MarkWindowAsUnpinnable(m_hWnd);
+	wil::MFC::MarkWindowAsUnpinnable(m_hWnd);
 
 	AddAnchor(IDC_STATIC_REPOURL, TOP_LEFT);
 	AddAnchor(IDC_REPOBROWSER_URL, TOP_LEFT, TOP_RIGHT);
@@ -245,7 +245,7 @@ BOOL CRepositoryBrowser::OnInitDialog()
 	}
 	HandleDividerMove(CPoint(CDPIAware::Instance().ScaleX(GetSafeHwnd(), xPos + 20), CDPIAware::Instance().ScaleY(GetSafeHwnd(), 10)), false);
 
-	CAppUtils::SetWindowTitle(*this, GitCall::m_CurrentDirStorage.c_str());
+	wil::MFC::SetWindowTitle(*this, GitCall::m_CurrentDirStorage.c_str());
 
 	m_bHasWC = !GitAdminDir::IsBareRepo(GitCall::m_CurrentDirStorage);
 
@@ -818,11 +818,11 @@ void CRepositoryBrowser::ShowContextMenu(CPoint point, TShadowFilesTreeList &sel
 	case eCmd_ViewLogSubmodule:
 		{
 			CString sCmd;
-			sCmd.Format(L"/command:log /path:%s", TCmdLineParser::EscapeValue(g_Git.CombinePath(selectedLeafs.at(0)->GetFullName()).wstring()).c_str());
+			sCmd.Format(L"/command:log /path:%s", str::EscapeCmdValue(g_Git.CombinePath(selectedLeafs.at(0)->GetFullName()).wstring()).c_str());
 			if (cmd == eCmd_ViewLog && selectedLeafs.at(0)->m_bSubmodule)
 				sCmd += L" /submodule";
 			if (cmd == eCmd_ViewLog)
-				sCmd += L" /endrev:" + TCmdLineParser::EscapeValue(m_sRevision) + L" /rev:" + TCmdLineParser::EscapeValue(m_sRevision);
+				sCmd += L" /endrev:" + str::EscapeCmdValue(m_sRevision) + L" /rev:" + str::EscapeCmdValue(m_sRevision);
 			else if (cmd == eCmd_ViewLogSubmodule)
 				sCmd += L" /rev:" + selectedLeafs.at(0)->m_hash.ToString() + L" /endrev:" + selectedLeafs.at(0)->m_hash.ToString();
 			TortoiseProc::RunTortoiseGitProc(sCmd);
@@ -1237,7 +1237,7 @@ void CRepositoryBrowser::FileSaveAs(const CString path)
 
 	CString filename;
 	filename.Format(L"%s\\%s-%s%s", g_Git.CombinePath(gitPath.GetContainingDirectory()), gitPath.GetBaseFilename().c_str(), (hash.ToString(g_Git.GetShortHASHLength())).c_str(), gitPath.GetFileExtension().c_str());
-	if (!CAppUtils::FileOpenSave(filename, nullptr, 0, 0, false, GetSafeHwnd()))
+	if (!ConfigureGitExe::FileOpenSave(filename, nullptr, 0, 0, false, GetSafeHwnd()))
 		return;
 
 	if (g_Git.GetOneFile(m_sRevision, gitPath, filename))
@@ -1276,13 +1276,13 @@ void CRepositoryBrowser::OpenFile(const CString path, eOpenType mode, bool isSub
 					return;
 
 				CString sCmd;
-				sCmd.Format(L"/command:subupdate /bkpath:\"%s\" /selectedpath:%s", GitCall::m_CurrentDirStorage.c_str(), TCmdLineParser::EscapeValue(gitPath.GetGitPathString()).c_str());
+				sCmd.Format(L"/command:subupdate /bkpath:\"%s\" /selectedpath:%s", GitCall::m_CurrentDirStorage.c_str(), str::EscapeCmdValue(gitPath.GetGitPathString()).c_str());
 				TortoiseProc::RunTortoiseGitProc(sCmd);
 				return;
 			}
 
 			CString cmd;
-			cmd.Format(L"/command:repobrowser /path:%s /rev:%s", TCmdLineParser::EscapeValue(g_Git.CombinePath(path).wstring()).c_str(), (itemHash.ToString()).c_str());
+			cmd.Format(L"/command:repobrowser /path:%s /rev:%s", str::EscapeCmdValue(g_Git.CombinePath(path).wstring()).c_str(), (itemHash.ToString()).c_str());
 			TortoiseProc::RunTortoiseGitProc(cmd);
 			return;
 		}
@@ -1307,7 +1307,7 @@ void CRepositoryBrowser::OpenFile(const CString path, eOpenType mode, bool isSub
 	}
 	else if (mode == OPEN)
 	{
-		CAppUtils::ShellOpen(file);
+		TortoiseProc::ShellOpen(file);
 		return;
 	}
 

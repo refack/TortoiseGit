@@ -24,11 +24,11 @@ import tgit;
 
 import TortoiseProc;
 #include "WorktreeListDlg.h"
-#include "ProgressDlg.h"
+import ProgressDlg;
 import AppUtils.Launch;
 import AppUtils.Window;
 import AppUtils.Workflow;
-#include "../../TortoiseProc/MiscUI/IconMenu.h"
+import IconMenu;
 #include "Utils/SysImageList.h"
 import MessageBox;
 
@@ -48,9 +48,9 @@ END_MESSAGE_MAP()
 BOOL CWorktreeListDlg::OnInitDialog()
 {
 	CResizableStandAloneDialog::OnInitDialog();
-	CAppUtils::MarkWindowAsUnpinnable(m_hWnd);
+	wil::MFC::MarkWindowAsUnpinnable(m_hWnd);
 
-	CAppUtils::SetWindowTitle(*this, GitCall::m_CurrentDirStorage.c_str());
+	wil::MFC::SetWindowTitle(*this, GitCall::m_CurrentDirStorage.c_str());
 
 	AddAnchor(IDC_WORKTREE_LIST, TOP_LEFT, BOTTOM_RIGHT);
 	AddAnchor(IDC_BUTTON_ADD, BOTTOM_LEFT);
@@ -286,7 +286,7 @@ void CWorktreeListDlg::OnNMDblclkWorktreeList(NMHDR* pNMHDR, LRESULT* pResult)
 	if (selIndex >= static_cast<int>(m_Worktrees.size()))
 		return;
 
-	CAppUtils::ExploreTo(GetSafeHwnd(), m_Worktrees[selIndex].m_Path);
+	TortoiseProc::ExploreTo(GetSafeHwnd(), m_Worktrees[selIndex].m_Path);
 }
 
 void CWorktreeListDlg::ShowContextMenu(CPoint point, std::vector<int>& indexes)
@@ -337,7 +337,7 @@ void CWorktreeListDlg::ShowContextMenu(CPoint point, std::vector<int>& indexes)
 		{
 			if (indexes.size() != 1)
 				return;
-			CAppUtils::ExploreTo(GetSafeHwnd(), m_Worktrees[indexes[0]].m_Path);
+			TortoiseProc::ExploreTo(GetSafeHwnd(), m_Worktrees[indexes[0]].m_Path);
 			break;
 		}
 		case eCmd_Remove:

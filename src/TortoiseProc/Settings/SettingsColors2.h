@@ -19,7 +19,7 @@
 //
 #pragma once
 #include "SettingsPropPage.h"
-#include "Colors.h"
+import Colors;
 
 /**
  * \ingroup TortoiseProc
@@ -52,6 +52,4 @@ private:
 	CMFCColorButton	m_cLocalBranch;
 	CMFCColorButton	m_cTags;
 	CMFCColorButton	m_cFilterMatch;
-
-	CColors			m_Colors;
 };

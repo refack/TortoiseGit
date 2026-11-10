@@ -1,18 +1,26 @@
 ﻿module;
+#include <map>
+#include <format>
 #include <afxwinappex.h>
 
 #include <version.h>
 
 #include "../TortoiseProc/MiscUI/AnimationManager.h"
 #include "../TortoiseProc/JumpListHelpers.h"
-#include "ProtoModules/VersioncheckParser.h"
 #include "../TortoiseProc/Commands/Command.h"
+
+#include "Utils/CertificateValidationHelper.h"
+#include "Utils/HistoryCombo.h"
+#include "Utils/SysImageList.h"
+#include "Utils/WindowsCredentialsStore.h"
+
+#include "ProtoModules/CheckCertificateDlg.h"
+#include "ProtoModules/UserPassword.h"
+#include "ProtoModules/VersioncheckParser.h"
 
 #include "Resources/resource.h"
 #include "../TortoiseShell/resource.h"
 
-#include "Utils/SysImageList.h"
-#include "Utils/WindowsCredentialsStore.h"
 #include <tgitlib/sanity.h>
 
 
@@ -24,21 +32,13 @@
 export module TortoiseProc;
 
 
-import std;
-using namespace std::literals;
+import tgit;
 namespace fs = std::filesystem;
-
-import gsl;
-import invarients;
-import str_utils;		// UnicodeUtils.h, WideString.h, StringUtils.h
-import wil;				// also the libgit2 owners, wil::unique_git_* (SmartLibgit2Ref.h's CAuto
 
 import ConfigureGitExe;
 // cannot `import AppUtils.GitEnv;` for CAppUtils::Git2GetUserPassword - every
 // AppUtils.* module imports TortoiseProc, so the edge back is a module cycle.
 
-import git_h;			// Git.h, and what gittype.h/tgittypes held for git
-import DebugOutput;
 import RIAA;			// SmartHandle.h
 import DirFileEnum;
 import PathUtils;
@@ -55,7 +55,7 @@ import Libraries;
 import LangDll;
 import tgit.Hooks;
 import CmdLineParser;
-using namespace TCmdLineParser;
+import ConfigureGitExe;
 
 
 
@@ -217,25 +217,24 @@ bool LaunchApplication(const CString& sCommandLine, const LaunchApplicationFlags
 			return false;
 		}
 
-		const CAutoGeneralHandle piProcess(std::move(shellinfo.hProcess));
+		const auto piProcess = wil::unique_handle{std::move(shellinfo.hProcess)};
 		if (piProcess) {
 			if (flags.bWaitForStartup)
-				WaitForInputIdle(piProcess, 10000);
+				WaitForInputIdle(piProcess.get(), 10000);
 
 			if (flags.bWaitForExit) {
 				DWORD count = 1;
-				HANDLE handles[2];
-				handles[0] = piProcess;
+				auto handles = std::array<HANDLE,2>{piProcess.get()};
 				if (flags.hWaitHandle) {
 					count = 2;
 					handles[1] = flags.hWaitHandle;
 				}
-				WaitForMultipleObjects(count, handles, FALSE, INFINITE);
+				WaitForMultipleObjects(count, handles.data(), FALSE, INFINITE);
 				if (flags.hWaitHandle)
 					CloseHandle(flags.hWaitHandle);
 
 				if (flags.pdwExitCode) {
-					if (!GetExitCodeProcess(piProcess, flags.pdwExitCode))
+					if (!GetExitCodeProcess(piProcess.get(), flags.pdwExitCode))
 						return false;
 				}
 			}
@@ -288,18 +287,17 @@ bool LaunchApplication(const CString& sCommandLine, const LaunchApplicationFlags
 }
 
 
-bool RunTortoiseGitProc(const CString& sCommandLine, const bool uac = false, const bool includeGroupingUUID = false) {
-	const std::wstring pathToExecutable = PathUtils::GetAppDirectory() / L"TortoiseGitProc.exe";
-	CString sCmd = std::format(L"\"{}\" {}", pathToExecutable, sCommandLine).c_str();
-	if (AfxGetMainWnd()->GetSafeHwnd() && (sCommandLine.Find(L"/hwnd:") < 0))
-		sCmd.AppendFormat(L" /hwnd:%p", AfxGetMainWnd()->GetSafeHwnd());
-	if (!g_sGroupingUUID.empty() && includeGroupingUUID) {
-		sCmd += L" /groupuuid:\"";
-		sCmd += g_sGroupingUUID.c_str();
-		sCmd += L'"';
-	}
+bool RunTortoiseGitProc(const std::wstring_view sCommandLine, const bool uac = false, const bool includeGroupingUUID = false) {
+	auto sCmd = std::format(L"\"{}\" {}", til::GetAppDirectory() / L"TortoiseGitProc.exe", sCommandLine);
+	if (AfxGetMainWnd()->GetSafeHwnd() && sCommandLine.contains(L"/hwnd:"))
+		std::format_to(std::back_inserter(sCmd), L" /hwnd:{}", static_cast<const void*>(AfxGetMainWnd()->GetSafeHwnd()));
+	if (!g_sGroupingUUID.empty() && includeGroupingUUID)
+		std::format_to(std::back_inserter(sCmd), L" /groupuuid:\"{}\"", g_sGroupingUUID);
 
-	return LaunchApplication(sCmd, LaunchApplicationFlags().UAC(uac));
+	return LaunchApplication(sCmd.c_str(), LaunchApplicationFlags().UAC(uac));
+}
+bool RunTortoiseGitProc(const CString& sCommandLine, const bool uac = false, const bool includeGroupingUUID = false) {
+	return RunTortoiseGitProc(str::as_view(sCommandLine), uac, includeGroupingUUID);
 }
 
 
@@ -467,7 +465,7 @@ bool LaunchAlternativeEditor(const CString& filename) {
 class CTortoiseProcApp : public CWinAppEx {
 public:
 	CTortoiseProcApp();
-	~CTortoiseProcApp() override;
+	~CTortoiseProcApp() override = default;
 
 	// Overrides
 	BOOL InitInstance() override;
@@ -500,8 +498,7 @@ HWND GetExplorerHWND();
 /// straight to CRegString would compile and silently read HKCU\MSysGit.
 template <std::size_t LEN2>
 constexpr auto TGitRegPath(const wchar_t (&valName)[LEN2]) {
-	using namespace std::literals;
-	constexpr auto prefix = L"Software\\TortoiseGit\\"sv;
+		constexpr auto prefix = L"Software\\TortoiseGit\\"sv;
 	constexpr std::size_t total_len = prefix.size() + LEN2;
 
 	std::array<wchar_t, total_len> result{};
@@ -519,21 +516,85 @@ END_MESSAGE_MAP()
 
 //////////////////////////////////////////////////////////////////////////
 
-CTortoiseProcApp::CTortoiseProcApp() {
-	TracePrintf(_T(__FUNCTION__) L": Constructor\n");
-	SetDllDirectory(L"");
-	TracePrintf(_T(__FUNCTION__) L": CommandLine: %s\n", GetCommandLine());
-	EnableHtmlHelp();
-	CHooks::Create();
-	CGit::SetGit2CredentialCallback(CAppUtils::Git2GetUserPassword);
-	CGit::SetGit2CertificateCheckCertificate(CAppUtils::Git2CertificateCheck);
-	m_bLoadUserToolbars = FALSE;
-	m_bSaveState = FALSE;
+using cert_t = std::vector<char>;
+cert_t last_accepted_cert{};
+
+constexpr boolean cert_t_cmp(const git_cert_x509* cert) {
+	const std::span received{ static_cast<const char*>(cert->data), cert->len };
+	return std::ranges::equal(last_accepted_cert, received);
+}
+
+constexpr void cert_t_set(const git_cert_x509* cert) {
+	last_accepted_cert.assign(static_cast<const char*>(cert->data), static_cast<const char*>(cert->data) + cert->len);
+}
+
+int Git2GetUserPassword(git_credential **out, const char *url, const char *username_from_url, unsigned int /*allowed_types*/, void * /*payload*/)
+{
+	CUserPassword dlg;
+	dlg.m_URL = CUnicodeUtils::GetUnicode<CString>(url);
+	if (username_from_url)
+		dlg.m_UserName = CUnicodeUtils::GetUnicode<CString>(username_from_url);
+
+	if (dlg.DoModal() == IDOK)
+		return git_credential_userpass_plaintext_new(out, CUnicodeUtils::GetUTF8<CStringA>(dlg.m_UserName), dlg.m_passwordA);
+
+	git_error_set_str(git_error_t::GIT_ERROR_NONE, "User cancelled.");
+	return git_error_code::GIT_EUSER;
+}
+
+int Git2CertificateCheck(git_cert* base_cert, int /*valid*/, const char* host, void* /*payload*/)
+{
+	if (base_cert->cert_type == git_cert_t::GIT_CERT_X509)
+	{
+		auto cert = reinterpret_cast<git_cert_x509*>(base_cert);
+
+		if (cert_t_cmp(cert))
+			return 0;
+
+		PCCERT_CONTEXT pServerCert = CertCreateCertificateContext(X509_ASN_ENCODING | PKCS_7_ASN_ENCODING, static_cast<BYTE*>(cert->data), static_cast<DWORD>(cert->len));
+		SCOPE_EXIT { CertFreeCertificateContext(pServerCert); };
+
+		DWORD verificationError = VerifyServerCertificate(pServerCert, CUnicodeUtils::GetUnicode<CString>(host).GetBuffer(), 0);
+		if (!verificationError)
+		{
+			cert_t_set(cert);
+			return 0;
+		}
+
+		CString servernameInCert;
+		CertGetNameString(pServerCert, CERT_NAME_SIMPLE_DISPLAY_TYPE, 0, nullptr, CStrBuf(servernameInCert, 128), 128);
+
+		CString issuer;
+		CertGetNameString(pServerCert, CERT_NAME_SIMPLE_DISPLAY_TYPE, CERT_NAME_ISSUER_FLAG, nullptr, CStrBuf(issuer, 128), 128);
+
+		CCheckCertificateDlg dlg;
+		dlg.cert = cert;
+		dlg.m_sCertificateCN = servernameInCert;
+		dlg.m_sCertificateIssuer = issuer;
+		dlg.m_sHostname = CUnicodeUtils::GetUnicode<CString>(host);
+		dlg.m_sError = wil::CFormatMessageWrapper(verificationError).c_str();
+		if (dlg.DoModal() == IDOK)
+		{
+			cert_t_set(cert);
+			return 0;
+		}
+	}
+	return git_error_code::GIT_ECERTIFICATE;
 }
 
 
-CTortoiseProcApp::~CTortoiseProcApp() {
-	CHooks::Destroy();
+//////////////////////////////////////////////////////////////////////////
+
+CTortoiseProcApp::CTortoiseProcApp() {
+	DebugOutput::TracePrintf(_T(__FUNCTION__) L": Constructor\n");
+	SetDllDirectory(L"");
+	DebugOutput::TracePrintf(_T(__FUNCTION__) L": CommandLine: %s\n", GetCommandLine());
+	EnableHtmlHelp();
+	CHooks::Create();
+	CGit::SetGit2CredentialCallback(Git2GetUserPassword);
+	CGit::SetGit2CertificateCheckCertificate(Git2CertificateCheck);
+	m_bLoadUserToolbars = FALSE;
+	m_bSaveState = FALSE;
 }
 
 
@@ -581,7 +642,7 @@ void CheckForNewerVersion() {
 				if (static_cast<DWORD>(week) != oldweek) {
 					oldweek = week;
 #endif
-					RunTortoiseGitProc(L"/command:updatecheck", false, false);
+					RunTortoiseGitProc(L"/command:updatecheck"sv, false, false);
 				}
 			}
 		}
@@ -592,12 +653,12 @@ void CheckForNewerVersion() {
 void CheckUpgrade() {
 	CRegString regVersion = CRegString(L"Software\\TortoiseGit\\CurrentVersion");
 	CString sVersion = regVersion;
-	TracePrintf(_T(__FUNCTION__) L": Current TGit Version %s vs. last used version %s\n", _T(STRPRODUCTVER), sVersion);
+	DebugOutput::TracePrintf(_T(__FUNCTION__) L": Current TGit Version %s vs. last used version %s\n", _T(STRPRODUCTVER), sVersion);
 	if (sVersion.Compare(_T(STRPRODUCTVER)) == 0)
 		return;
 	// we're starting the first time with a new version!
 
-	LONG lVersion = 0;
+	unsigned lVersion = 0;
 	int pos = sVersion.Find('.');
 	if (pos > 0) {
 		lVersion = (_wtol(sVersion.Left(pos)) << 24);
@@ -752,7 +813,7 @@ void CheckUpgrade() {
 		CRegStdDWORD(L"Software\\TortoiseGit\\CheckNewer").removeValue();
 	}
 
-	TracePrintf(_T(__FUNCTION__) L": Setting up diff scripts ...\n");
+	DebugOutput::TracePrintf(_T(__FUNCTION__) L": Setting up diff scripts ...\n");
 	SetupDiffScripts(false, CString());
 
 	// set the current version so we don't come here again until the next update!
@@ -763,7 +824,7 @@ void CheckUpgrade() {
 // CTortoiseProcApp initialization
 
 BOOL CTortoiseProcApp::InitInstance() {
-	TracePrintf(_T(__FUNCTION__) L": InitInstance\n");
+	DebugOutput::TracePrintf(_T(__FUNCTION__) L": InitInstance\n");
 	CheckUpgrade();
 	CMFCVisualManager::SetDefaultManager(RUNTIME_CLASS(CMFCVisualManagerWindows));
 	CMFCButton::EnableWindowsTheming();
@@ -773,9 +834,9 @@ BOOL CTortoiseProcApp::InitInstance() {
 
 	if (HINSTANCE hInst = m_langDll.Init(L"TortoiseProc"); hInst)
 		AfxSetResourceHandle(hInst);
-	setlocale(LC_ALL, "");
+	til::reset_proc_locale();
 
-	TracePrintf(_T(__FUNCTION__) L": Initializing UI components ...\n");
+	DebugOutput::TracePrintf(_T(__FUNCTION__) L": Initializing UI components ...\n");
 	// InitCommonControls() is required on Windows XP if an application
 	// manifest specifies use of ComCtl32.dll version 6 or later to enable
 	// visual styles.  Otherwise, any window creation will fail.
@@ -787,7 +848,7 @@ BOOL CTortoiseProcApp::InitInstance() {
 		ICC_HOTKEY_CLASS | ICC_INTERNET_CLASSES | ICC_LISTVIEW_CLASSES |
 		ICC_NATIVEFNTCTL_CLASS | ICC_PAGESCROLLER_CLASS | ICC_PROGRESS_CLASS |
 		ICC_TAB_CLASSES | ICC_TREEVIEW_CLASSES | ICC_UPDOWN_CLASS |
-		ICC_USEREX_CLASSES | ICC_WIN95_CLASSES
+		ICC_USEREX_CLASSES | ICC_WIN95_CLASSES,
 	};
 	InitCommonControlsEx(&used);
 	AfxOleInit();
@@ -796,16 +857,16 @@ BOOL CTortoiseProcApp::InitInstance() {
 	CWinAppEx::InitInstance();
 	SetRegistryKey(L"TortoiseGit");
 	SYS_IMAGE_LIST();
-	CHistoryCombo::m_nGitIconIndex = SYS_IMAGE_LIST().AddIcon(CAppUtils::LoadIconEx(IDI_GITCONFIG, 0, 0));
+	CHistoryCombo::m_nGitIconIndex = SYS_IMAGE_LIST().AddIcon(wil::MFC::LoadIconEx(IDI_GITCONFIG, 0, 0));
 	AfxGetApp()->m_pszProfileName = _wcsdup(L"TortoiseProc");
 	// w/o this ResizableLib will store data under TortoiseGitProc which is not compatible with older versions
 
 	CCmdLineParser parser(AfxGetApp()->m_lpCmdLine);
 
 	hWndExplorer = nullptr;
-	std::wstring sVal = parser.GetValStr(L"hwnd");
+	auto sVal = parser.GetValStr(L"hwnd");
 	if (!sVal.empty())
-		hWndExplorer = reinterpret_cast<HWND>(_wcstoui64(sVal.c_str(), nullptr, 16));
+		hWndExplorer = reinterpret_cast<HWND>(_wcstoui64(sVal.data(), nullptr, 16));
 
 	while (hWndExplorer && GetParent(hWndExplorer))
 		hWndExplorer = GetParent(hWndExplorer);
@@ -820,14 +881,14 @@ BOOL CTortoiseProcApp::InitInstance() {
 #if PREVIEW
 	TracePrintf(_T(__FUNCTION__) L": Preview: %s\n", _T(PREVIEW_INFO));
 #else
-	if (CString hotfix = (PathUtils::GetAppDirectory() / L"hotfix.ini").c_str(); PathFileExists(hotfix)) {
+	if (CString hotfix = (til::GetAppDirectory() / L"hotfix.ini").c_str(); PathFileExists(hotfix)) {
 		CString err;
 		CVersioncheckParser versionparser;
 		if (versionparser.Load(hotfix, err)) {
 			auto version = versionparser.GetTortoiseGitVersion();
 			if (version.major == TGIT_VERMAJOR && version.minor == TGIT_VERMINOR && (version.micro > TGIT_VERMICRO || version.micro == TGIT_VERMICRO && version.
 				build > TGIT_VERBUILD)) {
-				TracePrintf(_T(__FUNCTION__) L": Hotfix: %s\n", versionparser.GetTortoiseGitVersion().version);
+				DebugOutput::TracePrintf(_T(__FUNCTION__) L": Hotfix: %s\n", versionparser.GetTortoiseGitVersion().version);
 			}
 		}
 	}
@@ -836,25 +897,11 @@ BOOL CTortoiseProcApp::InitInstance() {
 	CheckForNewerVersion();
 
 	if (parser.HasKey(L"urlhandler")) {
-		CString url = parser.GetValStr(L"urlhandler").c_str();
-		if (StringUtils::StartsWith(url, L"tgit://clone/"))
-			url = url.Mid(static_cast<int>(wcslen(L"tgit://clone/")));
-		else if (StringUtils::StartsWith(url, L"github-windows://openRepo/")) {
-			url = url.Mid(static_cast<int>(wcslen(L"github-windows://openRepo/")));
-			if (const int questioMark = url.Find('?'); questioMark > 0)
-				url = url.Left(questioMark);
-		} else if (StringUtils::StartsWith(url, L"x-github-client://openRepo/")) {
-			url = url.Mid(static_cast<int>(wcslen(L"x-github-client://openRepo/")));
-			if (const int questioMark = url.Find('?'); questioMark > 0)
-				url = url.Left(questioMark);
-		} else if (StringUtils::StartsWith(url, L"smartgit://cloneRepo/"))
-			url = url.Mid(static_cast<int>(wcslen(L"smartgit://cloneRepo/")));
-		else if (!StringUtils::StartsWith(url, L"git://")) {
-			CMessageBox::Show(GetExplorerHWND(), IDS_ERR_INVALIDPATH, IDS_APPNAME, MB_ICONERROR);
-			return FALSE;
-		}
-		CString newCmd;
-		newCmd.Format(L"/command:clone /url:%s /hasurlhandler", TCmdLineParser::EscapeValue(url).c_str());
+		auto url = parser.GetUrl(L"urlhandler");
+		if (!url)
+			return CMessageBox::Show(GetExplorerHWND(), IDS_ERR_INVALIDPATH, IDS_APPNAME, MB_ICONERROR);
+
+		auto newCmd = std::format(L"/command:clone /url:{} /hasurlhandler", str::EscapeCmdValue(*url));
 		parser = CCmdLineParser(newCmd);
 	}
 
@@ -879,7 +926,7 @@ BOOL CTortoiseProcApp::InitInstance() {
 		                             IDS_PROC_GOTOMSYSGITWEBSITE,
 		                             IDS_ABORTBUTTON);
 		if (ret == 2)
-			ShellExecute(hWndExplorer, L"open", GIT_FOR_WINDOWS_URL, nullptr, nullptr, SW_SHOW);
+			ShellExecute(hWndExplorer, L"open", ConfigureGitExe::GIT_FOR_WINDOWS_URL.data(), nullptr, nullptr, SW_SHOW);
 		else if (ret == 1) {
 			parser = CCmdLineParser(L"/command:firststart /page:2");
 			cmd = CommandServer::GetCommand(CString(parser.GetValStr(L"command").c_str()), hWndExplorer, parser);
@@ -889,13 +936,13 @@ BOOL CTortoiseProcApp::InitInstance() {
 	}
 	TGitH::ms_LastMsysGitVersion = 0;
 	// HACK to re-check Git version in next method call to CheckGitVersion, only needed becasue APPDATA is a Git config dir since 2.46
-	if (!CConfigureGitExe::CheckGitVersion(hWndExplorer))
+	if (!ConfigureGitExe::CConfigureGitExe::CheckGitVersion(hWndExplorer))
 		return FALSE;
 
 	{
 		CString versionString;
 		versionString.Format(L"%X", TGitH::ms_LastMsysGitVersion);
-		TracePrintf(_T(__FUNCTION__) L": msysGitVersion: %s\n", versionString);
+		DebugOutput::TracePrintf(_T(__FUNCTION__) L": msysGitVersion: %s\n", versionString);
 	}
 
 	if (parser.HasKey(L"path") && parser.HasKey(L"pathfile")) {
@@ -992,10 +1039,10 @@ BOOL CTortoiseProcApp::InitInstance() {
 		CString err;
 		try {
 			// requires CWD to be set
-			GitCall::m_LogEncode = CAppUtils::GetLogOutputEncode();
+			GitCall::m_LogEncode = TGitH::GetLogOutputEncode();
 
 			// make sure all config files are read in order to check that none contains an error
-			g_Git.GetConfigValue(L"doesnot.exist");
+			std::ignore = g_Git.GetConfigValue(L"doesnot.exist");
 		} catch (const char* msg) {
 			err = CUnicodeUtils::GetUnicode<CString>(msg);
 		}

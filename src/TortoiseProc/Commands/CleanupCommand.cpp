@@ -21,7 +21,7 @@
 #include "std.h"
 
 #include "CleanupCommand.h"
-#include "ProgressDlg.h"
+import ProgressDlg;
 #include "CleanTypeDlg.h"
 #include "SysProgressDlg.h"
 import MessageBox;

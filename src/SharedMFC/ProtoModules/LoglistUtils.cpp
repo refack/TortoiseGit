@@ -51,7 +51,7 @@ CString CLoglistUtils::FormatDateAndTime(const CTime& cTime, DWORD option, bool 
 	}
 	else
 	{
-		static bool useSystemLocales = CRegDWORD(L"Software\\TortoiseGit\\UseSystemLocaleForDates", TRUE) != FALSE;
+		static bool useSystemLocales = wil::reg::try_get_tgit_bool(L"UseSystemLocaleForDates").value_or(false);
 		// should we use the locale settings for formatting the date/time?
 		if (useSystemLocales)
 		{

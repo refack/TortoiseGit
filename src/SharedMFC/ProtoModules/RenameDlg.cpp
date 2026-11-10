@@ -18,12 +18,14 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 #include "stdafx.h"
-import tgit;
-
-import TortoiseProc;
 #include "RenameDlg.h"
+import tgit;
+import TortoiseProc;
 import AppUtils.Window;
 import MessageBox;
+import TGitPath;
+import ConfigureGitExe;
+
 
 
 namespace CControlsBridge
@@ -80,7 +82,7 @@ END_MESSAGE_MAP()
 BOOL CRenameDlg::OnInitDialog()
 {
 	CHorizontalResizableStandAloneDialog::OnInitDialog();
-	CAppUtils::MarkWindowAsUnpinnable(m_hWnd);
+	wil::MFC::MarkWindowAsUnpinnable(m_hWnd);
 
 	SHAutoComplete(GetDlgItem(IDC_NAME)->m_hWnd, SHACF_DEFAULT);
 
@@ -177,7 +179,7 @@ void CRenameDlg::OnBnClickedButtonBrowseRef()
 		path = origname.GetWinPathString().c_str();
 	}
 
-	if (CAppUtils::FileOpenSave(path, nullptr, AFX_IDD_FILESAVE, 0, false, GetSafeHwnd(), ext.Mid(1), !path.IsEmpty()))
+	if (ConfigureGitExe::FileOpenSave(path, nullptr, AFX_IDD_FILESAVE, 0, false, GetSafeHwnd(), ext.Mid(1), !path.IsEmpty()))
 	{
 		GetDlgItem(IDC_NAME)->SetFocus();
 		CTGitPath target(path.GetString());

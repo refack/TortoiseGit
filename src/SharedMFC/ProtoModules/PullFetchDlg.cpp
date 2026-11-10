@@ -91,7 +91,7 @@ END_MESSAGE_MAP()
 BOOL CPullFetchDlg::OnInitDialog()
 {
 	CHorizontalResizableStandAloneDialog::OnInitDialog();
-	CAppUtils::MarkWindowAsUnpinnable(m_hWnd);
+	wil::MFC::MarkWindowAsUnpinnable(m_hWnd);
 
 	AdjustControlSize(IDC_REMOTE_RD);
 	AdjustControlSize(IDC_OTHER_RD);
@@ -246,7 +246,7 @@ BOOL CPullFetchDlg::OnInitDialog()
 	else
 		sWindowTitle.LoadString(IDS_PROGRS_TITLE_FETCH);
 
-	CAppUtils::SetWindowTitle(m_hWnd, GitCall::m_CurrentDirStorage.c_str(), sWindowTitle);
+	wil::MFC::SetWindowTitle(m_hWnd, GitCall::m_CurrentDirStorage.c_str(), sWindowTitle);
 
 	Refresh();
 
@@ -377,9 +377,9 @@ void CPullFetchDlg::OnBnClickedRd()
 	if( GetCheckedRadioButton(IDC_REMOTE_RD,IDC_OTHER_RD) == IDC_OTHER_RD)
 	{
 		// similar code in PushDlg::OnBnClickedRd
-		CString clippath = CAppUtils::GetClipboardLink(m_IsPull ? L"git pull" : L"git fetch", 1);
+		CString clippath = wil::MFC::GetClipboardLink(m_IsPull ? L"git pull" : L"git fetch", 1);
 		if (clippath.IsEmpty())
-			clippath = CAppUtils::GetClipboardLink(!m_IsPull ? L"git pull" : L"git fetch", 1);
+			clippath = wil::MFC::GetClipboardLink(!m_IsPull ? L"git pull" : L"git fetch", 1);
 		if (clippath.IsEmpty())
 			m_Other.SetCurSel(0);
 		else

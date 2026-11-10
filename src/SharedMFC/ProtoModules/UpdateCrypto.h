@@ -22,7 +22,7 @@
 
 #include <stdint.h>
 #include <WinCrypt.h>
-#include "UpdateDownloader.h"
+import UpdateDownloader;
 
 enum    /* Public key algorithms */
 {

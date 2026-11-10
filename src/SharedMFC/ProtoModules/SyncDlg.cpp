@@ -30,7 +30,7 @@ import TortoiseProc;
 import AppUtils.Launch;
 import AppUtils.Window;
 import AppUtils.Workflow;
-#include "ProgressDlg.h"
+import ProgressDlg;
 import MessageBox;
 import tgit.Hooks;
 #include "../../TortoiseProc/ProgressCommands/FetchProgressCommand.h"
@@ -767,7 +767,7 @@ void CSyncDlg::ShowInputCtrl(bool bShow)
 BOOL CSyncDlg::OnInitDialog()
 {
 	CResizableStandAloneDialog::OnInitDialog();
-	CAppUtils::MarkWindowAsUnpinnable(m_hWnd);
+	wil::MFC::MarkWindowAsUnpinnable(m_hWnd);
 
 	// Let the TaskbarButtonCreated message through the UIPI filter. If we don't
 	// do this, Explorer would be unable to send that message to our window if we
@@ -1000,7 +1000,7 @@ BOOL CSyncDlg::OnInitDialog()
 	this->m_ctrlPush.SetCurrentEntry(this->m_regPushButton);
 	this->m_ctrlSubmodule.SetCurrentEntry(this->m_regSubmoduleButton);
 
-	CAppUtils::SetWindowTitle(*this, CString(GitCall::m_CurrentDirStorage.c_str()));
+	wil::MFC::SetWindowTitle(*this, CString(GitCall::m_CurrentDirStorage.c_str()));
 
 	EnableSaveRestore(L"SyncDlg");
 

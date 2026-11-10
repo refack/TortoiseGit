@@ -123,7 +123,7 @@ BOOL CSettingGitConfig::OnInitDialog()
 		this->GetDlgItem(IDC_EDITTGITCONFIG)->SetWindowText(CString(MAKEINTRESOURCE(IDS_PROC_GITCONFIG_VIEWTGITCONFIG)));
 	}
 
-	if (!CAppUtils::IsAdminLogin())
+	if (!TortoiseProc::IsAdminLogin())
 	{
 		static_cast<CButton*>(this->GetDlgItem(IDC_EDITSYSTEMGITCONFIG))->SetShield(TRUE);
 		GetDlgItem(IDC_VIEWSYSTEMGITCONFIG)->EnableWindow(TRUE);

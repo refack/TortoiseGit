@@ -1,23 +1,34 @@
 export module tgit;
 
-// The dialogs' one-stop aggregation: re-export the modules themselves, so an
-// importer's `std::wstring` means ::std. (The previous shape - nested
-// `namespace std { using namespace std; }` inside an exported `namespace tgit`
-// plus a global using-directive - made every `std`, `wil` and `gsl` ambiguous
-// (C2872): inside tgit::std, the unqualified `std` names tgit::std itself.)
-import std;	// NOT re-exported: the dialogs' stdafx brings std textually, and a
-			// re-export would collide with every textual <map>/<memory> after it
+export import std;
 export import wil;
 export import gsl;
 export import wil.MFC;
 export import str_utils;
 export import git_h;
 export import GitCall;
+export import GitHash;
+export import GitRev;
+export import DebugOutput;
+export import libgit2;
+export import invarients;
+export import Colors;
+export import ThemeAPI;
+export import TGitPath;
+export import misc_constants;
+
 
 
 export namespace tgit {
 	using namespace TGitH;
 	using namespace GitCall;
+	using namespace DebugOutput;
+	using namespace ThemeAPI;
+	using namespace misc_constants;
+	using namespace TGitHash;
+	using namespace TGitPath;
+	using namespace TGitRev;
 }
 
 export using namespace tgit;
+export using namespace std::literals;

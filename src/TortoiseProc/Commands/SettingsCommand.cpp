@@ -22,16 +22,19 @@
 
 #include "SettingsCommand.h"
 #include <Settings/Settings.h>
+#include "ProtoModules/SinglePropSheetDlg.h"
+
+import tgit;
 import DPIAware;
-#include "SinglePropSheetDlg.h"
-#include "Settings/SettingGitCredential.h"
+import SettingGitCredential;
 import AppUtils.Launch;
+import TortoiseProc;
 
 bool SettingsCommand::Execute()
 {
 	CString defaultpage = parser.GetValPtr(L"page");
 
-	if (defaultpage == L"gitcredential" && CAppUtils::IsAdminLogin())
+	if (defaultpage == L"gitcredential" && TortoiseProc::IsAdminLogin())
 	{
 		CSinglePropSheetDlg(CString(MAKEINTRESOURCE(IDS_PROC_SETTINGS_TITLE)), new CSettingGitCredential(), nullptr).DoModal();
 		return true;

@@ -22,7 +22,7 @@
 #include "std.h"
 
 import TortoiseProc;
-#include "ProgressDlg.h"
+import ProgressDlg;
 #include "SetDialogs2.h"
 
 IMPLEMENT_DYNAMIC(CSetDialogs2, ISettingsPropPage)

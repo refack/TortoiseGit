@@ -19,17 +19,13 @@
 //
 
 #pragma once
-#include <ProtoModules/Colors.h>
-#include <ProtoModules/GravatarPictureBox.h>
-
+#include "ProtoModules/GravatarPictureBox.h"
 #include "ProtoModules/StatGraphDlg.h"
-#include "../../TortoiseProc/MiscUI/SplitterControl.h"
 #include "ProtoModules/BrowseRefsDlg.h"
 #include "ProtoModules/LogOrdering.h"
-#include "ProtoModules/GitStatusListCtrl.h"
 #include "ProtoModules/PatchViewDlg.h"
 #include "ProtoModules/HyperLink.h"
-#include "../../TortoiseProc/MiscUI/MenuButton.h"
+#include "../../TortoiseProc/MiscUI/SplitterControl.h"
 #include "../../TortoiseProc/GitLogList.h"
 
 import TGitPath;
@@ -38,6 +34,9 @@ import Registry;
 import wil;
 import StandAloneDlg;
 import misc_constants;
+import Colors;
+import GitStatusListCtrl;
+import MenuButton;
 
 
 
@@ -284,7 +283,6 @@ private:
 	bool				m_bSelect = false;
 	CString				m_sLogInfo;
 
-	CColors				m_Colors;
 	CImageList			m_imgList;
 
 	HACCEL				m_hAccel = nullptr;

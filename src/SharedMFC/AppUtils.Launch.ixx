@@ -1,18 +1,19 @@
 module;
 #include "stdafx.h"
 
-#include <shlobj_core.h>
-
 #include "Resources/resource.h"
 
 
 export module AppUtils.Launch;
 import tgit;
-using namespace tgit;
-
 import TortoiseProc;
-using namespace TortoiseProc;
-
+import PathUtils;
+import CmdLineParser;
+import GitRev;
+import TGitPath;
+import Registry;
+import GitHash;
+import MessageBox;
 
 /**
  * \ingroup TortoiseProc
@@ -50,14 +51,14 @@ struct DiffFlags {
 };
 
 
+
 /**
 * Launch the external blame viewer
 */
-bool LaunchTortoiseBlame(const CString& sBlameFile, const CString& Rev, const CString& sParams = CString())
-{
+bool LaunchTortoiseBlame(const CString& sBlameFile, const CString& Rev, const CString& sParams = CString()) {
 	auto args = std::vector{
-		std::format(LR"("{}")", (PathUtils::GetAppDirectory() / L"TortoiseGitBlame.exe").native()),
-		std::format(L"/path:{}", TCmdLineParser::EscapeValue(sBlameFile)),
+		std::format(LR"("{}")", (til::GetAppDirectory() / L"TortoiseGitBlame.exe").native()),
+		std::format(L"/path:{}", str::EscapeCmdValue(sBlameFile)),
 	};
 	if (!g_sGroupingUUID.empty())
 		args.push_back(std::format(LR"(/groupuuid:"{}")", g_sGroupingUUID));
@@ -71,8 +72,7 @@ bool LaunchTortoiseBlame(const CString& sBlameFile, const CString& Rev, const CS
 }
 
 
-CString PickDiffTool(const CTGitPath& file1, const CTGitPath& file2)
-{
+CString PickDiffTool(const CTGitPath& file1, const CTGitPath& file2) {
 	std::wstring filename2 = file2.GetFilename();
 	tgit::wstr::MakeLower(filename2);
 	CString difftool = CRegString(std::format(L"Software\\TortoiseGit\\DiffTools\\{}", filename2).c_str());
@@ -87,8 +87,7 @@ CString PickDiffTool(const CTGitPath& file1, const CTGitPath& file2)
 	// Is there an extension specific diff tool?
 	std::wstring ext = file2.GetFileExtension();
 	tgit::wstr::MakeLower(ext);
-	if (!ext.empty())
-	{
+	if (!ext.empty()) {
 		difftool = CRegString(std::format(L"Software\\TortoiseGit\\DiffTools\\{}", ext).c_str());
 		if (!difftool.IsEmpty())
 			return difftool;
@@ -98,6 +97,7 @@ CString PickDiffTool(const CTGitPath& file1, const CTGitPath& file2)
 	difftool = CRegString(L"Software\\TortoiseGit\\Diff");
 	return difftool;
 }
+
 
 bool StartExtDiff(
 	const CString& file1,
@@ -114,8 +114,7 @@ bool StartExtDiff(
 	CString viewer = PickDiffTool(CTGitPath(file1.GetString()), CTGitPath(file2.GetString()));
 	// If registry entry for a diff program is commented out, fall back to git's tool.
 	const bool bCommentedOut = StringUtils::StartsWith(viewer, L"#");
-	if (flags.bAlternativeTool)
-	{
+	if (flags.bAlternativeTool) {
 		// Invert external vs. internal diff tool selection.
 		if (bCommentedOut)
 			viewer.Delete(0); // uncomment
@@ -126,8 +125,7 @@ bool StartExtDiff(
 	}
 
 	const bool bInternal = viewer.IsEmpty();
-	if (bInternal)
-	{
+	if (bInternal) {
 		/*
 		 * Nothing configured here, so defer to git's own diff.tool. --no-index is what
 		 * makes that possible: the two sides have already been extracted to files by the
@@ -145,8 +143,6 @@ bool StartExtDiff(
 	if ((viewer.Find(L"%base") < 0) && (viewer.Find(L"%mine") < 0))
 		viewer += L" %base %mine";
 
-	const auto escaper = bInternal ? &EscapeAndQuoteParameters<wstr::CString> : &TCmdLineParser::EscapeValue<wstr::CString, wstr::CString>;
-
 	const auto values = StringUtils::expand_vars_t{
 		{ L"base", file1 },
 		{ L"mine", file2 },
@@ -158,7 +154,7 @@ bool StartExtDiff(
 		{ L"yrev", hash2.ToString().c_str() },
 		{ L"wtroot", GitCall::m_CurrentDirStorage.c_str() },
 	};
-	viewer = StringUtils::ExpandPlaceholdersForCmd(viewer, values, escaper);
+	viewer = StringUtils::ExpandPlaceholdersForCmd(viewer, values, str::escaperoid{ bInternal });
 
 	if (flags.bReadOnly && bInternal)
 		viewer += L" /readonly";
@@ -169,11 +165,16 @@ bool StartExtDiff(
 	return LaunchApplication(viewer, LaunchApplicationFlags().WaitForStartup(flags.bWait).UseSpecificErrorMessage(IDS_ERR_EXTDIFFSTART));
 }
 
+
 /**
  * Opens the patch in the configured patch viewer, or notepad.exe if none is set.
  */
-BOOL StartExtPatch(const CTGitPath& patchfile, const CTGitPath& /*dir*/, const CString& /*sOriginalDescription*/ = CString(), const CString& /*sPatchedDescription*/ = CString(), BOOL /*bReversed*/ = FALSE, const BOOL bWait = FALSE)
-{
+BOOL StartExtPatch(const CTGitPath& patchfile,
+                   const CTGitPath& /*dir*/,
+                   const CString& /*sOriginalDescription*/ = CString(),
+                   const CString& /*sPatchedDescription*/ = CString(),
+                   BOOL /*bReversed*/  = FALSE,
+                   const BOOL bWait = FALSE) {
 	/*
 	 * A patch file is just a file, so hand it to whatever the user configured and let that
 	 * decide how to render it - Beyond Compare, for instance, has a "Text Patch" file
@@ -197,39 +198,36 @@ BOOL StartExtPatch(const CTGitPath& patchfile, const CTGitPath& /*dir*/, const C
 	return LaunchApplication(viewer, LaunchApplicationFlags().WaitForStartup(!!bWait).UseSpecificErrorMessage(IDS_ERR_DIFFVIEWSTART));
 }
 
+
 /**
  * Starts the external unified diff viewer (the app associated with *.diff or *.patch files).
  * If no app is associated with those file types, the default text editor is used.
  */
-BOOL StartUnifiedDiffViewer(const CString& patchfile, const CString& title, const BOOL bWait = FALSE, const bool bAlternativeTool = false)
-{
+BOOL StartUnifiedDiffViewer(const CString& patchfile, const CString& title, const BOOL bWait = FALSE, const bool bAlternativeTool = false) {
 	auto viewer = static_cast<CRegString::StringT>(CRegString(L"Software\\TortoiseGit\\DiffViewer"));
 
 	bool bInternal = false;
 	// If registry entry for a diff program is commented out, fall back to git's tool.
 	const bool bCommentedOut = StringUtils::StartsWith(viewer, L"#");
-	if (bAlternativeTool)
-	{
+	if (bAlternativeTool) {
 		// Invert external vs. internal diff tool selection.
 		if (bCommentedOut)
 			viewer.Delete(0); // uncomment
 		else
 			viewer.Empty();
-	}
-	else if (bCommentedOut)
+	} else if (bCommentedOut) {
 		viewer.Empty();
+	}
 
-	if (viewer.IsEmpty())
-	{
+	if (viewer.IsEmpty()) {
 		// use TortoiseGitUDiff
-		viewer = PathUtils::GetAppDirectory().c_str();
+		viewer = til::GetAppDirectory().c_str();
 		viewer += L"TortoiseGitUDiff.exe";
 		// enquote the path to TortoiseGitUDiff
 		viewer = L'"' + viewer + L'"';
 		// add the params
 		viewer = viewer + L" /patchfile:%1 /title:%title";
-		if (!g_sGroupingUUID.empty())
-		{
+		if (!g_sGroupingUUID.empty()) {
 			viewer += L" /groupuuid:\"";
 			viewer += g_sGroupingUUID.c_str();
 			viewer += L'"';
@@ -241,17 +239,19 @@ BOOL StartUnifiedDiffViewer(const CString& patchfile, const CString& title, cons
 		viewer += L" %1";
 
 	viewer = StringUtils::ExpandPlaceholdersForCmd(
-		viewer, {
+		viewer,
+		{
 			{ L"1", patchfile },
 			{ L"title", title },
 		},
-		bInternal ? TCmdLineParser::EscapeValue<CString, CString> : EscapeAndQuoteParameters<CString>
+		str::escaperoid{ bInternal }
 	);
 
 	if (!LaunchApplication(viewer, LaunchApplicationFlags().WaitForStartup(!!bWait).UseSpecificErrorMessage(IDS_ERR_DIFFVIEWSTART)))
 		return FALSE;
 	return TRUE;
 }
+
 
 /**
  * Replacement for GitDiff::ShowUnifiedDiff(), but started as a separate process.
@@ -268,17 +268,14 @@ bool StartShowUnifiedDiff(
 	const bool bMerge = false,
 	const bool bCombine = false,
 	const bool bNoPrefix = false
-)
-{
+) {
 	const int diffContext = g_Git.GetConfigValueInt32(L"diff.context", -1);
 	const CString tempfile = GitCall::GetTempFile();
-	if (tempfile.IsEmpty())
-	{
+	if (tempfile.IsEmpty()) {
 		::MessageBox(hWnd, L"Could not create temp file.", L"TortoiseGit", MB_OK | MB_ICONERROR);
 		return false;
 	}
-	if (g_Git.GetUnifiedDiff(url1, rev1, rev2, tempfile, bMerge, bCombine, diffContext, bNoPrefix))
-	{
+	if (g_Git.GetUnifiedDiff(url1, rev1, rev2, tempfile, bMerge, bCombine, diffContext, bNoPrefix)) {
 		MessageBox(hWnd, g_Git.GetGitLastErr(L"Could not get unified diff.", TGitH::GIT_CMD_DIFF), L"TortoiseGit", MB_OK);
 		return false;
 	}
@@ -288,7 +285,7 @@ bool StartShowUnifiedDiff(
 #if 0
 	CString sCmd;
 	sCmd.Format(L"%s /command:showcompare /unified",
-		(PathUtils::GetAppDirectory() + L"TortoiseGitProc.exe").c_str());
+	            (til::GetAppDirectory() + L"TortoiseGitProc.exe").c_str());
 	sCmd += L" /url1:\"" + url1.GetGitPathString().c_str() + L'"';
 	if (rev1.IsValid())
 		sCmd += L" /revision1:" + rev1.ToString();
@@ -306,8 +303,7 @@ bool StartShowUnifiedDiff(
 	if (bIgnoreAncestry)
 		sCmd += L" /ignoreancestry";
 
-	if (hWnd)
-	{
+	if (hWnd) {
 		sCmd += L" /hwnd:";
 		wchar_t buf[30];
 		swprintf_s(buf, L"%p", static_cast<void*>(hWnd));
@@ -316,24 +312,25 @@ bool StartShowUnifiedDiff(
 
 	return LaunchApplication(sCmd, 0, false);
 #endif
+
 	return TRUE;
 }
 
 
-CString GetMergeTempFile(const CString& type, const CTGitPath& merge, const bool returnAbsolutePath = true)
-{
+CString GetMergeTempFile(const CString& type, const CTGitPath& merge, const bool returnAbsolutePath = true) {
 	const auto path = std::format(L"{}.{}{}", merge.GetWinPathString(), type, merge.GetFileExtension());
 	if (returnAbsolutePath)
 		return g_Git.CombinePath(path).c_str();
 	return path.c_str();
 }
 
-void RemoveTempMergeFile(const CTGitPath& path, const bool pathIsRelative = true)
-{
+
+void RemoveTempMergeFile(const CTGitPath& path, const bool pathIsRelative = true) {
 	::DeleteFile(GetMergeTempFile(L"LOCAL", path, pathIsRelative));
 	::DeleteFile(GetMergeTempFile(L"REMOTE", path, pathIsRelative));
 	::DeleteFile(GetMergeTempFile(L"BASE", path, pathIsRelative));
 }
+
 
 /**
  * Launches the external merge program if there is one.
@@ -355,8 +352,7 @@ BOOL StartExtMerge(
 	CString ext = mergedfile.GetFileExtension().c_str();
 	CString com = CRegString(L"Software\\TortoiseGit\\Merge");
 
-	if (!ext.IsEmpty())
-	{
+	if (!ext.IsEmpty()) {
 		// is there an extension specific merge tool?
 		const CString mergetool = CRegString(L"Software\\TortoiseGit\\MergeTools\\" + ext.MakeLower());
 		if (!mergetool.IsEmpty())
@@ -369,16 +365,14 @@ BOOL StartExtMerge(
 	if (!static_cast<CRegString::StringT>(mergetool).IsEmpty())
 		com = mergetool;
 
-	if (bAlternative && !com.IsEmpty())
-	{
+	if (bAlternative && !com.IsEmpty()) {
 		if (StringUtils::StartsWith(com, L"#"))
 			com.Delete(0);
 		else
 			com.Empty();
 	}
 
-	if (com.IsEmpty() || StringUtils::StartsWith(com, L"#"))
-	{
+	if (com.IsEmpty() || StringUtils::StartsWith(com, L"#")) {
 		{
 			/*
 			 * Fall back to git's merge.tool. This is translated rather than delegated:
@@ -394,16 +388,13 @@ BOOL StartExtMerge(
 			if (const CString mergeTool = g_Git.GetConfigValue(L"merge.tool"); !mergeTool.IsEmpty())
 				mergeCmd = g_Git.GetConfigValue(L"mergetool." + mergeTool + L".cmd");
 
-			if (!mergeCmd.IsEmpty())
-			{
+			if (!mergeCmd.IsEmpty()) {
 				mergeCmd.Replace(L"$BASE", L"%base");
 				mergeCmd.Replace(L"$LOCAL", L"%mine");
 				mergeCmd.Replace(L"$REMOTE", L"%theirs");
 				mergeCmd.Replace(L"$MERGED", L"%merged");
 				com = mergeCmd;
-			}
-			else
-			{
+			} else {
 				// Nothing configured anywhere. The merged file already carries conflict
 				// markers, so editing it by hand is a complete resolution path; notepad.exe
 				// is always present and is commonly redirected via Image File Execution
@@ -411,8 +402,7 @@ BOOL StartExtMerge(
 				com = L"notepad.exe %merged";
 			}
 		}
-		if (!g_sGroupingUUID.empty())
-		{
+		if (!g_sGroupingUUID.empty()) {
 			com += L" /groupuuid:\"";
 			com += g_sGroupingUUID.c_str();
 			com += L'"';
@@ -435,7 +425,7 @@ BOOL StartExtMerge(
 			{ L"mname", mergedname.IsEmpty() ? CString(mergedfile.GetUIFileOrDirectoryName().c_str()) : mergedname },
 			{ L"wtroot", GitCall::m_CurrentDirStorage.c_str() },
 		},
-		&EscapeAndQuoteParameters<CString>
+		&str::EscapeAndQuoteParameters<CString>
 	);
 
 	/*
@@ -448,10 +438,13 @@ BOOL StartExtMerge(
 	const auto blocktrust = wil::reg::try_get_tgit_dword(L"Software\\TortoiseGit\\MergeBlockTrustBehavior").value_or(0);
 	const bool bWaitForExit = bDeleteBaseTheirsMineOnClose || blocktrust >= 1;
 	auto exitCode = std::numeric_limits<DWORD>::max();
-	const bool bLaunched = LaunchApplication(com, LaunchApplicationFlags().UseSpecificErrorMessage(IDS_ERR_EXTMERGESTART).WaitForExit(bWaitForExit, nullptr, &exitCode));
+	const bool bLaunched = LaunchApplication(com,
+	                                         LaunchApplicationFlags().UseSpecificErrorMessage(IDS_ERR_EXTMERGESTART).WaitForExit(
+		                                         bWaitForExit,
+		                                         nullptr,
+		                                         &exitCode));
 
-	if (bDeleteBaseTheirsMineOnClose)
-	{
+	if (bDeleteBaseTheirsMineOnClose) {
 		::DeleteFile(basefile.GetWinPathString().c_str());
 		::DeleteFile(theirfile.GetWinPathString().c_str());
 		::DeleteFile(yourfile.GetWinPathString().c_str());
@@ -467,20 +460,31 @@ BOOL StartExtMerge(
 
 	CString str;
 	str.Format(IDS_MERGESUCCESSFUL, mergedfile.GetGitPathString().c_str());
-	if ((blocktrust == 2 && exitCode == 0) || (blocktrust == 1 && CMessageBox::Show(GetExplorerHWND(), str, IDS_APPNAME, 2, IDI_QUESTION, IDS_RESOLVEDBUTTON, IDS_MSGBOX_NO) == 1))
-	{
+	if (
+		(blocktrust == 2 && exitCode == 0)
+		|| (
+			blocktrust == 1
+			&& 1 == CMessageBox::Show(
+				GetExplorerHWND(),
+				str,
+				IDS_APPNAME,
+				2,
+				IDI_QUESTION,
+				IDS_RESOLVEDBUTTON,
+				IDS_MSGBOX_NO
+			)
+		)
+	) {
 		std::string out;
-		if (g_Git.Run({ L"git.exe", L"add", L"-f", L"--", mergedfile.GetGitPathString() }, &out))
-		{
+		if (g_Git.Run({ L"git.exe", L"add", L"-f", L"--", mergedfile.GetGitPathString() }, &out)) {
 			MessageBox(GetExplorerHWND(), CUnicodeUtils::StdGetUnicode(out).c_str(), L"TortoiseGit", MB_OK | MB_ICONERROR);
 			return FALSE;
 		}
-	}
-	else
+	} else {
 		return TRUE;
+	}
 
-	if (resolveMsgHwnd && CRegDWORD(L"Software\\TortoiseGit\\RefreshFileListAfterResolvingConflict", TRUE) == TRUE)
-	{
+	if (resolveMsgHwnd && wil::reg::try_get_tgit_bool(L"RefreshFileListAfterResolvingConflict").value_or(true)) {
 		static UINT WM_REVERTMSG = RegisterWindowMessage(L"GITSLNM_NEEDSREFRESH");
 		::PostMessage(resolveMsgHwnd, WM_REVERTMSG, NULL, NULL);
 	}

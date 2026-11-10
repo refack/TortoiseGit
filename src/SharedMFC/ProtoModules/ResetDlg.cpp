@@ -58,7 +58,7 @@ END_MESSAGE_MAP()
 BOOL CResetDlg::OnInitDialog()
 {
 	CHorizontalResizableStandAloneDialog::OnInitDialog();
-	CAppUtils::MarkWindowAsUnpinnable(m_hWnd);
+	wil::MFC::MarkWindowAsUnpinnable(m_hWnd);
 
 	AdjustControlSize(IDC_RADIO_BRANCH);
 	AdjustControlSize(IDC_RADIO_TAGS);

@@ -184,8 +184,6 @@ target_sources(TortoiseProc
         Settings/SetWin11ContextMenu.h
         Settings/SettingGitConfig.cpp
         Settings/SettingGitConfig.h
-        Settings/SettingGitCredential.cpp
-        Settings/SettingGitCredential.h
         Settings/SettingGitRemote.cpp
         Settings/SettingGitRemote.h
         Settings/Settings.cpp
@@ -227,9 +225,7 @@ target_sources(TortoiseProc
         MiscUI/FileDropEdit.cpp
         MiscUI/FilterEdit.cpp
         MiscUI/HistoryCombo.cpp
-        MiscUI/IconMenu.cpp
         MiscUI/LinkControl.cpp
-        MiscUI/MenuButton.cpp
         MiscUI/MyGraph.cpp
         MiscUI/Picture.cpp
         MiscUI/RegexEdit.cpp
@@ -237,7 +233,6 @@ target_sources(TortoiseProc
         MiscUI/SciEdit.cpp
         MiscUI/SplitterControl.cpp
         MiscUI/SysProgressDlg.cpp
-        MiscUI/ThemeControls.cpp
         MiscUI/WaterEffect.cpp
         TreePropSheet/PropPageFrame.cpp
         TreePropSheet/PropPageFrameDefault.cpp

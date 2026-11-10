@@ -19,17 +19,19 @@
 //
 
 #include "stdafx.h"
-import tgit;
-
-import TortoiseProc;
 #include "GitProgressDlg.h"
+import tgit;
+import TortoiseProc;
+import CmdLineParser;
 
 IMPLEMENT_DYNAMIC(CGitProgressDlg, CResizableStandAloneDialog)
+
+
 CGitProgressDlg::CGitProgressDlg(CWnd* pParent /*=nullptr*/)
 	: CResizableStandAloneDialog(CGitProgressDlg::IDD, pParent)
 {
 	int autoClose = CRegDWORD(L"Software\\TortoiseGit\\AutoCloseGitProgress", 0);
-	CCmdLineParser parser(AfxGetApp()->m_lpCmdLine);
+	TCmdLineParser::CCmdLineParser parser(AfxGetApp()->m_lpCmdLine);
 	if (parser.HasKey(L"closeonend"))
 		autoClose = parser.GetLongVal(L"closeonend");
 	switch (autoClose)
@@ -84,12 +86,12 @@ BOOL CGitProgressDlg::OnInitDialog()
 	// do this, Explorer would be unable to send that message to our window if we
 	// were running elevated. It's OK to make the call all the time, since if we're
 	// not elevated, this is a no-op.
-	CHANGEFILTERSTRUCT cfs = { sizeof(CHANGEFILTERSTRUCT) };
+	CHANGEFILTERSTRUCT cfs = { .cbSize = sizeof(CHANGEFILTERSTRUCT) };
 	using ChangeWindowMessageFilterExDFN = BOOL(STDAPICALLTYPE)(HWND hWnd, UINT message, DWORD action, PCHANGEFILTERSTRUCT pChangeFilterStruct);
-	CAutoLibrary hUser = AtlLoadSystemLibraryUsingFullPath(L"user32.dll");
+	auto hUser = wil::unique_hmodule{AtlLoadSystemLibraryUsingFullPath(L"user32.dll")};
 	if (hUser)
 	{
-		auto pfnChangeWindowMessageFilterEx = reinterpret_cast<ChangeWindowMessageFilterExDFN*>(GetProcAddress(hUser, "ChangeWindowMessageFilterEx"));
+		auto pfnChangeWindowMessageFilterEx = reinterpret_cast<ChangeWindowMessageFilterExDFN*>(GetProcAddress(hUser.get(), "ChangeWindowMessageFilterEx"));
 		if (pfnChangeWindowMessageFilterEx)
 			pfnChangeWindowMessageFilterEx(m_hWnd, TaskBarButtonCreated, MSGFLT_ALLOW, &cfs);
 	}
@@ -131,7 +133,7 @@ BOOL CGitProgressDlg::OnInitDialog()
 LRESULT CGitProgressDlg::OnTaskbarBtnCreated(WPARAM wParam, LPARAM lParam)
 {
 	m_ProgList.m_pTaskbarList.Release();
-	m_ProgList.m_pTaskbarList.CoCreateInstance(CLSID_TaskbarList);
+	std::ignore = m_ProgList.m_pTaskbarList.CoCreateInstance(CLSID_TaskbarList);
 	return __super::OnTaskbarButtonCreated(wParam, lParam);
 }
 
@@ -304,7 +306,7 @@ LRESULT	CGitProgressDlg::OnCmdEnd(WPARAM /*wParam*/, LPARAM /*lParam*/)
 	CWnd * pWndOk = GetDlgItem(IDOK);
 	if (pWndOk && ::IsWindow(pWndOk->GetSafeHwnd()))
 	{
-		SendMessage(DM_SETDEFID, IDOK);
+		std::ignore = SendMessage(DM_SETDEFID, IDOK);
 		GetDlgItem(IDOK)->SetFocus();
 		if (!m_ProgList.DidErrorsOccur() && (m_AutoClose == GitProgressAutoClose::AUTOCLOSE_IF_NO_OPTIONS && m_PostCmdList.empty() || m_AutoClose == GitProgressAutoClose::AUTOCLOSE_IF_NO_ERRORS))
 			PostMessage(WM_COMMAND, 1, reinterpret_cast<LPARAM>(pWndOk->GetSafeHwnd()));
@@ -325,15 +327,15 @@ LRESULT CGitProgressDlg::DefWindowProc(UINT message, WPARAM wParam, LPARAM lPara
 {
 	if (m_hAccel && message == WM_COMMAND && LOWORD(wParam) >= WM_USER && LOWORD(wParam) <= WM_USER + m_accellerators.size())
 	{
-		for (const auto& entry : m_accellerators)
+		for (const auto& val : m_accellerators | std::views::values)
 		{
-			if (entry.second.wmid != LOWORD(wParam))
+			if (val.wmid != LOWORD(wParam))
 				continue;
-			if (entry.second.id == -1)
+			if (val.id == -1)
 				m_cMenuButton.PostMessage(WM_KEYDOWN, VK_F4, NULL);
 			else
 			{
-				m_cMenuButton.SetCurrentEntry(entry.second.id);
+				m_cMenuButton.SetCurrentEntry(val.id);
 				OnBnClickedLogbutton();
 			}
 			return 0;

@@ -1,7 +1,7 @@
 module;
 
 #include "ProtoModules/ExportDlg.h"
-#include "ProtoModules/ProgressDlg.h"
+import ProgressDlg;
 #include "ProtoModules/CreateBranchTagDlg.h"
 #include "ProtoModules/CreateWorktreeDlg.h"
 #include "ProtoModules/GitSwitchDlg.h"
@@ -393,7 +393,7 @@ bool CreateWorktree(const HWND hWnd, const CString& target = {})
 		{
 			postCmdList.emplace_back(IDI_UPDATE, IDS_PROC_SUBMODULESUPDATE, [&] {
 				CString sCmd;
-				sCmd.Format(L"/command:subupdate /bkpath:%s", TCmdLineParser::EscapeValue(dlg.m_sWorktreePath).c_str());
+				sCmd.Format(L"/command:subupdate /bkpath:%s", str::EscapeCmdValue(dlg.m_sWorktreePath).c_str());
 				RunTortoiseGitProc(sCmd);
 			});
 		}

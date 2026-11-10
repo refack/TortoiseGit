@@ -191,7 +191,7 @@ void CSetHooksAdv::OnBnClickedHookcommandbrowse()
 	if (!PathFileExists(sCmdLine))
 		sCmdLine.Empty();
 	// Display the Open dialog box.
-	if (CAppUtils::FileOpenSave(sCmdLine, nullptr, IDS_SETTINGS_HOOKS_SELECTSCRIPTFILE, IDS_COMMONFILEFILTER, true, m_hWnd))
+	if (ConfigureGitExe::FileOpenSave(sCmdLine, nullptr, IDS_SETTINGS_HOOKS_SELECTSCRIPTFILE, IDS_COMMONFILEFILTER, true, m_hWnd))
 	{
 		m_sCommandLine = sCmdLine;
 		UpdateData(FALSE);

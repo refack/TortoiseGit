@@ -1,33 +1,18 @@
-﻿// TortoiseGit - a Windows shell extension for easy version control
-
-// Copyright (C) 2013-2023, 2025-2026 - TortoiseGit
-
-// This program is free software; you can redistribute it and/or
-// modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; either version 2
-// of the License, or (at your option) any later version.
-
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-
-// You should have received a copy of the GNU General Public License
-// along with this program; if not, write to the Free Software Foundation,
-// 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-//
-// SettingGitCredential.cpp : implementation file
-//
-
+﻿module;
 #include "stdafx.h"
-#include "std.h"
+#include "../TortoiseProc/Settings/SettingsPropPage.h"
 
+#include "Resources/resource.h"
+
+
+export module SettingGitCredential;
+import tgit;
 import TortoiseProc;
-#include "SettingGitCredential.h"
 import TGitPath;	// GitAdminDir lives in the TGitPath module
 import MessageBox;
 import AppUtils.Launch;
-
+import Registry;
+using namespace libgit2;
 
 
 namespace SimpleCredentialType
@@ -53,6 +38,168 @@ namespace ConfigType
 	static int Global = -1;
 	static int System = -1;
 }
+
+
+// CSettingGitCredential dialog
+export class CSettingGitCredential : public ISettingsPropPage
+{
+	DECLARE_DYNAMIC(CSettingGitCredential)
+
+public:
+	enum
+	{
+		CREDENTIAL_URL			= 0x01,
+		CREDENTIAL_HELPER		= 0x02,
+		CREDENTIAL_USERNAME		= 0x04,
+		CREDENTIAL_USEHTTPPATH	= 0x08,
+		CREDENTIAL_ADVANCED_MASK= 0x0F,
+		CREDENTIAL_SIMPLE		= 0x10,
+	};
+	CSettingGitCredential();
+	virtual ~CSettingGitCredential();
+	UINT GetIconID() override { return IDI_GITCREDENTIAL; }
+// Dialog Data
+	enum { IDD = IDD_SETTINGSCREDENTIAL };
+
+ 	static int GetCredentialDefaultUrlCallback(const git_config_entry *entry, void *payload)
+	{
+		static_cast<std::vector<std::wstring>*>(payload)->push_back(std::wstring(ConfigLevelToKey(entry->level)));
+		return 0;
+	}
+
+	static int GetCredentialUrlCallback(const git_config_entry *entry, void *payload)
+	{
+		const CString name = CUnicodeUtils::GetUnicode<CString>(entry->name);
+		const int pos1 = name.Find(L'.');
+		const int pos2 = name.ReverseFind(L'.');
+		const CString url = name.Mid(pos1 + 1, pos2 - pos1 - 1);
+		CString display;
+		display.Format(L"%s:%s", static_cast<LPCWSTR>(ConfigLevelToKey(entry->level)), static_cast<LPCWSTR>(url));
+		static_cast<std::vector<std::wstring>*>(payload)->push_back(std::wstring(display));
+		return 0;
+	}
+
+	static int GetCredentialEntryCallback(const git_config_entry *entry, void *payload)
+	{
+		const CString name = CUnicodeUtils::GetUnicode<CString>(entry->name);
+		static_cast<std::vector<std::wstring>*>(payload)->push_back(std::wstring(name));
+		return 0;
+	}
+
+	static int GetCredentialAnyEntryCallback(const git_config_entry *entry, void *payload)
+	{
+		const CString name = CUnicodeUtils::GetUnicode<CString>(entry->name);
+		CString value;
+		if (entry->value)
+			value = CUnicodeUtils::GetUnicode<CString>(entry->value);
+		CString text;
+		text.Format(L"%s\n%s\n%s", static_cast<LPCWSTR>(ConfigLevelToKey(entry->level)), static_cast<LPCWSTR>(name), static_cast<LPCWSTR>(value));
+		static_cast<std::vector<std::wstring>*>(payload)->push_back(std::wstring(text));
+		return 0;
+	}
+
+	static CString GetWinstorePath()
+	{
+		wchar_t winstorebuf[MAX_PATH] = { 0 };
+		ExpandEnvironmentStrings(L"%AppData%\\GitCredStore\\git-credential-winstore.exe", winstorebuf, _countof(winstorebuf));
+		CString winstore;
+		winstore.Format(L"!'%s'", winstorebuf);
+		return winstore;
+	}
+
+	static bool WincredExists()
+	{
+		CString path = GitCall::ms_MsysGitRootDir.c_str();
+		path.Append(L"libexec\\git-core\\git-credential-wincred.exe");
+		return !!PathFileExists(path);
+	}
+
+	static bool WinstoreExists()
+	{
+		return !!PathFileExists(GetWinstorePath());
+	}
+
+	static bool GCMExists()
+	{
+		CString path = GitCall::ms_MsysGitRootDir.c_str();
+		path.Append(L"libexec\\git-core\\git-credential-manager.exe");
+		if (!PathFileExists(path))
+			return false;
+		// CCM requires .NET 4.5.1 or later
+		// try to detect it (only works for >=4.5): https://msdn.microsoft.com/en-us/library/hh925568
+		return CRegDWORD(L"SOFTWARE\\Microsoft\\NET Framework Setup\\NDP\\v4\\Full\\Release", 0, false, HKEY_LOCAL_MACHINE) >= 378675;
+	}
+
+	static bool GCMCoreExists()
+	{
+		CString path = GitCall::ms_MsysGitRootDir.c_str();
+		path.Append(L"libexec\\git-core\\git-credential-manager-core.exe");
+		return !!PathFileExists(path);
+	}
+
+protected:
+	static CString ConfigLevelToKey(git_config_level_t level)
+	{
+		switch (level)
+		{
+		case git_config_level_t::GIT_CONFIG_LEVEL_PROGRAMDATA:
+			return L"P";
+		case git_config_level_t::GIT_CONFIG_LEVEL_SYSTEM:
+			return L"S";
+		case git_config_level_t::GIT_CONFIG_LEVEL_XDG:
+			return L"X";
+		case git_config_level_t::GIT_CONFIG_LEVEL_GLOBAL:
+			return L"G";
+		default:
+			return L"L";
+		}
+	}
+
+	void DoDataExchange(CDataExchange* pDX) override;    // DDX/DDV support
+
+	DECLARE_MESSAGE_MAP()
+
+	afx_msg void OnCbnSelchangeComboSimplecredential();
+	afx_msg void OnBnClickedButtonAdd();
+	afx_msg void OnLbnSelchangeListUrl();
+	afx_msg void OnCbnSelchangeComboConfigType();
+	afx_msg void OnEnChangeEditUrl();
+	afx_msg void OnEnChangeEditHelper();
+	afx_msg void OnEnChangeEditUsername();
+	afx_msg void OnBnClickedCheckUsehttppath();
+	afx_msg void OnBnClickedButtonRemove();
+	afx_msg void OnBnClickedOpensettingselevated();
+	afx_msg void OnBnClickedWindowscredmgr();
+
+	BOOL OnInitDialog() override;
+	BOOL OnApply() override;
+
+	void EnableAdvancedOptions();
+	BOOL IsUrlExist(const CString& text);
+
+	void AddConfigType(int& index, const CString& text, bool add = true);
+	void AddSimpleCredential(int& index, const CString& text, bool add = true);
+	void FillSimpleList(bool addNone, bool systemWincred, bool systemGCM, bool systemGCMCore);
+	void LoadList();
+	CString Load(const CString& key);
+	void Save(const CString& key, const CString& value);
+	int DeleteOtherKeys(int type);
+	bool SaveSimpleCredential(int type);
+	bool SaveSettings();
+
+	int			m_ChangedMask = 0;
+	int			m_iSimpleStoredValue; // the SimpleCredential value initially read from config
+
+	CComboBox	m_ctrlSimpleCredential;
+	CListBox	m_ctrlUrlList;
+	CComboBox	m_ctrlConfigType;
+	CString		m_strUrl;
+	CString		m_strHelper;
+	CString		m_strUsername;
+	BOOL		m_bUseHttpPath;
+};
+
+
 
 // CSettingGitCredential dialog
 
@@ -102,7 +249,7 @@ static CStringA RegexEscape(CStringA str)
 	CStringA result;
 	for (int i = 0; i < str.GetLength(); ++i)
 	{
-		char c = str[i];
+		const char c = str[i];
 		switch (c)
 		{
 			case '\\': case '*': case '+': case '?': case '|':
@@ -128,7 +275,7 @@ BOOL CSettingGitCredential::OnInitDialog()
 
 	AdjustControlSize(IDC_CHECK_USEHTTPPATH);
 
-	bool hasLocal = !GitAdminDir::HasAdminDir(GitCall::m_CurrentDirStorage).empty();
+	const bool hasLocal = !GitAdminDir::HasAdminDir(GitCall::m_CurrentDirStorage).empty();
 
 	m_ctrlUrlList.ResetContent();
 
@@ -149,7 +296,7 @@ BOOL CSettingGitCredential::OnInitDialog()
 	LoadList();
 	m_iSimpleStoredValue = m_ctrlSimpleCredential.GetCurSel();
 
-	if (!CAppUtils::IsAdminLogin())
+	if (!TortoiseProc::IsAdminLogin())
 	{
 		reinterpret_cast<CButton*>(GetDlgItem(IDC_OPENSETTINGSELEVATED))->SetShield(TRUE);
 		GetDlgItem(IDC_OPENSETTINGSELEVATED)->EnableWindow(TRUE);
@@ -182,8 +329,8 @@ void CSettingGitCredential::OnBnClickedButtonAdd()
 	}
 
 	m_ChangedMask = CREDENTIAL_URL | CREDENTIAL_HELPER | CREDENTIAL_USERNAME | CREDENTIAL_USEHTTPPATH;
-	int sel = m_ctrlConfigType.GetCurSel();
-	CString prefix = sel == ConfigType::System ? L"S" : sel == ConfigType::Global ? L"G" : L"L";
+	const int sel = m_ctrlConfigType.GetCurSel();
+	const CString prefix = sel == ConfigType::System ? L"S" : sel == ConfigType::Global ? L"G" : L"L";
 	CString text;
 	if (!m_strUrl.IsEmpty())
 		text.Format(L"%s:%s", static_cast<LPCWSTR>(prefix), static_cast<LPCWSTR>(m_strUrl));
@@ -211,7 +358,7 @@ void CSettingGitCredential::OnBnClickedButtonAdd()
 
 void CSettingGitCredential::EnableAdvancedOptions()
 {
-	BOOL enable = m_ctrlSimpleCredential.GetCurSel() == SimpleCredentialType::Advanced ? TRUE : FALSE;
+	const BOOL enable = m_ctrlSimpleCredential.GetCurSel() == SimpleCredentialType::Advanced ? TRUE : FALSE;
 	GetDlgItem(IDC_LIST_REMOTE)->EnableWindow(enable);
 	GetDlgItem(IDC_EDIT_URL)->EnableWindow(enable);
 	GetDlgItem(IDC_COMBO_HELPER)->EnableWindow(enable);
@@ -219,7 +366,7 @@ void CSettingGitCredential::EnableAdvancedOptions()
 	GetDlgItem(IDC_COMBO_CONFIGTYPE)->EnableWindow(enable);
 	GetDlgItem(IDC_CHECK_USEHTTPPATH)->EnableWindow(enable);
 
-	bool canModifySystem = CAppUtils::IsAdminLogin() || (m_ctrlConfigType.GetCurSel() != ConfigType::System);
+	const bool canModifySystem = TortoiseProc::IsAdminLogin() || (m_ctrlConfigType.GetCurSel() != ConfigType::System);
 	GetDlgItem(IDC_BUTTON_ADD)->EnableWindow(enable && canModifySystem);
 	GetDlgItem(IDC_BUTTON_REMOVE)->EnableWindow(enable && canModifySystem);
 }
@@ -250,7 +397,7 @@ void CSettingGitCredential::OnLbnSelchangeListUrl()
 		SetModified(FALSE);
 
 	CString cmd, output;
-	int index = m_ctrlUrlList.GetCurSel();
+	const int index = m_ctrlUrlList.GetCurSel();
 	if (index < 0)
 	{
 		m_strHelper.Empty();
@@ -263,8 +410,8 @@ void CSettingGitCredential::OnLbnSelchangeListUrl()
 
 	CString text;
 	m_ctrlUrlList.GetText(index, text);
-	int pos = text.Find(L':');
-	CString prefix = pos >= 0 ? text.Left(pos) : text.Left(1);
+	const int pos = text.Find(L':');
+	const CString prefix = pos >= 0 ? text.Left(pos) : text.Left(1);
 	m_ctrlConfigType.SetCurSel((prefix == L"S" || prefix == L"P") ? ConfigType::System : prefix == L"X" ? ConfigType::Global : prefix == L"G" ? ConfigType::Global : ConfigType::Local);
 	m_strUrl = pos >= 0 ? text.Mid(pos + 1) : CString();
 
@@ -272,7 +419,7 @@ void CSettingGitCredential::OnLbnSelchangeListUrl()
 	m_strUsername = Load(L"username");
 	m_bUseHttpPath = Load(L"useHttpPath") == L"true" ? TRUE : FALSE;
 
-	bool canModifySystem = CAppUtils::IsAdminLogin() || (m_ctrlConfigType.GetCurSel() != ConfigType::System);
+	const bool canModifySystem = TortoiseProc::IsAdminLogin() || (m_ctrlConfigType.GetCurSel() != ConfigType::System);
 	GetDlgItem(IDC_BUTTON_ADD)->EnableWindow(canModifySystem ? TRUE : FALSE);
 	GetDlgItem(IDC_BUTTON_REMOVE)->EnableWindow(canModifySystem ? TRUE : FALSE);
 	this->UpdateData(FALSE);
@@ -280,9 +427,9 @@ void CSettingGitCredential::OnLbnSelchangeListUrl()
 
 void CSettingGitCredential::OnCbnSelchangeComboConfigType()
 {
-	if (!CAppUtils::IsAdminLogin())
+	if (!TortoiseProc::IsAdminLogin())
 	{
-		int sel = m_ctrlConfigType.GetCurSel();
+		const int sel = m_ctrlConfigType.GetCurSel();
 		GetDlgItem(IDC_BUTTON_ADD)->EnableWindow(sel != ConfigType::System);
 		GetDlgItem(IDC_BUTTON_REMOVE)->EnableWindow(sel != ConfigType::System);
 		if (sel == ConfigType::System)
@@ -336,8 +483,8 @@ void CSettingGitCredential::FillSimpleList(bool anySystem, bool systemWincred, b
 {
 	ATLASSERT(SimpleCredentialType::Advanced == -1);
 
-	bool hasLocal = !GitAdminDir::HasAdminDir(GitCall::m_CurrentDirStorage).empty();
-	bool isAdmin = CAppUtils::IsAdminLogin();
+	const bool hasLocal = !GitAdminDir::HasAdminDir(GitCall::m_CurrentDirStorage).empty();
+	const bool isAdmin = TortoiseProc::IsAdminLogin();
 
 	AddSimpleCredential(SimpleCredentialType::Advanced, CString(MAKEINTRESOURCE(IDS_ADVANCED)));
 	if (isAdmin || !anySystem)
@@ -366,10 +513,10 @@ void CSettingGitCredential::LoadList()
 	wil::unique_git_config config;
 	git_config_new(config.put());
 	const wil::unique_git_repository repo(g_Git.GetGitRepository());
-	git_config_add_file_ondisk(config.get(), TGitPath::ToGitPathA(TGitH::GetGitLocalConfig().native()).c_str(), GIT_CONFIG_LEVEL_LOCAL, repo.get(), FALSE);
-	git_config_add_file_ondisk(config.get(), TGitPath::ToGitPathA(TGitH::GetGitGlobalConfig().native()).c_str(), GIT_CONFIG_LEVEL_GLOBAL, repo.get(), FALSE);
-	git_config_add_file_ondisk(config.get(), TGitPath::ToGitPathA(TGitH::GetGitGlobalXDGConfig().native()).c_str(), GIT_CONFIG_LEVEL_XDG, repo.get(), FALSE);
-	git_config_add_file_ondisk(config.get(), TGitPath::ToGitPathA(TGitH::GetGitSystemConfig().native()).c_str(), GIT_CONFIG_LEVEL_SYSTEM, repo.get(), FALSE);
+	git_config_add_file_ondisk(config.get(), TGitPath::ToGitPathA(TGitH::GetGitLocalConfig().native()).c_str(), git_config_level_t::GIT_CONFIG_LEVEL_LOCAL, repo.get(), FALSE);
+	git_config_add_file_ondisk(config.get(), TGitPath::ToGitPathA(TGitH::GetGitGlobalConfig().native()).c_str(), git_config_level_t::GIT_CONFIG_LEVEL_GLOBAL, repo.get(), FALSE);
+	git_config_add_file_ondisk(config.get(), TGitPath::ToGitPathA(TGitH::GetGitGlobalXDGConfig().native()).c_str(), git_config_level_t::GIT_CONFIG_LEVEL_XDG, repo.get(), FALSE);
+	git_config_add_file_ondisk(config.get(), TGitPath::ToGitPathA(TGitH::GetGitSystemConfig().native()).c_str(), git_config_level_t::GIT_CONFIG_LEVEL_SYSTEM, repo.get(), FALSE);
 
 	std::vector<std::wstring> defaultList, urlList;
 	git_config_foreach_match(config.get(), "credential\\.helper", GetCredentialDefaultUrlCallback, &defaultList);
@@ -407,9 +554,9 @@ void CSettingGitCredential::LoadList()
 	}
 
 	int pos = 0;
-	CString prefix = tgit::wstr::Tokenize(anyList[0], L"\n", pos).c_str();
-	CString key = tgit::wstr::Tokenize(anyList[0], L"\n", pos).c_str();
-	CString value = tgit::wstr::Tokenize(anyList[0], L"\n", pos).c_str();
+	const CString prefix = tgit::wstr::Tokenize(anyList[0], L"\n", pos).c_str();
+	const CString key = tgit::wstr::Tokenize(anyList[0], L"\n", pos).c_str();
+	const CString value = tgit::wstr::Tokenize(anyList[0], L"\n", pos).c_str();
 	if (key != L"credential.helper")
 	{
 		FillSimpleList(true, false, false, false);
@@ -417,7 +564,7 @@ void CSettingGitCredential::LoadList()
 		return;
 	}
 
-	CString winstore = GetWinstorePath();
+	const CString winstore = GetWinstorePath();
 	if (prefix == L"L")
 	{
 		if (value == L"wincred")
@@ -504,23 +651,22 @@ CString CSettingGitCredential::Load(const CString& key)
 	wil::unique_git_config config;
 	git_config_new(config.put());
 	const wil::unique_git_repository repo(g_Git.GetGitRepository());
-	int sel = m_ctrlConfigType.GetCurSel();
+	const int sel = m_ctrlConfigType.GetCurSel();
 	if (sel == ConfigType::Local)
-		git_config_add_file_ondisk(config.get(), TGitPath::ToGitPathA(TGitH::GetGitLocalConfig().native()).c_str(), GIT_CONFIG_LEVEL_LOCAL, repo.get(), FALSE);
+		git_config_add_file_ondisk(config.get(), TGitPath::ToGitPathA(TGitH::GetGitLocalConfig().native()).c_str(), git_config_level_t::GIT_CONFIG_LEVEL_LOCAL, repo.get(), FALSE);
 	else if (sel == ConfigType::Global)
 	{
-		git_config_add_file_ondisk(config.get(), TGitPath::ToGitPathA(TGitH::GetGitGlobalConfig().native()).c_str(), GIT_CONFIG_LEVEL_GLOBAL, repo.get(), FALSE);
-		git_config_add_file_ondisk(config.get(), TGitPath::ToGitPathA(TGitH::GetGitGlobalXDGConfig().native()).c_str(), GIT_CONFIG_LEVEL_XDG, repo.get(), FALSE);
+		git_config_add_file_ondisk(config.get(), TGitPath::ToGitPathA(TGitH::GetGitGlobalConfig().native()).c_str(), git_config_level_t::GIT_CONFIG_LEVEL_GLOBAL, repo.get(), FALSE);
+		git_config_add_file_ondisk(config.get(), TGitPath::ToGitPathA(TGitH::GetGitGlobalXDGConfig().native()).c_str(), git_config_level_t::GIT_CONFIG_LEVEL_XDG, repo.get(), FALSE);
 	}
 	else if (sel == ConfigType::System)
-		git_config_add_file_ondisk(config.get(), TGitPath::ToGitPathA(TGitH::GetGitSystemConfig().native()).c_str(), GIT_CONFIG_LEVEL_SYSTEM, repo.get(), FALSE);
+		git_config_add_file_ondisk(config.get(), TGitPath::ToGitPathA(TGitH::GetGitSystemConfig().native()).c_str(), git_config_level_t::GIT_CONFIG_LEVEL_SYSTEM, repo.get(), FALSE);
 
-	CStringA cmdA = CUnicodeUtils::GetUTF8<CStringA>(cmd);
+	const CStringA cmdA = CUnicodeUtils::GetUTF8<CStringA>(cmd);
 	CStringA valueA;
 	git_config_entry* entry;
 	if (!git_config_get_entry(&entry, config.get(), cmdA))
 		valueA = CStringA(entry->value);
-	git_config_entry_free(entry);
 
 	return CUnicodeUtils::GetUnicode<CString>(valueA);
 }
@@ -534,10 +680,10 @@ void CSettingGitCredential::Save(const CString& key, const CString& value)
 	else
 		cmd.Format(L"credential.%s.%s", static_cast<LPCWSTR>(m_strUrl), static_cast<LPCWSTR>(key));
 
-	int sel = m_ctrlConfigType.GetCurSel();
-	CONFIG_TYPE configLevel = sel == ConfigType::System ? CONFIG_SYSTEM : sel == ConfigType::Global ? CONFIG_GLOBAL : CONFIG_LOCAL;
+	const int sel = m_ctrlConfigType.GetCurSel();
+	const CONFIG_TYPE configLevel = sel == ConfigType::System ? CONFIG_TYPE::CONFIG_SYSTEM : sel == ConfigType::Global ? CONFIG_TYPE::CONFIG_GLOBAL : CONFIG_TYPE::CONFIG_LOCAL;
 
-	bool old = g_Git.m_IsUseGitDLL;
+	const bool old = g_Git.m_IsUseGitDLL;
 	// workaround gitdll bug
 	// TODO: switch to libgit2
 	g_Git.m_IsUseGitDLL = false;
@@ -588,10 +734,10 @@ int CSettingGitCredential::DeleteOtherKeys(int type)
 	wil::unique_git_config config;
 	git_config_new(config.put());
 	const wil::unique_git_repository repo = g_Git.GetGitRepository();
-	git_config_add_file_ondisk(config.get(), TGitPath::ToGitPathA(TGitH::GetGitLocalConfig().native()).c_str(), GIT_CONFIG_LEVEL_LOCAL, repo.get(), FALSE);
-	git_config_add_file_ondisk(config.get(), TGitPath::ToGitPathA(TGitH::GetGitGlobalConfig().native()).c_str(), GIT_CONFIG_LEVEL_GLOBAL, repo.get(), FALSE);
-	git_config_add_file_ondisk(config.get(), TGitPath::ToGitPathA(TGitH::GetGitGlobalXDGConfig().native()).c_str(), GIT_CONFIG_LEVEL_XDG, repo.get(), FALSE);
-	git_config_add_file_ondisk(config.get(), TGitPath::ToGitPathA(TGitH::GetGitSystemConfig().native()).c_str(), GIT_CONFIG_LEVEL_SYSTEM, repo.get(), FALSE);
+	git_config_add_file_ondisk(config.get(), TGitPath::ToGitPathA(TGitH::GetGitLocalConfig().native()).c_str(), git_config_level_t::GIT_CONFIG_LEVEL_LOCAL, repo.get(), FALSE);
+	git_config_add_file_ondisk(config.get(), TGitPath::ToGitPathA(TGitH::GetGitGlobalConfig().native()).c_str(), git_config_level_t::GIT_CONFIG_LEVEL_GLOBAL, repo.get(), FALSE);
+	git_config_add_file_ondisk(config.get(), TGitPath::ToGitPathA(TGitH::GetGitGlobalXDGConfig().native()).c_str(), git_config_level_t::GIT_CONFIG_LEVEL_XDG, repo.get(), FALSE);
+	git_config_add_file_ondisk(config.get(), TGitPath::ToGitPathA(TGitH::GetGitSystemConfig().native()).c_str(), git_config_level_t::GIT_CONFIG_LEVEL_SYSTEM, repo.get(), FALSE);
 
 	std::vector<std::wstring> list;
 	git_config_foreach_match(config.get(), "credential\\..*", GetCredentialAnyEntryCallback, &list);
@@ -599,7 +745,7 @@ int CSettingGitCredential::DeleteOtherKeys(int type)
 	{
 		int pos = 0;
 		CString prefix = tgit::wstr::Tokenize(list[i], L"\n", pos).c_str();
-		if ((prefix == L"S" || prefix == L"P") && list[i] != tgit::str::StringView(match) && !CAppUtils::IsAdminLogin())
+		if ((prefix == L"S" || prefix == L"P") && list[i] != tgit::str::StringView(match) && !TortoiseProc::IsAdminLogin())
 		{
 			if (MessageBox(L"Cannot modify a system config without proper rights.\nDiscard changes?", L"TortoiseGit", MB_ICONERROR | MB_YESNO) == IDYES)
 				return 0;
@@ -609,7 +755,7 @@ int CSettingGitCredential::DeleteOtherKeys(int type)
 
 	// workaround gitdll bug
 	// TODO: switch to libgit2
-	bool old = g_Git.m_IsUseGitDLL;
+	const bool old = g_Git.m_IsUseGitDLL;
 	g_Git.m_IsUseGitDLL = false;
 	SCOPE_EXIT { g_Git.m_IsUseGitDLL = old; };
 	for (size_t i = 0; i < list.size(); ++i)
@@ -620,7 +766,7 @@ int CSettingGitCredential::DeleteOtherKeys(int type)
 		int pos = 0;
 		CString prefix = tgit::wstr::Tokenize(list[i], L"\n", pos).c_str();
 		CString key = tgit::wstr::Tokenize(list[i], L"\n", pos).c_str();
-		CONFIG_TYPE configLevel = (prefix == L"S" || prefix == L"P") ? CONFIG_SYSTEM : prefix == L"G" || prefix == L"X" ? CONFIG_GLOBAL : CONFIG_LOCAL;
+		const CONFIG_TYPE configLevel = (prefix == L"S" || prefix == L"P") ? CONFIG_TYPE::CONFIG_SYSTEM : prefix == L"G" || prefix == L"X" ? CONFIG_TYPE::CONFIG_GLOBAL : CONFIG_TYPE::CONFIG_LOCAL;
 		if (g_Git.UnsetConfigValue(key, configLevel))
 		{
 			CString msg;
@@ -639,57 +785,57 @@ bool CSettingGitCredential::SaveSimpleCredential(int type)
 	CString value;
 	if (type == SimpleCredentialType::LocalWincred)
 	{
-		configLevel = CONFIG_LOCAL;
+		configLevel = CONFIG_TYPE::CONFIG_LOCAL;
 		value = L"wincred";
 	}
 	else if (type == SimpleCredentialType::LocalWinstore)
 	{
-		configLevel = CONFIG_LOCAL;
+		configLevel = CONFIG_TYPE::CONFIG_LOCAL;
 		value = GetWinstorePath();
 	}
 	else if (type == SimpleCredentialType::LocalGCM)
 	{
-		configLevel = CONFIG_LOCAL;
+		configLevel = CONFIG_TYPE::CONFIG_LOCAL;
 		value = L"manager";
 	}
 	else if (type == SimpleCredentialType::LocalGCMCore)
 	{
-		configLevel = CONFIG_LOCAL;
+		configLevel = CONFIG_TYPE::CONFIG_LOCAL;
 		value = L"manager-core";
 	}
 	else if (type == SimpleCredentialType::GlobalWincred)
 	{
-		configLevel = CONFIG_GLOBAL;
+		configLevel = CONFIG_TYPE::CONFIG_GLOBAL;
 		value = L"wincred";
 	}
 	else if (type == SimpleCredentialType::GlobalWinstore)
 	{
-		configLevel = CONFIG_GLOBAL;
+		configLevel = CONFIG_TYPE::CONFIG_GLOBAL;
 		value = GetWinstorePath();
 	}
 	else if (type == SimpleCredentialType::GlobalGCM)
 	{
-		configLevel = CONFIG_GLOBAL;
+		configLevel = CONFIG_TYPE::CONFIG_GLOBAL;
 		value = L"manager";
 	}
 	else if (type == SimpleCredentialType::GlobalGCMCore)
 	{
-		configLevel = CONFIG_GLOBAL;
+		configLevel = CONFIG_TYPE::CONFIG_GLOBAL;
 		value = L"manager-core";
 	}
 	else if (type == SimpleCredentialType::SystemWincred)
 	{
-		configLevel = CONFIG_SYSTEM;
+		configLevel = CONFIG_TYPE::CONFIG_SYSTEM;
 		value = L"wincred";
 	}
 	else if (type == SimpleCredentialType::SystemGCM)
 	{
-		configLevel = CONFIG_SYSTEM;
+		configLevel = CONFIG_TYPE::CONFIG_SYSTEM;
 		value = L"manager";
 	}
 	else if (type == SimpleCredentialType::SystemGCMCore)
 	{
-		configLevel = CONFIG_SYSTEM;
+		configLevel = CONFIG_TYPE::CONFIG_SYSTEM;
 		value = L"manager-core";
 	}
 	else
@@ -697,7 +843,7 @@ bool CSettingGitCredential::SaveSimpleCredential(int type)
 
 	// workaround gitdll bug
 	// TODO: switch to libgit2
-	bool old = g_Git.m_IsUseGitDLL;
+	const bool old = g_Git.m_IsUseGitDLL;
 	g_Git.m_IsUseGitDLL = false;
 	if (g_Git.SetConfigValue(L"credential.helper", value, configLevel))
 	{
@@ -726,8 +872,8 @@ bool CSettingGitCredential::SaveSettings()
 	CWaitCursor wait;
 	UpdateData();
 
-	int type = m_ctrlSimpleCredential.GetCurSel();
-	if ((type == SimpleCredentialType::SystemWincred || type == SimpleCredentialType::SystemGCM || type == SimpleCredentialType::SystemGCMCore) && !CAppUtils::IsAdminLogin())
+	const int type = m_ctrlSimpleCredential.GetCurSel();
+	if ((type == SimpleCredentialType::SystemWincred || type == SimpleCredentialType::SystemGCM || type == SimpleCredentialType::SystemGCMCore) && !TortoiseProc::IsAdminLogin())
 	{
 		if (m_iSimpleStoredValue == type)
 		{
@@ -753,7 +899,7 @@ bool CSettingGitCredential::SaveSettings()
 	}
 
 	int sel = m_ctrlConfigType.GetCurSel();
-	if (sel == ConfigType::System && !CAppUtils::IsAdminLogin())
+	if (sel == ConfigType::System && !TortoiseProc::IsAdminLogin())
 	{
 		if (MessageBox(L"Cannot modify a system config without proper rights.\nDiscard changes?", L"TortoiseGit", MB_ICONERROR | MB_YESNO) == IDYES)
 			return true;
@@ -775,13 +921,13 @@ bool CSettingGitCredential::SaveSettings()
 		m_ChangedMask &= ~CREDENTIAL_HELPER;
 
 		sel = m_ctrlConfigType.GetCurSel();
-		CString prefix = sel == ConfigType::System ? L"S" : sel == ConfigType::Global ? L"G" : L"L";
+		const CString prefix = sel == ConfigType::System ? L"S" : sel == ConfigType::Global ? L"G" : L"L";
 		CString text;
 		if (!m_strUrl.IsEmpty())
 			text.Format(L"%s:%s", static_cast<LPCWSTR>(prefix), static_cast<LPCWSTR>(m_strUrl));
 		else
 			text = prefix;
-		int urlIndex = m_ctrlUrlList.AddString(text);
+		const int urlIndex = m_ctrlUrlList.AddString(text);
 		m_ctrlUrlList.SetCurSel(urlIndex);
 		GetDlgItem(IDC_BUTTON_ADD)->EnableWindow(TRUE);
 	}
@@ -807,7 +953,7 @@ bool CSettingGitCredential::SaveSettings()
 
 void CSettingGitCredential::OnBnClickedButtonRemove()
 {
-	int index = m_ctrlUrlList.GetCurSel();
+	const int index = m_ctrlUrlList.GetCurSel();
 	if (index >= 0)
 	{
 		CString str;
@@ -819,43 +965,43 @@ void CSettingGitCredential::OnBnClickedButtonRemove()
 			wil::unique_git_config config;
 			git_config_new(config.put());
 			const wil::unique_git_repository repo(g_Git.GetGitRepository());
-			int pos = str.Find(L':');
-			CString prefix = pos >= 0 ? str.Left(pos) : str;
-			CString url = pos >= 0 ? str.Mid(pos + 1) : CString();
-			CONFIG_TYPE configLevel = CONFIG_LOCAL;
+			const int pos = str.Find(L':');
+			const CString prefix = pos >= 0 ? str.Left(pos) : str;
+			const CString url = pos >= 0 ? str.Mid(pos + 1) : CString();
+			CONFIG_TYPE configLevel = CONFIG_TYPE::CONFIG_LOCAL;
 			switch (prefix[0])
 			{
 			case L'L':
 				{
-				configLevel = CONFIG_LOCAL;
-				git_config_add_file_ondisk(config.get(), TGitPath::ToGitPathA(TGitH::GetGitLocalConfig().native()).c_str(), GIT_CONFIG_LEVEL_LOCAL, repo.get(), FALSE);
+				configLevel = CONFIG_TYPE::CONFIG_LOCAL;
+				git_config_add_file_ondisk(config.get(), TGitPath::ToGitPathA(TGitH::GetGitLocalConfig().native()).c_str(), git_config_level_t::GIT_CONFIG_LEVEL_LOCAL, repo.get(), FALSE);
 				break;
 				}
 			case L'G':
 			case L'X':
 				{
-				configLevel = CONFIG_GLOBAL;
-				git_config_add_file_ondisk(config.get(), TGitPath::ToGitPathA(TGitH::GetGitGlobalConfig().native()).c_str(), GIT_CONFIG_LEVEL_GLOBAL, repo.get(), FALSE);
-				git_config_add_file_ondisk(config.get(), TGitPath::ToGitPathA(TGitH::GetGitGlobalXDGConfig().native()).c_str(), GIT_CONFIG_LEVEL_XDG, repo.get(), FALSE);
+				configLevel = CONFIG_TYPE::CONFIG_GLOBAL;
+				git_config_add_file_ondisk(config.get(), TGitPath::ToGitPathA(TGitH::GetGitGlobalConfig().native()).c_str(), git_config_level_t::GIT_CONFIG_LEVEL_GLOBAL, repo.get(), FALSE);
+				git_config_add_file_ondisk(config.get(), TGitPath::ToGitPathA(TGitH::GetGitGlobalXDGConfig().native()).c_str(), git_config_level_t::GIT_CONFIG_LEVEL_XDG, repo.get(), FALSE);
 				break;
 				}
 			case L'P':
 			case L'S':
 				{
-				if (!CAppUtils::IsAdminLogin())
+				if (!TortoiseProc::IsAdminLogin())
 				{
 					MessageBox(L"Cannot modify a system config without proper rights.", L"TortoiseGit", MB_ICONERROR);
 					return;
 				}
-				configLevel = CONFIG_SYSTEM;
-				git_config_add_file_ondisk(config.get(), TGitPath::ToGitPathA(TGitH::GetGitSystemConfig().native()).c_str(), GIT_CONFIG_LEVEL_SYSTEM, repo.get(), FALSE);
+				configLevel = CONFIG_TYPE::CONFIG_SYSTEM;
+				git_config_add_file_ondisk(config.get(), TGitPath::ToGitPathA(TGitH::GetGitSystemConfig().native()).c_str(), git_config_level_t::GIT_CONFIG_LEVEL_SYSTEM, repo.get(), FALSE);
 				break;
 				}
 			}
 
 			std::vector<std::wstring> list;
-			CStringA urlA = CUnicodeUtils::GetUTF8<CStringA>(url);
-			CStringA pattern = urlA.IsEmpty() ? CStringA("^credential\\.[^.]+$") : ("credential\\." + RegexEscape(urlA) + "\\..*");
+			const CStringA urlA = CUnicodeUtils::GetUTF8<CStringA>(url);
+			const CStringA pattern = urlA.IsEmpty() ? CStringA("^credential\\.[^.]+$") : ("credential\\." + RegexEscape(urlA) + "\\..*");
 			git_config_foreach_match(config.get(), pattern, GetCredentialEntryCallback, &list);
 			for (size_t i = 0; i < list.size(); ++i)
 				g_Git.UnsetConfigValue(list[i].c_str(), configLevel);
@@ -877,7 +1023,7 @@ void CSettingGitCredential::OnBnClickedWindowscredmgr()
 	// https://stackoverflow.com/a/31782500/3906760
 	if (CComHeapPtr<WCHAR> wcharPtr; SUCCEEDED(SHGetKnownFolderPath(FOLDERID_System, 0, nullptr, &wcharPtr)))
 	{
-		CString folder{ static_cast<LPCWSTR>(wcharPtr) };
-		CAppUtils::LaunchApplication(folder + L"\\rundll32.exe keymgr.dll,KRShowKeyMgr", CAppUtils::LaunchApplicationFlags());
+		const CString folder{ static_cast<LPCWSTR>(wcharPtr) };
+		TortoiseProc::LaunchApplication(folder + L"\\rundll32.exe keymgr.dll,KRShowKeyMgr", TortoiseProc::LaunchApplicationFlags());
 	}
 }

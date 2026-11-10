@@ -19,14 +19,13 @@
 //
 
 #pragma once
-#include "GitStatusListCtrl.h"
 #include "../../TortoiseProc/MiscUI/SciEdit.h"
 #include "../../TortoiseProc/MiscUI/SplitterControl.h"
 #include "../../TortoiseProc/MiscUI/LinkControl.h"
 #include <IBugTraqProvider_h.h>
 #include "HyperLink.h"
 #include "PatchViewDlg.h"
-#include "../../TortoiseProc/MiscUI/MenuButton.h"
+import MenuButton;
 
 import StandAloneDlg;
 import TortoiseProc.MassiveGitTask;
@@ -36,6 +35,8 @@ import wil;
 import Registry;
 import PathWatcher;
 import BugTraqProvider;
+import GitStatusListCtrl;
+
 
 
 #define ENDDIALOGTIMER	100

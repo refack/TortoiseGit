@@ -18,17 +18,19 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 #include "stdafx.h"
-import tgit;
 
 #include "GitDiff.h"
-import TortoiseProc;
-import AppUtils.GitEnv;
-import AppUtils.Launch;
-import AppUtils.Window;
-#include "../SharedMFC/Resources/resource.h"
-import MessageBox;
 #include "FileDiffDlg.h"
 #include "SubmoduleDiffDlg.h"
+import tgit;
+import TortoiseProc;
+import AppUtils.Launch;
+import AppUtils.Window;
+import MessageBox;
+import TempFile;
+import ConfigureGitExe;
+using namespace libgit2;
+
 
 int CGitDiff::SubmoduleDiffNull(HWND hWnd, const CTGitPath* pPath, const CGitHash& hash)
 {
@@ -64,7 +66,7 @@ int CGitDiff::SubmoduleDiffNull(HWND hWnd, const CTGitPath* pPath, const CGitHas
 		CGit subgit;
 		subgit.m_IsUseGitDLL = false;
 		subgit.SetCurrentDirExact(submoduleDir);
-		const int encode = CAppUtils::GetLogOutputEncode(&subgit);
+		const int encode = TGitH::GetLogOutputEncode(subgit);
 
 		// The format used to be spelled --pretty=format:"%s" - the quotes were
 		// there so the flat command line survived being parsed back into argv.
@@ -275,7 +277,7 @@ int CGitDiff::SubmoduleDiff(HWND hWnd, const CTGitPath* pPath, const CTGitPath* 
 
 void CGitDiff::GetSubmoduleChangeType(CGit& subgit, const CGitHash& oldhash, const CGitHash& newhash, bool& oldOK, bool& newOK, ChangeType& changeType, CString& oldsub, CString& newsub)
 {
-	const int encode = CAppUtils::GetLogOutputEncode(&subgit);
+	const int encode = TGitH::GetLogOutputEncode(subgit);
 	int oldTime = 0, newTime = 0;
 
 	if (!oldhash.IsEmpty())
@@ -388,7 +390,7 @@ int CGitDiff::Diff(HWND hWnd, const CTGitPath* pPath, const CTGitPath* pPath2, c
 		file1 = TempFiles::GetTempFilePath(false, *pPath, rev1Hash).GetWinPathString().c_str();
 		title1 = std::format(L"{}: {}", pPath->GetGitPathString(), rev1Hash.ToString(g_Git.GetShortHASHLength())).c_str();
 		auto ret = g_Git.GetOneFile(CString((rev1Hash.ToString()).c_str()), *pPath, file1);
-		if (ret && !(!mustExist && ret == GIT_ENOTFOUND))
+		if (ret && !(!mustExist && ret == git_error_code::GIT_ENOTFOUND))
 		{
 			CString out;
 			out.FormatMessage(IDS_STATUSLIST_CHECKOUTFILEFAILED, pPath->GetGitPathString().c_str(), (rev1Hash.ToString()).c_str(), file1);
@@ -415,7 +417,7 @@ int CGitDiff::Diff(HWND hWnd, const CTGitPath* pPath, const CTGitPath* pPath2, c
 			sMsg.Format(IDS_PROC_DIFFERROR_FILENOTINWORKINGTREE, file1);
 			if (MessageBox(hWnd, sMsg, L"TortoiseGit", MB_ICONEXCLAMATION | MB_YESNO) != IDYES)
 				return 1;
-			if (!CAppUtils::FileOpenSave(file1, nullptr, IDS_SELECTFILE, IDS_COMMONFILEFILTER, true))
+			if (!ConfigureGitExe::FileOpenSave(file1, nullptr, IDS_SELECTFILE, IDS_COMMONFILEFILTER, true))
 				return 1;
 			title1 = file1;
 		}
@@ -432,7 +434,7 @@ int CGitDiff::Diff(HWND hWnd, const CTGitPath* pPath, const CTGitPath* pPath2, c
 		file2 = TempFiles::GetTempFilePath(false, fileName, rev2Hash).GetWinPathString().c_str();
 		title2 = std::format(L"{}: {}", fileName.GetGitPathString(), rev2Hash.ToString(g_Git.GetShortHASHLength())).c_str();
 		const auto ret = g_Git.GetOneFile(CString((rev2Hash.ToString()).c_str()), fileName, file2);
-		if (ret && !(!mustExist && ret == GIT_ENOTFOUND))
+		if (ret && !(!mustExist && ret == git_error_code::GIT_ENOTFOUND))
 		{
 			CString out;
 			out.FormatMessage(IDS_STATUSLIST_CHECKOUTFILEFAILED, pPath2->GetGitPathString().c_str(), (rev2Hash.ToString()).c_str(), file2);

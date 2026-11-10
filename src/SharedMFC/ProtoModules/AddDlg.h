@@ -19,10 +19,12 @@
 //
 #pragma once
 
-import StandAloneDlg;
-
-#include "GitStatusListCtrl.h"
 #include "../SharedMFC/Resources/resource.h"
+
+import StandAloneDlg;
+import GitStatusListCtrl;
+import TGitPath;
+
 
 /**
  * \ingroup TortoiseProc

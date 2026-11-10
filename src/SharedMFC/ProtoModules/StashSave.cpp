@@ -55,7 +55,7 @@ END_MESSAGE_MAP()
 BOOL CStashSaveDlg::OnInitDialog()
 {
 	CHorizontalResizableStandAloneDialog::OnInitDialog();
-	CAppUtils::MarkWindowAsUnpinnable(m_hWnd);
+	wil::MFC::MarkWindowAsUnpinnable(m_hWnd);
 
 	AdjustControlSize(IDC_CHECK_UNTRACKED);
 	AdjustControlSize(IDC_CHECK_ALL);
@@ -67,7 +67,7 @@ BOOL CStashSaveDlg::OnInitDialog()
 	AddAnchor(IDC_STASHMESSAGE, TOP_LEFT, TOP_RIGHT);
 	AddAnchor(IDC_GROUP_OPTION, TOP_LEFT, TOP_RIGHT);
 
-	CAppUtils::SetWindowTitle(*this, GitCall::m_CurrentDirStorage.c_str());
+	wil::MFC::SetWindowTitle(*this, GitCall::m_CurrentDirStorage.c_str());
 
 	SetTheme(CTheme::Instance().IsDarkTheme());
 

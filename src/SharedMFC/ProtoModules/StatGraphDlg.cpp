@@ -19,17 +19,16 @@
 //
 
 #include "stdafx.h"
-import tgit;
-
 #include <ResizableLayout.h>
-
-import TortoiseProc;
 #include "StatGraphDlg.h"
 #include "../../TortoiseProc/MiscUI/SysProgressDlg.h"
 
-import std;
+import tgit;
+import TortoiseProc;
 import AppUtils.Window;
 import ThemeAPI;
+import Registry;
+import ConfigureGitExe;
 
 using namespace Gdiplus;
 
@@ -128,7 +127,7 @@ void CStatGraphDlg::SetSkipper (bool reloadSkiper)
 	// the resolution limit of the screen will already not allow for displaying
 	// it in a reasonable way
 
-	int max_authors_count = max(1, static_cast<int>(min(m_authorNames.size(), size_t(250))));
+	int max_authors_count = std::max(1, static_cast<int>(std::min(m_authorNames.size(), size_t(250))));
 	m_Skipper.SetRange (1, max_authors_count);
 	m_Skipper.SetPageSize(5);
 
@@ -167,9 +166,9 @@ BOOL CStatGraphDlg::OnInitDialog()
 
 	// set the dialog title to "Statistics - path/to/whatever/we/show/the/statistics/for"
 	if (m_path.IsEmpty())
-		CAppUtils::SetWindowTitle(*this, GitCall::m_CurrentDirStorage.c_str());
+		wil::MFC::SetWindowTitle(*this, GitCall::m_CurrentDirStorage.c_str());
 	else
-		CAppUtils::SetWindowTitle(*this, m_path.GetUIPathString().c_str());
+		wil::MFC::SetWindowTitle(*this, m_path.GetUIPathString().c_str());
 
 	int iconWidth = GetSystemMetrics(SM_CXSMICON);
 	int iconHeight = GetSystemMetrics(SM_CYSMICON);
@@ -415,14 +414,12 @@ int CStatGraphDlg::GetCalendarWeek(const CTime& time)
 	// that information (only Vista has such a function: GetTimeZoneInformationForYear() )
 	int iWeekOfYear = 0;
 
-	int iYear = time.GetYear();
-	int iFirstDayOfWeek = 0;
-	int iFirstWeekOfYear = 0;
-	wchar_t loc[2] = { 0 };
-	GetLocaleInfo(LOCALE_USER_DEFAULT, LOCALE_IFIRSTDAYOFWEEK, loc, _countof(loc));
-	iFirstDayOfWeek = int(loc[0]-'0');
-	GetLocaleInfo(LOCALE_USER_DEFAULT, LOCALE_IFIRSTWEEKOFYEAR, loc, _countof(loc));
-	iFirstWeekOfYear = int(loc[0]-'0');
+	const int iYear = time.GetYear();
+	auto loc = std::array<wchar_t, 2>{};
+	GetLocaleInfo(LOCALE_USER_DEFAULT, LOCALE_IFIRSTDAYOFWEEK, loc.data(), loc.size());
+	const int iFirstDayOfWeek = int{loc[0] - '0'};
+	GetLocaleInfo(LOCALE_USER_DEFAULT, LOCALE_IFIRSTWEEKOFYEAR, loc.data(), loc.size());
+	const int iFirstWeekOfYear = int{loc[0] - '0'};
 	CTime dDateFirstJanuary(iYear,1,1,0,0,0);
 	int iDayOfWeek = (dDateFirstJanuary.GetDayOfWeek()+5+iFirstDayOfWeek)%7;
 
@@ -574,7 +571,7 @@ int CStatGraphDlg::GatherData(BOOL fetchdiff, BOOL keepFetchedData)
 		progress.SetTitle(CString(MAKEINTRESOURCE(IDS_PROGS_TITLE_GATHERSTATISTICS)));
 		progress.FormatNonPathLine(1, IDS_PROC_STATISTICS_DIFF);
 		progress.SetTime(true);
-		progress.ShowModeless(this);
+		std::ignore = progress.ShowModeless(this);
 	}
 
 	// create arrays which are aware of the current filter
@@ -1151,7 +1148,7 @@ void CStatGraphDlg::OnCbnSelchangeGraphcombo()
 {
 	UpdateData();
 
-	Metrics useMetric = static_cast<Metrics>(m_cGraphType.GetItemData(m_cGraphType.GetCurSel()));
+	const auto useMetric = static_cast<Metrics>(m_cGraphType.GetItemData(m_cGraphType.GetCurSel()));
 	switch (useMetric )
 	{
 	case AllStat:
@@ -1172,6 +1169,8 @@ void CStatGraphDlg::OnCbnSelchangeGraphcombo()
 		m_GraphType = MyGraph::GraphType::Bar;
 		m_bStacked = false;
 		break;
+	default:
+		std::unreachable();
 	}
 	RedrawGraph();
 }
@@ -1313,7 +1312,7 @@ void CStatGraphDlg::OnNeedText(NMHDR *pnmh, LRESULT * /*pResult*/)
 
 		// find the minimum number of commits that the shown authors have
 		int min_commits = 0;
-		included_authors_count = min(included_authors_count, m_authorNames.size());
+		included_authors_count = std::min(included_authors_count, m_authorNames.size());
 		auto author_it = m_authorNames.begin();
 		advance(author_it, included_authors_count);
 		if (author_it != m_authorNames.begin())
@@ -1445,7 +1444,7 @@ void CStatGraphDlg::OnFileSavestatgraphas()
 {
 	CString tempfile;
 	int filterindex = 0;
-	if (CAppUtils::FileOpenSave(tempfile, &filterindex, IDS_REVGRAPH_SAVEPIC, IDS_STATPICFILEFILTER, false, m_hWnd))
+	if (ConfigureGitExe::FileOpenSave(tempfile, &filterindex, IDS_REVGRAPH_SAVEPIC, IDS_STATPICFILEFILTER, false, m_hWnd))
 	{
 		// if the user doesn't specify a file extension, default to
 		// wmf and add that extension to the filename. But only if the
@@ -1516,7 +1515,7 @@ void CStatGraphDlg::SaveGraph(CString sFilename)
 					if (bitmap.GetLastStatus()==Ok)
 					{
 						// Get the CLSID of the encoder.
-						int ret = 0;
+						int ret;
 						if (tgit::wstr::CompareNoCase(extension, L".png") == 0)
 							ret = GetEncoderClsid(L"image/png", &encoderClsid);
 						else if (tgit::wstr::CompareNoCase(extension, L".jpg") == 0)
@@ -1627,7 +1626,7 @@ void CStatGraphDlg::StoreCurrentGraphType()
 
 void CStatGraphDlg::ShowErrorMessage()
 {
-	CFormatMessageWrapper errorDetails;
+	wil::CFormatMessageWrapper errorDetails;
 	if (errorDetails)
 		MessageBox((errorDetails).c_str(), L"Error", MB_OK | MB_ICONINFORMATION);
 }

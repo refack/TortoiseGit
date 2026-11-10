@@ -140,7 +140,7 @@ UINT CCacheDlg::TestThread()
 	CString sNumber;
 	std::random_device rd;
 	std::mt19937 mt(rd());
-	std::uniform_int_distribution<INT_PTR> dist(0, max(INT_PTR(0), filelist.GetCount() - 1));
+	std::uniform_int_distribution<INT_PTR> dist(0, std::max(INT_PTR(0), filelist.GetCount() - 1));
 	std::uniform_int_distribution<INT_PTR> dist2(0, 9);
 	for (int i=0; i < 1; ++i)
 	{
@@ -433,7 +433,7 @@ UINT CCacheDlg::WatchTestThread()
 	CString sNumber;
 	std::random_device rd;
 	std::mt19937 mt(rd());
-	std::uniform_int_distribution<INT_PTR> dist(0, max(INT_PTR(0), filelist.GetCount() - 1));
+	std::uniform_int_distribution<INT_PTR> dist(0, std::max(INT_PTR(0), filelist.GetCount() - 1));
 	CString filepath = filelist.GetAt(dist(mt));
 	GetStatusFromRemoteCache(CTGitPath(m_sRootPath.GetString()), false);
 	for (int i=0; i < 10000; ++i)

@@ -19,31 +19,25 @@
 //
 
 #include "stdafx.h"
-import tgit;
-
-import TortoiseProc;
 #include "CommitDlg.h"
+#include "HistoryDlg.h"
+#include "COMError.h"
+#include "../../TortoiseProc/MiscUI/SysProgressDlg.h"
+#include "../../SharedMFC/Utils/LogDlg.h"
+#include "../../TortoiseProc/BstrSafeVector.h"
+#include "Utils/FileTextLines.h"
+
+import tgit;
+import TortoiseProc;
 import MessageBox;
 import AppUtils.Launch;
 import AppUtils.Window;
 import AppUtils.Workflow;
-#include "HistoryDlg.h"
-#include "ProgressDlg.h"
-#include "COMError.h"
-#include "../../TortoiseProc/MiscUI/SysProgressDlg.h"
+import ProgressDlg;
 import TortoiseProc.MassiveGitTask;
-#include "../../SharedMFC/Utils/LogDlg.h"
-#include "../../TortoiseProc/BstrSafeVector.h"
-#include "Utils/FileTextLines.h"
 import DPIAware;
 import tgit.Hooks;
 import misc_constants;
-
-#ifdef _DEBUG
-#define new DEBUG_NEW
-#undef THIS_FILE
-static char THIS_FILE[] = __FILE__;
-#endif
 
 UINT CCommitDlg::WM_AUTOLISTREADY = RegisterWindowMessage(L"TORTOISEGIT_AUTOLISTREADY_MSG");
 UINT CCommitDlg::WM_UPDATEOKBUTTON = RegisterWindowMessage(L"TORTOISEGIT_COMMIT_UPDATEOKBUTTON");
@@ -115,11 +109,11 @@ BEGIN_MESSAGE_MAP(CCommitDlg, CResizableStandAloneDialog)
 //	ON_BN_CLICKED(IDC_HISTORY, OnBnClickedHistory)
 	ON_BN_CLICKED(IDC_BUGTRAQBUTTON, OnBnClickedBugtraqbutton)
 	ON_EN_CHANGE(IDC_LOGMESSAGE, OnEnChangeLogmessage)
-	ON_REGISTERED_MESSAGE(CGitStatusListCtrl::GITSLNM_ITEMCOUNTCHANGED, OnGitStatusListCtrlItemCountChanged)
-	ON_REGISTERED_MESSAGE(CGitStatusListCtrl::GITSLNM_NEEDSREFRESH, OnGitStatusListCtrlNeedsRefresh)
-	ON_REGISTERED_MESSAGE(CGitStatusListCtrl::GITSLNM_ADDFILE, OnFileDropped)
-	ON_REGISTERED_MESSAGE(CGitStatusListCtrl::GITSLNM_CHECKCHANGED, &CCommitDlg::OnGitStatusListCtrlCheckChanged)
-	ON_REGISTERED_MESSAGE(CGitStatusListCtrl::GITSLNM_ITEMCHANGED, &CCommitDlg::OnGitStatusListCtrlItemChanged)
+	ON_REGISTERED_MESSAGE(GitStatusListCtrl::GITSLNM_ITEMCOUNTCHANGED, OnGitStatusListCtrlItemCountChanged)
+	ON_REGISTERED_MESSAGE(GitStatusListCtrl::GITSLNM_NEEDSREFRESH, OnGitStatusListCtrlNeedsRefresh)
+	ON_REGISTERED_MESSAGE(GitStatusListCtrl::GITSLNM_ADDFILE, OnFileDropped)
+	ON_REGISTERED_MESSAGE(GitStatusListCtrl::GITSLNM_CHECKCHANGED, &CCommitDlg::OnGitStatusListCtrlCheckChanged)
+	ON_REGISTERED_MESSAGE(GitStatusListCtrl::GITSLNM_ITEMCHANGED, &CCommitDlg::OnGitStatusListCtrlItemChanged)
 
 	ON_REGISTERED_MESSAGE(CLinkControl::LK_LINKITEMCLICKED, &CCommitDlg::OnCheck)
 	ON_REGISTERED_MESSAGE(WM_AUTOLISTREADY, OnAutoListReady)
@@ -187,7 +181,7 @@ static int GetCommitTemplate(CString &msg)
 BOOL CCommitDlg::OnInitDialog()
 {
 	CResizableStandAloneDialog::OnInitDialog();
-	CAppUtils::MarkWindowAsUnpinnable(m_hWnd);
+	wil::MFC::MarkWindowAsUnpinnable(m_hWnd);
 
 	GetCommitTemplate(m_sLogTemplate);
 	if (m_sLogMessage.IsEmpty())
@@ -254,7 +248,7 @@ BOOL CCommitDlg::OnInitDialog()
 	//this->DialogEnableWindow(IDC_COMMIT_AMEND,FALSE);
 
 	m_cLogMessage.Init(m_ProjectProperties);
-	m_cLogMessage.SetFont(CAppUtils::GetLogFontName(), CAppUtils::GetLogFontSize());
+	m_cLogMessage.SetFont(wil::MFC::GetLogFontName(), wil::MFC::GetLogFontSize());
 	m_cLogMessage.RegisterContextMenuHandler(this);
 	std::map<int, UINT> icons;
 	icons[AUTOCOMPLETE_SPELLING] = IDI_SPELL;
@@ -720,7 +714,7 @@ void CCommitDlg::OnOK()
 			if (result == 1)
 			{
 				CString cmdCommit;
-				cmdCommit.Format(L"/command:commit /path:%s", TCmdLineParser::EscapeValue(g_Git.CombinePath(*entry).native()).c_str());
+				cmdCommit.Format(L"/command:commit /path:%s", str::EscapeCmdValue(g_Git.CombinePath(*entry).native()).c_str());
 				TortoiseProc::RunTortoiseGitProc(cmdCommit);
 				return;
 			}
@@ -1535,13 +1529,13 @@ void CCommitDlg::SetDlgTitle()
 		GetWindowText(m_sTitle);
 
 	if (m_bWholeProject || m_bWholeProject2)
-		CAppUtils::SetWindowTitle(m_hWnd, CString(GitCall::m_CurrentDirStorage.c_str()), m_sTitle);
+		wil::MFC::SetWindowTitle(m_hWnd, CString(GitCall::m_CurrentDirStorage.c_str()), m_sTitle);
 	else
 	{
 		if (m_pathList.GetCount() == 1)
-			CAppUtils::SetWindowTitle(m_hWnd, CString(g_Git.CombinePath(m_pathList[0].GetUIPathString().c_str()).c_str()), m_sTitle);
+			wil::MFC::SetWindowTitle(m_hWnd, CString(g_Git.CombinePath(m_pathList[0].GetUIPathString().c_str()).c_str()), m_sTitle);
 		else
-			CAppUtils::SetWindowTitle(m_hWnd, CString(g_Git.CombinePath(m_ListCtrl.GetCommonDirectory(false)).c_str()), m_sTitle);
+			wil::MFC::SetWindowTitle(m_hWnd, CString(g_Git.CombinePath(m_ListCtrl.GetCommonDirectory(false)).c_str()), m_sTitle);
 	}
 }
 
@@ -1923,7 +1917,7 @@ void CCommitDlg::GetAutocompletionList(std::map<CString, int>& autolist)
 	// .cpp = (?<=[^\s]::)\b\w+\b
 
 	std::map<CString, CString> mapRegex;
-	CString sRegexFile = PathUtils::GetAppDirectory().c_str();
+	CString sRegexFile = til::GetAppDirectory().c_str();
 	CRegDWORD regtimeout = CRegDWORD(L"Software\\TortoiseGit\\AutocompleteParseTimeout", 5);
 	ULONGLONG timeoutvalue = ULONGLONG(DWORD(regtimeout)) * 1000UL;;
 	sRegexFile += L"autolist.txt";
@@ -1936,7 +1930,7 @@ void CCommitDlg::GetAutocompletionList(std::map<CString, int>& autolist)
 		ParseRegexFile(sRegexFile, mapRegex);
 
 	m_snippet.clear();
-	CString sSnippetFile = PathUtils::GetAppDirectory().c_str();
+	CString sSnippetFile = til::GetAppDirectory().c_str();
 	sSnippetFile += L"snippet.txt";
 	ParseSnippetFile(sSnippetFile, m_snippet);
 	sSnippetFile = PathUtils::GetAppDataDirectory().c_str();

@@ -139,7 +139,7 @@ void CSettingsProgsDiff::OnBnClickedExtdiffbrowse()
 	CString filename = m_sDiffPath;
 	if (!PathFileExists(filename))
 		filename.Empty();
-	if (CAppUtils::FileOpenSave(filename, nullptr, IDS_SETTINGS_SELECTDIFF, IDS_PROGRAMSFILEFILTER, true, m_hWnd))
+	if (ConfigureGitExe::FileOpenSave(filename, nullptr, IDS_SETTINGS_SELECTDIFF, IDS_PROGRAMSFILEFILTER, true, m_hWnd))
 	{
 		m_sDiffPath = filename;
 		UpdateData(FALSE);
@@ -202,7 +202,7 @@ void CSettingsProgsDiff::OnBnClickedDiffviewerbrowse()
 	CString filename = m_sDiffViewerPath;
 	if (!PathFileExists(filename))
 		filename.Empty();
-	if (CAppUtils::FileOpenSave(filename, nullptr, IDS_SETTINGS_SELECTDIFFVIEWER, IDS_PROGRAMSFILEFILTER, true, m_hWnd))
+	if (ConfigureGitExe::FileOpenSave(filename, nullptr, IDS_SETTINGS_SELECTDIFFVIEWER, IDS_PROGRAMSFILEFILTER, true, m_hWnd))
 	{
 		m_sDiffViewerPath = filename;
 		UpdateData(FALSE);

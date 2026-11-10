@@ -461,11 +461,11 @@ void CGitLogList::ContextMenuAction(int cmd, int FirstSelect, int LastSelect, CM
 				CString cmdline;
 				if ((cmd & 0xFFFF) == ID_LOG_VIEWRANGE_REVERSE)
 					cmdline.Format(L"/command:log /path:%s /range:%s",
-								   static_cast<LPCWSTR>(TCmdLineParser::EscapeValue<CString>(g_Git.CombinePath(m_Path.GetWinPathString()).native())),
+								   static_cast<LPCWSTR>(str::EscapeCmdValue<CString>(g_Git.CombinePath(m_Path.GetWinPathString()).native())),
 								   static_cast<LPCWSTR>(pSelLogEntry->m_CommitHash.ToString() + sep + pLastEntry->m_CommitHash.ToString()));
 				else
 					cmdline.Format(L"/command:log /path:%s /range:%s",
-								   static_cast<LPCWSTR>(TCmdLineParser::EscapeValue<CString>(g_Git.CombinePath(m_Path.GetWinPathString()).native())),
+								   static_cast<LPCWSTR>(str::EscapeCmdValue<CString>(g_Git.CombinePath(m_Path.GetWinPathString()).native())),
 								   static_cast<LPCWSTR>(pLastEntry->m_CommitHash.ToString() + sep + pSelLogEntry->m_CommitHash.ToString()));
 				TortoiseProc::RunTortoiseGitProc(cmdline);
 			}
@@ -1208,7 +1208,7 @@ void CGitLogList::ContextMenuAction(int cmd, int FirstSelect, int LastSelect, CM
 					SetAndClearProgressInfo(nullptr);
 					SetFileAttributes(tempfile.GetWinPath(), FILE_ATTRIBUTE_READONLY);
 					if (!bOpenWith)
-						CAppUtils::ShellOpen(tempfile.GetWinPath(), GetSafeHwnd());
+						TortoiseProc::ShellOpen(tempfile.GetWinPath(), GetSafeHwnd());
 					else
 						CAppUtils::ShowOpenWithDialog(tempfile.GetWinPathString().c_str(), GetSafeHwnd());
 				}
@@ -1251,9 +1251,9 @@ void CGitLogList::ContextMenuAction(int cmd, int FirstSelect, int LastSelect, CM
 			{
 				CString sCmd;
 				sCmd.Format(L"%s /command:export /path:\"%s\" /revision:%ld",
-					(PathUtils::GetAppDirectory() + L"TortoiseGitProc.exe").c_str(),
+					(til::GetAppDirectory() + L"TortoiseGitProc.exe").c_str(),
 					static_cast<LPCWSTR>(pathURL), static_cast<LONG>(revSelected));
-				CAppUtils::LaunchApplication(sCmd, nullptr, false);
+				TortoiseProc::LaunchApplication(sCmd, nullptr, false);
 			}
 			break;
 		case ID_VIEWREV:

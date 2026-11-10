@@ -198,9 +198,9 @@ void CRevisionGraphWnd::DrawMarker
 	if (num == 1)
 	{
 		// Roman number 1
-		REAL x = max(1.0f, 10 * this->m_fZoomFactor);
-		REAL y1 = max(1.0f, 25 * this->m_fZoomFactor);
-		REAL y2 = max(1.0f, 5 * this->m_fZoomFactor);
+		REAL x = std::max(1.0f, 10 * this->m_fZoomFactor);
+		REAL y1 = std::max(1.0f, 25 * this->m_fZoomFactor);
+		REAL y2 = std::max(1.0f, 5 * this->m_fZoomFactor);
 		if(graphics.graphics)
 		{
 			graphics.graphics->DrawLine(&pen, noderect.X + x, noderect.Y - y1, noderect.X + x, noderect.Y - y2);
@@ -210,7 +210,7 @@ void CRevisionGraphWnd::DrawMarker
 				base.AppendFormat(IDS_PROC_DIFF_BASE);
 				base += L')';
 				SolidBrush blackbrush(penColor);
-				Gdiplus::Font font(CAppUtils::GetLogFontName(), static_cast<REAL>(m_nFontSize), FontStyleRegular);
+				Gdiplus::Font font(wil::MFC::GetLogFontName(), static_cast<REAL>(m_nFontSize), FontStyleRegular);
 				graphics.graphics->DrawString(base, base.GetLength(), &font, Gdiplus::PointF(noderect.X + x + width, noderect.Y - y1), &blackbrush);
 			}
 		}
@@ -218,10 +218,10 @@ void CRevisionGraphWnd::DrawMarker
 	else if (num == 2)
 	{
 		// Roman number 2
-		REAL x1 = max(1.0f, 5 * this->m_fZoomFactor);
-		REAL x2 = max(1.0f, 15 * this->m_fZoomFactor);
-		REAL y1 = max(1.0f, 25 * this->m_fZoomFactor);
-		REAL y2 = max(1.0f, 5 * this->m_fZoomFactor);
+		REAL x1 = std::max(1.0f, 5 * this->m_fZoomFactor);
+		REAL x2 = std::max(1.0f, 15 * this->m_fZoomFactor);
+		REAL y1 = std::max(1.0f, 25 * this->m_fZoomFactor);
+		REAL y2 = std::max(1.0f, 5 * this->m_fZoomFactor);
 		if(graphics.graphics)
 		{
 			graphics.graphics->DrawLine(&pen, noderect.X + x1, noderect.Y - y1, noderect.X + x1, noderect.Y - y2);
@@ -449,7 +449,7 @@ inline static Gdiplus::Color GetBestContrastColor(COLORREF backgroundColor)
 
 #define COLORLINE(colRef) { GetColorRefColor(colRef), GetColorRefColor(colRef), { GetColorRefColor(colRef) }, { GetColorRefColor(colRef) }, { GetBestContrastColor(colRef) } }
 
-static AllColorsAndBrushes SetupColorsAndBrushes(CColors& colors)
+static AllColorsAndBrushes SetupColorsAndBrushes()
 {
 	DWORD revGraphUseLocalForCur = CRegDWORD(L"Software\\TortoiseGit\\TortoiseProc\\Graph\\RevGraphUseLocalForCur");
 
@@ -459,17 +459,17 @@ static AllColorsAndBrushes SetupColorsAndBrushes(CColors& colors)
 
 	return {
 		{ background, brightColor, { background, 1.0F }, { brightColor }, { GetBestContrastColor(GetSysColor(COLOR_WINDOW)) } },
-		COLORLINE(CTheme::Instance().GetThemeColor(colors.GetColor(revGraphUseLocalForCur ? colors.LocalBranch : colors.CurrentBranch), true)),
-		COLORLINE(CTheme::Instance().GetThemeColor(colors.GetColor(colors.LocalBranch), true)),
-		COLORLINE(CTheme::Instance().GetThemeColor(colors.GetColor(colors.RemoteBranch), true)),
-		COLORLINE(CTheme::Instance().GetThemeColor(colors.GetColor(colors.Tag), true)),
-		COLORLINE(CTheme::Instance().GetThemeColor(colors.GetColor(colors.Stash), true)),
-		COLORLINE(CTheme::Instance().GetThemeColor(colors.GetColor(colors.BisectGood), true)),
-		COLORLINE(CTheme::Instance().GetThemeColor(colors.GetColor(colors.BisectBad), true)),
-		COLORLINE(CTheme::Instance().GetThemeColor(colors.GetColor(colors.BisectBad), true)),
-		COLORLINE(CTheme::Instance().GetThemeColor(colors.GetColor(colors.NoteNode), true)),
+		COLORLINE(CTheme::Instance().GetThemeColor(g_Colors.GetColor(revGraphUseLocalForCur ? CColors::LocalBranch : CColors::CurrentBranch), true)),
+		COLORLINE(CTheme::Instance().GetThemeColor(g_Colors.GetColor(CColors::LocalBranch), true)),
+		COLORLINE(CTheme::Instance().GetThemeColor(g_Colors.GetColor(CColors::RemoteBranch), true)),
+		COLORLINE(CTheme::Instance().GetThemeColor(g_Colors.GetColor(CColors::Tag), true)),
+		COLORLINE(CTheme::Instance().GetThemeColor(g_Colors.GetColor(CColors::Stash), true)),
+		COLORLINE(CTheme::Instance().GetThemeColor(g_Colors.GetColor(CColors::BisectGood), true)),
+		COLORLINE(CTheme::Instance().GetThemeColor(g_Colors.GetColor(CColors::BisectBad), true)),
+		COLORLINE(CTheme::Instance().GetThemeColor(g_Colors.GetColor(CColors::BisectBad), true)),
+		COLORLINE(CTheme::Instance().GetThemeColor(g_Colors.GetColor(CColors::NoteNode), true)),
 		COLORLINE(CTheme::Instance().GetThemeColor(RGB(246, 153, 253), true)),
-		COLORLINE(CTheme::Instance().GetThemeColor(colors.GetColor(colors.OtherRef), true)),
+		COLORLINE(CTheme::Instance().GetThemeColor(g_Colors.GetColor(CColors::OtherRef), true)),
 	};
 }
 
@@ -517,10 +517,10 @@ void CRevisionGraphWnd::DrawTexts (GraphicsDevice& graphics, const CRect& /*logR
 	if (graphics.pDC)
 		graphics.pDC->SetTextAlign (TA_CENTER | TA_TOP);
 
-	CString fontname = CAppUtils::GetLogFontName();
+	CString fontname = wil::MFC::GetLogFontName();
 
 	Gdiplus::Font font(fontname, static_cast<REAL>(m_nFontSize), FontStyleRegular);
-	auto colorsAndBrushes = SetupColorsAndBrushes(m_Colors);
+	auto colorsAndBrushes = SetupColorsAndBrushes();
 
 	for (auto v : m_Graph.nodes)
 	{

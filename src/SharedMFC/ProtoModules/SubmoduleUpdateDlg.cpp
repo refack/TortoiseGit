@@ -18,11 +18,13 @@
 //
 
 #include "stdafx.h"
-import tgit;
-
-import TortoiseProc;
 #include "SubmoduleUpdateDlg.h"
+
+import tgit;
+import TortoiseProc;
 import AppUtils.Window;
+
+using namespace libgit2;
 
 IMPLEMENT_DYNAMIC(CSubmoduleUpdateDlg, CResizableStandAloneDialog)
 
@@ -119,7 +121,7 @@ static void GetSubmodulePathList(std::vector<std::wstring> &list, std::vector<st
 BOOL CSubmoduleUpdateDlg::OnInitDialog()
 {
 	CResizableStandAloneDialog::OnInitDialog();
-	CAppUtils::MarkWindowAsUnpinnable(m_hWnd);
+	wil::MFC::MarkWindowAsUnpinnable(m_hWnd);
 
 	AdjustControlSize(IDC_CHECK_SUBMODULE_INIT);
 	AdjustControlSize(IDC_CHECK_SUBMODULE_RECURSIVE);
@@ -188,7 +190,7 @@ void CSubmoduleUpdateDlg::SetDlgTitle()
 		if (m_PathFilterList.size() > 1)
 			dir += L", ...";
 	}
-	CAppUtils::SetWindowTitle(m_hWnd, dir, m_sTitle);
+	wil::MFC::SetWindowTitle(m_hWnd, dir, m_sTitle);
 }
 
 void CSubmoduleUpdateDlg::OnBnClickedOk()

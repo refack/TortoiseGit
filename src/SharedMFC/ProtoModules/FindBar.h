@@ -18,6 +18,7 @@
 //
 #pragma once
 import StandAloneDlg;
+import RIAA;
 
 class CFindBar : public CStandAloneDialog
 {

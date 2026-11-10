@@ -1,29 +1,19 @@
 module;
+#include <map>
 #include <afxcmn.h>
 
 #include <gitdll.h>
-#include "Resources/LoglistCommonResource.h"
-#include "Utils/HintCtrl.h"
 #include "Utils/LogDataVector.h"
-#include "Utils/ResizableColumnsListCtrl.h"
-#include "../TortoiseProc/MiscUI/IconMenu.h"
 #include "ProtoModules/LoglistUtils.h"
 
 #include "Resources/resource.h"
 #include "../TortoiseShell/resource.h"
-
-#include "ProtoModules/Colors.h"
+#include <Resources/LoglistCommonResource.h>
 
 
 export module GitLogListBase;
 
-import std;
-import git_h;
-import str_utils;
-import DebugOutput;
-import TGitPath;
-import GitHash;
-import GitRev;
+import tgit;
 import GitRevLoglist;
 import FindDlg;
 import LogDlgFilter;
@@ -35,6 +25,11 @@ import GitMailmap;
 import MessageBox;
 import DPIAware;
 import ProjectProperties;
+import ResizableColumnsListCtrl;
+import Colors;
+import HintCtrl;
+import IconMenu;
+import ColumnManager;
 
 
 using namespace tgit;
@@ -44,10 +39,16 @@ using namespace GitLogList;
 using namespace DebugOutput;
 using namespace RIAA;
 
-export class CLogDlgFilter;
+
+export namespace GitLogList {
+
+constexpr auto LOGLIST_MESSAGE_MIN_WIDTH  = 200;
+
+
+class CLogDlgFilter;
 using Locker = CComCritSecLock<CComCriticalSection>;
 
-export class CGitLogListBase : public CHintCtrl<CResizableColumnsListCtrl<CListCtrl>>, public IAsyncDiffCB {
+class CGitLogListBase : public CHintCtrl<CResizableColumnsListCtrl<CListCtrl>>, public IAsyncDiffCB {
 	DECLARE_DYNAMIC(CGitLogListBase)
 
 public:
@@ -154,11 +155,6 @@ public:
 		GIT_LOGLIST_BUG = 1 << LOGLIST_BUG,
 		GIT_LOGLIST_SVNREV = 1 << LOGLIST_SVNREV,
 	};
-
-
-
-#define LOGLIST_MESSAGE_MIN_WIDTH 200
-
 
 
 	enum {
@@ -335,7 +331,7 @@ public:
 	int m_ShowRefMask = LOGLIST_SHOWALLREFS;
 
 protected:
-	CGit::SubmoduleInfo m_submoduleInfo;
+	TGitH::SubmoduleInfo m_submoduleInfo;
 
 public:
 	void GetTimeRange(CTime& oldest, CTime& latest);
@@ -496,13 +492,12 @@ protected:
 	                                        const std::vector<CHARRANGE>& ranges,
 	                                        CRect rect,
 	                                        const CString& text,
-	                                        CColors& colors,
 	                                        HTHEME hTheme = nullptr,
 	                                        int txtState = 0);
 
 public:
 	// needs to be called from LogDlg.cpp and FileDiffDlg.cpp
-	static LRESULT DrawListItemWithMatches(CFilterHelper* filter, CListCtrl& listCtrl, NMLVCUSTOMDRAW* pLVCD, CColors& colors);
+	static LRESULT DrawListItemWithMatches(CFilterHelper* filter, CListCtrl& listCtrl, NMLVCUSTOMDRAW* pLVCD);
 
 protected:
 	void paintGraphLane(HDC hdc,
@@ -597,8 +592,6 @@ protected:
 
 	CRegDWORD m_regMaxBugIDColWidth;
 
-	CColors m_Colors;
-
 	CString m_CurrentBranch;
 	CGitHash m_HeadHash;
 
@@ -637,7 +630,7 @@ public:
 	void EnableDragnDrop(bool enable) { m_bDragndropEnabled = enable; }
 };
 
-export class CLogDlgFilter : public CFilterHelper {
+class CLogDlgFilter : public CFilterHelper {
 public:
 	/// construction
 	using CFilterHelper::CFilterHelper;
@@ -765,10 +758,11 @@ CGitLogListBase::CGitLogListBase() :
 	m_hFetchIcon = wil::MFC::LoadIconEx(IDI_ACTIONFETCHING, cx, cy);
 	m_hErrorIcon = wil::MFC::LoadIconEx(IDI_ACTIONERROR, cx, cy);
 
-	m_Filter.m_NumberOfLogsScale = CRegDWORD(L"Software\\TortoiseGit\\LogDialog\\NumberOfLogsScale", CFilterData::SHOW_NO_LIMIT);
+	auto value_or = wil::reg::try_get_tgit_dword(L"LogDialog\\NumberOfLogsScale").value_or(CFilterData::SHOW_NO_LIMIT);
+	m_Filter.m_NumberOfLogsScale = static_cast<CFilterData::SHOW_MODE>(value_or);
 	if (m_Filter.m_NumberOfLogsScale == CFilterData::SHOW_LAST_SEL_DATE) {
 		CString key;
-		key.Format(L"Software\\TortoiseGit\\History\\LogDlg_Limits\\%s\\FromDate", GitCall::m_CurrentDirStorage);
+		key.Format(L"Software\\TortoiseGit\\History\\LogDlg_Limits\\%s\\FromDate", GitCall::m_CurrentDirStorage.c_str());
 		key.Replace(L':', L'_');
 		CString lastSelFromDate = CRegString(key);
 		if (lastSelFromDate.GetLength() == 10) {
@@ -1014,8 +1008,8 @@ void CGitLogListBase::InsertGitColumn() {
 	const auto columnWidth = CDPIAware::Instance().ScaleX(GetSafeHwnd(), ICONITEMBORDER + 16 * 4);
 	const auto hasSVNDir = CTGitPath(GitCall::m_CurrentDirStorage).HasGitSVNDir();
 
-	const ColumnDefinition columns[] = {
-		{ LOGLIST_GRAPH, IDS_LOG_GRAPH, true, !m_IsRebaseReplaceGraph, columnWidth },
+	const auto columns = std::array<ColumnDefinition, 14>{
+		ColumnDefinition{ .localId = LOGLIST_GRAPH, .title = IDS_LOG_GRAPH, .visibleByDefault = true, .available = !m_IsRebaseReplaceGraph, .defaultWidth = columnWidth },
 		{ LOGLIST_REBASE, IDS_LOG_REBASE, m_IsRebaseReplaceGraph != 0, m_IsRebaseReplaceGraph != 0, columnWidth },
 		{ LOGLIST_ID, IDS_LOG_ID, m_IsIDReplaceAction != 0, m_IsIDReplaceAction != 0, columnWidth },
 		{ LOGLIST_HASH, IDS_LOG_HASH, m_IsIDReplaceAction != 0, true, columnWidth },
@@ -1028,7 +1022,7 @@ void CGitLogListBase::InsertGitColumn() {
 		{ LOGLIST_COMMIT_EMAIL, IDS_LOG_COMMIT_EMAIL, false, true, columnWidth },
 		{ LOGLIST_COMMIT_DATE, IDS_LOG_COMMIT_DATE, false, true, columnWidth },
 		{ LOGLIST_BUG, IDS_LOG_BUGIDS, m_bShowBugtraqColumn != 0, m_bShowBugtraqColumn != 0, columnWidth },
-		{ LOGLIST_SVNREV, IDS_LOG_SVNREV, hasSVNDir, hasSVNDir, columnWidth },
+		{ LOGLIST_SVNREV, IDS_LOG_SVNREV, hasSVNDir, hasSVNDir, columnWidth }
 	};
 
 	SetRedraw(false);
@@ -1126,7 +1120,7 @@ void CGitLogListBase::DrawTagBranchMessage(NMLVCUSTOMDRAW* pLVCD, const CRect& r
 			txtState = LISS_SELECTED;
 
 		if (!ranges.empty())
-			DrawListItemWithMatchesRect(pLVCD, ranges, rt, msg, m_Colors, hTheme, txtState);
+			DrawListItemWithMatchesRect(pLVCD, ranges, rt, msg, hTheme, txtState);
 		else {
 			DTTOPTS opts = { 0 };
 			opts.dwSize = sizeof(opts);
@@ -1148,7 +1142,7 @@ void CGitLogListBase::DrawTagBranchMessage(NMLVCUSTOMDRAW* pLVCD, const CRect& r
 		else
 			pLVCD->clrText = skip ? RGB(128, 128, 128) : CTheme::Instance().IsDarkTheme() ? CTheme::darkTextColor : GetSysColor(COLOR_WINDOWTEXT);
 		if (!ranges.empty())
-			DrawListItemWithMatchesRect(pLVCD, ranges, rt, msg, m_Colors);
+			DrawListItemWithMatchesRect(pLVCD, ranges, rt, msg);
 		else {
 			COLORREF clrOld = ::SetTextColor(pLVCD->nmcd.hdc, pLVCD->clrText);
 			::DrawText(pLVCD->nmcd.hdc, msg, msg.GetLength(), &rt, DT_NOPREFIX | DT_LEFT | DT_SINGLELINE | DT_VCENTER | DT_END_ELLIPSIS);
@@ -1218,7 +1212,7 @@ void CGitLogListBase::DrawTagBranch(HDC hdc,
 			}
 
 			if (hasTracking)
-				DrawTrackingRoundRect(hdc, rt, brush, m_Colors.Darken(colRef, 100));
+				DrawTrackingRoundRect(hdc, rt, brush, CColors::Darken(colRef, 100));
 			else {
 				//Fill interior of ref label
 				::FillRect(hdc, &rt, brush);
@@ -1228,9 +1222,9 @@ void CGitLogListBase::DrawTagBranch(HDC hdc,
 			CRect rectEdge = rt;
 
 			if (!hasTracking) {
-				W_Dc.Draw3dRect(rectEdge, m_Colors.Lighten(colRef, 100), m_Colors.Darken(colRef, 100));
+				W_Dc.Draw3dRect(rectEdge, CColors::Lighten(colRef, 100), CColors::Darken(colRef, 100));
 				rectEdge.DeflateRect(1, 1);
-				W_Dc.Draw3dRect(rectEdge, m_Colors.Lighten(colRef, 50), m_Colors.Darken(colRef, 50));
+				W_Dc.Draw3dRect(rectEdge, CColors::Lighten(colRef, 50), CColors::Darken(colRef, 50));
 			}
 
 			if (refType == TGitH::REF_TYPE::ANNOTATED_TAG) {
@@ -1241,10 +1235,10 @@ void CGitLogListBase::DrawTagBranch(HDC hdc,
 				::DeleteObject(hrgn);
 				::MoveToEx(hdc, trianglept[0].x - 1, trianglept[0].y, nullptr);
 				HPEN pen;
-				HPEN oldpen = static_cast<HPEN>(SelectObject(hdc, pen = ::CreatePen(PS_SOLID, 2, m_Colors.Lighten(colRef, 50))));
+				HPEN oldpen = static_cast<HPEN>(SelectObject(hdc, pen = ::CreatePen(PS_SOLID, 2, CColors::Lighten(colRef, 50))));
 				::LineTo(hdc, trianglept[1].x - 1, trianglept[1].y - 1);
 				::DeleteObject(pen);
-				SelectObject(hdc, pen = ::CreatePen(PS_SOLID, 2, m_Colors.Darken(colRef, 50)));
+				SelectObject(hdc, pen = ::CreatePen(PS_SOLID, 2, CColors::Darken(colRef, 50)));
 				::LineTo(hdc, trianglept[2].x - 1, trianglept[2].y - 1);
 				::DeleteObject(pen);
 				SelectObject(hdc, pen = ::CreatePen(PS_SOLID, 2, colRef));
@@ -1650,7 +1644,7 @@ void CGitLogListBase::DrawGraph(HDC hdc, CRect& rect, INT_PTR index) {
 	const int maxWidth = rect.Width();
 	const int lw = 3 * rect.Height() / 4; // laneWidth()
 
-	COLORREF activeColor = CTheme::Instance().GetThemeColor(m_Colors.GetColor((CColors::Colors)(CColors::BranchLine1 + (activeLane % Lanes::COLORS_NUM))),
+	COLORREF activeColor = CTheme::Instance().GetThemeColor(g_Colors.GetColor((CColors::Colors)(CColors::BranchLine1 + (activeLane % Lanes::COLORS_NUM))),
 	                                                        true);
 
 	for (unsigned int i = 0; i < laneNum && x2 < maxWidth; ++i) {
@@ -1663,7 +1657,7 @@ void CGitLogListBase::DrawGraph(HDC hdc, CRect& rect, INT_PTR index) {
 
 		COLORREF color = i == activeLane ?
 		activeColor :
-		CTheme::Instance().GetThemeColor(m_Colors.GetColor((CColors::Colors)(CColors::BranchLine1 + (i % Lanes::COLORS_NUM))), true);
+		CTheme::Instance().GetThemeColor(g_Colors.GetColor((CColors::Colors)(CColors::BranchLine1 + (i % Lanes::COLORS_NUM))), true);
 		paintGraphLane(hdc, rect.Height(), ln, data->m_RolledUp, x1 + rect.left, x2 + rect.left, color, activeColor, rect.top);
 	}
 
@@ -1827,9 +1821,9 @@ void CGitLogListBase::OnNMCustomdrawLoglist(NMHDR* pNMHDR, LRESULT* pResult) {
 							if (!(m_ShowRefMask & LOGLIST_SHOWLOCALBRANCHES))
 								continue;
 							if (refLabel.name == m_CurrentBranch)
-								refLabel.color = CTheme::Instance().GetThemeColor(m_Colors.GetColor(CColors::CurrentBranch), true);
+								refLabel.color = CTheme::Instance().GetThemeColor(g_Colors.GetColor(CColors::CurrentBranch), true);
 							else
-								refLabel.color = CTheme::Instance().GetThemeColor(m_Colors.GetColor(CColors::LocalBranch), true);
+								refLabel.color = CTheme::Instance().GetThemeColor(g_Colors.GetColor(CColors::LocalBranch), true);
 
 							const auto& trackingEntry = GetTrackingBranch(refLabel.name);
 							CString pullRemote = trackingEntry.first;
@@ -1851,7 +1845,7 @@ void CGitLogListBase::OnNMCustomdrawLoglist(NMHDR* pNMHDR, LRESULT* pResult) {
 										const bool sameName = pullBranch == refLabel.name;
 										refsToShow.push_back(refLabel);
 										TGitH::GetShortName(defaultUpstream, refLabel.name, L"refs/remotes/");
-										refLabel.color = CTheme::Instance().GetThemeColor(m_Colors.GetColor(CColors::RemoteBranch), true);
+										refLabel.color = CTheme::Instance().GetThemeColor(g_Colors.GetColor(CColors::RemoteBranch), true);
 										if (m_bSymbolizeRefNames) {
 											if (!m_SingleRemote.IsEmpty() && m_SingleRemote == pullRemote) {
 												refLabel.simplifiedName = L'/';
@@ -1886,7 +1880,7 @@ void CGitLogListBase::OnNMCustomdrawLoglist(NMHDR* pNMHDR, LRESULT* pResult) {
 							if (found)
 								continue;
 
-							refLabel.color = CTheme::Instance().GetThemeColor(m_Colors.GetColor(CColors::RemoteBranch), true);
+							refLabel.color = CTheme::Instance().GetThemeColor(g_Colors.GetColor(CColors::RemoteBranch), true);
 							if (m_bSymbolizeRefNames) {
 								if (!m_SingleRemote.IsEmpty() && StringUtils::StartsWith(refLabel.name, m_SingleRemote + L"/")) {
 									refLabel.simplifiedName = L'/' + refLabel.name.Mid(m_SingleRemote.GetLength() + 1);
@@ -1900,13 +1894,13 @@ void CGitLogListBase::OnNMCustomdrawLoglist(NMHDR* pNMHDR, LRESULT* pResult) {
 						case TGitH::REF_TYPE::TAG:
 							if (!(m_ShowRefMask & LOGLIST_SHOWTAGS))
 								continue;
-							refLabel.color = CTheme::Instance().GetThemeColor(m_Colors.GetColor(CColors::Tag), true);
+							refLabel.color = CTheme::Instance().GetThemeColor(g_Colors.GetColor(CColors::Tag), true);
 							break;
 
 						case TGitH::REF_TYPE::STASH:
 							if (!(m_ShowRefMask & LOGLIST_SHOWSTASH))
 								continue;
-							refLabel.color = CTheme::Instance().GetThemeColor(m_Colors.GetColor(CColors::Stash), true);
+							refLabel.color = CTheme::Instance().GetThemeColor(g_Colors.GetColor(CColors::Stash), true);
 							break;
 
 						case TGitH::REF_TYPE::BISECT_GOOD:
@@ -1917,23 +1911,23 @@ void CGitLogListBase::OnNMCustomdrawLoglist(NMHDR* pNMHDR, LRESULT* pResult) {
 							if (!(m_ShowRefMask & LOGLIST_SHOWBISECT))
 								continue;
 							refLabel.color = CTheme::Instance().GetThemeColor((refLabel.refType == TGitH::REF_TYPE::BISECT_GOOD) ?
-							                                                  m_Colors.GetColor(CColors::BisectGood) :
+							                                                  g_Colors.GetColor(CColors::BisectGood) :
 							                                                  ((refLabel.refType == TGitH::REF_TYPE::BISECT_SKIP) ?
-								                                                  m_Colors.GetColor(CColors::BisectSkip) :
-								                                                  m_Colors.GetColor(CColors::BisectBad)),
+								                                                  g_Colors.GetColor(CColors::BisectSkip) :
+								                                                  g_Colors.GetColor(CColors::BisectBad)),
 							                                                  true);
 							break;
 
 						case TGitH::REF_TYPE::NOTES:
 							if (!(m_ShowRefMask & LOGLIST_SHOWOTHERREFS))
 								continue;
-							refLabel.color = CTheme::Instance().GetThemeColor(m_Colors.GetColor(CColors::NoteNode), true);
+							refLabel.color = CTheme::Instance().GetThemeColor(g_Colors.GetColor(CColors::NoteNode), true);
 							break;
 
 						default:
 							if (!(m_ShowRefMask & LOGLIST_SHOWOTHERREFS))
 								continue;
-							refLabel.color = CTheme::Instance().GetThemeColor(m_Colors.GetColor(CColors::OtherRef), true);
+							refLabel.color = CTheme::Instance().GetThemeColor(g_Colors.GetColor(CColors::OtherRef), true);
 							break;
 						}
 						refsToShow.push_back(refLabel);
@@ -4361,7 +4355,6 @@ void CGitLogListBase::DrawListItemWithMatchesRect(NMLVCUSTOMDRAW* pLVCD,
                                                   const std::vector<CHARRANGE>& ranges,
                                                   CRect rect,
                                                   const CString& text,
-                                                  CColors& colors,
                                                   HTHEME hTheme /*= nullptr*/,
                                                   int txtState /*= 0*/) {
 	int drawPos = 0;
@@ -4412,7 +4405,7 @@ void CGitLogListBase::DrawListItemWithMatchesRect(NMLVCUSTOMDRAW* pLVCD,
 		drawPos = it->cpMin;
 		if (it->cpMax - drawPos) {
 			if (!hTheme) {
-				::SetTextColor(pLVCD->nmcd.hdc, CTheme::Instance().GetThemeColor(colors.GetColor(CColors::FilterMatch), true));
+				::SetTextColor(pLVCD->nmcd.hdc, CTheme::Instance().GetThemeColor(g_Colors.GetColor(CColors::FilterMatch), true));
 				DrawText(pLVCD->nmcd.hdc, text.Mid(drawPos), it->cpMax - drawPos, &rc, DT_SINGLELINE | DT_VCENTER | DT_NOPREFIX | DT_END_ELLIPSIS);
 				DrawText(pLVCD->nmcd.hdc,
 				         text.Mid(drawPos),
@@ -4421,7 +4414,7 @@ void CGitLogListBase::DrawListItemWithMatchesRect(NMLVCUSTOMDRAW* pLVCD,
 				         DT_CALCRECT | DT_SINGLELINE | DT_VCENTER | DT_NOPREFIX | DT_END_ELLIPSIS);
 				::SetTextColor(pLVCD->nmcd.hdc, textColor);
 			} else {
-				opts.crText = CTheme::Instance().GetThemeColor(colors.GetColor(CColors::FilterMatch), true);
+				opts.crText = CTheme::Instance().GetThemeColor(g_Colors.GetColor(CColors::FilterMatch), true);
 				DrawThemeTextEx(hTheme,
 				                pLVCD->nmcd.hdc,
 				                LVP_LISTITEM,
@@ -4472,14 +4465,14 @@ bool CGitLogListBase::DrawListItemWithMatchesIfEnabled(std::shared_ptr<CLogDlgFi
 
 		FillBackGround(pLVCD->nmcd.hdc, pLVCD->nmcd.dwItemSpec, rect);
 
-		*pResult = DrawListItemWithMatches(filter.get(), *this, pLVCD, m_Colors);
+		*pResult = DrawListItemWithMatches(filter.get(), *this, pLVCD);
 		return true;
 	}
 	return false;
 }
 
 
-LRESULT CGitLogListBase::DrawListItemWithMatches(CFilterHelper* filter, CListCtrl& listCtrl, NMLVCUSTOMDRAW* pLVCD, CColors& colors) {
+LRESULT CGitLogListBase::DrawListItemWithMatches(CFilterHelper* filter, CListCtrl& listCtrl, NMLVCUSTOMDRAW* pLVCD) {
 	CString text = static_cast<LPCWSTR>(listCtrl.GetItemText(static_cast<int>(pLVCD->nmcd.dwItemSpec), pLVCD->iSubItem));
 	if (text.IsEmpty())
 		return CDRF_DODEFAULT;
@@ -4650,7 +4643,7 @@ LRESULT CGitLogListBase::DrawListItemWithMatches(CFilterHelper* filter, CListCtr
 		}
 	}
 
-	DrawListItemWithMatchesRect(pLVCD, ranges, rect, text, colors, hTheme, txtState);
+	DrawListItemWithMatchesRect(pLVCD, ranges, rect, text, hTheme, txtState);
 
 	return CDRF_SKIPDEFAULT;
 }
@@ -4661,3 +4654,7 @@ void CGitLogListBase::OnSize(UINT nType, int cx, int cy) {
 
 	m_nCacheItemsPerPage = GetCountPerPage();
 }
+
+
+}
+export using namespace GitLogList;

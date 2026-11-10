@@ -59,7 +59,7 @@ END_MESSAGE_MAP()
 BOOL CExportDlg::OnInitDialog()
 {
 	CHorizontalResizableStandAloneDialog::OnInitDialog();
-	CAppUtils::MarkWindowAsUnpinnable(m_hWnd);
+	wil::MFC::MarkWindowAsUnpinnable(m_hWnd);
 
 	if (GitCall::m_CurrentDirStorage == m_orgPath.GetWinPathString().c_str())
 	{
@@ -157,7 +157,7 @@ void CExportDlg::OnBnClickedCheckoutdirectoryBrowse()
 	//
 	this->UpdateRevsionName();
 	CString filename = m_VersionName;
-	if (!CAppUtils::FileOpenSave(filename, nullptr, 0, IDS_ARCHIVEFILEFILTER, false, GetSafeHwnd(), L"zip"))
+	if (!ConfigureGitExe::FileOpenSave(filename, nullptr, 0, IDS_ARCHIVEFILEFILTER, false, GetSafeHwnd(), L"zip"))
 		return;
 
 	UpdateData(TRUE);
@@ -195,7 +195,7 @@ void CExportDlg::SetDlgTitle()
 		GetWindowText(m_sTitle);
 
 	if (m_bWholeProject)
-		CAppUtils::SetWindowTitle(m_hWnd, GitCall::m_CurrentDirStorage.c_str(), m_sTitle);
+		wil::MFC::SetWindowTitle(m_hWnd, GitCall::m_CurrentDirStorage.c_str(), m_sTitle);
 	else
-		CAppUtils::SetWindowTitle(m_hWnd, m_orgPath.GetWinPathString().c_str(), m_sTitle);
+		wil::MFC::SetWindowTitle(m_hWnd, m_orgPath.GetWinPathString().c_str(), m_sTitle);
 }

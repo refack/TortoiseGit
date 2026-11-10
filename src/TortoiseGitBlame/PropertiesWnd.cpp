@@ -24,14 +24,13 @@
 #include "PropertiesWnd.h"
 #include "MainFrm.h"
 #include "TortoiseGitBlame.h"
-#include "MiscUI/IconMenu.h"
 
-#include "Resources/LoglistCommonResource.h"
+#include <Resources/LoglistCommonResource.h>
 
 import git_h;
 import str_utils;
 import ThemeAPI;
-using namespace ThemeAPI;
+import IconMenu;
 
 #ifdef _DEBUG
 #undef THIS_FILE

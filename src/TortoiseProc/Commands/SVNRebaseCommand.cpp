@@ -22,7 +22,7 @@
 #include "SVNRebaseCommand.h"
 
 #include "SysProgressDlg.h"
-#include "ProgressDlg.h"
+import ProgressDlg;
 import MessageBox;
 #include "RebaseDlg.h"
 import AppUtils.Launch;

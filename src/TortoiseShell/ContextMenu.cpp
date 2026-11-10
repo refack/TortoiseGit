@@ -1346,7 +1346,7 @@ void CShellExt::InvokeCommand(TGitShellCommand cmd, const std::wstring& appDir, 
 			{
 				AddPathCommand(gitCmd, L"diff", true, paths, folder);
 				gitCmd += L" /path2:";
-				gitCmd += TCmdLineParser::EscapeValue(std::wstring(regDiffLater));
+				gitCmd += str::EscapeCmdValue(std::wstring(regDiffLater));
 				if (GetAsyncKeyState(VK_SHIFT) & 0x8000)
 					gitCmd += L" /alternative";
 				regDiffLater.removeValue();
@@ -1873,7 +1873,7 @@ bool CShellExt::InsertLFSSubmenu(UINT& idCmd, UINT idCmdFirst, HMENU hMenu, HMEN
 	SecureZeroMemory(stringtablebuffer, sizeof(stringtablebuffer));
 	GetMenuTextFromResource(TGitShellCommand::LFSMenu);
 	menuiteminfo.dwTypeData = stringtablebuffer;
-	menuiteminfo.cch = static_cast<UINT>(min(wcslen(menuiteminfo.dwTypeData), static_cast<size_t>(UINT_MAX)));
+	menuiteminfo.cch = static_cast<UINT>(std::min(wcslen(menuiteminfo.dwTypeData), static_cast<size_t>(UINT_MAX)));
 
 	if (hMenu)
 		InsertMenuItem((std::to_underlying(topmenu & TGitContextMenuEntries::LFS)) ? hMenu : subMenu, (std::to_underlying(topmenu & TGitContextMenuEntries::LFS)) ? indexMenu++ : indexSubMenu++, TRUE, &menuiteminfo);
@@ -2136,7 +2136,7 @@ bool CShellExt::InsertIgnoreSubmenus(UINT &idCmd, UINT idCmdFirst, HMENU hMenu, 
 		else
 			GetMenuTextFromResource(TGitShellCommand::IgnoreSub);
 		menuiteminfo.dwTypeData = stringtablebuffer;
-		menuiteminfo.cch = static_cast<UINT>(min(wcslen(menuiteminfo.dwTypeData), static_cast<size_t>(UINT_MAX)));
+		menuiteminfo.cch = static_cast<UINT>(std::min(wcslen(menuiteminfo.dwTypeData), static_cast<size_t>(UINT_MAX)));
 
 		if (hMenu)
 			InsertMenuItem((std::to_underlying(topmenu & TGitContextMenuEntries::Ignore)) ? hMenu : subMenu, (std::to_underlying(topmenu & TGitContextMenuEntries::Ignore)) ? indexMenu++ : indexSubMenu++, TRUE, &menuiteminfo);

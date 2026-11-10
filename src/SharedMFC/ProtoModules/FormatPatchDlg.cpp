@@ -88,7 +88,7 @@ END_MESSAGE_MAP()
 BOOL CFormatPatchDlg::OnInitDialog()
 {
 	CHorizontalResizableStandAloneDialog::OnInitDialog();
-	CAppUtils::MarkWindowAsUnpinnable(m_hWnd);
+	wil::MFC::MarkWindowAsUnpinnable(m_hWnd);
 
 	AdjustControlSize(IDC_RADIO_SINCE);
 	AdjustControlSize(IDC_RADIO_NUM);
@@ -117,7 +117,7 @@ BOOL CFormatPatchDlg::OnInitDialog()
 
 	this->AddOthersToAnchor();
 
-	CAppUtils::SetWindowTitle(*this, GitCall::m_CurrentDirStorage.c_str());
+	wil::MFC::SetWindowTitle(*this, GitCall::m_CurrentDirStorage.c_str());
 
 	m_cDir.SetPathHistory(TRUE);
 	m_cDir.LoadHistory(L"Software\\TortoiseGit\\History\\FormatPatchURLS", L"path");

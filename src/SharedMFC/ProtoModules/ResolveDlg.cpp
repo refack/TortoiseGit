@@ -18,12 +18,14 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 #include "stdafx.h"
-import tgit;
+#include "ResolveDlg.h"
+#include "Resources/LoglistCommonResource.h"
 
+import tgit;
 import TortoiseProc;
 import MessageBox;
-#include "ResolveDlg.h"
 import AppUtils.Window;
+import PathUtils;
 
 #define REFRESHTIMER   100
 
@@ -55,7 +57,7 @@ END_MESSAGE_MAP()
 BOOL CResolveDlg::OnInitDialog()
 {
 	CResizableStandAloneDialog::OnInitDialog();
-	CAppUtils::MarkWindowAsUnpinnable(m_hWnd);
+	wil::MFC::MarkWindowAsUnpinnable(m_hWnd);
 
 	m_resolveListCtrl.Init(GITSLC_COLEXT, L"ResolveDlg", GITSLC_POPALL ^ (GITSLC_POPIGNORE | GITSLC_POPADD | GITSLC_POPCOMMIT | GITSLC_POPEXPORT | GITSLC_POPRESTORE | GITSLC_POPSAVEAS | GITSLC_POPPREPAREDIFF | GITSLC_POPCHANGELISTS));
 	m_resolveListCtrl.SetConfirmButton(static_cast<CButton*>(GetDlgItem(IDOK)));
@@ -64,7 +66,7 @@ BOOL CResolveDlg::OnInitDialog()
 	m_resolveListCtrl.SetBackgroundImage(IDI_RESOLVE_BKG);
 	m_resolveListCtrl.EnableFileDrop();
 
-	CAppUtils::SetWindowTitle(*this, GitCall::m_CurrentDirStorage.c_str());
+	wil::MFC::SetWindowTitle(*this, GitCall::m_CurrentDirStorage.c_str());
 
 	AdjustControlSize(IDC_SELECTALL);
 

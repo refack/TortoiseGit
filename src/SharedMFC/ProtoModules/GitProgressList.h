@@ -19,11 +19,13 @@
 
 #pragma once
 
-#include "Colors.h"
-#include "ProgressDlg.h"
-#include "../../TortoiseProc/MiscUI/IconMenu.h"
+import ProgressDlg;
+import IconMenu;
+import tgit;
 import TGitPath;
 import ThemeAPI;	// CTheme, for ReportString's default color
+import Colors;
+
 
 /**
  * \ingroup TortoiseProc
@@ -44,12 +46,13 @@ enum ProgressOptions: std::uint8_t
 
 class ProgressCommand;
 
+constexpr COLORREF get_def_color() { return ThemeAPI::CTheme::Instance().IsDarkTheme() ? ThemeAPI::CTheme::darkTextColor : GetSysColor(COLOR_WINDOWTEXT); }
+
 class CGitProgressList : public CListCtrl
 {
-private:
+public:
 	DECLARE_DYNAMIC(CGitProgressList)
 
-public:
 	CGitProgressList();
 	~CGitProgressList() override;
 
@@ -78,12 +81,11 @@ public:
 	CWnd* m_pPostWnd = nullptr;
 	bool m_bSetTitle = false;
 
-public:
 	using ContextMenuActionList = std::vector<std::function<void()>>;
 	struct Payload
 	{
 		CGitProgressList* list = nullptr;
-		git_repository* repo = nullptr;
+		libgit2::git_repository* repo = nullptr;
 	};
 
 	class NotificationData
@@ -102,7 +104,7 @@ public:
 
 		virtual ~NotificationData() {};
 
-		virtual void SetColorCode(CColors& /*colors*/) {};
+		virtual void SetColorCode() {};
 		virtual void GetContextMenu(CIconMenu& /*popup*/, ContextMenuActionList& /*actions*/) {};
 		virtual void HandleDblClick() const {}
 
@@ -130,7 +132,7 @@ public:
 		};
 
 		WC_File_NotificationData(const CTGitPath& path, Git_WC_Notify_Action action);
-		void SetColorCode(CColors& colors) override;
+		void SetColorCode() override;
 
 		Git_WC_Notify_Action action;
 
@@ -139,7 +141,7 @@ public:
 	};
 
 	void AddNotify(NotificationData* data, CColors::Colors color = CColors::COLOR_END);
-	int UpdateProgress(const git_indexer_progress* stat);
+	int UpdateProgress(const libgit2::git_indexer_progress* stat);
 
 	void SetProgressLabelText(const CString& str);
 
@@ -177,7 +179,7 @@ public:
 	void		ReportWarning(const CString& sWarning);
 	void		ReportNotification(const CString& sNotification);
 	void		ReportCmd(const CString& sCmd);
-	void		ReportString(CString sMessage, const CString& sMsgKind, bool colorIsDirect, COLORREF color = CTheme::Instance().IsDarkTheme() ? CTheme::darkTextColor : GetSysColor(COLOR_WINDOWTEXT));
+	void		ReportString(CString sMessage, const CString& sMsgKind, bool colorIsDirect, COLORREF color = get_def_color());
 
 private:
 	void		AddItemToList();
@@ -213,8 +215,6 @@ private:
 
 	CString					m_sTotalBytesTransferred;
 	size_t					m_TotalBytesTransferred = 0;
-
-	CColors					m_Colors;
 
 	bool					m_bFinishedItemAdded = false;
 	bool					m_bLastVisible = false;

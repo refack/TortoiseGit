@@ -21,7 +21,7 @@
 #include "stdafx.h"
 #include "std.h"
 
-#include "GitStatusListCtrl.h"
+import GitStatusListCtrl;
 import ColumnManager;
 
 // sorter utility class

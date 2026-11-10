@@ -17,12 +17,15 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 #include "stdafx.h"
-import tgit;
-
-import TortoiseProc;
 #include "FirstStartWizard.h"
 #include "FirstStartWizardUser.h"
+import tgit;
+import TortoiseProc;
 import ThemeAPI;
+import MessageBox;
+import TGitPath;
+using namespace libgit2;
+
 
 IMPLEMENT_DYNAMIC(CFirstStartWizardUser, CFirstStartWizardBasePage)
 
@@ -32,10 +35,6 @@ CFirstStartWizardUser::CFirstStartWizardUser() : CFirstStartWizardBasePage(CFirs
 	m_psp.dwFlags |= PSP_DEFAULT | PSP_USEHEADERTITLE;
 	m_psp.dwFlags &= ~PSP_HASHELP;
 	m_psp.pszHeaderTitle = MAKEINTRESOURCE(IDS_FIRSTSTART_USERTITLE);
-}
-
-CFirstStartWizardUser::~CFirstStartWizardUser()
-{
 }
 
 void CFirstStartWizardUser::DoDataExchange(CDataExchange* pDX)
@@ -71,10 +70,10 @@ LRESULT CFirstStartWizardUser::OnWizardNext()
 
 		wil::unique_git_config config;
 		git_config_new(config.put());
-		int err = git_config_add_file_ondisk(config.get(), TGitPath::ToGitPathA(TGitH::GetGitGlobalXDGConfig().native()).c_str(), GIT_CONFIG_LEVEL_XDG, nullptr, FALSE);
+		int err = git_config_add_file_ondisk(config.get(), TGitPath::ToGitPathA(TGitH::GetGitGlobalXDGConfig().native()).c_str(), git_config_level_t::GIT_CONFIG_LEVEL_XDG, nullptr, FALSE);
 		std::error_code ec;
 		if (!err && (fs::exists(TGitH::GetGitGlobalConfig(), ec) || !fs::exists(TGitH::GetGitGlobalXDGConfig(), ec)))
-			err = git_config_add_file_ondisk(config.get(), TGitPath::ToGitPathA(TGitH::GetGitGlobalConfig().native()).c_str(), GIT_CONFIG_LEVEL_GLOBAL, nullptr, FALSE);
+			err = git_config_add_file_ondisk(config.get(), TGitPath::ToGitPathA(TGitH::GetGitGlobalConfig().native()).c_str(), git_config_level_t::GIT_CONFIG_LEVEL_GLOBAL, nullptr, FALSE);
 		if (err)
 		{
 			MessageBox(TGitH::GetLibGit2LastErr(), L"TortoiseGit", MB_ICONEXCLAMATION);
@@ -103,14 +102,14 @@ BOOL CFirstStartWizardUser::OnInitDialog()
 
 	wil::unique_git_config config;
 	git_config_new(config.put());
-	if (git_config_add_file_ondisk(config.get(), TGitPath::ToGitPathA(TGitH::GetGitGlobalConfig().native()).c_str(), GIT_CONFIG_LEVEL_GLOBAL, nullptr, FALSE))
+	if (git_config_add_file_ondisk(config.get(), TGitPath::ToGitPathA(TGitH::GetGitGlobalConfig().native()).c_str(), git_config_level_t::GIT_CONFIG_LEVEL_GLOBAL, nullptr, FALSE))
 		MessageBox(TGitH::GetLibGit2LastErr(), L"TortoiseGit", MB_ICONEXCLAMATION);
 	else
 	{
-		if (git_config_add_file_ondisk(config.get(), TGitPath::ToGitPathA(TGitH::GetGitGlobalXDGConfig().native()).c_str(), GIT_CONFIG_LEVEL_XDG, nullptr, FALSE))
+		if (git_config_add_file_ondisk(config.get(), TGitPath::ToGitPathA(TGitH::GetGitGlobalXDGConfig().native()).c_str(), git_config_level_t::GIT_CONFIG_LEVEL_XDG, nullptr, FALSE))
 			MessageBox(TGitH::GetLibGit2LastErr(), L"TortoiseGit", MB_ICONEXCLAMATION);
 	}
-	if (git_config_add_file_ondisk(config.get(), TGitPath::ToGitPathA(TGitH::GetGitSystemConfig().native()).c_str(), GIT_CONFIG_LEVEL_SYSTEM, nullptr, FALSE))
+	if (git_config_add_file_ondisk(config.get(), TGitPath::ToGitPathA(TGitH::GetGitSystemConfig().native()).c_str(), git_config_level_t::GIT_CONFIG_LEVEL_SYSTEM, nullptr, FALSE))
 		MessageBox(TGitH::GetLibGit2LastErr(), L"TortoiseGit", MB_ICONEXCLAMATION);
 
 	TGitH::GetConfigString(config.get(), L"user.name", m_sUsername);

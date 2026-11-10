@@ -21,10 +21,11 @@
 #include "std.h"
 
 #include "CreateRepositoryCommand.h"
+#include "ProtoModules/CreateRepoDlg.h"
 import MessageBox;
-#include "CreateRepoDlg.h"
 import AppUtils.GitEnv;
 import ShellEnvironment;
+import IconExtractor;
 
 static bool CheckSpecialFolder(const CString& folder)
 {
@@ -83,7 +84,7 @@ bool CreateRepositoryCommand::Execute()
 		if (!dlg.m_bBare)
 			CShellUpdater::Instance().AddPathForUpdate(orgCmdLinePath);
 		else
-			CAppUtils::SetupBareRepoIcon(folder);
+			IconExtractor::SetupBareRepoIcon(folder);
 
 		CString str;
 		str.Format(IDS_PROC_REPOCREATED, static_cast<LPCWSTR>(folder));

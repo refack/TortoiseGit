@@ -24,7 +24,6 @@
 // compiles without the rest of the core library.
 
 #include "stdafx.h"
-using namespace std::literals;
 using testing::ElementsAre;
 using testing::IsEmpty;
 

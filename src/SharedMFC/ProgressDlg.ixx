@@ -1,46 +1,204 @@
-﻿// TortoiseGit - a Windows shell extension for easy version control
-
-// Copyright (C) 2008-2020, 2022-2026 - TortoiseGit
-
-// This program is free software; you can redistribute it and/or
-// modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; either version 2
-// of the License, or (at your option) any later version.
-
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-
-// You should have received a copy of the GNU General Public License
-// along with this program; if not, write to the Free Software Foundation,
-// 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-//
-// ProgressDlg.cpp : implementation file
-//
-
+﻿module;
 #include "stdafx.h"
-import tgit;
 
 #include <Mmsystem.h>
-
-import TortoiseProc;
-#include "ProgressDlg.h"
-#include "../../TortoiseProc/MiscUI/IconMenu.h"
-#include "../../libgit2/Resources/LoglistCommonResource.h"
 #include <Tlhelp32.h>
+
+#include "ProtoModules/LoglistUtils.h"
+#include "ProtoModules/LogFile.h"
+
+#include <wil/win32_helpers.h>
+
+
+// NOLINTBEGIN(*-pro-type-reinterpret-cast)
+export module ProgressDlg;
+import tgit;
+import TortoiseProc;
 import AppUtils.Window;
-#include "LoglistUtils.h"
 import MessageBox;
-#include "LogFile.h"
+import CmdLineParser;
+import IconMenu;
+import StandAloneDlg;
+import MenuButton;
+
+
+namespace ProgressDlg {
+#define MSG_PROGRESSDLG_UPDATE_UI	(WM_USER+121)
+
+// CProgressDlg dialog
+#define MSG_PROGRESSDLG_START 0
+#define MSG_PROGRESSDLG_RUN   50
+#define MSG_PROGRESSDLG_END   110
+#define MSG_PROGRESSDLG_FAILED 111
+
+enum class GitProgressAutoClose{
+	AUTOCLOSE_NO,
+	AUTOCLOSE_IF_NO_OPTIONS,
+	AUTOCLOSE_IF_NO_ERRORS,
+};
+
+using PostCmdAction = std::function<void()>;
+
+class PostCmd
+{
+public:
+	PostCmd(UINT icon, UINT msgId, PostCmdAction action)
+	: icon(icon)
+	, action(action)
+	{
+		label.LoadString(msgId);
+	}
+
+	PostCmd(UINT msgId, PostCmdAction action)
+	: PostCmd(0, msgId, action)
+	{
+	}
+
+	PostCmd(UINT icon, const CString& label, PostCmdAction action)
+	: icon(icon)
+	, action(action)
+	, label(label)
+	{
+	}
+
+	PostCmd(const CString& label, PostCmdAction action)
+	: PostCmd(0, label, action)
+	{
+	}
+
+	UINT			icon;
+	CString			label;
+	PostCmdAction	action;
+};
+
+using PostCmdList = std::vector<PostCmd>;
+using PostCmdCallback = std::function<void(DWORD status, PostCmdList&)>;
+using PostExecCallback = std::function<void(HWND hWnd, DWORD& exitCode, CString& extraMsg)>;
+
+class CProgressDlg : public CResizableStandAloneDialog
+{
+	DECLARE_DYNAMIC(CProgressDlg)
+
+public:
+	CProgressDlg(CWnd* pParent = nullptr); // standard constructor
+	~CProgressDlg() override;
+
+private:
+
+	// Dialog Data
+	static constexpr int IDD = IDD_GITPROGRESS;
+
+public:
+	std::vector<std::wstring>			m_GitCmd;		// one command, as argv
+	PostCmdCallback			m_PostCmdCallback;
+	ARGV_VECTOR				m_GitCmdList;	// several commands, run in order
+	PostExecCallback		m_PostExecCallback; // After executing command line, this callback can modify exit code / display extra message
+	std::vector<std::wstring>			m_GitDirList;
+	CString					m_PreText;		// optional text to show in log window before running command
+	CString					m_PreFailText;	// optional fail text to show in log window
+	bool					m_bShowCommand;	// whether to display the command in the log window (default true)
+	CString					m_LogFile;
+	GitProgressAutoClose	m_AutoClose;
+	CGit *					m_Git;
+
+	DWORD					m_GitStatus;
+	CString					m_LogText;
+
+	CString					GetLogText() const { CString text; m_Log.GetWindowText(text); return text; }
+
+protected:
+	BOOL OnInitDialog() override;
+	void DoDataExchange(CDataExchange* pDX) override; // DDX/DDV support
+	void OnCancel() override;
+	BOOL PreTranslateMessage(MSG* pMsg) override;
+	LRESULT DefWindowProc(UINT message, WPARAM wParam, LPARAM lParam) override;
+
+private:
+	PostCmdList				m_PostCmdList;
+	void					WriteLog() const;
+	CMenuButton				m_ctrlPostCmd;
+
+	CProgressCtrl			m_Progress;
+
+	CGestureEnabledControlTmpl<CRichEditCtrl> m_Log;
+	CAnimateCtrl			m_Animate;
+	CStatic					m_CurrentWork;
+	CWinThread*				m_pThread;
+
+	volatile bool			m_bAbort;
+	bool					m_bDone;
+	ULONGLONG				m_startTick;
+
+	static UINT				ProgressThreadEntry(LPVOID pVoid);
+	UINT					ProgressThread();
+
+	LRESULT					OnProgressUpdateUI(WPARAM wParam,LPARAM lParam);
+	afx_msg void			OnTimer(UINT_PTR id);
+
+	afx_msg LRESULT			OnTaskbarBtnCreated(WPARAM wParam, LPARAM lParam);
+	CComPtr<ITaskbarList3>	m_pTaskbarList;
+
+	afx_msg void			OnClose();
+
+	void					SetupLogMessageViewControl();
+	afx_msg void			OnEnscrollLog();
+	afx_msg void			OnEnLinkLog(NMHDR* pNMHDR, LRESULT* pResult);
+
+	CGitCliOutputParser		m_cliOutputParser;
+	static void				UpdateProgressFromLine(const CString& str, CProgressCtrl& progressctrl, HWND hWnd, CComPtr<ITaskbarList3> pTaskbarList, CWnd* currentWorkLabel);
+
+	DECLARE_MESSAGE_MAP()
+
+	//Share with Sync Dailog
+	static int ParsePercentage(const CString& log, int pos);
+
+	static void	ClearESC(CString &str);
+
+public:
+	static const int s_iSizeLimit;
+	static void UpdateCmdOutput(CGitCliOutputParser& cliOutputParser, CRichEditCtrl& log, CProgressCtrl& progressctrl, HWND hWnd, CComPtr<ITaskbarList3> pTaskbarList, CWnd* currentWorkLabel = nullptr);
+
+	/**
+	 *@param dirlist if empty, the current directory of param git is used; otherwise each entry in param cmdlist uses the corresponding entry in param dirlist
+	 */
+	/**
+	 * \a cmdlist is a list of *commands*, each an argv vector - not one command's
+	 * argv. \a dirlist stays a plain std::vector<std::wstring> because it really is a list of
+	 * directories, and it is indexed in lockstep with \a cmdlist.
+	 */
+	static UINT RunCmdList(CWnd* pWnd, ARGV_VECTOR& cmdlist, std::vector<std::wstring>& dirlist, bool bShowCommand, const CString* pfilename, CGitCliOutputParser& cliOutputParser, volatile bool* bAbort, CGit* git = &g_Git);
+
+	static void KillProcessTree(DWORD dwProcessId, unsigned int depth = 0);
+
+	static void InsertColorText(CRichEditCtrl& edit, const CString& text, COLORREF rgb);
+
+private:
+	afx_msg void OnBnClickedOk();
+	afx_msg void OnBnClickedButton1();
+
+	struct ACCELLERATOR {
+		int id;
+		int cnt;
+		int wmid;
+	};
+	std::map<wchar_t, ACCELLERATOR>	m_accellerators;
+	HACCEL							m_hAccel;
+};
+
 
 #define REFRESHTIMER 100
 
 // CProgressDlg dialog
 
+namespace TGitCache {
+	class CBlockCacheForPath;
+}
+
+
+
 IMPLEMENT_DYNAMIC(CProgressDlg, CResizableStandAloneDialog)
 
-const int CProgressDlg::s_iSizeLimit = max(16, std::min(static_cast<int>(CRegDWORD(L"Software\\TortoiseGit\\GitOutputLimitinKiB", 2 * 1024)), 100 * 1024)) * 1024;
+const int CProgressDlg::s_iSizeLimit = std::max(16, std::min(static_cast<int>(CRegDWORD(L"Software\\TortoiseGit\\GitOutputLimitinKiB", 2 * 1024)), 100 * 1024)) * 1024;
 
 CProgressDlg::CProgressDlg(CWnd* pParent /*=nullptr*/)
 	: CResizableStandAloneDialog(CProgressDlg::IDD, pParent)
@@ -55,7 +213,7 @@ CProgressDlg::CProgressDlg(CWnd* pParent /*=nullptr*/)
 	, m_cliOutputParser(CProgressDlg::s_iSizeLimit)
 {
 	int autoClose = CRegDWORD(L"Software\\TortoiseGit\\AutoCloseGitProgress", 0);
-	CCmdLineParser parser(AfxGetApp()->m_lpCmdLine);
+	TCmdLineParser::CCmdLineParser parser(AfxGetApp()->m_lpCmdLine);
 	if (parser.HasKey(L"closeonend"))
 		autoClose = parser.GetLongVal(L"closeonend");
 	switch (autoClose)
@@ -109,12 +267,12 @@ BOOL CProgressDlg::OnInitDialog()
 	// do this, Explorer would be unable to send that message to our window if we
 	// were running elevated. It's OK to make the call all the time, since if we're
 	// not elevated, this is a no-op.
-	CHANGEFILTERSTRUCT cfs = { sizeof(CHANGEFILTERSTRUCT) };
 	using ChangeWindowMessageFilterExDFN = BOOL(STDAPICALLTYPE)(HWND hWnd, UINT message, DWORD action, PCHANGEFILTERSTRUCT pChangeFilterStruct);
-	CAutoLibrary hUser = AtlLoadSystemLibraryUsingFullPath(L"user32.dll");
-	if (hUser)
-	{
-		auto pfnChangeWindowMessageFilterEx = reinterpret_cast<ChangeWindowMessageFilterExDFN*>(GetProcAddress(hUser, "ChangeWindowMessageFilterEx"));
+
+	CHANGEFILTERSTRUCT cfs = { .cbSize = sizeof(CHANGEFILTERSTRUCT), .ExtStatus = 0 };
+	auto hUser = wil::unique_hmodule{AtlLoadSystemLibraryUsingFullPath(L"user32.dll")};
+	if (hUser) {
+		auto* pfnChangeWindowMessageFilterEx = GetProcAddressByFunctionDeclaration(hUser.get(), ChangeWindowMessageFilterEx);
 		if (pfnChangeWindowMessageFilterEx)
 			pfnChangeWindowMessageFilterEx(m_hWnd, TaskBarButtonCreated, MSGFLT_ALLOW, &cfs);
 	}
@@ -165,7 +323,7 @@ BOOL CProgressDlg::OnInitDialog()
 		m_pThread->ResumeThread();
 	}
 
-	CAppUtils::SetWindowTitle(*this, m_Git->m_CurrentDir.c_str());
+	wil::MFC::SetWindowTitle(*this, m_Git->m_CurrentDir.c_str());
 
 	// Make sure this dialog is shown in foreground (see issue #1536)
 	SetForegroundWindow();
@@ -175,17 +333,17 @@ BOOL CProgressDlg::OnInitDialog()
 
 static void EnsurePostMessage(CWnd* pWnd, UINT Msg, WPARAM wParam, LPARAM lParam)
 {
-redo:
-	if (!pWnd->PostMessage(Msg, wParam, lParam))
-	{
-		if (GetLastError() == ERROR_NOT_ENOUGH_QUOTA)
+	redo:
+		if (!pWnd->PostMessage(Msg, wParam, lParam))
 		{
-			Sleep(20);
-			goto redo;
+			if (GetLastError() == ERROR_NOT_ENOUGH_QUOTA)
+			{
+				Sleep(20);
+				goto redo;
+			}
+			else
+				TracePrintf(_T(__FUNCTION__) L": Message %d-%d could not be sent (error %d; %s)\n", wParam, lParam, GetLastError(), (wil::CFormatMessageWrapper()).c_str());
 		}
-		else
-			TracePrintf(_T(__FUNCTION__) L": Message %d-%d could not be sent (error %d; %s)\n", wParam, lParam, GetLastError(), (CFormatMessageWrapper()).c_str());
-	}
 }
 
 UINT CProgressDlg::ProgressThreadEntry(LPVOID pVoid)
@@ -240,35 +398,33 @@ UINT CProgressDlg::RunCmdList(CWnd* pWnd, ARGV_VECTOR& cmdlist, std::vector<std:
 		}
 
 		PROCESS_INFORMATION pi;
-		CAutoGeneralHandle hRead;
-
-		if (const int runAsyncRet = GitCall::RunAsync(cmdlist[i], pi, hRead.GetPointer(), nullptr, pfilename); runAsyncRet)
-		{
+		wil::unique_handle hRead;
+		if (const int runAsyncRet = GitCall::RunAsync(cmdlist[i], pi, hRead.put(), nullptr, pfilename); runAsyncRet) {
 			EnsurePostMessage(pWnd, MSG_PROGRESSDLG_UPDATE_UI, MSG_PROGRESSDLG_FAILED, -1 * runAsyncRet);
 			return runAsyncRet;
 		}
+		// just for the RAII
+		[[maybe_unused]] auto piProcess = wil::unique_handle(std::move(pi.hProcess));
+		[[maybe_unused]] auto piThread = wil::unique_handle(std::move(pi.hThread));
 
-		CAutoGeneralHandle piProcess(std::move(pi.hProcess));
-		CAutoGeneralHandle piThread(std::move(pi.hThread));
 		DWORD readnumber;
 		char buffer[1024];
-		while (ReadFile(hRead, buffer, sizeof(buffer), &readnumber, nullptr))
-		{
+		while (ReadFile(hRead.get(), buffer, sizeof(buffer), &readnumber, nullptr)) {
 			cliparser.AppendChunk({ buffer, readnumber });
 		}
-		TracePrintf(_T(__FUNCTION__) L": waiting for process to finish (%s), aborted: %d\n", static_cast<LPCWSTR>(command), *bAbort);
+		TracePrintf(_T(__FUNCTION__) L": waiting for process to finish (%s), aborted: %d\n", command, *bAbort);
 
 		WaitForSingleObject(pi.hProcess, INFINITE);
 
 		DWORD status = 0;
 		if (!GetExitCodeProcess(pi.hProcess, &status) || *bAbort)
 		{
-			TracePrintf(_T(__FUNCTION__) L": process %s finished, status code could not be fetched, (error %d; %s), aborted: %d\n", static_cast<LPCWSTR>(command), GetLastError(), (CFormatMessageWrapper()).c_str(), *bAbort);
+			TracePrintf(_T(__FUNCTION__) L": process %s finished, status code could not be fetched, (error %d; %s), aborted: %d\n", command, GetLastError(), (wil::CFormatMessageWrapper()).c_str(), *bAbort);
 
 			EnsurePostMessage(pWnd, MSG_PROGRESSDLG_UPDATE_UI, MSG_PROGRESSDLG_FAILED, status);
 			return GitCall::TGIT_GIT_ERROR_GET_EXIT_CODE;
 		}
-		TracePrintf(_T(__FUNCTION__) L": process %s finished with code %d\n", static_cast<LPCWSTR>(command), status);
+		TracePrintf(_T(__FUNCTION__) L": process %s finished with code %d\n", command, status);
 		ret |= status;
 	}
 
@@ -354,8 +510,8 @@ LRESULT CProgressDlg::OnProgressUpdateUI(WPARAM wParam, LPARAM lParam)
 			m_Log.GetWindowText(text);
 			text.Remove('\r');
 			if (static_cast<DWORD>(CRegStdDWORD(L"Software\\TortoiseGit\\StyleGitOutput", TRUE)) == TRUE)
-				CAppUtils::StyleWarningsErrors(text, &m_Log);
-			CAppUtils::StyleURLs(text, &m_Log);
+				wil::MFC::StyleWarningsErrors(text, &m_Log);
+			wil::MFC::StyleURLs(text, &m_Log);
 		}
 
 		if (m_Animate.IsPlaying() && !m_GitStatus)
@@ -368,8 +524,8 @@ LRESULT CProgressDlg::OnProgressUpdateUI(WPARAM wParam, LPARAM lParam)
 			m_Progress.SetState(PBST_ERROR);
 			if (m_pTaskbarList)
 			{
-				m_pTaskbarList->SetProgressState(m_hWnd, TBPF_ERROR);
-				m_pTaskbarList->SetProgressValue(m_hWnd, 100, 100);
+				std::ignore = m_pTaskbarList->SetProgressState(m_hWnd, TBPF_ERROR);
+				std::ignore = m_pTaskbarList->SetProgressValue(m_hWnd, 100, 100);
 			}
 			CString log;
 			log.Format(IDS_PROC_PROGRESS_GITUNCLEANEXIT, m_GitStatus);
@@ -386,7 +542,7 @@ LRESULT CProgressDlg::OnProgressUpdateUI(WPARAM wParam, LPARAM lParam)
 		}
 		else {
 			if (m_pTaskbarList)
-				m_pTaskbarList->SetProgressState(m_hWnd, TBPF_NOPROGRESS);
+				std::ignore = m_pTaskbarList->SetProgressState(m_hWnd, TBPF_NOPROGRESS);
 			CString temp;
 			temp.LoadString(IDS_SUCCESS);
 			m_CurrentWork.SetWindowText(temp);
@@ -709,22 +865,18 @@ void CProgressDlg::KillProcessTree(DWORD dwProcessId, unsigned int depth)
 	if (!dwProcessId || depth > 20)
 		return;
 
-	PROCESSENTRY32 pe = { 0 };
-	pe.dwSize = sizeof(PROCESSENTRY32);
+	PROCESSENTRY32 pe = { .dwSize = sizeof(PROCESSENTRY32) };
 
-	CAutoGeneralHandle hSnap = ::CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+	const auto hSnap = wil::unique_handle{::CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0)};
 
-	if (::Process32First(hSnap, &pe))
-	{
-		do
-		{
+	if (::Process32First(hSnap.get(), &pe)) {
+		do {
 			if (pe.th32ParentProcessID == dwProcessId)
 				KillProcessTree(pe.th32ProcessID, depth + 1);
-		} while (::Process32Next(hSnap, &pe));
+		} while (::Process32Next(hSnap.get(), &pe));
 
-		CAutoGeneralHandle hProc = ::OpenProcess(PROCESS_TERMINATE, FALSE, dwProcessId);
-		if (hProc)
-			::TerminateProcess(hProc, 1);
+		if (const auto hProc = wil::unique_handle{::OpenProcess(PROCESS_TERMINATE, FALSE, dwProcessId)}; hProc)
+			::TerminateProcess(hProc.get(), 1);
 	}
 }
 
@@ -896,10 +1048,10 @@ void CProgressDlg::OnEnscrollLog()
 void CProgressDlg::SetupLogMessageViewControl()
 {
 	CFont logFont;
-	CAppUtils::CreateFontForLogs(GetSafeHwnd(), logFont);
+	wil::MFC::CreateFontForLogs(GetSafeHwnd(), logFont);
 	m_Log.SetFont(&logFont);
 	// make the log message rich edit control send a message when the mouse pointer is over a link
-	m_Log.SendMessage(EM_SETEVENTMASK, NULL, ENM_LINK | ENM_SCROLL);
+	std::ignore = m_Log.SendMessage(EM_SETEVENTMASK, NULL, ENM_LINK | ENM_SCROLL);
 
 	CHARFORMAT2 format = { 0 };
 	format.cbSize = sizeof(CHARFORMAT2);
@@ -914,6 +1066,9 @@ void CProgressDlg::SetupLogMessageViewControl()
 		format.crTextColor = ::GetSysColor(COLOR_WINDOWTEXT);
 		format.crBackColor = ::GetSysColor(COLOR_WINDOW);
 	}
-	m_Log.SendMessage(EM_SETCHARFORMAT, SCF_ALL, reinterpret_cast<LPARAM>(&format));
-	m_Log.SendMessage(EM_SETBKGNDCOLOR, 0, format.crBackColor);
+	std::ignore = m_Log.SendMessage(EM_SETCHARFORMAT, SCF_ALL, reinterpret_cast<LPARAM>(&format));
+	std::ignore = m_Log.SendMessage(EM_SETBKGNDCOLOR, 0, format.crBackColor);
 }
+
+}
+// NOLINTEND(*-pro-type-reinterpret-cast)

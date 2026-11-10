@@ -21,7 +21,7 @@
 #include "std.h"
 
 #include "SVNFetchCommand.h"
-#include "ProgressDlg.h"
+import ProgressDlg;
 import AppUtils.Launch;
 
 bool SVNFetchCommand::Execute()

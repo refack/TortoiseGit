@@ -21,12 +21,13 @@
 //
 
 #include "stdafx.h"
-import tgit;
-
-import TortoiseProc;
 #include "SinglePropSheetDlg.h"
+import tgit;
+import TortoiseProc;
 import AppUtils.Window;
 import DPIAware;
+import DarkModeHelper;
+import TGitPath;
 
 // CSinglePropSheetDlg dialog
 using namespace TreePropSheet;
@@ -75,7 +76,7 @@ BOOL CSinglePropSheetDlg::OnInitDialog()
 	BOOL bReturn = CTreePropSheet::OnInitDialog();
 
 	if (GitAdminDir::IsWorkingTreeOrBareRepo(GitCall::m_CurrentDirStorage.wstring()))
-		CAppUtils::SetWindowTitle(*this, GitCall::m_CurrentDirStorage.c_str());
+		wil::MFC::SetWindowTitle(*this, GitCall::m_CurrentDirStorage.c_str());
 	else
 	{
 		CString title;
@@ -85,7 +86,7 @@ BOOL CSinglePropSheetDlg::OnInitDialog()
 
 	CenterWindow(CWnd::FromHandle(GetExplorerHWND()));
 
-	DarkModeHelper::Instance().AllowDarkModeForApp(CTheme::Instance().IsDarkTheme());
+	TGitDarkMode::DarkModeHelper::Instance().AllowDarkModeForApp(CTheme::Instance().IsDarkTheme());
 	SetTheme(CTheme::Instance().IsDarkTheme());
 	CTheme::Instance().SetThemeForDialog(GetSafeHwnd(), CTheme::Instance().IsDarkTheme());
 

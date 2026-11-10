@@ -56,7 +56,7 @@ END_MESSAGE_MAP()
 BOOL CRequestPullDlg::OnInitDialog()
 {
 	CHorizontalResizableStandAloneDialog::OnInitDialog();
-	CAppUtils::MarkWindowAsUnpinnable(m_hWnd);
+	wil::MFC::MarkWindowAsUnpinnable(m_hWnd);
 
 	AddAnchor(IDOK,BOTTOM_RIGHT);
 	AddAnchor(IDCANCEL,BOTTOM_RIGHT);
@@ -69,7 +69,7 @@ BOOL CRequestPullDlg::OnInitDialog()
 
 	EnableSaveRestore(L"RequestPullDlg");
 
-	CAppUtils::SetWindowTitle(*this, GitCall::m_CurrentDirStorage.c_str());
+	wil::MFC::SetWindowTitle(*this, GitCall::m_CurrentDirStorage.c_str());
 
 	std::vector<std::wstring> list;
 	g_Git.GetBranchList(list, nullptr, TGitH::BRANCH_ALL);

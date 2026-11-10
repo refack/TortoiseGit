@@ -76,7 +76,7 @@ END_MESSAGE_MAP()
 BOOL CCreateBranchTagDlg::OnInitDialog()
 {
 	CResizableStandAloneDialog::OnInitDialog();
-	CAppUtils::MarkWindowAsUnpinnable(m_hWnd);
+	wil::MFC::MarkWindowAsUnpinnable(m_hWnd);
 
 	this->SetDefaultChoose(IDC_RADIO_HEAD);
 
@@ -111,7 +111,7 @@ BOOL CCreateBranchTagDlg::OnInitDialog()
 		}
 	}
 
-	CAppUtils::SetWindowTitle(m_hWnd, GitCall::m_CurrentDirStorage.c_str(), sWindowTitle);
+	wil::MFC::SetWindowTitle(m_hWnd, GitCall::m_CurrentDirStorage.c_str(), sWindowTitle);
 
 	// show the switch checkbox if we are a create branch dialog
 	bool canSwitch = !m_bIsTag && !GitAdminDir::IsBareRepo(GitCall::m_CurrentDirStorage);

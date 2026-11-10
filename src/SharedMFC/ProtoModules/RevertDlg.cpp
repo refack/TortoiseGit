@@ -18,12 +18,14 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 #include "stdafx.h"
-import tgit;
+#include "RevertDlg.h"
+#include "Resources/LoglistCommonResource.h"
 
+import tgit;
 import TortoiseProc;
 import MessageBox;
-#include "RevertDlg.h"
 import AppUtils.Window;
+import PathUtils;
 
 #define REFRESHTIMER   100
 
@@ -59,7 +61,7 @@ END_MESSAGE_MAP()
 BOOL CRevertDlg::OnInitDialog()
 {
 	CResizableStandAloneDialog::OnInitDialog();
-	CAppUtils::MarkWindowAsUnpinnable(m_hWnd);
+	wil::MFC::MarkWindowAsUnpinnable(m_hWnd);
 
 	m_RevertList.Init(GITSLC_COLEXT | GITSLC_COLSTATUS | GITSLC_COLADD | GITSLC_COLDEL, L"RevertDlg", (GITSLC_POPALL ^ (GITSLC_POPCOMMIT | GITSLC_POPRESTORE | GITSLC_POPCHANGELISTS)));
 	m_RevertList.SetConfirmButton(static_cast<CButton*>(GetDlgItem(IDOK)));
@@ -68,7 +70,7 @@ BOOL CRevertDlg::OnInitDialog()
 	m_RevertList.SetBackgroundImage(IDI_REVERT_BKG);
 	m_RevertList.EnableFileDrop();
 
-	CAppUtils::SetWindowTitle(*this, g_Git.CombinePath(m_pathList.GetCommonRoot()).c_str());
+	wil::MFC::SetWindowTitle(*this, g_Git.CombinePath(m_pathList.GetCommonRoot()).c_str());
 
 	AdjustControlSize(IDC_SELECTALL);
 

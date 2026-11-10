@@ -20,12 +20,13 @@
 //
 
 #include "stdafx.h"
-import tgit;
 
 #include "../SharedMFC/Resources/resource.h"
 #include "DeleteConflictDlg.h"
+import tgit;
 import AppUtils.Launch;
 import AppUtils.Window;
+import TortoiseProc;
 
 // CDeleteConflictDlg dialog
 
@@ -96,7 +97,7 @@ BOOL CDeleteConflictDlg::OnInitDialog()
 		DialogEnableWindow(IDC_LOG2, FALSE);
 	}
 
-	CAppUtils::SetWindowTitle(*this, g_Git.CombinePath(m_File).c_str());
+	wil::MFC::SetWindowTitle(*this, g_Git.CombinePath(m_File).c_str());
 
 	GetDlgItem(IDC_INFOLABEL)->SetWindowText(m_File.GetGitPathString().c_str());
 
@@ -133,7 +134,7 @@ void CDeleteConflictDlg::OnBnClickedModify()
 void CDeleteConflictDlg::ShowLog(const CString& hash) const
 {
 	CString sCmd;
-	sCmd.Format(L"/command:log /path:%s /endrev:%s /rev:%s", TCmdLineParser::EscapeValue(g_Git.CombinePath(m_File).wstring()).c_str(), hash, hash);
+	sCmd.Format(L"/command:log /path:%s /endrev:%s /rev:%s", str::EscapeCmdValue(g_Git.CombinePath(m_File).wstring()).c_str(), hash, hash);
 	TortoiseProc::RunTortoiseGitProc(sCmd, false, false);
 }
 

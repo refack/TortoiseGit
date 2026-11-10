@@ -29,7 +29,6 @@ import TortoiseProc;
 import AppUtils.Launch;
 import AppUtils.Window;
 import DPIAware;
-using namespace std::literals;
 
 //IMPLEMENT_DYNAMIC(CAboutDlg, CStandAloneDialog)
 CAboutDlg::CAboutDlg(CWnd* pParent /*=nullptr*/)
@@ -76,7 +75,7 @@ static CString Lf2Crlf(const CString& text)
 BOOL CAboutDlg::OnInitDialog()
 {
 	CStandAloneDialog::OnInitDialog();
-	CAppUtils::MarkWindowAsUnpinnable(m_hWnd);
+	wil::MFC::MarkWindowAsUnpinnable(m_hWnd);
 
 	// set the version string
 	CString temp;
@@ -106,7 +105,7 @@ BOOL CAboutDlg::OnInitDialog()
 #if PREVIEW
 	additionalVersionInformation = _T(PREVIEW_INFO);
 #else
-	if (auto hotfix = PathUtils::GetAppDirectory() / L"hotfix.ini"; fs::exists(hotfix))
+	if (auto hotfix = til::GetAppDirectory() / L"hotfix.ini"; fs::exists(hotfix))
 	{
 		CVersioncheckParser parser;
 		if (parser.Load(hotfix.c_str(), err))
@@ -117,7 +116,7 @@ BOOL CAboutDlg::OnInitDialog()
 		}
 	}
 #endif
-	std::wstring appDirectory = PathUtils::GetAppDirectory();
+	std::wstring appDirectory = til::GetAppDirectory();
 	tgit::wstr::TrimRight(appDirectory, L"\\");
 	if (!additionalVersionInformation.empty())
 		tortoisegitprocpath = std::format(L"({}; {})", additionalVersionInformation, appDirectory).c_str();
@@ -215,7 +214,7 @@ void CAboutDlg::OnMouseMove(UINT nFlags, CPoint point)
 
 void CAboutDlg::OnBnClickedUpdate()
 {
-	TortoiseProc::RunTortoiseGitProc(L"/command:updatecheck /visible", false, false);
+	TortoiseProc::RunTortoiseGitProc(L"/command:updatecheck /visible"sv, false, false);
 }
 
 void CAboutDlg::OnClose()

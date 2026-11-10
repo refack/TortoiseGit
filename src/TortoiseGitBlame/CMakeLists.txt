@@ -1,4 +1,6 @@
-add_executable(TortoiseGitBlame)
+add_executable(TortoiseGitBlame WIN32)
+
+target_precompile_headers(TortoiseProc PRIVATE stdafx.h)
 
 target_sources(TortoiseGitBlame
     PRIVATE
@@ -39,14 +41,20 @@ target_include_directories(TortoiseGitBlame
 
 target_link_libraries(TortoiseGitBlame
     PRIVATE
+        gitdll
+        tgitlib
+        ResizableLib
+        SharedMFC
+
+        detours
+        Scintilla
+        Lexilla
+
         gdiplus
         comctl32
         shlwapi
         UxTheme
         wininet
-        detours
-        Scintilla
-        Lexilla
         imm32
         msimg32
         ole32
@@ -56,11 +64,6 @@ target_link_libraries(TortoiseGitBlame
         gdi32
         crypt32
 
-        # local
-        gitdll
-        tgitlib
-        ResizableLib
-        SharedMFC
 )
 
 target_link_options(TortoiseGitBlame

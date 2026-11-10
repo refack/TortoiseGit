@@ -18,8 +18,7 @@ import std;
 import gsl;
 import invarients;			// LatchObjectFormat; invarients imports only std, so this stays acyclic
 
-using std::operator""s;
-using std::operator""sv;
+using namespace std::literals;
 namespace fs = std::filesystem;
 using sloc_t = std::source_location;
 
@@ -72,9 +71,9 @@ inline void THROW_LIVE_ERROR_IF(const bool cond, const std::string_view what, co
 /// Every high surrogate is followed by a low one, and every low one follows a high one.
 [[nodiscard]] constexpr bool IsWellFormedUtf16(const std::wstring_view s) noexcept {
 	for (size_t i = 0; i < s.size(); ++i) {
-		if (IS_LOW_SURROGATE(s[i]))
+		if (IS_LOW_SURROGATE(s.at(i)))
 			return false; // low without a high
-		if (IS_HIGH_SURROGATE(s[i]) && !(++i < s.size() && IS_LOW_SURROGATE(s[i])))
+		if (IS_HIGH_SURROGATE(s.at(i)) && !(++i < s.size() && IS_LOW_SURROGATE(s.at(i))))
 			return false; // high without a low
 	}
 	return true;
@@ -229,6 +228,8 @@ std::wstring MultiByteToWideChar(const std::string_view narrow, const ConvOpts o
 
 
 std::wstring UTF8ToWString(const std::string_view narrow) { return til::MultiByteToWideChar(narrow); }
+
+void reset_proc_locale() {std::setlocale(LC_ALL, "");}
 
 
 template <auto InitFn, auto FreeFn>
@@ -386,8 +387,8 @@ unique_hglobal make_moveable_text(const std::basic_string_view<CharT> text, cons
 }
 
 
-
 export namespace wil {
+
 using ::wil::GetEnvironmentVariableW;
 // The R* pointee aliases (RWND, RKEY, RHANDLE, RINSTANCE, RWSTR), file_ticks,
 // expect_nothing/expect_no_hres/ThrowIfError, the wil::winrt re-exports and the
@@ -440,6 +441,54 @@ using wil::GetFileInfo;
 using wil::ResultException;
 using wil::make_range;
 
+
+
+// Owners for libgit2 handles. Every one is wil's, so there is no class to get
+// wrong - the hand-rolled ones they replaced re-exposed a conversion operator
+// through a using-declaration that MSVC refuses across a module boundary (C2248).
+// No implicit conversion to the raw pointer: pass .get(), and .put() (or &x,
+// which frees first) for an out-parameter.
+template <typename T, void Free(T*)>
+using unique_git = wil::unique_any<T*, decltype(Free), Free>;
+
+using unique_git_object = unique_git<git_object, git_object_free>;
+using unique_git_commit = unique_git<git_commit, git_commit_free>;
+using unique_git_tree = unique_git<git_tree, git_tree_free>;
+using unique_git_blob = unique_git<git_blob, git_blob_free>;
+using unique_git_tag = unique_git<git_tag, git_tag_free>;
+using unique_git_tree_entry = unique_git<git_tree_entry, git_tree_entry_free>;
+using unique_git_reference = unique_git<git_reference, git_reference_free>;
+using unique_git_repository = unique_git<git_repository, git_repository_free>;
+using unique_git_config = unique_git<git_config, git_config_free>;
+using unique_git_config_entry = unique_git<git_config_entry, git_config_entry_free>;
+using unique_git_index = unique_git<git_index, git_index_free>;
+using unique_git_submodule = unique_git<git_submodule, git_submodule_free>;
+using unique_git_diff = unique_git<git_diff, git_diff_free>;
+using unique_git_patch = unique_git<git_patch, git_patch_free>;
+using unique_git_diff_stats = unique_git<git_diff_stats, git_diff_stats_free>;
+using unique_git_remote = unique_git<git_remote, git_remote_free>;
+using unique_git_reflog = unique_git<git_reflog, git_reflog_free>;
+using unique_git_revwalk = unique_git<git_revwalk, git_revwalk_free>;
+using unique_git_branch_iterator = unique_git<git_branch_iterator, git_branch_iterator_free>;
+using unique_git_reference_iterator = unique_git<git_reference_iterator, git_reference_iterator_free>;
+using unique_git_describe_result = unique_git<git_describe_result, git_describe_result_free>;
+using unique_git_status_list = unique_git<git_status_list, git_status_list_free>;
+using unique_git_note = unique_git<git_note, git_note_free>;
+using unique_git_signature = unique_git<git_signature, git_signature_free>;
+using unique_git_mailmap = unique_git<git_mailmap, git_mailmap_free>;
+using unique_git_worktree = unique_git<git_worktree, git_worktree_free>;
+
+// Structs libgit2 fills in place and disposes of by address; unique_struct
+// derives from the struct, so &buf is a git_buf* and buf.ptr just works.
+using unique_git_buf = wil::unique_struct<git_buf, decltype(&git_buf_dispose), git_buf_dispose>;
+using unique_git_strarray = wil::unique_struct<git_strarray, decltype(&git_strarray_dispose), git_strarray_dispose>;
+
+// WIN32 Whole Environment Block;
+using unique_environment_block = wil::unique_any<wchar_t*, decltype(FreeEnvironmentStringsW), FreeEnvironmentStringsW>;
+
+
+
+
 // Registry. There is no TortoiseGit default here any more: the get_value_* /
 // set_value_string wrappers that silently read HKCU\Software\TortoiseGit are gone,
 // and every caller names its root and subkey (Registry::TortoiseGitKey owns the
@@ -470,10 +519,11 @@ namespace reg {
 			return std::unexpected{ret};
 		return {};
 	}
-	til::expect_no_hres set_value_string_expected(const HKEY& key, const std::wstring_view subkey, const std::wstring_view value_name, const std::wstring_view data) noexcept {
-		auto&& ret = ::wil::reg::set_value_nothrow(key, subkey.data(), value_name.data(), std::wstring{data});
+	til::expect_no_hres set_value_string_expected(const HKEY& key, const std::wstring_view subkey, const std::wstring_view value_name, const std::wstring& data) noexcept {
+		auto&& ret = ::wil::reg::set_value_nothrow(key, subkey.data(), value_name.data(), data);
 		if (ret)
 			return std::unexpected{ret};
+
 		return {};
 	}
 
@@ -498,6 +548,8 @@ namespace reg {
 	std::optional<std::wstring> try_get_string(const HKEY& root, const std::wstring_view subkey, const std::wstring_view name) {
 		return wil::reg::try_get_value_string(root, subkey.data(), name.data());
 	}
+
+
 
 #pragma region TGit shortcuts
 
@@ -531,6 +583,13 @@ namespace reg {
 	}
 	til::expect_no_hres set_tgit_string(const std::wstring_view name, const std::wstring_view data) {
 		return set_tgit_string(HKEY_CURRENT_USER, name, data);
+	}
+
+	til::expect_no_hres set_tgit_dword(const std::wstring_view name, const DWORD data) {
+		auto ret = wil::reg::set_value_nothrow(HKEY_CURRENT_USER, TortoiseGitKey.data(), name.data(), data);
+		if (ret)
+			return std::unexpected{ret};
+		return {};
 	}
 
 	til::expect_no_hres delete_tgit_value(const std::wstring_view name) {
@@ -589,8 +648,9 @@ namespace reg {
 	// 	return !values.empty();
 	// }
 #pragma endregion
-}
 
+
+}
 
 
 /// A most-recently-used list of strings (commit messages, log ranges), kept as
@@ -855,50 +915,6 @@ public:
 };
 
 
-
-// Owners for libgit2 handles. Every one is wil's, so there is no class to get
-// wrong - the hand-rolled ones they replaced re-exposed a conversion operator
-// through a using-declaration that MSVC refuses across a module boundary (C2248).
-// No implicit conversion to the raw pointer: pass .get(), and .put() (or &x,
-// which frees first) for an out-parameter.
-template <typename T, void Free(T*)>
-using unique_git = wil::unique_any<T*, decltype(Free), Free>;
-
-using unique_git_object = unique_git<git_object, git_object_free>;
-using unique_git_commit = unique_git<git_commit, git_commit_free>;
-using unique_git_tree = unique_git<git_tree, git_tree_free>;
-using unique_git_blob = unique_git<git_blob, git_blob_free>;
-using unique_git_tag = unique_git<git_tag, git_tag_free>;
-using unique_git_tree_entry = unique_git<git_tree_entry, git_tree_entry_free>;
-using unique_git_reference = unique_git<git_reference, git_reference_free>;
-using unique_git_repository = unique_git<git_repository, git_repository_free>;
-using unique_git_config = unique_git<git_config, git_config_free>;
-using unique_git_index = unique_git<git_index, git_index_free>;
-using unique_git_submodule = unique_git<git_submodule, git_submodule_free>;
-using unique_git_diff = unique_git<git_diff, git_diff_free>;
-using unique_git_patch = unique_git<git_patch, git_patch_free>;
-using unique_git_diff_stats = unique_git<git_diff_stats, git_diff_stats_free>;
-using unique_git_remote = unique_git<git_remote, git_remote_free>;
-using unique_git_reflog = unique_git<git_reflog, git_reflog_free>;
-using unique_git_revwalk = unique_git<git_revwalk, git_revwalk_free>;
-using unique_git_branch_iterator = unique_git<git_branch_iterator, git_branch_iterator_free>;
-using unique_git_reference_iterator = unique_git<git_reference_iterator, git_reference_iterator_free>;
-using unique_git_describe_result = unique_git<git_describe_result, git_describe_result_free>;
-using unique_git_status_list = unique_git<git_status_list, git_status_list_free>;
-using unique_git_note = unique_git<git_note, git_note_free>;
-using unique_git_signature = unique_git<git_signature, git_signature_free>;
-using unique_git_mailmap = unique_git<git_mailmap, git_mailmap_free>;
-using unique_git_worktree = unique_git<git_worktree, git_worktree_free>;
-
-// Structs libgit2 fills in place and disposes of by address; unique_struct
-// derives from the struct, so &buf is a git_buf* and buf.ptr just works.
-using unique_git_buf = wil::unique_struct<git_buf, decltype(&git_buf_dispose), git_buf_dispose>;
-using unique_git_strarray = wil::unique_struct<git_strarray, decltype(&git_strarray_dispose), git_strarray_dispose>;
-
-// WIN32 Whole Environment Block;
-using unique_environment_block = wil::unique_any<wchar_t*, decltype(FreeEnvironmentStringsW), FreeEnvironmentStringsW>;
-
-
 /// The one thing CAutoRepository did that is not ownership: TGitCache and the
 /// shell extension never initialize gitdll, so opening a repository here is the
 /// only place their object format is ever established. Check the result with
@@ -1086,6 +1102,41 @@ struct scope_guard {
 fs::path GetModulePath(const HMODULE module = {} /* current process module */) {
 	const auto ret = ::wil::GetModuleFileNameW(module);
 	return ret.get();
+}
+
+
+}
+
+export namespace til {
+
+constexpr auto FailCode = static_cast<DWORD>(-1);
+
+std::wstring GetOSVanityString() {
+	constexpr auto subkey = L"SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion"sv;
+
+	auto product = wil::reg::try_get_string(HKEY_LOCAL_MACHINE, subkey, L"ProductName").value_or(L"Windows"s); // e.g., "Windows 10 Pro"
+	auto display = wil::reg::try_get_string(HKEY_LOCAL_MACHINE, subkey, L"DisplayVersion").value_or(L"11"s); // e.g., "24H2"
+	auto build = wil::reg::try_get_string(HKEY_LOCAL_MACHINE, subkey, L"CurrentBuild").value_or(L"Legacy"s); // e.g., "26100"
+	DWORD ubr = wil::reg::try_get_dword(HKEY_LOCAL_MACHINE, subkey, L"UBR").value_or(0);
+
+	// Optional: Fix the Win 10 lie without touching NTDLL
+	if (!build.empty() && std::wcstol(build.c_str(), nullptr, 10) >= 22000) {
+		if (auto pos = product.find(L"Windows 10"); pos != std::wstring::npos) {
+			product.replace(pos, 10, L"Windows 11");
+		}
+	}
+
+	return std::format(L"{} {} (Build {}.{})", product, display, build, ubr);
+}
+
+/**
+ * Returns the path to the installation folder, in our case the TortoiseSVN/bin folder.
+ * \remark the path returned has a trailing backslash
+ */
+fs::path GetAppDirectory(const HMODULE hMod = {})
+{
+	const auto path = wil::GetModulePath(hMod);
+	return path.parent_path();
 }
 
 

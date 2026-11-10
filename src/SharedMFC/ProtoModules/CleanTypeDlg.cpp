@@ -72,7 +72,7 @@ END_MESSAGE_MAP()
 BOOL CCleanTypeDlg::OnInitDialog()
 {
 	CStateStandAloneDialog::OnInitDialog();
-	CAppUtils::MarkWindowAsUnpinnable(m_hWnd);
+	wil::MFC::MarkWindowAsUnpinnable(m_hWnd);
 
 	AdjustControlSize(IDC_RADIO_CLEAN_ALL);
 	AdjustControlSize(IDC_RADIO_CLEAN_NO);
@@ -110,9 +110,9 @@ void CCleanTypeDlg::SetDlgTitle()
 		GetWindowText(m_sTitle);
 
 	if (m_pathList.GetCount() == 1)
-		CAppUtils::SetWindowTitle(m_hWnd, g_Git.CombinePath(m_pathList[0].GetUIPathString()).c_str(), m_sTitle);
+		wil::MFC::SetWindowTitle(m_hWnd, g_Git.CombinePath(m_pathList[0].GetUIPathString()).c_str(), m_sTitle);
 	else
-		CAppUtils::SetWindowTitle(m_hWnd, g_Git.CombinePath(m_pathList.GetCommonRoot().GetDirectory()).c_str(), m_sTitle);
+		wil::MFC::SetWindowTitle(m_hWnd, g_Git.CombinePath(m_pathList.GetCommonRoot().GetDirectory()).c_str(), m_sTitle);
 }
 
 void CCleanTypeDlg::OnBnClickedCheckDir()

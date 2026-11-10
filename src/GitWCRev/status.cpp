@@ -145,7 +145,7 @@ static int RepoStatus(const wchar_t* path, std::string pathA, git_repository* re
 
 	std::string workdir(git_repository_workdir(repo));
 	std::transform(pathA.begin(), pathA.end(), pathA.begin(), [](char c) { return (c == '\\') ? '/' : c; });
-	pathA.erase(pathA.begin(), pathA.begin() + min(workdir.length(), pathA.length())); // workdir always ends with a slash, however, wcA is not guaranteed to
+	pathA.erase(pathA.begin(), pathA.begin() + std::min(workdir.length(), pathA.length())); // workdir always ends with a slash, however, wcA is not guaranteed to
 	LoadIgnorePatterns(workdir.c_str(), &GitStat);
 
 	std::vector<const char*> pathspec;

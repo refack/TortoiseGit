@@ -29,12 +29,12 @@
 #include <scintilla/ILexer.h>
 #include <lexilla/SciLexer.h>
 #include <lexilla/Lexilla.h>
-#include <../../libgit2/Resources/LoglistCommonResource.h>
+#include <Resources/LoglistCommonResource.h>
 #include <../TortoiseUDiff/UDiffColors.h>
-#include <../../libgit2/Utils/LoadIconEx.h>
+#include <tgitlib/LoadIconEx.h>
 #include <tgitlib/ScintillaRegistration.h>
-import ThemeAPI;
 #include <Utils/URLFinder.h>
+import ThemeAPI;
 
 
 
@@ -839,8 +839,8 @@ BOOL CSciEdit::OnChildNotify(UINT message, WPARAM wParam, LPARAM lParam, LRESULT
 				auto pos1 = lpSCN->position;
 				auto pos2 = pos1 + lpSCN->length;
 				// always use the bigger range
-				firstpos = min(firstpos, pos1);
-				lastpos = max(lastpos, pos2);
+				firstpos = std::min(firstpos, pos1);
+				lastpos = std::max(lastpos, pos2);
 
 				WrapLines(firstpos, lastpos);
 			}

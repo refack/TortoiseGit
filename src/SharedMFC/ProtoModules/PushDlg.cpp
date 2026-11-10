@@ -94,7 +94,7 @@ END_MESSAGE_MAP()
 BOOL CPushDlg::OnInitDialog()
 {
 	CHorizontalResizableStandAloneDialog::OnInitDialog();
-	CAppUtils::MarkWindowAsUnpinnable(m_hWnd);
+	wil::MFC::MarkWindowAsUnpinnable(m_hWnd);
 
 	AdjustControlSize(IDC_RD_REMOTE);
 	AdjustControlSize(IDC_RD_URL);
@@ -146,7 +146,7 @@ BOOL CPushDlg::OnInitDialog()
 
 	AddOthersToAnchor();
 
-	CAppUtils::SetWindowTitle(*this, GitCall::m_CurrentDirStorage.c_str());
+	wil::MFC::SetWindowTitle(*this, GitCall::m_CurrentDirStorage.c_str());
 
 
 	EnableSaveRestore(L"PushDlg");
@@ -357,9 +357,9 @@ void CPushDlg::OnBnClickedRd()
 	if( GetCheckedRadioButton(IDC_RD_REMOTE,IDC_RD_URL) == IDC_RD_URL)
 	{
 		// similar code in PullFetchDlg::OnBnClickedRd
-		CString clippath = CAppUtils::GetClipboardLink(L"git pull", 1);
+		CString clippath = wil::MFC::GetClipboardLink(L"git pull", 1);
 		if (clippath.IsEmpty())
-			clippath = CAppUtils::GetClipboardLink(L"git fetch", 1);
+			clippath = wil::MFC::GetClipboardLink(L"git fetch", 1);
 		if (clippath.IsEmpty())
 			m_RemoteURL.SetCurSel(0);
 		else

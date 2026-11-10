@@ -33,7 +33,6 @@ import std;
 import str_utils;
 import TGitPath;
 
-using namespace std::literals;
 namespace fs = std::filesystem;
 
 namespace

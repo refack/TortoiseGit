@@ -250,7 +250,7 @@ void CSetDialogs3::OnBnClickedIconfileBrowse()
 	if (!(iconFile.Mid(1, 1) == L":" || StringUtils::StartsWith(iconFile, L"\\")))
 		iconFile = currentDir + iconFile;
 	iconFile.Replace('/', '\\');
-	if (!CAppUtils::FileOpenSave(iconFile, nullptr, 0, IDS_ICONFILEFILTER, true, GetSafeHwnd()))
+	if (!ConfigureGitExe::FileOpenSave(iconFile, nullptr, 0, IDS_ICONFILEFILTER, true, GetSafeHwnd()))
 		return;
 
 	if (StringUtils::StartsWith(iconFile, currentDir))

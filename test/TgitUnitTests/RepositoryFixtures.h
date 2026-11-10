@@ -35,9 +35,9 @@ enum config
 
 static bool GetResourcesDir(fs::path& resourcesDir)
 {
-	resourcesDir = PathUtils::GetAppDirectory() / L"resources";
+	resourcesDir = til::GetAppDirectory() / L"resources";
 	if (!fs::is_directory(resourcesDir))
-		resourcesDir = fs::weakly_canonical(PathUtils::GetAppDirectory() / L"..\\..\\..\\test\\UnitTests\\resources");
+		resourcesDir = fs::weakly_canonical(til::GetAppDirectory() / L"..\\..\\..\\test\\UnitTests\\resources");
 #ifdef TGIT_TEST_RESOURCES_DIR
 	// The CMake build says where the sources are, so its binary directory can be
 	// anywhere; the relative probe above only fits the vcxproj's bin\Debug64\bin.
@@ -119,7 +119,7 @@ protected:
 
 	virtual void TearDown() override
 	{
-		SetCurrentDirectory(PathUtils::GetAppDirectory().c_str());
+		SetCurrentDirectory(til::GetAppDirectory().c_str());
 	}
 
 public:

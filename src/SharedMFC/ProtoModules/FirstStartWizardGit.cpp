@@ -18,14 +18,17 @@
 //
 
 #include "stdafx.h"
-import tgit;
-
-import TortoiseProc;
 #include "FirstStartWizard.h"
 #include "FirstStartWizardGit.h"
+
+import tgit;
 import ThemeAPI;
 import AppUtils.Launch;
 import AppUtils.Window;
+import TGitCache.CacheInterface;
+import TortoiseProc;
+import ConfigureGitExe;
+
 
 IMPLEMENT_DYNAMIC(CFirstStartWizardGit, CFirstStartWizardBasePage)
 
@@ -98,10 +101,10 @@ LRESULT CFirstStartWizardGit::OnWizardNext()
 
 	if (needsRestart || TGitH::ms_LastMsysGitVersion != static_cast<int>(m_dwMsysGitVersion))
 	{
-		if (HWND hWnd = ::FindWindow(TGIT_CACHE_WINDOW_NAME, TGIT_CACHE_WINDOW_NAME); hWnd)
+		if (HWND hWnd = ::FindWindow(TGitCache::TGIT_CACHE_WINDOW_NAME, TGitCache::TGIT_CACHE_WINDOW_NAME); hWnd)
 			::PostMessage(hWnd, WM_CLOSE, reinterpret_cast<WPARAM>(nullptr), reinterpret_cast<LPARAM>(nullptr));
 
-		TortoiseProc::RunTortoiseGitProc(L"/command:firststart /page:3", false, false);
+		TortoiseProc::RunTortoiseGitProc(L"/command:firststart /page:3"sv, false, false);
 
 		EndDialog(0);
 
@@ -139,8 +142,8 @@ BOOL CFirstStartWizardGit::OnInitDialog()
 	m_tooltips.Create(this);
 	m_tooltips.AddTool(IDC_MSYSGIT_EXTERN_PATH, IDS_EXTRAPATH_TT);
 
-	GetDlgItem(IDC_LINK)->SetWindowText(GIT_FOR_WINDOWS_URL);
-	m_link.SetURL(GIT_FOR_WINDOWS_URL);
+	GetDlgItem(IDC_LINK)->SetWindowText(ConfigureGitExe::GIT_FOR_WINDOWS_URL.data());
+	m_link.SetURL(ConfigureGitExe::GIT_FOR_WINDOWS_URL.data());
 
 	CTheme::Instance().SetThemeForDialog(GetSafeHwnd(), CTheme::Instance().IsDarkTheme());
 

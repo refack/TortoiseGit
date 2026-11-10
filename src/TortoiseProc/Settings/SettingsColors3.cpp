@@ -72,8 +72,8 @@ BOOL CSettingsColors3::OnInitDialog()
 
 	for(int i=0;i<8;i++)
 	{
-		m_cLine[i].SetColor(m_Colors.GetColor((CColors::Colors)(CColors::BranchLine1+i)));
-		m_cLine[i].EnableAutomaticButton(sDefaultText, m_Colors.GetColor((CColors::Colors)(CColors::BranchLine1+i), true));
+		m_cLine[i].SetColor(g_Colors.GetColor((CColors::Colors)(CColors::BranchLine1+i)));
+		m_cLine[i].EnableAutomaticButton(sDefaultText, g_Colors.GetColor((CColors::Colors)(CColors::BranchLine1+i), true));
 		m_cLine[i].EnableOtherButton(sCustomText);
 	}
 
@@ -101,7 +101,7 @@ BOOL CSettingsColors3::OnInitDialog()
 void CSettingsColors3::OnBnClickedRestore()
 {
 	for(int i=0;i<8;i++)
-		m_cLine[i].SetColor(m_Colors.GetColor((CColors::Colors)(CColors::BranchLine1+i), true));
+		m_cLine[i].SetColor(g_Colors.GetColor((CColors::Colors)(CColors::BranchLine1+i), true));
 	m_LogGraphLineWidth.SelectString(-1, L"2");
 	m_LogGraphNodeSize.SelectString(-1, L"10");
 	SetModified(TRUE);
@@ -111,7 +111,7 @@ BOOL CSettingsColors3::OnApply()
 {
 	for(int i=0;i<8;i++)
 	{
-		m_Colors.SetColor((CColors::Colors)(CColors::BranchLine1+i),
+		g_Colors.SetColor((CColors::Colors)(CColors::BranchLine1+i),
 			m_cLine[i].GetColor() == -1 ? m_cLine[i].GetAutomaticColor() : m_cLine[i].GetColor());
 	}
 

@@ -20,12 +20,16 @@
 //
 
 #include "stdafx.h"
-import tgit;
-
-#include "../SharedMFC/Resources/resource.h"
+#include "Resources/resource.h"
 #include "RefLogDlg.h"
+
+#include "Resources/LoglistCommonResource.h"
+
+import tgit;
 import AppUtils.Window;
 import MessageBox;
+import GitRev;
+import GitRevLoglist;
 
 // CRefLogDlg dialog
 
@@ -69,7 +73,7 @@ LRESULT CRefLogDlg::OnRefLogChanged(WPARAM /*wParam*/, LPARAM /*lParam*/)
 BOOL CRefLogDlg::OnInitDialog()
 {
 	CResizableStandAloneDialog::OnInitDialog();
-	CAppUtils::MarkWindowAsUnpinnable(m_hWnd);
+	wil::MFC::MarkWindowAsUnpinnable(m_hWnd);
 
 	AddAnchor(IDOK,BOTTOM_RIGHT);
 	AddAnchor(IDCANCEL,BOTTOM_RIGHT);
@@ -83,7 +87,7 @@ BOOL CRefLogDlg::OnInitDialog()
 	this->EnableSaveRestore(L"RefLogDlg");
 	SetTheme(CTheme::Instance().IsDarkTheme());
 
-	CAppUtils::SetWindowTitle(*this, GitCall::m_CurrentDirStorage.c_str());
+	wil::MFC::SetWindowTitle(*this, GitCall::m_CurrentDirStorage.c_str());
 
 	m_ChooseRef.SetMaxHistoryItems(0x7FFFFFFF);
 
@@ -123,7 +127,7 @@ void CRefLogDlg::OnBnClickedClearStash()
 	if (CMessageBox::Show(GetSafeHwnd(), msg, IDS_APPNAME, 2, IDI_QUESTION, IDS_DELETEBUTTON, IDS_ABORTBUTTON) == 1)
 	{
 		CString cmdOut;
-		if (g_Git.Run({ L"git.exe", L"stash", L"clear" }, &cmdOut))
+		if (GitCall::Run({ L"git.exe", L"stash", L"clear" }, &cmdOut))
 		{
 			MessageBox(cmdOut, L"TortoiseGit", MB_ICONERROR);
 			return;
@@ -141,7 +145,7 @@ void CRefLogDlg::OnCbnSelchangeRef()
 	m_RefList.ClearText();
 	m_RefList.SetRedraw(false);
 
-	if (CString err; GitRevLoglist::GetRefLog(m_CurrentBranch, m_RefList.m_RevCache, err))
+	if (CString err; GitLogList::GitRevLoglist::GetRefLog(m_CurrentBranch, m_RefList.m_RevCache, err))
 		MessageBox(L"Error while loading reflog.\n" + err, L"TortoiseGit", MB_ICONERROR);
 
 	m_RefList.SetItemCountEx(static_cast<int>(m_RefList.m_RevCache.size()));
@@ -150,7 +154,7 @@ void CRefLogDlg::OnCbnSelchangeRef()
 
 	for (unsigned int i = 0; i < m_RefList.m_RevCache.size(); ++i)
 	{
-		GitRevLoglist* rev = &m_RefList.m_RevCache[i];
+		auto* rev = &m_RefList.m_RevCache[i];
 		this->m_RefList.m_arShownList.SafeAdd(rev);
 	}
 
@@ -201,7 +205,7 @@ void CRefLogDlg::Refresh()
 {
 	std::vector<std::wstring> list;
 	list.push_back(L"HEAD");
-	if (g_Git.GetRefList(list))
+	if (TGitH::g_Git.GetRefList(list))
 		MessageBox(g_Git.GetGitLastErr(L"Could not get all refs."), L"TortoiseGit", MB_ICONERROR);
 
 	m_ChooseRef.SetList(list);
@@ -275,14 +279,14 @@ LRESULT CRefLogDlg::OnFindDialogMessage(WPARAM /*wParam*/, LPARAM /*lParam*/)
 
 		do
 		{
-			GitRevLoglist* data = m_RefList.m_arShownList.SafeGetAt(i);
+			auto* data = m_RefList.m_arShownList.SafeGetAt(i);
 
 			CString str;
 			str += data->m_Ref;
 			str += L'\n';
 			str += data->m_RefAction;
 			str += L'\n';
-			str += data->m_CommitHash.ToString();
+			str += data->m_CommitHash.ToString().c_str();
 			str += L'\n';
 			str += data->GetSubject();
 			str += L'\n';

@@ -22,8 +22,6 @@
 #include <uxtheme.h>
 #include <dlgs.h>
 #include <wininet.h>
-#include <assert.h>
-#include <math.h>
 #include <gdiplus.h>
 #include <intsafe.h>
 
@@ -38,7 +36,6 @@
 #include <afxctl.h>
 #include <afxtempl.h>
 #include <afxmt.h>
-#include <afxext.h>				// MFC extensions
 #include <afxcontrolbars.h>     // MFC support for ribbons and control bars
 #include <afxtaskdialog.h>
 // And ATL base last
@@ -51,18 +48,14 @@ using std::max;
 using std::min;
 #include <concepts>
 #include <format>
-#include <format>
-#include <functional>
 #include <functional>
 #include <locale>
-#include <map>
 #include <map>
 #include <set>
 #include <sstream>
 #include <string>
 #include <string_view>
 #include <type_traits>
-#include <vector>
 #include <vector>
 #include <xlocale>
 // The rest of the std headers project headers include, so that a later textual
@@ -116,6 +109,8 @@ using std::min;
 						// RegisterWin11ContextMenu's later winrt/*.h would redefine it (C2766)
 #include <gitdll.h>
 #include <Utils/ProfilingInfo.h>
+
+#include "Resources/resource.h"
 
 // Last
 #include <tgitlib/sanity.h>		// SCOPE_EXIT; its scope_exit_helper comes with `import wil` below

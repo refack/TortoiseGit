@@ -17,14 +17,14 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 #include "stdafx.h"
-import tgit;
+#include <WinCrypt.h>
 
 #include "GravatarPictureBox.h"
 #include "../../TortoiseProc/MiscUI/Picture.h"
-#include "../../libgit2/Resources/LoglistCommonResource.h"
+#include <Resources/LoglistCommonResource.h>
 #include "Resources/resource.h"
-#include <WinCrypt.h>
 
+import tgit;
 import MessageBox;
 
 using TCStringW = wstr::CString;
@@ -38,7 +38,7 @@ static UINT WM_GRAVATAR_REFRESH = RegisterWindowMessage(L"TORTOISEGIT_GRAVATAR_R
 
 static TCStringW CalcHash(HCRYPTPROV hProv, const TCStringW& text)
 {
-	static bool useMD5 = CRegDWORD(L"Software\\TortoiseGit\\GravatarUseMD5", FALSE) != FALSE;
+	static bool useMD5 = wil::reg::try_get_tgit_bool(L"GravatarUseMD5").value_or(false);
 
 	HCRYPTHASH hHash = 0;
 	if (!CryptCreateHash(hProv, useMD5 ? CALG_MD5 : CALG_SHA_256, 0, 0, &hHash))
@@ -135,12 +135,12 @@ void CGravatar::LoadGravatar(TCStringW email)
 
 void CGravatar::GravatarThread()
 {
-	auto gravatarBaseUrl = CRegString::StringT{CRegString(L"Software\\TortoiseGit\\GravatarUrl", L"https://gravatar.com/avatar/%HASH%?d=identicon")};
+	auto gravatarBaseUrl = wil::reg::try_get_tgit_string(L"GravatarUrl").value_or(L"https://gravatar.com/avatar/%HASH%?d=identicon"s);
 
 	HCRYPTPROV hProv = 0;
 	if (!CryptAcquireContext(&hProv, nullptr, nullptr, PROV_RSA_AES, CRYPT_VERIFYCONTEXT))
 	{
-		TracePrintf(_T(__FUNCTION__) L": Failed to acquire crypto context\n");
+		DebugOutput::TracePrintf(_T(__FUNCTION__) L": Failed to acquire crypto context\n");
 		return;
 	}
 	SCOPE_EXIT { CryptReleaseContext(hProv, 0); };
@@ -153,7 +153,7 @@ void CGravatar::GravatarThread()
 	urlComponents.dwHostNameLength = INTERNET_MAX_HOST_NAME_LENGTH;
 	urlComponents.lpszUrlPath = baseUrlPath.GetBuffer(INTERNET_MAX_PATH_LENGTH);
 	urlComponents.dwUrlPathLength = INTERNET_MAX_PATH_LENGTH;
-	if (!InternetCrackUrl(gravatarBaseUrl, gravatarBaseUrl.GetLength(), 0, &urlComponents))
+	if (!InternetCrackUrl(gravatarBaseUrl.c_str(), win32_cast(gravatarBaseUrl.size()), 0, &urlComponents))
 	{
 		TracePrintf(_T(__FUNCTION__) L": Gravatar URL seems to be invalid\n");
 		GravatarLocker _(m_gravatarLock);
@@ -311,7 +311,7 @@ resend:
 			return static_cast<int>(INET_E_DOWNLOAD_FAILURE);
 
 		DWORD downloaded; // size of the downloaded data
-		if (!InternetReadFile(hResourceHandle, buff.get(), min(BUFFER_SIZE, size), &downloaded))
+		if (!InternetReadFile(hResourceHandle, buff.get(), std::min(BUFFER_SIZE, size), &downloaded))
 			return static_cast<int>(INET_E_DOWNLOAD_FAILURE);
 
 		if (downloaded == 0)

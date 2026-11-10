@@ -17,7 +17,7 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 #pragma once
-
+#include "Resources/resource.h"
 import StandAloneDlg;
 
 // CCreateRepoDlg dialog
@@ -31,7 +31,7 @@ public:
 	virtual ~CCreateRepoDlg();
 
 // Dialog Data
-	enum { IDD = IDD_CREATEREPO};
+	enum { IDD = IDD_CREATEREPO };
 
 protected:
 	// Overrides

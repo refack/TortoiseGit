@@ -70,10 +70,10 @@ END_MESSAGE_MAP()
 BOOL CCreateWorktreeDlg::OnInitDialog()
 {
 	CResizableStandAloneDialog::OnInitDialog();
-	CAppUtils::MarkWindowAsUnpinnable(m_hWnd);
+	wil::MFC::MarkWindowAsUnpinnable(m_hWnd);
 
 	const auto curDirPtr = GitCall::m_CurrentDirStorage.wstring();
-	CAppUtils::SetWindowTitle(*this, curDirPtr.c_str());
+	wil::MFC::SetWindowTitle(*this, curDirPtr.c_str());
 
 	SetDefaultChoose(IDC_RADIO_HEAD);
 

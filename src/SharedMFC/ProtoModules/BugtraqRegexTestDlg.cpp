@@ -66,7 +66,7 @@ void CBugtraqRegexTestDlg::OnEnChangeBugtraqlogregex2()
 BOOL CBugtraqRegexTestDlg::OnInitDialog()
 {
 	CResizableStandAloneDialog::OnInitDialog();
-	CAppUtils::MarkWindowAsUnpinnable(m_hWnd);
+	wil::MFC::MarkWindowAsUnpinnable(m_hWnd);
 
 	ProjectProperties projectprops;
 	projectprops.lProjectLanguage = -1;
@@ -74,7 +74,7 @@ BOOL CBugtraqRegexTestDlg::OnInitDialog()
 	projectprops.SetCheckRe(m_sBugtraqRegex2);
 
 	m_cLogMessage.Init(projectprops);
-	m_cLogMessage.SetFont(CAppUtils::GetLogFontName(), CAppUtils::GetLogFontSize());
+	m_cLogMessage.SetFont(wil::MFC::GetLogFontName().c_str(), wil::MFC::GetLogFontSize());
 
 	m_cLogMessage.SetText(CString(MAKEINTRESOURCE(IDS_SAMPLEBUGTRAQTESTMSG)));
 	m_cLogMessage.Call(SCI_EMPTYUNDOBUFFER);

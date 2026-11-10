@@ -21,7 +21,6 @@
 
 #include "CatCommand.h"
 import MessageBox;
-using namespace std::literals;
 
 bool CatCommand::Execute()
 {

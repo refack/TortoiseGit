@@ -17,14 +17,16 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 #pragma once
-import StandAloneDlg;
 #include "FirstStartWizardLanguage.h"
 #include "FirstStartWizardStart.h"
 #include "FirstStartWizardGit.h"
 #include "FirstStartWizardUser.h"
 #include "FirstStartWizardAuthentication.h"
+import StandAloneDlg;
 
-class CFirstStartWizard : public CStandAloneDialogTmpl<CPropertySheetEx>
+
+
+class CFirstStartWizard : public StandAloneDlg::CStandAloneDialogTmpl<CPropertySheetEx>
 {
 	DECLARE_DYNAMIC(CFirstStartWizard)
 

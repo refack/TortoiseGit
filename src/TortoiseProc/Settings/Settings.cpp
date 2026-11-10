@@ -46,13 +46,13 @@ import ThemeAPI;
 #include "SetBugTraq.h"
 #include "SettingsTBlame.h"
 #include "SettingGitConfig.h"
-#include "SettingGitCredential.h"
 #include "SettingsBugtraqConfig.h"
 #include "SetExtMenu.h"
 #include "SetWin11ContextMenu.h"
 #include "SettingsAdvanced.h"
 #include "SettingsTUDiff.h"
 import SysInfo;
+import SettingGitCredential;
 
 IMPLEMENT_DYNAMIC(CSettings, CTreePropSheet)
 
@@ -176,10 +176,10 @@ END_MESSAGE_MAP()
 BOOL CSettings::OnInitDialog()
 {
 	BOOL bResult = __super::OnInitDialog();
-	CAppUtils::MarkWindowAsUnpinnable(m_hWnd);
+	wil::MFC::MarkWindowAsUnpinnable(m_hWnd);
 
 	if (GitAdminDir::IsWorkingTreeOrBareRepo(GitCall::m_CurrentDirStorage.native()))
-		CAppUtils::SetWindowTitle(*this, CString(GitCall::m_CurrentDirStorage.c_str()));
+		wil::MFC::SetWindowTitle(*this, CString(GitCall::m_CurrentDirStorage.c_str()));
 	else
 	{
 		CString title;

@@ -154,7 +154,7 @@ void CRebaseDlg::AddRebaseAnchor()
 BOOL CRebaseDlg::OnInitDialog()
 {
 	CResizableStandAloneDialog::OnInitDialog();
-	CAppUtils::MarkWindowAsUnpinnable(m_hWnd);
+	wil::MFC::MarkWindowAsUnpinnable(m_hWnd);
 
 	// Let the TaskbarButtonCreated message through the UIPI filter. If we don't
 	// do this, Explorer would be unable to send that message to our window if we
@@ -206,7 +206,7 @@ BOOL CRebaseDlg::OnInitDialog()
 	}
 	m_ProjectProperties.ReadProps();
 	m_LogMessageCtrl.Init(m_ProjectProperties);
-	m_LogMessageCtrl.SetFont(CAppUtils::GetLogFontName(), CAppUtils::GetLogFontSize());
+	m_LogMessageCtrl.SetFont(wil::MFC::GetLogFontName(), wil::MFC::GetLogFontSize());
 	m_LogMessageCtrl.SetReadOnly(true);
 
 	if (!m_wndOutputRebase.Create(L"Scintilla", L"source", 0, rectDummy, &m_ctrlTabCtrl, 0))
@@ -215,7 +215,7 @@ BOOL CRebaseDlg::OnInitDialog()
 		return -1;      // fail to create
 	}
 	m_wndOutputRebase.Init(-1);
-	m_wndOutputRebase.SetFont(CAppUtils::GetLogFontName(), CAppUtils::GetLogFontSize());
+	m_wndOutputRebase.SetFont(wil::MFC::GetLogFontName(), wil::MFC::GetLogFontSize());
 	m_wndOutputRebase.SetReadOnly(true);
 	m_wndOutputRebase.Call(SCI_SETUNDOCOLLECTION, 0);
 
@@ -245,7 +245,7 @@ BOOL CRebaseDlg::OnInitDialog()
 	m_ctrlTabCtrl.AddTab(&m_LogMessageCtrl, CString(MAKEINTRESOURCE(IDS_PROC_COMMITMESSAGE)), 1);
 	AddRebaseAnchor();
 
-	CAppUtils::SetWindowTitle(*this, CString(GitCall::m_CurrentDirStorage.c_str()));
+	wil::MFC::SetWindowTitle(*this, CString(GitCall::m_CurrentDirStorage.c_str()));
 
 	EnableSaveRestore(L"RebaseDlg");
 
@@ -302,7 +302,7 @@ BOOL CRebaseDlg::OnInitDialog()
 		GetDlgItem(IDC_BUTTON_ONTO)->EnableWindow(FALSE);
 		this->m_UpstreamCtrl.AddString(L"HEAD");
 		this->m_UpstreamCtrl.EnableWindow(FALSE);
-		CAppUtils::SetWindowTitle(m_hWnd, CString(GitCall::m_CurrentDirStorage.c_str()), CString(MAKEINTRESOURCE(IDS_PROGS_TITLE_CHERRYPICK)));
+		wil::MFC::SetWindowTitle(m_hWnd, CString(GitCall::m_CurrentDirStorage.c_str()), CString(MAKEINTRESOURCE(IDS_PROGS_TITLE_CHERRYPICK)));
 		m_bAddCherryPickedFrom = CRegDWORD(L"Software\\TortoiseGit\\TortoiseProc\\CherrypickAddCherryPickedFrom", 0) != 0;
 		UpdateData(FALSE);
 		// fill shown list

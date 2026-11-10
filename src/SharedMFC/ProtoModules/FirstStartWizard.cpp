@@ -56,7 +56,7 @@ END_MESSAGE_MAP()
 BOOL CFirstStartWizard::OnInitDialog()
 {
 	BOOL bResult = __super::OnInitDialog();
-	CAppUtils::MarkWindowAsUnpinnable(m_hWnd);
+	wil::MFC::MarkWindowAsUnpinnable(m_hWnd);
 
 	if (!m_pParentWnd && GetExplorerHWND())
 		CenterWindow(CWnd::FromHandle(GetExplorerHWND()));

@@ -18,6 +18,7 @@
 //
 #pragma once
 import GitLogListBase;
+import FilterHelper;
 
 class CShadowTree;
 

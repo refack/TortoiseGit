@@ -19,21 +19,24 @@
 //
 
 #include "stdafx.h"
-import tgit;
-
-import TortoiseProc;
-#include "../../libgit2/Resources/LoglistCommonResource.h"
+#include <Resources/LoglistCommonResource.h>
 #include <version.h>
-import MessageBox;
 #include "CheckForUpdatesDlg.h"
-import AppUtils.Window;
 #include "UpdateCrypto.h"
 #include <MsiDefs.h>
 #include <MsiQuery.h>
-import DPIAware;
-import gsl;
 
 #pragma comment(lib, "msi.lib")
+
+import tgit;
+import TortoiseProc;
+import MessageBox;
+import AppUtils.Window;
+import DPIAware;
+import PathUtils;
+import Registry;
+import TempFile;
+import LangDll;
 
 #define SIGNATURE_FILE_ENDING L".rsa.asc"
 
@@ -78,9 +81,9 @@ END_MESSAGE_MAP()
 BOOL CCheckForUpdatesDlg::OnInitDialog()
 {
 	CResizableStandAloneDialog::OnInitDialog();
-	CAppUtils::MarkWindowAsUnpinnable(m_hWnd);
+	wil::MFC::MarkWindowAsUnpinnable(m_hWnd);
 
-	if (CString hotfix = (PathUtils::GetAppDirectory() / L"hotfix.ini").c_str(); PathFileExists(hotfix))
+	if (CString hotfix = (til::GetAppDirectory() / L"hotfix.ini").c_str(); PathFileExists(hotfix))
 	{
 		CString err;
 		CVersioncheckParser parser;
@@ -115,7 +118,7 @@ BOOL CCheckForUpdatesDlg::OnInitDialog()
 	m_ctrlFiles.SetColumnWidth(1, CDPIAware::Instance().ScaleX(GetSafeHwnd(), 200));
 
 	m_cLogMessage.Init(-1);
-	m_cLogMessage.SetFont(CAppUtils::GetLogFontName(), gsl::narrow<int>(CAppUtils::GetLogFontSize()));
+	m_cLogMessage.SetFont(wil::MFC::GetLogFontName().c_str(), gsl::narrow<int>(wil::MFC::GetLogFontSize()));
 	m_cLogMessage.Call(SCI_SETUNDOCOLLECTION, 0);
 	m_cLogMessage.SetReadOnly(true);
 
@@ -397,8 +400,7 @@ void CCheckForUpdatesDlg::FillChangelog(CVersioncheckParser& versioncheck, bool 
 		return;
 	}
 
-	CString sChangelogURL;
-	sChangelogURL.FormatMessage(versioncheck.GetTortoiseGitChangelogURL(), m_myVersion.major, m_myVersion.minor, m_myVersion.micro, m_updateDownloader->m_sWindowsPlatform, m_updateDownloader->m_sWindowsVersion, m_updateDownloader->m_sWindowsServicePack);
+	CString sChangelogURL = m_updateDownloader->GetUserAgent().c_str();
 
 	CString tempchangelogfile = TempFiles::GetTempFilePath(true).GetWinPathString().c_str();
 	if (DWORD err = m_updateDownloader->DownloadFile(sChangelogURL, tempchangelogfile, false); err != ERROR_SUCCESS)
@@ -548,7 +550,7 @@ bool CCheckForUpdatesDlg::VerifyUpdateFile(const CString& filename, const CStrin
 		if (sFileVer.IsEmpty())
 		{
 			m_sErrors.AppendFormat(L"%s: Invalid filetype found (neither executable nor MSI).\r\n", reportingFilename);
-			TracePrintf(_T(__FUNCTION__) L": MsiGetSummaryInformation reported: %s\n", (CFormatMessageWrapper(ret)).c_str());
+			DebugOutput::TracePrintf(_T(__FUNCTION__) L": MsiGetSummaryInformation reported: %s\n", (wil::CFormatMessageWrapper(ret)).c_str());
 			return false;
 		}
 		else if (sFileVer == versionnumber)
@@ -565,7 +567,7 @@ bool CCheckForUpdatesDlg::VerifyUpdateFile(const CString& filename, const CStrin
 	int intValue;
 	if (MsiSummaryInfoGetProperty(hSummary, PID_SUBJECT, &uiDataType, &intValue, nullptr, CStrBuf(buffer, gsl::narrow<int>(cchValue + 1)), &cchValue))
 	{
-		m_sErrors.AppendFormat(L"%s: Error obtaining version of MSI file (%s).\r\n", reportingFilename, (CFormatMessageWrapper(ret)).c_str());
+		m_sErrors.AppendFormat(L"%s: Error obtaining version of MSI file (%s).\r\n", reportingFilename, (wil::CFormatMessageWrapper(ret)).c_str());
 		return false;
 	}
 
@@ -781,7 +783,7 @@ LRESULT CCheckForUpdatesDlg::OnTaskbarBtnCreated(WPARAM /*wParam*/, LPARAM /*lPa
 
 CString CCheckForUpdatesDlg::GetWinINetError(DWORD err)
 {
-	CString readableError { (CFormatMessageWrapper(err)).c_str() };
+	CString readableError { (wil::CFormatMessageWrapper(err)).c_str() };
 	if (readableError.IsEmpty())
 	{
 		for (const CString& module : { L"wininet.dll", L"urlmon.dll" })

@@ -56,7 +56,7 @@ BOOL CInputDlg::OnInitDialog()
 	else
 		m_cInput.Init(-1);
 
-	m_cInput.SetFont(CAppUtils::GetLogFontName(), CAppUtils::GetLogFontSize());
+	m_cInput.SetFont(wil::MFC::GetLogFontName().c_str(), wil::MFC::GetLogFontSize());
 
 	if (!m_sInputText.IsEmpty())
 	{

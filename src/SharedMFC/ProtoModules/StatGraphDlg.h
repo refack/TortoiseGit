@@ -204,7 +204,7 @@ protected:
 	void EnableDisableMenu();
 
 	void SaveGraph(CString sFilename);
-	int  GetEncoderClsid(const WCHAR* format, CLSID* pClsid);
+	static int  GetEncoderClsid(const WCHAR* format, CLSID* pClsid);
 
 	void StoreCurrentGraphType();
 	void ShowErrorMessage();

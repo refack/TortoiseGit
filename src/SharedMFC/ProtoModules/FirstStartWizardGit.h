@@ -19,13 +19,14 @@
 #pragma once
 #include "FirstStartWizardBasePage.h"
 #include "HyperLink.h"
-import Tooltip
-import ConfigureGitExe
+
+import Tooltip;
+import ConfigureGitExe;
 
 /**
  * Git page in the first start wizard
  */
-class CFirstStartWizardGit : public CFirstStartWizardBasePage, public CConfigureGitExe
+class CFirstStartWizardGit : public CFirstStartWizardBasePage, public ConfigureGitExe::CConfigureGitExe
 {
 	DECLARE_DYNAMIC(CFirstStartWizardGit)
 

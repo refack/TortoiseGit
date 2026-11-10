@@ -18,20 +18,25 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 #include "stdafx.h"
-import tgit;
+#include <deque>
 
 #include <Mmsystem.h>
 
-import TortoiseProc;
-#include "GitProgressList.h"
+#include "ProtoModules/GitProgressList.h"
 #include "LogFile.h"
 #include "LoglistUtils.h"
 #include "git2/sys/errors.h"
-import DPIAware;
 
+#include <Resources/LoglistCommonResource.h>
+#include "../../TortoiseShell/resource.h"
+
+import tgit;
+import TortoiseProc;
+import DPIAware;
 import AppUtils.Launch;
 import AppUtils.Window;
 import ThemeAPI;
+import CmdLineParser;
 
 BOOL	CGitProgressList::m_bAscending = FALSE;
 int		CGitProgressList::m_nSortedColumn = -1;
@@ -319,7 +324,7 @@ void CGitProgressList::ResizeColumns()
 		for (int col = 0; col <= maxcol; ++col)
 		{
 			// find the longest width of all items
-			const int count = min(static_cast<int>(m_arData.size()), GetItemCount());
+			const int count = std::min(static_cast<int>(m_arData.size()), GetItemCount());
 			HDITEM hdi = {0};
 			hdi.mask = HDI_TEXT;
 			hdi.pszText = textbuf;
@@ -369,7 +374,7 @@ void CGitProgressList::ReportError(const CString& sError)
 {
 	if (CRegDWORD(L"Software\\TortoiseGit\\NoSounds", FALSE) == FALSE)
 		PlaySound(reinterpret_cast<LPCWSTR>(SND_ALIAS_SYSTEMEXCLAMATION), nullptr, SND_ALIAS_ID | SND_ASYNC);
-	ReportString(sError, CString(MAKEINTRESOURCE(IDS_ERR_ERROR)), true, m_Colors.GetColor(CColors::Conflict));
+	ReportString(sError, CString(MAKEINTRESOURCE(IDS_ERR_ERROR)), true, g_Colors.GetColor(CColors::Conflict));
 	m_bErrorsOccurred = true;
 }
 
@@ -377,7 +382,7 @@ void CGitProgressList::ReportWarning(const CString& sWarning)
 {
 	if (CRegDWORD(L"Software\\TortoiseGit\\NoSounds", FALSE) == FALSE)
 		PlaySound(reinterpret_cast<LPCWSTR>(SND_ALIAS_SYSTEMDEFAULT), nullptr, SND_ALIAS_ID | SND_ASYNC);
-	ReportString(sWarning, CString(MAKEINTRESOURCE(IDS_WARN_WARNING)), true, m_Colors.GetColor(CColors::Conflict));
+	ReportString(sWarning, CString(MAKEINTRESOURCE(IDS_WARN_WARNING)), true, g_Colors.GetColor(CColors::Conflict));
 }
 
 void CGitProgressList::ReportNotification(const CString& sNotification)
@@ -389,7 +394,7 @@ void CGitProgressList::ReportNotification(const CString& sNotification)
 
 void CGitProgressList::ReportCmd(const CString& sCmd)
 {
-	ReportString(sCmd, CString(MAKEINTRESOURCE(IDS_PROGRS_CMDINFO)), true, m_Colors.GetColor(CColors::Cmd));
+	ReportString(sCmd, CString(MAKEINTRESOURCE(IDS_PROGRS_CMDINFO)), true, g_Colors.GetColor(CColors::Cmd));
 }
 
 void CGitProgressList::ReportString(CString sMessage, const CString& sMsgKind, bool colorIsDirect, COLORREF color)
@@ -591,7 +596,7 @@ void CGitProgressList::OnLvnGetdispinfoSvnprogress(NMHDR *pNMHDR, LRESULT *pResu
 					if (!data->bAuxItem)
 					{
 						int cWidth = GetColumnWidth(1);
-						cWidth = max(12, cWidth-12);
+						cWidth = std::max(12, cWidth-12);
 						CDC * pDC = GetDC();
 						if (pDC)
 						{
@@ -699,11 +704,11 @@ void CGitProgressList::AddNotify(NotificationData* data, CColors::Colors color)
 {
 	if (color != CColors::COLOR_END)
 	{
-		data->color = m_Colors.GetColor(color);
+		data->color = g_Colors.GetColor(color);
 		data->colorIsDirect = true;
 	}
 	else
-		data->SetColorCode(m_Colors);
+		data->SetColorCode();
 
 	m_arData.push_back(data);
 	AddItemToList();
@@ -728,7 +733,7 @@ void CGitProgressList::AddNotify(NotificationData* data, CColors::Colors color)
 		m_pAnimate->ShowWindow(SW_HIDE);
 }
 
-int CGitProgressList::UpdateProgress(const git_indexer_progress* stat)
+int CGitProgressList::UpdateProgress(const libgit2::git_indexer_progress* stat)
 {
 	static ULONGLONG start = 0;
 	auto dt = GetTickCount64() - start;
@@ -736,8 +741,8 @@ int CGitProgressList::UpdateProgress(const git_indexer_progress* stat)
 
 	if (m_bCancelled)
 	{
-		git_error_set_str(GIT_ERROR_NONE, "User cancelled.");
-		return GIT_EUSER;
+		git_error_set_str(libgit2::git_error_t::GIT_ERROR_NONE, "User cancelled.");
+		return libgit2::git_error_code::GIT_EUSER;
 	}
 
 	if (dt > 100)
@@ -765,8 +770,8 @@ int CGitProgressList::UpdateProgress(const git_indexer_progress* stat)
 	}
 	if (m_pTaskbarList && m_pPostWnd)
 	{
-		m_pTaskbarList->SetProgressState(m_pPostWnd->GetSafeHwnd(), TBPF_NORMAL);
-		m_pTaskbarList->SetProgressValue(m_pPostWnd->GetSafeHwnd(), progress, 2 * stat->total_objects);
+		std::ignore = m_pTaskbarList->SetProgressState(m_pPostWnd->GetSafeHwnd(), TBPF_NORMAL);
+		std::ignore = m_pTaskbarList->SetProgressValue(m_pPostWnd->GetSafeHwnd(), progress, 2 * stat->total_objects);
 	}
 
 	CString progText;
@@ -1072,7 +1077,7 @@ void CGitProgressList::SetWindowTitle(UINT id, const CString& urlorpath, CString
 		return;
 
 	dialogname.LoadString(id);
-	CAppUtils::SetWindowTitle(m_pPostWnd->GetSafeHwnd(), urlorpath, dialogname);
+	wil::MFC::SetWindowTitle(m_pPostWnd->GetSafeHwnd(), urlorpath, dialogname);
 }
 
 void CGitProgressList::ShowProgressBar()
@@ -1126,14 +1131,14 @@ CGitProgressList::WC_File_NotificationData::WC_File_NotificationData(const CTGit
 	}
 }
 
-void CGitProgressList::WC_File_NotificationData::SetColorCode(CColors& colors)
+void CGitProgressList::WC_File_NotificationData::SetColorCode()
 {
 	switch (action)
 	{
 	case Git_WC_Notify_Action::Checkout:
 		[[fallthrough]];
 	case Git_WC_Notify_Action::Add:
-		color = colors.GetColor(CColors::Added);
+		color = g_Colors.GetColor(CColors::Added);
 		colorIsDirect = true;
 		break;
 
@@ -1153,23 +1158,21 @@ void CGitProgressList::WC_File_NotificationData::GetContextMenu(CIconMenu& popup
 	{
 		actions.push_back([&]()
 		{
-			CString cmd = L"/command:log";
-			CString sPath = g_Git.CombinePath(path).c_str();
-			cmd += L" /path:";
-			cmd += TCmdLineParser::EscapeValue<CString>(sPath);
+			auto sPath = g_Git.CombinePath(path);
+			auto cmd = std::format(L"/command:log /path:{}", sPath);
 			TortoiseProc::RunTortoiseGitProc(cmd);
 		});
 		popup.AppendMenuIcon(actions.size(), IDS_MENULOG, IDI_LOG);
 
 		popup.AppendMenu(MF_SEPARATOR, NULL);
 		if (!fs::exists(g_Git.CombinePath(path))) {
-			actions.push_back([&]{ CAppUtils::ShellOpen(g_Git.CombinePath(path).c_str()); });
+			actions.push_back([&]{ TortoiseProc::ShellOpen(g_Git.CombinePath(path).c_str()); });
 			popup.AppendMenuIcon(actions.size(), IDS_LOG_POPUP_OPEN, IDI_OPEN);
 			actions.push_back([&]{ CAppUtils::ShowOpenWithDialog(g_Git.CombinePath(path).c_str()); });
 			popup.AppendMenuIcon(actions.size(), IDS_LOG_POPUP_OPENWITH, IDI_OPEN);
 		}
 
-		actions.push_back([&]{ CAppUtils::ExploreTo(nullptr, g_Git.CombinePath(path).c_str()); });
+		actions.push_back([&]{ TortoiseProc::ExploreTo(nullptr, g_Git.CombinePath(path).c_str()); });
 		popup.AppendMenuIcon(actions.size(), IDS_STATUSLIST_CONTEXT_EXPLORE, IDI_EXPLORER);
 
 		if ((action == Git_WC_Notify_Action::LFS_Lock) ||
@@ -1204,10 +1207,10 @@ void CGitProgressList::WC_File_NotificationData::HandleDblClick() const
 {
 	const auto sWinPath = g_Git.CombinePath(path);
 	if (fs::exists(sWinPath)) {
-		CAppUtils::ExploreTo(nullptr, sWinPath.c_str());
+		TortoiseProc::ExploreTo(nullptr, sWinPath.c_str());
 		return;
 	}
-	CAppUtils::ShellOpen(sWinPath.c_str());
+	TortoiseProc::ShellOpen(sWinPath.c_str());
 }
 
 void CGitProgressList::OnSysColorChange()

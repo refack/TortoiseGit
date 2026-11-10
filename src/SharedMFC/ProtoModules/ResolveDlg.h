@@ -19,7 +19,7 @@
 //
 #pragma once
 import StandAloneDlg;
-#include "GitStatusListCtrl.h"
+import GitStatusListCtrl;
 
 
 /**

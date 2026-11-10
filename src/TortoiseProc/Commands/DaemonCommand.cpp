@@ -21,7 +21,7 @@
 #include "std.h"
 
 #include "DaemonCommand.h"
-#include "ProgressDlg.h"
+import ProgressDlg;
 import MessageBox;
 
 bool DaemonCommand::Execute()

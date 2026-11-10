@@ -15,8 +15,10 @@
 #include <typeinfo>
 #include <vector>
 #include <unordered_map>
+#include <map>
 #include <unordered_set>
 #include <functional>
+#include <memory>
 
 
 // Every textual include first, every import last: a textual std header after an
@@ -30,19 +32,25 @@
 #define _AFX_ALL_WARNINGS	// NOLINT(*-reserved-identifier)
 
 #include <afxwin.h>         // MFC core and standard components
-#include <afxext.h>         // MFC extensions
+#include <afxdlgs.h>
+#include <afxctl.h>
+#include <afxtempl.h>
+#include <afxmt.h>
+#include <afxext.h>				// MFC extensions
+#include <afxcontrolbars.h>     // MFC support for ribbons and control bars
+#include <afxtaskdialog.h>
+
+#include <atlcom.h>				// ATL COM support <CFileDlgEventHandler>
 #include <WinSock2.h>
 #include <Ws2tcpip.h>
 #include <Wspiapi.h>
 #include <comdef.h>		// _COM_SMARTPTR_TYPEDEF (AnimationManager.h); the old PCH supplied it
-#include <tgitlib/sanity.h>	// SCOPE_EXIT - a macro, so no module can carry it
 #include <shlobj.h>
 #include <Shlwapi.h>
 #include <shlguid.h>
 #include <uxtheme.h>
 #include <dlgs.h>
 #include <wininet.h>
-#include <math.h>
 #include <gdiplus.h>
 #include <intsafe.h>
 
@@ -53,15 +61,6 @@
 #include <afxcmn.h>				// MFC support for Windows Common Controls
 #endif							// _AFX_NO_AFXCMN_SUPPORT
 
-#include <afxdlgs.h>
-#include <afxctl.h>
-#include <afxtempl.h>
-#include <afxmt.h>
-#include <afxext.h>				// MFC extensions
-#include <afxcontrolbars.h>     // MFC support for ribbons and control bars
-#include <afxtaskdialog.h>
-
-#include <atlcom.h>				// ATL COM support <CFileDlgEventHandler>
 
 
 #define USE_GDI_GRADIENT
@@ -72,3 +71,12 @@
 #else
 #	define APP_X64_STRING ""
 #endif
+
+#include <ResizableLayout.h>
+#include "../TortoiseProc/MiscUI/SysProgressDlg.h"
+#include "Resources/resource.h"
+#include "../TortoiseShell/resource.h"
+#include <Resources/LoglistCommonResource.h>
+
+
+#include <tgitlib/sanity.h>	// SCOPE_EXIT - a macro, so no module can carry it

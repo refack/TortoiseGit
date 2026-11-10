@@ -30,7 +30,6 @@ import str_utils;
 import invarients;
 import git_h;
 
-using namespace std::literals;
 namespace fs = std::filesystem;
 
 // Defined at global scope in src\libgit2\Git\Git.cpp; not exported by any module.

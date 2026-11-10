@@ -316,16 +316,6 @@ bool Touch(const std::wstring& path)
 }
 
 
-/**
- * Returns the path to the installation folder, in our case the TortoiseSVN/bin folder.
- * \remark the path returned has a trailing backslash
- */
-fs::path GetAppDirectory(const HMODULE hMod = {})
-{
-	const auto path = wil::GetModulePath(hMod);
-	return path.parent_path();
-}
-
 
 /**
  * Returns the path to the installation parent folder, in our case the TortoiseSVN folder.
@@ -333,7 +323,7 @@ fs::path GetAppDirectory(const HMODULE hMod = {})
  */
 fs::path GetAppParentDirectory(const HMODULE hMod = {})
 {
-	const fs::path path = GetAppDirectory(hMod);
+	const fs::path path = til::GetAppDirectory(hMod);
 	return path.parent_path();
 }
 
@@ -611,15 +601,6 @@ expected_os get_path_attributes(const fs::path& path)
 		return {};
 	return get_path_attributes(entry);
 }
-
-
-// int GetLogOutputEncode(CGit* pGit = &g_Git) {
-// 	CString output = pGit->GetConfigValue(L"i18n.logOutputEncoding");
-// 	if(output.IsEmpty())
-// 		return CUnicodeUtils::StdGetCPCode(tgit::str::StringView(pGit->GetConfigValue(L"i18n.commitencoding")));
-// 	else
-// 		return CUnicodeUtils::StdGetCPCode(tgit::str::StringView(output));
-// }
 
 
 } // namespace PathUtils

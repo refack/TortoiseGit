@@ -17,10 +17,9 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 #include "stdafx.h"
-import tgit;
-
 #include "GitCliOutputParser.h"
-#include <format>
+
+import tgit;
 
 constexpr size_t MAX_LINE_LENGTH = 8 * 1024; // 8 KiB
 constexpr size_t MAX_BUFFER_SIZE = 150 * 1024 * 1024; // 150 MiB

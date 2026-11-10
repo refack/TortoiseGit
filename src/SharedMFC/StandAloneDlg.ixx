@@ -23,19 +23,19 @@ import GitHash;
 import SysInfo;		// GetMonitorSetupHash
 import Tooltip;
 import DPIAware;
-
+// import TortoiseProc;
 
 using namespace TGitDarkMode;
 using namespace ThemeAPI;
-
-#define DIALOG_BLOCKHORIZONTAL 1
-#define DIALOG_BLOCKVERTICAL 2
 
 
 
 export namespace StandAloneDlg {
 using SysInfo::GetMonitorSetupHash;	// kept here for existing importers; the body lives in SysInfo
 
+
+constexpr auto DIALOG_BLOCKHORIZONTAL = 1;
+constexpr auto DIALOG_BLOCKVERTICAL = 2;
 
 /**
  * \ingroup TortoiseProc
@@ -271,18 +271,18 @@ protected:
 
 class CStateDialog : public CDialog, public CResizableWndState {
 public:
-	CStateDialog() {}
+	CStateDialog() = default;
 
 
-	CStateDialog(UINT nIDTemplate, CWnd* pParentWnd = nullptr) :
+	explicit CStateDialog(UINT nIDTemplate, CWnd* pParentWnd = nullptr) :
 		CDialog(nIDTemplate, pParentWnd) {}
 
 
-	CStateDialog(LPCWSTR lpszTemplateName, CWnd* pParentWnd = nullptr) :
+	explicit CStateDialog(LPCWSTR lpszTemplateName, CWnd* pParentWnd = nullptr) :
 		CDialog(lpszTemplateName, pParentWnd) {}
 
 
-	~CStateDialog() override {}
+	~CStateDialog() override = default;
 
 private:
 	// flags

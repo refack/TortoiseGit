@@ -18,24 +18,17 @@
 //
 
 #include "stdafx.h"
-import tgit;
+#include "DeleteRemoteTagDlg.h"
+#include "../../TortoiseProc/MiscUI/SysProgressDlg.h"
+#include "../../TortoiseShell/resource.h"
 
+import tgit;
 import AppUtils.Window;
 import TortoiseProc;
-#include "DeleteRemoteTagDlg.h"
 import MessageBox;
-#include "../../TortoiseProc/MiscUI/SysProgressDlg.h"
+import StandAloneDlg;
 
 IMPLEMENT_DYNAMIC(CDeleteRemoteTagDlg, CResizableStandAloneDialog)
-
-CDeleteRemoteTagDlg::CDeleteRemoteTagDlg(CWnd* pParent /*=nullptr*/)
-	: CResizableStandAloneDialog(CDeleteRemoteTagDlg::IDD, pParent)
-{
-}
-
-CDeleteRemoteTagDlg::~CDeleteRemoteTagDlg()
-{
-}
 
 void CDeleteRemoteTagDlg::DoDataExchange(CDataExchange* pDX)
 {
@@ -53,7 +46,7 @@ END_MESSAGE_MAP()
 BOOL CDeleteRemoteTagDlg::OnInitDialog()
 {
 	CResizableStandAloneDialog::OnInitDialog();
-	CAppUtils::MarkWindowAsUnpinnable(m_hWnd);
+	wil::MFC::MarkWindowAsUnpinnable(m_hWnd);
 
 	AdjustControlSize(static_cast<UINT>(IDC_STATIC));
 
