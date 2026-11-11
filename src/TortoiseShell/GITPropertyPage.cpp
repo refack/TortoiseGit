@@ -21,6 +21,7 @@
 #include "stdafx.h"
 #include "ShellExt.h"
 #include "gitpropertypage.h"
+import PathUtils;
 
 #define MAX_STRING_LENGTH	4096	//should be big enough
 
@@ -279,7 +280,9 @@ void CGitPropertyPage::PageProcOnCommand(WPARAM wParam)
 
 void CGitPropertyPage::RunCommand(const std::wstring& command)
 {
-	std::wstring tortoiseProcPath { CPathUtils::GetAppDirectory(g_hmodThisDll) + L"TortoiseGitProc.exe" };
+	// til::GetAppDirectory (wil module) returns an fs::path without the trailing
+	// backslash CPathUtils' version had, so join with operator/ rather than +.
+	const std::wstring tortoiseProcPath { (til::GetAppDirectory(g_hmodThisDll) / L"TortoiseGitProc.exe").native() };
 	if (CCreateProcessHelper::CreateProcessDetached(tortoiseProcPath.c_str(), command.c_str()))
 	{
 		// process started - exit
@@ -750,7 +753,7 @@ STDMETHODIMP CShellExt::AddPages(LPFNADDPROPSHEETPAGE lpfnAddPage, LPARAM lParam
 	for (const auto& file_ : files_)
 	{
 		std::wstring currentProjectTopDir;
-		if (!CTGitPath(file_.c_str()).HasAdminDir(&currentProjectTopDir) || !CPathUtils::ArePathStringsEqual(projectTopDir, currentProjectTopDir))
+		if (!CTGitPath(file_.c_str()).HasAdminDir(&currentProjectTopDir) || !PathUtils::ArePathStringsEqual(projectTopDir, currentProjectTopDir))
 			return S_OK;
 	}
 

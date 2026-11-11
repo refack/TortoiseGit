@@ -19,9 +19,9 @@
 //
 
 #pragma once
-import StandAloneDlg;
 #include "RevisionGraphWnd.h"
-#include "FindDlg.h"
+import StandAloneDlg;
+import FindDlg;
 
 /**
  * \ingroup TortoiseProc

@@ -23,13 +23,13 @@
 
 import TortoiseProc;
 #include "GitLogList.h"
-#include "IconMenu.h"
+import IconMenu;
 import SysProgressDlg;
 import TGitMessageBox;
-#include "CommitDlg.h"
-#include "RebaseDlg.h"
-#include "CommitIsOnRefsDlg.h"
-#include "GitDiff.h"
+#include "ProtoModules/CommitDlg.h"
+#include "ProtoModules/RebaseDlg.h"
+#include "ProtoModules/CommitIsOnRefsDlg.h"
+#include "ProtoModules/GitDiff.h"
 
 import AppUtils.Launch;
 import AppUtils.Workflow;

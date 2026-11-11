@@ -650,7 +650,7 @@ void CCachedDirectory::UpdateCurrentStatus()
 		// just version controlled directory need to cache.
 		std::wstring ownRoot;
 		m_directoryPath.HasAdminDir(&ownRoot);
-		const bool sameRoot = !CPathUtils::ArePathStringsEqualWithCase(m_directoryPath.GetWinPathString(), ownRoot); // If our directory is different than our root, our parent must have the same root.
+		const bool sameRoot = !PathUtils::ArePathStringsEqualWithCase(m_directoryPath.GetWinPathString(), ownRoot); // If our directory is different than our root, our parent must have the same root.
 		if (sameRoot || (CGitStatusCache::Instance().IsRecurseSubmodules() && parentPath.HasAdminDir()))
 		{
 			CCachedDirectory * cachedDir = CGitStatusCache::Instance().GetDirectoryCacheEntry(parentPath);
@@ -688,7 +688,7 @@ void CCachedDirectory::KeepChildStatus(const CString& childDir)
 		{
 			CTGitPath child(childDir.GetString());
 			std::wstring root1, root2;
-			if (child.HasAdminDir(&root1) && m_directoryPath.HasAdminDir(&root2) && !CPathUtils::ArePathStringsEqualWithCase(root1, root2))
+			if (child.HasAdminDir(&root1) && m_directoryPath.HasAdminDir(&root2) && !PathUtils::ArePathStringsEqualWithCase(root1, root2))
 				return;
 		}
 		m_childDirectories_tmp[childDir] = it->second;

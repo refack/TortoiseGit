@@ -64,7 +64,7 @@ void CGitStatusCache::Create()
 #define LOADVALUEFROMFILE2(x) if (fread(&x, sizeof(x), 1, pFile)!=1) goto error;
 	unsigned int value = (unsigned int)-1;
 	// find the location of the cache
-	CString path = CPathUtils::GetLocalAppDataDirectory().c_str();
+	CString path = PathUtils::GetLocalAppDataDirectory().c_str();
 	CString path2;
 	if (!path.IsEmpty())
 	{
@@ -157,7 +157,7 @@ bool CGitStatusCache::SaveCache()
 #define WRITEVALUETOFILE(x) if (fwrite(&x, sizeof(x), 1, pFile)!=1) goto error;
 	// save the cache to disk
 	// find a location to write the cache to
-	CString path = CPathUtils::GetLocalAppDataDirectory().c_str();
+	CString path = PathUtils::GetLocalAppDataDirectory().c_str();
 	if (!path.IsEmpty())
 	{
 		path += STATUSCACHEFILENAME;

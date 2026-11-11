@@ -28,8 +28,8 @@ import TGitPath;
 import ReaderWriterLock;
 import TGitStatus;	// GitStatus::GitStatus
 #include "AdminDirCache.h"
-#include <atlcoll.h>
-#include <mutex>
+// <mutex> (std::recursive_mutex) and <map> come from stdafx.h, before its imports:
+// a textual std/ATL #include must never follow an `import` in the same TU.
 //////////////////////////////////////////////////////////////////////////
 
 #define BLOCK_PATH_WAIT_AFTER_UNLOCK 2 // time in seconds to keep a block after the lockfile is deleted
@@ -113,7 +113,6 @@ private:
 	void RemoveCacheForDirectoryChildren(CCachedDirectory* cdir, const CTGitPath& origPath);
 	CReaderWriterLock m_guard;
 	CReaderWriterLock m_guardcacheddirectories;
-	CAtlList<CString> m_askedList;
 	CCachedDirectory::CachedDirMap m_directoryCache;
 	std::recursive_mutex m_NoWatchPathCritSec; // AutoLocker = TGitH::CAutoLocker = std::scoped_lock<std::recursive_mutex>
 	std::map<CTGitPath, ULONGLONG> m_NoWatchPaths;	///< paths to block from getting crawled, and the time in ms until they're unblocked

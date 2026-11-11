@@ -21,10 +21,10 @@
 #include "std.h"
 
 #include "PasteCopyCommand.h"
+#include "ProtoModules/RenameDlg.h"
 
 import SysProgressDlg;
 import TGitMessageBox;
-#include "RenameDlg.h"
 
 bool PasteCopyCommand::Execute()
 {

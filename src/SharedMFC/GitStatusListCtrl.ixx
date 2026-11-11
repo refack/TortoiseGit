@@ -30,6 +30,7 @@ import ThemeAPI;
 import AppUtils.Launch;
 import AppUtils.Window;
 import TortoiseProc;
+import PathUtils;
 
 using namespace  GitIndex;
 

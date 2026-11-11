@@ -18,8 +18,8 @@
 //
 
 #pragma once
-#include "../../SharedMFC/MiscUI/Tooltip.h"
 
+import Tooltip;
 import git_h;
 import str_utils;
 import TempFile;

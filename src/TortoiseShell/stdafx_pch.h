@@ -31,6 +31,9 @@ using std::min;
 #include <map>
 #include <vector>
 #include <functional>
+#include <mutex>
+#include <optional>
+#include <string_view>
 
 #define CSTRING_AVAILABLE
 

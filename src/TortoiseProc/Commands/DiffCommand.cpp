@@ -22,8 +22,8 @@
 #include "std.h"
 
 #include "DiffCommand.h"
-#include "ChangedDlg.h"
-#include "GitDiff.h"
+#include "ProtoModules/ChangedDlg.h"
+#include "ProtoModules/GitDiff.h"
 
 import TGitMessageBox;
 import AppUtils.Launch;

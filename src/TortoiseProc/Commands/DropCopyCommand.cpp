@@ -21,8 +21,8 @@
 #include "std.h"
 
 #include "DropCopyCommand.h"
+#include "ProtoModules/RenameDlg.h"
 import SysProgressDlg;
-#include "RenameDlg.h"
 import TGitMessageBox;
 
 

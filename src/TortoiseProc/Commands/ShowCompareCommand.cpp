@@ -21,7 +21,7 @@
 
 #include "ShowCompareCommand.h"
 import AppUtils.Launch;
-#include "GitDiff.h"
+#include "ProtoModules/GitDiff.h"
 
 bool ShowCompareCommand::Execute()
 {

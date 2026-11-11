@@ -21,9 +21,9 @@
 #include "std.h"
 
 #include "RenameCommand.h"
+#include "ProtoModules/RenameDlg.h"
 
 import TGitMessageBox;
-#include "RenameDlg.h"
 
 bool RenameCommand::Execute()
 {

@@ -22,10 +22,10 @@
 #include "std.h"
 
 #include "PrevDiffCommand.h"
-#include "GitDiff.h"
-import TGitMessageBox;
+#include "ProtoModules/GitDiff.h"
 #include "../../SharedMFC/Utils/LogDataVector.h"
-#include "FileDiffDlg.h"
+#include "ProtoModules/FileDiffDlg.h"
+import TGitMessageBox;
 
 bool PrevDiffCommand::Execute()
 {

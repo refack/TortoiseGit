@@ -21,10 +21,10 @@
 #include "std.h"
 
 #include "DropMoveCommand.h"
+#include "ProtoModules/RenameDlg.h"
 
 import SysProgressDlg;
 import TGitMessageBox;
-#include "RenameDlg.h"
 
 bool DropMoveCommand::Execute()
 {
