@@ -21,7 +21,7 @@
 #include "std.h"
 
 #include "DropCopyAddCommand.h"
-#include "GitProgressDlg.h"
+#include "ProtoModules/GitProgressDlg.h"
 import TGitMessageBox;
 #include "ProgressCommands/AddProgressCommand.h"
 import DirFileEnum;

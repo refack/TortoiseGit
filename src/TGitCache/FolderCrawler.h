@@ -53,7 +53,7 @@ private:
 	void WorkerThread();
 
 private:
-	CComAutoCriticalSection m_critSec;
+	std::recursive_mutex m_critSec; // AutoLocker = TGitH::CAutoLocker = std::scoped_lock<std::recursive_mutex>
 	CAutoGeneralHandle m_hThread;
 	UniqueQueue<CTGitPath> m_foldersToUpdate;
 	UniqueQueue<CTGitPath> m_pathsToUpdate;

@@ -119,7 +119,7 @@ BOOL CTortoiseGitBlameApp::InitInstance()
 	InitTooltipManager();
 	CMFCToolTipInfo ttParams;
 	ttParams.m_bVislManagerTheme = TRUE;
-	theApp.GetTooltipManager()->SetTooltipParams(AFX_TOOLTIP_TYPE_ALL,
+	GetTooltipManager()->SetTooltipParams(AFX_TOOLTIP_TYPE_ALL,
 		RUNTIME_CLASS(CMFCToolTipCtrl), &ttParams);
 
 	// Register the application's document templates.  Document templates
@@ -135,14 +135,14 @@ BOOL CTortoiseGitBlameApp::InitInstance()
 	AddDocTemplate(pDocTemplate);
 
 	TCmdLineParser::CCmdLineParser parser(m_lpCmdLine);
-	TortoiseProc::g_sGroupingUUID = parser.GetVal(L"groupuuid");
+	TortoiseProc::g_sGroupingUUID = parser.GetValStr(L"groupuuid");
 
 	// Parse command line for standard shell commands, DDE, file open
 	CCommandLineInfo cmdInfo;
 	// add special support for filenames encoded by and for our CCmdLineParser
 	if (parser.HasKey(L"path"))
 	{
-		cmdInfo.m_strFileName = parser.GetVal(L"path");
+		cmdInfo.m_strFileName = parser.GetValStr(L"path").c_str();
 		cmdInfo.m_nShellCommand = CCommandLineInfo::FileOpen;
 	}
 	else
@@ -265,7 +265,7 @@ void CTortoiseGitBlameApp::OnAppAbout()
 
 void CTortoiseGitBlameApp::OnFileSettings()
 {
-	TortoiseProc::RunTortoiseGitProc(L" /command:settings /page:blame");
+	TortoiseProc::RunTortoiseGitProc(std::wstring_view{ L" /command:settings /page:blame" });
 }
 
 // CTortoiseGitBlameApp message handlers

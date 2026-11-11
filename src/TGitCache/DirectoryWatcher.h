@@ -103,7 +103,7 @@ private:
 	void CleanupWatchInfo();
 
 private:
-	CComAutoCriticalSection m_critSec;
+	std::recursive_mutex m_critSec; // see TGitH::CAutoLocker
 	CAutoGeneralHandle		m_hThread;
 	CAutoGeneralHandle		m_hCompPort;
 	volatile LONG			m_bRunning = TRUE;

@@ -19,6 +19,7 @@
 //
 #pragma once
 #include <map>
+#include <mutex>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -105,7 +106,7 @@ public:
 	}
 
 private:
-	using Locker = CComCritSecLock<CComCriticalSection>;
+	using Locker = std::scoped_lock<std::recursive_mutex>;
 
 	struct Entry
 	{
@@ -127,5 +128,5 @@ private:
 
 	std::map<std::wstring, Entry> m_cache;
 	ULONGLONG m_nextCleanup = 0;
-	CComAutoCriticalSection m_critSec;
+	std::recursive_mutex m_critSec;
 };

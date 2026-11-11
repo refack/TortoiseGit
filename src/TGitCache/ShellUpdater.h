@@ -43,7 +43,7 @@ private:
 	void WorkerThread();
 
 private:
-	CComAutoCriticalSection m_critSec;
+	std::recursive_mutex m_critSec; // see TGitH::CAutoLocker
 	CAutoGeneralHandle m_hThread;
 	std::deque<CTGitPath> m_pathsToUpdate;
 	CAutoGeneralHandle m_hTerminationEvent;

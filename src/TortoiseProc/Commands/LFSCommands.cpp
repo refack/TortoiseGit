@@ -21,8 +21,8 @@
 #include "std.h"
 
 #include "LFSCommands.h"
-#include "GitProgressDlg.h"
-#include "LFSLocksDlg.h"
+#include "ProtoModules/GitProgressDlg.h"
+#include "ProtoModules/LFSLocksDlg.h"
 #include "ProgressCommands/LFSSetLockedProgressCommand.h"
 
 static bool setLockedState(bool isLocked, bool force, CTGitPathList& pathList)

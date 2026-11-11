@@ -19,8 +19,9 @@
 //
 #pragma once
 
-#include <afx.h>
-#include <atlbase.h>
+// No <afx.h>/<atlbase.h> here: this header is reached after module imports whose GMF
+// already holds ATL/MFC, and a textual re-include redefines them. Win32 types come from
+// every includer's stdafx; the lock is std::recursive_mutex (CRITICAL_SECTION was recursive too).
 
 import std;
 import Constants;
@@ -56,7 +57,7 @@ constexpr TGitContextMenuEntries defaultTopMenuEntries = TGitContextMenuEntries:
 constexpr TGitContextMenuEntries defaultExtMenuEntries = TGitContextMenuEntries::StashApply |
 														 TGitContextMenuEntries::SubmoduleSync;
 
-using Locker = CComCritSecLock<CComCriticalSection>;
+using Locker = std::scoped_lock<std::recursive_mutex>;
 
 enum class Tristate
 {
@@ -243,7 +244,7 @@ public:
 	CRegStdString nocontextpaths;
 	std::wstring excludecontextstr;
 	std::vector<std::wstring> excontextvector;
-	CComAutoCriticalSection m_critSec;
+	std::recursive_mutex m_critSec;
 	HANDLE m_registryChangeEvent = nullptr;
 	HKEY m_hNotifyRegKey = nullptr;
 	bool isElevated = false;

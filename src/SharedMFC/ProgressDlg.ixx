@@ -28,14 +28,31 @@ using namespace tgit;
 using namespace StandAloneDlg;
 using namespace TGitCache;
 
-namespace ProgressDlg {
-#define MSG_PROGRESSDLG_UPDATE_UI	(WM_USER+121)
+// module-internal helper: kept outside the exported namespace so it keeps internal linkage
+static void EnsurePostMessage(CWnd* pWnd, UINT Msg, WPARAM wParam, LPARAM lParam)
+{
+	redo:
+		if (!pWnd->PostMessage(Msg, wParam, lParam))
+		{
+			if (GetLastError() == ERROR_NOT_ENOUGH_QUOTA)
+			{
+				Sleep(20);
+				goto redo;
+			}
+			else
+				TracePrintf(_T(__FUNCTION__) L": Message %d-%d could not be sent (error %d; %s)\n", wParam, lParam, GetLastError(), (wil::CFormatMessageWrapper()).c_str());
+		}
+}
+
+export namespace ProgressDlg {
+// constants, not macros: SyncDlg.cpp reuses them and macros do not cross an import
+inline constexpr UINT MSG_PROGRESSDLG_UPDATE_UI = WM_USER + 121;
 
 // CProgressDlg dialog
-#define MSG_PROGRESSDLG_START 0
-#define MSG_PROGRESSDLG_RUN   50
-#define MSG_PROGRESSDLG_END   110
-#define MSG_PROGRESSDLG_FAILED 111
+inline constexpr WPARAM MSG_PROGRESSDLG_START = 0;
+inline constexpr WPARAM MSG_PROGRESSDLG_RUN = 50;
+inline constexpr WPARAM MSG_PROGRESSDLG_END = 110;
+inline constexpr WPARAM MSG_PROGRESSDLG_FAILED = 111;
 
 enum class GitProgressAutoClose{
 	AUTOCLOSE_NO,
@@ -331,21 +348,6 @@ BOOL CProgressDlg::OnInitDialog()
 	SetForegroundWindow();
 
 	return TRUE;
-}
-
-static void EnsurePostMessage(CWnd* pWnd, UINT Msg, WPARAM wParam, LPARAM lParam)
-{
-	redo:
-		if (!pWnd->PostMessage(Msg, wParam, lParam))
-		{
-			if (GetLastError() == ERROR_NOT_ENOUGH_QUOTA)
-			{
-				Sleep(20);
-				goto redo;
-			}
-			else
-				TracePrintf(_T(__FUNCTION__) L": Message %d-%d could not be sent (error %d; %s)\n", wParam, lParam, GetLastError(), (wil::CFormatMessageWrapper()).c_str());
-		}
 }
 
 UINT CProgressDlg::ProgressThreadEntry(LPVOID pVoid)
@@ -1061,5 +1063,6 @@ void CProgressDlg::SetupLogMessageViewControl()
 	std::ignore = m_Log.SendMessage(EM_SETBKGNDCOLOR, 0, format.crBackColor);
 }
 
-}
+} // namespace ProgressDlg
+export using namespace ProgressDlg;
 // NOLINTEND(*-pro-type-reinterpret-cast)

@@ -22,8 +22,8 @@
 
 #include "ResolveCommand.h"
 import AppUtils.Launch;
-#include "ResolveDlg.h"
-#include "GitProgressDlg.h"
+#include "ProtoModules/ResolveDlg.h"
+#include "ProtoModules/GitProgressDlg.h"
 #include "ProgressCommands/ResolveProgressCommand.h"
 
 bool ResolveCommand::Execute()

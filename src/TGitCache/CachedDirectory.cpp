@@ -278,7 +278,7 @@ CStatusCacheEntry CCachedDirectory::GetStatusFromGit(const CTGitPath &path, cons
 			subpaths = s.Right(s.GetLength() - sProjectRoot.GetLength());
 	}
 
-	GitStatus *pGitStatus = &CGitStatusCache::Instance().m_GitStatus;
+	GitStatus::GitStatus *pGitStatus = &CGitStatusCache::Instance().m_GitStatus;
 	UNREFERENCED_PARAMETER(pGitStatus);
 
 	m_bRecursive = bRecursive;
@@ -413,7 +413,7 @@ int CCachedDirectory::EnumFiles(const CTGitPath& path, CString sProjectRoot, con
 	// strip "\" at the end, otherwise cache lookups for drives do not work correctly
 	sProjectRoot.TrimRight(L'\\');
 
-	GitStatus *pStatus = &CGitStatusCache::Instance().m_GitStatus;
+	GitStatus::GitStatus *pStatus = &CGitStatusCache::Instance().m_GitStatus;
 	UNREFERENCED_PARAMETER(pStatus);
 
 	if (!path.IsDirectory())
@@ -600,17 +600,17 @@ void CCachedDirectory::Invalidate()
 git_wc_status_kind CCachedDirectory::CalculateRecursiveStatus()
 {
 	// Combine our OWN folder status with the most important of our *FILES'* status.
-	git_wc_status_kind retVal = GitStatus::GetMoreImportant(m_mostImportantFileStatus, m_ownStatus.GetEffectiveStatus());
+	git_wc_status_kind retVal = GitStatus::GitStatus::GetMoreImportant(m_mostImportantFileStatus, m_ownStatus.GetEffectiveStatus());
 
 	// Now combine all our child-directorie's status
 	AutoLocker lock(m_critSec);
 	for(auto it = m_childDirectories.begin(); it != m_childDirectories.end(); ++it)
 	{
-		retVal = GitStatus::GetMoreImportant(retVal, it->second);
+		retVal = GitStatus::GitStatus::GetMoreImportant(retVal, it->second);
 	}
 
 	// folders can only be none, unversioned, normal, modified, and conflicted
-	GitStatus::AdjustFolderStatus(retVal);
+	GitStatus::GitStatus::AdjustFolderStatus(retVal);
 
 	// hack to show folders which have only ignored files inside but are not ignored themselves
 	if (retVal == git_wc_status_ignored && m_ownStatus.GetEffectiveStatus() != git_wc_status_ignored)
@@ -742,13 +742,13 @@ void CCachedDirectory::RefreshMostImportant(bool bUpdateShell /* = true */)
 	git_wc_status_kind newStatus = git_wc_status_unversioned;
 	for (itMembers = m_entryCache.begin(); itMembers != m_entryCache.end(); ++itMembers)
 	{
-		newStatus = GitStatus::GetMoreImportant(newStatus, itMembers->second.GetEffectiveStatus());
+		newStatus = GitStatus::GitStatus::GetMoreImportant(newStatus, itMembers->second.GetEffectiveStatus());
 		if (((itMembers->second.GetEffectiveStatus() == git_wc_status_unversioned)||(itMembers->second.GetEffectiveStatus() == git_wc_status_none))
 			&&(CGitStatusCache::Instance().IsUnversionedAsModified()))
 		{
 			// treat unversioned files as modified
 			if (newStatus != git_wc_status_added)
-				newStatus = GitStatus::GetMoreImportant(newStatus, git_wc_status_modified);
+				newStatus = GitStatus::GitStatus::GetMoreImportant(newStatus, git_wc_status_modified);
 		}
 	}
 	if (bUpdateShell && newStatus != m_mostImportantFileStatus)

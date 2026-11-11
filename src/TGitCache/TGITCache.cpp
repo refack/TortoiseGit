@@ -60,7 +60,7 @@ HWND				hWndHidden;
 HWND				hTrayWnd;
 wchar_t				szCurrentCrawledPath[MAX_CRAWLEDPATHS][MAX_CRAWLEDPATHSLEN];
 int					nCurrentCrawledpathIndex = 0;
-CComAutoCriticalSection critSec;
+std::recursive_mutex critSec;	// declared in TGITCache.h; locked through AutoLocker
 extern CGitIndexFileMap g_IndexFileMap;
 
 // must put this before any global variables that auto free git objects,

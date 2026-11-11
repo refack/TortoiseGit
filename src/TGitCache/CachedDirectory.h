@@ -19,6 +19,7 @@
 //
 #pragma once
 
+#include <mutex>
 #include "StatusCacheEntry.h"
 import TGitPath;
 
@@ -81,7 +82,7 @@ private:
 	void SetChildStatus(const CString& childDir, git_wc_status_kind childStatus);
 	void KeepChildStatus(const CString& childDir);
 
-	CComAutoCriticalSection m_critSec;
+	std::recursive_mutex m_critSec; // see TGitH::CAutoLocker
 
 	// The cache of files and directories within this directory
 	using CacheEntryMap = std::map<CString, CStatusCacheEntry>;

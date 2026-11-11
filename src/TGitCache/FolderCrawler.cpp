@@ -24,6 +24,7 @@
 import Registry;
 #include "TGitCache.h"
 import str_utils;	// StringUtils::EndsWith
+import TGitStatus;	// GitStatus::GitStatus
 
 CFolderCrawler::CFolderCrawler()
 {
@@ -70,7 +71,7 @@ void CFolderCrawler::Initialise()
 void CFolderCrawler::AddDirectoryForUpdate(const CTGitPath& path)
 {
 	/* Index file changing*/
-	if (GitStatus::IsExistIndexLockFile(path))
+	if (GitStatus::GitStatus::IsExistIndexLockFile(path))
 		return;
 
 	if (!CGitStatusCache::Instance().IsPathGood(path))
@@ -94,7 +95,7 @@ void CFolderCrawler::AddDirectoryForUpdate(const CTGitPath& path)
 void CFolderCrawler::AddPathForUpdate(const CTGitPath& path)
 {
 	/* Index file changing*/
-	if (GitStatus::IsExistIndexLockFile(path))
+	if (GitStatus::GitStatus::IsExistIndexLockFile(path))
 		return;
 
 	{
@@ -192,7 +193,7 @@ void CFolderCrawler::WorkerThread()
 			{
 				AutoLocker lock(m_critSec);
 				CTGitPath path = m_pathsToRelease.Pop();
-				GitStatus::ReleasePath(path.GetWinPathString().c_str());
+				GitStatus::GitStatus::ReleasePath(path.GetWinPathString().c_str());
 			}
 
 			if (m_foldersToUpdate.empty() && m_pathsToUpdate.empty())

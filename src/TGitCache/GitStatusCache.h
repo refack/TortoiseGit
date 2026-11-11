@@ -26,8 +26,10 @@ import TGitPath;
 #include "DirectoryWatcher.h"
 #include "ShellUpdater.h"
 import ReaderWriterLock;
+import TGitStatus;	// GitStatus::GitStatus
 #include "AdminDirCache.h"
 #include <atlcoll.h>
+#include <mutex>
 //////////////////////////////////////////////////////////////////////////
 
 #define BLOCK_PATH_WAIT_AFTER_UNLOCK 2 // time in seconds to keep a block after the lockfile is deleted
@@ -55,7 +57,7 @@ public:
 	static bool SaveCache();
 
 public:
-	GitStatus m_GitStatus;
+	GitStatus::GitStatus m_GitStatus;
 	/// Refreshes the cache.
 	void Refresh();
 
@@ -113,7 +115,7 @@ private:
 	CReaderWriterLock m_guardcacheddirectories;
 	CAtlList<CString> m_askedList;
 	CCachedDirectory::CachedDirMap m_directoryCache;
-	CComAutoCriticalSection m_NoWatchPathCritSec;
+	std::recursive_mutex m_NoWatchPathCritSec; // AutoLocker = TGitH::CAutoLocker = std::scoped_lock<std::recursive_mutex>
 	std::map<CTGitPath, ULONGLONG> m_NoWatchPaths;	///< paths to block from getting crawled, and the time in ms until they're unblocked
 	ShellCache	m_shellCache;		///< the user's settings
 	AdminDirCache	m_adminDirs;	///< which folders are in a worktree
@@ -123,7 +125,7 @@ private:
 	CFolderCrawler m_folderCrawler;
 	CShellUpdater m_shellUpdater;
 
-	CComAutoCriticalSection m_critSec;
+	std::recursive_mutex m_critSec; // see TGitH::CAutoLocker
 	CTGitPath m_mostRecentPath;
 	CStatusCacheEntry m_mostRecentStatus;
 	LONGLONG m_mostRecentExpiresAt = 0;

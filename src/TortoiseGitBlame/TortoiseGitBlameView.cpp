@@ -139,22 +139,22 @@ CTortoiseGitBlameView::CTortoiseGitBlameView() :
 	m_textcolor(0),
 	m_texthighlightcolor(0)
 {
-	m_colorage = !!theApp.GetInt(L"ColorAge", !CTheme::Instance().IsHighContrastMode());
-	m_bLexer = !!theApp.GetInt(L"EnableLexer", !CTheme::Instance().IsHighContrastMode());
+	m_colorage = !!::theApp.GetInt(L"ColorAge", !CTheme::Instance().IsHighContrastMode());
+	m_bLexer = !!::theApp.GetInt(L"EnableLexer", !CTheme::Instance().IsHighContrastMode());
 
-	m_bShowLogID = (theApp.GetInt(L"ShowLogID", 0) == 1);
-	m_bShowAuthor = (theApp.GetInt(L"ShowAuthor", 1) == 1);
-	m_bShowDate = (theApp.GetInt(L"ShowDate", 0) == 1);
-	m_bShowFilename = (theApp.GetInt(L"ShowFilename", 0) == 1);
-	m_bShowOriginalLineNumber = (theApp.GetInt(L"ShowOriginalLineNumber", 0) == 1);
-	m_dwDetectMovedOrCopiedLines = theApp.GetInt(L"DetectMovedOrCopiedLines", 0);
-	m_bIgnoreWhitespace = (theApp.GetInt(L"IgnoreWhitespace", 0) == 1);
-	m_bShowCompleteLog = (theApp.GetInt(L"ShowCompleteLog", 1) == 1);
-	m_bOnlyFirstParent = (theApp.GetInt(L"OnlyFirstParent", 0) == 1);
-	m_bFollowRenames = (theApp.GetInt(L"FollowRenames", 0) == 1);
+	m_bShowLogID = (::theApp.GetInt(L"ShowLogID", 0) == 1);
+	m_bShowAuthor = (::theApp.GetInt(L"ShowAuthor", 1) == 1);
+	m_bShowDate = (::theApp.GetInt(L"ShowDate", 0) == 1);
+	m_bShowFilename = (::theApp.GetInt(L"ShowFilename", 0) == 1);
+	m_bShowOriginalLineNumber = (::theApp.GetInt(L"ShowOriginalLineNumber", 0) == 1);
+	m_dwDetectMovedOrCopiedLines = ::theApp.GetInt(L"DetectMovedOrCopiedLines", 0);
+	m_bIgnoreWhitespace = (::theApp.GetInt(L"IgnoreWhitespace", 0) == 1);
+	m_bShowCompleteLog = (::theApp.GetInt(L"ShowCompleteLog", 1) == 1);
+	m_bOnlyFirstParent = (::theApp.GetInt(L"OnlyFirstParent", 0) == 1);
+	m_bFollowRenames = (::theApp.GetInt(L"FollowRenames", 0) == 1);
 	m_bBlameOutputContainsOtherFilenames = FALSE;
-	m_bWrapLongLines = !!theApp.GetInt(L"WrapLongLines", 0);
-	m_sFindText = theApp.GetString(L"FindString");
+	m_bWrapLongLines = !!::theApp.GetInt(L"WrapLongLines", 0);
+	m_sFindText = ::theApp.GetString(L"FindString");
 
 	m_FindDialogMessage = ::RegisterWindowMessage(FINDMSGSTRING);
 	// get short/long datetime setting from registry
@@ -485,7 +485,7 @@ void CTortoiseGitBlameView::ContextMenuAction(int cmd, GitRev *pRev, GIT_REV_LIS
 
 			CString procCmd = L"/command:blame";
 			procCmd += L" /path:";
-			procCmd += str::EscapeCmdValue(path);
+			procCmd += tgit::str::EscapeCmdValue(path);
 			procCmd += L" /endrev:" + endrev;
 			procCmd += L" /line:";
 			procCmd.AppendFormat(L"%d", line);
@@ -505,7 +505,7 @@ void CTortoiseGitBlameView::ContextMenuAction(int cmd, GitRev *pRev, GIT_REV_LIS
 			CString endrev = pRev->m_CommitHash.c_str();
 
 			CString procCmd = L"/command:diff";
-			procCmd += L" /path:" + str::EscapeCmdValue(path);
+			procCmd += L" /path:" + tgit::str::EscapeCmdValue(path);
 			procCmd += L" /startrev:" + startrev;
 			procCmd += L" /endrev:" + endrev;
 			if (!!(GetAsyncKeyState(VK_SHIFT) & 0x8000))
@@ -521,7 +521,7 @@ void CTortoiseGitBlameView::ContextMenuAction(int cmd, GitRev *pRev, GIT_REV_LIS
 			CString rev = m_data.GetHash(selectedLine).c_str();
 
 			CString procCmd = L"/command:log";
-			procCmd += L" /path:" + str::EscapeCmdValue(path);
+			procCmd += L" /path:" + tgit::str::EscapeCmdValue(path);
 			procCmd += L" /rev:" + rev;
 			procCmd += L" /endrev:" + rev;
 
@@ -967,7 +967,7 @@ void CTortoiseGitBlameView::DrawBlame(HDC hDC)
 			{
 				if (oldHash != hash)
 				{
-					CString shortHashStr = hash.ToString(g_Git.GetShortHASHLength());
+					CString shortHashStr = hash.ToString(g_Git.GetShortHASHLength()).c_str();
 					::ExtTextOut(hDC, rc.left, rc.top, ETO_CLIPPED, &rc, shortHashStr, shortHashStr.GetLength(), 0);
 				}
 				rc.left += m_revwidth;
@@ -1692,7 +1692,7 @@ CString CTortoiseGitBlameView::ResolveCommitFile(const CString& path)
 	}
 	else
 	{
-		return g_Git.CombinePath(path);
+		return g_Git.CombinePath(path).c_str();
 	}
 }
 
@@ -1900,7 +1900,7 @@ void CTortoiseGitBlameView::OnMouseHover(UINT /*nFlags*/, CPoint point)
 				filename.Format(L"%s: %s\n", static_cast<LPCWSTR>(m_sFileName), static_cast<LPCWSTR>(m_data.GetFilename(line)));
 
 			CString str;
-			str.Format(L"%s: %s\n%s%s: %s <%s>\n%s: %s\n%s:\n%s\n%s",	static_cast<LPCWSTR>(m_sRev), static_cast<LPCWSTR>(pRev->m_CommitHash.ToString()), static_cast<LPCWSTR>(filename),
+			str.Format(L"%s: %s\n%s%s: %s <%s>\n%s: %s\n%s:\n%s\n%s",	static_cast<LPCWSTR>(m_sRev), pRev->m_CommitHash.ToString().c_str(), static_cast<LPCWSTR>(filename),
 																	static_cast<LPCWSTR>(m_sAuthor), static_cast<LPCWSTR>(pRev->GetAuthorName()), static_cast<LPCWSTR>(pRev->GetAuthorEmail()),
 																	static_cast<LPCWSTR>(m_sDate), static_cast<LPCWSTR>(CLoglistUtils::FormatDateAndTime(pRev->GetAuthorDate(), m_DateFormat, true, m_bRelativeTimes)),
 																	static_cast<LPCWSTR>(m_sMessage), static_cast<LPCWSTR>(pRev->GetSubject()),
@@ -1970,7 +1970,7 @@ void CTortoiseGitBlameView::OnEditFind()
 	}
 
 	DWORD flags = FR_DOWN | FR_HIDEWHOLEWORD;
-	if (theApp.GetInt(L"FindMatchCase"))
+	if (::theApp.GetInt(L"FindMatchCase"))
 		flags |= FR_MATCHCASE;
 
 	m_pFindDialog->Create(TRUE, oneline, nullptr, flags, this);
@@ -2011,8 +2011,8 @@ LRESULT CTortoiseGitBlameView::OnFindDialogMessage(WPARAM /*wParam*/, LPARAM /*l
 		m_bMatchCase = !!(m_pFindDialog->MatchCase());
 		m_sFindText = m_pFindDialog->GetFindString();
 
-		theApp.WriteInt(L"FindMatchCase", m_bMatchCase ? 1 : 0);
-		theApp.WriteString(L"FindString", m_sFindText);
+		::theApp.WriteInt(L"FindMatchCase", m_bMatchCase ? 1 : 0);
+		::theApp.WriteString(L"FindString", m_sFindText);
 
 		DoSearch(m_pFindDialog->SearchDown() ?  CTortoiseGitBlameData::SearchNext : CTortoiseGitBlameData::SearchPrevious);
 	}
@@ -2039,7 +2039,7 @@ void CTortoiseGitBlameView::OnViewToggleLogID()
 {
 	m_bShowLogID = !m_bShowLogID;
 
-	theApp.WriteInt(L"ShowLogID", m_bShowLogID);
+	::theApp.WriteInt(L"ShowLogID", m_bShowLogID);
 
 	CRect rect;
 	this->GetClientRect(&rect);
@@ -2057,7 +2057,7 @@ void CTortoiseGitBlameView::OnViewToggleAuthor()
 {
 	m_bShowAuthor = ! m_bShowAuthor;
 
-	theApp.WriteInt(L"ShowAuthor", m_bShowAuthor);
+	::theApp.WriteInt(L"ShowAuthor", m_bShowAuthor);
 
 	CRect rect;
 	this->GetClientRect(&rect);
@@ -2075,7 +2075,7 @@ void CTortoiseGitBlameView::OnViewToggleDate()
 {
 	m_bShowDate = ! m_bShowDate;
 
-	theApp.WriteInt(L"ShowDate", m_bShowDate);
+	::theApp.WriteInt(L"ShowDate", m_bShowDate);
 
 	CRect rect;
 	this->GetClientRect(&rect);
@@ -2093,7 +2093,7 @@ void CTortoiseGitBlameView::OnViewToggleShowFilename()
 {
 	m_bShowFilename = ! m_bShowFilename;
 
-	theApp.WriteInt(L"ShowFilename", m_bShowFilename);
+	::theApp.WriteInt(L"ShowFilename", m_bShowFilename);
 
 	CRect rect;
 	this->GetClientRect(&rect);
@@ -2111,7 +2111,7 @@ void CTortoiseGitBlameView::OnViewToggleShowOriginalLineNumber()
 {
 	m_bShowOriginalLineNumber = ! m_bShowOriginalLineNumber;
 
-	theApp.WriteInt(L"ShowOriginalLineNumber", m_bShowOriginalLineNumber);
+	::theApp.WriteInt(L"ShowOriginalLineNumber", m_bShowOriginalLineNumber);
 
 	CRect rect;
 	this->GetClientRect(&rect);
@@ -2129,18 +2129,18 @@ void CTortoiseGitBlameView::OnViewDetectMovedOrCopiedLines(DWORD dwDetectMovedOr
 {
 	m_dwDetectMovedOrCopiedLines = dwDetectMovedOrCopiedLines;
 
-	theApp.DoWaitCursor(1);
+	::theApp.DoWaitCursor(1);
 
-	theApp.WriteInt(L"DetectMovedOrCopiedLines", m_dwDetectMovedOrCopiedLines);
+	::theApp.WriteInt(L"DetectMovedOrCopiedLines", m_dwDetectMovedOrCopiedLines);
 
 	auto document = static_cast<CTortoiseGitBlameDoc*>(m_pDocument);
 	if (!document->m_CurrentFileName.IsEmpty())
 	{
 		document->m_lLine = static_cast<int>(SendEditor(SCI_GETFIRSTVISIBLELINE)) + 1;
-		theApp.m_pDocManager->OnFileNew();
+		::theApp.m_pDocManager->OnFileNew();
 		document->OnOpenDocument(document->m_CurrentFileName, document->m_Rev);
 	}
-	theApp.DoWaitCursor(-1);
+	::theApp.DoWaitCursor(-1);
 }
 
 void CTortoiseGitBlameView::OnViewDetectMovedOrCopiedLinesToggleDisabled()
@@ -2195,22 +2195,22 @@ void CTortoiseGitBlameView::OnUpdateViewDetectMovedOrCopiedLinesToggleFromExisti
 
 void CTortoiseGitBlameView::ReloadDocument()
 {
-	theApp.DoWaitCursor(1);
+	::theApp.DoWaitCursor(1);
 	auto document = static_cast<CTortoiseGitBlameDoc*>(m_pDocument);
 	if (!document->m_CurrentFileName.IsEmpty())
 	{
 		document->m_lLine = static_cast<int>(SendEditor(SCI_GETFIRSTVISIBLELINE)) + 1;
-		theApp.m_pDocManager->OnFileNew();
+		::theApp.m_pDocManager->OnFileNew();
 		document->OnOpenDocument(document->m_CurrentFileName, document->m_Rev);
 	}
-	theApp.DoWaitCursor(-1);
+	::theApp.DoWaitCursor(-1);
 }
 
 void CTortoiseGitBlameView::OnViewToggleIgnoreWhitespace()
 {
 	m_bIgnoreWhitespace = ! m_bIgnoreWhitespace;
 
-	theApp.WriteInt(L"IgnoreWhitespace", m_bIgnoreWhitespace ? 1 : 0);
+	::theApp.WriteInt(L"IgnoreWhitespace", m_bIgnoreWhitespace ? 1 : 0);
 
 	ReloadDocument();
 }
@@ -2224,7 +2224,7 @@ void CTortoiseGitBlameView::OnViewToggleShowCompleteLog()
 {
 	m_bShowCompleteLog = ! m_bShowCompleteLog;
 
-	theApp.WriteInt(L"ShowCompleteLog", m_bShowCompleteLog ? 1 : 0);
+	::theApp.WriteInt(L"ShowCompleteLog", m_bShowCompleteLog ? 1 : 0);
 
 	ReloadDocument();
 }
@@ -2238,7 +2238,7 @@ void CTortoiseGitBlameView::OnViewToggleOnlyFirstParent()
 {
 	m_bOnlyFirstParent = !m_bOnlyFirstParent;
 
-	theApp.WriteInt(L"OnlyFirstParent", m_bOnlyFirstParent ? 1 : 0);
+	::theApp.WriteInt(L"OnlyFirstParent", m_bOnlyFirstParent ? 1 : 0);
 
 	ReloadDocument();
 }
@@ -2253,7 +2253,7 @@ void CTortoiseGitBlameView::OnViewToggleFollowRenames()
 {
 	m_bFollowRenames = ! m_bFollowRenames;
 
-	theApp.WriteInt(L"FollowRenames", m_bFollowRenames ? 1 : 0);
+	::theApp.WriteInt(L"FollowRenames", m_bFollowRenames ? 1 : 0);
 
 	ReloadDocument();
 }
@@ -2268,7 +2268,7 @@ void CTortoiseGitBlameView::OnViewToggleColorByAge()
 {
 	m_colorage = ! m_colorage;
 
-	theApp.WriteInt(L"ColorAge", m_colorage);
+	::theApp.WriteInt(L"ColorAge", m_colorage);
 
 	m_TextView.Invalidate();
 }
@@ -2282,7 +2282,7 @@ void CTortoiseGitBlameView::OnViewToggleLexer()
 {
 	m_bLexer = !m_bLexer;
 
-	theApp.WriteInt(L"EnableLexer", m_bLexer);
+	::theApp.WriteInt(L"EnableLexer", m_bLexer);
 
 	SendEditor(SCI_CLEARDOCUMENTSTYLE, 0, 0);
 	SetupLexer(GetDocument()->m_CurrentFileName);
@@ -2296,7 +2296,7 @@ void CTortoiseGitBlameView::OnUpdateViewToggleLexer(CCmdUI *pCmdUI)
 void CTortoiseGitBlameView::OnViewToggleDarkMode()
 {
 	CTheme::Instance().SetDarkTheme(!CTheme::Instance().IsDarkTheme());
-	theApp.WriteInt(L"DarkMode", CTheme::Instance().IsDarkTheme());
+	::theApp.WriteInt(L"DarkMode", CTheme::Instance().IsDarkTheme());
 }
 
 void CTortoiseGitBlameView::OnUpdateViewToggleDarkMode(CCmdUI* pCmdUI)
@@ -2309,7 +2309,7 @@ void CTortoiseGitBlameView::OnViewWrapLongLines()
 {
 	m_bWrapLongLines = !m_bWrapLongLines;
 
-	theApp.WriteInt(L"WrapLongLines", m_bWrapLongLines);
+	::theApp.WriteInt(L"WrapLongLines", m_bWrapLongLines);
 
 	if (m_bWrapLongLines)
 		SendEditor(SCI_SETWRAPMODE, SC_WRAP_WORD);

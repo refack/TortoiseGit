@@ -94,7 +94,7 @@ int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	CMFCPopupMenu::SetForceMenuFocus(FALSE);
 
 	if (!m_wndToolBar.CreateEx(this, TBSTYLE_FLAT, WS_CHILD | WS_VISIBLE | CBRS_TOP | CBRS_GRIPPER | CBRS_TOOLTIPS | CBRS_FLYBY | CBRS_SIZE_DYNAMIC) ||
-		!m_wndToolBar.LoadToolBar(theApp.m_bHiColorIcons ? IDR_TORTOISE_GIT_BLAME_MAINFRAME_256 : IDR_TORTOISE_GIT_BLAME_MAINFRAME))
+		!m_wndToolBar.LoadToolBar(::theApp.m_bHiColorIcons ? IDR_TORTOISE_GIT_BLAME_MAINFRAME_256 : IDR_TORTOISE_GIT_BLAME_MAINFRAME))
 	{
 		TRACE0("Failed to create toolbar\n");
 		return -1;      // fail to create
@@ -153,7 +153,7 @@ int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	CMFCToolBar::EnableQuickCustomization();
 
 	m_themeCallbackId = ThemeAPI::CTheme::Instance().RegisterThemeChangeCallback([this]() { SetTheme(CTheme::Instance().IsDarkTheme()); });
-	SetTheme(theApp.GetInt(L"DarkMode") && CTheme::Instance().IsDarkModeAllowed() && TGitDarkMode::DarkModeHelper::Instance().ShouldAppsUseDarkMode());
+	SetTheme(::theApp.GetInt(L"DarkMode") && CTheme::Instance().IsDarkModeAllowed() && TGitDarkMode::DarkModeHelper::Instance().ShouldAppsUseDarkMode());
 	return 0;
 }
 
@@ -243,7 +243,7 @@ BOOL CMainFrame::CreateDockingWindows()
 		return FALSE; // failed to create
 	}
 
-	SetDockingWindowIcons(theApp.m_bHiColorIcons);
+	SetDockingWindowIcons(::theApp.m_bHiColorIcons);
 	return TRUE;
 }
 

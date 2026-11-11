@@ -21,8 +21,8 @@
 #include "std.h"
 
 #include "RevertCommand.h"
-#include "RevertDlg.h"
-#include "GitProgressDlg.h"
+#include "ProtoModules/RevertDlg.h"
+#include "ProtoModules/GitProgressDlg.h"
 #include "ProgressCommands/RevertProgressCommand.h"
 
 bool RevertCommand::Execute()

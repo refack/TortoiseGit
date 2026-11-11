@@ -19,6 +19,8 @@
 //
 #pragma once
 
+#include <mutex>
+
 #define BUFSIZE 4096
 #define MAX_CRAWLEDPATHS 15
 #define MAX_CRAWLEDPATHSLEN (MAX_PATH * 2)
@@ -27,7 +29,7 @@ extern HWND				hWndHidden;
 extern wchar_t			szCurrentCrawledPath[MAX_CRAWLEDPATHS][MAX_CRAWLEDPATHSLEN];
 
 extern int nCurrentCrawledpathIndex;
-extern CComAutoCriticalSection critSec;
+extern std::recursive_mutex critSec;	// locked through AutoLocker (TGitH::CAutoLocker)
 
 #define TRAY_CALLBACK	(WM_APP + 1)
 #define TRAYPOP_EXIT	(WM_APP + 1)

@@ -19,7 +19,6 @@
 //
 #pragma once
 
-struct TGITCacheResponse;
 extern ULONGLONG cachetimeout;
 
 import TGitCache.CacheInterface;

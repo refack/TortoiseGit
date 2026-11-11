@@ -29,6 +29,7 @@ import BrowseFolder;
 import ThemeAPI;
 import AppUtils.Launch;
 import AppUtils.Window;
+import TortoiseProc;
 
 using namespace  GitIndex;
 

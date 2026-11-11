@@ -32,6 +32,13 @@ using std::max;
 #include <set>
 #include <deque>
 #include <functional>
+#include <mutex>		// std::recursive_mutex, which TGitH::CAutoLocker (AutoLocker below) locks
+// Every std header a TGitCache TU names must be textually included here, before the
+// first `import`: a std #include that follows an import re-defines what the imported
+// modules' GMFs already merged (C2011/C2995). ShellUpdater.cpp includes <format>,
+// DirectoryWatcher.cpp includes <list>; this makes their late includes no-ops.
+#include <format>
+#include <list>
 
 #include <git2.h>
 #include <tgitlib/sanity.h>		// SCOPE_EXIT (CreateProcessHelper.h)
@@ -48,7 +55,11 @@ import DebugOutput;
 import GitIndex;			// git_wc_status_kind / git_wc_status2_t, which tgittypes held
 import PathUtils;
 import git_h;		// was "Git.h"; also TGitH::OpenGitRepository and the config readers
+import RIAA;
+import Registry;	// namespace RegistryDep
+import str_utils;	// tgit::wstr::CString; TGitCache is wide-only (was <atlstr.h> + using namespace ATL)
 
+using CString = tgit::wstr::CString;
 using AutoLocker = TGitH::CAutoLocker;
 
 using namespace RIAA;

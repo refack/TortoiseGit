@@ -105,7 +105,7 @@ BOOL CTortoiseGitBlameDoc::OnOpenDocument(LPCWSTR lpszPathName, CString Rev)
 	// (SDI documents will reuse this document)
 	if(!TGitH::g_Git.CheckMsysGitDir())
 	{
-		TortoiseProc::RunTortoiseGitProc(L" /command:settings");
+		TortoiseProc::RunTortoiseGitProc(std::wstring_view(L" /command:settings"));
 		return FALSE;
 	}
 	const auto topdir = GitAdminDir::HasAdminDir(m_CurrentFileName.GetString());
@@ -147,9 +147,9 @@ BOOL CTortoiseGitBlameDoc::OnOpenDocument(LPCWSTR lpszPathName, CString Rev)
 		// It is a list of flags, so it is a list now, and the spaces that used to
 		// join them stop being part of any single option.
 		std::vector<std::wstring> cmd, option;
-		int dwDetectMovedOrCopiedLines = theApp.GetInt(L"DetectMovedOrCopiedLines", BLAME_DETECT_MOVED_OR_COPIED_LINES_DISABLED);
-		int dwDetectMovedOrCopiedLinesNumCharactersWithinFile = theApp.GetInt(L"DetectMovedOrCopiedLinesNumCharactersWithinFile", BLAME_DETECT_MOVED_OR_COPIED_LINES_NUM_CHARACTERS_WITHIN_FILE_DEFAULT);
-		int dwDetectMovedOrCopiedLinesNumCharactersFromFiles = theApp.GetInt(L"DetectMovedOrCopiedLinesNumCharactersFromFiles", BLAME_DETECT_MOVED_OR_COPIED_LINES_NUM_CHARACTERS_FROM_FILES_DEFAULT);
+		int dwDetectMovedOrCopiedLines = ::theApp.GetInt(L"DetectMovedOrCopiedLines", BLAME_DETECT_MOVED_OR_COPIED_LINES_DISABLED);
+		int dwDetectMovedOrCopiedLinesNumCharactersWithinFile = ::theApp.GetInt(L"DetectMovedOrCopiedLinesNumCharactersWithinFile", BLAME_DETECT_MOVED_OR_COPIED_LINES_NUM_CHARACTERS_WITHIN_FILE_DEFAULT);
+		int dwDetectMovedOrCopiedLinesNumCharactersFromFiles = ::theApp.GetInt(L"DetectMovedOrCopiedLinesNumCharactersFromFiles", BLAME_DETECT_MOVED_OR_COPIED_LINES_NUM_CHARACTERS_FROM_FILES_DEFAULT);
 		switch(dwDetectMovedOrCopiedLines)
 		{
 		default:
@@ -169,10 +169,10 @@ BOOL CTortoiseGitBlameDoc::OnOpenDocument(LPCWSTR lpszPathName, CString Rev)
 			break;
 		}
 
-		if (theApp.GetInt(L"IgnoreWhitespace", 0) == 1)
+		if (::theApp.GetInt(L"IgnoreWhitespace", 0) == 1)
 			option.emplace_back(L"-w");
 
-		bool onlyFirstParent = theApp.GetInt(L"OnlyFirstParent", 0) == 1;
+		bool onlyFirstParent = ::theApp.GetInt(L"OnlyFirstParent", 0) == 1;
 		if (onlyFirstParent)
 		{
 			const CTGitPath tmpfilePath = TempFiles::GetTempFilePath(true);
@@ -252,10 +252,10 @@ BOOL CTortoiseGitBlameDoc::OnOpenDocument(LPCWSTR lpszPathName, CString Rev)
 		}
 		pView->ParseBlame();
 
-		BOOL bShowCompleteLog = (theApp.GetInt(L"ShowCompleteLog", 1) == 1);
+		BOOL bShowCompleteLog = (::theApp.GetInt(L"ShowCompleteLog", 1) == 1);
 		if (bShowCompleteLog && BlameIsLimitedToOneFilename(dwDetectMovedOrCopiedLines) && !onlyFirstParent)
 		{
-			if (GetMainFrame()->m_wndOutput.LoadHistory(path.GetGitPathString().c_str(), m_Rev, (theApp.GetInt(L"FollowRenames", 0) == 1)))
+			if (GetMainFrame()->m_wndOutput.LoadHistory(path.GetGitPathString().c_str(), m_Rev, (::theApp.GetInt(L"FollowRenames", 0) == 1)))
 				return FALSE;
 		}
 		else

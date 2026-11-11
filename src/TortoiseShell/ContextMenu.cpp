@@ -36,6 +36,7 @@ import wil;
 import TGitPath;
 import TGitCache.CacheInterface;
 import IconBitmapUtils;
+import str_utils;	// CUnicodeUtils::{MultibyteToWide,WideToMultibyte}, tgit::str::EscapeCmdValue
 
 #pragma comment(lib, "comsupp.lib")
 
@@ -157,7 +158,7 @@ STDMETHODIMP CShellExt::Initialize(LPCITEMIDLIST pIDFolder, LPDATAOBJECT pDataOb
 						}
 						else
 						{
-							GitStatus stat;
+							GitStatus::GitStatus stat;
 							stat.GetStatus(strpath, false, false, true);
 							if (stat.status)
 							{
@@ -274,7 +275,7 @@ STDMETHODIMP CShellExt::Initialize(LPCITEMIDLIST pIDFolder, LPDATAOBJECT pDataOb
 							}
 							else
 							{
-								GitStatus stat;
+								GitStatus::GitStatus stat;
 								if (strpath.HasAdminDir())
 									stat.GetStatus(strpath, false, false, true);
 								statuspath = str;
@@ -381,7 +382,7 @@ STDMETHODIMP CShellExt::Initialize(LPCITEMIDLIST pIDFolder, LPDATAOBJECT pDataOb
 					}
 					else
 					{
-						GitStatus stat;
+						GitStatus::GitStatus stat;
 						stat.GetStatus(askedpath, false, false, true);
 						if (stat.status)
 							status = stat.status->status;
@@ -461,7 +462,7 @@ STDMETHODIMP CShellExt::Initialize(LPCITEMIDLIST pIDFolder, LPDATAOBJECT pDataOb
 				{
 					try
 					{
-						GitStatus stat;
+						GitStatus::GitStatus stat;
 						stat.GetStatus(askedpath, false, false, true);
 						if (stat.status)
 							status = stat.status->status;
@@ -1157,7 +1158,7 @@ STDMETHODIMP CShellExt::InvokeCommand(LPCMINVOKECOMMANDINFO lpcmi)
 
 		if (HIWORD(lpcmi->lpVerb))
 		{
-			auto verb = MultibyteToWide(lpcmi->lpVerb);
+			auto verb = CUnicodeUtils::MultibyteToWide(lpcmi->lpVerb);
 			const auto verb_it = myVerbsMap.lower_bound(verb);
 			if (verb_it != myVerbsMap.end() && verb_it->first == verb)
 				idCmd = verb_it->second;
@@ -1346,7 +1347,7 @@ void CShellExt::InvokeCommand(TGitShellCommand cmd, const std::wstring& appDir, 
 			{
 				AddPathCommand(gitCmd, L"diff", true, paths, folder);
 				gitCmd += L" /path2:";
-				gitCmd += str::EscapeCmdValue(std::wstring(regDiffLater));
+				gitCmd += tgit::str::EscapeCmdValue(std::wstring(regDiffLater));
 				if (GetAsyncKeyState(VK_SHIFT) & 0x8000)
 					gitCmd += L" /alternative";
 				regDiffLater.removeValue();
@@ -1578,7 +1579,7 @@ STDMETHODIMP CShellExt::GetCommandString(UINT_PTR idCmd, UINT uFlags, UINT FAR *
 	{
 	case GCS_HELPTEXTA:
 		{
-			std::string help = WideToMultibyte(desc);
+			std::string help = CUnicodeUtils::WideToMultibyte(desc);
 			lstrcpynA(pszName, help.c_str(), cchMax - 1);
 			hr = S_OK;
 			break;
@@ -1595,7 +1596,7 @@ STDMETHODIMP CShellExt::GetCommandString(UINT_PTR idCmd, UINT uFlags, UINT FAR *
 			const auto verb_id_it = myVerbsIDMap.lower_bound(idCmd);
 			if (verb_id_it != myVerbsIDMap.end() && verb_id_it->first == idCmd)
 			{
-				std::string help = WideToMultibyte(verb_id_it->second);
+				std::string help = CUnicodeUtils::WideToMultibyte(verb_id_it->second);
 				lstrcpynA(pszName, help.c_str(), cchMax - 1);
 				hr = S_OK;
 			}

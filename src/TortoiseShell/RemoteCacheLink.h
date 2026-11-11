@@ -22,6 +22,7 @@
 import RIAA;
 import TGitPath;
 import TGitCache.CacheInterface;
+import str_utils;
 
 /**
  * \ingroup TortoiseShell
@@ -42,7 +43,7 @@ public:
 	bool ReleaseLockForPath(const CTGitPath& path);
 
 private:
-	bool InternalEnsurePipeOpen(CAutoFile& hPipe, const CString& pipeName, bool overlapped) const;
+	bool InternalEnsurePipeOpen(CAutoFile& hPipe, const tgit::wstr::CString& pipeName, bool overlapped) const;
 
 	bool EnsurePipeOpen();
 	void ClosePipe();
@@ -52,7 +53,7 @@ private:
 
 	DWORD GetProcessIntegrityLevel() const;
 	bool RunTGitCacheProcess();
-	CString GetTGitCachePath() const;
+	tgit::wstr::CString GetTGitCachePath() const;
 
 private:
 	CAutoFile m_hPipe;

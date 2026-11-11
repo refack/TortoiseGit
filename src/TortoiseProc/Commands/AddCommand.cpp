@@ -21,8 +21,8 @@
 #include "std.h"
 
 #include "AddCommand.h"
-#include "AddDlg.h"
-#include "GitProgressDlg.h"
+#include "ProtoModules/AddDlg.h"
+#include "ProtoModules/GitProgressDlg.h"
 #include "ProgressCommands/AddProgressCommand.h"
 
 bool AddCommand::Execute()

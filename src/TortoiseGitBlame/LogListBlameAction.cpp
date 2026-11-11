@@ -69,11 +69,11 @@ void CGitBlameLogList::GetParentHashes(GitRevLoglist* pRev, GIT_REV_LIST& parent
 	}
 }
 
-void RunTortoiseGitProcWithCurrentRev(const CString& command, const GitRev* pRev, const CString &path = GitCall::m_CurrentDirStorage)
+void RunTortoiseGitProcWithCurrentRev(const CString& command, const GitRev* pRev, const CString &path = CString(GitCall::m_CurrentDirStorage.c_str()))
 {
 	ASSERT(pRev);
 	CString  procCmd;
-	procCmd.Format(L"/command:%s /path:%s /rev:%s", static_cast<LPCWSTR>(command), static_cast<LPCWSTR>(str::EscapeCmdValue(path)), static_cast<LPCWSTR>(pRev->m_CommitHash.ToString()));
+	procCmd.Format(L"/command:%s /path:%s /rev:%s", static_cast<LPCWSTR>(command), static_cast<LPCWSTR>(tgit::str::EscapeCmdValue(path)), pRev->m_CommitHash.ToString().c_str());
 	TortoiseProc::RunTortoiseGitProc(procCmd);
 }
 
@@ -101,8 +101,8 @@ void CGitBlameLogList::ContextMenuAction(int cmd, int /*FirstSelect*/, int /*Las
 				for (size_t i = 0; i < parentFilenames.size(); ++i)
 				{
 					CString procCmd = L"/command:blame";
-					procCmd += L" /path:" + str::EscapeCmdValue(pView->ResolveCommitFile(parentFilenames[i]));
-					procCmd += L" /endrev:" + parentHash.ToString();
+					procCmd += L" /path:" + tgit::str::EscapeCmdValue(pView->ResolveCommitFile(parentFilenames[i]));
+					procCmd += (L" /endrev:" + parentHash.ToString()).c_str();
 
 					TortoiseProc::RunTortoiseGitProc(procCmd);
 				}
@@ -122,9 +122,9 @@ void CGitBlameLogList::ContextMenuAction(int cmd, int /*FirstSelect*/, int /*Las
 				for (size_t i = 0; i < parentFilenames.size(); ++i)
 				{
 					CString procCmd = L"/command:diff";
-					procCmd += L" /path:" + str::EscapeCmdValue(pView->ResolveCommitFile(parentFilenames[i]));
-					procCmd += L" /startrev:" + parentHash.ToString();
-					procCmd += L" /endrev:" + pRev->m_CommitHash.ToString();
+					procCmd += L" /path:" + tgit::str::EscapeCmdValue(pView->ResolveCommitFile(parentFilenames[i]));
+					procCmd += (L" /startrev:" + parentHash.ToString()).c_str();
+					procCmd += (L" /endrev:" + pRev->m_CommitHash.ToString()).c_str();
 					if ((cmd & 0xFFFF) == ID_GNUDIFF1)
 						procCmd += L" /unified";
 					if (!!(GetAsyncKeyState(VK_SHIFT) & 0x8000))
@@ -159,7 +159,7 @@ void CGitBlameLogList::ContextMenuAction(int cmd, int /*FirstSelect*/, int /*Las
 		case ID_LOG:
 			{
 				CString procCmd;
-				procCmd.Format(L"/command:log /path:%s /endrev:%s /rev:%s", static_cast<LPCWSTR>(str::EscapeCmdValue(static_cast<CMainFrame*>(::AfxGetApp()->GetMainWnd())->GetActiveView()->GetDocument()->GetPathName())), static_cast<LPCWSTR>(pRev->m_CommitHash.ToString()), static_cast<LPCWSTR>(pRev->m_CommitHash.ToString()));
+				procCmd.Format(L"/command:log /path:%s /endrev:%s /rev:%s", static_cast<LPCWSTR>(tgit::str::EscapeCmdValue(static_cast<CMainFrame*>(::AfxGetApp()->GetMainWnd())->GetActiveView()->GetDocument()->GetPathName())), pRev->m_CommitHash.ToString().c_str(), pRev->m_CommitHash.ToString().c_str());
 				TortoiseProc::RunTortoiseGitProc(procCmd);
 			}
 			break;
@@ -239,7 +239,7 @@ void CGitBlameLogList::GetParentNumbers(GitRevLoglist* pRev, const std::vector<C
 	}
 	catch (const char* msg)
 	{
-		MessageBox(L"Could not get files of parents.\nlibgit reports:\n" + CUnicodeUtils::GetUnicode(msg), L"TortoiseGit", MB_ICONERROR);
+		MessageBox(L"Could not get files of parents.\nlibgit reports:\n" + CUnicodeUtils::GetUnicode<CString>(msg), L"TortoiseGit", MB_ICONERROR);
 	}
 }
 
@@ -293,6 +293,6 @@ void CGitBlameLogList::GetParentHash(GitRevLoglist* pRev, int index, CGitHash& p
 	}
 	catch (const char* msg)
 	{
-		MessageBox(L"Could not get files of parents.\nlibgit reports:\n" + CUnicodeUtils::GetUnicode(msg), L"TortoiseGit", MB_ICONERROR);
+		MessageBox(L"Could not get files of parents.\nlibgit reports:\n" + CUnicodeUtils::GetUnicode<CString>(msg), L"TortoiseGit", MB_ICONERROR);
 	}
 }

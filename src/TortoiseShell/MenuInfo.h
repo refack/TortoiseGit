@@ -17,7 +17,7 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 #pragma once
-#include <span>
+import std;		// std::span; a textual <span> here would follow the includer's `import std;`
 import Constants;
 using namespace tgit::Constants;	// TGitContextMenuEntries, was libgit2/Resources/Globals.h
 

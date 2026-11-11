@@ -23,6 +23,7 @@ import tgit;
 #include "refloglist.h"
 #include "LoglistUtils.h"
 import AppUtils.Launch;
+import TortoiseProc;	// RunTortoiseGitProc
 import DPIAware;
 
 IMPLEMENT_DYNAMIC(CRefLogList, CGitLogList)
@@ -183,7 +184,7 @@ void CRefLogList::CopySelectionToClipBoard(int toCopy)
 			{
 				if (!first)
 					sClipdata += L"\r\n";
-				sClipdata += pLogEntry->m_CommitHash.ToString();
+				sClipdata += pLogEntry->m_CommitHash.ToString().c_str();
 			}
 
 			first = false;

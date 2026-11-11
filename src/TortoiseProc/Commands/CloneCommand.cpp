@@ -22,7 +22,7 @@
 #include "std.h"
 
 #include "CloneCommand.h"
-#include "GitProgressDlg.h"
+#include "ProtoModules/GitProgressDlg.h"
 #include "CloneDlg.h"
 import ProgressDlg;
 #include "ProgressCommands/CloneProgressCommand.h"
