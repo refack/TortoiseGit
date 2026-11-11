@@ -1,4 +1,4 @@
-add_executable(TortoiseUDiff)
+add_executable(TortoiseUDiff WIN32)  # entry point is wWinMain (TortoiseUDiff.cpp)
 
 target_sources(TortoiseUDiff
     PRIVATE

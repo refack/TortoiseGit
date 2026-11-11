@@ -103,7 +103,7 @@ int CGitLogList::RevertSelectedCommits(int parent)
 		{
 			if (!mergeMsg.IsEmpty())
 				mergeMsg += L"\r\n";
-			TGitH::LoadTextFile(dotGitPath + L"MERGE_MSG", mergeMsg);
+			tgit::wstr::LoadTextFile(dotGitPath + L"MERGE_MSG", mergeMsg);
 			ret = 0;
 		}
 
@@ -454,19 +454,16 @@ void CGitLogList::ContextMenuAction(int cmd, int FirstSelect, int LastSelect, CM
 			{
 				GitRev* pLastEntry = m_arShownList.SafeGetAt(LastSelect);
 
-				CString sep = L"..";
+				std::wstring_view sep = L"..";
 				if ((cmd & 0xFFFF) == ID_LOG_VIEWRANGE_REACHABLEFROMONLYONE)
 					sep = L"...";
 
+				const auto escapedPath = str::EscapeCmdValue(g_Git.CombinePath(m_Path.GetWinPathString()).native());
 				CString cmdline;
 				if ((cmd & 0xFFFF) == ID_LOG_VIEWRANGE_REVERSE)
-					cmdline.Format(L"/command:log /path:%s /range:%s",
-								   static_cast<LPCWSTR>(str::EscapeCmdValue<CString>(g_Git.CombinePath(m_Path.GetWinPathString()).native())),
-								   static_cast<LPCWSTR>(pSelLogEntry->m_CommitHash.ToString() + sep + pLastEntry->m_CommitHash.ToString()));
+					cmdline = std::format(L"/command:log /path:{} /range:{}{}{}", escapedPath, pSelLogEntry->m_CommitHash.ToString(), sep, pLastEntry->m_CommitHash.ToString()).c_str();
 				else
-					cmdline.Format(L"/command:log /path:%s /range:%s",
-								   static_cast<LPCWSTR>(str::EscapeCmdValue<CString>(g_Git.CombinePath(m_Path.GetWinPathString()).native())),
-								   static_cast<LPCWSTR>(pLastEntry->m_CommitHash.ToString() + sep + pSelLogEntry->m_CommitHash.ToString()));
+					cmdline = std::format(L"/command:log /path:{} /range:{}{}{}", escapedPath, pLastEntry->m_CommitHash.ToString(), sep, pSelLogEntry->m_CommitHash.ToString()).c_str();
 				TortoiseProc::RunTortoiseGitProc(cmdline);
 			}
 			break;
@@ -852,10 +849,10 @@ void CGitLogList::ContextMenuAction(int cmd, int FirstSelect, int LastSelect, CM
 		case ID_LOG:
 			{
 				CString sCmd = L"/command:log";
-				sCmd += L" /path:\"" + GitCall::m_CurrentDirStorage + L"\" ";
+				sCmd += std::format(L" /path:\"{}\" ", GitCall::m_CurrentDirStorage.native()).c_str();
 				GitRev* r1 = m_arShownList.SafeGetAt(FirstSelect);
-				sCmd += L" /endrev:" + r1->m_CommitHash.ToString();
-				sCmd += L" /rev:" + r1->m_CommitHash.ToString();
+				sCmd += std::format(L" /endrev:{}", r1->m_CommitHash.ToString()).c_str();
+				sCmd += std::format(L" /rev:{}", r1->m_CommitHash.ToString()).c_str();
 				TortoiseProc::RunTortoiseGitProc(sCmd);
 			}
 			break;
@@ -863,27 +860,27 @@ void CGitLogList::ContextMenuAction(int cmd, int FirstSelect, int LastSelect, CM
 			{
 				const int select = this->GetSelectedCount();
 				CString sCmd = L"/command:formatpatch";
-				sCmd += L" /path:\"" + GitCall::m_CurrentDirStorage + L"\" ";
+				sCmd += std::format(L" /path:\"{}\" ", GitCall::m_CurrentDirStorage.native()).c_str();
 
 				GitRev* r1 = m_arShownList.SafeGetAt(FirstSelect);
 				GitRev* r2 = nullptr;
 				if(select == 1)
 				{
-					sCmd += L" /startrev:" + r1->m_CommitHash.ToString();
+					sCmd += std::format(L" /startrev:{}", r1->m_CommitHash.ToString()).c_str();
 				}
 				else
 				{
 					r2 = m_arShownList.SafeGetAt(LastSelect);
 					if( this->m_IsOldFirst )
 					{
-						sCmd += L" /startrev:" + r1->m_CommitHash.ToString() + L"~1";
-						sCmd += L" /endrev:" + r2->m_CommitHash.ToString();
+						sCmd += std::format(L" /startrev:{}~1", r1->m_CommitHash.ToString()).c_str();
+						sCmd += std::format(L" /endrev:{}", r2->m_CommitHash.ToString()).c_str();
 
 					}
 					else
 					{
-						sCmd += L" /startrev:" + r2->m_CommitHash.ToString() + L"~1";
-						sCmd += L" /endrev:" + r1->m_CommitHash.ToString();
+						sCmd += std::format(L" /startrev:{}~1", r2->m_CommitHash.ToString()).c_str();
+						sCmd += std::format(L" /endrev:{}", r1->m_CommitHash.ToString()).c_str();
 					}
 
 				}

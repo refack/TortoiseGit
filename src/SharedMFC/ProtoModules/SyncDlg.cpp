@@ -36,6 +36,7 @@ import tgit.Hooks;
 #include "../../TortoiseProc/ProgressCommands/FetchProgressCommand.h"
 import SysProgressDlg;
 #include "ThemeMFCVisualManager.h"
+import DPIAware;
 
 // CSyncDlg dialog
 
@@ -684,8 +685,8 @@ void CSyncDlg::OnBnClickedButtonPush()
 
 	CString error;
 	DWORD exitcode = 0xFFFFFFFF;
-	CHooks::Instance().SetProjectProperties(CTGitPath(GitCall::m_CurrentDirStorage.native()), m_ProjectProperties);
-	if (CHooks::Instance().PrePush(GetSafeHwnd(), CString(GitCall::m_CurrentDirStorage.c_str()), exitcode, error))
+	CHooks::SetProjectProperties(CTGitPath(GitCall::m_CurrentDirStorage.native()), m_ProjectProperties);
+	if (CHooks::PrePush(GetSafeHwnd(), CString(GitCall::m_CurrentDirStorage.c_str()), exitcode, error))
 	{
 		if (exitcode)
 		{
@@ -818,7 +819,7 @@ BOOL CSyncDlg::OnInitDialog()
 
 	// set the font to use in the log message view, configured in the settings dialog
 	CFont m_logFont;
-	CAppUtils::CreateFontForLogs(GetSafeHwnd(), m_logFont);
+	wil::MFC::CreateFontForLogs(GetSafeHwnd(), m_logFont);
 	m_ctrlCmdOut.SetFont(&m_logFont);
 	m_ctrlTabCtrl.InsertTab(&m_ctrlCmdOut, CString(MAKEINTRESOURCE(IDS_LOG)), -1);
 	// make the log message rich edit control send a message when the mouse pointer is over a link
@@ -1305,8 +1306,8 @@ LRESULT CSyncDlg::OnProgressUpdateUI(WPARAM wParam,LPARAM lParam)
 			m_ctrlCmdOut.GetWindowText(text);
 			text.Remove('\r');
 			if (static_cast<DWORD>(CRegStdDWORD(L"Software\\TortoiseGit\\StyleGitOutput", TRUE)) == TRUE)
-				CAppUtils::StyleWarningsErrors(text, &m_ctrlCmdOut);
-			CAppUtils::StyleURLs(text, &m_ctrlCmdOut);
+				wil::MFC::StyleWarningsErrors(text, &m_ctrlCmdOut);
+			wil::MFC::StyleURLs(text, &m_ctrlCmdOut);
 		}
 
 		auto exitCode = static_cast<DWORD>(lParam);
@@ -1425,8 +1426,8 @@ void CSyncDlg::RunPostAction()
 	{
 		DWORD exitcode = 0xFFFFFFFF;
 		CString error;
-		CHooks::Instance().SetProjectProperties(CTGitPath(GitCall::m_CurrentDirStorage.native()), m_ProjectProperties);
-		if (CHooks::Instance().PostPush(GetSafeHwnd(), CString(GitCall::m_CurrentDirStorage.c_str()), exitcode, error))
+		CHooks::SetProjectProperties(CTGitPath(GitCall::m_CurrentDirStorage.native()), m_ProjectProperties);
+		if (CHooks::PostPush(GetSafeHwnd(), CString(GitCall::m_CurrentDirStorage.c_str()), exitcode, error))
 		{
 			if (exitcode)
 			{
@@ -1468,7 +1469,7 @@ void CSyncDlg::OnBnClickedButtonCommit()
 {
 	CString cmd = L"/command:commit";
 	cmd += L" /path:\"";
-	cmd += GitCall::m_CurrentDirStorage;
+	cmd += GitCall::m_CurrentDirStorage.c_str();
 	cmd += L'"';
 
 	TortoiseProc::RunTortoiseGitProc(cmd);
@@ -1530,10 +1531,10 @@ void CSyncDlg::OnBnClickedButtonSubmodule()
 		case 0:
 			[[fallthrough]];
 		case 1:
-			TortoiseProc::RunTortoiseGitProc(L"/command:subupdate /bkpath:\"" + GitCall::m_CurrentDirStorage + L"\"");
+			TortoiseProc::RunTortoiseGitProc(std::format(L"/command:subupdate /bkpath:\"{}\"", GitCall::m_CurrentDirStorage.native()));
 			break;
 		case 2:
-			TortoiseProc::RunTortoiseGitProc(L"/command:subsync /bkpath:\"" + GitCall::m_CurrentDirStorage + L"\"");
+			TortoiseProc::RunTortoiseGitProc(std::format(L"/command:subsync /bkpath:\"{}\"", GitCall::m_CurrentDirStorage.native()));
 			break;
 		}
 		return;
@@ -1652,7 +1653,7 @@ void CSyncDlg::OnBnClickedLog()
 {
 	CString cmd = L"/command:log";
 	cmd += L" /path:\"";
-	cmd += GitCall::m_CurrentDirStorage;
+	cmd += GitCall::m_CurrentDirStorage.c_str();
 	cmd += L'"';
 
 	TortoiseProc::RunTortoiseGitProc(cmd);

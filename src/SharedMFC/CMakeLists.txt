@@ -94,6 +94,7 @@ target_sources(SharedMFC
         SettingGitCredential.ixx
         ProgressDlg.ixx
         SysProgressDlg.ixx
+        ProtoModules/AutoTextTestDlg.ixx
 )
 
 

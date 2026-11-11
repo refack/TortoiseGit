@@ -1,4 +1,5 @@
-add_executable(Cache)
+# WIN32: a GUI subsystem MFC app (CCacheApp : CWinApp); MFC supplies wWinMain.
+add_executable(Cache WIN32)
 
 target_sources(Cache
     PRIVATE
@@ -35,3 +36,7 @@ target_link_libraries(Cache
         gitdll
         tgitlib
 )
+
+# _UNICODE MFC: the entry is wWinMain, which lives in the MFC library rather than
+# in an object of ours, so the linker cannot infer it and would look for WinMain.
+target_link_options(Cache PRIVATE /ENTRY:wWinMainCRTStartup)

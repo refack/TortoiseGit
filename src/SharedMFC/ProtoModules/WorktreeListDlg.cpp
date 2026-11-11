@@ -31,6 +31,7 @@ import AppUtils.Workflow;
 import IconMenu;
 #include "Utils/SysImageList.h"
 import TGitMessageBox;
+import DPIAware;
 
 // CWorktreeListDlg dialog
 
@@ -192,7 +193,7 @@ int CWorktreeListDlg::FillListCtrlWithWorktreeList(CString& error)
 			return -1;
 		}
 
-		git_worktree_prune_options prune_opts = GIT_WORKTREE_PRUNE_OPTIONS_INIT;
+		git_worktree_prune_options prune_opts = tgit::libgit2::TGIT_WORKTREE_PRUNE_OPTIONS_INIT;
 		// Don't need to let it check for locked worktree, we can check that ourself
 		prune_opts.flags = GIT_WORKTREE_PRUNE_LOCKED;
 		if (int pruneable = git_worktree_is_prunable(worktree.get(), &prune_opts); pruneable < 0)

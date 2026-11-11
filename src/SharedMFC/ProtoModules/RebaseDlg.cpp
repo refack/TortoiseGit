@@ -36,6 +36,8 @@ import TortoiseProc.MassiveGitTask;
 #include "ThemeMFCVisualManager.h"
 
 import tgit.Hooks;
+import DPIAware;
+import TGitCache.CacheInterface;
 // CRebaseDlg dialog
 
 IMPLEMENT_DYNAMIC(CRebaseDlg, CResizableStandAloneDialog)
@@ -206,7 +208,7 @@ BOOL CRebaseDlg::OnInitDialog()
 	}
 	m_ProjectProperties.ReadProps();
 	m_LogMessageCtrl.Init(m_ProjectProperties);
-	m_LogMessageCtrl.SetFont(wil::MFC::GetLogFontName(), wil::MFC::GetLogFontSize());
+	m_LogMessageCtrl.SetFont(wil::MFC::GetLogFontName().c_str(),wil::MFC::GetLogFontSize());
 	m_LogMessageCtrl.SetReadOnly(true);
 
 	if (!m_wndOutputRebase.Create(L"Scintilla", L"source", 0, rectDummy, &m_ctrlTabCtrl, 0))
@@ -215,7 +217,7 @@ BOOL CRebaseDlg::OnInitDialog()
 		return -1;      // fail to create
 	}
 	m_wndOutputRebase.Init(-1);
-	m_wndOutputRebase.SetFont(wil::MFC::GetLogFontName(), wil::MFC::GetLogFontSize());
+	m_wndOutputRebase.SetFont(wil::MFC::GetLogFontName().c_str(),wil::MFC::GetLogFontSize());
 	m_wndOutputRebase.SetReadOnly(true);
 	m_wndOutputRebase.Call(SCI_SETUNDOCOLLECTION, 0);
 
@@ -960,8 +962,8 @@ int CRebaseDlg::CheckRebaseCondition()
 	{
 		CString error;
 		DWORD exitcode = 0xFFFFFFFF;
-		CHooks::Instance().SetProjectProperties(CTGitPath(GitCall::m_CurrentDirStorage.native()), m_ProjectProperties);
-		if (CHooks::Instance().PreRebase(GetSafeHwnd(), CString(GitCall::m_CurrentDirStorage.c_str()), m_UpstreamCtrl.GetString(), m_BranchCtrl.GetString(), exitcode, error))
+		CHooks::SetProjectProperties(CTGitPath(GitCall::m_CurrentDirStorage.native()), m_ProjectProperties);
+		if (CHooks::PreRebase(GetSafeHwnd(), CString(GitCall::m_CurrentDirStorage.c_str()), m_UpstreamCtrl.GetString(), m_BranchCtrl.GetString(), exitcode, error))
 		{
 			if (exitcode)
 			{
@@ -1172,9 +1174,9 @@ void CRebaseDlg::RewriteNotes()
 	{
 		if (entry.second.IsEmpty())
 			continue;
-		rewrites += entry.first.ToString();
+		rewrites += entry.first.ToString().c_str();
 		rewrites += L' ';
-		rewrites += entry.second.ToString();
+		rewrites += entry.second.ToString().c_str();
 		rewrites += L'\n';
 	}
 	if (rewrites.IsEmpty())
@@ -2032,7 +2034,7 @@ int CRebaseDlg::DoRebase()
 			if (!pRev->GetBody().IsEmpty())
 				m_SquashMessage += L'\n';
 			m_SquashMessage += L"(cherry picked from commit ";
-			m_SquashMessage += pRev->m_CommitHash.ToString();
+			m_SquashMessage += pRev->m_CommitHash.ToString().c_str();
 			m_SquashMessage += L')';
 		}
 	}
@@ -2515,7 +2517,7 @@ LRESULT CRebaseDlg::OnRebaseUpdateUI(WPARAM,LPARAM)
 			GitAdminDir::GetWorktreeAdminDirPath(CString(GitCall::m_CurrentDirStorage.c_str()), dotGitPath);
 			// vanilla git also re-uses MERGE_MSG on conflict (listing all conflicted files)
 			// and it's also needed for cherry-pick in order to get cherry-picked-from included on conflicts
-			TGitH::LoadTextFile(dotGitPath + L"MERGE_MSG", logMessage);
+			tgit::wstr::LoadTextFile(dotGitPath + L"MERGE_MSG", logMessage);
 		}
 		if (logMessage.IsEmpty())
 			logMessage = curRev->GetSubject() + L'\n' + curRev->GetBody();

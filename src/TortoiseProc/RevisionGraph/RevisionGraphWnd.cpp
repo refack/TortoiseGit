@@ -20,12 +20,14 @@
 
 #include "stdafx.h"
 #include "std.h"
+#include <Resources/LoglistCommonResource.h>
 
 import TortoiseProc;
 #include "RevisionGraphWnd.h"
 import TGitMessageBox;
 import AppUtils.Launch;
 import AppUtils.Workflow;
+import IconMenu;
 #include "RevisionGraphDlg.h"
 
 #pragma warning(push)
@@ -1066,12 +1068,12 @@ void CRevisionGraphWnd::DoShowLog() const
 
 	if(m_SelectedEntry2)
 		sCmd.Format(L"/command:log /path:%s /startrev:%s /endrev:%s",
-			str::EscapeCmdValue(m_sPath).c_str(),
+			str::EscapeCmdValue(m_sPath).GetString(),
 			(this->m_logEntries[m_SelectedEntry1->index()].ToString()).c_str(),
 			(this->m_logEntries[m_SelectedEntry2->index()].ToString()).c_str());
 	else
 		sCmd.Format(L"/command:log /path:%s /endrev:%s /rev:%s",
-			str::EscapeCmdValue(m_sPath).c_str(),
+			str::EscapeCmdValue(m_sPath).GetString(),
 			(this->m_logEntries[m_SelectedEntry1->index()].ToString()).c_str(),
 			(this->m_logEntries[m_SelectedEntry1->index()].ToString()).c_str());
 
@@ -1090,8 +1092,8 @@ void CRevisionGraphWnd::DoBrowseRepo() const
 
 	CString sCmd;
 	sCmd.Format(L"/command:repobrowser /path:%s /rev:%s",
-		str::EscapeCmdValue(m_sPath).c_str(),
-		str::EscapeCmdValue(GetFriendRefName(m_SelectedEntry1)).c_str());
+		str::EscapeCmdValue(m_sPath).GetString(),
+		str::EscapeCmdValue(GetFriendRefName(m_SelectedEntry1)).GetString());
 
 	TortoiseProc::RunTortoiseGitProc(sCmd);
 }

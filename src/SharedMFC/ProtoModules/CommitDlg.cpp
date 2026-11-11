@@ -19,15 +19,18 @@
 //
 
 #include "stdafx.h"
+#include "Utils/FileTextLines.h"	// textual <deque>/<regex>/<optional>: must precede the first import (CommitDlg.h -> SciEdit.h)
 #include "CommitDlg.h"
 #include "HistoryDlg.h"
 #include "COMError.h"
 import SysProgressDlg;
 #include "../../SharedMFC/Utils/LogDlg.h"
 #include "../../TortoiseProc/BstrSafeVector.h"
-#include "Utils/FileTextLines.h"
 
 import tgit;
+import TGitCache.CacheInterface;
+import CShellUpdater;
+import PathUtils;
 import TortoiseProc;
 import TGitMessageBox;
 import AppUtils.Launch;
@@ -170,7 +173,7 @@ static int GetCommitTemplate(CString &msg)
 
 	tplFilename.Replace(L'/', L'\\');
 
-	if (!TGitH::LoadTextFile(tplFilename, msg))
+	if (!tgit::wstr::LoadTextFile(tplFilename, msg))
 	{
 		MessageBox(nullptr, L"Could not open and load commit.template file: " + tplFilename, L"TortoiseGit", MB_ICONERROR);
 		return -1;
@@ -190,8 +193,8 @@ BOOL CCommitDlg::OnInitDialog()
 			m_sLogMessage = m_sLogTemplate;
 
 		CString dotGitPath = GitAdminDir::GetWorktreeAdminDirPath(GitCall::m_CurrentDirStorage.native()).value_or(std::wstring{}).c_str();
-		TGitH::LoadTextFile(dotGitPath + L"SQUASH_MSG", m_sLogMessage);
-		TGitH::LoadTextFile(dotGitPath + L"MERGE_MSG", m_sLogMessage);
+		tgit::wstr::LoadTextFile(dotGitPath + L"SQUASH_MSG", m_sLogMessage);
+		tgit::wstr::LoadTextFile(dotGitPath + L"MERGE_MSG", m_sLogMessage);
 	}
 
 	m_ProjectProperties.ReadProps();
@@ -248,7 +251,7 @@ BOOL CCommitDlg::OnInitDialog()
 	//this->DialogEnableWindow(IDC_COMMIT_AMEND,FALSE);
 
 	m_cLogMessage.Init(m_ProjectProperties);
-	m_cLogMessage.SetFont(wil::MFC::GetLogFontName(), wil::MFC::GetLogFontSize());
+	m_cLogMessage.SetFont(wil::MFC::GetLogFontName().c_str(), wil::MFC::GetLogFontSize());
 	m_cLogMessage.RegisterContextMenuHandler(this);
 	std::map<int, UINT> icons;
 	icons[AUTOCOMPLETE_SPELLING] = IDI_SPELL;
@@ -658,14 +661,14 @@ void CCommitDlg::OnOK()
 	if (CAppUtils::MessageContainsConflictHints(GetSafeHwnd(), m_sLogMessage))
 		return;
 
-	CHooks::Instance().SetProjectProperties(CTGitPath(GitCall::m_CurrentDirStorage.native()), m_ProjectProperties);
-	if (CHooks::Instance().IsHookPresent(HookType::pre_commit_hook, CString(GitCall::m_CurrentDirStorage.c_str())))
+	CHooks::SetProjectProperties(CTGitPath(GitCall::m_CurrentDirStorage.native()), m_ProjectProperties);
+	if (CHooks::IsHookPresent(HookType::pre_commit_hook, CString(GitCall::m_CurrentDirStorage.c_str())))
 	{
 		DWORD exitcode = 0xFFFFFFFF;
 		CString error;
 		CTGitPathList list;
 		m_ListCtrl.WriteCheckedNamesToPathList(list);
-		if (CHooks::Instance().PreCommit(GetSafeHwnd(), CString(GitCall::m_CurrentDirStorage.c_str()), list, m_sLogMessage, exitcode, error))
+		if (CHooks::PreCommit(GetSafeHwnd(), CString(GitCall::m_CurrentDirStorage.c_str()), list, m_sLogMessage, exitcode, error))
 		{
 			if (exitcode)
 			{
@@ -943,9 +946,9 @@ void CCommitDlg::OnOK()
 		{
 			DWORD exitcode = 0xFFFFFFFF;
 			CString error;
-			CHooks::Instance().SetProjectProperties(CTGitPath(GitCall::m_CurrentDirStorage.native()), m_ProjectProperties);
+			CHooks::SetProjectProperties(CTGitPath(GitCall::m_CurrentDirStorage.native()), m_ProjectProperties);
 			// was amend.IsEmpty() on the CString that held "--amend" or nothing
-			if (CHooks::Instance().PostCommit(GetSafeHwnd(), CString(GitCall::m_CurrentDirStorage.c_str()), !m_bCommitAmend, exitcode, error))
+			if (CHooks::PostCommit(GetSafeHwnd(), CString(GitCall::m_CurrentDirStorage.c_str()), !m_bCommitAmend, exitcode, error))
 			{
 				if (exitcode)
 				{
@@ -3100,8 +3103,8 @@ bool CCommitDlg::RunStartCommitHook()
 {
 	DWORD exitcode = 0xFFFFFFFF;
 	CString error;
-	CHooks::Instance().SetProjectProperties(CTGitPath(GitCall::m_CurrentDirStorage.native()), m_ProjectProperties);
-	if (CHooks::Instance().StartCommit(GetSafeHwnd(), CString(GitCall::m_CurrentDirStorage.c_str()), m_pathList, m_sLogMessage, exitcode, error))
+	CHooks::SetProjectProperties(CTGitPath(GitCall::m_CurrentDirStorage.native()), m_ProjectProperties);
+	if (CHooks::StartCommit(GetSafeHwnd(), CString(GitCall::m_CurrentDirStorage.c_str()), m_pathList, m_sLogMessage, exitcode, error))
 	{
 		if (exitcode)
 		{
