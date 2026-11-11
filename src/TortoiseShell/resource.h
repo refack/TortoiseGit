@@ -114,10 +114,8 @@
 #define IDS_MENUBLAME                   203
 #define IDS_STATUSEXTERNAL              204
 #define IDS_MENUDESCBLAME               205
-#define IDS_MENUSVNFETCH                206
 // 207 and 209 held IDS_MENUAPPLYPATCH / IDS_MENUDESCAPPLYPATCH, retired with TortoiseGitMerge
 #define IDS_MENUDESCCREATEPATCH         208
-#define IDS_MENUDESCSVNFETCH            210
 #define IDS_MENULOGSUBMODULE            211
 #define IDS_MENUUNDOADD                 212
 #define IDS_MENUDESCUNDOADD             213
@@ -176,15 +174,9 @@
 #define IDS_MENUDESSENDMAIL             322
 #define IDS_MENUREFBROWSE               333
 #define IDS_MENUDESCREFBROWSE           334
-#define IDS_MENUSVNREBASE               335
-#define IDS_MENUSVNREBASE_DESC          336
-#define IDS_MENUSVNDCOMMIT              337
-#define IDS_MENUSVNDCOMMIT_DESC         338
 #define IDS_MENUSYNC                    339
 #define IDS_MENUDESCSYNC                340
 #define IDS_MENUSTASHPOP                341
-#define IDS_MENUSVNIGNORE               342
-#define IDS_MENUSVNIGNORE_DESC          343
 #define IDS_MENUDIFFTWO                 344
 #define IDS_MENUDESCDIFFTWO             345
 #define IDS_MENUDESCIMPORTPATCH         346

@@ -1,4 +1,4 @@
-﻿// TortoiseGit - a Windows shell extension for easy version control
+// TortoiseGit - a Windows shell extension for easy version control
 
 // Copyright (C) 2009, 2011-2019, 2021, 2025-2026 - TortoiseGit
 // Copyright (C) 2007-2008 - TortoiseSVN
@@ -22,8 +22,8 @@
 
 #include "DropMoveCommand.h"
 
-#include "SysProgressDlg.h"
-import MessageBox;
+import SysProgressDlg;
+import TGitMessageBox;
 #include "RenameDlg.h"
 
 bool DropMoveCommand::Execute()
@@ -114,14 +114,6 @@ bool DropMoveCommand::Execute()
 		{
 			if (CMessageBox::Show(GetExplorerHWND(), out, IDS_APPNAME, 2, IDI_EXCLAMATION, IDS_IGNOREBUTTON, IDS_ABORTBUTTON) == 1)
 			{
-#if 0
-					if (!svn.Move(CTSVNPathList(pathList[nPath]), destPath, TRUE))
-					{
-						CMessageBox::Show(GetExplorerHWND(), svn.GetLastErrorMessage(), L"TortoiseGit", MB_ICONERROR);
-						return FALSE;		//get out of here
-					}
-					CShellUpdater::Instance().AddPathForUpdate(destPath);
-#endif
 			}
 			else
 			{

@@ -1,4 +1,4 @@
-﻿# WIN32: a GUI subsystem exe; MFC supplies wWinMain (the vcxproj's SubSystem=Windows).
+# WIN32: a GUI subsystem exe; MFC supplies wWinMain (the vcxproj's SubSystem=Windows).
 add_executable(TortoiseProc WIN32)
 
 target_precompile_headers(TortoiseProc PRIVATE stdafx.h)
@@ -95,14 +95,6 @@ target_sources(TortoiseProc
         Commands/RevertCommand.h
         Commands/RevisionGraphCommand.cpp
         Commands/RevisionGraphCommand.h
-        Commands/SVNDCommitCommand.cpp
-        Commands/SVNDCommitCommand.h
-        Commands/SVNFetchCommand.cpp
-        Commands/SVNFetchCommand.h
-        Commands/SVNIgnoreCommand.cpp
-        Commands/SVNIgnoreCommand.h
-        Commands/SVNRebaseCommand.cpp
-        Commands/SVNRebaseCommand.h
         Commands/SettingsCommand.cpp
         Commands/SettingsCommand.h
         Commands/ShowCompareCommand.cpp
@@ -124,7 +116,6 @@ target_sources(TortoiseProc
         EnableStagingTypes.h
         GitLogList.h
         GitLogListAction.cpp
-        GitStatusListCtrlHelpers.cpp
         ProgressCommands/AddProgressCommand.cpp
         ProgressCommands/AddProgressCommand.h
         ProgressCommands/CloneProgressCommand.cpp
@@ -232,7 +223,6 @@ target_sources(TortoiseProc
         MiscUI/SVG.cpp
         MiscUI/SciEdit.cpp
         MiscUI/SplitterControl.cpp
-        MiscUI/SysProgressDlg.cpp
         MiscUI/WaterEffect.cpp
         TreePropSheet/PropPageFrame.cpp
         TreePropSheet/PropPageFrameDefault.cpp

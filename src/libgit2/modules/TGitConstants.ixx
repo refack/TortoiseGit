@@ -34,9 +34,8 @@ enum class TGitContextMenuEntries : unsigned __int64 {
 	ApplyPatch = 0x0000000002000000,
 	// retired with TortoiseGitMerge; the bit stays reserved so existing user menu masks keep their meaning
 	RemoveKeep = 0x0000000004000000,
-	SVNRebase = 0x0000000008000000,
-	SVNDCommit = 0x0000000010000000,
-	SVNIgnore = 0x0000000040000000,
+	// retired with git-svn support: 0x0000000008000000 (SVNRebase), 0x0000000010000000 (SVNDCommit),
+	// 0x0000000040000000 (SVNIgnore), 0x0080000000000000 (SVNFetch). Reserved, never reuse.
 	LogSubmodule = 0x0000000100000000,
 	PrevDiff = 0x0000000200000000,
 	ClipPaste = 0x0000000400000000,
@@ -58,7 +57,6 @@ enum class TGitContextMenuEntries : unsigned __int64 {
 	DiffTwo = 0x0004000000000000,
 	Bisect = 0x0008000000000000,
 	Inaccessible = 0x0010000000000000,
-	SVNFetch = 0x0080000000000000,
 	RevisionGraph = 0x0100000000000000,
 	Daemon = 0x0200000000000000,
 	Worktree = 0x0400000000000000,
@@ -119,7 +117,6 @@ constexpr auto ITEMIS_PATCHINCLIPBOARD = 0x00008000U;
 constexpr auto ITEMIS_PATHINCLIPBOARD = 0x00010000U;
 constexpr auto ITEMIS_TWO = 0x00020000U;
 constexpr auto ITEMIS_SUBMODULECONTAINER = 0x00040000U;
-constexpr auto ITEMIS_GITSVN = 0x00080000U;
 constexpr auto ITEMIS_STASH = 0x00100000U;
 constexpr auto ITEMIS_WCROOT = 0x00200000U;
 constexpr auto ITEMIS_BISECT = 0x00400000U;

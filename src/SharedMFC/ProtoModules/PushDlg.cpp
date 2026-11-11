@@ -1,4 +1,4 @@
-﻿// TortoiseGit - a Windows shell extension for easy version control
+// TortoiseGit - a Windows shell extension for easy version control
 
 // Copyright (C) 2008-2024, 2026 - TortoiseGit
 
@@ -30,7 +30,7 @@ import AppUtils.Workflow;
 #include "../../SharedMFC/Utils/LogDlg.h"
 #include "BrowseRefsDlg.h"
 #include "RefLogDlg.h"
-import MessageBox;
+import TGitMessageBox;
 
 // CPushDlg dialog
 

@@ -1,4 +1,4 @@
-﻿// TortoiseGit - a Windows shell extension for easy version control
+// TortoiseGit - a Windows shell extension for easy version control
 
 // Copyright (C) 2009-2013, 2015-2019, 2022, 2025-2026 - TortoiseGit
 // Copyright (C) 2007-2008 - TortoiseSVN
@@ -22,7 +22,7 @@
 
 #include "RemoveCommand.h"
 
-import MessageBox;
+import TGitMessageBox;
 
 bool RemoveCommand::Execute()
 {
@@ -32,83 +32,6 @@ bool RemoveCommand::Execute()
 	//
 	// removing items from an URL in the repository requires that we
 	// ask the user for a log message.
-#if 0
-	BOOL bForce = FALSE;
-	SVN svn;
-	if ((!pathList.IsEmpty())&&(SVN::PathIsURL(pathList[0])))
-	{
-		// Delete using URL's, not wc paths
-		svn.SetPromptApp(&theApp);
-		CInputLogDlg dlg;
-		CString sUUID;
-		svn.GetRepositoryRootAndUUID(pathList[0], sUUID);
-		dlg.SetUUID(sUUID);
-		CString sHint;
-		if (pathList.GetCount() == 1)
-			sHint.Format(IDS_INPUT_REMOVEONE, static_cast<LPCWSTR>(pathList)[0].GetSVNPathString());
-		else
-			sHint.Format(IDS_INPUT_REMOVEMORE, pathList.GetCount());
-		dlg.SetActionText(sHint);
-		if (dlg.DoModal()==IDOK)
-		{
-			if (!svn.Remove(pathList, TRUE, parser.HasKey(L"keep"), dlg.GetLogMessage()))
-			{
-				CMessageBox::Show(GetExplorerHWND(), svn.GetLastErrorMessage(), L"TortoiseGit", MB_ICONERROR);
-				return FALSE;
-			}
-			return true;
-		}
-		return FALSE;
-	}
-	else
-	{
-		for (int nPath = 0; nPath < pathList.GetCount(); ++nPath)
-		{
-			TracePrintf(_T(__FUNCTION__) L": remove file %s\n", static_cast<LPCWSTR>(pathList)[nPath].GetUIPathString().c_str());
-			// even though SVN::Remove takes a list of paths to delete at once
-			// we delete each item individually so we can prompt the user
-			// if something goes wrong or unversioned/modified items are
-			// to be deleted
-			CTSVNPathList removePathList(pathList[nPath]);
-			if (bForce)
-			{
-				CTSVNPath delPath = removePathList[0];
-				delPath.Delete(true);
-			}
-			if (!svn.Remove(removePathList, bForce, parser.HasKey(L"keep")))
-			{
-				if ((svn.Err->apr_err == SVN_ERR_UNVERSIONED_RESOURCE) ||
-					(svn.Err->apr_err == SVN_ERR_CLIENT_MODIFIED))
-				{
-					CString msg, yes, no, yestoall;
-					if (pathList[nPath].IsDirectory())
-						msg.Format(IDS_PROC_REMOVEFORCEFOLDER, pathList[nPath].GetWinPath());
-					else
-						msg.Format(IDS_PROC_REMOVEFORCE, static_cast<LPCWSTR>(svn.GetLastErrorMessage()));
-					yes.LoadString(IDS_MSGBOX_YES);
-					no.LoadString(IDS_MSGBOX_NO);
-					yestoall.LoadString(IDS_PROC_YESTOALL);
-					UINT ret = CMessageBox::Show(GetExplorerHWND(), msg, L"TortoiseGit", 2, IDI_ERROR, yes, no, yestoall);
-					if (ret == 3)
-						bForce = TRUE;
-					if ((ret == 1)||(ret==3))
-					{
-						CTSVNPath delPath = removePathList[0];
-						delPath.Delete(true);
-						if (!svn.Remove(removePathList, TRUE, parser.HasKey(L"keep")))
-							CMessageBox::Show(GetExplorerHWND(), svn.GetLastErrorMessage(), L"TortoiseGit", MB_ICONERROR);
-						else
-							bRet = true;
-					}
-				}
-				else
-					CMessageBox::Show(GetExplorerHWND(), svn.GetLastErrorMessage(), L"TortoiseGit", MB_ICONERROR);
-			}
-		}
-	}
-	if (bRet)
-		CShellUpdater::Instance().AddPathsForUpdate(pathList);
-#endif
 
 	//we don't ask user about if keep local copy.
 	//because there are command "Delete(keep local copy)" at explore context menu

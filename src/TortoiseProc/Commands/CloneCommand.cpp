@@ -90,7 +90,7 @@ bool CloneCommand::Execute()
 		if (dlg.m_bBranch)
 			args.insert(args.cend(), { L"--branch", std::wstring(dlg.m_strBranch) });
 
-		if (dlg.m_bOrigin && !dlg.m_bSVN)
+		if (dlg.m_bOrigin)
 			args.insert(args.cend(), { L"--origin", std::wstring(dlg.m_strOrigin) });
 
 		CString dir=dlg.m_Directory;
@@ -142,76 +142,29 @@ bool CloneCommand::Execute()
 			postCmdList.emplace_back(IDI_EXPLORER, IDS_STATUSLIST_CONTEXT_EXPLORE, [&]{ TortoiseProc::ExploreTo(GetExplorerHWND(), dlg.m_Directory); });
 		};
 
-		// Handle Git SVN-clone
-		if(dlg.m_bSVN)
+		if (g_Git.UsingLibGit2(TGitH::GIT_CMD_CLONE))
 		{
-			// git-svn requires some mangling: \ -> /
-			if (!PathIsURL(url))
+			while (true)
 			{
-				url.Replace(L'\\', L'/');
-				if (PathIsUNC(url))
-					url = L"file:" + url;
-				else if (PathIsDirectory(url))
-				{
-					// prefix: file:///, and no colon after drive letter for normal paths
-					if (url.GetLength() > 2 && url.GetAt(1) == L':')
-						url.Delete(1, 1);
-					url = L"file:///" + url;
-				}
-			}
-
-			//g_Git.SetCurrentDirExact(dlg.m_Directory);
-			cmd = { L"git.exe", L"svn", L"clone" };
-			if (dlg.m_bOrigin)
-			{
-				// An empty prefix is meaningful here - it used to be spelled
-				// QuoteParameter(L""), which produced an explicit "" argument.
-				cmd.insert(cmd.cend(), { L"--prefix", dlg.m_strOrigin.IsEmpty() ? std::wstring() : std::format(L"{}/", dlg.m_strOrigin) });
-			}
-
-			if (dlg.m_bSVNTrunk)
-				cmd.insert(cmd.cend(), { L"-T", std::wstring(dlg.m_strSVNTrunk) });
-
-			if (dlg.m_bSVNBranch)
-				cmd.insert(cmd.cend(), { L"-b", std::wstring(dlg.m_strSVNBranchs) });
-
-			if (dlg.m_bSVNTags)
-				cmd.insert(cmd.cend(), { L"-t", std::wstring(dlg.m_strSVNTags) });
-
-			if (dlg.m_bSVNFrom)
-				cmd.insert(cmd.cend(), { L"-r", std::format(L"{}:HEAD", dlg.m_nSVNFrom) });
-
-			if (dlg.m_bSVNUserName)
-				cmd.insert(cmd.cend(), { L"--username", std::wstring(dlg.m_strUserName) });
-
-			cmd.insert(cmd.cend(), { L"--", std::wstring(url), std::wstring(dlg.m_Directory) });
-		}
-		else
-		{
-			if (g_Git.UsingLibGit2(TGitH::GIT_CMD_CLONE))
-			{
-				while (true)
-				{
-					retry = false;
-					CGitProgressDlg GitDlg;
-					CTGitPathList list;
-					g_Git.SetCurrentDirExact(GetExistingDirectoryForClone(dlg.m_Directory));
-					list.AddPath(CTGitPath(dir.GetString()));
-					CloneProgressCommand cloneProgressCommand;
-					GitDlg.SetCommand(&cloneProgressCommand);
-					cloneProgressCommand.m_PostCmdCallback = postCmdCallback;
-					cloneProgressCommand.SetUrl(url);
-					cloneProgressCommand.SetPathList(list);
-					cloneProgressCommand.SetIsBare(dlg.m_bBare == TRUE);
-					if (dlg.m_bBranch)
-						cloneProgressCommand.SetRefSpec(dlg.m_strBranch);
-					if (dlg.m_bOrigin)
-						cloneProgressCommand.SetRemote(dlg.m_strOrigin);
-					cloneProgressCommand.SetNoCheckout(dlg.m_bNoCheckout == TRUE);
-					GitDlg.DoModal();
-					if (!retry)
-						return !GitDlg.DidErrorsOccur();
-				}
+				retry = false;
+				CGitProgressDlg GitDlg;
+				CTGitPathList list;
+				g_Git.SetCurrentDirExact(GetExistingDirectoryForClone(dlg.m_Directory));
+				list.AddPath(CTGitPath(dir.GetString()));
+				CloneProgressCommand cloneProgressCommand;
+				GitDlg.SetCommand(&cloneProgressCommand);
+				cloneProgressCommand.m_PostCmdCallback = postCmdCallback;
+				cloneProgressCommand.SetUrl(url);
+				cloneProgressCommand.SetPathList(list);
+				cloneProgressCommand.SetIsBare(dlg.m_bBare == TRUE);
+				if (dlg.m_bBranch)
+					cloneProgressCommand.SetRefSpec(dlg.m_strBranch);
+				if (dlg.m_bOrigin)
+					cloneProgressCommand.SetRemote(dlg.m_strOrigin);
+				cloneProgressCommand.SetNoCheckout(dlg.m_bNoCheckout == TRUE);
+				GitDlg.DoModal();
+				if (!retry)
+					return !GitDlg.DidErrorsOccur();
 			}
 		}
 

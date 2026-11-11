@@ -1,4 +1,4 @@
-﻿// TortoiseGit - a Windows shell extension for easy version control
+// TortoiseGit - a Windows shell extension for easy version control
 
 // Copyright (C) 2016, 2023 - TortoiseGit
 // Copyright (C) 2007-2010, 2015, 2020 - TortoiseSVN
@@ -20,7 +20,7 @@
 #pragma once
 #include "Utils/CommonDialogFunctions.h"
 
-import MessageBox;
+import TGitMessageBox;
 import ThemeAPI;
 import Tooltip;
 

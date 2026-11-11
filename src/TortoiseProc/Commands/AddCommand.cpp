@@ -1,4 +1,4 @@
-﻿// TortoiseGit - a Windows shell extension for easy version control
+// TortoiseGit - a Windows shell extension for easy version control
 
 // Copyright (C) 2008-2013, 2016, 2018-2019, 2026 - TortoiseGit
 // Copyright (C) 2007-2008 - TortoiseSVN
@@ -30,13 +30,6 @@ bool AddCommand::Execute()
 	bool bRet = false;
 	if (parser.HasKey(L"noui"))
 	{
-#if 0
-		SVN svn;
-		ProjectProperties props;
-		props.ReadPropsPathList(pathList);
-		bRet = !!svn.Add(pathList, &props, svn_depth_empty, FALSE, FALSE, TRUE);
-		CShellUpdater::Instance().AddPathsForUpdate(pathList);
-#endif
 	}
 	else
 	{

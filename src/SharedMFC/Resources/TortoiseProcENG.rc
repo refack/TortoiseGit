@@ -1072,7 +1072,7 @@ BEGIN
     LTEXT           "WARNING:\nOnly change these settings if you are absolutely sure what you are doing!\nTo set the values to their default, delete the value text.",IDC_STATIC,7,160,286,50
 END
 
-IDD_CLONE DIALOGEX 0, 0, 359, 218
+IDD_CLONE DIALOGEX 0, 0, 359, 135
 STYLE DS_SETFONT | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME
 CAPTION "Git clone - TortoiseGit"
 FONT 9, "Segoe UI", 400, 0, 0x1
@@ -1092,22 +1092,10 @@ BEGIN
     EDITTEXT        IDC_EDIT_BRANCH,64,86,67,14,ES_AUTOHSCROLL
     CONTROL         "Origin Name",IDC_CHECK_ORIGIN,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,150,88,64,10
     EDITTEXT        IDC_EDIT_ORIGIN,216,86,67,14,ES_AUTOHSCROLL
-    CONTROL         "From &SVN Repository",IDC_CHECK_SVN,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,19,140,90,10
-    CONTROL         "&Trunk:",IDC_CHECK_SVN_TRUNK,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,32,157,40,10
-    EDITTEXT        IDC_EDIT_SVN_TRUNK,75,154,37,14,ES_AUTOHSCROLL
-    CONTROL         "Ta&gs:",IDC_CHECK_SVN_TAG,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,129,156,37,10
-    EDITTEXT        IDC_EDIT_SVN_TAG,171,154,38,14,ES_AUTOHSCROLL
-    CONTROL         "Branc&h:",IDC_CHECK_SVN_BRANCH,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,225,156,48,10
-    EDITTEXT        IDC_EDIT_SVN_BRANCH,284,153,39,14,ES_AUTOHSCROLL
-    CONTROL         "&From:",IDC_CHECK_SVN_FROM,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,32,173,40,10
-    EDITTEXT        IDC_EDIT_SVN_FROM,75,173,37,14,ES_AUTOHSCROLL | ES_NUMBER
-    CONTROL         "User&name:",IDC_CHECK_USERNAME,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,225,173,57,10
-    EDITTEXT        IDC_EDIT_USERNAME,284,170,39,14,ES_AUTOHSCROLL
-    DEFPUSHBUTTON   "OK",IDOK,180,196,50,14
-    PUSHBUTTON      "Cancel",IDCANCEL,236,196,50,14
-    PUSHBUTTON      "Help",IDHELP,292,196,50,14
+    DEFPUSHBUTTON   "OK",IDOK,180,113,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,236,113,50,14
+    PUSHBUTTON      "Help",IDHELP,292,113,50,14
     GROUPBOX        "Clone Existing Repository",IDC_GROUP_CLONE,6,10,346,95
-    GROUPBOX        "From SVN Repository",IDC_CLONE_GROUP_SVN,6,126,346,64
 END
 
 IDD_GITPROGRESS DIALOGEX 0, 0, 331, 189
@@ -1192,22 +1180,6 @@ BEGIN
     DEFPUSHBUTTON   "OK",IDOK,137,255,50,14
     PUSHBUTTON      "Cancel",IDCANCEL,195,255,50,14
     PUSHBUTTON      "Help",IDHELP,252,255,50,14
-END
-
-IDD_SVNDCOMMITTYPE DIALOGEX 0, 0, 242, 90
-STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
-CAPTION "SVN Commit Type"
-FONT 9, "Segoe UI", 400, 0, 0x1
-BEGIN
-    DEFPUSHBUTTON   "OK",IDOK,69,68,50,14
-    PUSHBUTTON      "Cancel",IDCANCEL,125,68,50,14
-    PUSHBUTTON      "Help",IDHELP,182,68,50,14
-    GROUPBOX        "DCommit Type",IDC_GROUP_INFO,7,7,225,41
-    CONTROL         "Normal &SVN Commit",IDC_RADIO_SVN_COMMIT,"Button",BS_AUTORADIOBUTTON | WS_GROUP,15,19,208,10
-    CONTROL         "&Git Style Commit (--rmdir)",IDC_RADIO_GIT_COMMIT,
-                    "Button",BS_AUTORADIOBUTTON,15,32,208,10
-    CONTROL         "Remember selection (""svn.rmdir"" option)",IDC_REMEMBER,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,52,217,12
 END
 
 IDD_REQUESTPULL DIALOGEX 0, 0, 314, 92
@@ -1682,19 +1654,6 @@ MENU IDR_STAGING
 FONT 9, "Segoe UI", 400, 0, 0x1
 BEGIN
     CONTROL         "Scintilla",IDC_PATCH,"Scintilla",WS_TABSTOP,0,0,248,195,WS_EX_STATICEDGE
-END
-
-IDD_SVNIGNORE DIALOGEX 0, 0, 289, 86
-STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
-CAPTION "Import SVN Ignore"
-FONT 9, "Segoe UI", 400, 0, 0x1
-BEGIN
-    DEFPUSHBUTTON   "OK",IDOK,89,65,50,14
-    PUSHBUTTON      "Cancel",IDCANCEL,163,65,50,14
-    GROUPBOX        "Type",IDC_GROUP_TYPE,7,7,275,50
-    CONTROL         "Import svn ignore file to .git/info/exclude file (file will be overwritten)",IDC_RADIO_EXCLUDE,
-                    "Button",BS_AUTORADIOBUTTON | WS_GROUP,15,21,260,10
-    CONTROL         "Create .gitignore file",IDC_RADIO_GITIGNORE,"Button",BS_AUTORADIOBUTTON,15,36,257,10
 END
 
 IDD_SETTINGSEXTMENU DIALOGEX 0, 0, 300, 225
@@ -2735,7 +2694,7 @@ BEGIN
         VERTGUIDE, 276
         VERTGUIDE, 343
         TOPMARGIN, 7
-        BOTTOMMARGIN, 210
+        BOTTOMMARGIN, 127
     END
 
     IDD_GITPROGRESS, DIALOG
@@ -2770,15 +2729,6 @@ BEGIN
         VERTGUIDE, 294
         TOPMARGIN, 7
         BOTTOMMARGIN, 269
-    END
-
-    IDD_SVNDCOMMITTYPE, DIALOG
-    BEGIN
-        LEFTMARGIN, 7
-        RIGHTMARGIN, 232
-        VERTGUIDE, 15
-        TOPMARGIN, 7
-        BOTTOMMARGIN, 82
     END
 
     IDD_REQUESTPULL, DIALOG
@@ -2975,14 +2925,6 @@ BEGIN
         RIGHTMARGIN, 241
         TOPMARGIN, 7
         BOTTOMMARGIN, 188
-    END
-
-    IDD_SVNIGNORE, DIALOG
-    BEGIN
-        LEFTMARGIN, 7
-        RIGHTMARGIN, 282
-        TOPMARGIN, 7
-        BOTTOMMARGIN, 79
     END
 
     IDD_SETTINGSEXTMENU, DIALOG
@@ -3440,9 +3382,7 @@ BEGIN
     IDS_MSGBOX_YES          "&Yes"
     IDS_MSGBOX_NO           "&No"
     IDS_SVNACTION_ADD       "Added"
-    IDS_SVNACTION_COPY      "Copied"
     IDS_SVNACTION_DELETE    "Deleted"
-    IDS_SVNACTION_RESTORE   "Restored"
     IDS_SVNACTION_REVERT    "Reverted"
 END
 
@@ -3474,14 +3414,8 @@ END
 STRINGTABLE
 BEGIN
     IDS_SVNACTION_RESOLVE   "Resolved"
-    IDS_SVNACTION_UPDATE    "Updated"
-    IDS_SVNACTION_COMPLETED "Completed"
-    IDS_SVNACTION_EXTERNAL  "External"
     IDS_SVNACTION_MODIFIED  "Modified"
-    IDS_SVNACTION_REPLACED  "Replacing"
-    IDS_SVNACTION_POSTFIX   "Sending content"
     IDS_SVNACTION_FAILEDREVERT "Failed revert"
-    IDS_SVNACTION_STATUS    "Status"
     IDS_SVNACTION_SKIP      "Skipped"
     IDS_PROGS_EXTCOL        "Extension"
     IDS_PROGS_TOOLCOL       "Program"
@@ -4149,7 +4083,6 @@ END
 
 STRINGTABLE
 BEGIN
-    IDS_SVN_PROGRESS_SPEED  "Transferring at %s"
     IDS_SVN_PROGRESS_TOTALTRANSFERRED "%I64d KiB transferred"
     IDS_SVN_PROGRESS_TOTALMBTRANSFERRED "%.2f MiB transferred"
     IDS_SVN_PROGRESS_TOTALANDSPEED "%1!s!, at %2!s!"
@@ -4193,13 +4126,6 @@ STRINGTABLE
 BEGIN
     IDS_STATUSLIST_COLADD   "Lines added"
     IDS_STATUSLIST_COLDEL   "Lines removed"
-END
-
-STRINGTABLE
-BEGIN
-    IDS_SVNERR_CHECKPATHORURL "Check the path and/or URL you've entered."
-    IDS_SVNERR_CLEANUPORFRESHCHECKOUT 
-                            "Try a 'Cleanup'. If that doesn't work you need to do a fresh checkout."
 END
 
 STRINGTABLE
@@ -4263,15 +4189,6 @@ END
 
 STRINGTABLE
 BEGIN
-    IDS_SVNACTION_SKIPMISSING "Skipped missing target"
-    IDS_SVNACTION_ADDING    "Adding"
-    IDS_SVNACTION_DELETING  "Deleting"
-    IDS_SVNACTION_MERGED    "Merged"
-    IDS_SVNACTION_CONFLICTED "Conflicted"
-END
-
-STRINGTABLE
-BEGIN
     IDS_REVGRAPH_SAVEPIC    "&Save graph as..."
 END
 
@@ -4330,19 +4247,6 @@ END
 
 STRINGTABLE
 BEGIN
-    IDS_SVNACTION_EXISTS    "Versioned"
-    IDS_SVNACTION_CHANGELISTSET "Assigned to changelist '%s'"
-    IDS_SVNACTION_CHANGELISTCLEAR "Removed from changelist"
-    IDS_SVNACTION_CHANGELISTFAILED "Failed to set/remove changelist '%s'"
-    IDS_SVNACTION_CHANGELISTMOVED "Changelist %s moved"
-    IDS_SVN_SUMMARIZENORMAL "Normal"
-    IDS_SVN_SUMMARIZEADDED  "Added"
-    IDS_SVN_SUMMARIZEMODIFIED "Modified"
-    IDS_SVN_SUMMARIZEDELETED "Deleted"
-END
-
-STRINGTABLE
-BEGIN
     IDS_FILEDIFF_FILE       "File"
     IDS_FILEDIFF_ACTION     "Action"
     IDS_FILEDIFF_WAIT       "Please wait while differences are obtained..."
@@ -4351,13 +4255,6 @@ END
 STRINGTABLE
 BEGIN
     IDS_MERGE_RECORDONLY    "Record Only"
-END
-
-STRINGTABLE
-BEGIN
-    IDS_SVNPROGRESS_MENUOPENPARENT "Open parent folder"
-    IDS_SVNPROGRESS_MENUMARKASRESOLVED "Mark as resolved"
-    IDS_SVNPROGRESS_RESOLVED "Resolved:\n%s"
 END
 
 STRINGTABLE
@@ -4401,7 +4298,7 @@ BEGIN
     IDS_SETTINGS_SAVEDDATA_RESIZABLE_TT 
                             "Clears the stored sizes and positions of %ld dialogs"
     IDS_SETTINGS_SAVEDDATA_AUTH_TT 
-                            "Clears %1!ld! username/password pairs, %2!ld! ssl certificates and %3!ld! usernames"
+                            "Clears %1!ld! stored credentials"
     IDS_SETTINGS_RESTARTSYSTEM 
                             "You must restart your system for the changes to take effect."
     IDS_SETTINGS_UNVERSIONEDASMODIFIED_TT 
@@ -4556,13 +4453,6 @@ END
 
 STRINGTABLE
 BEGIN
-    IDS_SVNPROGRESS_EXPORTING "Exporting %s"
-    IDS_SVNPROGRESS_EXPORTINGTO "to %s"
-    IDS_SVNPROGRESS_EXPORTINGWAIT "Gathering information. Please wait..."
-END
-
-STRINGTABLE
-BEGIN
     IDS_STATUSLIST_NESTED   "Nested"
     IDS_STATUSLIST_BUSYMSG  "Please wait..."
     IDS_STATUSLIST_EMPTYMSG "File list is empty"
@@ -4597,11 +4487,6 @@ END
 
 STRINGTABLE
 BEGIN
-    IDS_SVNPROGRESS_UNVERSION "Unversioning %s"
-END
-
-STRINGTABLE
-BEGIN
     IDS_FILEDIFF_FILTERCUE  "Filter paths"
 END
 
@@ -4623,10 +4508,8 @@ BEGIN
     IDS_ERR_NOT_REPOSITORY  """%s"" is not git repository"
     IDS_ERR_ADDRESS_NO_EMPTY 
                             "Email Address To and CC can't empty at the same time."
-    IDS_SVNACTION_SENDMAIL_START "Sending..."
     IDS_PROGRS_TITLE_SENDMAIL "Send Patch by Email"
     IDS_PROGRS_CMD_SENDMAIL "Send Email"
-    IDS_SVNACTION_SENDMAIL_RETRY "Retrying in 2 seconds..."
 END
 
 STRINGTABLE

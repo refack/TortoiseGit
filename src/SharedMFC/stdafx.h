@@ -73,7 +73,6 @@
 #endif
 
 #include <ResizableLayout.h>
-#include "../TortoiseProc/MiscUI/SysProgressDlg.h"
 #include "Resources/resource.h"
 #include "../TortoiseShell/resource.h"
 #include <Resources/LoglistCommonResource.h>

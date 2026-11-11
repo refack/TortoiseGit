@@ -23,6 +23,7 @@
 import tgit;
 import AppUtils.Window;
 import TortoiseProc;
+import SysProgressDlg;
 
 IMPLEMENT_DYNAMIC(CSelectRemoteRefDlg, CHorizontalResizableStandAloneDialog)
 

@@ -19,7 +19,7 @@
 
 #pragma once
 #include <map>
-#include "Utils/GestureEnabledControl.h"
+
 
 import GitHash;
 import TGitPath;

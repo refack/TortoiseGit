@@ -1,4 +1,4 @@
-﻿// TortoiseGit - a Windows shell extension for easy version control
+// TortoiseGit - a Windows shell extension for easy version control
 
 // Copyright (C) 2008-2018, 2020-2021, 2024, 2026 - TortoiseGit
 // Copyright (C) 2003-2008, 2020 - TortoiseSVN
@@ -22,7 +22,7 @@
 
 import TortoiseProc;
 #include "Settings.h"
-import MessageBox;
+import TGitMessageBox;
 import TGitPath;	// GitAdminDir lives in the TGitPath module
 import AppUtils.Window;
 import ThemeAPI;

@@ -1,4 +1,4 @@
-﻿// TortoiseGit - a Windows shell extension for easy version control
+// TortoiseGit - a Windows shell extension for easy version control
 
 // Copyright (C) 2011-2017, 2024 - TortoiseGit
 
@@ -23,7 +23,7 @@ import tgit;
 import TortoiseProc;
 #include "StashSave.h"
 import AppUtils.Window;
-import MessageBox;
+import TGitMessageBox;
 
 IMPLEMENT_DYNAMIC(CStashSaveDlg, CHorizontalResizableStandAloneDialog)
 

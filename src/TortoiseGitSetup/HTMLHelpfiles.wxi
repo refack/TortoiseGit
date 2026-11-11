@@ -147,7 +147,6 @@
 				<File Id="F__htmlhelp_TortoiseGit_en_tgit_dug_submodules" Name="tgit-dug-submodules.html" Source="..\..\doc\output\TortoiseGit_en\tgit-dug-submodules.html"/>
 			</Component>
 			<Component Id="C__htmlhelp_TortoiseGit_en_tgit_dug_svn_dcommit" Guid="cefca4f2-d4c1-c89b-0358-7da472094805" Win64="$(var.Win64YesNo)">
-				<File Id="F__htmlhelp_TortoiseGit_en_tgit_dug_svn_dcommit" Name="tgit-dug-svn-dcommit.html" Source="..\..\doc\output\TortoiseGit_en\tgit-dug-svn-dcommit.html"/>
 			</Component>
 			<Component Id="C__htmlhelp_TortoiseGit_en_tgit_dug_sync" Guid="cb27a4b7-1551-427b-a54c-29d2662a4c82" Win64="$(var.Win64YesNo)">
 				<File Id="F__htmlhelp_TortoiseGit_en_tgit_dug_sync" Name="tgit-dug-sync.html" Source="..\..\doc\output\TortoiseGit_en\tgit-dug-sync.html"/>

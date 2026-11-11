@@ -1,4 +1,4 @@
-﻿// TortoiseGit - a Windows shell extension for easy version control
+// TortoiseGit - a Windows shell extension for easy version control
 
 // Copyright (C) 2014, 2018-2019, 2024, 2026 - TortoiseGit
 // Copyright (C) 2007 - TortoiseSVN
@@ -22,7 +22,7 @@
 #include <ShlObj.h>
 import AppUtils.Launch;
 import AppUtils.Window;
-import MessageBox;
+import TGitMessageBox;
 
 /**
  * \ingroup TortoiseProc

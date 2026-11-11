@@ -1,4 +1,4 @@
-﻿// TortoiseGit - a Windows shell extension for easy version control
+// TortoiseGit - a Windows shell extension for easy version control
 
 // Copyright (C) 2011-2014, 2016-2020, 2024 - TortoiseGit
 
@@ -25,7 +25,7 @@ import tgit;
 import TortoiseProc;
 #include "RequestPullDlg.h"
 #include "../../SharedMFC/Utils/LogDlg.h"
-import MessageBox;
+import TGitMessageBox;
 import AppUtils.Window;
 
 IMPLEMENT_DYNAMIC(CRequestPullDlg, CHorizontalResizableStandAloneDialog)

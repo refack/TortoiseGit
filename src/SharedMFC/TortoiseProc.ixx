@@ -1,4 +1,4 @@
-﻿module;
+module;
 #include <map>
 #include <format>
 #include <afxwinappex.h>
@@ -49,7 +49,7 @@ import GitHash; 		// GetHashText
 import TempFile; 		// DeleteOldTempFiles
 import ProjectProperties;
 
-import MessageBox;
+import TGitMessageBox;
 import TaskbarUUID;
 import Libraries;
 import LangDll;

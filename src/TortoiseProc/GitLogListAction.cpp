@@ -1,4 +1,4 @@
-﻿// TortoiseGit - a Windows shell extension for easy version control
+// TortoiseGit - a Windows shell extension for easy version control
 
 // Copyright (C) 2008-2026 - TortoiseGit
 // Copyright (C) 2005-2007 Marco Costalba
@@ -24,8 +24,8 @@
 import TortoiseProc;
 #include "GitLogList.h"
 #include "IconMenu.h"
-#include "SysProgressDlg.h"
-import MessageBox;
+import SysProgressDlg;
+import TGitMessageBox;
 #include "CommitDlg.h"
 #include "RebaseDlg.h"
 #include "CommitIsOnRefsDlg.h"
@@ -988,12 +988,6 @@ void CGitLogList::ContextMenuAction(int cmd, int FirstSelect, int LastSelect, CM
 					Refresh();
 			}
 			break;
-		case ID_SVNDCOMMIT:
-		{
-			if (CAppUtils::SVNDCommit(GetParentHWND()))
-				Refresh();
-		}
-		break;
 		case ID_CLEANUP:
 			{
 				CString sCmd;

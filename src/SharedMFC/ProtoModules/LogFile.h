@@ -18,9 +18,9 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 #pragma once
+#include <deque>	// textual std before any import that brings `import std;` (C2995 otherwise)
 import Registry;
 import TGitPath;
-#include <deque>
 
 /**
  * \ingroup TortoiseProc

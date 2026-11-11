@@ -1,4 +1,4 @@
-﻿// TortoiseGit - a Windows shell extension for easy version control
+// TortoiseGit - a Windows shell extension for easy version control
 
 // Copyright (C) 2013-2016, 2018-2019, 2025-2026 - TortoiseGit
 
@@ -22,7 +22,7 @@
 
 #include "DaemonCommand.h"
 import ProgressDlg;
-import MessageBox;
+import TGitMessageBox;
 
 bool DaemonCommand::Execute()
 {

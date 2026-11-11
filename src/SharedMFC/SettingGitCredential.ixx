@@ -1,4 +1,4 @@
-﻿module;
+module;
 #include "stdafx.h"
 #include "../TortoiseProc/Settings/SettingsPropPage.h"
 
@@ -9,7 +9,7 @@ export module SettingGitCredential;
 import tgit;
 import TortoiseProc;
 import TGitPath;	// GitAdminDir lives in the TGitPath module
-import MessageBox;
+import TGitMessageBox;
 import AppUtils.Launch;
 import Registry;
 using namespace libgit2;

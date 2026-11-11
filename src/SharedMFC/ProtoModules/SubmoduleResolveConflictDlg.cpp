@@ -1,4 +1,4 @@
-﻿// TortoiseGit - a Windows shell extension for easy version control
+// TortoiseGit - a Windows shell extension for easy version control
 
 // Copyright (C) 2012-2019, 2023-2026 - TortoiseGit
 
@@ -25,7 +25,7 @@ import AppUtils.Launch;
 import AppUtils.Window;
 #include "SubmoduleResolveConflictDlg.h"
 #include "SubmoduleDiffDlg.h"
-import MessageBox;
+import TGitMessageBox;
 #include "GitProgressDlg.h"
 #include "../../TortoiseProc/ProgressCommands/ResolveProgressCommand.h"
 

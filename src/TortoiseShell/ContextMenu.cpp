@@ -1404,18 +1404,6 @@ void CShellExt::InvokeCommand(TGitShellCommand cmd, const std::wstring& appDir, 
 		if (GetAsyncKeyState(VK_SHIFT) & 0x8000)
 			gitCmd += L" /alternative";
 		break;
-	case TGitShellCommand::SVNRebase:
-		AddPathCommand(gitCmd, L"svnrebase", false, paths, folder);
-		break;
-	case TGitShellCommand::SVNDCommit:
-		AddPathCommand(gitCmd, L"svndcommit", true, paths, folder);
-		break;
-	case TGitShellCommand::SVNDFetch:
-		AddPathCommand(gitCmd, L"svnfetch", false, paths, folder);
-		break;
-	case TGitShellCommand::SVNIgnore:
-		AddPathCommand(gitCmd, L"svnignore", false, paths, folder);
-		break;
 	case TGitShellCommand::Rebase:
 		AddPathCommand(gitCmd, L"rebase", false, paths, folder);
 		break;

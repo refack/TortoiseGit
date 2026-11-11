@@ -1,4 +1,4 @@
-﻿// TortoiseGit - a Windows shell extension for easy version control
+// TortoiseGit - a Windows shell extension for easy version control
 
 // Copyright (C) 2008-2011, 2016, 2018-2019, 2025-2026 - TortoiseGit
 // Copyright (C) 2007-2008 - TortoiseSVN
@@ -23,7 +23,7 @@
 
 #include "PrevDiffCommand.h"
 #include "GitDiff.h"
-import MessageBox;
+import TGitMessageBox;
 #include "../../SharedMFC/Utils/LogDataVector.h"
 #include "FileDiffDlg.h"
 

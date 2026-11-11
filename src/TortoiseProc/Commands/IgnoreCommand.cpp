@@ -1,4 +1,4 @@
-﻿// TortoiseGit - a Windows shell extension for easy version control
+// TortoiseGit - a Windows shell extension for easy version control
 
 // Copyright (C) 2009-2013, 2015-2016, 2018-2019, 2026 - TortoiseGit
 // Copyright (C) 2007-2008 - TortoiseSVN
@@ -22,7 +22,7 @@
 
 #include "IgnoreCommand.h"
 
-import MessageBox;
+import TGitMessageBox;
 import AppUtils.Workflow;
 
 bool IgnoreCommand::Execute()

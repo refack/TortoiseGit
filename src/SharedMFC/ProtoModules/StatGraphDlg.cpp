@@ -21,7 +21,7 @@
 #include "stdafx.h"
 #include <ResizableLayout.h>
 #include "StatGraphDlg.h"
-#include "../../TortoiseProc/MiscUI/SysProgressDlg.h"
+import SysProgressDlg;
 
 import tgit;
 import TortoiseProc;
@@ -416,9 +416,9 @@ int CStatGraphDlg::GetCalendarWeek(const CTime& time)
 
 	const int iYear = time.GetYear();
 	auto loc = std::array<wchar_t, 2>{};
-	GetLocaleInfo(LOCALE_USER_DEFAULT, LOCALE_IFIRSTDAYOFWEEK, loc.data(), loc.size());
+	GetLocaleInfo(LOCALE_USER_DEFAULT, LOCALE_IFIRSTDAYOFWEEK, loc.data(), win32_cast(loc.size()));
 	const int iFirstDayOfWeek = int{loc[0] - '0'};
-	GetLocaleInfo(LOCALE_USER_DEFAULT, LOCALE_IFIRSTWEEKOFYEAR, loc.data(), loc.size());
+	GetLocaleInfo(LOCALE_USER_DEFAULT, LOCALE_IFIRSTWEEKOFYEAR, loc.data(), win32_cast(loc.size()));
 	const int iFirstWeekOfYear = int{loc[0] - '0'};
 	CTime dDateFirstJanuary(iYear,1,1,0,0,0);
 	int iDayOfWeek = (dDateFirstJanuary.GetDayOfWeek()+5+iFirstDayOfWeek)%7;

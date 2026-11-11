@@ -48,7 +48,6 @@ enum class Git_PostCommit_Cmd
 	Nothing,
 	ReCommit,
 	Push,
-	DCommit,
 	Pull,
 	CreateTag,
 };

@@ -1,4 +1,4 @@
-﻿// TortoiseGit - a Windows shell extension for easy version control
+// TortoiseGit - a Windows shell extension for easy version control
 
 // Copyright (C) 2008-2026 - TortoiseGit
 
@@ -31,10 +31,10 @@ import AppUtils.Launch;
 import AppUtils.Window;
 import AppUtils.Workflow;
 import ProgressDlg;
-import MessageBox;
+import TGitMessageBox;
 import tgit.Hooks;
 #include "../../TortoiseProc/ProgressCommands/FetchProgressCommand.h"
-#include "../../TortoiseProc/MiscUI/SysProgressDlg.h"
+import SysProgressDlg;
 #include "ThemeMFCVisualManager.h"
 
 // CSyncDlg dialog

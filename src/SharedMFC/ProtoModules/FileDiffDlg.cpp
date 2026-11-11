@@ -1,4 +1,4 @@
-﻿// TortoiseGit - a Windows shell extension for easy version control
+// TortoiseGit - a Windows shell extension for easy version control
 
 // Copyright (C) 2008-2026 - TortoiseGit
 // Copyright (C) 2003-2008, 2018 - TortoiseSVN
@@ -34,7 +34,7 @@ import GitStatusListCtrl;
 
 import GitLogListBase;
 import BrowseFolder;
-import MessageBox;
+import TGitMessageBox;
 import AppUtils.Launch;
 import AppUtils.Window;
 
@@ -515,7 +515,7 @@ void CFileDiffDlg::OnNMCustomdrawFilelist(NMHDR *pNMHDR, LRESULT *pResult)
 
 		auto filter{ m_filter.load() };
 		if (filter->IsFilterActive())
-			*pResult = CGitLogListBase::DrawListItemWithMatches(filter.get(), m_cFileList, pLVCD);
+			*pResult = CGitLogListBase::DrawListItemWithMatches(*filter, m_cFileList, pLVCD);
 	}
 }
 

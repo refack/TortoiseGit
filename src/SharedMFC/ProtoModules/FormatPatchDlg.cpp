@@ -1,4 +1,4 @@
-﻿// TortoiseGit - a Windows shell extension for easy version control
+// TortoiseGit - a Windows shell extension for easy version control
 
 // Copyright (C) 2008-2014, 2016-2017, 2019-2020, 2024-2025 - TortoiseGit
 
@@ -29,7 +29,7 @@ import BrowseFolder;
 #include "BrowseRefsDlg.h"
 import AppUtils.Launch;
 import AppUtils.Window;
-import MessageBox;
+import TGitMessageBox;
 
 // CFormatPatchDlg dialog
 

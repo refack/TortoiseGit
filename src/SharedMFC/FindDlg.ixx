@@ -7,7 +7,7 @@
 
 #include "Resources/resource.h"
 
-#include "Utils/GestureEnabledControl.h"
+
 
 
 export module FindDlg;

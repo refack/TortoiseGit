@@ -19,10 +19,10 @@
 
 
 #pragma once
-#include <Utils/GestureEnabledControl.h>
 #include "../TortoiseShell/DockablePaneUnscaledStoredState.h"
 
 import GitRevLoglist;
+import StandAloneDlg;
 
 
 

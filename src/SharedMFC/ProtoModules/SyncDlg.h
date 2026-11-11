@@ -19,7 +19,7 @@
 
 #pragma once
 #include "Utils/HistoryCombo.h"
-#include "Utils/GestureEnabledControl.h"
+
 import MenuButton;
 #include "../../TortoiseProc/BranchCombox.h"
 #include "../../TortoiseProc/GitLoglist.h"

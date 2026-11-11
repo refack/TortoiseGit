@@ -1,4 +1,4 @@
-﻿// TortoiseGit - a Windows shell extension for easy version control
+// TortoiseGit - a Windows shell extension for easy version control
 
 // Copyright (C) 2009-2026 - TortoiseGit
 // Copyright (C) 2003-2013 - TortoiseSVN
@@ -32,7 +32,7 @@ import IconMenu;
 #include "Utils/SysImageList.h"
 #include "GitDiff.h"
 import DPIAware;
-import MessageBox;
+import TGitMessageBox;
 
 #define OVERLAY_EXTERNAL	1
 #define OVERLAY_EXECUTABLE	2

@@ -573,8 +573,9 @@ using CString = ATL::CAtlStringW;	// CStringT<wchar_t, StrTraitATL<wchar_t, ChTr
 // CString itself is declared at the shim fork, at the top of this module.
 
 /// Whitespace CString::Trim() removes, so a converted call site keeps behaving.
-inline constexpr std::wstring_view kDefaultTrimChars = L" \t\r\n";
+constexpr std::wstring_view kDefaultTrimChars = L" \t\r\n";
 
+constexpr auto SUFFIX_TAG_PLACEHOLDER = L"^{}"sv;
 
 
 /// CString::Find contract: byte offset, or -1 when absent.
@@ -1144,32 +1145,25 @@ TStr EscapeCmdValue(const TStr& input) {
 
 
 template <typename CharT>
-struct regex_match_fn {
-	const std::basic_regex<CharT> re;
+class regex_match {
+	std::basic_regex<CharT> re_;
+public:
+	using view_t   = std::basic_string_view<CharT>;
+	using iterator = std::regex_iterator<typename view_t::const_iterator, CharT>;
 
-	template <std::ranges::contiguous_range Range>
-	constexpr auto operator()(const Range& char_range) const {
-		using Iter = std::regex_iterator<std::ranges::iterator_t<Range>>;
-		return std::ranges::subrange(Iter(std::ranges::begin(char_range), std::ranges::end(char_range), re), Iter());
+	explicit regex_match(view_t pattern, std::regex_constants::syntax_option_type f = std::regex_constants::ECMAScript)
+		: re_(pattern.begin(), pattern.end(), f) {}
+
+	auto operator()(view_t text) const {
+		return std::ranges::subrange{ iterator{ text.begin(), text.end(), re_ }, iterator{} };
 	}
 };
 
+template <typename C> regex_match(const C*)                    -> regex_match<C>;
+template <typename C> regex_match(std::basic_string_view<C>)   -> regex_match<C>;
+template <typename C, typename T, typename A>
+regex_match(const std::basic_string<C, T, A>&)                 -> regex_match<C>;
 
-// template <typename CharT>
-// struct regex_matches : std::ranges::range_adaptor_closure<regex_matches<CharT>>, regex_match_fn<CharT> {
-// 	// explicit regex_matches(const std::basic_regex<CharT>& re) : regex_match_fn<CharT>{re} {}
-// 	// explicit regex_matches(const std::basic_string_view<CharT> re) : regex_match_fn<CharT>{re.data()} {}
-// 	explicit regex_matches(const std::wstring_view re) : regex_match_fn<std::wstring_view::value_type>{std::wregex{re.data()}} {}
-// };
-
-struct regex_matches : std::ranges::range_adaptor_closure<regex_matches>, regex_match_fn<wchar_t> {
-	regex_matches(const std::wregex& arg_re)
-	: regex_match_fn{arg_re}
-	{}
-	regex_matches(const std::wstring& arg_re)
-	: regex_match_fn{std::wregex{arg_re}}
-	{}
-};
 
 
 struct escaperoid {

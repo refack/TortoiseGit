@@ -1,4 +1,4 @@
-﻿module;
+module;
 #include "stdafx.h"
 #include "ProtoModules/LoglistUtils.h"
 #include "ProtoModules/GitDiff.h"
@@ -24,12 +24,11 @@ import ResizableColumnsListCtrl;
 import ColumnManager;
 import Registry;
 import Colors;
-import MessageBox;
+import TGitMessageBox;
 import BrowseFolder;
 import ThemeAPI;
 import AppUtils.Launch;
 import AppUtils.Window;
-import AppUtils.Workflow;
 
 using namespace  GitIndex;
 
@@ -311,128 +310,6 @@ public:
 	 * Helper class for CGitStatusListCtrl which represents
 	 * the data for each file shown.
 	 */
-#if 0
-	class FileEntry {
-	public:
-		FileEntry() :
-			status(git_wc_status_unversioned)
-			//			, copyfrom_rev(GIT_REV_ZERO)
-			, last_commit_date(0)
-			, last_commit_rev(GIT_REV_ZERO)
-			//			, remoterev(GIT_REV_ZERO)
-			, textstatus(git_wc_status_unversioned)
-			, propstatus(git_wc_status_unversioned)
-			//			, remotestatus(git_wc_status_unversioned)
-			//			, remotetextstatus(git_wc_status_unversioned)
-			//			, remotepropstatus(git_wc_status_unversioned)
-			, copied(false)
-			, switched(false)
-			, checked(false)
-			, inunversionedfolder(false)
-			, inexternal(false)
-			, differentrepo(false)
-			, direct(false)
-			, isfolder(false)
-			, isNested(false)
-			, Revision(GIT_REV_ZERO)
-			, isConflicted(false)
-		//			, present_props()
-		///			, working_size(SVN_WC_ENTRY_WORKING_SIZE_UNKNOWN)
-		//			, depth(git_depth_unknown)
-		{}
-
-
-		const CTGitPath& GetPath() const {
-			return path;
-		}
-
-
-		const bool IsChecked() const {
-			return checked;
-		}
-
-
-		CString GetRelativeGitPath() const {
-			if (path.IsEquivalentTo(basepath))
-				return path.GetGitPathString().c_str();
-			return path.GetGitPathString().Mid(basepath.GetGitPathString().size() + 1);
-		}
-
-
-		const bool IsFolder() const {
-			return isfolder;
-		}
-
-
-		const bool IsInExternal() const {
-			return inexternal;
-		}
-
-
-		const bool IsNested() const {
-			return isNested;
-		}
-
-
-		const bool IsFromDifferentRepository() const {
-			return differentrepo;
-		}
-
-
-		CString GetDisplayName() const {
-			CString const& chopped = path.GetDisplayString(&basepath);
-			if (!chopped.IsEmpty()) {
-				return chopped;
-			} else {
-				// "Display name" must not be empty.
-				return path.GetFileOrDirectoryName().c_str();
-			}
-		}
-
-
-		CString GetChangeList() const {
-			return changelist;
-		}
-
-
-		//		CString GetURL() const
-		//		{
-		//			return url;
-		//		}
-	public:
-		git_wc_status_kind status; ///< local status
-		git_wc_status_kind textstatus; ///< local text status
-		git_wc_status_kind propstatus; ///< local property status
-
-	private:
-		CTGitPath path; ///< full path of the file
-		CTGitPath basepath; ///< common ancestor path of all files
-
-		CString changelist; ///< the name of the changelist the item belongs to
-
-		CString last_commit_author; ///< the author which last committed this item
-		CTime last_commit_date; ///< the date when this item was last committed
-		git_revnum_t last_commit_rev; ///< the revision where this item was last committed
-
-		git_revnum_t remoterev; ///< the revision in HEAD of the repository
-		bool copied; ///< if the file/folder is added-with-history
-		bool switched; ///< if the file/folder is switched to another url
-		bool checked; ///< if the file is checked in the list control
-		bool inunversionedfolder; ///< if the file is inside an unversioned folder
-		bool inexternal; ///< if the item is in an external folder
-		bool differentrepo; ///< if the item is from a different repository than the rest
-		bool direct; ///< directly included (TRUE) or just a child of a folder
-		bool isfolder; ///< TRUE if entry refers to a folder
-		bool isNested; ///< TRUE if the folder from a different repository and/or path
-		bool isConflicted; ///< TRUE if a file entry is conflicted, i.e. if it has the conflicted paths set
-		git_revnum_t Revision; ///< the base revision
-		//		PropertyList			present_props;			///< cacheable properties present in BASE
-		git_depth_t depth; ///< the depth of this entry
-		friend class CGitStatusListCtrl;
-		friend class CGitStatusListCtrlDropTarget;
-		friend class CSorter;
-	};
-#endif
 
 	/**
 	 * Initializes the control, sets up the columns.
@@ -670,7 +547,7 @@ public:
 
 	CWnd* m_hwndLogicalParent = nullptr;
 
-	DECLARE_MESSAGE_MAP()
+	DECLARE_MESSAGE_MAP();
 
 public:
 	void SetBusy(bool b) {
@@ -1732,114 +1609,6 @@ void CGitStatusListCtrl::Show(unsigned int dwShow,
 
 	this->BuildStatistics();
 
-#if 0
-
-	m_bShowFolders = bShowFolders;
-
-	int nTopIndex = GetTopIndex();
-	POSITION posSelectedEntry = GetFirstSelectedItemPosition();
-	int nSelectedEntry = 0;
-	if (posSelectedEntry)
-		nSelectedEntry = GetNextSelectedItem(posSelectedEntry);
-	SetRedraw(FALSE);
-	DeleteAllItems();
-
-	PrepareGroups();
-
-	m_arListArray.clear();
-
-	m_arListArray.reserve(m_arStatusArray.size());
-	SetItemCount(static_cast<int>(m_arStatusArray.size()));
-
-	int listIndex = 0;
-	for (size_t i = 0; i < m_arStatusArray.size(); ++i) {
-		FileEntry* entry = m_arStatusArray[i];
-		if ((entry->inexternal) && (!(dwShow & SVNSLC_SHOWINEXTERNALS)))
-			continue;
-		if ((entry->differentrepo || entry->isNested) && (!(dwShow & SVNSLC_SHOWEXTERNALFROMDIFFERENTREPO)))
-			continue;
-		if (entry->IsFolder() && (!bShowFolders))
-			continue; // don't show folders if they're not wanted.
-
-#if 0
-	git_wc_status_kind status = GitStatus::GetMoreImportant(entry->status, entry->remotestatus);
-	DWORD showFlags = GetShowFlagsFromGitStatus(status);
-	if (entry->switched)
-		showFlags |= SVNSLC_SHOWSWITCHED;
-	if (!entry->changelist.IsEmpty())
-		showFlags |= SVNSLC_SHOWINCHANGELIST;
-#endif
-	bool bAllowCheck = ((entry->changelist.Compare(GITSLC_IGNORECHANGELIST) != 0)
-		&& (m_bCheckIfGroupsExist || (m_changelists.empty() || (m_changelists.size() == 1 && m_bHasIgnoreGroup))));
-
-	// status_ignored is a special case - we must have the 'direct' flag set to add a status_ignored item
-#if 0
-	if (status != Git_wc_status_ignored || (entry->direct) || (dwShow & GitSLC_SHOWIGNORED)) {
-		if ((!entry->IsFolder()) && (status == Git_wc_status_deleted) && (dwShow & SVNSLC_SHOWREMOVEDANDPRESENT)) {
-			if (PathFileExists(entry->GetPath().GetWinPath())) {
-				m_arListArray.push_back(i);
-				if ((dwCheck & SVNSLC_SHOWREMOVEDANDPRESENT) || ((dwCheck & SVNSLC_SHOWDIRECTS) && (entry->direct))) {
-					if (bAllowCheck)
-						entry->checked = true;
-				}
-				AddEntry(entry, langID, listIndex++);
-			}
-		} else if ((dwShow & showFlags) || ((dwShow & SVNSLC_SHOWDIRECTFILES) && (entry->direct) && (!entry->IsFolder()))) {
-			m_arListArray.push_back(i);
-			if ((dwCheck & showFlags) || ((dwCheck & SVNSLC_SHOWDIRECTS) && (entry->direct))) {
-				if (bAllowCheck)
-					entry->checked = true;
-			}
-			AddEntry(entry, langID, listIndex++);
-		} else if ((dwShow & showFlags) || ((dwShow & SVNSLC_SHOWDIRECTFOLDER) && (entry->direct) && entry->IsFolder())) {
-			m_arListArray.push_back(i);
-			if ((dwCheck & showFlags) || ((dwCheck & SVNSLC_SHOWDIRECTS) && (entry->direct))) {
-				if (bAllowCheck)
-					entry->checked = true;
-			}
-			AddEntry(entry, langID, listIndex++);
-		}
-	}
-#endif
-	}
-
-	SetItemCount(listIndex);
-
-	m_ColumnManager.UpdateRelevance(m_arStatusArray, m_arListArray);
-
-	AdjustColumnWidths();
-
-	SetRedraw(TRUE);
-	GetStatisticsString();
-
-	CHeaderCtrl* pHeader = GetHeaderCtrl();
-	HDITEM HeaderItem = { 0 };
-	HeaderItem.mask = HDI_FORMAT;
-	for (int i = 0; i < pHeader->GetItemCount(); ++i) {
-		pHeader->GetItem(i, &HeaderItem);
-		HeaderItem.fmt &= ~(HDF_SORTDOWN | HDF_SORTUP);
-		pHeader->SetItem(i, &HeaderItem);
-	}
-	if (m_nSortedColumn) {
-		pHeader->GetItem(m_nSortedColumn, &HeaderItem);
-		HeaderItem.fmt |= (m_bAscending ? HDF_SORTUP : HDF_SORTDOWN);
-		pHeader->SetItem(m_nSortedColumn, &HeaderItem);
-	}
-
-	if (nSelectedEntry) {
-		SetItemState(nSelectedEntry, LVIS_SELECTED, LVIS_SELECTED);
-		EnsureVisible(nSelectedEntry, false);
-	} else {
-		// Restore the item at the top of the list.
-		for (int i = 0; GetTopIndex() != nTopIndex; i++) {
-			if (!EnsureVisible(nTopIndex + i, false))
-				break;
-		}
-	}
-
-	m_bEmpty = (GetItemCount() == 0);
-	Invalidate();
-#endif
 }
 
 
@@ -3537,21 +3306,6 @@ void CGitStatusListCtrl::OnContextMenuList(CWnd* pWnd, CPoint point) {
 			case IDGITLC_REVERTTOPARENT:
 				RevertSelectedItemToVersion(true);
 				break;
-#if 0
-			case IDSVNLC_COMMIT: {
-				CTSVNPathList targetList;
-				FillListOfSelectedItemPaths(targetList);
-				CTSVNPath tempFile = TempFiles::GetTempFilePath(false);
-				VERIFY(targetList.WriteToFile(tempFile.GetWinPathString().c_str()));
-				CString commandline = til::GetAppDirectory();
-				commandline += L"TortoiseGitProc.exe /command:commit /pathfile:\"";
-				commandline += tempFile.GetWinPathString().c_str();
-				commandline += L'"';
-				commandline += L" /deletepathfile";
-				TortoiseProc::LaunchApplication(commandline, nullptr, false);
-			}
-			break;
-#endif
 			case IDGITLC_CREATEIGNORECS:
 				MoveToChangelist(GITSLC_IGNORECHANGELIST);
 				SaveChangelists();
@@ -5137,70 +4891,6 @@ bool CGitStatusListCtrlDropTarget::OnDrop(FORMATETC* pFmtEtc, STGMEDIUM& medium,
 			clientpoint.y = pt.y;
 			ScreenToClient(m_hTargetWnd, &clientpoint);
 			if ((m_pGitStatusListCtrl->IsGroupViewEnabled()) && (m_pGitStatusListCtrl->GetGroupFromPoint(&clientpoint) >= 0)) {
-#if 0
-				CTGitPathList changelistItems;
-				for (UINT i = 0; i < cFiles; ++i) {
-					if (DragQueryFile(hDrop, i, szFileName, _countof(szFileName)))
-						changelistItems.AddPath(CTGitPath(szFileName));
-				}
-				// find the changelist name
-				CString sChangelist;
-				LONG_PTR nGroup = m_pGitStatusListCtrl->GetGroupFromPoint(&clientpoint);
-				for (std::map<CString, int>::iterator it = m_pGitStatusListCtrl->m_changelists.begin(); it != m_pGitStatusListCtrl->m_changelists.end(); ++it)
-					if (it->second == nGroup)
-						sChangelist = it->first;
-
-				if (!sChangelist.IsEmpty()) {
-					CGit git;
-					if (git.AddToChangeList(changelistItems, sChangelist, git_depth_empty)) {
-						for (int l = 0; l < changelistItems.GetCount(); ++l) {
-							int index = m_pGitStatusListCtrl->GetIndex(changelistItems[l]);
-							if (index >= 0) {
-								auto e = m_pGitStatusListCtrl->GetListEntry(index);
-								if (e) {
-									e->changelist = sChangelist;
-									if (!e->IsFolder()) {
-										if (m_pGitStatusListCtrl->m_changelists.find(e->changelist) != m_pGitStatusListCtrl->m_changelists.end())
-											m_pGitStatusListCtrl->SetItemGroup(index, m_pGitStatusListCtrl->m_changelists[e->changelist]);
-										else
-											m_pGitStatusListCtrl->SetItemGroup(index, 0);
-									}
-								}
-							} else {
-								HWND hParentWnd = GetParent(m_hTargetWnd);
-								if (hParentWnd)
-									::SendMessage(hParentWnd,
-									              CGitStatusListCtrl::GITSLNM_ADDFILE,
-									              0,
-									              reinterpret_cast<LPARAM>(changelistItems[l].GetWinPath()));
-							}
-						}
-					} else
-						CMessageBox::Show(m_pGitStatusListCtrl->m_hWnd, git.GetLastErrorMessage(), L"TortoiseGit", MB_ICONERROR);
-				} else {
-					SVN git;
-					if (git.RemoveFromChangeList(changelistItems, CStringArray(), git_depth_empty)) {
-						for (int l = 0; l < changelistItems.GetCount(); ++l) {
-							int index = m_pGitStatusListCtrl->GetIndex(changelistItems[l]);
-							if (index >= 0) {
-								auto e = m_pGitStatusListCtrl->GetListEntry(index);
-								if (e) {
-									e->changelist = sChangelist;
-									m_pGitStatusListCtrl->SetItemGroup(index, 0);
-								}
-							} else {
-								HWND hParentWnd = GetParent(m_hTargetWnd);
-								if (hParentWnd)
-									::SendMessage(hParentWnd,
-									              CGitStatusListCtrl::GITSLNM_ADDFILE,
-									              0,
-									              reinterpret_cast<LPARAM>(changelistItems[l].GetWinPath()));
-							}
-						}
-					} else
-						CMessageBox::Show(m_pGitStatusListCtrl->m_hWnd, git.GetLastErrorMessage(), L"TortoiseGit", MB_ICONERROR);
-				}
-#endif
 			} else {
 				for (UINT i = 0; i < cFiles; ++i) {
 					if (!DragQueryFile(hDrop, i, szFileName, _countof(szFileName)))
@@ -5807,5 +5497,122 @@ void CGitStatusListCtrl::RefreshParent() {
 	SetRedraw(TRUE);
 }
 
+
+
+// sorter utility class
+CSorter::CSorter ( ColumnManager* columnManager
+									, int sortedColumn
+									, bool ascending)
+									: columnManager (columnManager)
+									, sortedColumn (sortedColumn)
+									, ascending (ascending)
+{
+	s_bSortLogical = !CRegDWORD(L"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\Explorer\\NoStrCmpLogical", 0, false, HKEY_CURRENT_USER);
+	if (s_bSortLogical)
+		s_bSortLogical = !CRegDWORD(L"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\Explorer\\NoStrCmpLogical", 0, false, HKEY_LOCAL_MACHINE);
+}
+
+
+bool CSorter::operator() (const CTGitPath* entry1 , const CTGitPath* entry2) const
+{
+#define SGN(x) ((x)==0?0:((x)>0?1:-1))
+
+	int result = 0;
+	switch (sortedColumn)
+	{
+	case eCol_LFSLock: // LFS Locks
+		{
+			if (result == 0)
+				result = tgit::wstr::CompareNoCase(entry1->m_LFSLockOwner, entry2->m_LFSLockOwner);
+			break;
+		}
+	case eCol_FileSize: // File size
+		{
+			if (result == 0)
+			{
+				__int64 fileSize1 = entry1->IsDirectory() ? 0 : entry1->GetFileSize();
+				__int64 fileSize2 = entry2->IsDirectory() ? 0 : entry2->GetFileSize();
+
+				result = SGN(fileSize1 - fileSize2);
+			}
+			break;
+		}
+	case eCol_LastModificationDate: //Last Modification Date
+		{
+			if (result == 0)
+			{
+				__int64 writetime1 = entry1->GetLastWriteTime();
+				__int64 writetime2 = entry2->GetLastWriteTime();
+
+				result = SGN(writetime1 - writetime2);
+			}
+			break;
+		}
+	case eCol_Del: //Del Number
+		{
+			if (result == 0)
+				result = SGN(A2L(entry1->m_StatDel.c_str()) - A2L(entry2->m_StatDel.c_str()));
+			break;
+		}
+	case eCol_Add: //Add Number
+		{
+			if (result == 0)
+				result = SGN(A2L(entry1->m_StatAdd.c_str()) - A2L(entry2->m_StatAdd.c_str()));
+			break;
+		}
+
+	case eCol_Status: // Status
+		{
+			if (result == 0)
+				result = tgit::wstr::CompareNoCase(entry1->GetActionName(entry1->m_Action), entry2->GetActionName(entry2->m_Action));
+			break;
+		}
+	case eCol_Extension: //Ext file
+		{
+			if (result == 0)
+			{
+				if (s_bSortLogical)
+					result = StrCmpLogicalW(entry1->GetFileExtension().c_str(), entry2->GetFileExtension().c_str());
+				else
+					result = StrCmpI(entry1->GetFileExtension().c_str(), entry2->GetFileExtension().c_str());
+			}
+			break;
+		}
+	case eCol_Filename: // File name
+		{
+			if (result == 0)
+			{
+				if (s_bSortLogical)
+					result = StrCmpLogicalW(entry1->GetFileOrDirectoryName().c_str(), entry2->GetFileOrDirectoryName().c_str());
+				else
+					result = StrCmpI(entry1->GetFileOrDirectoryName().c_str(), entry2->GetFileOrDirectoryName().c_str());
+			}
+			break;
+		}
+	case eCol_Name: // Full path column
+		{
+			if (result == 0)
+			{
+				if (s_bSortLogical)
+					result = StrCmpLogicalW(entry1->GetGitPathString().c_str(), entry2->GetGitPathString().c_str());
+				else
+					result = StrCmpI(entry1->GetGitPathString().c_str(), entry2->GetGitPathString().c_str());
+			}
+			break;
+		}
+	} // switch (m_nSortedColumn)
+	// sort by path name as second priority
+	if (sortedColumn > 0 && result == 0)
+	{
+		if (s_bSortLogical)
+			result = StrCmpLogicalW(entry1->GetGitPathString().c_str(), entry2->GetGitPathString().c_str());
+		else
+			result = StrCmpI(entry1->GetGitPathString().c_str(), entry2->GetGitPathString().c_str());
+	}
+	if (!ascending)
+		result = -result;
+
+	return result < 0;
+}
 
 }

@@ -18,7 +18,7 @@
 //
 
 #pragma once
-#include "Utils/GestureEnabledControl.h"
+
 import git_h;
 import GitHash;
 import StandAloneDlg;

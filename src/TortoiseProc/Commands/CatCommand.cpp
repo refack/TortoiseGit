@@ -1,4 +1,4 @@
-﻿// TortoiseGit - a Windows shell extension for easy version control
+// TortoiseGit - a Windows shell extension for easy version control
 
 // Copyright (C) 2009, 2011-2016, 2018-2019, 2021, 2023, 2026 - TortoiseGit
 
@@ -20,7 +20,7 @@
 #include "std.h"
 
 #include "CatCommand.h"
-import MessageBox;
+import TGitMessageBox;
 
 bool CatCommand::Execute()
 {

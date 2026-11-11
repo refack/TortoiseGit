@@ -1,4 +1,4 @@
-﻿// TortoiseGit - a Windows shell extension for easy version control
+// TortoiseGit - a Windows shell extension for easy version control
 
 // Copyright (C) 2008-2021, 2023-2024 - TortoiseGit
 
@@ -25,7 +25,7 @@ import tgit;
 import TortoiseProc;
 #include "GitSwitchDlg.h"
 import AppUtils.Window;
-import MessageBox;
+import TGitMessageBox;
 
 // CGitSwitchDlg dialog
 

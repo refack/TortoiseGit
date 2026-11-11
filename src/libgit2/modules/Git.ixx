@@ -3113,7 +3113,6 @@ bool CGit::CheckMsysGitDir(const bool bFallback) {
 	if (!sshclient.empty())
 		 path_str = ms_bCygwinGit ? sshclient.generic_wstring() : sshclient.wstring();
 	Environment::g_Environment.SetEnv(L"GIT_SSH", path_str);
-	Environment::g_Environment.SetEnv(L"SVN_SSH", path_str);
 
 	{
 		// SshAskPass.exe, next to this executable

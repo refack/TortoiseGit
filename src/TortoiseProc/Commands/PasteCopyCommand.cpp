@@ -1,4 +1,4 @@
-﻿// TortoiseGit - a Windows shell extension for easy version control
+// TortoiseGit - a Windows shell extension for easy version control
 
 // Copyright (C) 2009, 2011-2013, 2015-2019, 2026 - TortoiseGit
 // Copyright (C) 2008 - TortoiseSVN
@@ -22,8 +22,8 @@
 
 #include "PasteCopyCommand.h"
 
-#include "SysProgressDlg.h"
-import MessageBox;
+import SysProgressDlg;
+import TGitMessageBox;
 #include "RenameDlg.h"
 
 bool PasteCopyCommand::Execute()
@@ -38,8 +38,6 @@ bool PasteCopyCommand::Execute()
 	g_Git.SetCurrentDirExact(projectTopDir.c_str());
 	if (!hasAdminDir)
 		return FALSE;
-	//SVN svn;
-	//SVNStatus status;
 	unsigned long count = 0;
 	const CString sNewName;
 	orgPathList.RemoveAdminPaths();
@@ -77,10 +75,8 @@ bool PasteCopyCommand::Execute()
 			fullDropPath.AppendPathString(dlg.m_name.GetString());
 		}
 
-		//svn_wc_status_kind s = status.GetAllStatus(sourcePath);
-		//if ((s == svn_wc_status_none)||(s == svn_wc_status_unversioned)||(s == svn_wc_status_ignored))
 		{
-			// source file is unversioned: move the file to the target, then add it
+			// copy the file to the target, then add it
 			CopyFile(sourcePath.GetWinPath(), fullDropPath.GetWinPath(), FALSE);
 			// GetGitPathString(), not GetWinPathString(): non-relaxed
 			// QuoteParameter used to convert the backslashes here.
@@ -94,17 +90,6 @@ bool PasteCopyCommand::Execute()
 			else
 				CShellUpdater::Instance().AddPathForUpdate(fullDropPath);
 		}
-		//else
-		//{
-		//	if (!svn.Copy(CTSVNPathList(sourcePath), fullDropPath, SVNRev::REV_WC, SVNRev()))
-		//	{
-		//		TRACE(L"%s\n", static_cast<LPCWSTR>(svn.GetLastErrorMessage()));
-		//		CMessageBox::Show(GetExplorerHWND(), svn.GetLastErrorMessage(), L"TortoiseSVN", MB_ICONERROR);
-		//		return FALSE;		//get out of here
-		//	}
-		//	else
-		//		CShellUpdater::Instance().AddPathForUpdate(fullDropPath);
-		//}
 		++count;
 		if (progress.IsValid())
 		{

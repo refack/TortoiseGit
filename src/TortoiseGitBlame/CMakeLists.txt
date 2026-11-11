@@ -1,6 +1,6 @@
 add_executable(TortoiseGitBlame WIN32)
 
-target_precompile_headers(TortoiseProc PRIVATE stdafx.h)
+
 
 target_sources(TortoiseGitBlame
     PRIVATE

@@ -46,7 +46,7 @@ export class CFilterHelper {
 	/// negate pattern matching result
 	bool m_bNegate = false;
 
-protected:
+public:
 	/// temp / scratch objects to minimize the number memory
 	/// allocation operations
 	mutable std::wstring scratch;
@@ -54,32 +54,31 @@ protected:
 	/// filter utiltiy method
 	bool Match(std::wstring& text) const;
 
-	inline bool CalculateFinalResult(bool result) const { return result ^ m_bNegate; }
-
-public:
-	/// construction
-	CFilterHelper();
-	CFilterHelper(const CFilterHelper& rhs);
+	bool CalculateFinalResult(bool result) const { return result ^ m_bNegate; }
+	/// construction. A plain value: copies are deep, moves are noexcept, so a
+	/// holder can swap a whole filter in without ever exposing a half-assigned one.
+	CFilterHelper() = default;
+	CFilterHelper(const CFilterHelper&) = default;
+	CFilterHelper(CFilterHelper&&) noexcept = default;
+	CFilterHelper& operator=(const CFilterHelper&) = default;
+	CFilterHelper& operator=(CFilterHelper&&) noexcept = default;
 	CFilterHelper(const CString& filter, bool filterWithRegex, DWORD selectedFilter, bool caseSensitive);
-	virtual ~CFilterHelper();
+	virtual ~CFilterHelper() = default;
 
 	/// returns a vector with all the ranges where a match was found.
 	void GetMatchRanges(std::vector<CHARRANGE>& ranges, CString text, int offset) const;
-
-	/// assignment operator
-	CFilterHelper& operator=(const CFilterHelper& rhs);
 
 	/// compare filter specs
 	bool operator==(const CFilterHelper& rhs) const;
 	bool operator!=(const CFilterHelper& rhs) const;
 
 	/// returns true if there's something to filter for
-	inline bool IsFilterActive() const { return !(m_patterns.empty() && subStringConditions.empty()); }
+	bool IsFilterActive() const { return !(m_patterns.empty() && subStringConditions.empty()); }
 
 	/// called to parse a (potentially incorrect) regex spec
 	bool ValidateRegexp(const CString& regexp_str, std::vector<std::wregex>& patterns);
 
-	inline DWORD GetSelectedFilters() const { return m_dwAttributeSelector; }
+	DWORD GetSelectedFilters() const { return m_dwAttributeSelector; }
 };
 
 
@@ -255,16 +254,6 @@ void CFilterHelper::AddSubString(CString token, Prefix prefix)
 	}
 }
 
-// construction
-CFilterHelper::CFilterHelper()
-{
-}
-
-CFilterHelper::CFilterHelper(const CFilterHelper& rhs)
-{
-	operator=(rhs);
-}
-
 CFilterHelper::CFilterHelper(const CString& filter, bool filterWithRegex, DWORD selectedFilter, bool caseSensitive)
 	: m_dwAttributeSelector(selectedFilter)
 	, m_bCaseSensitive(caseSensitive)
@@ -353,25 +342,6 @@ CFilterHelper::CFilterHelper(const CString& filter, bool filterWithRegex, DWORD 
 			AddSubString(filterText.Tokenize(L" ", curPos), prefix);
 		}
 	}
-}
-
-CFilterHelper::~CFilterHelper() {}
-
-CFilterHelper& CFilterHelper::operator=(const CFilterHelper& rhs)
-{
-	if (this != &rhs)
-	{
-		m_dwAttributeSelector = rhs.m_dwAttributeSelector;
-		m_bCaseSensitive = rhs.m_bCaseSensitive;
-		m_bNegate = rhs.m_bNegate;
-
-		subStringConditions = rhs.subStringConditions;
-		m_patterns = rhs.m_patterns;
-
-		scratch.clear();
-	}
-
-	return *this;
 }
 
 bool CFilterHelper::operator==(const CFilterHelper& rhs) const

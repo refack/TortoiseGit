@@ -25,8 +25,9 @@
 import AppUtils.Window;
 #include "RevGraphFilterDlg.h"
 import DPIAware;
-#include "../../SharedMFC/Utils/LogDlgFilter.h"
-#include "GitLogListBase.h"
+import LogDlgFilter;
+import FilterHelper;
+import GitLogListBase;
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -575,7 +576,7 @@ LRESULT CRevisionGraphDlg::OnFindDialogMessage(WPARAM /*wParam*/, LPARAM /*lPara
 	if (m_pFindDialog->FindNext() && !bFound)
 	{
 		//read data from dialog
-		CLogDlgFilter filter{ m_pFindDialog->GetFindString(), m_pFindDialog->Regex(), LOGFILTER_SUBJECT | LOGFILTER_MESSAGES | LOGFILTER_AUTHORS | LOGFILTER_EMAILS | LOGFILTER_REVS | LOGFILTER_REFNAME, m_pFindDialog->MatchCase() == TRUE };
+		const CFilterHelper filter{ m_pFindDialog->GetFindString(), m_pFindDialog->Regex(), LOGFILTER_SUBJECT | LOGFILTER_MESSAGES | LOGFILTER_AUTHORS | LOGFILTER_EMAILS | LOGFILTER_REVS | LOGFILTER_REFNAME, m_pFindDialog->MatchCase() == TRUE };
 
 		for (i = m_nSearchIndex + 1;; ++i)
 		{
@@ -594,7 +595,7 @@ LRESULT CRevisionGraphDlg::OnFindDialogMessage(WPARAM /*wParam*/, LPARAM /*lPara
 				}
 			}
 
-			if (filter(m_Graph.m_LogCache.GetCacheData(m_Graph.m_logEntries.at(i)), nullptr, m_Graph.m_HashMap))
+			if (GitLogList::FilterAccepts(filter, m_Graph.m_LogCache.GetCacheData(m_Graph.m_logEntries.at(i)), nullptr, m_Graph.m_HashMap))
 			{
 				bFound = true;
 				break;

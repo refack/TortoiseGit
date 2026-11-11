@@ -12,9 +12,10 @@ export template <typename BaseType> class CResizableColumnsListCtrl : public Bas
 {
 protected:
 	bool			m_bAllowHiding{};
-	ColumnManager	m_ColumnManager;
 
 public:
+	ColumnManager	m_ColumnManager;
+
 	CResizableColumnsListCtrl()
 		: BaseType()
 		, m_bAllowHiding(true)

@@ -1,4 +1,4 @@
-﻿// TortoiseGit - a Windows shell extension for easy version control
+// TortoiseGit - a Windows shell extension for easy version control
 
 // Copyright (C) 2014-2020, 2024-2026 TortoiseGit
 
@@ -26,7 +26,7 @@
 #include "Utils/LogDlg.h"
 import tgit;
 import AppUtils.Window;
-import MessageBox;
+import TGitMessageBox;
 import ThemeAPI;
 
 IMPLEMENT_DYNAMIC(CBisectStartDlg, CHorizontalResizableStandAloneDialog)

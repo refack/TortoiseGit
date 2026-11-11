@@ -1,4 +1,4 @@
-﻿// TortoiseGit - a Windows shell extension for easy version control
+// TortoiseGit - a Windows shell extension for easy version control
 
 // Copyright (C) 2003-2014 - TortoiseSVN
 // Copyright (C) 2008-2026 - TortoiseGit
@@ -22,14 +22,14 @@
 #include "CommitDlg.h"
 #include "HistoryDlg.h"
 #include "COMError.h"
-#include "../../TortoiseProc/MiscUI/SysProgressDlg.h"
+import SysProgressDlg;
 #include "../../SharedMFC/Utils/LogDlg.h"
 #include "../../TortoiseProc/BstrSafeVector.h"
 #include "Utils/FileTextLines.h"
 
 import tgit;
 import TortoiseProc;
-import MessageBox;
+import TGitMessageBox;
 import AppUtils.Launch;
 import AppUtils.Window;
 import AppUtils.Workflow;
@@ -822,10 +822,6 @@ void CCommitDlg::OnOK()
 			return;
 		}
 
-		CTGitPath path(GitCall::m_CurrentDirStorage.native());
-
-		const BOOL IsGitSVN = path.GetAdminDirMask() & ITEMIS_GITSVN;
-
 		out.Empty();
 		// Four independently-optional options that used to be four %s slots, each
 		// interpolating as nothing when unset. As argv elements an empty one would
@@ -875,9 +871,6 @@ void CCommitDlg::OnOK()
 		{
 			if (status || m_bNoPostActions || m_bAutoClose)
 				return;
-
-			if (IsGitSVN)
-				postCmdList.emplace_back(IDI_COMMIT, IDS_MENUSVNDCOMMIT, [&] { m_PostCmd = Git_PostCommit_Cmd::DCommit; });
 
 			postCmdList.emplace_back(IDI_PUSH, IDS_MENUPUSH, [&] { m_PostCmd = Git_PostCommit_Cmd::Push; });
 			postCmdList.emplace_back(IDI_PULL, IDS_MENUPULL, [&] { m_PostCmd = Git_PostCommit_Cmd::Pull; });

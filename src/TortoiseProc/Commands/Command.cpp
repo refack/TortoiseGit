@@ -1,4 +1,4 @@
-﻿// TortoiseGit - a Windows shell extension for easy version control
+// TortoiseGit - a Windows shell extension for easy version control
 
 // Copyright (C) 2008-2023, 2025-2026 - TortoiseGit
 // Copyright (C) 2007-2009 - TortoiseSVN
@@ -22,7 +22,7 @@
 #include "std.h"
 
 #include "Command.h"
-import MessageBox;
+import TGitMessageBox;
 #include "AboutCommand.h"
 #include "AutoTextTestCommand.h"
 #include "CommitCommand.h"
@@ -61,13 +61,9 @@ import MessageBox;
 #include "ReflogCommand.h"
 #include "CatCommand.h"
 #include "RefBrowseCommand.h"
-#include "SVNDCommitCommand.h"
-#include "SVNRebaseCommand.h"
-#include "SVNFetchCommand.h"
 #include "SyncCommand.h"
 #include "RequestPullCommand.h"
 #include "UpdateCheckCommand.h"
-#include "SVNIgnoreCommand.h"
 #include "BisectCommand.h"
 #include "RepositoryBrowserCommand.h"
 #include "RevisiongraphCommand.h"
@@ -84,7 +80,6 @@ import MessageBox;
 #include "DropCopyCommand.h"
 #include "PasteCopyCommand.h"
 #include "PasteMoveCommand.h"
-#include "UnIgnoreCommand.h"
 #endif
 
 enum TGitCommand
@@ -129,7 +124,6 @@ enum TGitCommand
 	cmdShowCompare,
 	cmdSwitch,
 	cmdTag,
-	cmdUnIgnore,
 	cmdUpdateCheck,
 	cmdStashSave,
 	cmdStashApply,
@@ -140,10 +134,6 @@ enum TGitCommand
 	cmdSubSync,
 	cmdRefLog,
 	cmdRefBrowse,
-	cmdSVNDCommit,
-	cmdSVNRebase,
-	cmdSVNFetch,
-	cmdSVNIgnore,
 	cmdSync,
 	cmdRequestPull,
 	cmdBisect,
@@ -209,7 +199,6 @@ static constexpr struct CommandInfo
 	{	cmdShowCompare,		L"showcompare"		},
 	{	cmdSwitch,			L"switch"			},
 	{	cmdTag,				L"tag"				},
-	{	cmdUnIgnore,		L"unignore"			},
 	{	cmdUpdateCheck,		L"updatecheck"		},
 	{	cmdStashSave,		L"stashsave"		},
 	{	cmdStashApply,		L"stashapply"		},
@@ -220,10 +209,6 @@ static constexpr struct CommandInfo
 	{	cmdSubSync,			L"subsync"			},
 	{	cmdRefLog,			L"reflog"			},
 	{	cmdRefBrowse,		L"refbrowse"		},
-	{	cmdSVNDCommit,		L"svndcommit"		},
-	{	cmdSVNRebase,		L"svnrebase"		},
-	{	cmdSVNFetch,		L"svnfetch"			},
-	{	cmdSVNIgnore,		L"svnignore"		},
 	{	cmdSync,			L"sync"				},
 	{	cmdRequestPull,		L"requestpull"		},
 	{	cmdBisect,			L"bisect"			},
@@ -373,12 +358,6 @@ Command* CommandServer::CreateRawCommand(const CString& sCmd)
 		return new CatCommand;
 	case cmdRefBrowse:
 		return new RefBrowseCommand;
-	case cmdSVNDCommit:
-		return new SVNDCommitCommand;
-	case cmdSVNRebase:
-		return new SVNRebaseCommand;
-	case cmdSVNFetch:
-		return new SVNFetchCommand;
 	case cmdSync:
 		return new SyncCommand;
 	case cmdRequestPull:
@@ -391,8 +370,6 @@ Command* CommandServer::CreateRawCommand(const CString& sCmd)
 	case cmdPasteMove:
 		return new PasteMoveCommand;
 #endif
-	case cmdSVNIgnore:
-		return new SVNIgnoreCommand;
 	case cmdBisect:
 		return new BisectCommand;
 	case cmdRepoBrowser:
@@ -424,8 +401,6 @@ Command* CommandServer::CreateRawCommand(const CString& sCmd)
 #if 0
 	case cmdRebuildIconCache:
 		return new RebuildIconCacheCommand;
-	case cmdUnIgnore:
-		return new UnIgnoreCommand;
 #endif
 	case cmdPGPFP:
 		{

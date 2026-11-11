@@ -1,13 +1,14 @@
-﻿module;
+module;
 #include "stdafx.h"
 
 #include <Mmsystem.h>
 #include <Tlhelp32.h>
+#include <wil/win32_helpers.h>	// textual std inside: must precede LogFile.h's imports
 
 #include "ProtoModules/LoglistUtils.h"
 #include "ProtoModules/LogFile.h"
 
-#include <wil/win32_helpers.h>
+#include "ProtoModules/GitCliOutputParser.h"
 
 
 // NOLINTBEGIN(*-pro-type-reinterpret-cast)
@@ -15,12 +16,17 @@ export module ProgressDlg;
 import tgit;
 import TortoiseProc;
 import AppUtils.Window;
-import MessageBox;
+import TGitMessageBox;
 import CmdLineParser;
 import IconMenu;
 import StandAloneDlg;
 import MenuButton;
+import SysProgressDlg;
+import TGitCache.CacheInterface;
 
+using namespace tgit;
+using namespace StandAloneDlg;
+using namespace TGitCache;
 
 namespace ProgressDlg {
 #define MSG_PROGRESSDLG_UPDATE_UI	(WM_USER+121)
@@ -189,10 +195,6 @@ private:
 #define REFRESHTIMER 100
 
 // CProgressDlg dialog
-
-namespace TGitCache {
-	class CBlockCacheForPath;
-}
 
 
 
@@ -482,17 +484,6 @@ LRESULT CProgressDlg::OnProgressUpdateUI(WPARAM wParam, LPARAM lParam)
 		m_GitStatus = static_cast<DWORD>(lParam);
 		if (m_GitCmd.empty() && m_GitCmdList.empty())
 			m_GitStatus = DWORD(-1);
-
-		// detect crashes of perl when performing git svn actions
-		// The old test was m_GitCmd.Find(L" svn ") > 1 on the flat line, which is
-		// the same question asked awkwardly: is this a "git svn ..." command?
-		if (m_GitStatus == 0 && m_GitCmd.size() > 1 && m_GitCmd[1] == L"svn")
-		{
-			CString log;
-			m_Log.GetWindowText(log);
-			if (log.GetLength() > 18 && log.Mid(log.GetLength() - 18) == L"perl.exe.stackdump")
-				m_GitStatus = DWORD(-1);
-		}
 
 		if (m_PostExecCallback)
 		{

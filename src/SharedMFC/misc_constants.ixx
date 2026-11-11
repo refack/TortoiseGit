@@ -14,6 +14,7 @@ constexpr auto GITLOG_START = 0;
 constexpr auto GITLOG_END = 100;
 constexpr auto GITLOG_FAILED = 101;
 
+constexpr auto LOGFILTER_NONE = 0;
 constexpr auto LOGFILTER_ALL = 0xFFFF;
 constexpr auto LOGFILTER_TOGGLE = 0x8000;
 constexpr auto LOGFILTER_MESSAGES = 0x0001;

@@ -1,4 +1,4 @@
-﻿// TortoiseGit - a Windows shell extension for easy version control
+// TortoiseGit - a Windows shell extension for easy version control
 
 // Copyright (C) 2008-2022, 2024-2025 - TortoiseGit
 
@@ -28,7 +28,7 @@ import TortoiseProc;
 import AppUtils.Window;
 import AppUtils.Workflow;
 #include "SelectRemoteRefDlg.h"
-import MessageBox;
+import TGitMessageBox;
 
 // CPullFetchDlg dialog
 

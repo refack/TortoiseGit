@@ -1,12 +1,6 @@
 ﻿module;
 #include "stdafx.h"
 
-#include "../TortoiseProc/MiscUI/SysProgressDlg.h"
-
-import ProgressDlg;
-
-#include <Resources/LoglistCommonResource.h>
-
 
 export module GitTagCompareList;
 import tgit;
@@ -17,6 +11,8 @@ import TortoiseProc;
 import GitHash;
 import HintCtrl;
 import IconMenu;
+import ProgressDlg;
+import SysProgressDlg;
 
 using namespace tgit::libgit2;
 

@@ -1,4 +1,4 @@
-﻿// TortoiseGit - a Windows shell extension for easy version control
+// TortoiseGit - a Windows shell extension for easy version control
 
 // Copyright (C) 2026 - TortoiseGit
 
@@ -21,7 +21,7 @@
 #include "std.h"
 
 #include "InaccessibleCommand.h"
-import MessageBox;
+import TGitMessageBox;
 
 bool InaccessibleCommand ::Execute()
 {

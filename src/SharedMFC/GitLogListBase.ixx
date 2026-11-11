@@ -1,14 +1,9 @@
 module;
-#include <map>
-#include <afxcmn.h>
+#include <stdafx.h>
 
 #include <gitdll.h>
 #include "Utils/LogDataVector.h"
 #include "ProtoModules/LoglistUtils.h"
-
-#include "Resources/resource.h"
-#include "../TortoiseShell/resource.h"
-#include <Resources/LoglistCommonResource.h>
 
 
 export module GitLogListBase;
@@ -22,7 +17,7 @@ import RIAA;
 import misc_constants;
 import wil.MFC;
 import GitMailmap;
-import MessageBox;
+import TGitMessageBox;
 import DPIAware;
 import ProjectProperties;
 import ResizableColumnsListCtrl;
@@ -42,18 +37,68 @@ using namespace RIAA;
 
 export namespace GitLogList {
 
-constexpr auto LOGLIST_MESSAGE_MIN_WIDTH  = 200;
-
-
-class CLogDlgFilter;
 using Locker = CComCritSecLock<CComCriticalSection>;
 
+constexpr auto LOGLIST_MESSAGE_MIN_WIDTH = 200;
+
+
+
+enum class RollUpState {
+	Expand, // Parents of the node should be shown even in a compressed graph
+	Collapse, // Parents of the node should be hidden
+};
+
+
+
+class CGitLogListBase;
+
+/// The log list's live filter: one plain value behind one lock.
+/// Viewers copy the whole filter out and work on their copy, lock released.
+/// A writer builds the new filter outside, then swaps it in whole. A reader sees
+/// the old filter or the new one, never a mix; nobody holds the lock while matching.
+class CLogDlgFilter {
+public:
+	CLogDlgFilter() = default;
+	CLogDlgFilter(const CLogDlgFilter&) = delete;
+	CLogDlgFilter& operator=(const CLogDlgFilter&) = delete;
+
+	[[nodiscard]] CFilterHelper Snapshot() const {
+		std::scoped_lock _{ m_lock };
+		return m_filter;
+	}
+
+	void Replace(CFilterHelper next) {
+		std::scoped_lock _{ m_lock };
+		m_filter = std::move(next);	// noexcept move: the commit cannot fail halfway
+	}
+
+private:
+	mutable std::mutex m_lock;
+	CFilterHelper m_filter;
+};
+
+
+/// Does pRev pass `filter`? Writes `filter.scratch`, so pass your own snapshot, not a shared one.
+bool FilterAccepts(const CFilterHelper& filter, GitRevLoglist* pRev, CGitLogListBase* loglist, const MAP_HASH_NAME& hashMapRefs);
+
+
+/// Highlight ranges for the subject column: subject matches, plus message matches when the
+/// column shows the full message.
+std::vector<CHARRANGE> SubjectMatchRanges(const CFilterHelper& filter, const CString& msg, const bool fullMessage) {
+	std::vector<CHARRANGE> ranges;
+	const DWORD columns = LOGFILTER_SUBJECT | (fullMessage ? LOGFILTER_MESSAGES : 0);
+	if ((filter.GetSelectedFilters() & columns) && filter.IsFilterActive())
+		filter.GetMatchRanges(ranges, msg, 0);
+	return ranges;
+}
+
+
 class CGitLogListBase : public CHintCtrl<CResizableColumnsListCtrl<CListCtrl>>, public IAsyncDiffCB {
+public:
 	DECLARE_DYNAMIC(CGitLogListBase)
 
-public:
 	CGitLogListBase();
-	virtual ~CGitLogListBase();
+	~CGitLogListBase() override;
 	ProjectProperties m_ProjectProperties;
 
 
@@ -67,7 +112,7 @@ public:
 	}
 
 
-	void ResetWcRev(bool refresh = false) {
+	void ResetWcRev(const bool refresh = false) {
 		if (GetSafeHwnd()) {
 			CWnd* pParent = GetParent();
 			if (pParent && pParent->GetSafeHwnd())
@@ -123,9 +168,9 @@ public:
 
 
 
-	// don't forget to bump BLAME_COLUMN_VERSION in GitStatusListCtrlHelpers.cpp if you change columns
-	enum {
-		LOGLIST_GRAPH,
+	// don't forget to bump columnVersion in CGitLogListBase::InsertGitColumn if you change columns
+	enum : std::uint32_t {
+		LOGLIST_GRAPH = 0,
 		LOGLIST_REBASE,
 		LOGLIST_ID,
 		LOGLIST_HASH,
@@ -138,23 +183,23 @@ public:
 		LOGLIST_COMMIT_EMAIL,
 		LOGLIST_COMMIT_DATE,
 		LOGLIST_BUG,
-		LOGLIST_SVNREV,
+		LOGLIST_NPOS = -1,
 
-		GIT_LOG_GRAPH = 1 << LOGLIST_GRAPH,
-		GIT_LOG_REBASE = 1 << LOGLIST_REBASE,
-		GIT_LOG_ID = 1 << LOGLIST_ID,
-		GIT_LOG_HASH = 1 << LOGLIST_HASH,
-		GIT_LOG_ACTIONS = 1 << LOGLIST_ACTION,
-		GIT_LOG_MESSAGE = 1 << LOGLIST_MESSAGE,
-		GIT_LOG_AUTHOR = 1 << LOGLIST_AUTHOR,
-		GIT_LOG_DATE = 1 << LOGLIST_DATE,
-		GIT_LOG_EMAIL = 1 << LOGLIST_EMAIL,
-		GIT_LOG_COMMIT_NAME = 1 << LOGLIST_COMMIT_NAME,
-		GIT_LOG_COMMIT_EMAIL = 1 << LOGLIST_COMMIT_EMAIL,
-		GIT_LOG_COMMIT_DATE = 1 << LOGLIST_COMMIT_DATE,
-		GIT_LOGLIST_BUG = 1 << LOGLIST_BUG,
-		GIT_LOGLIST_SVNREV = 1 << LOGLIST_SVNREV,
+		GIT_LOG_GRAPH = 1U << LOGLIST_GRAPH,
+		GIT_LOG_REBASE = 1U << LOGLIST_REBASE,
+		GIT_LOG_ID = 1U << LOGLIST_ID,
+		GIT_LOG_HASH = 1U << LOGLIST_HASH,
+		GIT_LOG_ACTIONS = 1U << LOGLIST_ACTION,
+		GIT_LOG_MESSAGE = 1U << LOGLIST_MESSAGE,
+		GIT_LOG_AUTHOR = 1U << LOGLIST_AUTHOR,
+		GIT_LOG_DATE = 1U << LOGLIST_DATE,
+		GIT_LOG_EMAIL = 1U << LOGLIST_EMAIL,
+		GIT_LOG_COMMIT_NAME = 1U << LOGLIST_COMMIT_NAME,
+		GIT_LOG_COMMIT_EMAIL = 1U << LOGLIST_COMMIT_EMAIL,
+		GIT_LOG_COMMIT_DATE = 1U << LOGLIST_COMMIT_DATE,
+		GIT_LOGLIST_BUG = 1U << LOGLIST_BUG,
 	};
+
 
 
 	enum {
@@ -218,7 +263,6 @@ public:
 		ID_BISECTBAD,
 		ID_BISECTRESET,
 		ID_BISECTSKIP,
-		ID_SVNDCOMMIT,
 		ID_COMPARETWOCOMMITCHANGES,
 		ID_TOGGLE_ROLLUP,
 		// the following can be >= 64 as those are not used for GetContextMenuBit(), all others must be < 64 in order to fit into __int64
@@ -259,7 +303,7 @@ public:
 
 
 	static_assert(ID_COMPARETWOCOMMITCHANGES < 64 && ID_COPYCLIPBOARDFULL <= 64, "IDs must be <64 in order to be usable in a bitfield");
-	static constexpr unsigned __int64 GetContextMenuBit(int i) noexcept { return unsigned __int64(0x1) << i; }
+	static constexpr unsigned __int64 GetContextMenuBit(const int i) noexcept { return unsigned __int64(0x1) << i; }
 	static CString GetRebaseActionName(int action);
 	void InsertGitColumn();
 	virtual void CopySelectionToClipBoard(int toCopy = ID_COPYCLIPBOARDFULL);
@@ -308,15 +352,9 @@ public:
 	FilterShow m_ShowFilter = FILTERSHOW_ALL;
 	CLogDataVector m_logEntries;
 
-	std::atomic<std::shared_ptr<CLogDlgFilter>> m_LogFilter = std::make_shared<CLogDlgFilter>();
 	CFilterData m_Filter;
 
-
-
-	enum class RollUpState {
-		Expand, // Parents of the node should be shown even in a compressed graph
-		Collapse, // Parents of the node should be hidden
-	};
+	CLogDlgFilter m_LogFilter;
 
 
 
@@ -463,41 +501,49 @@ protected:
 	 * pShortname OUT: the short name of that reference label
 	 * pIndex     OUT: the index value of label of that entry
 	 */
-	bool IsMouseOnRefLabel(const GitRevLoglist* pLogEntry,
-	                       const POINT& pt,
-	                       TGitH::REF_TYPE& type,
-	                       const MAP_HASH_NAME& hashMap,
-	                       CString* pShortname = nullptr,
-	                       size_t* pIndex = nullptr);
-	bool IsMouseOnRefLabelFromPopupMenu(const GitRevLoglist* pLogEntry,
-	                                    const CPoint& pt,
-	                                    TGitH::REF_TYPE& type,
-	                                    const MAP_HASH_NAME& hashMap,
-	                                    CString* pShortname = nullptr,
-	                                    size_t* pIndex = nullptr);
+	bool IsMouseOnRefLabel(
+		const GitRevLoglist* pLogEntry,
+		const POINT& pt,
+		TGitH::REF_TYPE& type,
+		const MAP_HASH_NAME& hashMap,
+		CString* pShortname = nullptr,
+		size_t* pIndex = nullptr
+	);
+	bool IsMouseOnRefLabelFromPopupMenu(
+		const GitRevLoglist* pLogEntry,
+		const CPoint& pt,
+		TGitH::REF_TYPE& type,
+		const MAP_HASH_NAME& hashMap,
+		CString* pShortname = nullptr,
+		size_t* pIndex = nullptr
+	);
 
 	void FillBackGround(HDC hdc, DWORD_PTR Index, CRect& rect);
 	void DrawTagBranchMessage(NMLVCUSTOMDRAW* pLVCD, const CRect& rect, INT_PTR index, const std::vector<REFLABEL>& refList);
-	void DrawTagBranch(HDC hdc,
-	                   CDC& W_Dc,
-	                   HTHEME hTheme,
-	                   const CRect& rect,
-	                   CRect& rt,
-	                   LVITEM& rItem,
-	                   GitRevLoglist* data,
-	                   const std::vector<REFLABEL>& refList);
+	void DrawTagBranch(
+		HDC hdc,
+		CDC& W_Dc,
+		HTHEME hTheme,
+		const CRect& rect,
+		CRect& rt,
+		LVITEM& rItem,
+		GitRevLoglist* data,
+		const std::vector<REFLABEL>& refList
+	);
 	void DrawGraph(HDC, CRect& rect, INT_PTR index);
-	bool DrawListItemWithMatchesIfEnabled(std::shared_ptr<CLogDlgFilter> filter, std::int32_t selectedFilter, NMLVCUSTOMDRAW* pLVCD, LRESULT* pResult);
-	static void DrawListItemWithMatchesRect(NMLVCUSTOMDRAW* pLVCD,
-	                                        const std::vector<CHARRANGE>& ranges,
-	                                        CRect rect,
-	                                        const CString& text,
-	                                        HTHEME hTheme = nullptr,
-	                                        int txtState = 0);
+	bool DrawListItemWithMatchesIfEnabled(std::int32_t selectedFilter, NMLVCUSTOMDRAW* pLVCD, LRESULT* pResult);
+	static void DrawListItemWithMatchesRect(
+		NMLVCUSTOMDRAW* pLVCD,
+		const std::vector<CHARRANGE>& ranges,
+		CRect rect,
+		const CString& text,
+		HTHEME hTheme = {},
+		int txtState = 0
+	);
 
 public:
 	// needs to be called from LogDlg.cpp and FileDiffDlg.cpp
-	static LRESULT DrawListItemWithMatches(CFilterHelper* filter, CListCtrl& listCtrl, NMLVCUSTOMDRAW* pLVCD);
+	static LRESULT DrawListItemWithMatches(const CFilterHelper& filter, const CListCtrl& listCtrl, NMLVCUSTOMDRAW* pLVCD);
 
 protected:
 	void paintGraphLane(HDC hdc,
@@ -511,7 +557,7 @@ protected:
 	                    int top);
 
 
-	void DrawLine(HDC hdc, int x1, int y1, int x2, int y2) {
+	void DrawLine(const HDC hdc, const int x1, const int y1, const int x2, const int y2) {
 		::MoveToEx(hdc, x1, y1, nullptr);
 		::LineTo(hdc, x2, y2);
 	}
@@ -555,7 +601,7 @@ protected:
 	}
 
 
-	static UINT AsyncThread(LPVOID data) {
+	static UINT AsyncThread(const LPVOID data) {
 		return reinterpret_cast<CGitLogListBase*>(data)->AsyncDiffThread();
 	}
 
@@ -627,103 +673,90 @@ protected:
 
 public:
 	std::atomic<int> m_nCacheSelectedItem;
-	void EnableDragnDrop(bool enable) { m_bDragndropEnabled = enable; }
+	void EnableDragnDrop(const bool enable) { m_bDragndropEnabled = enable; }
 };
 
-class CLogDlgFilter : public CFilterHelper {
-public:
-	/// construction
-	using CFilterHelper::CFilterHelper;
 
-	/// apply filter
-	bool operator()(GitRevLoglist* pRev, CGitLogListBase* loglist, const MAP_HASH_NAME& hashMapRefs) const {
-		if (!IsFilterActive())
-			return CalculateFinalResult(true);
+bool FilterAccepts(const CFilterHelper& core, GitRevLoglist* pRev, CGitLogListBase* loglist, const MAP_HASH_NAME& hashMapRefs) {
+	if (!core.IsFilterActive())
+		return core.CalculateFinalResult(true);
 
-		// we need to perform expensive string / pattern matching
-		scratch.clear();
-		if (GetSelectedFilters() & (LOGFILTER_SUBJECT | LOGFILTER_MESSAGES)) {
-			scratch += pRev->GetSubject();
-			scratch += L'\n';
-		}
-		if (GetSelectedFilters() & LOGFILTER_MESSAGES) {
-			scratch += pRev->GetBody();
-			scratch += L'\n';
-		}
-		if (GetSelectedFilters() & LOGFILTER_BUGID) {
-			scratch += loglist->m_ProjectProperties.FindBugID(pRev->GetSubjectBody());
-			scratch += L'\n';
-		}
-		if (GetSelectedFilters() & LOGFILTER_AUTHORS) {
-			scratch += pRev->GetAuthorName();
-			scratch += L'\n';
-			scratch += pRev->GetCommitterName();
-			scratch += L'\n';
-		}
-		if (GetSelectedFilters() & LOGFILTER_EMAILS) {
-			scratch += pRev->GetAuthorEmail();
-			scratch += L'\n';
-			scratch += pRev->GetCommitterEmail();
-			scratch += L'\n';
-		}
-		if (GetSelectedFilters() & LOGFILTER_REVS) {
-			scratch += pRev->m_CommitHash.ToString();
-			scratch += L'\n';
-		}
-		if (GetSelectedFilters() & LOGFILTER_NOTES) {
-			scratch += pRev->m_Notes;
-			scratch += L'\n';
-		}
-		if (GetSelectedFilters() & (LOGFILTER_REFNAME | LOGFILTER_ANNOTATEDTAG)) {
-			auto refList = hashMapRefs.find(pRev->m_CommitHash);
-			if (refList != hashMapRefs.cend()) {
-				if (GetSelectedFilters() & LOGFILTER_REFNAME) {
-					for (const auto& ref : (*refList).second) {
-						scratch += ref;
-						scratch += L'\n';
-					}
-				}
-				if (GetSelectedFilters() & LOGFILTER_ANNOTATEDTAG) {
-					scratch += loglist->GetTagInfo((*refList).second);
-					scratch += L'\n';
+	// we need to perform expensive string / pattern matching
+	core.scratch.clear();
+	if (core.GetSelectedFilters() & (LOGFILTER_SUBJECT | LOGFILTER_MESSAGES)) {
+		core.scratch += pRev->GetSubject();
+		core.scratch += L'\n';
+	}
+	if (core.GetSelectedFilters() & LOGFILTER_MESSAGES) {
+		core.scratch += pRev->GetBody();
+		core.scratch += L'\n';
+	}
+	if (core.GetSelectedFilters() & LOGFILTER_BUGID) {
+		core.scratch += loglist->m_ProjectProperties.FindBugID(pRev->GetSubjectBody());
+		core.scratch += L'\n';
+	}
+	if (core.GetSelectedFilters() & LOGFILTER_AUTHORS) {
+		core.scratch += pRev->GetAuthorName();
+		core.scratch += L'\n';
+		core.scratch += pRev->GetCommitterName();
+		core.scratch += L'\n';
+	}
+	if (core.GetSelectedFilters() & LOGFILTER_EMAILS) {
+		core.scratch += pRev->GetAuthorEmail();
+		core.scratch += L'\n';
+		core.scratch += pRev->GetCommitterEmail();
+		core.scratch += L'\n';
+	}
+	if (core.GetSelectedFilters() & LOGFILTER_REVS) {
+		core.scratch += pRev->m_CommitHash.ToString();
+		core.scratch += L'\n';
+	}
+	if (core.GetSelectedFilters() & LOGFILTER_NOTES) {
+		core.scratch += pRev->m_Notes;
+		core.scratch += L'\n';
+	}
+	if (core.GetSelectedFilters() & (LOGFILTER_REFNAME | LOGFILTER_ANNOTATEDTAG)) {
+		auto refList = hashMapRefs.find(pRev->m_CommitHash);
+		if (refList != hashMapRefs.cend()) {
+			if (core.GetSelectedFilters() & LOGFILTER_REFNAME) {
+				for (const auto& ref : (*refList).second) {
+					core.scratch += ref;
+					core.scratch += L'\n';
 				}
 			}
-		}
-		if (GetSelectedFilters() & LOGFILTER_PATHS) {
-			/* Because changed files list is loaded on demand when gui show, files will empty when files have not fetched.
-			   we can add it back by using one-way diff(with outnumber changed and rename detect.
-			   here just need changed filename list. one-way is much quicker.
-			 */
-			if (pRev->m_IsDiffFiles || loglist->IsCached(pRev)) {
-				auto pathList = pRev->GetFiles(loglist);
-				for (int i = 0; i < pathList.GetCount(); ++i) {
-					scratch += pathList[i].GetGitPathString().c_str();
-					scratch += L'|';
-					scratch += pathList[i].GetGitOldPathString().c_str();
-					scratch += L'\n';
-				}
-			} else {
-				if (!pRev->m_IsSimpleListReady)
-					pRev->SafeGetSimpleList(&g_Git);
-
-				for (size_t i = 0; i < pRev->m_SimpleFileList.size(); ++i) {
-					scratch += pRev->m_SimpleFileList[i];
-					scratch += L'\n';
-				}
+			if (core.GetSelectedFilters() & LOGFILTER_ANNOTATEDTAG) {
+				core.scratch += loglist->GetTagInfo((*refList).second);
+				core.scratch += L'\n';
 			}
 		}
+	}
+	if (core.GetSelectedFilters() & LOGFILTER_PATHS) {
+		/* Because changed files list is loaded on demand when gui show, files will empty when files have not fetched.
+		   we can add it back by using one-way diff(with outnumber changed and rename detect.
+		   here just need changed filename list. one-way is much quicker.
+		 */
+		if (pRev->m_IsDiffFiles || loglist->IsCached(pRev)) {
+			auto pathList = pRev->GetFiles(loglist);
+			for (int i = 0; i < pathList.GetCount(); ++i) {
+				core.scratch += pathList[i].GetGitPathString().c_str();
+				core.scratch += L'|';
+				core.scratch += pathList[i].GetGitOldPathString().c_str();
+				core.scratch += L'\n';
+			}
+		} else {
+			if (!pRev->m_IsSimpleListReady)
+				pRev->SafeGetSimpleList(&g_Git);
 
-		return CalculateFinalResult(Match(scratch));
+			for (size_t i = 0; i < pRev->m_SimpleFileList.size(); ++i) {
+				core.scratch += pRev->m_SimpleFileList[i];
+				core.scratch += L'\n';
+			}
+		}
 	}
 
+	return core.CalculateFinalResult(core.Match(core.scratch));
+}
 
-	/// assignment operator
-	using CFilterHelper::operator=;
-
-	/// compare filter specs
-	using CFilterHelper::operator==;
-	using CFilterHelper::operator!=;
-};
 
 
 const UINT CGitLogListBase::m_FindDialogMessage = RegisterWindowMessage(FINDMSGSTRING);
@@ -821,7 +854,7 @@ int CGitLogListBase::AsyncDiffThread() {
 		while (!m_AsyncThreadExit) {
 			GitRevLoglist* pRev;
 			{
-				Locker lock(m_AsynDiffListLock);
+				Locker _(m_AsynDiffListLock);
 				if (m_AsynDiffList.empty())
 					break;
 				pRev = m_AsynDiffList.back();
@@ -894,7 +927,7 @@ int CGitLogListBase::AsyncDiffThread() {
 }
 
 
-void CGitLogListBase::hideFromContextMenu(unsigned __int64 hideMask, bool exclusivelyShow) {
+void CGitLogListBase::hideFromContextMenu(const unsigned __int64 hideMask, const bool exclusivelyShow) {
 	if (exclusivelyShow)
 		m_ContextMenuMask &= hideMask;
 	else
@@ -939,13 +972,13 @@ BEGIN_MESSAGE_MAP(CGitLogListBase, CHintCtrl<CResizableColumnsListCtrl<CListCtrl
 END_MESSAGE_MAP()
 
 
-void CGitLogListBase::MeasureItem(LPMEASUREITEMSTRUCT lpMeasureItemStruct) {
+void CGitLogListBase::MeasureItem(const LPMEASUREITEMSTRUCT lpMeasureItemStruct) {
 	//if (m_nRowHeight>0)
 	lpMeasureItemStruct->itemHeight = CDPIAware::Instance().ScaleY(GetSafeHwnd(), 50);
 }
 
 
-int CGitLogListBase::OnCreate(LPCREATESTRUCT lpCreateStruct) {
+int CGitLogListBase::OnCreate(const LPCREATESTRUCT lpCreateStruct) {
 	PreSubclassWindow();
 	return __super::OnCreate(lpCreateStruct);
 }
@@ -964,7 +997,7 @@ void CGitLogListBase::PreSubclassWindow() {
 }
 
 
-CString CGitLogListBase::GetRebaseActionName(int action) {
+CString CGitLogListBase::GetRebaseActionName(const int action) {
 	if (action & LOGACTIONS_REBASE_EDIT)
 		return MAKEINTRESOURCE(IDS_PATHACTIONS_EDIT);
 	if (action & LOGACTIONS_REBASE_SQUASH)
@@ -1006,10 +1039,10 @@ void CGitLogListBase::InsertGitColumn() {
 
 	const auto iconItemBorder = CDPIAware::Instance().ScaleX(GetSafeHwnd(), ICONITEMBORDER);
 	const auto columnWidth = CDPIAware::Instance().ScaleX(GetSafeHwnd(), ICONITEMBORDER + 16 * 4);
-	const auto hasSVNDir = CTGitPath(GitCall::m_CurrentDirStorage).HasGitSVNDir();
 
-	const auto columns = std::array<ColumnDefinition, 14>{
-		ColumnDefinition{ .localId = LOGLIST_GRAPH, .title = IDS_LOG_GRAPH, .visibleByDefault = true, .available = !m_IsRebaseReplaceGraph, .defaultWidth = columnWidth },
+	const auto columns = std::array<ColumnDefinition, 13>{
+		ColumnDefinition{ .localId = LOGLIST_GRAPH, .title = IDS_LOG_GRAPH, .visibleByDefault = true, .available = !m_IsRebaseReplaceGraph,
+		                  .defaultWidth = columnWidth },
 		{ LOGLIST_REBASE, IDS_LOG_REBASE, m_IsRebaseReplaceGraph != 0, m_IsRebaseReplaceGraph != 0, columnWidth },
 		{ LOGLIST_ID, IDS_LOG_ID, m_IsIDReplaceAction != 0, m_IsIDReplaceAction != 0, columnWidth },
 		{ LOGLIST_HASH, IDS_LOG_HASH, m_IsIDReplaceAction != 0, true, columnWidth },
@@ -1022,12 +1055,11 @@ void CGitLogListBase::InsertGitColumn() {
 		{ LOGLIST_COMMIT_EMAIL, IDS_LOG_COMMIT_EMAIL, false, true, columnWidth },
 		{ LOGLIST_COMMIT_DATE, IDS_LOG_COMMIT_DATE, false, true, columnWidth },
 		{ LOGLIST_BUG, IDS_LOG_BUGIDS, m_bShowBugtraqColumn != 0, m_bShowBugtraqColumn != 0, columnWidth },
-		{ LOGLIST_SVNREV, IDS_LOG_SVNREV, hasSVNDir, hasSVNDir, columnWidth }
 	};
 
 	SetRedraw(false);
 
-	constexpr int columnVersion = 6; // adjust when changing number/names/etc. of columns
+	constexpr int columnVersion = 7; // adjust when changing number/names/etc. of columns (7: SVN-rev column removed)
 	m_ColumnManager.ReadSettings(columns, m_ColumnRegKey + L"loglist", columnVersion);
 	m_ColumnManager.SetRightAlign(LOGLIST_ID);
 
@@ -1044,7 +1076,7 @@ void CGitLogListBase::InsertGitColumn() {
 }
 
 
-void CGitLogListBase::FillBackGround(HDC hdc, DWORD_PTR Index, CRect& rect) {
+void CGitLogListBase::FillBackGround(const HDC hdc, const DWORD_PTR Index, CRect& rect) {
 	LVITEM rItem = { 0 };
 	rItem.mask = LVIF_STATE;
 	rItem.iItem = static_cast<int>(Index);
@@ -1075,7 +1107,7 @@ void CGitLogListBase::FillBackGround(HDC hdc, DWORD_PTR Index, CRect& rect) {
 }
 
 
-void CGitLogListBase::DrawTagBranchMessage(NMLVCUSTOMDRAW* pLVCD, const CRect& rect, INT_PTR index, const std::vector<REFLABEL>& refList) {
+void CGitLogListBase::DrawTagBranchMessage(NMLVCUSTOMDRAW* pLVCD, const CRect& rect, const INT_PTR index, const std::vector<REFLABEL>& refList) {
 	GitRevLoglist* data = m_arShownList.SafeGetAt(index);
 	CRect rt = rect;
 	LVITEM rItem = { 0 };
@@ -1097,7 +1129,7 @@ void CGitLogListBase::DrawTagBranchMessage(NMLVCUSTOMDRAW* pLVCD, const CRect& r
 		GetTextExtentPoint32(pLVCD->nmcd.hdc, L" ", 1, &oneSpaceSize);
 		int borderWidth = 0;
 		if (hTheme)
-			GetThemeMetric(hTheme, pLVCD->nmcd.hdc, LVP_LISTITEM, LISS_NORMAL, TMT_BORDERSIZE, &borderWidth);
+			std::ignore = GetThemeMetric(hTheme, pLVCD->nmcd.hdc, LVP_LISTITEM, LISS_NORMAL, TMT_BORDERSIZE, &borderWidth);
 		SelectObject(pLVCD->nmcd.hdc, oldFont);
 		rt.left += borderWidth + oneSpaceSize.cx;
 	} else {
@@ -1107,47 +1139,39 @@ void CGitLogListBase::DrawTagBranchMessage(NMLVCUSTOMDRAW* pLVCD, const CRect& r
 		rt.left += oneSpaceSize.cx;
 	}
 
-	CString msg = MessageDisplayStr(data);
-	const int action = data->GetRebaseAction();
-	const bool skip = !!(action & (LOGACTIONS_REBASE_DONE | LOGACTIONS_REBASE_SKIP));
-	std::vector<CHARRANGE> ranges;
-	auto filter{ m_LogFilter.load() };
-	if ((filter->GetSelectedFilters() & (LOGFILTER_SUBJECT | (m_bFullCommitMessageOnLogLine ? LOGFILTER_MESSAGES : 0))) && filter->IsFilterActive())
-		filter->GetMatchRanges(ranges, msg, 0);
+	const auto action = data->GetRebaseAction();
+	const auto skip = !!(action & (LOGACTIONS_REBASE_DONE | LOGACTIONS_REBASE_SKIP));
+	const auto msg = MessageDisplayStr(data);
+	const auto ranges = SubjectMatchRanges(m_LogFilter.Snapshot(), msg, m_bFullCommitMessageOnLogLine);
+
+	constexpr auto txt_flgs = DT_NOPREFIX | DT_LEFT | DT_SINGLELINE | DT_VCENTER | DT_END_ELLIPSIS;
+	constexpr auto MidGrey = RGB(128, 128, 128);
+
 	if (hTheme) {
 		int txtState = LISS_NORMAL;
 		if (rItem.state & LVIS_SELECTED)
 			txtState = LISS_SELECTED;
 
-		if (!ranges.empty())
-			DrawListItemWithMatchesRect(pLVCD, ranges, rt, msg, hTheme, txtState);
-		else {
+		if (ranges.empty()) {
 			DTTOPTS opts = { 0 };
 			opts.dwSize = sizeof(opts);
-			opts.crText = skip ? RGB(128, 128, 128) : CTheme::Instance().IsDarkTheme() ? CTheme::darkTextColor : GetSysColor(COLOR_WINDOWTEXT);
+			opts.crText = skip ? MidGrey : CTheme::Instance().IsDarkTheme() ? CTheme::darkTextColor : GetSysColor(COLOR_WINDOWTEXT);
 			opts.dwFlags = DTT_TEXTCOLOR;
-			DrawThemeTextEx(hTheme,
-			                pLVCD->nmcd.hdc,
-			                LVP_LISTITEM,
-			                txtState,
-			                msg,
-			                -1,
-			                DT_NOPREFIX | DT_LEFT | DT_SINGLELINE | DT_VCENTER | DT_END_ELLIPSIS,
-			                &rt,
-			                &opts);
+			std::ignore = DrawThemeTextEx(hTheme, pLVCD->nmcd.hdc, LVP_LISTITEM, txtState, msg, -1, txt_flgs, &rt, &opts);
+		} else {
+			DrawListItemWithMatchesRect(pLVCD, ranges, rt, msg, hTheme, txtState);
 		}
 	} else {
 		if ((rItem.state & LVIS_SELECTED) && ::GetFocus() == m_hWnd)
-			pLVCD->clrText = skip ? RGB(128, 128, 128) : ::GetSysColor(COLOR_HIGHLIGHTTEXT);
+			pLVCD->clrText = skip ? MidGrey : ::GetSysColor(COLOR_HIGHLIGHTTEXT);
 		else
-			pLVCD->clrText = skip ? RGB(128, 128, 128) : CTheme::Instance().IsDarkTheme() ? CTheme::darkTextColor : GetSysColor(COLOR_WINDOWTEXT);
-		if (!ranges.empty())
-			DrawListItemWithMatchesRect(pLVCD, ranges, rt, msg);
-		else {
+			pLVCD->clrText = skip ? MidGrey : CTheme::Instance().IsDarkTheme() ? CTheme::darkTextColor : GetSysColor(COLOR_WINDOWTEXT);
+		if (ranges.empty()) {
 			COLORREF clrOld = ::SetTextColor(pLVCD->nmcd.hdc, pLVCD->clrText);
-			::DrawText(pLVCD->nmcd.hdc, msg, msg.GetLength(), &rt, DT_NOPREFIX | DT_LEFT | DT_SINGLELINE | DT_VCENTER | DT_END_ELLIPSIS);
+			::DrawText(pLVCD->nmcd.hdc, msg, msg.GetLength(), &rt, txt_flgs);
 			::SetTextColor(pLVCD->nmcd.hdc, clrOld);
-		}
+		} else
+			DrawListItemWithMatchesRect(pLVCD, ranges, rt, msg);
 	}
 
 	if (m_bTagsBranchesOnRightSide) {
@@ -1166,9 +1190,9 @@ void CGitLogListBase::DrawTagBranchMessage(NMLVCUSTOMDRAW* pLVCD, const CRect& r
 }
 
 
-void CGitLogListBase::DrawTagBranch(HDC hdc,
+void CGitLogListBase::DrawTagBranch(const HDC hdc,
                                     CDC& W_Dc,
-                                    HTHEME hTheme,
+                                    const HTHEME hTheme,
                                     const CRect& rect,
                                     CRect& rt,
                                     LVITEM& rItem,
@@ -1294,15 +1318,15 @@ void CGitLogListBase::DrawTagBranch(HDC hdc,
 }
 
 
-void CGitLogListBase::paintGraphLane(HDC hdc,
-                                     int laneHeight,
-                                     Lanes::LaneType type,
-                                     bool rolledUp,
+void CGitLogListBase::paintGraphLane(const HDC hdc,
+                                     const int laneHeight,
+                                     const Lanes::LaneType type,
+                                     const bool rolledUp,
                                      int x1,
-                                     int x2,
+                                     const int x2,
                                      const COLORREF& col,
                                      const COLORREF& activeColor,
-                                     int top
+                                     const int top
 ) {
 	const int h = laneHeight / 2;
 	const int m = (x1 + x2) / 2;
@@ -1612,7 +1636,7 @@ void CGitLogListBase::paintGraphLane(HDC hdc,
 }
 
 
-void CGitLogListBase::DrawGraph(HDC hdc, CRect& rect, INT_PTR index) {
+void CGitLogListBase::DrawGraph(HDC hdc, CRect& rect, const INT_PTR index) {
 	// TODO: unfinished
 	//	return;
 	GitRevLoglist* data = m_arShownList.SafeGetAt(index);
@@ -1759,9 +1783,10 @@ void CGitLogListBase::OnNMCustomdrawLoglist(NMHDR* pNMHDR, LRESULT* pResult) {
 	break;
 
 	case CDDS_ITEMPREPAINT | CDDS_ITEM | CDDS_SUBITEM: {
+		auto gui_status = LOGFILTER_NONE;
 		switch (pLVCD->iSubItem) {
-		case LOGLIST_GRAPH:
-			if ((m_ShowFilter & FILTERSHOW_MERGEPOINTS) && !m_LogFilter.load()->IsFilterActive()) {
+		case LOGLIST_GRAPH: {
+			if ((m_ShowFilter & FILTERSHOW_MERGEPOINTS) && !m_LogFilter.Snapshot().IsFilterActive()) {
 				if (m_arShownList.size() > pLVCD->nmcd.dwItemSpec && !this->m_IsRebaseReplaceGraph) {
 					CRect rect;
 					GetSubItemRect(static_cast<int>(pLVCD->nmcd.dwItemSpec), pLVCD->iSubItem, LVIR_LABEL, rect);
@@ -1778,8 +1803,9 @@ void CGitLogListBase::OnNMCustomdrawLoglist(NMHDR* pNMHDR, LRESULT* pResult) {
 				}
 			}
 			break;
+		}
 
-		case LOGLIST_MESSAGE:
+		case LOGLIST_MESSAGE: {
 			// If the top index of list is changed, the position map of reference label is outdated.
 			if (m_OldTopIndex != GetTopIndex()) {
 				m_OldTopIndex = GetTopIndex();
@@ -1911,11 +1937,11 @@ void CGitLogListBase::OnNMCustomdrawLoglist(NMHDR* pNMHDR, LRESULT* pResult) {
 							if (!(m_ShowRefMask & LOGLIST_SHOWBISECT))
 								continue;
 							refLabel.color = CTheme::Instance().GetThemeColor((refLabel.refType == TGitH::REF_TYPE::BISECT_GOOD) ?
-							                                                  g_Colors.GetColor(CColors::BisectGood) :
-							                                                  ((refLabel.refType == TGitH::REF_TYPE::BISECT_SKIP) ?
-								                                                  g_Colors.GetColor(CColors::BisectSkip) :
-								                                                  g_Colors.GetColor(CColors::BisectBad)),
-							                                                  true);
+																			  g_Colors.GetColor(CColors::BisectGood) :
+																			  ((refLabel.refType == TGitH::REF_TYPE::BISECT_SKIP) ?
+																				  g_Colors.GetColor(CColors::BisectSkip) :
+																				  g_Colors.GetColor(CColors::BisectBad)),
+																			  true);
 							break;
 
 						case TGitH::REF_TYPE::NOTES:
@@ -1958,10 +1984,12 @@ void CGitLogListBase::OnNMCustomdrawLoglist(NMHDR* pNMHDR, LRESULT* pResult) {
 
 					*pResult = CDRF_SKIPDEFAULT;
 					return;
-				} else if (DrawListItemWithMatchesIfEnabled(m_LogFilter, LOGFILTER_SUBJECT | LOGFILTER_MESSAGES, pLVCD, pResult)) //from here
-					return;
+					} else if (DrawListItemWithMatchesIfEnabled(LOGFILTER_SUBJECT | LOGFILTER_MESSAGES, pLVCD, pResult)) { //from here
+						return;
+					}
 			}
 			break;
+		}
 
 		case LOGLIST_ACTION: {
 			if (m_IsIDReplaceAction || !m_ColumnManager.IsVisible(LOGLIST_ACTION)) {
@@ -1979,7 +2007,6 @@ void CGitLogListBase::OnNMCustomdrawLoglist(NMHDR* pNMHDR, LRESULT* pResult) {
 			const int iconwidth = ::GetSystemMetrics(SM_CXSMICON);
 			const int iconheight = ::GetSystemMetrics(SM_CYSMICON);
 
-			GitRevLoglist* pLogEntry = m_arShownList.SafeGetAt(pLVCD->nmcd.dwItemSpec);
 			CRect rect;
 			GetSubItemRect(static_cast<int>(pLVCD->nmcd.dwItemSpec), pLVCD->iSubItem, LVIR_BOUNDS, rect);
 			//TRACE(L"Action left %d right %d\r\n", rect.left, rect.right);
@@ -1992,97 +2019,76 @@ void CGitLogListBase::OnNMCustomdrawLoglist(NMHDR* pNMHDR, LRESULT* pResult) {
 			// Fill the background if necessary
 			FillBackGround(myDC.GetDC(), pLVCD->nmcd.dwItemSpec, rect);
 
+			// Get the log entry
+			GitRevLoglist* pLogEntry = m_arShownList.SafeGetAt(pLVCD->nmcd.dwItemSpec);
+
 			// Draw the icon(s) into the compatible DC
-			const int action = pLogEntry->GetAction(this);
 			auto iconItemBorder = CDPIAware::Instance().ScaleX(GetSafeHwnd(), ICONITEMBORDER);
+			auto* ico = HICON{};
 			if (!pLogEntry->m_IsDiffFiles) {
-				::DrawIconEx(myDC.GetDC(), rect.left + iconItemBorder, rect.top, m_hFetchIcon, iconwidth, iconheight, 0, nullptr, DI_NORMAL);
-				*pResult = CDRF_SKIPDEFAULT;
-				return;
+				ico = m_hFetchIcon;
 			} else if (pLogEntry->m_IsDiffFiles == 2) {
-				::DrawIconEx(myDC.GetDC(), rect.left + iconItemBorder, rect.top, m_hErrorIcon, iconwidth, iconheight, 0, nullptr, DI_NORMAL);
+				ico = m_hErrorIcon;
+			}
+			if (ico) {
+				::DrawIconEx(myDC.GetDC(), rect.left + iconItemBorder, rect.top, ico, iconwidth, iconheight, 0, nullptr, DI_NORMAL);
 				*pResult = CDRF_SKIPDEFAULT;
 				return;
 			}
 
+			const auto action = pLogEntry->GetAction(this);
 			if (action & CTGitPath::LOGACTIONS_MODIFIED)
 				::DrawIconEx(myDC.GetDC(), rect.left + iconItemBorder, rect.top, m_hModifiedIcon, iconwidth, iconheight, 0, nullptr, DI_NORMAL);
 			++nIcons;
 
+			const auto x_left = rect.left + (nIcons * iconwidth) + iconItemBorder;
 			if (action & (CTGitPath::LOGACTIONS_ADDED | CTGitPath::LOGACTIONS_COPY))
-				::DrawIconEx(myDC.GetDC(),
-				             rect.left + nIcons * iconwidth + iconItemBorder,
-				             rect.top,
-				             m_hAddedIcon,
-				             iconwidth,
-				             iconheight,
-				             0,
-				             nullptr,
-				             DI_NORMAL);
+				::DrawIconEx(myDC.GetDC(), x_left, rect.top, m_hAddedIcon, iconwidth, iconheight, 0, nullptr, DI_NORMAL);
 			++nIcons;
 
 			if (action & CTGitPath::LOGACTIONS_DELETED)
-				::DrawIconEx(myDC.GetDC(),
-				             rect.left + nIcons * iconwidth + iconItemBorder,
-				             rect.top,
-				             m_hDeletedIcon,
-				             iconwidth,
-				             iconheight,
-				             0,
-				             nullptr,
-				             DI_NORMAL);
+				::DrawIconEx(myDC.GetDC(), x_left, rect.top, m_hDeletedIcon, iconwidth, iconheight, 0, nullptr, DI_NORMAL);
 			++nIcons;
 
 			if (action & CTGitPath::LOGACTIONS_REPLACED)
-				::DrawIconEx(myDC.GetDC(),
-				             rect.left + nIcons * iconwidth + iconItemBorder,
-				             rect.top,
-				             m_hReplacedIcon,
-				             iconwidth,
-				             iconheight,
-				             0,
-				             nullptr,
-				             DI_NORMAL);
+				::DrawIconEx(myDC.GetDC(), x_left, rect.top, m_hReplacedIcon, iconwidth, iconheight, 0, nullptr, DI_NORMAL);
 			++nIcons;
 
 			if (action & CTGitPath::LOGACTIONS_UNMERGED)
-				::DrawIconEx(myDC.GetDC(),
-				             rect.left + nIcons * iconwidth + iconItemBorder,
-				             rect.top,
-				             m_hConflictedIcon,
-				             iconwidth,
-				             iconheight,
-				             0,
-				             nullptr,
-				             DI_NORMAL);
+				::DrawIconEx(myDC.GetDC(), x_left, rect.top, m_hConflictedIcon, iconwidth, iconheight, 0, nullptr, DI_NORMAL);
 			++nIcons;
 
 			*pResult = CDRF_SKIPDEFAULT;
 			return;
 		}
 
-		case LOGLIST_HASH:
-			if (DrawListItemWithMatchesIfEnabled(m_LogFilter, LOGFILTER_REVS, pLVCD, pResult))
+		case LOGLIST_HASH: {
+			if (DrawListItemWithMatchesIfEnabled(LOGFILTER_REVS, pLVCD, pResult))
 				return;
 			break;
+		}
 
 		case LOGLIST_AUTHOR:
 		case LOGLIST_COMMIT_NAME:
-			if (DrawListItemWithMatchesIfEnabled(m_LogFilter, LOGFILTER_AUTHORS, pLVCD, pResult))
-				return;
+			gui_status = LOGFILTER_AUTHORS;
 			break;
 
 		case LOGLIST_EMAIL:
 		case LOGLIST_COMMIT_EMAIL:
-			if (DrawListItemWithMatchesIfEnabled(m_LogFilter, LOGFILTER_EMAILS, pLVCD, pResult))
-				return;
+			gui_status = LOGFILTER_EMAILS;
 			break;
 
 		case LOGLIST_BUG:
-			if (DrawListItemWithMatchesIfEnabled(m_LogFilter, LOGFILTER_BUGID, pLVCD, pResult))
-				return;
+			gui_status = LOGFILTER_EMAILS;
 			break;
+
+		default:
+			std::unreachable();
 		}
+
+		if (gui_status && DrawListItemWithMatchesIfEnabled(gui_status, pLVCD, pResult))
+			return;
+
 	}
 	break;
 	}
@@ -2190,17 +2196,13 @@ void CGitLogListBase::OnLvnGetdispinfoLoglist(NMHDR* pNMHDR, LRESULT* pResult) {
 	case LOGLIST_BUG: //Bug ID
 		lstrcpyn(pItem->pszText, this->m_ProjectProperties.FindBugID(pLogEntry->GetSubjectBody()), pItem->cchTextMax - 1);
 		break;
-	case LOGLIST_SVNREV: //SVN revision
-		lstrcpyn(pItem->pszText, FindSVNRev(pLogEntry->GetSubjectBody()), pItem->cchTextMax - 1);
-		break;
-
 	default:
 		ASSERT(false);
 	}
 }
 
 
-bool CGitLogListBase::IsOnStash(int index) {
+bool CGitLogListBase::IsOnStash(const int index) {
 	GitRevLoglist* rev = m_arShownList.SafeGetAt(index);
 	if (IsStash(rev))
 		return true;
@@ -2317,22 +2319,22 @@ void CGitLogListBase::OnContextMenu(CWnd* pWnd, CPoint point) {
 			parentInfo.push_back(std::wstring(str));
 		}
 
-		if (m_ContextMenuMask &GetContextMenuBit(ID_REBASE_PICK) &&
+		if (m_ContextMenuMask & GetContextMenuBit(ID_REBASE_PICK) &&
 			!(pSelLogEntry->GetRebaseAction() & (LOGACTIONS_REBASE_CURRENT | LOGACTIONS_REBASE_DONE)))
-		popup.AppendMenuIcon(ID_REBASE_PICK, IDS_REBASE_PICK, IDI_PICK);
+			popup.AppendMenuIcon(ID_REBASE_PICK, IDS_REBASE_PICK, IDI_PICK);
 
-		if (m_ContextMenuMask &GetContextMenuBit(ID_REBASE_SQUASH) &&
+		if (m_ContextMenuMask & GetContextMenuBit(ID_REBASE_SQUASH) &&
 			!(pSelLogEntry->GetRebaseAction() & (LOGACTIONS_REBASE_CURRENT | LOGACTIONS_REBASE_DONE)) && FirstSelect != GetItemCount() - 1 && LastSelect !=
 			GetItemCount() - 1 && (m_bIsCherryPick || pSelLogEntry->ParentsCount() == 1))
-		popup.AppendMenuIcon(ID_REBASE_SQUASH, IDS_REBASE_SQUASH, IDI_SQUASH);
+			popup.AppendMenuIcon(ID_REBASE_SQUASH, IDS_REBASE_SQUASH, IDI_SQUASH);
 
-		if (m_ContextMenuMask &GetContextMenuBit(ID_REBASE_EDIT) &&
+		if (m_ContextMenuMask & GetContextMenuBit(ID_REBASE_EDIT) &&
 			!(pSelLogEntry->GetRebaseAction() & (LOGACTIONS_REBASE_CURRENT | LOGACTIONS_REBASE_DONE)))
-		popup.AppendMenuIcon(ID_REBASE_EDIT, IDS_REBASE_EDIT, IDI_EDIT);
+			popup.AppendMenuIcon(ID_REBASE_EDIT, IDS_REBASE_EDIT, IDI_EDIT);
 
-		if (m_ContextMenuMask &GetContextMenuBit(ID_REBASE_SKIP) &&
+		if (m_ContextMenuMask & GetContextMenuBit(ID_REBASE_SKIP) &&
 			!(pSelLogEntry->GetRebaseAction() & (LOGACTIONS_REBASE_CURRENT | LOGACTIONS_REBASE_DONE)))
-		popup.AppendMenuIcon(ID_REBASE_SKIP, IDS_REBASE_SKIP, IDI_SKIP);
+			popup.AppendMenuIcon(ID_REBASE_SKIP, IDS_REBASE_SKIP, IDI_SKIP);
 
 		if (m_ContextMenuMask & (GetContextMenuBit(ID_REBASE_SKIP) | GetContextMenuBit(ID_REBASE_EDIT) | GetContextMenuBit(ID_REBASE_SQUASH) |
 			GetContextMenuBit(ID_REBASE_PICK)) && !(pSelLogEntry->GetRebaseAction() & (LOGACTIONS_REBASE_CURRENT | LOGACTIONS_REBASE_DONE)))
@@ -2342,13 +2344,13 @@ void CGitLogListBase::OnContextMenu(CWnd* pWnd, CPoint point) {
 			{
 				bool requiresSeparator = false;
 				if (!pSelLogEntry->m_CommitHash.IsEmpty()) {
-					if (m_ContextMenuMask &GetContextMenuBit(ID_COMPARE) &&m_hasWC) // compare revision with WC
+					if (m_ContextMenuMask & GetContextMenuBit(ID_COMPARE) && m_hasWC) // compare revision with WC
 					{
 						popup.AppendMenuIcon(ID_COMPARE, IDS_LOG_POPUP_COMPARE, IDI_DIFF);
 						requiresSeparator = true;
 					}
 				} else {
-					if (m_ContextMenuMask& GetContextMenuBit(ID_COMMIT)) {
+					if (m_ContextMenuMask & GetContextMenuBit(ID_COMMIT)) {
 						popup.AppendMenuIcon(ID_COMMIT, IDS_LOG_POPUP_COMMIT, IDI_COMMIT);
 						requiresSeparator = true;
 					}
@@ -2358,7 +2360,7 @@ void CGitLogListBase::OnContextMenu(CWnd* pWnd, CPoint point) {
 					}
 				}
 
-				if (m_ContextMenuMask& GetContextMenuBit(ID_BLAMEPREVIOUS)) {
+				if (m_ContextMenuMask & GetContextMenuBit(ID_BLAMEPREVIOUS)) {
 					if (parentHash.size() == 1) {
 						popup.AppendMenuIcon(ID_BLAMEPREVIOUS, IDS_LOG_POPUP_BLAMEPREVIOUS, IDI_BLAME);
 						requiresSeparator = true;
@@ -2372,7 +2374,7 @@ void CGitLogListBase::OnContextMenu(CWnd* pWnd, CPoint point) {
 					}
 				}
 
-				if (m_ContextMenuMask &GetContextMenuBit(ID_GNUDIFF1) &&m_hasWC) // compare with WC, unified
+				if (m_ContextMenuMask & GetContextMenuBit(ID_GNUDIFF1) && m_hasWC) // compare with WC, unified
 				{
 					if (parentHash.size() == 1) {
 						popup.AppendMenuIcon(ID_GNUDIFF1, IDS_LOG_POPUP_GNUDIFF, IDI_DIFF);
@@ -2392,7 +2394,7 @@ void CGitLogListBase::OnContextMenu(CWnd* pWnd, CPoint point) {
 					}
 				}
 
-				if (m_ContextMenuMask& GetContextMenuBit(ID_COMPAREWITHPREVIOUS)) {
+				if (m_ContextMenuMask & GetContextMenuBit(ID_COMPAREWITHPREVIOUS)) {
 					if (parentHash.size() == 1) {
 						popup.AppendMenuIcon(ID_COMPAREWITHPREVIOUS, IDS_LOG_POPUP_COMPAREWITHPREVIOUS, IDI_DIFF);
 						if (CRegDWORD(L"Software\\TortoiseGit\\DiffByDoubleClickInLog", FALSE) && m_ColumnRegKey != L"reflog")
@@ -2412,7 +2414,7 @@ void CGitLogListBase::OnContextMenu(CWnd* pWnd, CPoint point) {
 					}
 				}
 
-				if (m_ContextMenuMask& GetContextMenuBit(ID_BLAME)) {
+				if (m_ContextMenuMask & GetContextMenuBit(ID_BLAME)) {
 					popup.AppendMenuIcon(ID_BLAME, IDS_LOG_POPUP_BLAME, IDI_BLAME);
 					requiresSeparator = true;
 				}
@@ -2423,19 +2425,19 @@ void CGitLogListBase::OnContextMenu(CWnd* pWnd, CPoint point) {
 				}
 
 				if (pSelLogEntry->m_CommitHash.IsEmpty() && !isMergeActive) {
-					if (m_ContextMenuMask& GetContextMenuBit(ID_STASH_SAVE)) {
+					if (m_ContextMenuMask & GetContextMenuBit(ID_STASH_SAVE)) {
 						popup.AppendMenuIcon(ID_STASH_SAVE, IDS_MENUSTASHSAVE, IDI_SHELVE);
 						requiresSeparator = true;
 					}
 				}
 
 				if ((pSelLogEntry->m_CommitHash.IsEmpty() || isStash) && workingTree.HasStashDir()) {
-					if (m_ContextMenuMask& GetContextMenuBit(ID_STASH_POP)) {
+					if (m_ContextMenuMask & GetContextMenuBit(ID_STASH_POP)) {
 						popup.AppendMenuIcon(ID_STASH_POP, IDS_MENUSTASHPOP, IDI_UNSHELVE);
 						requiresSeparator = true;
 					}
 
-					if (m_ContextMenuMask& GetContextMenuBit(ID_STASH_LIST)) {
+					if (m_ContextMenuMask & GetContextMenuBit(ID_STASH_LIST)) {
 						popup.AppendMenuIcon(ID_STASH_LIST, IDS_MENUSTASHLIST, IDI_LOG);
 						requiresSeparator = true;
 					}
@@ -2448,29 +2450,26 @@ void CGitLogListBase::OnContextMenu(CWnd* pWnd, CPoint point) {
 
 				if (isBisectActive) {
 					GitRevLoglist* pFirstEntry = m_arShownList.SafeGetAt(FirstSelect);
-					if (m_ContextMenuMask &GetContextMenuBit(ID_BISECTGOOD) &&
-						!IsBisect(pFirstEntry))
-					{
+					if (m_ContextMenuMask & GetContextMenuBit(ID_BISECTGOOD) &&
+						!IsBisect(pFirstEntry)) {
 						popup.AppendMenuIcon(ID_BISECTGOOD, IDS_MENUBISECTGOOD, IDI_THUMB_UP);
 						requiresSeparator = true;
 					}
 
-					if (m_ContextMenuMask &GetContextMenuBit(ID_BISECTBAD) &&
-						!IsBisect(pFirstEntry))
-					{
+					if (m_ContextMenuMask & GetContextMenuBit(ID_BISECTBAD) &&
+						!IsBisect(pFirstEntry)) {
 						popup.AppendMenuIcon(ID_BISECTBAD, IDS_MENUBISECTBAD, IDI_THUMB_DOWN);
 						requiresSeparator = true;
 					}
-					if (m_ContextMenuMask &GetContextMenuBit(ID_BISECTSKIP) &&
-						!IsBisect(pFirstEntry))
-					{
+					if (m_ContextMenuMask & GetContextMenuBit(ID_BISECTSKIP) &&
+						!IsBisect(pFirstEntry)) {
 						popup.AppendMenuIcon(ID_BISECTSKIP, IDS_MENUBISECTSKIP, IDI_BISECT);
 						requiresSeparator = true;
 					}
 				}
 
 				if (pSelLogEntry->m_CommitHash.IsEmpty() && isBisectActive) {
-					if (m_ContextMenuMask& GetContextMenuBit(ID_BISECTRESET)) {
+					if (m_ContextMenuMask & GetContextMenuBit(ID_BISECTRESET)) {
 						popup.AppendMenuIcon(ID_BISECTRESET, IDS_MENUBISECTRESET, IDI_BISECT_RESET);
 						requiresSeparator = true;
 					}
@@ -2482,11 +2481,11 @@ void CGitLogListBase::OnContextMenu(CWnd* pWnd, CPoint point) {
 				}
 
 				if (pSelLogEntry->m_CommitHash.IsEmpty()) {
-					if (m_ContextMenuMask &GetContextMenuBit(ID_PULL) &&
+					if (m_ContextMenuMask & GetContextMenuBit(ID_PULL) &&
 						!isMergeActive)
-					popup.AppendMenuIcon(ID_PULL, IDS_MENUPULL, IDI_PULL);
+						popup.AppendMenuIcon(ID_PULL, IDS_MENUPULL, IDI_PULL);
 
-					if (m_ContextMenuMask& GetContextMenuBit(ID_FETCH))
+					if (m_ContextMenuMask & GetContextMenuBit(ID_FETCH))
 						popup.AppendMenuIcon(ID_FETCH, IDS_MENUFETCH, IDI_UPDATE);
 
 					if ((m_ContextMenuMask & GetContextMenuBit(ID_SUBMODULE_UPDATE)) && workingTree.HasSubmodules())
@@ -2494,7 +2493,7 @@ void CGitLogListBase::OnContextMenu(CWnd* pWnd, CPoint point) {
 
 					popup.AppendMenu(MF_SEPARATOR, NULL);
 
-					if (m_ContextMenuMask& GetContextMenuBit(ID_CLEANUP))
+					if (m_ContextMenuMask & GetContextMenuBit(ID_CLEANUP))
 						popup.AppendMenuIcon(ID_CLEANUP, IDS_MENUCLEANUP, IDI_CLEANUP);
 
 					popup.AppendMenu(MF_SEPARATOR, NULL);
@@ -2520,22 +2519,20 @@ void CGitLogListBase::OnContextMenu(CWnd* pWnd, CPoint point) {
 			//	popup.AppendMenuIcon(ID_REVERTTOREV, IDS_LOG_POPUP_REVERTTOREV, IDI_REVERT);
 
 			if (!pSelLogEntry->m_CommitHash.IsEmpty()) {
-				if (m_ContextMenuMask& GetContextMenuBit(ID_LOG) || ((!isStash && hashMap.find(pSelLogEntry->m_CommitHash) != hashMap.cend()) ||
-					showExtendedMenu))
-				{
+				if (m_ContextMenuMask & GetContextMenuBit(ID_LOG) || ((!isStash && hashMap.find(pSelLogEntry->m_CommitHash) != hashMap.cend()) ||
+					showExtendedMenu)) {
 					popup.AppendMenuIcon(ID_LOG, IDS_LOG_POPUP_LOG, IDI_LOG);
 					if (m_ColumnRegKey == L"reflog")
 						popup.SetDefaultItem(ID_LOG, FALSE);
 				}
 
-				if (m_ContextMenuMask& GetContextMenuBit(ID_REPOBROWSE))
+				if (m_ContextMenuMask & GetContextMenuBit(ID_REPOBROWSE))
 					popup.AppendMenuIcon(ID_REPOBROWSE, IDS_LOG_BROWSEREPO, IDI_REPOBROWSE);
 
 				str.Format(IDS_LOG_POPUP_MERGEREV, g_Git.GetCurrentBranch());
 
-				if (m_ContextMenuMask &GetContextMenuBit(ID_MERGEREV) &&
-					!isHeadCommit && m_hasWC && !isMergeActive && !isStash)
-				{
+				if (m_ContextMenuMask & GetContextMenuBit(ID_MERGEREV) &&
+					!isHeadCommit && m_hasWC && !isMergeActive && !isStash) {
 					popup.AppendMenuIcon(ID_MERGEREV, str, IDI_MERGE);
 
 					size_t index = static_cast<size_t>(-1);
@@ -2546,9 +2543,9 @@ void CGitLogListBase::OnContextMenu(CWnd* pWnd, CPoint point) {
 
 				str.Format(IDS_RESET_TO_THIS_FORMAT, g_Git.GetCurrentBranch());
 
-				if (m_ContextMenuMask &GetContextMenuBit(ID_RESET) && m_hasWC &&
+				if (m_ContextMenuMask & GetContextMenuBit(ID_RESET) && m_hasWC &&
 					!isStash)
-				popup.AppendMenuIcon(ID_RESET, str, IDI_RESET);
+					popup.AppendMenuIcon(ID_RESET, str, IDI_RESET);
 
 
 				// Add Switch Branch express Menu
@@ -2592,9 +2589,8 @@ void CGitLogListBase::OnContextMenu(CWnd* pWnd, CPoint point) {
 					}
 				}
 
-				if (m_ContextMenuMask &GetContextMenuBit(ID_SWITCHTOREV) &&
-					!isHeadCommit && m_hasWC && !isStash)
-				{
+				if (m_ContextMenuMask & GetContextMenuBit(ID_SWITCHTOREV) &&
+					!isHeadCommit && m_hasWC && !isStash) {
 					popup.AppendMenuIcon(ID_SWITCHTOREV, IDS_SWITCH_TO_THIS, IDI_SWITCH);
 					size_t index = static_cast<size_t>(-1);
 					TGitH::REF_TYPE type = TGitH::REF_TYPE::UNKNOWN;
@@ -2602,9 +2598,8 @@ void CGitLogListBase::OnContextMenu(CWnd* pWnd, CPoint point) {
 						popup.SetMenuItemData(ID_SWITCHTOREV, reinterpret_cast<LONG_PTR>(&hashMap.find(pSelLogEntry->m_CommitHash)->second[index]));
 				}
 
-				if (m_ContextMenuMask &GetContextMenuBit(ID_CREATE_BRANCH) &&
-					!isStash)
-				{
+				if (m_ContextMenuMask & GetContextMenuBit(ID_CREATE_BRANCH) &&
+					!isStash) {
 					popup.AppendMenuIcon(ID_CREATE_BRANCH, IDS_CREATE_BRANCH_AT_THIS, IDI_COPY);
 
 					size_t index = static_cast<size_t>(-1);
@@ -2613,22 +2608,21 @@ void CGitLogListBase::OnContextMenu(CWnd* pWnd, CPoint point) {
 						popup.SetMenuItemData(ID_CREATE_BRANCH, reinterpret_cast<LONG_PTR>(&hashMap.find(pSelLogEntry->m_CommitHash)->second[index]));
 				}
 
-				if (m_ContextMenuMask &GetContextMenuBit(ID_CREATE_TAG) &&
+				if (m_ContextMenuMask & GetContextMenuBit(ID_CREATE_TAG) &&
 					!isStash)
-				popup.AppendMenuIcon(ID_CREATE_TAG,IDS_CREATE_TAG_AT_THIS, IDI_TAG);
+					popup.AppendMenuIcon(ID_CREATE_TAG,IDS_CREATE_TAG_AT_THIS, IDI_TAG);
 
 				str.Format(IDS_REBASE_THIS_FORMAT, g_Git.GetCurrentBranch());
 
 				if (pSelLogEntry->m_CommitHash != headHash && m_hasWC && !isMergeActive && !isStash)
-					if (m_ContextMenuMask& GetContextMenuBit(ID_REBASE_TO_VERSION))
+					if (m_ContextMenuMask & GetContextMenuBit(ID_REBASE_TO_VERSION))
 						popup.AppendMenuIcon(ID_REBASE_TO_VERSION, str, IDI_REBASE);
 
-				if (m_ContextMenuMask& GetContextMenuBit(ID_EXPORT))
+				if (m_ContextMenuMask & GetContextMenuBit(ID_EXPORT))
 					popup.AppendMenuIcon(ID_EXPORT,IDS_EXPORT_TO_THIS, IDI_EXPORT);
 
-				if (m_ContextMenuMask &GetContextMenuBit(ID_REVERTREV) && m_hasWC &&
-					!isMergeActive && !isStash)
-				{
+				if (m_ContextMenuMask & GetContextMenuBit(ID_REVERTREV) && m_hasWC &&
+					!isMergeActive && !isStash) {
 					if (parentHash.size() == 1)
 						popup.AppendMenuIcon(ID_REVERTREV, IDS_LOG_POPUP_REVERTREV, IDI_REVERT);
 					else if (parentHash.size() > 1) {
@@ -2641,9 +2635,9 @@ void CGitLogListBase::OnContextMenu(CWnd* pWnd, CPoint point) {
 					}
 				}
 
-				if (m_ContextMenuMask &GetContextMenuBit(ID_EDITNOTE) &&
+				if (m_ContextMenuMask & GetContextMenuBit(ID_EDITNOTE) &&
 					!isStash)
-				popup.AppendMenuIcon(ID_EDITNOTE, IDS_EDIT_NOTES, IDI_EDIT);
+					popup.AppendMenuIcon(ID_EDITNOTE, IDS_EDIT_NOTES, IDI_EDIT);
 
 				popup.AppendMenu(MF_SEPARATOR, NULL);
 			}
@@ -2660,7 +2654,7 @@ void CGitLogListBase::OnContextMenu(CWnd* pWnd, CPoint point) {
 		if (selectedCount >= 2) {
 			bool bAddSeparator = false;
 			if ((selectedCount == 2) || IsSelectionContinuous()) {
-				if (m_ContextMenuMask& GetContextMenuBit(ID_COMPARETWO)) // compare two revisions
+				if (m_ContextMenuMask & GetContextMenuBit(ID_COMPARETWO)) // compare two revisions
 				{
 					popup.AppendMenuIcon(ID_COMPARETWO, IDS_LOG_POPUP_COMPARETWO, IDI_DIFF);
 					bAddSeparator = true;
@@ -2668,7 +2662,7 @@ void CGitLogListBase::OnContextMenu(CWnd* pWnd, CPoint point) {
 			}
 
 			if (selectedCount == 2) {
-				if (m_ContextMenuMask &GetContextMenuBit(ID_GNUDIFF2) &&m_hasWC) // compare two revisions, unified
+				if (m_ContextMenuMask & GetContextMenuBit(ID_GNUDIFF2) && m_hasWC) // compare two revisions, unified
 				{
 					popup.AppendMenuIcon(ID_GNUDIFF2, IDS_LOG_POPUP_GNUDIFF, IDI_DIFF);
 					bAddSeparator = true;
@@ -2699,9 +2693,9 @@ void CGitLogListBase::OnContextMenu(CWnd* pWnd, CPoint point) {
 				bAddSeparator = false;
 			}
 
-			if (m_ContextMenuMask &GetContextMenuBit(ID_REVERTREV) && m_hasWC &&
+			if (m_ContextMenuMask & GetContextMenuBit(ID_REVERTREV) && m_hasWC &&
 				!isMergeActive)
-			popup.AppendMenuIcon(ID_REVERTREV, IDS_LOG_POPUP_REVERTREVS, IDI_REVERT);
+				popup.AppendMenuIcon(ID_REVERTREV, IDS_LOG_POPUP_REVERTREVS, IDI_REVERT);
 
 			if (bAddSeparator)
 				popup.AppendMenu(MF_SEPARATOR, NULL);
@@ -2715,9 +2709,8 @@ void CGitLogListBase::OnContextMenu(CWnd* pWnd, CPoint point) {
 		if (!pSelLogEntry->m_CommitHash.IsEmpty()) {
 			bool bAddSeparator = false;
 			if (selectedCount >= 2 && IsSelectionContinuous()) {
-				if (m_ContextMenuMask &GetContextMenuBit(ID_COMBINE_COMMIT) && m_hasWC &&
-					!isMergeActive)
-				{
+				if (m_ContextMenuMask & GetContextMenuBit(ID_COMBINE_COMMIT) && m_hasWC &&
+					!isMergeActive) {
 					const int headindex = this->GetHeadIndex();
 					if (headindex >= 0 && LastSelect >= headindex && FirstSelect >= headindex) {
 						CString head;
@@ -2736,9 +2729,8 @@ void CGitLogListBase::OnContextMenu(CWnd* pWnd, CPoint point) {
 					}
 				}
 			}
-			if (m_ContextMenuMask &GetContextMenuBit(ID_CHERRY_PICK) &&
-				!isHeadCommit && m_hasWC && !isMergeActive)
-			{
+			if (m_ContextMenuMask & GetContextMenuBit(ID_CHERRY_PICK) &&
+				!isHeadCommit && m_hasWC && !isMergeActive) {
 				if (selectedCount >= 2)
 					popup.AppendMenuIcon(ID_CHERRY_PICK, IDS_CHERRY_PICK_VERSIONS, IDI_CHERRYPICK);
 				else
@@ -2747,7 +2739,7 @@ void CGitLogListBase::OnContextMenu(CWnd* pWnd, CPoint point) {
 			}
 
 			if (!isStash && (selectedCount <= 2 || IsSelectionContinuous()))
-				if (m_ContextMenuMask& GetContextMenuBit(ID_CREATE_PATCH)) {
+				if (m_ContextMenuMask & GetContextMenuBit(ID_CREATE_PATCH)) {
 					popup.AppendMenuIcon(ID_CREATE_PATCH, IDS_CREATE_PATCH, IDI_PATCH);
 					bAddSeparator = true;
 				}
@@ -2786,21 +2778,17 @@ void CGitLogListBase::OnContextMenu(CWnd* pWnd, CPoint point) {
 					if (auto refList = hashMap.find(pSelLogEntry->m_CommitHash); index != static_cast<size_t>(-1) && index < refList->second.size())
 						popup.SetMenuItemData(ID_PUSH, reinterpret_cast<LONG_PTR>(&refList->second[index]));
 
-					if (m_ContextMenuMask &GetContextMenuBit(ID_SVNDCOMMIT) &&workingTree.HasGitSVNDir())
-					popup.AppendMenuIcon(ID_SVNDCOMMIT, IDS_MENUSVNDCOMMIT, IDI_COMMIT);
-
 					bAddSeparator = true;
 				}
 			}
-			if (m_ContextMenuMask &GetContextMenuBit(ID_PULL) && isHeadCommit &&
-				!isMergeActive && m_hasWC)
-			{
+			if (m_ContextMenuMask & GetContextMenuBit(ID_PULL) && isHeadCommit &&
+				!isMergeActive && m_hasWC) {
 				popup.AppendMenuIcon(ID_PULL, IDS_MENUPULL, IDI_PULL);
 				bAddSeparator = true;
 			}
 
 
-			if (m_ContextMenuMask& GetContextMenuBit(ID_DELETE)) {
+			if (m_ContextMenuMask & GetContextMenuBit(ID_DELETE)) {
 				if (auto refList = hashMap.find(pSelLogEntry->m_CommitHash); refList != hashMap.end()) {
 					std::vector<const std::wstring*> branchs;
 					auto addCheck = [&](const std::wstring& ref) {
@@ -2841,7 +2829,8 @@ void CGitLogListBase::OnContextMenu(CWnd* pWnd, CPoint point) {
 			if (bAddSeparator)
 				popup.AppendMenu(MF_SEPARATOR, NULL);
 
-			if ((m_ContextMenuMask & GetContextMenuBit(ID_TOGGLE_ROLLUP)) && (m_ShowFilter & FILTERSHOW_MERGEPOINTS) && !m_LogFilter.load()->IsFilterActive() &&
+			if ((m_ContextMenuMask & GetContextMenuBit(ID_TOGGLE_ROLLUP)) && (m_ShowFilter & FILTERSHOW_MERGEPOINTS) && !m_LogFilter.Snapshot().
+				IsFilterActive() &&
 				!pSelLogEntry->m_CommitHash.IsEmpty()) {
 				popup.AppendMenuIcon(ID_TOGGLE_ROLLUP, pSelLogEntry->m_RolledUp ? IDS_LOG_POPUP_EXPAND : IDS_LOG_POPUP_COLLAPSE);
 				popup.AppendMenu(MF_SEPARATOR, NULL);
@@ -2852,8 +2841,7 @@ void CGitLogListBase::OnContextMenu(CWnd* pWnd, CPoint point) {
 		CIconMenu clipSubMenu;
 		if (!clipSubMenu.CreatePopupMenu())
 			return;
-		if (m_ContextMenuMask &GetContextMenuBit(ID_COPYCLIPBOARD) &&m_ColumnRegKey != L"reflog")
-		{
+		if (m_ContextMenuMask & GetContextMenuBit(ID_COPYCLIPBOARD) && m_ColumnRegKey != L"reflog") {
 			clipSubMenu.AppendMenuIcon(ID_COPYCLIPBOARDFULL, IDS_LOG_POPUP_CLIPBOARD_FULL, IDI_COPYCLIP);
 			clipSubMenu.AppendMenuIcon(ID_COPYCLIPBOARDFULLNOPATHS, IDS_LOG_POPUP_CLIPBOARD_FULLNOPATHS, IDI_COPYCLIP);
 			clipSubMenu.AppendMenuIcon(ID_COPYCLIPBOARDHASH, IDS_LOG_HASH, IDI_COPYCLIP);
@@ -2874,9 +2862,7 @@ void CGitLogListBase::OnContextMenu(CWnd* pWnd, CPoint point) {
 			CString temp;
 			temp.LoadString(IDS_LOG_POPUP_COPYTOCLIPBOARD);
 			popup.InsertMenu(static_cast<UINT>(-1), MF_BYPOSITION | MF_POPUP, reinterpret_cast<UINT_PTR>(clipSubMenu.m_hMenu), temp);
-		}
-		else if (m_ContextMenuMask &GetContextMenuBit(ID_COPYCLIPBOARD) &&m_ColumnRegKey == L"reflog")
-		{
+		} else if (m_ContextMenuMask & GetContextMenuBit(ID_COPYCLIPBOARD) && m_ColumnRegKey == L"reflog") {
 			clipSubMenu.AppendMenuIcon(ID_COPYCLIPBOARDFULL, IDS_LOG_POPUP_CLIPBOARD_FULL, IDI_COPYCLIP);
 			clipSubMenu.AppendMenuIcon(ID_COPYCLIPBOARDHASH, IDS_LOG_HASH, IDI_COPYCLIP);
 			clipSubMenu.AppendMenuIcon(ID_COPYCLIPBOARDMESSAGES, IDS_LOG_POPUP_CLIPBOARD_MSGS, IDI_COPYCLIP);
@@ -2886,7 +2872,7 @@ void CGitLogListBase::OnContextMenu(CWnd* pWnd, CPoint point) {
 			popup.InsertMenu(static_cast<UINT>(-1), MF_BYPOSITION | MF_POPUP, reinterpret_cast<UINT_PTR>(clipSubMenu.m_hMenu), temp);
 		}
 
-		if (m_ContextMenuMask& GetContextMenuBit(ID_FINDENTRY))
+		if (m_ContextMenuMask & GetContextMenuBit(ID_FINDENTRY))
 			popup.AppendMenuIcon(ID_FINDENTRY, IDS_LOG_POPUP_FIND, IDI_FILTEREDIT);
 
 		if (selectedCount == 1 && (m_ContextMenuMask & GetContextMenuBit(ID_SHOWBRANCHES)) && !pSelLogEntry->m_CommitHash.IsEmpty())
@@ -2927,7 +2913,7 @@ bool CGitLogListBase::IsSelectionContinuous() {
 }
 
 
-void CGitLogListBase::CopySelectionToClipBoard(int toCopy) {
+void CGitLogListBase::CopySelectionToClipBoard(const int toCopy) {
 	CString sClipdata;
 	POSITION pos = GetFirstSelectedItemPosition();
 	if (pos) {
@@ -3091,7 +3077,7 @@ void CGitLogListBase::OnLvnOdfinditemLoglist(NMHDR* pNMHDR, LRESULT* pResult) {
 }
 
 
-int CGitLogListBase::FillGitLog(const CTGitPath* path, const CString* range, int info) {
+int CGitLogListBase::FillGitLog(const CTGitPath* path, const CString* range, const int info) {
 	ClearText();
 
 	this->m_arShownList.SafeRemoveAll();
@@ -3276,7 +3262,7 @@ void CGitLogListBase::FetchLogAsync(void*) {
 }
 
 
-UINT CGitLogListBase::LogThreadEntry(LPVOID pVoid) {
+UINT CGitLogListBase::LogThreadEntry(const LPVOID pVoid) {
 	return static_cast<CGitLogListBase*>(pVoid)->LogThread();
 }
 
@@ -3330,16 +3316,11 @@ UINT CGitLogListBase::LogThread() {
 		return 1;
 	}
 
-	// create a copy we can safely work on in this thread
-	auto shared_filter{ m_LogFilter.load() };
-	const auto& filter = *shared_filter;
-
 	TRACE(L"\n===Begin===\n");
-	//Update work copy item;
 
+	//Update work copy item;
 	if (!m_logEntries.empty()) {
 		GitRevLoglist* pRev = &m_logEntries.GetGitRevAt(0);
-
 		m_arShownList.SafeAdd(pRev);
 	}
 
@@ -3392,6 +3373,10 @@ UINT CGitLogListBase::LogThread() {
 		auto rollUpStatesSharedPtr{ m_RollUpStates.load() };
 		const auto& rollUpStates = *rollUpStatesSharedPtr;
 		std::unordered_set<CGitHash> collapsedNodes, expandedNodes;
+
+		// this thread's own copy: the whole run filters against one version, and a
+		// filter change on the UI thread lands via Refresh(), which restarts us
+		const auto filter = m_LogFilter.Snapshot();
 
 		GIT_COMMIT commit;
 		t2 = t1 = GetTickCount64();
@@ -3506,7 +3491,7 @@ UINT CGitLogListBase::LogThread() {
 					expandedNodes.insert(pRev->m_CommitHash);
 			}
 
-			if (visible && !filter(pRev, this, hashMap))
+			if (visible && !FilterAccepts(filter, pRev, this, hashMap))
 				visible = false;
 			this->m_critSec.Lock();
 			m_logEntries.append(hash, visible, m_ShowMask & TGitH::LOG_INFO_FIRST_PARENT);
@@ -3534,7 +3519,7 @@ UINT CGitLogListBase::LogThread() {
 				PostMessage(LVM_SETITEMCOUNT, this->m_logEntries.size(), LVSICF_NOINVALIDATEALL | LVSICF_NOSCROLL);
 
 				if (percent > oldprecentage) {
-					::PostMessage(this->GetParent()->m_hWnd,MSG_LOAD_PERCENTAGE, percent, 0);
+					::PostMessage(this->GetParent()->m_hWnd, MSG_LOAD_PERCENTAGE, percent, 0);
 					oldprecentage = percent;
 				}
 
@@ -3561,7 +3546,7 @@ UINT CGitLogListBase::LogThread() {
 		PostMessage(m_ScrollToMessage, lastSelectedHashNItem);
 
 	if (this->m_hWnd)
-		::PostMessage(this->GetParent()->m_hWnd,MSG_LOAD_PERCENTAGE, GITLOG_END, 0);
+		::PostMessage(this->GetParent()->m_hWnd, MSG_LOAD_PERCENTAGE, GITLOG_END, 0);
 
 	InterlockedExchange(&s_bThreadRunning, FALSE);
 
@@ -3590,7 +3575,7 @@ const std::pair<CString, CString>& CGitLogListBase::GetTrackingBranch(const CStr
 }
 
 
-void CGitLogListBase::Refresh(BOOL IsCleanFilter) {
+void CGitLogListBase::Refresh(const BOOL IsCleanFilter) {
 	SafeTerminateThread();
 
 	this->SetItemCountEx(0);
@@ -3610,12 +3595,12 @@ void CGitLogListBase::Refresh(BOOL IsCleanFilter) {
 		m_logEntries.clear();
 
 		if (IsCleanFilter)
-			m_LogFilter = std::make_shared<CLogDlgFilter>();
+			m_LogFilter.Replace(CFilterHelper{});
 
 		SafeTerminateAsyncDiffThread();
-		m_AsynDiffListLock.Lock();
+		std::ignore = m_AsynDiffListLock.Lock();
 		m_AsynDiffList.clear();
-		m_AsynDiffListLock.Unlock();
+		std::ignore = m_AsynDiffListLock.Unlock();
 		StartAsyncDiffThread();
 
 		StartLoadingThread();
@@ -3719,7 +3704,7 @@ bool CGitLogListBase::ShouldShowFilter(GitRevLoglist* pRev,
 }
 
 
-void CGitLogListBase::ShowGraphColumn(bool bShow) {
+void CGitLogListBase::ShowGraphColumn(const bool bShow) {
 	// HACK to hide graph column
 	if (bShow)
 		SetColumnWidth(0, m_ColumnManager.GetWidth(0, false));
@@ -3748,7 +3733,7 @@ CString CGitLogListBase::GetTagInfo(const std::vector<std::wstring>& refs) const
 
 		TGitH::time_formater_f fmt = [&](const CTime& time) { return CLoglistUtils::FormatDateAndTime(time, m_DateFormat, true, m_bRelativeTimes); };
 		CString output;
-		g_Git.GetTagInfo(it.substr(0, it.size() - L"^{}"sv.size()).c_str(), output, fmt);
+		g_Git.GetTagInfo(it.substr(0, it.size() - wstr::SUFFIX_TAG_PLACEHOLDER.size()).c_str(), output, fmt);
 
 		tagInfo += output;
 	}
@@ -3785,7 +3770,7 @@ void CGitLogListBase::OnDestroy() {
 }
 
 
-LRESULT CGitLogListBase::OnLoad(WPARAM wParam, LPARAM /*lParam*/) {
+LRESULT CGitLogListBase::OnLoad(const WPARAM wParam, LPARAM /*lParam*/) {
 	CRect rect;
 	const int i = static_cast<int>(wParam);
 	this->GetItemRect(i, &rect,LVIR_BOUNDS);
@@ -3833,7 +3818,7 @@ void CGitLogListBase::OnFind() {
 }
 
 
-LRESULT CGitLogListBase::OnScrollToMessage(WPARAM itemToSelect, LPARAM /*lParam*/) {
+LRESULT CGitLogListBase::OnScrollToMessage(const WPARAM itemToSelect, LPARAM /*lParam*/) {
 	if (GetSelectedCount() != 0)
 		return 0;
 
@@ -3849,7 +3834,7 @@ LRESULT CGitLogListBase::OnScrollToMessage(WPARAM itemToSelect, LPARAM /*lParam*
 }
 
 
-LRESULT CGitLogListBase::OnScrollToRef(WPARAM wParam, LPARAM /*lParam*/) {
+LRESULT CGitLogListBase::OnScrollToRef(const WPARAM wParam, LPARAM /*lParam*/) {
 	const std::wstring* ref = reinterpret_cast<const std::wstring*>(wParam);
 	if (!ref || ref->empty())
 		return 1;
@@ -3935,7 +3920,7 @@ LRESULT CGitLogListBase::OnFindDialogMessage(WPARAM /*wParam*/, LPARAM /*lParam*
 
 	if (m_pFindDialog->FindNext() && !bFound) {
 		//read data from dialog
-		CLogDlgFilter filter{ m_pFindDialog->GetFindString(), m_pFindDialog->Regex(), LOGFILTER_ALL, m_pFindDialog->MatchCase() == TRUE };
+		const auto filter = CFilterHelper{ m_pFindDialog->GetFindString(), m_pFindDialog->Regex(), LOGFILTER_ALL, m_pFindDialog->MatchCase() == TRUE };
 
 		auto hashMapSharedPtr{ m_HashMap.load() };
 		auto& hashMap = *hashMapSharedPtr;
@@ -3953,7 +3938,7 @@ LRESULT CGitLogListBase::OnFindDialogMessage(WPARAM /*wParam*/, LPARAM /*lParam*
 				}
 			}
 
-			if (filter(m_arShownList.SafeGetAt(i), this, hashMap)) {
+			if (FilterAccepts(filter, m_arShownList.SafeGetAt(i), this, hashMap)) {
 				bFound = true;
 				break;
 			}
@@ -3981,7 +3966,7 @@ LRESULT CGitLogListBase::OnFindDialogMessage(WPARAM /*wParam*/, LPARAM /*lParam*
 }
 
 
-INT_PTR CGitLogListBase::OnToolHitTest(CPoint point, TOOLINFO* pTI) const {
+INT_PTR CGitLogListBase::OnToolHitTest(const CPoint point, TOOLINFO* pTI) const {
 	LVHITTESTINFO lvhitTestInfo;
 
 	lvhitTestInfo.pt = point;
@@ -4099,7 +4084,7 @@ BOOL CGitLogListBase::OnToolTipText(UINT /*id*/, NMHDR* pNMHDR, LRESULT* pResult
 }
 
 
-CString CGitLogListBase::GetToolTipText(int nItem, int nSubItem) {
+CString CGitLogListBase::GetToolTipText(const int nItem, const int nSubItem) {
 	if (nSubItem == LOGLIST_MESSAGE && !m_bTagsBranchesOnRightSide) {
 		GitRevLoglist* pLogEntry = m_arShownList.SafeGetAt(nItem);
 		if (pLogEntry == nullptr)
@@ -4227,7 +4212,7 @@ void CGitLogListBase::OnBeginDrag(NMHDR* /*pnmhdr*/, LRESULT* pResult) {
 }
 
 
-void CGitLogListBase::OnMouseMove(UINT nFlags, CPoint point) {
+void CGitLogListBase::OnMouseMove(const UINT nFlags, const CPoint point) {
 	__super::OnMouseMove(nFlags, point);
 
 	if (!m_bDragging)
@@ -4279,7 +4264,7 @@ void CGitLogListBase::OnMouseMove(UINT nFlags, CPoint point) {
 }
 
 
-void CGitLogListBase::OnLButtonUp(UINT nFlags, CPoint point) {
+void CGitLogListBase::OnLButtonUp(const UINT nFlags, const CPoint point) {
 	if (m_bDragging) {
 		::ReleaseCapture();
 		SetCursor(LoadCursor(nullptr, IDC_HAND));
@@ -4301,7 +4286,7 @@ void CGitLogListBase::OnLButtonUp(UINT nFlags, CPoint point) {
 }
 
 
-void CGitLogListBase::DrawDropInsertMarker(int nIndex) {
+void CGitLogListBase::DrawDropInsertMarker(const int nIndex) {
 	if (m_nDropMarkerLast != nIndex) {
 		CRect rect;
 		if (GetItemRect(m_nDropMarkerLast, &rect, 0)) {
@@ -4323,7 +4308,7 @@ void CGitLogListBase::DrawDropInsertMarker(int nIndex) {
 }
 
 
-void CGitLogListBase::DrawDropInsertMarkerLine(int nIndex) {
+void CGitLogListBase::DrawDropInsertMarkerLine(const int nIndex) {
 	CBrush* pBrush = CDC::GetHalftoneBrush();
 	CDC* pDC = GetDC();
 
@@ -4355,49 +4340,33 @@ void CGitLogListBase::DrawListItemWithMatchesRect(NMLVCUSTOMDRAW* pLVCD,
                                                   const std::vector<CHARRANGE>& ranges,
                                                   CRect rect,
                                                   const CString& text,
-                                                  HTHEME hTheme /*= nullptr*/,
-                                                  int txtState /*= 0*/) {
+                                                  const HTHEME hTheme /*= nullptr*/,
+                                                  const int txtState /*= 0*/) {
 	int drawPos = 0;
 	COLORREF textColor = pLVCD->clrText;
 	RECT rc = rect;
+	const auto& hdc = pLVCD->nmcd.hdc;
 	if (!hTheme) {
-		::SetTextColor(pLVCD->nmcd.hdc, textColor);
-		SetBkMode(pLVCD->nmcd.hdc, TRANSPARENT);
+		::SetTextColor(hdc, textColor);
+		SetBkMode(hdc, TRANSPARENT);
 	}
 	DTTOPTS opts = { 0 };
 	opts.dwSize = sizeof(opts);
 	opts.crText = textColor;
 	opts.dwFlags = DTT_TEXTCOLOR;
 
+	constexpr auto txt_flgs_base = DT_SINGLELINE | DT_VCENTER | DT_NOPREFIX | DT_END_ELLIPSIS;
+	constexpr auto txt_flgs_crec = DT_CALCRECT | txt_flgs_base;
+	const auto text_mid = text.Mid(drawPos);
 	for (auto it = ranges.cbegin(); it != ranges.cend(); ++it) {
 		rc = rect;
 		if (it->cpMin - drawPos) {
 			if (!hTheme) {
-				DrawText(pLVCD->nmcd.hdc, text.Mid(drawPos), it->cpMin - drawPos, &rc, DT_SINGLELINE | DT_VCENTER | DT_NOPREFIX | DT_END_ELLIPSIS);
-				DrawText(pLVCD->nmcd.hdc,
-				         text.Mid(drawPos),
-				         it->cpMin - drawPos,
-				         &rc,
-				         DT_CALCRECT | DT_SINGLELINE | DT_VCENTER | DT_NOPREFIX | DT_END_ELLIPSIS);
+				DrawText(hdc, text_mid, it->cpMin - drawPos, &rc, txt_flgs_base);
+				DrawText(hdc, text_mid, it->cpMin - drawPos, &rc, txt_flgs_crec);
 			} else {
-				DrawThemeTextEx(hTheme,
-				                pLVCD->nmcd.hdc,
-				                LVP_LISTITEM,
-				                txtState,
-				                text.Mid(drawPos),
-				                it->cpMin - drawPos,
-				                DT_SINGLELINE | DT_VCENTER | DT_NOPREFIX | DT_END_ELLIPSIS,
-				                &rc,
-				                &opts);
-				GetThemeTextExtent(hTheme,
-				                   pLVCD->nmcd.hdc,
-				                   LVP_LISTITEM,
-				                   txtState,
-				                   text.Mid(drawPos),
-				                   it->cpMin - drawPos,
-				                   DT_CALCRECT | DT_SINGLELINE | DT_VCENTER | DT_NOPREFIX | DT_END_ELLIPSIS,
-				                   &rect,
-				                   &rc);
+				std::ignore = DrawThemeTextEx(hTheme, hdc, LVP_LISTITEM, txtState, text_mid, it->cpMin - drawPos, txt_flgs_base, &rc, &opts);
+				std::ignore = GetThemeTextExtent(hTheme, hdc, LVP_LISTITEM, txtState, text_mid, it->cpMin - drawPos, txt_flgs_crec, &rect, &rc);
 			}
 			rect.left = rc.right;
 		}
@@ -4405,34 +4374,14 @@ void CGitLogListBase::DrawListItemWithMatchesRect(NMLVCUSTOMDRAW* pLVCD,
 		drawPos = it->cpMin;
 		if (it->cpMax - drawPos) {
 			if (!hTheme) {
-				::SetTextColor(pLVCD->nmcd.hdc, CTheme::Instance().GetThemeColor(g_Colors.GetColor(CColors::FilterMatch), true));
-				DrawText(pLVCD->nmcd.hdc, text.Mid(drawPos), it->cpMax - drawPos, &rc, DT_SINGLELINE | DT_VCENTER | DT_NOPREFIX | DT_END_ELLIPSIS);
-				DrawText(pLVCD->nmcd.hdc,
-				         text.Mid(drawPos),
-				         it->cpMax - drawPos,
-				         &rc,
-				         DT_CALCRECT | DT_SINGLELINE | DT_VCENTER | DT_NOPREFIX | DT_END_ELLIPSIS);
-				::SetTextColor(pLVCD->nmcd.hdc, textColor);
+				::SetTextColor(hdc, CTheme::Instance().GetThemeColor(g_Colors.GetColor(CColors::FilterMatch), true));
+				DrawText(hdc, text_mid, it->cpMax - drawPos, &rc, txt_flgs_base);
+				DrawText(hdc, text_mid, it->cpMax - drawPos, &rc, txt_flgs_crec);
+				::SetTextColor(hdc, textColor);
 			} else {
 				opts.crText = CTheme::Instance().GetThemeColor(g_Colors.GetColor(CColors::FilterMatch), true);
-				DrawThemeTextEx(hTheme,
-				                pLVCD->nmcd.hdc,
-				                LVP_LISTITEM,
-				                txtState,
-				                text.Mid(drawPos),
-				                it->cpMax - drawPos,
-				                DT_SINGLELINE | DT_VCENTER | DT_NOPREFIX | DT_END_ELLIPSIS,
-				                &rc,
-				                &opts);
-				GetThemeTextExtent(hTheme,
-				                   pLVCD->nmcd.hdc,
-				                   LVP_LISTITEM,
-				                   txtState,
-				                   text.Mid(drawPos),
-				                   it->cpMax - drawPos,
-				                   DT_CALCRECT | DT_SINGLELINE | DT_VCENTER | DT_NOPREFIX | DT_END_ELLIPSIS,
-				                   &rect,
-				                   &rc);
+				std::ignore = DrawThemeTextEx(hTheme, hdc, LVP_LISTITEM, txtState, text_mid, it->cpMax - drawPos, txt_flgs_base, &rc, &opts);
+				std::ignore = GetThemeTextExtent(hTheme, hdc, LVP_LISTITEM, txtState, text_mid, it->cpMax - drawPos, txt_flgs_crec, &rect, &rc);
 				opts.crText = textColor;
 			}
 			rect.left = rc.right;
@@ -4441,52 +4390,29 @@ void CGitLogListBase::DrawListItemWithMatchesRect(NMLVCUSTOMDRAW* pLVCD,
 		drawPos = it->cpMax;
 	}
 	if (!hTheme)
-		DrawText(pLVCD->nmcd.hdc, text.Mid(drawPos), -1, &rc, DT_SINGLELINE | DT_VCENTER | DT_NOPREFIX | DT_END_ELLIPSIS);
+		std::ignore = DrawText(hdc, text_mid, -1, &rc, txt_flgs_base);
 	else
-		DrawThemeTextEx(hTheme,
-		                pLVCD->nmcd.hdc,
-		                LVP_LISTITEM,
-		                txtState,
-		                text.Mid(drawPos),
-		                -1,
-		                DT_SINGLELINE | DT_VCENTER | DT_NOPREFIX | DT_END_ELLIPSIS,
-		                &rc,
-		                &opts);
+		std::ignore = DrawThemeTextEx(hTheme, hdc, LVP_LISTITEM, txtState, text_mid, -1, txt_flgs_base, &rc, &opts);
 }
 
 
-bool CGitLogListBase::DrawListItemWithMatchesIfEnabled(std::shared_ptr<CLogDlgFilter> filter,
-                                                       std::int32_t selectedFilter,
-                                                       NMLVCUSTOMDRAW* pLVCD,
-                                                       LRESULT* pResult) {
-	if ((filter->GetSelectedFilters() & selectedFilter) && filter->IsFilterActive()) {
+bool CGitLogListBase::DrawListItemWithMatchesIfEnabled(const std::int32_t selectedFilter, NMLVCUSTOMDRAW* pLVCD, LRESULT* pResult) {
+	const auto filter = m_LogFilter.Snapshot();
+	if ((filter.GetSelectedFilters() & selectedFilter) && filter.IsFilterActive()) {
 		CRect rect;
 		GetSubItemRect(static_cast<int>(pLVCD->nmcd.dwItemSpec), pLVCD->iSubItem, LVIR_BOUNDS, rect);
 
 		FillBackGround(pLVCD->nmcd.hdc, pLVCD->nmcd.dwItemSpec, rect);
 
-		*pResult = DrawListItemWithMatches(filter.get(), *this, pLVCD);
+		*pResult = DrawListItemWithMatches(filter, *this, pLVCD);
 		return true;
 	}
 	return false;
 }
 
 
-LRESULT CGitLogListBase::DrawListItemWithMatches(CFilterHelper* filter, CListCtrl& listCtrl, NMLVCUSTOMDRAW* pLVCD) {
-	CString text = static_cast<LPCWSTR>(listCtrl.GetItemText(static_cast<int>(pLVCD->nmcd.dwItemSpec), pLVCD->iSubItem));
-	if (text.IsEmpty())
-		return CDRF_DODEFAULT;
-
-	std::vector<CHARRANGE> ranges;
-	filter->GetMatchRanges(ranges, text, 0);
-	if (ranges.empty())
-		return CDRF_DODEFAULT;
-
-	// even though we initialize the 'rect' here with nmcd.rc,
-	// we must not use it but use the rects from GetItemRect()
-	// and GetSubItemRect(). Because on XP, the nmcd.rc has
-	// bogus data in it.
-	CRect rect = pLVCD->nmcd.rc;
+void get_value(const CListCtrl& listCtrl, NMLVCUSTOMDRAW* pLVCD, CString text, CRect& rect, CAutoThemeData& hTheme, int& txtState) {
+	rect = pLVCD->nmcd.rc;
 
 	// find the margin where the text label starts
 	CRect labelRC, boundsRC, iconRC;
@@ -4502,10 +4428,9 @@ LRESULT CGitLogListBase::DrawListItemWithMatches(CFilterHelper* filter, CListCtr
 		listCtrl.GetSubItemRect(static_cast<int>(pLVCD->nmcd.dwItemSpec), pLVCD->iSubItem, LVIR_BOUNDS, rect);
 
 	int borderWidth = 0;
-	CAutoThemeData hTheme;
 	if (IsAppThemed()) {
 		hTheme = OpenThemeData(listCtrl.m_hWnd, L"Explorer::ListView;ListView");
-		GetThemeMetric(hTheme, pLVCD->nmcd.hdc, LVP_LISTITEM, LISS_NORMAL, TMT_BORDERSIZE, &borderWidth);
+		std::ignore = GetThemeMetric(hTheme, pLVCD->nmcd.hdc, LVP_LISTITEM, LISS_NORMAL, TMT_BORDERSIZE, &borderWidth);
 	} else
 		borderWidth = GetSystemMetrics(SM_CXBORDER);
 
@@ -4525,8 +4450,7 @@ LRESULT CGitLogListBase::DrawListItemWithMatches(CFilterHelper* filter, CListCtr
 	item.stateMask = static_cast<UINT>(-1);
 	listCtrl.GetItem(&item);
 
-	// fill background
-	int txtState = LISS_NORMAL;
+	txtState = LISS_NORMAL;
 	if (!hTheme) {
 		HBRUSH brush = nullptr;
 		if (item.state & LVIS_SELECTED) {
@@ -4557,7 +4481,7 @@ LRESULT CGitLogListBase::DrawListItemWithMatches(CFilterHelper* filter, CListCtr
 		}
 
 		if (IsThemeBackgroundPartiallyTransparent(hTheme, LVP_LISTDETAIL, txtState))
-			DrawThemeParentBackground(listCtrl.m_hWnd, pLVCD->nmcd.hdc, &rect);
+			std::ignore = DrawThemeParentBackground(listCtrl.m_hWnd, pLVCD->nmcd.hdc, &rect);
 		else {
 			HBRUSH brush = ::CreateSolidBrush(pLVCD->clrTextBk);
 			::FillRect(pLVCD->nmcd.hdc, rect, brush);
@@ -4573,7 +4497,7 @@ LRESULT CGitLogListBase::DrawListItemWithMatches(CFilterHelper* filter, CListCtr
 			}
 
 			// calculate background for rect of whole line, but limit redrawing to SubItem rect
-			DrawThemeBackground(hTheme, pLVCD->nmcd.hdc, LVP_LISTITEM, txtState, boundsRC, my);
+			std::ignore = DrawThemeBackground(hTheme, pLVCD->nmcd.hdc, LVP_LISTITEM, txtState, boundsRC, my);
 		}
 	}
 
@@ -4621,7 +4545,7 @@ LRESULT CGitLogListBase::DrawListItemWithMatches(CFilterHelper* filter, CListCtr
 			}
 			if ((state) && (listCtrl.GetExtendedStyle() & LVS_EX_CHECKBOXES)) {
 				CAutoThemeData hTheme2 = OpenThemeData(listCtrl.m_hWnd, L"BUTTON");
-				DrawThemeBackground(hTheme2, pLVCD->nmcd.hdc, BP_CHECKBOX, state, &irc, NULL);
+				std::ignore = DrawThemeBackground(hTheme2, pLVCD->nmcd.hdc, BP_CHECKBOX, state, &irc, NULL);
 			}
 		}
 	}
@@ -4642,6 +4566,24 @@ LRESULT CGitLogListBase::DrawListItemWithMatches(CFilterHelper* filter, CListCtr
 			rect.right += 2 * borderWidth;
 		}
 	}
+}
+
+
+LRESULT CGitLogListBase::DrawListItemWithMatches(const CFilterHelper& filter, const CListCtrl& listCtrl, NMLVCUSTOMDRAW* pLVCD) {
+	CString text = static_cast<LPCWSTR>(listCtrl.GetItemText(static_cast<int>(pLVCD->nmcd.dwItemSpec), pLVCD->iSubItem));
+	if (text.IsEmpty())
+		return CDRF_DODEFAULT;
+
+	std::vector<CHARRANGE> ranges;
+	filter.GetMatchRanges(ranges, text, 0);
+	if (ranges.empty())
+		return CDRF_DODEFAULT;
+
+
+	CRect rect;
+	CAutoThemeData hTheme;
+	int txtState;
+	get_value(listCtrl, pLVCD, text, rect, hTheme, txtState);
 
 	DrawListItemWithMatchesRect(pLVCD, ranges, rect, text, hTheme, txtState);
 
@@ -4649,12 +4591,27 @@ LRESULT CGitLogListBase::DrawListItemWithMatches(CFilterHelper* filter, CListCtr
 }
 
 
-void CGitLogListBase::OnSize(UINT nType, int cx, int cy) {
+void CGitLogListBase::OnSize(const UINT nType, const int cx, const int cy) {
 	__super::OnSize(nType, cx, cy);
 
 	m_nCacheItemsPerPage = GetCountPerPage();
 }
 
+
+
+class CGitLogList : public CGitLogListBase {
+	DECLARE_DYNAMIC(CGitLogList)
+
+public:
+	void ShiftSelectedRebaseAction();
+	void SetSelectedRebaseAction(int action);
+	void SetUnselectedRebaseAction(int action);
+
+protected:
+	int CherryPickFrom(const CString& from, const CString& to);
+	int RevertSelectedCommits(int parent);
+	void ContextMenuAction(int cmd, int FirstSelect, int LastSelect, CMenu* menu, const MAP_HASH_NAME& hashMap) override;
+};
 
 }
 export using namespace GitLogList;

@@ -1,4 +1,4 @@
-﻿#include "stdafx.h"
+#include "stdafx.h"
 #include <regex>
 #include <xtree>
 #include <map>
@@ -28,7 +28,7 @@ import std;
 import git_h;
 import RIAA;
 import str_utils;
-import MessageBox;
+import TGitMessageBox;
 import FindDlg;
 import StandAloneDlg;
 import GitLogListBase;
@@ -269,7 +269,7 @@ void CLogDlg::SetParams(const CTGitPath& orgPath, const CTGitPath& path, const C
 
 void CLogDlg::SetFilter(const CString& findstr, LONG findtype, bool findregex)
 {
-	m_LogList.m_LogFilter = std::make_shared<CLogDlgFilter>(findstr, m_bFilterWithRegex, static_cast<DWORD>(findtype), m_bFilterCaseSensitively);
+	m_LogList.m_LogFilter.Replace(CFilterHelper{ findstr, m_bFilterWithRegex, static_cast<DWORD>(findtype), m_bFilterCaseSensitively });
 	m_sFilterText = findstr;
 	m_bFilterWithRegex = findregex;
 }
@@ -688,8 +688,7 @@ std::vector<CHARRANGE> FindGitHashPositions(const CString& msg, int offset)
 		if (e == '\n')
 		{
 			++offset;
-			if (msg.Mid(offset, 11) == L"git-svn-id:"
-				|| msg.Mid(offset, 14) == L"Signed-off-by:"
+			if (msg.Mid(offset, 14) == L"Signed-off-by:"
 				|| msg.Mid(offset, 10) == L"Change-Id:"
 			)
 			{
@@ -865,14 +864,14 @@ void CLogDlg::FillLogMessageCtrl(bool bShow /* = true*/)
 
 			std::vector<CHARRANGE> hightlightRanges;
 			std::vector<CHARRANGE> boldRanges;
-			auto filter{ m_LogList.m_LogFilter.load() };
+			const auto filter = m_LogList.m_LogFilter.Snapshot();
 
 			// set the log message text
 			CString msg = std::format(L"{}: ", tgit::invarients::ObjectFormatName()).c_str();
 			int offset = msg.GetLength();
 			msg += pLogEntry->m_CommitHash.c_str();
-			if ((m_SelectedFilters & LOGFILTER_REVS) && filter->IsFilterActive())
-				filter->GetMatchRanges(hightlightRanges, msg.Mid(offset), offset);
+			if ((m_SelectedFilters & LOGFILTER_REVS) && filter.IsFilterActive())
+				filter.GetMatchRanges(hightlightRanges, msg.Mid(offset), offset);
 			msg += out_counter + L"\n" + out_describe.c_str() + L"\n";
 
 			if (m_bAsteriskLogPrefix)
@@ -881,15 +880,15 @@ void CLogDlg::FillLogMessageCtrl(bool bShow /* = true*/)
 			msg += pLogEntry->GetSubject();
 			msg.Remove(L'\r');
 			boldRanges.push_back({ offset, msg.GetLength() });
-			if ((m_SelectedFilters & (LOGFILTER_SUBJECT | LOGFILTER_MESSAGES)) && filter->IsFilterActive())
-				filter->GetMatchRanges(hightlightRanges, msg.Mid(offset), offset);
+			if ((m_SelectedFilters & (LOGFILTER_SUBJECT | LOGFILTER_MESSAGES)) && filter.IsFilterActive())
+				filter.GetMatchRanges(hightlightRanges, msg.Mid(offset), offset);
 
 			msg += L'\n';
 			offset = msg.GetLength();
 			msg += pLogEntry->GetBody();
 			msg.Remove(L'\r');
-			if ((m_SelectedFilters & LOGFILTER_MESSAGES) && filter->IsFilterActive())
-				filter->GetMatchRanges(hightlightRanges, msg.Mid(offset), offset);
+			if ((m_SelectedFilters & LOGFILTER_MESSAGES) && filter.IsFilterActive())
+				filter.GetMatchRanges(hightlightRanges, msg.Mid(offset), offset);
 
 			if (!pLogEntry->m_Notes.IsEmpty())
 			{
@@ -901,8 +900,8 @@ void CLogDlg::FillLogMessageCtrl(bool bShow /* = true*/)
 				boldRanges.push_back({ offset, msg.GetLength() });
 				msg += pLogEntry->m_Notes;
 				msg.Remove(L'\r');
-				if ((m_SelectedFilters & LOGFILTER_NOTES) && filter->IsFilterActive())
-					filter->GetMatchRanges(hightlightRanges, msg.Mid(offset), offset);
+				if ((m_SelectedFilters & LOGFILTER_NOTES) && filter.IsFilterActive())
+					filter.GetMatchRanges(hightlightRanges, msg.Mid(offset), offset);
 			}
 
 			CString tagInfo = m_LogList.GetTagInfo(pLogEntry);
@@ -916,8 +915,8 @@ void CLogDlg::FillLogMessageCtrl(bool bShow /* = true*/)
 				boldRanges.push_back({ offset, msg.GetLength() });
 				msg += tagInfo;
 				msg.Remove(L'\r');
-				if ((m_SelectedFilters & LOGFILTER_ANNOTATEDTAG) && filter->IsFilterActive())
-					filter->GetMatchRanges(hightlightRanges, msg.Mid(offset), offset);
+				if ((m_SelectedFilters & LOGFILTER_ANNOTATEDTAG) && filter.IsFilterActive())
+					filter.GetMatchRanges(hightlightRanges, msg.Mid(offset), offset);
 			}
 
 			pMsgView->SetWindowText(msg);
@@ -1238,7 +1237,7 @@ void CLogDlg::Refresh (bool clearfilter /*autoGoOnline*/)
 {
 	if (m_bSelect)
 		DialogEnableWindow(IDOK, FALSE);
-	m_LogList.m_LogFilter = std::make_shared<CLogDlgFilter>(m_sFilterText, m_bFilterWithRegex, static_cast<DWORD>(m_SelectedFilters), m_bFilterCaseSensitively);
+	m_LogList.m_LogFilter.Replace(CFilterHelper{ m_sFilterText, m_bFilterWithRegex, static_cast<DWORD>(m_SelectedFilters), m_bFilterCaseSensitively });
 	m_LogList.Refresh(clearfilter);
 	if (clearfilter)
 		m_sFilterText.Empty();
@@ -2286,7 +2285,7 @@ LRESULT CLogDlg::OnClickedInfoIcon(WPARAM wParam, LPARAM lParam)
 			}
 			CRegDWORD(L"Software\\TortoiseGit\\SelectedLogFilters") = m_SelectedFilters;
 			// Reload only if a search text is entered
-			if (m_LogList.m_LogFilter.load()->IsFilterActive())
+			if (m_LogList.m_LogFilter.Snapshot().IsFilterActive())
 				SetTimer(LOGFILTER_TIMER, 1000, nullptr);
 		}
 	}
@@ -2398,7 +2397,7 @@ bool CLogDlg::Validate(LPCWSTR string)
 	if (!m_bFilterWithRegex)
 		return true;
 	std::vector<std::wregex> pats;
-	return m_LogList.m_LogFilter.load()->ValidateRegexp(string, pats);
+	return m_LogList.m_LogFilter.Snapshot().ValidateRegexp(string, pats);
 }
 
 void CLogDlg::OnEnChangeFileFilter()
@@ -3573,7 +3572,7 @@ LRESULT CLogDlg::OnRefreshSelection(WPARAM /*wParam*/, LPARAM /*lParam*/)
 
 void CLogDlg::OnExitClearFilter()
 {
-	if (m_LogList.m_LogFilter.load()->IsFilterActive())
+	if (m_LogList.m_LogFilter.Snapshot().IsFilterActive())
 	{
 		OnClickedCancelFilter(NULL, NULL);
 		return;
@@ -3590,9 +3589,9 @@ void CLogDlg::OnNMCustomdrawChangedFileList(NMHDR* pNMHDR, LRESULT* pResult)
 	if (pLVCD->iSubItem > 2)
 		return;
 
-	auto filter{ m_LogList.m_LogFilter.load() };
-	if ((m_SelectedFilters & LOGFILTER_PATHS) && (filter->IsFilterActive()))
-		*pResult = CGitLogListBase::DrawListItemWithMatches(filter.get(), m_ChangedFileListCtrl, pLVCD);
+	const auto filter = m_LogList.m_LogFilter.Snapshot();
+	if ((m_SelectedFilters & LOGFILTER_PATHS) && (filter.IsFilterActive()))
+		*pResult = CGitLogListBase::DrawListItemWithMatches(filter, m_ChangedFileListCtrl, pLVCD);
 }
 
 void CLogDlg::OnSysColorChange()

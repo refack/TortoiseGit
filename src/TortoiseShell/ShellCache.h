@@ -53,8 +53,7 @@ constexpr TGitContextMenuEntries defaultTopMenuEntries = TGitContextMenuEntries:
 														 TGitContextMenuEntries::Clone |
 														 TGitContextMenuEntries::Commit;
 
-constexpr TGitContextMenuEntries defaultExtMenuEntries = TGitContextMenuEntries::SVNIgnore |
-														 TGitContextMenuEntries::StashApply |
+constexpr TGitContextMenuEntries defaultExtMenuEntries = TGitContextMenuEntries::StashApply |
 														 TGitContextMenuEntries::SubmoduleSync;
 
 using Locker = CComCritSecLock<CComCriticalSection>;

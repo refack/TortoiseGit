@@ -1,4 +1,4 @@
-﻿// TortoiseGit - a Windows shell extension for easy version control
+// TortoiseGit - a Windows shell extension for easy version control
 
 // Copyright (C) 2013-2017, 2019, 2021, 2023, 2025 - TortoiseGit
 
@@ -25,7 +25,7 @@
 #include "Resources/resource.h"
 
 import tgit;
-import MessageBox;
+import TGitMessageBox;
 
 using TCStringW = wstr::CString;
 using TCStringA = zstr::CString;

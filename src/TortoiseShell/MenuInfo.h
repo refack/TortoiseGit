@@ -91,10 +91,6 @@ enum class TGitShellCommand
 		SubmoduleAdd,
 		SubmoduleSync,
 		Sendmail,
-		SVNRebase,
-		SVNDCommit,
-		SVNDFetch,
-		SVNIgnore, //import svn ignore
 		Sync,
 		BisectStart,
 		BisectGood,

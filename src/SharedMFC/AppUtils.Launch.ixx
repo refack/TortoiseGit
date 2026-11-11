@@ -13,7 +13,7 @@ import GitRev;
 import TGitPath;
 import Registry;
 import GitHash;
-import MessageBox;
+import TGitMessageBox;
 
 /**
  * \ingroup TortoiseProc

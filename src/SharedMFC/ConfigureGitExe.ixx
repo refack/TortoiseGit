@@ -1,4 +1,4 @@
-﻿module;
+module;
 #include <tgitlib/sanity.h>
 
 #include "Resources/resource.h"
@@ -11,7 +11,7 @@ import gsl;
 import wil;
 import str_utils;
 import git_h;
-import MessageBox;
+import TGitMessageBox;
 import TGitCache.CacheInterface;
 import PathUtils;
 import Registry;

@@ -1,4 +1,4 @@
-﻿// TortoiseGit - a Windows shell extension for easy version control
+// TortoiseGit - a Windows shell extension for easy version control
 
 // Copyright (C) 2011, 2013-2016, 2018-2019, 2023-2026 - TortoiseGit
 // Copyright (C) 2007-2008,2010,2012 - TortoiseSVN
@@ -22,7 +22,7 @@
 
 #include "DropCopyAddCommand.h"
 #include "GitProgressDlg.h"
-import MessageBox;
+import TGitMessageBox;
 #include "ProgressCommands/AddProgressCommand.h"
 import DirFileEnum;
 

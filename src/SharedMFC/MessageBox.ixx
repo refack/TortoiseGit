@@ -1,4 +1,4 @@
-﻿module;
+module;
 #include "stdafx.h"
 #include <afxtaskdialog.h>
 
@@ -23,7 +23,7 @@
 #define MESSAGEBOX_BUTTONY 5
 
 
-export module MessageBox;
+export module TGitMessageBox;
 import DebugOutput;
 import wil;
 import wil.MFC;

@@ -1,4 +1,4 @@
-﻿// TortoiseGit - a Windows shell extension for easy version control
+// TortoiseGit - a Windows shell extension for easy version control
 
 // Copyright (C) 2012-2017, 2019-2020, 2024-2025 - TortoiseGit
 
@@ -19,13 +19,13 @@
 
 #include "stdafx.h"
 #include "DeleteRemoteTagDlg.h"
-#include "../../TortoiseProc/MiscUI/SysProgressDlg.h"
+import SysProgressDlg;
 #include "../../TortoiseShell/resource.h"
 
 import tgit;
 import AppUtils.Window;
 import TortoiseProc;
-import MessageBox;
+import TGitMessageBox;
 import StandAloneDlg;
 
 IMPLEMENT_DYNAMIC(CDeleteRemoteTagDlg, CResizableStandAloneDialog)

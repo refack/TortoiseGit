@@ -1,4 +1,4 @@
-﻿// TortoiseGit - a Windows shell extension for easy version control
+// TortoiseGit - a Windows shell extension for easy version control
 
 // Copyright (C) 2008-2017, 2019-2021, 2024 - TortoiseGit
 
@@ -26,7 +26,7 @@
 
 import tgit;
 import TortoiseProc;
-import MessageBox;
+import TGitMessageBox;
 import AppUtils.Launch;
 import AppUtils.Window;
 import BrowseFolder;
@@ -45,18 +45,7 @@ void CCloneDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_CLONE_BROWSE_URL, m_BrowseUrl);
 	DDX_Text(pDX, IDC_CLONE_DIR, m_Directory);
 
-	DDX_Check(pDX,IDC_CHECK_SVN, m_bSVN);
-	DDX_Check(pDX,IDC_CHECK_SVN_TRUNK, m_bSVNTrunk);
-	DDX_Check(pDX,IDC_CHECK_SVN_TAG, m_bSVNTags);
-	DDX_Check(pDX,IDC_CHECK_SVN_BRANCH, m_bSVNBranch);
-	DDX_Check(pDX,IDC_CHECK_SVN_FROM, m_bSVNFrom);
-	DDX_Check(pDX,IDC_CHECK_USERNAME, m_bSVNUserName);
 
-	DDX_Text(pDX, IDC_EDIT_SVN_TRUNK, m_strSVNTrunk);
-	DDX_Text(pDX, IDC_EDIT_SVN_TAG, m_strSVNTags);
-	DDX_Text(pDX, IDC_EDIT_SVN_BRANCH, m_strSVNBranchs);
-	DDX_Text(pDX, IDC_EDIT_SVN_FROM, this->m_nSVNFrom);
-	DDX_Text(pDX, IDC_EDIT_USERNAME,m_strUserName);
 
 	DDX_Check(pDX, IDC_CHECK_DEPTH, m_bDepth);
 	DDX_Check(pDX, IDC_CHECK_BARE, m_bBare);
@@ -77,12 +66,6 @@ BOOL CCloneDlg::OnInitDialog()
 	AdjustControlSize(IDC_CHECK_DEPTH);
 	AdjustControlSize(IDC_CHECK_RECURSIVE);
 	AdjustControlSize(IDC_CHECK_BARE);
-	AdjustControlSize(IDC_CHECK_SVN);
-	AdjustControlSize(IDC_CHECK_SVN_TRUNK);
-	AdjustControlSize(IDC_CHECK_SVN_TAG);
-	AdjustControlSize(IDC_CHECK_SVN_BRANCH);
-	AdjustControlSize(IDC_CHECK_SVN_FROM);
-	AdjustControlSize(IDC_CHECK_USERNAME);
 
 	AddAnchor(IDC_URLCOMBO, TOP_LEFT, TOP_RIGHT);
 	AddAnchor(IDC_CLONE_BROWSE_URL, TOP_RIGHT);
@@ -92,7 +75,6 @@ BOOL CCloneDlg::OnInitDialog()
 	AddAnchor(IDCANCEL,BOTTOM_RIGHT);
 
 	AddAnchor(IDC_GROUP_CLONE,TOP_LEFT,TOP_RIGHT);
-	AddAnchor(IDC_CLONE_GROUP_SVN,TOP_LEFT,TOP_RIGHT);
 	AddAnchor(IDHELP, BOTTOM_RIGHT);
 
 	CString tt;
@@ -152,7 +134,6 @@ BOOL CCloneDlg::OnInitDialog()
 
 	EnableSaveRestore(L"CloneDlg");
 
-	OnBnClickedCheckSvn();
 	OnBnClickedCheckDepth();
 	OnBnClickedCheckBranch();
 	OnBnClickedCheckOrigin();
@@ -166,16 +147,10 @@ BEGIN_MESSAGE_MAP(CCloneDlg, CHorizontalResizableStandAloneDialog)
 	ON_BN_CLICKED(IDC_CHECK_BRANCH, &CCloneDlg::OnBnClickedCheckBranch)
 	ON_BN_CLICKED(IDC_CHECK_ORIGIN, &CCloneDlg::OnBnClickedCheckOrigin)
 	ON_CBN_EDITCHANGE(IDC_URLCOMBO, &CCloneDlg::OnCbnEditchangeUrlcombo)
-	ON_BN_CLICKED(IDC_CHECK_SVN, &CCloneDlg::OnBnClickedCheckSvn)
-	ON_BN_CLICKED(IDC_CHECK_SVN_TRUNK, &CCloneDlg::OnBnClickedCheckSvnTrunk)
-	ON_BN_CLICKED(IDC_CHECK_SVN_TAG, &CCloneDlg::OnBnClickedCheckSvnTag)
-	ON_BN_CLICKED(IDC_CHECK_SVN_BRANCH, &CCloneDlg::OnBnClickedCheckSvnBranch)
-	ON_BN_CLICKED(IDC_CHECK_SVN_FROM, &CCloneDlg::OnBnClickedCheckSvnFrom)
 	ON_BN_CLICKED(IDC_CHECK_DEPTH, &CCloneDlg::OnBnClickedCheckDepth)
 	ON_BN_CLICKED(IDC_CHECK_BARE, &CCloneDlg::OnBnClickedCheckBare)
 	ON_BN_CLICKED(IDC_CHECK_RECURSIVE, &CCloneDlg::OnBnClickedCheckRecursive)
 	ON_BN_CLICKED(IDC_CHECK_NOCHECKOUT, &CCloneDlg::OnBnClickedCheckRecursive)
-	ON_BN_CLICKED(IDC_CHECK_USERNAME, &CCloneDlg::OnBnClickedCheckUsername)
 END_MESSAGE_MAP()
 
 // CCloneDlg message handlers
@@ -200,7 +175,7 @@ void CCloneDlg::OnOK()
 		return;
 	}
 
-	if (m_bOrigin && m_strOrigin.IsEmpty() && !m_bSVN)
+	if (m_bOrigin && m_strOrigin.IsEmpty())
 	{
 		ShowEditBalloon(IDC_EDIT_ORIGIN, IDS_B_T_NOTEMPTY, IDS_ERR_ERROR, TTI_ERROR);
 		m_bSaving = false;
@@ -327,69 +302,6 @@ void CCloneDlg::OnCbnEditchangeUrlcombo()
 	this->UpdateData(FALSE);
 }
 
-void CCloneDlg::OnBnClickedCheckSvn()
-{
-	this->UpdateData();
-
-	if(this->m_bSVN)
-	{
-		CString str;
-		m_URLCombo.GetWindowText(str);
-
-		str.TrimRight(L"\\/");
-		if (StringUtils::EndsWithI(str, L"trunk"))
-			this->m_bSVNBranch=this->m_bSVNTags=this->m_bSVNTrunk = FALSE;
-		else
-			this->m_bSVNBranch=this->m_bSVNTags=this->m_bSVNTrunk = TRUE;
-		m_bDepth = false;
-		m_bBare = false;
-		m_bRecursive = false;
-		m_bBranch = FALSE;
-		m_bNoCheckout = FALSE;
-		this->UpdateData(FALSE);
-		OnBnClickedCheckDepth();
-	}
-	this->GetDlgItem(IDC_CHECK_DEPTH)->EnableWindow(!m_bSVN);
-	this->GetDlgItem(IDC_CHECK_BARE)->EnableWindow(!m_bSVN);
-	this->GetDlgItem(IDC_CHECK_RECURSIVE)->EnableWindow(!m_bSVN);
-	this->GetDlgItem(IDC_CHECK_BRANCH)->EnableWindow(!m_bSVN);
-	this->GetDlgItem(IDC_EDIT_BRANCH)->EnableWindow(!m_bSVN);
-	this->GetDlgItem(IDC_CHECK_NOCHECKOUT)->EnableWindow(!m_bSVN);
-	OnBnClickedCheckSvnTrunk();
-	OnBnClickedCheckSvnTag();
-	OnBnClickedCheckSvnBranch();
-	OnBnClickedCheckSvnFrom();
-	OnBnClickedCheckUsername();
-}
-
-void CCloneDlg::OnBnClickedCheckSvnTrunk()
-{
-	UpdateData(TRUE);
-	this->GetDlgItem(IDC_CHECK_SVN_TRUNK)->EnableWindow(this->m_bSVN);
-	this->GetDlgItem(IDC_EDIT_SVN_TRUNK)->EnableWindow(this->m_bSVNTrunk&&this->m_bSVN);
-}
-
-void CCloneDlg::OnBnClickedCheckSvnTag()
-{
-	UpdateData(TRUE);
-	this->GetDlgItem(IDC_CHECK_SVN_TAG)->EnableWindow(this->m_bSVN);
-	this->GetDlgItem(IDC_EDIT_SVN_TAG)->EnableWindow(this->m_bSVNTags&&this->m_bSVN);
-}
-
-void CCloneDlg::OnBnClickedCheckSvnBranch()
-{
-	UpdateData(TRUE);
-	this->GetDlgItem(IDC_CHECK_SVN_BRANCH)->EnableWindow(this->m_bSVN);
-	this->GetDlgItem(IDC_EDIT_SVN_BRANCH)->EnableWindow(this->m_bSVNBranch&&this->m_bSVN);
-}
-
-void CCloneDlg::OnBnClickedCheckSvnFrom()
-{
-	UpdateData(TRUE);
-	this->GetDlgItem(IDC_CHECK_SVN_FROM)->EnableWindow(this->m_bSVN);
-	this->GetDlgItem(IDC_EDIT_SVN_FROM)->EnableWindow(this->m_bSVNFrom&&this->m_bSVN);
-}
-
 void CCloneDlg::OnBnClickedCheckRecursive()
 {
 	UpdateData(TRUE);
@@ -436,9 +348,3 @@ void CCloneDlg::OnBnClickedCheckOrigin()
 	GetDlgItem(IDC_CHECK_BARE)->EnableWindow(!m_bOrigin);
 }
 
-void CCloneDlg::OnBnClickedCheckUsername()
-{
-	UpdateData(TRUE);
-	this->GetDlgItem(IDC_CHECK_USERNAME)->EnableWindow(this->m_bSVN);
-	this->GetDlgItem(IDC_EDIT_USERNAME)->EnableWindow(this->m_bSVNUserName && this->m_bSVN);
-}

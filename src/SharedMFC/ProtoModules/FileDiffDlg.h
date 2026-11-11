@@ -20,12 +20,9 @@
 
 #pragma once
 #include "afxcmn.h"
-import HintCtrl;
 #include "../../TortoiseProc/MiscUI/FilterEdit.h"
-import MenuButton;
-#include "../SharedMFC/ACEdir/ACEdit.h"
-#include "Utils/GestureEnabledControl.h"
-#include "../../SharedMFC/Utils/LogDlgFileFilter.h"
+#include "ACEdir/ACEdit.h"
+#include "Utils/LogDlgFileFilter.h"
 #include "PatchViewDlg.h"
 #include "HyperLink.h"
 
@@ -34,6 +31,8 @@ import TGitPath;
 import GitHash;
 import StandAloneDlg;
 import ThemeControls;
+import HintCtrl;
+import MenuButton;
 
 #define IDT_FILTER		101
 #define IDT_INPUT		102

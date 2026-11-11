@@ -1,4 +1,4 @@
-﻿// TortoiseGit - a Windows shell extension for easy version control
+// TortoiseGit - a Windows shell extension for easy version control
 
 // Copyright (C) 2008-2009, 2011-2013, 2015-2019, 2023-2024 - TortoiseGit
 // Copyright (C) 2003-2011, 2013 - TortoiseSVN
@@ -22,7 +22,7 @@
 import tgit;
 import TortoiseProc;
 import AppUtils.Window;
-import MessageBox;
+import TGitMessageBox;
 import TGitPath;
 import ConfigureGitExe;
 

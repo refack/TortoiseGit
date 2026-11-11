@@ -1,4 +1,4 @@
-﻿// TortoiseGit - a Windows shell extension for easy version control
+// TortoiseGit - a Windows shell extension for easy version control
 
 // Copyright (C) 2008-2017, 2019-2021, 2024-2025 - TortoiseGit
 
@@ -24,7 +24,7 @@ import tgit;
 import TortoiseProc;
 #include "CreateBranchTagDlg.h"
 import AppUtils.Window;
-import MessageBox;
+import TGitMessageBox;
 
 // CCreateBranchTagDlg dialog
 

@@ -1,4 +1,4 @@
-﻿// TortoiseGit - a Windows shell extension for easy version control
+// TortoiseGit - a Windows shell extension for easy version control
 
 // Copyright (C) 2008-2026 - TortoiseGit
 // Copyright (C) 2003-2008 - TortoiseSVN
@@ -85,54 +85,8 @@ void CGitProgressList::Cancel()
 
 LRESULT CGitProgressList::OnShowConflictResolver(WPARAM /*wParam*/, LPARAM /*lParam*/)
 {
-#if 0
-	CConflictResolveDlg dlg(this);
-	const svn_wc_conflict_description_t *description = (svn_wc_conflict_description_t *)lParam;
-	if (description)
-	{
-		dlg.SetConflictDescription(description);
-		if (m_pTaskbarList)
-		{
-			m_pTaskbarList->SetProgressState(m_hWnd, TBPF_PAUSED);
-		}
-		if (dlg.DoModal() == IDOK)
-		{
-			if (dlg.GetResult() == svn_wc_conflict_choose_postpone)
-			{
-				// if the result is conflicted and the dialog returned IDOK,
-				// that means we should not ask again in case of a conflict
-				m_AlwaysConflicted = true;
-				::SendMessage(GetDlgItem(IDC_NONINTERACTIVE)->GetSafeHwnd(), BM_SETCHECK, BST_CHECKED, 0);
-			}
-		}
-		m_mergedfile = dlg.GetMergedFile();
-		m_bCancelled = dlg.IsCancelled();
-		if (m_pTaskbarList)
-			m_pTaskbarList->SetProgressState(m_hWnd, TBPF_INDETERMINATE);
-		return dlg.GetResult();
-	}
-
-	return svn_wc_conflict_choose_postpone;
-#endif
 	return 0;
 }
-#if 0
-svn_wc_conflict_choice_t CGitProgressList::ConflictResolveCallback(const svn_wc_conflict_description_t *description, CString& mergedfile)
-{
-	// we only bother the user when merging
-	if (((m_Command == GitProgress_Merge)||(m_Command == GitProgress_MergeAll)||(m_Command == GitProgress_MergeReintegrate))&&(!m_AlwaysConflicted)&&(description))
-	{
-		// we're in a worker thread here. That means we must not show a dialog from the thread
-		// but let the UI thread do it.
-		// To do that, we send a message to the UI thread and let it show the conflict resolver dialog.
-		LRESULT dlgResult = ::SendMessage(GetSafeHwnd(), WM_SHOWCONFLICTRESOLVER, 0, reinterpret_cast<LPARAM>(description));
-		mergedfile = m_mergedfile;
-		return (svn_wc_conflict_choice_t)dlgResult;
-	}
-
-	return svn_wc_conflict_choose_postpone;
-}
-#endif
 void CGitProgressList::AddItemToList()
 {
 	const int totalcount = GetItemCount();
@@ -170,144 +124,6 @@ CString CGitProgressList::BuildInfoString()
 	CString infotext;
 	m_Command->ShowInfo(infotext);
 
-#if 0
-
-	int added = 0;
-	int copied = 0;
-	int deleted = 0;
-	int restored = 0;
-	int reverted = 0;
-	int resolved = 0;
-	int conflicted = 0;
-	int updated = 0;
-	int merged = 0;
-	int modified = 0;
-	int skipped = 0;
-	int replaced = 0;
-
-	for (size_t i=0; i<m_arData.size(); ++i)
-	{
-		const NotificationData * dat = m_arData[i];
-		switch (dat->action)
-		{
-		case svn_wc_notify_add:
-		case svn_wc_notify_update_add:
-		case svn_wc_notify_commit_added:
-			if (dat->bConflictedActionItem)
-				++conflicted;
-			else
-				++added;
-			break;
-		case svn_wc_notify_copy:
-			++copied;
-			break;
-		case svn_wc_notify_delete:
-		case svn_wc_notify_update_delete:
-		case svn_wc_notify_commit_deleted:
-			++deleted;
-			break;
-		case svn_wc_notify_restore:
-			++restored;
-			break;
-		case svn_wc_notify_revert:
-			++reverted;
-			break;
-		case svn_wc_notify_resolved:
-			++resolved;
-			break;
-		case svn_wc_notify_update_update:
-			if (dat->bConflictedActionItem)
-				++conflicted;
-			else if ((dat->content_state == svn_wc_notify_state_merged) || (dat->prop_state == svn_wc_notify_state_merged))
-				++merged;
-			else
-				++updated;
-			break;
-		case svn_wc_notify_commit_modified:
-			++modified;
-			break;
-		case svn_wc_notify_skip:
-			++skipped;
-			break;
-		case svn_wc_notify_commit_replaced:
-			++replaced;
-			break;
-		}
-	}
-	if (conflicted)
-	{
-		temp.LoadString(IDS_SVNACTION_CONFLICTED);
-		infotext += temp;
-		temp.Format(L":%d ", conflicted);
-		infotext += temp;
-	}
-	if (skipped)
-	{
-		temp.LoadString(IDS_SVNACTION_SKIP);
-		infotext += temp;
-		infotext.AppendFormat(L":%d ", skipped);
-	}
-	if (merged)
-	{
-		temp.LoadString(IDS_SVNACTION_MERGED);
-		infotext += temp;
-		infotext.AppendFormat(L":%d ", merged);
-	}
-	if (added)
-	{
-		temp.LoadString(IDS_SVNACTION_ADD);
-		infotext += temp;
-		infotext.AppendFormat(L":%d ", added);
-	}
-	if (deleted)
-	{
-		temp.LoadString(IDS_SVNACTION_DELETE);
-		infotext += temp;
-		infotext.AppendFormat(L":%d ", deleted);
-	}
-	if (modified)
-	{
-		temp.LoadString(IDS_SVNACTION_MODIFIED);
-		infotext += temp;
-		infotext.AppendFormat(L":%d ", modified);
-	}
-	if (copied)
-	{
-		temp.LoadString(IDS_SVNACTION_COPY);
-		infotext += temp;
-		infotext.AppendFormat(L":%d ", copied);
-	}
-	if (replaced)
-	{
-		temp.LoadString(IDS_SVNACTION_REPLACED);
-		infotext += temp;
-		infotext.AppendFormat(L":%d ", replaced);
-	}
-	if (updated)
-	{
-		temp.LoadString(IDS_SVNACTION_UPDATE);
-		infotext += temp;
-		infotext.AppendFormat(L":%d ", updated);
-	}
-	if (restored)
-	{
-		temp.LoadString(IDS_SVNACTION_RESTORE);
-		infotext += temp;
-		infotext.AppendFormat(L":%d ", restored);
-	}
-	if (reverted)
-	{
-		temp.LoadString(IDS_SVNACTION_REVERT);
-		infotext += temp;
-		infotext.AppendFormat(L":%d ", reverted);
-	}
-	if (resolved)
-	{
-		temp.LoadString(IDS_SVNACTION_RESOLVE);
-		infotext += temp;
-		infotext.AppendFormat(L":%d ", resolved);
-	}
-#endif
 	return infotext;
 }
 
@@ -938,32 +754,6 @@ void CGitProgressList::OnContextMenu(CWnd* pWnd, CPoint point)
 void CGitProgressList::OnLvnBegindragSvnprogress(NMHDR* , LRESULT *pResult)
 {
 	//LPNMLISTVIEW pNMLV = reinterpret_cast<LPNMLISTVIEW>(pNMHDR);
-#if 0
-	int selIndex = GetSelectionMark();
-	if (selIndex < 0)
-		return;
-
-	CDropFiles dropFiles; // class for creating DROPFILES struct
-
-	int index;
-	POSITION pos = GetFirstSelectedItemPosition();
-	while ( (index = GetNextSelectedItem(pos)) >= 0 )
-	{
-		NotificationData * data = m_arData[index];
-
-		if ( data->kind==svn_node_file || data->kind==svn_node_dir )
-		{
-			CString sPath = GetPathFromColumnText(data->sPathColumnText);
-
-			dropFiles.AddFile( sPath );
-		}
-	}
-
-	if (!dropFiles.IsEmpty())
-	{
-		dropFiles.CreateStructure();
-	}
-#endif
 	*pResult = 0;
 }
 

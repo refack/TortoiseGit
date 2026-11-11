@@ -37,6 +37,16 @@ using SysInfo::GetMonitorSetupHash;	// kept here for existing importers; the bod
 constexpr auto DIALOG_BLOCKHORIZONTAL = 1;
 constexpr auto DIALOG_BLOCKVERTICAL = 2;
 
+
+template <typename BaseType> class CGestureEnabledControlTmpl : public BaseType
+{
+public:
+	virtual ~CGestureEnabledControlTmpl() {};
+
+protected:
+	virtual ULONG GetGestureStatus(CPoint /*ptTouch*/) override { return 0; }
+};
+
 /**
  * \ingroup TortoiseProc
  *
@@ -609,4 +619,5 @@ END_MESSAGE_MAP()
 
 }
 export using namespace StandAloneDlg;
+export using StandAloneDlg::CGestureEnabledControlTmpl;
 // NOLINTEND(*-branch-clone)

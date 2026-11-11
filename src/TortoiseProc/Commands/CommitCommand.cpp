@@ -1,4 +1,4 @@
-﻿// TortoiseGit - a Windows shell extension for easy version control
+// TortoiseGit - a Windows shell extension for easy version control
 
 // Copyright (C) 2008-2018, 2025-2026 - TortoiseGit
 // Copyright (C) 2007-2008 - TortoiseSVN
@@ -24,7 +24,7 @@
 #include "CommitCommand.h"
 
 import AppUtils.Workflow;
-import MessageBox;
+import TGitMessageBox;
 // import AppUtils;
 import Registry;
 import str_utils;

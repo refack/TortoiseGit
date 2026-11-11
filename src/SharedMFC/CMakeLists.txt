@@ -93,6 +93,7 @@ target_sources(SharedMFC
         IconMenu.ixx
         SettingGitCredential.ixx
         ProgressDlg.ixx
+        SysProgressDlg.ixx
 )
 
 
@@ -107,8 +108,6 @@ target_sources(SharedMFC
         ProtoModules/AddDlg.h
         ProtoModules/AddRemoteDlg.cpp
         ProtoModules/AddRemoteDlg.h
-        ProtoModules/AutoTextTestDlg.cpp
-        ProtoModules/AutoTextTestDlg.h
         ProtoModules/BisectStartDlg.cpp
         ProtoModules/BisectStartDlg.h
         ProtoModules/BrowseRefsDlg.cpp
@@ -231,10 +230,6 @@ target_sources(SharedMFC
         ProtoModules/ResolveDlg.h
         ProtoModules/RevertDlg.cpp
         ProtoModules/RevertDlg.h
-        ProtoModules/SVNDCommitDlg.cpp
-        ProtoModules/SVNDCommitDlg.h
-        ProtoModules/SVNIgnoreTypeDlg.cpp
-        ProtoModules/SVNIgnoreTypeDlg.h
         ProtoModules/SelectRemoteRefDlg.cpp
         ProtoModules/SelectRemoteRefDlg.h
         ProtoModules/SimplePrompt.cpp

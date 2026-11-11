@@ -1,4 +1,4 @@
-﻿// TortoiseGit - a Windows shell extension for easy version control
+// TortoiseGit - a Windows shell extension for easy version control
 
 // Copyright (C) 2016-2021, 2023-2026 - TortoiseGit
 
@@ -27,7 +27,7 @@ import TortoiseProc;
 #include "LoglistUtils.h"
 import AppUtils.Launch;
 #include "FileDiffDlg.h"
-import MessageBox;
+import TGitMessageBox;
 
 // CCommitIsOnRefsDlg dialog
 

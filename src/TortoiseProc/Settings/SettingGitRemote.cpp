@@ -1,4 +1,4 @@
-﻿// TortoiseGit - a Windows shell extension for easy version control
+// TortoiseGit - a Windows shell extension for easy version control
 
 // Copyright (C) 2008-2021, 2023-2026 - TortoiseGit
 
@@ -24,7 +24,7 @@
 
 import TortoiseProc;
 #include "SettingGitRemote.h"
-import MessageBox;
+import TGitMessageBox;
 import AppUtils.Launch;
 #include "Utils/HistoryCombo.h"
 import TGitPath;	// GitAdminDir lives in the TGitPath module
@@ -209,13 +209,8 @@ bool CSettingGitRemote::IsRemoteCollideWithRefspec(const CString& remote) const
 	wil::unique_git_config config;
 	git_config_new(config.put());
 	git_config_add_file_ondisk(config.get(), TGitPath::ToGitPathA(TGitH::GetGitLocalConfig().native()).c_str(), GIT_CONFIG_LEVEL_LOCAL, g_Git.GetGitRepository().get(), FALSE);
-	for (const auto pattern : { "remote\\..*\\.fetch", "svn-remote\\..*\\.fetch", "svn-remote\\..*\\.branches", "svn-remote\\..*\\.tags" })
-	{
-		git_config_foreach_match(config.get(), pattern, CheckRemoteCollideWithRefspec, &crs);
-		if (crs.result)
-			return true;
-	}
-	return false;
+	git_config_foreach_match(config.get(), "remote\\..*\\.fetch", CheckRemoteCollideWithRefspec, &crs);
+	return crs.result;
 }
 
 void CSettingGitRemote::OnLbnSelchangeListRemote()

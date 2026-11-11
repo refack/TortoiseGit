@@ -15,6 +15,7 @@
 #include <afxwin.h>         // MFC core and standard components
 #include <SDKDDKVer.h>
 #include <string>
+#include <memory>	// std::make_unique; textual std stays above the imports
 
 import DebugOutput;
 import RIAA;

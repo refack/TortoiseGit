@@ -1,4 +1,4 @@
-﻿// TortoiseGit - a Windows shell extension for easy version control
+// TortoiseGit - a Windows shell extension for easy version control
 
 // Copyright (C) 2009, 2011-2021, 2023, 2026 - TortoiseGit
 // Copyright (C) 2007-2008 - TortoiseSVN
@@ -23,8 +23,8 @@
 #include "CleanupCommand.h"
 import ProgressDlg;
 #include "CleanTypeDlg.h"
-#include "SysProgressDlg.h"
-import MessageBox;
+import SysProgressDlg;
+import TGitMessageBox;
 
 
 

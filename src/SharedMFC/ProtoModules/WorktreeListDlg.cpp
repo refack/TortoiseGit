@@ -1,4 +1,4 @@
-﻿// TortoiseGit - a Windows shell extension for easy version control
+// TortoiseGit - a Windows shell extension for easy version control
 
 // Copyright (C) 2022-2026 - TortoiseGit
 
@@ -30,7 +30,7 @@ import AppUtils.Window;
 import AppUtils.Workflow;
 import IconMenu;
 #include "Utils/SysImageList.h"
-import MessageBox;
+import TGitMessageBox;
 
 // CWorktreeListDlg dialog
 

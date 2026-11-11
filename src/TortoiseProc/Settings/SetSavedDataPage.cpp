@@ -1,4 +1,4 @@
-﻿// TortoiseGit - a Windows shell extension for easy version control
+// TortoiseGit - a Windows shell extension for easy version control
 
 // Copyright (C) 2012-2021, 2023, 2025-2026 - TortoiseGit
 // Copyright (C) 2003-2008,2014 - TortoiseSVN
@@ -23,7 +23,7 @@
 import TortoiseProc;
 import AppUtils.Launch;
 #include "SetSavedDataPage.h"
-import MessageBox;
+import TGitMessageBox;
 #include "Utils/WindowsCredentialsStore.h"
 
 // CRegistryKey reports into std::vector<std::wstring> now; this page keeps its
@@ -122,32 +122,10 @@ BOOL CSetSavedDataPage::OnInitDialog()
 	GetIntoList<&CRegistryKey::getValues>(regResizable, resizablelist);
 	nResizableDialogs += resizablelist.GetCount();
 
-	// find out how many auth data we've stored
-	int nSimple = 0;
-	int nSSL = 0;
-	int nUsername = 0;
-
-	if (CComHeapPtr<WCHAR> pszPath; SHGetKnownFolderPath(FOLDERID_RoamingAppData, KF_FLAG_CREATE, nullptr, &pszPath) == S_OK)
-	{
-		CString path { static_cast<LPCWSTR>(pszPath) };
-		path += L"\\Subversion\\auth\\";
-
-		CString sSimple = path + L"svn.simple";
-		CString sSSL = path + L"svn.ssl.server";
-		CString sUsername = path + L"svn.username";
-		CDirFileEnum simpleenum(sSimple);
-		while (simpleenum.NextFile())
-			nSimple++;
-		CDirFileEnum sslenum(sSSL);
-		while (sslenum.NextFile())
-			nSSL++;
-		CDirFileEnum userenum(sUsername);
-		while (userenum.NextFile())
-			nUsername++;
-	}
+	// find out how many credentials we've stored (Windows credential store, git:* entries)
 	CStringList credStore;
 	CWindowsCredentialsStore::ListCredentials(L"git:*", credStore);
-	nSimple += static_cast<int>(credStore.GetCount());
+	const int nCredentials = static_cast<int>(credStore.GetCount());
 
 	CDirFileEnum logenum((PathUtils::GetAppDataDirectory() + L"logcache").c_str());
 	/* while (logenum.NextFile(sFile, &bIsDir))
@@ -160,7 +138,7 @@ BOOL CSetSavedDataPage::OnInitDialog()
 	m_btnLogHistClear.EnableWindow(nLogHistMsg || nLogHistWC);
 	m_btnUrlHistClear.EnableWindow(nUrlHistItems || nUrlHistWC);
 	m_btnResizableHistClear.EnableWindow(nResizableDialogs > 0);
-	m_btnAuthHistClear.EnableWindow(nSimple || nSSL || nUsername);
+	m_btnAuthHistClear.EnableWindow(nCredentials != 0);
 	m_btnRepoLogClear.EnableWindow(nLogHistRepo >= 0);
 	m_btnActionLogClear.EnableWindow(bActionLog);
 	m_btnActionLogShow.EnableWindow(bActionLog);
@@ -177,7 +155,7 @@ BOOL CSetSavedDataPage::OnInitDialog()
 	sTT.Format(IDS_SETTINGS_SAVEDDATA_RESIZABLE_TT, nResizableDialogs);
 	m_tooltips.AddTool(IDC_RESIZABLEHISTORY, sTT);
 	m_tooltips.AddTool(IDC_RESIZABLEHISTCLEAR, sTT);
-	sTT.FormatMessage(IDS_SETTINGS_SAVEDDATA_AUTH_TT, nSimple, nSSL, nUsername);
+	sTT.FormatMessage(IDS_SETTINGS_SAVEDDATA_AUTH_TT, nCredentials);
 	m_tooltips.AddTool(IDC_AUTHHISTORY, sTT);
 	m_tooltips.AddTool(IDC_AUTHHISTCLEAR, sTT);
 	sTT.Format(IDS_SETTINGS_SAVEDDATA_REPOLOGHIST_TT, nLogHistRepo);
@@ -251,12 +229,6 @@ void CSetSavedDataPage::OnBnClickedAuthhistclear()
 {
 	CRegStdString auth = CRegStdString(L"Software\\TortoiseGit\\Auth\\");
 	auth.removeKey();
-	if (CComHeapPtr<WCHAR> pszPath; SHGetKnownFolderPath(FOLDERID_RoamingAppData, KF_FLAG_CREATE, nullptr, &pszPath) == S_OK)
-	{
-		CString path { static_cast<LPCWSTR>(pszPath) };
-		path += L"\\Subversion\\auth\\";
-		DeleteViaShell(path, IDS_SETTINGS_DELFILE);
-	}
 	CStringList credStore;
 	CWindowsCredentialsStore::ListCredentials(L"git:*", credStore);
 	for (POSITION pos = credStore.GetHeadPosition(); pos;)

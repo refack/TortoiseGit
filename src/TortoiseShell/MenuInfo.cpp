@@ -50,18 +50,6 @@ constinit const MenuInfo menuInfo[] =
 	{ TGitShellCommand::Commit,						TGitContextMenuEntries::Commit,				IDI_COMMIT,				IDS_MENUCOMMIT,				IDS_MENUDESCCOMMIT,
 		{ITEMIS_INGIT, 0}, {ITEMIS_FOLDERINGIT, 0}, {0, 0}, {0, 0} },
 
-	{ TGitShellCommand::SVNDCommit,					TGitContextMenuEntries::SVNDCommit,			IDI_COMMIT,				IDS_MENUSVNDCOMMIT,			IDS_MENUSVNDCOMMIT_DESC,
-		{ITEMIS_INGIT|ITEMIS_GITSVN, ITEMIS_BISECT|ITEMIS_MERGEACTIVE}, {ITEMIS_FOLDERINGIT|ITEMIS_GITSVN, ITEMIS_BISECT|ITEMIS_MERGEACTIVE}, {0, 0}, {0, 0} },
-
-	{ TGitShellCommand::SVNRebase,					TGitContextMenuEntries::SVNRebase,			IDI_REBASE,				IDS_MENUSVNREBASE,			IDS_MENUSVNREBASE_DESC,
-		{ITEMIS_FOLDERINGIT|ITEMIS_GITSVN|ITEMIS_ONLYONE, ITEMIS_BISECT|ITEMIS_MERGEACTIVE}, {0, 0}, {0, 0}, {0, 0} },
-
-	{ TGitShellCommand::SVNDFetch,					TGitContextMenuEntries::SVNFetch,			IDI_UPDATE,				IDS_MENUSVNFETCH,			IDS_MENUDESCSVNFETCH,
-		{ITEMIS_FOLDERINGIT|ITEMIS_GITSVN|ITEMIS_ONLYONE, 0}, {0, 0}, {0, 0}, {0, 0} },
-
-	{ TGitShellCommand::SVNIgnore,					TGitContextMenuEntries::SVNIgnore,			IDI_IGNORE,				IDS_MENUSVNIGNORE,			IDS_MENUSVNIGNORE_DESC,
-		{ITEMIS_FOLDERINGIT|ITEMIS_GITSVN|ITEMIS_ONLYONE, 0}, {0, 0}, {0, 0}, {0, 0} },
-
 	{ TGitShellCommand::Separator, TGitContextMenuEntries::None, 0, 0, 0, {0, 0}, {0, 0}, {0, 0}, {0, 0} },
 
 	{ TGitShellCommand::Diff,						TGitContextMenuEntries::Diff,				IDI_DIFF,				IDS_MENUDIFF,				IDS_MENUDESCDIFF,

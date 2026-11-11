@@ -20,7 +20,6 @@
 #include "Resources/resource.h"
 #include "../../TortoiseProc/MiscUI/FilterEdit.h"
 #include "Utils/HistoryCombo.h"
-#include "Utils/GestureEnabledControl.h"
 
 
 // NOLINTBEGIN(*-use-nodiscard,*-use-enum-class,*-pro-bounds-pointer-arithmetic)
@@ -28,6 +27,8 @@ import tgit;
 import StandAloneDlg;
 import ResizableColumnsListCtrl;
 import Registry;
+
+using StandAloneDlg::CGestureEnabledControlTmpl;
 
 
 constexpr auto gPickRef_Head	= 1U;
@@ -108,6 +109,7 @@ class CBrowseRefsDlg : public StandAloneDlg::CResizableStandAloneDialog
 	DECLARE_DYNAMIC(CBrowseRefsDlg)
 
 	explicit CBrowseRefsDlg(CString cmdPath, CWnd* pParent = nullptr);
+
 	~CBrowseRefsDlg() override {
 		m_regCurrSortCol = m_currSortCol;
 		m_regCurrSortDesc = m_currSortDesc;

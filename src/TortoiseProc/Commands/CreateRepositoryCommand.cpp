@@ -1,4 +1,4 @@
-﻿// TortoiseGit - a Windows shell extension for easy version control
+// TortoiseGit - a Windows shell extension for easy version control
 
 // Copyright (C) 2008-2019, 2021, 2023-2026 - TortoiseGit
 
@@ -22,7 +22,7 @@
 
 #include "CreateRepositoryCommand.h"
 #include "ProtoModules/CreateRepoDlg.h"
-import MessageBox;
+import TGitMessageBox;
 import AppUtils.GitEnv;
 import ShellEnvironment;
 import IconExtractor;

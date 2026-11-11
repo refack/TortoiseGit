@@ -1,4 +1,4 @@
-﻿module;
+module;
 #include <windows.h>
 #include <shellapi.h>
 #include <Shlwapi.h>
@@ -1220,7 +1220,6 @@ public:
 
 
 	bool HasSubmodules() const;
-	bool HasGitSVNDir() const;
 	bool IsBisectActive() const;
 	bool IsRebaseActive() const;
 	bool IsCherryPickActive() const;
@@ -2109,11 +2108,6 @@ bool CTGitPath::HasSubmodules() const {
 }
 
 
-bool CTGitPath::HasGitSVNDir() const {
-	return HasAdminDir() && detail::FileExists(AdminDirOrEmpty().path + L"svn\\.metadata");
-}
-
-
 bool CTGitPath::IsBisectActive() const {
 	return HasAdminDir() && detail::FileExists(WorktreeAdminDirOrEmpty() + L"BISECT_START");
 }
@@ -2194,9 +2188,6 @@ size_t CTGitPath::GetAdminDirMask() const {
 	const auto [path, isWorktree] = AdminDirOrEmpty();
 	if (GitAdminDir::HasStash(path))
 		status |= ITEMIS_STASH;
-
-	if (detail::FileExists(path + L"svn\\.metadata"))
-		status |= ITEMIS_GITSVN;
 
 	const std::wstring dotGitPath = isWorktree ? WorktreeAdminDirOrEmpty() : path;
 

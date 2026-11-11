@@ -1,8 +1,8 @@
-﻿#pragma once
+#pragma once
 #include "afxwin.h"
 #include "../SharedMFC/Utils/LogDlg.h"
 #include "BrowseRefsDlg.h"
-import MessageBox;
+import TGitMessageBox;
 import Registry;
 import str_utils;
 

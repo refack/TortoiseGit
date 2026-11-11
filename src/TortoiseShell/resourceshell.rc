@@ -291,14 +291,9 @@ END
 
 STRINGTABLE
 BEGIN
-    IDS_MENUSVNREBASE_DESC  "Git SVN Rebase"
-    IDS_MENUSVNDCOMMIT      "SVN DCommit..."
-    IDS_MENUSVNDCOMMIT_DESC "Git SVN DCommit"
     IDS_MENUSYNC            "Sync..."
     IDS_MENUDESCSYNC        "Sync Remote Repositories, including pull, push, email patch and so on"
     IDS_MENUSTASHPOP        "Stash Pop"
-    IDS_MENUSVNIGNORE       "Import SVN Ignore ..."
-    IDS_MENUSVNIGNORE_DESC  "Import SVN Ignore"
     IDS_MENUDIFFTWO         "Diff Two Commits"
     IDS_MENUDESCDIFFTWO     "Diffs two any commits"
     IDS_MENUDESCIMPORTPATCH "Apply a series of patches from a mailbox"
@@ -316,7 +311,6 @@ BEGIN
     IDS_MENUDESSENDMAIL     "Send Patch(es) by eMail"
     IDS_MENUREFBROWSE       "Browse References"
     IDS_MENUDESCREFBROWSE   "Opens the Reference Browser dialog."
-    IDS_MENUSVNREBASE       "SVN Rebase"
 END
 
 STRINGTABLE
@@ -365,7 +359,6 @@ BEGIN
     IDS_MENUBLAME           "&Blame"
     IDS_STATUSEXTERNAL      "external"
     IDS_MENUDESCBLAME       "Blames each line of a file on an author"
-    IDS_MENUSVNFETCH        "SVN Fetch"
 END
 
 STRINGTABLE
@@ -403,7 +396,6 @@ END
 STRINGTABLE
 BEGIN
     IDS_MENUDESCCREATEPATCH "Creates a unified diff file with all changes you made"
-    IDS_MENUDESCSVNFETCH    "Fetch from SVN repository"
     IDS_MENULOGSUBMODULE    "Show log of this folder"
     IDS_MENUUNDOADD         "Undo Add..."
     IDS_MENUDESCUNDOADD     "Reverts an addition to version control"

@@ -22,7 +22,7 @@
 import tgit;
 import TortoiseProc;
 import ThemeAPI;
-import MessageBox;
+import TGitMessageBox;
 import TGitPath;
 using namespace libgit2;
 

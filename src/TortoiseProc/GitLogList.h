@@ -19,18 +19,3 @@
 #pragma once
 import GitLogListBase;
 
-
-class CGitLogList : public CGitLogListBase
-{
-	DECLARE_DYNAMIC(CGitLogList)
-
-public:
-	void ShiftSelectedRebaseAction();
-	void SetSelectedRebaseAction(int action);
-	void SetUnselectedRebaseAction(int action);
-
-protected:
-	int	 CherryPickFrom(const CString& from, const CString& to);
-	int  RevertSelectedCommits(int parent);
-	void ContextMenuAction(int cmd, int FirstSelect, int LastSelect, CMenu* menu, const MAP_HASH_NAME& hashMap) override;
-};

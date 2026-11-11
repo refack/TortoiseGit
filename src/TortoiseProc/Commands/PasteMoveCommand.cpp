@@ -1,4 +1,4 @@
-﻿// TortoiseGit - a Windows shell extension for easy version control
+// TortoiseGit - a Windows shell extension for easy version control
 
 // Copyright (C) 2008, 2012-2013, 2015-2019, 2026 - TortoiseGit
 
@@ -21,8 +21,8 @@
 
 #include "PasteMoveCommand.h"
 
-#include "SysProgressDlg.h"
-import MessageBox;
+import SysProgressDlg;
+import TGitMessageBox;
 #include "RenameDlg.h"
 
 bool PasteMoveCommand::Execute()

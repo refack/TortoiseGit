@@ -10,7 +10,7 @@ export module GitRevLoglist;
 import tgit;
 
 import GitMailmap;
-import MessageBox;
+import TGitMessageBox;
 import Registry;
 import lanes;
 import LogDlgFilter;
@@ -227,53 +227,6 @@ Gdiplus::Color GetGdiColor(const COLORREF col) {
 	return Gdiplus::Color(GetRValue(col),GetGValue(col),GetBValue(col));
 }
 
-template <typename CharT>
-struct regex_match_fn2 {
-	const std::basic_regex<CharT> re;
-
-	template <std::ranges::contiguous_range Range>
-	constexpr auto operator()(const Range& char_range) const {
-		using Iter = std::regex_iterator<std::ranges::iterator_t<Range>>;
-		return std::ranges::subrange(
-			Iter(
-				std::ranges::begin(char_range),
-				std::ranges::end(char_range),
-				re
-			),
-			Iter()
-		);
-	}
-};
-
-struct regex_matches2 : std::ranges::range_adaptor_closure<regex_matches2>, regex_match_fn2<wchar_t> {
-	regex_matches2(const std::wregex& arg_re)
-	: regex_match_fn2{arg_re}
-	{}
-	regex_matches2(const std::wstring& arg_re)
-	: regex_match_fn2{std::wregex{arg_re}}
-	{}
-};
-CString FindSVNRev(const CString& msg) {
-	try {
-		const std::wstring s{ msg };
-		auto regex1 = regex_matches2{L"^\\s*git-svn-id:\\s+(.*)\\@(\\d+)\\s([a-f\\d\\-]+)$"s};
-		for (const auto& match : regex1(s)) {
-			if (match.size() == 4) {
-				ATLTRACE(L"matched rev: %s\n", std::wstring(match[2]).c_str());
-				return std::wstring(match[2]).c_str();
-			}
-		}
-		auto regex2 = regex_matches2{L"^\\s*git-svn-id:\\s(\\d+)\\@([a-f\\d\\-]+)$"s};
-		for (const auto& match : regex2(s)) {
-			if (match.size() == 3) {
-				ATLTRACE(L"matched rev: %s\n", std::wstring(match[1]).c_str());
-				return std::wstring(match[1]).c_str();
-			}
-		}
-	} catch (...) {}
-
-	return L"";
-}
 
 
 

@@ -264,12 +264,6 @@
 			<para>
 				A frequently-used abbreviation for Subversion.
 			</para>
-			<para>
-				TortoiseGit provides git-svn interoperability.
-				You can fetch partial or whole history from an SVN remote and store as a local git repository.
-				This allows you to browse the history and create commits locally.
-				You can finally commit your changes to an SVN remote.
-			</para>
 		</glossdef>
 	</glossentry>
 	<glossentry>

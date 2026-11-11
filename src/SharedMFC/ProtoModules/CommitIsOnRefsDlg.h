@@ -25,7 +25,7 @@ import StandAloneDlg;
 import MenuButton;
 #include "../../TortoiseProc/MiscUI/FilterEdit.h"
 import HintCtrl;
-#include "Utils/GestureEnabledControl.h"
+
 
 // CCommitIsOnRefsDlg dialog
 

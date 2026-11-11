@@ -14,14 +14,13 @@ import ProgressDlg;
 #include "ProtoModules/MergeAbortDlg.h"
 #include "../TortoiseProc/Settings/Settings.h"
 #include "ProtoModules/InputDlg.h"
-#include "ProtoModules/SVNDCommitDlg.h"
 #include "ProtoModules/requestpulldlg.h"
 #include "ProtoModules/PullFetchDlg.h"
 #include "ProtoModules/RebaseDlg.h"
 #include "ProtoModules/StashSave.h"
 #include "ProtoModules/IgnoreDlg.h"
 #include "ProtoModules/BisectStartDlg.h"
-#include "../TortoiseProc/MiscUI/SysProgressDlg.h"
+import SysProgressDlg;
 #include "../TortoiseProc/ProgressCommands/ResetProgressCommand.h"
 #include "../TortoiseProc/ProgressCommands/FetchProgressCommand.h"
 #include "ProtoModules/SubmoduleResolveConflictDlg.h"
@@ -31,7 +30,7 @@ import ProgressDlg;
 export module AppUtils.Workflow;
 import TortoiseProc;
 import GitRevLoglist;
-import MessageBox;
+import TGitMessageBox;
 import tgit.Hooks;
 import Constants;
 
@@ -982,94 +981,6 @@ bool ConflictEdit(HWND hWnd, CTGitPath& path, bool bAlternativeTool = false, boo
 		}
 		return FALSE;
 	}
-}
-
-BOOL SVNDCommit(const HWND hWnd)
-{
-	CSVNDCommitDlg dcommitdlg(GetParentCWnd(hWnd));
-	CString gitSetting = g_Git.GetConfigValue(L"svn.rmdir");
-	if (gitSetting.IsEmpty()) {
-		if (dcommitdlg.DoModal() != IDOK)
-			return false;
-		else
-		{
-			if (dcommitdlg.m_remember)
-			{
-				if (dcommitdlg.m_rmdir)
-					gitSetting = L"true";
-				else
-					gitSetting = L"false";
-				if (g_Git.SetConfigValue(L"svn.rmdir", gitSetting))
-				{
-					CString msg;
-					msg.FormatMessage(IDS_PROC_SAVECONFIGFAILED, L"svn.rmdir", gitSetting);
-					MessageBox(hWnd, msg, L"TortoiseGit", MB_OK | MB_ICONERROR);
-				}
-			}
-		}
-	}
-
-	BOOL IsStash = false;
-	if(!g_Git.CheckCleanWorkTree())
-	{
-		if (CMessageBox::Show(hWnd, IDS_ERROR_NOCLEAN_STASH, IDS_APPNAME, 1, IDI_QUESTION, IDS_STASHBUTTON, IDS_ABORTBUTTON) == 1)
-		{
-			CSysProgressDlg sysProgressDlg;
-			sysProgressDlg.SetTitle(CString(MAKEINTRESOURCE(IDS_APPNAME)));
-			sysProgressDlg.SetLine(1, CString(MAKEINTRESOURCE(IDS_PROC_STASHRUNNING)));
-			sysProgressDlg.SetLine(2, CString(MAKEINTRESOURCE(IDS_PROGRESSWAIT)));
-			sysProgressDlg.SetShowProgressBar(false);
-			sysProgressDlg.SetCancelMsg(IDS_PROGRS_INFOFAILED);
-			std::ignore = sysProgressDlg.ShowModeless(hWnd, true);
-
-			CString out;
-			if (GitCall::Run({ L"git.exe", L"stash" }, &out, CP_UTF8))
-			{
-				sysProgressDlg.Stop();
-				MessageBox(hWnd, out, L"TortoiseGit", MB_OK | MB_ICONERROR);
-				return false;
-			}
-			sysProgressDlg.Stop();
-
-			IsStash =true;
-		}
-		else
-			return false;
-	}
-
-	CProgressDlg progress(GetParentCWnd(hWnd));
-	progress.m_GitCmd = { L"git.exe", L"svn", L"dcommit" };
-	if (dcommitdlg.m_rmdir)
-		progress.m_GitCmd.emplace_back(L"--rmdir");
-	if(progress.DoModal()==IDOK && progress.m_GitStatus == 0)
-	{
-		if( IsStash)
-		{
-			if (CMessageBox::Show(hWnd, IDS_DCOMMIT_STASH_POP, IDS_APPNAME, MB_YESNO | MB_ICONINFORMATION) == IDYES)
-			{
-				CSysProgressDlg sysProgressDlg;
-				sysProgressDlg.SetTitle(CString(MAKEINTRESOURCE(IDS_APPNAME)));
-				sysProgressDlg.SetLine(1, CString(MAKEINTRESOURCE(IDS_PROC_STASHRUNNING)));
-				sysProgressDlg.SetLine(2, CString(MAKEINTRESOURCE(IDS_PROGRESSWAIT)));
-				sysProgressDlg.SetShowProgressBar(false);
-				sysProgressDlg.SetCancelMsg(IDS_PROGRS_INFOFAILED);
-				std::ignore = sysProgressDlg.ShowModeless(hWnd, true);
-
-				CString out;
-				if (GitCall::Run({ L"git.exe", L"stash", L"pop" }, &out, CP_UTF8))
-				{
-					sysProgressDlg.Stop();
-					MessageBox(hWnd, out, L"TortoiseGit", MB_OK | MB_ICONERROR);
-					return false;
-				}
-				sysProgressDlg.Stop();
-			}
-			else
-				return false;
-		}
-		return TRUE;
-	}
-	return FALSE;
 }
 
 bool StashApply(const HWND hWnd, CString ref, const bool showChanges = true)
@@ -2219,9 +2130,6 @@ BOOL Commit(
 
 			switch (dlg.m_PostCmd)
 			{
-			case Git_PostCommit_Cmd::DCommit:
-				SVNDCommit(hWnd);
-				break;
 			case Git_PostCommit_Cmd::Push:
 				Push(hWnd);
 				break;
@@ -2376,10 +2284,6 @@ bool DoMerge(HWND hWnd, const bool noFF, const bool ffOnly, const bool squash, c
 		}
 		if (isBranch)
 			postCmdList.emplace_back(IDI_PUSH, IDS_MENUPUSH, [&hWnd]{ Push(hWnd); });
-
-		const BOOL hasGitSVN = CTGitPath(GitCall::m_CurrentDirStorage.native()).GetAdminDirMask() & ITEMIS_GITSVN;
-		if (hasGitSVN)
-			postCmdList.emplace_back(IDI_COMMIT, IDS_MENUSVNDCOMMIT, [&hWnd]{ SVNDCommit(hWnd); });
 	};
 
 	if (Prodlg.DoModal() == IDCANCEL && g_Git.HasWorkingTreeConflicts() == 1)

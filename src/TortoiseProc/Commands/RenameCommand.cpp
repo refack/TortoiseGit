@@ -1,4 +1,4 @@
-﻿// TortoiseGit - a Windows shell extension for easy version control
+// TortoiseGit - a Windows shell extension for easy version control
 
 // Copyright (C) 2008-2012, 2015-2019, 2021, 2026 - TortoiseGit
 // Copyright (C) 2007-2008 - TortoiseSVN
@@ -22,7 +22,7 @@
 
 #include "RenameCommand.h"
 
-import MessageBox;
+import TGitMessageBox;
 #include "RenameDlg.h"
 
 bool RenameCommand::Execute()

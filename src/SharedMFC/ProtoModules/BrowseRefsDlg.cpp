@@ -1,4 +1,4 @@
-﻿// TortoiseGit - a Windows shell extension for easy version control
+// TortoiseGit - a Windows shell extension for easy version control
 
 // Copyright (C) 2009-2021, 2023-2026 - TortoiseGit
 
@@ -20,27 +20,29 @@
 //
 
 #include "stdafx.h"
-import tgit;
-
-import TortoiseProc;
 #include "BrowseRefsDlg.h"
 #include "Utils/LogDlg.h"
 #include "AddRemoteDlg.h"
 #include "../../TortoiseProc/Settings/SettingGitRemote.h"
 #include "SinglePropSheetDlg.h"
-import MessageBox;
 #include "RefLogDlg.h"
-import IconMenu;
 #include "FileDiffDlg.h"
 #include "DeleteRemoteTagDlg.h"
 #include "InputDlg.h"
-#include "../../TortoiseProc/MiscUI/SysProgressDlg.h"
 #include "LoglistUtils.h"
 #include "BrowseRefsDlgFilter.h"
+
+import tgit;
+import TortoiseProc;
+import TGitMessageBox;
+import IconMenu;
+import SysProgressDlg;
 import DPIAware;
 import AppUtils.Launch;
 import AppUtils.Window;
 import AppUtils.Workflow;
+import ColumnManager;
+
 using TortoiseProc::RunTortoiseGitProc;
 
 
@@ -916,7 +918,7 @@ void CBrowseRefsDlg::ShowContextMenu(CPoint point, HTREEITEM hTreePos, VectorPSh
 		bool bShowRenameOption				= false;
 		bool bShowCreateBranchOption		= false;
 		bool bShowEditBranchDescriptionOption = false;
-		bool bIsCommit = selectedLeafs[0]->m_objectType == GIT_OBJECT_COMMIT;
+		bool bIsCommit = selectedLeafs[0]->m_objectType == libgit2::git_object_t::GIT_OBJECT_COMMIT;
 
 		CString fetchFromCmd;
 
@@ -1134,26 +1136,26 @@ void CBrowseRefsDlg::ShowContextMenu(CPoint point, HTREEITEM hTreePos, VectorPSh
 	case eCmd_ViewLog:
 		{
 			CString sCmd;
-			sCmd.Format(L"/command:log /path:\"%s\" /range:%s", GitCall::m_CurrentDirStorage, str::EscapeCmdValue(g_Git.FixBranchName(selectedLeafs[0]->GetRefName())));
+			sCmd.Format(L"/command:log /path:\"%s\" /range:%s", GitCall::m_CurrentDirStorage.c_str(), str::EscapeCmdValue(g_Git.FixBranchName(selectedLeafs[0]->GetRefName())));
 			RunTortoiseGitProc(sCmd);
 		}
 		break;
 	case eCmd_ViewLogRange:
 		{
 			CString sCmd;
-			sCmd.Format(L"/command:log /path:\"%s\" /range:%s", GitCall::m_CurrentDirStorage, str::EscapeCmdValue(GetTwoSelectedRefs(selectedLeafs, m_sLastSelected, L"..")));
+			sCmd.Format(L"/command:log /path:\"%s\" /range:%s", GitCall::m_CurrentDirStorage.c_str(), str::EscapeCmdValue(GetTwoSelectedRefs(selectedLeafs, m_sLastSelected, L"..")));
 			RunTortoiseGitProc(sCmd);
 		}
 		break;
 	case eCmd_ViewLogRangeReachableFromOnlyOne:
 		{
 			CString sCmd;
-			sCmd.Format(L"/command:log /path:\"%s\" /range:%s", GitCall::m_CurrentDirStorage, str::EscapeCmdValue(GetTwoSelectedRefs(selectedLeafs, m_sLastSelected, L"...")));
+			sCmd.Format(L"/command:log /path:\"%s\" /range:%s", GitCall::m_CurrentDirStorage.c_str(), str::EscapeCmdValue(GetTwoSelectedRefs(selectedLeafs, m_sLastSelected, L"...")));
 			RunTortoiseGitProc(sCmd);
 		}
 		break;
 	case eCmd_RepoBrowser:
-		RunTortoiseGitProc(L"/command:repobrowser /path:\"" + GitCall::m_CurrentDirStorage + L"\" /rev:" + str::EscapeCmdValue(selectedLeafs[0]->GetRefName()));
+		RunTortoiseGitProc(L"/command:repobrowser /path:\"" + str::to_atl(GitCall::m_CurrentDirStorage.wstring()) + L"\" /rev:" + str::EscapeCmdValue(selectedLeafs[0]->GetRefName()));
 		break;
 	case eCmd_DeleteBranch:
 	case eCmd_DeleteRemoteBranch:
@@ -1473,7 +1475,7 @@ void CBrowseRefsDlg::OnNMDblclkListRefLeafs(NMHDR * /*pNMHDR*/, LRESULT *pResult
 	GetSelectedLeaves(selectedLeafs);
 
 	CString sCmd;
-	if (selectedLeafs[0]->m_objectType == GIT_OBJECT_TREE)
+	if (selectedLeafs[0]->m_objectType == libgit2::git_object_t::GIT_OBJECT_TREE)
 		sCmd.Format(L"/command:repobrowser /path:\"%s\" /rev:%s", GitCall::m_CurrentDirStorage, str::EscapeCmdValue(g_Git.FixBranchName(GetSelectedRef(true, false))));
 	else
 		sCmd.Format(L"/command:log /path:\"%s\" /range:%s", GitCall::m_CurrentDirStorage, str::EscapeCmdValue(g_Git.FixBranchName(GetSelectedRef(true, false))));

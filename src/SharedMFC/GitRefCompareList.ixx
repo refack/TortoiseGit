@@ -1,8 +1,5 @@
 ﻿module;
 #include "stdafx.h"
-
-import IconMenu;
-import HintCtrl;
 #include "Resources/resource.h"
 #include <../TortoiseShell/resource.h>
 #include <Resources/LoglistCommonResource.h>
@@ -13,7 +10,8 @@ import tgit;
 import DPIAware;
 import AppUtils.Launch;
 import TortoiseProc;
-import GitHash;
+import IconMenu;
+import HintCtrl;
 
 using namespace tgit::libgit2;
 

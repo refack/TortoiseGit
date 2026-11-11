@@ -1,4 +1,4 @@
-﻿// TortoiseGit - a Windows shell extension for easy version control
+// TortoiseGit - a Windows shell extension for easy version control
 
 // Copyright (C) 2007-2008 - TortoiseSVN
 // Copyright (C) 2008-2019, 2023, 2025 - TortoiseGit
@@ -25,7 +25,7 @@
 #include "ChangedDlg.h"
 #include "GitDiff.h"
 
-import MessageBox;
+import TGitMessageBox;
 import AppUtils.Launch;
 
 bool DiffCommand::Execute()
