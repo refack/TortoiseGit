@@ -16,6 +16,9 @@ module;
 
 export module GitStatusListCtrl;
 import tgit;
+// CTGitPath/CTGitPathList are the vocabulary of this module's exported API;
+// re-export them so dialogs that import only GitStatusListCtrl can name them.
+export import TGitPath;
 import TGitStatus;
 import GitIndex;	// git_wc_status_kind / git_wc_status2_t
 import DragDrop;

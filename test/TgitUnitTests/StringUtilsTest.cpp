@@ -507,8 +507,7 @@ TEST(CStringUtils, TrimLeftA) {
 
 
 CString escaper(const CString& s) {
-	const std::wstring e = str::EscapeCmdValue(s);
-	return CString(e.data(), static_cast<int>(e.size()));
+	return tgit::str::EscapeCmdValue(s);
 }
 
 

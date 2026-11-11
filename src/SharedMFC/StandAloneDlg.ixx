@@ -37,6 +37,20 @@ using SysInfo::GetMonitorSetupHash;	// kept here for existing importers; the bod
 constexpr auto DIALOG_BLOCKHORIZONTAL = 1;
 constexpr auto DIALOG_BLOCKVERTICAL = 2;
 
+// ResizableLib anchors (ResizableLayout.h, reached via ResizableDialog.h in the GMF).
+// Re-exported so every importer of a resizable dialog base can call AddAnchor(...).
+// These name the ::globals, so TUs that also see ResizableLayout.h textually stay unambiguous.
+using ::ANCHOR;
+using ::TOP_LEFT;
+using ::TOP_CENTER;
+using ::TOP_RIGHT;
+using ::MIDDLE_LEFT;
+using ::MIDDLE_CENTER;
+using ::MIDDLE_RIGHT;
+using ::BOTTOM_LEFT;
+using ::BOTTOM_CENTER;
+using ::BOTTOM_RIGHT;
+
 
 template <typename BaseType> class CGestureEnabledControlTmpl : public BaseType
 {

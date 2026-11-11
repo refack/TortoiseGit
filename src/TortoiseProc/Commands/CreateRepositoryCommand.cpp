@@ -23,7 +23,7 @@
 #include "CreateRepositoryCommand.h"
 #include "ProtoModules/CreateRepoDlg.h"
 import TGitMessageBox;
-import AppUtils.GitEnv;
+import TortoiseProc;
 import ShellEnvironment;
 import IconExtractor;
 

@@ -114,7 +114,12 @@ protected:
 		SetCurrentDirectory(m_Git.m_CurrentDir.c_str());
 
 		if (TGitH::ms_LastMsysGitVersion == 0)
-			TGitH::ms_LastMsysGitVersion = std::max(0, m_Git.GetGitVersion(nullptr, nullptr));
+		{
+			// GetGitVersion is a free function now and reports failure as GFail
+			// converted to size_t; keep the old "failure means 0" latch.
+			const auto ver = TGitH::GetGitVersion(nullptr, nullptr);
+			TGitH::ms_LastMsysGitVersion = ver == static_cast<size_t>(GitCall::GFail) ? 0 : ver;
+		}
 	}
 
 	virtual void TearDown() override

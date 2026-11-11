@@ -449,7 +449,7 @@ BOOL CSettingGitRemote::OnApply()
 		GetDlgItem(IDC_BUTTON_ADD)->EnableWindow(TRUE);
 		GetDlgItem(IDC_BUTTON_RENAME_REMOTE)->EnableWindow(TRUE);
 		if (!m_bNoFetch && CMessageBox::Show(GetSafeHwnd(), IDS_SETTINGS_FETCH_ADDEDREMOTE, IDS_APPNAME, MB_ICONQUESTION | MB_YESNO) == IDYES)
-			TortoiseProc::RunTortoiseGitProc(CString((L"/command:fetch /path:\""s + GitCall::m_CurrentDirStorage.wstring() + L"\" /remote:"s + str::EscapeCmdValue<std::wstring>(m_strRemote)).c_str()));
+			TortoiseProc::RunTortoiseGitProc(std::format(L"/command:fetch /path:\"{}\" /remote:{}", GitCall::m_CurrentDirStorage.wstring(), str::EscapeCmdValue(std::wstring(m_strRemote))));
 	}
 	if(m_ChangedMask & REMOTE_URL)
 	{

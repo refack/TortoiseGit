@@ -702,12 +702,14 @@ static void CheckEscapeValue(const CString& escaped, LPCWSTR expected)
 
 TEST(CCmdLineParser, EscapeValue)
 {
-	EXPECT_STREQ(L"\"\"", str::EscapeCmdValue(L""s));
+	EXPECT_STREQ(L"\"\"", tgit::str::EscapeCmdValue(L""s));
 
 	constexpr auto args = std::array<std::wstring_view, 14>{ L"", L" ", L"\"", L"\"\"", L"\" \"", L"\"\"\\", L"ascii", L"something\\", L"C:\\Test", L"some\\\"thing", L"something\\\"", L"some\"thing", L"some\"\"thing", L"something\"\\\""};
 	for (const auto arg : args)
 	{
-		CheckEscapeValue(str::EscapeCmdValue(tgit::str::StringView(CString(arg.data()))).data(), arg.data());
-		CheckEscapeValue(str::EscapeCmdValue(std::wstring_view(arg)).data(), arg.data());
+		// EscapeCmdValue returns its argument's type and builds it with +=, so it
+		// takes owning strings only: one CString case, one std::wstring case.
+		CheckEscapeValue(tgit::str::EscapeCmdValue(CString(arg.data())), arg.data());
+		CheckEscapeValue(tgit::str::EscapeCmdValue(std::wstring(arg)).c_str(), arg.data());
 	}
 }

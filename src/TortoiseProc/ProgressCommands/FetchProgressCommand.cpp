@@ -21,7 +21,6 @@
 
 import TortoiseProc;
 #include "FetchProgressCommand.h"
-import AppUtils.GitEnv;
 
 bool FetchProgressCommand::Run(CGitProgressList* list, CString& sWindowTitle, int& /*m_itemCountTotal*/, int& /*m_itemCount*/)
 {
@@ -68,8 +67,8 @@ bool FetchProgressCommand::Run(CGitProgressList* list, CString& sWindowTitle, in
 	callbacks.sideband_progress = RemoteProgressCallback;
 	callbacks.transfer_progress = FetchCallback;
 	callbacks.completion = RemoteCompletionCallback;
-	callbacks.credentials = CAppUtils::Git2GetUserPassword;
-	callbacks.certificate_check = CAppUtils::Git2CertificateCheck;
+	callbacks.credentials = TortoiseProc::Git2GetUserPassword;
+	callbacks.certificate_check = TortoiseProc::Git2CertificateCheck;
 	CGitProgressList::Payload cbpayload = { list, repo.get() };
 	callbacks.payload = &cbpayload;
 

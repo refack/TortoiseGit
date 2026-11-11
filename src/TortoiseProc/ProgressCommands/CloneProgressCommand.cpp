@@ -21,7 +21,6 @@
 
 import TortoiseProc;
 #include "CloneProgressCommand.h"
-import AppUtils.GitEnv;
 import ShellEnvironment;
 
 bool CloneProgressCommand::Run(CGitProgressList* list, CString& sWindowTitle, int& /*m_itemCountTotal*/, int& /*m_itemCount*/)
@@ -50,8 +49,8 @@ bool CloneProgressCommand::Run(CGitProgressList* list, CString& sWindowTitle, in
 	callbacks.sideband_progress = RemoteProgressCallback;
 	callbacks.completion = RemoteCompletionCallback;
 	callbacks.transfer_progress = FetchCallback;
-	callbacks.credentials = CAppUtils::Git2GetUserPassword;
-	callbacks.certificate_check = CAppUtils::Git2CertificateCheck;
+	callbacks.credentials = TortoiseProc::Git2GetUserPassword;
+	callbacks.certificate_check = TortoiseProc::Git2CertificateCheck;
 	CGitProgressList::Payload cbpayload = { list };
 	callbacks.payload = &cbpayload;
 

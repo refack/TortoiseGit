@@ -289,14 +289,18 @@ bool LaunchApplication(const CString& sCommandLine, const LaunchApplicationFlags
 
 bool RunTortoiseGitProc(const std::wstring_view sCommandLine, const bool uac = false, const bool includeGroupingUUID = false) {
 	auto sCmd = std::format(L"\"{}\" {}", til::GetAppDirectory() / L"TortoiseGitProc.exe", sCommandLine);
-	if (AfxGetMainWnd()->GetSafeHwnd() && sCommandLine.contains(L"/hwnd:"))
+	if (AfxGetMainWnd()->GetSafeHwnd() && !sCommandLine.contains(L"/hwnd:"))
 		std::format_to(std::back_inserter(sCmd), L" /hwnd:{}", static_cast<const void*>(AfxGetMainWnd()->GetSafeHwnd()));
 	if (!g_sGroupingUUID.empty() && includeGroupingUUID)
 		std::format_to(std::back_inserter(sCmd), L" /groupuuid:\"{}\"", g_sGroupingUUID);
 
 	return LaunchApplication(sCmd.c_str(), LaunchApplicationFlags().UAC(uac));
 }
-bool RunTortoiseGitProc(const CString& sCommandLine, const bool uac = false, const bool includeGroupingUUID = false) {
+// Constrained so a literal or `const wchar_t*` reaches only the std::wstring_view
+// overload above; otherwise both are one user-defined conversion away (C2668).
+template <typename T>
+	requires std::same_as<std::remove_cvref_t<T>, CString>
+bool RunTortoiseGitProc(const T& sCommandLine, const bool uac = false, const bool includeGroupingUUID = false) {
 	return RunTortoiseGitProc(str::as_view(sCommandLine), uac, includeGroupingUUID);
 }
 

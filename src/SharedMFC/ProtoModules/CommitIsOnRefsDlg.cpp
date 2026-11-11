@@ -333,7 +333,7 @@ void CCommitIsOnRefsDlg::OnContextMenu(CWnd* pWnd, CPoint point)
 		case eCmd_ViewLog:
 		{
 			CString sCmd = L"/command:log";
-			sCmd += L" /path:\"" + GitCall::m_CurrentDirStorage + L"\" ";
+			sCmd += std::format(L" /path:\"{}\" ", GitCall::m_CurrentDirStorage.native()).c_str();
 			sCmd += std::format(L" /endrev:{}", str::EscapeCmdValue(selectedRefs.at(0))).c_str();
 			TortoiseProc::RunTortoiseGitProc(sCmd);
 		}
@@ -341,14 +341,14 @@ void CCommitIsOnRefsDlg::OnContextMenu(CWnd* pWnd, CPoint point)
 		case eCmd_ViewLogRange:
 		{
 			CString sCmd;
-			sCmd.Format(L"/command:log /path:\"%s\" /range:%s", GitCall::m_CurrentDirStorage.c_str(), str::EscapeCmdValue(GetTwoSelectedRefs(selectedRefs, m_sLastSelected, L"..")).c_str());
+			sCmd.Format(L"/command:log /path:\"%s\" /range:%s", GitCall::m_CurrentDirStorage.c_str(), str::EscapeCmdValue(GetTwoSelectedRefs(selectedRefs, m_sLastSelected, L"..")).GetString());
 			TortoiseProc::RunTortoiseGitProc(sCmd);
 		}
 		break;
 		case eCmd_ViewLogRangeReachableFromOnlyOne:
 		{
 			CString sCmd;
-			sCmd.Format(L"/command:log /path:\"%s\" /range:%s", GitCall::m_CurrentDirStorage.c_str(), str::EscapeCmdValue(GetTwoSelectedRefs(selectedRefs, m_sLastSelected, L"...")).c_str());
+			sCmd.Format(L"/command:log /path:\"%s\" /range:%s", GitCall::m_CurrentDirStorage.c_str(), str::EscapeCmdValue(GetTwoSelectedRefs(selectedRefs, m_sLastSelected, L"...")).GetString());
 			TortoiseProc::RunTortoiseGitProc(sCmd);
 		}
 		break;
@@ -509,7 +509,7 @@ LRESULT CCommitIsOnRefsDlg::OnGettingRefsFinished(WPARAM, LPARAM)
 
 	DialogEnableWindow(IDC_LOG, TRUE);
 	DialogEnableWindow(IDC_FILTER, TRUE);
-	SetDlgItemText(IDC_STATIC_SUBJECT, m_gitrev.m_CommitHash.ToString(g_Git.GetShortHASHLength()) + L": " + m_gitrev.GetSubject());
+	SetDlgItemText(IDC_STATIC_SUBJECT, CString(m_gitrev.m_CommitHash.ToString(g_Git.GetShortHASHLength()).c_str()) + L": " + m_gitrev.GetSubject());
 	if (!m_gitrev.m_CommitHash.IsEmpty())
 		m_tooltips.AddTool(IDC_STATIC_SUBJECT, CLoglistUtils::FormatDateAndTime(m_gitrev.GetAuthorDate(), DATE_SHORTDATE) + L"  " + m_gitrev.GetAuthorName());
 

@@ -319,7 +319,7 @@ bool CRevisionGraphWnd::FetchRevisionData
 	dev.graphics = Graphics::FromHDC(dev.pDC->m_hDC);
 	dev.graphics->SetPageUnit (UnitPixel);
 
-	Gdiplus::Font font(wil::MFC::GetLogFontName(), static_cast<REAL>(m_nFontSize), FontStyleRegular);
+	Gdiplus::Font font(wil::MFC::GetLogFontName().c_str(),static_cast<REAL>(m_nFontSize), FontStyleRegular);
 	Rect commitString;
 	MeasureTextLength(dev, font, CString(L'8', g_Git.GetShortHASHLength()), commitString.Width, commitString.Height);
 
@@ -445,9 +445,9 @@ void CRevisionGraphWnd::CompareRevs(const CString& revTo)
 	CString sCmd;
 
 	sCmd.Format(L"/command:showcompare /path:%s /revision1:%s /revision2:%s",
-				str::EscapeCmdValue(m_sPath).c_str(),
-				str::EscapeCmdValue(GetFriendRefName(m_SelectedEntry1)).c_str(),
-				!revTo.IsEmpty() ? str::EscapeCmdValue(revTo).c_str() : str::EscapeCmdValue(GetFriendRefName(m_SelectedEntry2)).c_str());
+				str::EscapeCmdValue(m_sPath).GetString(),
+				str::EscapeCmdValue(GetFriendRefName(m_SelectedEntry1)).GetString(),
+				!revTo.IsEmpty() ? str::EscapeCmdValue(revTo).GetString() : str::EscapeCmdValue(GetFriendRefName(m_SelectedEntry2)).GetString());
 
 	if (alternativeTool)
 		sCmd += L" /alternative";
