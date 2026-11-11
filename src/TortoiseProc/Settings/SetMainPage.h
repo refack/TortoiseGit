@@ -20,14 +20,14 @@
 #pragma once
 #include "SettingsPropPage.h"
 import Registry;
-#include "ConfigureGitExe.h"
+import ConfigureGitExe;
 
 /**
  * \ingroup TortoiseProc
  * This is the main page of the settings. It contains all the most important
  * settings.
  */
-class CSetMainPage : public ISettingsPropPage, public CConfigureGitExe
+class CSetMainPage : public ISettingsPropPage, public ConfigureGitExe::CConfigureGitExe
 {
 	DECLARE_DYNAMIC(CSetMainPage)
 

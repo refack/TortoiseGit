@@ -24,6 +24,12 @@ using std::max;
 #include <ioevent.h>
 #include <shellapi.h>
 
+// ATL base only (never <atlstr.h>: CString comes from str_utils). Supplies _T (via
+// <tchar.h>), ATLASSERT, ATL::CAtlException and ATL::CComHeapPtr; the names TGitCache
+// uses are pulled in by the using-declarations below instead of `using namespace ATL`.
+#define _ATL_NO_AUTOMATIC_NAMESPACE
+#include <atlbase.h>
+
 #include <conio.h>
 
 #include <string>
@@ -36,9 +42,12 @@ using std::max;
 // Every std header a TGitCache TU names must be textually included here, before the
 // first `import`: a std #include that follows an import re-defines what the imported
 // modules' GMFs already merged (C2011/C2995). ShellUpdater.cpp includes <format>,
-// DirectoryWatcher.cpp includes <list>; this makes their late includes no-ops.
+// DirectoryWatcher.cpp includes <list>, CachedDirectory.cpp's <gsl/narrow> pulls in
+// <array> and <span>; this makes their late includes no-ops.
 #include <format>
 #include <list>
+#include <array>
+#include <span>
 
 #include <git2.h>
 #include <tgitlib/sanity.h>		// SCOPE_EXIT (CreateProcessHelper.h)
@@ -61,6 +70,8 @@ import str_utils;	// tgit::wstr::CString; TGitCache is wide-only (was <atlstr.h>
 
 using CString = tgit::wstr::CString;
 using AutoLocker = TGitH::CAutoLocker;
+using ATL::CAtlException;
+using ATL::CComHeapPtr;
 
 using namespace RIAA;
 using namespace RegistryDep;

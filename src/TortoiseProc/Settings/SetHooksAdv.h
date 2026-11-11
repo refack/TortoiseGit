@@ -18,7 +18,7 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 #pragma once
-#include "Hooks.h"
+import tgit.Hooks;
 import StandAloneDlg;
 
 /**
@@ -36,8 +36,8 @@ public:
 // Dialog Data
 	enum { IDD = IDD_SETTINGSHOOKCONFIG };
 
-	hookkey key;
-	hookcmd cmd;
+	tgit::Hooks::hookkey key;
+	tgit::Hooks::hookcmd cmd;
 
 protected:
 	void DoDataExchange(CDataExchange* pDX) override;    // DDX/DDV support

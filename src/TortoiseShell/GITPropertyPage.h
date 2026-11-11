@@ -28,7 +28,7 @@
 class CGitPropertyPage
 {
 public:
-	CGitPropertyPage(const std::vector<std::wstring>& filenames, const CString& projectTopDir, bool bIsSubmodule);
+	CGitPropertyPage(const std::vector<std::wstring>& filenames, const tgit::wstr::CString& projectTopDir, bool bIsSubmodule);
 	virtual ~CGitPropertyPage();
 
 	/**
@@ -58,7 +58,7 @@ protected:
 
 	HWND m_hwnd = nullptr;
 	std::vector<std::wstring> filenames;
-	CString	m_ProjectTopDir;
+	tgit::wstr::CString	m_ProjectTopDir;
 	int		m_iStripLength = 0;
 	bool	m_bIsSubmodule = false;
 	struct

@@ -25,11 +25,11 @@
 #include "ShellExt.h"
 #include "ShellState.h"
 #include "ItemIDList.h"
-import PreserveChdir;
 #include <tgitlib/CreateProcessHelper.h>
 #include "resource.h"
 #include <tgitlib/LoadIconEx.h>
 
+import PreserveChdir;
 import PathUtils;
 import CmdLineParser;
 import wil;
@@ -44,6 +44,18 @@ import str_utils;	// CUnicodeUtils::{MultibyteToWide,WideToMultibyte}, tgit::str
 #define GetPIDLItem(pida, i) reinterpret_cast<LPCITEMIDLIST>(reinterpret_cast<LPBYTE>(pida) + (pida)->aoffset[i + 1])
 
 import TGitPath;
+
+// This file is wide-only (see CLAUDE.md "Narrow/wide is explicit").
+using tgit::wstr::CString;
+
+// til::GetAppDirectory returns the folder without a trailing separator; every
+// consumer of appDir here and in ExplorerCommand.cpp appends a bare file name
+// (appDir + L"TortoiseGitProc.exe"), so put the separator back. "p / L\"\""
+// appends exactly one separator, and none to a root such as "C:\".
+static std::wstring ShellAppDirectory()
+{
+	return (til::GetAppDirectory(g_hmodThisDll) / L"").native();
+}
 
 int g_shellidlist=RegisterClipboardFormat(CFSTR_SHELLIDLIST);
 
@@ -611,7 +623,7 @@ void CShellExt::InsertGitMenu(BOOL istop, HMENU menu, UINT pos, UINT_PTR id, UIN
 	if (menu)
 		InsertMenuItem(menu, pos, TRUE, &menuiteminfo);
 	else
-		m_explorerCommands.push_back(Microsoft::WRL::Make<CExplorerCommand>(menutextbuffer, icon, com, CPathUtils::GetAppDirectory(g_hmodThisDll).c_str(), uuidSource, itemStates, itemStatesFolder, files_, std::vector<Microsoft::WRL::ComPtr<CExplorerCommand>>(), m_site));
+		m_explorerCommands.push_back(Microsoft::WRL::Make<CExplorerCommand>(menutextbuffer, icon, com, ShellAppDirectory(), uuidSource, itemStates, itemStatesFolder, files_, std::vector<Microsoft::WRL::ComPtr<CExplorerCommand>>(), m_site));
 	if (istop)
 	{
 		//menu entry for the top context menu, so append an "Git " before
@@ -966,7 +978,7 @@ STDMETHODIMP CShellExt::QueryContextMenu(HMENU hMenu, UINT indexMenu, UINT idCmd
 			if (subMenu)
 				InsertMenu(subMenu, indexSubMenu++, MF_SEPARATOR | MF_BYPOSITION, 0, nullptr);
 			else
-				m_explorerCommands.push_back(Microsoft::WRL::Make<CExplorerCommand>(L"", 0, TGitShellCommand::Separator, CPathUtils::GetAppDirectory(g_hmodThisDll).c_str(), uuidSource, itemStates, itemStatesFolder, files_, std::vector<Microsoft::WRL::ComPtr<CExplorerCommand>>(), m_site));
+				m_explorerCommands.push_back(Microsoft::WRL::Make<CExplorerCommand>(L"", 0, TGitShellCommand::Separator, ShellAppDirectory(), uuidSource, itemStates, itemStatesFolder, files_, std::vector<Microsoft::WRL::ComPtr<CExplorerCommand>>(), m_site));
 			idCmd++;
 		}
 
@@ -1171,7 +1183,7 @@ STDMETHODIMP CShellExt::InvokeCommand(LPCMINVOKECOMMANDINFO lpcmi)
 		if (id_it != myIDMap.end() && id_it->first == idCmd)
 		{
 			InvokeCommand(id_it->second,
-						  CPathUtils::GetAppDirectory(g_hmodThisDll).c_str(),
+						  ShellAppDirectory(),
 						  uuidSource,
 						  lpcmi->hwnd,
 						  itemStates,
@@ -1909,7 +1921,7 @@ bool CShellExt::InsertIgnoreSubmenus(UINT &idCmd, UINT idCmdFirst, HMENU hMenu, 
 			if (hMenu)
 				InsertMenu(ignoresubmenu, indexignoresub++, MF_BYPOSITION | MF_STRING , idCmd, ignorepath);
 			else
-				exCmds.push_back(Microsoft::WRL::Make<CExplorerCommand>(ignorepath, 0, TGitShellCommand::UnIgnore, CPathUtils::GetAppDirectory(g_hmodThisDll).c_str(), uuidSource, itemStates, itemStatesFolder, files_, std::vector<Microsoft::WRL::ComPtr<CExplorerCommand>>(), m_site));
+				exCmds.push_back(Microsoft::WRL::Make<CExplorerCommand>(ignorepath, 0, TGitShellCommand::UnIgnore, ShellAppDirectory(), uuidSource, itemStates, itemStatesFolder, files_, std::vector<Microsoft::WRL::ComPtr<CExplorerCommand>>(), m_site));
 			auto verb = std::wstring(ignorepath);
 			myVerbsMap[verb] = idCmd - idCmdFirst;
 			myVerbsMap[verb] = idCmd;
@@ -1932,7 +1944,7 @@ bool CShellExt::InsertIgnoreSubmenus(UINT &idCmd, UINT idCmdFirst, HMENU hMenu, 
 				if (hMenu)
 					InsertMenu(ignoresubmenu, indexignoresub++, MF_BYPOSITION | MF_STRING , idCmd, maskbuf);
 				else
-					exCmds.push_back(Microsoft::WRL::Make<CExplorerCommand>(maskbuf, 0, TGitShellCommand::UnIgnoreCaseSensitive, CPathUtils::GetAppDirectory(g_hmodThisDll).c_str(), uuidSource, itemStates, itemStatesFolder, files_, std::vector<Microsoft::WRL::ComPtr<CExplorerCommand>>(), m_site));
+					exCmds.push_back(Microsoft::WRL::Make<CExplorerCommand>(maskbuf, 0, TGitShellCommand::UnIgnoreCaseSensitive, ShellAppDirectory(), uuidSource, itemStates, itemStatesFolder, files_, std::vector<Microsoft::WRL::ComPtr<CExplorerCommand>>(), m_site));
 				auto verb = std::wstring(maskbuf);
 				myVerbsMap[verb] = idCmd - idCmdFirst;
 				myVerbsMap[verb] = idCmd;
@@ -1955,7 +1967,7 @@ bool CShellExt::InsertIgnoreSubmenus(UINT &idCmd, UINT idCmdFirst, HMENU hMenu, 
 				if (hMenu)
 					InsertMenu(ignoresubmenu, indexignoresub++, MF_BYPOSITION | MF_STRING , idCmd, ignorepath);
 				else
-					exCmds.push_back(Microsoft::WRL::Make<CExplorerCommand>(ignorepath, 0, TGitShellCommand::DeleteIgnore, CPathUtils::GetAppDirectory(g_hmodThisDll).c_str(), uuidSource, itemStates, itemStatesFolder, files_, std::vector<Microsoft::WRL::ComPtr<CExplorerCommand>>(), m_site));
+					exCmds.push_back(Microsoft::WRL::Make<CExplorerCommand>(ignorepath, 0, TGitShellCommand::DeleteIgnore, ShellAppDirectory(), uuidSource, itemStates, itemStatesFolder, files_, std::vector<Microsoft::WRL::ComPtr<CExplorerCommand>>(), m_site));
 				myIDMap[idCmd - idCmdFirst] = TGitShellCommand::DeleteIgnore;
 				myIDMap[idCmd++] = TGitShellCommand::DeleteIgnore;
 
@@ -1966,7 +1978,7 @@ bool CShellExt::InsertIgnoreSubmenus(UINT &idCmd, UINT idCmdFirst, HMENU hMenu, 
 					if (hMenu)
 						InsertMenu(ignoresubmenu, indexignoresub++, MF_BYPOSITION | MF_STRING , idCmd, maskbuf);
 					else
-						exCmds.push_back(Microsoft::WRL::Make<CExplorerCommand>(maskbuf, 0, TGitShellCommand::DeleteIgnoreCaseSensitive, CPathUtils::GetAppDirectory(g_hmodThisDll).c_str(), uuidSource, itemStates, itemStatesFolder, files_, std::vector<Microsoft::WRL::ComPtr<CExplorerCommand>>(), m_site));
+						exCmds.push_back(Microsoft::WRL::Make<CExplorerCommand>(maskbuf, 0, TGitShellCommand::DeleteIgnoreCaseSensitive, ShellAppDirectory(), uuidSource, itemStates, itemStatesFolder, files_, std::vector<Microsoft::WRL::ComPtr<CExplorerCommand>>(), m_site));
 					auto verb = std::wstring(maskbuf);
 					myVerbsMap[verb] = idCmd - idCmdFirst;
 					myVerbsMap[verb] = idCmd;
@@ -1981,7 +1993,7 @@ bool CShellExt::InsertIgnoreSubmenus(UINT &idCmd, UINT idCmdFirst, HMENU hMenu, 
 				if (hMenu)
 					InsertMenu(ignoresubmenu, indexignoresub++, MF_BYPOSITION | MF_STRING , idCmd, ignorepath);
 				else
-					exCmds.push_back(Microsoft::WRL::Make<CExplorerCommand>(ignorepath, 0, TGitShellCommand::Ignore, CPathUtils::GetAppDirectory(g_hmodThisDll).c_str(), uuidSource, itemStates, itemStatesFolder, files_, std::vector<Microsoft::WRL::ComPtr<CExplorerCommand>>(), m_site));
+					exCmds.push_back(Microsoft::WRL::Make<CExplorerCommand>(ignorepath, 0, TGitShellCommand::Ignore, ShellAppDirectory(), uuidSource, itemStates, itemStatesFolder, files_, std::vector<Microsoft::WRL::ComPtr<CExplorerCommand>>(), m_site));
 				myIDMap[idCmd - idCmdFirst] = TGitShellCommand::Ignore;
 				myIDMap[idCmd++] = TGitShellCommand::Ignore;
 
@@ -1992,7 +2004,7 @@ bool CShellExt::InsertIgnoreSubmenus(UINT &idCmd, UINT idCmdFirst, HMENU hMenu, 
 					if (hMenu)
 						InsertMenu(ignoresubmenu, indexignoresub++, MF_BYPOSITION | MF_STRING, idCmd, maskbuf);
 					else
-						exCmds.push_back(Microsoft::WRL::Make<CExplorerCommand>(maskbuf, 0, TGitShellCommand::IgnoreCaseSensitive, CPathUtils::GetAppDirectory(g_hmodThisDll).c_str(), uuidSource, itemStates, itemStatesFolder, files_, std::vector<Microsoft::WRL::ComPtr<CExplorerCommand>>(), m_site));
+						exCmds.push_back(Microsoft::WRL::Make<CExplorerCommand>(maskbuf, 0, TGitShellCommand::IgnoreCaseSensitive, ShellAppDirectory(), uuidSource, itemStates, itemStatesFolder, files_, std::vector<Microsoft::WRL::ComPtr<CExplorerCommand>>(), m_site));
 					auto verb = std::wstring(maskbuf);
 					myVerbsMap[verb] = idCmd - idCmdFirst;
 					myVerbsMap[verb] = idCmd;
@@ -2024,7 +2036,7 @@ bool CShellExt::InsertIgnoreSubmenus(UINT &idCmd, UINT idCmdFirst, HMENU hMenu, 
 				if (hMenu)
 					InsertMenu(ignoresubmenu, indexignoresub++, MF_BYPOSITION | MF_STRING , idCmd, ignorepath);
 				else
-					exCmds.push_back(Microsoft::WRL::Make<CExplorerCommand>(ignorepath, 0, TGitShellCommand::DeleteIgnore, CPathUtils::GetAppDirectory(g_hmodThisDll).c_str(), uuidSource, itemStates, itemStatesFolder, files_, std::vector<Microsoft::WRL::ComPtr<CExplorerCommand>>(), m_site));
+					exCmds.push_back(Microsoft::WRL::Make<CExplorerCommand>(ignorepath, 0, TGitShellCommand::DeleteIgnore, ShellAppDirectory(), uuidSource, itemStates, itemStatesFolder, files_, std::vector<Microsoft::WRL::ComPtr<CExplorerCommand>>(), m_site));
 				auto verb = std::wstring(ignorepath);
 				myVerbsMap[verb] = idCmd - idCmdFirst;
 				myVerbsMap[verb] = idCmd;
@@ -2046,7 +2058,7 @@ bool CShellExt::InsertIgnoreSubmenus(UINT &idCmd, UINT idCmdFirst, HMENU hMenu, 
 				if (hMenu)
 					InsertMenu(ignoresubmenu, indexignoresub++, MF_BYPOSITION | MF_STRING , idCmd, ignorepath);
 				else
-					exCmds.push_back(Microsoft::WRL::Make<CExplorerCommand>(ignorepath, 0, TGitShellCommand::DeleteIgnoreCaseSensitive, CPathUtils::GetAppDirectory(g_hmodThisDll).c_str(), uuidSource, itemStates, itemStatesFolder, files_, std::vector<Microsoft::WRL::ComPtr<CExplorerCommand>>(), m_site));
+					exCmds.push_back(Microsoft::WRL::Make<CExplorerCommand>(ignorepath, 0, TGitShellCommand::DeleteIgnoreCaseSensitive, ShellAppDirectory(), uuidSource, itemStates, itemStatesFolder, files_, std::vector<Microsoft::WRL::ComPtr<CExplorerCommand>>(), m_site));
 				verb = std::wstring(ignorepath);
 				myVerbsMap[verb] = idCmd - idCmdFirst;
 				myVerbsMap[verb] = idCmd;
@@ -2070,7 +2082,7 @@ bool CShellExt::InsertIgnoreSubmenus(UINT &idCmd, UINT idCmdFirst, HMENU hMenu, 
 				if (hMenu)
 					InsertMenu(ignoresubmenu, indexignoresub++, MF_BYPOSITION | MF_STRING , idCmd, ignorepath);
 				else
-					exCmds.push_back(Microsoft::WRL::Make<CExplorerCommand>(ignorepath, 0, TGitShellCommand::Ignore, CPathUtils::GetAppDirectory(g_hmodThisDll).c_str(), uuidSource, itemStates, itemStatesFolder, files_, std::vector<Microsoft::WRL::ComPtr<CExplorerCommand>>(), m_site));
+					exCmds.push_back(Microsoft::WRL::Make<CExplorerCommand>(ignorepath, 0, TGitShellCommand::Ignore, ShellAppDirectory(), uuidSource, itemStates, itemStatesFolder, files_, std::vector<Microsoft::WRL::ComPtr<CExplorerCommand>>(), m_site));
 				auto verb = std::wstring(ignorepath);
 				myVerbsMap[verb] = idCmd - idCmdFirst;
 				myVerbsMap[verb] = idCmd;
@@ -2092,7 +2104,7 @@ bool CShellExt::InsertIgnoreSubmenus(UINT &idCmd, UINT idCmdFirst, HMENU hMenu, 
 				if (hMenu)
 					InsertMenu(ignoresubmenu, indexignoresub++, MF_BYPOSITION | MF_STRING , idCmd, ignorepath);
 				else
-					exCmds.push_back(Microsoft::WRL::Make<CExplorerCommand>(ignorepath, 0, TGitShellCommand::IgnoreCaseSensitive, CPathUtils::GetAppDirectory(g_hmodThisDll).c_str(), uuidSource, itemStates, itemStatesFolder, files_, std::vector<Microsoft::WRL::ComPtr<CExplorerCommand>>(), m_site));
+					exCmds.push_back(Microsoft::WRL::Make<CExplorerCommand>(ignorepath, 0, TGitShellCommand::IgnoreCaseSensitive, ShellAppDirectory(), uuidSource, itemStates, itemStatesFolder, files_, std::vector<Microsoft::WRL::ComPtr<CExplorerCommand>>(), m_site));
 				verb = std::wstring(ignorepath);
 				myVerbsMap[verb] = idCmd - idCmdFirst;
 				myVerbsMap[verb] = idCmd;
@@ -2131,7 +2143,7 @@ bool CShellExt::InsertIgnoreSubmenus(UINT &idCmd, UINT idCmdFirst, HMENU hMenu, 
 			InsertMenuItem((std::to_underlying(topmenu & TGitContextMenuEntries::Ignore)) ? hMenu : subMenu, (std::to_underlying(topmenu & TGitContextMenuEntries::Ignore)) ? indexMenu++ : indexSubMenu++, TRUE, &menuiteminfo);
 		else
 		{
-			m_explorerCommands.push_back(Microsoft::WRL::Make<CExplorerCommand>(L"", 0, TGitShellCommand::Separator, CPathUtils::GetAppDirectory(g_hmodThisDll).c_str(), uuidSource, itemStates, itemStatesFolder, files_, std::vector<Microsoft::WRL::ComPtr<CExplorerCommand>>(), m_site));
+			m_explorerCommands.push_back(Microsoft::WRL::Make<CExplorerCommand>(L"", 0, TGitShellCommand::Separator, ShellAppDirectory(), uuidSource, itemStates, itemStatesFolder, files_, std::vector<Microsoft::WRL::ComPtr<CExplorerCommand>>(), m_site));
 			for (const auto& cmd : exCmds)
 			{
 				m_explorerCommands.push_back(cmd);
@@ -2246,7 +2258,7 @@ HRESULT __stdcall CShellExt::GetTitle(IShellItemArray* /*psiItemArray*/, LPWSTR*
 HRESULT __stdcall CShellExt::GetIcon(IShellItemArray* /*psiItemArray*/, LPWSTR* ppszIcon)
 {
 	TracePrintf(__FUNCTION__ ": Shell :: GetIcon\n");
-	std::wstring iconPath = CPathUtils::GetAppDirectory(g_hmodThisDll);
+	std::wstring iconPath = ShellAppDirectory();
 	iconPath += L"TortoiseGitProc.exe,-";
 	iconPath += std::to_wstring(IDI_APP);
 	SHStrDupW(iconPath.c_str(), ppszIcon);

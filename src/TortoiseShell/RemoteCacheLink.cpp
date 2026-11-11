@@ -37,7 +37,7 @@ CRemoteCacheLink::~CRemoteCacheLink()
 	CloseCommandPipe();
 }
 
-bool CRemoteCacheLink::InternalEnsurePipeOpen(CAutoFile& hPipe, const CString& pipeName, bool overlapped) const
+bool CRemoteCacheLink::InternalEnsurePipeOpen(CAutoFile& hPipe, const tgit::wstr::CString& pipeName, bool overlapped) const
 {
 	if (hPipe)
 		return true;
@@ -299,7 +299,7 @@ DWORD CRemoteCacheLink::GetProcessIntegrityLevel() const
 
 bool CRemoteCacheLink::RunTGitCacheProcess()
 {
-	const CString sCachePath = GetTGitCachePath();
+	const tgit::wstr::CString sCachePath = GetTGitCachePath();
 	if (!CCreateProcessHelper::CreateProcessDetached(sCachePath, static_cast<LPWSTR>(nullptr)))
 	{
 		// It's not appropriate to do a message box here, because there may be hundreds of calls
@@ -309,8 +309,8 @@ bool CRemoteCacheLink::RunTGitCacheProcess()
 	return true;
 }
 
-CString CRemoteCacheLink::GetTGitCachePath() const
+tgit::wstr::CString CRemoteCacheLink::GetTGitCachePath() const
 {
-	CString sCachePath = (PathUtils::GetAppDirectory(g_hmodThisDll) / L"TGitCache.exe").c_str();
+	tgit::wstr::CString sCachePath = (til::GetAppDirectory(g_hmodThisDll) / L"TGitCache.exe").c_str();
 	return sCachePath;
 }

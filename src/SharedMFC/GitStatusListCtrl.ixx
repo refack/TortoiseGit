@@ -31,8 +31,10 @@ import AppUtils.Launch;
 import AppUtils.Window;
 import TortoiseProc;
 import PathUtils;
+import TempFile;
 
 using namespace  GitIndex;
+using namespace tgit::libgit2;
 
 
 
@@ -4948,7 +4950,7 @@ void CGitStatusListCtrl::FilesExport() {
 		CString filename = exportDir + L'\\' + fd->GetWinPathString().c_str();
 		if (m_CurrentVersion.IsEmpty()) {
 			if (!CopyFile(g_Git.CombinePath(*fd).c_str(), filename, false)) {
-				MessageBox((CFormatMessageWrapper()).c_str(), L"TortoiseGit", MB_OK | MB_ICONERROR);
+				MessageBox((wil::CFormatMessageWrapper()).c_str(), L"TortoiseGit", MB_OK | MB_ICONERROR);
 				return;
 			}
 		} else {
@@ -4981,7 +4983,7 @@ void CGitStatusListCtrl::FileSaveAs(const CTGitPath* path) {
 		return;
 	if (m_CurrentVersion.IsEmpty()) {
 		if (!CopyFile(g_Git.CombinePath(*path).c_str(), filename, false)) {
-			MessageBox((CFormatMessageWrapper()).c_str(), L"TortoiseGit", MB_OK | MB_ICONERROR);
+			MessageBox((wil::CFormatMessageWrapper()).c_str(), L"TortoiseGit", MB_OK | MB_ICONERROR);
 			return;
 		}
 	} else {
@@ -5096,14 +5098,14 @@ void CGitStatusListCtrl::OpenFile(const CTGitPath* filepath, int mode) {
 		SetFileAttributes(file, FILE_ATTRIBUTE_READONLY);
 	}
 	if (mode == ALTERNATIVEEDITOR) {
-		CAppUtils::LaunchAlternativeEditor(file);
+		TortoiseProc::LaunchAlternativeEditor(file);
 		return;
 	}
 
 	if (mode == OPEN)
 		TortoiseProc::ShellOpen(file, GetSafeHwnd());
 	else
-		CAppUtils::ShowOpenWithDialog(file, GetSafeHwnd());
+		TortoiseProc::ShowOpenWithDialog(file, GetSafeHwnd());
 }
 
 

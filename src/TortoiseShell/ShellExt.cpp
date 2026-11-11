@@ -141,14 +141,14 @@ UINT __stdcall CShellExt::CopyCallback(HWND /*hWnd*/, UINT wFunc, UINT /*wFlags*
 				if (!shortcut.empty() && shortcut.back() != L'\\')
 					shortcut += L'\\';
 
-				m_remoteCacheLink.ReleaseLockForPath(CTGitPath(pszSrcFile, true));
+				m_remoteCacheLink.ReleaseLockForPath(CTGitPath(std::wstring_view(pszSrcFile), true));
 				break;
 			}
 			case ShellCache::dll:
 			case ShellCache::dllFull:
 			{
 				if (const auto topDir = GitAdminDir::HasAdminDir(pszSrcFile); !topDir.empty())
-					m_CachedStatus.m_GitStatus.ReleasePath(CString(topDir.c_str()));
+					m_CachedStatus.m_GitStatus.ReleasePath(tgit::wstr::CString(topDir.c_str()));
 				break;
 			}
 			default:

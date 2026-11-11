@@ -21,7 +21,11 @@
 #include "stdafx.h"
 #include "ShellExt.h"
 #include "gitpropertypage.h"
+#include <tgitlib/CreateProcessHelper.h>
+#include "resource.h"
 import PathUtils;
+import GitHash;		// TGitHash::CGitHash
+import str_utils;	// tgit::wstr::CString, CUnicodeUtils
 
 #define MAX_STRING_LENGTH	4096	//should be big enough
 
@@ -64,7 +68,7 @@ UINT CALLBACK PropPageCallbackProc ( HWND /*hwnd*/, UINT uMsg, LPPROPSHEETPAGE p
 // *********************** CGitPropertyPage *************************
 const UINT CGitPropertyPage::m_UpdateLastCommit = RegisterWindowMessage(L"TORTOISEGIT_PROP_UPDATELASTCOMMIT");
 
-CGitPropertyPage::CGitPropertyPage(const std::vector<std::wstring>& newFilenames, const CString& projectTopDir, bool bIsSubmodule)
+CGitPropertyPage::CGitPropertyPage(const std::vector<std::wstring>& newFilenames, const tgit::wstr::CString& projectTopDir, bool bIsSubmodule)
 	: filenames(newFilenames)
 	, m_ProjectTopDir(projectTopDir)
 	, m_bIsSubmodule(bIsSubmodule)
@@ -123,10 +127,10 @@ BOOL CGitPropertyPage::PageProc (HWND /*hwnd*/, UINT uMessage, WPARAM wParam, LP
 					for (const auto& filename : filenames)
 					{
 						CTGitPath file;
-						file.SetFromWin(CString(filename.c_str()).Mid(m_iStripLength));
-						CStringA pathA = CUnicodeUtils::GetUTF8(file.GetGitPathString().c_str());
+						file.SetFromWin(tgit::wstr::CString(filename.c_str()).Mid(m_iStripLength));
+						const std::string pathA = CUnicodeUtils::StdGetUTF8(file.GetGitPathString());
 						size_t idx;
-						if (!git_index_find(&idx, index.get(), pathA))
+						if (!git_index_find(&idx, index.get(), pathA.c_str()))
 						{
 							git_index_entry *e = const_cast<git_index_entry *>(git_index_get_byindex(index.get(), idx)); // HACK
 
@@ -289,7 +293,7 @@ void CGitPropertyPage::RunCommand(const std::wstring& command)
 		return;
 	}
 
-	MessageBox(nullptr, CFormatMessageWrapper(), L"TortoiseGitProc launch failed", MB_OK | MB_ICONERROR);
+	MessageBox(nullptr, wil::CFormatMessageWrapper().c_str(),L"TortoiseGitProc launch failed", MB_OK | MB_ICONERROR);
 }
 
 void CGitPropertyPage::Time64ToTimeString(__time64_t time, wchar_t* buf, size_t buflen) const
@@ -359,16 +363,16 @@ static int TreewalkCB_FindFileRecentCommit(const char *root, const git_tree_entr
 	return 1;
 }
 
-static git_commit* FindFileRecentCommit(git_repository* repository, const CString& path)
+static git_commit* FindFileRecentCommit(git_repository* repository, const std::wstring& path)
 {
 	wil::unique_git_revwalk walk;
 	if (git_revwalk_new(walk.put(), repository))
 		return nullptr;
 
-	CStringA pathA = CUnicodeUtils::GetUTF8(path);
-	if (pathA.GetLength() >= MAX_PATH)
+	const std::string pathA = CUnicodeUtils::StdGetUTF8(path);
+	if (pathA.size() >= MAX_PATH)
 		return nullptr;
-	const char *pathC = pathA;
+	const char *pathC = pathA.c_str();
 	char folder[MAX_PATH] = {0}, file[MAX_PATH] = {0};
 	const char *slash = strrchr(pathC, '/');
 	if (slash)
@@ -452,21 +456,21 @@ void CGitPropertyPage::DisplayCommit(const git_commit* commit, UINT hashLabel, U
 	int encode = CP_UTF8;
 	const char * encodingString = git_commit_message_encoding(commit);
 	if (encodingString)
-		encode = CUnicodeUtils::GetCPCode(CUnicodeUtils::GetUnicode(encodingString));
+		encode = CUnicodeUtils::StdGetCPCode(CUnicodeUtils::GetUnicode<std::wstring>(encodingString));
 
 	const git_signature * author = git_commit_author(commit);
-	CString authorName = CUnicodeUtils::GetUnicode(author->name, encode);
+	const tgit::wstr::CString authorName = CUnicodeUtils::StdGetUnicode<tgit::wstr::CString>(author->name, encode);
 
-	CString message = CUnicodeUtils::GetUnicode(git_commit_message(commit), encode);
+	tgit::wstr::CString message = CUnicodeUtils::StdGetUnicode<tgit::wstr::CString>(git_commit_message(commit), encode);
 
 	int start = 0;
 	message = message.Tokenize(L"\n", start);
 
-	SetDlgItemText(m_hwnd, hashLabel, CGitHash(git_commit_id(commit)).ToString());
+	SetDlgItemText(m_hwnd, hashLabel, TGitHash::CGitHash(git_commit_id(commit)).ToString().c_str());
 	SetDlgItemText(m_hwnd, subjectLabel, message);
 	SetDlgItemText(m_hwnd, authorLabel, authorName);
 
-	CString authorDate;
+	tgit::wstr::CString authorDate;
 	Time64ToTimeString(author->when.time, authorDate.GetBufferSetLength(200), 200);
 	SetDlgItemText(m_hwnd, dateLabel, authorDate);
 }
@@ -482,7 +486,7 @@ int CGitPropertyPage::LogThread()
 	CTGitPath relatepath;
 	relatepath.SetFromWin(tgit::wstr::Mid(path.GetWinPathString(), m_iStripLength));
 
-	const wil::unique_git_commit commit{ FindFileRecentCommit(repository.get(), relatepath.GetGitPathString().c_str()) };
+	const wil::unique_git_commit commit{ FindFileRecentCommit(repository.get(), relatepath.GetGitPathString()) };
 	if (commit)
 	{
 		SendMessage(m_hwnd, m_UpdateLastCommit, NULL, reinterpret_cast<LPARAM>(commit.get()));
@@ -510,14 +514,14 @@ void CGitPropertyPage::InitWorkfileView()
 	const wil::unique_git_repository repository = TGitH::OpenGitRepository(tgit::str::StringView{ m_ProjectTopDir });
 	if (!repository)
 	{
-		SetDlgItemText(m_hwnd, IDC_SHELL_CURRENT_BRANCH, CGit::GetLibGit2LastErr());
+		SetDlgItemText(m_hwnd, IDC_SHELL_CURRENT_BRANCH, TGitH::GetLibGit2LastErr());
 		return;
 	}
 
-	CString username;
-	CString useremail;
-	CString autocrlf;
-	CString safecrlf;
+	tgit::wstr::CString username;
+	tgit::wstr::CString useremail;
+	tgit::wstr::CString autocrlf;
+	tgit::wstr::CString safecrlf;
 
 	wil::unique_git_config config;
 	git_repository_config(config.put(), repository.get());
@@ -529,9 +533,9 @@ void CGitPropertyPage::InitWorkfileView()
 		TGitH::GetConfigString(config.get(), L"core.safecrlf", safecrlf);
 	}
 
-	CString branch;
-	CString remotebranch;
-	CString remoteUrl;
+	tgit::wstr::CString branch;
+	tgit::wstr::CString remotebranch;
+	tgit::wstr::CString remoteUrl;
 	int err = 0;
 	if (err = git_repository_head_detached(repository.get()); err == 1)
 		branch = L"detached HEAD";
@@ -541,34 +545,34 @@ void CGitPropertyPage::InitWorkfileView()
 		if ((err = git_repository_head_unborn(repository.get())) == 1)
 		{
 			err = git_reference_lookup(head.put(), repository.get(), "HEAD");
-			branch = CUnicodeUtils::GetUnicode(git_reference_symbolic_target(head.get()));
+			branch = CUnicodeUtils::GetUnicode<tgit::wstr::CString>(git_reference_symbolic_target(head.get()));
 			if (StringUtils::StartsWith(branch, L"refs/heads/"))
 				branch = branch.Mid(static_cast<int>(wcslen(L"refs/heads/")));
 		}
 		else if (err == 0 && (err = git_repository_head(head.put(), repository.get())) == 0)
 		{
 			const char * branchChar = git_reference_shorthand(head.get());
-			branch = CUnicodeUtils::GetUnicode(branchChar);
+			branch = CUnicodeUtils::GetUnicode<tgit::wstr::CString>(branchChar);
 
 			const char * branchFullChar = git_reference_name(head.get());
 			wil::unique_git_buf upstreambranchnamebuf;
 			if (int ret = git_branch_upstream_name(&upstreambranchnamebuf, repository.get(), branchFullChar); ret == 0)
 			{
-				remotebranch = CUnicodeUtils::GetUnicode(std::string_view(upstreambranchnamebuf.ptr, upstreambranchnamebuf.size).substr(wcslen(L"refs/remotes/")));
+				remotebranch = CUnicodeUtils::GetUnicode<tgit::wstr::CString>(std::string_view(upstreambranchnamebuf.ptr, upstreambranchnamebuf.size).substr(wcslen(L"refs/remotes/")));
 				int pos = remotebranch.Find(L'/');
 				if (pos > 0)
 				{
-					CString remoteName;
+					tgit::wstr::CString remoteName;
 					remoteName.Format(L"remote.%s.url", static_cast<LPCWSTR>(remotebranch.Left(pos)));
 					TGitH::GetConfigString(config.get(), remoteName, remoteUrl);
 				}
 			}
 			else if (ret == 1)
-				remotebranch = CGit::GetLibGit2LastErr();
+				remotebranch = TGitH::GetLibGit2LastErr();
 		}
 	}
 	if (err < 0)
-		branch = CGit::GetLibGit2LastErr();
+		branch = TGitH::GetLibGit2LastErr();
 
 	if (autocrlf.Trim().IsEmpty())
 		autocrlf = L"false";
@@ -600,10 +604,10 @@ void CGitPropertyPage::InitWorkfileView()
 		for (const auto& filename : filenames)
 		{
 			CTGitPath file;
-			file.SetFromWin(CString(filename.c_str()).Mid(m_iStripLength));
-			CStringA pathA = CUnicodeUtils::GetUTF8(file.GetGitPathString().c_str());
+			file.SetFromWin(tgit::wstr::CString(filename.c_str()).Mid(m_iStripLength));
+			const std::string pathA = CUnicodeUtils::StdGetUTF8(file.GetGitPathString());
 			size_t idx;
-			if (!git_index_find(&idx, index.get(), pathA))
+			if (!git_index_find(&idx, index.get(), pathA.c_str()))
 			{
 				const git_index_entry *e = git_index_get_byindex(index.get(), idx);
 
@@ -696,7 +700,7 @@ void CGitPropertyPage::InitWorkfileView()
 
 	if (filenames.size() == 1 && m_fileStats.allAreVersionedItems)
 	{
-		SetDlgItemText(m_hwnd, IDC_LAST_SUBJECT, CString(MAKEINTRESOURCE(IDS_LOADING)));
+		SetDlgItemText(m_hwnd, IDC_LAST_SUBJECT, tgit::wstr::CString(MAKEINTRESOURCE(IDS_LOADING)));
 		_beginthread(LogThreadEntry, 0, this);
 	}
 	else

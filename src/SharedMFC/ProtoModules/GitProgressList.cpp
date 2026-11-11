@@ -37,6 +37,7 @@ import AppUtils.Launch;
 import AppUtils.Window;
 import ThemeAPI;
 import CmdLineParser;
+import TempFile;
 
 BOOL	CGitProgressList::m_bAscending = FALSE;
 int		CGitProgressList::m_nSortedColumn = -1;
@@ -958,7 +959,7 @@ void CGitProgressList::WC_File_NotificationData::GetContextMenu(CIconMenu& popup
 		if (!fs::exists(g_Git.CombinePath(path))) {
 			actions.push_back([&]{ TortoiseProc::ShellOpen(g_Git.CombinePath(path).c_str()); });
 			popup.AppendMenuIcon(actions.size(), IDS_LOG_POPUP_OPEN, IDI_OPEN);
-			actions.push_back([&]{ CAppUtils::ShowOpenWithDialog(g_Git.CombinePath(path).c_str()); });
+			actions.push_back([&]{ TortoiseProc::ShowOpenWithDialog(g_Git.CombinePath(path).c_str()); });
 			popup.AppendMenuIcon(actions.size(), IDS_LOG_POPUP_OPENWITH, IDI_OPEN);
 		}
 
