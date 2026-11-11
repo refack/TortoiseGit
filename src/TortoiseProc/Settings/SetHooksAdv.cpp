@@ -25,6 +25,7 @@ import TortoiseProc;
 import BrowseFolder;
 import AppUtils.Window;
 import TGitPath;	// GitAdminDir lives in the TGitPath module
+import ConfigureGitExe;
 
 IMPLEMENT_DYNAMIC(CSetHooksAdv, CResizableStandAloneDialog)
 

@@ -27,6 +27,7 @@
 import DPIAware;
 import AppUtils.Launch;
 import AppUtils.Window;
+import TortoiseProc;
 
 #ifdef _DEBUG
 #define new DEBUG_NEW

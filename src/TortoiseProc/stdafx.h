@@ -111,6 +111,7 @@ using std::min;
 #include <Utils/ProfilingInfo.h>
 
 #include "Resources/resource.h"
+#include "../TortoiseShell/resource.h"	// IDI_*/IDS_MENU*: macros don't cross TortoiseProc.ixx's import
 
 // Last
 #include <tgitlib/sanity.h>		// SCOPE_EXIT; its scope_exit_helper comes with `import wil` below

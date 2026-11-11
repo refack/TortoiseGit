@@ -25,6 +25,8 @@
 #include "ProtoModules/GitProgressDlg.h"
 #include "ProgressCommands/AddProgressCommand.h"
 
+import TortoiseProc;
+
 bool AddCommand::Execute()
 {
 	bool bRet = false;

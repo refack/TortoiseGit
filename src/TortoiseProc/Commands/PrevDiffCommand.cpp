@@ -26,6 +26,7 @@
 #include "../../SharedMFC/Utils/LogDataVector.h"
 #include "ProtoModules/FileDiffDlg.h"
 import TGitMessageBox;
+import TortoiseProc;
 
 bool PrevDiffCommand::Execute()
 {

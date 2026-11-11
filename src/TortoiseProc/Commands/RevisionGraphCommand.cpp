@@ -23,6 +23,8 @@
 #include "RevisionGraphCommand.h"
 #include "RevisionGraph/RevisionGraphDlg.h"
 
+import TortoiseProc;
+
 bool RevisionGraphCommand::Execute()
 {
 	CRevisionGraphDlg dlg;

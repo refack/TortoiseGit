@@ -25,6 +25,7 @@
 import ProgressDlg;
 import SysProgressDlg;
 import TGitMessageBox;
+import TortoiseProc;	// TortoiseProc::GetExplorerHWND
 
 
 

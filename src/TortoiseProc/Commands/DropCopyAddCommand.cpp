@@ -25,6 +25,7 @@
 import TGitMessageBox;
 #include "ProgressCommands/AddProgressCommand.h"
 import DirFileEnum;
+import TortoiseProc;
 
 
 bool DropCopyAddCommand::Execute()

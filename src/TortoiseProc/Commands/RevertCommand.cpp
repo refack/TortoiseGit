@@ -24,6 +24,7 @@
 #include "ProtoModules/RevertDlg.h"
 #include "ProtoModules/GitProgressDlg.h"
 #include "ProgressCommands/RevertProgressCommand.h"
+import TortoiseProc;
 
 bool RevertCommand::Execute()
 {

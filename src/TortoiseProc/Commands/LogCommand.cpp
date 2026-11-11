@@ -22,6 +22,7 @@
 
 #include "LogCommand.h"
 #include "../../SharedMFC/Utils/LogDlg.h"
+import TortoiseProc;
 
 bool LogCommand::Execute()
 {

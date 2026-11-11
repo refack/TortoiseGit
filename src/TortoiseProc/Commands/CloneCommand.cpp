@@ -24,11 +24,14 @@
 #include "CloneCommand.h"
 #include "ProtoModules/GitProgressDlg.h"
 #include "ProtoModules/CloneDlg.h"
-import ProgressDlg;
 #include "ProgressCommands/CloneProgressCommand.h"
+#include <../TortoiseShell/resource.h>	// IDI_LOG, IDS_MENULOG
 
+import ProgressDlg;
 import tgit;
 import AppUtils.Launch;
+import TortoiseProc;
+import IconExtractor;
 
 
 static CString GetExistingDirectoryForClone(auto path)
@@ -129,7 +132,7 @@ bool CloneCommand::Execute()
 			}
 
 			if (dlg.m_bBare)
-				TGitH::SetupBareRepoIcon(dir);
+				IconExtractor::SetupBareRepoIcon(dir);
 
 			// After cloning, change current directory to the cloned directory
 			g_Git.SetCurrentDirExact(dlg.m_Directory);

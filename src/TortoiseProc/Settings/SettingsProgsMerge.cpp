@@ -22,6 +22,7 @@
 
 import TortoiseProc;
 import AppUtils.Window;
+import ConfigureGitExe;
 #include "SettingsProgsMerge.h"
 
 

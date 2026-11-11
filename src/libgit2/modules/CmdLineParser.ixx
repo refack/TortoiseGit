@@ -48,7 +48,7 @@ export namespace TCmdLineParser
          * \param sCmdLine the command line
          */
         explicit CCmdLineParser(const wchar_t* sCmdLine = nullptr);
-        explicit CCmdLineParser(const std::wstring& sCmdLine = {}) : CCmdLineParser{sCmdLine.c_str()} { }
+        explicit CCmdLineParser(const std::wstring& sCmdLine) :CCmdLineParser{sCmdLine.c_str()} { }
 
         CCmdLineParser(const CCmdLineParser&) = default;
         CCmdLineParser& operator=(const CCmdLineParser&) = default;

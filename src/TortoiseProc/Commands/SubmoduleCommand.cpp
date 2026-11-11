@@ -24,6 +24,7 @@
 #include "ProtoModules/SubmoduleAddDlg.h"
 #include "ProtoModules/SubmoduleUpdateDlg.h"
 
+import TortoiseProc;
 import AppUtils.Launch;
 import TortoiseProc.MassiveGitTask;
 import TGitMessageBox;

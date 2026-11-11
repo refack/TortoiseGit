@@ -28,6 +28,7 @@ import DPIAware;
 import LogDlgFilter;
 import FilterHelper;
 import GitLogListBase;
+import ConfigureGitExe;
 
 #ifdef _DEBUG
 #define new DEBUG_NEW

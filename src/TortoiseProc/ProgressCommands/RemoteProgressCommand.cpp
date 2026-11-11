@@ -25,6 +25,7 @@
 #include "../../SharedMFC/Utils/LogDataVector.h"
 
 import AppUtils.Launch;
+import TortoiseProc;
 
 
 int RemoteProgressCommand::RemoteProgressCallback(const char* str, int len, void* data)

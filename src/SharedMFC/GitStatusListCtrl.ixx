@@ -108,58 +108,33 @@ constexpr auto GITSLC_SHOWFILES = 0x01000000;
 constexpr auto GITSLC_SHOWSUBMODULES = 0x02000000;
 constexpr auto GITSLC_SHOWEVERYTHING = 0xffffffff;
 
-#define GITSLC_SHOWVERSIONED (GITSLC_SHOWNORMAL|GITSLC_SHOWMODIFIED|\
-GITSLC_SHOWADDED|GITSLC_SHOWREMOVED|GITSLC_SHOWCONFLICTED|GITSLC_SHOWMISSING|\
-GITSLC_SHOWREPLACED|GITSLC_SHOWMERGED|GITSLC_SHOWIGNORED|GITSLC_SHOWOBSTRUCTED|\
-GITSLC_SHOWEXTERNAL|GITSLC_SHOWINCOMPLETE|GITSLC_SHOWINEXTERNALS|\
-GITSLC_SHOWEXTERNALFROMDIFFERENTREPO)
+// constants, not #defines: macros never leave a named module.
+constexpr auto GITSLC_SHOWVERSIONED = (GITSLC_SHOWNORMAL|GITSLC_SHOWMODIFIED|
+	GITSLC_SHOWADDED|GITSLC_SHOWREMOVED|GITSLC_SHOWCONFLICTED|GITSLC_SHOWMISSING|
+	GITSLC_SHOWREPLACED|GITSLC_SHOWMERGED|GITSLC_SHOWIGNORED|GITSLC_SHOWOBSTRUCTED|
+	GITSLC_SHOWEXTERNAL|GITSLC_SHOWINCOMPLETE|GITSLC_SHOWINEXTERNALS|
+	GITSLC_SHOWEXTERNALFROMDIFFERENTREPO);
 
-#define GITSLC_SHOWVERSIONEDBUTNORMAL (GITSLC_SHOWMODIFIED|GITSLC_SHOWADDED|\
-GITSLC_SHOWREMOVED|GITSLC_SHOWCONFLICTED|GITSLC_SHOWMISSING|\
-GITSLC_SHOWREPLACED|GITSLC_SHOWMERGED|GITSLC_SHOWIGNORED|GITSLC_SHOWOBSTRUCTED|\
-GITSLC_SHOWEXTERNAL|GITSLC_SHOWINCOMPLETE|GITSLC_SHOWINEXTERNALS|\
-GITSLC_SHOWEXTERNALFROMDIFFERENTREPO)
+constexpr auto GITSLC_SHOWVERSIONEDBUTNORMAL = (GITSLC_SHOWMODIFIED|GITSLC_SHOWADDED|
+	GITSLC_SHOWREMOVED|GITSLC_SHOWCONFLICTED|GITSLC_SHOWMISSING|
+	GITSLC_SHOWREPLACED|GITSLC_SHOWMERGED|GITSLC_SHOWIGNORED|GITSLC_SHOWOBSTRUCTED|
+	GITSLC_SHOWEXTERNAL|GITSLC_SHOWINCOMPLETE|GITSLC_SHOWINEXTERNALS|
+	GITSLC_SHOWEXTERNALFROMDIFFERENTREPO);
 
-#define GITSLC_SHOWVERSIONEDBUTNORMALANDEXTERNALSFROMDIFFERENTREPOS (GITSLC_SHOWMODIFIED|\
-GITSLC_SHOWADDED|GITSLC_SHOWREMOVED|GITSLC_SHOWCONFLICTED|GITSLC_SHOWMISSING|\
-GITSLC_SHOWREPLACED|GITSLC_SHOWMERGED|GITSLC_SHOWIGNORED|GITSLC_SHOWOBSTRUCTED|\
-GITSLC_SHOWINCOMPLETE|GITSLC_SHOWEXTERNAL|GITSLC_SHOWINEXTERNALS)
+constexpr auto GITSLC_SHOWVERSIONEDBUTNORMALANDEXTERNALSFROMDIFFERENTREPOS = (GITSLC_SHOWMODIFIED|
+	GITSLC_SHOWADDED|GITSLC_SHOWREMOVED|GITSLC_SHOWCONFLICTED|GITSLC_SHOWMISSING|
+	GITSLC_SHOWREPLACED|GITSLC_SHOWMERGED|GITSLC_SHOWIGNORED|GITSLC_SHOWOBSTRUCTED|
+	GITSLC_SHOWINCOMPLETE|GITSLC_SHOWEXTERNAL|GITSLC_SHOWINEXTERNALS);
 
-#define GITSLC_SHOWVERSIONEDBUTNORMALANDEXTERNALS (GITSLC_SHOWMODIFIED|\
-	GITSLC_SHOWADDED|GITSLC_SHOWREMOVED|GITSLC_SHOWCONFLICTED|GITSLC_SHOWMISSING|\
-	GITSLC_SHOWREPLACED|GITSLC_SHOWMERGED|GITSLC_SHOWIGNORED|GITSLC_SHOWOBSTRUCTED|\
-	GITSLC_SHOWINCOMPLETE)
+constexpr auto GITSLC_SHOWVERSIONEDBUTNORMALANDEXTERNALS = (GITSLC_SHOWMODIFIED|
+	GITSLC_SHOWADDED|GITSLC_SHOWREMOVED|GITSLC_SHOWCONFLICTED|GITSLC_SHOWMISSING|
+	GITSLC_SHOWREPLACED|GITSLC_SHOWMERGED|GITSLC_SHOWIGNORED|GITSLC_SHOWOBSTRUCTED|
+	GITSLC_SHOWINCOMPLETE);
 
-#define GITSLC_SHOWALL (GITSLC_SHOWVERSIONED|GITSLC_SHOWUNVERSIONED)
+constexpr auto GITSLC_SHOWALL = (GITSLC_SHOWVERSIONED|GITSLC_SHOWUNVERSIONED);
 
-#define GITSLC_POPALL					0xFFFFFFFFFFFFFFFF
-#define GITSLC_POPCOMPAREWITHBASE		CGitStatusListCtrl::GetContextMenuBit(CGitStatusListCtrl::IDGITLC_COMPARE)
-#define GITSLC_POPCOMPARE				CGitStatusListCtrl::GetContextMenuBit(CGitStatusListCtrl::IDGITLC_COMPAREWC)
-#define GITSLC_POPGNUDIFF				CGitStatusListCtrl::GetContextMenuBit(CGitStatusListCtrl::IDGITLC_GNUDIFF1)
-#define GITSLC_POPREVERT				CGitStatusListCtrl::GetContextMenuBit(CGitStatusListCtrl::IDGITLC_REVERT)
-#define GITSLC_POPSHOWLOG				CGitStatusListCtrl::GetContextMenuBit(CGitStatusListCtrl::IDGITLC_LOG)
-#define GITSLC_POPSHOWLOGSUBMODULE		CGitStatusListCtrl::GetContextMenuBit(CGitStatusListCtrl::IDGITLC_LOGSUBMODULE)
-#define GITSLC_POPSHOWLOGOLDNAME		CGitStatusListCtrl::GetContextMenuBit(CGitStatusListCtrl::IDGITLC_LOGOLDNAME)
-#define GITSLC_POPOPEN					CGitStatusListCtrl::GetContextMenuBit(CGitStatusListCtrl::IDGITLC_OPEN)
-#define GITSLC_POPDELETE				CGitStatusListCtrl::GetContextMenuBit(CGitStatusListCtrl::IDGITLC_DELETE)
-#define GITSLC_POPADD					CGitStatusListCtrl::GetContextMenuBit(CGitStatusListCtrl::IDGITLC_ADD)
-#define GITSLC_POPIGNORE				CGitStatusListCtrl::GetContextMenuBit(CGitStatusListCtrl::IDGITLC_IGNORE)
-#define GITSLC_POPCONFLICT				CGitStatusListCtrl::GetContextMenuBit(CGitStatusListCtrl::IDGITLC_EDITCONFLICT)
-#define GITSLC_POPRESOLVE				CGitStatusListCtrl::GetContextMenuBit(CGitStatusListCtrl::IDGITLC_RESOLVECONFLICT)
-#define GITSLC_POPEXPLORE				CGitStatusListCtrl::GetContextMenuBit(CGitStatusListCtrl::IDGITLC_EXPLORE)
-#define GITSLC_POPCOMMIT				CGitStatusListCtrl::GetContextMenuBit(CGitStatusListCtrl::IDGITLC_COMMIT)
-#define GITSLC_POPCHANGELISTS			CGitStatusListCtrl::GetContextMenuBit(CGitStatusListCtrl::IDGITLC_CHECKGROUP)
-#define GITSLC_POPBLAME					CGitStatusListCtrl::GetContextMenuBit(CGitStatusListCtrl::IDGITLC_BLAME)
-#define GITSLC_POPSAVEAS				CGitStatusListCtrl::GetContextMenuBit(CGitStatusListCtrl::IDGITLC_SAVEAS)
-#define GITSLC_POPCOMPARETWOFILES		CGitStatusListCtrl::GetContextMenuBit(CGitStatusListCtrl::IDGITLC_COMPARETWOFILES)
-#define GITSLC_POPRESTORE				CGitStatusListCtrl::GetContextMenuBit(CGitStatusListCtrl::IDGITLC_POPRESTORE)
-#define GITSLC_POPASSUMEVALID			CGitStatusListCtrl::GetContextMenuBit(CGitStatusListCtrl::IDGITLC_ASSUMEVALID)
-#define GITSLC_POPSKIPWORKTREE			CGitStatusListCtrl::GetContextMenuBit(CGitStatusListCtrl::IDGITLC_SKIPWORKTREE)
-#define GITSLC_POPEXPORT				CGitStatusListCtrl::GetContextMenuBit(CGitStatusListCtrl::IDGITLC_EXPORT)
-#define GITSLC_POPUNSETIGNORELOCALCHANGES CGitStatusListCtrl::GetContextMenuBit(CGitStatusListCtrl::IDGITLC_UNSETIGNORELOCALCHANGES)
-#define GITSLC_POPPREPAREDIFF			CGitStatusListCtrl::GetContextMenuBit(CGitStatusListCtrl::IDGITLC_PREPAREDIFF)
-#define GITSLC_POPLFSLOCK				CGitStatusListCtrl::GetContextMenuBit(CGitStatusListCtrl::IDGITLC_LFSLOCK)
-#define GITSLC_POPLFSUNLOCK				CGitStatusListCtrl::GetContextMenuBit(CGitStatusListCtrl::IDGITLC_LFSUNLOCK)
+constexpr unsigned __int64 GITSLC_POPALL = 0xFFFFFFFFFFFFFFFF;
+// the other GITSLC_POPxxx constants follow the CGitStatusListCtrl class: they need its IDGITLC_xxx ids.
 
 constexpr auto GITSLC_IGNORECHANGELIST		=	L"ignore-on-commit"sv;
 
@@ -285,29 +260,29 @@ public:
 	 * Sent to the parent window (using ::SendMessage) after a context menu
 	 * command has finished if the item count has changed.
 	 */
-	static const UINT GITSLNM_ITEMCOUNTCHANGED;
+	static inline const UINT GITSLNM_ITEMCOUNTCHANGED = ::RegisterWindowMessage(L"GITSLNM_ITEMCOUNTCHANGED");
 	/**
 	 * Sent to the parent window (using ::SendMessage) when the control needs
 	 * to be refreshed. Since this is done usually in the parent window using
 	 * a thread, this message is used to tell the parent to do exactly that.
 	 */
-	static const UINT GITSLNM_NEEDSREFRESH;
+	static inline const UINT GITSLNM_NEEDSREFRESH = ::RegisterWindowMessage(L"GITSLNM_NEEDSREFRESH");
 
 	/**
 	 * Sent to the parent window (using ::SendMessage) when the user drops
 	 * files on the control. The LPARAM is a pointer to a wchar_t string
 	 * containing the dropped path.
 	 */
-	static const UINT GITSLNM_ADDFILE;
+	static inline const UINT GITSLNM_ADDFILE = ::RegisterWindowMessage(L"GITSLNM_ADDFILE");
 
 	/**
 	 * Sent to the parent window (using ::SendMessage) when the user checks/unchecks
 	 * one or more items in the control. The WPARAM contains the number of
 	 * checked items in the control.
 	 */
-	static const UINT GITSLNM_CHECKCHANGED;
+	static inline const UINT GITSLNM_CHECKCHANGED = ::RegisterWindowMessage(L"GITSLNM_CHECKCHANGED");
 
-	static const UINT GITSLNM_ITEMCHANGED;
+	static inline const UINT GITSLNM_ITEMCHANGED = ::RegisterWindowMessage(L"GITSLNM_ITEMCHANGED");
 
 	CGitStatusListCtrl();
 	~CGitStatusListCtrl();
@@ -842,6 +817,34 @@ private:
 public:
 	void UpdateSelectedFileStagingStatus(CTGitPath::StagingStatus newStatus);
 };
+
+constexpr unsigned __int64 GITSLC_POPCOMPAREWITHBASE			= CGitStatusListCtrl::GetContextMenuBit(CGitStatusListCtrl::IDGITLC_COMPARE);
+constexpr unsigned __int64 GITSLC_POPCOMPARE					= CGitStatusListCtrl::GetContextMenuBit(CGitStatusListCtrl::IDGITLC_COMPAREWC);
+constexpr unsigned __int64 GITSLC_POPGNUDIFF					= CGitStatusListCtrl::GetContextMenuBit(CGitStatusListCtrl::IDGITLC_GNUDIFF1);
+constexpr unsigned __int64 GITSLC_POPREVERT					= CGitStatusListCtrl::GetContextMenuBit(CGitStatusListCtrl::IDGITLC_REVERT);
+constexpr unsigned __int64 GITSLC_POPSHOWLOG					= CGitStatusListCtrl::GetContextMenuBit(CGitStatusListCtrl::IDGITLC_LOG);
+constexpr unsigned __int64 GITSLC_POPSHOWLOGSUBMODULE			= CGitStatusListCtrl::GetContextMenuBit(CGitStatusListCtrl::IDGITLC_LOGSUBMODULE);
+constexpr unsigned __int64 GITSLC_POPSHOWLOGOLDNAME			= CGitStatusListCtrl::GetContextMenuBit(CGitStatusListCtrl::IDGITLC_LOGOLDNAME);
+constexpr unsigned __int64 GITSLC_POPOPEN						= CGitStatusListCtrl::GetContextMenuBit(CGitStatusListCtrl::IDGITLC_OPEN);
+constexpr unsigned __int64 GITSLC_POPDELETE					= CGitStatusListCtrl::GetContextMenuBit(CGitStatusListCtrl::IDGITLC_DELETE);
+constexpr unsigned __int64 GITSLC_POPADD						= CGitStatusListCtrl::GetContextMenuBit(CGitStatusListCtrl::IDGITLC_ADD);
+constexpr unsigned __int64 GITSLC_POPIGNORE					= CGitStatusListCtrl::GetContextMenuBit(CGitStatusListCtrl::IDGITLC_IGNORE);
+constexpr unsigned __int64 GITSLC_POPCONFLICT					= CGitStatusListCtrl::GetContextMenuBit(CGitStatusListCtrl::IDGITLC_EDITCONFLICT);
+constexpr unsigned __int64 GITSLC_POPRESOLVE					= CGitStatusListCtrl::GetContextMenuBit(CGitStatusListCtrl::IDGITLC_RESOLVECONFLICT);
+constexpr unsigned __int64 GITSLC_POPEXPLORE					= CGitStatusListCtrl::GetContextMenuBit(CGitStatusListCtrl::IDGITLC_EXPLORE);
+constexpr unsigned __int64 GITSLC_POPCOMMIT					= CGitStatusListCtrl::GetContextMenuBit(CGitStatusListCtrl::IDGITLC_COMMIT);
+constexpr unsigned __int64 GITSLC_POPCHANGELISTS				= CGitStatusListCtrl::GetContextMenuBit(CGitStatusListCtrl::IDGITLC_CHECKGROUP);
+constexpr unsigned __int64 GITSLC_POPBLAME						= CGitStatusListCtrl::GetContextMenuBit(CGitStatusListCtrl::IDGITLC_BLAME);
+constexpr unsigned __int64 GITSLC_POPSAVEAS					= CGitStatusListCtrl::GetContextMenuBit(CGitStatusListCtrl::IDGITLC_SAVEAS);
+constexpr unsigned __int64 GITSLC_POPCOMPARETWOFILES			= CGitStatusListCtrl::GetContextMenuBit(CGitStatusListCtrl::IDGITLC_COMPARETWOFILES);
+constexpr unsigned __int64 GITSLC_POPRESTORE					= CGitStatusListCtrl::GetContextMenuBit(CGitStatusListCtrl::IDGITLC_POPRESTORE);
+constexpr unsigned __int64 GITSLC_POPASSUMEVALID				= CGitStatusListCtrl::GetContextMenuBit(CGitStatusListCtrl::IDGITLC_ASSUMEVALID);
+constexpr unsigned __int64 GITSLC_POPSKIPWORKTREE				= CGitStatusListCtrl::GetContextMenuBit(CGitStatusListCtrl::IDGITLC_SKIPWORKTREE);
+constexpr unsigned __int64 GITSLC_POPEXPORT					= CGitStatusListCtrl::GetContextMenuBit(CGitStatusListCtrl::IDGITLC_EXPORT);
+constexpr unsigned __int64 GITSLC_POPUNSETIGNORELOCALCHANGES	= CGitStatusListCtrl::GetContextMenuBit(CGitStatusListCtrl::IDGITLC_UNSETIGNORELOCALCHANGES);
+constexpr unsigned __int64 GITSLC_POPPREPAREDIFF				= CGitStatusListCtrl::GetContextMenuBit(CGitStatusListCtrl::IDGITLC_PREPAREDIFF);
+constexpr unsigned __int64 GITSLC_POPLFSLOCK					= CGitStatusListCtrl::GetContextMenuBit(CGitStatusListCtrl::IDGITLC_LFSLOCK);
+constexpr unsigned __int64 GITSLC_POPLFSUNLOCK					= CGitStatusListCtrl::GetContextMenuBit(CGitStatusListCtrl::IDGITLC_LFSUNLOCK);
 
 
 
@@ -5623,3 +5626,5 @@ bool CSorter::operator() (const CTGitPath* entry1 , const CTGitPath* entry2) con
 }
 
 }
+
+export using namespace GitStatusListCtrl;

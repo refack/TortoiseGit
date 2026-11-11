@@ -23,6 +23,7 @@
 #include "DaemonCommand.h"
 import ProgressDlg;
 import TGitMessageBox;
+import TortoiseProc;	// theApp
 
 bool DaemonCommand::Execute()
 {

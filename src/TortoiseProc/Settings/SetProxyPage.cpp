@@ -24,6 +24,7 @@
 import TortoiseProc;
 #include "SetProxyPage.h"
 import AppUtils.Window;
+import ConfigureGitExe;
 
 IMPLEMENT_DYNAMIC(CSetProxyPage, ISettingsPropPage)
 CSetProxyPage::CSetProxyPage()

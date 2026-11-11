@@ -33,6 +33,7 @@ import IconMenu;
 #include "GitDiff.h"
 import DPIAware;
 import TGitMessageBox;
+import ConfigureGitExe;
 
 #define OVERLAY_EXTERNAL	1
 #define OVERLAY_EXECUTABLE	2

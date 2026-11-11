@@ -23,6 +23,8 @@
 #include "RepoStatusCommand.h"
 #include "ProtoModules/ChangedDlg.h"
 
+import TortoiseProc;
+
 bool RepoStatusCommand::Execute()
 {
 	CChangedDlg dlg;

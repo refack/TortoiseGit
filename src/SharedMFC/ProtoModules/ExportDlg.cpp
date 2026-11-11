@@ -25,6 +25,7 @@ import TortoiseProc;
 #include "ExportDlg.h"
 import TGitMessageBox;
 import AppUtils.Window;
+import ConfigureGitExe;
 
 IMPLEMENT_DYNAMIC(CExportDlg, CHorizontalResizableStandAloneDialog)
 CExportDlg::CExportDlg(CWnd* pParent /*=nullptr*/)

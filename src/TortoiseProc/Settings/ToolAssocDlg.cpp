@@ -23,6 +23,7 @@
 import TortoiseProc;
 #include "ToolAssocDlg.h"
 import AppUtils.Window;
+import ConfigureGitExe;
 
 IMPLEMENT_DYNAMIC(CToolAssocDlg, CStandAloneDialog)
 CToolAssocDlg::CToolAssocDlg(const CString& type, bool add, CWnd* pParent /*=nullptr*/)

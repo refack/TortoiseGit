@@ -25,6 +25,8 @@
 #include "ProtoModules/LFSLocksDlg.h"
 #include "ProgressCommands/LFSSetLockedProgressCommand.h"
 
+import TortoiseProc;
+
 static bool setLockedState(bool isLocked, bool force, CTGitPathList& pathList)
 {
 	CGitProgressDlg progDlg;

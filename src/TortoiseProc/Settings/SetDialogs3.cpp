@@ -24,6 +24,7 @@ import TortoiseProc;
 import ProjectProperties;
 #include "SetDialogs3.h"
 import AppUtils.Window;
+import ConfigureGitExe;
 
 static std::vector<DWORD> g_langs;
 

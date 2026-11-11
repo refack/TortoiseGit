@@ -25,6 +25,7 @@ import AppUtils.Launch;
 #include "ProtoModules/ResolveDlg.h"
 #include "ProtoModules/GitProgressDlg.h"
 #include "ProgressCommands/ResolveProgressCommand.h"
+import TortoiseProc;	// theApp
 
 bool ResolveCommand::Execute()
 {

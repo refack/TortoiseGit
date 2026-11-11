@@ -21,6 +21,7 @@
 
 #include "RefLogCommand.h"
 #include "ProtoModules/RefLogDlg.h"
+import TortoiseProc;
 
 bool RefLogCommand::Execute()
 {

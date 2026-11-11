@@ -37,6 +37,7 @@ import BrowseFolder;
 import TGitMessageBox;
 import AppUtils.Launch;
 import AppUtils.Window;
+import ConfigureGitExe;
 
 #define ID_COMPARE 1
 #define ID_BLAME 2
