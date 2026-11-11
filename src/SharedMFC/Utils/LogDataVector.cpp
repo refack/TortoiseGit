@@ -27,6 +27,7 @@
 */
 
 
+#include <gitdll.h>	// GIT_LOG, git_get_log_*, git_get_notes; textual, so before the imports LogDataVector.h brings
 #include "LogDataVector.h"
 import GitMailmap;
 

@@ -1,4 +1,4 @@
-﻿// TortoiseGit - a Windows shell extension for easy version control
+// TortoiseGit - a Windows shell extension for easy version control
 
 // Copyright (C) 2015-2020, 2023, 2025 - TortoiseGit
 // Copyright (C) 2003-2015, 2017, 2023 - TortoiseSVN
@@ -24,7 +24,7 @@
 #include <olectl.h>
 #include <Shlwapi.h>
 #include <algorithm>
-#include "MiscUI/Picture.h"
+#include "Picture.h"	// same directory: resolves for TortoiseProc and SharedMFC alike
 #include <Wincodec.h>
 #include <d2d1.h>
 #include <d2d1_3.h>

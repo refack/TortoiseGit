@@ -1,4 +1,4 @@
-﻿// TortoiseGit - a Windows shell extension for easy version control
+// TortoiseGit - a Windows shell extension for easy version control
 
 // Copyright (C) 2009-2026 - TortoiseGit
 // Copyright (C) 2003-2008, 2012-2020, 2025 - TortoiseSVN
@@ -21,7 +21,7 @@
 #include "../std.h"
 
 
-#include "MiscUI/SciEdit.h"
+#include "SciEdit.h"	// same directory: resolves for TortoiseProc and SharedMFC alike
 
 #include <string>
 

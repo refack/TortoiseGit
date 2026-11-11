@@ -69,4 +69,7 @@ target_link_libraries(TortoiseGitBlame
 target_link_options(TortoiseGitBlame
     PRIVATE
         /ignore:4099
+        # _UNICODE MFC: wWinMain lives in the MFC library, so the linker cannot infer it
+        # and looks for WinMain (same as TortoiseProc).
+        /ENTRY:wWinMainCRTStartup
 )

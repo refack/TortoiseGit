@@ -1,4 +1,4 @@
-﻿// TortoiseGit - a Windows shell extension for easy version control
+// TortoiseGit - a Windows shell extension for easy version control
 
 // Copyright (C) 2017, 2019, 2023 - TortoiseGit
 // Copyright (C) 2017 - TortoiseSVN
@@ -21,7 +21,7 @@
 #include "../std.h"
 
 
-#include "MiscUI/AnimationManager.h"
+#include "AnimationManager.h"	// same directory: resolves for TortoiseProc and SharedMFC alike
 #include <cassert>
 #include <map>
 #include <UIAnimation.h>

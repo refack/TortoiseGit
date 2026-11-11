@@ -211,17 +211,14 @@ target_sources(TortoiseProc
 # that lives in the MFC binary), plus the resource script.
 target_sources(TortoiseProc
     PRIVATE
-        MiscUI/AnimationManager.cpp
+        # AnimationManager, HistoryCombo, Picture, SciEdit: compiled by SharedMFC
         MiscUI/BufferDC.cpp
         MiscUI/FileDropEdit.cpp
         MiscUI/FilterEdit.cpp
-        MiscUI/HistoryCombo.cpp
         MiscUI/LinkControl.cpp
         MiscUI/MyGraph.cpp
-        MiscUI/Picture.cpp
         MiscUI/RegexEdit.cpp
         MiscUI/SVG.cpp
-        MiscUI/SciEdit.cpp
         MiscUI/SplitterControl.cpp
         MiscUI/WaterEffect.cpp
         TreePropSheet/PropPageFrame.cpp
