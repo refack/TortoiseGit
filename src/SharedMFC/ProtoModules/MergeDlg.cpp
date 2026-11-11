@@ -125,7 +125,7 @@ BOOL CMergeDlg::OnInitDialog()
 	m_ProjectProperties.ReadProps();
 
 	m_cLogMessage.Init(m_ProjectProperties);
-	m_cLogMessage.SetFont(wil::MFC::GetLogFontName(), wil::MFC::GetLogFontSize());
+	m_cLogMessage.SetFont(wil::MFC::GetLogFontName().c_str(), wil::MFC::GetLogFontSize());
 	m_cLogMessage.RegisterContextMenuHandler(this);
 
 	m_cLogMessage.SetText(m_pDefaultText);

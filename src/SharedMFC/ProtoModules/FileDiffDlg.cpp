@@ -38,6 +38,9 @@ import TGitMessageBox;
 import AppUtils.Launch;
 import AppUtils.Window;
 import ConfigureGitExe;
+import PathUtils;
+import DragDrop;
+import GitDataObject;
 
 #define ID_COMPARE 1
 #define ID_BLAME 2
@@ -269,7 +272,7 @@ BOOL CFileDiffDlg::OnInitDialog()
 
 	if (CRegDWORD(L"Software\\TortoiseGit\\LogFontForFileListCtrl", FALSE))
 	{
-		CAppUtils::CreateFontForLogs(GetSafeHwnd(), m_font);
+		wil::MFC::CreateFontForLogs(GetSafeHwnd(), m_font);
 		m_cFileList.SetFont(&m_font);
 	}
 
@@ -674,7 +677,7 @@ void CFileDiffDlg::OnContextMenu(CWnd* pWnd, CPoint point)
 				while (pos)
 				{
 					const int index = m_cFileList.GetNextSelectedItem(pos);
-					CString sCmd = L"/command:log";
+					std::wstring sCmd = L"/command:log";
 					if (cmd == ID_LOG && m_arFilteredList[index]->IsDirectory())
 						sCmd += L" /submodule";
 					else if (cmd == ID_LOGSUBMODULE && !m_rev2.m_CommitHash.IsEmpty() && (m_arFilteredList[index]->m_Action & CTGitPath::Actions::LOGACTIONS_DELETED) == 0 && CRegDWORD(L"Software\\TortoiseGit\\LogSubmoduleShowRevision", TRUE))
@@ -758,7 +761,7 @@ void CFileDiffDlg::OnContextMenu(CWnd* pWnd, CPoint point)
 						{
 							if(!CopyFile(g_Git.CombinePath(*fd).c_str(), filename, false))
 							{
-								MessageBox((CFormatMessageWrapper()).c_str(), L"TortoiseGit", MB_OK | MB_ICONERROR);
+								MessageBox((wil::CFormatMessageWrapper()).c_str(), L"TortoiseGit", MB_OK | MB_ICONERROR);
 								return;
 							}
 						}
@@ -832,7 +835,7 @@ void CFileDiffDlg::SetURLLabels(int mask)
 {
 	if(mask &0x1)
 	{
-		SetDlgItemText(IDC_FIRSTURL, m_rev1.m_CommitHash.ToString(g_Git.GetShortHASHLength()) + L": " + m_rev1.GetSubject());
+		SetDlgItemText(IDC_FIRSTURL, (m_rev1.m_CommitHash.ToString(g_Git.GetShortHASHLength()) + L": " + m_rev1.GetSubject().GetString()).c_str());
 		if (!m_rev1.m_CommitHash.IsEmpty() && m_rev1.IsCommit())
 			m_tooltips.AddTool(IDC_FIRSTURL,
 				CLoglistUtils::FormatDateAndTime(m_rev1.GetAuthorDate(), DATE_SHORTDATE) + L"  " + m_rev1.GetAuthorName());
@@ -840,7 +843,7 @@ void CFileDiffDlg::SetURLLabels(int mask)
 
 	if(mask &0x2)
 	{
-		SetDlgItemText(IDC_SECONDURL, m_rev2.m_CommitHash.ToString(g_Git.GetShortHASHLength()) + L": " + m_rev2.GetSubject());
+		SetDlgItemText(IDC_SECONDURL, (m_rev2.m_CommitHash.ToString(g_Git.GetShortHASHLength()) + L": " + m_rev2.GetSubject().GetString()).c_str());
 		if (!m_rev2.m_CommitHash.IsEmpty() && m_rev2.IsCommit())
 			m_tooltips.AddTool(IDC_SECONDURL,
 				CLoglistUtils::FormatDateAndTime(m_rev2.GetAuthorDate(), DATE_SHORTDATE) + L"  " + m_rev2.GetAuthorName());

@@ -209,7 +209,7 @@ void CSetMainPage::OnBnClickedButtonShowEnv()
 		return;
 	}
 	::SetFileAttributes(tempfile, FILE_ATTRIBUTE_READONLY);
-	CAppUtils::LaunchAlternativeEditor(tempfile);
+	TortoiseProc::LaunchAlternativeEditor(tempfile);
 }
 
 void CSetMainPage::OnBnClickedCreatelib()

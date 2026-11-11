@@ -25,6 +25,7 @@ import GitHash;
 import TGitPath;
 import StandAloneDlg;
 import ResizableColumnsListCtrl;
+import libgit2;
 
 #define REPOBROWSER_CTRL_MIN_WIDTH	20
 

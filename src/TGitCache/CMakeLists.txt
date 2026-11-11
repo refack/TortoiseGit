@@ -23,6 +23,20 @@ target_sources(TGitCache
         TGitCache.rc
 )
 
+# Shared with TortoiseShell: the cache reads the shell's registry cache (path
+# filters, submodule recursion, status display options). ShellCache.cpp does not
+# include a stdafx.h of its own - a quoted one would resolve next to the file, to
+# TortoiseShell's - so this host force-includes TGitCache's, as TortoiseProc does.
+set(TGITCACHE_SHARED_SHELL_SOURCES
+    "${CMAKE_SOURCE_DIR}/src/TortoiseShell/ShellCache.cpp"
+    "${CMAKE_SOURCE_DIR}/src/TortoiseShell/ShellCache.h"
+)
+target_sources(TGitCache PRIVATE ${TGITCACHE_SHARED_SHELL_SOURCES})
+set_source_files_properties(${TGITCACHE_SHARED_SHELL_SOURCES}
+    TARGET_DIRECTORY TGitCache
+    PROPERTIES COMPILE_OPTIONS "/FI${CMAKE_CURRENT_SOURCE_DIR}/stdafx.h"
+)
+
 target_include_directories(TGitCache
     PRIVATE
         "${CMAKE_SOURCE_DIR}/src/TortoiseShell"

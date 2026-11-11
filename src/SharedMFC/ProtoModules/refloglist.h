@@ -19,8 +19,6 @@
 #pragma once
 #include "../../TortoiseProc/GitLoglist.h"
 
-class CGitLogListBase;
-
 class CRefLogList : public CGitLogList
 {
 	DECLARE_DYNAMIC(CRefLogList)

@@ -23,6 +23,7 @@
 import std;
 import DirFileEnum;
 import TGitCache.CacheInterface;
+import PathUtils;
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -33,7 +34,7 @@ CCacheDlg::CCacheDlg(CWnd* pParent /*=nullptr*/)
 : CDialog(CCacheDlg::IDD, pParent)
 {
 	m_hIcon = AfxGetApp()->LoadIcon(IDR_MAINFRAME);
-	m_sRootPath = CPathUtils::GetCWD().c_str();
+	m_sRootPath = PathUtils::GetCWD().c_str();
 }
 
 void CCacheDlg::DoDataExchange(CDataExchange* pDX)

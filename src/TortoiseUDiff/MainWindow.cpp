@@ -22,6 +22,7 @@
 #include "MainWindow.h"
 
 #include <commdlg.h>
+#include <Uxtheme.h>
 #include <scintilla/ILexer.h>
 #include <scintilla/Scintilla.h>
 #include <lexilla/Lexilla.h>
@@ -817,7 +818,7 @@ bool CMainWindow::LoadFile(HANDLE hFile, bool wantStdIn)
 					SetLastError(static_cast<DWORD>(E_OUTOFMEMORY));
 			else
 					SetLastError(static_cast<DWORD>(E_FAIL));
-			MessageBox(*this, static_cast<LPCWSTR>(CFormatMessageWrapper()), L"TortoiseGitUDiff", MB_ICONEXCLAMATION);
+			MessageBox(*this, wil::CFormatMessageWrapper().c_str(), L"TortoiseGitUDiff", MB_ICONEXCLAMATION);
 			return false;
 		}
 		if (static_cast<Sci_Position>(SendEditor(SCI_GETTEXT)) >= 250 * 1024 * 1024) // styling gets really slow and Scintilla requires special initialization for large files
@@ -831,7 +832,7 @@ bool CMainWindow::LoadFile(HANDLE hFile, bool wantStdIn)
 	{
 		if (hFile || wantStdIn)
 		{
-			MessageBox(*this, static_cast<LPCWSTR>(CFormatMessageWrapper()), L"TortoiseGitUDiff", MB_ICONEXCLAMATION);
+			MessageBox(*this, wil::CFormatMessageWrapper().c_str(), L"TortoiseGitUDiff", MB_ICONEXCLAMATION);
 			return false;
 		}
 		SetTitle(L"Unnamed");
@@ -847,13 +848,13 @@ bool CMainWindow::LoadFile(LPCWSTR filename)
 	CAutoFile hfile = CreateFile(filename, GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_DELETE, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
 	if (!hfile)
 	{
-		MessageBox(*this, static_cast<LPCWSTR>(CFormatMessageWrapper()), L"TortoiseGitUDiff", MB_ICONEXCLAMATION);
+		MessageBox(*this, wil::CFormatMessageWrapper().c_str(), L"TortoiseGitUDiff", MB_ICONEXCLAMATION);
 		return false;
 	}
 
 	if (LARGE_INTEGER fileSize; !::GetFileSizeEx(hfile, &fileSize))
 	{
-		MessageBox(*this, static_cast<LPCWSTR>(CFormatMessageWrapper()), L"TortoiseGitUDiff", MB_ICONEXCLAMATION);
+		MessageBox(*this, wil::CFormatMessageWrapper().c_str(), L"TortoiseGitUDiff", MB_ICONEXCLAMATION);
 		return false;
 	}
 	else if (fileSize.QuadPart >= 250 * 1024 * 1024) // styling gets really slow and Scintilla requires special initialization for large files
@@ -866,7 +867,7 @@ bool CMainWindow::LoadFile(LPCWSTR filename)
 	DWORD size = 0;
 	if (!ReadFile(hfile, data, sizeof(data), &size, nullptr))
 	{
-		MessageBox(*this, static_cast<LPCWSTR>(CFormatMessageWrapper()), L"TortoiseGitUDiff", MB_ICONEXCLAMATION);
+		MessageBox(*this, wil::CFormatMessageWrapper().c_str(), L"TortoiseGitUDiff", MB_ICONEXCLAMATION);
 		return false;
 	}
 	bool bUTF8 = IsUTF8(data, size);
@@ -894,7 +895,7 @@ bool CMainWindow::LoadFile(LPCWSTR filename)
 
 	if (error)
 	{
-		MessageBox(*this, static_cast<LPCWSTR>(CFormatMessageWrapper()), L"TortoiseGitUDiff", MB_ICONEXCLAMATION);
+		MessageBox(*this, wil::CFormatMessageWrapper().c_str(), L"TortoiseGitUDiff", MB_ICONEXCLAMATION);
 		InitEditor();
 		bUTF8 = true;
 		SetTitle(L"Unnamed");
@@ -941,7 +942,7 @@ bool CMainWindow::SaveFile(LPCWSTR filename)
 		wchar_t fmt[1024] = { 0 };
 		LoadString(::hResource, IDS_ERRORSAVE, fmt, _countof(fmt));
 		wchar_t error[1024] = { 0 };
-		_snwprintf_s(error, _countof(error), fmt, filename, static_cast<LPCWSTR>(CFormatMessageWrapper()));
+		_snwprintf_s(error, _countof(error), fmt, filename, wil::CFormatMessageWrapper().c_str());
 		MessageBox(*this, error, L"TortoiseGitUDiff", MB_OK);
 		return false;
 	}

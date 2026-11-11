@@ -34,6 +34,8 @@ import IconMenu;
 import DPIAware;
 import TGitMessageBox;
 import ConfigureGitExe;
+import DragDrop;
+import GitDataObject;
 
 #define OVERLAY_EXTERNAL	1
 #define OVERLAY_EXECUTABLE	2
@@ -797,7 +799,7 @@ void CRepositoryBrowser::ShowContextMenu(CPoint point, TShadowFilesTreeList &sel
 			{
 				PathCompactPathEx(CStrBuf(diffWith, 2 * static_cast<int>(tgit::invarients::GitFormatHolder::GitHashSize())), m_sMarkForDiffFilename, 2 * static_cast<int>(tgit::invarients::GitFormatHolder::GitHashSize()), 0);
 				if (!m_sMarkForDiffVersion.IsEmpty() || PathIsRelative(m_sMarkForDiffFilename))
-					diffWith += L':' + m_sMarkForDiffVersion.ToString(g_Git.GetShortHASHLength());
+					diffWith += (L':' + m_sMarkForDiffVersion.ToString(g_Git.GetShortHASHLength())).c_str();
 			}
 			CString menuEntry;
 			menuEntry.Format(IDS_MENUDIFFNOW, diffWith);
@@ -825,7 +827,7 @@ void CRepositoryBrowser::ShowContextMenu(CPoint point, TShadowFilesTreeList &sel
 			if (cmd == eCmd_ViewLog)
 				sCmd += L" /endrev:" + str::EscapeCmdValue(m_sRevision) + L" /rev:" + str::EscapeCmdValue(m_sRevision);
 			else if (cmd == eCmd_ViewLogSubmodule)
-				sCmd += L" /rev:" + selectedLeafs.at(0)->m_hash.ToString() + L" /endrev:" + selectedLeafs.at(0)->m_hash.ToString();
+				sCmd += (L" /rev:" + selectedLeafs.at(0)->m_hash.ToString() + L" /endrev:" + selectedLeafs.at(0)->m_hash.ToString()).c_str();
 			TortoiseProc::RunTortoiseGitProc(sCmd);
 		}
 		break;
@@ -1303,7 +1305,7 @@ void CRepositoryBrowser::OpenFile(const CString path, eOpenType mode, bool isSub
 
 	if (mode == ALTERNATIVEEDITOR)
 	{
-		CAppUtils::LaunchAlternativeEditor(file);
+		TortoiseProc::LaunchAlternativeEditor(file);
 		return;
 	}
 	else if (mode == OPEN)
@@ -1312,7 +1314,7 @@ void CRepositoryBrowser::OpenFile(const CString path, eOpenType mode, bool isSub
 		return;
 	}
 
-	CAppUtils::ShowOpenWithDialog(file);
+	TortoiseProc::ShowOpenWithDialog(file);
 }
 bool CRepositoryBrowser::RevertItemToVersion(const CString &path)
 {
@@ -1336,7 +1338,7 @@ void CRepositoryBrowser::CopyHashToClipboard(TShadowFilesTreeList &selectedLeafs
 		{
 			if (!first)
 				sClipdata += L"\r\n";
-			sClipdata += selectedLeafs[i]->m_hash.ToString();
+			sClipdata += selectedLeafs[i]->m_hash.ToString().c_str();
 			first = false;
 		}
 		wil::SetClipboardText(tgit::str::StringView{ sClipdata }, GetSafeHwnd());

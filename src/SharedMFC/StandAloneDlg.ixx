@@ -51,6 +51,11 @@ using ::BOTTOM_LEFT;
 using ::BOTTOM_CENTER;
 using ::BOTTOM_RIGHT;
 
+// Utils/CommonDialogFunctions.h (GMF above) defines a class template; a second textual
+// include in an importer's TU is a C2953 redefinition under MSVC. Re-export it so importers
+// (SettingsPropPage.h, FirstStartWizardBasePage.h, ...) can `import StandAloneDlg;` instead.
+using ::CommonDialogFunctions;
+
 
 template <typename BaseType> class CGestureEnabledControlTmpl : public BaseType
 {

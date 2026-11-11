@@ -189,22 +189,22 @@ TEST(CGit, LoadTextFile)
 	CAutoTempDir tempdir;
 
 	CString msg = L"something--";
-	EXPECT_FALSE(TGitH::LoadTextFile(L"does-not-exist.txt", msg));
+	EXPECT_FALSE(tgit::wstr::LoadTextFile(L"does-not-exist.txt", msg));
 	EXPECT_STREQ(L"something--", msg);
 
 	auto testFile = tempdir.GetTempDir() / L"test.txt";
 	EXPECT_TRUE(StringUtils::WriteStringToTextFile(testFile.c_str(), L"this is testing fileöäü."));
-	EXPECT_TRUE(TGitH::LoadTextFile(testFile.c_str(), msg));
+	EXPECT_TRUE(tgit::wstr::LoadTextFile(testFile.c_str(), msg));
 	EXPECT_STREQ(L"something--this is testing fileöäü.\n", msg);
 
 	msg.Empty();
 	EXPECT_TRUE(StringUtils::WriteStringToTextFile(testFile.c_str(), L"this is testing\nfileöäü."));
-	EXPECT_TRUE(TGitH::LoadTextFile(testFile.c_str(), msg));
+	EXPECT_TRUE(tgit::wstr::LoadTextFile(testFile.c_str(), msg));
 	EXPECT_STREQ(L"this is testing\nfileöäü.\n", msg);
 
 	msg.Empty();
 	EXPECT_TRUE(StringUtils::WriteStringToTextFile(testFile.c_str(), L"this is\r\ntesting\nfileöäü.\r\n\r\n"));
-	EXPECT_TRUE(TGitH::LoadTextFile(testFile.c_str(), msg));
+	EXPECT_TRUE(tgit::wstr::LoadTextFile(testFile.c_str(), msg));
 	EXPECT_STREQ(L"this is\ntesting\nfileöäü.\n", msg);
 }
 
@@ -4301,7 +4301,7 @@ TEST_P(CBasicGitWithTestRepoFixture, GetBisectTerms)
 
 	EXPECT_EQ(0, m_Git.Run({L"git.exe", L"bisect", L"reset"}, &output));
 
-	if (m_Git.GetGitVersion(nullptr, nullptr) < 0x02070000)
+	if (TGitH::GetGitVersion(nullptr, nullptr) < 0x02070000)
 		return;
 
 	EXPECT_EQ(0, m_Git.Run({L"git.exe", L"bisect", L"start", L"--term-good=original", L"--term-bad=changed"}, &output));

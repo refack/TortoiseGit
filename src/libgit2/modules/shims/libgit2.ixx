@@ -51,6 +51,16 @@ void SetLibGit2UserAgent() {
 }
 
 
+// The re-exported C API. An inline namespace, so `tgit::libgit2::git_x` and
+// `using namespace libgit2;` keep working, while the global using-directive at
+// the end of the file exposes only these C names to every importer. That is
+// deliberate: headers like FetchProgressCommand.h spell them unqualified, and
+// the rest of tgit::libgit2 (CStringA/CStringW, the SetLibGit2* helpers) stays
+// out of the global namespace, where a CStringW from stdafx.h may already live.
+inline namespace c_api {
+using ::git_blob;
+using ::git_blob_lookup;
+using ::git_blob_rawsize;
 using ::git_cert;
 using ::git_cert_t;
 using ::git_cert_x509;
@@ -84,6 +94,14 @@ using ::git_error_code;
 using ::git_error_last;
 using ::git_error_set_str;
 using ::git_error_t;
+using ::git_fetch_prune_t;
+using ::GIT_FETCH_NO_PRUNE;
+using ::GIT_FETCH_PRUNE;
+using ::GIT_FETCH_PRUNE_UNSPECIFIED;
+using ::git_filemode_t;
+using ::GIT_FILEMODE_BLOB_EXECUTABLE;
+using ::GIT_FILEMODE_COMMIT;
+using ::GIT_FILEMODE_LINK;
 using ::git_graph_ahead_behind;
 using ::git_index_add;
 using ::git_index_entry;
@@ -94,12 +112,26 @@ using ::git_index_write;
 using ::GIT_INDEX_ENTRY_SKIP_WORKTREE;
 using ::GIT_INDEX_ENTRY_VALID;
 using ::git_indexer_progress;
+using ::git_object;
 using ::git_object_t;
+using ::GIT_OBJECT_ANY;
+using ::GIT_OBJECT_COMMIT;
+using ::GIT_OBJECT_TREE;
 using ::git_object_id;
+using ::git_object_lookup;
+using ::git_object_type;
+using ::git_off_t;
+using ::git_oid;
 using ::git_patch_get_delta;
 using ::git_patch_from_diff;
 using ::git_patch_line_stats;
+using ::git_remote_autotag_option_t;
+using ::GIT_REMOTE_DOWNLOAD_TAGS_ALL;
+using ::GIT_REMOTE_DOWNLOAD_TAGS_AUTO;
+using ::GIT_REMOTE_DOWNLOAD_TAGS_NONE;
+using ::git_remote_completion_t;
 using ::git_repository;
+using ::git_repository_head_unborn;
 using ::git_repository_index;
 using ::git_revparse_single;
 using ::git_reflog_entry_byindex;
@@ -112,6 +144,19 @@ using ::git_submodule;
 using ::git_submodule_foreach;
 using ::git_submodule_path;
 using ::git_time_t;
+using ::git_tree;
+using ::git_tree_entry;
+using ::git_tree_entry_byindex;
+using ::git_tree_entry_bypath;
+using ::git_tree_entry_filemode;
+using ::git_tree_entry_id;
+using ::git_tree_entry_name;
+using ::git_tree_entry_to_object;
+using ::git_tree_entry_type;
+using ::git_tree_entrycount;
+using ::git_tree_id;
+using ::git_tree_lookup;
+}	// inline namespace c_api
 
 // Overload
 int git_config_add_file_ondisk(
@@ -126,5 +171,9 @@ int git_config_add_file_ondisk(
 
 
 }
+
+// Global visibility for the C API only (see c_api above); same entities as
+// git2.h's, so a TU that also includes git2.h textually sees no ambiguity.
+export using namespace tgit::libgit2::c_api;
 
 // NOLINTEND(*-pro-type-vararg, bugprone-suspicious-stringview-data-usage)

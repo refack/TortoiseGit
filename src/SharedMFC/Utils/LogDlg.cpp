@@ -260,7 +260,7 @@ void CLogDlg::SetParams(const CTGitPath& orgPath, const CTGitPath& path, const C
 	{
 		// limitation from command line argument, so override the filter.
 		m_LogList.m_Filter.m_NumberOfLogs = limit;
-		m_LogList.m_Filter.m_NumberOfLogsScale = limitScale;
+		m_LogList.m_Filter.m_NumberOfLogsScale = static_cast<CFilterData::SHOW_MODE>(limitScale);
 	}
 
 	if (::IsWindow(m_hWnd))
@@ -1489,7 +1489,7 @@ void CLogDlg::OnContextMenu(CWnd* pWnd, CPoint point)
 			// GitCall::RunTortoiseGitProc(L"/command:settings /page:dialog");
 			return;
 		} else if (cmd == 2) {
-			m_LogList.m_Filter.m_NumberOfLogsScale = scale;
+			m_LogList.m_Filter.m_NumberOfLogsScale = static_cast<CFilterData::SHOW_MODE>(scale);
 		}
 
 		UpdateData(FALSE);

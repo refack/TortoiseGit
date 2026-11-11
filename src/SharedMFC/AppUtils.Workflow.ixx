@@ -34,8 +34,10 @@ import TGitMessageBox;
 import tgit.Hooks;
 import Constants;
 import AppUtils.WorkingTree;	// IgnoreFile/ConflictEdit/GetConflictTitles moved there (GitStatusListCtrl cycle)
+import libgit2;
 
 using namespace GitLogList;
+using namespace tgit::libgit2;
 
 /**
  * \ingroup TortoiseProc
@@ -1396,8 +1398,8 @@ bool DoPush(HWND hWnd, bool tags, bool allRemotes, bool allBranches, bool force,
 	DWORD exitcode = 0xFFFFFFFF;
 	ProjectProperties pp;
 	pp.ReadProps();
-	CHooks::Instance().SetProjectProperties(CTGitPath(GitCall::m_CurrentDirStorage.native()), pp);
-	if (CHooks::Instance().PrePush(hWnd, CString(GitCall::m_CurrentDirStorage.c_str()), exitcode, error))
+	CHooks::SetProjectProperties(CTGitPath(GitCall::m_CurrentDirStorage.native()), pp);
+	if (CHooks::PrePush(hWnd, CString(GitCall::m_CurrentDirStorage.c_str()), exitcode, error))
 	{
 		if (exitcode)
 		{
@@ -1497,8 +1499,8 @@ bool DoPush(HWND hWnd, bool tags, bool allRemotes, bool allBranches, bool force,
 		CString error_;
 		ProjectProperties pp_;
 		pp_.ReadProps();
-		CHooks::Instance().SetProjectProperties(CTGitPath(GitCall::m_CurrentDirStorage.native()), pp_);
-		if (CHooks::Instance().PostPush(hWnd, CString(GitCall::m_CurrentDirStorage.c_str()), exitcode_, error_))
+		CHooks::SetProjectProperties(CTGitPath(GitCall::m_CurrentDirStorage.native()), pp_);
+		if (CHooks::PostPush(hWnd, CString(GitCall::m_CurrentDirStorage.c_str()), exitcode_, error_))
 		{
 			if (exitcode_)
 			{

@@ -252,7 +252,7 @@ void CSetSavedDataPage::OnBnClickedRepologclear()
 void CSetSavedDataPage::OnBnClickedActionlogshow()
 {
 	auto logfile = PathUtils::GetLocalAppDataDirectory() + L"logfile.txt";
-	CAppUtils::StartTextViewer(logfile);
+	TortoiseProc::StartTextViewer(logfile);
 }
 
 void CSetSavedDataPage::OnBnClickedActionlogclear()

@@ -18,8 +18,8 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 #pragma once
-#include "Utils/CommonDialogFunctions.h"
 
+import StandAloneDlg;	// CommonDialogFunctions (re-exported; a textual include collides, C2953)
 import TGitMessageBox;
 import ThemeAPI;
 import Tooltip;

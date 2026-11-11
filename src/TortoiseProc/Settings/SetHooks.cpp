@@ -24,6 +24,7 @@ import TortoiseProc;
 #include "SetHooks.h"
 #include "SetHooksAdv.h"
 import tgit.Hooks;
+import ProjectProperties;
 
 using namespace tgit::Hooks;
 

@@ -289,7 +289,7 @@ void CSetProgsAdvDlg::OnLvnItemchangedToollistctrl(NMHDR * /* pNMHDR */, LRESULT
 
 void CSetProgsAdvDlg::OnBnClickedRestoredefaults()
 {
-	CAppUtils::SetupDiffScripts(true, m_sType);
+	TortoiseProc::SetupDiffScripts(true, m_sType);
 	m_ToolsValid = FALSE;
 	LoadData();
 	UpdateData(FALSE);

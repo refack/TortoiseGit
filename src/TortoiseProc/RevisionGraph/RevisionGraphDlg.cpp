@@ -29,6 +29,8 @@ import LogDlgFilter;
 import FilterHelper;
 import GitLogListBase;
 import ConfigureGitExe;
+import ThemeAPI;
+import misc_constants;
 
 #ifdef _DEBUG
 #define new DEBUG_NEW

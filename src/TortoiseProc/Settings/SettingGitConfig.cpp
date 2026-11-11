@@ -302,19 +302,19 @@ BOOL CSettingGitConfig::OnApply()
 void CSettingGitConfig::OnBnClickedEditglobalgitconfig()
 {
 	// use alternative editor because of LineEndings
-	CAppUtils::LaunchAlternativeEditor(CString(TGitH::GetGitGlobalConfig().c_str()));
+	TortoiseProc::LaunchAlternativeEditor(CString(TGitH::GetGitGlobalConfig().c_str()));
 }
 
 void CSettingGitConfig::OnBnClickedEditglobalxdggitconfig()
 {
 	// use alternative editor because of LineEndings
-	CAppUtils::LaunchAlternativeEditor(CString(TGitH::GetGitGlobalXDGConfig().c_str()));
+	TortoiseProc::LaunchAlternativeEditor(CString(TGitH::GetGitGlobalXDGConfig().c_str()));
 }
 
 void CSettingGitConfig::OnBnClickedEditlocalgitconfig()
 {
 	// use alternative editor because of LineEndings
-	CAppUtils::LaunchAlternativeEditor(CString(TGitH::GetGitLocalConfig().c_str()));
+	TortoiseProc::LaunchAlternativeEditor(CString(TGitH::GetGitLocalConfig().c_str()));
 }
 
 void CSettingGitConfig::OnBnClickedEdittgitconfig()
@@ -332,12 +332,12 @@ void CSettingGitConfig::OnBnClickedEdittgitconfig()
 		if (g_Git.GetOneFile(L"HEAD", path, tmpFile) == 0)
 		{
 			::SetFileAttributes(tmpFile, FILE_ATTRIBUTE_READONLY);
-			CAppUtils::LaunchAlternativeEditor(tmpFile);
+			TortoiseProc::LaunchAlternativeEditor(tmpFile);
 		}
 	}
 	else
 	{
-		CAppUtils::LaunchAlternativeEditor(CString((GitCall::m_CurrentDirStorage / L".tgitconfig").c_str()));
+		TortoiseProc::LaunchAlternativeEditor(CString((GitCall::m_CurrentDirStorage / L".tgitconfig").c_str()));
 	}
 }
 
@@ -358,7 +358,7 @@ void CSettingGitConfig::OnBnClickedVieweffectivegitconfig()
 		return;
 	}
 	::SetFileAttributes(tempfile, FILE_ATTRIBUTE_READONLY);
-	CAppUtils::LaunchAlternativeEditor(tempfile);
+	TortoiseProc::LaunchAlternativeEditor(tempfile);
 }
 
 void CSettingGitConfig::OnBnClickedEditsystemgitconfig()
@@ -369,7 +369,7 @@ void CSettingGitConfig::OnBnClickedEditsystemgitconfig()
 		CMessageBox::Show(GetSafeHwnd(), IDS_PROC_GITCONFIG_NOMSYSGIT, IDS_APPNAME, MB_ICONERROR);
 		return;
 	}
-	CAppUtils::LaunchNotepad(filename, true);
+	TortoiseProc::LaunchNotepad(filename, true);
 }
 
 void CSettingGitConfig::OnBnClickedViewsystemgitconfig()
@@ -381,5 +381,5 @@ void CSettingGitConfig::OnBnClickedViewsystemgitconfig()
 		return;
 	}
 	// use alternative editor because of LineEndings
-	CAppUtils::LaunchAlternativeEditor(filename);
+	TortoiseProc::LaunchAlternativeEditor(filename);
 }

@@ -210,7 +210,7 @@ void CRevisionGraphWnd::DrawMarker
 				base.AppendFormat(IDS_PROC_DIFF_BASE);
 				base += L')';
 				SolidBrush blackbrush(penColor);
-				Gdiplus::Font font(wil::MFC::GetLogFontName(), static_cast<REAL>(m_nFontSize), FontStyleRegular);
+				Gdiplus::Font font(wil::MFC::GetLogFontName().c_str(),static_cast<REAL>(m_nFontSize), FontStyleRegular);
 				graphics.graphics->DrawString(base, base.GetLength(), &font, Gdiplus::PointF(noderect.X + x + width, noderect.Y - y1), &blackbrush);
 			}
 		}
@@ -517,7 +517,7 @@ void CRevisionGraphWnd::DrawTexts (GraphicsDevice& graphics, const CRect& /*logR
 	if (graphics.pDC)
 		graphics.pDC->SetTextAlign (TA_CENTER | TA_TOP);
 
-	CString fontname = wil::MFC::GetLogFontName();
+	CString fontname(wil::MFC::GetLogFontName().c_str());
 
 	Gdiplus::Font font(fontname, static_cast<REAL>(m_nFontSize), FontStyleRegular);
 	auto colorsAndBrushes = SetupColorsAndBrushes();
