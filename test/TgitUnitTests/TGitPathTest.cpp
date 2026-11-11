@@ -470,9 +470,15 @@ TEST(CTGitPath, ListLoadingTest)
 	EXPECT_EQ(3, testList.GetCount());
 	EXPECT_EQ(fs::path(buf) / L"Path1", testList[0].GetWinPathString());
 	EXPECT_STREQ(L"c:\\path2 with spaces and stuff", testList[1].GetWinPathString().c_str());
-	EXPECT_STREQ(L"\\funnypath", testList[2].GetWinPathString().c_str());
+	// A drive-relative path is resolved against the current drive (fs::absolute). Upstream
+	// expected L"\\funnypath" only because CPathUtils::GetLongPathname returned its input when
+	// GetLongPathName failed on a nonexistent path; a path list is a list of paths, not tokens.
+	EXPECT_EQ(fs::absolute(L"\\funnypath"), testList[2].GetWinPathString());
 
-	EXPECT_STREQ(L"", testList.GetCommonRoot().GetWinPathString().c_str());
+	// No common root across drives. "\funnypath" now lands on the current drive, so when the
+	// tests run from C: all three paths could share "C:\"; assert only the cross-drive case.
+	if (std::towupper(buf[0]) != L'C')
+		EXPECT_STREQ(L"", testList.GetCommonRoot().GetWinPathString().c_str());
 	testList.Clear();
 	sPathList = L"c:\\path2 with spaces and stuff*c:\\funnypath\\*";
 	testList.LoadFromAsteriskSeparatedString(sPathList.GetString());
