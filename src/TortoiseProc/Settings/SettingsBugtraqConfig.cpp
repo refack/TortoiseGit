@@ -22,10 +22,11 @@
 #include "stdafx.h"
 #include "std.h"
 
-import TortoiseProc;
 #include "SettingsBugtraqConfig.h"
+#include "ProtoModules/BugtraqRegexTestDlg.h"
+
+import TortoiseProc;
 import ProjectProperties;
-#include "BugtraqRegexTestDlg.h"
 import BugTraqProvider;
 
 // CSettingsBugtraqConfig dialog

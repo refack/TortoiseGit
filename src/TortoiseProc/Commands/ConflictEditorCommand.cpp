@@ -21,7 +21,7 @@
 #include "std.h"
 
 #include "ConflictEditorCommand.h"
-import AppUtils.Workflow;
+import AppUtils.WorkingTree;
 
 bool ConflictEditorCommand::Execute()
 {

@@ -37,6 +37,7 @@ import TGitPath;
 import TGitCache.CacheInterface;
 import IconBitmapUtils;
 import str_utils;	// CUnicodeUtils::{MultibyteToWide,WideToMultibyte}, tgit::str::EscapeCmdValue
+import invarients;	// tgit::invarients::{HashSize,HASH_MAX_HEXSIZE}
 
 #pragma comment(lib, "comsupp.lib")
 
@@ -183,8 +184,9 @@ STDMETHODIMP CShellExt::Initialize(LPCITEMIDLIST pIDFolder, LPDATAOBJECT pDataOb
 									if (status != git_wc_status_unversioned && status != git_wc_status_ignored && status != git_wc_status_none)
 										itemStates |= ITEMIS_FOLDERINGIT;
 								}
-								if ((stat.status->entry)&&(stat.status->entry->uuid))
-									uuidSource = CUnicodeUtils::StdGetUnicode(stat.status->entry->uuid);
+								// git_wc_status2_t has no entry (status/assumeValid/skipWorktree only); disabled upstream too
+								// if ((stat.status->entry)&&(stat.status->entry->uuid))
+								//	uuidSource = CUnicodeUtils::StdGetUnicode(stat.status->entry->uuid);
 							}
 							else
 							{
@@ -552,11 +554,12 @@ void CShellExt::InsertGitMenu(BOOL istop, HMENU menu, UINT pos, UINT_PTR id, UIN
 
 		if (path.HasAdminDir(&sProjectRoot) && !CGit::GetCurrentBranchFromFile(sProjectRoot.c_str(), sBranchName))
 		{
-			if (sBranchName.GetLength() == 2 * tgit::invarients::HashSize())
+			const int hexLength = 2 * static_cast<int>(tgit::invarients::HashSize());
+			if (sBranchName.GetLength() == hexLength)
 			{
 				// if SHA1 only show 4 first bytes
 				BOOL bIsSha1 = TRUE;
-				for (int i = 0; i < 2 * tgit::invarients::HashSize(); ++i)
+				for (int i = 0; i < hexLength; ++i)
 					if ( !iswxdigit(sBranchName[i]) )
 					{
 						bIsSha1 = FALSE;
@@ -600,7 +603,7 @@ void CShellExt::InsertGitMenu(BOOL istop, HMENU menu, UINT pos, UINT_PTR id, UIN
 		if (!sPath.empty())
 		{
 			// add the path of the saved file
-			wchar_t compact[GIT_HASH_MAX_HEXSIZE] = { 0 };
+			wchar_t compact[tgit::invarients::HASH_MAX_HEXSIZE] = { 0 };
 			PathCompactPathEx(compact, sPath.c_str(), _countof(compact) - 1, 0);
 			MAKESTRING(IDS_MENUDIFFNOW);
 			CString sMenu;
@@ -675,8 +678,8 @@ bool CShellExt::WriteClipboardPathsToTempFile(std::wstring& tempfile)
 
 	if (!IsClipboardFormatAvailable(CF_HDROP))
 		return false;
-	CClipboardHelper clipboardHelper;
-	if (!clipboardHelper.Open(nullptr))
+	const auto clipboard = wil::open_clipboard_retrying(nullptr);	// was CClipboardHelper: retries while busy, closes on scope exit
+	if (!clipboard)
 		return false;
 
 	HGLOBAL hglb = GetClipboardData(CF_HDROP);
@@ -890,8 +893,7 @@ STDMETHODIMP CShellExt::QueryContextMenu(HMENU hMenu, UINT indexMenu, UINT idCmd
 		// destination is not part of a working copy.
 		// It would only show the standard menu items
 		// which are already shown for the lnk-file.
-		CString path = files_.front().c_str();
-		if (!GitAdminDir::HasAdminDir(path))
+		if (GitAdminDir::HasAdminDir(files_.front()).empty())	// returns the working-tree root, empty if none
 		{
 			return S_OK;
 		}
@@ -1483,8 +1485,8 @@ void CShellExt::InvokeCommand(TGitShellCommand cmd, const std::wstring& appDir, 
 			const UINT cPrefDropFormat = RegisterClipboardFormat(L"Preferred DropEffect");
 			if (cPrefDropFormat)
 			{
-				CClipboardHelper clipboardHelper;
-				if (clipboardHelper.Open(hParent))
+				const auto clipboard = wil::open_clipboard_retrying(hParent);	// was CClipboardHelper: retries while busy, closes on scope exit
+				if (clipboard)
 				{
 					HGLOBAL hglb = GetClipboardData(cPrefDropFormat);
 					if (hglb)
@@ -2224,7 +2226,7 @@ void CShellExt::RunCommand(const std::wstring& path, const std::wstring& command
 		return;
 	}
 
-	MessageBox(nullptr, CFormatMessageWrapper(), errorMessage, MB_OK | MB_ICONERROR);
+	MessageBox(nullptr, wil::CFormatMessageWrapper().c_str(), errorMessage, MB_OK | MB_ICONERROR);
 }
 
 bool CShellExt::ShouldInsertItem(const MenuInfo& item) const

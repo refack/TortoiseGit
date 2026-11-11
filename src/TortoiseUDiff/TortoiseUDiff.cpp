@@ -75,9 +75,9 @@ int APIENTRY wWinMain(HINSTANCE hInstance,
 	CMainWindow mainWindow(hResource);
 	mainWindow.SetRegistryPath(L"Software\\TortoiseGit\\UDiffViewerWindowPos_" + SysInfo::GetMonitorSetupHash());
 	if (parser.HasVal(L"title"))
-		mainWindow.SetTitle(parser.GetVal(L"title"));
+		mainWindow.SetTitle(parser.GetValPtr(L"title"));
 	else if (parser.HasVal(L"patchfile"))
-		mainWindow.SetTitle(parser.GetVal(L"patchfile"));
+		mainWindow.SetTitle(parser.GetValPtr(L"patchfile"));
 	else if (lpCmdLine[0] && !parser.HasKey(L"p"))
 	{
 		// remove double quotes
@@ -106,7 +106,7 @@ int APIENTRY wWinMain(HINSTANCE hInstance,
 		bLoadedSuccessfully = mainWindow.LoadFile(GetStdHandle(STD_INPUT_HANDLE), parser.HasKey(L"p"));
 	}
 	else if (parser.HasVal(L"patchfile"))
-		bLoadedSuccessfully = mainWindow.LoadFile(parser.GetVal(L"patchfile"));
+		bLoadedSuccessfully = mainWindow.LoadFile(parser.GetValPtr(L"patchfile"));
 	else if (lpCmdLine[0] != L'\0')
 	{
 		// remove double quotes

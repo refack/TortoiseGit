@@ -20,8 +20,9 @@
 #include "std.h"
 
 #include "WorktreeCommand.h"
-#include "WorktreeListDlg.h"
+#include "ProtoModules/WorktreeListDlg.h"
 import AppUtils.Workflow;
+import TortoiseProc;
 
 bool WorktreeCreateCommand::Execute()
 {

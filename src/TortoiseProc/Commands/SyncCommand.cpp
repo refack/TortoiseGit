@@ -20,9 +20,10 @@
 #include "stdafx.h"
 #include "std.h"
 
-import TortoiseProc;
-#include "SyncDlg.h"
+#include "ProtoModules/SyncDlg.h"
 #include "SyncCommand.h"
+
+import TortoiseProc;
 
 bool SyncCommand::Execute()
 {

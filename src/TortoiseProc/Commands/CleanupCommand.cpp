@@ -21,8 +21,8 @@
 #include "std.h"
 
 #include "CleanupCommand.h"
+#include "ProtoModules/CleanTypeDlg.h"
 import ProgressDlg;
-#include "CleanTypeDlg.h"
 import SysProgressDlg;
 import TGitMessageBox;
 

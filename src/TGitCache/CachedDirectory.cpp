@@ -514,7 +514,7 @@ CCachedDirectory::GetFullPathString(const CString& cacheKey)
 
 BOOL CCachedDirectory::GetStatusCallback(const CString& path, const git_wc_status2_t* pGitStatus, bool isDir, int64 lastwritetime, void* baton)
 {
-	CTGitPath gitPath(path.GetString(), isDir);
+	CTGitPath gitPath(path, isDir);
 
 	auto pThis = reinterpret_cast<CCachedDirectory*>(baton);
 

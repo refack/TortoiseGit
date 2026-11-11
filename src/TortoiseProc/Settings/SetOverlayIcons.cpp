@@ -20,10 +20,10 @@
 
 #include "stdafx.h"
 #include "std.h"
+#include <tgitlib/LoadIconEx.h>
+#include "SetOverlayIcons.h"
 
 import TortoiseProc;
-#include "SetOverlayIcons.h"
-#include "../../libgit2/Utils/LoadIconEx.h"
 
 IMPLEMENT_DYNAMIC(CSetOverlayIcons, ISettingsPropPage)
 CSetOverlayIcons::CSetOverlayIcons()

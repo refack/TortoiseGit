@@ -20,7 +20,7 @@
 #include "std.h"
 
 #include "RefLogCommand.h"
-#include "RefLogDlg.h"
+#include "ProtoModules/RefLogDlg.h"
 
 bool RefLogCommand::Execute()
 {

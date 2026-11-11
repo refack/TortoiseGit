@@ -23,7 +23,7 @@
 #include "IgnoreCommand.h"
 
 import TGitMessageBox;
-import AppUtils.Workflow;
+import AppUtils.WorkingTree;
 
 bool IgnoreCommand::Execute()
 {

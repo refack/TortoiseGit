@@ -19,7 +19,8 @@
 //
 #pragma once
 #include "Command.h"
-#include "AutoTextTestDlg.h"
+import AutoTextTestDlg;
+import TortoiseProc;
 
 /**
  * \ingroup TortoiseProc

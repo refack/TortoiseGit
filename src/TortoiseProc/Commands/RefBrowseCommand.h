@@ -18,7 +18,7 @@
 //
 #pragma once
 #include "Command.h"
-#include "BrowseRefsDlg.h"
+#include "ProtoModules/BrowseRefsDlg.h"
 
 class RefBrowseCommand : public Command
 {

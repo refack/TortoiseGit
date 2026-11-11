@@ -19,10 +19,10 @@
 //
 #include "stdafx.h"
 #include "Cache.h"
-#include "DirFileEnum.h"
-import TGitCache.CacheInterface;
 #include "CacheDlg.h"
-#include <random>
+import std;
+import DirFileEnum;
+import TGitCache.CacheInterface;
 
 #ifdef _DEBUG
 #define new DEBUG_NEW

@@ -20,7 +20,8 @@
 #include "std.h"
 
 #include "CommitIsOnRefsCommand.h"
-#include "CommitIsOnRefsDlg.h"
+#include "ProtoModules/CommitIsOnRefsDlg.h"
+import TortoiseProc;
 
 bool CommitIsOnRefsCommand::Execute()
 {

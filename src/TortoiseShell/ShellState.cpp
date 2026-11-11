@@ -48,9 +48,9 @@ void LoadLangDll()
 		// fall back to English and set a timeout so we don't retry
 		// to load the language dll too often
 		g_hResInst = g_hmodThisDll;
-		shell.langid = CLangDll::s_defaultLang;
+		shell.langid = LangDll::s_defaultLang;
 		// set a timeout of 10 seconds
-		if (g_ShellCache.GetLangID() != CLangDll::s_defaultLang)
+		if (g_ShellCache.GetLangID() != LangDll::s_defaultLang)
 			shell.langTimeout = GetTickCount64() + 10000;
 	}
 }

@@ -21,7 +21,7 @@
 #include "std.h"
 
 #include "FormatPatchCommand.h"
-#include "FormatPatchDlg.h"
+#include "ProtoModules/FormatPatchDlg.h"
 import ProgressDlg;
 
 bool FormatPatchCommand::Execute()

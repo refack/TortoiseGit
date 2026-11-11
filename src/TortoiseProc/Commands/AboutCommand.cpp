@@ -21,7 +21,9 @@
 
 #include "AboutCommand.h"
 
-#include "AboutDlg.h"
+#include "ProtoModules/AboutDlg.h"
+
+import TortoiseProc;
 
 bool AboutCommand::Execute()
 {

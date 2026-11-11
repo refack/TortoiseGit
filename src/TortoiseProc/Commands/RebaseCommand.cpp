@@ -19,10 +19,12 @@
 //
 #include "stdafx.h"
 #include "std.h"
+#include <../TortoiseShell/resource.h>	// IDS_MENULOG
 
 #include "RebaseCommand.h"
-#include "RebaseDlg.h"
+#include "ProtoModules/RebaseDlg.h"
 import AppUtils.Launch;
+import TortoiseProc;	// TortoiseProc::RunTortoiseGitProc
 
 bool RebaseCommand::Execute()
 {
@@ -42,9 +44,8 @@ bool RebaseCommand::Execute()
 			return false;
 		if (ret == IDC_REBASE_POST_BUTTON)
 		{
-			CString cmd = L"/command:log";
-			cmd += L" /path:\"" + GitCall::m_CurrentDirStorage + L'"';
-			TortoiseProc::RunTortoiseGitProc(cmd);
+			const std::wstring cmd = std::format(L"/command:log /path:\"{}\"", GitCall::m_CurrentDirStorage.native());
+			TortoiseProc::RunTortoiseGitProc(std::wstring_view{ cmd });
 			return true;
 		}
 	}

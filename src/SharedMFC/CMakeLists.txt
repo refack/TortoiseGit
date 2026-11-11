@@ -70,7 +70,6 @@ target_sources(SharedMFC
         Tooltip.ixx
         misc_constants.ixx
         wil_MFC.ixx
-        TaskbarUUID.ixx
         TortoiseProc.ixx
         Hooks.ixx
         ConfigureGitExe.ixx
@@ -79,6 +78,7 @@ target_sources(SharedMFC
         AppUtils.Launch.ixx
         AppUtils.Window.ixx
         AppUtils.Workflow.ixx
+        AppUtils.WorkingTree.ixx
         MassiveGitTask.ixx
         UpdateDownloader.ixx
         IconExtractor.ixx

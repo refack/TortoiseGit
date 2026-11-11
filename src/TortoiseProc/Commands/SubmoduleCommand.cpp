@@ -21,13 +21,13 @@
 #include "std.h"
 
 #include "SubmoduleCommand.h"
+#include "ProtoModules/SubmoduleAddDlg.h"
+#include "ProtoModules/SubmoduleUpdateDlg.h"
 
 import AppUtils.Launch;
 import TortoiseProc.MassiveGitTask;
 import TGitMessageBox;
 import ProgressDlg;
-#include "SubmoduleAddDlg.h"
-#include "SubmoduleUpdateDlg.h"
 
 bool SubmoduleAddCommand::Execute()
 {

@@ -22,7 +22,7 @@
 
 #include "UpdateCheckCommand.h"
 
-#include "CheckForUpdatesDlg.h"
+#include "ProtoModules/CheckForUpdatesDlg.h"
 
 bool UpdateCheckCommand::Execute()
 {

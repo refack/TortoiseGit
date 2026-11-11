@@ -27,7 +27,6 @@ import RIAA;
 #include <list>
 
 extern HWND hWndHidden;
-extern CGitAdminDirMap g_AdminDirMap;
 
 CDirectoryWatcher::CDirectoryWatcher()
 {
@@ -282,7 +281,8 @@ void CDirectoryWatcher::WorkerThread()
 				// receive "AddPath" calls that will delete the completion
 				// port *while* we are adding references to it .
 
-				AutoLocker lock(m_critSec);
+				// unique_lock, not AutoLocker: the lock is released around RegisterDeviceNotification below
+				std::unique_lock<std::recursive_mutex> lock(m_critSec);
 
 				// Clear the list of watched objects and recreate that list.
 				// This will also delete the old completion port
@@ -318,9 +318,9 @@ void CDirectoryWatcher::WorkerThread()
 					// make sure we *can* send it and that the UI thread isn't waiting on a lock
 					const int numPaths = watchedPaths.GetCount();
 					const size_t numWatch = watchInfoMap.size();
-					lock.Unlock();
+					lock.unlock();
 					NotificationFilter.dbch_hdevnotify = RegisterDeviceNotification(hWndHidden, &NotificationFilter, DEVICE_NOTIFY_WINDOW_HANDLE);
-					lock.Lock();
+					lock.lock();
 					// since we released the lock to prevent a deadlock with the UI thread,
 					// it could happen that new paths were added to watch, or another thread
 					// could have cleared our info map.

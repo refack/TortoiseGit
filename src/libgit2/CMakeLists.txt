@@ -1,4 +1,4 @@
-﻿add_library(tgitlib STATIC)
+add_library(tgitlib STATIC)
 
 target_sources("tgitlib"
     PUBLIC
@@ -90,4 +90,5 @@ target_sources(tgitlib
         modules/ShellEnvironment.ixx
         modules/TGitConstants.ixx
         modules/DPIAware.ixx
+        modules/TaskbarUUID.ixx	# MFC-free; TortoiseUDiff imports it too
 )

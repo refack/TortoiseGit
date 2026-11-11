@@ -20,7 +20,8 @@
 #include "std.h"
 
 #include "FirstStartWizardCommand.h"
-#include "FirstStartWizard.h"
+#include "ProtoModules/FirstStartWizard.h"
+import TortoiseProc;
 
 bool FirstStartWizardCommand::Execute()
 {

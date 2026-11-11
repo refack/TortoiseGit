@@ -32,10 +32,18 @@ import AppUtils.Window;
 import TortoiseProc;
 import PathUtils;
 import TempFile;
+import ConfigureGitExe;
+import GitDataObject;
+import AppUtils.WorkingTree;
 
 using namespace  GitIndex;
 using namespace tgit::libgit2;
 
+/// g_Git as the git runner CTGitPathList's shelling-out operations take.
+/// Outside the exported namespace: internal linkage cannot be exported.
+static int RunGit(const wil::ArgvData& argv, std::string* out, std::string* err) {
+	return g_Git.Run(argv, out, err);
+}
 
 
 export namespace GitStatusListCtrl {
@@ -901,12 +909,6 @@ const UINT GITSLNM_ADDFILE = ::RegisterWindowMessage(L"GITSLNM_ADDFILE");
  */
 const UINT GITSLNM_CHECKCHANGED = ::RegisterWindowMessage(L"GITSLNM_CHECKCHANGED");
 const UINT GITSLNM_ITEMCHANGED = ::RegisterWindowMessage(L"GITSLNM_ITEMCHANGED");
-
-/// g_Git as the git runner CTGitPathList's shelling-out operations take.
-static int RunGit(const wil::ArgvData& argv, std::string* out, std::string* err) {
-	return g_Git.Run(argv, out, err);
-}
-
 
 
 struct icompare {
@@ -2651,7 +2653,7 @@ void CGitStatusListCtrl::OnContextMenuList(CWnd* pWnd, CPoint point) {
 
 						{
 							changelistSubMenu.AppendMenu(MF_SEPARATOR);
-							changelistSubMenu.AppendMenu(MF_STRING | MF_ENABLED, IDGITLC_CREATEIGNORECS, GITSLC_IGNORECHANGELIST);
+							changelistSubMenu.AppendMenu(MF_STRING | MF_ENABLED, IDGITLC_CREATEIGNORECS, std::wstring(GITSLC_IGNORECHANGELIST).c_str());
 						}
 
 						if (!m_changelists.empty()) {
@@ -2659,7 +2661,7 @@ void CGitStatusListCtrl::OnContextMenuList(CWnd* pWnd, CPoint point) {
 							bool bNeedSeparator = true;
 							int cmdID = IDGITLC_MOVETOCS;
 							for (auto it = m_changelists.cbegin(); it != m_changelists.cend(); ++it, ++cmdID) {
-								if (it->first.Compare(GITSLC_IGNORECHANGELIST)) {
+								if (str::as_view(it->first) != GITSLC_IGNORECHANGELIST) {
 									if (bNeedSeparator) {
 										changelistSubMenu.AppendMenu(MF_SEPARATOR);
 										bNeedSeparator = false;
@@ -3047,7 +3049,7 @@ void CGitStatusListCtrl::OnContextMenuList(CWnd* pWnd, CPoint point) {
 			case IDGITLC_LOG:
 			case IDGITLC_LOGSUBMODULE: {
 				CString sCmd;
-				sCmd.Format(L"/command:log /path:%s", static_cast<LPCWSTR>(str::EscapeCmdValue<CString>(g_Git.CombinePath(*filepath).native())));
+				sCmd.Format(L"/command:log /path:%s", str::EscapeCmdValue(g_Git.CombinePath(*filepath).native()).c_str());
 				if (cmd == IDGITLC_LOG) {
 					if (filepath->IsDirectory())
 						sCmd += L" /submodule";
@@ -3072,7 +3074,7 @@ void CGitStatusListCtrl::OnContextMenuList(CWnd* pWnd, CPoint point) {
 			case IDGITLC_LOGOLDNAME: {
 				CTGitPath oldName(filepath->GetGitOldPathString().c_str());
 				CString sCmd;
-				sCmd.Format(L"/command:log /path:%s", static_cast<LPCWSTR>(str::EscapeCmdValue<CString>(g_Git.CombinePath(oldName).native())));
+				sCmd.Format(L"/command:log /path:%s", str::EscapeCmdValue(g_Git.CombinePath(oldName).native()).c_str());
 				if (filepath->IsDirectory())
 					sCmd += L" /submodule";
 				if (!m_sDisplayedBranch.IsEmpty())
@@ -3311,7 +3313,7 @@ void CGitStatusListCtrl::OnContextMenuList(CWnd* pWnd, CPoint point) {
 				RevertSelectedItemToVersion(true);
 				break;
 			case IDGITLC_CREATEIGNORECS:
-				MoveToChangelist(GITSLC_IGNORECHANGELIST);
+				MoveToChangelist(CString(GITSLC_IGNORECHANGELIST.data(), gsl::narrow<int>(GITSLC_IGNORECHANGELIST.size())));
 				SaveChangelists();
 				break;
 			case IDGITLC_REMOVEFROMCS:
@@ -3424,7 +3426,7 @@ void CGitStatusListCtrl::MoveToChangelist(const CString& name) {
 	while (pos) {
 		const int index = GetNextSelectedItem(pos);
 		const auto pGitPath = GetListEntry(index);
-		if (name.Compare(GITSLC_IGNORECHANGELIST) == 0)
+		if (str::as_view(name) == GITSLC_IGNORECHANGELIST)
 			SetEntryCheck(pGitPath, index, false);
 		m_pathToChangelist.insert_or_assign(pGitPath->GetGitPathString().c_str(), name);
 	}
@@ -4352,7 +4354,7 @@ void CGitStatusListCtrl::OnBeginDrag(NMHDR* pNMHDR, LRESULT* pResult) {
 		return;
 	pdsrc->AddRef();
 
-	GitDataObject* pdobj = new GitDataObject(pathList, m_Rev2.IsEmpty() ? m_CurrentVersion : m_Rev2);
+	TGitDataObject::GitDataObject* pdobj = new TGitDataObject::GitDataObject(pathList, m_Rev2.IsEmpty() ? m_CurrentVersion : m_Rev2);
 	if (!pdobj)
 		return;
 	pdobj->AddRef();
@@ -4632,7 +4634,7 @@ bool CGitStatusListCtrl::PrepareGroups(bool bForce /* = false */) {
 		m_changelists.insert_or_assign(it->second, 0);
 
 	for (auto it = m_changelists.begin(); it != m_changelists.end(); ++it) {
-		if (it->first.Compare(GITSLC_IGNORECHANGELIST) != 0) {
+		if (str::as_view(it->first) != GITSLC_IGNORECHANGELIST) {
 			LVGROUP grpchglst = { 0 };
 			grpchglst.cbSize = sizeof(LVGROUP);
 			grpchglst.mask = LVGF_ALIGN | LVGF_GROUPID | LVGF_HEADER;
@@ -4647,11 +4649,12 @@ bool CGitStatusListCtrl::PrepareGroups(bool bForce /* = false */) {
 
 	if (m_bHasIgnoreGroup) {
 		// and now add the group 'ignore-on-commit'
-		std::map<CString, int>::iterator it = m_changelists.find(GITSLC_IGNORECHANGELIST);
+		const CString ignoreChangelist(GITSLC_IGNORECHANGELIST.data(), gsl::narrow<int>(GITSLC_IGNORECHANGELIST.size()));
+		std::map<CString, int>::iterator it = m_changelists.find(ignoreChangelist);
 		if (it != m_changelists.end()) {
 			grp.cbSize = sizeof(LVGROUP);
 			grp.mask = LVGF_ALIGN | LVGF_GROUPID | LVGF_HEADER;
-			wcsncpy_s(groupname, GITSLC_IGNORECHANGELIST, _TRUNCATE);
+			wcsncpy_s(groupname, it->first, _TRUNCATE);
 			grp.pszHeader = groupname;
 			grp.iGroupId = groupindex;
 			grp.uAlign = LVGA_HEADER_LEFT;
@@ -5360,10 +5363,10 @@ ULONG CGitStatusListCtrl::GetGestureStatus(CPoint /*ptTouch*/) {
 }
 
 
-constexprt auto CHANGELIST_FILE_NAME = L"tgitchangelist"
+constexpr auto CHANGELIST_FILE_NAME = L"tgitchangelist";
 
 
-;void CGitStatusListCtrl::LoadChangelists() {
+void CGitStatusListCtrl::LoadChangelists() {
 	CString tgitChangelistPath;
 	if (!GitAdminDir::GetWorktreeAdminDirPath(CString(GitCall::m_CurrentDirStorage.c_str()), tgitChangelistPath)) {
 		CMessageBox::Show(GetSafeHwnd(), IDS_ERR_CHANGELIST_LOAD, IDS_APPNAME, MB_ICONERROR);
@@ -5377,7 +5380,7 @@ constexprt auto CHANGELIST_FILE_NAME = L"tgitchangelist"
 
 	try {
 		CStdioFile file(tgitChangelistPath, CFile::typeText | CFile::modeRead | CFile::shareDenyWrite);
-		CString changelistName = GITSLC_IGNORECHANGELIST;
+		CString changelistName(GITSLC_IGNORECHANGELIST.data(), gsl::narrow<int>(GITSLC_IGNORECHANGELIST.size()));
 		CString strLine;
 		while (file.ReadString(strLine)) {
 			strLine = strLine.Trim();

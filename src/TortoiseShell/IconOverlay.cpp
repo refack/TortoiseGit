@@ -114,11 +114,13 @@ STDMETHODIMP CShellExt::IsMemberOf(LPCWSTR pwszPath, DWORD dwAttrib)
 {
 	if (!pwszPath)
 		return E_INVALIDARG;
-	const auto pPath = fs::path(pwszPath);
+	// A view, not an fs::path: CTGitPath(fs::path) probes the filesystem for
+	// is-directory, which this hot path must not do on every overlay query.
+	const std::wstring_view pPath{ pwszPath };
 	const bool pathIsDir = (dwAttrib & FILE_ATTRIBUTE_DIRECTORY) != 0;
 	// the shell sometimes asks overlays for invalid paths, e.g. for network
 	// printers (in that case the path is "0", at least for me here).
-	if (wcslen(pPath) < 2)
+	if (pPath.size() < 2)
 		return S_FALSE;
 	PreserveChdir preserveChdir;
 	git_wc_status_kind status = git_wc_status_none;
@@ -134,7 +136,7 @@ STDMETHODIMP CShellExt::IsMemberOf(LPCWSTR pwszPath, DWORD dwAttrib)
 	AutoLocker lock(g_csGlobalCOMGuard);
 	auto& worktree = GetShellState().worktree;
 	auto& last = worktree.lastOverlay;
-	if (wcscmp(pPath, last.path.c_str()) == 0 && last.state != m_State)
+	if (pPath == last.path && last.state != m_State)
 	{
 		status = last.status;
 		readonlyoverlay = last.readonly;
@@ -142,10 +144,10 @@ STDMETHODIMP CShellExt::IsMemberOf(LPCWSTR pwszPath, DWORD dwAttrib)
 	}
 	else
 	{
-		if (!g_ShellCache.IsPathAllowed(pPath))
+		if (!g_ShellCache.IsPathAllowed(pwszPath))
 		{
 			if ((m_State == FileStateVersioned) && g_ShellCache.ShowExcludedAsNormal() &&
-				(PathGetDriveNumber(pPath)>1) &&
+				(PathGetDriveNumber(pwszPath)>1) &&
 				pathIsDir && worktree.adminDirs.HasAdminDir(pPath, true))
 			{
 				return S_OK;

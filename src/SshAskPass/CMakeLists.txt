@@ -1,4 +1,4 @@
-add_executable(SshAskPass)
+add_executable(SshAskPass WIN32)  # GUI subsystem: entry point is _tWinMain, not main
 
 target_sources(SshAskPass
     PRIVATE

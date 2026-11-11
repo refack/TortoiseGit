@@ -19,7 +19,9 @@
 #pragma once
 
 #include <scintilla/Scintilla.h>
-#include <mutex>
+// No std header here: this file is included textually, often after `import`s,
+// and a textual <mutex> after an import redefines <chrono>/<thread>. The
+// once-registration uses Win32 INIT_ONCE instead (the includer has <windows.h>).
 
 /**
  * Registers the "Scintilla" window class, once per process.
@@ -34,10 +36,16 @@
  * this from InitInstance, or from the constructor of whatever owns the control,
  * which runs before the dialog is created.
  *
- * Calling it more than once is harmless but pointless, hence the once_flag.
+ * Calling it more than once is harmless but pointless, hence the INIT_ONCE.
  */
 inline void EnsureScintillaRegistered(HINSTANCE hInstance)
 {
-	static std::once_flag registered;
-	std::call_once(registered, [hInstance] { Scintilla_RegisterClasses(hInstance); });
+	static INIT_ONCE registered = INIT_ONCE_STATIC_INIT;
+	InitOnceExecuteOnce(
+		&registered,
+		[](PINIT_ONCE, PVOID parameter, PVOID*) -> BOOL {
+			Scintilla_RegisterClasses(parameter);
+			return TRUE;
+		},
+		hInstance, nullptr);
 }

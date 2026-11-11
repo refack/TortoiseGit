@@ -364,7 +364,7 @@ VOID GetAnswerToRequest(const TGITCacheRequest* pRequest, TGITCacheResponse* pRe
 	CTGitPath path;
 	*pResponseLength = 0;
 	if(pRequest->flags & TGITCACHE_FLAGS_FOLDERISKNOWN)
-		path.SetFromWin(pRequest->path, !!(pRequest->flags & TGITCACHE_FLAGS_ISFOLDER));
+		path.SetFromWin(std::wstring_view{ pRequest->path }, !!(pRequest->flags & TGITCACHE_FLAGS_ISFOLDER));
 	else
 		path.SetFromWin(pRequest->path);
 
@@ -760,7 +760,7 @@ DWORD WINAPI CommandThread(LPVOID lpvParam)
 			case TGITCACHECOMMAND_CRAWL:
 				{
 					CTGitPath changedpath;
-					changedpath.SetFromWin(command.path, true);
+					changedpath.SetFromWin(std::wstring_view{ command.path }, true);
 					// remove the path from our cache - that will 'invalidate' it.
 					{
 						CAutoWriteLock writeLock(CGitStatusCache::Instance().GetGuard());
@@ -779,7 +779,7 @@ DWORD WINAPI CommandThread(LPVOID lpvParam)
 			case TGITCACHECOMMAND_RELEASE:
 				{
 					CTGitPath changedpath;
-					changedpath.SetFromWin(command.path, true);
+					changedpath.SetFromWin(std::wstring_view{ command.path }, true);
 					TracePrintf(_T(__FUNCTION__) L": release handle for path %s\n", changedpath.GetWinPath());
 					CAutoWriteLock writeLock(CGitStatusCache::Instance().GetGuard());
 					CGitStatusCache::Instance().CloseWatcherHandles(changedpath);
@@ -823,7 +823,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
 	SetDllDirectory(L"");
 	git_libgit2_init();
 	git_libgit2_opts(GIT_OPT_SET_WINDOWS_SHAREMODE, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE);
-	HandleCommandLine(CUnicodeUtils::StdGetUTF8(lpCmdLine).c_str());
+	HandleCommandLine(CUnicodeUtils::StdGetUTF8(std::wstring_view{ lpCmdLine }).c_str());
 	CAutoGeneralHandle hReloadProtection = ::CreateMutex(nullptr, FALSE, GetCacheMutexName());
 
 	if ((!hReloadProtection) || (GetLastError() == ERROR_ALREADY_EXISTS)) {
@@ -839,7 +839,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLi
 
 	DWORD dwThreadId;
 	MSG msg;
-	constexpr wchar_t szWindowClass[] = { TGIT_CACHE_WINDOW_NAME };
+	constexpr auto szWindowClass = TGIT_CACHE_WINDOW_NAME;
 
 	MONITORINFO mi = { sizeof(MONITORINFO) };
 	::GetMonitorInfo(::MonitorFromWindow(nullptr, MONITOR_DEFAULTTOPRIMARY), &mi);

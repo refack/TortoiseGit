@@ -1,25 +1,25 @@
 ﻿module;
 #include "stdafx.h"
-#include "AutoTextTestDlg.h"
 #include "Utils/HighResClock.h"
 
+export module AutoTextTestDlg;
+
+import std;
 import tgit;
+import StandAloneDlg;
 import TortoiseProc;
 import AppUtils.Window;
 
 // CAutoTextTestDlg dialog
 
-IMPLEMENT_DYNAMIC(CAutoTextTestDlg, CStandAloneDialog)
-
-
-static constexpr std::wstring Std_DDX_Text(CDataExchange* pDX, const int rid) {
+static std::wstring Std_DDX_Text(CDataExchange* pDX, const int rid) {
 	CString tmp;
 	DDX_Text(pDX, rid, tmp);
 	return std::wstring{tmp};
 }
 
 
-class CAutoTextTestDlg : public CStandAloneDialog
+export class CAutoTextTestDlg : public CStandAloneDialog
 {
 	DECLARE_DYNAMIC(CAutoTextTestDlg)
 
@@ -43,6 +43,8 @@ private:
 	std::wstring m_sTimingLabel;
 	CRichEditCtrl m_cContent;
 };
+
+IMPLEMENT_DYNAMIC(CAutoTextTestDlg, CStandAloneDialog)
 
 
 void CAutoTextTestDlg::DoDataExchange(CDataExchange* pDX) {

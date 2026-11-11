@@ -21,7 +21,7 @@
 #include "std.h"
 
 #include "RepoStatusCommand.h"
-#include "ChangedDlg.h"
+#include "ProtoModules/ChangedDlg.h"
 
 bool RepoStatusCommand::Execute()
 {

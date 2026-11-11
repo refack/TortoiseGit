@@ -20,7 +20,9 @@
 #include "std.h"
 
 #include "RepositoryBrowserCommand.h"
-#include "RepositoryBrowser.h"
+#include "ProtoModules/RepositoryBrowser.h"
+
+import TortoiseProc;
 
 bool RepositoryBrowserCommand::Execute()
 {
