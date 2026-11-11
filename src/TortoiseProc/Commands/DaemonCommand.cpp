@@ -23,7 +23,6 @@
 #include "DaemonCommand.h"
 import ProgressDlg;
 import TGitMessageBox;
-import TortoiseProc;	// theApp
 
 bool DaemonCommand::Execute()
 {
@@ -76,7 +75,7 @@ bool DaemonCommand::Execute()
 		FreeAddrInfoA(result);
 
 	CProgressDlg progDlg;
-	theApp.m_pMainWnd = &progDlg;
+	AfxGetApp()->m_pMainWnd = &progDlg;
 	progDlg.m_GitCmd = { L"git.exe", L"daemon", L"--verbose", L"--export-all", std::format(L"--base-path={}", GitCall::m_CurrentDirStorage) };
 	if (ips.empty())
 		progDlg.m_PreText = L"git://localhost/";

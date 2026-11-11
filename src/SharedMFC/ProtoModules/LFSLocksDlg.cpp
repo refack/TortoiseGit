@@ -130,9 +130,9 @@ void CLFSLocksDlg::OnBnClickedSelectall()
 		state = BST_UNCHECKED;
 		m_SelectAll.SetCheck(state);
 	}
-	theApp.DoWaitCursor(1);
+	AfxGetApp()->DoWaitCursor(1);
 	m_LocksList.SelectAll(state == BST_CHECKED);
-	theApp.DoWaitCursor(-1);
+	AfxGetApp()->DoWaitCursor(-1);
 }
 
 BOOL CLFSLocksDlg::PreTranslateMessage(MSG* pMsg)

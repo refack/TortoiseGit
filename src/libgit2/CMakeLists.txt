@@ -65,6 +65,7 @@ target_sources(tgitlib
         modules/GitHash.ixx
         modules/GitMailmap.ixx
         modules/GitRev.ixx
+        modules/GitRevLoglistCore.ixx	# MFC-free; SharedMFC's GitRevLoglist re-exports it, the unit tests import it
         modules/Graphviz.ixx
         modules/Libraries.ixx
         modules/PathUtils.ixx

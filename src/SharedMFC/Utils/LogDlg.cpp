@@ -2306,12 +2306,12 @@ LRESULT CLogDlg::OnClickedCancelFilter(WPARAM wParam, LPARAM /*lParam*/)
 
 	m_sFilterText.Empty();
 	UpdateData(FALSE);
-	TortoiseProc::theApp.DoWaitCursor(1);
+	AfxGetApp()->DoWaitCursor(1);
 	FillLogMessageCtrl(false);
 
 	Refresh(true);
 
-	TortoiseProc::theApp.DoWaitCursor(-1);
+	AfxGetApp()->DoWaitCursor(-1);
 	GetDlgItem(IDC_SEARCHEDIT)->ShowWindow(SW_HIDE);
 	GetDlgItem(IDC_SEARCHEDIT)->ShowWindow(SW_SHOW);
 	GetDlgItem(IDC_SEARCHEDIT)->SetFocus();
@@ -2438,7 +2438,7 @@ void CLogDlg::OnTimer(UINT_PTR nIDEvent)
 			// 1. to clear an existing filter
 			// 2. to rebuild the m_arShownList after sorting
 		}
-		theApp.DoWaitCursor(1);
+		AfxGetApp()->DoWaitCursor(1);
 		CStoreSelection storeselection(this);
 		KillTimer(LOGFILTER_TIMER);
 		FillLogMessageCtrl(false);
@@ -2451,7 +2451,7 @@ void CLogDlg::OnTimer(UINT_PTR nIDEvent)
 			m_LogList.SetSelectionMark(0);
 			m_LogList.SetItemState(0, LVIS_SELECTED, LVIS_SELECTED);
 		}
-		theApp.DoWaitCursor(-1);
+		AfxGetApp()->DoWaitCursor(-1);
 		GetDlgItem(IDC_SEARCHEDIT)->ShowWindow(SW_HIDE);
 		GetDlgItem(IDC_SEARCHEDIT)->ShowWindow(SW_SHOW);
 		if (bSetFocusToFilterControl)
@@ -3142,13 +3142,13 @@ void CLogDlg::OnEnChangeSearchedit()
 	if (m_sFilterText.IsEmpty())
 	{
 		// clear the filter, i.e. make all entries appear
-		theApp.DoWaitCursor(1);
+		AfxGetApp()->DoWaitCursor(1);
 		KillTimer(LOGFILTER_TIMER);
 		FillLogMessageCtrl(false);
 
 		Refresh(true);
 
-		theApp.DoWaitCursor(-1);
+		AfxGetApp()->DoWaitCursor(-1);
 		GetDlgItem(IDC_SEARCHEDIT)->ShowWindow(SW_HIDE);
 		GetDlgItem(IDC_SEARCHEDIT)->ShowWindow(SW_SHOW);
 		GetDlgItem(IDC_SEARCHEDIT)->SetFocus();

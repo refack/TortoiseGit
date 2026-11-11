@@ -338,7 +338,7 @@ bool Export(const HWND& hWnd, std::wstring&& BashHash, const CTGitPath* orgPath)
 	{
 		CProgressDlg pro(GetParentCWnd(hWnd));
 		if (GetExplorerHWND() == hWnd)
-			theApp.m_pMainWnd = &pro;
+			AfxGetApp()->m_pMainWnd = &pro;
 		pro.m_GitCmd = { L"git.exe", L"archive", std::format(L"--output={}", dlg.m_strFile), L"--verbose", L"--end-of-options", std::wstring(g_Git.FixBranchName(dlg.m_VersionName)) };
 		pro.m_PostCmdCallback = [&](const DWORD status, PostCmdList& postCmdList)
 		{
@@ -442,7 +442,7 @@ bool BisectStart(const HWND hWnd, const CString& lastGood, const CString& firstB
 	{
 		CProgressDlg progress(GetParentCWnd(hWnd));
 		if (GetExplorerHWND() == hWnd)
-			theApp.m_pMainWnd = &progress;
+			AfxGetApp()->m_pMainWnd = &progress;
 		progress.m_GitCmdList.push_back({ L"git.exe", L"bisect", L"start" });
 		progress.m_GitCmdList.push_back({ L"git.exe", L"bisect", L"good", std::wstring(bisectStartDlg.m_LastGoodRevision) });
 		progress.m_GitCmdList.push_back({ L"git.exe", L"bisect", L"bad", std::wstring(bisectStartDlg.m_FirstBadRevision) });
@@ -484,7 +484,7 @@ bool BisectOperation(const HWND hWnd, const CString& op, const CString& ref = L"
 
 	CProgressDlg progress(GetParentCWnd(hWnd));
 	if (GetExplorerHWND() == hWnd)
-		theApp.m_pMainWnd = &progress;
+		AfxGetApp()->m_pMainWnd = &progress;
 	progress.m_GitCmd = cmd;
 
 	progress.m_PostCmdCallback = [&](const DWORD status, PostCmdList& postCmdList)

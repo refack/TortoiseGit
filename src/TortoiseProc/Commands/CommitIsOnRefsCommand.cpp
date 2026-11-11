@@ -1,4 +1,4 @@
-﻿// TortoiseGit - a Windows shell extension for easy version control
+// TortoiseGit - a Windows shell extension for easy version control
 
 // Copyright (C) 2016, 2018-2019, 2026 - TortoiseGit
 
@@ -26,7 +26,7 @@ import TortoiseProc;
 bool CommitIsOnRefsCommand::Execute()
 {
 	CCommitIsOnRefsDlg dlg;
-	theApp.m_pMainWnd = &dlg;
+	AfxGetApp()->m_pMainWnd = &dlg;
 	auto stdStr = parser.GetValStr(L"rev");
 	dlg.m_Rev = CString{stdStr.c_str(), gsl::narrow<int>(stdStr.length())};
 	return !!dlg.DoModal();

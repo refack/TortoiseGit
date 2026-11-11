@@ -1,4 +1,4 @@
-﻿// TortoiseGit - a Windows shell extension for easy version control
+// TortoiseGit - a Windows shell extension for easy version control
 
 // Copyright (C) 2008-2009 - TortoiseSVN
 // Copyright (C) 2008-2012, 2015-2016, 2018-2019, 2026 - TortoiseGit
@@ -29,7 +29,7 @@ bool SyncCommand::Execute()
 {
 	bool bRet = false;
 	CSyncDlg dlg;
-	theApp.m_pMainWnd = &dlg;
+	AfxGetApp()->m_pMainWnd = &dlg;
 	dlg.m_seq = parser.GetLongVal(L"seq");
 	if(dlg.DoModal() == IDOK)
 		bRet=true;

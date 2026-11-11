@@ -1,4 +1,4 @@
-﻿// TortoiseGit - a Windows shell extension for easy version control
+// TortoiseGit - a Windows shell extension for easy version control
 
 // Copyright (C) 2009-2016, 2018-2019, 2023, 2026 - TortoiseGit
 // Copyright (C) 2007-2008,2012 - TortoiseSVN
@@ -25,7 +25,6 @@ import AppUtils.Launch;
 #include "ProtoModules/ResolveDlg.h"
 #include "ProtoModules/GitProgressDlg.h"
 #include "ProgressCommands/ResolveProgressCommand.h"
-import TortoiseProc;	// theApp
 
 bool ResolveCommand::Execute()
 {
@@ -63,7 +62,7 @@ bool ResolveCommand::Execute()
 			else
 			{
 				CGitProgressDlg progDlg(CWnd::FromHandle(GetExplorerHWND()));
-				theApp.m_pMainWnd = &progDlg;
+				AfxGetApp()->m_pMainWnd = &progDlg;
 				ResolveProgressCommand resolveProgressCommand{ ResolveWith::Current };
 				progDlg.SetCommand(&resolveProgressCommand);
 				resolveProgressCommand.SetPathList(dlg.m_pathList);

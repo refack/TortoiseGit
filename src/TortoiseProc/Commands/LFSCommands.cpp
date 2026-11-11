@@ -1,4 +1,4 @@
-﻿// TortoiseGit - a Windows shell extension for easy version control
+// TortoiseGit - a Windows shell extension for easy version control
 
 // Copyright (C) 2019-2022, 2025-2026 - TortoiseGit
 
@@ -30,7 +30,7 @@ import TortoiseProc;
 static bool setLockedState(bool isLocked, bool force, CTGitPathList& pathList)
 {
 	CGitProgressDlg progDlg;
-	theApp.m_pMainWnd = &progDlg;
+	AfxGetApp()->m_pMainWnd = &progDlg;
 	LFSSetLockedProgressCommand lfsCommand(isLocked, force);
 	progDlg.SetCommand(&lfsCommand);
 	lfsCommand.SetPathList(pathList);

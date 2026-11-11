@@ -203,6 +203,7 @@ target_sources(TortoiseProc
         Settings/SettingsTUDiff.h
         Settings/ToolAssocDlg.cpp
         Settings/ToolAssocDlg.h
+        TortoiseProcApp.cpp     # CTortoiseProcApp + theApp; module TortoiseProc keeps only the launcher helpers
         stdafx.cpp
         stdafx.h
 )

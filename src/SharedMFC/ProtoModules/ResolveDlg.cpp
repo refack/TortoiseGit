@@ -123,9 +123,9 @@ void CResolveDlg::OnBnClickedSelectall()
 		state = BST_UNCHECKED;
 		m_SelectAll.SetCheck(state);
 	}
-	theApp.DoWaitCursor(1);
+	AfxGetApp()->DoWaitCursor(1);
 	m_resolveListCtrl.SelectAll(state == BST_CHECKED);
-	theApp.DoWaitCursor(-1);
+	AfxGetApp()->DoWaitCursor(-1);
 }
 
 UINT CResolveDlg::ResolveThreadEntry(LPVOID pVoid)

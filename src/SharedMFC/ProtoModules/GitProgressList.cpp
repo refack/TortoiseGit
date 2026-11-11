@@ -747,9 +747,9 @@ void CGitProgressList::OnContextMenu(CWnd* pWnd, CPoint point)
 	if (cmd <= 0 || static_cast<size_t>(cmd) > actions.size())
 		return;
 
-	theApp.DoWaitCursor(1);
+	AfxGetApp()->DoWaitCursor(1);
 	actions.at(cmd - 1)();
-	theApp.DoWaitCursor(-1);
+	AfxGetApp()->DoWaitCursor(-1);
 }
 
 void CGitProgressList::OnLvnBegindragSvnprogress(NMHDR* , LRESULT *pResult)

@@ -28,7 +28,7 @@ import TortoiseProc;
 bool AboutCommand::Execute()
 {
 	CAboutDlg dlg;
-	theApp.m_pMainWnd = &dlg;
+	AfxGetApp()->m_pMainWnd = &dlg;
 	dlg.DoModal();
 	return true;
 }

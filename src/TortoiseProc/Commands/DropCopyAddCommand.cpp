@@ -151,7 +151,7 @@ bool DropCopyAddCommand::Execute()
 	}
 	//now add all the newly copied files to the working copy
 	CGitProgressDlg progDlg;
-	theApp.m_pMainWnd = &progDlg;
+	AfxGetApp()->m_pMainWnd = &progDlg;
 	AddProgressCommand addCommand;
 	progDlg.SetCommand(&addCommand);
 	addCommand.SetPathList(copiedFiles);

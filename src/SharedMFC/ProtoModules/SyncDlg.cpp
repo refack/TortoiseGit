@@ -1067,7 +1067,7 @@ void CSyncDlg::OnBnClickedButtonManage()
 
 void CSyncDlg::Refresh()
 {
-	theApp.DoWaitCursor(1);
+	AfxGetApp()->DoWaitCursor(1);
 
 	const int lastSelected = m_ctrlURL.GetCurSel();
 	CString url;
@@ -1108,7 +1108,7 @@ void CSyncDlg::Refresh()
 
 	m_OutLogList.ShowText(CString(MAKEINTRESOURCE(IDS_PROC_SYNC_REFRESHING)));
 	this->FetchOutList(true);
-	theApp.DoWaitCursor(-1);
+	AfxGetApp()->DoWaitCursor(-1);
 }
 
 BOOL CSyncDlg::PreTranslateMessage(MSG* pMsg)

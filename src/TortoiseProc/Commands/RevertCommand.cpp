@@ -1,4 +1,4 @@
-﻿// TortoiseGit - a Windows shell extension for easy version control
+// TortoiseGit - a Windows shell extension for easy version control
 
 // Copyright (C) 2008-2014, 2018-2019, 2026 - TortoiseGit
 // Copyright (C) 2007-2008 - TortoiseSVN
@@ -33,7 +33,7 @@ bool RevertCommand::Execute()
 	if (dlg.DoModal() == IDOK)
 	{
 		CGitProgressDlg progDlg;
-		theApp.m_pMainWnd = &progDlg;
+		AfxGetApp()->m_pMainWnd = &progDlg;
 
 		RevertProgressCommand revertCommand;
 		progDlg.SetCommand(&revertCommand);

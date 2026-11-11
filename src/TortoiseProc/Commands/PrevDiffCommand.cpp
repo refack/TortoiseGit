@@ -35,7 +35,7 @@ bool PrevDiffCommand::Execute()
 	if (this->orgCmdLinePath.IsDirectory())
 	{
 		CFileDiffDlg dlg;
-		theApp.m_pMainWnd = &dlg;
+		AfxGetApp()->m_pMainWnd = &dlg;
 		dlg.SetDiff(&cmdLinePath, L"HEAD~1", GitRev::GetWorkingCopyRef());
 		dlg.DoModal();
 		return true;

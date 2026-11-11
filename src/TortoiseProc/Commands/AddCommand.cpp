@@ -38,7 +38,7 @@ bool AddCommand::Execute()
 		if (pathList.AreAllPathsFiles())
 		{
 			CGitProgressDlg progDlg;
-			theApp.m_pMainWnd = &progDlg;
+			AfxGetApp()->m_pMainWnd = &progDlg;
 			AddProgressCommand addCommand;
 			progDlg.SetCommand(&addCommand);
 			addCommand.SetPathList(pathList);
@@ -56,7 +56,7 @@ bool AddCommand::Execute()
 				if (dlg.m_pathList.IsEmpty())
 					return FALSE;
 				CGitProgressDlg progDlg;
-				theApp.m_pMainWnd = &progDlg;
+				AfxGetApp()->m_pMainWnd = &progDlg;
 				AddProgressCommand addCommand;
 				progDlg.SetCommand(&addCommand);
 				addCommand.SetPathList(dlg.m_pathList);

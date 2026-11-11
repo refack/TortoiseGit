@@ -1,4 +1,4 @@
-﻿// TortoiseGit - a Windows shell extension for easy version control
+// TortoiseGit - a Windows shell extension for easy version control
 
 // Copyright (C) 2012, 2015-2016, 2018-2019, 2026 - TortoiseGit
 
@@ -31,7 +31,7 @@ bool RepositoryBrowserCommand::Execute()
 	if (!val.IsEmpty())
 		rev = val;
 	CRepositoryBrowser dlg(rev);
-	theApp.m_pMainWnd = &dlg;
+	AfxGetApp()->m_pMainWnd = &dlg;
 	dlg.DoModal();
 	return true;
 }

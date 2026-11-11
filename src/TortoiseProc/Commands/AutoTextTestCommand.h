@@ -1,4 +1,4 @@
-﻿// TortoiseGit - a Windows shell extension for easy version control
+// TortoiseGit - a Windows shell extension for easy version control
 
 // Copyright (C) 2018, 2026 - TortoiseGit
 // Copyright (C) 2008, 2011-2012 - TortoiseSVN
@@ -42,7 +42,7 @@ public:
 	bool Execute() override
 	{
 		CAutoTextTestDlg dlg;
-		theApp.m_pMainWnd = &dlg;
+		AfxGetApp()->m_pMainWnd = &dlg;
 		dlg.DoModal();
 		return true;
 	}

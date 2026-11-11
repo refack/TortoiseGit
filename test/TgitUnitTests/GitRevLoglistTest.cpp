@@ -19,7 +19,8 @@
 
 #include "stdafx.h"
 #include "RepositoryFixtures.h"
-import GitRevLoglist;
+import GitRevLoglistCore;
+import GitHash;
 import TGitPath;
 
 class GitRevLoglistCBasicGitWithTestRepoFixture : public CBasicGitWithTestRepoFixture

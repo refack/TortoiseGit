@@ -1,4 +1,4 @@
-﻿// TortoiseGit - a Windows shell extension for easy version control
+// TortoiseGit - a Windows shell extension for easy version control
 
 // Copyright (C) 2008-2009, 2015-2016, 2018-2019, 2026 - TortoiseGit
 
@@ -27,7 +27,7 @@ bool RefLogCommand::Execute()
 {
 	const bool bRet = false;
 	CRefLogDlg dlg;
-	theApp.m_pMainWnd = &dlg;
+	AfxGetApp()->m_pMainWnd = &dlg;
 
 	const CString branch = parser.GetValPtr(L"ref");
 	if ( !branch.IsEmpty() )

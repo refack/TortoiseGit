@@ -1,4 +1,4 @@
-﻿// TortoiseGit - a Windows shell extension for easy version control
+// TortoiseGit - a Windows shell extension for easy version control
 
 // Copyright (C) 2007-2008,2011 - TortoiseSVN
 // Copyright (C) 2008-2016, 2018-2019, 2025-2026 - TortoiseGit
@@ -83,7 +83,7 @@ bool LogCommand::Execute()
 		findRegex = true;
 
 	CLogDlg dlg;
-	theApp.m_pMainWnd = &dlg;
+	AfxGetApp()->m_pMainWnd = &dlg;
 	dlg.SetParams(orgCmdLinePath, cmdLinePath, rev, range, limit, scale);
 	dlg.SetFilter(findStr, findType, findRegex);
 	if (parser.HasVal(L"outfile"))

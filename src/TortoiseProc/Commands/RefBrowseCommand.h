@@ -1,4 +1,4 @@
-﻿// TortoiseGit - a Windows shell extension for easy version control
+// TortoiseGit - a Windows shell extension for easy version control
 
 // Copyright (C) 2009, 2018-2019, 2026 - TortoiseGit
 
@@ -31,7 +31,7 @@ public:
 	bool Execute() override
 	{
 		CBrowseRefsDlg dlg(orgCmdLinePath.GetWinPathString().c_str());
-		theApp.m_pMainWnd = &dlg;
+		AfxGetApp()->m_pMainWnd = &dlg;
 		dlg.DoModal();
 		return true;
 	}

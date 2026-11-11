@@ -103,7 +103,7 @@ bool SubmoduleUpdateCommand::Execute()
 		return false;
 
 	CProgressDlg progress;
-	theApp.m_pMainWnd = &progress;
+	AfxGetApp()->m_pMainWnd = &progress;
 
 	g_Git.SetCurrentDirExact(super);
 
@@ -157,7 +157,7 @@ bool SubmoduleUpdateCommand::Execute()
 bool SubmoduleSyncCommand::Execute()
 {
 	CProgressDlg progress;
-	theApp.m_pMainWnd = &progress;
+	AfxGetApp()->m_pMainWnd = &progress;
 
 	CString bkpath;
 

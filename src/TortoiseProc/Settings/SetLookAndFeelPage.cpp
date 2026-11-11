@@ -1,4 +1,4 @@
-﻿// TortoiseGit - a Windows shell extension for easy version control
+// TortoiseGit - a Windows shell extension for easy version control
 
 // Copyright (C) 2011-2016, 2019, 2021-2026 - TortoiseGit
 // Copyright (C) 2003-2008, 2011, 2014 - TortoiseSVN
@@ -120,14 +120,14 @@ static TGitContextMenuEntries ClickedSelectAll(CListCtrl* list, CButton* selectA
 		selectAll->SetCheck(state);
 	}
 
-	theApp.DoWaitCursor(1);
+	AfxGetApp()->DoWaitCursor(1);
 
 	for (int i = 0; i < list->GetItemCount(); i++)
 		list->SetCheck(i, state == BST_CHECKED);
 
 	TGitContextMenuEntries mask = GetMenuListMask(list);
 
-	theApp.DoWaitCursor(-1);
+	AfxGetApp()->DoWaitCursor(-1);
 
 	return mask;
 }

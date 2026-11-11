@@ -1,4 +1,4 @@
-﻿// TortoiseGit - a Windows shell extension for easy version control
+// TortoiseGit - a Windows shell extension for easy version control
 
 // Copyright (C) 2022, 2026 - TortoiseGit
 
@@ -32,7 +32,7 @@ bool WorktreeCreateCommand::Execute()
 bool WorktreeListCommand::Execute()
 {
 	CWorktreeListDlg dlg;
-	theApp.m_pMainWnd = &dlg;
+	AfxGetApp()->m_pMainWnd = &dlg;
 	return dlg.DoModal() == IDOK;
 }
 

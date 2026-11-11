@@ -1,4 +1,4 @@
-﻿// TortoiseGit - a Windows shell extension for easy version control
+// TortoiseGit - a Windows shell extension for easy version control
 
 // Copyright (C) 2012, 2015, 2018, 2026 - TortoiseGit
 // Copyright (C) 2007 - TortoiseSVN
@@ -28,7 +28,7 @@ import TortoiseProc;
 bool RepoStatusCommand::Execute()
 {
 	CChangedDlg dlg;
-	theApp.m_pMainWnd = &dlg;
+	AfxGetApp()->m_pMainWnd = &dlg;
 	dlg.m_pathList = pathList;
 	dlg.DoModal();
 	return true;

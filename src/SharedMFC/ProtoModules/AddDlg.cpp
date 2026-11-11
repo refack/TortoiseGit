@@ -121,9 +121,9 @@ void CAddDlg::OnBnClickedSelectall()
 		state = BST_UNCHECKED;
 		m_SelectAll.SetCheck(state);
 	}
-	theApp.DoWaitCursor(1);
+	AfxGetApp()->DoWaitCursor(1);
 	m_addListCtrl.SelectAll(state == BST_CHECKED);
-	theApp.DoWaitCursor(-1);
+	AfxGetApp()->DoWaitCursor(-1);
 }
 
 UINT CAddDlg::AddThreadEntry(LPVOID pVoid)

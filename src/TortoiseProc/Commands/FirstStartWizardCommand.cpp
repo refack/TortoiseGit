@@ -1,4 +1,4 @@
-﻿// TortoiseGit - a Windows shell extension for easy version control
+// TortoiseGit - a Windows shell extension for easy version control
 
 // Copyright (C) 2026 - TortoiseGit
 
@@ -26,6 +26,6 @@ import TortoiseProc;
 bool FirstStartWizardCommand::Execute()
 {
 	CFirstStartWizard wizard(IDS_APPNAME, CWnd::FromHandle(GetExplorerHWND()), parser.GetLongVal(L"page"));
-	theApp.m_pMainWnd = &wizard;
+	AfxGetApp()->m_pMainWnd = &wizard;
 	return wizard.DoModal() == ID_WIZFINISH;
 }

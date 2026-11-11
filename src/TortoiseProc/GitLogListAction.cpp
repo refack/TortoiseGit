@@ -161,7 +161,7 @@ void CGitLogList::ContextMenuAction(int cmd, int FirstSelect, int LastSelect, CM
 
 	bool bShiftPressed = !!(GetAsyncKeyState(VK_SHIFT) & 0x8000);
 
-	theApp.DoWaitCursor(1);
+	AfxGetApp()->DoWaitCursor(1);
 	switch (cmd&0xFFFF)
 		{
 			case ID_COMMIT:
@@ -1273,7 +1273,7 @@ void CGitLogList::ContextMenuAction(int cmd, int FirstSelect, int LastSelect, CM
 
 		} // switch (cmd)
 
-		theApp.DoWaitCursor(-1);
+		AfxGetApp()->DoWaitCursor(-1);
 }
 
 void CGitLogList::SetSelectedRebaseAction(int action)
