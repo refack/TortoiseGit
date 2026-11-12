@@ -50,6 +50,7 @@ Checks:
   - -*-avoid-do-while
   - -*-pro-type-reinterpret-cast
   - -*-pro-bounds-avoid-unchecked-container-access
+  - -bugprone-suspicious-stringview-data-usage
 
 
 #UseColor: true
@@ -58,6 +59,7 @@ Checks:
 CheckOptions:
   performance-unnecessary-copy-initialization.AllowedTypes: 'std::source_location;sloc_t'
   bugprone-exception-escape.IgnoredExceptions: 'std::system_error'
+  cppcoreguidelines-rvalue-reference-param-not-moved.IgnoreNonDeducedTemplateTypes: true
 
 
 ImplementationFileExtensions:

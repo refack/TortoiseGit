@@ -37,14 +37,14 @@ void reset_dll_state()
 	dyingRecCnt = 0;
 }
 
-[[noreturn]] [[gnu::format(printf, 1, 2)]] [[maybe_unused]] void die(const std::string_view  err, const std::string_view msg = {})
+[[noreturn]] [[maybe_unused]] void die(const std::string_view  err, const std::string_view msg = {})
 {
 	g_last_error_s = std::vformat(err, std::make_format_args(msg));
 	reset_dll_state();
 	throw std::exception{ g_last_error_s.c_str() };
 }
 
-[[noreturn]] [[gnu::format(printf, 1, 2)]] void die(const std::string_view  err, int code, const std::string_view msg = {})
+[[noreturn]] void die(const std::string_view  err, int code, const std::string_view msg = {})
 {
 	g_last_error_s = std::vformat(err, std::make_format_args(code, msg));
 	reset_dll_state();
@@ -65,7 +65,7 @@ void v_print_debug(const std::string_view fmt, va_list params) {
 	v_print_debug(fmt, std::make_format_args(params));
 }
 
-[[gnu::format(printf, 1, 0)]] std::string v_format_legacy(const char* fmt, const va_list args)
+std::string v_format_legacy(const char* fmt, va_list args)
 {
 	// 1. Create a copy to measure the string size without corrupting the original list
 	va_list args_copy;
@@ -103,19 +103,19 @@ void print_debug(const std::string_view fmt)
 	OutputDebugStringA(message.c_str());
 }
 
-[[gnu::format(printf, 1, 0)]] void handle_error(const char* fmt, const va_list params)
+void handle_error(const char* fmt, const va_list params)
 {
 	const std::string message = "[error] "s + v_format_legacy(fmt, params);
 	print_debug(message);
 }
 
-[[gnu::format(printf, 1, 0)]] void handle_warning(const char* fmt, const va_list params)
+void handle_warning(const char* fmt, const va_list params)
 {
 	const std::string message = "[warning] "s + v_format_legacy(fmt, params);
 	print_debug(message);
 }
 
-[[noreturn]] [[gnu::format(printf, 1, 0)]] void die_dll(const char* err, const va_list params)
+[[noreturn]] void die_dll(const char* err, const va_list params)
 {
 	g_last_error_s = v_format_legacy(err, params);
 	reset_dll_state();

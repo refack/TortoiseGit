@@ -1,4 +1,4 @@
-#include "stdafx.h"
+﻿#include "stdafx.h"
 #include <regex>
 #include <xtree>
 #include <map>
@@ -1484,9 +1484,7 @@ void CLogDlg::OnContextMenu(CWnd* pWnd, CPoint point)
 			// reset last selected date
 			m_regLastSelectedFromDate.removeValue();
 		} else if (cmd == cnt) { // last entry, must be before cmd >= 2
-			std::unreachable();
-			// TODO: fix this
-			// GitCall::RunTortoiseGitProc(L"/command:settings /page:dialog");
+			GitCall::RunTortoiseGitProc(L"/command:settings /page:dialog");
 			return;
 		} else if (cmd == 2) {
 			m_LogList.m_Filter.m_NumberOfLogsScale = static_cast<CFilterData::SHOW_MODE>(scale);
@@ -1562,9 +1560,7 @@ void CLogDlg::OnContextMenu(CWnd* pWnd, CPoint point)
 				wil::SetClipboardText(tgit::str::StringView{ pEdit->GetSelText() }, m_hWnd); // manually copy text, to detach it from process (cf. issue #3909)
 				break;
 			case CGitLogList::ID_EDITNOTE:
-				std::unreachable();
-				// TODO: resolve wil::MFC::EditNote
-				//wil::MFC::EditNote(GetSafeHwnd(), pRev, &m_LogList.m_ProjectProperties);
+				wil::MFC::EditNote(GetSafeHwnd(), pRev, &m_LogList.m_ProjectProperties);
 				this->FillLogMessageCtrl(true);
 				break;
 			}

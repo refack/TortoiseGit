@@ -47,12 +47,13 @@ target_link_libraries(gitdll
     PRIVATE
         ntdll
         ws2_32
-        libgit
         advapi32
         user32
         winhttp
         rpcrt4
         gdi32
         crypt32
+
+        libgit
         ZLIB::ZLIB
 )

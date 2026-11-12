@@ -53,14 +53,36 @@ add_compile_options(
     $<$<COMPILE_LANGUAGE:CXX>:-wd4996>  # depracation TODO: later
 )
 
-# `import std;` for every target. CMake finds MSVC's std.ixx by itself; for
-# clang-cl it only knows libc++ and libstdc++, so a clang-cl tree is told where
-# the MSVC STL modules are - the file an MSVC tree has already generated:
-#   -DCMAKE_CXX_STDLIB_MODULES_JSON=<msvc tree>/CMakeFiles/<cmake version>/msvcstl.modules.json
+# `import std;` for every target.
+# * CMake finds MSVC's std.ixx by itself; for clang-cl it only knows libc++ and libstdc++
+# * SARIF tumbstone
 if(CMAKE_C_COMPILER_ID STREQUAL "MSVC")
     set(CMAKE_CXX_MODULE_STD ON)
-#    add_compile_options("-experimental:log<OBJECT>.sarif")     # broken
-#    string(APPEND CMAKE_CXX_COMPILE_OBJECT " -experimental:log<OBJECT>.sarif")     # obsolete by shim
+    add_compile_options( -external:anglebrackets )
+
+    # just a mock until CMAKE_CXX_MODULE_STD works for clang-cl
+    add_library(std_module STATIC ext/gitdll/version.h)
+
+    #    add_compile_options("-experimental:log<OBJECT>.sarif")     # broken
+    #    string(APPEND CMAKE_CXX_COMPILE_OBJECT " -experimental:log<OBJECT>.sarif")     # obsolete by shim
+
+else ()
+
+    cmake_path(CONVERT "$ENV{VCToolsInstallDir}" TO_CMAKE_PATH_LIST VC_TOOLS_DIR)
+
+    add_library(std_module STATIC)
+
+    target_sources(std_module PUBLIC
+        FILE_SET CXX_MODULES
+        BASE_DIRS "${VC_TOOLS_DIR}/modules"
+        FILES "${VC_TOOLS_DIR}/modules/std.ixx"
+    )
+
+    add_compile_options(
+            -Wno-unused-command-line-argument
+            -Wno-reserved-module-identifier
+            -Wno-include-angled-in-module-purview
+    )
 endif()
 
 

@@ -1,4 +1,4 @@
-add_library(tgitlib STATIC)
+﻿add_library(tgitlib STATIC)
 
 target_sources("tgitlib"
     PUBLIC
@@ -44,6 +44,13 @@ target_link_libraries(tgitlib
         gdi32
         crypt32
 )
+
+if(CMAKE_CXX_MODULE_STD EQUAL OFF)
+    target_link_libraries(tgitlib
+        PUBLIC
+            std_module
+    )
+endif ()
 
 target_sources(tgitlib
     PUBLIC

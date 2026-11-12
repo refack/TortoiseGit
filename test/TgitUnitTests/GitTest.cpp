@@ -26,6 +26,8 @@ import ShellEnvironment;
 import TGitPath;
 import GitHash;
 
+// NOLINTBEGIN(cppcoreguidelines-virtual-class-destructor,readability-function-size,*-unused-local-non-trivial-variable)
+
 // For performance reason, turn LIBGIT off by default,
 INSTANTIATE_TEST_SUITE_P(CGit, CBasicGitWithEmptyRepositoryFixture, testing::Values(GIT_CLI, /*LIBGIT,*/ LIBGIT2, LIBGIT2_ALL));
 INSTANTIATE_TEST_SUITE_P(CGit, CBasicGitWithEmptyBareRepositoryFixture, testing::Values(GIT_CLI, /*LIBGIT,*/ LIBGIT2, LIBGIT2_ALL));
@@ -36,7 +38,7 @@ INSTANTIATE_TEST_SUITE_P(CGit, CBasicGitWithSubmoduleRepositoryFixture, testing:
 TEST(CGit, RunSet)
 {
 	CString output;
-	CGit cgit;
+	[[maybe_unused]] CGit cgit;
 	ASSERT_EQ(0, GitCall::Run({L"cmd", L"/c", L"set"}, &output));
 	ASSERT_FALSE(output.IsEmpty());
 	ASSERT_TRUE(output.Find(L"windir")); // should be there on any MS OS ;)
@@ -45,7 +47,7 @@ TEST(CGit, RunSet)
 TEST(CGit, RunGit)
 {
 	CString output;
-	CGit cgit;
+	[[maybe_unused]] CGit cgit;
 	ASSERT_EQ(0, GitCall::Run({L"git", L"--version"}, &output));
 	ASSERT_FALSE(output.IsEmpty());
 }
@@ -61,11 +63,11 @@ TEST(CGit, RunGit_BashPipe)
 	ASSERT_STRNE(L"", tmpfile);
 	pipefile.Replace(L'\\', L'/');
 	CString pipecmd;
-	pipecmd.Format(L"cat < %s", static_cast<LPCTSTR>(tmpfile));
+	pipecmd.Format(L"cat < %s", tmpfile);
 	ASSERT_TRUE(StringUtils::WriteStringToTextFile(pipefile, pipecmd));
 	SCOPE_EXIT{ ::DeleteFile(pipefile); };
 	CString output;
-	CGit cgit;
+	[[maybe_unused]] CGit cgit;
 	ASSERT_EQ(0, GitCall::Run({L"bash.exe", std::wstring(pipefile)}, &output));
 	ASSERT_STREQ(L"testing piping...", output);
 }
@@ -101,7 +103,7 @@ TEST(CGit, RunLogFile)
 	CAutoTempDir tempdir;
 	auto tmpfile = tempdir.GetTempDir() / L"output.txt";
 	CString error;
-	CGit cgit;
+	[[maybe_unused]] CGit cgit;
 	ASSERT_EQ(0, GitCall::RunLogFile(L"git --version", tmpfile.c_str(), &error));
 	EXPECT_STREQ(L"", error);
 	CString fileContents;
@@ -114,7 +116,7 @@ TEST(CGit, RunLogFile_Set)
 	CAutoTempDir tempdir;
 	auto tmpfile = tempdir.GetTempDir() / L"output.txt";
 	CString error;
-	CGit cgit;
+	[[maybe_unused]] CGit cgit;
 	ASSERT_EQ(0, GitCall::RunLogFile(L"cmd /c set", tmpfile.c_str(), &error));
 	EXPECT_STREQ(L"", error);
 	CString fileContents;
@@ -457,7 +459,7 @@ TEST_P(CBasicGitWithTestRepoBareFixture, GetCurrentBranch)
 	EXPECT_STREQ(L"master", m_Git.GetCurrentBranch(true));
 }
 
-static void IsLocalBranch(CGit& m_Git)
+static void IsLocalBranch(const CGit& m_Git)
 {
 	EXPECT_TRUE(m_Git.IsLocalBranch(L"master"));
 	EXPECT_TRUE(m_Git.IsLocalBranch(L"subdir/branch"));
@@ -679,7 +681,7 @@ TEST_P(CBasicGitWithTestRepoBareFixture, GetRemotePushBranch)
 	GetRemotePushBranch(m_Git);
 }
 
-static void IsUnbornBranch(CGit& m_Git)
+static void IsUnbornBranch(const CGit& m_Git)
 {
 	EXPECT_FALSE(m_Git.IsUnbornBranch(L""));
 	EXPECT_FALSE(m_Git.IsUnbornBranch(L"HEAD"));
@@ -893,7 +895,7 @@ TEST_P(CBasicGitWithEmptyRepositoryFixture, GetEmptyBranchesTagsRefs)
 	EXPECT_TRUE(remotes.empty());
 }
 
-static void GetBranchesTagsRefs(CGit& m_Git, config testConfig)
+static void GetBranchesTagsRefs(CGit& m_Git, config testConfig) // NOLINT(*-function-size)
 {
 	std::vector<std::wstring> branches;
 	int current = -2;
@@ -1461,7 +1463,7 @@ TEST(CGit, CEnvironmentBlockLayout)
 }
 
 
-static void GetOneFile(CGit& m_Git)
+static void GetOneFile(const CGit& m_Git)
 {
 	auto tmpFile = GitCall::GetTempFile();
 	ASSERT_STRNE(L"", tmpFile);
@@ -1476,7 +1478,7 @@ static void GetOneFile(CGit& m_Git)
 	::DeleteFile(tmpFile);
 }
 
-static void GetOneFile_utf8(CGit& m_Git)
+static void GetOneFile_utf8(const CGit& m_Git)
 {
 	auto tmpFile = GitCall::GetTempFile();
 	ASSERT_STRNE(L"", tmpFile);
@@ -1493,12 +1495,13 @@ static void GetOneFile_utf8(CGit& m_Git)
 
 TEST_P(CBasicGitWithTestRepoFixture, GetOneFile)
 {
+	// clean&smudge filters are not available for GetOneFile without libigt2
+	const auto val = GetParam();
+	if (val == GIT_CLI || val == LIBGIT)
+		return;
+
 	GetOneFile(m_Git);
 	GetOneFile_utf8(m_Git);
-
-	// clean&smudge filters are not available for GetOneFile without libigt2
-	if (GetParam() == GIT_CLI || GetParam() == LIBGIT)
-		return;
 
 	auto cleanFilterFilename = m_Git.m_CurrentDir / L"clean_filter_openssl";
 	EXPECT_TRUE(StringUtils::WriteStringToTextFile(cleanFilterFilename.c_str(), L"#!/bin/bash\nopenssl version | grep -q \" 1\\\\.0\\\\.\"\nif [[ $? = 0 ]]; then\n\topenssl enc -base64 -aes-256-ecb -S FEEDDEADBEEF -k PASS_FIXED\n\techo 1.0>openssl10\nelse\n\topenssl enc -base64 -pbkdf2 -aes-256-ecb -nosalt -k PASS_FIXED\nfi\n"));
@@ -1556,15 +1559,13 @@ TEST_P(CBasicGitWithTestRepoFixture, GetOneFile)
 
 	EXPECT_TRUE(::DeleteFile(attributesFile.c_str()));
 
-	bool openssl10 = fs::exists(L"openssl10");
-
 	fileContents.Empty();
 	tmpFile = GitCall::GetTempFile();
 	ASSERT_STRNE(L"", tmpFile);
 	EXPECT_EQ(0, m_Git.GetOneFile(L"HEAD", CTGitPath(L"1.enc"), tmpFile));
 	EXPECT_EQ(true, StringUtils::ReadStringFromTextFile(tmpFile, fileContents));
 	fileContents.Replace(L"\r\n", L"\n");
-	if (openssl10)
+	if (fs::exists(L"openssl10"))
 		EXPECT_STREQ(L"U2FsdGVkX1/+7d6tvu8AABwbE+Xy7U4l5boTKjIgUkYHONqmYHD+0e6k35MgtUGx\ns11nq1QuKeFCW5wFWNSj1WcHg2n4W59xfnB7RkSSIDQ=\n", fileContents);
 	else
 		EXPECT_STREQ(L"JlEiSB71Z3+fM2/Y2lAvxck187c4O1aE7epFJHVoDYJmKNBVvHB2zIPEoTAwW2pJ\nYxWZFBoqGROkX+koseasng==\n", fileContents);
@@ -1576,7 +1577,7 @@ TEST_P(CBasicGitWithTestRepoFixture, GetOneFile)
 	EXPECT_EQ(0, m_Git.GetOneFile(L"HEAD", CTGitPath(L"2.enc"), tmpFile));
 	EXPECT_EQ(true, StringUtils::ReadStringFromTextFile(tmpFile, fileContents));
 	fileContents.Replace(L"\r\n", L"\n");
-	if (openssl10)
+	if (fs::exists(L"openssl10"))
 		EXPECT_STREQ(L"U2FsdGVkX1/+7d6tvu8AAIDDx8qi/l0qzkSMsS2YLt8tYK1oWzj8+o78fXH0/tlO\nCRVrKqTvh9eUFklY8QFYfZfj01zBkFat+4zrW+1rV4Q=\n", fileContents);
 	else
 		EXPECT_STREQ(L"iU6jZ5d/5XBR9BvT1s+oqF7vIxabgYETQftI27P6jWQky308ukprRuOVZNr3NSH6\nlgXwDTo+mez3JB31HVSMCA==\n", fileContents);
@@ -1588,7 +1589,7 @@ TEST_P(CBasicGitWithTestRepoBareFixture, GetOneFile)
 	GetOneFile(m_Git);
 }
 
-static void GetBranchDescriptions(CGit& m_Git)
+static void GetBranchDescriptions(const CGit& m_Git)
 {
 	std::map<std::wstring, std::wstring> descriptions;
 	EXPECT_EQ(0, m_Git.GetBranchDescriptions(descriptions));
@@ -1636,7 +1637,7 @@ TEST_P(CBasicGitWithTestRepoFixture, Config)
 	for (auto i = 0ull; i < _countof(values); ++i)
 	{
 		CString key;
-		key.Format(L"re-read.test%d", i);
+		key.Format(L"re-read.test%lld", i);
 		EXPECT_EQ(0, m_Git.SetConfigValue(key, values[i]));
 		EXPECT_STREQ(values[i], m_Git.GetConfigValue(key));
 	}
@@ -3950,11 +3951,15 @@ TEST_P(CBasicGitWithEmptyRepositoryFixture, GetWorkingTreeChanges)
 
 static int DoSubmodule(const wil::ArgvData& cmd, CGit& git, const fs::path& submoduleDir, std::string& output)
 {
+	const fs::path old = git.m_CurrentDir;
+	try {
+		git.SetCurrentDirExact(submoduleDir);
 	output.clear();
-	fs::path old = git.m_CurrentDir;
-	SCOPE_EXIT { git.SetCurrentDirExact(old); };
-	git.SetCurrentDirExact(submoduleDir);
-	return git.Run(cmd, &output);
+		return git.Run(cmd, &output);
+	} catch (...) {
+		git.SetCurrentDirExact(old);
+		return -1;
+	}
 }
 
 TEST_P(CBasicGitWithSubmoduleRepositoryFixture, GetWorkingTreeChanges_Submodules)
@@ -4164,10 +4169,9 @@ TEST_P(CBasicGitWithSubmoduleRepositoryFixture, GetWorkingTreeChanges_Submodules
 	EXPECT_EQ(CTGitPath::LOGACTIONS_UNMERGED | CTGitPath::LOGACTIONS_MODIFIED, list[0].m_Action);
 	EXPECT_STREQ(L"1", list[0].m_StatAdd.c_str());
 	EXPECT_STREQ(L"1", list[0].m_StatDel.c_str());
-	if (TGitH::ms_LastMsysGitVersion < ConvertVersionToInt(2, 34, 0))
+	if (TGitH::ms_LastMsysGitVersion < ConvertVersionToInt(2, 34, 0)) {
 		EXPECT_FALSE(list[0].IsDirectory()); // file is in filesystem
-	else
-	{
+	} else {
 		EXPECT_TRUE(list[0].IsDirectory()); // directory is in filesystem
 		EXPECT_STREQ(L"something~HEAD", list[1].GetGitPathString().c_str());
 		EXPECT_EQ(CTGitPath::LOGACTIONS_UNMERGED | CTGitPath::LOGACTIONS_ADDED, list[1].m_Action);
@@ -4476,7 +4480,7 @@ TEST_P(CBasicGitWithTestRepoFixture, GetUnifiedDiffLibGit2MatchesGitExe)
 				 GetUnifiedDiffWith(m_Git, true, L"HEAD", GitRev::GetWorkingCopyRef(), false, -1, tmpfile));
 }
 
-static void GetGitNotes(CGit& m_Git, config testConfig)
+static void GetGitNotes(const CGit& m_Git, config testConfig)
 {
 	if (testConfig != LIBGIT2_ALL)
 		return;
@@ -4569,7 +4573,9 @@ TEST_P(CBasicGitWithTestRepoFixture, IsResultingCommitBecomeEmpty)
 TEST(CGit, ParseConflictHashesFromLsFile_Empty)
 {
 	std::string byteArray;
-	bool baseIsFile = true, localIsFile = true, remoteIsFile = true;
+	bool baseIsFile = true;
+	bool localIsFile = true;
+	bool remoteIsFile = true;
 	CGitHash baseHash, localHash, remoteHash;
 	EXPECT_NE(0, TGitH::ParseConflictHashesFromLsFile(byteArray, baseHash, baseIsFile, localHash, localIsFile, remoteHash, remoteIsFile));
 }
@@ -4579,7 +4585,9 @@ TEST(CGit, ParseConflictHashesFromLsFile_SimpleConflict)
 	constexpr char git_ls_file_u_t_z_output[] = { "M 100644 1f9f46da1ee155aa765d6e379d9d19853358cb07 1	bla.txt\0M 100644 3aa011e7d3609ab9af90c4b10f616312d2be422f 2	bla.txt\0M 100644 56d252d69d535834b9fbfa6f6a633ecd505ea2e6 3	bla.txt" };
 	std::string byteArray;
 	byteArray.append(git_ls_file_u_t_z_output, sizeof(git_ls_file_u_t_z_output));
-	bool baseIsFile = true, localIsFile = true, remoteIsFile = true;
+	bool baseIsFile = true;
+	bool localIsFile = true;
+	bool remoteIsFile = true;
 	CGitHash baseHash, localHash, remoteHash;
 	EXPECT_EQ(0, TGitH::ParseConflictHashesFromLsFile(byteArray, baseHash, baseIsFile, localHash, localIsFile, remoteHash, remoteIsFile));
 	EXPECT_STREQ(L"1f9f46da1ee155aa765d6e379d9d19853358cb07", baseHash.ToString());
@@ -4595,7 +4603,9 @@ TEST(CGit, ParseConflictHashesFromLsFile_SubmoduleConflict_Simple)
 	constexpr char git_ls_files_u_t_z_output[] = { "M 160000 46a2b8e855d5f6d8b60b81500a9f6779c7f63e63 1	libgit2\0M 160000 533da4ea00703f4ad6d5518e1ce81d20261c40c0 2	libgit2\0M 160000 ab2af775ec467ebb328a7374653f247920f258f3 3	libgit2" };
 	std::string byteArray;
 	byteArray.append(git_ls_files_u_t_z_output, sizeof(git_ls_files_u_t_z_output));
-	bool baseIsFile = true, localIsFile = true, remoteIsFile = true;
+	bool baseIsFile = true;
+	bool localIsFile = true;
+	bool remoteIsFile = true;
 	CGitHash baseHash, localHash, remoteHash;
 	EXPECT_EQ(0, TGitH::ParseConflictHashesFromLsFile(byteArray, baseHash, baseIsFile, localHash, localIsFile, remoteHash, remoteIsFile));
 	EXPECT_STREQ(L"46a2b8e855d5f6d8b60b81500a9f6779c7f63e63", baseHash.ToString());
@@ -4612,7 +4622,9 @@ TEST(CGit, ParseConflictHashesFromLsFile_SubmoduleConflict_DeletedModified)
 	constexpr char git_ls_files_u_t_z_output[] = { "M 160000 46a2b8e855d5f6d8b60b81500a9f6779c7f63e63 1	libgit2\0M 160000 ab2af775ec467ebb328a7374653f247920f258f3 3	libgit2" };
 	std::string byteArray;
 	byteArray.append(git_ls_files_u_t_z_output, sizeof(git_ls_files_u_t_z_output));
-	bool baseIsFile = true, localIsFile = true, remoteIsFile = true;
+	bool baseIsFile = true;
+	bool localIsFile = true;
+	bool remoteIsFile = true;
 	CGitHash baseHash, localHash, remoteHash;
 	EXPECT_EQ(0, TGitH::ParseConflictHashesFromLsFile(byteArray, baseHash, baseIsFile, localHash, localIsFile, remoteHash, remoteIsFile));
 	EXPECT_STREQ(L"46a2b8e855d5f6d8b60b81500a9f6779c7f63e63", baseHash.ToString());
@@ -4629,7 +4641,9 @@ TEST(CGit, ParseConflictHashesFromLsFile_SubmoduleConflict_ToNormalDir)
 	constexpr char git_ls_files_u_t_z_output[] = { "M 160000 533da4ea00703f4ad6d5518e1ce81d20261c40c0 2	libgit2" };
 	std::string byteArray;
 	byteArray.append(git_ls_files_u_t_z_output, sizeof(git_ls_files_u_t_z_output));
-	bool baseIsFile = true, localIsFile = true, remoteIsFile = true;
+	bool baseIsFile = true;
+	bool localIsFile = true;
+	bool remoteIsFile = true;
 	CGitHash baseHash, localHash, remoteHash;
 	EXPECT_EQ(0, TGitH::ParseConflictHashesFromLsFile(byteArray, baseHash, baseIsFile, localHash, localIsFile, remoteHash, remoteIsFile));
 	EXPECT_STREQ(L"0000000000000000000000000000000000000000", baseHash.ToString());
@@ -4646,7 +4660,9 @@ TEST(CGit, ParseConflictHashesFromLsFile_SubmoduleConflict_FileSubmodule)
 	constexpr char git_ls_file_u_t_z_output[] = { "M 160000 533da4ea00703f4ad6d5518e1ce81d20261c40c0 2	libgit2\0M 100644 9ae3e601584cc03f8f03f93761416b6599ac7c0d 3	libgit2" };
 	std::string byteArray;
 	byteArray.append(git_ls_file_u_t_z_output, sizeof(git_ls_file_u_t_z_output));
-	bool baseIsFile = true, localIsFile = true, remoteIsFile = true;
+	bool baseIsFile = true;
+	bool localIsFile = true;
+	bool remoteIsFile = true;
 	CGitHash baseHash, localHash, remoteHash;
 	EXPECT_EQ(0, TGitH::ParseConflictHashesFromLsFile(byteArray, baseHash, baseIsFile, localHash, localIsFile, remoteHash, remoteIsFile));
 	EXPECT_STREQ(L"0000000000000000000000000000000000000000", baseHash.ToString());
@@ -4663,7 +4679,9 @@ TEST(CGit, ParseConflictHashesFromLsFile_DeletedFileConflict)
 	constexpr char git_ls_file_u_t_z_output[] = { "M 100644 24091f0add7afc47ac7cdc80ae4d3866b2ef588c 1	Neues Textdokument.txt\0M 100644 293b6f6293106b6ebb5d54ad482d7561b0f1c9ae 3	Neues Textdokument.txt" };
 	std::string byteArray;
 	byteArray.append(git_ls_file_u_t_z_output, sizeof(git_ls_file_u_t_z_output));
-	bool baseIsFile = true, localIsFile = true, remoteIsFile = true;
+	bool baseIsFile = true;
+	bool localIsFile = true;
+	bool remoteIsFile = true;
 	CGitHash baseHash, localHash, remoteHash;
 	EXPECT_EQ(0, TGitH::ParseConflictHashesFromLsFile(byteArray, baseHash, baseIsFile, localHash, localIsFile, remoteHash, remoteIsFile));
 	EXPECT_STREQ(L"24091f0add7afc47ac7cdc80ae4d3866b2ef588c", baseHash.ToString());
@@ -4683,7 +4701,9 @@ TEST(CGit, ParseConflictHashesFromLsFile_Invalid)
 			continue;
 		std::string byteArray;
 		byteArray.append(git_ls_file_u_t_z_output, i);
-		bool baseIsFile = true, localIsFile = true, remoteIsFile = true;
+		bool baseIsFile = true;
+		bool localIsFile = true;
+		bool remoteIsFile = true;
 		CGitHash baseHash, localHash, remoteHash;
 		EXPECT_EQ(-1, TGitH::ParseConflictHashesFromLsFile(byteArray, baseHash, baseIsFile, localHash, localIsFile, remoteHash, remoteIsFile));
 	}
@@ -4961,3 +4981,5 @@ TEST(CGit, SerializeArgv_Cygwin)
 
 	SerializeArgv_Msys2Cygwin();
 }
+
+// NOLINTEND(cppcoreguidelines-virtual-class-destructor,readability-function-size,*-unused-local-non-trivial-variable)

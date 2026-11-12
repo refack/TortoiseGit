@@ -51,7 +51,7 @@ using expect_no_hres = std::expected<void, winrt::hresult>;
 template <class E>
 struct ThrowIfError {
 	explicit ThrowIfError(const std::expected<void, E>& r) {
-		[[maybe_unused]]r.value();
+		r.value();
 	}
 };
 
@@ -684,11 +684,7 @@ public:
 	/// Reads the history stored as value \a name under HKCU\ \a subkey, e.g.
 	/// ("Software\\TortoiseGit\\History\\merge", "logmsgs"). With an empty
 	/// argument this does nothing, and the history stays unbound (Save fails).
-	void Load(std::wstring subkey, std::wstring name) {
-		if (subkey.empty() || name.empty())
-			return;
-		m_subkey = std::move(subkey);
-		m_name = std::move(name);
+	void Load() {
 		m_entries.clear();
 
 		const HRESULT hr = ResultFromException([&] {
@@ -714,6 +710,13 @@ public:
 		// wil reads a REG_MULTI_SZ holding no strings back as one empty string.
 		std::erase_if(m_entries, [](const std::wstring& entry) { return entry.empty(); });
 		Truncate();
+	}
+	void Load(std::wstring&& subkey, std::wstring&& name) {
+		if (subkey.empty() || name.empty())
+			return;
+		m_subkey = std::move(subkey);
+		m_name = std::move(name);
+		this->Load();
 	}
 
 
@@ -744,7 +747,7 @@ public:
 		if (text.empty())
 			return false;
 		if (!m_subkey.empty())
-			Load(m_subkey, m_name);
+			Load();
 
 		const auto existing = std::ranges::find(m_entries, text);
 		const bool added = existing == m_entries.end();
@@ -990,9 +993,9 @@ class Utf8Argv {
 	std::vector<const char*> _p;
 
 public:
-	explicit Utf8Argv(std::span<const std::wstring> a) :
-		_s{ std::from_range, std::views::transform(a, til::WStringToUTF8) } {
-		_p.reserve(_s.size() + 1);
+	explicit Utf8Argv(std::span<const std::wstring> a)
+	: _s{ std::from_range, std::views::transform(a, til::WStringToUTF8) }
+	, _p(_s.size() + 1) {
 		for (auto& s : _s)
 			_p.push_back(s.c_str());
 		_p.push_back(nullptr);
@@ -1014,7 +1017,7 @@ public:
 /// characters inside them) stay where they are - but copying is not, since a
 /// copy's pointers would still point into the original. Hence move-only.
 class ArgvData {
-	std::vector<std::wstring> _args;
+	std::vector<std::wstring> _args{};
 
 public:
 	ArgvData() = default;
@@ -1024,8 +1027,10 @@ public:
 	/// For an argv assembled conditionally before the call. Implicit, like the list
 	/// constructors, so a vector reaches every `const ArgvData&` parameter; a braced
 	/// list still picks the initializer_list constructor, which list-init prefers.
-	// ReSharper disable once CppNonExplicitConvertingConstructor
-	ArgvData(std::vector<std::wstring> args) : _args{ std::move(args) } {}
+	// ReSharper disable once CppNonExplicitConvertingConstructor cppcoreguidelines-rvalue-reference-param-not-moved
+	ArgvData(const std::vector<std::wstring>& args) : _args{ args } {} // NOLINT(*-explicit-constructor)
+	ArgvData(std::vector<std::wstring>&& args) : _args(::std::move(args)) {} // NOLINT(*-explicit-constructor)
+	ArgvData(std::vector<std::wstring>&& args, bool diff) : _args(args) {} // NOLINT(*-explicit-constructor)
 
 	ArgvData(const std::initializer_list<std::string> args) :
 		_args{ std::from_range, std::views::transform(args, til::UTF8ToWString) } {}

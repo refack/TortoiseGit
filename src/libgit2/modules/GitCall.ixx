@@ -569,12 +569,9 @@ int RunAsync(
 		// std::format rather than operator+: a wchar_t* + wchar_t is pointer arithmetic
 		cmd_tmp = std::format(L"\"{}\\bash.exe\" \"{}\"", ms_LastMsysGitDir.native(), tmpFile.GetString());
 	} else if (startsWithGit || cmd_tmp.starts_with(L"bash")) {
-		const std::wstring_view view{ cmd_tmp };
-		const auto firstSpace = view.find(L' ');
-		if (firstSpace != view.npos && firstSpace > 0)
-			cmd_tmp = std::format(L"\"{}\\{}\"{}", ms_LastMsysGitDir.native(), view.substr(0, firstSpace), view.substr(firstSpace));
-		else
-			cmd_tmp = std::format(L"\"{}\\{}\"", ms_LastMsysGitDir.native(), view);
+		const auto firstSpace = cmd_tmp.find(L' ');
+		auto secondpart = firstSpace != cmd_tmp.npos ? cmd_tmp.substr(firstSpace + 1) : std::wstring{};
+		cmd_tmp = std::format(LR"("{}" {})", ms_LastMsysGitDir / cmd_tmp.substr(0, firstSpace), secondpart);
 	}
 
 	m_CurrentGitPi = {};

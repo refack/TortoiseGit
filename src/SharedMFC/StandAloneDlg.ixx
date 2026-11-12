@@ -280,15 +280,13 @@ protected:
 
 	void HtmlHelp(DWORD_PTR dwData, UINT nCmd = 0x000F) override {
 		UNREFERENCED_PARAMETER(nCmd);
-		std::unreachable();
-		// if (!CAppUtils::StartHtmlHelp(dwData))
-		// 	AfxMessageBox(AFX_IDP_FAILED_TO_LAUNCH_HELP);
+		if (!CAppUtils::StartHtmlHelp(dwData))
+			AfxMessageBox(AFX_IDP_FAILED_TO_LAUNCH_HELP);
 	}
 
 
 	afx_msg LRESULT OnTaskbarButtonCreated(WPARAM /*wParam*/, LPARAM /*lParam*/) {
-		std::unreachable();
-		// SetUUIDOverlayIcon(BaseType::m_hWnd, TortoiseProc::g_sGroupingUUID, CAppUtils::g_sGroupingIcon, CAppUtils::g_bGroupingRemoveIcon);
+		SetUUIDOverlayIcon(BaseType::m_hWnd, TortoiseProc::g_sGroupingUUID, CAppUtils::g_sGroupingIcon, CAppUtils::g_bGroupingRemoveIcon);
 		return 0;
 	}
 

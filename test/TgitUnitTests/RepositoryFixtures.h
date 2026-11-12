@@ -79,6 +79,7 @@ static void CopyRecursively(const CString& source, const CString& dest)
 class CBasicGitFixture : public ::testing::TestWithParam<config>
 {
 protected:
+	~CBasicGitFixture() override = default;
 	virtual void SetUp() override
 	{
 		switch (GetParam())
@@ -135,6 +136,7 @@ public:
 class CBasicGitWithTestRepoCreatorFixture : public CBasicGitFixture
 {
 protected:
+	~CBasicGitWithTestRepoCreatorFixture() override = default;
 	CBasicGitWithTestRepoCreatorFixture(const CString& arepo = L"git-repo1")
 	// relative: fs::path's operator/ *replaces* everything after the drive with a
 	// right-hand side that has a root directory, so tmp / L"\\.git" was C:\.git
@@ -165,17 +167,18 @@ protected:
 		CBasicGitFixture::SetUp();
 	}
 
-	fs::path prefix;
+	fs::path prefix{};
 private:
-	CString m_reponame;
+	CString m_reponame{};
 };
 
 class CBasicGitWithTestRepoFixture : public CBasicGitWithTestRepoCreatorFixture
 {
 protected:
+	~CBasicGitWithTestRepoFixture() override = default;
 	CBasicGitWithTestRepoFixture() : CBasicGitWithTestRepoCreatorFixture() {};
 	CBasicGitWithTestRepoFixture(const CString& arepo) : CBasicGitWithTestRepoCreatorFixture(arepo) {};
-	virtual void SetUp() override
+	void SetUp() override
 	{
 		CBasicGitWithTestRepoCreatorFixture::SetUp();
 		SetUpTestRepo(m_Dir.GetTempDir());
@@ -189,6 +192,7 @@ public:
 	CBasicGitWithTestRepoBareFixture(const CString& arepo) : CBasicGitWithTestRepoFixture(arepo) {};
 
 protected:
+	~CBasicGitWithTestRepoBareFixture() override = default;
 	virtual void SetUp() override
 	{
 		prefix.clear();
@@ -207,6 +211,8 @@ class CBasicGitWithSubmoduleRepositoryFixture : public CBasicGitWithTestRepoFixt
 {
 public:
 	CBasicGitWithSubmoduleRepositoryFixture() : CBasicGitWithTestRepoFixture(L"git-submodules-repo") {};
+protected:
+	~CBasicGitWithSubmoduleRepositoryFixture() override = default;
 };
 
 // A repository created with --object-format=sha256, i.e. 64-char hex object ids
