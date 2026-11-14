@@ -442,7 +442,6 @@ using wil::GetFileInfo;
 using wil::ResultException;
 using wil::make_range;
 using wil::GetWindowDC;
-using unique_hglobal_resource = unique_any<HGLOBAL, decltype(&::FreeResource), ::FreeResource>;
 
 
 
@@ -1114,18 +1113,22 @@ fs::path GetModulePath(const HMODULE module = {} /* current process module */) {
 }
 
 
-/// GetResource<WORD>(...) -> std::span<const WORD>
+/// GetResourceView<WORD>(...) -> std::span<const WORD>; empty when the resource is missing.
+/// Nothing to release: the span views the mapped image and stays valid while `module`
+/// is loaded (UnlockResource is ((h), 0); FreeResource is a 16-bit leftover).
 template <typename DataType>
-auto GetResourceView(const HMODULE& module, const LPCWSTR& type, const LPCWSTR& name, const std::optional<LANGID> language = {}) {
-	using Elem = std::remove_const<DataType>;
+	requires std::is_trivially_copyable_v<DataType>
+auto GetResourceView(const HMODULE module, const LPCWSTR type, const LPCWSTR name, const std::optional<LANGID> language = {}) {
+	using Elem = std::remove_const_t<DataType>;
 
-	const auto& info = language
+	const HRSRC info = language
 		? ::FindResourceExW(module, type, name, *language)
 		: ::FindResourceW(module, name, type);
-	const auto& data = info ? ::LoadResource(module, info) : nullptr;
-	const auto* ptr = data ? ::LockResource(data) : nullptr;
-	const auto num_elements = ::SizeofResource(module, info) / sizeof(Elem);
-	return std::span<const DataType>{ static_cast<Elem*>(ptr), num_elements };
+	const HGLOBAL data = info ? ::LoadResource(module, info) : nullptr;
+	const auto* ptr = static_cast<const Elem*>(data ? ::LockResource(data) : nullptr);
+	if (!ptr)
+		return std::span<const Elem>{};
+	return std::span<const Elem>{ ptr, ::SizeofResource(module, info) / sizeof(Elem) };
 }
 
 

@@ -20,10 +20,10 @@
 #include "Utils.h"
 #include "ResModule.h"
 #include <Imagehlp.h>
-#include <tgitlib/sanity.h>		// SCOPE_EXIT, over wil's scope_exit_helper
+#include <tgitlib/sanity.h>		// SCOPE_EXIT
 
 import std;
-import wil;				// scope_exit_helper, which SCOPE_EXIT expands to
+import wil;				// GetResourceView; scope_guard, which SCOPE_EXIT expands to
 import str_utils;
 
 #pragma comment(lib, "Imagehlp.lib")
@@ -310,26 +310,16 @@ BOOL CResModule::CreateTranslatedResources(LPCWSTR lpszSrcLangDllPath, LPCWSTR l
 
 BOOL CResModule::ExtractString(LPCWSTR lpszType)
 {
-	const HRSRC& hrsrc = FindResource(m_hResDll, lpszType, RT_STRING);
-	if (!hrsrc)
+	const auto table = wil::GetResourceView<wchar_t>(m_hResDll, RT_STRING, lpszType);
+	if (table.empty())
 		MYERROR;
-
-	const auto hglStringTable = wil::unique_hglobal_resource(LoadResource(m_hResDll, hrsrc));
-	if (!hglStringTable)
-		MYERROR;
-
-	const auto p = static_cast<LPWSTR>(LockResource(hglStringTable.get()));
-	if (!p)
-		MYERROR;
-	SCOPE_EXIT { UnlockResource(hglStringTable.get()); };
 	/*  [Block of 16 strings.  The strings are Pascal style with a WORD
 	length preceding the string.  16 strings are always written, even
 	if not all slots are full.  Any slots in the block with no string
 	have a zero WORD for the length.]
 	*/
 
-	//first check how much memory we need
-	LPWSTR pp = p;
+	const wchar_t* pp = table.data();
 	for (int i=0; i<16; ++i)
 	{
 		int len = GET_WORD(pp);
@@ -355,31 +345,15 @@ BOOL CResModule::ExtractString(LPCWSTR lpszType)
 
 BOOL CResModule::ReplaceString(LPCWSTR lpszType, WORD wLanguage)
 {
-	HRSRC       hrsrc = FindResourceEx(m_hResDll, RT_STRING, lpszType, wLanguage);
-	HGLOBAL     hglStringTable;
-	LPWSTR      p;
-
-	if (!hrsrc)
+	const auto table = wil::GetResourceView<wchar_t>(m_hResDll, RT_STRING, lpszType, wLanguage);
+	if (table.empty())
 		MYERROR;
-	hglStringTable = LoadResource(m_hResDll, hrsrc);
-
-	if (!hglStringTable)
-		MYERROR;
-	SCOPE_EXIT { FreeResource(hglStringTable); };
-	p = static_cast<LPWSTR>(LockResource(hglStringTable));
-
-	if (!p)
-		MYERROR;
-	SCOPE_EXIT { UnlockResource(hglStringTable); };
-	/*  [Block of 16 strings.  The strings are Pascal style with a WORD
-	length preceding the string.  16 strings are always written, even
-	if not all slots are full.  Any slots in the block with no string
-	have a zero WORD for the length.]
-*/
+	// Block of 16 length-prefixed strings, cf. ExtractString.
 
 	//first check how much memory we need
 	size_t nMem = 0;
-	LPWSTR pp = p;
+	const wchar_t* p = table.data();
+	const wchar_t* pp = p;
 	for (int i=0; i<16; ++i)
 	{
 		nMem++;
@@ -453,20 +427,11 @@ BOOL CResModule::ReplaceString(LPCWSTR lpszType, WORD wLanguage)
 
 BOOL CResModule::ExtractMenu(LPCWSTR lpszType)
 {
-	const HRSRC& hrsrc = FindResource(m_hResDll, lpszType, RT_MENU);
-	if (!hrsrc)
+	const auto menu = wil::GetResourceView<WORD>(m_hResDll, RT_MENU, lpszType);
+	if (menu.empty())
 		MYERROR;
 
-	const auto hglMenuTemplate = wil::unique_hglobal_resource(LoadResource(m_hResDll, hrsrc));
-	if (!hglMenuTemplate)
-		MYERROR;
-
-	auto p = static_cast<const WORD*>(LockResource(hglMenuTemplate.get()));
-	if (!p)
-		MYERROR;
-	SCOPE_EXIT { UnlockResource(hglMenuTemplate.get()); };
-
-/*
+	/*
 	// Standard MENU resource
 	struct MenuHeader {
 	  WORD   wVersion;           // Currently zero
@@ -479,8 +444,9 @@ BOOL CResModule::ExtractMenu(LPCWSTR lpszType)
 	    WORD wOffset;
 	    DWORD dwHelpId;
 	};
-*/
-	auto p0 = p;
+	*/
+	const WORD* p = menu.data();
+	const WORD* const p0 = p;
 	const auto version = GET_WORD(p);
 	p++;
 
@@ -514,42 +480,29 @@ BOOL CResModule::ExtractMenu(LPCWSTR lpszType)
 
 BOOL CResModule::ReplaceMenu(LPCWSTR lpszType, WORD wLanguage)
 {
-	/**
-	struct MenuHeader {
-	  WORD   wVersion;           // Currently zero
-	  WORD   cbHeaderSize;       // Also zero
-	};
+	// MenuHeader / MenuExHeader layout: cf. ExtractMenu
+	const auto menu = wil::GetResourceView<WORD>(m_hResDll, RT_MENU, lpszType, wLanguage);
+	if (menu.size() < 2)
+		MYERROR;    // just the language wasn't found
 
-	// MENUEX resource
-	struct MenuExHeader {
-	    WORD wVersion;           // One
-	    WORD wOffset;
-	    DWORD dwHelpId;
-	};
-	*/
-
-	auto res = wil::GetResourceView<WORD>(m_hResDll, RT_MENU, lpszType, wLanguage);
-	auto p0 = res;
-	const auto version = res.front();
-	res = res.subspan(1);
-
-	const auto offset = res.front();
+	const auto version = menu[0];
+	const auto offset = menu[1];
 
 	switch (version)
 	{
 	case 0:
 		{
-			res = res.subspan(1 + offset);
+			const WORD* const items = menu.subspan(2 + offset).data();   // past wVersion, cbHeaderSize and cbHeaderSize header WORDs
 			size_t nMem = 0;
-			if (!CountMemReplaceMenuResource(res.data(), &nMem, nullptr))
+			if (!CountMemReplaceMenuResource(items, &nMem, nullptr))
 				MYERROR;
-			const size_t num_elems = nMem + (nMem % sizeof(WORD)) + sizeof(WORD);
-			const auto newMenu = std::make_unique<WORD[]>(num_elems);
-			size_t index = 2;       // MenuHeader has 2 WORDs zero
-			if (!CountMemReplaceMenuResource(res.data(), &index, newMenu.get()))
+			const size_t words = nMem + (nMem % 2) + 2;    // MenuHeader has 2 WORDs zero
+			const auto newMenu = std::make_unique<WORD[]>(words);
+			size_t index = 2;
+			if (!CountMemReplaceMenuResource(items, &index, newMenu.get()))
 				MYERROR;
 
-			if (!UpdateResource(m_hUpdateRes, RT_MENU, lpszType, (m_wTargetLang ? m_wTargetLang : wLanguage), newMenu.get(), static_cast<DWORD>(nMem + (nMem % 2) + 2) * sizeof(WORD)))
+			if (!UpdateResource(m_hUpdateRes, RT_MENU, lpszType, (m_wTargetLang ? m_wTargetLang : wLanguage), newMenu.get(), static_cast<DWORD>(words * sizeof(WORD))))
 				MYERROR;
 
 			if (m_wTargetLang && (!UpdateResource(m_hUpdateRes, RT_MENU, lpszType, wLanguage, nullptr, 0)))
@@ -558,18 +511,18 @@ BOOL CResModule::ReplaceMenu(LPCWSTR lpszType, WORD wLanguage)
 		break;
 	case 1:
 		{
-			//dwHelpId = GET_DWORD(p);
+			const WORD* const items = menu.subspan(offset).data();
 			size_t nMem = 0;
-			auto res_ptr = p0.subspan(offset).data();
-			if (!CountMemReplaceMenuExResource(res_ptr, &nMem, nullptr))
+			if (!CountMemReplaceMenuExResource(items, &nMem, nullptr))
 				MYERROR;
-			auto newMenu = std::make_unique<WORD[]>(nMem + (nMem % 2) + 4);
-			CopyMemory(newMenu.get(), p0.data(), 2 * sizeof(WORD) + sizeof(DWORD));
-			size_t index = 4;       // MenuExHeader has 2 x WORD + 1 x DWORD
-			if (!CountMemReplaceMenuExResource(res_ptr, &index, newMenu.get()))
+			const size_t words = nMem + (nMem % 2) + 4;    // MenuExHeader has 2 x WORD + 1 x DWORD
+			const auto newMenu = std::make_unique<WORD[]>(words);
+			std::copy_n(menu.data(), 4, newMenu.get());     // the header, dwHelpId included
+			size_t index = 4;
+			if (!CountMemReplaceMenuExResource(items, &index, newMenu.get()))
 				MYERROR;
 
-			if (!UpdateResource(m_hUpdateRes, RT_MENU, lpszType, (m_wTargetLang ? m_wTargetLang : wLanguage), newMenu.get(), static_cast<DWORD>(nMem + (nMem % 2) + 4) * sizeof(DWORD)))
+			if (!UpdateResource(m_hUpdateRes, RT_MENU, lpszType, (m_wTargetLang ? m_wTargetLang : wLanguage), newMenu.get(), static_cast<DWORD>(words * sizeof(DWORD))))
 				MYERROR;
 
 			if (m_wTargetLang && (!UpdateResource(m_hUpdateRes, RT_MENU, lpszType, wLanguage, nullptr, 0)))
@@ -872,26 +825,13 @@ const WORD* CResModule::CountMemReplaceMenuExResource(const WORD * res, size_t *
 
 BOOL CResModule::ExtractAccelerator(LPCWSTR lpszType)
 {
-	HRSRC       hrsrc = FindResource(m_hResDll, lpszType, RT_ACCELERATOR);
-	HGLOBAL     hglAccTable;
 	WORD        fFlags, wAnsi, wID;
-	const WORD* p;
 	bool        bEnd(false);
 
-	if (!hrsrc)
+	const auto table = wil::GetResourceView<WORD>(m_hResDll, RT_ACCELERATOR, lpszType);
+	if (table.empty())
 		MYERROR;
-
-	hglAccTable = LoadResource(m_hResDll, hrsrc);
-
-	if (!hglAccTable)
-		MYERROR;
-	SCOPE_EXIT { FreeResource(hglAccTable); };
-
-	p = static_cast<const WORD*>(LockResource(hglAccTable));
-
-	if (!p)
-		MYERROR;
-	SCOPE_EXIT { UnlockResource(hglAccTable); };
+	const WORD* p = table.data();
 	/*
 	struct ACCELTABLEENTRY
 	{
@@ -989,26 +929,17 @@ BOOL CResModule::ExtractAccelerator(LPCWSTR lpszType)
 
 BOOL CResModule::ReplaceAccelerator(LPCWSTR lpszType, WORD wLanguage)
 {
-	LPACCEL     lpaccelNew;         // pointer to new accelerator table
-	HACCEL      haccelOld;          // handle to old accelerator table
-	int         cAccelerators;      // number of accelerators in table
-	HGLOBAL     hglAccTableNew;
-	const WORD* p;
 	int         i;
 
-	haccelOld = LoadAccelerators(m_hResDll, lpszType);
-
+	const HACCEL haccelOld = LoadAccelerators(m_hResDll, lpszType);
 	if (!haccelOld)
 		MYERROR;
 
-	cAccelerators = CopyAcceleratorTable(haccelOld, nullptr, 0);
-
-	lpaccelNew = static_cast<LPACCEL>(LocalAlloc(LPTR, cAccelerators * sizeof(ACCEL)));
-
-	if (!lpaccelNew)
+	const int cAccelerators = CopyAcceleratorTable(haccelOld, nullptr, 0);
+	if (cAccelerators <= 0)
 		MYERROR;
-	SCOPE_EXIT { LocalFree(lpaccelNew); };
-
+	std::vector<ACCEL> accels(cAccelerators);
+	const auto lpaccelNew = accels.data();
 	CopyAcceleratorTable(haccelOld, lpaccelNew, cAccelerators);
 
 	// Find the accelerator that the user modified
@@ -1083,7 +1014,7 @@ BOOL CResModule::ReplaceAccelerator(LPCWSTR lpszType, WORD wLanguage)
 			{
 				swscanf_s(wtemp.substr(5, 1).c_str(), L"%c", &xkey, 1);
 				lpaccelNew[i].fVirt = xfVirt;
-				lpaccelNew[i].key = static_cast<DWORD>(xkey);
+				lpaccelNew[i].key = static_cast<WORD>(xkey);
 			}
 		}
 		else
@@ -1091,26 +1022,19 @@ BOOL CResModule::ReplaceAccelerator(LPCWSTR lpszType, WORD wLanguage)
 	}
 
 
-	// Create the new accelerator table
-	hglAccTableNew = LocalAlloc(LPTR, cAccelerators * 4 * sizeof(WORD));
-	if (!hglAccTableNew)
-		MYERROR;
-	SCOPE_EXIT { LocalFree(hglAccTableNew); };
-	p = static_cast<WORD*>(hglAccTableNew);
-	lpaccelNew[cAccelerators-1].fVirt |= 0x80;
-	for (i = 0; i < cAccelerators; i++)
+	// Create the new accelerator table: ACCELTABLEENTRY {fFlags, wAnsi, wId, padding},
+	// cf. ExtractAccelerator; 0x80 in fFlags marks the last entry.
+	accels.back().fVirt |= 0x80;
+	std::vector<WORD> newTable(accels.size() * 4);     // zero-filled, so the padding WORDs are 0
+	for (size_t k = 0; k < accels.size(); ++k)
 	{
-		memcpy(reinterpret_cast<void*>(const_cast<WORD*>(p)), &lpaccelNew[i].fVirt, 1);
-		p++;
-		memcpy(reinterpret_cast<void*>(const_cast<WORD*>(p)), &lpaccelNew[i].key, sizeof(WORD));
-		p++;
-		memcpy(reinterpret_cast<void*>(const_cast<WORD*>(p)), &lpaccelNew[i].cmd, sizeof(WORD));
-		p++;
-		p++;
+		newTable[k * 4 + 0] = accels[k].fVirt;
+		newTable[k * 4 + 1] = accels[k].key;
+		newTable[k * 4 + 2] = accels[k].cmd;
 	}
 
 	if (!UpdateResource(m_hUpdateRes, RT_ACCELERATOR, lpszType,
-		(m_wTargetLang ? m_wTargetLang : wLanguage), hglAccTableNew /* haccelNew*/, cAccelerators * 4 * sizeof(WORD)))
+		(m_wTargetLang ? m_wTargetLang : wLanguage), newTable.data(), static_cast<DWORD>(newTable.size() * sizeof(WORD))))
 	{
 		MYERROR;
 	}
@@ -1125,30 +1049,16 @@ BOOL CResModule::ReplaceAccelerator(LPCWSTR lpszType, WORD wLanguage)
 
 BOOL CResModule::ExtractDialog(LPCWSTR lpszType)
 {
-	const WORD* lpDlg;
 	const WORD* lpDlgItem;
 	DIALOGINFO  dlg;
 	DLGITEMINFO dlgItem;
 	WORD        bNumControls;
-	HRSRC       hrsrc;
-	HGLOBAL     hGlblDlgTemplate;
 
-	hrsrc = FindResource(m_hResDll, lpszType, RT_DIALOG);
-
-	if (!hrsrc)
+	const auto dialog = wil::GetResourceView<WORD>(m_hResDll, RT_DIALOG, lpszType);
+	if (dialog.empty())
 		MYERROR;
 
-	hGlblDlgTemplate = LoadResource(m_hResDll, hrsrc);
-	if (!hGlblDlgTemplate)
-		MYERROR;
-	SCOPE_EXIT { FreeResource(hGlblDlgTemplate); };
-	lpDlg = static_cast<const WORD*>(LockResource(hGlblDlgTemplate));
-
-	if (!lpDlg)
-		MYERROR;
-	SCOPE_EXIT { UnlockResource(hGlblDlgTemplate); };
-
-	lpDlgItem = GetDialogInfo(lpDlg, &dlg);
+	lpDlgItem = GetDialogInfo(dialog.data(), &dlg);
 	bNumControls = dlg.nbItems;
 
 	if (dlg.caption)
@@ -1191,30 +1101,13 @@ BOOL CResModule::ExtractDialog(LPCWSTR lpszType)
 
 BOOL CResModule::ReplaceDialog(LPCWSTR lpszType, WORD wLanguage)
 {
-	const WORD* lpDlg;
-	HRSRC       hrsrc;
-	HGLOBAL     hGlblDlgTemplate;
-
-	hrsrc = FindResourceEx(m_hResDll, RT_DIALOG, lpszType, wLanguage);
-
-	if (!hrsrc)
+	const auto dialog = wil::GetResourceView<WORD>(m_hResDll, RT_DIALOG, lpszType, wLanguage);
+	if (dialog.empty())
 		MYERROR;
-
-	hGlblDlgTemplate = LoadResource(m_hResDll, hrsrc);
-
-	if (!hGlblDlgTemplate)
-		MYERROR;
-	SCOPE_EXIT { FreeResource(hGlblDlgTemplate); };
-
-	lpDlg = static_cast<WORD*>(LockResource(hGlblDlgTemplate));
-
-	if (!lpDlg)
-		MYERROR;
-	SCOPE_EXIT { UnlockResource(hGlblDlgTemplate); };
+	const WORD* const lpDlg = dialog.data();
 
 	size_t nMem = 0;
-	const WORD * p = lpDlg;
-	if (!CountMemReplaceDialogResource(p, &nMem, nullptr))
+	if (!CountMemReplaceDialogResource(lpDlg, &nMem, nullptr))
 		MYERROR;
 	auto newDialog = std::make_unique<WORD[]>(nMem + (nMem % 2));
 
@@ -1750,25 +1643,9 @@ const WORD* CResModule::ReplaceControlInfo(const WORD * res, size_t * wordcount,
 
 BOOL CResModule::ExtractRibbon(LPCWSTR lpszType)
 {
-	HRSRC       hrsrc = FindResource(m_hResDll, lpszType, RT_RIBBON);
-	HGLOBAL     hglRibbonTemplate;
-	const BYTE *p;
-
-	if (!hrsrc)
+	const auto ribbon = wil::GetResourceView<char>(m_hResDll, RT_RIBBON, lpszType);
+	if (ribbon.empty())
 		MYERROR;
-
-	hglRibbonTemplate = LoadResource(m_hResDll, hrsrc);
-	if (!hglRibbonTemplate)
-		MYERROR;
-	SCOPE_EXIT { FreeResource(hglRibbonTemplate); };
-
-	DWORD sizeres = SizeofResource(m_hResDll, hrsrc);
-
-	p = static_cast<const BYTE*>(LockResource(hglRibbonTemplate));
-
-	if (!p)
-		MYERROR;
-	SCOPE_EXIT { UnlockResource(hglRibbonTemplate); };
 
 	// Resource consists of one single string
 	// that is XML.
@@ -1776,7 +1653,7 @@ BOOL CResModule::ExtractRibbon(LPCWSTR lpszType)
 	// extract all <id><name>blah1</name><value>blah2</value></id><text>blah</text> elements
 
 	const std::regex regRevMatch("<ID><NAME>([^<]+)</NAME><VALUE>([^<]+)</VALUE></ID><TEXT>([^<]+)</TEXT>");
-	std::string ss = std::string(reinterpret_cast<const char*>(p), sizeres);
+	const std::string ss(ribbon.begin(), ribbon.end());
 	const std::sregex_iterator end;
 	for (std::sregex_iterator it(ss.cbegin(), ss.cend(), regRevMatch); it != end; ++it)
 	{
@@ -1814,28 +1691,12 @@ BOOL CResModule::ExtractRibbon(LPCWSTR lpszType)
 
 BOOL CResModule::ReplaceRibbon(LPCWSTR lpszType, WORD wLanguage)
 {
-	HRSRC       hrsrc = FindResource(m_hResDll, lpszType, RT_RIBBON);
-	HGLOBAL     hglRibbonTemplate;
-	const BYTE *p;
-
-	if (!hrsrc)
+	// FindResource, not FindResourceEx: upstream reads the ribbon without wLanguage
+	const auto ribbon = wil::GetResourceView<char>(m_hResDll, RT_RIBBON, lpszType);
+	if (ribbon.empty())
 		MYERROR;
 
-	hglRibbonTemplate = LoadResource(m_hResDll, hrsrc);
-
-	if (!hglRibbonTemplate)
-		MYERROR;
-	SCOPE_EXIT { FreeResource(hglRibbonTemplate); };
-
-	DWORD sizeres = SizeofResource(m_hResDll, hrsrc);
-
-	p = static_cast<const BYTE*>(LockResource(hglRibbonTemplate));
-
-	if (!p)
-		MYERROR;
-	SCOPE_EXIT { UnlockResource(hglRibbonTemplate); };
-
-	std::string ss = std::string(reinterpret_cast<const char*>(p), sizeres);
+	const std::string ss(ribbon.begin(), ribbon.end());
 	std::wstring ssw = CUnicodeUtils::StdGetUnicode(ss);
 
 	const std::regex regRevMatch("<TEXT>([^<]+)</TEXT>");
