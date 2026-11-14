@@ -224,6 +224,9 @@ set_target_properties(TortoiseProc PROPERTIES
 target_include_directories(TortoiseProc
     PRIVATE
         "${CMAKE_CURRENT_SOURCE_DIR}"
+        # TortoiseProcENG.rc names its icons/avis bare; they stayed in SharedMFC/Resources
+        # when the .rc moved here. RC only, so no C++ include sees that resource.h.
+        "$<$<COMPILE_LANGUAGE:RC>:${CMAKE_SOURCE_DIR}/src/SharedMFC/Resources>"
 )
 
 target_compile_definitions(TortoiseProc

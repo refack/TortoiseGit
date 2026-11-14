@@ -47,6 +47,6 @@ BEGIN
     END
 END
 
-#include "../../TortoiseShell/resourceshell.rc"
-#include "../../SharedMFC/TortoiseLoglistCommon.rc2"
+#include "../TortoiseShell/resourceshell.rc"
+#include "../SharedMFC/Resources/TortoiseLoglistCommon.rc2"
 /////////////////////////////////////////////////////////////////////////////
