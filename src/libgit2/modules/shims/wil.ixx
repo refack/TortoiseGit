@@ -994,8 +994,9 @@ class Utf8Argv {
 
 public:
 	explicit Utf8Argv(std::span<const std::wstring> a)
-	: _s{ std::from_range, std::views::transform(a, til::WStringToUTF8) }
-	, _p(_s.size() + 1) {
+	: _s{ std::from_range, std::views::transform(a, til::WStringToUTF8) } {
+		// reserve, not _p(n): vector(n) is n nullptrs, and push_back would land after them
+		_p.reserve(_s.size() + 1);
 		for (auto& s : _s)
 			_p.push_back(s.c_str());
 		_p.push_back(nullptr);
