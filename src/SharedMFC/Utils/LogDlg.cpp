@@ -39,6 +39,7 @@ import ThemeAPI;
 import invarients;
 import lanes;
 import TortoiseProc;
+import AppUtils.Workflow;	// CAppUtils::EditNote
 using namespace RIAA;
 using namespace TGitH;
 using namespace tgit;
@@ -1484,7 +1485,7 @@ void CLogDlg::OnContextMenu(CWnd* pWnd, CPoint point)
 			// reset last selected date
 			m_regLastSelectedFromDate.removeValue();
 		} else if (cmd == cnt) { // last entry, must be before cmd >= 2
-			GitCall::RunTortoiseGitProc(L"/command:settings /page:dialog");
+			TortoiseProc::RunTortoiseGitProc(L"/command:settings /page:dialog");
 			return;
 		} else if (cmd == 2) {
 			m_LogList.m_Filter.m_NumberOfLogsScale = static_cast<CFilterData::SHOW_MODE>(scale);
@@ -1560,7 +1561,7 @@ void CLogDlg::OnContextMenu(CWnd* pWnd, CPoint point)
 				wil::SetClipboardText(tgit::str::StringView{ pEdit->GetSelText() }, m_hWnd); // manually copy text, to detach it from process (cf. issue #3909)
 				break;
 			case CGitLogList::ID_EDITNOTE:
-				wil::MFC::EditNote(GetSafeHwnd(), pRev, &m_LogList.m_ProjectProperties);
+				CAppUtils::EditNote(GetSafeHwnd(), pRev, &m_LogList.m_ProjectProperties);
 				this->FillLogMessageCtrl(true);
 				break;
 			}

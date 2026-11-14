@@ -36,6 +36,7 @@ import TGitMessageBox;
 import ConfigureGitExe;
 import DragDrop;
 import GitDataObject;
+import TempFile;	// TempFiles::GetTempFilePath
 
 #define OVERLAY_EXTERNAL	1
 #define OVERLAY_EXECUTABLE	2

@@ -13,20 +13,16 @@ using wstr::CString;
 
 export namespace RepositoryFixtures {
 
-// enum config
-// {
-// 	LIBGIT2_ALL,
-// 	LIBGIT2,
-// 	LIBGIT,
-// 	GIT_CLI,
-// };
-
-
-
-constexpr auto LIBGIT2_ALL = "LIBGIT2_ALL"sv;
-constexpr auto LIBGIT2 = "LIBGIT2"sv;
-constexpr auto LIBGIT = "LIBGIT"sv;
-constexpr auto GIT_CLI = "GIT_CLI"sv;
+// The backend a parameterized fixture runs against. A plain enum on purpose:
+// `switch (GetParam())` needs integral case labels, and debuggers already show
+// enumerators by name (LIBGIT2, not 1).
+enum config
+{
+	LIBGIT2_ALL,
+	LIBGIT2,
+	LIBGIT,
+	GIT_CLI,
+};
 
 
 bool GetResourcesDir(fs::path& resourcesDir)
