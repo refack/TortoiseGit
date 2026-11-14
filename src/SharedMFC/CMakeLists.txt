@@ -78,6 +78,7 @@ target_sources(SharedMFC
         FILE_SET CXX_MODULES
         BASE_DIRS "${CMAKE_CURRENT_SOURCE_DIR}"
     FILES
+        AppHelp.ixx
         BrowseFolder.ixx
         ColumnManager.ixx
         FilterHelper.ixx

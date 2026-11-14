@@ -21,7 +21,10 @@ import DarkModeHelper;
 import SysInfo;		// GetMonitorSetupHash
 import Tooltip;
 import DPIAware;
-// import TortoiseProc;
+import AppHelp;		// StartHtmlHelp
+// Never `import TortoiseProc;` (nor any AppUtils.*): TortoiseProc's GMF includes dialogs
+// that import this module. What the dialogs need from up there lives below instead:
+// StartHtmlHelp in AppHelp, the taskbar grouping globals in TaskbarUUID.
 
 using namespace TGitDarkMode;
 using namespace ThemeAPI;
@@ -278,13 +281,13 @@ protected:
 
 	void HtmlHelp(DWORD_PTR dwData, UINT nCmd = 0x000F) override {
 		UNREFERENCED_PARAMETER(nCmd);
-		if (!CAppUtils::StartHtmlHelp(dwData))
+		if (!AppHelp::StartHtmlHelp(dwData))
 			AfxMessageBox(AFX_IDP_FAILED_TO_LAUNCH_HELP);
 	}
 
 
 	afx_msg LRESULT OnTaskbarButtonCreated(WPARAM /*wParam*/, LPARAM /*lParam*/) {
-		SetUUIDOverlayIcon(BaseType::m_hWnd, TortoiseProc::g_sGroupingUUID, CAppUtils::g_sGroupingIcon, CAppUtils::g_bGroupingRemoveIcon);
+		SetUUIDOverlayIcon(BaseType::m_hWnd, TaskbarUUID::g_sGroupingUUID, TaskbarUUID::g_sGroupingIcon, TaskbarUUID::g_bGroupingRemoveIcon);
 		return 0;
 	}
 

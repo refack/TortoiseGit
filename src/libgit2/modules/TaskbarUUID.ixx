@@ -21,6 +21,17 @@ constexpr auto APPID = L"TGIT.TGIT.1";
 export namespace TaskbarUUID {
 
 
+// The process's taskbar grouping: /groupuuid:, or one derived from the working tree,
+// and the overlay icon its repository chose. Set by an application's InitInstance,
+// read by every StandAloneDlg's OnTaskbarButtonCreated. They live here, below
+// StandAloneDlg, because TortoiseProc (their old home) sits above it: TortoiseProc's
+// GMF includes dialogs that `import StandAloneDlg`, so the reverse edge is a cycle.
+// TortoiseProc re-exports them, so TortoiseProc::g_sGroupingUUID still names these.
+std::wstring g_sGroupingUUID{};
+std::wstring g_sGroupingIcon{};
+bool g_bGroupingRemoveIcon{};
+
+
 /**
  * Returns the App ID string. See \ref SetTaskIDPerUUID() for details.
  */

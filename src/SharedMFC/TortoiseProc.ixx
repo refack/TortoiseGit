@@ -73,13 +73,12 @@ HWND g_hWndExplorer{};
 export namespace TortoiseProc {
 
 
-/////////////////// some hacky GLOBALS //////////////////
-// Defined by each MFC application. Declared in the global module fragment so it
-// names the same variable as StandAloneDlg.h's, not one attached to this module.
-std::wstring g_sGroupingUUID{};
-std::wstring g_sGroupingIcon{};
-bool g_bGroupingRemoveIcon{};
-/////////////////////////////////////////////////////////
+// The taskbar grouping globals. Owned by TaskbarUUID, which StandAloneDlg can
+// import and this module cannot be imported by (see there); re-exported so
+// TortoiseProc::g_sGroupingUUID keeps naming them.
+using TaskbarUUID::g_sGroupingUUID;
+using TaskbarUUID::g_sGroupingIcon;
+using TaskbarUUID::g_bGroupingRemoveIcon;
 
 
 

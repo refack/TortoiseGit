@@ -1,6 +1,7 @@
 add_executable(TGitUnitTests)
 
-target_precompile_headers(TGitUnitTests PRIVATE stdafx.h)
+# Textual includes only: a PCH is never module-scanned, so an `import` in it is C2230.
+target_precompile_headers(TGitUnitTests PRIVATE stdafx_pch.h)
 
 target_sources(TGitUnitTests
     PRIVATE
