@@ -3951,15 +3951,11 @@ TEST_P(CBasicGitWithEmptyRepositoryFixture, GetWorkingTreeChanges)
 
 static int DoSubmodule(const wil::ArgvData& cmd, CGit& git, const fs::path& submoduleDir, std::string& output)
 {
-	const fs::path old = git.m_CurrentDir;
-	try {
-		git.SetCurrentDirExact(submoduleDir);
 	output.clear();
-		return git.Run(cmd, &output);
-	} catch (...) {
-		git.SetCurrentDirExact(old);
-		return -1;
-	}
+	const fs::path old = git.m_CurrentDir;
+	SCOPE_EXIT { git.SetCurrentDirExact(old); }; // on every exit: the caller's next call is about the superproject
+	git.SetCurrentDirExact(submoduleDir);
+	return git.Run(cmd, &output);
 }
 
 TEST_P(CBasicGitWithSubmoduleRepositoryFixture, GetWorkingTreeChanges_Submodules)
