@@ -117,6 +117,7 @@ target_sources(SharedMFC
         ProgressDlg.ixx
         SysProgressDlg.ixx
         ProtoModules/AutoTextTestDlg.ixx
+        RefLoglist.ixx
 )
 
 
@@ -239,8 +240,6 @@ target_sources(SharedMFC
         ProtoModules/RebaseDlg.h
         ProtoModules/RefLogDlg.cpp
         ProtoModules/RefLogDlg.h
-        ProtoModules/RefLoglist.cpp
-        ProtoModules/RefLoglist.h
         ProtoModules/RenameDlg.cpp
         ProtoModules/RenameDlg.h
         ProtoModules/RepositoryBrowser.cpp

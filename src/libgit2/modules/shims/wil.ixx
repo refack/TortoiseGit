@@ -417,7 +417,8 @@ using wil::unique_hicon;
 using wil::unique_handle;
 using wil::unique_hmodule;
 using wil::unique_struct;
-using wil::unique_hdc_window;
+using wil::unique_hdc;
+using wil::unique_hbitmap;
 using wil::scope_exit;
 // COM owners. The nothrow flavor only: CComPtr never threw, and the throwing
 // policies reach wil's failure reporting, whose strsafe statics cannot cross an
@@ -441,7 +442,7 @@ using wil::open_file;
 using wil::GetFileInfo;
 using wil::ResultException;
 using wil::make_range;
-using wil::GetWindowDC;
+using wil::GetDC;
 
 
 

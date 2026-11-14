@@ -136,7 +136,7 @@ void CIconMenu::DrawItem(LPDRAWITEMSTRUCT lpDrawItemStruct)
 		bDestroyIcon = false;
 	}
 	else
-		hIcon = wil::MFC::LoadIconEx(AfxGetResourceHandle(), MAKEINTRESOURCE(icons[lpDrawItemStruct->itemID]), iconWidth, iconHeight);
+		hIcon = wil::LoadIconEx(AfxGetResourceHandle(), MAKEINTRESOURCE(icons[lpDrawItemStruct->itemID]), iconWidth, iconHeight);
 	if (!hIcon)
 		return;
 	DrawIconEx(lpDrawItemStruct->hDC,

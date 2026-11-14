@@ -29,7 +29,7 @@ public:
 
 HBITMAP IconBitmapUtils::IconToBitmap(const HINSTANCE& hInst, const UINT uIcon)
 {
-	const CAutoIcon hIcon = wil::MFC::LoadIconEx(hInst, MAKEINTRESOURCE(uIcon), 12, 12);
+	const CAutoIcon hIcon = wil::LoadIconEx(hInst, MAKEINTRESOURCE(uIcon), 12, 12);
 	if (!hIcon)
 		return nullptr;
 
@@ -46,13 +46,12 @@ HBITMAP IconBitmapUtils::IconToBitmap(const HINSTANCE& hInst, const UINT uIcon)
 	if (!dstHdc)
 		return nullptr;
 
-	wil::unique_hbitmap bmp(::CreateCompatibleBitmap(
-		screenDev.get(), rect.right - rect.left, rect.bottom - rect.top));
+	wil::unique_hbitmap bmp(::CreateCompatibleBitmap(screenDev.get(), rect.right - rect.left, rect.bottom - rect.top));
 	if (!bmp)
 		return nullptr;
 
 	// Select it into the compatible DC
-	auto* oldDstBmp = static_cast<HBITMAP>(::SelectObject(dstHdc.get(), bmp));
+	auto* oldDstBmp = static_cast<HBITMAP>(::SelectObject(dstHdc.get(), bmp.get()));
 	if (!oldDstBmp)
 		return nullptr;
 
@@ -67,14 +66,14 @@ HBITMAP IconBitmapUtils::IconToBitmap(const HINSTANCE& hInst, const UINT uIcon)
 	// Restore settings
 	::SelectObject(dstHdc.get(), oldDstBmp);
 
-	return bmp;
+	return bmp.release();
 }
 
 HBITMAP IconBitmapUtils::IconToBitmapPARGB32(const HINSTANCE& hInst, const UINT uIcon)
 {
 	const int iconWidth = GetSystemMetrics(SM_CXSMICON);
 	const int iconHeight = GetSystemMetrics(SM_CYSMICON);
-	const CAutoIcon hIcon = wil::MFC::LoadIconEx(hInst, MAKEINTRESOURCE(uIcon), iconWidth, iconHeight);
+	const CAutoIcon hIcon = wil::LoadIconEx(hInst, MAKEINTRESOURCE(uIcon), iconWidth, iconHeight);
 
 	return IconToBitmapPARGB32(hIcon, iconWidth, iconHeight);
 }

@@ -33,8 +33,10 @@ export namespace wil::MFC {
 
 // The HINSTANCE overloads live in tgitlib/LoadIconEx.h (TGitCache and
 // TortoiseUDiff use them without MFC); re-exported here for module importers.
-inline HICON wil::LoadIconEx(const UINT resourceId, const UINT cx, const UINT cy) {
-	return wil::LoadIconEx(AfxGetResourceHandle(), MAKEINTRESOURCE(resourceId), win32_cast(cx), win32_cast(cy));
+HICON LoadIconEx(const UINT resourceId, const UINT cx, const UINT cy) {
+	const auto& lp_icon_name = MAKEINTRESOURCE(resourceId);
+	const auto& h_instance = AfxGetResourceHandle();
+	return ::wil::LoadIconEx(h_instance, lp_icon_name, win32_cast(cx), win32_cast(cy));
 }
 
 
@@ -59,9 +61,7 @@ DWORD GetLogFontSize() {
  */
 void CreateFontForLogs(const HWND& hWnd, CFont& fontToCreate) {
 	LOGFONT logFont;
-	auto* const hScreenDC = ::GetDC(nullptr);
 	logFont.lfHeight = -CDPIAware::Instance().PointsToPixelsY(hWnd, win32_cast(GetLogFontSize()));
-	::ReleaseDC(nullptr, hScreenDC);
 	logFont.lfWidth = 0;
 	logFont.lfEscapement = 0;
 	logFont.lfOrientation = 0;

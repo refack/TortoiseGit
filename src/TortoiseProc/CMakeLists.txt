@@ -114,7 +114,6 @@ target_sources(TortoiseProc
         Commands/WorktreeCommand.cpp
         Commands/WorktreeCommand.h
         EnableStagingTypes.h
-        GitLogList.h
         GitLogListAction.cpp
         ProgressCommands/AddProgressCommand.cpp
         ProgressCommands/AddProgressCommand.h

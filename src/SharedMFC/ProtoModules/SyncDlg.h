@@ -18,6 +18,8 @@
 //
 
 #pragma once
+#include "GitCliOutputParser.h"
+
 #include "Utils/HistoryCombo.h"
 
 #include "../../TortoiseProc/BranchCombox.h"
@@ -31,6 +33,7 @@ import StandAloneDlg;
 import GitRefCompareList;
 import GitTagCompareList;
 import GitStatusListCtrl;
+import ProjectProperties;
 
 // CSyncDlg dialog
 #define IDC_SYNC_TAB 0x1000000
@@ -47,7 +50,7 @@ import GitStatusListCtrl;
 
 #define IDT_INPUT		108
 
-class CSyncDlg : public CResizableStandAloneDialog,public CBranchCombox
+class CSyncDlg : public StandAloneDlg::CResizableStandAloneDialog,public CBranchCombox
 {
 	DECLARE_DYNAMIC(CSyncDlg)
 

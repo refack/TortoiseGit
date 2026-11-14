@@ -4,10 +4,6 @@ module;
 #include <shlobj_core.h>
 #include <tgitlib/CreateProcessHelper.h>
 
-#include "Resources/resource.h"
-
-#include "Utils/URLFinder.h"
-
 
 
 export module AppUtils.Window;
@@ -41,7 +37,7 @@ bool SetListCtrlBackgroundImage(const HWND& hListCtrl, const UINT nID, const int
 	if (wil::reg::try_get_tgit_bool(L"ShowListBackgroundImage").value_or(true))
 		return false;
 	// create a bitmap from the icon
-	const auto hIcon = wil::unique_hicon{LoadIconEx(AfxGetResourceHandle(), MAKEINTRESOURCE(nID), width, height)};
+	const auto hIcon = wil::LoadIconAuto(AfxGetResourceHandle(), MAKEINTRESOURCE(nID), width, height);
 	if (!hIcon)
 		return false;
 

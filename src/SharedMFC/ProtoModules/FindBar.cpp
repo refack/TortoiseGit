@@ -44,7 +44,7 @@ BOOL CFindBar::OnInitDialog()
 {
 	CStandAloneDialog::OnInitDialog();
 
-	m_hCancelIcon = wil::MFC::LoadIconEx(AfxGetResourceHandle(), MAKEINTRESOURCE(IDI_CANCELNORMAL));
+	m_hCancelIcon = wil::LoadIconEx(AfxGetResourceHandle(), MAKEINTRESOURCE(IDI_CANCELNORMAL));
 	GetDlgItem(IDC_FINDEXIT)->SendMessage(BM_SETIMAGE, IMAGE_ICON, reinterpret_cast<LPARAM>(static_cast<HICON>(m_hCancelIcon)));
 
 	return TRUE;  // return TRUE unless you set the focus to a control

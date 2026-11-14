@@ -44,7 +44,6 @@ export namespace tgit {
 	using namespace RegistryDep;
 	using namespace TempFiles;
 	using namespace PathUtils;
-	using namespace DarkModeHelper;
 	using namespace DirFileEnum;
 	using namespace TGitDataObject;
 	using namespace TGitCache;
