@@ -29,7 +29,7 @@ import tgit;
 #include <atlenc.h>
 #define NEED_SIGNING_KEY
 #include <tgitlib/version.h>
-import TempFile;
+import TempFiles;
 
 constexpr auto packet_type(uint8_t c) { return (c & 0x3c) >> 2; } /* 0x3C = 00111100 */
 constexpr auto packet_header_len(uint8_t c) { return (c & 0x03) + 1; } /* number of bytes in a packet header */

@@ -31,7 +31,7 @@
 import std;
 import TGitPath;	// GitAdminDir lives in the TGitPath module
 import CmdLineParser;
-import TempFile;
+import TempFiles;
 import GitCall;
 import git_h;
 import TortoiseProc;

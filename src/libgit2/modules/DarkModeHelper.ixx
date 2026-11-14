@@ -46,13 +46,9 @@ LONG DetourTransaction(const std::function<LONG()>& callback)
 }
 
 
-export namespace TGitDarkMode
-{
-
-
 /// helper class for the Windows 10 dark mode
 /// note: we use undocumented APIs here, so be careful!
-class DarkModeHelper
+export class DarkModeHelper
 {
 public:
 	static DarkModeHelper& Instance();
@@ -60,7 +56,7 @@ public:
 	enum class IMMERSIVE_HC_CACHE_MODE
 	{
 		IHCM_USE_CACHED_VALUE,
-		IHCM_REFRESH
+		IHCM_REFRESH,
 	};
 	enum class PreferredAppMode
 	{
@@ -68,7 +64,7 @@ public:
 		AllowDark,
 		ForceDark,
 		ForceLight,
-		Max
+		Max,
 	};
 	enum class WINDOWCOMPOSITIONATTRIB
 	{
@@ -99,7 +95,7 @@ public:
 		WCA_EXCLUDED_FROM_DDA = 24,
 		WCA_PASSIVEUPDATEMODE = 25,
 		WCA_USEDARKMODECOLORS = 26,
-		WCA_LAST = 27
+		WCA_LAST = 27,
 	};
 
 	struct WINDOWCOMPOSITIONATTRIBDATA
@@ -249,15 +245,19 @@ BOOL DarkModeHelper::SetWindowCompositionAttribute(HWND hWnd, WINDOWCOMPOSITIONA
 
 void DarkModeHelper::RefreshTitleBarThemeColor(HWND hWnd, BOOL dark) const
 {
-	WINDOWCOMPOSITIONATTRIBDATA data = { WINDOWCOMPOSITIONATTRIB::WCA_USEDARKMODECOLORS, &dark, sizeof(dark) };
+	WINDOWCOMPOSITIONATTRIBDATA data = {
+		.Attrib = WINDOWCOMPOSITIONATTRIB::WCA_USEDARKMODECOLORS,
+		.pvData = &dark,
+		.cbData = sizeof(dark)
+	};
 	SetWindowCompositionAttribute(hWnd, &data);
 }
 
 DarkModeHelper::DarkModeHelper()
 {
 	const INITCOMMONCONTROLSEX used = {
-		sizeof(INITCOMMONCONTROLSEX),
-		ICC_STANDARD_CLASSES | ICC_BAR_CLASSES | ICC_COOL_CLASSES
+		.dwSize = sizeof(INITCOMMONCONTROLSEX),
+		.dwICC = ICC_STANDARD_CLASSES | ICC_BAR_CLASSES | ICC_COOL_CLASSES
 	};
 	InitCommonControlsEx(&used);
 
@@ -352,10 +352,3 @@ HTHEME WINAPI DarkModeHelper::DetouredOpenNcThemeData(HWND hwnd, LPCWSTR classLi
 
 	return m_openNcThemeData(hwnd, classList);
 }
-
-}
-
-// The namespace is not called DarkModeHelper: with this using-directive, a
-// namespace and a class of the same name made every DarkModeHelper::Instance()
-// ambiguous at global scope (C2872) in every importer.
-export using namespace TGitDarkMode;

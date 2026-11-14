@@ -1,13 +1,8 @@
 ﻿module;
-#include <afxwin.h>
+#include <stdafx.h>
 #include <ResizableLayout.h>
 
 #include "Utils/HistoryCombo.h"
-#include <Resources/LoglistCommonResource.h>
-
-#include "Resources/resource.h"
-
-
 
 
 export module FindDlg;

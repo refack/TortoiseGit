@@ -6,7 +6,6 @@ module;
 #include <Windows.h>
 
 #include <wil/win32_helpers.h>
-#include <tgitlib/LoadIconEx.h>
 
 #include "Resources/resource.h"
 
@@ -34,11 +33,8 @@ export namespace wil::MFC {
 
 // The HINSTANCE overloads live in tgitlib/LoadIconEx.h (TGitCache and
 // TortoiseUDiff use them without MFC); re-exported here for module importers.
-using ::LoadIconEx;
-
-
-inline HICON LoadIconEx(const UINT resourceId, const UINT cx, const UINT cy) {
-	return LoadIconEx(AfxGetResourceHandle(), MAKEINTRESOURCE(resourceId), gsl::narrow<int>(cx), gsl::narrow<int>(cy));
+inline HICON wil::LoadIconEx(const UINT resourceId, const UINT cx, const UINT cy) {
+	return wil::LoadIconEx(AfxGetResourceHandle(), MAKEINTRESOURCE(resourceId), win32_cast(cx), win32_cast(cy));
 }
 
 
@@ -158,9 +154,8 @@ bool FindStyleChars(const CString& sText, const wchar_t stylechar, int& start, i
 	{
 		const wchar_t prevChar = c;
 		c = sText[i];
-		if (c == stylechar)
-		{
-			if ((i == last) || (!IsCharAlphaNumeric(sText[i + 1]) && IsCharAlphaNumeric(prevChar)))
+		if ((c == stylechar) && ((i == last) || (!IsCharAlphaNumeric(sText[i + 1]) && IsCharAlphaNumeric(prevChar))))
+
 			{
 				end = i;
 				// ReSharper disable once CppAssignedValueIsNeverUsed
@@ -168,7 +163,7 @@ bool FindStyleChars(const CString& sText, const wchar_t stylechar, int& start, i
 				bFoundMarker = true;
 				break;
 			}
-		}
+
 		++i;
 	}
 	return bFoundMarker;
@@ -339,18 +334,18 @@ CString GetClipboardLink(const CString& skipGitPrefix = L"", int paramsCount = 0
 {
 	const auto clipboard = wil::open_clipboard_retrying(nullptr);	// was CClipboardHelper: retries while busy, closes on scope exit
 	if (!clipboard)
-		return CString();
+		return {};
 
 	CString sClipboardText;
 	if (const HGLOBAL hglb = GetClipboardData(CF_TEXT); hglb)
 	{
-		const auto lpstr = static_cast<LPCSTR>(GlobalLock(hglb));
+		const auto& lpstr = static_cast<LPCSTR>(GlobalLock(hglb));
 		sClipboardText = CString(lpstr);
 		GlobalUnlock(hglb);
 	}
 	if (const HGLOBAL hglb = GetClipboardData(CF_UNICODETEXT); hglb)
 	{
-		const auto lpstr = static_cast<LPCWSTR>(GlobalLock(hglb));
+		const auto& lpstr = static_cast<LPCWSTR>(GlobalLock(hglb));
 		sClipboardText = lpstr;
 		GlobalUnlock(hglb);
 	}
@@ -366,7 +361,7 @@ CString GetClipboardLink(const CString& skipGitPrefix = L"", int paramsCount = 0
 			sClipboardText.TrimRight();
 		}
 		if (sClipboardText.IsEmpty())
-			return CString();
+			return {};
 
 		for (const CString& prefix : { L"http://", L"https://", L"git://", L"ssh://", L"git@" })
 		{
@@ -428,10 +423,10 @@ BOOL StyleWarningsErrors(const CString& text, const CRichEditCtrl* edit) {
 	if (!wil::MFC::FindWarningsErrors(text, rangeErrors, rangeWarnings))
 		return FALSE;
 
-	const COLORREF colorError{ CTheme::Instance().IsDarkTheme() ? RGB(207, 47, 47) : RGB(255, 0, 0) };
+	const auto colorError = COLORREF{ CTheme::Instance().IsDarkTheme() ? RGB(207, 47, 47) : RGB(255, 0, 0) };
 	SetCharFormat(edit, CFM_BOLD, CFE_BOLD, rangeErrors);
 	SetCharFormat(edit, CFM_COLOR, colorError, rangeErrors);
-	const COLORREF colorWarning{ CTheme::Instance().IsDarkTheme() ? RGB(185, 185, 0) : RGB(160, 160, 0) };
+	const auto colorWarning = COLORREF{ CTheme::Instance().IsDarkTheme() ? RGB(185, 185, 0) : RGB(160, 160, 0) };
 	SetCharFormat(edit, CFM_BOLD, CFE_BOLD, rangeWarnings);
 	SetCharFormat(edit, CFM_COLOR, colorWarning, rangeWarnings);
 

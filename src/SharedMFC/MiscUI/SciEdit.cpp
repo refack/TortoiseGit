@@ -17,7 +17,7 @@
 // along with this program; if not, write to the Free Software Foundation,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
-#include "../stdafx.h"
+#include "stdafx.h"
 
 
 #include "SciEdit.h"	// same directory: resolves for TortoiseProc and SharedMFC alike
@@ -30,7 +30,6 @@
 #include <lexilla/Lexilla.h>
 #include <Resources/LoglistCommonResource.h>
 #include <../TortoiseUDiff/UDiffColors.h>
-#include <tgitlib/LoadIconEx.h>
 #include <tgitlib/ScintillaRegistration.h>
 #include <Utils/URLFinder.h>
 import ThemeAPI;
@@ -325,7 +324,7 @@ void CSciEdit::SetIcon(const std::map<int, UINT> &icons)
 	Call(SCI_RGBAIMAGESETHEIGHT, iconHeight);
 	for (auto icon : icons)
 	{
-		CAutoIcon hIcon = LoadIconEx(AfxGetInstanceHandle(), MAKEINTRESOURCE(icon.second), iconWidth, iconHeight);
+		CAutoIcon hIcon = wil::LoadIconEx(AfxGetInstanceHandle(), MAKEINTRESOURCE(icon.second), iconWidth, iconHeight);
 		auto bytes = Icon2Image(hIcon);
 		Call(SCI_REGISTERRGBAIMAGE, icon.first, reinterpret_cast<LPARAM>(bytes.get()));
 	}
@@ -1764,7 +1763,7 @@ BOOL CSciEdit::AdjustThemeProc(HWND hwnd, LPARAM /*lParam*/)
 		dwCurStyle |= WS_BORDER;
 		SetWindowLongPtr(hwnd, GWL_STYLE, dwCurStyle);
 
-		TGitDarkMode::DarkModeHelper::Instance().AllowDarkModeForWindow(hwnd, TRUE);
+		DarkModeHelper::Instance().AllowDarkModeForWindow(hwnd, TRUE);
 		SetWindowTheme(hwnd, L"Explorer", nullptr);
 		EnumChildWindows(hwnd, AdjustThemeProc, 0);
 	}

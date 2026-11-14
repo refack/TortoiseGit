@@ -20,8 +20,7 @@
 #pragma once
 #include <afxwin.h>
 
-import std;
-import TGitPath;
+import tgit;
 
 /**
  * \ingroup Utils

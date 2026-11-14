@@ -20,7 +20,6 @@
 
 #include "stdafx.h"
 #include "std.h"
-#include <tgitlib/LoadIconEx.h>
 #include "SetOverlayIcons.h"
 
 import TortoiseProc;
@@ -150,31 +149,31 @@ void CSetOverlayIcons::ShowIconSet(bool bSmallIcons)
 	CImageList * pImageList = bSmallIcons ? &m_ImageList : &m_ImageListBig;
 	int iconWidth = (bSmallIcons ? smallIconWidth : normalIconWidth);
 	int iconHeight = (bSmallIcons ? smallIconHeight : normalIconHeight);
-	CAutoIcon hNormalOverlay = LoadIconEx(nullptr, sIconSetPath + L"\\NormalIcon.ico", iconWidth, iconHeight);
+	CAutoIcon hNormalOverlay = wil::LoadIconEx(nullptr, sIconSetPath + L"\\NormalIcon.ico", iconWidth, iconHeight);
 	index = pImageList->Add(hNormalOverlay);
 	VERIFY(pImageList->SetOverlayImage(index, 1));
-	CAutoIcon hModifiedOverlay = LoadIconEx(nullptr, sIconSetPath + L"\\ModifiedIcon.ico", iconWidth, iconHeight);
+	CAutoIcon hModifiedOverlay = wil::LoadIconEx(nullptr, sIconSetPath + L"\\ModifiedIcon.ico", iconWidth, iconHeight);
 	index = pImageList->Add(hModifiedOverlay);
 	VERIFY(pImageList->SetOverlayImage(index, 2));
-	CAutoIcon hConflictedOverlay = LoadIconEx(nullptr, sIconSetPath + L"\\ConflictIcon.ico", iconWidth, iconHeight);
+	CAutoIcon hConflictedOverlay = wil::LoadIconEx(nullptr, sIconSetPath + L"\\ConflictIcon.ico", iconWidth, iconHeight);
 	index = pImageList->Add(hConflictedOverlay);
 	VERIFY(pImageList->SetOverlayImage(index, 3));
-	CAutoIcon hReadOnlyOverlay = LoadIconEx(nullptr, sIconSetPath + L"\\ReadOnlyIcon.ico", iconWidth, iconHeight);
+	CAutoIcon hReadOnlyOverlay = wil::LoadIconEx(nullptr, sIconSetPath + L"\\ReadOnlyIcon.ico", iconWidth, iconHeight);
 	index = pImageList->Add(hReadOnlyOverlay);
 	VERIFY(pImageList->SetOverlayImage(index, 4));
-	CAutoIcon hDeletedOverlay = LoadIconEx(nullptr, sIconSetPath + L"\\DeletedIcon.ico", iconWidth, iconHeight);
+	CAutoIcon hDeletedOverlay = wil::LoadIconEx(nullptr, sIconSetPath + L"\\DeletedIcon.ico", iconWidth, iconHeight);
 	index = pImageList->Add(hDeletedOverlay);
 	VERIFY(pImageList->SetOverlayImage(index, 5));
-	CAutoIcon hLockedOverlay = LoadIconEx(nullptr, sIconSetPath + L"\\LockedIcon.ico", iconWidth, iconHeight);
+	CAutoIcon hLockedOverlay = wil::LoadIconEx(nullptr, sIconSetPath + L"\\LockedIcon.ico", iconWidth, iconHeight);
 	index = pImageList->Add(hLockedOverlay);
 	VERIFY(pImageList->SetOverlayImage(index, 6));
-	CAutoIcon hAddedOverlay = LoadIconEx(nullptr, sIconSetPath + L"\\AddedIcon.ico", iconWidth, iconHeight);
+	CAutoIcon hAddedOverlay = wil::LoadIconEx(nullptr, sIconSetPath + L"\\AddedIcon.ico", iconWidth, iconHeight);
 	index = pImageList->Add(hAddedOverlay);
 	VERIFY(pImageList->SetOverlayImage(index, 7));
-	CAutoIcon hIgnoredOverlay = LoadIconEx(nullptr, sIconSetPath + L"\\IgnoredIcon.ico", iconWidth, iconHeight);
+	CAutoIcon hIgnoredOverlay = wil::LoadIconEx(nullptr, sIconSetPath + L"\\IgnoredIcon.ico", iconWidth, iconHeight);
 	index = pImageList->Add(hIgnoredOverlay);
 	VERIFY(pImageList->SetOverlayImage(index, 8));
-	CAutoIcon hUnversionedOverlay = LoadIconEx(nullptr, sIconSetPath + L"\\UnversionedIcon.ico", iconWidth, iconHeight);
+	CAutoIcon hUnversionedOverlay = wil::LoadIconEx(nullptr, sIconSetPath + L"\\UnversionedIcon.ico", iconWidth, iconHeight);
 	index = pImageList->Add(hUnversionedOverlay);
 	VERIFY(pImageList->SetOverlayImage(index, 9));
 

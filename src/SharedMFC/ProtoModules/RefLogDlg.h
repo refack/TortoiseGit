@@ -18,9 +18,10 @@
 //
 
 #pragma once
+import tgit;
 import StandAloneDlg;
 #include "Utils/HistoryCombo.h"
-#include "refloglist.h"
+import GitLogListBase;
 // CRefLogDlg dialog
 
 class CRefLogDlg : public CResizableStandAloneDialog

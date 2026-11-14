@@ -26,9 +26,7 @@
 #include "PatchViewDlg.h"
 #include "HyperLink.h"
 
-import GitRev;
-import TGitPath;
-import GitHash;
+import tgit;
 import StandAloneDlg;
 import ThemeControls;
 import HintCtrl;

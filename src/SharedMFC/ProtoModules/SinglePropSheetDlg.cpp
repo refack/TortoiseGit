@@ -86,7 +86,7 @@ BOOL CSinglePropSheetDlg::OnInitDialog()
 
 	CenterWindow(CWnd::FromHandle(GetExplorerHWND()));
 
-	TGitDarkMode::DarkModeHelper::Instance().AllowDarkModeForApp(CTheme::Instance().IsDarkTheme());
+	DarkModeHelper::Instance().AllowDarkModeForApp(CTheme::Instance().IsDarkTheme());
 	SetTheme(CTheme::Instance().IsDarkTheme());
 	CTheme::Instance().SetThemeForDialog(GetSafeHwnd(), CTheme::Instance().IsDarkTheme());
 

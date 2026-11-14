@@ -26,7 +26,6 @@
 import tgit;
 import StandAloneDlg;
 import ResizableColumnsListCtrl;
-import Registry;
 
 using StandAloneDlg::CGestureEnabledControlTmpl;
 

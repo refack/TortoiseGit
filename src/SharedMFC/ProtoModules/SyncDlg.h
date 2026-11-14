@@ -20,18 +20,17 @@
 #pragma once
 #include "Utils/HistoryCombo.h"
 
-import MenuButton;
 #include "../../TortoiseProc/BranchCombox.h"
-#include "../../TortoiseProc/GitLoglist.h"
 #include "ProtoModules/GitProgressList.h"
 #include "SyncTabCtrl.h"
-#include "GitCliOutputParser.h"
 
+import tgit;
+import MenuButton;
+import GitLogListBase;
 import StandAloneDlg;
 import GitRefCompareList;
 import GitTagCompareList;
 import GitStatusListCtrl;
-import Registry;
 
 // CSyncDlg dialog
 #define IDC_SYNC_TAB 0x1000000

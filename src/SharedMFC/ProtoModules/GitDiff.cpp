@@ -27,7 +27,7 @@ import TortoiseProc;
 import AppUtils.Launch;
 import AppUtils.Window;
 import TGitMessageBox;
-import TempFile;
+import TempFiles;
 import ConfigureGitExe;
 using namespace libgit2;
 

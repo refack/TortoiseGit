@@ -41,6 +41,8 @@ import Registry;
 import ShellEnvironment;
 export import GitCall;	// CGitCall, the TGIT_GIT_* codes and G_OK/GFail are part of git_h's surface
 
+using namespace std::literals;
+
 using TGitHash::CGitHash;
 using namespace tgit;
 using namespace tgit::invarients;
@@ -777,9 +779,9 @@ public:
 		// const rather than merely documenting that it should not be assigned. It writes the storage rather than a setter because CStrBuf fills a buffer
 		// inplace, and because this write is not choosing a repository.
 		m_CurrentDirStorage = fs::current_path();
-		m_IsUseGitDLL = wil::reg::get_bool(HKEY_CURRENT_USER, wil::reg::TortoiseGitKey, L"UsingGitDLL", false);
-		m_IsUseLibGit2 = wil::reg::get_bool(HKEY_CURRENT_USER, wil::reg::TortoiseGitKey, L"UseLibgit2", true);
-		m_IsUseLibGit2_mask = wil::reg::try_get_dword(HKEY_CURRENT_USER, wil::reg::TortoiseGitKey, L"UseLibgit2_mask").value_or(DEFAULT_USE_LIBGIT2_MASK);
+		m_IsUseGitDLL = wil::reg::try_get_tgit_bool(L"UsingGitDLL").value_or(true);
+		m_IsUseLibGit2 = wil::reg::try_get_tgit_bool(L"UseLibgit2").value_or(true);
+		m_IsUseLibGit2_mask = wil::reg::try_get_tgit_dword(L"UseLibgit2_mask").value_or(DEFAULT_USE_LIBGIT2_MASK);
 
 		CheckMsysGitDir();
 	}

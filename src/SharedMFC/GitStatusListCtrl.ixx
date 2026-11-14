@@ -34,9 +34,9 @@ import AppUtils.Launch;
 import AppUtils.Window;
 import TortoiseProc;
 import PathUtils;
-import TempFile;
+import TempFiles;
 import ConfigureGitExe;
-import GitDataObject;
+import TGitDataObject;
 import AppUtils.WorkingTree;
 
 using namespace  GitIndex;
@@ -1190,7 +1190,7 @@ void CGitStatusListCtrl::Init(DWORD dwColumns,
 	}
 
 	m_nIconFolder = SYS_IMAGE_LIST().GetDirIconIndex();
-	m_nRestoreOvl = SYS_IMAGE_LIST().AddIcon(CAppUtils::LoadIconEx(IDI_RESTOREOVL, 0, 0));
+	m_nRestoreOvl = SYS_IMAGE_LIST().AddIcon(wil::MFC::LoadIconEx(IDI_RESTOREOVL, 0, 0));
 	SYS_IMAGE_LIST().SetOverlayImage(m_nRestoreOvl, OVL_RESTORE);
 	SetImageList(&SYS_IMAGE_LIST(), LVSIL_SMALL);
 
@@ -1248,7 +1248,7 @@ void CGitStatusListCtrl::EnableThreeStateCheckboxes(bool enable) {
 	} else {
 		if (!m_bThreeStateCheckboxes) {
 			VERIFY(numStateImageList == 2);
-			stateImageList->Add(CAppUtils::LoadIconEx(IDI_INDETERMINATE, 0, 0));
+			stateImageList->Add(wil::MFC::LoadIconEx(IDI_INDETERMINATE, 0, 0));
 			m_bThreeStateCheckboxes = true;
 		}
 	}

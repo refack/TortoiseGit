@@ -1,8 +1,4 @@
 module;
-#include <map>
-#include <format>
-#include <afxwinappex.h>
-
 #include <version.h>
 
 #include "MiscUI/AnimationManager.h"
@@ -22,7 +18,6 @@ module;
 #include "ProtoModules/VersioncheckParser.h"
 
 #include "Resources/resource.h"
-#include "../TortoiseShell/resource.h"
 
 #include <tgitlib/sanity.h>
 
@@ -36,21 +31,9 @@ export module TortoiseProc;
 
 
 import tgit;
-namespace fs = std::filesystem;
 
-import ConfigureGitExe;
-// cannot `import AppUtils.GitEnv;` for CAppUtils::Git2GetUserPassword - every
-// AppUtils.* module imports TortoiseProc, so the edge back is a module cycle.
-
-import wil;
-import RIAA;			// SmartHandle.h
 import DirFileEnum;
 import PathUtils;
-import TGitPath;		// TGitPath.h, and GitAdminDir
-import GitIndex;		// git_wc_status_kind / git_wc_status2_t, which tgittypes held
-import Registry;		// CRegDWORD ...
-import GitHash; 		// GetHashText
-import TempFile; 		// DeleteOldTempFiles
 import ProjectProperties;
 
 import TGitMessageBox;

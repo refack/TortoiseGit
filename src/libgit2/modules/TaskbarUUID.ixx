@@ -2,7 +2,6 @@
 #include <windows.h>
 #include <Shobjidl.h>
 #include <GdiPlus.h>
-#include <tgitlib/LoadIconEx.h>	// ::LoadIconEx - what wil.MFC re-exports; keeps this module MFC-free for TortoiseUDiff
 
 export module TaskbarUUID;
 
@@ -192,7 +191,7 @@ void SetUUIDOverlayIcon(const HWND& hWnd, const std::wstring& uuid, const std::w
 	CAutoIcon icon;
 	if (!sicon.empty()) {
 		if (sicon.size() >= 4 && !_wcsicmp(sicon.substr(sicon.size() - 4).c_str(), L".ico"))
-			icon = ::LoadIconEx(nullptr,sicon.c_str(), iconWidth, iconHeight);
+			icon = wil::LoadIconEx(nullptr, sicon.c_str(), iconWidth, iconHeight);
 		else {
 			ULONG_PTR gdiplusToken = 0;
 			Gdiplus::GdiplusStartupInput gdiplusStartupInput;

@@ -19,8 +19,8 @@
 //
 #include <windows.h>
 #include "BaseDialog.h"
-#include "LoadIconEx.h"
 import std;
+import wil;
 
 INT_PTR CDialog::DoModal(HINSTANCE hInstance, int resID, HWND hWndParent)
 {
@@ -53,9 +53,9 @@ void CDialog::InitDialog(HWND hwndDlg, UINT iconID)
 	OffsetRect(&rc, -rcDlg.right, -rcDlg.bottom);
 
 	SetWindowPos(hwndDlg, HWND_TOP, rcOwner.left + (rc.right / 2), rcOwner.top + (rc.bottom / 2), 0, 0,	SWP_NOSIZE);
-	auto hIcon = LoadIconEx(hResource, MAKEINTRESOURCE(iconID), ::GetSystemMetrics(SM_CXICON), ::GetSystemMetrics(SM_CYICON));
+	auto hIcon = wil::LoadIconEx(hResource, MAKEINTRESOURCE(iconID), ::GetSystemMetrics(SM_CXICON), ::GetSystemMetrics(SM_CYICON));
 	::SendMessage(hwndDlg, WM_SETICON, ICON_BIG, reinterpret_cast<LPARAM>(hIcon));
-	hIcon = LoadIconEx(hResource, MAKEINTRESOURCE(iconID), ::GetSystemMetrics(SM_CXSMICON), ::GetSystemMetrics(SM_CYSMICON));
+	hIcon = wil::LoadIconEx(hResource, MAKEINTRESOURCE(iconID), ::GetSystemMetrics(SM_CXSMICON), ::GetSystemMetrics(SM_CYSMICON));
 	::SendMessage(hwndDlg, WM_SETICON, ICON_SMALL, reinterpret_cast<LPARAM>(hIcon));
 }
 

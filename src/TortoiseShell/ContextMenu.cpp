@@ -27,7 +27,6 @@
 #include "ItemIDList.h"
 #include <tgitlib/CreateProcessHelper.h>
 #include "resource.h"
-#include <tgitlib/LoadIconEx.h>
 
 import PreserveChdir;
 import PathUtils;
@@ -1671,7 +1670,7 @@ STDMETHODIMP CShellExt::HandleMenuMsg2(UINT uMsg, WPARAM wParam, LPARAM lParam, 
 				return S_OK;
 			int iconWidth = GetSystemMetrics(SM_CXSMICON);
 			int iconHeight = GetSystemMetrics(SM_CYSMICON);
-			CAutoIcon hIcon = LoadIconEx(g_hResInst, resource, iconWidth, iconHeight);
+			CAutoIcon hIcon = wil::LoadIconEx(g_hResInst, resource, iconWidth, iconHeight);
 			if (!hIcon)
 				return S_OK;
 			DrawIconEx(lpdis->hDC,

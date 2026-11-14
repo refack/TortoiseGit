@@ -2,7 +2,7 @@
 #include <windows.h>
 #include <winrt/base.h>		// ::winrt::clock, the FILETIME-epoch clock CDirFileEnum's times are on
 
-export module TempFile;
+export module TempFiles;
 import std;
 import git_h;
 import GitHash;

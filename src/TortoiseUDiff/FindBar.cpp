@@ -22,7 +22,6 @@
 #include "resource.h"
 #include "FindBar.h"
 #include <string>
-#include <tgitlib/LoadIconEx.h>
 import ThemeAPI;
 
 CFindBar::CFindBar()
@@ -40,7 +39,7 @@ LRESULT CFindBar::DlgFunc(HWND /*hwndDlg*/, UINT uMsg, WPARAM wParam, LPARAM /*l
 	{
 	case WM_INITDIALOG:
 		{
-			m_hIcon = LoadIconEx(hResource, MAKEINTRESOURCE(IDI_CANCELNORMAL));
+			m_hIcon = wil::LoadIconEx(hResource, MAKEINTRESOURCE(IDI_CANCELNORMAL));
 			SendMessage(GetDlgItem(*this, IDC_FINDEXIT), BM_SETIMAGE, IMAGE_ICON, reinterpret_cast<LPARAM>(static_cast<HICON>(m_hIcon)));
 			m_themeCallbackId = CTheme::Instance().RegisterThemeChangeCallback([this]() { SetTheme(CTheme::Instance().IsDarkTheme()); });
 			SetTheme(CTheme::Instance().IsDarkTheme());

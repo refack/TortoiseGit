@@ -310,22 +310,18 @@ BOOL CResModule::CreateTranslatedResources(LPCWSTR lpszSrcLangDllPath, LPCWSTR l
 
 BOOL CResModule::ExtractString(LPCWSTR lpszType)
 {
-	HRSRC       hrsrc = FindResource(m_hResDll, lpszType, RT_STRING);
-	HGLOBAL     hglStringTable;
-	LPWSTR      p;
-
+	const HRSRC& hrsrc = FindResource(m_hResDll, lpszType, RT_STRING);
 	if (!hrsrc)
 		MYERROR;
-	hglStringTable = LoadResource(m_hResDll, hrsrc);
 
+	const auto hglStringTable = wil::unique_hglobal_resource(LoadResource(m_hResDll, hrsrc));
 	if (!hglStringTable)
 		MYERROR;
-	SCOPE_EXIT { FreeResource(hglStringTable); };
-	p = static_cast<LPWSTR>(LockResource(hglStringTable));
 
+	const auto p = static_cast<LPWSTR>(LockResource(hglStringTable.get()));
 	if (!p)
 		MYERROR;
-	SCOPE_EXIT { UnlockResource(hglStringTable); };
+	SCOPE_EXIT { UnlockResource(hglStringTable.get()); };
 	/*  [Block of 16 strings.  The strings are Pascal style with a WORD
 	length preceding the string.  16 strings are always written, even
 	if not all slots are full.  Any slots in the block with no string
@@ -457,47 +453,42 @@ BOOL CResModule::ReplaceString(LPCWSTR lpszType, WORD wLanguage)
 
 BOOL CResModule::ExtractMenu(LPCWSTR lpszType)
 {
-	HRSRC       hrsrc = FindResource(m_hResDll, lpszType, RT_MENU);
-	HGLOBAL     hglMenuTemplate;
-	WORD        version, offset;
-	const WORD *p, *p0;
-
+	const HRSRC& hrsrc = FindResource(m_hResDll, lpszType, RT_MENU);
 	if (!hrsrc)
 		MYERROR;
 
-	hglMenuTemplate = LoadResource(m_hResDll, hrsrc);
-
+	const auto hglMenuTemplate = wil::unique_hglobal_resource(LoadResource(m_hResDll, hrsrc));
 	if (!hglMenuTemplate)
 		MYERROR;
-	SCOPE_EXIT { FreeResource(hglMenuTemplate); };
 
-	p = static_cast<const WORD*>(LockResource(hglMenuTemplate));
-
+	auto p = static_cast<const WORD*>(LockResource(hglMenuTemplate.get()));
 	if (!p)
 		MYERROR;
-	SCOPE_EXIT { UnlockResource(hglMenuTemplate); };
+	SCOPE_EXIT { UnlockResource(hglMenuTemplate.get()); };
+
+/*
 	// Standard MENU resource
-	//struct MenuHeader {
-	//  WORD   wVersion;           // Currently zero
-	//  WORD   cbHeaderSize;       // Also zero
-	//};
+	struct MenuHeader {
+	  WORD   wVersion;           // Currently zero
+	  WORD   cbHeaderSize;       // Also zero
+	};
 
 	// MENUEX resource
-	//struct MenuExHeader {
-	//    WORD wVersion;           // One
-	//    WORD wOffset;
-	//    DWORD dwHelpId;
-	//};
-	p0 = p;
-	version = GET_WORD(p);
-
+	struct MenuExHeader {
+	    WORD wVersion;           // One
+	    WORD wOffset;
+	    DWORD dwHelpId;
+	};
+*/
+	auto p0 = p;
+	const auto version = GET_WORD(p);
 	p++;
 
 	switch (version)
 	{
 	case 0:
 		{
-			offset = GET_WORD(p);
+			const auto offset = GET_WORD(p);
 			p += offset;
 			p++;
 			if (!ParseMenuResource(p))
@@ -506,7 +497,7 @@ BOOL CResModule::ExtractMenu(LPCWSTR lpszType)
 		break;
 	case 1:
 		{
-			offset = GET_WORD(p);
+			const auto offset = GET_WORD(p);
 			p++;
 			//dwHelpId = GET_DWORD(p);
 			if (!ParseMenuExResource(p0 + offset))
@@ -520,57 +511,42 @@ BOOL CResModule::ExtractMenu(LPCWSTR lpszType)
 	return TRUE;
 }
 
+
 BOOL CResModule::ReplaceMenu(LPCWSTR lpszType, WORD wLanguage)
 {
-	HRSRC       hrsrc = FindResourceEx(m_hResDll, RT_MENU, lpszType, wLanguage);
-	HGLOBAL     hglMenuTemplate;
-	WORD        version, offset;
-	LPWSTR      p;
-	WORD *p0;
-
-	if (!hrsrc)
-		MYERROR;    //just the language wasn't found
-
-	hglMenuTemplate = LoadResource(m_hResDll, hrsrc);
-
-	if (!hglMenuTemplate)
-		MYERROR;
-	SCOPE_EXIT { FreeResource(hglMenuTemplate); };
-
-	p = static_cast<LPWSTR>(LockResource(hglMenuTemplate));
-
-	if (!p)
-		MYERROR;
-	SCOPE_EXIT { UnlockResource(hglMenuTemplate); };
-	//struct MenuHeader {
-	//  WORD   wVersion;           // Currently zero
-	//  WORD   cbHeaderSize;       // Also zero
-	//};
+	/**
+	struct MenuHeader {
+	  WORD   wVersion;           // Currently zero
+	  WORD   cbHeaderSize;       // Also zero
+	};
 
 	// MENUEX resource
-	//struct MenuExHeader {
-	//    WORD wVersion;           // One
-	//    WORD wOffset;
-	//    DWORD dwHelpId;
-	//};
-	p0 = reinterpret_cast<WORD*>(p);
-	version = GET_WORD(p);
+	struct MenuExHeader {
+	    WORD wVersion;           // One
+	    WORD wOffset;
+	    DWORD dwHelpId;
+	};
+	*/
 
-	p++;
+	auto res = wil::GetResourceView<WORD>(m_hResDll, RT_MENU, lpszType, wLanguage);
+	auto p0 = res;
+	const auto version = res.front();
+	res = res.subspan(1);
+
+	const auto offset = res.front();
 
 	switch (version)
 	{
 	case 0:
 		{
-			offset = GET_WORD(p);
-			p += offset;
-			p++;
+			res = res.subspan(1 + offset);
 			size_t nMem = 0;
-			if (!CountMemReplaceMenuResource(reinterpret_cast<WORD*>(p), &nMem, nullptr))
+			if (!CountMemReplaceMenuResource(res.data(), &nMem, nullptr))
 				MYERROR;
-			auto newMenu = std::make_unique<WORD[]>(nMem + (nMem % 2) + 2);
+			const size_t num_elems = nMem + (nMem % sizeof(WORD)) + sizeof(WORD);
+			const auto newMenu = std::make_unique<WORD[]>(num_elems);
 			size_t index = 2;       // MenuHeader has 2 WORDs zero
-			if (!CountMemReplaceMenuResource(reinterpret_cast<WORD*>(p), &index, newMenu.get()))
+			if (!CountMemReplaceMenuResource(res.data(), &index, newMenu.get()))
 				MYERROR;
 
 			if (!UpdateResource(m_hUpdateRes, RT_MENU, lpszType, (m_wTargetLang ? m_wTargetLang : wLanguage), newMenu.get(), static_cast<DWORD>(nMem + (nMem % 2) + 2) * sizeof(WORD)))
@@ -582,16 +558,15 @@ BOOL CResModule::ReplaceMenu(LPCWSTR lpszType, WORD wLanguage)
 		break;
 	case 1:
 		{
-			offset = GET_WORD(p);
-			p++;
 			//dwHelpId = GET_DWORD(p);
 			size_t nMem = 0;
-			if (!CountMemReplaceMenuExResource(reinterpret_cast<WORD*>(p0 + offset), &nMem, nullptr))
+			auto res_ptr = p0.subspan(offset).data();
+			if (!CountMemReplaceMenuExResource(res_ptr, &nMem, nullptr))
 				MYERROR;
 			auto newMenu = std::make_unique<WORD[]>(nMem + (nMem % 2) + 4);
-			CopyMemory(newMenu.get(), p0, 2 * sizeof(WORD) + sizeof(DWORD));
+			CopyMemory(newMenu.get(), p0.data(), 2 * sizeof(WORD) + sizeof(DWORD));
 			size_t index = 4;       // MenuExHeader has 2 x WORD + 1 x DWORD
-			if (!CountMemReplaceMenuExResource(reinterpret_cast<WORD*>(p0 + offset), &index, newMenu.get()))
+			if (!CountMemReplaceMenuExResource(res_ptr, &index, newMenu.get()))
 				MYERROR;
 
 			if (!UpdateResource(m_hUpdateRes, RT_MENU, lpszType, (m_wTargetLang ? m_wTargetLang : wLanguage), newMenu.get(), static_cast<DWORD>(nMem + (nMem % 2) + 4) * sizeof(DWORD)))

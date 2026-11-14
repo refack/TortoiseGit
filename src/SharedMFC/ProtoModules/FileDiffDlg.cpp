@@ -19,19 +19,18 @@
 //
 
 #include "stdafx.h"
-import tgit;
-
-import TortoiseProc;
 #include "Utils/SysImageList.h"
-import IconMenu;
 #include "FileDiffDlg.h"
 #include "GitDiff.h"
 #include "LoglistUtils.h"
 #include "BrowseRefsDlg.h"
-#include "../../SharedMFC/Utils/LogDlg.h"
+#include "Utils/LogDlg.h"
 #include "RefLogDlg.h"
-import GitStatusListCtrl;
 
+import tgit;
+import TortoiseProc;
+import IconMenu;
+import GitStatusListCtrl;
 import GitLogListBase;
 import BrowseFolder;
 import TGitMessageBox;
@@ -39,8 +38,12 @@ import AppUtils.Launch;
 import AppUtils.Window;
 import ConfigureGitExe;
 import PathUtils;
+import TGitDataObject;
 import DragDrop;
-import GitDataObject;
+
+// This is just to placate CLion
+using namespace tgit;
+using namespace DragDrop;
 
 #define ID_COMPARE 1
 #define ID_BLAME 2
@@ -157,7 +160,7 @@ BOOL CFileDiffDlg::OnInitDialog()
 
 	const int iconWidth = GetSystemMetrics(SM_CXSMICON);
 	const int iconHeight = GetSystemMetrics(SM_CYSMICON);
-	m_SwitchButton.SetImage(CAppUtils::LoadIconEx(IDI_SWITCHLEFTRIGHT, iconWidth, iconHeight));
+	m_SwitchButton.SetImage(wil::MFC::LoadIconEx(IDI_SWITCHLEFTRIGHT, iconWidth, iconHeight));
 	m_SwitchButton.Invalidate();
 
 	m_cFilter.SetCancelBitmaps(IDI_CANCELNORMAL, IDI_CANCELPRESSED, 14, 14);

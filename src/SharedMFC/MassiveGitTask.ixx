@@ -1,13 +1,10 @@
 ﻿module;
-import ProgressDlg;
 #include "ProtoModules/GitProgressList.h"
 
 
 export module TortoiseProc.MassiveGitTask;
-import std;
-import TGitPath;
-import TempFile;
-import git_h;
+import tgit;
+import ProgressDlg;
 
 
 /// "git.exe " + \a params as argv. Callers build their parameter string with
@@ -85,7 +82,7 @@ public:
 	 * under the command line length limit. \a baseArgv must already end with the
 	 * "--" separator; the paths are appended as further elements.
 	 */
-	static void ConvertToCmdList(const std::vector<std::wstring>& baseArgv, const std::vector<std::wstring>& pathList, ARGV_VECTOR& cmdList);
+	static void ConvertToCmdList(const std::vector<std::wstring>& baseArgv, const std::vector<std::wstring>& pathList, TGitH::ARGV_VECTOR& cmdList);
 
 protected:
 	void SetPaths(const CTGitPathList* pathList) {

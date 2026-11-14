@@ -356,7 +356,7 @@ public:
 		GIT_COMMIT_LIST list;
 		GIT_HASH parent;
 
-		[[maybe_unused]] CAutoLocker _(g_Git.m_critGitDllSec);
+		[[maybe_unused]] CAutoLocker _lock(g_Git.m_critGitDllSec);
 		git->CheckAndInitDll();
 
 		try {

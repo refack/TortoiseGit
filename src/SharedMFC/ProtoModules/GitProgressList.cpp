@@ -37,7 +37,7 @@ import AppUtils.Launch;
 import AppUtils.Window;
 import ThemeAPI;
 import CmdLineParser;
-import TempFile;
+import TempFiles;
 
 BOOL	CGitProgressList::m_bAscending = FALSE;
 int		CGitProgressList::m_nSortedColumn = -1;

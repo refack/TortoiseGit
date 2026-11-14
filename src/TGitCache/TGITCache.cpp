@@ -27,7 +27,6 @@
 #include <tgitlib/CreateProcessHelper.h>
 #include <dbt.h>
 import GitIndex;
-#include <tgitlib/LoadIconEx.h>
 import Registry;
 import RIAA;
 import str_utils;
@@ -138,7 +137,7 @@ static void AddSystrayIcon()
 	niData.uFlags = NIF_ICON | NIF_MESSAGE;
 
 	// load the icon
-	niData.hIcon = LoadIconEx(GetModuleHandle(nullptr), MAKEINTRESOURCE(IDI_TGITCACHE));
+	niData.hIcon = wil::LoadIconEx(GetModuleHandle(nullptr), MAKEINTRESOURCE(IDI_TGITCACHE));
 
 	// set the message to send
 	// note: the message value should be in the
@@ -276,7 +275,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			TracePrintf(__FUNCTION__ ": WM_CLOSE/DESTROY/ENDSESSION/QUIT\n");
 			if (niData.hWnd)
 			{
-				niData.hIcon = LoadIconEx(GetModuleHandle(nullptr), MAKEINTRESOURCE(IDI_TGITCACHE_STOPPING));
+				niData.hIcon = wil::LoadIconEx(GetModuleHandle(nullptr), MAKEINTRESOURCE(IDI_TGITCACHE_STOPPING));
 				Shell_NotifyIcon(NIM_MODIFY, &niData);
 			}
 			CAutoWriteLock writeLock(CGitStatusCache::Instance().GetGuard());

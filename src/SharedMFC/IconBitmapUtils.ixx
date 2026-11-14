@@ -5,10 +5,7 @@
 
 
 export module IconBitmapUtils;
-import std;
-import wil;
-import wil.MFC;
-import RIAA;
+import tgit;
 
 
 
@@ -41,41 +38,34 @@ HBITMAP IconBitmapUtils::IconToBitmap(const HINSTANCE& hInst, const UINT uIcon)
 	rect.right = ::GetSystemMetrics(SM_CXMENUCHECK);
 	rect.bottom = ::GetSystemMetrics(SM_CYMENUCHECK);
 
-	const HWND desktop = ::GetDesktopWindow();
-	if (!desktop)
-		return nullptr;
-
-	const HDC screenDev = ::GetDC(desktop);
+	const auto screenDev = wil::GetDC(nullptr);
 	if (!screenDev)
 		return nullptr;
-	SCOPE_EXIT { ::ReleaseDC(desktop, screenDev); };
 
-	// Create a compatible DC
-	const HDC dstHdc = ::CreateCompatibleDC(screenDev);
+	const wil::unique_hdc dstHdc(::CreateCompatibleDC(screenDev.get()));
 	if (!dstHdc)
 		return nullptr;
-	SCOPE_EXIT { ::DeleteDC(dstHdc); };
 
-	// Create a new bitmap of icon size
-	const HBITMAP bmp = ::CreateCompatibleBitmap(screenDev, rect.right, rect.bottom);
+	wil::unique_hbitmap bmp(::CreateCompatibleBitmap(
+		screenDev.get(), rect.right - rect.left, rect.bottom - rect.top));
 	if (!bmp)
 		return nullptr;
 
 	// Select it into the compatible DC
-	auto* oldDstBmp = static_cast<HBITMAP>(::SelectObject(dstHdc, bmp));
+	auto* oldDstBmp = static_cast<HBITMAP>(::SelectObject(dstHdc.get(), bmp));
 	if (!oldDstBmp)
 		return nullptr;
 
 	// Fill the background of the compatible DC with the white color
 	// that is taken by menu routines as transparent
-	::SetBkColor(dstHdc, RGB(255, 255, 255));
-	::ExtTextOut(dstHdc, 0, 0, ETO_OPAQUE, &rect, nullptr, 0, nullptr);
+	::SetBkColor(dstHdc.get(), RGB(255, 255, 255));
+	::ExtTextOut(dstHdc.get(), 0, 0, ETO_OPAQUE, &rect, nullptr, 0, nullptr);
 
 	// Draw the icon into the compatible DC
-	::DrawIconEx(dstHdc, 0, 0, hIcon, rect.right, rect.bottom, 0, nullptr, DI_NORMAL);
+	::DrawIconEx(dstHdc.get(), 0, 0, hIcon, rect.right, rect.bottom, 0, nullptr, DI_NORMAL);
 
 	// Restore settings
-	::SelectObject(dstHdc, oldDstBmp);
+	::SelectObject(dstHdc.get(), oldDstBmp);
 
 	return bmp;
 }

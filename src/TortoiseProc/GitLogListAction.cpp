@@ -21,15 +21,18 @@
 #include "stdafx.h"
 #include "std.h"
 
-import TortoiseProc;
-#include "GitLogList.h"
-import IconMenu;
-import SysProgressDlg;
-import TGitMessageBox;
+#include "Utils/LogDataVector.cpp"
 #include "ProtoModules/CommitDlg.h"
 #include "ProtoModules/RebaseDlg.h"
 #include "ProtoModules/CommitIsOnRefsDlg.h"
 #include "ProtoModules/GitDiff.h"
+
+import TortoiseProc;
+import GitLogListBase;
+import IconMenu;
+import SysProgressDlg;
+import TGitMessageBox;
+import FindDlg;
 
 import AppUtils.Launch;
 import AppUtils.Workflow;

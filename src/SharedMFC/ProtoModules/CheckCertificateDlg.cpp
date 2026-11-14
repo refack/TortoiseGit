@@ -26,7 +26,7 @@ import TortoiseProc;
 import AppUtils.Launch;
 import AppUtils.Window;
 import TGitPath;
-import TempFile;
+import TempFiles;
 
 IMPLEMENT_DYNAMIC(CCheckCertificateDlg, CStandAloneDialog)
 

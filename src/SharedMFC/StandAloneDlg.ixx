@@ -26,7 +26,7 @@ import AppHelp;		// StartHtmlHelp
 // that import this module. What the dialogs need from up there lives below instead:
 // StartHtmlHelp in AppHelp, the taskbar grouping globals in TaskbarUUID.
 
-using namespace TGitDarkMode;
+using namespace DarkModeHelper;
 using namespace ThemeAPI;
 
 

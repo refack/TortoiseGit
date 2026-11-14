@@ -17,14 +17,13 @@
 // along with this program; if not, write to the Free Software Foundation,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
-#include "../stdafx.h"
+#include "stdafx.h"
 
 
 
 #include "MiscUI/FilterEdit.h"
-#include <tgitlib/LoadIconEx.h>
-import ThemeAPI;
 import tgit;
+import ThemeAPI;
 
 const UINT CFilterEdit::WM_FILTEREDIT_INFOCLICKED = ::RegisterWindowMessage(L"TGITWM_FILTEREDIT_INFOCLICKED");
 const UINT CFilterEdit::WM_FILTEREDIT_CANCELCLICKED = ::RegisterWindowMessage(L"TGITWM_FILTEREDIT_CANCELCLICKED");
@@ -394,7 +393,7 @@ HICON CFilterEdit::LoadDpiScaledIcon(UINT resourceId, int cx96dpi, int cy96dpi)
 	CWindowDC dc(this);
 	int cx = MulDiv(cx96dpi, dc.GetDeviceCaps(LOGPIXELSX), 96);
 	int cy = MulDiv(cy96dpi, dc.GetDeviceCaps(LOGPIXELSY), 96);
-	return LoadIconEx(AfxGetResourceHandle(), MAKEINTRESOURCE(resourceId), cx, cy);
+	return wil::LoadIconEx(AfxGetResourceHandle(), MAKEINTRESOURCE(resourceId), cx, cy);
 }
 
 void CFilterEdit::SetTheme(bool /*bDark*/)

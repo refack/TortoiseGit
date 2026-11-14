@@ -417,6 +417,7 @@ using wil::unique_hicon;
 using wil::unique_handle;
 using wil::unique_hmodule;
 using wil::unique_struct;
+using wil::unique_hdc_window;
 using wil::scope_exit;
 // COM owners. The nothrow flavor only: CComPtr never threw, and the throwing
 // policies reach wil's failure reporting, whose strsafe statics cannot cross an
@@ -440,6 +441,8 @@ using wil::open_file;
 using wil::GetFileInfo;
 using wil::ResultException;
 using wil::make_range;
+using wil::GetWindowDC;
+using unique_hglobal_resource = unique_any<HGLOBAL, decltype(&::FreeResource), ::FreeResource>;
 
 
 
@@ -1110,6 +1113,71 @@ fs::path GetModulePath(const HMODULE module = {} /* current process module */) {
 	return ret.get();
 }
 
+
+/// GetResource<WORD>(...) -> std::span<const WORD>
+template <typename DataType>
+auto GetResourceView(const HMODULE& module, const LPCWSTR& type, const LPCWSTR& name, const std::optional<LANGID> language = {}) {
+	using Elem = std::remove_const<DataType>;
+
+	const auto& info = language
+		? ::FindResourceExW(module, type, name, *language)
+		: ::FindResourceW(module, name, type);
+	const auto& data = info ? ::LoadResource(module, info) : nullptr;
+	const auto* ptr = data ? ::LockResource(data) : nullptr;
+	const auto num_elements = ::SizeofResource(module, info) / sizeof(Elem);
+	return std::span<const DataType>{ static_cast<Elem*>(ptr), num_elements };
+}
+
+
+auto LoadIconAuto(const HINSTANCE& hInstance, const LPCWSTR& lpIconName, int iconWidth, int iconHeight) {
+	// the docs for LoadIconWithScaleDown don't mention that a size of 0 will
+	// use the default system icon size like for e.g. LoadImage or LoadIcon.
+	// So we don't assume that this works but do it ourselves.
+	if (iconWidth == 0)
+		iconWidth = GetSystemMetrics(SM_CXSMICON);
+	if (iconHeight == 0)
+		iconHeight = GetSystemMetrics(SM_CYSMICON);
+	HICON hIcon = nullptr;
+	if (FAILED(LoadIconWithScaleDown(hInstance, lpIconName, iconWidth, iconHeight, &hIcon))) {
+		// fallback, just in case
+		hIcon = static_cast<HICON>(LoadImage(hInstance, lpIconName, IMAGE_ICON, iconWidth, iconHeight, LR_DEFAULTCOLOR));
+	}
+	return wil::unique_hicon{hIcon};
+}
+
+
+HICON LoadIconEx(const HINSTANCE& hInstance, const LPCWSTR& lpIconName) {
+	HICON hIcon = nullptr;
+	if (FAILED(LoadIconWithScaleDown(hInstance, lpIconName, GetSystemMetrics(SM_CXSMICON), GetSystemMetrics(SM_CYSMICON), &hIcon))) {
+		// fallback, just in case
+		hIcon = LoadIcon(hInstance, lpIconName);
+	}
+	return hIcon;
+}
+
+
+HICON LoadIconEx(const HINSTANCE& hInstance, const LPCWSTR& lpIconName, int iconWidth, int iconHeight) {
+	return LoadIconAuto(hInstance, lpIconName, iconWidth, iconHeight).release();
+}
+
+
+union ResourcePtr {
+	const wchar_t*		wstring = nullptr;
+	const WORD*			words;
+	const std::byte*	bytes;
+};
+
+
+void EatRibbon(const std::byte* res) {
+
+}
+
+
+static_assert(!std::is_assignable_v<const std::byte*, ResourcePtr>);
+static_assert(!std::invocable<decltype(EatRibbon), ResourcePtr>);
+static_assert(std::invocable<decltype(EatRibbon), decltype(ResourcePtr::bytes)>);
+static_assert(!std::invocable<decltype(EatRibbon), decltype(ResourcePtr::words)>);
+static_assert(!std::invocable<decltype(EatRibbon), decltype(ResourcePtr::wstring)>);
 
 }
 

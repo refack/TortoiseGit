@@ -81,7 +81,7 @@ public:
 		if (!hwndTT)
 			return FALSE;
 
-		TGitDarkMode::DarkModeHelper::Instance().AllowDarkModeForWindow(hwndTT, CTheme::Instance().IsDarkTheme());
+		DarkModeHelper::Instance().AllowDarkModeForWindow(hwndTT, CTheme::Instance().IsDarkTheme());
 		std::ignore = ::SetWindowTheme(hwndTT, L"Explorer", nullptr);
 
 		TOOLINFO ti = {};
@@ -196,7 +196,7 @@ protected:
 
 private:
 	void SetTheme(bool bDark) {
-		TGitDarkMode::DarkModeHelper::Instance().AllowDarkModeForWindow(GetSafeHwnd(), bDark);
+		DarkModeHelper::Instance().AllowDarkModeForWindow(GetSafeHwnd(), bDark);
 		std::ignore = ::SetWindowTheme(GetSafeHwnd(), L"Explorer", nullptr);
 	}
 

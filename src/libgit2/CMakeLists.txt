@@ -83,7 +83,7 @@ target_sources(tgitlib
         modules/CacheInterface.ixx
         modules/ShellUpdater.ixx
         modules/TGitPath.ixx
-        modules/TempFile.ixx
+        modules/TempFiles.ixx
         modules/gitindex.ixx
         modules/invarients.ixx
         modules/lanes.ixx

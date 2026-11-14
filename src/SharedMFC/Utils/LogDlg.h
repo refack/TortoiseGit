@@ -26,18 +26,13 @@
 #include "ProtoModules/PatchViewDlg.h"
 #include "ProtoModules/HyperLink.h"
 #include "MiscUI/SplitterControl.h"
-#include "../../TortoiseProc/GitLogList.h"
 
-import TGitPath;
-import GitHash;
-import Registry;
-import wil;
+import tgit;
 import StandAloneDlg;
-import misc_constants;
 import Colors;
 import GitStatusListCtrl;
 import MenuButton;
-
+import GitLogListBase;
 
 
 #define LOGFILTER_TIMER	101

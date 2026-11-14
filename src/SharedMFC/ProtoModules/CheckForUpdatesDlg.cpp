@@ -35,7 +35,7 @@ import AppUtils.Window;
 import DPIAware;
 import PathUtils;
 import Registry;
-import TempFile;
+import TempFiles;
 import LangDll;
 
 #define SIGNATURE_FILE_ENDING L".rsa.asc"

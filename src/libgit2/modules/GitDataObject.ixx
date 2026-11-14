@@ -7,13 +7,13 @@
 #include <tgitlib/sanity.h>
 
 
-export module GitDataObject;
+export module TGitDataObject;
 import std;
 import git_h;
 import wil;
 import str_utils;
 import TGitPath;
-import TempFile;
+import TempFiles;
 import GitHash;
 
 using TGitPath::CTGitPath;

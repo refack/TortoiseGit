@@ -47,7 +47,7 @@ import ConfigureGitExe;
 import Registry;
 import TGitPath;
 import GitHash;
-import TempFile;
+import TempFiles;
 import ProjectProperties;
 import TGitMessageBox;
 import TaskbarUUID;

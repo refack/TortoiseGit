@@ -30,7 +30,6 @@
 #include <tgitlib/CreateProcessHelper.h>
 import DarkModeHelper;
 import DPIAware;
-#include <tgitlib/LoadIconEx.h>
 import Registry;
 #include <tgitlib/ScintillaRegistration.h>
 import str_utils;
@@ -70,10 +69,10 @@ bool CMainWindow::RegisterAndCreateWindow()
 	wcx.hCursor = nullptr;
 	ResString clsname(hResource, IDS_APP_TITLE);
 	wcx.lpszClassName = clsname;
-	wcx.hIcon = LoadIconEx(hResource, MAKEINTRESOURCE(IDI_TORTOISEUDIFF), GetSystemMetrics(SM_CXICON), GetSystemMetrics(SM_CYICON));
+	wcx.hIcon = wil::LoadIconEx(hResource, MAKEINTRESOURCE(IDI_TORTOISEUDIFF), GetSystemMetrics(SM_CXICON), GetSystemMetrics(SM_CYICON));
 	wcx.hbrBackground = reinterpret_cast<HBRUSH>(COLOR_3DFACE + 1);
 	wcx.lpszMenuName = MAKEINTRESOURCE(IDC_TORTOISEUDIFF);
-	wcx.hIconSm = LoadIconEx(wcx.hInstance, MAKEINTRESOURCE(IDI_TORTOISEUDIFF));
+	wcx.hIconSm = wil::LoadIconEx(wcx.hInstance, MAKEINTRESOURCE(IDI_TORTOISEUDIFF));
 	if (RegisterWindow(&wcx))
 	{
 		if (Create(WS_CAPTION | WS_MAXIMIZEBOX | WS_MINIMIZEBOX | WS_SIZEBOX | WS_SYSMENU | WS_CLIPCHILDREN, nullptr))

@@ -18,12 +18,12 @@
 //
 
 #pragma once
-import StandAloneDlg;
-import GitStatusListCtrl;
 #include "MiscUI/SciEdit.h"
 #include "MiscUI/SplitterControl.h"
 #include "Utils/HistoryCombo.h"
-#include "../../TortoiseProc/GitLogList.h"
+import StandAloneDlg;
+import GitStatusListCtrl;
+import GitLogListBase;
 import MenuButton;
 import ProjectProperties;
 

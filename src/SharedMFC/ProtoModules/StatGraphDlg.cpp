@@ -172,19 +172,19 @@ BOOL CStatGraphDlg::OnInitDialog()
 
 	int iconWidth = GetSystemMetrics(SM_CXSMICON);
 	int iconHeight = GetSystemMetrics(SM_CYSMICON);
-	m_btnGraphBar.SetImage(CAppUtils::LoadIconEx(IDI_GRAPHBAR, iconWidth, iconHeight));
+	m_btnGraphBar.SetImage(wil::MFC::LoadIconEx(IDI_GRAPHBAR, iconWidth, iconHeight));
 	m_btnGraphBar.SizeToContent();
 	m_btnGraphBar.Invalidate();
-	m_btnGraphBarStacked.SetImage(CAppUtils::LoadIconEx(IDI_GRAPHBARSTACKED, iconWidth, iconHeight));
+	m_btnGraphBarStacked.SetImage(wil::MFC::LoadIconEx(IDI_GRAPHBARSTACKED, iconWidth, iconHeight));
 	m_btnGraphBarStacked.SizeToContent();
 	m_btnGraphBarStacked.Invalidate();
-	m_btnGraphLine.SetImage(CAppUtils::LoadIconEx(IDI_GRAPHLINE, iconWidth, iconHeight));
+	m_btnGraphLine.SetImage(wil::MFC::LoadIconEx(IDI_GRAPHLINE, iconWidth, iconHeight));
 	m_btnGraphLine.SizeToContent();
 	m_btnGraphLine.Invalidate();
-	m_btnGraphLineStacked.SetImage(CAppUtils::LoadIconEx(IDI_GRAPHLINESTACKED, iconWidth, iconHeight));
+	m_btnGraphLineStacked.SetImage(wil::MFC::LoadIconEx(IDI_GRAPHLINESTACKED, iconWidth, iconHeight));
 	m_btnGraphLineStacked.SizeToContent();
 	m_btnGraphLineStacked.Invalidate();
-	m_btnGraphPie.SetImage(CAppUtils::LoadIconEx(IDI_GRAPHPIE, iconWidth, iconHeight));
+	m_btnGraphPie.SetImage(wil::MFC::LoadIconEx(IDI_GRAPHPIE, iconWidth, iconHeight));
 	m_btnGraphPie.SizeToContent();
 	m_btnGraphPie.Invalidate();
 

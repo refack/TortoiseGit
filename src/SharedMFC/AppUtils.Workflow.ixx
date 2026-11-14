@@ -1,7 +1,6 @@
 module;
 
 #include "ProtoModules/ExportDlg.h"
-import ProgressDlg;
 #include "ProtoModules/CreateBranchTagDlg.h"
 #include "ProtoModules/CreateWorktreeDlg.h"
 #include "ProtoModules/GitSwitchDlg.h"
@@ -20,7 +19,6 @@ import ProgressDlg;
 #include "ProtoModules/StashSave.h"
 #include "ProtoModules/IgnoreDlg.h"
 #include "ProtoModules/BisectStartDlg.h"
-import SysProgressDlg;
 #include "../TortoiseProc/ProgressCommands/ResetProgressCommand.h"
 #include "../TortoiseProc/ProgressCommands/FetchProgressCommand.h"
 #include "ProtoModules/SubmoduleResolveConflictDlg.h"
@@ -28,13 +26,16 @@ import SysProgressDlg;
 
 
 export module AppUtils.Workflow;
+import tgit;
 import TortoiseProc;
 import GitRevLoglist;
 import TGitMessageBox;
 import tgit.Hooks;
-import Constants;
 import AppUtils.WorkingTree;	// IgnoreFile/ConflictEdit/GetConflictTitles moved there (GitStatusListCtrl cycle)
-import libgit2;
+import ProgressDlg;
+import SysProgressDlg;
+
+using namespace tgit;			// Clion patch;
 
 using namespace GitLogList;
 using namespace tgit::libgit2;

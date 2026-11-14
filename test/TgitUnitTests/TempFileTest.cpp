@@ -18,7 +18,7 @@
 //
 
 #include "stdafx.h"
-import TempFile;
+import TempFiles;
 import TGitPath;
 import GitHash;
 

@@ -35,8 +35,8 @@ import DPIAware;
 import TGitMessageBox;
 import ConfigureGitExe;
 import DragDrop;
-import GitDataObject;
-import TempFile;	// TempFiles::GetTempFilePath
+import TGitDataObject;
+import TempFiles;	// TempFiles::GetTempFilePath
 
 #define OVERLAY_EXTERNAL	1
 #define OVERLAY_EXECUTABLE	2
@@ -219,9 +219,9 @@ BOOL CRepositoryBrowser::OnInitDialog()
 	DWORD exStyle = TVS_EX_FADEINOUTEXPANDOS | TVS_EX_AUTOHSCROLL | TVS_EX_DOUBLEBUFFER;
 	m_RepoTree.SetExtendedStyle(exStyle, exStyle);
 
-	m_nExternalOvl = SYS_IMAGE_LIST().AddIcon(CAppUtils::LoadIconEx(IDI_EXTERNALOVL, 0, 0));
-	m_nExecutableOvl = SYS_IMAGE_LIST().AddIcon(CAppUtils::LoadIconEx(IDI_EXECUTABLEOVL, 0, 0));
-	m_nSymlinkOvl = SYS_IMAGE_LIST().AddIcon(CAppUtils::LoadIconEx(IDI_SYMLINKOVL, 0, 0));
+	m_nExternalOvl = SYS_IMAGE_LIST().AddIcon(wil::MFC::LoadIconEx(IDI_EXTERNALOVL, 0, 0));
+	m_nExecutableOvl = SYS_IMAGE_LIST().AddIcon(wil::MFC::LoadIconEx(IDI_EXECUTABLEOVL, 0, 0));
+	m_nSymlinkOvl = SYS_IMAGE_LIST().AddIcon(wil::MFC::LoadIconEx(IDI_SYMLINKOVL, 0, 0));
 	// set externaloverlay in SYS_IMAGE_LIST() in Refresh method, so that it is updated after every launch of the logdialog
 
 	int borderWidth = 0;

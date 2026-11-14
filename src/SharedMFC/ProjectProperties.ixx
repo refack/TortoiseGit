@@ -11,7 +11,7 @@ import str_utils;
 import wil.MFC;
 import libgit2;
 import TGitPath;
-import TempFile;
+import TempFiles;
 
 
 struct num_compare
