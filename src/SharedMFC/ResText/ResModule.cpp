@@ -522,7 +522,7 @@ BOOL CResModule::ReplaceMenu(LPCWSTR lpszType, WORD wLanguage)
 			if (!CountMemReplaceMenuExResource(items, &index, newMenu.get()))
 				MYERROR;
 
-			if (!UpdateResource(m_hUpdateRes, RT_MENU, lpszType, (m_wTargetLang ? m_wTargetLang : wLanguage), newMenu.get(), static_cast<DWORD>(words * sizeof(DWORD))))
+			if (!UpdateResource(m_hUpdateRes, RT_MENU, lpszType, (m_wTargetLang ? m_wTargetLang : wLanguage), newMenu.get(), static_cast<DWORD>(words * sizeof(WORD))))
 				MYERROR;
 
 			if (m_wTargetLang && (!UpdateResource(m_hUpdateRes, RT_MENU, lpszType, wLanguage, nullptr, 0)))
