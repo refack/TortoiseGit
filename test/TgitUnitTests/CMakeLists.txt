@@ -27,10 +27,7 @@ target_sources(TGitUnitTests
         WideStringTest.cpp
         UnitTests.cpp
 
-        # TortoiseProc's strings, and its VERSIONINFO, which CPathUtils.GetCopyrightForSelf
-        # reads back from this exe. UnitTests.rc2 is not compiled: CMake hands only .rc to RC.
-        "${CMAKE_SOURCE_DIR}/src/TortoiseProc/TortoiseProcENG.rc"
-        UnitTests.rc2
+        UnitTests.rc
 )
 
 # Parked, not deleted: each tests code that is not in any CMake target yet - the
@@ -66,8 +63,6 @@ target_include_directories(TGitUnitTests
         gitdll
         tgitlib
         SharedMFC
-        # bare icon/avi names in TortoiseProcENG.rc, cf. src/TortoiseProc/CMakeLists.txt
-        "$<$<COMPILE_LANGUAGE:RC>:${CMAKE_SOURCE_DIR}/src/SharedMFC/Resources>"
 )
 
 target_compile_definitions(TGitUnitTests
