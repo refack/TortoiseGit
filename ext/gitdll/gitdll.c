@@ -759,7 +759,7 @@ static int update_some(const struct object_id* sha1, struct strbuf* base, const 
 {
 	struct cache_entry* ce = (struct cache_entry*)context;
 
-	if (S_IFDIR | mode)
+	if (S_ISDIR(mode)) // as git's builtin/checkout.c; `S_IFDIR | mode` is always true, so no file was ever matched
 		return READ_TREE_RECURSIVE;
 
 	oidcpy(&ce->oid, sha1);
