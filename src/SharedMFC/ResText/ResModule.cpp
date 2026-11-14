@@ -20,10 +20,9 @@
 #include "Utils.h"
 #include "ResModule.h"
 #include <Imagehlp.h>
-#include <tgitlib/sanity.h>		// SCOPE_EXIT
 
 import std;
-import wil;				// GetResourceView; scope_guard, which SCOPE_EXIT expands to
+import wil;				// GetResourceView, unique_hmodule
 import str_utils;
 
 #pragma comment(lib, "Imagehlp.lib")
@@ -91,14 +90,10 @@ BOOL CResModule::ExtractResources(const std::vector<std::wstring>& filelist, LPC
 			ScanHeaderFile(headerfile);
 			starpos = starposnext;
 		}
-		m_hResDll = LoadLibraryEx(filepath.c_str(), nullptr, LOAD_LIBRARY_AS_IMAGE_RESOURCE | LOAD_LIBRARY_AS_DATAFILE);
-		if (!m_hResDll)
+		const wil::unique_hmodule resDll{ LoadLibraryEx(filepath.c_str(), nullptr, LOAD_LIBRARY_AS_IMAGE_RESOURCE | LOAD_LIBRARY_AS_DATAFILE) };
+		if (!resDll)
 			MYERROR;
-		SCOPE_EXIT
-		{
-			if (m_hResDll)
-				FreeLibrary(m_hResDll);
-		};
+		m_hResDll = resDll.get();   // borrowed; freed at the end of this loop iteration
 
 		size_t nEntries = m_StringEntries.size();
 		// fill in the std::map with all translatable entries
@@ -147,14 +142,10 @@ BOOL CResModule::ExtractResources(const std::vector<std::wstring>& filelist, LPC
 
 BOOL CResModule::ExtractResources(LPCWSTR lpszSrcLangDllPath, LPCWSTR lpszPoFilePath, BOOL bNoUpdate, LPCWSTR lpszHeaderFile)
 {
-	m_hResDll = LoadLibraryEx(lpszSrcLangDllPath, nullptr, LOAD_LIBRARY_AS_IMAGE_RESOURCE | LOAD_LIBRARY_AS_DATAFILE);
-	if (!m_hResDll)
+	const wil::unique_hmodule resDll{ LoadLibraryEx(lpszSrcLangDllPath, nullptr, LOAD_LIBRARY_AS_IMAGE_RESOURCE | LOAD_LIBRARY_AS_DATAFILE) };
+	if (!resDll)
 		MYERROR;
-	SCOPE_EXIT
-	{
-		if (m_hResDll)
-			FreeLibrary(m_hResDll);
-	};
+	m_hResDll = resDll.get();   // borrowed; freed when this call returns
 
 	size_t nEntries = 0;
 	// fill in the std::map with all translatable entries
@@ -227,23 +218,19 @@ BOOL CResModule::CreateTranslatedResources(LPCWSTR lpszSrcLangDllPath, LPCWSTR l
 
 	RemoveSignatures(lpszDestLangDllPath);
 
-	int count = 0;
-	do
+	// Owned here, so it is freed when this call returns; m_hResDll only borrows it.
+	wil::unique_hmodule resDll;
+	for (int attempt = 0; !resDll && attempt < 10; ++attempt)
 	{
-		m_hResDll = LoadLibraryEx(lpszSrcLangDllPath, nullptr, LOAD_LIBRARY_AS_DATAFILE_EXCLUSIVE | LOAD_LIBRARY_AS_IMAGE_RESOURCE | LOAD_IGNORE_CODE_AUTHZ_LEVEL);
-		if (!m_hResDll)
+		resDll.reset(LoadLibraryEx(lpszSrcLangDllPath, nullptr, LOAD_LIBRARY_AS_DATAFILE_EXCLUSIVE | LOAD_LIBRARY_AS_IMAGE_RESOURCE | LOAD_IGNORE_CODE_AUTHZ_LEVEL));
+		if (!resDll)
 			Sleep(100);
-		count++;
-	} while (!m_hResDll && (count < 10));
-
-	if (!m_hResDll)
+	}
+	if (!resDll)
 		MYERROR;
-	SCOPE_EXIT
-	{
-		if (m_hResDll)
-			FreeLibrary(m_hResDll);
-	};
+	m_hResDll = resDll.get();
 
+	int count = 0;
 	sDestFile = std::wstring(lpszDestLangDllPath);
 
 	// get all translated strings
