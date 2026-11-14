@@ -20,7 +20,7 @@
 #pragma once
 
 import StandAloneDlg;
-#include "../../TortoiseProc/MiscUI/SciEdit.h"
+#include "MiscUI/SciEdit.h"
 #include "../SharedMFC/Resources/resource.h"
 /**
  * \ingroup TortoiseProc

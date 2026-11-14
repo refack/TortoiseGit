@@ -19,8 +19,8 @@
 //
 #pragma once
 import StandAloneDlg;
-#include "../../TortoiseProc/MiscUI/RegexEdit.h"
-#include "../../TortoiseProc/MiscUI/SciEdit.h"
+#include "MiscUI/RegexEdit.h"
+#include "MiscUI/SciEdit.h"
 
 // CBugtraqRegexTestDlg dialog
 

@@ -18,7 +18,6 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 #include "../stdafx.h"
-#include "../std.h"
 
 
 #include "SciEdit.h"	// same directory: resolves for TortoiseProc and SharedMFC alike
@@ -35,7 +34,8 @@
 #include <tgitlib/ScintillaRegistration.h>
 #include <Utils/URLFinder.h>
 import ThemeAPI;
-
+import tgit;
+import DarkModeHelper;
 
 
 void CSciEditContextMenuInterface::InsertMenuItems(CMenu&, int&) {}
@@ -1642,13 +1642,13 @@ int CSciEdit::LoadFromFile(const CString& filename, UINT errorMsgId)
 	CAutoFile hfile = CreateFile(filename, GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_DELETE, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
 	if (!hfile)
 	{
-		MessageBox((CFormatMessageWrapper()).c_str(), L"TortoiseGit", MB_ICONEXCLAMATION);
+		MessageBox((wil::CFormatMessageWrapper()).c_str(), L"TortoiseGit", MB_ICONEXCLAMATION);
 		return -1;
 	}
 
 	if (LARGE_INTEGER fileSize; !::GetFileSizeEx(hfile, &fileSize))
 	{
-		MessageBox((CFormatMessageWrapper()).c_str(), L"TortoiseGit", MB_ICONEXCLAMATION);
+		MessageBox((wil::CFormatMessageWrapper()).c_str(), L"TortoiseGit", MB_ICONEXCLAMATION);
 		return false;
 	}
 	else if (fileSize.QuadPart >= 250 * 1024 * 1024) // styling gets really slow and Scintilla requires special initialization for large files
@@ -1663,7 +1663,7 @@ int CSciEdit::LoadFromFile(const CString& filename, UINT errorMsgId)
 	DWORD size = 0;
 	if (!ReadFile(hfile, data, sizeof(data), &size, nullptr))
 	{
-		MessageBox((CFormatMessageWrapper()).c_str(), L"TortoiseGit", MB_ICONEXCLAMATION);
+		MessageBox((wil::CFormatMessageWrapper()).c_str(), L"TortoiseGit", MB_ICONEXCLAMATION);
 		return -1;
 	}
 
@@ -1685,9 +1685,9 @@ int CSciEdit::LoadFromFile(const CString& filename, UINT errorMsgId)
 		if (auto sciStatus = static_cast<int>(Call(SCI_GETSTATUS)); sciStatus > SC_STATUS_OK && sciStatus < SC_STATUS_WARN_START)
 		{
 			if (sciStatus == SC_STATUS_BADALLOC)
-				MessageBox((CFormatMessageWrapper(static_cast<DWORD>(E_OUTOFMEMORY))).c_str(), L"TortoiseGit", MB_ICONEXCLAMATION);
+				MessageBox((wil::CFormatMessageWrapper(static_cast<DWORD>(E_OUTOFMEMORY))).c_str(), L"TortoiseGit", MB_ICONEXCLAMATION);
 			else
-				MessageBox((CFormatMessageWrapper(static_cast<DWORD>(E_FAIL))).c_str(), L"TortoiseGit", MB_ICONEXCLAMATION);
+				MessageBox((wil::CFormatMessageWrapper(static_cast<DWORD>(E_FAIL))).c_str(), L"TortoiseGit", MB_ICONEXCLAMATION);
 			
 			Call(SCI_CLEARALL);
 			Call(SCI_CANCEL);
@@ -1697,7 +1697,7 @@ int CSciEdit::LoadFromFile(const CString& filename, UINT errorMsgId)
 		{
 			Call(SCI_CLEARALL);
 			Call(SCI_CANCEL);
-			MessageBox((CFormatMessageWrapper()).c_str(), L"TortoiseGit", MB_ICONEXCLAMATION);
+			MessageBox((wil::CFormatMessageWrapper()).c_str(), L"TortoiseGit", MB_ICONEXCLAMATION);
 			return -1;
 		}
 	}
@@ -1764,7 +1764,7 @@ BOOL CSciEdit::AdjustThemeProc(HWND hwnd, LPARAM /*lParam*/)
 		dwCurStyle |= WS_BORDER;
 		SetWindowLongPtr(hwnd, GWL_STYLE, dwCurStyle);
 
-		DarkModeHelper::Instance().AllowDarkModeForWindow(hwnd, TRUE);
+		TGitDarkMode::DarkModeHelper::Instance().AllowDarkModeForWindow(hwnd, TRUE);
 		SetWindowTheme(hwnd, L"Explorer", nullptr);
 		EnumChildWindows(hwnd, AdjustThemeProc, 0);
 	}

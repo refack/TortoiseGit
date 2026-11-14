@@ -19,11 +19,12 @@
 //
 #pragma once
 
-import StandAloneDlg;
-#include "../../TortoiseProc/TreePropSheet/TreePropSheet.h"
-import TGitPath;
+#include "TreePropSheet/TreePropSheet.h"
 #include "SettingsPropPage.h"
 #include "SettingGitRemote.h"
+
+import StandAloneDlg;
+import TGitPath;
 
 using namespace TreePropSheet;
 

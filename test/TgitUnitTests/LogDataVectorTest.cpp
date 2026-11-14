@@ -18,7 +18,7 @@
 //
 
 #include "stdafx.h"
-#include "RepositoryFixtures.h"
+import RepositoryFixtures;
 #include "LogDataVector.h"
 
 class CLogDataVectorCBasicGitWithTestRepoFixture : public CBasicGitWithTestRepoFixture

@@ -1,6 +1,5 @@
 ﻿// TortoiseGit - a Windows shell extension for easy version control
 
-// Copyright (C) 2023 - TortoiseGit
 // Copyright (C) 2003-2006, 2009, 2013 - TortoiseSVN
 
 // This program is free software; you can redistribute it and/or
@@ -17,28 +16,44 @@
 // along with this program; if not, write to the Free Software Foundation,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
-#pragma once
+#include "../stdafx.h"
 
-/**
- * \ingroup TortoiseShell
- * Represents a list of directory elements like folders and files.
- */
-class ItemIDList
+
+#include "MiscUI/FileDropEdit.h"
+
+
+// CFileDropEdit
+
+IMPLEMENT_DYNAMIC(CFileDropEdit, CEdit)
+CFileDropEdit::CFileDropEdit()
 {
-public:
-	ItemIDList(PCUITEMID_CHILD item, PCUIDLIST_RELATIVE parent);
-	ItemIDList(PCIDLIST_ABSOLUTE item);
+}
 
-	int size() const;
-	LPCSHITEMID get(int index) const;
-	virtual ~ItemIDList();
+CFileDropEdit::~CFileDropEdit()
+{
+}
 
-	std::wstring toString(bool resolveLibraries = true);
 
-	PCUITEMID_CHILD operator& ();
-private:
-	PCUITEMID_CHILD item_ = nullptr;
-	PCUIDLIST_RELATIVE parent_ = nullptr;
-	mutable int count_ = -1;
-};
+BEGIN_MESSAGE_MAP(CFileDropEdit, CEdit)
+END_MESSAGE_MAP()
 
+
+
+// CFileDropEdit message handlers
+
+void CFileDropEdit::PreSubclassWindow()
+{
+	m_pDropTarget = std::make_unique<CFileDropTarget>(m_hWnd);
+	RegisterDragDrop(m_hWnd, m_pDropTarget.get());
+	// create the supported formats:
+	FORMATETC ftetc={0};
+	ftetc.cfFormat = CF_TEXT;
+	ftetc.dwAspect = DVASPECT_CONTENT;
+	ftetc.lindex = -1;
+	ftetc.tymed = TYMED_HGLOBAL;
+	m_pDropTarget->AddSuportedFormat(ftetc);
+	ftetc.cfFormat=CF_HDROP;
+	m_pDropTarget->AddSuportedFormat(ftetc);
+
+	CEdit::PreSubclassWindow();
+}

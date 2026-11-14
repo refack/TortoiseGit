@@ -20,8 +20,8 @@
 #pragma once
 import StandAloneDlg;
 import GitStatusListCtrl;
-#include "../../TortoiseProc/MiscUI/SciEdit.h"
-#include "../../TortoiseProc/MiscUI/SplitterControl.h"
+#include "MiscUI/SciEdit.h"
+#include "MiscUI/SplitterControl.h"
 #include "Utils/HistoryCombo.h"
 #include "../../TortoiseProc/GitLogList.h"
 import MenuButton;

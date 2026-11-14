@@ -1,5 +1,4 @@
 ﻿#include "../stdafx.h"
-#include "../std.h"
 
 
 #include "MiscUI/BufferDC.h"

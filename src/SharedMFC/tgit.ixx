@@ -16,10 +16,11 @@ export import Colors;
 export import ThemeAPI;
 export import TGitPath;
 export import misc_constants;
-
-
+export import RIAA;
+export import Registry;
 
 export namespace tgit {
+	using namespace std::literals;
 	using namespace TGitH;
 	using namespace GitCall;
 	using namespace DebugOutput;
@@ -28,7 +29,8 @@ export namespace tgit {
 	using namespace TGitHash;
 	using namespace TGitPath;
 	using namespace TGitRev;
+	using namespace RIAA;
+	using namespace RegistryDep;
 }
 
 export using namespace tgit;
-export using namespace std::literals;

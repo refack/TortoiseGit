@@ -61,7 +61,7 @@ if(CMAKE_C_COMPILER_ID STREQUAL "MSVC")
     add_compile_options( -external:anglebrackets )
 
     # just a mock until CMAKE_CXX_MODULE_STD works for clang-cl
-    add_library(std_module STATIC ext/gitdll/version.h)
+    add_library(std_module_shim STATIC ext/gitdll/version.h)
 
     #    add_compile_options("-experimental:log<OBJECT>.sarif")     # broken
     #    string(APPEND CMAKE_CXX_COMPILE_OBJECT " -experimental:log<OBJECT>.sarif")     # obsolete by shim

@@ -18,12 +18,26 @@ target_sources(SharedMFC
         Utils/LogDlgFileFilter.cpp
         Utils/LogDlgFileFilter.h
         Utils/LogDataVector.cpp		# CLogDataVector: GitLogListBase.ixx's backing store; was compiled by no target
+
         # MFC controls the shared library itself uses (FindDlg, GitLogListBase, GravatarPictureBox,
         # TortoiseProc.ixx); compiled once here so every MFC app links them. Sources stay in MiscUI.
-        ../TortoiseProc/MiscUI/AnimationManager.cpp
-        ../TortoiseProc/MiscUI/HistoryCombo.cpp
-        ../TortoiseProc/MiscUI/Picture.cpp
-        ../TortoiseProc/MiscUI/SciEdit.cpp
+        MiscUI/AnimationManager.cpp
+        MiscUI/HistoryCombo.cpp
+        MiscUI/Picture.cpp
+        MiscUI/SciEdit.cpp
+
+        MiscUI/BufferDC.cpp
+        MiscUI/FileDropEdit.cpp
+        MiscUI/FilterEdit.cpp
+        MiscUI/LinkControl.cpp
+        MiscUI/MyGraph.cpp
+        MiscUI/RegexEdit.cpp
+        MiscUI/SVG.cpp
+        MiscUI/SplitterControl.cpp
+        MiscUI/WaterEffect.cpp
+        TreePropSheet/PropPageFrame.cpp
+        TreePropSheet/PropPageFrameDefault.cpp
+        TreePropSheet/TreePropSheet.cpp
 )
 
 target_sources(SharedMFC

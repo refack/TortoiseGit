@@ -23,7 +23,7 @@
 #include <git2/config.h>
 #include <git2/repository.h>
 
-#include "RepositoryFixtures.h"
+import RepositoryFixtures;
 import TGitPath;	// GitAdminDir lives in the TGitPath module
 import str_utils;
 

@@ -49,10 +49,7 @@ namespace fs = std::filesystem;
 // Git stuff
 #include <git2.h>
 #include <tgitlib/sanity.h>		// SCOPE_EXIT; textual includes before the imports
-import DebugOutput;
-import RIAA;
-import wil;		// the libgit2 owners (wil::unique_git_*), scope_exit_helper for SCOPE_EXIT
-import str_utils;	// CUnicodeUtils, StringUtils, tgit::str (were UnicodeUtils.h/StringUtils.h)
+import tgit;
 
 #ifdef _UNICODE
 #ifdef _M_X64

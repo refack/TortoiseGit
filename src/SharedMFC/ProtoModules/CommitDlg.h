@@ -19,9 +19,9 @@
 //
 
 #pragma once
-#include "../../TortoiseProc/MiscUI/SciEdit.h"
-#include "../../TortoiseProc/MiscUI/SplitterControl.h"
-#include "../../TortoiseProc/MiscUI/LinkControl.h"
+#include "MiscUI/SciEdit.h"
+#include "MiscUI/SplitterControl.h"
+#include "MiscUI/LinkControl.h"
 #include <IBugTraqProvider_h.h>
 #include "HyperLink.h"
 #include "PatchViewDlg.h"

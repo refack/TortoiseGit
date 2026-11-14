@@ -1,10 +1,11 @@
 add_executable(TGitUnitTests)
 
+target_precompile_headers(TGitUnitTests PRIVATE stdafx.h)
+
 target_sources(TGitUnitTests
     PRIVATE
-        "${CMAKE_SOURCE_DIR}/src/SharedMFC/Resources/TortoiseProcENG.rc"
-        CmdLineParserTest.cpp
         CrashProbe.cpp   # TEMPORARY: static-init crash diagnosis
+        CmdLineParserTest.cpp
         GitByteArrayTest.cpp
         GitHashTest.cpp
         GitIndexTest.cpp
@@ -17,17 +18,15 @@ target_sources(TGitUnitTests
         LruCacheTest.cpp
         PathUtilsTest.cpp
         PersonalDictionaryTest.cpp
-        RepositoryFixtures.h
-        stdafx.cpp
-        stdafx.h
         StringUtilsTest.cpp
         TempFileTest.cpp
         TGitPathTest.cpp
         UnicodeUtilsTest.cpp
         UniqueQueueTests.cpp
-        UnitTests.cpp
-        UnitTests.rc2
         WideStringTest.cpp
+        UnitTests.cpp
+
+        UnitTests.rc2
 )
 
 # Parked, not deleted: each tests code that is not in any CMake target yet - the
@@ -60,9 +59,9 @@ set(UNITTESTS_PARKED
 
 target_include_directories(TGitUnitTests
     PRIVATE
-        "${CMAKE_SOURCE_DIR}/ext/gitdll"
-        "${CMAKE_SOURCE_DIR}/src/libgit2/include"
-        "${CMAKE_SOURCE_DIR}/src/SharedMFC"
+        gitdll
+        tgitlib
+        SharedMFC
 )
 
 target_compile_definitions(TGitUnitTests
@@ -73,14 +72,17 @@ target_compile_definitions(TGitUnitTests
 
 target_link_libraries(TGitUnitTests
     PRIVATE
-        GTest::gtest
-        GTest::gmock
         winhttp
         rpcrt4
         gdi32
         crypt32
+
+        GTest::gtest
+        GTest::gmock
+
         gitdll
         tgitlib
+        SharedMFC
 )
 
 # gitdll is a DLL (and must stay one), so it has to sit next to the exe. Copied
@@ -98,4 +100,5 @@ target_sources(TGitUnitTests
         BASE_DIRS "${CMAKE_CURRENT_SOURCE_DIR}"
     FILES
         AutoTempDir.ixx
+        RepositoryFixtures.ixx
 )

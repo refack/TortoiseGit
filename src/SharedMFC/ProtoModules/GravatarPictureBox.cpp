@@ -20,7 +20,7 @@
 #include <WinCrypt.h>
 
 #include "GravatarPictureBox.h"
-#include "../../TortoiseProc/MiscUI/Picture.h"
+#include "MiscUI/Picture.h"
 #include <Resources/LoglistCommonResource.h>
 #include "Resources/resource.h"
 

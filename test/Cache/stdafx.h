@@ -44,7 +44,4 @@ using namespace ATL;
 
 #include <tgitlib/sanity.h>		// SCOPE_EXIT
 
-import wil;				// scope_exit_helper, which SCOPE_EXIT expands to
-import DebugOutput;
-
 using AutoLocker = CComCritSecLock<CComAutoCriticalSection>;

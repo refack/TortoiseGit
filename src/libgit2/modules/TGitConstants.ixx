@@ -2,6 +2,8 @@
 import std;
 
 export namespace tgit::Constants {
+
+
 // TGitContextMenuEntries is home again (it lived here until c35e0affc, then in
 // module tgittypes). The text is tgittypes' verbatim. The bit values are persisted
 // in the users' registry menu masks (ContextMenuEntries*): never renumber.
@@ -125,5 +127,6 @@ constexpr auto ITEMIS_SUBMODULE = 0x01000000U;
 constexpr auto ITEMIS_MERGEACTIVE = 0x02000000U;
 constexpr auto ITEMIS_HASDIFFLATER = 0x04000000U;
 constexpr auto ITEMIS_INACCESSIBLE = 0x08000000U;
+
 
 }

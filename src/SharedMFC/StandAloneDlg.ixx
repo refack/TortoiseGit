@@ -13,13 +13,11 @@
 // NOLINTBEGIN(*-branch-clone)
 
 export module StandAloneDlg;
-import std;
-import gsl;
+import tgit;
 import Registry;
 import ThemeAPI;
 import TaskbarUUID;
 import DarkModeHelper;
-import GitHash;
 import SysInfo;		// GetMonitorSetupHash
 import Tooltip;
 import DPIAware;

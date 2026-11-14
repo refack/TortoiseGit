@@ -1,4 +1,4 @@
-// TortoiseGit - a Windows shell extension for easy version control
+﻿// TortoiseGit - a Windows shell extension for easy version control
 
 // Copyright (C) 2003-2006 - Stefan Kueng
 
@@ -16,18 +16,40 @@
 // along with this program; if not, write to the Free Software Foundation,
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
-#pragma once
+#include "../stdafx.h"
 
-/**
- * \ingroup TortoiseShell
- * Represents one entry of the class ItemIDList.
- */
-class PIDL
+
+#include <afxwin.h>
+#include "MiscUI/WaitCursorEx.h"
+
+
+CWaitCursorEx::CWaitCursorEx(bool start_visible) :
+	m_bVisible(start_visible)
 {
-public:
-	PIDL();
-	virtual ~PIDL();
-private:
-	LPMALLOC malloc_;
-};
+	if (start_visible)
+		AfxGetApp()->DoWaitCursor(1);
+}
 
+CWaitCursorEx::~CWaitCursorEx()
+{
+	if (m_bVisible)
+		AfxGetApp()->DoWaitCursor(-1);
+}
+
+void CWaitCursorEx::Show()
+{
+	if (!m_bVisible)
+	{
+		AfxGetApp()->DoWaitCursor(1);
+		m_bVisible = true;
+	}
+}
+
+void CWaitCursorEx::Hide()
+{
+	if (m_bVisible)
+	{
+		AfxGetApp()->DoWaitCursor(-1);
+		m_bVisible = false;
+	}
+}

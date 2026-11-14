@@ -59,21 +59,4 @@ using std::max;
 #endif
 
 
-import wil;				// scope_exit_helper, which SCOPE_EXIT expands to
-import DebugOutput;
-import GitIndex;			// git_wc_status_kind / git_wc_status2_t, which tgittypes held
-import PathUtils;
-import git_h;		// was "Git.h"; also TGitH::OpenGitRepository and the config readers
-import RIAA;
-import Registry;	// namespace RegistryDep
-import str_utils;	// tgit::wstr::CString; TGitCache is wide-only (was <atlstr.h> + using namespace ATL)
-
-using CString = tgit::wstr::CString;
-using AutoLocker = TGitH::CAutoLocker;
-using ATL::CAtlException;
-using ATL::CComHeapPtr;
-
-using namespace RIAA;
-using namespace RegistryDep;
-
-namespace fs = std::filesystem;
+import tgit;

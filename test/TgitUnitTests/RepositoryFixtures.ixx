@@ -1,39 +1,27 @@
-﻿// TortoiseGit - a Windows shell extension for easy version control
-
-// Copyright (C) 2015-2018, 2021, 2023 - TortoiseGit
-
-// This program is free software; you can redistribute it and/or
-// modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; either version 2
-// of the License, or (at your option) any later version.
-
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-
-// You should have received a copy of the GNU General Public License
-// along with this program; if not, write to the Free Software Foundation,
-// 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-//
-
-#pragma once
-import std;
-import git_h;
+﻿export module RepositoryFixtures;
+import tgit;
 import DirFileEnum;
-import PathUtils;
-import str_utils;
-namespace fs = std::filesystem;
 
-enum config
-{
-	LIBGIT2_ALL,
-	LIBGIT2,
-	LIBGIT,
-	GIT_CLI,
-};
 
-static bool GetResourcesDir(fs::path& resourcesDir)
+export namespace RepositoryFixtures {
+
+// enum config
+// {
+// 	LIBGIT2_ALL,
+// 	LIBGIT2,
+// 	LIBGIT,
+// 	GIT_CLI,
+// };
+
+
+
+constexpr auto LIBGIT2_ALL = "LIBGIT2_ALL"sv;
+constexpr auto LIBGIT2 = "LIBGIT2"sv;
+constexpr auto LIBGIT = "LIBGIT"sv;
+constexpr auto GIT_CLI = "GIT_CLI"sv;
+
+
+bool GetResourcesDir(fs::path& resourcesDir)
 {
 	resourcesDir = til::GetAppDirectory() / L"resources";
 	if (!fs::is_directory(resourcesDir))
@@ -53,7 +41,7 @@ static bool GetResourcesDir(fs::path& resourcesDir)
 /// them back. CGit::Run's byte overload is stdout alone, and git checkout reports
 /// ("Switched to branch ...") on stderr, so an `EXPECT_NE("", output)` written
 /// against the merged CString form needs this one.
-static int RunMerged(const wil::ArgvData& argv, std::string* out)
+int RunMerged(const wil::ArgvData& argv, std::string* out)
 {
 	std::string err;
 	const int ret = CGit::Run(argv, out, &err);
@@ -62,7 +50,7 @@ static int RunMerged(const wil::ArgvData& argv, std::string* out)
 	return ret;
 }
 
-static void CopyRecursively(const CString& source, const CString& dest)
+void CopyRecursively(const CString& source, const CString& dest)
 {
 	CDirFileEnum finder(source);
 	while (auto file = finder.NextFile())
@@ -275,3 +263,7 @@ protected:
 		EXPECT_STRNE(L"", output);
 	}
 };
+
+
+}
+export using namespace RepositoryFixtures;

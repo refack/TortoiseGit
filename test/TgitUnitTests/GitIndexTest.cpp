@@ -19,7 +19,7 @@
 
 #include "stdafx.h"
 #include <gitdll.h>
-#include "RepositoryFixtures.h"
+import RepositoryFixtures;
 import GitIndex;
 import PathUtils;
 import TGitStatus;

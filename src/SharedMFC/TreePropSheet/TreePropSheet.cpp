@@ -17,7 +17,6 @@
 *
 *********************************************************************/
 #include "../stdafx.h"
-#include "../std.h"
 
 
 
@@ -26,6 +25,7 @@
 #include "TreePropSheet/PropPageFrameDefault.h"
 #include "MiscUI/HighColorTab.hpp"
 import DPIAware;
+import tgit;
 
 #ifdef _DEBUG
 #define new DEBUG_NEW

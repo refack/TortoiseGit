@@ -5,7 +5,7 @@ module;
 
 #include <version.h>
 
-#include "../TortoiseProc/MiscUI/AnimationManager.h"
+#include "MiscUI/AnimationManager.h"
 
 #include "Utils/HistoryCombo.h"
 #include "Utils/SysImageList.h"
@@ -14,7 +14,6 @@ module;
 // module no longer includes (the app moved to src/TortoiseProc/TortoiseProcApp.cpp);
 // import it explicitly. MSVC warns C5202 (an import is not a preprocessor directive)
 // until the header imports wil itself, as tgitlib/CreateProcessHelper.h does.
-import wil;
 #include "Utils/CertificateValidationHelper.h"
 #include "Utils/WindowsCredentialsStore.h"
 
@@ -43,6 +42,7 @@ import ConfigureGitExe;
 // cannot `import AppUtils.GitEnv;` for CAppUtils::Git2GetUserPassword - every
 // AppUtils.* module imports TortoiseProc, so the edge back is a module cycle.
 
+import wil;
 import RIAA;			// SmartHandle.h
 import DirFileEnum;
 import PathUtils;

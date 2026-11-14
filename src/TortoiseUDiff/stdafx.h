@@ -38,8 +38,7 @@ using std::min;
 #define REGSTRING_DARKTHEME L"Software\\TortoiseGit\\UDiffDarkTheme"
 
 #include <tgitlib/sanity.h>		// SCOPE_EXIT; textual includes before the imports
-import RIAA;
-import wil;			// scope_exit_helper, which SCOPE_EXIT expands to
+import tgit;
 
 #ifdef _WIN64
 #   define APP_X64_STRING "x64"

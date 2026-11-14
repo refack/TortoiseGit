@@ -19,7 +19,7 @@
 //
 
 #pragma once
-#include "../../TortoiseProc/MiscUI/MyGraph.h"
+#include "MiscUI/MyGraph.h"
 #include "Resources/resource.h"
 
 

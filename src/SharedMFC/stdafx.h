@@ -19,7 +19,7 @@
 #include <unordered_set>
 #include <functional>
 #include <memory>
-
+#include <regex>
 
 // Every textual include first, every import last: a textual std header after an
 // `import std;` redefines what the import brought (C2011/C2995), and the module

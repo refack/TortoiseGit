@@ -1,33 +1,146 @@
-﻿// TortoiseGit - a Windows shell extension for easy version control
-
-// Copyright (C) 2008-2016, 2018-2024, 2026 - TortoiseGit
-// Copyright (C) 2003-2008 - TortoiseSVN
-
-// This program is free software; you can redistribute it and/or
-// modify it under the terms of the GNU General Public License
-// as published by the Free Software Foundation; either version 2
-// of the License, or (at your option) any later version.
-
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-
-// You should have received a copy of the GNU General Public License
-// along with this program; if not, write to the Free Software Foundation,
-// 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-//
-// No #include "stdafx.h": compiled by TortoiseShell and TortoiseProc, each of which
-// force-includes its own (/FI); see ShellCache.cpp.
+﻿module;
 #include "menuinfo.h"
 #include "resource.h"
 
-// defaults are specified in ShellCache.h
 
-constinit const MenuInfo menuInfo[] =
+export module MenuItem;
+import std;		// std::span; a textual <span> here would follow the includer's `import std;`
+import Constants;
+using namespace tgit::Constants;
+
+
+export namespace MenuItem {
+
+
+enum class TGitShellCommand {
+	Separator = 0,
+	SubMenu,
+	SubMenuFolder,
+	SubMenuFile,
+	SubMenuLink,
+	SubMenuMultiple,
+	Commit,
+	Add,
+	Revert,
+	Cleanup,
+	Resolve,
+	Switch,
+	Export,
+	About,
+	CreateRepo,
+	Copy,
+	Merge,
+	Settings,
+	Remove,
+	RemoveKeep,
+	Rename,
+	SubmoduleUpdate,
+	Diff,
+	PrevDiff,
+	DiffTwo,
+	DropCopyAdd,
+	DropMoveAdd,
+	DropMove,
+	DropMoveRename,
+	DropCopy,
+	DropCopyRename,
+	DropExport,
+	DropExportExtended,
+	Log,
+	ConflictEditor,
+	Help,
+	ShowChanged,
+	IgnoreSub,
+	DeleteIgnoreSub,
+	Ignore,
+	DeleteIgnore,
+	IgnoreCaseSensitive,
+	DeleteIgnoreCaseSensitive,
+	RefLog,
+	RefBrowser,
+	Blame,
+	ApplyPatch,
+	RevisionGraph,
+	UnIgnoreSub,
+	UnIgnoreCaseSensitive,
+	UnIgnore,
+	ClipPaste,
+	Pull,
+	Push,
+	Clone,
+	Branch,
+	Tag,
+	FormatPatch,
+	ImportPatch,
+	Fetch,
+	Rebase,
+	StashSave,
+	StashApply,
+	StashList,
+	StashPop,
+	SubmoduleAdd,
+	SubmoduleSync,
+	Sendmail,
+	Sync,
+	BisectStart,
+	BisectGood,
+	BisectBad,
+	BisectReset,
+	RepoBrowse,
+	LogSubmoduleFolder,
+	Daemon,
+	MergeAbort,
+	DiffLater,
+	ImportPatchDrop,
+	BisectSkip,
+	LFSMenu,
+	LFSLocks,
+	LFSLock,
+	LFSUnlock,
+	Worktree,
+	DropNewWorktree,
+	Inaccessible,
+};
+
+// helper struct for context menu entries
+struct YesNoPair
 {
-	{ TGitShellCommand::Inaccessible,				TGitContextMenuEntries::Inaccessible,		IDI_CLEANUP,			IDS_MENUINACCESSIBLE,		IDS_MENUDESCINACCESSIBLE,
-		{ITEMIS_INACCESSIBLE, ITEMIS_INGIT|ITEMIS_FOLDERINGIT|ITEMIS_BAREREPO}, {0, 0}, {0, 0}, {0, 0} },
+	DWORD				yes;
+	DWORD				no;
+};
+
+// ReSharper disable CppUseDesignatedInitializers
+
+struct MenuInfo {
+	TGitShellCommand		command{};		///< the command which gets executed for this menu entry
+	TGitContextMenuEntries	menuID{};		///< the menu ID to recognize the entry. None if it shouldn't be added to the context menu automatically
+	UINT					iconID{};		///< the icon to show for the menu entry
+	UINT					menuTextID{};	///< the text of the menu entry
+	UINT					menuDescID{};	///< the description text for the menu entry
+	/// the following 8 params are for checking whether the menu entry should
+	/// be added automatically, based on states of the selected item(s).
+	/// The 'yes' states must be set, the 'no' states must not be set
+	/// the four pairs are OR'ed together, the 'yes'/'no' states are AND'ed together.
+	YesNoPair				first{};
+	YesNoPair				second{};
+	YesNoPair				third{};
+	YesNoPair				fourth{};
+};
+std::span<const MenuInfo> GetTGitMenuInfo() noexcept;
+
+
+constinit const auto menuInfo = std::array{
+	MenuInfo{
+		.command	= TGitShellCommand::Inaccessible,
+		.menuID		= TGitContextMenuEntries::Inaccessible,
+		.iconID		= IDI_CLEANUP,
+		.menuTextID = IDS_MENUINACCESSIBLE,
+		.menuDescID = IDS_MENUDESCINACCESSIBLE,
+		.first		= {.yes = ITEMIS_INACCESSIBLE, .no = ITEMIS_INGIT|ITEMIS_FOLDERINGIT|ITEMIS_BAREREPO},
+		.second		= {.yes = 0, .no = 0},
+		.third		= {.yes = 0, .no = 0},
+		.fourth		= {.yes = 0, .no = 0}
+	},
 
 	{ TGitShellCommand::Clone,						TGitContextMenuEntries::Clone,				IDI_CLONE,				IDS_MENUCLONE,				IDS_MENUDESCCLONE,
 		{ITEMIS_FOLDER, ITEMIS_INGIT|ITEMIS_FOLDERINGIT|ITEMIS_BAREREPO|ITEMIS_INACCESSIBLE}, {ITEMIS_FOLDER|ITEMIS_IGNORED, 0}, {ITEMIS_FOLDER|ITEMIS_EXTENDED, 0}, {0, 0} },
@@ -223,36 +336,47 @@ constinit const MenuInfo menuInfo[] =
 	// so deleting the enumerator would shift every entry after it and silently
 	// rewrite everyone's context menu. Leave the hole.
 
+
+
 // we do not support paste atm
 //	{ ShellSeparator, 0, 0, 0, 0, {0, 0}, {0, 0}, {0, 0}, {0, 0} },
 //	{ TGitShellCommand::ClipPaste,					MENUCLIPPASTE,		IDI_CLIPPASTE,			IDS_MENUCLIPPASTE,			IDS_MENUDESCCLIPPASTE,
 //		{ITEMIS_INGIT|ITEMIS_FOLDER|ITEMIS_PATHINCLIPBOARD, 0}, {0, 0}, {0, 0}, {0, 0} },
 
-	{ TGitShellCommand::Separator, TGitContextMenuEntries::None, 0, 0, 0, {0, 0}, {0, 0}, {0, 0}, {0, 0} },
+	{
+		TGitShellCommand::Separator,
+		TGitContextMenuEntries::None,
+		0, 0, 0,
+		{.yes = 0, .no = 0},
+		{.yes = 0, .no = 0},
+		{.yes = 0, .no = 0},
+		{.yes = 0, .no = 0}
+	},
 
-	{ TGitShellCommand::Settings,					TGitContextMenuEntries::Settings,			IDI_SETTINGS,			IDS_MENUSETTINGS,			IDS_MENUDESCSETTINGS,
+	{ TGitShellCommand::Settings,			TGitContextMenuEntries::Settings,	IDI_SETTINGS,		IDS_MENUSETTINGS,		IDS_MENUDESCSETTINGS,
 		{ITEMIS_FOLDER, 0}, {0, ITEMIS_FOLDER}, {0, 0}, {0, 0} },
-	{ TGitShellCommand::Help,						TGitContextMenuEntries::Help,				IDI_HELP,				IDS_MENUHELP,				IDS_MENUDESCHELP,
+	{ TGitShellCommand::Help,				TGitContextMenuEntries::Help,		IDI_HELP,			IDS_MENUHELP,			IDS_MENUDESCHELP,
 		{ITEMIS_FOLDER, 0}, {0, ITEMIS_FOLDER}, {0, 0}, {0, 0} },
-	{ TGitShellCommand::About,						TGitContextMenuEntries::About,				IDI_ABOUT,				IDS_MENUABOUT,				IDS_MENUDESCABOUT,
+	{ TGitShellCommand::About,				TGitContextMenuEntries::About,		IDI_ABOUT,			IDS_MENUABOUT,			IDS_MENUDESCABOUT,
 		{ITEMIS_FOLDER, 0}, {0, ITEMIS_FOLDER}, {0, 0}, {0, 0} },
 
 	// the sub menus - they're not added like the commands, therefore the menu ID is zero
 	// but they still need to be in here, because we use the icon and string information anyway.
-	{ TGitShellCommand::SubMenu,					TGitContextMenuEntries::None,				IDI_APP,				IDS_MENUSUBMENU,			0,
+	{ TGitShellCommand::SubMenu,			TGitContextMenuEntries::None,		IDI_APP,			IDS_MENUSUBMENU,		0,
 		{0, 0}, {0, 0}, {0, 0}, {0, 0} },
-	{ TGitShellCommand::SubMenuFile,						TGitContextMenuEntries::None,				IDI_MENUFILE,			IDS_MENUSUBMENU,			0,
+	{ TGitShellCommand::SubMenuFile,		TGitContextMenuEntries::None,		IDI_MENUFILE,		IDS_MENUSUBMENU,		0,
 		{0, 0}, {0, 0}, {0, 0}, {0, 0} },
-	{ TGitShellCommand::SubMenuFolder,					TGitContextMenuEntries::None,				IDI_MENUFOLDER,			IDS_MENUSUBMENU,			0,
+	{ TGitShellCommand::SubMenuFolder,		TGitContextMenuEntries::None,		IDI_MENUFOLDER,		IDS_MENUSUBMENU,		0,
 		{0, 0}, {0, 0}, {0, 0}, {0, 0} },
-	{ TGitShellCommand::SubMenuLink,						TGitContextMenuEntries::None,				IDI_MENULINK,			IDS_MENUSUBMENU,			0,
+	{ TGitShellCommand::SubMenuLink,		TGitContextMenuEntries::None,		IDI_MENULINK,		IDS_MENUSUBMENU,		0,
 		{0, 0}, {0, 0}, {0, 0}, {0, 0} },
-	{ TGitShellCommand::SubMenuMultiple,					TGitContextMenuEntries::None,				IDI_MENUMULTIPLE,		IDS_MENUSUBMENU,			0,
+	{ TGitShellCommand::SubMenuMultiple,	TGitContextMenuEntries::None,		IDI_MENUMULTIPLE,	IDS_MENUSUBMENU,		0,
 		{0, 0}, {0, 0}, {0, 0}, {0, 0} },
 };
 static_assert(std::span<const MenuInfo>(menuInfo).size() < INT_MAX, "must and will never happen, but we cast size() to int at some places");
 
-std::span<const MenuInfo> GetTGitMenuInfo() noexcept
-{
-	return menuInfo;
+
+std::span<const MenuInfo> GetTGitMenuInfo() noexcept { return menuInfo; }
+
+
 }

@@ -327,7 +327,7 @@ BOOL CProgressDlg::OnInitDialog()
 	if (!m_PreFailText.IsEmpty())
 		InsertColorText(this->m_Log, m_PreFailText, CTheme::Instance().IsDarkTheme() ? RGB(207, 47, 47) : RGB(255, 0, 0));
 
-	EnableSaveRestore(L"ProgressDlg");
+	EnableSaveRestore(L"../../TortoiseProc/ProgressDlg");
 	SetTheme(CTheme::Instance().IsDarkTheme());
 
 	m_pThread = AfxBeginThread(ProgressThreadEntry, this, THREAD_PRIORITY_NORMAL, 0, CREATE_SUSPENDED);

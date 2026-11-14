@@ -17,12 +17,14 @@
 *
 *********************************************************************/
 #include "../stdafx.h"
-#include "../std.h"
 
 
 
 #include "TreePropSheet/PropPageFrameDefault.h"
 #include "Utils/ExtTextOutFL.h"
+
+import tgit;
+import RIAA;
 
 namespace TreePropSheet
 {

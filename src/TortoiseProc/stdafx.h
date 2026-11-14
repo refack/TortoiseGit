@@ -108,7 +108,6 @@ using std::min;
 #include <winrt/base.h>	// before the imports too: the wil shim's fragment includes it, and
 						// RegisterWin11ContextMenu's later winrt/*.h would redefine it (C2766)
 #include <gitdll.h>
-#include <Utils/ProfilingInfo.h>
 
 #include "Resources/resource.h"
 #include "../TortoiseShell/resource.h"	// IDI_*/IDS_MENU*: macros don't cross TortoiseProc.ixx's import

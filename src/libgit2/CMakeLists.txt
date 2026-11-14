@@ -48,7 +48,7 @@ target_link_libraries(tgitlib
 if(CMAKE_CXX_MODULE_STD EQUAL OFF)
     target_link_libraries(tgitlib
         PUBLIC
-            std_module
+            std_module_shim
     )
 endif ()
 

@@ -24,7 +24,7 @@
 #include "HyperLink.h"
 #include "Resources/resource.h"
 import MenuButton;
-#include "../../TortoiseProc/MiscUI/SciEdit.h"
+#include "MiscUI/SciEdit.h"
 import StandAloneDlg;
 import UpdateDownloader;
 

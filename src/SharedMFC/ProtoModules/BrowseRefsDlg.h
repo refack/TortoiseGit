@@ -18,7 +18,7 @@
 //
 #pragma once
 #include "Resources/resource.h"
-#include "../../TortoiseProc/MiscUI/FilterEdit.h"
+#include "MiscUI/FilterEdit.h"
 #include "Utils/HistoryCombo.h"
 
 

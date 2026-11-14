@@ -18,13 +18,13 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 //
 #include "../stdafx.h"
-#include "../std.h"
 
 
 
 #include "MiscUI/FilterEdit.h"
 #include <tgitlib/LoadIconEx.h>
 import ThemeAPI;
+import tgit;
 
 const UINT CFilterEdit::WM_FILTEREDIT_INFOCLICKED = ::RegisterWindowMessage(L"TGITWM_FILTEREDIT_INFOCLICKED");
 const UINT CFilterEdit::WM_FILTEREDIT_CANCELCLICKED = ::RegisterWindowMessage(L"TGITWM_FILTEREDIT_CANCELCLICKED");

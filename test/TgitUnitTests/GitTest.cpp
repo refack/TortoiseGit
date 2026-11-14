@@ -18,7 +18,7 @@
 //
 
 #include "stdafx.h"
-#include "RepositoryFixtures.h"
+import RepositoryFixtures;
 import git_h;
 import GitRev;
 import str_utils;

@@ -25,7 +25,7 @@
 #include "ProtoModules/LogOrdering.h"
 #include "ProtoModules/PatchViewDlg.h"
 #include "ProtoModules/HyperLink.h"
-#include "../../TortoiseProc/MiscUI/SplitterControl.h"
+#include "MiscUI/SplitterControl.h"
 #include "../../TortoiseProc/GitLogList.h"
 
 import TGitPath;

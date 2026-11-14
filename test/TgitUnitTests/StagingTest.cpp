@@ -21,7 +21,7 @@
 
 #include <gtest/gtest.h>
 
-#include "RepositoryFixtures.h"
+import RepositoryFixtures;
 #include "StagingOperations.h"
 
 inline std::unique_ptr<char[]> ReadResourcePatchToBuffer(LPCTSTR resourceFile)

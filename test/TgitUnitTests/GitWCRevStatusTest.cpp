@@ -18,7 +18,7 @@
 //
 
 #include "stdafx.h"
-#include "RepositoryFixtures.h"
+import RepositoryFixtures;
 import str_utils;
 #include "status.h"
 

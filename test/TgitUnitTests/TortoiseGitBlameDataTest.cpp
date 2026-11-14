@@ -21,7 +21,7 @@
 
 #include "Git.h"
 #include "TortoiseGitBlameData.h"
-#include "RepositoryFixtures.h"
+import RepositoryFixtures;
 
 class CTortoiseGitBlameDataRepositoryFixture : public CBasicGitWithTestRepoFixture
 {

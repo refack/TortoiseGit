@@ -18,8 +18,10 @@
 //
 
 #include "stdafx.h"
+import tgit;
 import GitHash;
 import invarients;
+
 
 TEST(CGitHash, Initial)
 {
@@ -87,7 +89,7 @@ TEST(CGitHash, Initial)
 	EXPECT_TRUE(hash10.IsEmpty());
 	CGitHash hash11 = CGitHash::FromHexStr(L"ad1861316061748cfee7e075dc138287978102abX");
 	EXPECT_TRUE(hash11.IsEmpty());
-	CGitHash hash12 = CGitHash::FromHexStr(CStringA("8d1861316061748cfee7e075dc138287978102ab"));
+	CGitHash hash12 = CGitHash::FromHexStr(str::CStringA("8d1861316061748cfee7e075dc138287978102ab"));
 	EXPECT_TRUE(hash12 == hash);
 	CGitHash hash13 = CGitHash::FromHexStr(std::string_view("8d1861316061748cfee7e075dc138287978102abXXX"));
 	EXPECT_FALSE(hash13 == hash);
@@ -136,7 +138,7 @@ TEST(CGitHash, ToString)
 
 TEST(CGitHash, MatchesPrefix)
 {
-	CString prefix = L"3012b757c23d16cc915acf60f5e3922d0409187a";
+	wstr::CString prefix = L"3012b757c23d16cc915acf60f5e3922d0409187a";
 	CGitHash hash = CGitHash::FromHexStr(prefix);
 	CGitHash prefixHash = CGitHash::FromHexStr(prefix);
 	EXPECT_TRUE(hash.MatchesPrefix(prefixHash, prefix, prefix.GetLength()));

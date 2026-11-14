@@ -204,50 +204,16 @@ target_sources(TortoiseProc
         Settings/ToolAssocDlg.cpp
         Settings/ToolAssocDlg.h
         TortoiseProcApp.cpp     # CTortoiseProcApp + theApp; module TortoiseProc keeps only the launcher helpers
-        stdafx.cpp
-        stdafx.h
+
+        TortoiseProcENG.rc
+
 )
 
-# Sources that moved here from src\Utils and src\Utils\MiscUI (the MFC UI layer
-# that lives in the MFC binary), plus the resource script.
-target_sources(TortoiseProc
-    PRIVATE
-        # AnimationManager, HistoryCombo, Picture, SciEdit: compiled by SharedMFC
-        MiscUI/BufferDC.cpp
-        MiscUI/FileDropEdit.cpp
-        MiscUI/FilterEdit.cpp
-        MiscUI/LinkControl.cpp
-        MiscUI/MyGraph.cpp
-        MiscUI/RegexEdit.cpp
-        MiscUI/SVG.cpp
-        MiscUI/SplitterControl.cpp
-        MiscUI/WaterEffect.cpp
-        TreePropSheet/PropPageFrame.cpp
-        TreePropSheet/PropPageFrameDefault.cpp
-        TreePropSheet/TreePropSheet.cpp
-        "${CMAKE_SOURCE_DIR}/src/SharedMFC/Resources/TortoiseProcENG.rc"
-)
-
-# Shared with TortoiseShell: the settings pages (SetLookAndFeelPage) read the
-# shell's menu table and its registry cache. Neither file includes a stdafx.h of
-# its own - a quoted one would resolve next to the file, to TortoiseShell's ATL
-# one - so this host force-includes TortoiseProc's.
-set(TORTOISEPROC_SHARED_SHELL_SOURCES
-    "${CMAKE_SOURCE_DIR}/src/TortoiseShell/MenuInfo.cpp"
-    "${CMAKE_SOURCE_DIR}/src/TortoiseShell/MenuInfo.h"
-    "${CMAKE_SOURCE_DIR}/src/TortoiseShell/ShellCache.cpp"
-    "${CMAKE_SOURCE_DIR}/src/TortoiseShell/ShellCache.h"
-)
-target_sources(TortoiseProc PRIVATE ${TORTOISEPROC_SHARED_SHELL_SOURCES})
 
 # The vcxproj's manifests (see tgit_app_manifests in the root CMakeLists): merged
 # into the linker-generated one beside the Common-Controls v6 dependency that
 # TortoiseProc.cpp requests with #pragma comment(linker).
 tgit_app_manifests(TortoiseProc "${TGIT_SYSTEM_DPI_MANIFEST}")
-set_source_files_properties(${TORTOISEPROC_SHARED_SHELL_SOURCES}
-    TARGET_DIRECTORY TortoiseProc
-    PROPERTIES COMPILE_OPTIONS "/FI${CMAKE_CURRENT_SOURCE_DIR}/stdafx.h"
-)
 
 set_target_properties(TortoiseProc PROPERTIES
     # RunTortoiseGitProc and friends start <app dir>\TortoiseGitProc.exe, and the
@@ -257,21 +223,7 @@ set_target_properties(TortoiseProc PROPERTIES
 
 target_include_directories(TortoiseProc
     PRIVATE
-        # first, as $(ProjectDir) was in the vcxproj: a bare "resource.h" from a
-        # subdirectory must find this project's, not src/gitdll/resource.h further down
         "${CMAKE_CURRENT_SOURCE_DIR}"
-        "${CMAKE_CURRENT_SOURCE_DIR}/MiscUI"
-        "${CMAKE_CURRENT_SOURCE_DIR}/TreePropSheet"
-        "${CMAKE_SOURCE_DIR}/ext/gitdll"
-        "${CMAKE_SOURCE_DIR}/ext/ResizableLib"
-        "${CMAKE_SOURCE_DIR}/ext/AsyncFramework"
-        "${CMAKE_SOURCE_DIR}/src/libgit2/include"
-        "${CMAKE_SOURCE_DIR}/src/libgit2/include/Utils"
-        "${CMAKE_SOURCE_DIR}/src/SharedMFC"
-        "${CMAKE_SOURCE_DIR}/src/SharedMFC/Utils"
-        "${CMAKE_SOURCE_DIR}/src/SharedMFC/Resources"
-#        "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/include/scintilla2"
-#        "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/include/lexilla"
 )
 
 target_compile_definitions(TortoiseProc

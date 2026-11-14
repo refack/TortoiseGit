@@ -20,7 +20,7 @@
 
 #pragma once
 import StandAloneDlg;
-#include "../../TortoiseProc/MiscUI/WaterEffect.h"
+#include "MiscUI/WaterEffect.h"
 #include "../../TortoiseProc/DIB.h"
 #include "HyperLink.h"
 

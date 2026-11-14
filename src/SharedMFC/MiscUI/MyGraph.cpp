@@ -1,6 +1,5 @@
 ﻿// MyGraph.cpp
 #include "../stdafx.h"
-#include "../std.h"
 
 
 

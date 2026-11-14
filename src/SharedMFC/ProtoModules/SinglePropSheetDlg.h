@@ -20,7 +20,7 @@
 #pragma once
 
 #include "../../TortoiseProc/Settings/SettingsPropPage.h"
-#include "../../TortoiseProc/TreePropSheet/TreePropSheet.h"
+#include "TreePropSheet/TreePropSheet.h"
 
 class CSinglePropSheetDlg : public TreePropSheet::CTreePropSheet
 {

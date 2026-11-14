@@ -18,7 +18,7 @@
 //
 
 #include "stdafx.h"
-#include "RepositoryFixtures.h"
+import RepositoryFixtures;
 #include "GitRevRefBrowser.h"
 
 class GitRevRefBrowserCBasicGitWithTestRepoFixture : public CBasicGitWithTestRepoFixture

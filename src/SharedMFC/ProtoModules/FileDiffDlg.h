@@ -20,7 +20,7 @@
 
 #pragma once
 #include "afxcmn.h"
-#include "../../TortoiseProc/MiscUI/FilterEdit.h"
+#include "MiscUI/FilterEdit.h"
 #include "ACEdir/ACEdit.h"
 #include "Utils/LogDlgFileFilter.h"
 #include "PatchViewDlg.h"

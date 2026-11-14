@@ -23,7 +23,7 @@ import GitRev;
 import StandAloneDlg;
 #include "../SharedMFC/ACEdir/ACEdit.h"
 import MenuButton;
-#include "../../TortoiseProc/MiscUI/FilterEdit.h"
+#include "MiscUI/FilterEdit.h"
 import HintCtrl;
 
 

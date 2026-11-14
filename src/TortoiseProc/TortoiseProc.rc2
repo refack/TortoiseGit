@@ -48,5 +48,5 @@ BEGIN
 END
 
 #include "../../TortoiseShell/resourceshell.rc"
-#include "TortoiseLoglistCommon.rc2"
+#include "../../SharedMFC/TortoiseLoglistCommon.rc2"
 /////////////////////////////////////////////////////////////////////////////

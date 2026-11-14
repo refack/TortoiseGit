@@ -7,7 +7,6 @@
       "generator": "Ninja",
       "toolchainFile": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
       "cacheVariables": {
-        "CMAKE_CXX_STDLIB_MODULES_JSON": "C:/bin/dev/Microsoft/2026Community/VC/Tools/MSVC/14.51.36231/modules/modules.json",
         "CMAKE_MAKE_PROGRAM": "${sourceDir}/contrib/ninja-sarif.cmd"
       }
     },
@@ -56,7 +55,8 @@
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
         "VCPKG_MANIFEST_INSTALL": "OFF",
-        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+        "CMAKE_CXX_STDLIB_MODULES_JSON": "C:/bin/dev/Microsoft/2026Community/VC/Tools/MSVC/14.51.36231/modules/modules.json"
       }
     }
   ]

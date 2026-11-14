@@ -20,7 +20,7 @@
 #pragma once
 import StandAloneDlg;
 #include "../../TortoiseProc/ChooseVersion.h"
-#include "../../TortoiseProc/MiscUI/SciEdit.h"
+#include "MiscUI/SciEdit.h"
 import wil;
 
 // CMergeDlg dialog
