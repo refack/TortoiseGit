@@ -1,7 +1,15 @@
-﻿export module RepositoryFixtures;
+﻿module;
+#include <Windows.h>
+// Header for gtest
+#include <gmock/gmock.h>
+#include <gtest/gtest.h>
+
+
+export module RepositoryFixtures;
 import tgit;
 import DirFileEnum;
-
+import AutoTempDir;
+using wstr::CString;
 
 export namespace RepositoryFixtures {
 
