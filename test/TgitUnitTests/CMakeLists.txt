@@ -91,14 +91,9 @@ target_link_libraries(TGitUnitTests
         SharedMFC
 )
 
-# gitdll is a DLL (and must stay one), so it has to sit next to the exe. Copied
-# rather than sharing a bin\ output directory: RepositoryFixtures' GetResourcesDir()
-# finds test\UnitTests\resources relative to where UnitTests.exe lives.
-add_custom_command(TARGET TGitUnitTests POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_RUNTIME_DLLS:TGitUnitTests> $<TARGET_FILE_DIR:TGitUnitTests>
-    COMMAND_EXPAND_LISTS
-)
-
+# gitdll.dll is found beside the exe because every target shares one
+# RUNTIME_OUTPUT_DIRECTORY (root CMakeLists.txt); test resources come from
+# TGIT_TEST_RESOURCES_DIR, so nothing depends on where the exe lives.
 
 target_sources(TGitUnitTests
     PUBLIC

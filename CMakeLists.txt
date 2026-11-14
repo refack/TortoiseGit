@@ -121,10 +121,12 @@ link_directories(
 )
 
 
-# The application's executables and DLLs share one directory, as the MSBuild
+# Every executable and DLL - tests included - shares one directory, as the MSBuild
 # layout's bin\ did: TortoiseGitProc loads gitdll.dll and starts TGitCache.exe,
-# SshAskPass.exe and its siblings from its own directory. Tests keep their own
-# output directories (they copy $<TARGET_RUNTIME_DLLS> next to themselves).
+# SshAskPass.exe and its siblings from its own directory, and a test finds the DLL
+# it was linked against where the linker's own build put it. (Tests used to sit in
+# bin\tests with a POST_BUILD copy of $<TARGET_RUNTIME_DLLS>, which only ran when
+# the test relinked - rebuilding gitdll alone left the test loading the old one.)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
 
 # The manifests the vcxproj layer gave every application: TortoiseGit.common.props
@@ -198,7 +200,6 @@ add_subdirectory(src/TortoiseShell)
 add_subdirectory(src/TortoiseUDiff)
 
 
-string(APPEND CMAKE_RUNTIME_OUTPUT_DIRECTORY "/tests")
 add_subdirectory(test/Cache)
 add_subdirectory(test/ShellBench)
 add_subdirectory(test/TgitUnitTests)
