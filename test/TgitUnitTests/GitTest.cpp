@@ -33,7 +33,28 @@ INSTANTIATE_TEST_SUITE_P(CGit, CBasicGitWithEmptyRepositoryFixture, testing::Val
 INSTANTIATE_TEST_SUITE_P(CGit, CBasicGitWithEmptyBareRepositoryFixture, testing::Values(GIT_CLI, /*LIBGIT,*/ LIBGIT2, LIBGIT2_ALL));
 INSTANTIATE_TEST_SUITE_P(CGit, CBasicGitWithTestRepoFixture, testing::Values(GIT_CLI, LIBGIT, LIBGIT2, LIBGIT2_ALL));
 INSTANTIATE_TEST_SUITE_P(CGit, CBasicGitWithTestRepoBareFixture, testing::Values(GIT_CLI, LIBGIT, LIBGIT2, LIBGIT2_ALL));
-INSTANTIATE_TEST_SUITE_P(CGit, CBasicGitWithSubmoduleRepositoryFixture, testing::Values(GIT_CLI, /*LIBGIT,*/ LIBGIT2, LIBGIT2_ALL));
+
+// Tests that apply to only some backends get their own suite, and the backends they
+// run on are the instantiation's values - not an early `return` on GetParam(), which
+// reported every other backend as a pass without running anything.
+
+// GetWorkingTreeChanges runs git.exe whatever the backend; one run covers it.
+class CGitWorkingTreeChangesWithTestRepoFixture : public CBasicGitWithTestRepoFixture {};
+class CGitWorkingTreeChangesWithEmptyRepositoryFixture : public CBasicGitWithEmptyRepositoryFixture {};
+class CGitWorkingTreeChangesWithSubmoduleRepositoryFixture : public CBasicGitWithSubmoduleRepositoryFixture {};
+INSTANTIATE_TEST_SUITE_P(CGit, CGitWorkingTreeChangesWithTestRepoFixture, testing::Values(LIBGIT2_ALL));
+INSTANTIATE_TEST_SUITE_P(CGit, CGitWorkingTreeChangesWithEmptyRepositoryFixture, testing::Values(LIBGIT2_ALL));
+INSTANTIATE_TEST_SUITE_P(CGit, CGitWorkingTreeChangesWithSubmoduleRepositoryFixture, testing::Values(LIBGIT2_ALL));
+
+// clean&smudge filters are not available for GetOneFile without libgit2
+class CGitGetOneFileWithTestRepoFixture : public CBasicGitWithTestRepoFixture {};
+INSTANTIATE_TEST_SUITE_P(CGit, CGitGetOneFileWithTestRepoFixture, testing::Values(LIBGIT2, LIBGIT2_ALL));
+
+// GetSubmoduleHash: git.exe reports no hash; libgit2 resolves it
+class CGitSubmoduleHashCliFixture : public CBasicGitWithSubmoduleRepositoryFixture {};
+class CGitSubmoduleHashLibGit2Fixture : public CBasicGitWithSubmoduleRepositoryFixture {};
+INSTANTIATE_TEST_SUITE_P(CGit, CGitSubmoduleHashCliFixture, testing::Values(GIT_CLI));
+INSTANTIATE_TEST_SUITE_P(CGit, CGitSubmoduleHashLibGit2Fixture, testing::Values(LIBGIT2));
 
 TEST(CGit, RunSet)
 {
@@ -1493,13 +1514,8 @@ static void GetOneFile_utf8(const CGit& m_Git)
 	::DeleteFile(tmpFile);
 }
 
-TEST_P(CBasicGitWithTestRepoFixture, GetOneFile)
+TEST_P(CGitGetOneFileWithTestRepoFixture, GetOneFile)
 {
-	// clean&smudge filters are not available for GetOneFile without libigt2
-	const auto val = GetParam();
-	if (val == GIT_CLI || val == LIBGIT)
-		return;
-
 	GetOneFile(m_Git);
 	GetOneFile_utf8(m_Git);
 
@@ -1717,11 +1733,8 @@ TEST_P(CBasicGitWithTestRepoFixture, Config)
 	EXPECT_TRUE(fs::remove(testFile));
 }
 
-TEST_P(CBasicGitWithTestRepoFixture, GetWorkingTreeChanges)
+TEST_P(CGitWorkingTreeChangesWithTestRepoFixture, GetWorkingTreeChanges)
 {
-	if (GetParam() != 0)
-		return;
-
 	// adding ansi2.txt (as a copy of ansi.txt) produces a warning
 	m_Git.SetConfigValue(L"core.autocrlf", L"false");
 
@@ -3570,11 +3583,8 @@ TEST_P(CBasicGitWithTestRepoFixture, GetWorkingTreeChanges)
 	EXPECT_EQ(CTGitPath::StagingStatus::TotallyStaged, list[6].m_stagingStatus);
 }
 
-TEST_P(CBasicGitWithTestRepoFixture, GetWorkingTreeChanges_DeleteModifyConflict_DeletedRemotely)
+TEST_P(CGitWorkingTreeChangesWithTestRepoFixture, GetWorkingTreeChanges_DeleteModifyConflict_DeletedRemotely)
 {
-	if (GetParam() != 0)
-		return;
-
 	std::string output;
 	EXPECT_EQ(0, m_Git.Run({L"git.exe", L"reset", L"--hard", L"master"}, &output));
 	EXPECT_NE("", output);
@@ -3734,11 +3744,8 @@ TEST_P(CBasicGitWithTestRepoFixture, GetWorkingTreeChanges_DeleteModifyConflict_
 	EXPECT_EQ(CTGitPath::StagingStatus::TotallyStaged, list[6].m_stagingStatus);
 }
 
-TEST_P(CBasicGitWithTestRepoFixture, GetWorkingTreeChanges_DeleteModifyConflict_DeletedLocally)
+TEST_P(CGitWorkingTreeChangesWithTestRepoFixture, GetWorkingTreeChanges_DeleteModifyConflict_DeletedLocally)
 {
-	if (GetParam() != 0)
-		return;
-
 	std::string output;
 	EXPECT_EQ(0, m_Git.Run({L"git.exe", L"reset", L"--hard", L"master"}, &output));
 	EXPECT_NE("", output);
@@ -3803,11 +3810,8 @@ TEST_P(CBasicGitWithTestRepoFixture, GetWorkingTreeChanges_DeleteModifyConflict_
 	EXPECT_EQ(CTGitPath::StagingStatus::TotallyUnstaged, list[0].m_stagingStatus);
 }
 
-TEST_P(CBasicGitWithEmptyRepositoryFixture, GetWorkingTreeChanges)
+TEST_P(CGitWorkingTreeChangesWithEmptyRepositoryFixture, GetWorkingTreeChanges)
 {
-	if (GetParam() != 0)
-		return;
-
 	CTGitPathList list;
 	EXPECT_EQ(0, m_Git.GetWorkingTreeChanges(list, false, nullptr));
 	EXPECT_TRUE(list.IsEmpty());
@@ -3958,11 +3962,8 @@ static int DoSubmodule(const wil::ArgvData& cmd, CGit& git, const fs::path& subm
 	return git.Run(cmd, &output);
 }
 
-TEST_P(CBasicGitWithSubmoduleRepositoryFixture, GetWorkingTreeChanges_Submodules)
+TEST_P(CGitWorkingTreeChangesWithSubmoduleRepositoryFixture, GetWorkingTreeChanges_Submodules)
 {
-	if (GetParam() != 0)
-		return;
-
 	CTGitPathList list;
 
 	fs::path resourcesDir;
@@ -4240,11 +4241,8 @@ TEST_P(CBasicGitWithSubmoduleRepositoryFixture, GetWorkingTreeChanges_Submodules
 	EXPECT_FALSE(list[0].IsDirectory());
 }
 
-TEST_P(CBasicGitWithTestRepoFixture, GetWorkingTreeChanges_RefreshGitIndex)
+TEST_P(CGitWorkingTreeChangesWithTestRepoFixture, GetWorkingTreeChanges_RefreshGitIndex)
 {
-	if (GetParam() != 0)
-		return;
-
 	// adding ansi2.txt (as a copy of ansi.txt) produces a warning
 	m_Git.SetConfigValue(L"core.autocrlf", L"false");
 
@@ -4705,20 +4703,18 @@ TEST(CGit, ParseConflictHashesFromLsFile_Invalid)
 	}
 }
 
-TEST_P(CBasicGitWithSubmoduleRepositoryFixture, GetSubmoduleHash)
+TEST_P(CGitSubmoduleHashCliFixture, GetSubmoduleHash)
 {
-	if (GetParam() == GIT_CLI)
-	{
-		CGitHash submoduleHash;
-		CString error;
-		EXPECT_EQ(0, g_Git.GetSubmoduleHash(L"something", CGitHash::FromHexStr(L"900539cd24776a94d1b642358ccfdb9d897c8254"), submoduleHash, error));
-		EXPECT_TRUE(submoduleHash.IsEmpty());
-		EXPECT_EQ(0, g_Git.GetSubmoduleHash(L"doesnotexist", CGitHash::FromHexStr(L"900539cd24776a94d1b642358ccfdb9d897c8254"), submoduleHash, error));
-		EXPECT_TRUE(submoduleHash.IsEmpty());
-	}
-	if (GetParam() != LIBGIT2)
-		return;
+	CGitHash submoduleHash;
+	CString error;
+	EXPECT_EQ(0, g_Git.GetSubmoduleHash(L"something", CGitHash::FromHexStr(L"900539cd24776a94d1b642358ccfdb9d897c8254"), submoduleHash, error));
+	EXPECT_TRUE(submoduleHash.IsEmpty());
+	EXPECT_EQ(0, g_Git.GetSubmoduleHash(L"doesnotexist", CGitHash::FromHexStr(L"900539cd24776a94d1b642358ccfdb9d897c8254"), submoduleHash, error));
+	EXPECT_TRUE(submoduleHash.IsEmpty());
+}
 
+TEST_P(CGitSubmoduleHashLibGit2Fixture, GetSubmoduleHash)
+{
 	{
 		CGitHash submoduleHash;
 		CString error;
