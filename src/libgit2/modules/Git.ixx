@@ -3518,7 +3518,9 @@ int CGit::GetWorkingTreeChanges(CTGitPathList& result,
 
 		// also list staged files which will be in the commit
 		std::wstring cmdout;
-		auto argv1 = wil::ArgvData{ L"git.exe", L"diff-index", L"--cached", L"--raw", head, L"--numstat", L"-C", L"-M", L"-z", L"--" } << pathspec;
+		auto argv1 = wil::ArgvData{ L"git.exe", L"diff-index", L"--cached", L"--raw", head, L"--numstat", L"-C", L"-M", L"-z", L"--" };
+		if (!includedStaged)
+			argv1 << pathspec; // includedStaged: every staged file is in the commit, whatever the filter
 		GitCall::Run(argv1, &cmdout, nullptr);
 
 		auto argv = wil::ArgvData{
@@ -3633,7 +3635,7 @@ int CGit::GetWorkingTreeChanges(CTGitPathList& result,
 				result.AddPath(deletelist[j]);
 				duplicateMap.insert(std::pair<std::wstring, int>(result[i].GetGitPathString().c_str(), result.GetCount() - 1));
 			} else {
-				auto p = const_cast<CTGitPath&>(result[existing->second]);
+				auto& p = const_cast<CTGitPath&>(result[existing->second]); // auto& - plain auto flagged a copy
 				p.m_Action |= CTGitPath::LOGACTIONS_MISSING;
 				result.m_Action |= CTGitPath::LOGACTIONS_MISSING;
 			}
