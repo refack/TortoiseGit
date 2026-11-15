@@ -118,6 +118,8 @@ target_sources(SharedMFC
         SysProgressDlg.ixx
         ProtoModules/AutoTextTestDlg.ixx
         RefLoglist.ixx
+        MenuInfo.ixx		# module MenuItem: TortoiseShell's context menu table; TortoiseProc's settings pages read it
+        ItemIDList.ixx		# TortoiseShell's PIDL helper
 )
 
 

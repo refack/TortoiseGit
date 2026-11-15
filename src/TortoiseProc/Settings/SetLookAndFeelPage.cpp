@@ -24,9 +24,9 @@
 import TortoiseProc;
 import AppUtils.Window;
 #include "SetLookAndFeelPage.h"
-#include "../TortoiseShell/MenuInfo.h"
-#include "../TortoiseShell/ShellCache.h"
 #include "Commands/RegisterWin11ContextMenu.h"
+import MenuItem;	// GetTGitMenuInfo, TGitShellCommand
+import ShellCache;	// default{,Ext,Win11Top}MenuEntries
 
 void InsertMenuItemToList(CListCtrl *list,CImageList *imagelist)
 {

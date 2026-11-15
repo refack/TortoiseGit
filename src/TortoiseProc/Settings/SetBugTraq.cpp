@@ -20,7 +20,6 @@
 #include "stdafx.h"
 #include "std.h"
 
-#include <../../SharedMFC/Resources/resource.h>
 #include "SetBugTraq.h"
 #include "SetBugTraqAdv.h"
 

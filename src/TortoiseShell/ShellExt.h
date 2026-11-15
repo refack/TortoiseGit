@@ -21,12 +21,12 @@
 #include <wrl/client.h>
 import Constants;
 using namespace tgit::Constants;	// TGitContextMenuEntries, was libgit2/Resources/Globals.h
-#include "ShellCache.h"
 #include "RemoteCacheLink.h"
 #include "GitFolderStatus.h"
-#include "MenuInfo.h"
 #include "ExplorerCommand.h"
 
+import ShellCache;
+import MenuItem;	// TGitShellCommand, MenuInfo, YesNoPair, GetTGitMenuInfo
 import Registry;
 import GitIndex;	// git_wc_status_kind
 import TGitStatus;

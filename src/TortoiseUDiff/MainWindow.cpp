@@ -793,7 +793,7 @@ void CMainWindow::SetTheme(bool bDark)
 	uCheck |= CTheme::Instance().IsDarkTheme() ? MF_CHECKED : MF_UNCHECKED;
 	CheckMenuItem(hMenu, ID_VIEW_DARKMODE, uCheck);
 	UINT uEnabled = MF_BYCOMMAND;
-	uEnabled |= CTheme::Instance().IsDarkModeAllowed() ? MF_ENABLED : MF_DISABLED;
+	uEnabled |= CTheme::Instance().IsDarkModeHelperAllowed() ? MF_ENABLED : MF_DISABLED;
 	EnableMenuItem(hMenu, ID_VIEW_DARKMODE, uEnabled);
 
 	::RedrawWindow(*this, nullptr, nullptr, RDW_FRAME | RDW_INVALIDATE | RDW_ERASE | RDW_INTERNALPAINT | RDW_ALLCHILDREN | RDW_UPDATENOW);
@@ -844,14 +844,14 @@ bool CMainWindow::LoadFile(HANDLE hFile, bool wantStdIn)
 
 bool CMainWindow::LoadFile(LPCWSTR filename)
 {
-	CAutoFile hfile = CreateFile(filename, GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_DELETE, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
+	wil::unique_hfile hfile{ CreateFile(filename, GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_DELETE, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr) };
 	if (!hfile)
 	{
 		MessageBox(*this, wil::CFormatMessageWrapper().c_str(), L"TortoiseGitUDiff", MB_ICONEXCLAMATION);
 		return false;
 	}
 
-	if (LARGE_INTEGER fileSize; !::GetFileSizeEx(hfile, &fileSize))
+	if (LARGE_INTEGER fileSize; !::GetFileSizeEx(hfile.get(), &fileSize))
 	{
 		MessageBox(*this, wil::CFormatMessageWrapper().c_str(), L"TortoiseGitUDiff", MB_ICONEXCLAMATION);
 		return false;
@@ -864,7 +864,7 @@ bool CMainWindow::LoadFile(LPCWSTR filename)
 
 	char data[4096] = { 0 };
 	DWORD size = 0;
-	if (!ReadFile(hfile, data, sizeof(data), &size, nullptr))
+	if (!ReadFile(hfile.get(), data, sizeof(data), &size, nullptr))
 	{
 		MessageBox(*this, wil::CFormatMessageWrapper().c_str(), L"TortoiseGitUDiff", MB_ICONEXCLAMATION);
 		return false;
@@ -885,7 +885,7 @@ bool CMainWindow::LoadFile(LPCWSTR filename)
 			error = true;
 			break;
 		}
-		if (!ReadFile(hfile, data, sizeof(data), &size, nullptr))
+		if (!ReadFile(hfile.get(), data, sizeof(data), &size, nullptr))
 		{
 			error = true;
 			break;

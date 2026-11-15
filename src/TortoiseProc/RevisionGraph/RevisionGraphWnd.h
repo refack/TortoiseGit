@@ -23,7 +23,7 @@ import Colors;
 import Graphviz;
 #include "../../SharedMFC/Utils/LogDataVector.h"
 import ProgressDlg;
-#include "SVG.h"
+#include "MiscUI/SVG.h"
 #include <Future.h>
 
 #pragma warning(push)

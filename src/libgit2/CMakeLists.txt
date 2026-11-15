@@ -82,6 +82,7 @@ target_sources(tgitlib
         modules/RollingFile.ixx
         modules/CacheInterface.ixx
         modules/ShellUpdater.ixx
+        modules/ShellCache.ixx	# MFC-free; TortoiseShell, TortoiseProc and TGitCache (no SharedMFC) import it
         modules/TGitPath.ixx
         modules/TempFiles.ixx
         modules/gitindex.ixx

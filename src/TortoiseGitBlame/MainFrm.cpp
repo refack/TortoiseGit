@@ -153,7 +153,7 @@ int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	CMFCToolBar::EnableQuickCustomization();
 
 	m_themeCallbackId = ThemeAPI::CTheme::Instance().RegisterThemeChangeCallback([this]() { SetTheme(CTheme::Instance().IsDarkTheme()); });
-	SetTheme(::theApp.GetInt(L"DarkMode") && CTheme::Instance().IsDarkModeAllowed() && TGitDarkMode::DarkModeHelper::Instance().ShouldAppsUseDarkMode());
+	SetTheme(::theApp.GetInt(L"DarkMode") && CTheme::Instance().IsDarkModeHelperAllowed() && DarkModeHelper::Instance().ShouldAppsUseDarkMode());
 	return 0;
 }
 

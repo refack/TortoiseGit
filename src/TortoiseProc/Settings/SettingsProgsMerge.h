@@ -20,7 +20,7 @@
 #pragma once
 #include "SettingsPropPage.h"
 #include "SetProgsAdvDlg.h"
-#include "FileDropEdit.h"
+#include "MiscUI/FileDropEdit.h"
 
 /**
  * \ingroup TortoiseProc

@@ -38,7 +38,12 @@ using std::min;
 #define REGSTRING_DARKTHEME L"Software\\TortoiseGit\\UDiffDarkTheme"
 
 #include <tgitlib/sanity.h>		// SCOPE_EXIT; textual includes before the imports
-import tgit;
+// tgitlib-level modules only: `tgit` is SharedMFC's MFC-side aggregate, and UDiff links tgitlib alone.
+// The .cpp files import what they use themselves (ThemeAPI, Registry, str_utils, DarkModeHelper, ...);
+// this header supplies only what every UDiff TU leans on: wil:: helpers and RIAA's CAutoIcon/CAutoFile.
+import std;
+import wil;
+import RIAA;
 
 #ifdef _WIN64
 #   define APP_X64_STRING "x64"

@@ -24,10 +24,10 @@
 #include <windowsx.h>
 #include "ShellExt.h"
 #include "ShellState.h"
-#include "ItemIDList.h"
 #include <tgitlib/CreateProcessHelper.h>
 #include "resource.h"
 
+import ItemIDList;
 import PreserveChdir;
 import PathUtils;
 import CmdLineParser;

@@ -2301,7 +2301,7 @@ void CTortoiseGitBlameView::OnViewToggleDarkMode()
 
 void CTortoiseGitBlameView::OnUpdateViewToggleDarkMode(CCmdUI* pCmdUI)
 {
-	pCmdUI->Enable(CTheme::Instance().IsDarkModeAllowed());
+	pCmdUI->Enable(CTheme::Instance().IsDarkModeHelperAllowed());
 	pCmdUI->SetCheck(CTheme::Instance().IsDarkTheme());
 }
 

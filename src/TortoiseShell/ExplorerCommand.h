@@ -22,7 +22,7 @@
 #include <wrl/implements.h>
 #include <wrl/client.h>
 #include <shobjidl_core.h>
-#include "MenuInfo.h"
+import MenuItem;	// TGitShellCommand
 
 class CExplorerCommand;
 

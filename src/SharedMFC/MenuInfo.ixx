@@ -1,6 +1,6 @@
 ﻿module;
-#include "menuinfo.h"
-#include "resource.h"
+#include "stdafx.h"						// DWORD, UINT, INT_MAX
+#include "../TortoiseShell/resource.h"	// IDI_*/IDS_MENU*: the shell extension's resources, not SharedMFC's
 
 
 export module MenuItem;
@@ -129,7 +129,8 @@ struct MenuInfo {
 std::span<const MenuInfo> GetTGitMenuInfo() noexcept;
 
 
-constinit const auto menuInfo = std::array{
+// to_array, not std::array{...}: CTAD cannot deduce from the bare-brace entries after the first (C2641)
+constinit const auto menuInfo = std::to_array<MenuInfo>({
 	MenuInfo{
 		.command	= TGitShellCommand::Inaccessible,
 		.menuID		= TGitContextMenuEntries::Inaccessible,
@@ -326,12 +327,13 @@ constinit const auto menuInfo = std::array{
 	// git am or git apply on the command line; viewing one is TortoiseGitUDiff,
 	// which owns the .diff/.patch association.
 	//
-	// TGitContextMenuEntries::ImportPatch is deliberately left in MenuInfo.h - see
+	// TGitContextMenuEntries::ImportPatch is deliberately left in module Constants
+	// (libgit2/modules/TGitConstants.ixx; it was MenuInfo.h) - see
 	// the note below about that enum being implicitly numbered and persisted.
 
 	// "Send Mail" was here. The feature is gone - it shipped a hand-rolled SMTP
 	// client to do what any mail program does. TGitContextMenuEntries::Sendmail
-	// deliberately survives in MenuInfo.h: that enum is implicitly numbered and
+	// deliberately survives in module Constants: that enum is implicitly numbered and
 	// is stored as a 64-bit mask in HKCU\Software\TortoiseGit\ContextMenuEntries,
 	// so deleting the enumerator would shift every entry after it and silently
 	// rewrite everyone's context menu. Leave the hole.
@@ -372,7 +374,7 @@ constinit const auto menuInfo = std::array{
 		{0, 0}, {0, 0}, {0, 0}, {0, 0} },
 	{ TGitShellCommand::SubMenuMultiple,	TGitContextMenuEntries::None,		IDI_MENUMULTIPLE,	IDS_MENUSUBMENU,		0,
 		{0, 0}, {0, 0}, {0, 0}, {0, 0} },
-};
+});
 static_assert(std::span<const MenuInfo>(menuInfo).size() < INT_MAX, "must and will never happen, but we cast size() to int at some places");
 
 
@@ -380,3 +382,7 @@ std::span<const MenuInfo> GetTGitMenuInfo() noexcept { return menuInfo; }
 
 
 }
+
+// consumers (ShellExt.h, ExplorerCommand.h, SetLookAndFeelPage.cpp) spell these unqualified,
+// as they did when this was MenuInfo.h
+export using namespace MenuItem;

@@ -20,7 +20,7 @@
 #pragma once
 import TGitPath;
 #include "FolderCrawler.h"
-#include "ShellCache.h"
+import ShellCache;	// GitStatusCache.h's m_shellCache reaches it through here
 import RIAA;
 
 #define READ_DIR_CHANGE_BUFFER_SIZE 4096

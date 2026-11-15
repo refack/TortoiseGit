@@ -18,8 +18,8 @@
 // 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 #include "GitFolderStatus.h"
-#include "ShellCache.h"
 #include "ShellState.h"
+import ShellCache;
 
 GitFolderStatus::GitFolderStatus()
 {

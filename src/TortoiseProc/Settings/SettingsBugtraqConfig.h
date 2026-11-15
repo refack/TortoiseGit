@@ -19,7 +19,7 @@
 #pragma once
 
 #include "SettingsPropPage.h"
-#include "RegexEdit.h"
+#include "MiscUI/RegexEdit.h"
 #include "GitSettings.h"
 // CSettingsBugtraqConfig dialog
 

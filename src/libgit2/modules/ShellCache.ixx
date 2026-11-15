@@ -1,8 +1,18 @@
-﻿export module ShellCache;
+﻿module;
+// tgitlib, not SharedMFC: TGitCache imports this too, and it does not link SharedMFC.
+#include <windows.h>
+#include <shlwapi.h>	// PathGetDriveNumber, PathIsNetworkPath, PathStripToRoot, PathAddBackslash, StrStrI
+#pragma comment(lib, "Shlwapi.lib")
+#include <stdlib.h>		// _countof
+#include <wchar.h>		// _wcsicmp, _wcsnicmp, wcsncpy_s, wcschr
 
-import tgit;
-import LangDll;
-import DebugOutput;
+export module ShellCache;
+import std;
+import Constants;	// TGitContextMenuEntries, from_underlying, to_TGitContextMenuEntries
+import Registry;	// CRegStdDWORD, CRegStdQWORD, CRegStdString
+import TGitStatus;	// GitStatus::CacheType
+import LangDll;		// LangDll::s_defaultLang
+import DebugOutput;	// tgit::DebugOutput::Trace
 
 using namespace tgit::Constants;
 
@@ -11,7 +21,7 @@ using namespace tgit::Constants;
 #define ADMINDIRTIMEOUT 10000
 #define DRIVETYPETIMEOUT 300000		// 5 min
 
-constexpr TGitContextMenuEntries defaultWin11TopMenuEntries = TGitContextMenuEntries::Sync |
+export constexpr TGitContextMenuEntries defaultWin11TopMenuEntries = TGitContextMenuEntries::Sync |
 															  TGitContextMenuEntries::Commit |
 															  TGitContextMenuEntries::Switch |
 															  TGitContextMenuEntries::Revert |
@@ -27,12 +37,12 @@ constexpr TGitContextMenuEntries defaultWin11TopMenuEntries = TGitContextMenuEnt
 															  TGitContextMenuEntries::StashSave |
 															  TGitContextMenuEntries::Settings;
 
-constexpr TGitContextMenuEntries defaultTopMenuEntries = TGitContextMenuEntries::Sync |
+export constexpr TGitContextMenuEntries defaultTopMenuEntries = TGitContextMenuEntries::Sync |
 														 TGitContextMenuEntries::CreateRepo |
 														 TGitContextMenuEntries::Clone |
 														 TGitContextMenuEntries::Commit;
 
-constexpr TGitContextMenuEntries defaultExtMenuEntries = TGitContextMenuEntries::StashApply |
+export constexpr TGitContextMenuEntries defaultExtMenuEntries = TGitContextMenuEntries::StashApply |
 														 TGitContextMenuEntries::SubmoduleSync;
 
 using Locker = std::scoped_lock<std::recursive_mutex>;
@@ -52,7 +62,7 @@ enum class Tristate
  * Helper class which caches access to the registry. Also provides helper methods
  * for checks against the settings stored in the registry.
  */
-class ShellCache
+export class ShellCache
 {
 public:
 	using CacheType = GitStatus::CacheType;

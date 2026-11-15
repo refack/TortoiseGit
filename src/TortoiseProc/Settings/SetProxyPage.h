@@ -19,7 +19,7 @@
 #pragma once
 
 #include "SettingsPropPage.h"
-#include "FileDropEdit.h"
+#include "MiscUI/FileDropEdit.h"
 import Registry;
 
 

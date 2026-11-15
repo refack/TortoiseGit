@@ -1,5 +1,8 @@
-﻿export module ItemIDList;
+﻿module;
+#include "stdafx.h"		// PCUITEMID_CHILD & co, IShellLibrary, StrRetToStr, ATL's CComPtr/CComHeapPtr
 
+export module ItemIDList;
+import std;
 
 export class ItemIDList
 {
