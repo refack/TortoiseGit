@@ -45,7 +45,7 @@ index 0000000000..9f5293264a
 +	projectlanguage = 1033
 +	icon = contrib/git.ico
 diff --git a/attr.c b/attr.c
-index 9f86a1a9f1..c5fa2c522d 100644
+index 1acb4ef430..6066dd3e5b 100644
 --- a/attr.c
 +++ b/attr.c
 @@ -161,7 +161,7 @@ static void all_attrs_init(struct attr_hashmap *map, struct attr_check *check)
@@ -58,7 +58,7 @@ index 9f86a1a9f1..c5fa2c522d 100644
  
  		REALLOC_ARRAY(check->all_attrs, size);
 diff --git a/compat/mingw-posix.h b/compat/mingw-posix.h
-index 775758879b..8a8ab8e513 100644
+index 9158f89d89..5f152dcf37 100644
 --- a/compat/mingw-posix.h
 +++ b/compat/mingw-posix.h
 @@ -155,9 +155,9 @@ static inline int sigprocmask(int how UNUSED, const sigset_t *set UNUSED, sigset
@@ -74,10 +74,10 @@ index 775758879b..8a8ab8e513 100644
  /*
   * simple adaptors
 diff --git a/compat/mingw.c b/compat/mingw.c
-index 4b619d9f54..df4bad0073 100644
+index 9c5a514079..f91403531a 100644
 --- a/compat/mingw.c
 +++ b/compat/mingw.c
-@@ -694,7 +694,7 @@ int mingw_unlink(const char *pathname, int handle_in_use_error)
+@@ -632,7 +632,7 @@ int mingw_unlink(const char *pathname, int handle_in_use_error)
  
  static int is_dir_empty(const wchar_t *wpath)
  {
@@ -87,10 +87,10 @@ index 4b619d9f54..df4bad0073 100644
  	wchar_t wbuf[MAX_LONG_PATH + 2];
  	wcscpy(wbuf, wpath);
 diff --git a/config.c b/config.c
-index 11f0871bfb..d231f8c760 100644
+index d9019e7e6c..9b23be6717 100644
 --- a/config.c
 +++ b/config.c
-@@ -1817,7 +1817,7 @@ void git_configset_init(struct config_set *set)
+@@ -1813,7 +1813,7 @@ void git_configset_init(struct config_set *set)
  
  void git_configset_clear(struct config_set *set)
  {

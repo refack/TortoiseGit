@@ -1,4 +1,12 @@
-# git's own C sources, built as the static library gitdll links.
+# git's own C sources, built as the static library tgit-gitserver.exe links.
+#
+# The consumer is a real git program, not a DLL. tgit-gitserver.exe defines
+# main() the way git's common-main.c does and serves one working copy per
+# process; ext\gitdll is a proxy that keeps the gitdll.h ABI and forwards over a
+# pipe. Because git runs in a process of its own again, git may own that process
+# - exit(), die(), stdout and per-process state are all git's to use - which is
+# what let the "We are a DLL", "One process, many repositories" and "Finding the
+# user's git installation" patches go. See doc\GitServer.md.
 #
 # This replaces ext\build\libgit.vcxproj, which enumerated 284 source files by
 # hand. git ships contrib/buildsystems/CMakeLists.txt - upstream-maintained,
@@ -10,18 +18,21 @@
 # The base is git-for-windows/git, NOT git/git: compat/win32/fscache.c and the
 # rest of the Windows compat layer are not upstream and are compiled here.
 #
-# TortoiseGit's own changes are the six patches under patches/. Read
-# TORTOISEGIT-PATCHES.md before adding a seventh - each one is grouped by what
-# would have to be true for it to be deleted, and two of them are close.
+# TortoiseGit's own changes are the patches under patches/, numbered from 0004:
+# 0001-0003 were deleted when git moved out of process, and the numbers are kept
+# so that the history in TORTOISEGIT-PATCHES.md still lines up. Read that file
+# before adding another - each patch is grouped by what would have to be true
+# for it to be deleted.
 
-# libgit is a static library whatever the triplet says. git's CMakeLists
-# declares it with a bare add_library(), so a dynamic triplet (x64-windows,
-# x86-windows) turns BUILD_SHARED_LIBS on and links a libgit.dll - which cannot
-# succeed, because the library is incomplete by design: patch 0001 redirects
-# exit() to vc_exit(), and vc_exit() lives in gitdll's die.cpp. A static archive
-# never runs the linker, so that hole (and every other symbol gitdll or its
-# consumer is expected to supply) only shows up as LNK2019 the moment the
-# target becomes a DLL.
+# libgit is a static library whatever the triplet says. This used to be forced
+# by a hole: the old patch 0001 redirected exit() to vc_exit(), which lived in
+# gitdll, so a libgit.dll could not link. That hole is gone. What remains is
+# that libgit is not a library upstream supports as a DLL: git's CMakeLists
+# declares it with a bare add_library() and exports nothing - there is no
+# __declspec(dllexport) and no .def file - so a dynamic triplet (x64-windows)
+# would turn BUILD_SHARED_LIBS on and produce a DLL with no exports and no
+# import library. git.exe itself links libgit statically, and so does
+# tgit-gitserver.exe; this pins that rather than letting the triplet decide.
 vcpkg_check_linkage(ONLY_STATIC_LIBRARY)
 
 vcpkg_from_github(
@@ -31,9 +42,6 @@ vcpkg_from_github(
     SHA512 48c35cad3d2ee9d45d285c4eb511241b0ec1b2ec84657679e86eed32ff54defaeabbeb09516eccff14d31f83565f74c80d803cf5a4473037555723961c480e5d
     HEAD_REF main
     PATCHES
-        patches/0001-We-are-a-DLL-not-a-process.patch
-        patches/0002-One-process-many-repositories.patch
-        patches/0003-Finding-the-user-s-git-installation.patch
         patches/0004-MSVC-build-enablement.patch
         patches/0005-Behaviour-we-deliberately-differ-on.patch
         patches/0006-Upstreamable.patch
@@ -81,20 +89,23 @@ vcpkg_cmake_configure(
         # only the libgit target and the links target never runs.
         -DPERL_TESTS=OFF
         -DPYTHON_TESTS=OFF
-        # gitdll is loaded into TortoiseGitProc.exe, so "the running executable"
-        # is not git and its directory is not a git installation. TortoiseGit
-        # finds the user's git explicitly instead. Upstream sets this
-        # unconditionally; patch 0004 makes it an option so a library consumer
-        # can decline it.
+        # The libgit consumer is tgit-gitserver.exe. It is a real git program,
+        # but it lives in TortoiseGit's bin\, not in a git installation, so
+        # "the running executable's prefix" would resolve to TortoiseGit's own
+        # directory and git would look for etc\gitconfig, templates and
+        # libexec there. TortoiseGit knows where the user's git is; the server
+        # is told, rather than guessing from its own path. Upstream sets this
+        # unconditionally; patch 0004 makes it an option so a consumer that is
+        # not installed inside git can decline it.
         -DRUNTIME_PREFIX=OFF
         -DCMAKE_DISABLE_FIND_PACKAGE_CURL=ON
         -DCMAKE_DISABLE_FIND_PACKAGE_EXPAT=ON
         # PkgConfig is disabled for two reasons, one of them a real bug.
         #
         # git only uses it to find libpcre2-8 and set USE_LIBPCRE2, which enables
-        # `grep -P`. ext\build\libgit.vcxproj never defined that, so gitdll has
-        # always run without it; leaving it off preserves behaviour rather than
-        # quietly changing it.
+        # `grep -P`. ext\build\libgit.vcxproj never defined that, so TortoiseGit's
+        # in-process git has always run without it; leaving it off preserves
+        # behaviour rather than quietly changing it.
         #
         # And once msys is on PATH, pkg-config becomes findable and CMake's own
         # FindPkgConfig then fails parsing any install path containing a
@@ -112,7 +123,8 @@ vcpkg_cmake_configure(
 )
 
 # Only the library. Building git.exe and the ~150 built-ins would cost minutes
-# per configuration and gitdll links none of it.
+# per configuration and tgit-gitserver.exe links none of it - it brings its own
+# main(), in place of common-main.c, and the user's git.exe stays the user's.
 vcpkg_cmake_build(TARGET libgit LOGFILE_BASE build-libgit)
 
 # git's CMakeLists installs the executables and nothing else - there is no
@@ -131,8 +143,11 @@ foreach(cfg IN ITEMS "rel" "dbg")
     file(INSTALL "${built}" DESTINATION "${dest}")
 endforeach()
 
-# gitdll compiles against git's internal headers - it is a shim over this
-# library, not a consumer of a public API, and git installs no headers at all.
+# tgit-gitserver compiles against git's internal headers - like any git
+# built-in, it calls git's internals directly rather than a public API, and git
+# installs no headers at all. Every header is shipped, not a curated subset: the
+# server may use only what this tree declares (the rule is "no fork patch to
+# export a git-internal symbol"), so the whole tree is the contract.
 # Mirror the source tree so `#include "git-compat-util.h"` and
 # `#include "odb/source-files.h"` both resolve from one include root, exactly as
 # they do inside git's own build.
@@ -158,8 +173,8 @@ foreach(generated IN ITEMS "command-list.h" "config-list.h" "hook-list.h" "versi
     file(INSTALL "${built}" DESTINATION "${include_root}")
 endforeach()
 
-# gitdll compiles git's headers itself, so it must see exactly the feature
-# defines the library was compiled with. If it does not, the two disagree about
+# tgit-gitserver compiles git's headers itself, so it must see exactly the
+# feature defines the library was compiled with. If it does not, the two disagree about
 # struct layouts and the result is silent memory corruption, not a link error -
 # NO_PTHREADS alone changes every structure holding a mutex, and
 # HAVE_FSMONITOR_DAEMON_BACKEND changes the index.
