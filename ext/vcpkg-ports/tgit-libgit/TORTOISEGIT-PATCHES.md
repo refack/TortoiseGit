@@ -86,11 +86,27 @@ plus the `APPDATA` rules and the ≥ 2.47 floor.
 
 **Why it could go:** the old note said "nothing plausible" would delete it,
 because the *problem* is TortoiseGit's. The problem still is; the *patch* is not
-needed for it. A git process does not need its source edited to be told where
-its configuration lives: TortoiseGit already knows the user's git and can say so
-when it spawns the server. The registry read inside git, and the Msys2
-predicate with it, were the in-process answer to a question a process launcher
-answers from outside.
+needed for most of it. The registry read inside git, and the Msys2 predicate
+with it, were the in-process answer to a question a process launcher answers
+from outside, with git's own environment variables.
+
+**What that leaves the spawner to do** — nothing does it yet:
+
+- With `RUNTIME_PREFIX` off, `system_prefix()` is the constant
+  `FALLBACK_RUNTIME_PREFIX` (`/mingw64`), so every system path git derives
+  points there unless told otherwise.
+- The **system gitconfig** has an upstream override: set `GIT_CONFIG_SYSTEM`
+  to the user's git's `etc\gitconfig` when spawning the server. 0003 computed
+  this path (`..\etc\gitconfig`, or `etc\gitconfig` under the Msys2/Cygwin
+  layout); the spawner now has to.
+- **Known gap:** the **system gitattributes** file has no override variable,
+  only `GIT_ATTR_NOSYSTEM`. 0003 patched `git_attr_system_file()`; without it
+  the server reads `/mingw64/../etc/gitattributes`, i.e. not the user's file.
+  Closing that needs either a patch (which is what 0003 was) or a decision that
+  system attributes do not matter for what the server does.
+- 0003's `APPDATA` restriction in `xdg_config_home_for()` applied only under
+  the Msys2/Cygwin predicate, and goes with it: the server now behaves as Git
+  for Windows does.
 
 ---
 
@@ -103,10 +119,23 @@ unconditionally). The port turns `RUNTIME_PREFIX` off, because
 `tgit-gitserver.exe` lives in TortoiseGit's `bin\`, not in a git installation,
 and a prefix derived from its own path would point at TortoiseGit.
 
-The comment 0004 puts above that option still describes gitdll living inside
-`TortoiseGitProc.exe` and cites the deleted 0003. The conclusion (off for us)
-still holds; the reason given is out of date. It is left alone here rather than
-folded into this refresh — fix it the next time 0004 is re-derived.
+Three things in 0004 were written for the in-process gitdll and are left alone
+here rather than folded into this refresh — fix them the next time 0004 is
+re-derived:
+
+- The comment above `option(RUNTIME_PREFIX ...)` describes gitdll living inside
+  `TortoiseGitProc.exe` and cites the deleted 0003. The conclusion (off for us)
+  still holds; the reason given is out of date.
+- The `libgit_SOURCES` hunk adds `builtin/update-index.c`, `builtin/log.c` and
+  `builtin/shortlog.c` because gitdll called `cmd_update_index()` and
+  `cmd_log_init_tgit()`. `cmd_log_init_tgit()` was defined by 0001 and no
+  longer exists. The sources still compile into the library.
+- The `help.c` hunk deletes the command-list half of `help.c`, including
+  `get_version_info()`, but `help.c`'s own `cmd_version()` and `diagnose.c`
+  still call it. The archive builds because a static library never links; a
+  consumer that pulls in either object gets LNK2019. The portfile's
+  `vcpkg_check_linkage` comment lists this alongside the symbols upstream's
+  libgit leaves to `git.c` and the built-ins.
 
 **Deletable when:** the port builds through
 `contrib/buildsystems/CMakeLists.txt` with no source edits. It now builds

@@ -24,15 +24,27 @@
 # before adding another - each patch is grouped by what would have to be true
 # for it to be deleted.
 
-# libgit is a static library whatever the triplet says. This used to be forced
-# by a hole: the old patch 0001 redirected exit() to vc_exit(), which lived in
-# gitdll, so a libgit.dll could not link. That hole is gone. What remains is
-# that libgit is not a library upstream supports as a DLL: git's CMakeLists
-# declares it with a bare add_library() and exports nothing - there is no
-# __declspec(dllexport) and no .def file - so a dynamic triplet (x64-windows)
-# would turn BUILD_SHARED_LIBS on and produce a DLL with no exports and no
-# import library. git.exe itself links libgit statically, and so does
-# tgit-gitserver.exe; this pins that rather than letting the triplet decide.
+# libgit is a static library whatever the triplet says. git's CMakeLists
+# declares it with a bare add_library(), so a dynamic triplet (x64-windows)
+# would turn BUILD_SHARED_LIBS on and try to link a libgit.dll - which cannot
+# succeed, because the library is incomplete by design. It always was, upstream
+# too: libgit is the part of git.exe that is not git.c, the built-ins and
+# common-main.c, and it calls back into those. dumpbin on the 2.56.1 archive
+# lists the symbols it references but never defines:
+#
+#   main                       compat/mingw.c's wmain calls it; the consumer's
+#                              own main() supplies it, as common-main.c does.
+#   load_builtin_commands      git.c, called from help.c.
+#   fsmonitor_batch__*,        builtin/fsmonitor--daemon.c, called from
+#   fsmonitor_publish, ...     compat/fsmonitor/fsm-listen-win32.c.
+#   get_version_info           help.c defined it; patch 0004 deletes that half
+#                              of help.c, but help.c's cmd_version() and
+#                              diagnose.c still call it. A TortoiseGit-made hole.
+#
+# A static archive never runs the linker, so these only matter if the consumer
+# pulls in an object that needs them. (The old patch 0001 added one more,
+# exit() -> vc_exit() in gitdll's die.cpp; that one went with it.) git.exe links
+# libgit statically, and so does tgit-gitserver.exe; this pins that.
 vcpkg_check_linkage(ONLY_STATIC_LIBRARY)
 
 vcpkg_from_github(
@@ -93,10 +105,17 @@ vcpkg_cmake_configure(
         # but it lives in TortoiseGit's bin\, not in a git installation, so
         # "the running executable's prefix" would resolve to TortoiseGit's own
         # directory and git would look for etc\gitconfig, templates and
-        # libexec there. TortoiseGit knows where the user's git is; the server
-        # is told, rather than guessing from its own path. Upstream sets this
-        # unconditionally; patch 0004 makes it an option so a consumer that is
-        # not installed inside git can decline it.
+        # libexec there. TortoiseGit knows where the user's git is, so whoever
+        # spawns the server must tell it, through git's own environment
+        # variables: GIT_CONFIG_SYSTEM for the system gitconfig (and
+        # GIT_EXEC_PATH / GIT_TEMPLATE_DIR if a verb ever needs them). With
+        # RUNTIME_PREFIX off, system_prefix() is the constant
+        # FALLBACK_RUNTIME_PREFIX ("/mingw64"), so anything not told falls back
+        # to that. The system gitattributes file has no such variable - only
+        # GIT_ATTR_NOSYSTEM - so it is not reachable this way; that is a known
+        # gap, not an oversight. Upstream sets RUNTIME_PREFIX unconditionally;
+        # patch 0004 makes it an option so a consumer that is not installed
+        # inside git can decline it.
         -DRUNTIME_PREFIX=OFF
         -DCMAKE_DISABLE_FIND_PACKAGE_CURL=ON
         -DCMAKE_DISABLE_FIND_PACKAGE_EXPAT=ON
