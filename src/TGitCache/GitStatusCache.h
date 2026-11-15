@@ -27,7 +27,7 @@ import TGitPath;
 #include "ShellUpdater.h"
 import ReaderWriterLock;
 import TGitStatus;	// GitStatus::GitStatus
-#include "AdminDirCache.h"
+#include "../TortoiseShell/AdminDirCache.h"	// shared with the shell; TGitCache's include path no longer carries src/TortoiseShell
 // <mutex> (std::recursive_mutex) and <map> come from stdafx.h, before its imports:
 // a textual std/ATL #include must never follow an `import` in the same TU.
 //////////////////////////////////////////////////////////////////////////

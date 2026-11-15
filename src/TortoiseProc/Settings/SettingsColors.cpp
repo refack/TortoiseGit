@@ -70,7 +70,7 @@ BOOL CSettingsColors::OnInitDialog()
 {
 	ISettingsPropPage::OnInitDialog();
 
-	m_chkUseDarkMode.EnableWindow(CTheme::Instance().IsDarkModeAllowed());
+	m_chkUseDarkMode.EnableWindow(CTheme::Instance().IsDarkModeHelperAllowed());
 	m_chkUseDarkMode.SetCheck(DWORD(m_regUseDarkMode) != 0 ? BST_CHECKED : BST_UNCHECKED);
 	m_tooltips.AddTool(IDC_DARKTHEME, IDS_DARKTHEME_TT);
 
@@ -136,7 +136,7 @@ BOOL CSettingsColors::OnApply()
 	DWORD revGraphUseLocalForCur = m_RevGraphUseLocalForCur.GetCheck();
 	m_regRevGraphUseLocalForCur = revGraphUseLocalForCur;
 
-	m_regUseDarkMode = ((m_chkUseDarkMode.GetCheck() == BST_CHECKED) && CTheme::Instance().IsDarkModeAllowed()) ? 1 : 0;
+	m_regUseDarkMode = ((m_chkUseDarkMode.GetCheck() == BST_CHECKED) && CTheme::Instance().IsDarkModeHelperAllowed()) ? 1 : 0;
 
 	return ISettingsPropPage::OnApply();
 }

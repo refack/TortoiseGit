@@ -50,7 +50,7 @@ int ItemIDList::size() const
 			while (ptr && ptr->cb != 0)
 			{
 				++count_;
-				LPCBYTE byte = reinterpret_cast<LPCBYTE>(ptr);
+				const BYTE* byte = reinterpret_cast<const BYTE*>(ptr);
 				byte += ptr->cb;
 				ptr = reinterpret_cast<LPCSHITEMID>(byte);
 			}
@@ -74,7 +74,7 @@ LPCSHITEMID ItemIDList::get(int index) const
 			break;
 
 		++count;
-		LPCBYTE byte = reinterpret_cast<LPCBYTE>(ptr);
+		const BYTE* byte = reinterpret_cast<const BYTE*>(ptr);
 		byte += ptr->cb;
 		ptr = reinterpret_cast<LPCSHITEMID>(byte);
 	}

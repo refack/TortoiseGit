@@ -59,4 +59,23 @@ using std::max;
 #endif
 
 
-import tgit;
+// tgitlib-level modules only, never `tgit`: that is SharedMFC's MFC-side aggregate, and
+// TGitCache links tgitlib alone. (This block is the one TGitCache last built green with, 6171ce27f.)
+import wil;				// wil::scope_guard, which SCOPE_EXIT expands to
+import DebugOutput;
+import GitIndex;			// git_wc_status_kind / git_wc_status2_t, which tgittypes held
+import PathUtils;
+import git_h;		// was "Git.h"; also TGitH::OpenGitRepository and the config readers
+import RIAA;
+import Registry;	// namespace RegistryDep
+import str_utils;	// tgit::wstr::CString; TGitCache is wide-only (was <atlstr.h> + using namespace ATL)
+
+using CString = tgit::wstr::CString;
+using AutoLocker = TGitH::CAutoLocker;
+using ATL::CAtlException;
+using ATL::CComHeapPtr;
+
+using namespace RIAA;
+using namespace RegistryDep;
+
+namespace fs = std::filesystem;
