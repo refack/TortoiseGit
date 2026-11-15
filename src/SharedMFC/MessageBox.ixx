@@ -1634,7 +1634,7 @@ BOOL CMessageBox::PreTranslateMessage(MSG* pMsg)
 			break;
 
 		default:
-			std::unreachable();
+			[[unlikely]] std::unreachable();
 		}
 	}
 

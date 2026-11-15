@@ -27,14 +27,14 @@ Signed-off-by: Frank Li <lznuaa@gmail.com>
  git-compat-util.h    |   9 ++--
  log-tree.c           |   4 +-
  notes.c              |   2 +-
- pager.c              |  48 ++----------------
+ pager.c              |   5 +-
  revision.h           |   4 ++
  run-command.c        |  47 ++++++++++++------
  sub-process.c        |   2 +
- 15 files changed, 204 insertions(+), 73 deletions(-)
+ 15 files changed, 205 insertions(+), 29 deletions(-)
 
 diff --git a/attr.c b/attr.c
-index b9852d8..b4ec500 100644
+index 1acb4ef430..54bc0bbc48 100644
 --- a/attr.c
 +++ b/attr.c
 @@ -523,7 +523,7 @@ static void check_vector_remove(struct attr_check *check)
@@ -47,7 +47,7 @@ index b9852d8..b4ec500 100644
  	int i;
  
 diff --git a/builtin/log.c b/builtin/log.c
-index 2f5142e..2993123 100644
+index 667b80f6cc..98da5727ed 100644
 --- a/builtin/log.c
 +++ b/builtin/log.c
 @@ -396,6 +396,14 @@ static void cmd_log_init(int argc, const char **argv, const char *prefix,
@@ -66,10 +66,10 @@ index 2f5142e..2993123 100644
  {
  	struct commit *commit;
 diff --git a/chdir-notify.c b/chdir-notify.c
-index f8bfe3c..ec23182 100644
+index 55773c24c9..a58dc731d6 100644
 --- a/chdir-notify.c
 +++ b/chdir-notify.c
-@@ -97,6 +97,18 @@ int chdir_notify(const char *new_cwd)
+@@ -67,6 +67,18 @@ int chdir_notify(const char *new_cwd)
  	return 0;
  }
  
@@ -89,7 +89,7 @@ index f8bfe3c..ec23182 100644
  			     const char *new_cwd,
  			     const char *path)
 diff --git a/compat/mingw-posix.h b/compat/mingw-posix.h
-index 9158f89..ef8df9a 100644
+index 9158f89d89..ef8df9a7d0 100644
 --- a/compat/mingw-posix.h
 +++ b/compat/mingw-posix.h
 @@ -216,12 +216,18 @@ int mingw_open (const char *filename, int oflags, ...);
@@ -112,10 +112,10 @@ index 9158f89..ef8df9a 100644
  #define freopen mingw_freopen
  
 diff --git a/compat/mingw.c b/compat/mingw.c
-index 92946af..82831f5 100644
+index 9c5a514079..fecc21d482 100644
 --- a/compat/mingw.c
 +++ b/compat/mingw.c
-@@ -35,6 +35,68 @@
+@@ -36,6 +36,68 @@
  
  #define HCAST(type, handle) ((type)(intptr_t)handle)
  
@@ -184,7 +184,7 @@ index 92946af..82831f5 100644
  void open_in_gdb(void)
  {
  	static struct child_process cp = CHILD_PROCESS_INIT;
-@@ -1013,6 +1075,10 @@ int mingw_open (const char *filename, int oflags, ...)
+@@ -1014,6 +1076,10 @@ int mingw_open (const char *filename, int oflags, ...)
  		if (fd >= 0 && set_hidden_flag(wfilename, 1))
  			warning("could not mark '%s' as hidden.", filename);
  	}
@@ -195,7 +195,7 @@ index 92946af..82831f5 100644
  	return fd;
  }
  
-@@ -1068,9 +1134,25 @@ FILE *mingw_fopen (const char *filename, const char *otype)
+@@ -1069,9 +1135,25 @@ FILE *mingw_fopen (const char *filename, const char *otype)
  		errno = ENOENT;
  	if (file && hide && set_hidden_flag(wfilename, 1))
  		warning("could not mark '%s' as hidden.", filename);
@@ -221,7 +221,7 @@ index 92946af..82831f5 100644
  FILE *mingw_freopen (const char *filename, const char *otype, FILE *stream)
  {
  	int hide = needs_hiding(filename);
-@@ -1098,6 +1180,15 @@ FILE *mingw_freopen (const char *filename, const char *otype, FILE *stream)
+@@ -1099,6 +1181,15 @@ FILE *mingw_freopen (const char *filename, const char *otype, FILE *stream)
  	return file;
  }
  
@@ -237,7 +237,7 @@ index 92946af..82831f5 100644
  #undef fflush
  int mingw_fflush(FILE *stream)
  {
-@@ -4379,6 +4470,31 @@ static BOOL WINAPI handle_ctrl_c(DWORD ctrl_type)
+@@ -4390,6 +4481,31 @@ static BOOL WINAPI handle_ctrl_c(DWORD ctrl_type)
  	return TRUE; /* we did handle this */
  }
  
@@ -270,10 +270,10 @@ index 92946af..82831f5 100644
  #ifdef _DEBUG
  #include <crtdbg.h>
 diff --git a/compat/posix.h b/compat/posix.h
-index e2e794c..468a31e 100644
+index e7c4be2c15..5558274213 100644
 --- a/compat/posix.h
 +++ b/compat/posix.h
-@@ -447,10 +447,17 @@ int inet_pton(int af, const char *src, void *dst);
+@@ -471,10 +471,17 @@ int inet_pton(int af, const char *src, void *dst);
  const char *inet_ntop(int af, const void *src, char *dst, size_t size);
  #endif
  
@@ -294,10 +294,10 @@ index e2e794c..468a31e 100644
  #ifndef HOST_NAME_MAX
  #define HOST_NAME_MAX 256
 diff --git a/diff.c b/diff.c
-index de5ff1f..4c415a5 100644
+index 2fc352ec4d..b517d3b82c 100644
 --- a/diff.c
 +++ b/diff.c
-@@ -6575,7 +6575,7 @@ static int diff_flush_patch_quietly(struct diff_filepair *p, struct diff_options
+@@ -6538,7 +6538,7 @@ static int diff_flush_patch_quietly(struct diff_filepair *p, struct diff_options
  	return ret;
  }
  
@@ -306,7 +306,7 @@ index de5ff1f..4c415a5 100644
  			    struct diffstat_t *diffstat)
  {
  	if (diff_unmodified_pair(p))
-@@ -6716,7 +6716,7 @@ static void diff_resolve_rename_copy(void)
+@@ -6679,7 +6679,7 @@ static void diff_resolve_rename_copy(void)
  	diff_debug_queue("resolve-rename-copy done", q);
  }
  
@@ -316,7 +316,7 @@ index de5ff1f..4c415a5 100644
  	switch (p->status) {
  	case DIFF_STATUS_UNKNOWN:
 diff --git a/entry.c b/entry.c
-index 3087c35..5b35dbe 100644
+index 5fd4b08991..df2d315f8f 100644
 --- a/entry.c
 +++ b/entry.c
 @@ -293,7 +293,7 @@ void update_ce_after_write(const struct checkout *state, struct cache_entry *ce,
@@ -329,10 +329,10 @@ index 3087c35..5b35dbe 100644
  		       int *nr_checkouts)
  {
 diff --git a/git-compat-util.h b/git-compat-util.h
-index eb53bdb..a4055fb 100644
+index fdc48bc868..d8745f472b 100644
 --- a/git-compat-util.h
 +++ b/git-compat-util.h
-@@ -1123,11 +1123,10 @@ struct fscache;
+@@ -1128,11 +1128,10 @@ struct fscache;
  int cmd_main(int, const char **);
  
  /*
@@ -349,10 +349,10 @@ index eb53bdb..a4055fb 100644
  /*
   * This include must come after system headers, since it introduces macros that
 diff --git a/log-tree.c b/log-tree.c
-index 88b3019..58cb206 100644
+index 83a3c4bf9b..6488e4745e 100644
 --- a/log-tree.c
 +++ b/log-tree.c
-@@ -937,7 +937,9 @@ int log_tree_diff_flush(struct rev_info *opt)
+@@ -938,7 +938,9 @@ int log_tree_diff_flush(struct rev_info *opt)
  	}
  
  	if (opt->loginfo && !opt->no_commit_id) {
@@ -364,7 +364,7 @@ index 88b3019..58cb206 100644
  		    opt->verbose_header &&
  		    opt->commit_format != CMIT_FMT_ONELINE &&
 diff --git a/notes.c b/notes.c
-index ec9c2cb..a1b9738 100644
+index ec9c2cb150..a1b9738a00 100644
 --- a/notes.c
 +++ b/notes.c
 @@ -81,7 +81,7 @@ struct non_note {
@@ -377,38 +377,18 @@ index ec9c2cb..a1b9738 100644
  static void load_subtree(struct notes_tree *t, struct leaf_node *subtree,
  		struct int_node *node, unsigned int n);
 diff --git a/pager.c b/pager.c
-index 35b210e..b482cf0 100644
+index 543ef12936..01fe4a03d1 100644
 --- a/pager.c
 +++ b/pager.c
-@@ -84,26 +84,7 @@ static int core_pager_config(const char *var, const char *value,
+@@ -92,6 +92,7 @@ static int core_pager_config(const char *var, const char *value,
  
  const char *git_pager(struct repository *r, int stdout_is_tty)
  {
--	const char *pager;
--
--	if (!stdout_is_tty)
--		return NULL;
--
--	pager = getenv("GIT_PAGER");
--	if (!pager) {
--		if (!pager_program)
--			read_early_config(r,
--					  core_pager_config, NULL);
--		pager = pager_program;
--	}
--	if (!pager)
--		pager = getenv("PAGER");
--	if (!pager)
--		pager = DEFAULT_PAGER;
--	if (!*pager || !strcmp(pager, "cat"))
--		pager = NULL;
--
--	return pager;
 +	return NULL;
- }
+ 	const char *pager;
  
- static void setup_pager_env(struct strvec *env)
-@@ -192,7 +173,7 @@ void setup_pager(struct repository *r)
+ 	if (!stdout_is_tty)
+@@ -202,7 +203,7 @@ void setup_pager(struct repository *r)
  
  int pager_in_use(void)
  {
@@ -417,59 +397,39 @@ index 35b210e..b482cf0 100644
  }
  
  /*
-@@ -275,34 +256,11 @@ static int pager_command_config(const char *var, const char *value,
+@@ -285,6 +286,7 @@ static int pager_command_config(const char *var, const char *value,
  				const struct config_context *ctx UNUSED,
  				void *vdata)
  {
--	struct pager_command_config_data *data = vdata;
--	const char *cmd;
--
--	if (skip_prefix(var, "pager.", &cmd) && !strcmp(cmd, data->cmd)) {
--		int b = git_parse_maybe_bool(value);
--		if (b >= 0)
--			data->want = b;
--		else {
--			data->want = 1;
--			data->value = xstrdup(value);
--		}
--	}
--
- 	return 0;
- }
++	return 0;
+ 	struct pager_command_config_data *data = vdata;
+ 	const char *cmd;
  
+@@ -304,6 +306,7 @@ static int pager_command_config(const char *var, const char *value,
  /* returns 0 for "no pager", 1 for "use pager", and -1 for "not specified" */
  int check_pager_config(struct repository *r, const char *cmd)
  {
--	struct pager_command_config_data data;
--
--	data.cmd = cmd;
--	data.want = -1;
--	data.value = NULL;
--
--	read_early_config(r, pager_command_config, &data);
--
--	if (data.value)
--		pager_program = data.value;
--	return data.want;
 +	return 0;
- }
+ 	struct pager_command_config_data data;
+ 
+ 	data.cmd = cmd;
 diff --git a/revision.h b/revision.h
-index 00c392b..eb33dbf 100644
+index e5dabd18ce..8efe6e9d0b 100644
 --- a/revision.h
 +++ b/revision.h
-@@ -390,6 +390,10 @@ struct rev_info {
- 
+@@ -397,6 +397,10 @@ struct rev_info {
  	/* Missing commits to be tracked without failing traversal. */
  	struct oidset missing_commits;
-+
+ 
 +	/* TGit extension */
 +	void *pPrivate;
 +	struct diffstat_t diffstat;
- };
- 
- /**
++
+ 	/*
+ 	 * Strings whose ownership has been handed over to us, but which
+ 	 * we may be referencing in any of the above options (including
 diff --git a/run-command.c b/run-command.c
-index e70a8a3..3b7fc51 100644
+index 27c31af8b0..3a04b250ea 100644
 --- a/run-command.c
 +++ b/run-command.c
 @@ -681,6 +681,8 @@ int start_command(struct child_process *cmd)
@@ -562,7 +522,7 @@ index e70a8a3..3b7fc51 100644
  	if (need_in) {
  		if (pipe(fdin) < 0) {
 diff --git a/sub-process.c b/sub-process.c
-index 2d5c965..fd7a7f0 100644
+index 2d5c965169..fd7a7f09fa 100644
 --- a/sub-process.c
 +++ b/sub-process.c
 @@ -78,6 +78,8 @@ int subprocess_start(struct hashmap *hashmap, struct subprocess_entry *entry, co
@@ -574,3 +534,6 @@ index 2d5c965..fd7a7f0 100644
  	entry->cmd = cmd;
  	process = &entry->process;
  
+-- 
+2.56.0.windows.4
+

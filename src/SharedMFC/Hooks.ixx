@@ -330,7 +330,7 @@ bool CHooks::Save() {
 			sHookPropName = CUnicodeUtils::GetUTF8<CStringA>(PROJECTPROPNAME_PREREBASEHOOK);
 			break;
 		default:
-			std::unreachable();
+			[[unlikely]] std::unreachable();
 		}
 		git_config_set_string(gitconfig.get(), sHookPropName + "cmdline", CUnicodeUtils::GetUTF8<CStringA>(snd.commandline));
 		git_config_set_bool(gitconfig.get(), sHookPropName + "wait", snd.bWait);

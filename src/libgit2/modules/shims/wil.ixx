@@ -68,8 +68,13 @@ inline void THROW_LIVE_ERROR_IF(const bool cond, const std::string_view what, co
 }
 
 
+static_assert(std::is_convertible_v<const std::string&, std::string_view>);
+static_assert(std::is_convertible_v<const std::string&, const char*> == false);
+static_assert(std::is_convertible_v<std::string_view, const std::string&> == false);
+
+
 /// Every high surrogate is followed by a low one, and every low one follows a high one.
-[[nodiscard]] constexpr bool IsWellFormedUtf16(const std::wstring_view s) noexcept {
+[[nodiscard]] constexpr bool IsWellFormedUtf16(const wil::zwstring_view s) noexcept {
 	for (size_t i = 0; i < s.size(); ++i) {
 		if (IS_LOW_SURROGATE(s.at(i)))
 			return false; // low without a high
@@ -93,7 +98,7 @@ enum class CopyError : std::uint8_t { embedded_null, lone_surrogate, buffer_too_
 /// Copies `source` into `dest` whole, NUL-terminated, as well-formed UTF-16, or not at all.
 /// On failure `dest` holds "" (when it has room), never a partial or stale string.
 [[nodiscard]] std::expected<void, CopyError>
-CopyTerminated(const std::span<wchar_t> dest, const std::wstring_view source) noexcept {
+CopyTerminated(const std::span<wchar_t> dest, const wil::zwstring_view source) noexcept {
 	const auto fail = [&](CopyError e) {
 		if (!dest.empty())
 			dest.front() = L'\0';
@@ -112,8 +117,8 @@ CopyTerminated(const std::span<wchar_t> dest, const std::wstring_view source) no
 }
 
 
-std::wstring_view get_string_resource(const UINT uID, const std::optional<HINSTANCE> oInstance = std::nullopt, const WORD wLanguage = LANG_USER_DEFAULT) {
-	auto pCurrentStr = [&] -> std::wstring_view {
+wil::zwstring_view get_string_resource(const UINT uID, const std::optional<HINSTANCE> oInstance = {}, const WORD wLanguage = LANG_USER_DEFAULT) {
+	auto pCurrentStr = [&] -> wil::zwstring_view {
 		// A string table is stored in blocks of 16: block (uID / 16) + 1, slot uID % 16.
 		const auto* const blockResId = MAKEINTRESOURCE((uID >> 4U) + 1);
 		auto* const hInstance = oInstance.value_or(nullptr);
@@ -134,7 +139,7 @@ std::wstring_view get_string_resource(const UINT uID, const std::optional<HINSTA
 		const auto* const resVoidp = LockResource(hResData);
 		if (!resVoidp)
 			return {};
-		return {static_cast<const wchar_t*>(resVoidp), bytes / sizeof(wchar_t)};
+		return wil::zwstring_view{static_cast<const wchar_t*>(resVoidp), bytes / sizeof(wchar_t)};
 	}();
 
 
@@ -182,7 +187,7 @@ struct ConvOpts {
 };
 
 
-std::string WideCharToMultiByte(const std::wstring_view wide, const ConvOpts opts = {},	const sloc_t loc = sloc_t::current()) {
+std::string WideCharToMultiByte(const wil::zwstring_view wide, const ConvOpts opts = {},	const sloc_t loc = sloc_t::current()) {
 	if (wide.empty())
 		return {};
 
@@ -512,17 +517,16 @@ namespace reg {
 	using reg_view_tgit = wil::reg::reg_view_details::reg_view_t<err_returncode_policy>;
 
 	static_assert(std::is_convertible_v<PCWSTR, std::wstring_view>);
-	static_assert(std::is_convertible_v<PCWSTR, std::wstring_view>);
 	static_assert(std::is_convertible_v<std::wstring, std::wstring_view>);
-	// static_assert(std::is_convertible_v<std::wstring_view, std::wstring>);
+	static_assert(std::is_convertible_v<std::wstring_view, std::wstring> == false);
 
-	til::expect_no_hres set_value_dword_expected(const HKEY& key, const std::wstring_view subkey, const std::wstring_view value_name, const uint32_t data) noexcept {
+	til::expect_no_hres set_value_dword_expected(const HKEY& key, const wil::zwstring_view subkey, const wil::zwstring_view value_name, const uint32_t data) noexcept {
 		auto&& ret = ::wil::reg::set_value_nothrow(key, subkey.data(), value_name.data(), data);
 		if (ret)
 			return std::unexpected{ret};
 		return {};
 	}
-	til::expect_no_hres set_value_string_expected(const HKEY& key, const std::wstring_view subkey, const std::wstring_view value_name, const std::wstring& data) noexcept {
+	til::expect_no_hres set_value_string_expected(const HKEY& key, const wil::zwstring_view subkey, const wil::zwstring_view value_name, const std::wstring& data) noexcept {
 		auto&& ret = ::wil::reg::set_value_nothrow(key, subkey.data(), value_name.data(), data);
 		if (ret)
 			return std::unexpected{ret};
@@ -535,12 +539,12 @@ namespace reg {
 	/// wil::reg::try_get_value_dword(root, subkey, name), compiled in this module
 	/// (see the note at the re-exports). Empty when the value is absent; throws
 	/// wil::ResultException on any other failure, exactly as wil's does.
-	std::optional<std::uint32_t> try_get_dword(const HKEY& root, const std::wstring_view subkey, const std::wstring_view name) {
-		return wil::reg::try_get_value_dword(root, subkey.data(), name.data());
+	std::optional<std::uint32_t> try_get_dword(const HKEY& root, const wil::zwstring_view subkey, const wil::zwstring_view name) {
+		return try_get_value_dword(root, subkey.data(), name.data());
 	}
 
 
-	bool get_bool(const HKEY& root, const std::wstring_view subkey, const std::wstring_view name, const bool def) {
+	bool get_bool(const HKEY& root, const wil::zwstring_view subkey, const wil::zwstring_view name, const bool def) {
 		auto&& temp = try_get_dword(root, subkey.data(), name.data());
 		return temp ? *temp : def;
 	}
@@ -548,54 +552,70 @@ namespace reg {
 
 	/// wil::reg::try_get_value_string(root, subkey, name), compiled in this module.
 	/// Same contract as try_get_dword.
-	std::optional<std::wstring> try_get_string(const HKEY& root, const std::wstring_view subkey, const std::wstring_view name) {
-		return wil::reg::try_get_value_string(root, subkey.data(), name.data());
+	std::optional<std::wstring> try_get_string(const HKEY& root, const wil::zwstring_view subkey, const wil::zwstring_view name) {
+		return try_get_value_string(root, subkey.data(), name.data());
 	}
 
 
 
 #pragma region TGit shortcuts
 
-	std::optional<std::wstring> try_get_tgit_string(const std::wstring_view name) {
-		auto value = wil::reg::try_get_string(HKEY_CURRENT_USER, TortoiseGitKey, name).value_or({});
-		if (value.empty())
-			value = wil::reg::try_get_string(HKEY_LOCAL_MACHINE, TortoiseGitKey, name).value_or({});
-
-		if (value.empty())
-			return std::nullopt;
-		return value;
-	}
-	std::optional<DWORD> try_get_tgit_dword(const std::wstring_view name) {
-		auto value = wil::reg::try_get_dword(HKEY_CURRENT_USER, TortoiseGitKey, name);
+	std::optional<std::wstring> try_get_both_string(const wil::zwstring_view subkey, const wil::zwstring_view name) {
+		auto value = try_get_string(HKEY_CURRENT_USER, subkey, name);
 		if (!value)
-			value = wil::reg::try_get_dword(HKEY_LOCAL_MACHINE, TortoiseGitKey, name);
+			value = try_get_string(HKEY_LOCAL_MACHINE, subkey, name);
+		return value;
+	}
+
+	std::optional<DWORD> try_get_both_dword(const wil::zwstring_view subkey, const wil::zwstring_view name) {
+		auto value = wil::reg::try_get_dword(HKEY_CURRENT_USER, subkey, name);
+		if (!value)
+			value = wil::reg::try_get_dword(HKEY_LOCAL_MACHINE, subkey, name);
 
 		return value;
 	}
 
-	std::optional<bool> try_get_tgit_bool(const std::wstring_view name) {
-		auto&& temp = try_get_tgit_dword(name);
-		return temp;
+	std::optional<std::wstring> try_get_tgit_string(const wil::zwstring_view name) {
+		return try_get_both_string(TortoiseGitKey, name);
 	}
 
-	til::expect_no_hres set_tgit_string(const HKEY& root, const std::wstring_view name, const std::wstring_view data) {
+	std::optional<DWORD> try_get_both_bool(const wil::zwstring_view subkey, const wil::zwstring_view name) {
+		return wil::reg::try_get_both_dword(subkey, name);
+	}
+
+	std::optional<DWORD> try_get_tgit_dword(const wil::zwstring_view name) {
+		return wil::reg::try_get_both_dword(TortoiseGitKey, name);
+	}
+
+	std::optional<bool> try_get_tgit_bool(const wil::zwstring_view name) {
+		return try_get_tgit_dword(name);
+	}
+
+	til::expect_no_hres set_tgit_string(const HKEY& root, const wil::zwstring_view name, const wil::zwstring_view data) {
 		auto ret = wil::reg::set_value_nothrow(root, TortoiseGitKey.data(), name.data(), std::wstring{data});
 		if (ret)
 			return std::unexpected{ret};
 		return {};
 	}
-	til::expect_no_hres set_tgit_string(const std::wstring_view name, const std::wstring_view data) {
+	auto set_tgit_user_string(const wil::zwstring_view name, const wil::zwstring_view data) {
 		return set_tgit_string(HKEY_CURRENT_USER, name, data);
 	}
-
-	til::expect_no_hres set_tgit_dword(const std::wstring_view name, const DWORD data) {
-		auto ret = wil::reg::set_value_nothrow(HKEY_CURRENT_USER, TortoiseGitKey.data(), name.data(), data);
-		if (ret)
-			return std::unexpected{ret};
-		return {};
+	auto set_tgit_machine_string(const wil::zwstring_view name, const wil::zwstring_view data) {
+		return set_tgit_string(HKEY_LOCAL_MACHINE, name, data);
 	}
 
-	til::expect_no_hres delete_tgit_value(const std::wstring_view name) {
+	til::expect_no_hres set_tgit_dword(const HKEY& root, const std::wstring& name, const DWORD data) {
+		HRESULT ret = wil::reg::set_value_nothrow(root, TortoiseGitKey.data(), name.data(), data);
+		return til::expect_no_hres(std::unexpect, ret);
+	}
+	auto set_tgit_user_dword(const wil::zwstring_view name, const DWORD data) {
+		return set_tgit_dword(HKEY_CURRENT_USER, name, data);
+	}
+	auto set_tgit_machine_dword(const wil::zwstring_view name, const DWORD data) {
+		return set_tgit_dword(HKEY_LOCAL_MACHINE, name, data);
+	}
+
+	til::expect_no_hres delete_tgit_value(const wil::zwstring_view name) {
 		{
 			const auto regview = reg_view_tgit{HKEY_CURRENT_USER};
 			const auto maybe_user = regview.try_get_value<PCWSTR>(TortoiseGitKey.data(), name.data());
@@ -746,7 +766,7 @@ public:
 	/// Moves \a text to the front of the list, adding it if it is not there yet.
 	/// Reloads first, so an entry another dialog saved in the meantime is kept.
 	/// Returns true when \a text was new.
-	bool AddEntry(const std::wstring_view text) {
+	bool AddEntry(const wil::zwstring_view text) {
 		if (text.empty())
 			return false;
 		if (!m_subkey.empty())
@@ -792,7 +812,7 @@ unique_close_clipboard_call open_clipboard_retrying(const HWND& owner) {
 	for (auto attempt = 0U; attempt < NUM_RETRY_CALLS; ++attempt) {
 		if (attempt > 0)
 			::Sleep(1U << (attempt - 1));
-		if (auto clipboard = open_clipboard(owner))
+		if (auto clipboard = open_clipboard(owner); clipboard)
 			return clipboard;
 	}
 	// Explicitly false: a default-constructed unique_call *does* call CloseClipboard.
@@ -823,7 +843,7 @@ unique_hglobal make_moveable_hglobal(const std::span<const std::byte> bytes) {
 
 /// The text plus a terminating NUL, which is what every text clipboard
 /// format expects. The NUL is written here, so any view will do.
-unique_hglobal make_moveable_hglobal(const std::wstring_view text) {
+unique_hglobal make_moveable_hglobal(const wil::zwstring_view text) {
 	return tgit_details::make_moveable_text(text);
 }
 
@@ -842,7 +862,7 @@ unique_hglobal make_moveable_hglobal(const std::string_view text) {
 /// (the allocation and copy) happens before it is opened, and EmptyClipboard
 /// sits right beside SetClipboardData - a failure leaves the user's clipboard
 /// as it was, and never leaves it locked.
-bool SetClipboardText(const std::wstring_view text, const HWND& owner = nullptr) {
+bool SetClipboardText(const wil::zwstring_view text, const HWND& owner = nullptr) {
 	auto block = make_moveable_hglobal(text);
 	if (!block)
 		return false;
@@ -948,7 +968,7 @@ unique_git_repository OpenGitRepository(const char* const gitDirUtf8) {
  * path needs: CGit writes the whole command line into a temp file and hands
  * it to bash.exe, so there the "command line" is shell *source*.
  */
-std::wstring EscapePosixShellArgument(const std::wstring_view argument) {
+std::wstring EscapePosixShellArgument(const wil::zwstring_view argument) {
 	// Single quotes suppress every expansion bash performs, and the only thing
 	// that cannot appear between them is a single quote - so close, escape it
 	// outside, and reopen.
@@ -975,7 +995,7 @@ bool isextra_posix_char(const wchar_t c) {
  * Deliberately a whitelist: a blacklist of bash metacharacters is a list you
  * are always one shell feature behind on.
  */
-bool NeedsPosixShellQuoting(const std::wstring_view str) {
+bool NeedsPosixShellQuoting(const wil::zwstring_view str) {
 	if (str.empty())
 		return true;
 
@@ -1042,7 +1062,7 @@ public:
 
 	// keep a std::string_view / const char* ctor that converts with StdGetUTF16 / MultiByteToWideChar if callers need it
 
-	ArgvData& operator<<(const std::wstring_view arg) {
+	ArgvData& operator<<(const wil::zwstring_view arg) {
 		_args.emplace_back(arg);
 		return *this;
 	}
@@ -1058,7 +1078,7 @@ public:
 	}
 
 	[[deprecated("I don't like this name and shape, use <<")]]
-	ArgvData& emplace_back(const std::wstring_view arg) {
+	ArgvData& emplace_back(const wil::zwstring_view arg) {
 		_args.emplace_back(arg);
 		return *this;
 	}

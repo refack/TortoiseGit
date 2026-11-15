@@ -31,10 +31,10 @@ exposure, and is worth sending to git upstream rather than carrying.
  1 file changed, 19 insertions(+)
 
 diff --git a/repository.c b/repository.c
-index cfd00c3..c07fc0c 100644
+index 74e7d9527e..67c913ca42 100644
 --- a/repository.c
 +++ b/repository.c
-@@ -430,6 +430,25 @@ void repo_clear(struct repository *repo)
+@@ -439,6 +439,25 @@ void repo_clear(struct repository *repo)
  	strmap_clear(&repo->worktree_ref_stores, 1);
  
  	repo_clear_path_cache(&repo->cached_paths);
@@ -60,3 +60,6 @@ index cfd00c3..c07fc0c 100644
  }
  
  int repo_read_index(struct repository *repo)
+-- 
+2.56.0.windows.4
+

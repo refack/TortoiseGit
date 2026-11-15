@@ -31,7 +31,7 @@ Signed-off-by: Sup Yut Sum <ch3cooli@gmail.com>
 
 diff --git a/.tgitconfig b/.tgitconfig
 new file mode 100644
-index 0000000..9f52932
+index 0000000000..9f5293264a
 --- /dev/null
 +++ b/.tgitconfig
 @@ -0,0 +1,9 @@
@@ -45,7 +45,7 @@ index 0000000..9f52932
 +	projectlanguage = 1033
 +	icon = contrib/git.ico
 diff --git a/attr.c b/attr.c
-index 5458335..2bd29d0 100644
+index 9f86a1a9f1..c5fa2c522d 100644
 --- a/attr.c
 +++ b/attr.c
 @@ -161,7 +161,7 @@ static void all_attrs_init(struct attr_hashmap *map, struct attr_check *check)
@@ -58,7 +58,7 @@ index 5458335..2bd29d0 100644
  
  		REALLOC_ARRAY(check->all_attrs, size);
 diff --git a/compat/mingw-posix.h b/compat/mingw-posix.h
-index 7757588..8a8ab8e 100644
+index 775758879b..8a8ab8e513 100644
 --- a/compat/mingw-posix.h
 +++ b/compat/mingw-posix.h
 @@ -155,9 +155,9 @@ static inline int sigprocmask(int how UNUSED, const sigset_t *set UNUSED, sigset
@@ -74,10 +74,10 @@ index 7757588..8a8ab8e 100644
  /*
   * simple adaptors
 diff --git a/compat/mingw.c b/compat/mingw.c
-index 4db25c8..26ce2c7 100644
+index 4b619d9f54..df4bad0073 100644
 --- a/compat/mingw.c
 +++ b/compat/mingw.c
-@@ -693,7 +693,7 @@ int mingw_unlink(const char *pathname, int handle_in_use_error)
+@@ -694,7 +694,7 @@ int mingw_unlink(const char *pathname, int handle_in_use_error)
  
  static int is_dir_empty(const wchar_t *wpath)
  {
@@ -87,10 +87,10 @@ index 4db25c8..26ce2c7 100644
  	wchar_t wbuf[MAX_LONG_PATH + 2];
  	wcscpy(wbuf, wpath);
 diff --git a/config.c b/config.c
-index 7fe7ff2..313634c 100644
+index 11f0871bfb..d231f8c760 100644
 --- a/config.c
 +++ b/config.c
-@@ -1805,7 +1805,7 @@ void git_configset_init(struct config_set *set)
+@@ -1817,7 +1817,7 @@ void git_configset_init(struct config_set *set)
  
  void git_configset_clear(struct config_set *set)
  {
@@ -100,7 +100,7 @@ index 7fe7ff2..313634c 100644
  	if (!set->hash_initialized)
  		return;
 diff --git a/contrib/buildsystems/CMakeLists.txt b/contrib/buildsystems/CMakeLists.txt
-index 9077b18..dde2849 100644
+index 524b3aad92..c7a7f06054 100644
 --- a/contrib/buildsystems/CMakeLists.txt
 +++ b/contrib/buildsystems/CMakeLists.txt
 @@ -239,7 +239,21 @@ if(NOT HOST_CPU)
@@ -126,7 +126,7 @@ index 9077b18..dde2849 100644
  add_compile_definitions(NO_OPENSSL SHA1_DC SHA1DC_NO_STANDARD_INCLUDES
  			SHA1DC_INIT_SAFE_HASH_DEFAULT=0
  			SHA1DC_CUSTOM_INCLUDE_SHA1_C="git-compat-util.h"
-@@ -712,6 +726,21 @@ add_custom_command(OUTPUT "${CMAKE_BINARY_DIR}/version-def.h"
+@@ -716,6 +730,21 @@ add_custom_command(OUTPUT "${CMAKE_BINARY_DIR}/version-def.h"
  	VERBATIM)
  list(APPEND libgit_SOURCES "${CMAKE_BINARY_DIR}/version-def.h")
  
@@ -395,10 +395,10 @@ literal 0
 HcmV?d00001
 
 diff --git a/fetch-pack.c b/fetch-pack.c
-index a9fa07c..094f7fc 100644
+index b0af6684a6..7ace4b8052 100644
 --- a/fetch-pack.c
 +++ b/fetch-pack.c
-@@ -56,6 +56,7 @@ static struct strbuf fsck_msg_types = STRBUF_INIT;
+@@ -55,6 +55,7 @@ static struct strbuf fsck_msg_types = STRBUF_INIT;
  static struct string_list uri_protocols = STRING_LIST_INIT_DUP;
  
  /* Remember to update object flag allocation in object.h */
@@ -407,10 +407,10 @@ index a9fa07c..094f7fc 100644
  #define ALTERNATE	(1U << 1)
  #define COMMON		(1U << 6)
 diff --git a/hash.h b/hash.h
-index c082a53..f257c7a 100644
+index cf94ad5700..291a5f242a 100644
 --- a/hash.h
 +++ b/hash.h
-@@ -454,7 +454,7 @@ static inline unsigned int oidhash(const struct object_id *oid)
+@@ -498,7 +498,7 @@ static inline unsigned int oidhash(const struct object_id *oid)
  
  static inline int is_null_oid(const struct object_id *oid)
  {
@@ -420,7 +420,7 @@ index c082a53..f257c7a 100644
  }
  
 diff --git a/help.c b/help.c
-index 4624149..95527fd 100644
+index 46241492ce..95527fdea8 100644
 --- a/help.c
 +++ b/help.c
 @@ -11,7 +11,6 @@
@@ -1019,7 +1019,7 @@ index 4624149..95527fd 100644
  {
  	struct strbuf buf = STRBUF_INIT;
 diff --git a/remote.c b/remote.c
-index 00723b3..2956aa9 100644
+index fe62068463..14913ff519 100644
 --- a/remote.c
 +++ b/remote.c
 @@ -27,6 +27,7 @@
@@ -1030,7 +1030,7 @@ index 00723b3..2956aa9 100644
  
  enum map_direction { FROM_SRC, FROM_DST };
  
-@@ -1849,7 +1850,7 @@ int branch_merge_matches(struct branch *branch,
+@@ -1875,7 +1876,7 @@ int branch_merge_matches(struct branch *branch,
  }
  
  __attribute__((format (printf,2,3)))
@@ -1040,10 +1040,10 @@ index 00723b3..2956aa9 100644
  	if (err) {
  		va_list ap;
 diff --git a/submodule-config.c b/submodule-config.c
-index f759974..ba3a2b0 100644
+index 37c3be377b..042b84623a 100644
 --- a/submodule-config.c
 +++ b/submodule-config.c
-@@ -104,7 +104,7 @@ static void free_one_config(struct submodule_entry *entry)
+@@ -103,7 +103,7 @@ static void free_one_config(struct submodule_entry *entry)
  static void submodule_cache_clear(struct submodule_cache *cache)
  {
  	struct hashmap_iter iter;
@@ -1053,7 +1053,7 @@ index f759974..ba3a2b0 100644
  	if (!cache->initialized)
  		return;
 diff --git a/xdiff/xdiffi.c b/xdiff/xdiffi.c
-index c5a892f..fadcd4a 100644
+index c5a892f91e..fadcd4a380 100644
 --- a/xdiff/xdiffi.c
 +++ b/xdiff/xdiffi.c
 @@ -715,7 +715,7 @@ static void group_init(xdfile_t *xdf, struct xdlgroup *g)
@@ -1074,3 +1074,6 @@ index c5a892f..fadcd4a 100644
  {
  	if (g->start == 0)
  		return -1;
+-- 
+2.56.0.windows.4
+

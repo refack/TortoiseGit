@@ -19,7 +19,7 @@ Signed-off-by: Sven Strickroth <email@cs-ware.de>
  5 files changed, 80 insertions(+), 40 deletions(-)
 
 diff --git a/attr.c b/attr.c
-index b4ec500..5458335 100644
+index 54bc0bbc48..9f86a1a9f1 100644
 --- a/attr.c
 +++ b/attr.c
 @@ -874,8 +874,12 @@ static struct attr_stack *read_attr(struct index_state *istate,
@@ -38,7 +38,7 @@ index b4ec500..5458335 100644
  }
  
 diff --git a/compat/msvc.h b/compat/msvc.h
-index 2b87c0a..33613f2 100644
+index 2b87c0a7c7..33613f24de 100644
 --- a/compat/msvc.h
 +++ b/compat/msvc.h
 @@ -4,4 +4,22 @@
@@ -65,10 +65,10 @@ index 2b87c0a..33613f2 100644
 +
  #endif
 diff --git a/config.c b/config.c
-index 6a0de86..7fe7ff2 100644
+index d9019e7e6c..11f0871bfb 100644
 --- a/config.c
 +++ b/config.c
-@@ -1496,8 +1496,12 @@ static int git_config_from_blob_ref(config_fn_t fn,
+@@ -1508,8 +1508,12 @@ static int git_config_from_blob_ref(config_fn_t fn,
  char *git_system_config(void)
  {
  	char *system_config = xstrdup_or_null(getenv("GIT_CONFIG_SYSTEM"));
@@ -84,7 +84,7 @@ index 6a0de86..7fe7ff2 100644
  	return system_config;
  }
 diff --git a/exec-cmd.c b/exec-cmd.c
-index 507e67d..77644be 100644
+index 507e67d528..77644bef1b 100644
 --- a/exec-cmd.c
 +++ b/exec-cmd.c
 @@ -27,8 +27,6 @@
@@ -195,7 +195,7 @@ index 507e67d..77644be 100644
  {
  	struct strbuf d = STRBUF_INIT;
 diff --git a/path.c b/path.c
-index f452632..a8506f3 100644
+index 08da7fb427..38b0403a59 100644
 --- a/path.c
 +++ b/path.c
 @@ -1597,6 +1597,7 @@ char *xdg_config_home_for(const char *subdir, const char *filename)
@@ -206,3 +206,6 @@ index f452632..a8506f3 100644
  	{
  		const char *appdata = getenv("APPDATA");
  		if (appdata && *appdata) {
+-- 
+2.56.0.windows.4
+

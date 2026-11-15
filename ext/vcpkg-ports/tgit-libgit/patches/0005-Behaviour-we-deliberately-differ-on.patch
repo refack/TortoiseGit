@@ -20,7 +20,7 @@ Signed-off-by: Sven Strickroth <email@cs-ware.de>
  4 files changed, 7 insertions(+), 5 deletions(-)
 
 diff --git a/builtin/log.c b/builtin/log.c
-index 2993123..40a6e14 100644
+index 98da5727ed..e621587404 100644
 --- a/builtin/log.c
 +++ b/builtin/log.c
 @@ -339,7 +339,7 @@ static void cmd_log_init_finish(int argc, const char **argv, const char *prefix,
@@ -33,7 +33,7 @@ index 2993123..40a6e14 100644
  		string_list_init_nodup(rev->mailmap);
  		read_mailmap(the_repository, rev->mailmap);
 diff --git a/commit-graph.c b/commit-graph.c
-index 801471a..30577f8 100644
+index 983c11ce85..fd42ddc78b 100644
 --- a/commit-graph.c
 +++ b/commit-graph.c
 @@ -243,6 +243,7 @@ static int commit_graph_compatible(struct repository *r)
@@ -55,10 +55,10 @@ index 801471a..30577f8 100644
  
  struct commit_graph *load_commit_graph_one_fd_st(struct odb_source *source,
 diff --git a/log-tree.c b/log-tree.c
-index bc6589e..b5000b9 100644
+index 4afa3b7646..d0bf9bc24a 100644
 --- a/log-tree.c
 +++ b/log-tree.c
-@@ -1201,7 +1201,6 @@ int log_tree_commit(struct rev_info *opt, struct commit *commit)
+@@ -1302,7 +1302,6 @@ int log_tree_commit(struct rev_info *opt, struct commit *commit)
  	shown = log_tree_diff(opt, commit, &log);
  	if (!shown && opt->loginfo && opt->always_show_header) {
  		log.parent = NULL;
@@ -66,19 +66,19 @@ index bc6589e..b5000b9 100644
  		shown = 1;
  	}
  	if (opt->track_linear && !opt->linear && opt->reverse_output_stage)
-@@ -1209,7 +1208,6 @@ int log_tree_commit(struct rev_info *opt, struct commit *commit)
- 	if (shown)
- 		show_diff_of_diff(opt);
+@@ -1325,7 +1324,6 @@ int log_tree_commit(struct rev_info *opt, struct commit *commit)
+ 	}
+ 
  	opt->loginfo = NULL;
 -	maybe_flush_or_die(opt->diffopt.file, "stdout");
  	opt->diffopt.no_free = no_free;
  
  	diff_free(&opt->diffopt);
 diff --git a/object-file.c b/object-file.c
-index 6453b1d..879174d 100644
+index 68751dadc3..7ae07605c1 100644
 --- a/object-file.c
 +++ b/object-file.c
-@@ -1037,8 +1037,8 @@ static int index_stream_convert_blob(struct index_state *istate,
+@@ -617,8 +617,8 @@ static int index_stream_convert_blob(struct index_state *istate,
  	assert(path);
  	ASSERT(would_convert_to_git_filter_fd(istate, path));
  
@@ -89,3 +89,6 @@ index 6453b1d..879174d 100644
  
  	if (write_object)
  		ret = odb_write_object(istate->repo->objects, sbuf.buf, sbuf.len, OBJ_BLOB,
+-- 
+2.56.0.windows.4
+

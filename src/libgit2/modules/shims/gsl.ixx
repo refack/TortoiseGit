@@ -17,6 +17,9 @@ using ::gsl::owner;
 using ::gsl::span;
 using ::gsl::index;
 using ::gsl::basic_zstring;
+using ::gsl::zstring;
+using ::gsl::wzstring;
+
 
 constexpr auto win32_cast(auto u) noexcept { return ::gsl::narrow_cast<int>(u); }
 constexpr auto size_t_cast(auto u) noexcept { return ::gsl::narrow_cast<size_t>(u); }

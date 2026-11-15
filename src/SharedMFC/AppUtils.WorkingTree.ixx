@@ -122,7 +122,7 @@ bool IgnoreFile(const HWND hWnd, const CTGitPathList& path, const bool IsMask)
 			break;
 
 		default:
-			std::unreachable();
+			[[unlikely]] std::unreachable();
 		}
 
 		CIgnoreFile file;

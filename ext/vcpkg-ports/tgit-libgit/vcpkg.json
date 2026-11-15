@@ -1,7 +1,7 @@
 {
   "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg-tool/main/docs/vcpkg.schema.json",
   "name": "tgit-libgit",
-  "version-string": "2.55.0.windows.5",
+  "version-string": "v2.56.1.windows.1",
   "description": "git's own C sources built as a static library, for TortoiseGit's gitdll. Carries TortoiseGit's patch series; see TORTOISEGIT-PATCHES.md.",
   "homepage": "https://github.com/git-for-windows/git",
   "license": "GPL-2.0-only",

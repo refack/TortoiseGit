@@ -21,7 +21,7 @@
       },
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
-        "VCPKG_MANIFEST_INSTALL": "OFF",
+        "VCPKG_MANIFEST_INSTALL": "ON",
         "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
         "CMAKE_C_COMPILER_LAUNCHER": "pwsh;-NoProfile;-NonInteractive;-ExecutionPolicy;Bypass;-File;${sourceDir}/contrib/cl-shim.ps1",
         "CMAKE_CXX_COMPILER_LAUNCHER": "pwsh;-NoProfile;-NonInteractive;-ExecutionPolicy;Bypass;-File;${sourceDir}/contrib/cl-shim.ps1"
@@ -35,7 +35,7 @@
       "binaryDir": "build/release",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release",
-        "VCPKG_MANIFEST_INSTALL": "OFF",
+        "VCPKG_MANIFEST_INSTALL": "ON",
         "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
       }
     },
@@ -54,7 +54,7 @@
       },
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
-        "VCPKG_MANIFEST_INSTALL": "OFF",
+        "VCPKG_MANIFEST_INSTALL": "ON",
         "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
         "CMAKE_CXX_STDLIB_MODULES_JSON": "C:/bin/dev/Microsoft/2026Community/VC/Tools/MSVC/14.51.36231/modules/modules.json"
       }

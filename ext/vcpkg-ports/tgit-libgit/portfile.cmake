@@ -27,8 +27,8 @@ vcpkg_check_linkage(ONLY_STATIC_LIBRARY)
 vcpkg_from_github(
     OUT_SOURCE_PATH SOURCE_PATH
     REPO git-for-windows/git
-    REF f661476ee4698cf7bfa734b91330048a54d7ee11
-    SHA512 910bcb46359dd330cb8b480cdc29f20f2acfcb597c620ada5ea803a4ba1b5c2f4ecf917bc13fcf92880bcbcdd794112e39097ce657ca3d742d5e9b7eee011c33
+    REF 7bda9d349370004e1aec464249d784d18e58c001
+    SHA512 48c35cad3d2ee9d45d285c4eb511241b0ec1b2ec84657679e86eed32ff54defaeabbeb09516eccff14d31f83565f74c80d803cf5a4473037555723961c480e5d
     HEAD_REF main
     PATCHES
         patches/0001-We-are-a-DLL-not-a-process.patch
