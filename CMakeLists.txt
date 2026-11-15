@@ -205,5 +205,34 @@ add_subdirectory(test/ShellBench)
 add_subdirectory(test/TgitUnitTests)
 
 
+# Local CI is `ninja TGitUnitTests` + running it. Make that one target build every
+# other target too: TortoiseProc, TortoiseShell, ... are linked by nothing the tests
+# link, so without this a broken app binary goes unnoticed until someone builds `all`.
+# Collected, not listed by hand, so a new target cannot be forgotten; EXCLUDE_FROM_ALL
+# targets stay out, so the set is exactly what a plain `ninja` builds.
+function(tgit_collect_buildsystem_targets out dir)
+    get_property(targets DIRECTORY "${dir}" PROPERTY BUILDSYSTEM_TARGETS)
+    get_property(subdirs DIRECTORY "${dir}" PROPERTY SUBDIRECTORIES)
+    foreach(sub IN LISTS subdirs)
+        tgit_collect_buildsystem_targets(sub_targets "${sub}")
+        list(APPEND targets ${sub_targets})
+    endforeach()
+    set(${out} ${targets} PARENT_SCOPE)
+endfunction()
+
+tgit_collect_buildsystem_targets(tgit_all_targets "${CMAKE_SOURCE_DIR}")
+set(tgit_ci_dependencies "")
+foreach(t IN LISTS tgit_all_targets)
+    get_target_property(type ${t} TYPE)
+    get_target_property(excluded ${t} EXCLUDE_FROM_ALL)
+    if(t STREQUAL "TGitUnitTests" OR type STREQUAL "INTERFACE_LIBRARY" OR excluded)
+        continue()
+    endif()
+    list(APPEND tgit_ci_dependencies ${t})
+endforeach()
+add_dependencies(TGitUnitTests ${tgit_ci_dependencies})
+message(STATUS "TGitUnitTests depends on every buildsystem target: ${tgit_ci_dependencies}")
+
+
 string(TIMESTAMP CURRENT_TIME "%Y-%m-%d %H:%M:%S")
 message(STATUS "configure timestamp: ${CURRENT_TIME}")
