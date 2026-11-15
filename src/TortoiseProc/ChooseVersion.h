@@ -72,8 +72,9 @@ protected:
 			this->m_ChooseVersioinVersion.EnableWindow(TRUE);
 			m_pWin->GetDlgItem(IDC_BUTTON_SHOW)->EnableWindow(TRUE);
 			break;
+
 		default:
-			std::unreachable();
+			break;
 		}
 		// enable version browse button if Version is selected
 		m_pWin->GetDlgItem(IDC_BUTTON_SHOW)->EnableWindow(radio == IDC_RADIO_VERSION);
@@ -123,8 +124,9 @@ protected:
 		case IDC_RADIO_VERSION:
 			this->m_VersionName = m_ChooseVersioinVersion.GetString();
 			break;
+
 		default:
-			std::unreachable();
+			break;
 		}
 	}
 

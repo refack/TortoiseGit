@@ -92,7 +92,7 @@ export class CGitRefCompareList : public CHintCtrl<CListCtrl> {
 			type.LoadString(IDS_PROC_TAG);
 			break;
 		default:
-			std::unreachable();
+			[[unlikely]] std::unreachable();
 		}
 		return type;
 	}
@@ -177,10 +177,9 @@ protected:
 			CString sCmd;
 			sCmd.Format(L"/command:reflog /path:\"%s\" /ref:%s", GitCall::m_CurrentDirStorage.c_str(), str::EscapeCmdValue(refName));
 			TortoiseProc::RunTortoiseGitProc(sCmd);
-			break;
 		}
 		default:
-			std::unreachable();
+			break;
 		}
 		AfxGetApp()->DoWaitCursor(-1);
 	}

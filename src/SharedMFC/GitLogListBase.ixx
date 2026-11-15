@@ -2083,7 +2083,7 @@ void CGitLogListBase::OnNMCustomdrawLoglist(NMHDR* pNMHDR, LRESULT* pResult) {
 			break;
 
 		default:
-			std::unreachable();
+			break;
 		}
 
 		if (gui_status && DrawListItemWithMatchesIfEnabled(gui_status, pLVCD, pResult))

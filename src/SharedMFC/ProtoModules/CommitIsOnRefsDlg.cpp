@@ -366,9 +366,10 @@ void CCommitIsOnRefsDlg::OnContextMenu(CWnd* pWnd, CPoint point)
 
 			TortoiseProc::RunTortoiseGitProc(sCmd);
 		}
-		break;
+			break;
+
 		default:
-			std::unreachable();
+			break;
 		}
 	}
 }
@@ -564,9 +565,8 @@ BOOL CCommitIsOnRefsDlg::PreTranslateMessage(MSG* pMsg)
 				OnTimer(IDT_FILTER);
 				return TRUE;
 			}
-			break;
 		default:
-			std::unreachable();
+			break;
 		}
 	}
 	return __super::PreTranslateMessage(pMsg);

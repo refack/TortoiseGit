@@ -62,8 +62,9 @@ bool FormatPatchCommand::Execute()
 		case IDC_RADIO_RANGE:
 			cmd.insert(cmd.cend(), { L"--end-of-options", std::format(L"{}..{}", dlg.m_From, dlg.m_To) });
 			break;
+
 		default:
-			std::unreachable();
+			break;
 		}
 		cmd.emplace_back(L"--");
 

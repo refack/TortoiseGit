@@ -1431,8 +1431,9 @@ int GetStateFromBtnState(const LONG_PTR dwStyle, const BOOL bHot, const BOOL bFo
 			else
 				iState = RBS_UNCHECKEDNORMAL;
 			break;
+
 		default:
-			std::unreachable();
+			break;
 
 		}
 		break;
@@ -1470,8 +1471,9 @@ int GetStateFromBtnState(const LONG_PTR dwStyle, const BOOL bHot, const BOOL bFo
 			else
 				iState = CBS_UNCHECKEDNORMAL;
 			break;
+
 		default:
-			std::unreachable();
+			break;
 		}
 		break;
 

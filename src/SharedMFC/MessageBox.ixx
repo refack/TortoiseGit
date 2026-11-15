@@ -1628,7 +1628,7 @@ BOOL CMessageBox::PreTranslateMessage(MSG* pMsg)
 					break;
 
 				default:
-					std::unreachable();
+					break;
 				}
 			}
 			break;

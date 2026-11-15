@@ -171,8 +171,9 @@ BOOL CAddDlg::PreTranslateMessage(MSG* pMsg)
 				Refresh();
 			}
 			break;
+
 		default:
-			std::unreachable();
+			break;
 		}
 	}
 
